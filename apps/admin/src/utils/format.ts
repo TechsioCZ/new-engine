@@ -1,3 +1,5 @@
+const ISO_CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
+
 export function formatCountLabel(count: number, countExact: boolean) {
   return countExact ? String(count) : `${count}+`
 }
@@ -9,7 +11,7 @@ export function formatCount(value: number, singular: string, plural: string) {
 export function formatCompactId(value: string): string
 export function formatCompactId(value: string | null | undefined): string | null
 export function formatCompactId(value: string | null | undefined) {
-  if (!value) {
+  if (value == null) {
     return null
   }
 
@@ -51,8 +53,13 @@ export function formatMoney(
     return "-"
   }
 
+  const normalizedCurrency = (currencyCode ?? "CZK").trim().toUpperCase()
+  const safeCurrency = ISO_CURRENCY_CODE_PATTERN.test(normalizedCurrency)
+    ? normalizedCurrency
+    : "CZK"
+
   return new Intl.NumberFormat("cs-CZ", {
-    currency: (currencyCode ?? "CZK").toUpperCase(),
+    currency: safeCurrency,
     style: "currency",
   }).format(amount)
 }

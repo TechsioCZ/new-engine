@@ -509,7 +509,13 @@ function toPacketaPayload(
   }
 
   for (const field of SENSITIVE_FIELDS) {
-    payload[field] = clearedFields.has(field) ? null : data[field].trim()
+    const value = data[field].trim()
+
+    if (clearedFields.has(field)) {
+      payload[field] = null
+    } else if (value) {
+      payload[field] = value
+    }
   }
 
   return payload

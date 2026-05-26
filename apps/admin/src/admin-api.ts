@@ -46,6 +46,7 @@ import type {
 } from "./admin-types"
 
 const ADMIN_API_PAGE_SIZE = 100
+const ADMIN_API_SCAN_CONCURRENCY = 2
 const ADMIN_API_SCAN_LIMIT = 2000
 const ACTION_REQUIRED_LIST_LIMIT = 50
 const ACTION_REQUIRED_REFETCH_INTERVAL_MS = 60_000
@@ -412,32 +413,57 @@ async function fetchAllAdminPages<TResponse extends { count: number }, TItem>({
   path,
   readItems,
 }: FetchAllAdminPagesInput<TResponse, TItem>) {
-  const records: TItem[] = []
-  let offset = 0
-
-  while (records.length < ADMIN_API_SCAN_LIMIT) {
-    const response = await fetchAdminApi<TResponse>(path, {
+  const fetchPage = (offset: number) =>
+    fetchAdminApi<TResponse>(path, {
       ...params,
       limit: String(ADMIN_API_PAGE_SIZE),
       offset: String(offset),
     })
-    const pageRecords = readItems(response)
+  const firstResponse = await fetchPage(0)
+  const records = [...readItems(firstResponse)]
+  const scanRecordCount = Math.min(firstResponse.count, ADMIN_API_SCAN_LIMIT)
 
-    records.push(...pageRecords)
-    offset += pageRecords.length
+  if (!records.length || records.length >= scanRecordCount) {
+    return {
+      countExact: firstResponse.count <= ADMIN_API_SCAN_LIMIT,
+      records,
+    }
+  }
 
-    if (!pageRecords.length || offset >= response.count) {
-      return {
-        countExact: true,
-        records,
-      }
+  const remainingOffsets = getAdminPageOffsets(scanRecordCount).slice(1)
+
+  for (
+    let index = 0;
+    index < remainingOffsets.length;
+    index += ADMIN_API_SCAN_CONCURRENCY
+  ) {
+    const offsetBatch = remainingOffsets.slice(
+      index,
+      index + ADMIN_API_SCAN_CONCURRENCY
+    )
+    const pages = await Promise.all(
+      offsetBatch.map((offset) => fetchPage(offset))
+    )
+
+    for (const response of pages) {
+      records.push(...readItems(response))
     }
   }
 
   return {
-    countExact: false,
+    countExact: firstResponse.count <= ADMIN_API_SCAN_LIMIT,
     records,
   }
+}
+
+function getAdminPageOffsets(recordCount: number) {
+  const offsets: number[] = []
+
+  for (let offset = 0; offset < recordCount; offset += ADMIN_API_PAGE_SIZE) {
+    offsets.push(offset)
+  }
+
+  return offsets
 }
 
 async function fetchActionRequiredOrdersFromAdminApi(): Promise<ActionRequiredOrdersResponse> {

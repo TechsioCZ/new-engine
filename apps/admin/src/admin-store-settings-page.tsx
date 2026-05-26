@@ -304,11 +304,16 @@ function renderTaxInclusivePricing(
     return "Unavailable"
   }
 
-  const isTaxInclusive = Boolean(preference?.is_tax_inclusive)
+  if (typeof preference?.is_tax_inclusive !== "boolean") {
+    return "Unavailable"
+  }
 
   return (
-    <Badge size="sm" variant={isTaxInclusive ? "success" : "outline"}>
-      {isTaxInclusive ? "True" : "False"}
+    <Badge
+      size="sm"
+      variant={preference.is_tax_inclusive ? "success" : "outline"}
+    >
+      {preference.is_tax_inclusive ? "True" : "False"}
     </Badge>
   )
 }

@@ -218,14 +218,18 @@ function PacketaLabelControls({
         className="sm:w-24"
         items={LABEL_FORMAT_ITEMS}
         label="Format"
-        onValueChange={(value) => onLabelFormatChange(value as LabelFormat)}
+        onValueChange={(value) =>
+          onLabelFormatChange(normalizeLabelFormat(value))
+        }
         value={labelFormat}
       />
       <AdminSelectField
         className="sm:w-24"
         items={LABEL_OFFSET_ITEMS}
         label="Offset"
-        onValueChange={(value) => onLabelOffsetChange(Number(value))}
+        onValueChange={(value) =>
+          onLabelOffsetChange(normalizeLabelOffset(value))
+        }
         value={String(labelOffset)}
       />
       <AdminToolbarButton
@@ -379,5 +383,16 @@ function downloadBlob(blob: Blob, filename: string) {
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
+function normalizeLabelFormat(value: string): LabelFormat {
+  return LABEL_FORMATS.includes(value as LabelFormat)
+    ? (value as LabelFormat)
+    : "A6"
+}
+
+function normalizeLabelOffset(value: string) {
+  const offset = Number(value)
+  return LABEL_OFFSETS.includes(offset) ? offset : 0
 }

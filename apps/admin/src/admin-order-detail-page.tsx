@@ -368,8 +368,12 @@ function OrderPaymentsPanel({ order }: { order: MedusaAdminOrder }) {
             </AdminTable.Row>
           </AdminTable.Header>
           <AdminTable.Body>
-            {collections.flatMap((collection) =>
-              toPaymentRows(collection, order.currency_code ?? null)
+            {collections.flatMap((collection, collectionIndex) =>
+              toPaymentRows(
+                collection,
+                collectionIndex,
+                order.currency_code ?? null
+              )
             )}
           </AdminTable.Body>
         </AdminTable>
@@ -470,7 +474,7 @@ function OrderEmailPanel({ order }: { order: MedusaAdminOrder }) {
   useEffect(() => {
     const firstTemplate = availableTemplates[0]?.template
 
-    if (!(selectedTemplate || !firstTemplate)) {
+    if (!selectedTemplate && firstTemplate) {
       setSelectedTemplate(firstTemplate)
     }
   }, [availableTemplates, selectedTemplate])
@@ -703,9 +707,10 @@ function OrderMetadataPanel({
 
 function toPaymentRows(
   collection: MedusaAdminPaymentCollection,
+  collectionIndex: number,
   fallbackCurrencyCode: string | null
 ) {
-  const collectionId = collection.id ?? "payment-collection"
+  const collectionId = collection.id ?? `payment-collection-${collectionIndex}`
   const collectionRow = (
     <PaymentCollectionRow
       collection={collection}
@@ -724,7 +729,7 @@ function toPaymentRows(
       <RefundPaymentRow
         collection={collection}
         fallbackCurrencyCode={fallbackCurrencyCode}
-        key={`refund-${refund.id ?? `${payment.id}-${refundIndex}`}`}
+        key={`refund-${refund.id ?? `${collectionId}-${payment.id ?? index}-${refundIndex}`}`}
         payment={payment}
         refund={refund}
       />

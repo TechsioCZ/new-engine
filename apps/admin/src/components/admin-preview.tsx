@@ -57,6 +57,9 @@ export function AdminPreviewCode({ children }: { children: ReactNode }) {
 
 export function AdminPreviewFrame({
   className,
+  loading = "lazy",
+  referrerPolicy = "no-referrer",
+  sandbox = "",
   ...props
 }: IframeHTMLAttributes<HTMLIFrameElement>) {
   return (
@@ -65,6 +68,9 @@ export function AdminPreviewFrame({
         "h-admin-email-frame w-full rounded-md border border-border-primary bg-base-light",
         className
       )}
+      loading={loading}
+      referrerPolicy={referrerPolicy}
+      sandbox={sandbox}
       {...props}
     />
   )

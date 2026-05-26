@@ -47,7 +47,11 @@ export function AdminPagination({
     return null
   }
 
-  const page = Math.floor(offset / pageSize) + 1
+  const totalPages = Math.max(1, Math.ceil(count / pageSize))
+  const page = Math.min(
+    Math.max(1, Math.floor(offset / pageSize) + 1),
+    totalPages
+  )
   const rootClassName = cx("flex justify-end", className)
 
   return (

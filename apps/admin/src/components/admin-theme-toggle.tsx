@@ -14,6 +14,7 @@ export function AdminThemeToggle() {
       }}
     >
       <span className="flex items-center gap-2">
+        <span className="sr-only">Prepnout tmavy rezim</span>
         <Icon
           className="text-fg-tertiary"
           icon={isDark ? "token-icon-theme-dark" : "token-icon-theme-light"}

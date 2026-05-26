@@ -85,6 +85,11 @@ export function OrdersPage() {
         errorLabel="Objednavky se nepodarilo nacist."
         isError={orders.isError}
         isLoading={orders.isLoading}
+        noticeLabel={formatActionRequiredNotice(
+          orders.data,
+          "odpovidajicich objednavek",
+          "dalsi odpovidajici objednavky"
+        )}
         renderRow={(order) => <OrderRow key={order.id} order={order} />}
         rows={orders.data?.orders ?? []}
       />
@@ -112,6 +117,11 @@ export function CustomersPage() {
         errorLabel="Zakazniky se nepodarilo nacist."
         isError={customers.isError}
         isLoading={customers.isLoading}
+        noticeLabel={formatActionRequiredNotice(
+          customers.data,
+          "odpovidajicich B2B registraci",
+          "dalsi B2B registrace"
+        )}
         renderRow={(customer) => (
           <CustomerRow customer={customer} key={customer.id} />
         )}
@@ -322,11 +332,40 @@ function PageHeader({
   )
 }
 
+function formatLimitedResultsNotice(limit: number, label: string) {
+  return `Zobrazuje se prvnich ${limit} ${label}. Dalsi mohou byt mimo tento seznam.`
+}
+
+function formatActionRequiredNotice(
+  data:
+    | {
+        count_exact: boolean
+        has_next: boolean
+        limit: number
+      }
+    | undefined,
+  limitLabel: string,
+  scanLimitLabel: string
+) {
+  if (!data) {
+    return null
+  }
+
+  if (data.count_exact === false) {
+    return `Scan dosahl limitu; ${scanLimitLabel} mohou byt mimo nacteny rozsah.`
+  }
+
+  return data.has_next
+    ? formatLimitedResultsNotice(data.limit, limitLabel)
+    : null
+}
+
 function DataSurface<TItem>({
   emptyLabel,
   errorLabel,
   isError,
   isLoading,
+  noticeLabel,
   renderRow,
   rows,
 }: {
@@ -334,6 +373,7 @@ function DataSurface<TItem>({
   errorLabel: string
   isError: boolean
   isLoading: boolean
+  noticeLabel?: string | null
   renderRow: (item: TItem) => ReactNode
   rows: TItem[]
 }) {
@@ -362,7 +402,12 @@ function DataSurface<TItem>({
     return <AdminState surface="panel">{emptyLabel}</AdminState>
   }
 
-  return <AdminList>{rows.map(renderRow)}</AdminList>
+  return (
+    <>
+      {noticeLabel && <AdminState surface="panel">{noticeLabel}</AdminState>}
+      <AdminList>{rows.map(renderRow)}</AdminList>
+    </>
+  )
 }
 
 function OrderRow({ order }: { order: ActionRequiredOrder }) {
