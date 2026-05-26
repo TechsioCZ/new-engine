@@ -1,6 +1,6 @@
-import type {IPricingModuleService, Logger} from "@medusajs/framework/types"
-import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
-import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
+import type { IPricingModuleService, Logger } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 type PricePreferenceAttribute = "region_id" | "currency_code"
 
@@ -20,7 +20,7 @@ const EnsurePricePreferencesStepId = "ensure-price-preferences-seed-step"
 
 function normalizeId(value: unknown): string | undefined {
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim()
@@ -29,12 +29,12 @@ function normalizeId(value: unknown): string | undefined {
 
 function normalizeCurrencyCode(value: unknown): string | undefined {
   if (typeof value !== "string") {
-    return undefined
+    return
   }
 
   const normalized = value.trim().toLowerCase()
   if (!normalized) {
-    return undefined
+    return
   }
 
   return normalized
@@ -58,7 +58,9 @@ export const ensurePricePreferencesStep = createStep(
 
     const isTaxInclusive = input.isTaxInclusive ?? true
     const regionIds = [
-      ...new Set((input.regionIds ?? []).map(normalizeId).filter(isDefinedString)),
+      ...new Set(
+        (input.regionIds ?? []).map(normalizeId).filter(isDefinedString)
+      ),
     ]
     const currencyCodes = [
       ...new Set(
@@ -78,23 +80,25 @@ export const ensurePricePreferencesStep = createStep(
       return new StepResponse({ result: output })
     }
 
-    const [existingRegionPreferences, existingCurrencyPreferences] =
-      await Promise.all([
-        regionIds.length > 0
-          ? pricingService.listPricePreferences({
-              attribute: "region_id",
-              value: regionIds,
-            })
-          : Promise.resolve([]),
-        currencyCodes.length > 0
-          ? pricingService.listPricePreferences({
-              attribute: "currency_code",
-              value: currencyCodes,
-            })
-          : Promise.resolve([]),
-      ])
+    const existingRegionPreferences =
+      regionIds.length > 0
+        ? await pricingService.listPricePreferences({
+            attribute: "region_id",
+            value: regionIds,
+          })
+        : []
+    const existingCurrencyPreferences =
+      currencyCodes.length > 0
+        ? await pricingService.listPricePreferences({
+            attribute: "currency_code",
+            value: currencyCodes,
+          })
+        : []
 
-    const existingByKey = new Map<string, { id: string; isTaxInclusive: boolean }>()
+    const existingByKey = new Map<
+      string,
+      { id: string; isTaxInclusive: boolean }
+    >()
 
     for (const preference of [
       ...existingRegionPreferences,

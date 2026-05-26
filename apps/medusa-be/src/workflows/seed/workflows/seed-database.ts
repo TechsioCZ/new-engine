@@ -281,7 +281,19 @@ const seedDatabaseWorkflow = createWorkflow(
 
     // create products
 
-    const createProductsResult = Steps.createProductsStep(input.products)
+    const createProductsStepInput: Steps.CreateProductsStepInput = transform(
+      {
+        input,
+        createProductCategoriesResult,
+        salesChannelsResult,
+        createDefaultShippingProfileResult,
+      },
+      (data) => data.input.products
+    )
+
+    const createProductsResult = Steps.createProductsStep(
+      createProductsStepInput
+    )
 
     const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
       {
@@ -301,6 +313,7 @@ const seedDatabaseWorkflow = createWorkflow(
         ? transform(
             {
               createProductsResult,
+              createTaxRegionsResult,
               input,
             },
             (data) => ({
@@ -320,6 +333,7 @@ const seedDatabaseWorkflow = createWorkflow(
       transform(
         {
           createStockLocationResult,
+          createProductsResult,
           input,
         },
         (data) => ({
