@@ -18,6 +18,8 @@ import type {
   AdminPricePreferencesResponse,
   AdminProductsResponse,
   AdminStoreSummary,
+  BulkBusinessStatusResponse,
+  ManualOrderBusinessStatusId,
   MedusaAdminCustomer,
   MedusaAdminCustomersResponse,
   MedusaAdminEmailLogsResponse,
@@ -29,7 +31,14 @@ import type {
   MedusaAdminProductsResponse,
   MedusaAdminStoresResponse,
   MedusaPacketaLabelOrdersResponse,
+  OrderBusinessStatusesByIdsResponse,
+  OrderBusinessStatusId,
   OrderEmailTemplatesResponse,
+  OrderExpeditionBlockingOrder,
+  OrderExpeditionCarrierKey,
+  OrderExpeditionCarriersResponse,
+  OrderExpeditionOrdersResponse,
+  OrderExpeditionTargetStatus,
   PacketaConfigInput,
   PacketaConfigResponse,
   PacketaLabelOrdersResponse,
@@ -49,6 +58,7 @@ const ACTION_REQUIRED_LIST_LIMIT = 50
 const ACTION_REQUIRED_REFETCH_INTERVAL_MS = 60_000
 const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
+export const ORDER_EXPEDITION_LIST_LIMIT = 50
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
 const PRODUCT_LIST_LIMIT = 20
 const STORE_SUMMARY_FIELDS = ["id", "name"].join(",")
@@ -73,6 +83,26 @@ function getActionRequiredOrdersQueryKey() {
     MEDUSA_BACKEND_URL,
     { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
   ] as const
+}
+
+function getOrderExpeditionOrdersQueryKey({
+  businessStatus,
+  carrier,
+  offset,
+}: {
+  businessStatus: OrderBusinessStatusId | "all"
+  carrier: OrderExpeditionCarrierKey | "all"
+  offset: number
+}) {
+  return [
+    "order-expedition-orders",
+    MEDUSA_BACKEND_URL,
+    { businessStatus, carrier, limit: ORDER_EXPEDITION_LIST_LIMIT, offset },
+  ] as const
+}
+
+function getOrderBusinessStatusesByIdsQueryKey(ids: string[]) {
+  return ["order-business-statuses-by-ids", MEDUSA_BACKEND_URL, ids] as const
 }
 
 function getPendingB2BCustomersQueryKey() {
@@ -454,6 +484,172 @@ async function fetchActionRequiredOrdersFromAdminApi(): Promise<ActionRequiredOr
   }
 }
 
+function fetchOrderExpeditionCarriersFromAdminApi(): Promise<OrderExpeditionCarriersResponse> {
+  return fetchAdminApi<OrderExpeditionCarriersResponse>(
+    "/admin/order-expedition/carriers"
+  )
+}
+
+function fetchOrderExpeditionOrdersFromAdminApi({
+  businessStatus,
+  carrier,
+  offset,
+}: {
+  businessStatus: OrderBusinessStatusId | "all"
+  carrier: OrderExpeditionCarrierKey | "all"
+  offset: number
+}): Promise<OrderExpeditionOrdersResponse> {
+  return fetchAdminApi<OrderExpeditionOrdersResponse>(
+    "/admin/order-expedition/orders",
+    {
+      ...(businessStatus === "all" ? {} : { business_status: businessStatus }),
+      ...(carrier === "all" ? {} : { carrier }),
+      limit: String(ORDER_EXPEDITION_LIST_LIMIT),
+      offset: String(offset),
+    }
+  )
+}
+
+function fetchOrderBusinessStatusesByIdsFromAdminApi(
+  ids: string[]
+): Promise<OrderBusinessStatusesByIdsResponse> {
+  return fetchAdminApi<OrderBusinessStatusesByIdsResponse>(
+    "/admin/order-business-statuses/by-ids",
+    {
+      ids: ids.join(","),
+    }
+  )
+}
+
+function isBlockingOrder(
+  value: unknown
+): value is OrderExpeditionBlockingOrder {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "order_display_id" in value &&
+    typeof value.order_display_id === "string" &&
+    "reason" in value &&
+    typeof value.reason === "string"
+  )
+}
+
+function getBlockingOrders(payload: unknown) {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "blocked_orders" in payload &&
+    Array.isArray(payload.blocked_orders)
+  ) {
+    return payload.blocked_orders.filter(isBlockingOrder)
+  }
+
+  return []
+}
+
+function getAdminApiPayloadMessage(payload: unknown, fallback: string) {
+  if (typeof payload === "object" && payload !== null && "message" in payload) {
+    const message = payload.message
+
+    if (typeof message === "string") {
+      return message
+    }
+  }
+
+  return fallback
+}
+
+export async function downloadOrderExpeditionPdf(orderIds: string[]) {
+  const blob = await fetchAdminBlob("/admin/order-expedition/pdf", {
+    body: { order_ids: orderIds },
+    method: "POST",
+  })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = `order-expedition-${new Date().toISOString().slice(0, 10)}.pdf`
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function updateOrderExpeditionStatus({
+  orderIds,
+  targetStatus,
+}: {
+  orderIds: string[]
+  targetStatus: OrderExpeditionTargetStatus
+}) {
+  const headers = new Headers({
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  })
+  const token = getStoredAdminToken()
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`)
+  }
+
+  const response = await fetch(
+    buildMedusaUrl("/admin/order-expedition/status"),
+    {
+      body: JSON.stringify({
+        order_ids: orderIds,
+        target_status: targetStatus,
+      }),
+      credentials: "include",
+      headers,
+      method: "POST",
+    }
+  )
+  const payload: unknown = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    return {
+      blockedOrders: getBlockingOrders(payload),
+      message: getAdminApiPayloadMessage(
+        payload,
+        "Nepodarilo se zmenit Medusa status."
+      ),
+      ok: false as const,
+    }
+  }
+
+  return {
+    blockedOrders: [],
+    ok: true as const,
+  }
+}
+
+export function updateOrderBusinessStatus({
+  orderId,
+  status,
+}: {
+  orderId: string
+  status: ManualOrderBusinessStatusId | null
+}) {
+  return postAdminApi(`/admin/orders/${orderId}/business-status`, { status })
+}
+
+export function bulkUpdateOrderBusinessStatus({
+  orderIds,
+  status,
+}: {
+  orderIds: string[]
+  status: ManualOrderBusinessStatusId | null
+}) {
+  return postAdminApi<BulkBusinessStatusResponse>(
+    "/admin/order-business-statuses/bulk",
+    {
+      order_ids: orderIds,
+      status,
+    }
+  )
+}
+
 async function fetchPendingB2BCustomersFromAdminApi(): Promise<PendingB2BCustomersResponse> {
   const result = await fetchAllAdminPages<
     MedusaAdminCustomersResponse,
@@ -795,6 +991,45 @@ export function useActionRequiredOrders() {
   return useQuery({
     ...getActionRequiredOrdersQueryOptions(),
     refetchOnWindowFocus: false,
+  })
+}
+
+export function useOrderExpeditionCarriers() {
+  return useQuery({
+    queryFn: fetchOrderExpeditionCarriersFromAdminApi,
+    queryKey: ["order-expedition-carriers", MEDUSA_BACKEND_URL],
+  })
+}
+
+export function useOrderExpeditionOrders({
+  businessStatus,
+  carrier,
+  offset,
+}: {
+  businessStatus: OrderBusinessStatusId | "all"
+  carrier: OrderExpeditionCarrierKey | "all"
+  offset: number
+}) {
+  return useQuery({
+    queryFn: () =>
+      fetchOrderExpeditionOrdersFromAdminApi({
+        businessStatus,
+        carrier,
+        offset,
+      }),
+    queryKey: getOrderExpeditionOrdersQueryKey({
+      businessStatus,
+      carrier,
+      offset,
+    }),
+  })
+}
+
+export function useOrderBusinessStatusesByIds(ids: string[]) {
+  return useQuery({
+    enabled: ids.length > 0,
+    queryFn: () => fetchOrderBusinessStatusesByIdsFromAdminApi(ids),
+    queryKey: getOrderBusinessStatusesByIdsQueryKey(ids),
   })
 }
 

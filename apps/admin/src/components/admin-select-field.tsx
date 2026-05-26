@@ -52,7 +52,7 @@ export function AdminSelectField({
         </Select.Trigger>
       </Select.Control>
       <Select.Positioner>
-        <Select.Content>
+        <Select.Content className="h-fit">
           {items.map((item) => (
             <Select.Item item={item} key={item.value}>
               <Select.ItemText />

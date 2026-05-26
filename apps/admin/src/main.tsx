@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { BrowserRouter } from "react-router-dom"
@@ -27,6 +28,7 @@ createRoot(root).render(
       <BrowserRouter>
         <AdminApp />
       </BrowserRouter>
+      <Toaster />
     </QueryClientProvider>
   </StrictMode>
 )
