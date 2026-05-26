@@ -26,6 +26,9 @@ type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
 type ProductOptionSeedInput = NonNullable<ProductSeedInput["options"]>[number]
 type CategorySeedInput = SeedDatabaseWorkflowInput["productCategories"][number]
+type PriceListsSeedInput = NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
+type PriceListPriceSeedInput =
+  PriceListsSeedInput["overrides"][number]["prices"][number]
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -229,6 +232,7 @@ type CategoryBuildResult = {
 type BuildResult = {
   categories: CategorySeedInput[]
   products: ProductSeedInput[]
+  priceLists: NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
   stockLocations: SeedDatabaseWorkflowInput["stockLocations"]["locations"]
   warnings: string[]
   stats: {
@@ -237,6 +241,9 @@ type BuildResult = {
     products: number
     variants: number
     hiddenProducts: number
+    overridePriceLists: number
+    salePriceLists: number
+    priceListPrices: number
     stockLocations: number
     warnings: number
   }
@@ -307,6 +314,11 @@ const DEFAULT_COUNTRIES = [
 const MAX_HANDLE_LENGTH = 180
 const DEFAULT_OPTION_TITLE = "Variant"
 const DEFAULT_OPTION_VALUE = "Default"
+const DEFAULT_PRICELIST_LABEL = "Default pricelist"
+const DEFAULT_SHOPTET_PRICELIST_TITLES = new Set([
+  "hlavny cennik",
+  "default pricelist",
+])
 const PRODUCT_CONTENT_SECTION_ORDER: ProductContentSectionKey[] = [
   "description",
   "usage",
@@ -1335,6 +1347,56 @@ function resolveOfferCurrentPrice(
   return 0
 }
 
+function resolveOfferDefaultPrice(
+  offer: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData
+): number {
+  return resolveOfferBasePrice(offer, fallbackOffer) ?? 0
+}
+
+function priceAmountsEqual(left?: number, right?: number): boolean {
+  if (left === undefined || right === undefined) {
+    return left === right
+  }
+
+  return Math.abs(left - right) < 0.000_001
+}
+
+function isDefaultPricelistTitle(title?: string): boolean {
+  const comparable = normalizeComparableText(title)
+  return !!comparable && DEFAULT_SHOPTET_PRICELIST_TITLES.has(comparable)
+}
+
+function shouldImportActionPrice(
+  actionPrice?: number,
+  validUntil?: string,
+  referenceDate = new Date()
+): actionPrice is number {
+  if (actionPrice === undefined || actionPrice <= 0) {
+    return false
+  }
+
+  const until = parseIsoDate(validUntil, true)
+  return !until || referenceDate <= until
+}
+
+function serializePriceListDate(
+  value?: string,
+  endOfDay = false
+): string | undefined {
+  return parseIsoDate(value, endOfDay)?.toISOString()
+}
+
+function buildSalePriceListTitle(
+  sourceTitle: string,
+  startsAt?: string,
+  endsAt?: string
+): string {
+  const windowLabel =
+    startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
+  return `Herbatica sale - ${sourceTitle} - ${windowLabel}`
+}
+
 function rebaseOfferPromotion(
   offer: ParsedOfferData,
   buildOptions: ResolvedSeedBuildOptions,
@@ -1668,6 +1730,10 @@ function parsePricelists(source: string): ParsedPricelist[] {
   }))
 }
 
+function stripNestedPricelists(source: string): string {
+  return source.replace(/<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/g, "")
+}
+
 function parseOssTaxRates(source: string): ParsedOssTaxRate[] {
   const ossRatesRaw = extractFirstElementContent(source, "OSS_TAX_RATES")
   if (!ossRatesRaw) {
@@ -1697,35 +1763,46 @@ function parseOfferData(
   source: string,
   attributes?: Record<string, string>
 ): ParsedOfferData {
-  const stockRaw = extractFirstElementContent(source, "STOCK")
+  const scalarSource = stripNestedPricelists(source)
+  const stockRaw = extractFirstElementContent(scalarSource, "STOCK")
   const stockAmount = parseInteger(extractFirstText(stockRaw ?? "", "AMOUNT"))
   const stockWarehouses = parseStockWarehouses(stockRaw)
   const stockMinSupply = parseInteger(
-    extractFirstText(source, "STOCK_MIN_SUPPLY")
+    extractFirstText(scalarSource, "STOCK_MIN_SUPPLY")
   )
-  const logisticRaw = extractFirstElementContent(source, "LOGISTIC")
-  const atypicalRaw = extractFirstElementContent(source, "ATYPICAL_PRODUCT")
-  const unitOfMeasureRaw = extractFirstElementContent(source, "UNIT_OF_MEASURE")
+  const logisticRaw = extractFirstElementContent(scalarSource, "LOGISTIC")
+  const atypicalRaw = extractFirstElementContent(
+    scalarSource,
+    "ATYPICAL_PRODUCT"
+  )
+  const unitOfMeasureRaw = extractFirstElementContent(
+    scalarSource,
+    "UNIT_OF_MEASURE"
+  )
 
   return {
     variantId: attributes?.id,
-    code: extractFirstText(source, "CODE"),
-    ean: extractFirstText(source, "EAN"),
-    partNumber: extractFirstText(source, "PART_NUMBER"),
-    productNumber: extractFirstText(source, "PRODUCT_NUMBER"),
-    plu: extractFirstText(source, "PLU"),
-    unit: extractFirstText(source, "UNIT"),
-    currency: extractFirstText(source, "CURRENCY"),
-    vat: parseNumber(extractFirstText(source, "VAT")),
-    priceVat: parseNumber(extractFirstText(source, "PRICE_VAT")),
-    standardPrice: parseNumber(extractFirstText(source, "STANDARD_PRICE")),
-    actionPrice: parseNumber(extractFirstText(source, "ACTION_PRICE")),
-    actionPriceFrom: extractFirstText(source, "ACTION_PRICE_FROM"),
-    actionPriceUntil: extractFirstText(source, "ACTION_PRICE_UNTIL"),
-    purchasePrice: parseNumber(extractFirstText(source, "PURCHASE_PRICE")),
-    purchaseVat: parseNumber(extractFirstText(source, "PURCHASE_VAT")),
+    code: extractFirstText(scalarSource, "CODE"),
+    ean: extractFirstText(scalarSource, "EAN"),
+    partNumber: extractFirstText(scalarSource, "PART_NUMBER"),
+    productNumber: extractFirstText(scalarSource, "PRODUCT_NUMBER"),
+    plu: extractFirstText(scalarSource, "PLU"),
+    unit: extractFirstText(scalarSource, "UNIT"),
+    currency: extractFirstText(scalarSource, "CURRENCY"),
+    vat: parseNumber(extractFirstText(scalarSource, "VAT")),
+    priceVat: parseNumber(extractFirstText(scalarSource, "PRICE_VAT")),
+    standardPrice: parseNumber(
+      extractFirstText(scalarSource, "STANDARD_PRICE")
+    ),
+    actionPrice: parseNumber(extractFirstText(scalarSource, "ACTION_PRICE")),
+    actionPriceFrom: extractFirstText(scalarSource, "ACTION_PRICE_FROM"),
+    actionPriceUntil: extractFirstText(scalarSource, "ACTION_PRICE_UNTIL"),
+    purchasePrice: parseNumber(
+      extractFirstText(scalarSource, "PURCHASE_PRICE")
+    ),
+    purchaseVat: parseNumber(extractFirstText(scalarSource, "PURCHASE_VAT")),
     purchasePriceInclVat: parseBoolean(
-      extractFirstText(source, "PURCHASE_PRICE_INCL_VAT")
+      extractFirstText(scalarSource, "PURCHASE_PRICE_INCL_VAT")
     ),
     stockAmount,
     stockAmountRaw: stockAmount,
@@ -1739,32 +1816,39 @@ function parseOfferData(
     stockMinSupply,
     stockWarehouses,
     availabilityOutOfStock: extractFirstText(
-      source,
+      scalarSource,
       "AVAILABILITY_OUT_OF_STOCK"
     ),
-    availabilityInStock: extractFirstText(source, "AVAILABILITY_IN_STOCK"),
-    imageRef: extractFirstText(source, "IMAGE_REF"),
-    visible: parseBoolean(extractFirstText(source, "VISIBLE"), true),
-    freeShipping: parseBoolean(extractFirstText(source, "FREE_SHIPPING")),
-    freeBilling: parseBoolean(extractFirstText(source, "FREE_BILLING")),
-    decimalCount: parseInteger(extractFirstText(source, "DECIMAL_COUNT")),
-    negativeAmount: parseBoolean(extractFirstText(source, "NEGATIVE_AMOUNT")),
-    priceRatio: parseNumber(extractFirstText(source, "PRICE_RATIO")),
-    minPriceRatio: parseNumber(extractFirstText(source, "MIN_PRICE_RATIO")),
+    availabilityInStock: extractFirstText(
+      scalarSource,
+      "AVAILABILITY_IN_STOCK"
+    ),
+    imageRef: extractFirstText(scalarSource, "IMAGE_REF"),
+    visible: parseBoolean(extractFirstText(scalarSource, "VISIBLE"), true),
+    freeShipping: parseBoolean(extractFirstText(scalarSource, "FREE_SHIPPING")),
+    freeBilling: parseBoolean(extractFirstText(scalarSource, "FREE_BILLING")),
+    decimalCount: parseInteger(extractFirstText(scalarSource, "DECIMAL_COUNT")),
+    negativeAmount: parseBoolean(
+      extractFirstText(scalarSource, "NEGATIVE_AMOUNT")
+    ),
+    priceRatio: parseNumber(extractFirstText(scalarSource, "PRICE_RATIO")),
+    minPriceRatio: parseNumber(
+      extractFirstText(scalarSource, "MIN_PRICE_RATIO")
+    ),
     applyLoyaltyDiscount: parseBoolean(
-      extractFirstText(source, "APPLY_LOYALTY_DISCOUNT"),
+      extractFirstText(scalarSource, "APPLY_LOYALTY_DISCOUNT"),
       true
     ),
     applyVolumeDiscount: parseBoolean(
-      extractFirstText(source, "APPLY_VOLUME_DISCOUNT"),
+      extractFirstText(scalarSource, "APPLY_VOLUME_DISCOUNT"),
       true
     ),
     applyQuantityDiscount: parseBoolean(
-      extractFirstText(source, "APPLY_QUANTITY_DISCOUNT"),
+      extractFirstText(scalarSource, "APPLY_QUANTITY_DISCOUNT"),
       true
     ),
     applyDiscountCoupon: parseBoolean(
-      extractFirstText(source, "APPLY_DISCOUNT_COUPON"),
+      extractFirstText(scalarSource, "APPLY_DISCOUNT_COUPON"),
       true
     ),
     weightKg: parseNumber(extractFirstText(logisticRaw ?? "", "WEIGHT")),
@@ -2522,7 +2606,7 @@ function buildVariantsForProduct({
     if (ean) {
       usedEans.add(ean)
     }
-    const amount = resolveOfferCurrentPrice(topOffer, undefined, referenceDate)
+    const amount = resolveOfferDefaultPrice(topOffer)
     const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
     const quantities = buildOfferInventoryQuantities(topOffer)
     const thumbnail = topOffer.imageRef
@@ -2630,11 +2714,7 @@ function buildVariantsForProduct({
       item.topOffer.currency ??
       "EUR"
     ).toLowerCase()
-    const amount = resolveOfferCurrentPrice(
-      variant,
-      item.topOffer,
-      referenceDate
-    )
+    const amount = resolveOfferDefaultPrice(variant, item.topOffer)
     const quantities = buildOfferInventoryQuantities(variant)
     const thumbnail = variant.imageRef
     const rawEan = normalizeInlineText(variant.ean)
@@ -2772,6 +2852,311 @@ function buildProducts(
   })
 }
 
+function getVariantBasePrice(
+  variant: VariantSeedInput
+): PriceListPriceSeedInput | undefined {
+  const price = variant.prices?.[0]
+  if (!price) {
+    return
+  }
+
+  return {
+    productHandle: "",
+    variantSku: variant.sku,
+    amount: price.amount,
+    currencyCode: price.currency_code,
+  }
+}
+
+function addPriceListPrice(
+  prices: PriceListPriceSeedInput[],
+  price: PriceListPriceSeedInput
+) {
+  const existingIndex = prices.findIndex(
+    (existing) =>
+      existing.productHandle === price.productHandle &&
+      existing.variantSku === price.variantSku &&
+      existing.currencyCode.toLowerCase() === price.currencyCode.toLowerCase()
+  )
+
+  if (existingIndex === -1) {
+    prices.push(price)
+    return
+  }
+
+  prices[existingIndex] = price
+}
+
+function addSalePriceListPrice(
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>,
+  {
+    sourceTitle,
+    customerGroupName,
+    startsAtRaw,
+    endsAtRaw,
+    price,
+  }: {
+    sourceTitle: string
+    customerGroupName?: string
+    startsAtRaw?: string
+    endsAtRaw?: string
+    price: PriceListPriceSeedInput
+  }
+) {
+  const key = [
+    sourceTitle,
+    customerGroupName ?? "",
+    startsAtRaw ?? "",
+    endsAtRaw ?? "",
+  ].join("|")
+  const startsAt = serializePriceListDate(startsAtRaw)
+  const endsAt = serializePriceListDate(endsAtRaw, true)
+  const salePriceList =
+    salePriceListsByKey.get(key) ??
+    ({
+      title: buildSalePriceListTitle(sourceTitle, startsAtRaw, endsAtRaw),
+      sourceTitle,
+      ...(customerGroupName ? { customerGroupName } : {}),
+      startsAt,
+      endsAt,
+      prices: [],
+    } satisfies PriceListsSeedInput["sales"][number])
+
+  addPriceListPrice(salePriceList.prices, price)
+  salePriceListsByKey.set(key, salePriceList)
+}
+
+function getVariantMetadata(
+  variant: VariantSeedInput
+): Record<string, unknown> | undefined {
+  return variant.metadata as Record<string, unknown> | undefined
+}
+
+function getMetadataString(
+  metadata: Record<string, unknown> | undefined,
+  key: string
+): string | undefined {
+  return typeof metadata?.[key] === "string" ? metadata[key] : undefined
+}
+
+function getMetadataNumber(
+  metadata: Record<string, unknown> | undefined,
+  key: string
+): number | undefined {
+  return typeof metadata?.[key] === "number" ? metadata[key] : undefined
+}
+
+function getMetadataPricelists(
+  metadata: Record<string, unknown> | undefined
+): ParsedPricelist[] {
+  return Array.isArray(metadata?.pricelists)
+    ? (metadata.pricelists as ParsedPricelist[])
+    : []
+}
+
+function addDefaultSalePriceFromMetadata({
+  basePrice,
+  metadata,
+  referenceDate,
+  salePriceListsByKey,
+}: {
+  basePrice: PriceListPriceSeedInput
+  metadata: Record<string, unknown> | undefined
+  referenceDate: Date
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
+}) {
+  const actionPrice = normalizePriceAmount(
+    getMetadataNumber(metadata, "action_price")
+  )
+  const actionPriceFrom = getMetadataString(metadata, "action_price_from")
+  const actionPriceUntil = getMetadataString(metadata, "action_price_until")
+
+  if (
+    !shouldImportActionPrice(actionPrice, actionPriceUntil, referenceDate) ||
+    priceAmountsEqual(actionPrice, basePrice.amount)
+  ) {
+    return
+  }
+
+  addSalePriceListPrice(salePriceListsByKey, {
+    sourceTitle: DEFAULT_PRICELIST_LABEL,
+    startsAtRaw: actionPriceFrom,
+    endsAtRaw: actionPriceUntil,
+    price: {
+      ...basePrice,
+      amount: actionPrice,
+    },
+  })
+}
+
+function ensureOverridePriceList(
+  overridePriceListsByTitle: Map<
+    string,
+    PriceListsSeedInput["overrides"][number]
+  >,
+  title: string
+): PriceListsSeedInput["overrides"][number] {
+  const existing = overridePriceListsByTitle.get(title)
+  if (existing) {
+    return existing
+  }
+
+  const created = {
+    title,
+    customerGroupName: title,
+    prices: [],
+  } satisfies PriceListsSeedInput["overrides"][number]
+  overridePriceListsByTitle.set(title, created)
+  return created
+}
+
+function addRegularPricelistPrice(
+  overridePriceList: PriceListsSeedInput["overrides"][number],
+  basePrice: PriceListPriceSeedInput,
+  regularPrice?: number
+) {
+  if (
+    regularPrice === undefined ||
+    priceAmountsEqual(regularPrice, basePrice.amount)
+  ) {
+    return
+  }
+
+  addPriceListPrice(overridePriceList.prices, {
+    ...basePrice,
+    amount: regularPrice,
+  })
+}
+
+function addPricelistSalePrice({
+  basePrice,
+  pricelist,
+  referenceDate,
+  regularPrice,
+  salePriceListsByKey,
+  title,
+}: {
+  basePrice: PriceListPriceSeedInput
+  pricelist: ParsedPricelist
+  referenceDate: Date
+  regularPrice?: number
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
+  title: string
+}) {
+  const actionPrice = normalizePriceAmount(pricelist.actionPrice)
+  const comparisonPrice = regularPrice ?? basePrice.amount
+
+  if (
+    !shouldImportActionPrice(
+      actionPrice,
+      pricelist.actionPriceUntil,
+      referenceDate
+    ) ||
+    priceAmountsEqual(actionPrice, comparisonPrice)
+  ) {
+    return
+  }
+
+  addSalePriceListPrice(salePriceListsByKey, {
+    sourceTitle: title,
+    customerGroupName: title,
+    startsAtRaw: pricelist.actionPriceFrom,
+    endsAtRaw: pricelist.actionPriceUntil,
+    price: {
+      ...basePrice,
+      amount: actionPrice,
+    },
+  })
+}
+
+function addVariantPriceListEntries({
+  basePrice,
+  metadata,
+  overridePriceListsByTitle,
+  referenceDate,
+  salePriceListsByKey,
+}: {
+  basePrice: PriceListPriceSeedInput
+  metadata: Record<string, unknown> | undefined
+  overridePriceListsByTitle: Map<
+    string,
+    PriceListsSeedInput["overrides"][number]
+  >
+  referenceDate: Date
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
+}) {
+  addDefaultSalePriceFromMetadata({
+    basePrice,
+    metadata,
+    referenceDate,
+    salePriceListsByKey,
+  })
+
+  for (const pricelist of getMetadataPricelists(metadata)) {
+    const title = normalizeInlineText(pricelist.title)
+    if (!title || isDefaultPricelistTitle(title)) {
+      continue
+    }
+
+    const overridePriceList = ensureOverridePriceList(
+      overridePriceListsByTitle,
+      title
+    )
+    const regularPrice = normalizePriceAmount(
+      pricelist.priceVat ?? pricelist.standardPrice
+    )
+
+    addRegularPricelistPrice(overridePriceList, basePrice, regularPrice)
+    addPricelistSalePrice({
+      basePrice,
+      pricelist,
+      referenceDate,
+      regularPrice,
+      salePriceListsByKey,
+      title,
+    })
+  }
+}
+
+function buildPriceListsFromProducts(
+  products: ProductSeedInput[],
+  referenceDate = new Date()
+): PriceListsSeedInput {
+  const overridePriceListsByTitle = new Map<
+    string,
+    PriceListsSeedInput["overrides"][number]
+  >()
+  const salePriceListsByKey = new Map<
+    string,
+    PriceListsSeedInput["sales"][number]
+  >()
+
+  for (const product of products) {
+    for (const variant of product.variants ?? []) {
+      const basePrice = getVariantBasePrice(variant)
+      if (!basePrice) {
+        continue
+      }
+
+      addVariantPriceListEntries({
+        basePrice: {
+          ...basePrice,
+          productHandle: product.handle,
+        },
+        metadata: getVariantMetadata(variant),
+        overridePriceListsByTitle,
+        referenceDate,
+        salePriceListsByKey,
+      })
+    }
+  }
+
+  return {
+    overrides: [...overridePriceListsByTitle.values()],
+    sales: [...salePriceListsByKey.values()],
+  }
+}
+
 function getItemOffers(item: ParsedShopItem): ParsedOfferData[] {
   return item.variants.length > 0 ? item.variants : [item.topOffer]
 }
@@ -2903,6 +3288,10 @@ export function buildSeedInputFromXml(
     categoryIdToHandle,
     buildOptions
   )
+  const priceLists = buildPriceListsFromProducts(
+    products,
+    buildOptions.referenceDate
+  )
   const { locations: stockLocations, warnings } =
     buildStockLocationsFromItems(items)
   enforceUniqueVariantSkus(products)
@@ -2913,10 +3302,20 @@ export function buildSeedInputFromXml(
     (acc, product) => acc + (product.variants?.length ?? 0),
     0
   )
+  const priceListPrices =
+    priceLists.overrides.reduce(
+      (acc, priceList) => acc + priceList.prices.length,
+      0
+    ) +
+    priceLists.sales.reduce(
+      (acc, priceList) => acc + priceList.prices.length,
+      0
+    )
 
   return {
     categories,
     products,
+    priceLists,
     stockLocations,
     warnings,
     stats: {
@@ -2925,6 +3324,9 @@ export function buildSeedInputFromXml(
       products: products.length,
       variants,
       hiddenProducts,
+      overridePriceLists: priceLists.overrides.length,
+      salePriceLists: priceLists.sales.length,
+      priceListPrices,
       stockLocations: stockLocations.length,
       warnings: warnings.length,
     },
@@ -3013,6 +3415,9 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   )
   logger.info(
     `Parsed ${parsed.stats.stockLocations} stock locations from stock data`
+  )
+  logger.info(
+    `Parsed ${parsed.stats.overridePriceLists} override price lists, ${parsed.stats.salePriceLists} sale price lists, ${parsed.stats.priceListPrices} price-list prices`
   )
   for (const warning of parsed.warnings) {
     logger.warn(warning)
@@ -3206,6 +3611,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     },
     productCategories: parsed.categories,
     products: parsed.products,
+    priceLists: parsed.priceLists,
   }
 
   logger.info("Running Herbatica seed workflow...")

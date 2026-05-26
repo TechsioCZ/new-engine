@@ -20,6 +20,7 @@ export type SeedDatabaseWorkflowInput = {
   publishableKey: Steps.CreatePublishableKeyStepInput
   productCategories: Steps.CreateProductCategoriesStepInput
   products: Steps.CreateProductsStepInput
+  priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
 }
 
 function buildInventoryItemsInput(
@@ -282,6 +283,19 @@ const seedDatabaseWorkflow = createWorkflow(
 
     const createProductsResult = Steps.createProductsStep(input.products)
 
+    const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
+      {
+        createProductsResult,
+        input,
+      },
+      (data) => ({
+        productIds: data.createProductsResult.result,
+        priceLists: data.input.priceLists,
+      })
+    )
+
+    const syncPriceListsResult = Steps.syncPriceListsStep(syncPriceListsInput)
+
     const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput | undefined =
       input.taxRates
         ? transform(
@@ -335,6 +349,7 @@ const seedDatabaseWorkflow = createWorkflow(
       linkSalesChannelsApiKeyStepInputResult,
       createProductCategoriesResult,
       createProductsResult,
+      syncPriceListsResult,
       createTaxRatesResult,
       createInventoryLevelsResult,
     })

@@ -139,8 +139,24 @@ describe("Herbatica seed promo rebase", () => {
 
     expect(variant?.prices).toEqual([
       {
-        amount: 7.99,
+        amount: 9.99,
         currency_code: "eur",
+      },
+    ])
+    expect(result.priceLists.sales).toEqual([
+      {
+        title: "Herbatica sale - Default pricelist - 2026-04-23_2026-05-23",
+        sourceTitle: "Default pricelist",
+        startsAt: "2026-04-23T00:00:00.000Z",
+        endsAt: "2026-05-23T23:59:59.999Z",
+        prices: [
+          {
+            productHandle: "shopitem-42",
+            variantSku: "SHOPITEM-42-42",
+            amount: 7.99,
+            currencyCode: "eur",
+          },
+        ],
       },
     ])
     expect(product?.metadata).toMatchObject({
@@ -159,6 +175,150 @@ describe("Herbatica seed promo rebase", () => {
       current_price: 7.99,
       has_active_discount: true,
     })
+  })
+})
+
+describe("Herbatica seed price-list parsing", () => {
+  it("maps non-default Shoptet pricelists to dynamic override price lists", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="pricelist-override">
+          <NAME>Price list product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <STANDARD_PRICE>10</STANDARD_PRICE>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partnerský cenník</TITLE>
+              <PRICE_VAT>8.50</PRICE_VAT>
+            </PRICELIST>
+            <PRICELIST>
+              <TITLE>Hlavný cenník</TITLE>
+              <PRICE_VAT>9.00</PRICE_VAT>
+            </PRICELIST>
+            <PRICELIST>
+              <TITLE>VIP cenník</TITLE>
+              <PRICE_VAT>10.00</PRICE_VAT>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+
+    expect(result.products[0]?.variants?.[0]?.prices).toEqual([
+      {
+        amount: 10,
+        currency_code: "eur",
+      },
+    ])
+    expect(result.priceLists.overrides).toEqual([
+      {
+        title: "Partnerský cenník",
+        customerGroupName: "Partnerský cenník",
+        prices: [
+          {
+            productHandle: "shopitem-pricelist-override",
+            variantSku: "SHOPITEM-PRICELIST-OVERRIDE-PRICELIST-OVERRIDE",
+            amount: 8.5,
+            currencyCode: "eur",
+          },
+        ],
+      },
+      {
+        title: "VIP cenník",
+        customerGroupName: "VIP cenník",
+        prices: [],
+      },
+    ])
+  })
+
+  it("groups pricelist action prices by source title and date window", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="sale-a">
+          <NAME>Sale A</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partneri</TITLE>
+              <PRICE_VAT>8.50</PRICE_VAT>
+              <ACTION_PRICE>7.25</ACTION_PRICE>
+              <ACTION_PRICE_FROM>2026-06-01</ACTION_PRICE_FROM>
+              <ACTION_PRICE_UNTIL>2026-06-30</ACTION_PRICE_UNTIL>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+        <SHOPITEM id="sale-b">
+          <NAME>Sale B</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>12</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partneri</TITLE>
+              <PRICE_VAT>9.50</PRICE_VAT>
+              <ACTION_PRICE>8.25</ACTION_PRICE>
+              <ACTION_PRICE_FROM>2026-06-01</ACTION_PRICE_FROM>
+              <ACTION_PRICE_UNTIL>2026-06-30</ACTION_PRICE_UNTIL>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml, undefined, {
+      referenceDate: new Date("2026-05-26T12:00:00.000Z"),
+    })
+
+    expect(result.priceLists.sales).toEqual([
+      {
+        title: "Herbatica sale - Partneri - 2026-06-01_2026-06-30",
+        sourceTitle: "Partneri",
+        customerGroupName: "Partneri",
+        startsAt: "2026-06-01T00:00:00.000Z",
+        endsAt: "2026-06-30T23:59:59.999Z",
+        prices: [
+          {
+            productHandle: "shopitem-sale-a",
+            variantSku: "SHOPITEM-SALE-A-SALE-A",
+            amount: 7.25,
+            currencyCode: "eur",
+          },
+          {
+            productHandle: "shopitem-sale-b",
+            variantSku: "SHOPITEM-SALE-B-SALE-B",
+            amount: 8.25,
+            currencyCode: "eur",
+          },
+        ],
+      },
+    ])
   })
 })
 
@@ -615,6 +775,9 @@ describe("Herbatica committed feed fixtures", () => {
       products: 4,
       variants: 5,
       hiddenProducts: 1,
+      overridePriceLists: 0,
+      salePriceLists: 1,
+      priceListPrices: 1,
       stockLocations: 1,
       warnings: 0,
     })
