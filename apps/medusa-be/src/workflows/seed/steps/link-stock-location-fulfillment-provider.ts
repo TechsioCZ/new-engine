@@ -5,11 +5,24 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export type LinkStockLocationFulfillmentProviderStepInput = {
   stockLocations: StockLocationDTO[]
-  fulfillmentProviderIds: string[]
+  fulfillmentProviderIds?: Array<string | null | undefined>
 }
 
 const LinkStockLocationFulfillmentProviderStepId =
   "link-stock-location-fulfillment-provider-seed-step"
+
+function normalizeFulfillmentProviderIds(
+  ids?: Array<string | null | undefined>
+): string[] {
+  return [
+    ...new Set(
+      (ids ?? [])
+        .map((id) => id?.toString().trim())
+        .filter((id): id is string => Boolean(id))
+    ),
+  ]
+}
+
 export const linkStockLocationFulfillmentProviderSeedStep = createStep(
   LinkStockLocationFulfillmentProviderStepId,
   async (
@@ -22,7 +35,9 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
     logger.info("Linking stock locations to fulfillment providers...")
 
     const result: unknown[] = []
-    const providerIds = [...new Set(input.fulfillmentProviderIds)]
+    const providerIds = normalizeFulfillmentProviderIds(
+      input.fulfillmentProviderIds
+    )
     if (providerIds.length === 0) {
       logger.warn(
         "No fulfillment provider IDs supplied, skipping stock-location fulfillment-provider links."

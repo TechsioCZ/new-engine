@@ -9,7 +9,11 @@ import type {
   ProductDTO,
   RemoteQueryFunction,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   batchPriceListPricesWorkflow,
@@ -276,6 +280,27 @@ function buildVariantLookup(
   }
 
   return variants
+}
+
+function isVariantPriceSetLink(value: unknown): value is VariantPriceSetLink {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as Partial<VariantPriceSetLink>).variant_id === "string" &&
+    typeof (value as Partial<VariantPriceSetLink>).price_set_id === "string"
+  )
+}
+
+function toVariantPriceSetLinks(value: unknown): VariantPriceSetLink[] {
+  if (!(Array.isArray(value) && value.every(isVariantPriceSetLink))) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Unexpected product variant price-set link response shape."
+    )
+  }
+
+  return value
 }
 
 async function ensureCustomerGroups(
@@ -648,11 +673,13 @@ export const syncPriceListsStep = createStep(
       ),
     ]
     const variantPriceSetLinks = variantIds.length
-      ? ((await remoteQuery({
-          entryPoint: "product_variant_price_set",
-          fields: ["variant_id", "price_set_id"],
-          variables: { variant_id: variantIds },
-        })) as VariantPriceSetLink[])
+      ? toVariantPriceSetLinks(
+          await remoteQuery({
+            entryPoint: "product_variant_price_set",
+            fields: ["variant_id", "price_set_id"],
+            variables: { variant_id: variantIds },
+          })
+        )
       : []
     const variantPriceSetMap = new Map(
       variantPriceSetLinks.map((link) => [link.variant_id, link.price_set_id])

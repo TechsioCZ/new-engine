@@ -6,7 +6,11 @@ import type {
   Query,
   StockLocationDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   createInventoryLevelsWorkflow,
@@ -35,7 +39,10 @@ function buildInventoryLevelsForItem(
   stockLocations: StockLocationDTO[]
 ): CreateInventoryLevelInput[] {
   if (inventoryItem.id === undefined) {
-    throw new Error(`Inventory item with sku ${inventoryItem.sku} not found.`)
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Inventory item with sku ${inventoryItem.sku} not found.`
+    )
   }
   const inventoryItemId = inventoryItem.id
 
@@ -45,7 +52,8 @@ function buildInventoryLevelsForItem(
         (location) => location.name === locationQuantity.stockLocationName
       )
       if (!stockLocation) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
           `Stock location "${locationQuantity.stockLocationName}" not found for SKU ${inventoryItem.sku}.`
         )
       }

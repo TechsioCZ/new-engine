@@ -2863,7 +2863,7 @@ function getVariantBasePrice(
   variant: VariantSeedInput
 ): PriceListPriceSeedInput | undefined {
   const price = variant.prices?.[0]
-  if (!price) {
+  if (!(price && variant.sku)) {
     return
   }
 
@@ -2936,7 +2936,12 @@ function addSalePriceListPrice(
 function getVariantMetadata(
   variant: VariantSeedInput
 ): Record<string, unknown> | undefined {
-  return variant.metadata as Record<string, unknown> | undefined
+  const { metadata } = variant
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return
+  }
+
+  return metadata
 }
 
 function getMetadataString(
@@ -3205,11 +3210,9 @@ function addDefaultStockLocation(
   >
 ) {
   locationsByName.set(DEFAULT_STOCK_LOCATION_NAME, {
-    name: DEFAULT_STOCK_LOCATION_NAME,
+    ...HERBATICA_DEFAULT_STOCK_LOCATION,
     address: {
-      city: "Copenhagen",
-      country_code: "DK",
-      address_1: "",
+      ...HERBATICA_DEFAULT_STOCK_LOCATION.address,
     },
   })
 }

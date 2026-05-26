@@ -1,8 +1,10 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
 import * as Steps from "../steps"
 
 const SeedDatabaseWorkflowId = "seed-database-workflow"
@@ -28,43 +30,9 @@ export type SeedDatabaseWorkflowInput = {
   priceListSync?: Steps.SyncPriceListsStepInput["config"]
 }
 
-function buildInventoryItemsInput(
-  products: SeedDatabaseWorkflowInput["products"]
-): Steps.CreateInventoryLevelsStepInput["inventoryItems"] {
-  const inventoryItems: Steps.CreateInventoryLevelsStepInput["inventoryItems"] =
-    []
-
-  for (const product of products) {
-    for (const variant of product.variants ?? []) {
-      if (!variant.sku) {
-        continue
-      }
-
-      if (variant.quantities?.locations?.length) {
-        inventoryItems.push({
-          sku: variant.sku,
-          locations: variant.quantities.locations,
-        })
-        continue
-      }
-
-      if (variant.quantities?.quantity !== undefined) {
-        inventoryItems.push({
-          sku: variant.sku,
-          quantity: variant.quantities.quantity,
-        })
-      }
-    }
-  }
-
-  return inventoryItems
-}
-
 function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
-  // create sales channels
   const salesChannelsResult = Steps.createSalesChannelsStep(input.salesChannels)
 
-  // update store currencies
   const updateStoreCurrenciesStepInput = transform(
     {
       input,
@@ -75,7 +43,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         (i) => i.isDefault
       )
       if (!defaultSalesChannel) {
-        throw new Error("No default sales channel found")
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          "No default sales channel found"
+        )
       }
       return {
         currencies: data.input.currencies,
@@ -87,7 +58,6 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     updateStoreCurrenciesStepInput
   )
 
-  // create regions
   const createRegionsResult = Steps.createRegionsStep(input.regions)
 
   const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
@@ -107,10 +77,8 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     ensurePricePreferencesStepInput
   )
 
-  // create tax regions
   const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
 
-  // create stock locations
   const createStockLocationResult = Steps.createStockLocationSeedStep(
     input.stockLocations
   )
@@ -141,16 +109,13 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       linkStockLocationsFulfillmentProviderInput
     )
 
-  // create a shipping profile
   const createDefaultShippingProfileResult =
     Steps.createDefaultShippingProfileStep(input.defaultShippingProfile)
 
-  // create fulfillment sets
   const createFulfillmentSetsResult = Steps.createFulfillmentSetStep(
     input.fulfillmentSets
   )
 
-  // link stock locations to fulfillment set
   const linkStockLocationsFulfillmentSetInput: Steps.LinkStockLocationFulfillmentSetStepInput =
     transform(
       {
@@ -162,7 +127,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
 
         if (!fulfillmentSet) {
-          throw new Error("No fulfillment set found")
+          throw new MedusaError(
+            MedusaError.Types.NOT_FOUND,
+            "No fulfillment set found"
+          )
         }
 
         return {
@@ -176,8 +144,6 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     Steps.linkStockLocationFulfillmentSetStep(
       linkStockLocationsFulfillmentSetInput
     )
-
-  // create shipping options
 
   const createShippingOptionsInput: Steps.CreateShippingOptionsStepInput =
     transform(
@@ -194,11 +160,17 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         const serviceZone = fulfillmentSet?.service_zones?.[0]
 
         if (!serviceZone?.id) {
-          throw new Error("No service zone found in fulfillment set")
+          throw new MedusaError(
+            MedusaError.Types.NOT_FOUND,
+            "No service zone found in fulfillment set"
+          )
         }
 
         if (!shippingProfile?.id) {
-          throw new Error("No shipping profile found")
+          throw new MedusaError(
+            MedusaError.Types.NOT_FOUND,
+            "No shipping profile found"
+          )
         }
 
         return data.input.shippingOptions.map((option) => ({
@@ -230,7 +202,6 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     createShippingOptionsInput
   )
 
-  // link sales channels to stock location
   const linkSalesChannelsToStockLocationInput: Steps.LinkSalesChannelsStockLocationStepInput =
     transform(
       {
@@ -249,13 +220,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       linkSalesChannelsToStockLocationInput
     )
 
-  // create publishable key
-
   const createPublishableKeyResult = Steps.createPublishableKeyStep(
     input.publishableKey
   )
 
-  // link publishable key to salesChannels
   const linkSalesChannelsApiKeyStepInput: Steps.LinkSalesChannelsApiKeyStepInput =
     transform(
       {
@@ -266,7 +234,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         const publishableApiKey = data.createPublishableKeyResult.result[0]
 
         if (!publishableApiKey) {
-          throw new Error("No publishable API key found")
+          throw new MedusaError(
+            MedusaError.Types.NOT_FOUND,
+            "No publishable API key found"
+          )
         }
 
         return {
@@ -279,13 +250,9 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
   const linkSalesChannelsApiKeyStepInputResult =
     Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
 
-  // create product categories
-
   const createProductCategoriesResult = Steps.createProductCategoriesStep(
     input.productCategories
   )
-
-  // create products
 
   const createProductsStepInput: Steps.CreateProductsStepInput = transform(
     {
@@ -329,7 +296,6 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
 
   const createTaxRatesResult = Steps.createTaxRatesStep(createTaxRatesStepInput)
 
-  // create inventory levels
   const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
     transform(
       {

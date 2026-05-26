@@ -1,10 +1,11 @@
-import type { ApiKeyDTO } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { toCreateProductsStepInput } from "../../../utils/products"
+import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
 import * as Steps from "../steps"
 import seedCategoriesWorkflow, { type CategoryRaw } from "./seed-categories"
 
@@ -38,38 +39,6 @@ export type SeedN1WorkflowInput = {
   fulfillmentSets: Steps.CreateFulfillmentSetStepInput
   shippingOptions: Steps.CreateShippingOptionsStepSeedInput
   publishableKey: Steps.CreatePublishableKeyStepInput
-}
-
-function buildInventoryItemsInput(
-  products: Steps.CreateProductsStepInput
-): Steps.CreateInventoryLevelsStepInput["inventoryItems"] {
-  const inventoryItems: Steps.CreateInventoryLevelsStepInput["inventoryItems"] =
-    []
-
-  for (const product of products) {
-    for (const variant of product.variants ?? []) {
-      if (!variant.sku) {
-        continue
-      }
-
-      if (variant.quantities?.locations?.length) {
-        inventoryItems.push({
-          sku: variant.sku,
-          locations: variant.quantities.locations,
-        })
-        continue
-      }
-
-      if (variant.quantities?.quantity !== undefined) {
-        inventoryItems.push({
-          sku: variant.sku,
-          quantity: variant.quantities.quantity,
-        })
-      }
-    }
-  }
-
-  return inventoryItems
 }
 
 function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
@@ -253,11 +222,20 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         createPublishableKeyResult,
         salesChannelsResult,
       },
-      (data) => ({
-        salesChannels: data.salesChannelsResult.result,
-        publishableApiKey: data.createPublishableKeyResult
-          .result[0] as ApiKeyDTO,
-      })
+      (data) => {
+        const publishableApiKey = data.createPublishableKeyResult.result[0]
+        if (!publishableApiKey) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_FOUND,
+            "No publishable API key found"
+          )
+        }
+
+        return {
+          salesChannels: data.salesChannelsResult.result,
+          publishableApiKey,
+        }
+      }
     )
 
   Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)

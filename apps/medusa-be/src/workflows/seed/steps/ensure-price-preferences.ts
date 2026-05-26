@@ -80,20 +80,21 @@ export const ensurePricePreferencesStep = createStep(
       return new StepResponse({ result: output })
     }
 
-    const existingRegionPreferences =
-      regionIds.length > 0
-        ? await pricingService.listPricePreferences({
-            attribute: "region_id",
-            value: regionIds,
-          })
-        : []
-    const existingCurrencyPreferences =
-      currencyCodes.length > 0
-        ? await pricingService.listPricePreferences({
-            attribute: "currency_code",
-            value: currencyCodes,
-          })
-        : []
+    const [existingRegionPreferences, existingCurrencyPreferences] =
+      await Promise.all([
+        regionIds.length > 0
+          ? pricingService.listPricePreferences({
+              attribute: "region_id",
+              value: regionIds,
+            })
+          : Promise.resolve([]),
+        currencyCodes.length > 0
+          ? pricingService.listPricePreferences({
+              attribute: "currency_code",
+              value: currencyCodes,
+            })
+          : Promise.resolve([]),
+      ])
 
     const existingByKey = new Map<
       string,
