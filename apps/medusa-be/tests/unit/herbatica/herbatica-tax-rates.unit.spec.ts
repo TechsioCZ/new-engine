@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  buildProductTaxRateIdentity,
   buildTaxRateSeedTargets,
   HERBATICA_DEFAULT_TAX_RATES,
 } from "../../../src/workflows/seed/steps/create-tax-rates"
@@ -38,10 +39,10 @@ describe("Herbatica tax-rate seed policy", () => {
       ["sk", 23],
       ["cz", 19],
     ])
-    expect(mapEntries(targets.productRatesByCountry)).toEqual([])
+    expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([])
   })
 
-  it("creates Slovakia product overrides only when product VAT differs from Slovak default", () => {
+  it("groups Slovakia product overrides by VAT rate when product VAT differs from Slovak default", () => {
     const targets = buildTaxRateSeedTargets(
       [
         {
@@ -57,6 +58,14 @@ describe("Herbatica tax-rate seed policy", () => {
           metadata: {
             top_offer: {
               vat: "19",
+            },
+          },
+        },
+        {
+          id: "prod_lower_other",
+          metadata: {
+            top_offer: {
+              vat: 19,
             },
           },
         },
@@ -86,17 +95,28 @@ describe("Herbatica tax-rate seed policy", () => {
       ["sk", "cz"]
     )
 
-    expect(mapEntries(targets.productRatesByCountry)).toEqual([
+    expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([
       [
         "sk",
         new Map([
-          ["prod_lower", 19],
-          ["prod_second_lower", 5],
-          ["prod_zero", 0],
+          [19, ["prod_lower", "prod_lower_other"]],
+          [5, ["prod_second_lower"]],
+          [0, ["prod_zero"]],
         ]),
       ],
     ])
-    expect(targets.productRatesByCountry.has("cz")).toBe(false)
+    expect(targets.productRateGroupsByCountry.has("cz")).toBe(false)
+  })
+
+  it("names grouped product override rates by country and VAT rate", () => {
+    expect(buildProductTaxRateIdentity("sk", 19)).toEqual({
+      code: "vat_sk_product_19",
+      name: "VAT SK Product 19%",
+    })
+    expect(buildProductTaxRateIdentity("sk", 5)).toEqual({
+      code: "vat_sk_product_5",
+      name: "VAT SK Product 5%",
+    })
   })
 
   it("does not emit Slovakia product overrides when Slovakia is not an approved target country", () => {
@@ -115,6 +135,6 @@ describe("Herbatica tax-rate seed policy", () => {
     )
 
     expect(mapEntries(targets.defaultRatesByCountry)).toEqual([["cz", 19]])
-    expect(mapEntries(targets.productRatesByCountry)).toEqual([])
+    expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([])
   })
 })
