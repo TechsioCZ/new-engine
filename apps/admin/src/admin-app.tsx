@@ -73,8 +73,9 @@ export function AdminApp() {
     if (summary.isError && isAuthError(summary.error)) {
       clearStoredAdminToken()
       setIsAuthenticated(false)
+      queryClient.clear()
     }
-  }, [summary.error, summary.isError])
+  }, [queryClient, summary.error, summary.isError])
 
   async function handleAuthenticated() {
     setIsAuthenticated(true)
@@ -387,5 +388,5 @@ function getBadgeValue(
 }
 
 function shouldRenderBadge(badge: BadgeValue) {
-  return badge.count > 0 || !badge.countExact
+  return badge.count > 0
 }

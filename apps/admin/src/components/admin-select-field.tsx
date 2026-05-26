@@ -40,11 +40,7 @@ export function AdminSelectField({
       items={items}
       name={name}
       onValueChange={(details) => {
-        const nextValue = details.value[0]
-
-        if (nextValue) {
-          onValueChange(nextValue)
-        }
+        onValueChange(details.value[0] ?? "")
       }}
       size={size}
       value={value ? [value] : []}
