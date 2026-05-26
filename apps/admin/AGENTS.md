@@ -23,7 +23,7 @@ Before implementing a Medusa admin feature, inspect these sources in this order:
 1. Existing `apps/admin` code and current UX behavior.
 2. Official Medusa Admin API documentation: `https://docs.medusajs.com/api/admin`.
 3. Official Medusa Admin development documentation: `https://docs.medusajs.com/learn/fundamentals/admin`.
-4. Local Medusa dashboard source at `C:/Users/pisez/.local/share/medusajs/medusa/packages/admin/dashboard/src`.
+4. Local Medusa dashboard source at `~/.local/share/medusajs/medusa/packages/admin/dashboard/src`.
 5. Current backend custom admin routes under `apps/medusa-be/src/api/admin` when the workflow is custom to this project.
 6. Installed repo-local Medusa skills:
    - `.codex/skills/building-admin-dashboard-customizations`
