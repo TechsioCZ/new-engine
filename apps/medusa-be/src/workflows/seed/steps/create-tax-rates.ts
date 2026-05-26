@@ -1,13 +1,16 @@
 import type {
-    IProductModuleService,
-    ITaxModuleService,
-    Logger,
-    TaxRateDTO,
-    TaxRegionDTO,
+  IProductModuleService,
+  ITaxModuleService,
+  Logger,
+  TaxRateDTO,
+  TaxRegionDTO,
 } from "@medusajs/framework/types"
-import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
-import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
-import {createTaxRatesWorkflow, updateTaxRatesWorkflow,} from "@medusajs/medusa/core-flows"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import {
+  createTaxRatesWorkflow,
+  updateTaxRatesWorkflow,
+} from "@medusajs/medusa/core-flows"
 
 type TaxRateMetadata = Record<string, unknown>
 
@@ -38,6 +41,16 @@ type CreateTaxRatesStepOutput = {
   updated: TaxRateDTO[]
 }
 
+type ProductTaxSource = {
+  id: string
+  metadata?: Record<string, unknown> | null
+}
+
+export type TaxRateSeedTargets = {
+  defaultRatesByCountry: Map<string, number>
+  productRatesByCountry: Map<string, Map<string, number>>
+}
+
 export type CreateTaxRatesStepInput = {
   productIds: string[]
   fallbackCountryCode?: string
@@ -47,6 +60,11 @@ export type CreateTaxRatesStepInput = {
 const CreateTaxRatesStepId = "create-tax-rates-seed-step"
 const TAX_METADATA_SOURCE = "herbatica-seed-tax-rates"
 const RATE_EPSILON = 0.0001
+export const HERBATICA_DEFAULT_TAX_RATES = new Map<string, number>([
+  ["sk", 23],
+  ["cz", 19],
+])
+const PRODUCT_OVERRIDE_COUNTRY_CODE = "sk"
 
 function asObject(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -95,65 +113,12 @@ function parseRate(value: unknown): number | undefined {
   return Number(parsed.toFixed(4))
 }
 
-function parseOssRate(
-  value: unknown,
-  fallbackRate: number | undefined
-): number | undefined {
-  const parsed = parseRate(value)
-  if (parsed !== undefined) {
-    return parsed
-  }
-
-  if (typeof value !== "string") {
-    return
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if ((normalized === "high" || normalized === "low") && fallbackRate !== undefined) {
-    return fallbackRate
-  }
-
-  return
-}
-
 function isSameRate(left: number | null | undefined, right: number): boolean {
   if (left === null || left === undefined) {
     return false
   }
 
   return Math.abs(left - right) < RATE_EPSILON
-}
-
-function pickDefaultRate(values: number[]): number {
-  const counters = new Map<string, { count: number; value: number }>()
-
-  for (const value of values) {
-    const key = value.toFixed(4)
-    const existing = counters.get(key)
-    if (!existing) {
-      counters.set(key, { count: 1, value })
-      continue
-    }
-
-    existing.count += 1
-  }
-
-  let picked = values[0] ?? 0
-  let maxCount = -1
-
-  for (const entry of counters.values()) {
-    if (entry.count > maxCount) {
-      picked = entry.value
-      maxCount = entry.count
-      continue
-    }
-
-    if (entry.count === maxCount && entry.value > picked) {
-      picked = entry.value
-    }
-  }
-
-  return picked
 }
 
 function getMetadataString(metadata: TaxRateMetadata | null, key: string) {
@@ -186,43 +151,66 @@ function buildProductRateMetadata(
   }
 }
 
-function extractProductTaxRates(
-  metadata: Record<string, unknown> | undefined,
-  fallbackCountryCode: string,
-  targetCountries: string[]
-): Map<string, number> {
-  const result = new Map<string, number>()
-
+function extractProductVat(
+  metadata: Record<string, unknown> | undefined
+): number | undefined {
   const topOffer = asObject(metadata?.top_offer)
   if (!topOffer) {
-    return result
+    return
   }
 
-  const fallbackVat = parseRate(topOffer.vat)
-  if (fallbackVat !== undefined) {
-    const seedCountries = targetCountries.length > 0 ? targetCountries : [fallbackCountryCode]
-    for (const countryCode of seedCountries) {
-      result.set(countryCode, fallbackVat)
+  return parseRate(topOffer.vat)
+}
+
+export function buildTaxRateSeedTargets(
+  products: ProductTaxSource[],
+  requestedCountries: string[] = []
+): TaxRateSeedTargets {
+  const requestedCountrySet = new Set(
+    requestedCountries
+      .map((countryCode) => normalizeCountryCode(countryCode))
+      .filter((countryCode): countryCode is string => Boolean(countryCode))
+  )
+
+  const defaultRatesByCountry = new Map(
+    [...HERBATICA_DEFAULT_TAX_RATES.entries()].filter(
+      ([countryCode]) =>
+        requestedCountrySet.size === 0 || requestedCountrySet.has(countryCode)
+    )
+  )
+  const productRatesByCountry = new Map<string, Map<string, number>>()
+  const defaultOverrideRate = defaultRatesByCountry.get(
+    PRODUCT_OVERRIDE_COUNTRY_CODE
+  )
+
+  if (defaultOverrideRate === undefined) {
+    return {
+      defaultRatesByCountry,
+      productRatesByCountry,
     }
   }
 
-  const ossTaxRates = Array.isArray(topOffer.oss_tax_rates)
-    ? topOffer.oss_tax_rates
-    : []
-
-  for (const ossTaxRate of ossTaxRates) {
-    const entry = asObject(ossTaxRate)
-    const countryCode = normalizeCountryCode(entry?.country)
-    const rate = parseOssRate(entry?.level, fallbackVat)
-
-    if (!countryCode || rate === undefined) {
+  const slovakiaProductRates = new Map<string, number>()
+  for (const product of products) {
+    const vat = extractProductVat(asObject(product.metadata))
+    if (vat === undefined || isSameRate(vat, defaultOverrideRate)) {
       continue
     }
 
-    result.set(countryCode, rate)
+    slovakiaProductRates.set(product.id, vat)
   }
 
-  return result
+  if (slovakiaProductRates.size > 0) {
+    productRatesByCountry.set(
+      PRODUCT_OVERRIDE_COUNTRY_CODE,
+      slovakiaProductRates
+    )
+  }
+
+  return {
+    defaultRatesByCountry,
+    productRatesByCountry,
+  }
 }
 
 function mapCountryToRegion(taxRegions: TaxRegionDTO[]) {
@@ -271,8 +259,6 @@ export const createTaxRatesStep = createStep(
       })
     }
 
-    const fallbackCountryCode =
-      normalizeCountryCode(input.fallbackCountryCode) ?? "sk"
     const normalizedSeedCountries = [
       ...new Set(
         (input.countries ?? [])
@@ -290,27 +276,15 @@ export const createTaxRatesStep = createStep(
       }
     )
 
-    const countryToProductRates = new Map<string, Map<string, number>>()
+    const taxRateTargets = buildTaxRateSeedTargets(
+      products,
+      normalizedSeedCountries
+    )
 
-    for (const product of products) {
-      const metadata = asObject(product.metadata)
-      const productTaxRates = extractProductTaxRates(
-        metadata,
-        fallbackCountryCode,
-        normalizedSeedCountries
+    if (taxRateTargets.defaultRatesByCountry.size === 0) {
+      logger.warn(
+        "No approved tax-rate countries configured, skipping tax rate seed"
       )
-
-      for (const [countryCode, rate] of productTaxRates.entries()) {
-        if (!countryToProductRates.has(countryCode)) {
-          countryToProductRates.set(countryCode, new Map())
-        }
-
-        countryToProductRates.get(countryCode)?.set(product.id, rate)
-      }
-    }
-
-    if (countryToProductRates.size === 0) {
-      logger.warn("No VAT information found in product metadata, skipping tax rate seed")
       return new StepResponse({
         result: {
           created,
@@ -319,7 +293,7 @@ export const createTaxRatesStep = createStep(
       })
     }
 
-    const countries = [...countryToProductRates.keys()]
+    const countries = [...taxRateTargets.defaultRatesByCountry.keys()]
     const taxRegions = await taxService.listTaxRegions({
       country_code: { $in: countries },
     })
@@ -335,7 +309,9 @@ export const createTaxRatesStep = createStep(
       )
     }
 
-    const regionIds = [...countryToRegion.values()].map((taxRegion) => taxRegion.id)
+    const regionIds = [...countryToRegion.values()].map(
+      (taxRegion) => taxRegion.id
+    )
 
     if (regionIds.length === 0) {
       return new StepResponse({
@@ -371,10 +347,15 @@ export const createTaxRatesStep = createStep(
         continue
       }
 
-      existingProductByKey.set(buildProductRateKey(countryCode, productId), taxRate)
+      existingProductByKey.set(
+        buildProductRateKey(countryCode, productId),
+        taxRate
+      )
     }
 
-    const nonDefaultRates = existingRates.filter((taxRate) => !taxRate.is_default)
+    const nonDefaultRates = existingRates.filter(
+      (taxRate) => !taxRate.is_default
+    )
     if (nonDefaultRates.length > 0) {
       const productRules = await taxService.listTaxRateRules({
         tax_rate_id: nonDefaultRates.map((taxRate) => taxRate.id),
@@ -423,13 +404,15 @@ export const createTaxRatesStep = createStep(
     const createPayloads: CreateTaxRatePayload[] = []
     const updatePayloads: UpdateTaxRatePayload[] = []
 
-    for (const [countryCode, productRates] of countryToProductRates.entries()) {
+    for (const [
+      countryCode,
+      defaultRate,
+    ] of taxRateTargets.defaultRatesByCountry) {
       const taxRegion = countryToRegion.get(countryCode)
       if (!taxRegion) {
         continue
       }
 
-      const defaultRate = pickDefaultRate([...productRates.values()])
       const defaultName = `VAT ${countryCode.toUpperCase()}`
       const defaultCode = `vat_${countryCode}`
       const defaultMetadata = buildDefaultRateMetadata(countryCode)
@@ -462,6 +445,8 @@ export const createTaxRatesStep = createStep(
         })
       }
 
+      const productRates =
+        taxRateTargets.productRatesByCountry.get(countryCode) ?? new Map()
       for (const [productId, rate] of productRates.entries()) {
         if (isSameRate(defaultRate, rate)) {
           continue
@@ -510,14 +495,18 @@ export const createTaxRatesStep = createStep(
 
     for (let i = 0; i < createPayloads.length; i += CHUNK_SIZE) {
       const chunk = createPayloads.slice(i, i + CHUNK_SIZE)
-      const { result: createdChunk } = await createTaxRatesWorkflow(container).run({
+      const { result: createdChunk } = await createTaxRatesWorkflow(
+        container
+      ).run({
         input: chunk,
       })
       created.push(...createdChunk)
     }
 
     for (const updatePayload of updatePayloads) {
-      const { result: updatedChunk } = await updateTaxRatesWorkflow(container).run({
+      const { result: updatedChunk } = await updateTaxRatesWorkflow(
+        container
+      ).run({
         input: updatePayload,
       })
       updated.push(...updatedChunk)

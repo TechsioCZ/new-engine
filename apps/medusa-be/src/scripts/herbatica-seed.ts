@@ -3514,7 +3514,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     },
     taxRates: {
       fallbackCountryCode: "sk",
-      countries: [...DEFAULT_COUNTRIES],
+      countries: ["sk", "cz"],
     },
     stockLocations: {
       locations: parsed.stockLocations,
