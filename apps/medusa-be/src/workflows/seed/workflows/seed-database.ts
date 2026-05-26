@@ -8,11 +8,15 @@ import * as Steps from "../steps"
 const SeedDatabaseWorkflowId = "seed-database-workflow"
 
 export type SeedDatabaseWorkflowInput = {
+  workflowDefaults: {
+    fulfillmentProviderId: string
+    shippingOptionPriceAmount: number
+  }
   salesChannels: Steps.CreateSalesChannelsStepInput
   currencies: Steps.UpdateStoreCurrenciesStepCurrenciesInput
   regions: Steps.CreateRegionsStepInput
   taxRegions: Steps.CreateTaxRegionsStepInput
-  taxRates?: Omit<Steps.CreateTaxRatesStepInput, "productIds">
+  taxRates?: Omit<Steps.CreateTaxRatesStepInput, "productIds" | "enabled">
   stockLocations: Steps.CreateStockLocationStepInput
   defaultShippingProfile: Steps.CreateDefaultShippingProfileStepInput
   fulfillmentSets: Steps.CreateFulfillmentSetStepInput
@@ -21,6 +25,7 @@ export type SeedDatabaseWorkflowInput = {
   productCategories: Steps.CreateProductCategoriesStepInput
   products: Steps.CreateProductsStepInput
   priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
+  priceListSync?: Steps.SyncPriceListsStepInput["config"]
 }
 
 function buildInventoryItemsInput(
@@ -55,319 +60,319 @@ function buildInventoryItemsInput(
   return inventoryItems
 }
 
-const seedDatabaseWorkflow = createWorkflow(
-  SeedDatabaseWorkflowId,
-  (input: SeedDatabaseWorkflowInput) => {
-    // create sales channels
-    const salesChannelsResult = Steps.createSalesChannelsStep(
-      input.salesChannels
+function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
+  // create sales channels
+  const salesChannelsResult = Steps.createSalesChannelsStep(input.salesChannels)
+
+  // update store currencies
+  const updateStoreCurrenciesStepInput = transform(
+    {
+      input,
+      salesChannelsResult,
+    },
+    (data) => {
+      const defaultSalesChannel = data.salesChannelsResult.result.find(
+        (i) => i.isDefault
+      )
+      if (!defaultSalesChannel) {
+        throw new Error("No default sales channel found")
+      }
+      return {
+        currencies: data.input.currencies,
+        defaultSalesChannelId: defaultSalesChannel.id,
+      }
+    }
+  )
+  const updateStoreCurrenciesResult = Steps.updateStoreCurrenciesStep(
+    updateStoreCurrenciesStepInput
+  )
+
+  // create regions
+  const createRegionsResult = Steps.createRegionsStep(input.regions)
+
+  const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
+    transform(
+      {
+        createRegionsResult,
+        input,
+      },
+      (data) => ({
+        regionIds: data.createRegionsResult.result.map((region) => region.id),
+        currencyCodes: data.input.currencies.map((currency) => currency.code),
+        isTaxInclusive: true,
+      })
     )
 
-    // update store currencies
-    const updateStoreCurrenciesStepInput = transform(
+  const ensurePricePreferencesResult = Steps.ensurePricePreferencesStep(
+    ensurePricePreferencesStepInput
+  )
+
+  // create tax regions
+  const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
+
+  // create stock locations
+  const createStockLocationResult = Steps.createStockLocationSeedStep(
+    input.stockLocations
+  )
+
+  // link stock locations to fulfillment providers (derived from shipping options)
+  const linkStockLocationsFulfillmentProviderInput: Steps.LinkStockLocationFulfillmentProviderStepInput =
+    transform(
       {
+        createStockLocationResult,
         input,
-        salesChannelsResult,
+      },
+      (data) => ({
+        stockLocations: data.createStockLocationResult.result,
+        fulfillmentProviderIds: [
+          ...new Set(
+            data.input.shippingOptions.map(
+              (opt) =>
+                opt.providerId ??
+                data.input.workflowDefaults.fulfillmentProviderId
+            )
+          ),
+        ],
+      })
+    )
+
+  const linkStockLocationsFulfillmentProviderResult =
+    Steps.linkStockLocationFulfillmentProviderSeedStep(
+      linkStockLocationsFulfillmentProviderInput
+    )
+
+  // create a shipping profile
+  const createDefaultShippingProfileResult =
+    Steps.createDefaultShippingProfileStep(input.defaultShippingProfile)
+
+  // create fulfillment sets
+  const createFulfillmentSetsResult = Steps.createFulfillmentSetStep(
+    input.fulfillmentSets
+  )
+
+  // link stock locations to fulfillment set
+  const linkStockLocationsFulfillmentSetInput: Steps.LinkStockLocationFulfillmentSetStepInput =
+    transform(
+      {
+        createStockLocationResult,
+        input,
+        createFulfillmentSetsResult,
       },
       (data) => {
-        const defaultSalesChannel = data.salesChannelsResult.result.find(
-          (i) => i.isDefault
-        )
-        if (!defaultSalesChannel) {
-          throw new Error("No default sales channel found")
+        const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
+
+        if (!fulfillmentSet) {
+          throw new Error("No fulfillment set found")
         }
+
         return {
-          currencies: data.input.currencies,
-          defaultSalesChannelId: defaultSalesChannel.id,
+          stockLocations: data.createStockLocationResult.result,
+          fulfillmentSet,
         }
       }
     )
-    const updateStoreCurrenciesResult = Steps.updateStoreCurrenciesStep(
-      updateStoreCurrenciesStepInput
+
+  const linkStockLocationsFulfillmentSetResult =
+    Steps.linkStockLocationFulfillmentSetStep(
+      linkStockLocationsFulfillmentSetInput
     )
 
-    // create regions
-    const createRegionsResult = Steps.createRegionsStep(input.regions)
+  // create shipping options
 
-    const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
-      transform(
-        {
-          createRegionsResult,
-          input,
-        },
-        (data) => ({
-          regionIds: data.createRegionsResult.result.map((region) => region.id),
-          currencyCodes: data.input.currencies.map((currency) => currency.code),
-          isTaxInclusive: true,
-        })
-      )
-
-    const ensurePricePreferencesResult = Steps.ensurePricePreferencesStep(
-      ensurePricePreferencesStepInput
-    )
-
-    // create tax regions
-    const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
-
-    // create stock locations
-    const createStockLocationResult = Steps.createStockLocationSeedStep(
-      input.stockLocations
-    )
-
-    // link stock locations to fulfillment providers (derived from shipping options)
-    const linkStockLocationsFulfillmentProviderInput: Steps.LinkStockLocationFulfillmentProviderStepInput =
-      transform(
-        {
-          createStockLocationResult,
-          input,
-        },
-        (data) => ({
-          stockLocations: data.createStockLocationResult.result,
-          fulfillmentProviderIds: [
-            ...new Set(
-              data.input.shippingOptions.map(
-                (opt) => opt.providerId || "manual_manual"
-              )
-            ),
-          ],
-        })
-      )
-
-    const linkStockLocationsFulfillmentProviderResult =
-      Steps.linkStockLocationFulfillmentProviderSeedStep(
-        linkStockLocationsFulfillmentProviderInput
-      )
-
-    // create a shipping profile
-    const createDefaultShippingProfileResult =
-      Steps.createDefaultShippingProfileStep(input.defaultShippingProfile)
-
-    // create fulfillment sets
-    const createFulfillmentSetsResult = Steps.createFulfillmentSetStep(
-      input.fulfillmentSets
-    )
-
-    // link stock locations to fulfillment set
-    const linkStockLocationsFulfillmentSetInput: Steps.LinkStockLocationFulfillmentSetStepInput =
-      transform(
-        {
-          createStockLocationResult,
-          input,
-          createFulfillmentSetsResult,
-        },
-        (data) => {
-          const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
-
-          if (!fulfillmentSet) {
-            throw new Error("No fulfillment set found")
-          }
-
-          return {
-            stockLocations: data.createStockLocationResult.result,
-            fulfillmentSet,
-          }
-        }
-      )
-
-    const linkStockLocationsFulfillmentSetResult =
-      Steps.linkStockLocationFulfillmentSetStep(
-        linkStockLocationsFulfillmentSetInput
-      )
-
-    // create shipping options
-
-    const createShippingOptionsInput: Steps.CreateShippingOptionsStepInput =
-      transform(
-        {
-          input,
-          createFulfillmentSetsResult,
-          createDefaultShippingProfileResult,
-          createRegionsResult,
-        },
-        (data) => {
-          const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
-          const shippingProfile =
-            data.createDefaultShippingProfileResult.result[0]
-          const serviceZone = fulfillmentSet?.service_zones?.[0]
-
-          if (!serviceZone?.id) {
-            throw new Error("No service zone found in fulfillment set")
-          }
-
-          if (!shippingProfile?.id) {
-            throw new Error("No shipping profile found")
-          }
-
-          return data.input.shippingOptions.map((option) => ({
-            name: option.name,
-            providerId: option.providerId || "manual_manual",
-            serviceZoneId: serviceZone.id,
-            shippingProfileId: shippingProfile.id,
-            regions: data.createRegionsResult.result.map((region) => ({
-              ...region,
-              amount:
-                option.prices.find(
-                  (p) =>
-                    p.currencyCode?.toLowerCase() ===
-                    region.currency_code?.toLowerCase()
-                )?.amount ?? 10,
-            })),
-            type: option.type,
-            prices: option.prices,
-            rules: option.rules,
-            data: option.data,
-          }))
-        }
-      )
-
-    const createShippingOptionsResult = Steps.createShippingOptionsStep(
-      createShippingOptionsInput
-    )
-
-    // link sales channels to stock location
-    const linkSalesChannelsToStockLocationInput: Steps.LinkSalesChannelsStockLocationStepInput =
-      transform(
-        {
-          createStockLocationResult,
-          input,
-          salesChannelsResult,
-        },
-        (data) => ({
-          stockLocations: data.createStockLocationResult.result,
-          salesChannels: data.salesChannelsResult.result,
-        })
-      )
-
-    const linkSalesChannelsToStockLocationResult =
-      Steps.linkSalesChannelsStockLocationStep(
-        linkSalesChannelsToStockLocationInput
-      )
-
-    // create publishable key
-
-    const createPublishableKeyResult = Steps.createPublishableKeyStep(
-      input.publishableKey
-    )
-
-    // link publishable key to salesChannels
-    const linkSalesChannelsApiKeyStepInput: Steps.LinkSalesChannelsApiKeyStepInput =
-      transform(
-        {
-          createPublishableKeyResult,
-          salesChannelsResult,
-        },
-        (data) => {
-          const publishableApiKey = data.createPublishableKeyResult.result[0]
-
-          if (!publishableApiKey) {
-            throw new Error("No publishable API key found")
-          }
-
-          return {
-            salesChannels: data.salesChannelsResult.result,
-            publishableApiKey,
-          }
-        }
-      )
-
-    const linkSalesChannelsApiKeyStepInputResult =
-      Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
-
-    // create product categories
-
-    const createProductCategoriesResult = Steps.createProductCategoriesStep(
-      input.productCategories
-    )
-
-    // create products
-
-    const createProductsStepInput: Steps.CreateProductsStepInput = transform(
+  const createShippingOptionsInput: Steps.CreateShippingOptionsStepInput =
+    transform(
       {
         input,
-        createProductCategoriesResult,
-        salesChannelsResult,
+        createFulfillmentSetsResult,
         createDefaultShippingProfileResult,
+        createRegionsResult,
       },
-      (data) => data.input.products
+      (data) => {
+        const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
+        const shippingProfile =
+          data.createDefaultShippingProfileResult.result[0]
+        const serviceZone = fulfillmentSet?.service_zones?.[0]
+
+        if (!serviceZone?.id) {
+          throw new Error("No service zone found in fulfillment set")
+        }
+
+        if (!shippingProfile?.id) {
+          throw new Error("No shipping profile found")
+        }
+
+        return data.input.shippingOptions.map((option) => ({
+          name: option.name,
+          providerId:
+            option.providerId ??
+            data.input.workflowDefaults.fulfillmentProviderId,
+          serviceZoneId: serviceZone.id,
+          shippingProfileId: shippingProfile.id,
+          regions: data.createRegionsResult.result.map((region) => ({
+            ...region,
+            amount:
+              option.prices.find(
+                (p) =>
+                  p.currencyCode?.toLowerCase() ===
+                  region.currency_code?.toLowerCase()
+              )?.amount ??
+              data.input.workflowDefaults.shippingOptionPriceAmount,
+          })),
+          type: option.type,
+          prices: option.prices,
+          rules: option.rules,
+          data: option.data,
+        }))
+      }
     )
 
-    const createProductsResult = Steps.createProductsStep(
-      createProductsStepInput
-    )
+  const createShippingOptionsResult = Steps.createShippingOptionsStep(
+    createShippingOptionsInput
+  )
 
-    const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
+  // link sales channels to stock location
+  const linkSalesChannelsToStockLocationInput: Steps.LinkSalesChannelsStockLocationStepInput =
+    transform(
       {
+        createStockLocationResult,
+        input,
+        salesChannelsResult,
+      },
+      (data) => ({
+        stockLocations: data.createStockLocationResult.result,
+        salesChannels: data.salesChannelsResult.result,
+      })
+    )
+
+  const linkSalesChannelsToStockLocationResult =
+    Steps.linkSalesChannelsStockLocationStep(
+      linkSalesChannelsToStockLocationInput
+    )
+
+  // create publishable key
+
+  const createPublishableKeyResult = Steps.createPublishableKeyStep(
+    input.publishableKey
+  )
+
+  // link publishable key to salesChannels
+  const linkSalesChannelsApiKeyStepInput: Steps.LinkSalesChannelsApiKeyStepInput =
+    transform(
+      {
+        createPublishableKeyResult,
+        salesChannelsResult,
+      },
+      (data) => {
+        const publishableApiKey = data.createPublishableKeyResult.result[0]
+
+        if (!publishableApiKey) {
+          throw new Error("No publishable API key found")
+        }
+
+        return {
+          salesChannels: data.salesChannelsResult.result,
+          publishableApiKey,
+        }
+      }
+    )
+
+  const linkSalesChannelsApiKeyStepInputResult =
+    Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
+
+  // create product categories
+
+  const createProductCategoriesResult = Steps.createProductCategoriesStep(
+    input.productCategories
+  )
+
+  // create products
+
+  const createProductsStepInput: Steps.CreateProductsStepInput = transform(
+    {
+      input,
+      createProductCategoriesResult,
+      salesChannelsResult,
+      createDefaultShippingProfileResult,
+    },
+    (data) => data.input.products
+  )
+
+  const createProductsResult = Steps.createProductsStep(createProductsStepInput)
+
+  const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
+    {
+      createProductsResult,
+      input,
+    },
+    (data) => ({
+      productIds: data.createProductsResult.result,
+      priceLists: data.input.priceLists,
+      config: data.input.priceListSync,
+    })
+  )
+
+  const syncPriceListsResult = Steps.syncPriceListsStep(syncPriceListsInput)
+
+  const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput = transform(
+    {
+      createProductsResult,
+      createTaxRegionsResult,
+      input,
+    },
+    (data) => ({
+      enabled: Boolean(data.input.taxRates),
+      countries: data.input.taxRates?.countries,
+      config: data.input.taxRates?.config,
+      productIds: data.input.taxRates ? data.createProductsResult.result : [],
+    })
+  )
+
+  const createTaxRatesResult = Steps.createTaxRatesStep(createTaxRatesStepInput)
+
+  // create inventory levels
+  const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
+    transform(
+      {
+        createStockLocationResult,
         createProductsResult,
         input,
       },
       (data) => ({
-        productIds: data.createProductsResult.result,
-        priceLists: data.input.priceLists,
+        stockLocations: data.createStockLocationResult.result,
+        inventoryItems: buildInventoryItemsInput(data.input.products),
       })
     )
 
-    const syncPriceListsResult = Steps.syncPriceListsStep(syncPriceListsInput)
+  const createInventoryLevelsResult = Steps.createInventoryLevelsStep(
+    createInventoryLevelsInput
+  )
 
-    const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput | undefined =
-      input.taxRates
-        ? transform(
-            {
-              createProductsResult,
-              createTaxRegionsResult,
-              input,
-            },
-            (data) => ({
-              fallbackCountryCode: data.input.taxRates?.fallbackCountryCode,
-              countries: data.input.taxRates?.countries,
-              productIds: data.createProductsResult.result,
-            })
-          )
-        : undefined
+  return new WorkflowResponse({
+    salesChannelsResult,
+    updateStoreCurrenciesResult,
+    createRegionsResult,
+    ensurePricePreferencesResult,
+    createTaxRegionsResult,
+    createStockLocationResult,
+    linkStockLocationsFulfillmentProviderResult,
+    createDefaultShippingProfileResult,
+    createFulfillmentSetsResult,
+    linkStockLocationsFulfillmentSetResult,
+    createShippingOptionsResult,
+    linkSalesChannelsToStockLocationResult,
+    createPublishableKeyResult,
+    linkSalesChannelsApiKeyStepInputResult,
+    createProductCategoriesResult,
+    createProductsResult,
+    syncPriceListsResult,
+    createTaxRatesResult,
+    createInventoryLevelsResult,
+  })
+}
 
-    const createTaxRatesResult = createTaxRatesStepInput
-      ? Steps.createTaxRatesStep(createTaxRatesStepInput)
-      : undefined
-
-    // create inventory levels
-    const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
-      transform(
-        {
-          createStockLocationResult,
-          createProductsResult,
-          input,
-        },
-        (data) => ({
-          stockLocations: data.createStockLocationResult.result,
-          inventoryItems: buildInventoryItemsInput(data.input.products),
-        })
-      )
-
-    const createInventoryLevelsResult = Steps.createInventoryLevelsStep(
-      createInventoryLevelsInput
-    )
-
-    return new WorkflowResponse({
-      salesChannelsResult,
-      updateStoreCurrenciesResult,
-      createRegionsResult,
-      ensurePricePreferencesResult,
-      createTaxRegionsResult,
-      createStockLocationResult,
-      linkStockLocationsFulfillmentProviderResult,
-      createDefaultShippingProfileResult,
-      createFulfillmentSetsResult,
-      linkStockLocationsFulfillmentSetResult,
-      createShippingOptionsResult,
-      linkSalesChannelsToStockLocationResult,
-      createPublishableKeyResult,
-      linkSalesChannelsApiKeyStepInputResult,
-      createProductCategoriesResult,
-      createProductsResult,
-      syncPriceListsResult,
-      createTaxRatesResult,
-      createInventoryLevelsResult,
-    })
-  }
+const seedDatabaseWorkflow = createWorkflow(
+  SeedDatabaseWorkflowId,
+  seedDatabaseWorkflowComposer
 )
 
 export default seedDatabaseWorkflow

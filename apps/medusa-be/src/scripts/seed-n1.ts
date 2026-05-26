@@ -48,6 +48,10 @@ export default async function seedN1({ container }: ExecArgs) {
     "sk",
   ]
   const input: Omit<SeedN1WorkflowInput, "categories" | "products"> = {
+    workflowDefaults: {
+      fulfillmentProviderId: "manual_manual",
+      shippingOptionPriceAmount: 10,
+    },
     salesChannels: [
       {
         name: "Default Sales Channel",

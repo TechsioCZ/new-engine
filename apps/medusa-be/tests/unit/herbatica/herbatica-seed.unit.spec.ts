@@ -6,7 +6,15 @@ import {
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlFile,
 } from "../../../src/scripts/herbatica-category-export"
-import { buildSeedInputFromXml } from "../../../src/scripts/herbatica-seed"
+import {
+  buildHerbaticaSeedWorkflowInput,
+  buildSeedInputFromXml,
+} from "../../../src/scripts/herbatica-seed"
+import {
+  HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  HERBATICA_TAX_RATE_CONFIG,
+  HERBATICA_WORKFLOW_DEFAULTS,
+} from "../../../src/scripts/herbatica-seed-config"
 
 const DIRTY_FEED_MARKUP_PATTERN =
   /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
@@ -739,6 +747,56 @@ describe("Herbatica seed product content sections", () => {
     expect(contentSections.composition).toContain("amarantový olej")
     expect(contentSections.other).toContain("Objem")
     expect(contentSections.other).toContain("Krajina pôvodu")
+  })
+})
+
+describe("Herbatica Shoptet workflow input", () => {
+  it("passes Herbatica policy config into generic seed inputs", () => {
+    const parsed = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="policy-product">
+          <NAME>Policy product</NAME>
+          <PRICE_VAT>10</PRICE_VAT>
+          <STANDARD_PRICE>10</STANDARD_PRICE>
+          <ACTION_PRICE>8</ACTION_PRICE>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>2</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="policy">Policy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Wholesale</TITLE>
+              <PRICE_VAT>9</PRICE_VAT>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    const input = buildHerbaticaSeedWorkflowInput(parsed, {
+      regionsInput: [
+        {
+          name: "Europe",
+          currencyCode: "eur",
+          countries: ["sk"],
+          paymentProviders: undefined,
+          isTaxInclusive: true,
+        },
+      ],
+      fulfillmentSetName: "European Warehouse delivery",
+      fulfillmentSetType: "shipping",
+      serviceZoneName: "Europe",
+    })
+
+    expect(input.workflowDefaults).toBe(HERBATICA_WORKFLOW_DEFAULTS)
+    expect(input.priceLists).toBe(parsed.priceLists)
+    expect(input.priceListSync).toBe(HERBATICA_PRICE_LIST_SYNC_CONFIG)
+    expect(input.taxRates?.config).toBe(HERBATICA_TAX_RATE_CONFIG)
+    expect(input.taxRates?.countries).toEqual(["sk", "cz"])
   })
 })
 

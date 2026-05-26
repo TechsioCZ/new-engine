@@ -46,6 +46,20 @@ type ProductTaxSource = {
   metadata?: Record<string, unknown> | null
 }
 
+export type TaxRateSeedConfig = {
+  metadataSource: string
+  defaultRates: { countryCode: string; rate: number }[]
+  productOverrides?: {
+    countryCode: string
+    metadataPath?: string[]
+    groupByRate?: boolean
+  }
+  defaultRateNameTemplate?: string
+  defaultRateCodeTemplate?: string
+  productRateNameTemplate?: string
+  productRateCodeTemplate?: string
+}
+
 export type TaxRateSeedTargets = {
   defaultRatesByCountry: Map<string, number>
   productRateGroupsByCountry: Map<string, Map<number, string[]>>
@@ -53,18 +67,26 @@ export type TaxRateSeedTargets = {
 
 export type CreateTaxRatesStepInput = {
   productIds: string[]
-  fallbackCountryCode?: string
+  enabled?: boolean
   countries?: string[]
+  config?: TaxRateSeedConfig
 }
 
 const CreateTaxRatesStepId = "create-tax-rates-seed-step"
-const TAX_METADATA_SOURCE = "herbatica-seed-tax-rates"
 const RATE_EPSILON = 0.0001
-export const HERBATICA_DEFAULT_TAX_RATES = new Map<string, number>([
-  ["sk", 23],
-  ["cz", 19],
-])
-const PRODUCT_OVERRIDE_COUNTRY_CODE = "sk"
+const DEFAULT_TAX_RATE_NAME_TEMPLATE = "VAT {COUNTRY}"
+const DEFAULT_TAX_RATE_CODE_TEMPLATE = "vat_{country}"
+const DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE = "VAT {COUNTRY} Product {rate}%"
+const DEFAULT_PRODUCT_TAX_RATE_CODE_TEMPLATE =
+  "vat_{country}_product_{rate_code}"
+const DEFAULT_TAX_RATE_SEED_CONFIG: TaxRateSeedConfig = {
+  metadataSource: "seed-tax-rates",
+  defaultRates: [],
+  defaultRateNameTemplate: DEFAULT_TAX_RATE_NAME_TEMPLATE,
+  defaultRateCodeTemplate: DEFAULT_TAX_RATE_CODE_TEMPLATE,
+  productRateNameTemplate: DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE,
+  productRateCodeTemplate: DEFAULT_PRODUCT_TAX_RATE_CODE_TEMPLATE,
+}
 
 function asObject(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -131,9 +153,12 @@ function getMetadataString(metadata: TaxRateMetadata | null, key: string) {
   return normalized || undefined
 }
 
-function buildDefaultRateMetadata(countryCode: string): TaxRateMetadata {
+function buildDefaultRateMetadata(
+  countryCode: string,
+  config: TaxRateSeedConfig
+): TaxRateMetadata {
   return {
-    seed_source: TAX_METADATA_SOURCE,
+    seed_source: config.metadataSource,
     seed_scope: "default",
     seed_country_code: countryCode,
   }
@@ -141,10 +166,11 @@ function buildDefaultRateMetadata(countryCode: string): TaxRateMetadata {
 
 function buildProductRateMetadata(
   countryCode: string,
-  rate: number
+  rate: number,
+  config: TaxRateSeedConfig
 ): TaxRateMetadata {
   return {
-    seed_source: TAX_METADATA_SOURCE,
+    seed_source: config.metadataSource,
     seed_scope: "product_rate",
     seed_country_code: countryCode,
     seed_rate: formatRateValue(rate),
@@ -152,19 +178,25 @@ function buildProductRateMetadata(
 }
 
 function extractProductVat(
-  metadata: Record<string, unknown> | undefined
+  metadata: Record<string, unknown> | undefined,
+  metadataPath: string[] = ["top_offer", "vat"]
 ): number | undefined {
-  const topOffer = asObject(metadata?.top_offer)
-  if (!topOffer) {
-    return
+  let current: unknown = metadata
+  for (const segment of metadataPath) {
+    const currentObject = asObject(current)
+    if (!currentObject) {
+      return
+    }
+    current = currentObject[segment]
   }
 
-  return parseRate(topOffer.vat)
+  return parseRate(current)
 }
 
 export function buildTaxRateSeedTargets(
   products: ProductTaxSource[],
-  requestedCountries: string[] = []
+  requestedCountries: string[] = [],
+  config: TaxRateSeedConfig = DEFAULT_TAX_RATE_SEED_CONFIG
 ): TaxRateSeedTargets {
   const requestedCountrySet = new Set(
     requestedCountries
@@ -172,15 +204,35 @@ export function buildTaxRateSeedTargets(
       .filter((countryCode): countryCode is string => Boolean(countryCode))
   )
 
-  const defaultRatesByCountry = new Map(
-    [...HERBATICA_DEFAULT_TAX_RATES.entries()].filter(
-      ([countryCode]) =>
-        requestedCountrySet.size === 0 || requestedCountrySet.has(countryCode)
-    )
+  const defaultRatesByCountry = new Map<string, number>(
+    config.defaultRates.flatMap(({ countryCode, rate }) => {
+      const normalizedCountryCode = normalizeCountryCode(countryCode)
+      const normalizedRate = parseRate(rate)
+      if (!normalizedCountryCode || normalizedRate === undefined) {
+        return []
+      }
+      if (
+        requestedCountrySet.size > 0 &&
+        !requestedCountrySet.has(normalizedCountryCode)
+      ) {
+        return []
+      }
+      return [[normalizedCountryCode, normalizedRate]]
+    })
   )
   const productRateGroupsByCountry = new Map<string, Map<number, string[]>>()
+  const productOverridesCountryCode = normalizeCountryCode(
+    config.productOverrides?.countryCode
+  )
+  if (!productOverridesCountryCode) {
+    return {
+      defaultRatesByCountry,
+      productRateGroupsByCountry,
+    }
+  }
+
   const defaultOverrideRate = defaultRatesByCountry.get(
-    PRODUCT_OVERRIDE_COUNTRY_CODE
+    productOverridesCountryCode
   )
 
   if (defaultOverrideRate === undefined) {
@@ -192,7 +244,10 @@ export function buildTaxRateSeedTargets(
 
   const slovakiaProductRateGroups = new Map<number, string[]>()
   for (const product of products) {
-    const vat = extractProductVat(asObject(product.metadata))
+    const vat = extractProductVat(
+      asObject(product.metadata),
+      config.productOverrides?.metadataPath
+    )
     if (vat === undefined || isSameRate(vat, defaultOverrideRate)) {
       continue
     }
@@ -204,7 +259,7 @@ export function buildTaxRateSeedTargets(
 
   if (slovakiaProductRateGroups.size > 0) {
     productRateGroupsByCountry.set(
-      PRODUCT_OVERRIDE_COUNTRY_CODE,
+      productOverridesCountryCode,
       slovakiaProductRateGroups
     )
   }
@@ -238,19 +293,66 @@ function formatRateValue(rate: number): string {
   return Number(rate.toFixed(4)).toString()
 }
 
-function buildProductRateCode(countryCode: string, rate: number): string {
-  const normalizedRate = formatRateValue(rate).replace(/[^0-9]+/g, "_")
-  return `vat_${countryCode}_product_${normalizedRate}`
+function formatTemplate(
+  template: string,
+  countryCode: string,
+  rate?: number
+): string {
+  const rateValue = rate === undefined ? "" : formatRateValue(rate)
+  const rateCode = rateValue.replace(/[^0-9]+/g, "_")
+  return template
+    .replace(/\{country\}/g, countryCode.toLowerCase())
+    .replace(/\{COUNTRY\}/g, countryCode.toUpperCase())
+    .replace(/\{rate\}/g, rateValue)
+    .replace(/\{rate_code\}/g, rateCode)
 }
 
-function buildProductRateName(countryCode: string, rate: number): string {
-  return `VAT ${countryCode.toUpperCase()} Product ${formatRateValue(rate)}%`
+function buildDefaultRateCode(countryCode: string, config: TaxRateSeedConfig) {
+  return formatTemplate(
+    config.defaultRateCodeTemplate ?? DEFAULT_TAX_RATE_CODE_TEMPLATE,
+    countryCode
+  )
 }
 
-export function buildProductTaxRateIdentity(countryCode: string, rate: number) {
+function buildDefaultRateName(countryCode: string, config: TaxRateSeedConfig) {
+  return formatTemplate(
+    config.defaultRateNameTemplate ?? DEFAULT_TAX_RATE_NAME_TEMPLATE,
+    countryCode
+  )
+}
+
+function buildProductRateCode(
+  countryCode: string,
+  rate: number,
+  config: TaxRateSeedConfig
+): string {
+  return formatTemplate(
+    config.productRateCodeTemplate ?? DEFAULT_PRODUCT_TAX_RATE_CODE_TEMPLATE,
+    countryCode,
+    rate
+  )
+}
+
+function buildProductRateName(
+  countryCode: string,
+  rate: number,
+  config: TaxRateSeedConfig
+): string {
+  return formatTemplate(
+    config.productRateNameTemplate ?? DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE,
+    countryCode,
+    rate
+  )
+}
+
+export function buildProductTaxRateIdentity(
+  countryCode: string,
+  rate: number,
+  config: TaxRateSeedConfig = DEFAULT_TAX_RATE_SEED_CONFIG
+) {
   return {
-    code: buildProductRateCode(countryCode, rate),
-    name: buildProductRateName(countryCode, rate),
+    code: buildProductRateCode(countryCode, rate, config),
+    name: buildProductRateName(countryCode, rate, config),
   }
 }
 
@@ -290,6 +392,16 @@ export const createTaxRatesStep = createStep(
     const created: TaxRateDTO[] = []
     const updated: TaxRateDTO[] = []
 
+    if (input.enabled === false) {
+      return new StepResponse({
+        result: {
+          created,
+          updated,
+        },
+      })
+    }
+
+    const config = input.config ?? DEFAULT_TAX_RATE_SEED_CONFIG
     const uniqueProductIds = [...new Set(input.productIds)]
     if (uniqueProductIds.length === 0) {
       return new StepResponse({
@@ -319,7 +431,8 @@ export const createTaxRatesStep = createStep(
 
     const taxRateTargets = buildTaxRateSeedTargets(
       products,
-      normalizedSeedCountries
+      normalizedSeedCountries,
+      config
     )
 
     if (taxRateTargets.defaultRatesByCountry.size === 0) {
@@ -388,7 +501,7 @@ export const createTaxRatesStep = createStep(
       )
 
       if (
-        seedSource !== TAX_METADATA_SOURCE ||
+        seedSource !== config.metadataSource ||
         seedScope !== "product_rate" ||
         !countryCode ||
         seedRate === undefined
@@ -454,7 +567,7 @@ export const createTaxRatesStep = createStep(
           )
 
         if (
-          seedSource !== TAX_METADATA_SOURCE &&
+          seedSource !== config.metadataSource &&
           !hasOnlyProductRules &&
           seedScope !== "product"
         ) {
@@ -477,9 +590,9 @@ export const createTaxRatesStep = createStep(
         continue
       }
 
-      const defaultName = `VAT ${countryCode.toUpperCase()}`
-      const defaultCode = `vat_${countryCode}`
-      const defaultMetadata = buildDefaultRateMetadata(countryCode)
+      const defaultName = buildDefaultRateName(countryCode, config)
+      const defaultCode = buildDefaultRateCode(countryCode, config)
+      const defaultMetadata = buildDefaultRateMetadata(countryCode, config)
 
       const existingDefault = existingDefaultByRegionId.get(taxRegion.id)
 
@@ -517,8 +630,12 @@ export const createTaxRatesStep = createStep(
         }
 
         const key = buildProductRateKey(countryCode, rate)
-        const { code, name } = buildProductTaxRateIdentity(countryCode, rate)
-        const metadata = buildProductRateMetadata(countryCode, rate)
+        const { code, name } = buildProductTaxRateIdentity(
+          countryCode,
+          rate,
+          config
+        )
+        const metadata = buildProductRateMetadata(countryCode, rate, config)
 
         const existingProductRate = existingProductByKey.get(key)
         const existingRules = existingProductRate

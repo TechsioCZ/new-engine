@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
-import { resolve } from "node:path"
 import type {
   ExecArgs,
   IFulfillmentModuleService,
@@ -12,15 +11,37 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
-import seedDatabaseWorkflow, {
-  type SeedDatabaseWorkflowInput,
-} from "../workflows/seed/workflows/seed-database"
+import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
+import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
 import {
   excerptPlainText,
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlSource,
   readXmlSource,
 } from "./herbatica-category-export"
+import {
+  HERBATICA_CATEGORIES_XML_ENV,
+  HERBATICA_CATEGORIES_XML_PATHS,
+  HERBATICA_COUNTRIES,
+  HERBATICA_CURRENCIES,
+  HERBATICA_DEFAULT_FULFILLMENT_SET,
+  HERBATICA_DEFAULT_PRICELIST_LABEL,
+  HERBATICA_DEFAULT_REGIONS,
+  HERBATICA_DEFAULT_SHIPPING_PROFILE,
+  HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES,
+  HERBATICA_DEFAULT_STOCK_LOCATION,
+  HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
+  HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  HERBATICA_PRODUCTS_XML_ENV,
+  HERBATICA_PRODUCTS_XML_PATHS,
+  HERBATICA_PROMO_REBASE_DAYS_ENV,
+  HERBATICA_PUBLISHABLE_KEY,
+  HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
+  HERBATICA_SALES_CHANNELS,
+  HERBATICA_SHIPPING_OPTIONS,
+  HERBATICA_TAX_RATE_CONFIG,
+  HERBATICA_WORKFLOW_DEFAULTS,
+} from "./herbatica-seed-config"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
@@ -254,6 +275,13 @@ type ResolvedFeedPaths = {
   categoriesXmlPath?: string
 }
 
+type HerbaticaWorkflowInputOptions = {
+  regionsInput: SeedDatabaseWorkflowInput["regions"]
+  fulfillmentSetName: string
+  fulfillmentSetType: string
+  serviceZoneName: string
+}
+
 type SeedBuildOptions = {
   referenceDate?: Date
   promoRebaseDays?: number
@@ -281,44 +309,19 @@ type BuildVariantsForProductOptions = {
   referenceDate?: Date
 }
 
-const DEFAULT_STOCK_LOCATION_NAME = "European Warehouse"
-const FALLBACK_SHOPTET_WAREHOUSE_NAME = "Shoptet Warehouse"
-const FALLBACK_SHOPTET_WAREHOUSE_ADDRESS = {
-  address_1: "Shoptet Warehouse",
-  city: "Unknown",
-  country_code: "SK",
-}
-
-const DEFAULT_PRODUCTS_XML_PATHS = [
-  resolve(__dirname, "seed-files/productsComplete.xml"),
-] as const
-
-const DEFAULT_CATEGORIES_XML_PATHS = [
-  resolve(__dirname, "seed-files/categories.xml"),
-] as const
-
-const DEFAULT_COUNTRIES = [
-  "cz",
-  "gb",
-  "de",
-  "dk",
-  "se",
-  "fr",
-  "es",
-  "it",
-  "pl",
-  "at",
-  "sk",
-] as const
-
+const DEFAULT_STOCK_LOCATION_NAME = HERBATICA_DEFAULT_STOCK_LOCATION.name
+const FALLBACK_SHOPTET_WAREHOUSE_NAME =
+  HERBATICA_FALLBACK_SHOPTET_WAREHOUSE.name
+const FALLBACK_SHOPTET_WAREHOUSE_ADDRESS =
+  HERBATICA_FALLBACK_SHOPTET_WAREHOUSE.address
+const DEFAULT_COUNTRIES = HERBATICA_COUNTRIES
 const MAX_HANDLE_LENGTH = 180
 const DEFAULT_OPTION_TITLE = "Variant"
 const DEFAULT_OPTION_VALUE = "Default"
-const DEFAULT_PRICELIST_LABEL = "Default pricelist"
-const DEFAULT_SHOPTET_PRICELIST_TITLES = new Set([
-  "hlavny cennik",
-  "default pricelist",
-])
+const DEFAULT_PRICELIST_LABEL = HERBATICA_DEFAULT_PRICELIST_LABEL
+const DEFAULT_SHOPTET_PRICELIST_TITLES: ReadonlySet<string> = new Set(
+  HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES
+)
 const PRODUCT_CONTENT_SECTION_ORDER: ProductContentSectionKey[] = [
   "description",
   "usage",
@@ -1394,7 +1397,10 @@ function buildSalePriceListTitle(
 ): string {
   const windowLabel =
     startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
-  return `Herbatica sale - ${sourceTitle} - ${windowLabel}`
+  return HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE.replace(
+    "{sourceTitle}",
+    sourceTitle
+  ).replace("{windowLabel}", windowLabel)
 }
 
 function rebaseOfferPromotion(
@@ -3333,23 +3339,70 @@ export function buildSeedInputFromXml(
   }
 }
 
+export function buildHerbaticaSeedWorkflowInput(
+  parsed: BuildResult,
+  {
+    regionsInput,
+    fulfillmentSetName,
+    fulfillmentSetType,
+    serviceZoneName,
+  }: HerbaticaWorkflowInputOptions
+): SeedDatabaseWorkflowInput {
+  return {
+    workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
+    salesChannels: HERBATICA_SALES_CHANNELS,
+    currencies: HERBATICA_CURRENCIES,
+    regions: regionsInput,
+    taxRegions: {
+      countries: [...DEFAULT_COUNTRIES],
+      taxProviderId: undefined,
+    },
+    taxRates: {
+      countries: ["sk", "cz"],
+      config: HERBATICA_TAX_RATE_CONFIG,
+    },
+    stockLocations: {
+      locations: parsed.stockLocations,
+    },
+    defaultShippingProfile: HERBATICA_DEFAULT_SHIPPING_PROFILE,
+    fulfillmentSets: {
+      name: fulfillmentSetName,
+      type: fulfillmentSetType,
+      serviceZones: [
+        {
+          name: serviceZoneName,
+          geoZones: [...DEFAULT_COUNTRIES].map((country) => ({
+            countryCode: country,
+          })),
+        },
+      ],
+    },
+    shippingOptions: HERBATICA_SHIPPING_OPTIONS,
+    publishableKey: HERBATICA_PUBLISHABLE_KEY,
+    productCategories: parsed.categories,
+    products: parsed.products,
+    priceLists: parsed.priceLists,
+    priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  }
+}
+
 function resolveProductsXmlPath(args?: string[]): string {
   const argPath = normalizeInlineText(args?.[0])
   if (argPath) {
     return argPath
   }
 
-  const envPath = normalizeInlineText(process.env.HERBATICA_XML_PATH)
+  const envPath = normalizeInlineText(process.env[HERBATICA_PRODUCTS_XML_ENV])
   if (envPath) {
     return envPath
   }
 
-  const detectedPath = DEFAULT_PRODUCTS_XML_PATHS.find((path) =>
+  const detectedPath = HERBATICA_PRODUCTS_XML_PATHS.find((path) =>
     existsSync(path)
   )
   if (!detectedPath) {
     throw new Error(
-      `Could not find productsComplete.xml. Checked: ${DEFAULT_PRODUCTS_XML_PATHS.join(", ")}`
+      `Could not find productsComplete.xml. Checked: ${HERBATICA_PRODUCTS_XML_PATHS.join(", ")}`
     )
   }
 
@@ -3362,12 +3415,12 @@ function resolveCategoriesXmlPath(args?: string[]): string | undefined {
     return argPath
   }
 
-  const envPath = normalizeInlineText(process.env.HERBATICA_CATEGORIES_XML_PATH)
+  const envPath = normalizeInlineText(process.env[HERBATICA_CATEGORIES_XML_ENV])
   if (envPath) {
     return envPath
   }
 
-  return DEFAULT_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
+  return HERBATICA_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
 }
 
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
@@ -3396,7 +3449,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
     : undefined
   const buildOptions = resolveSeedBuildOptions({
-    promoRebaseDays: parsePositiveIntegerEnv("HERBATICA_PROMO_REBASE_DAYS"),
+    promoRebaseDays: parsePositiveIntegerEnv(HERBATICA_PROMO_REBASE_DAYS_ENV),
   })
 
   if (buildOptions.promoRebaseDays !== undefined) {
@@ -3425,22 +3478,8 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
 
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
   const existingRegions = await regionService.listRegions({})
-  const defaultRegions: SeedDatabaseWorkflowInput["regions"] = [
-    {
-      name: "Czechia",
-      currencyCode: "czk",
-      countries: ["cz"],
-      paymentProviders: undefined,
-      isTaxInclusive: true,
-    },
-    {
-      name: "Europe",
-      currencyCode: "eur",
-      countries: DEFAULT_COUNTRIES.filter((country) => country !== "cz"),
-      paymentProviders: undefined,
-      isTaxInclusive: true,
-    },
-  ]
+  const defaultRegions: SeedDatabaseWorkflowInput["regions"] =
+    HERBATICA_DEFAULT_REGIONS
 
   const regionsInput: SeedDatabaseWorkflowInput["regions"] =
     existingRegions.length === 0
@@ -3473,12 +3512,13 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     existingFulfillmentSetWithEurope ?? existingFulfillmentSets[0]
 
   const fulfillmentSetName =
-    selectedFulfillmentSet?.name ?? "European Warehouse delivery"
-  const fulfillmentSetType = selectedFulfillmentSet?.type ?? "shipping"
+    selectedFulfillmentSet?.name ?? HERBATICA_DEFAULT_FULFILLMENT_SET.name
+  const fulfillmentSetType =
+    selectedFulfillmentSet?.type ?? HERBATICA_DEFAULT_FULFILLMENT_SET.type
   const serviceZoneName =
     selectedFulfillmentSet?.service_zones?.find((zone) => zone.name)?.name ??
     selectedFulfillmentSet?.service_zones?.[0]?.name ??
-    "Europe"
+    HERBATICA_DEFAULT_FULFILLMENT_SET.serviceZoneName
 
   if (selectedFulfillmentSet) {
     logger.info(
@@ -3486,136 +3526,15 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
 
-  const input: SeedDatabaseWorkflowInput = {
-    salesChannels: [
-      {
-        name: "Default Sales Channel",
-        default: true,
-      },
-    ],
-    currencies: [
-      {
-        code: "czk",
-        default: true,
-      },
-      {
-        code: "eur",
-        default: false,
-      },
-      {
-        code: "usd",
-        default: false,
-      },
-    ],
-    regions: regionsInput,
-    taxRegions: {
-      countries: [...DEFAULT_COUNTRIES],
-      taxProviderId: undefined,
-    },
-    taxRates: {
-      fallbackCountryCode: "sk",
-      countries: ["sk", "cz"],
-    },
-    stockLocations: {
-      locations: parsed.stockLocations,
-    },
-    defaultShippingProfile: {
-      name: "Default Shipping Profile",
-    },
-    fulfillmentSets: {
-      name: fulfillmentSetName,
-      type: fulfillmentSetType,
-      serviceZones: [
-        {
-          name: serviceZoneName,
-          geoZones: [...DEFAULT_COUNTRIES].map((country) => ({
-            countryCode: country,
-          })),
-        },
-      ],
-    },
-    shippingOptions: [
-      {
-        name: "Standard Shipping",
-        providerId: "manual_manual",
-        type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
-          code: "standard",
-        },
-        prices: [
-          {
-            currencyCode: "usd",
-            amount: 10,
-          },
-          {
-            currencyCode: "eur",
-            amount: 10,
-          },
-          {
-            currencyCode: "czk",
-            amount: 250,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-      {
-        name: "Express Shipping",
-        providerId: "manual_manual",
-        type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
-        },
-        prices: [
-          {
-            currencyCode: "usd",
-            amount: 10,
-          },
-          {
-            currencyCode: "eur",
-            amount: 10,
-          },
-          {
-            currencyCode: "czk",
-            amount: 250,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-    ],
-    publishableKey: {
-      title: "Webshop",
-    },
-    productCategories: parsed.categories,
-    products: parsed.products,
-    priceLists: parsed.priceLists,
-  }
+  const input = buildHerbaticaSeedWorkflowInput(parsed, {
+    regionsInput,
+    fulfillmentSetName,
+    fulfillmentSetType,
+    serviceZoneName,
+  })
 
   logger.info("Running Herbatica seed workflow...")
-  const { result } = await seedDatabaseWorkflow(container).run({
+  const { result } = await seedShoptetImportWorkflow(container).run({
     input,
   })
 

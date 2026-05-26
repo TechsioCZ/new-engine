@@ -41,12 +41,53 @@ type SalePriceListInput = {
   prices: PriceListPriceInput[]
 }
 
+export type SyncPriceListsStepConfig = {
+  metadataSource?: string
+  logLabel?: string
+  customerGroupRuleAttribute?: string
+  descriptions?: {
+    override?: string
+    sale?: string
+  }
+  sourceTypes?: {
+    override?: string
+    sale?: string
+    customerGroup?: string
+  }
+  metadataKeys?: {
+    priceListTitle?: string
+    startsAt?: string
+    endsAt?: string
+  }
+}
+
+type ResolvedSyncPriceListsStepConfig = {
+  metadataSource: string
+  logLabel: string
+  customerGroupRuleAttribute: string
+  descriptions: {
+    override: string
+    sale: string
+  }
+  sourceTypes: {
+    override: string
+    sale: string
+    customerGroup: string
+  }
+  metadataKeys: {
+    priceListTitle: string
+    startsAt: string
+    endsAt: string
+  }
+}
+
 export type SyncPriceListsStepInput = {
   productIds: string[]
   priceLists?: {
     overrides: OverridePriceListInput[]
     sales: SalePriceListInput[]
   }
+  config?: SyncPriceListsStepConfig
 }
 
 type PriceListSyncEntry = {
@@ -75,7 +116,75 @@ type PriceListWithPrices = PriceListDTO & {
 }
 
 const SyncPriceListsStepId = "sync-price-lists-seed-step"
-const CUSTOMER_GROUP_RULE_ATTRIBUTE = "customer.groups.id"
+const DEFAULT_SYNC_PRICE_LISTS_CONFIG = {
+  metadataSource: "seed-price-lists",
+  logLabel: "price lists",
+  customerGroupRuleAttribute: "customer.groups.id",
+  descriptions: {
+    override: "Seed price list: {title}",
+    sale: "Seed sale prices for {sourceTitle}",
+  },
+  sourceTypes: {
+    override: "price_list",
+    sale: "sale",
+    customerGroup: "price_list_customer_group",
+  },
+  metadataKeys: {
+    priceListTitle: "source_price_list_title",
+    startsAt: "starts_at",
+    endsAt: "ends_at",
+  },
+} satisfies ResolvedSyncPriceListsStepConfig
+
+function resolveSyncPriceListsConfig(
+  config?: SyncPriceListsStepConfig
+): ResolvedSyncPriceListsStepConfig {
+  return {
+    ...DEFAULT_SYNC_PRICE_LISTS_CONFIG,
+    ...config,
+    descriptions: {
+      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions,
+      ...config?.descriptions,
+    },
+    sourceTypes: {
+      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes,
+      ...config?.sourceTypes,
+    },
+    metadataKeys: {
+      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys,
+      ...config?.metadataKeys,
+    },
+  }
+}
+
+function formatTemplate(
+  template: string,
+  values: Record<string, string | undefined>
+): string {
+  return template.replace(
+    /\{([a-zA-Z0-9_]+)\}/g,
+    (_match, key: string) => values[key] ?? ""
+  )
+}
+
+function buildPriceListMetadata(
+  config: ResolvedSyncPriceListsStepConfig,
+  sourceType: string,
+  priceListTitle: string,
+  dates?: { startsAt?: string; endsAt?: string }
+): Record<string, unknown> {
+  return {
+    source: config.metadataSource,
+    source_type: sourceType,
+    [config.metadataKeys.priceListTitle]: priceListTitle,
+    ...(dates
+      ? {
+          [config.metadataKeys.startsAt]: dates.startsAt,
+          [config.metadataKeys.endsAt]: dates.endsAt,
+        }
+      : {}),
+  }
+}
 
 function normalizeCurrencyCode(value: string): string {
   return value.toLowerCase()
@@ -101,7 +210,8 @@ function amountsEqual(left: unknown, right: number): boolean {
 }
 
 function buildPriceListEntries(
-  priceLists?: SyncPriceListsStepInput["priceLists"]
+  priceLists?: SyncPriceListsStepInput["priceLists"],
+  config: ResolvedSyncPriceListsStepConfig = resolveSyncPriceListsConfig()
 ): PriceListSyncEntry[] {
   if (!priceLists) {
     return []
@@ -110,31 +220,39 @@ function buildPriceListEntries(
   return [
     ...priceLists.overrides.map((priceList) => ({
       title: priceList.title,
-      description: `Herbatica Shoptet price list: ${priceList.title}`,
+      description: formatTemplate(config.descriptions.override, {
+        title: priceList.title,
+        sourceTitle: priceList.title,
+      }),
       type: "override" as const,
       customerGroupName: priceList.customerGroupName,
       prices: priceList.prices,
-      metadata: {
-        source: "herbatica-products-complete-xml",
-        source_type: "shoptet_pricelist",
-        shoptet_pricelist_title: priceList.title,
-      },
+      metadata: buildPriceListMetadata(
+        config,
+        config.sourceTypes.override,
+        priceList.title
+      ),
     })),
     ...priceLists.sales.map((priceList) => ({
       title: priceList.title,
-      description: `Herbatica sale prices for ${priceList.sourceTitle}`,
+      description: formatTemplate(config.descriptions.sale, {
+        title: priceList.title,
+        sourceTitle: priceList.sourceTitle,
+      }),
       type: "sale" as const,
       startsAt: priceList.startsAt,
       endsAt: priceList.endsAt,
       customerGroupName: priceList.customerGroupName,
       prices: priceList.prices,
-      metadata: {
-        source: "herbatica-products-complete-xml",
-        source_type: "shoptet_sale",
-        shoptet_pricelist_title: priceList.sourceTitle,
-        starts_at: priceList.startsAt,
-        ends_at: priceList.endsAt,
-      },
+      metadata: buildPriceListMetadata(
+        config,
+        config.sourceTypes.sale,
+        priceList.sourceTitle,
+        {
+          startsAt: priceList.startsAt,
+          endsAt: priceList.endsAt,
+        }
+      ),
     })),
   ]
 }
@@ -163,7 +281,8 @@ function buildVariantLookup(
 async function ensureCustomerGroups(
   entries: PriceListSyncEntry[],
   customerService: ICustomerModuleService,
-  container: Parameters<typeof createCustomerGroupsWorkflow>[0]
+  container: Parameters<typeof createCustomerGroupsWorkflow>[0],
+  config: ResolvedSyncPriceListsStepConfig
 ): Promise<Map<string, CustomerGroupDTO>> {
   const names = [
     ...new Set(
@@ -180,9 +299,9 @@ async function ensureCustomerGroups(
       { take: 1 }
     )
     const metadata = {
-      source: "herbatica-products-complete-xml",
-      source_type: "shoptet_pricelist_customer_group",
-      shoptet_pricelist_title: name,
+      source: config.metadataSource,
+      source_type: config.sourceTypes.customerGroup,
+      [config.metadataKeys.priceListTitle]: name,
     }
 
     if (existing[0]) {
@@ -235,7 +354,8 @@ async function findPriceListByTitle(
 
 function buildRules(
   entry: PriceListSyncEntry,
-  customerGroups: Map<string, CustomerGroupDTO>
+  customerGroups: Map<string, CustomerGroupDTO>,
+  config: ResolvedSyncPriceListsStepConfig
 ): Record<string, string[]> | undefined {
   if (!entry.customerGroupName) {
     return
@@ -247,20 +367,27 @@ function buildRules(
   }
 
   return {
-    [CUSTOMER_GROUP_RULE_ATTRIBUTE]: [customerGroup.id],
+    [config.customerGroupRuleAttribute]: [customerGroup.id],
   }
 }
 
-async function ensurePriceLists(
-  entries: PriceListSyncEntry[],
-  pricingService: IPricingModuleService,
-  customerGroups: Map<string, CustomerGroupDTO>,
+async function ensurePriceLists({
+  entries,
+  pricingService,
+  customerGroups,
+  container,
+  config,
+}: {
+  entries: PriceListSyncEntry[]
+  pricingService: IPricingModuleService
+  customerGroups: Map<string, CustomerGroupDTO>
   container: Parameters<typeof createPriceListsWorkflow>[0]
-): Promise<Map<string, PriceListWithPrices>> {
+  config: ResolvedSyncPriceListsStepConfig
+}): Promise<Map<string, PriceListWithPrices>> {
   const result = new Map<string, PriceListWithPrices>()
 
   for (const entry of entries) {
-    const rules = buildRules(entry, customerGroups)
+    const rules = buildRules(entry, customerGroups, config)
     const existing = await findPriceListByTitle(pricingService, entry.title)
     const data = {
       title: entry.title,
@@ -462,7 +589,8 @@ function buildPriceListPriceChanges({
 export const syncPriceListsStep = createStep(
   SyncPriceListsStepId,
   async (input: SyncPriceListsStepInput, { container }) => {
-    const entries = buildPriceListEntries(input.priceLists)
+    const config = resolveSyncPriceListsConfig(input.config)
+    const entries = buildPriceListEntries(input.priceLists, config)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
     if (!entries.length) {
@@ -497,14 +625,16 @@ export const syncPriceListsStep = createStep(
     const customerGroups = await ensureCustomerGroups(
       entries,
       customerService,
-      container
+      container,
+      config
     )
-    const priceListsByTitle = await ensurePriceLists(
+    const priceListsByTitle = await ensurePriceLists({
       entries,
       pricingService,
       customerGroups,
-      container
-    )
+      container,
+      config,
+    })
     const variantIds = [
       ...new Set(
         entries.flatMap((entry) =>
@@ -537,7 +667,7 @@ export const syncPriceListsStep = createStep(
     })
 
     logger.info(
-      `Synced ${priceListsByTitle.size} Herbatica price lists, created ${priceSyncResult.created} prices, updated ${priceSyncResult.updated} prices`
+      `Synced ${priceListsByTitle.size} ${config.logLabel}, created ${priceSyncResult.created} prices, updated ${priceSyncResult.updated} prices`
     )
 
     return new StepResponse({

@@ -32,69 +32,73 @@ export type SeedPaykitRegionsWorkflowInput = {
   paymentProviderIds: string[]
 }
 
+function seedPaykitRegionsWorkflowComposer(
+  input: SeedPaykitRegionsWorkflowInput
+) {
+  const regionsWithPaykitProviders = transform({ input }, (data) =>
+    withPaykitPaymentProviders(
+      data.input.regions,
+      data.input.paymentProviderIds
+    )
+  )
+
+  const missingRegions = transform({ regionsWithPaykitProviders }, (data) =>
+    data.regionsWithPaykitProviders.filter(
+      (region): region is CreateMissingPaykitRegionsStepInput[number] =>
+        !region.id
+    )
+  )
+
+  const existingRegionPaymentProvidersInput = transform(
+    { regionsWithPaykitProviders },
+    (data): SetRegionsPaymentProvidersStepInput => ({
+      input: data.regionsWithPaykitProviders.flatMap((region) =>
+        region.id
+          ? [
+              {
+                id: region.id,
+                payment_providers: region.paymentProviders,
+              },
+            ]
+          : []
+      ),
+    })
+  )
+
+  const existingRegionsInput = transform(
+    { regionsWithPaykitProviders },
+    (data): SyncExistingPaykitRegionsStepInput =>
+      data.regionsWithPaykitProviders.flatMap((region) =>
+        region.id
+          ? [
+              {
+                id: region.id,
+                currencyCode: region.currencyCode,
+              },
+            ]
+          : []
+      )
+  )
+
+  const createMissingPaykitRegionsResult =
+    createMissingPaykitRegionsStep(missingRegions)
+
+  const syncExistingPaykitRegionsResult =
+    syncExistingPaykitRegionsStep(existingRegionsInput)
+
+  const setExistingRegionPaymentProvidersResult =
+    setRegionsPaymentProvidersStep(existingRegionPaymentProvidersInput)
+
+  return new WorkflowResponse({
+    createMissingPaykitRegionsResult,
+    syncExistingPaykitRegionsResult,
+    setExistingRegionPaymentProvidersResult,
+  })
+}
+
 const seedPaykitRegionsWorkflow = createWorkflow(
   SeedPaykitRegionsWorkflowId,
-  (input: SeedPaykitRegionsWorkflowInput) => {
-    const regionsWithPaykitProviders = transform({ input }, (data) =>
-      withPaykitPaymentProviders(
-        data.input.regions,
-        data.input.paymentProviderIds
-      )
-    )
-
-    const missingRegions = transform({ regionsWithPaykitProviders }, (data) =>
-      data.regionsWithPaykitProviders.filter(
-        (region): region is CreateMissingPaykitRegionsStepInput[number] =>
-          !region.id
-      )
-    )
-
-    const existingRegionPaymentProvidersInput = transform(
-      { regionsWithPaykitProviders },
-      (data): SetRegionsPaymentProvidersStepInput => ({
-        input: data.regionsWithPaykitProviders.flatMap((region) =>
-          region.id
-            ? [
-                {
-                  id: region.id,
-                  payment_providers: region.paymentProviders,
-                },
-              ]
-            : []
-        ),
-      })
-    )
-
-    const existingRegionsInput = transform(
-      { regionsWithPaykitProviders },
-      (data): SyncExistingPaykitRegionsStepInput =>
-        data.regionsWithPaykitProviders.flatMap((region) =>
-          region.id
-            ? [
-                {
-                  id: region.id,
-                  currencyCode: region.currencyCode,
-                },
-              ]
-            : []
-        )
-    )
-
-    const createMissingPaykitRegionsResult =
-      createMissingPaykitRegionsStep(missingRegions)
-
-    const syncExistingPaykitRegionsResult =
-      syncExistingPaykitRegionsStep(existingRegionsInput)
-
-    const setExistingRegionPaymentProvidersResult =
-      setRegionsPaymentProvidersStep(existingRegionPaymentProvidersInput)
-
-    return new WorkflowResponse({
-      createMissingPaykitRegionsResult,
-      syncExistingPaykitRegionsResult,
-      setExistingRegionPaymentProvidersResult,
-    })
-  }
+  seedPaykitRegionsWorkflowComposer
 )
 
 export default seedPaykitRegionsWorkflow
