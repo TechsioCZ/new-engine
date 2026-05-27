@@ -60,6 +60,92 @@
   );
   --color-admin-danger: light-dark(var(--color-red-700), var(--color-red-400));
 
+  /* BADGES COLORS */
+  --color-admin-badge-primary-bg: light-dark(
+    oklch(from var(--color-stone-800) l c h / 0.1),
+    oklch(from var(--color-stone-200) l c h / 0.16)
+  );
+  --color-admin-badge-primary-fg: light-dark(
+    var(--color-stone-900),
+    var(--color-stone-50)
+  );
+  --color-admin-badge-primary-border: light-dark(
+    oklch(from var(--color-stone-800) l c h / 0.2),
+    oklch(from var(--color-stone-200) l c h / 0.24)
+  );
+  --color-admin-badge-secondary-bg: light-dark(
+    oklch(from var(--color-stone-500) l c h / 0.1),
+    oklch(from var(--color-stone-300) l c h / 0.12)
+  );
+  --color-admin-badge-secondary-fg: light-dark(
+    var(--color-slate-900),
+    var(--color-slate-50)
+  );
+  --color-admin-badge-secondary-border: light-dark(
+    oklch(from var(--color-stone-500) l c h / 0.18),
+    oklch(from var(--color-stone-300) l c h / 0.22)
+  );
+  --color-admin-badge-tertiary-bg: light-dark(
+    oklch(from var(--color-zinc-600) l c h / 0.09),
+    oklch(from var(--color-zinc-300) l c h / 0.11)
+  );
+  --color-admin-badge-tertiary-fg: light-dark(
+    var(--color-zinc-900),
+    var(--color-zinc-50)
+  );
+  --color-admin-badge-tertiary-border: light-dark(
+    oklch(from var(--color-zinc-600) l c h / 0.16),
+    oklch(from var(--color-zinc-300) l c h / 0.2)
+  );
+  --color-admin-badge-info-bg: light-dark(
+    oklch(from var(--color-sky-600) l c h / 0.12),
+    oklch(from var(--color-sky-300) l c h / 0.14)
+  );
+  --color-admin-badge-info-fg: light-dark(
+    var(--color-sky-900),
+    var(--color-sky-50)
+  );
+  --color-admin-badge-info-border: light-dark(
+    oklch(from var(--color-sky-600) l c h / 0.22),
+    oklch(from var(--color-sky-300) l c h / 0.24)
+  );
+  --color-admin-badge-success-bg: light-dark(
+    oklch(from var(--color-emerald-600) l c h / 0.12),
+    oklch(from var(--color-emerald-300) l c h / 0.14)
+  );
+  --color-admin-badge-success-fg: light-dark(
+    var(--color-emerald-800),
+    var(--color-emerald-200)
+  );
+  --color-admin-badge-success-border: light-dark(
+    oklch(from var(--color-emerald-600) l c h / 0.22),
+    oklch(from var(--color-emerald-300) l c h / 0.24)
+  );
+  --color-admin-badge-warning-bg: light-dark(
+    oklch(from var(--color-amber-500) l c h / 0.16),
+    oklch(from var(--color-amber-300) l c h / 0.16)
+  );
+  --color-admin-badge-warning-fg: light-dark(
+    var(--color-amber-900),
+    var(--color-amber-200)
+  );
+  --color-admin-badge-warning-border: light-dark(
+    oklch(from var(--color-amber-500) l c h / 0.26),
+    oklch(from var(--color-amber-300) l c h / 0.26)
+  );
+  --color-admin-badge-danger-bg: light-dark(
+    oklch(from var(--color-red-600) l c h / 0.12),
+    oklch(from var(--color-red-300) l c h / 0.14)
+  );
+  --color-admin-badge-danger-fg: light-dark(
+    var(--color-red-800),
+    var(--color-red-200)
+  );
+  --color-admin-badge-danger-border: light-dark(
+    oklch(from var(--color-red-600) l c h / 0.22),
+    oklch(from var(--color-red-300) l c h / 0.24)
+  );
+
   --color-admin-border-soft: light-dark(
     oklch(from var(--color-stone-950) l c h / 0.1),
     oklch(from var(--color-stone-50) l c h / 0.1)

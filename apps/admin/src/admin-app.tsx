@@ -349,7 +349,7 @@ function SidebarItem({
         {item.label}
       </span>
       {badge && shouldRenderBadge(badge) && (
-        <Badge className="min-w-12" size="sm" variant="danger">
+        <Badge className="size-14" size="sm" variant="danger">
           {formatCountLabel(badge.count, badge.countExact)}
         </Badge>
       )}

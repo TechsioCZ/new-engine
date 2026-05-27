@@ -101,6 +101,13 @@ export type OrderExpeditionItem = {
   variant?: string | null
 }
 
+export type OrderExpeditionIndicators = {
+  canceled: boolean
+  has_note: boolean
+  returning_customer: boolean
+  wholesale: boolean
+}
+
 export type OrderExpeditionOrder = {
   business_status: OrderBusinessStatus
   carrier: OrderExpeditionCarrierOption & {
@@ -116,11 +123,13 @@ export type OrderExpeditionOrder = {
   email?: string | null
   has_active_fulfillment: boolean
   id: string
+  indicators?: OrderExpeditionIndicators
   items: OrderExpeditionItem[]
   manual_status?: ManualOrderBusinessStatusId | null
   order_display_id: string
   payment_method: string
   payment_status?: string | null
+  sales_channel?: string | null
   status?: string | null
   total?: number | string | null
 }
