@@ -1,0 +1,133 @@
+{
+  "name": "@techsio/admin-data",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": null,
+    "./package.json": "./package.json",
+    "./action-required/hooks": {
+      "types": "./dist/src/action-required/hooks.d.ts",
+      "import": "./dist/action-required/hooks.js"
+    },
+    "./action-required/medusa-service": {
+      "types": "./dist/src/action-required/medusa-service.d.ts",
+      "import": "./dist/action-required/medusa-service.js"
+    },
+    "./action-required/query-keys": {
+      "types": "./dist/src/action-required/query-keys.d.ts",
+      "import": "./dist/action-required/query-keys.js"
+    },
+    "./action-required/query-options": {
+      "types": "./dist/src/action-required/query-options.d.ts",
+      "import": "./dist/action-required/query-options.js"
+    },
+    "./action-required/rules": {
+      "types": "./dist/src/action-required/rules.d.ts",
+      "import": "./dist/action-required/rules.js"
+    },
+    "./action-required/types": {
+      "types": "./dist/src/action-required/types.d.ts",
+      "import": "./dist/action-required/types.js"
+    },
+    "./order-expedition/hooks": {
+      "types": "./dist/src/order-expedition/hooks.d.ts",
+      "import": "./dist/order-expedition/hooks.js"
+    },
+    "./order-expedition/invalidation": {
+      "types": "./dist/src/order-expedition/invalidation.d.ts",
+      "import": "./dist/order-expedition/invalidation.js"
+    },
+    "./order-expedition/medusa-service": {
+      "types": "./dist/src/order-expedition/medusa-service.d.ts",
+      "import": "./dist/order-expedition/medusa-service.js"
+    },
+    "./order-expedition/mutations": {
+      "types": "./dist/src/order-expedition/mutations.d.ts",
+      "import": "./dist/order-expedition/mutations.js"
+    },
+    "./order-expedition/query-keys": {
+      "types": "./dist/src/order-expedition/query-keys.d.ts",
+      "import": "./dist/order-expedition/query-keys.js"
+    },
+    "./order-expedition/query-options": {
+      "types": "./dist/src/order-expedition/query-options.d.ts",
+      "import": "./dist/order-expedition/query-options.js"
+    },
+    "./order-expedition/types": {
+      "types": "./dist/src/order-expedition/types.d.ts",
+      "import": "./dist/order-expedition/types.js"
+    },
+    "./medusa/preset": {
+      "types": "./dist/src/medusa/preset.d.ts",
+      "import": "./dist/medusa/preset.js"
+    },
+    "./shared/admin-client": {
+      "types": "./dist/src/shared/admin-client.d.ts",
+      "import": "./dist/shared/admin-client.js"
+    },
+    "./shared/cache-config": {
+      "types": "./dist/src/shared/cache-config.d.ts",
+      "import": "./dist/shared/cache-config.js"
+    },
+    "./shared/error-utils": {
+      "types": "./dist/src/shared/error-utils.d.ts",
+      "import": "./dist/shared/error-utils.js"
+    },
+    "./shared/hook-types": {
+      "types": "./dist/src/shared/hook-types.d.ts",
+      "import": "./dist/shared/hook-types.js"
+    },
+    "./shared/query-keys": {
+      "types": "./dist/src/shared/query-keys.d.ts",
+      "import": "./dist/shared/query-keys.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch",
+    "lint": "pnpm -w exec biome lint libs/admin-data/src libs/admin-data/tests --diagnostic-level=error",
+    "test": "vitest run --config vitest.config.ts --typecheck",
+    "test:runtime": "vitest run --config vitest.config.ts"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm build",
+          "cwd": "libs/admin-data"
+        },
+        "cache": true
+      },
+      "test": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm test",
+          "cwd": "libs/admin-data"
+        },
+        "cache": true
+      }
+    }
+  },
+  "devDependencies": {
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rslib/core": "^0.18.0",
+    "@testing-library/react": "^16.3.1",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^27.4.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": ">=5.0.0",
+    "react": ">=19.2.0",
+    "react-dom": ">=19.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
