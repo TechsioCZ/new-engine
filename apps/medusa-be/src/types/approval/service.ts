@@ -1,31 +1,31 @@
-import {
+import type {
   BaseFilterable,
   Context,
   FindConfig,
   IModuleService,
-} from "@medusajs/types";
-import {
-  ModuleCreateApprovalSettings,
-  ModuleApprovalSettings,
-  ModuleUpdateApprovalSettings,
+} from "@medusajs/types"
+import type {
   ModuleApproval,
-  ModuleCreateApproval,
-  ModuleUpdateApproval,
-  ModuleCreateApprovalStatus,
+  ModuleApprovalSettings,
   ModuleApprovalStatus,
+  ModuleCreateApproval,
+  ModuleCreateApprovalSettings,
+  ModuleCreateApprovalStatus,
+  ModuleUpdateApproval,
+  ModuleUpdateApprovalSettings,
   ModuleUpdateApprovalStatus,
-} from "./module";
+} from "./module"
 
 export interface ModuleApprovalSettingsFilters
   extends BaseFilterable<ModuleApprovalSettingsFilters> {
-  id?: string | string[];
-  company_id?: string | string[];
+  id?: string | string[]
+  company_id?: string | string[]
 }
 
 export interface ModuleApprovalFilters
   extends BaseFilterable<ModuleApprovalFilters> {
-  id?: string | string[];
-  cart_id?: string | string[];
+  id?: string | string[]
+  cart_id?: string | string[]
 }
 
 /**
@@ -36,96 +36,93 @@ export interface IApprovalModuleService extends IModuleService {
   createApproval(
     data: ModuleCreateApproval,
     sharedContext?: Context
-  ): Promise<ModuleApproval>;
+  ): Promise<ModuleApproval>
 
   createApprovals(
     data: ModuleCreateApproval[],
     sharedContext?: Context
-  ): Promise<ModuleApproval[]>;
+  ): Promise<ModuleApproval[]>
 
   updateApproval(
     data: ModuleUpdateApproval,
     sharedContext?: Context
-  ): Promise<ModuleApproval>;
+  ): Promise<ModuleApproval>
 
   updateApprovals(
     data: ModuleUpdateApproval[],
     sharedContext?: Context
-  ): Promise<ModuleApproval[]>;
+  ): Promise<ModuleApproval[]>
 
   listApprovals(
     filters?: ModuleApprovalFilters,
     config?: FindConfig<ModuleApproval>,
     sharedContext?: Context
-  ): Promise<ModuleApproval[]>;
+  ): Promise<ModuleApproval[]>
 
-  retrieveApproval(
-    id: string,
-    sharedContext?: Context
-  ): Promise<ModuleApproval>;
+  retrieveApproval(id: string, sharedContext?: Context): Promise<ModuleApproval>
 
-  softDeleteApprovals(ids: string[], sharedContext?: Context): Promise<void>;
+  softDeleteApprovals(ids: string[], sharedContext?: Context): Promise<void>
 
-  deleteApprovals(ids: string[], sharedContext?: Context): Promise<void>;
+  deleteApprovals(ids: string[], sharedContext?: Context): Promise<void>
 
-  restoreApprovals(ids: string[], sharedContext?: Context): Promise<void>;
+  restoreApprovals(ids: string[], sharedContext?: Context): Promise<void>
 
-  hasPendingApprovals(cartId: string): Promise<boolean>;
+  hasPendingApprovals(cartId: string): Promise<boolean>
 
   /* Entity: Approval Settings */
   retrieveApprovalSettings(
     id: string,
     sharedContext?: Context
-  ): Promise<ModuleApprovalSettings>;
+  ): Promise<ModuleApprovalSettings>
 
   createApprovalSettings(
     data: ModuleCreateApprovalSettings,
     sharedContext?: Context
-  ): Promise<ModuleApprovalSettings>;
+  ): Promise<ModuleApprovalSettings>
 
   createApprovalSettings(
     data: ModuleCreateApprovalSettings[],
     sharedContext?: Context
-  ): Promise<ModuleApprovalSettings[]>;
+  ): Promise<ModuleApprovalSettings[]>
 
   updateApprovalSettings(
     data: ModuleUpdateApprovalSettings,
     sharedContext?: Context
-  ): Promise<ModuleApprovalSettings>;
+  ): Promise<ModuleApprovalSettings>
 
   updateApprovalSettings(
     data: ModuleUpdateApprovalSettings[],
     sharedContext?: Context
-  ): Promise<ModuleApprovalSettings[]>;
+  ): Promise<ModuleApprovalSettings[]>
 
   listApprovalSettings(
     filters?: ModuleApprovalSettingsFilters,
     config?: FindConfig<ModuleApprovalSettings>,
     sharedContext?: Context
-  ): Promise<ModuleApprovalSettings[]>;
+  ): Promise<ModuleApprovalSettings[]>
 
-  deleteApprovalSettings(ids: string[], sharedContext?: Context): Promise<void>;
+  deleteApprovalSettings(ids: string[], sharedContext?: Context): Promise<void>
 
   /* Entity: Approval Status */
   createApprovalStatus(
     data: ModuleCreateApprovalStatus,
     sharedContext?: Context
-  ): Promise<ModuleApprovalStatus>;
+  ): Promise<ModuleApprovalStatus>
 
   createApprovalStatuses(
     data: ModuleCreateApprovalStatus[],
     sharedContext?: Context
-  ): Promise<ModuleApprovalStatus[]>;
+  ): Promise<ModuleApprovalStatus[]>
 
   updateApprovalStatus(
     data: ModuleUpdateApprovalStatus,
     sharedContext?: Context
-  ): Promise<ModuleApprovalStatus>;
+  ): Promise<ModuleApprovalStatus>
 
   updateApprovalStatuses(
     data: ModuleUpdateApprovalStatus[],
     sharedContext?: Context
-  ): Promise<ModuleApprovalStatus[]>;
+  ): Promise<ModuleApprovalStatus[]>
 
-  deleteApprovalStatuses(ids: string[], sharedContext?: Context): Promise<void>;
+  deleteApprovalStatuses(ids: string[], sharedContext?: Context): Promise<void>
 }

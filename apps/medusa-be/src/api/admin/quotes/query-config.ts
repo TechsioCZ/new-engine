@@ -44,14 +44,14 @@ export const quoteFields = [
   "*draft_order.items.variant.product",
   "*draft_order.items.detail",
   "*order_change.actions",
-];
+]
 
 export const retrieveQuoteTransformQueryConfig = {
   defaults: quoteFields,
   isList: false,
-};
+}
 
 export const listQuotesTransformQueryConfig = {
   defaults: quoteFields,
   isList: true,
-};
+}

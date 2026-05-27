@@ -1,30 +1,30 @@
-import { EllipsisHorizontal, PencilSquare, Trash } from "@medusajs/icons";
-import { DropdownMenu, IconButton, toast } from "@medusajs/ui";
-import { useState } from "react";
-import { EmployeesUpdateDrawer } from ".";
-import { QueryCompany, QueryEmployee } from "../../../../../types";
-import { DeletePrompt } from "../../../../components/common";
-import { useDeleteEmployee } from "../../../../hooks/api";
+import { EllipsisHorizontal, PencilSquare, Trash } from "@medusajs/icons"
+import { DropdownMenu, IconButton, toast } from "@medusajs/ui"
+import { useState } from "react"
+import type { QueryCompany, QueryEmployee } from "../../../../../types"
+import { DeletePrompt } from "../../../../components/common"
+import { useDeleteEmployee } from "../../../../hooks/api"
+import { EmployeesUpdateDrawer } from "."
 
 export const EmployeesActionsMenu = ({
   company,
   employee,
 }: {
-  company: QueryCompany;
-  employee: QueryEmployee;
+  company: QueryCompany
+  employee: QueryEmployee
 }) => {
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
-    useDeleteEmployee(employee.company_id);
+    useDeleteEmployee(employee.company_id)
 
   const handleDelete = async () => {
     await mutateDelete(employee.id, {
       onSuccess: () => {
-        toast.success(`Employee deleted successfully`);
+        toast.success("Employee deleted successfully")
       },
-    });
-  };
+    })
+  }
 
   return (
     <>
@@ -66,5 +66,5 @@ export const EmployeesActionsMenu = ({
         setOpen={setDeleteOpen}
       />
     </>
-  );
-};
+  )
+}

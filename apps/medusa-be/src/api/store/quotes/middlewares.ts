@@ -2,19 +2,19 @@ import {
   authenticate,
   validateAndTransformBody,
   validateAndTransformQuery,
-} from "@medusajs/framework";
-import { MiddlewareRoute } from "@medusajs/medusa";
+} from "@medusajs/framework"
+import type { MiddlewareRoute } from "@medusajs/medusa"
 import {
   listQuotesTransformQueryConfig,
   retrieveQuoteTransformQueryConfig,
-} from "./query-config";
+} from "./query-config"
 import {
   AcceptQuote,
   CreateQuote,
   GetQuoteParams,
   RejectQuote,
   StoreCreateQuoteMessage,
-} from "./validators";
+} from "./validators"
 
 export const storeQuotesMiddlewares: MiddlewareRoute[] = [
   {
@@ -93,4 +93,4 @@ export const storeQuotesMiddlewares: MiddlewareRoute[] = [
       ),
     ],
   },
-];
+]

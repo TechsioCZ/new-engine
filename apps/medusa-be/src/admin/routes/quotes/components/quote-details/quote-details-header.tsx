@@ -1,15 +1,15 @@
-import { EllipsisHorizontal, PencilSquare } from "@medusajs/icons";
-import { DropdownMenu, Heading, IconButton } from "@medusajs/ui";
-import { useNavigate } from "react-router-dom";
-import { AdminQuoteResponse } from "../../../../../types";
-import QuoteStatusBadge from "../quote-status-badge";
+import { EllipsisHorizontal, PencilSquare } from "@medusajs/icons"
+import { DropdownMenu, Heading, IconButton } from "@medusajs/ui"
+import { useNavigate } from "react-router-dom"
+import type { AdminQuoteResponse } from "../../../../../types"
+import QuoteStatusBadge from "../quote-status-badge"
 
 export const QuoteDetailsHeader = ({
   quote,
 }: {
-  quote: AdminQuoteResponse["quote"];
+  quote: AdminQuoteResponse["quote"]
 }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
     <div className="flex items-center justify-between px-6 py-4">
@@ -29,7 +29,6 @@ export const QuoteDetailsHeader = ({
           <DropdownMenu.Content>
             <DropdownMenu.Item
               className="gap-x-2"
-              onClick={() => navigate(`manage`)}
               disabled={
                 ![
                   "pending_merchant",
@@ -37,6 +36,7 @@ export const QuoteDetailsHeader = ({
                   "merchant_rejected",
                 ].includes(quote.status)
               }
+              onClick={() => navigate("manage")}
             >
               <PencilSquare />
               Manage
@@ -45,5 +45,5 @@ export const QuoteDetailsHeader = ({
         </DropdownMenu>
       </div>
     </div>
-  );
-};
+  )
+}

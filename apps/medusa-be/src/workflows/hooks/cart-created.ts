@@ -1,7 +1,7 @@
-import { createCartWorkflow } from "@medusajs/core-flows"
 import type { CartDTO } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
+import { createCartWorkflow } from "@medusajs/medusa/core-flows"
 import { COMPANY_MODULE } from "../../modules/company"
 
 createCartWorkflow.hooks.cartCreated(

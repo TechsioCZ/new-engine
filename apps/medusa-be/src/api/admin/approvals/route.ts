@@ -1,25 +1,23 @@
-import {
+import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { AdminGetApprovalsType } from "./validators";
+} from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { AdminGetApprovalsType } from "./validators"
+
+type ApprovalStatusFilters = {
+  status?: AdminGetApprovalsType["status"]
+}
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetApprovalsType>,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { status } = req.validatedQuery || {};
+  const { status } = req.validatedQuery || {}
 
-  let filters: any = {};
-
-  if (status) {
-    filters = {
-      status,
-    };
-  }
+  const filters: ApprovalStatusFilters = status ? { status } : {}
 
   const { data: approvalStatuses, metadata } = await query.graph({
     entity: "approval_status",
@@ -33,17 +31,15 @@ export const GET = async (
       "cart.items.*",
       "cart.completed_at",
     ],
-    filters: {
-      ...filters,
-    },
-  });
+    filters,
+  })
 
-  let carts = approvalStatuses
+  const carts = approvalStatuses
     .map((approvalStatus) => approvalStatus.cart)
-    .filter(Boolean);
+    .filter(Boolean)
 
   res.json({
     carts_with_approvals: carts,
     ...metadata,
-  });
-};
+  })
+}

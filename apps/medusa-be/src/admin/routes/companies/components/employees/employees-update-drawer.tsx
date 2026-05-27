@@ -1,11 +1,11 @@
-import { Drawer, toast as toastType } from "@medusajs/ui";
-import { EmployeesUpdateForm } from ".";
-import {
+import { Drawer, type toast as toastType } from "@medusajs/ui"
+import type {
   AdminUpdateEmployee,
   QueryCompany,
   QueryEmployee,
-} from "../../../../../types";
-import { useUpdateEmployee } from "../../../../hooks/api";
+} from "../../../../../types"
+import { useUpdateEmployee } from "../../../../hooks/api"
+import { EmployeesUpdateForm } from "."
 
 export function EmployeesUpdateDrawer({
   company,
@@ -14,43 +14,43 @@ export function EmployeesUpdateDrawer({
   setOpen,
   toast,
 }: {
-  company: QueryCompany;
-  employee: QueryEmployee;
-  open: boolean;
-  setOpen: (open: boolean) => void;
-  toast: typeof toastType;
+  company: QueryCompany
+  employee: QueryEmployee
+  open: boolean
+  setOpen: (open: boolean) => void
+  toast: typeof toastType
 }) {
   const { mutateAsync, isPending, error } = useUpdateEmployee(
     employee.company_id,
     employee.id
-  );
+  )
 
   const handleSubmit = async (formData: AdminUpdateEmployee) => {
     await mutateAsync(formData, {
       onSuccess: () => {
-        setOpen(false);
+        setOpen(false)
         toast.success(
           `Employee ${employee?.customer?.email} updated successfully`
-        );
+        )
       },
-    });
-  };
+    })
+  }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer onOpenChange={setOpen} open={open}>
       <Drawer.Content className="z-50 overflow-auto">
         <Drawer.Header>
           <Drawer.Title>Edit Employee</Drawer.Title>
         </Drawer.Header>
 
         <EmployeesUpdateForm
+          company={company}
+          employee={employee}
+          error={error}
           handleSubmit={handleSubmit}
           loading={isPending}
-          error={error}
-          employee={employee}
-          company={company}
         />
       </Drawer.Content>
     </Drawer>
-  );
+  )
 }

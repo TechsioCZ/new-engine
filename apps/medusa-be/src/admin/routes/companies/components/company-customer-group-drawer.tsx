@@ -1,10 +1,10 @@
-import { HttpTypes } from "@medusajs/types";
-import { Button, Drawer, Hint, Table, toast } from "@medusajs/ui";
-import { QueryCompany } from "../../../../types";
+import type { HttpTypes } from "@medusajs/types"
+import { Button, Drawer, Hint, Table, toast } from "@medusajs/ui"
+import type { QueryCompany } from "../../../../types"
 import {
   useAddCompanyToCustomerGroup,
   useRemoveCompanyFromCustomerGroup,
-} from "../../../hooks/api";
+} from "../../../hooks/api"
 
 export function CompanyCustomerGroupDrawer({
   company,
@@ -12,48 +12,48 @@ export function CompanyCustomerGroupDrawer({
   open,
   setOpen,
 }: {
-  company: QueryCompany;
-  customerGroups?: HttpTypes.AdminCustomerGroup[];
-  open: boolean;
-  setOpen: (open: boolean) => void;
+  company: QueryCompany
+  customerGroups?: HttpTypes.AdminCustomerGroup[]
+  open: boolean
+  setOpen: (open: boolean) => void
 }) {
   const { mutateAsync: addMutate, isPending: addLoading } =
-    useAddCompanyToCustomerGroup(company.id);
+    useAddCompanyToCustomerGroup(company.id)
 
   const { mutateAsync: removeMutate, isPending: removeLoading } =
-    useRemoveCompanyFromCustomerGroup(company.id);
+    useRemoveCompanyFromCustomerGroup(company.id)
 
   const handleAdd = async (groupId: string) => {
     await addMutate(groupId, {
       onSuccess: async () => {
-        setOpen(false);
-        toast.success(`Company added to customer group successfully`);
+        setOpen(false)
+        toast.success("Company added to customer group successfully")
       },
-      onError: (error) => {
-        toast.error("Failed to add company to customer group");
+      onError: (_error) => {
+        toast.error("Failed to add company to customer group")
       },
-    });
-  };
+    })
+  }
 
   const handleRemove = async (groupId: string) => {
     await removeMutate(groupId, {
       onSuccess: async () => {
-        toast.success(`Company removed from customer group successfully`);
+        toast.success("Company removed from customer group successfully")
       },
       onError: (error) => {
-        console.log(error);
-        toast.error("Failed to remove company from customer group");
+        console.log(error)
+        toast.error("Failed to remove company from customer group")
       },
-    });
-  };
+    })
+  }
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer onOpenChange={setOpen} open={open}>
       <Drawer.Content className="z-50">
         <Drawer.Header>
           <Drawer.Title>Add {company.name} to a Customer Group</Drawer.Title>
         </Drawer.Header>
-        <Drawer.Body className="space-y-4 h-full overflow-y-hidden">
+        <Drawer.Body className="h-full space-y-4 overflow-y-hidden">
           <Hint variant="info">
             Adding {company.name} to a customer group will automatically add{" "}
             {company.employees?.length} linked employee
@@ -79,21 +79,21 @@ export function CompanyCustomerGroupDrawer({
                         {company.customer_group?.id &&
                         company.customer_group.id === group.id ? (
                           <Button
-                            onClick={() => handleRemove(group.id)}
                             isLoading={removeLoading}
+                            onClick={() => handleRemove(group.id)}
                             variant="danger"
                           >
                             Remove
                           </Button>
                         ) : (
                           <Button
-                            onClick={() => handleAdd(group.id)}
                             disabled={
                               (company.customer_group?.id &&
                                 company.customer_group.id !== group.id) ||
                               addLoading
                             }
                             isLoading={addLoading}
+                            onClick={() => handleAdd(group.id)}
                           >
                             Add
                           </Button>
@@ -112,5 +112,5 @@ export function CompanyCustomerGroupDrawer({
         </Drawer.Body>
       </Drawer.Content>
     </Drawer>
-  );
+  )
 }

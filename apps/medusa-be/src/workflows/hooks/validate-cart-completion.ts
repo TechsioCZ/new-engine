@@ -1,6 +1,6 @@
-import { completeCartWorkflow } from "@medusajs/core-flows"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
+import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { checkSpendingLimit } from "../../utils/check-spending-limit"
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
 
@@ -37,10 +37,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     })
 
     if (customer.employee?.spending_limit) {
-      const spendLimitExceeded = checkSpendingLimit(
-        queryCart as any,
-        customer as any
-      )
+      const spendLimitExceeded = checkSpendingLimit(queryCart, customer)
 
       if (spendLimitExceeded) {
         throw new Error("Cart total exceeds spending limit")

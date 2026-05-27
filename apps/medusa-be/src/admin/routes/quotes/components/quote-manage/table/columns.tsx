@@ -1,64 +1,67 @@
-import { Checkbox } from "@medusajs/ui";
-import { createColumnHelper } from "@tanstack/react-table";
-import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { ProductCell, ProductHeader } from "../../../../../components";
+import { Checkbox } from "@medusajs/ui"
+import { createColumnHelper } from "@tanstack/react-table"
+import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import { ProductCell, ProductHeader } from "../../../../../components"
 
-const columnHelper = createColumnHelper<any>();
+type ManageItemsTableRow = {
+  id: string
+  product_title: string
+  quantity: number
+  thumbnail?: string
+  unit_price: number
+  variant_title?: string
+}
 
-export const useManageItemsTableColumns = (currencyCode: string) => {
-  const { t } = useTranslation();
+const columnHelper = createColumnHelper<ManageItemsTableRow>()
+
+export const useManageItemsTableColumns = (_currencyCode: string) => {
+  const { t } = useTranslation()
 
   return useMemo(
     () => [
       columnHelper.display({
         id: "select",
-        header: ({ table }) => {
-          return (
-            <Checkbox
-              checked={
-                table.getIsSomePageRowsSelected()
-                  ? "indeterminate"
-                  : table.getIsAllPageRowsSelected()
-              }
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-            />
-          );
-        },
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsSomePageRowsSelected()
+                ? "indeterminate"
+                : table.getIsAllPageRowsSelected()
+            }
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+          />
+        ),
         cell: ({ row }) => {
-          const isSelectable = row.getCanSelect();
+          const isSelectable = row.getCanSelect()
 
           return (
             <Checkbox
-              disabled={!isSelectable}
               checked={row.getIsSelected()}
+              disabled={!isSelectable}
               onCheckedChange={(value) => row.toggleSelected(!!value)}
               onClick={(e) => {
-                e.stopPropagation();
+                e.stopPropagation()
               }}
             />
-          );
+          )
         },
       }),
       columnHelper.display({
         id: "product",
         header: () => <ProductHeader />,
-        cell: ({ row }) => {
-          return <ProductCell product={row.original.product} />;
-        },
+        cell: ({ row }) => <ProductCell product={row.original.product} />,
       }),
       columnHelper.accessor("sku", {
         header: t("fields.sku"),
-        cell: ({ getValue }) => {
-          return getValue() || "-";
-        },
+        cell: ({ getValue }) => getValue() || "-",
       }),
       columnHelper.accessor("title", {
         header: t("fields.title"),
       }),
     ],
-    [t, currencyCode]
-  );
-};
+    [t]
+  )
+}

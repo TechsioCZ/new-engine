@@ -1,20 +1,20 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/framework";
-import { ContainerRegistrationKeys } from "@medusajs/utils";
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/utils"
 import {
   deleteEmployeesWorkflow,
   updateEmployeesWorkflow,
-} from "../../../../../../workflows/employee/workflows";
-import {
+} from "../../../../../../workflows/employee/workflows"
+import type {
   StoreGetEmployeeParamsType,
   StoreUpdateEmployeeType,
-} from "../../../validators";
+} from "../../../validators"
 
 export const GET = async (
   req: MedusaRequest<StoreGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const { employeeId } = req.params;
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const { employeeId } = req.params
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
     data: [employee],
@@ -29,18 +29,18 @@ export const GET = async (
       },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  res.json({ employee });
-};
+  res.json({ employee })
+}
 
 export const POST = async (
   req: MedusaRequest<StoreUpdateEmployeeType>,
   res: MedusaResponse
 ) => {
-  const { id, employeeId } = req.params;
-  const { spending_limit, is_admin } = req.validatedBody;
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const { id, employeeId } = req.params
+  const { spending_limit, is_admin } = req.validatedBody
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   await updateEmployeesWorkflow.run({
     input: {
@@ -50,7 +50,7 @@ export const POST = async (
       is_admin,
     },
     container: req.scope,
-  });
+  })
 
   const {
     data: [employee],
@@ -65,22 +65,22 @@ export const POST = async (
       },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  res.json({ employee });
-};
+  res.json({ employee })
+}
 
 export const DELETE = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { employeeId } = req.params;
+  const { employeeId } = req.params
 
   await deleteEmployeesWorkflow.run({
     input: [employeeId],
     container: req.scope,
-  });
+  })
 
   res.json({
     id: employeeId,
     object: "employee",
     deleted: true,
-  });
-};
+  })
+}

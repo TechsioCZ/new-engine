@@ -1,17 +1,17 @@
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows";
-import { adminApprovalSettingsFields } from "../../query-config";
-import { AdminCreateApprovalSettingsType } from "../../validators";
+} from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows"
+import { adminApprovalSettingsFields } from "../../query-config"
+import type { AdminCreateApprovalSettingsType } from "../../validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { data: approvalSettings, metadata } = await query.graph({
     entity: "approval_settings",
@@ -20,27 +20,27 @@ export const GET = async (
     pagination: {
       ...req.remoteQueryConfig.pagination,
     },
-  });
+  })
 
   res.json({
     approvalSettings,
-    count: metadata!.count,
-    offset: metadata!.skip,
-    limit: metadata!.take,
-  });
-};
+    count: metadata?.count ?? approvalSettings.length,
+    offset: metadata?.skip ?? 0,
+    limit: metadata?.take ?? approvalSettings.length,
+  })
+}
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<AdminCreateApprovalSettingsType>,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { result: updatedApprovalSettings } =
     await updateApprovalSettingsWorkflow.run({
       input: req.validatedBody,
       container: req.scope,
-    });
+    })
 
   const { data: approvalSettings } = await query.graph(
     {
@@ -51,7 +51,7 @@ export const POST = async (
       },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  res.json({ approvalSettings });
-};
+  res.json({ approvalSettings })
+}

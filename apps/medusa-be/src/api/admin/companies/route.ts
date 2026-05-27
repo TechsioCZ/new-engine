@@ -1,33 +1,33 @@
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies";
-import { AdminCreateCompanyType } from "./validators";
+} from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
+import type { AdminCreateCompanyType } from "./validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { fields, pagination } = req.queryConfig;
+  const { fields, pagination } = req.queryConfig
 
   const { data: companies, metadata } = await query.graph({
     entity: "companies",
     fields,
     filters: req.filterableFields,
     pagination,
-  });
+  })
 
   res.json({
     companies,
-    count: metadata!.count,
-    offset: metadata!.skip,
-    limit: metadata!.take,
-  });
-};
+    count: metadata?.count ?? companies.length,
+    offset: metadata?.skip ?? 0,
+    limit: metadata?.take ?? companies.length,
+  })
+}
 
 export const POST = async (
   req: AuthenticatedMedusaRequest<
@@ -35,14 +35,14 @@ export const POST = async (
   >,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { result: createdCompanies } = await createCompaniesWorkflow.run({
     input: Array.isArray(req.validatedBody)
       ? req.validatedBody.map((company) => ({ ...company }))
       : [{ ...req.validatedBody }],
     container: req.scope,
-  });
+  })
 
   const { data: companies } = await query.graph(
     {
@@ -51,7 +51,7 @@ export const POST = async (
       filters: { id: createdCompanies.map((company) => company.id) },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  res.json({ companies });
-};
+  res.json({ companies })
+}

@@ -1,26 +1,24 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { DocumentText } from "@medusajs/icons";
-import { Container, Heading, Toaster } from "@medusajs/ui";
-import { QuotesTable } from "./components/quotes-table";
+import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { DocumentText } from "@medusajs/icons"
+import { Container, Heading, Toaster } from "@medusajs/ui"
+import { QuotesTable } from "./components/quotes-table"
 
-const Quotes = () => {
-  return (
-    <>
-      <Container className="flex flex-col p-0 overflow-hidden">
-        <Heading className="p-6 pb-0 font-sans font-medium h1-core">
-          Quotes
-        </Heading>
+const Quotes = () => (
+  <>
+    <Container className="flex flex-col overflow-hidden p-0">
+      <Heading className="h1-core p-6 pb-0 font-medium font-sans">
+        Quotes
+      </Heading>
 
-        <QuotesTable />
-      </Container>
-      <Toaster />
-    </>
-  );
-};
+      <QuotesTable />
+    </Container>
+    <Toaster />
+  </>
+)
 
 export const config = defineRouteConfig({
   label: "Quotes",
   icon: DocumentText,
-});
+})
 
-export default Quotes;
+export default Quotes

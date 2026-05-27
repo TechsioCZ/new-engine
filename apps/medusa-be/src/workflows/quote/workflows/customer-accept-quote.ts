@@ -1,9 +1,9 @@
+import { OrderStatus } from "@medusajs/framework/utils"
+import { createWorkflow } from "@medusajs/framework/workflows-sdk"
 import {
   confirmOrderEditRequestWorkflow,
   useRemoteQueryStep,
-} from "@medusajs/core-flows"
-import { OrderStatus } from "@medusajs/framework/utils"
-import { createWorkflow } from "@medusajs/framework/workflows-sdk"
+} from "@medusajs/medusa/core-flows"
 import { updateOrderWorkflow } from "../../order/workflows/update-order"
 import { validateQuoteAcceptanceStep } from "../steps/validate-quote-acceptance"
 import { updateQuotesWorkflow } from "./update-quote"

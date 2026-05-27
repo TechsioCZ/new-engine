@@ -19,7 +19,7 @@ import { sdk } from "../../lib/sdk"
 export const companyQueryKey = queryKeysFactory("company")
 
 export const useCompanies = (
-  query?: Record<string, any>,
+  query?: Record<string, string>,
   options?: UseQueryOptions<
     AdminCompaniesResponse,
     FetchError,
@@ -46,7 +46,7 @@ export const useCompanies = (
 
 export const useCompany = (
   companyId: string,
-  query?: Record<string, any>,
+  query?: Record<string, string>,
   options?: UseQueryOptions<
     AdminCompanyResponse,
     FetchError,
@@ -89,12 +89,12 @@ export const useCreateCompany = (
         },
         body: company,
       }),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
       queryClient.invalidateQueries({
-        queryKey: companyQueryKey.detail(data.id),
+        queryKey: companyQueryKey.detail(data.company.id),
       })
       options?.onSuccess?.(data, variables, context)
     },
@@ -121,7 +121,7 @@ export const useUpdateCompany = (
         },
         body: company,
       }),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
@@ -144,7 +144,7 @@ export const useDeleteCompany = (
       sdk.client.fetch<void>(`/admin/companies/${companyId}`, {
         method: "DELETE",
       }),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
@@ -169,7 +169,7 @@ export const useAddCompanyToCustomerGroup = (
         },
         body: { group_id: groupId },
       }),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
@@ -199,7 +199,7 @@ export const useRemoveCompanyFromCustomerGroup = (
           },
         }
       ),
-    onSuccess: (_, variables: any, context: any) => {
+    onSuccess: (_, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })

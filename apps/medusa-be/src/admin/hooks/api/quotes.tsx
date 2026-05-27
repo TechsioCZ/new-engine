@@ -87,7 +87,7 @@ export const useAddItemsToQuote = (
   return useMutation({
     mutationFn: (payload: HttpTypes.AdminAddOrderEditItems) =>
       sdk.admin.orderEdit.addItems(id, payload),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
       })
@@ -114,7 +114,7 @@ export const useUpdateQuoteItem = (
       ...payload
     }: HttpTypes.AdminUpdateOrderEditItem & { itemId: string }) =>
       sdk.admin.orderEdit.updateOriginalItem(id, itemId, payload),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
       })
@@ -138,7 +138,7 @@ export const useRemoveQuoteItem = (
   return useMutation({
     mutationFn: (actionId: string) =>
       sdk.admin.orderEdit.removeAddedItem(id, actionId),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
       })
@@ -164,7 +164,7 @@ export const useUpdateAddedQuoteItem = (
       ...payload
     }: HttpTypes.AdminUpdateOrderEditItem & { actionId: string }) =>
       sdk.admin.orderEdit.updateAddedItem(id, actionId, payload),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.detail(id),
       })
@@ -187,7 +187,7 @@ export const useConfirmQuote = (
 
   return useMutation({
     mutationFn: () => sdk.admin.orderEdit.request(id),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
       })
@@ -211,7 +211,7 @@ export const useSendQuote = (
 
   return useMutation({
     mutationFn: () => sendQuote(id),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
       })
@@ -243,7 +243,7 @@ export const useRejectQuote = (
 
   return useMutation({
     mutationFn: () => rejectQuote(id),
-    onSuccess: (data: AdminQuoteResponse, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: orderPreviewQueryKey.details(),
       })
@@ -280,7 +280,7 @@ export const useCreateQuoteMessage = (
 
   return useMutation({
     mutationFn: (body) => sendQuote(id, body),
-    onSuccess: (data: AdminQuoteResponse, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: quoteQueryKey.details(),
       })

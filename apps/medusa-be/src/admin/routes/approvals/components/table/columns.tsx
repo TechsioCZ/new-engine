@@ -1,17 +1,39 @@
-import { createColumnHelper } from "@tanstack/react-table";
-import { useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { TextCell } from "../../../../components/common/table/table-cells/text-cell";
-import { StatusBadge } from "@medusajs/ui";
-import { ApprovalStatusType } from "../../../../../types/approval";
-import ItemsPopover from "../approvals-items-popover";
-import { DateCell } from "../../../../../admin/components/common/table/table-cells/date-cell";
-import { ApprovalActions } from "../approval-actions";
+import { StatusBadge } from "@medusajs/ui"
+import { createColumnHelper } from "@tanstack/react-table"
+import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
+import { DateCell } from "../../../../../admin/components/common/table/table-cells/date-cell"
+import { ApprovalStatusType } from "../../../../../types/approval"
+import { TextCell } from "../../../../components/common/table/table-cells/text-cell"
+import { type ApprovalActionCart, ApprovalActions } from "../approval-actions"
+import ItemsPopover, { type ApprovalItem } from "../approvals-items-popover"
 
-const columnHelper = createColumnHelper<any>();
+type ApprovalTableRow = ApprovalActionCart & {
+  company: {
+    name: string
+  }
+  currency_code: string
+  id: string
+  items: ApprovalItem[]
+  updated_at: Date | string
+}
+
+const columnHelper = createColumnHelper<ApprovalTableRow>()
+
+const getStatusColor = (status: ApprovalStatusType) => {
+  if (status === ApprovalStatusType.APPROVED) {
+    return "green"
+  }
+
+  if (status === ApprovalStatusType.REJECTED) {
+    return "red"
+  }
+
+  return "purple"
+}
 
 export const useApprovalsTableColumns = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   return useMemo(
     () => [
@@ -30,28 +52,20 @@ export const useApprovalsTableColumns = () => {
       columnHelper.accessor("approval_status.status", {
         header: t("fields.status"),
         cell: ({ getValue }) => {
-          const status = getValue();
+          const status = getValue()
           return (
-            <StatusBadge
-              color={
-                status === ApprovalStatusType.APPROVED
-                  ? "green"
-                  : status === ApprovalStatusType.REJECTED
-                  ? "red"
-                  : "purple"
-              }
-            >
+            <StatusBadge color={getStatusColor(status)}>
               {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
             </StatusBadge>
-          );
+          )
         },
       }),
       columnHelper.accessor("items", {
         header: t("fields.items"),
         cell: ({ getValue, row }) => (
           <ItemsPopover
-            items={getValue()}
             currencyCode={row.original.currency_code}
+            items={getValue()}
           />
         ),
       }),
@@ -61,5 +75,5 @@ export const useApprovalsTableColumns = () => {
       }),
     ],
     [t]
-  );
-};
+  )
+}

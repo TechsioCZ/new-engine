@@ -1,21 +1,21 @@
-import {
+import type {
   BaseFilterable,
   Context,
   FindConfig,
   IModuleService,
-} from "@medusajs/types";
-import {
+} from "@medusajs/types"
+import type {
   ModuleCreateQuote,
   ModuleCreateQuoteMessage,
   ModuleQuote,
   ModuleQuoteMessage,
   ModuleUpdateQuote,
-} from "./module";
+} from "./module"
 
 export interface ModuleQuoteFilters extends BaseFilterable<ModuleQuoteFilters> {
-  q?: string;
-  id?: string | string[];
-  status?: string | string[];
+  q?: string
+  id?: string | string[]
+  status?: string | string[]
 }
 
 /**
@@ -26,37 +26,37 @@ export interface IQuoteModuleService extends IModuleService {
   createQuotes(
     data: ModuleCreateQuote,
     sharedContext?: Context
-  ): Promise<ModuleQuote>;
+  ): Promise<ModuleQuote>
 
   createQuotes(
     data: ModuleCreateQuote[],
     sharedContext?: Context
-  ): Promise<ModuleQuote[]>;
+  ): Promise<ModuleQuote[]>
 
   updateQuotes(
     data: ModuleUpdateQuote,
     sharedContext?: Context
-  ): Promise<ModuleQuote>;
+  ): Promise<ModuleQuote>
 
   updateQuotes(
     data: ModuleUpdateQuote[],
     sharedContext?: Context
-  ): Promise<ModuleQuote[]>;
+  ): Promise<ModuleQuote[]>
 
   listQuotes(
     filters?: ModuleQuoteFilters,
     config?: FindConfig<ModuleQuote>,
     sharedContext?: Context
-  ): Promise<ModuleQuote[]>;
+  ): Promise<ModuleQuote[]>
 
-  deleteQuotes(ids: string[], sharedContext?: Context): Promise<void>;
+  deleteQuotes(ids: string[], sharedContext?: Context): Promise<void>
 
   /* Entity: Message */
 
   createMessages(
     data: ModuleCreateQuoteMessage,
     sharedContext?: Context
-  ): Promise<ModuleQuoteMessage>;
+  ): Promise<ModuleQuoteMessage>
 
-  deleteMessages(ids: string[], sharedContext?: Context): Promise<void>;
+  deleteMessages(ids: string[], sharedContext?: Context): Promise<void>
 }

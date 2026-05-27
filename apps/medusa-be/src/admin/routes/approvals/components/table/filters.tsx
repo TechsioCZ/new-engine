@@ -1,7 +1,7 @@
-import { ApprovalStatusType } from "../../../../../types/approval";
+import { ApprovalStatusType } from "../../../../../types/approval"
 
 export const useApprovalsTableFilters = () => {
-  const filters: any[] = [
+  const filters: Record<string, unknown>[] = [
     {
       label: "Status",
       key: "status",
@@ -12,7 +12,7 @@ export const useApprovalsTableFilters = () => {
         { label: "Rejected", value: ApprovalStatusType.REJECTED },
       ],
     },
-  ];
+  ]
 
-  return filters;
-};
+  return filters
+}

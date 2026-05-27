@@ -12,7 +12,7 @@ export const adminCompanyFields = [
   "country",
   "currency_code",
   "*employees",
-];
+]
 
 export const adminCompanyQueryConfig = {
   list: {
@@ -23,7 +23,7 @@ export const adminCompanyQueryConfig = {
     defaults: adminCompanyFields,
     isList: false,
   },
-};
+}
 
 /* Employee Query Config */
 export const adminEmployeeFields = [
@@ -34,7 +34,7 @@ export const adminEmployeeFields = [
   "*customer",
   "company_id",
   "*company",
-];
+]
 
 export const adminEmployeeQueryConfig = {
   list: {
@@ -45,7 +45,7 @@ export const adminEmployeeQueryConfig = {
     defaults: adminEmployeeFields,
     isList: false,
   },
-};
+}
 
 /* Approval Settings Query Config */
 export const adminApprovalSettingsFields = [
@@ -54,7 +54,7 @@ export const adminApprovalSettingsFields = [
   "requires_admin_approval",
   "requires_sales_manager_approval",
   "*company",
-];
+]
 
 export const adminApprovalSettingsQueryConfig = {
   list: {
@@ -65,4 +65,4 @@ export const adminApprovalSettingsQueryConfig = {
     defaults: adminApprovalSettingsFields,
     isList: false,
   },
-};
+}

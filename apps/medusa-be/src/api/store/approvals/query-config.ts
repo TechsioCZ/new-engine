@@ -5,9 +5,9 @@ export const approvalFields = [
   "cart.company.*",
   "cart.region.*",
   "cart.approvals.*",
-];
+]
 
 export const approvalTransformQueryConfig = {
   defaults: approvalFields,
   isList: true,
-};
+}

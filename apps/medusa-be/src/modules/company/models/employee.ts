@@ -1,5 +1,5 @@
-import { model } from "@medusajs/framework/utils";
-import { Company } from "./company";
+import { model } from "@medusajs/framework/utils"
+import { Company } from "./company"
 
 export const Employee = model.define("employee", {
   id: model
@@ -12,4 +12,4 @@ export const Employee = model.define("employee", {
   company: model.belongsTo(() => Company, {
     mappedBy: "employees",
   }),
-});
+})

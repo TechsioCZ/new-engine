@@ -12,10 +12,23 @@ export const productVariantQueryKeys = queryKeysFactory(
   PRODUCT_VARIANT_QUERY_KEY
 )
 
+type ProductVariantListQuery = Parameters<
+  typeof sdk.admin.productVariant.list
+>[0]
+
+type ProductVariantListResponse = Awaited<
+  ReturnType<typeof sdk.admin.productVariant.list>
+>
+
 export const useVariants = (
-  query?: Record<string, any>,
+  query?: ProductVariantListQuery,
   options?: Omit<
-    UseQueryOptions<any, FetchError, any, QueryKey>,
+    UseQueryOptions<
+      ProductVariantListResponse,
+      FetchError,
+      ProductVariantListResponse,
+      QueryKey
+    >,
     "queryFn" | "queryKey"
   >
 ) => {

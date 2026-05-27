@@ -1,7 +1,7 @@
-import { Button, Drawer, Input, Label, Select, Text } from "@medusajs/ui";
-import { AdminUpdateCompany } from "../../../../types";
-import { useState } from "react";
-import { useRegions } from "../../../hooks/api";
+import { Button, Drawer, Input, Label, Select, Text } from "@medusajs/ui"
+import { useState } from "react"
+import type { AdminUpdateCompany } from "../../../../types"
+import { useRegions } from "../../../hooks/api"
 
 export function CompanyForm({
   company,
@@ -9,31 +9,31 @@ export function CompanyForm({
   loading,
   error,
 }: {
-  company?: AdminUpdateCompany;
-  handleSubmit: (data: AdminUpdateCompany) => Promise<void>;
-  loading: boolean;
-  error: Error | null;
+  company?: AdminUpdateCompany
+  handleSubmit: (data: AdminUpdateCompany) => Promise<void>
+  loading: boolean
+  error: Error | null
 }) {
   const [formData, setFormData] = useState<AdminUpdateCompany>(
     company || ({} as AdminUpdateCompany)
-  );
+  )
 
-  const { regions, isPending: regionsLoading } = useRegions();
+  const { regions, isPending: regionsLoading } = useRegions()
 
-  const currencyCodes = regions?.map((region) => region.currency_code);
-  const countries = regions?.flatMap((region) => region.countries);
+  const currencyCodes = regions?.map((region) => region.currency_code)
+  const countries = regions?.flatMap((region) => region.countries)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
   const handleCurrencyChange = (value: string) => {
-    setFormData({ ...formData, currency_code: value });
-  };
+    setFormData({ ...formData, currency_code: value })
+  }
 
   const handleCountryChange = (value: string) => {
-    setFormData({ ...formData, country: value });
-  };
+    setFormData({ ...formData, country: value })
+  }
 
   return (
     <form>
@@ -41,68 +41,68 @@ export function CompanyForm({
         <div className="flex flex-col gap-2">
           <Label size="xsmall">Company Name</Label>
           <Input
-            type="text"
             name="name"
-            value={formData.name}
             onChange={handleChange}
             placeholder="Medusa"
+            type="text"
+            value={formData.name}
           />
           <Label size="xsmall">Company Phone</Label>
           <Input
-            type="text"
             name="phone"
-            value={formData.phone}
             onChange={handleChange}
             placeholder="1234567890"
+            type="text"
+            value={formData.phone}
           />
           <Label size="xsmall">Company Email</Label>
           <Input
-            type="email"
             name="email"
-            value={formData.email}
             onChange={handleChange}
             placeholder="medusa@medusa.com"
+            type="email"
+            value={formData.email}
           />
           <Label size="xsmall">Company Address</Label>
           <Input
-            type="text"
             name="address"
-            value={formData.address || ""}
             onChange={handleChange}
             placeholder="1234 Main St"
+            type="text"
+            value={formData.address || ""}
           />
           <Label size="xsmall">Company City</Label>
           <Input
-            type="text"
             name="city"
-            value={formData.city || ""}
             onChange={handleChange}
             placeholder="New York"
+            type="text"
+            value={formData.city || ""}
           />
           <Label size="xsmall">Company State</Label>
           <Input
-            type="text"
             name="state"
-            value={formData.state || ""}
             onChange={handleChange}
             placeholder="NY"
+            type="text"
+            value={formData.state || ""}
           />
           <Label size="xsmall">Company Zip</Label>
           <Input
-            type="text"
             name="zip"
-            value={formData.zip || ""}
             onChange={handleChange}
             placeholder="10001"
+            type="text"
+            value={formData.zip || ""}
           />
-          <div className="flex gap-4 w-full">
-            <div className="flex flex-col gap-2 w-1/2">
+          <div className="flex w-full gap-4">
+            <div className="flex w-1/2 flex-col gap-2">
               <Label size="xsmall">Company Country</Label>
               <Select
-                name="country"
-                value={formData.country || ""}
-                onValueChange={handleCountryChange}
                 disabled={regionsLoading}
+                name="country"
+                onValueChange={handleCountryChange}
+                value={formData.country || ""}
               >
                 <Select.Trigger disabled={regionsLoading}>
                   <Select.Value placeholder="Select a country" />
@@ -119,15 +119,15 @@ export function CompanyForm({
                 </Select.Content>
               </Select>
             </div>
-            <div className="flex flex-col gap-2 w-1/2">
+            <div className="flex w-1/2 flex-col gap-2">
               <Label size="xsmall">Currency</Label>
 
               <Select
-                name="currency_code"
-                value={formData.currency_code || ""}
-                onValueChange={handleCurrencyChange}
                 defaultValue={currencyCodes?.[0]}
                 disabled={regionsLoading}
+                name="currency_code"
+                onValueChange={handleCurrencyChange}
+                value={formData.currency_code || ""}
               >
                 <Select.Trigger disabled={regionsLoading}>
                   <Select.Value placeholder="Select a currency" />
@@ -146,11 +146,11 @@ export function CompanyForm({
           {/* TODO: Add logo upload */}
           <Label size="xsmall">Company Logo URL</Label>
           <Input
-            type="text"
             name="logo_url"
-            value={formData.logo_url || ""}
             onChange={handleChange}
             placeholder="https://example.com/logo.png"
+            type="text"
+            value={formData.logo_url || ""}
           />
         </div>
       </Drawer.Body>
@@ -171,5 +171,5 @@ export function CompanyForm({
         )}
       </Drawer.Footer>
     </form>
-  );
+  )
 }

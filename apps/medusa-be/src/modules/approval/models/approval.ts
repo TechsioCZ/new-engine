@@ -1,5 +1,5 @@
-import { model } from "@medusajs/framework/utils";
-import { ApprovalStatusType, ApprovalType } from "../../../types/approval";
+import { model } from "@medusajs/framework/utils"
+import { ApprovalStatusType, ApprovalType } from "../../../types/approval"
 
 export const Approval = model.define("approval", {
   id: model
@@ -12,4 +12,4 @@ export const Approval = model.define("approval", {
   status: model.enum(ApprovalStatusType),
   created_by: model.text(),
   handled_by: model.text().nullable(),
-});
+})

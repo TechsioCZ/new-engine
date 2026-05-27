@@ -1,11 +1,11 @@
-import {
-  ModuleApprovalSettings,
+import type {
   ModuleApproval,
+  ModuleApprovalSettings,
   ModuleApprovalStatus,
-} from "./module";
+} from "./module"
 
-export type QueryApprovalSettings = ModuleApprovalSettings;
+export type QueryApprovalSettings = ModuleApprovalSettings
 
-export type QueryApproval = ModuleApproval;
+export type QueryApproval = ModuleApproval
 
-export type QueryApprovalStatus = ModuleApprovalStatus;
+export type QueryApprovalStatus = ModuleApprovalStatus

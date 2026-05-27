@@ -1,42 +1,42 @@
-import { HttpTypes } from "@medusajs/framework/types";
-import { Link, LockClosedSolid, PencilSquare, Trash } from "@medusajs/icons";
-import { toast } from "@medusajs/ui";
-import { QueryCompany } from "../../../../types";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ActionMenu } from "../../../components/common";
-import { DeletePrompt } from "../../../components/common/delete-prompt";
-import { useDeleteCompany } from "../../../hooks/api";
+import type { HttpTypes } from "@medusajs/framework/types"
+import { Link, LockClosedSolid, PencilSquare, Trash } from "@medusajs/icons"
+import { toast } from "@medusajs/ui"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import type { QueryCompany } from "../../../../types"
+import { ActionMenu } from "../../../components/common"
+import { DeletePrompt } from "../../../components/common/delete-prompt"
+import { useDeleteCompany } from "../../../hooks/api"
 import {
   CompanyApprovalSettingsDrawer,
   CompanyCustomerGroupDrawer,
   CompanyUpdateDrawer,
-} from "./";
+} from "./"
 
 export const CompanyActionsMenu = ({
   company,
   customerGroups,
 }: {
-  company: QueryCompany;
-  customerGroups?: HttpTypes.AdminCustomerGroup[];
+  company: QueryCompany
+  customerGroups?: HttpTypes.AdminCustomerGroup[]
 }) => {
-  const [editOpen, setEditOpen] = useState(false);
-  const [customerGroupOpen, setCustomerGroupOpen] = useState(false);
-  const [approvalSettingsOpen, setApprovalSettingsOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false)
+  const [customerGroupOpen, setCustomerGroupOpen] = useState(false)
+  const [approvalSettingsOpen, setApprovalSettingsOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
-    useDeleteCompany(company.id);
+    useDeleteCompany(company.id)
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const handleDelete = () => {
     mutateDelete(company.id, {
       onSuccess: () => {
-        navigate("/companies");
-        toast.success(`Company ${company.name} deleted successfully`);
+        navigate("/companies")
+        toast.success(`Company ${company.name} deleted successfully`)
       },
-    });
-  };
+    })
+  }
 
   return (
     <>
@@ -96,5 +96,5 @@ export const CompanyActionsMenu = ({
         setOpen={setDeleteOpen}
       />
     </>
-  );
-};
+  )
+}

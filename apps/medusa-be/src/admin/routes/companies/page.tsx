@@ -1,5 +1,5 @@
-import { defineRouteConfig } from "@medusajs/admin-sdk";
-import { BuildingStorefront } from "@medusajs/icons";
+import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { BuildingStorefront } from "@medusajs/icons"
 import {
   Avatar,
   Badge,
@@ -8,31 +8,31 @@ import {
   Table,
   Text,
   Toaster,
-} from "@medusajs/ui";
-import { QueryCompany } from "../../../types";
-import { useAdminCustomerGroups, useCompanies } from "../../hooks/api";
-import { CompanyActionsMenu, CompanyCreateDrawer } from "./components";
+} from "@medusajs/ui"
+import type { QueryCompany } from "../../../types"
+import { useAdminCustomerGroups, useCompanies } from "../../hooks/api"
+import { CompanyActionsMenu, CompanyCreateDrawer } from "./components"
 
 const Companies = () => {
   const { data, isPending } = useCompanies({
     fields:
       "*employees,*employees.customer,*employees.company,*customer_group,*approval_settings",
-  });
+  })
 
-  const { data: customerGroups } = useAdminCustomerGroups();
+  const { data: customerGroups } = useAdminCustomerGroups()
 
   return (
     <>
-      <Container className="flex flex-col p-0 overflow-hidden">
-        <div className="p-6 flex justify-between">
-          <Heading className="font-sans font-medium h1-core">Companies</Heading>
+      <Container className="flex flex-col overflow-hidden p-0">
+        <div className="flex justify-between p-6">
+          <Heading className="h1-core font-medium font-sans">Companies</Heading>
           <CompanyCreateDrawer />
         </div>
         {isPending && <Text>Loading...</Text>}
         <Table>
           <Table.Header>
             <Table.Row>
-              <Table.HeaderCell></Table.HeaderCell>
+              <Table.HeaderCell />
               <Table.HeaderCell>Name</Table.HeaderCell>
               <Table.HeaderCell>Phone</Table.HeaderCell>
               <Table.HeaderCell>Email</Table.HeaderCell>
@@ -46,16 +46,16 @@ const Companies = () => {
             <Table.Body>
               {data.companies.map((company: QueryCompany) => (
                 <Table.Row
-                  key={company.id}
                   className="cursor-pointer hover:bg-gray-50"
-                  onClick={() =>
-                    (window.location.href = `/app/companies/${company.id}`)
-                  }
+                  key={company.id}
+                  onClick={() => {
+                    window.location.href = `/app/companies/${company.id}`
+                  }}
                 >
-                  <Table.Cell className="w-6 h-6 items-center justify-center">
+                  <Table.Cell className="h-6 w-6 items-center justify-center">
                     <Avatar
-                      src={company.logo_url || undefined}
                       fallback={company.name.charAt(0)}
+                      src={company.logo_url || undefined}
                     />
                   </Table.Cell>
                   <Table.Cell>{company.name}</Table.Cell>
@@ -65,7 +65,7 @@ const Companies = () => {
                   <Table.Cell>{company.employees?.length || 0}</Table.Cell>
                   <Table.Cell>
                     {company.customer_group?.name ? (
-                      <Badge size="small" color="blue">
+                      <Badge color="blue" size="small">
                         {company.customer_group.name}
                       </Badge>
                     ) : (
@@ -86,12 +86,12 @@ const Companies = () => {
       </Container>
       <Toaster />
     </>
-  );
-};
+  )
+}
 
 export const config = defineRouteConfig({
   label: "Companies",
   icon: BuildingStorefront,
-});
+})
 
-export default Companies;
+export default Companies

@@ -1,5 +1,5 @@
-import { useRemoteQueryStep } from "@medusajs/core-flows"
 import { createWorkflow } from "@medusajs/framework/workflows-sdk"
+import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
 import { updateQuotesWorkflow } from "./update-quote"
 
 /*

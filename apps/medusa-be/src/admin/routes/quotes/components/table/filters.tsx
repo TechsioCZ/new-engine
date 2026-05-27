@@ -1,5 +1,5 @@
 export const useQuotesTableFilters = () => {
-  const filters: any[] = [];
+  const filters: Record<string, unknown>[] = []
 
-  return filters;
-};
+  return filters
+}

@@ -13,7 +13,7 @@ export const storeCompanyFields = [
   "currency_code",
   "*employees",
   "*approval_settings",
-];
+]
 
 export const storeCompanyQueryConfig = {
   list: {
@@ -24,7 +24,7 @@ export const storeCompanyQueryConfig = {
     defaults: storeCompanyFields,
     isList: false,
   },
-};
+}
 
 /* Store Employee Query Config */
 export const storeEmployeeFields = [
@@ -35,7 +35,7 @@ export const storeEmployeeFields = [
   "*customer",
   "company_id",
   "*company",
-];
+]
 
 export const storeEmployeeQueryConfig = {
   list: {
@@ -46,7 +46,7 @@ export const storeEmployeeQueryConfig = {
     defaults: storeEmployeeFields,
     isList: false,
   },
-};
+}
 
 /* Store Approval Settings Query Config */
 type ApprovalSettingsField =
@@ -56,7 +56,7 @@ type ApprovalSettingsField =
   | "requires_sales_manager_approval"
   | "created_at"
   | "updated_at"
-  | "deleted_at";
+  | "deleted_at"
 
 export const storeApprovalSettingsFields: ApprovalSettingsField[] = [
   "id",
@@ -66,11 +66,11 @@ export const storeApprovalSettingsFields: ApprovalSettingsField[] = [
   "created_at",
   "updated_at",
   "deleted_at",
-];
+]
 
 export const storeApprovalSettingsQueryConfig = {
   retrieve: {
     defaults: storeApprovalSettingsFields,
     isList: false,
   },
-};
+}

@@ -1,22 +1,22 @@
-import {
+import type {
   AdminCustomer,
   AdminOrder,
   AdminUser,
   StoreCart,
-} from "@medusajs/types";
-import { ModuleQuote, ModuleQuoteMessage } from "./module";
-import { QueryEmployee } from "../company/index";
+} from "@medusajs/types"
+import type { QueryEmployee } from "../company/index"
+import type { ModuleQuote, ModuleQuoteMessage } from "./module"
 
 export type QueryQuote = ModuleQuote & {
-  draft_order: AdminOrder;
-  cart: StoreCart;
+  draft_order: AdminOrder
+  cart: StoreCart
   customer: AdminCustomer & {
-    employee: QueryEmployee;
-  };
-  messages: QueryQuoteMessage[];
-};
+    employee: QueryEmployee
+  }
+  messages: QueryQuoteMessage[]
+}
 
 export type QueryQuoteMessage = ModuleQuoteMessage & {
-  customer: AdminCustomer;
-  admin: AdminUser;
-};
+  customer: AdminCustomer
+  admin: AdminUser
+}

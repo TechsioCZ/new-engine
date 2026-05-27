@@ -38,7 +38,7 @@ export const useUpdateApprovalSettings = (
           method: "POST",
         }
       ),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: approvalSettingsQueryKey.detail(companyId),
       })
@@ -56,7 +56,7 @@ export const useUpdateApprovalSettings = (
 const approvalQueryKey = queryKeysFactory("approval")
 
 export const useApprovals = (
-  query?: Record<string, any>,
+  query?: Record<string, unknown>,
   options?: UseQueryOptions<AdminApprovalsResponse, FetchError>
 ) => {
   const fetchApprovals = async () =>
@@ -84,7 +84,7 @@ export const useUpdateApproval = (
         body: payload,
         method: "POST",
       }),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: approvalQueryKey.lists(),
       })

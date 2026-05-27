@@ -1,25 +1,25 @@
 import {
+  type AuthenticatedMedusaRequest,
   authenticate,
-  AuthenticatedMedusaRequest,
-  MedusaNextFunction,
-  MedusaResponse,
+  type MedusaNextFunction,
+  type MedusaResponse,
   validateAndTransformBody,
   validateAndTransformQuery,
-} from "@medusajs/framework";
-import { MiddlewareRoute } from "@medusajs/medusa";
-import { ensureRole } from "../../middlewares/ensure-role";
-import { ApprovalType } from "../../../types/approval";
-import { approvalTransformQueryConfig } from "./query-config";
-import { StoreGetApprovals, StoreUpdateApproval } from "./validators";
+} from "@medusajs/framework"
+import type { MiddlewareRoute } from "@medusajs/medusa"
+import { ApprovalType } from "../../../types/approval"
+import { ensureRole } from "../../middlewares/ensure-role"
+import { approvalTransformQueryConfig } from "./query-config"
+import { StoreGetApprovals, StoreUpdateApproval } from "./validators"
 
 const ensureApprovalType = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
   next: MedusaNextFunction
 ) => {
-  const { id } = req.params;
+  const { id } = req.params
 
-  const query = req.scope.resolve("query");
+  const query = req.scope.resolve("query")
 
   const {
     data: [approval],
@@ -27,22 +27,22 @@ const ensureApprovalType = async (
     entity: "approval",
     fields: ["type"],
     filters: { id },
-  });
+  })
 
   if (!approval) {
-    res.status(404).json({ message: "Approval not found" });
-    return;
+    res.status(404).json({ message: "Approval not found" })
+    return
   }
 
-  const approvalType = approval.type as unknown as ApprovalType;
+  const approvalType = approval.type as unknown as ApprovalType
 
   if (approvalType !== ApprovalType.ADMIN) {
-    res.status(403).json({ message: "Forbidden" });
-    return;
+    res.status(403).json({ message: "Forbidden" })
+    return
   }
 
-  next();
-};
+  next()
+}
 
 export const storeApprovalsMiddlewares: MiddlewareRoute[] = [
   {
@@ -71,4 +71,4 @@ export const storeApprovalsMiddlewares: MiddlewareRoute[] = [
       validateAndTransformBody(StoreUpdateApproval),
     ],
   },
-];
+]

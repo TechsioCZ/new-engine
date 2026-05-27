@@ -1,16 +1,16 @@
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
-} from "@medusajs/framework";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
-import { AdminGetQuoteParamsType } from "../validators";
+} from "@medusajs/framework"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { AdminGetQuoteParamsType } from "../validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetQuoteParamsType>,
   res: MedusaResponse
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY);
-  const { id } = req.params;
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { id } = req.params
 
   const {
     data: [quote],
@@ -21,7 +21,7 @@ export const GET = async (
       filters: { id },
     },
     { throwIfKeyNotFound: true }
-  );
+  )
 
-  res.json({ quote });
-};
+  res.json({ quote })
+}

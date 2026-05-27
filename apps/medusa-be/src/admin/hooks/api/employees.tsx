@@ -20,7 +20,7 @@ export const employeeQueryKey = queryKeysFactory("employee")
 
 export const useEmployees = (
   companyId: string,
-  query?: Record<string, any>,
+  query?: Record<string, string>,
   options?: UseQueryOptions<
     AdminEmployeesResponse,
     FetchError,
@@ -69,7 +69,7 @@ export const useCreateEmployee = (
           body: employee,
         }
       ),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.list(companyId),
       })
@@ -102,7 +102,7 @@ export const useUpdateEmployee = (
           body: employee,
         }
       ),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.detail(employeeId),
       })
@@ -129,7 +129,7 @@ export const useDeleteEmployee = (
           method: "DELETE",
         }
       ),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: employeeQueryKey.list(companyId),
       })

@@ -11,6 +11,11 @@ type CartWithApprovals = {
   approvals?: { id?: string }[]
 }
 
+type ApprovalStatusFilters = {
+  cart_id: string[]
+  status?: StoreGetApprovalsType["status"]
+}
+
 export const GET = async (
   req: AuthenticatedMedusaRequest<StoreGetApprovalsType>,
   res: MedusaResponse
@@ -60,7 +65,7 @@ export const GET = async (
     .filter((cart) => cart !== undefined && cart !== null)
     .map((cart) => cart.id)
 
-  const approvalStatusFilters: any = {
+  const approvalStatusFilters: ApprovalStatusFilters = {
     cart_id: cartIds,
   }
 
@@ -88,7 +93,7 @@ export const GET = async (
     fields: ["*"],
     filters: {
       id: approvalIds,
-      type: ApprovalType.ADMIN as any,
+      type: ApprovalType.ADMIN,
     },
   })
 

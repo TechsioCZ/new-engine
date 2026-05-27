@@ -41,7 +41,7 @@ export const useAdminCreateCustomer = (
   return useMutation({
     mutationFn: (customer: AdminCreateCustomer) =>
       sdk.admin.customer.create(customer),
-    onSuccess: (data: any, variables: any, context: any) => {
+    onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
