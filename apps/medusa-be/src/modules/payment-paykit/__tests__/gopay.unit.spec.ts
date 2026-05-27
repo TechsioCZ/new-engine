@@ -1,7 +1,7 @@
 import type { CapturePaymentInput } from "@medusajs/framework/types"
 import { PaymentActions } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
-import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../config"
+import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../constants"
 import { getGopayProviderOptions } from "../runtime"
 import { PaykitGopayPaymentProvider } from "../services/gopay"
 import { createMockContainer, createMockPaykitClient } from "./helpers"

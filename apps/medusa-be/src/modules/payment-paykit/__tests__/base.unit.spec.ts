@@ -4,16 +4,16 @@ import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
 } from "../core/base"
-import type { PaykitPaymentClient, PaykitProviderOptions } from "../types"
+import type { PaykitAdapterOptions, PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
-class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitProviderOptions> {
+class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitAdapterOptions> {
   static identifier = "paykit_test"
 
   // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected.
   constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitProviderOptions
+    options: PaykitAdapterOptions
   ) {
     super(container, options)
   }
