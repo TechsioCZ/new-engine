@@ -3,7 +3,7 @@ import {
   PAYKIT_COMGATE_PROVIDER_ID,
   PAYKIT_GOPAY_PROVIDER_ID,
   PAYKIT_STRIPE_PROVIDER_ID,
-} from "../config"
+} from "../constants"
 import { buildPaykitPaymentProviders } from "../medusa-config"
 
 describe("buildPaykitPaymentProviders", () => {
