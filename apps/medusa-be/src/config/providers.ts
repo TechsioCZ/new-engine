@@ -19,7 +19,7 @@ export function buildNotificationProvider(
         id: "local",
         options: {
           name: "Local Notification Provider",
-          channels: ["email"],
+          channels: ["email", "feed"],
         },
       }
     case "resend":
@@ -35,6 +35,28 @@ export function buildNotificationProvider(
     default:
       return assertNever(env.notificationProvider)
   }
+}
+
+export function buildNotificationProviders(
+  env: MedusaConfigEnv
+): ModuleProviderConfig[] {
+  const provider = buildNotificationProvider(env)
+
+  if (env.notificationProvider === "resend") {
+    return [
+      provider,
+      {
+        resolve: "@medusajs/medusa/notification-local",
+        id: "local-feed",
+        options: {
+          name: "Local Feed Notification Provider",
+          channels: ["feed"],
+        },
+      },
+    ]
+  }
+
+  return [provider]
 }
 
 export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {

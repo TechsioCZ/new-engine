@@ -10,7 +10,7 @@ import {
   buildEventBusModule,
   buildFileModule,
   buildLockingModule,
-  buildNotificationProvider,
+  buildNotificationProviders,
   buildWorkflowEngineModule,
 } from "./providers"
 import type { MedusaModuleConfig, MedusaModulesConfig } from "./types"
@@ -186,7 +186,7 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     {
       resolve: "@medusajs/medusa/notification",
       options: {
-        providers: [buildNotificationProvider(env)],
+        providers: buildNotificationProviders(env),
       },
     },
     buildCachingModule(env),

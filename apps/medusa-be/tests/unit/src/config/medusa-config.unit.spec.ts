@@ -10,6 +10,7 @@ import {
   buildCachingModule,
   buildFileModule,
   buildNotificationProvider,
+  buildNotificationProviders,
 } from "../../../../src/config/providers"
 
 const baseEnv = {
@@ -34,9 +35,19 @@ describe("readMedusaConfigEnv", () => {
       id: "local",
       options: {
         name: "Local Notification Provider",
-        channels: ["email"],
+        channels: ["email", "feed"],
       },
     })
+    expect(buildNotificationProviders(env)).toEqual([
+      {
+        resolve: "@medusajs/medusa/notification-local",
+        id: "local",
+        options: {
+          name: "Local Notification Provider",
+          channels: ["email", "feed"],
+        },
+      },
+    ])
     expect(buildCachingModule(env)).toEqual({
       resolve: "@medusajs/medusa/caching",
       options: {
@@ -104,6 +115,35 @@ describe("readMedusaConfigEnv", () => {
         ],
       },
     })
+  })
+
+  it("keeps feed notifications local when Resend handles email", () => {
+    const env = readMedusaConfigEnv({
+      ...baseEnv,
+      NOTIFICATION_PROVIDER: "resend",
+      RESEND_API_KEY: "re_test",
+      RESEND_FROM_EMAIL: "store@example.com",
+    })
+
+    expect(buildNotificationProviders(env)).toEqual([
+      {
+        resolve: "./src/modules/resend",
+        id: "resend",
+        options: {
+          channels: ["email"],
+          api_key: "re_test",
+          from: "store@example.com",
+        },
+      },
+      {
+        resolve: "@medusajs/medusa/notification-local",
+        id: "local-feed",
+        options: {
+          name: "Local Feed Notification Provider",
+          channels: ["feed"],
+        },
+      },
+    ])
   })
 
   it("keeps project CORS values separate", () => {
