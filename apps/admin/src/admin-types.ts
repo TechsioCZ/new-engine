@@ -1,21 +1,3 @@
-export type ActionRequiredSummary = {
-  orders: ActionRequiredOrdersResponse
-  customers: PendingB2BCustomersResponse
-}
-
-export type ActionRequiredOrder = {
-  created_at: string | null
-  currency_code: string | null
-  custom_display_id: string | null
-  display_id: number | null
-  email: string | null
-  id: string
-  manual_status: string | null
-  payment_status: string | null
-  status: string | null
-  total: number | string | null
-}
-
 export type PendingB2BCustomer = {
   company_name: string | null
   created_at: string | null
@@ -25,15 +7,6 @@ export type PendingB2BCustomer = {
   last_name: string | null
   metadata: Record<string, unknown>
   phone: string | null
-}
-
-export type ActionRequiredOrdersResponse = {
-  count: number
-  count_exact: boolean
-  has_next: boolean
-  limit: number
-  offset: number
-  orders: ActionRequiredOrder[]
 }
 
 export type OrderBusinessStatusId =

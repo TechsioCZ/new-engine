@@ -3,19 +3,18 @@ import type {
   OrderBusinessStatusId,
   OrderExpeditionCarrierKey,
 } from "../../admin-types"
-import type { OrderExpeditionQueryView } from "../model/views"
+import type {
+  OrderDashboardViewId,
+  OrderExpeditionQueryView,
+} from "../model/views"
 import {
   ORDER_EXPEDITION_DASHBOARD_COUNT_LIMIT,
   ORDER_EXPEDITION_LIST_LIMIT,
 } from "./constants"
 
-export type OrderExpeditionDashboardCountView =
-  | OrderBusinessStatusId
-  | OrderExpeditionQueryView
+export type OrderExpeditionDashboardCountView = OrderDashboardViewId
 
 export const ORDER_EXPEDITION_QUERY_KEYS = {
-  actionRequiredOrders: ["action-required-orders"] as const,
-  actionRequiredSummary: ["action-required-summary"] as const,
   businessStatusesByIds: ["order-business-statuses-by-ids"] as const,
   carriers: ["order-expedition-carriers", MEDUSA_BACKEND_URL] as const,
   dashboardCount: ["order-expedition-dashboard-count"] as const,

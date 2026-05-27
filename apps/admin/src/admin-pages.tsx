@@ -5,14 +5,12 @@ import { useSearchParams } from "react-router-dom"
 import {
   EMAIL_LOG_LIST_LIMIT,
   PRODUCT_LIST_LIMIT,
-  useActionRequiredOrders,
   useAdminEmailLogDetail,
   useAdminEmailLogs,
   useAdminProducts,
   usePendingB2BCustomers,
 } from "./admin-api"
 import type {
-  ActionRequiredOrder,
   AdminEmailLog,
   AdminEmailLogDetailResponse,
   AdminProductListItem,
@@ -61,7 +59,6 @@ import {
   formatCount,
   formatCountLabel,
   formatDateTime,
-  formatMoney,
   readOffset,
 } from "./utils/format"
 
@@ -72,38 +69,6 @@ const SKELETON_ROW_IDS = [
   "skeleton-4",
 ]
 const PRODUCT_TITLE_SPLIT_PATTERN = /\s+/
-
-export function OrdersPage() {
-  const orders = useActionRequiredOrders()
-
-  return (
-    <AdminPage>
-      <PageHeader
-        eyebrow="Objednavky"
-        isValueExact={orders.data?.count_exact}
-        title="Cekaji na potvrzeni"
-        value={orders.data?.count}
-      />
-      <DataSurface
-        emptyLabel={
-          orders.data?.count_exact === false
-            ? "Scan dosahl limitu; dalsi odpovidajici objednavky mohou byt mimo nacteny rozsah."
-            : "Zadne objednavky necekaji na rucni zasah."
-        }
-        errorLabel="Objednavky se nepodarilo nacist."
-        isError={orders.isError}
-        isLoading={orders.isLoading}
-        noticeLabel={formatActionRequiredNotice(
-          orders.data,
-          "odpovidajicich objednavek",
-          "dalsi odpovidajici objednavky"
-        )}
-        renderRow={(order) => <OrderRow key={order.id} order={order} />}
-        rows={orders.data?.orders ?? []}
-      />
-    </AdminPage>
-  )
-}
 
 export function CustomersPage() {
   const customers = usePendingB2BCustomers()
@@ -406,25 +371,6 @@ function DataSurface<TItem>({
   )
 }
 
-function OrderRow({ order }: { order: ActionRequiredOrder }) {
-  return (
-    <AdminListRow to={`/orders/${order.id}`}>
-      <AdminListRowBody>
-        <AdminListRowTitle>{formatOrderId(order)}</AdminListRowTitle>
-        <AdminListRowText>{order.email ?? "Bez e-mailu"}</AdminListRowText>
-      </AdminListRowBody>
-      <AdminListRowMeta>
-        <Badge size="sm" variant="warning">
-          {order.payment_status ?? "nezaplaceno"}
-        </Badge>
-        <AdminListRowText offset={false}>
-          {formatMoney(order.total, order.currency_code)}
-        </AdminListRowText>
-      </AdminListRowMeta>
-    </AdminListRow>
-  )
-}
-
 function CustomerRow({ customer }: { customer: PendingB2BCustomer }) {
   return (
     <AdminListRow>
@@ -702,13 +648,6 @@ function EmailDetailPanel({
         </AdminPreviewCode>
       </AdminPreviewSection>
     </AdminPanel>
-  )
-}
-
-function formatOrderId(order: ActionRequiredOrder) {
-  return (
-    order.custom_display_id ??
-    (order.display_id ? `#${order.display_id}` : order.id)
   )
 }
 

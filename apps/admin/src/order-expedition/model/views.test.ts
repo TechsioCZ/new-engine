@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { getDashboardCountsByView } from "./views"
+import {
+  getBusinessStatusForDashboardView,
+  getDashboardCountsByView,
+} from "./views"
 
 describe("getDashboardCountsByView", () => {
   it("uses the active list count when it is higher than the tab count query", () => {
@@ -46,5 +49,13 @@ describe("getDashboardCountsByView", () => {
       count: 4,
       countExact: true,
     })
+  })
+})
+
+describe("getBusinessStatusForDashboardView", () => {
+  it("maps the dashboard action-required view to the same order status filter as the list", () => {
+    expect(getBusinessStatusForDashboardView("action-required")).toBe(
+      "awaiting_payment"
+    )
   })
 })

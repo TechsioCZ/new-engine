@@ -54,12 +54,6 @@ function getAdminApiPayloadMessage(payload: unknown, fallback: string) {
 export function invalidateOrderExpeditionQueries(queryClient: QueryClient) {
   return Promise.all([
     queryClient.invalidateQueries({
-      queryKey: ORDER_EXPEDITION_QUERY_KEYS.actionRequiredOrders,
-    }),
-    queryClient.invalidateQueries({
-      queryKey: ORDER_EXPEDITION_QUERY_KEYS.actionRequiredSummary,
-    }),
-    queryClient.invalidateQueries({
       queryKey: ORDER_EXPEDITION_QUERY_KEYS.businessStatusesByIds,
     }),
     queryClient.invalidateQueries({

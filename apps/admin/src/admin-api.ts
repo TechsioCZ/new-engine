@@ -1,16 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { getStoredAdminToken } from "./admin-auth"
 import { buildMedusaUrl, MEDUSA_BACKEND_URL } from "./admin-config"
 import { createApiError } from "./admin-errors"
-import {
-  isActionRequiredOrder,
-  isPendingB2BCustomer,
-  toActionRequiredOrder,
-  toPendingB2BCustomer,
-} from "./admin-rules"
+import { isPendingB2BCustomer, toPendingB2BCustomer } from "./admin-rules"
 import type {
-  ActionRequiredOrdersResponse,
-  ActionRequiredSummary,
   AdminEmailLogDetailResponse,
   AdminEmailLogsResponse,
   AdminNamedReferenceResponse,
@@ -21,9 +14,7 @@ import type {
   MedusaAdminCustomer,
   MedusaAdminCustomersResponse,
   MedusaAdminEmailLogsResponse,
-  MedusaAdminOrder,
   MedusaAdminOrderResponse,
-  MedusaAdminOrdersResponse,
   MedusaAdminProduct,
   MedusaAdminProductResponse,
   MedusaAdminProductsResponse,
@@ -46,7 +37,6 @@ const ADMIN_API_PAGE_SIZE = 100
 const ADMIN_API_SCAN_CONCURRENCY = 2
 const ADMIN_API_SCAN_LIMIT = 2000
 const ACTION_REQUIRED_LIST_LIMIT = 50
-const ACTION_REQUIRED_REFETCH_INTERVAL_MS = 60_000
 const ACTION_REQUIRED_STALE_TIME_MS = 15_000
 const EMAIL_LOG_LIST_LIMIT = 20
 const PACKETA_LABEL_ORDER_LIST_LIMIT = 50
@@ -63,18 +53,6 @@ const STORE_DETAIL_FIELDS = [
   "+supported_locales",
 ].join(",")
 
-function getActionRequiredSummaryQueryKey() {
-  return ["action-required-summary", MEDUSA_BACKEND_URL] as const
-}
-
-function getActionRequiredOrdersQueryKey() {
-  return [
-    "action-required-orders",
-    MEDUSA_BACKEND_URL,
-    { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
-  ] as const
-}
-
 function getPendingB2BCustomersQueryKey() {
   return [
     "pending-b2b-customers",
@@ -82,24 +60,6 @@ function getPendingB2BCustomersQueryKey() {
     { limit: ACTION_REQUIRED_LIST_LIMIT, offset: 0 },
   ] as const
 }
-
-const ORDER_FIELDS = [
-  "id",
-  "display_id",
-  "custom_display_id",
-  "email",
-  "created_at",
-  "total",
-  "currency_code",
-  "status",
-  "metadata",
-  "payment_status",
-  "payment_collections.status",
-  "fulfillment_status",
-  "fulfillments.shipped_at",
-  "fulfillments.delivered_at",
-  "fulfillments.canceled_at",
-].join(",")
 
 const ORDER_DETAIL_FIELDS = [
   "id",
@@ -427,33 +387,6 @@ function getAdminPageOffsets(recordCount: number) {
   return offsets
 }
 
-async function fetchActionRequiredOrdersFromAdminApi(): Promise<ActionRequiredOrdersResponse> {
-  const result = await fetchAllAdminPages<
-    MedusaAdminOrdersResponse,
-    MedusaAdminOrder
-  >({
-    params: {
-      fields: ORDER_FIELDS,
-      order: "-created_at",
-      status: "pending",
-    },
-    path: "/admin/orders",
-    readItems: (response) => response.orders,
-  })
-  const orders = result.records
-    .filter(isActionRequiredOrder)
-    .map(toActionRequiredOrder)
-
-  return {
-    count: orders.length,
-    count_exact: result.countExact,
-    has_next: !result.countExact || orders.length > ACTION_REQUIRED_LIST_LIMIT,
-    limit: ACTION_REQUIRED_LIST_LIMIT,
-    offset: 0,
-    orders: orders.slice(0, ACTION_REQUIRED_LIST_LIMIT),
-  }
-}
-
 async function fetchPendingB2BCustomersFromAdminApi(): Promise<PendingB2BCustomersResponse> {
   const result = await fetchAllAdminPages<
     MedusaAdminCustomersResponse,
@@ -478,14 +411,6 @@ async function fetchPendingB2BCustomersFromAdminApi(): Promise<PendingB2BCustome
       !result.countExact || customers.length > ACTION_REQUIRED_LIST_LIMIT,
     limit: ACTION_REQUIRED_LIST_LIMIT,
     offset: 0,
-  }
-}
-
-export function getActionRequiredOrdersQueryOptions() {
-  return {
-    queryFn: fetchActionRequiredOrdersFromAdminApi,
-    queryKey: getActionRequiredOrdersQueryKey(),
-    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
   }
 }
 
@@ -764,43 +689,14 @@ function toProductListItem(product: MedusaAdminProduct) {
   }
 }
 
-export function useActionRequiredSummary({
+export function usePendingB2BCustomers({
   enabled = true,
 }: {
   enabled?: boolean
 } = {}) {
-  const queryClient = useQueryClient()
-
-  return useQuery({
-    enabled,
-    queryFn: async (): Promise<ActionRequiredSummary> => {
-      const [orders, customers] = await Promise.all([
-        queryClient.fetchQuery(getActionRequiredOrdersQueryOptions()),
-        queryClient.fetchQuery(getPendingB2BCustomersQueryOptions()),
-      ])
-
-      return {
-        orders,
-        customers,
-      }
-    },
-    refetchInterval: enabled ? ACTION_REQUIRED_REFETCH_INTERVAL_MS : false,
-    refetchOnWindowFocus: true,
-    queryKey: getActionRequiredSummaryQueryKey(),
-    staleTime: ACTION_REQUIRED_STALE_TIME_MS,
-  })
-}
-
-export function useActionRequiredOrders() {
-  return useQuery({
-    ...getActionRequiredOrdersQueryOptions(),
-    refetchOnWindowFocus: false,
-  })
-}
-
-export function usePendingB2BCustomers() {
   return useQuery({
     ...getPendingB2BCustomersQueryOptions(),
+    enabled,
     refetchOnWindowFocus: false,
   })
 }

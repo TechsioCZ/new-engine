@@ -1,17 +1,16 @@
 import { useQueries, useQuery } from "@tanstack/react-query"
-import {
-  fetchAdminApi,
-  getActionRequiredOrdersQueryOptions,
-} from "../../admin-api"
+import { fetchAdminApi } from "../../admin-api"
 import type {
-  ActionRequiredOrdersResponse,
   OrderBusinessStatusesByIdsResponse,
   OrderBusinessStatusId,
   OrderExpeditionCarrierKey,
   OrderExpeditionCarriersResponse,
   OrderExpeditionOrdersResponse,
 } from "../../admin-types"
-import type { OrderExpeditionQueryView } from "../model/views"
+import {
+  getBusinessStatusForDashboardView,
+  type OrderExpeditionQueryView,
+} from "../model/views"
 import {
   ORDER_EXPEDITION_DASHBOARD_COUNT_LIMIT,
   ORDER_EXPEDITION_LIST_LIMIT,
@@ -31,6 +30,11 @@ export type OrderExpeditionDashboardCount = {
   view: OrderExpeditionDashboardCountView
 }
 
+type OrderExpeditionDashboardCountInput = {
+  carrier: OrderExpeditionCarrierKey | "all"
+  view: OrderExpeditionDashboardCountView
+}
+
 export function normalizeOrderExpeditionOrdersResponse(
   response: OrderExpeditionOrdersResponse
 ): OrderExpeditionOrdersResponse {
@@ -45,20 +49,6 @@ export function normalizeOrderExpeditionOrdersResponse(
     count,
     count_exact: countExact,
   }
-}
-
-function getOrderExpeditionCountBusinessStatus(
-  view: OrderExpeditionDashboardCountView
-): OrderBusinessStatusId | "all" {
-  if (view === "all") {
-    return "all"
-  }
-
-  if (view === "action-required") {
-    return "awaiting_payment"
-  }
-
-  return view
 }
 
 function toOrderExpeditionDashboardCount(
@@ -105,11 +95,8 @@ function fetchOrderExpeditionOrdersFromAdminApi({
 async function fetchOrderExpeditionDashboardCountFromAdminApi({
   carrier,
   view,
-}: {
-  carrier: OrderExpeditionCarrierKey | "all"
-  view: OrderExpeditionDashboardCountView
-}): Promise<OrderExpeditionDashboardCount> {
-  const businessStatus = getOrderExpeditionCountBusinessStatus(view)
+}: OrderExpeditionDashboardCountInput): Promise<OrderExpeditionDashboardCount> {
+  const businessStatus = getBusinessStatusForDashboardView(view)
   const response = await fetchAdminApi<OrderExpeditionOrdersResponse>(
     "/admin/order-expedition/orders",
     {
@@ -124,6 +111,18 @@ async function fetchOrderExpeditionDashboardCountFromAdminApi({
     view,
     normalizeOrderExpeditionOrdersResponse(response)
   )
+}
+
+function getOrderExpeditionDashboardCountQueryOptions({
+  carrier,
+  view,
+}: OrderExpeditionDashboardCountInput) {
+  return {
+    queryFn: () =>
+      fetchOrderExpeditionDashboardCountFromAdminApi({ carrier, view }),
+    queryKey: getOrderExpeditionDashboardCountQueryKey({ carrier, view }),
+    staleTime: ORDER_EXPEDITION_STALE_TIME_MS,
+  }
 }
 
 function fetchOrderBusinessStatusesByIdsFromAdminApi(
@@ -180,22 +179,20 @@ export function useOrderExpeditionDashboardCounts({
   views: OrderExpeditionDashboardCountView[]
 }) {
   return useQueries({
-    queries: views.map((view) => {
-      if (view === "action-required" && carrier === "all") {
-        return {
-          ...getActionRequiredOrdersQueryOptions(),
-          select: (response: ActionRequiredOrdersResponse) =>
-            toOrderExpeditionDashboardCount(view, response),
-        }
-      }
+    queries: views.map((view) =>
+      getOrderExpeditionDashboardCountQueryOptions({ carrier, view })
+    ),
+  })
+}
 
-      return {
-        queryFn: () =>
-          fetchOrderExpeditionDashboardCountFromAdminApi({ carrier, view }),
-        queryKey: getOrderExpeditionDashboardCountQueryKey({ carrier, view }),
-        staleTime: ORDER_EXPEDITION_STALE_TIME_MS,
-      }
-    }),
+export function useOrderExpeditionDashboardCount({
+  carrier,
+  enabled = true,
+  view,
+}: OrderExpeditionDashboardCountInput & { enabled?: boolean }) {
+  return useQuery({
+    ...getOrderExpeditionDashboardCountQueryOptions({ carrier, view }),
+    enabled,
   })
 }
 
