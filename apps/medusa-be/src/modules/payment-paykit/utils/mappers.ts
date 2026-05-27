@@ -87,7 +87,7 @@ export const mapPaykitStatusToMedusa = (
 export const getPaymentStatusValue = (payment: PaykitPayment): unknown =>
   payment.status ?? payment.state
 
-export const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
+const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
   payment.payment_url ??
   payment.paymentUrl ??
   payment.checkout_url ??
