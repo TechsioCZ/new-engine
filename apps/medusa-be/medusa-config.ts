@@ -171,6 +171,10 @@ module.exports = defineConfig({
       options: {},
     },
     {
+      resolve: "medusa-symmy-plugin",
+      options: {},
+    },
+    {
       resolve: "@rokmohar/medusa-plugin-meilisearch",
       options: {
         config: {

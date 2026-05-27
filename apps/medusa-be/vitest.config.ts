@@ -16,7 +16,9 @@ if (isIntegration) {
 
 let include = [
   "tests/unit/**/*.unit.spec.ts",
+  "src/api/**/__tests__/**/*.unit.spec.ts",
   "src/modules/**/__tests__/**/*.unit.spec.ts",
+  "src/workflows/**/__tests__/**/*.unit.spec.ts",
 ]
 
 if (isHttpIntegration) {
