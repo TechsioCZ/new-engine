@@ -1,11 +1,22 @@
-@theme {
-  /* Label colors */
-  --color-label-fg: var(--color-input-fg);
-  --color-label-fg-disabled: var(--color-input-fg-disabled);
-  --color-label-fg-required: var(--color-input-danger);
+/*
+ * Label — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * `--font-label` is not yet exported from Figma; kept aliased to the global
+ * font scale.
+ */
+
+@theme static {
+  --color-label-fg-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-label-fg-disabled: oklch(0.551 0.027 264.328);
+  --color-label-fg-required: oklch(0.702 0.189 22.228);
+
+  --spacing-label: 0.25rem;
+
+  --text-label-sm: 1rem;
+  --text-label-md: 1.25rem;
+  --text-label-lg: 1.56rem;
+  --text-label-current: 1.25rem;
 
   --font-label: var(--font-bold);
-  --text-label-sm: var(--text-input-sm);
-  --text-label-md: var(--text-input-md);
-  --text-label-lg: var(--text-input-lg);
 }
