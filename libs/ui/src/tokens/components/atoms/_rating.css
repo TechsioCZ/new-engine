@@ -1,30 +1,30 @@
+/*
+ * Rating — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ */
+
 @theme static {
-  /* === BASE COLORS === */
-  --color-rating-fg: var(--color-highlight);
-  --color-rating-fg-active: var(--color-warning);
+  --color-rating-fg-base: light-dark(
+    oklch(0.872 0.011 261.787),
+    oklch(0.373 0.034 260.169)
+  );
+  --color-rating-fg-active: oklch(0.798 0.164 82.706);
+  --color-rating-fg-disabled: oklch(0.551 0.027 264.328);
 
-  /* === DISABLED STATES === */
-  --color-rating-fg-disabled: var(--color-fg-disabled);
+  --color-rating-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  /* === SPACING === */
-  --spacing-rating-sm: var(--spacing-100);
-  --spacing-rating-md: var(--spacing-150);
-  --spacing-rating-lg: var(--spacing-200);
+  --spacing-rating-sm: 0.31rem;
+  --spacing-rating-md: 0.63rem;
+  --spacing-rating-lg: 0.94rem;
 
-  /* === TYPOGRAPHY === */
-  --text-rating-sm: var(--text-icon-sm);
-  --text-rating-md: var(--text-icon-md);
-  --text-rating-lg: var(--text-icon-lg);
-
-  /* === FOCUS RING === */
-  --color-rating-ring: var(--color-ring);
+  --text-rating-sm: 1rem;
+  --text-rating-md: 1.25rem;
+  --text-rating-lg: 1.56rem;
 }
 
-/* Semantic tokens for rating icons */
 @utility token-icon-rating {
   @apply token-icon-star;
 }
-
 @utility token-icon-rating-half {
   @apply token-icon-star-half;
 }
