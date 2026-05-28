@@ -2,7 +2,17 @@ import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { CheckoutService } from "./types"
 
-export type MedusaCheckoutServiceConfig = Record<string, never>
+export type MedusaPaymentSessionDataInput = {
+  cart: HttpTypes.StoreCart
+  cartId: string
+  providerId: string
+}
+
+export type MedusaCheckoutServiceConfig = {
+  buildPaymentSessionData?: (
+    input: MedusaPaymentSessionDataInput
+  ) => Record<string, unknown> | undefined
+}
 
 /**
  * Creates a CheckoutService for Medusa SDK
@@ -21,7 +31,7 @@ export type MedusaCheckoutServiceConfig = Record<string, never>
  */
 export function createMedusaCheckoutService(
   sdk: Medusa,
-  _config?: MedusaCheckoutServiceConfig
+  config?: MedusaCheckoutServiceConfig
 ): CheckoutService<
   HttpTypes.StoreCart,
   HttpTypes.StoreCartShippingOption,
@@ -108,10 +118,17 @@ export function createMedusaCheckoutService(
         throw new Error("Failed to load cart for payment")
       }
 
+      const paymentSessionData = config?.buildPaymentSessionData?.({
+        cart: resolvedCart,
+        cartId,
+        providerId,
+      })
+
       const response = await sdk.store.payment.initiatePaymentSession(
         resolvedCart,
         {
           provider_id: providerId,
+          ...(paymentSessionData ? { data: paymentSessionData } : {}),
         }
       )
       if (!response.payment_collection) {
