@@ -1,34 +1,47 @@
-@theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Background colors using reference layer */
-  --color-skeleton-bg: var(--color-overlay);
-  --color-skeleton-bg-primary: var(--color-skeleton-bg);
-  --color-skeleton-bg-secondary: var(--color-surface);
+/*
+ * Skeleton — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * NOT in Figma export (kept manually): circle sizing, text line height,
+ * pulse animation tokens, and the `--spacing-skeleton-text-*` aliases that
+ * the TSX consumes via `gap-skeleton-text-*` utilities.
+ */
 
-  /* === ANIMATION === */
-  /* Use global motion tokens for consistent behavior */
+@theme static {
+  --color-skeleton-bg-primary: light-dark(
+    oklch(0.928 0.006 264.531),
+    oklch(0.278 0.034 257.672)
+  );
+  --color-skeleton-bg-secondary: light-dark(
+    oklch(0.967 0.003 264.542),
+    oklch(0.278 0.034 257.672)
+  );
+
+  --radius-skeleton-text: 0.25rem;
+
+  --spacing-skeleton-sm: 0.31rem;
+  --spacing-skeleton-md: 0.63rem;
+  --spacing-skeleton-lg: 0.94rem;
+  --spacing-skeleton-xl: 1.25rem;
+
+  /* === Not in Figma export === */
+  --spacing-skeleton-text-sm: var(--spacing-skeleton-sm);
+  --spacing-skeleton-text-md: var(--spacing-skeleton-md);
+  --spacing-skeleton-text-lg: var(--spacing-skeleton-lg);
+  --spacing-skeleton-text-xl: var(--spacing-skeleton-xl);
+
   --duration-skeleton-pulse-slow: 3s;
   --duration-skeleton-pulse-normal: 2s;
   --duration-skeleton-pulse-fast: 1s;
 
-  /* === SPACING === */
-  --spacing-skeleton-text-sm: var(--spacing-100);
-  --spacing-skeleton-text-md: var(--spacing-150);
-  --spacing-skeleton-text-lg: var(--spacing-200);
-  --spacing-skeleton-text-xl: var(--spacing-250);
-
-  /* === SIZING === */
   --size-skeleton-circle-sm: 2rem;
   --size-skeleton-circle-md: 3rem;
   --size-skeleton-circle-lg: 4rem;
   --size-skeleton-circle-xl: 6rem;
-  --height-skeleton-text-line: 1rem; /* Match text line height */
 
-  /* === BORDERS & RADIUS === */
-  --radius-skeleton-text: var(--radius-sm);
+  --height-skeleton-text-line: 1rem;
 }
 
-/* === ANIMATIONS === */
 @keyframes skeleton-pulse {
   0%,
   100% {
@@ -65,8 +78,6 @@
   }
 }
 
-/* Display reduced motion for storybook without having to
- enable the prefers-reduced-motion feature in DevTools */
 @layer utilities {
   .force-reduced-motion {
     animation: none;
