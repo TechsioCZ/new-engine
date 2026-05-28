@@ -24,6 +24,7 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
+    "@medusajs/deps": "2.15.2",
     "@nx/esbuild": "22.4.2",
     "@nx/eslint-plugin": "22.4.2",
     "@nx/js": "22.4.2",
