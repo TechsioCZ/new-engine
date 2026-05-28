@@ -31,11 +31,34 @@ export const adminData = createMedusaAdminDataPreset({
 })
 ```
 
+When an app already has a Medusa SDK instance, pass it only as the token source
+and keep `baseUrl` explicit:
+
+```ts
+export const adminData = createMedusaAdminDataPreset({
+  baseUrl: import.meta.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL,
+  queryKeyNamespace: "new-admin",
+  sdk,
+})
+```
+
+The preset intentionally does not use `sdk.client.fetch` for custom Admin API
+endpoints. Medusa SDK drops structured non-2xx response payloads before this
+package can read them, while admin-data mutation flows may need payloads such as
+`blocked_orders`. This is still an authenticated admin-data client path: the
+SDK supplies the token, and admin-data attaches it to the raw request.
+
 Use the preset from thin app wrappers:
 
 ```ts
-const summary = adminData.hooks.actionRequired.useActionRequiredSummary()
+const actionRequired = adminData.hooks.actionRequired.useActionRequiredSummary()
+const orderCount = actionRequired.summary?.orders?.count ?? 0
+const customerCount = actionRequired.summary?.customers?.count ?? 0
 ```
+
+`ActionRequiredSummary.orders` and `ActionRequiredSummary.customers` can be
+`null`. Summary reads preserve the fulfilled side when the other side has a
+non-auth failure, so app badges should use optional chaining.
 
 ## Stable Public Subpaths
 
@@ -51,5 +74,12 @@ const summary = adminData.hooks.actionRequired.useActionRequiredSummary()
 - `@techsio/admin-data/action-required/query-options`
 - `@techsio/admin-data/action-required/rules`
 - `@techsio/admin-data/action-required/types`
+- `@techsio/admin-data/order-expedition/hooks`
+- `@techsio/admin-data/order-expedition/invalidation`
+- `@techsio/admin-data/order-expedition/medusa-service`
+- `@techsio/admin-data/order-expedition/mutations`
+- `@techsio/admin-data/order-expedition/query-keys`
+- `@techsio/admin-data/order-expedition/query-options`
+- `@techsio/admin-data/order-expedition/types`
 
 There is no supported package-root import.
