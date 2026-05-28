@@ -54,7 +54,7 @@ ENV MEILISEARCH_CATEGORIES_INDEX=${MEILISEARCH_CATEGORIES_INDEX}
 ENV MEILISEARCH_PRODUCERS_INDEX=${MEILISEARCH_PRODUCERS_INDEX}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --ignore-scripts --filter=herbatica...
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatica...
 
 RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
