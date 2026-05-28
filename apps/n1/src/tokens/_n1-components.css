@@ -13,9 +13,29 @@
   --font-weight-badge: var(--font-weight-medium);
 
   /* BUTTON */
-  --color-button-primary: oklch(0.4495 0 0);
-  --color-button-tertiary: #f6f6f6;
+  /* Brand override: primary + tertiary buttons use a custom neutral ramp.
+     Figma binding flattened the old `--color-button-primary` reference token,
+     so the override now targets the bg-state tokens directly and derives
+     hover/active the same way the previous reference layer did. */
+  --color-button-bg-primary-base: oklch(0.4495 0 0);
+  --color-button-bg-primary-hover: oklch(
+    from var(--color-button-bg-primary-base) calc(l + var(--state-hover)) c h
+  );
+  --color-button-bg-primary-active: oklch(
+    from var(--color-button-bg-primary-base) calc(l + var(--state-active)) c h
+  );
+  --color-button-border-primary: oklch(0.4495 0 0);
+
+  --color-button-bg-tertiary-base: #f6f6f6;
+  --color-button-bg-tertiary-hover: oklch(
+    from var(--color-button-bg-tertiary-base) calc(l + var(--state-hover)) c h
+  );
+  --color-button-bg-tertiary-active: oklch(
+    from var(--color-button-bg-tertiary-base) calc(l + var(--state-active)) c h
+  );
+  --color-button-border-tertiary: #f6f6f6;
   --color-button-fg-tertiary: var(--color-fg-primary);
+
   --text-button-sm: var(--text-md);
   --color-button-border-secondary-selected: var(--color-border-tertiary);
 

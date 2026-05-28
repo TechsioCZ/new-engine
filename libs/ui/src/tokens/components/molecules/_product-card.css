@@ -18,28 +18,28 @@
 
   /* === STATE VARIATIONS === */
   /* Add to cart button */
-  --color-product-card-button-cart-bg: var(--color-button-primary);
+  --color-product-card-button-cart-bg: var(--color-primary);
   --color-product-card-button-cart-bg-hover: oklch(
     from var(--color-product-card-button-cart-bg) calc(l + var(--state-hover)) c
       h
   );
-  --color-product-card-button-cart-fg: var(--color-button-fg);
+  --color-product-card-button-cart-fg: var(--color-fg-light);
 
   /* Detail button */
-  --color-product-card-button-detail-bg: var(--color-button-secondary);
+  --color-product-card-button-detail-bg: var(--color-secondary);
   --color-product-card-button-detail-bg-hover: oklch(
     from var(--color-product-card-button-detail-bg) calc(l + var(--state-hover))
       c h
   );
-  --color-product-card-button-detail-fg: var(--color-button-fg);
+  --color-product-card-button-detail-fg: var(--color-fg-light);
 
   /* Wishlist button */
-  --color-product-card-button-wishlist-bg: var(--color-button-tertiary);
+  --color-product-card-button-wishlist-bg: var(--color-tertiary);
   --color-product-card-button-wishlist-bg-hover: oklch(
     from var(--color-product-card-button-wishlist-bg)
       calc(l + var(--state-hover)) c h
   );
-  --color-product-card-button-wishlist-fg: var(--color-button-fg);
+  --color-product-card-button-wishlist-fg: var(--color-fg-light);
 
   /* === SPACING === */
   --spacing-product-card-padding: var(--spacing-150);
