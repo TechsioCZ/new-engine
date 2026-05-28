@@ -116,6 +116,7 @@ Admin UX should stay dense, operational, and scannable. Do not introduce marketi
 
 - Use React Query for server state.
 - Use stable query keys that include filters and IDs.
+- Use `@techsio/admin-data`: New backend-facing Admin API services, query keys, React Query hooks, and mutation hooks belong in `libs/admin-data`, not in page components or new app-local hook files. `apps/admin` may keep thin UI wrappers for route state, labels, confirmations, toasts, and layout-only behavior. UI-only hooks such as theme or shell state remain app-local.
 - Prefer existing Admin API list/detail endpoints before proposing backend aggregation endpoints.
 - Background refresh is acceptable for admin counters and dashboards. Prefer polling plus refetch-on-focus before introducing WebSockets or SSE.
 - Session/cookie auth must send credentials as required by Medusa Admin API. Do not store passwords or secrets in client code.
