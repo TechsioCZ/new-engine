@@ -13,6 +13,8 @@ import {
 } from "../../scripts/import-articles"
 import { buildJsonResponse } from "../utils/endpoint"
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
 type ImportFormData = {
   file: File
   locale?: string
@@ -27,10 +29,7 @@ const parseBoolean = (value: string | null | undefined) =>
   typeof value === "string" &&
   ["1", "true", "yes", "on"].includes(value.toLowerCase())
 
-const parseImportStatus = (
-  value?: string,
-  statusRaw?: string
-): ImportStatus | undefined => {
+const parseImportStatus = (value?: string): ImportStatus | undefined => {
   if (!value) {
     return
   }
@@ -38,7 +37,7 @@ const parseImportStatus = (
   const normalized = value.trim().toLowerCase()
   if (!STATUS_VALUES.includes(normalized as ImportStatus)) {
     throw new APIError(
-      `Invalid status ${statusRaw}. Supported values: ${STATUS_VALUES.join(", ")}`,
+      `Invalid status ${value}. Supported values: ${STATUS_VALUES.join(", ")}`,
       400
     )
   }
@@ -53,6 +52,10 @@ const parseFormData = (formData: FormData): ImportFormData => {
   const file = formData.get("file")
   if (!(file instanceof File)) {
     throw new APIError("Missing required XLSX file", 400)
+  }
+
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new APIError(`Upload exceeds ${MAX_UPLOAD_BYTES} bytes limit`, 413)
   }
 
   const locale = parseFormString(formData.get("locale"))
@@ -110,7 +113,8 @@ const resolveLocale = (
 }
 
 const isAuthorized = (req: Parameters<Endpoint["handler"]>[0]) => {
-  if (req.user) {
+  const roles = (req.user as { roles?: unknown } | null | undefined)?.roles
+  if (Array.isArray(roles) && roles.includes("admin")) {
     return true
   }
 
@@ -148,7 +152,7 @@ export const articleImportEndpoint: Endpoint = {
       )
     }
 
-    const status = parseImportStatus(payload.status, payload.status)
+    const status = parseImportStatus(payload.status)
     const importOptions: ArticleImportOptions = {
       filePath: "",
       sheetName: payload.sheetName,
@@ -172,12 +176,12 @@ export const articleImportEndpoint: Endpoint = {
         result,
       })
     } catch (error) {
-      if (error instanceof APIError) {
+      if (error instanceof APIError && error.status < 500) {
         throw error
       }
 
       if (error instanceof Error) {
-        throw new APIError(error.message, 500)
+        console.error(error)
       }
 
       throw new APIError("Import failed", 500)

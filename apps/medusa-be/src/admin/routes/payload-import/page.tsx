@@ -12,7 +12,14 @@ type ImportResult = {
   }
 }
 
-const locales = ["cs", "sk", "en"]
+const configuredLocales = (import.meta.env.VITE_PAYLOAD_LOCALES ?? "cs,sk,en")
+  .split(",")
+  .map((item: string) => item.trim())
+  .filter(Boolean)
+const locales = configuredLocales.length
+  ? configuredLocales
+  : ["cs", "sk", "en"]
+const defaultLocale = locales.includes("sk") ? "sk" : locales[0]
 
 const parseErrorMessage = async (response: Response) => {
   const payload = await response.json().catch(() => null)
@@ -29,9 +36,17 @@ const appendOptional = (formData: FormData, key: string, value: string) => {
   }
 }
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return "Import se nepovedl."
+}
+
 const PayloadImportPage = () => {
   const [file, setFile] = useState<File | null>(null)
-  const [locale, setLocale] = useState("sk")
+  const [locale, setLocale] = useState(defaultLocale)
   const [sheetName, setSheetName] = useState("")
   const [status, setStatus] = useState("")
   const [overwrite, setOverwrite] = useState(false)
@@ -72,7 +87,7 @@ const PayloadImportPage = () => {
         `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
       )
     } catch (error_) {
-      setError((error_ as Error).message)
+      setError(getErrorMessage(error_))
     } finally {
       setIsSubmitting(false)
     }

@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs"
 import { createRequire } from "node:module"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { getPayload } from "payload"
+import { getPayload, type PayloadRequest } from "payload"
 import type XLSXType from "xlsx"
 import config from "../payload.config"
 import type { Article } from "../payload-types"
@@ -13,12 +13,15 @@ type ArticleContent = Article["content"]
 type RowValue = string | number | boolean | Date | null | undefined
 type Row = Record<string, RowValue>
 type ImportResult = "imported" | "skipped"
-type PayloadLocale = "all" | "cs" | "en" | "sk" | undefined
+type PayloadLocale = PayloadRequest["locale"]
+type ResolvedLocale = Exclude<PayloadLocale, undefined>
+type WriteLocale = Exclude<PayloadLocale, "all" | undefined>
 type ImportContext = {
   dryRun: boolean
   fallbackMediaId: PayloadId
   payload: Payload
   locale: PayloadLocale
+  supportedLocales: string[]
   statusOverride: ImportStatus | undefined
   translate: boolean
   overwrite: boolean
@@ -37,20 +40,13 @@ const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
+const DEFAULT_LOCALES = ["en"]
 
 const debugLog = (...args: unknown[]) => {
   if (IS_DEBUG_IMPORT) {
     console.log(...args)
   }
 }
-const IMAGE_MIME_TYPES: Record<string, string> = {
-  ".gif": "image/gif",
-  ".jpeg": "image/jpeg",
-  ".jpg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-}
-
 const PLACEHOLDER_IMAGE = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lNnJYQAAAABJRU5ErkJggg==",
   "base64"
@@ -293,21 +289,34 @@ const hasLocaleValue = (
   return Object.hasOwn(value, locale)
 }
 
-const resolvePayloadLocale = (locale?: string): PayloadLocale => {
-  if (!locale) {
-    return
+const resolveSupportedLocales = () => {
+  const locales = process.env.PAYLOAD_LOCALES?.split(",")
+    .map((locale) => locale.trim().toLowerCase())
+    .filter(Boolean)
+
+  return locales?.length ? locales : DEFAULT_LOCALES
+}
+
+const resolvePayloadLocale = (
+  locale: string | undefined,
+  supportedLocales: string[]
+): ResolvedLocale => {
+  const normalized = locale?.trim().toLowerCase()
+  if (!normalized) {
+    return (supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale
   }
 
-  if (
-    locale === "all" ||
-    locale === "cs" ||
-    locale === "en" ||
-    locale === "sk"
-  ) {
-    return locale
+  if (normalized === "all") {
+    return normalized as ResolvedLocale
   }
 
-  return
+  if (supportedLocales.includes(normalized)) {
+    return normalized as WriteLocale
+  }
+
+  throw new Error(
+    `Invalid locale ${locale}. Supported values: ${supportedLocales.join(", ")}`
+  )
 }
 
 type ArticlePayloadData = {
@@ -330,25 +339,32 @@ type UpsertArticleParams = {
     | { id?: PayloadId; title?: string | Record<string, string> }
     | undefined
   locale: PayloadLocale
+  supportedLocales: string[]
   overwrite: boolean
   dryRun: boolean
   index: number
   data: ArticlePayloadData
 }
 
-const resolveWriteLocale = (value: PayloadLocale) =>
-  value === "all" || value === undefined ? "cs" : value
+const resolveWriteLocale = (
+  value: PayloadLocale,
+  supportedLocales: string[]
+): WriteLocale =>
+  value === "all" || value === undefined
+    ? ((supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale)
+    : (value as WriteLocale)
 
 const upsertArticle = async ({
   payload,
   existingArticle,
   locale,
+  supportedLocales,
   overwrite,
   dryRun,
   index,
   data,
 }: UpsertArticleParams): Promise<ImportResult> => {
-  const writeLocale = resolveWriteLocale(locale)
+  const writeLocale = resolveWriteLocale(locale, supportedLocales)
   if (
     existingArticle &&
     !overwrite &&
@@ -447,6 +463,7 @@ type EnsureCategoryParams = {
   slug: string
   dryRun: boolean
   locale: PayloadLocale
+  supportedLocales: string[]
   translate: boolean
   overwrite: boolean
 }
@@ -457,12 +474,13 @@ const ensureCategory = async ({
   slug,
   dryRun,
   locale,
+  supportedLocales,
   translate,
   overwrite,
 }: EnsureCategoryParams) => {
   const existing = await findExistingBySlug(payload, "article-categories", slug)
   if (existing) {
-    const writeLocale = resolveWriteLocale(locale)
+    const writeLocale = resolveWriteLocale(locale, supportedLocales)
     if (!overwrite && hasLocaleValue(existing.title, locale)) {
       return existing.id as PayloadId
     }
@@ -490,7 +508,7 @@ const ensureCategory = async ({
 
   const category = await payload.create({
     collection: "article-categories",
-    locale: resolveWriteLocale(locale),
+    locale: resolveWriteLocale(locale, supportedLocales),
     data: {
       title,
       slug,
@@ -535,58 +553,13 @@ const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
   return media.id as PayloadId
 }
 
-const createMediaFromPath = async (
-  payload: Payload,
-  imagePath: string,
-  dryRun: boolean
-) => {
-  const absolutePath = path.isAbsolute(imagePath)
-    ? imagePath
-    : path.resolve(process.cwd(), imagePath)
-
-  const data = await fs.readFile(absolutePath)
-  const ext = path.extname(absolutePath).toLowerCase()
-  const mimetype = IMAGE_MIME_TYPES[ext] ?? "image/jpeg"
-
-  if (dryRun) {
-    return 0
-  }
-
-  const media = await payload.create({
-    collection: "media",
-    data: {
-      alt: path.basename(absolutePath),
-    },
-    file: {
-      data,
-      mimetype,
-      name: path.basename(absolutePath),
-      size: data.length,
-    },
-    overrideAccess: true,
-  })
-
-  return media.id as PayloadId
-}
-
-const ensureFeaturedImage = async (
-  payload: Payload,
-  imagePath: string,
-  fallbackMediaId: PayloadId,
-  dryRun: boolean
-) => {
+const ensureFeaturedImage = (imagePath: string, fallbackMediaId: PayloadId) => {
   if (!imagePath) {
     return fallbackMediaId
   }
 
-  try {
-    return await createMediaFromPath(payload, imagePath, dryRun)
-  } catch (error) {
-    console.warn(
-      `Image not imported (${imagePath}), using fallback media: ${(error as Error).message}`
-    )
-    return fallbackMediaId
-  }
+  console.warn("Image import from XLSX is disabled, using fallback media.")
+  return fallbackMediaId
 }
 
 const findAuthor = async (payload: Payload, email: string) => {
@@ -724,12 +697,12 @@ const processArticleRow = async (
     slug: categorySlug,
     dryRun,
     locale,
+    supportedLocales: context.supportedLocales,
     translate,
     overwrite,
   })
 
-  const featuredImage = await ensureFeaturedImage(
-    payload,
+  const featuredImage = ensureFeaturedImage(
     getText(row, [
       "featured_image_path",
       "featured_image",
@@ -739,8 +712,7 @@ const processArticleRow = async (
       "post_img_src",
       "post_img",
     ]),
-    fallbackMediaId,
-    dryRun
+    fallbackMediaId
   )
 
   const author = await findAuthor(
@@ -780,6 +752,7 @@ const processArticleRow = async (
     payload,
     existingArticle,
     locale,
+    supportedLocales: context.supportedLocales,
     overwrite,
     dryRun,
     index,
@@ -794,13 +767,14 @@ export const runImportFromFile = async (
     filePath,
     sheetName,
     dryRun = false,
-    locale: requestedLocale = "cs",
+    locale: requestedLocale,
     status: statusOverride,
     translate = false,
     overwrite = false,
   } = options
 
-  const locale = resolvePayloadLocale(requestedLocale) ?? "cs"
+  const supportedLocales = resolveSupportedLocales()
+  const locale = resolvePayloadLocale(requestedLocale, supportedLocales)
 
   const resolvedFilePath = path.resolve(process.cwd(), filePath)
   debugLog(`Resolved file path: ${resolvedFilePath}`)
@@ -830,6 +804,7 @@ export const runImportFromFile = async (
       fallbackMediaId,
       payload,
       locale,
+      supportedLocales,
       statusOverride,
       translate,
       overwrite,
