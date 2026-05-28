@@ -3,7 +3,7 @@ import {
   PAYKIT_GOPAY_PROVIDER_ID,
   PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
   PAYKIT_STRIPE_PROVIDER_ID,
-} from "../../modules/payment-paykit/config"
+} from "../../modules/payment-paykit/constants"
 import { SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID } from "./constants"
 
 const toMedusaPaymentProviderId = (providerId: string) =>

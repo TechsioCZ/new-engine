@@ -1,49 +1,18 @@
 import { describe, expect, it, vi } from "vitest"
+import { requestJson, resolveRequiredEnv } from "./helpers/client"
 
-type JsonObject = Record<string, unknown>
-
-type JsonResponse = {
-  status: number
-  data: JsonObject
+type AuthResponse = {
+  token: string
 }
 
-function resolveRequiredEnv(name: string): string {
-  const value = process.env[name]?.trim()
-
-  if (!value) {
-    throw new Error(
-      `Missing required environment variable ${name}. Run the isolated e2e harness or provide it explicitly.`
-    )
+type PublishableKeyResponse = {
+  api_key: {
+    id: string
+    title: string
+    token: string
+    type: string
   }
-
-  return value
-}
-
-async function requestJson(
-  baseUrl: string,
-  path: string,
-  options?: {
-    method?: string
-    body?: JsonObject
-    token?: string
-  }
-): Promise<JsonResponse> {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: options?.method ?? "GET",
-    headers: {
-      ...(options?.body ? { "content-type": "application/json" } : {}),
-      ...(options?.token ? { authorization: `Bearer ${options.token}` } : {}),
-    },
-    body: options?.body ? JSON.stringify(options.body) : undefined,
-  })
-
-  const rawBody = await response.text()
-  const data = rawBody ? (JSON.parse(rawBody) as JsonObject) : {}
-
-  return {
-    status: response.status,
-    data,
-  }
+  created: boolean
 }
 
 describe("Admin publishable key endpoint", () => {
@@ -52,21 +21,25 @@ describe("Admin publishable key endpoint", () => {
   const adminPassword = resolveRequiredEnv("MEDUSA_E2E_ADMIN_PASSWORD")
 
   it("provisions a publishable key and retrieves the same token", async () => {
-    const authResponse = await requestJson(backendUrl, "/auth/user/emailpass", {
-      method: "POST",
-      body: {
-        email: adminEmail,
-        password: adminPassword,
-      },
-    })
+    const authResponse = await requestJson<AuthResponse>(
+      backendUrl,
+      "/auth/user/emailpass",
+      {
+        method: "POST",
+        body: {
+          email: adminEmail,
+          password: adminPassword,
+        },
+      }
+    )
 
     expect(authResponse.status).toBe(200)
     expect(typeof authResponse.data.token).toBe("string")
 
     const title = `CI Publishable Key ${Date.now()}`
-    const token = authResponse.data.token as string
+    const token = authResponse.data.token
 
-    const createResponse = await requestJson(
+    const createResponse = await requestJson<PublishableKeyResponse>(
       backendUrl,
       "/admin/provisioning/publishable-key",
       {
@@ -86,7 +59,7 @@ describe("Admin publishable key endpoint", () => {
       created: true,
     })
 
-    const secondCreateResponse = await requestJson(
+    const secondCreateResponse = await requestJson<PublishableKeyResponse>(
       backendUrl,
       "/admin/provisioning/publishable-key",
       {
@@ -107,7 +80,7 @@ describe("Admin publishable key endpoint", () => {
       created: false,
     })
 
-    const getResponse = await requestJson(
+    const getResponse = await requestJson<PublishableKeyResponse>(
       backendUrl,
       `/admin/provisioning/publishable-key?title=${encodeURIComponent(title)}`,
       { token }

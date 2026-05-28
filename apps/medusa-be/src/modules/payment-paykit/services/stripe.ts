@@ -3,10 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
-import {
-  PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
-  requirePaykitOptions,
-} from "../config"
+import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
@@ -25,6 +22,7 @@ import {
   fromStripeSmallestCurrencyUnit,
   toStripeSmallestCurrencyUnit,
 } from "../utils/amounts"
+import { requirePaykitOptions } from "../utils/validation"
 
 export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<PaykitStripeOptions> {
   static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER

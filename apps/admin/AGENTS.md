@@ -92,6 +92,25 @@ Admin UX should stay dense, operational, and scannable. Do not introduce marketi
   in the page or feature module.
 - Do not keep expanding one large file when a feature becomes multi-screen. Prefer `src/features/<domain>/...` for new substantial sections.
 - Shared contracts and normalized types must have one owner per change. Do not let multiple agents independently rewrite shared type surfaces.
+- Centralization means one canonical owner for a concept, not one giant file.
+  Business concepts such as tabs, statuses, URL params, filters, query keys,
+  count logic, and invalidation rules must have one source of truth in the
+  owning domain module.
+- Pages and components should consume domain helpers or hooks instead of
+  redefining business mappings locally. If the same concept appears in the
+  sidebar, page tabs, badges, and API queries, those surfaces must share the
+  same resolver, hook, or query contract where practical.
+- Treat a touched source file crossing roughly 300 lines as a design signal, not
+  an automatic failure. Before finishing, consider whether it mixes multiple
+  concerns, run a skill $simplify pass on the touched scope, and justify in the final
+  response why the file should stay together or explain what was extracted.
+- Treat a touched source file crossing roughly 500 lines as a stronger review
+  signal. Also review the change with a skill $deep-code-review stance focused on
+  boundaries, duplication, centralization, and maintainability.
+- Avoid adding new feature logic to already large files unless the change is a
+  small bug fix or extraction would be riskier than the change itself.
+  Generated files, static token maps, large fixture data, and schema/type-only
+  files may exceed these thresholds when the exception is obvious from purpose.
 
 ## Data Fetching and Auth
 
@@ -101,6 +120,14 @@ Admin UX should stay dense, operational, and scannable. Do not introduce marketi
 - Background refresh is acceptable for admin counters and dashboards. Prefer polling plus refetch-on-focus before introducing WebSockets or SSE.
 - Session/cookie auth must send credentials as required by Medusa Admin API. Do not store passwords or secrets in client code.
 - Never add fake production data to make a screen look complete. Empty states must reflect real empty data.
+- Do not keep growing global API files with unrelated feature logic. For
+  feature-specific workflows, colocate query keys, fetchers, hooks, and
+  invalidation helpers in a domain module such as `src/features/<domain>/api.ts`
+  or a local feature API module.
+- Page components should not inline raw query-key strings for domain
+  invalidation. Prefer domain helpers such as
+  `invalidateOrderExpeditionQueries(queryClient)` so list data, badges, sidebar
+  counts, and detail queries stay consistent.
 
 ## Medusa Parity Workflow
 
@@ -126,9 +153,9 @@ If backend work is justified, load `.codex/skills/building-with-medusa` and the 
 
 ## Planning
 
-Plan files for this admin live in `apps/admin/local/agent-plans`. Use `plan-graph` with explicit dependency overlays from `apps/admin/local/agent-plans/README.md`; do not assume a pile of `.plan.md` files has an implicit execution order.
+Plan files for this admin live in `apps/admin/agent-plans`. Use `plan-graph` with explicit dependency overlays from `apps/admin/agent-plans/README.md`; do not assume a pile of `.plan.md` files has an implicit execution order.
 
-For current-lane status use `dag` against the same plan selection and dependency overlay. Keep generated graph snapshots under `apps/admin/local/plan-graphs` so they remain local-only unless intentionally promoted.
+For current-lane status use `dag` against the same plan selection and dependency overlay. Keep generated graph snapshots under `apps/admin/plan-graphs` so they remain local-only unless intentionally promoted.
 
 ## Verification
 
@@ -151,11 +178,10 @@ For user-facing workflow changes, also smoke-test in a browser against the deplo
 ## Important Sources
 
 - Medusa source reference:
-   - Prefer local clone at `~/.local/share/medusajs/medusa` when available.
-   - For dashboard parity inspect `~/.local/share/medusajs/medusa/packages/admin/dashboard/src`.
+   - Prefer local clone at `~/.local/share/medusa-js/medusa` when available.
+   - For dashboard parity inspect `~/.local/share/medusa-js/medusa/packages/admin/dashboard/src`.
    - If the clone is missing, use official Medusa docs and ask before guessing dashboard internals.
 
 - UI kit rules:
    - Use local guidance under `.codex/skills/...` as the authoritative UI kit guidance for this admin work.
-   - Machine-local experiments may also live under `libs/ui/local/skills/...`.
-   - Optional local notes may live in `apps/admin/local/ui.md`, but committed instructions must not depend on that file existing.
+   - Optional local notes may live in `apps/admin/ui.md`, but committed instructions must not depend on that file existing.

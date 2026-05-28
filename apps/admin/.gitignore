@@ -1,2 +1,5 @@
 .env.local
 .env.*.local
+agent-plans/
+plan-graphs/
+local/

@@ -3,12 +3,15 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.e2e.yaml"
+COMPOSE_OVERRIDE_FILE="${MEDUSA_E2E_COMPOSE_OVERRIDE_FILE:-}"
 ENV_FILE="${MEDUSA_E2E_ENV_FILE:-${ROOT_DIR}/apps/medusa-be/.env.e2e}"
 PROJECT_NAME="${MEDUSA_E2E_PROJECT_NAME:-new-engine-e2e}"
 WAIT_TIMEOUT_SECONDS="${MEDUSA_E2E_WAIT_TIMEOUT_SECONDS:-300}"
 KEEP_STACK="${MEDUSA_E2E_KEEP_STACK:-0}"
 TEST_TARGET="${MEDUSA_E2E_TEST_TARGET:-}"
 TEST_TYPE_VALUE="${MEDUSA_E2E_TEST_TYPE:-integration:http}"
+DOWN_VOLUMES="${MEDUSA_E2E_DOWN_VOLUMES:-1}"
+COMPOSE_BUILD="${MEDUSA_E2E_COMPOSE_BUILD:-1}"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -32,7 +35,14 @@ load_env() {
 }
 
 compose() {
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" -p "$PROJECT_NAME" "$@"
+  local -a compose_files
+  compose_files=(-f "$COMPOSE_FILE")
+
+  if [[ -n "$COMPOSE_OVERRIDE_FILE" ]]; then
+    compose_files+=(-f "$COMPOSE_OVERRIDE_FILE")
+  fi
+
+  docker compose --env-file "$ENV_FILE" "${compose_files[@]}" -p "$PROJECT_NAME" "$@"
 }
 
 backend_url() {
@@ -44,11 +54,25 @@ logs() {
 }
 
 down() {
-  compose down --volumes --remove-orphans --timeout "${COMPOSE_STOP_TIMEOUT:-60}"
+  local -a down_args
+  down_args=(down --remove-orphans --timeout "${COMPOSE_STOP_TIMEOUT:-60}")
+
+  if [[ "$DOWN_VOLUMES" == "1" ]]; then
+    down_args+=(--volumes)
+  fi
+
+  compose "${down_args[@]}"
 }
 
 up() {
-  compose up -d --build
+  local -a up_args
+  up_args=(up -d)
+
+  if [[ "$COMPOSE_BUILD" == "1" ]]; then
+    up_args+=(--build)
+  fi
+
+  compose "${up_args[@]}"
 }
 
 wait_for_backend() {
@@ -132,6 +156,9 @@ Environment:
   MEDUSA_E2E_BACKEND_PORT     Optional host port for docker-compose publishing only (used by env interpolation)
   MEDUSA_E2E_WAIT_TIMEOUT_SECONDS  Health wait timeout in seconds (default: 300)
   MEDUSA_E2E_KEEP_STACK       Set to 1 to keep containers running after `run`
+  MEDUSA_E2E_COMPOSE_OVERRIDE_FILE Optional docker compose override file
+  MEDUSA_E2E_COMPOSE_BUILD    Set to 0 to skip docker compose --build on up (default: 1)
+  MEDUSA_E2E_DOWN_VOLUMES     Set to 0 to keep volumes on down (default: 1)
   MEDUSA_E2E_TEST_TARGET      Optional Vitest target or file filter (default: all HTTP specs from vitest.config.ts)
 USAGE
 }

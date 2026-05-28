@@ -40,6 +40,7 @@ RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
 
 COPY tsconfig.base.json ./
 COPY apps/medusa-be ./apps/medusa-be
+COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
     npm_config_store_dir=/pnpm/store \
@@ -67,6 +68,7 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
 COPY nx.json tsconfig.base.json ./
 COPY scripts/build-medusa.sh ./scripts/build-medusa.sh
 COPY apps/medusa-be ./apps/medusa-be
+COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0

@@ -310,6 +310,7 @@ export async function GET(
 ) {
   const validatedQuery = req.validatedQuery
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
 
   const page = validatedQuery.page
@@ -401,13 +402,17 @@ export async function GET(
       : await queryService.graph({
           entity: "product",
           fields: productFields,
-          filters: await normalizeProductSalesChannelFilter(queryService, {
-            id: {
-              $in: productIds,
-            },
-            sales_channel_id: req.filterableFields.sales_channel_id,
-            status: ProductStatus.PUBLISHED,
-          }),
+          filters: await normalizeProductSalesChannelFilter(
+            queryService,
+            remoteQuery,
+            {
+              id: {
+                $in: productIds,
+              },
+              sales_channel_id: req.filterableFields.sales_channel_id,
+              status: ProductStatus.PUBLISHED,
+            }
+          ),
           context: pricingContext
             ? {
                 variants: {

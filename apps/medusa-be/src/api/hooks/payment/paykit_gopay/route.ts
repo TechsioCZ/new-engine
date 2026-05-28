@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID } from "../../../../modules/payment-paykit/config"
+import { PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID } from "../../../../modules/payment-paykit/constants"
 import { emitPaykitPaymentWebhookEvent } from "../../../../modules/payment-paykit/webhooks"
 
 type RequestWithUrlParts = MedusaRequest & {

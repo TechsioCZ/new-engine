@@ -1,9 +1,10 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
+import type { WebhookHandlerConfig } from "@paykit-sdk/core"
 import type {
+  PaykitAdapterOptions,
   PaykitComgateOptions,
   PaykitGopayOptions,
   PaykitPaymentClient,
-  PaykitProviderOptions,
   PaykitStripeOptions,
   PaykitWebhookEvent,
 } from "./types"
@@ -16,11 +17,7 @@ type PaykitRuntime = {
 
 export type PaykitProviderRuntime = {
   handleWebhook: (
-    payload: {
-      body: string
-      headersAsObject: Record<string, string>
-      fullUrl: string
-    },
+    payload: WebhookHandlerConfig,
     webhookSecret: string | null
   ) => Promise<PaykitWebhookEvent[]>
 }
@@ -142,7 +139,7 @@ export const callPaykitProviderWebhook = (
   )
 
 export const resolveConfiguredClient = async (
-  options: PaykitProviderOptions
+  options: PaykitAdapterOptions
 ): Promise<PaykitPaymentClient | undefined> => {
   if (options.client) {
     return options.client
