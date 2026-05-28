@@ -8,8 +8,9 @@
  *   - The shared `--border-width-validation` token from `_semantic.css` is
  *     still consumed by the TSX; the Figma-exported `--border-width-input-validation`
  *     is kept available for components that want it.
- *   - `--padding-input-with-button` keeps the same name (TSX consumes
- *     `pe-with-button` / `ps-with-button` utilities that resolve to that var).
+ *   - `--padding-input-with-button` drives the `pe-input-with-button` /
+ *     `ps-input-with-button` utilities consumed by the TSX `withButtonInside`
+ *     variant. Figma also exports `-left`/`-right` axis variants (same value).
  */
 
 @theme static {
