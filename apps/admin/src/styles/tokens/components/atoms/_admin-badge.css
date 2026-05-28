@@ -1,5 +1,36 @@
 @theme static {
+  --color-badge-bg-primary: var(--color-admin-badge-primary-bg);
+  --color-badge-bg-secondary: var(--color-admin-badge-secondary-bg);
+  --color-badge-bg-tertiary: var(--color-admin-badge-tertiary-bg);
+  --color-badge-bg-info: var(--color-admin-badge-info-bg);
+  --color-badge-bg-success: var(--color-admin-badge-success-bg);
+  --color-badge-bg-warning: var(--color-admin-badge-warning-bg);
+  --color-badge-bg-danger: var(--color-admin-badge-danger-bg);
+  --color-badge-bg-discount: var(--color-admin-badge-danger-bg);
+  --color-badge-fg-primary: var(--color-admin-badge-primary-fg);
+  --color-badge-fg-secondary: var(--color-admin-badge-secondary-fg);
+  --color-badge-fg-tertiary: var(--color-admin-badge-tertiary-fg);
+  --color-badge-fg-info: var(--color-admin-badge-info-fg);
+  --color-badge-fg-success: var(--color-admin-badge-success-fg);
+  --color-badge-fg-warning: var(--color-admin-badge-warning-fg);
+  --color-badge-fg-danger: var(--color-admin-badge-danger-fg);
+  --color-badge-fg-discount: var(--color-admin-badge-danger-fg);
+  --color-badge-border-primary: var(--color-admin-badge-primary-border);
+  --color-badge-border-secondary: var(--color-admin-badge-secondary-border);
+  --color-badge-border-tertiary: var(--color-admin-badge-tertiary-border);
+  --color-badge-border-info: var(--color-admin-badge-info-border);
+  --color-badge-border-success: var(--color-admin-badge-success-border);
+  --color-badge-border-warning: var(--color-admin-badge-warning-border);
+  --color-badge-border-danger: var(--color-admin-badge-danger-border);
+  --color-badge-border-discount: var(--color-admin-badge-danger-border);
   --radius-badge: var(--radius-full);
   --font-weight-badge-sm: var(--font-weight-bold);
   --font-weight-badge-md: var(--font-weight-bold);
+
+  --spacing-badge-sm: var(--spacing-1) var(--spacing-4);
+  --spacing-badge-md: var(--spacing-2) var(--spacing-6);
+  --spacing-badge-lg: var(--spacing-3) var(--spacing-8);
+  --spacing-badge-xl: var(--spacing-4) var(--spacing-10);
+
+  --spacing-circle-badge-sm: var(--spacing-2) var(--spacing-2);
 }

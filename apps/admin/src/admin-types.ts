@@ -1,21 +1,3 @@
-export type ActionRequiredSummary = {
-  orders: ActionRequiredOrdersResponse
-  customers: PendingB2BCustomersResponse
-}
-
-export type ActionRequiredOrder = {
-  created_at: string | null
-  currency_code: string | null
-  custom_display_id: string | null
-  display_id: number | null
-  email: string | null
-  id: string
-  manual_status: string | null
-  payment_status: string | null
-  status: string | null
-  total: number | string | null
-}
-
 export type PendingB2BCustomer = {
   company_name: string | null
   created_at: string | null
@@ -27,13 +9,137 @@ export type PendingB2BCustomer = {
   phone: string | null
 }
 
-export type ActionRequiredOrdersResponse = {
+export type OrderBusinessStatusId =
+  | "new"
+  | "awaiting_payment"
+  | "paid"
+  | "processing"
+  | "waiting_for_supplier"
+  | "shipped"
+  | "delivered"
+  | "canceled"
+
+export type ManualOrderBusinessStatusId =
+  | "processing"
+  | "waiting_for_supplier"
+  | "canceled"
+
+export type OrderBusinessStatusTone =
+  | "blue"
+  | "green"
+  | "grey"
+  | "orange"
+  | "red"
+  | "purple"
+
+export type OrderBusinessStatus = {
+  id: OrderBusinessStatusId
+  priority: number
+  tone: OrderBusinessStatusTone
+  translation_key: `statuses.${OrderBusinessStatusId}`
+}
+
+export type OrderBusinessStatusSummary = {
+  business_status: OrderBusinessStatus
+  created_at?: string | null
+  currency_code?: string | null
+  custom_display_id?: string | null
+  display_id?: number | null
+  email?: string | null
+  id: string
+  manual_status?: ManualOrderBusinessStatusId | null
+  total?: number | string | null
+}
+
+export type OrderExpeditionCarrierKey = "ppl" | "packeta" | "other"
+
+export type OrderExpeditionTargetStatus =
+  | "pending"
+  | "completed"
+  | "draft"
+  | "archived"
+  | "canceled"
+  | "requires_action"
+
+export type OrderExpeditionCarrierOption = {
+  label: string
+  value: OrderExpeditionCarrierKey
+}
+
+export type OrderExpeditionItem = {
+  id?: string | null
+  quantity: number
+  sku?: string | null
+  title: string
+  variant?: string | null
+}
+
+export type OrderExpeditionIndicators = {
+  canceled: boolean
+  has_note: boolean
+  returning_customer: boolean
+  wholesale: boolean
+}
+
+export type OrderExpeditionOrder = {
+  business_status: OrderBusinessStatus
+  carrier: OrderExpeditionCarrierOption & {
+    shipping_method_id?: string
+    shipping_method_name?: string
+    shipping_option_id?: string
+  }
+  created_at?: string | null
+  currency_code?: string | null
+  customer: string
+  delivery_address: string[]
+  display_id?: number | null
+  email?: string | null
+  has_active_fulfillment: boolean
+  id: string
+  indicators?: OrderExpeditionIndicators
+  items: OrderExpeditionItem[]
+  manual_status?: ManualOrderBusinessStatusId | null
+  order_display_id: string
+  payment_method: string
+  payment_status?: string | null
+  sales_channel?: string | null
+  status?: string | null
+  total?: number | string | null
+}
+
+export type OrderExpeditionBlockingOrder = {
+  id: string
+  order_display_id: string
+  reason: string
+}
+
+export type OrderExpeditionOrdersResponse = {
+  business_status: OrderBusinessStatusId | null
+  carrier: OrderExpeditionCarrierKey | null
+  carrier_filter_limit_reached: boolean
   count: number
   count_exact: boolean
   has_next: boolean
   limit: number
   offset: number
-  orders: ActionRequiredOrder[]
+  orders: OrderExpeditionOrder[]
+  scanned_count: number | null
+}
+
+export type OrderExpeditionCarriersResponse = {
+  carriers: OrderExpeditionCarrierOption[]
+}
+
+export type OrderBusinessStatusesByIdsResponse = {
+  orders: OrderBusinessStatusSummary[]
+}
+
+export type BulkBusinessStatusResponse = {
+  count: number
+  orders: OrderBusinessStatusSummary[]
+  skipped: OrderExpeditionBlockingOrder[]
+  skipped_count: number
+  status: ManualOrderBusinessStatusId | null
 }
 
 export type PendingB2BCustomersResponse = {

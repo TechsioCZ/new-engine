@@ -19,18 +19,18 @@ import {
   Routes,
   useLocation,
 } from "react-router-dom"
-import { useActionRequiredSummary, useAdminStoreSummary } from "./admin-api"
+import { useAdminStoreSummary, usePendingB2BCustomers } from "./admin-api"
 import { clearStoredAdminToken, hasStoredAdminToken } from "./admin-auth"
 import { CategoriesPage, CategoryDetailPage } from "./admin-category-pages"
 import { isAuthError } from "./admin-errors"
 import { LoginPage } from "./admin-login-page"
 import { OrderDetailPage } from "./admin-order-detail-page"
+import { OrderExpeditionPage } from "./admin-order-expedition-page"
 import { PacketaLabelsPage } from "./admin-packeta-labels-page"
 import { PacketaSettingsPage } from "./admin-packeta-settings-page"
 import {
   CustomersPage,
   EmailsPage,
-  OrdersPage,
   PlaceholderPage,
   ProductsPage,
 } from "./admin-pages"
@@ -39,13 +39,11 @@ import { PplSettingsPage } from "./admin-ppl-settings-page"
 import { ProductDetailPage } from "./admin-product-detail-page"
 import { QrPaymentsSettingsPage, SettingsPage } from "./admin-settings-page"
 import { StoreSettingsPage } from "./admin-store-settings-page"
-import type {
-  ActionRequiredSummary,
-  AdminStoreSummary,
-  BadgeKey,
-} from "./admin-types"
+import type { AdminStoreSummary, BadgeKey } from "./admin-types"
 import { AdminThemeToggle } from "./components/admin-theme-toggle"
 import { type AdminNavItem, adminNavItems } from "./nav-config"
+import { useOrderExpeditionDashboardCount } from "./order-expedition/api/queries"
+import { ALL_CARRIERS } from "./order-expedition/model/views"
 import { formatCountLabel } from "./utils/format"
 
 const ADMIN_SHELL_CLASS_NAME =
@@ -66,17 +64,41 @@ export function AdminApp() {
   const queryClient = useQueryClient()
   const [isAuthenticated, setIsAuthenticated] = useState(hasStoredAdminToken)
   const isLoginRoute = location.pathname === "/login"
-  const summary = useActionRequiredSummary({
-    enabled: isAuthenticated && !isLoginRoute,
+  const sidebarBadgesEnabled = isAuthenticated && !isLoginRoute
+  const ordersActionRequired = useOrderExpeditionDashboardCount({
+    carrier: ALL_CARRIERS,
+    enabled: sidebarBadgesEnabled,
+    view: "action-required",
   })
+  const customersActionRequired = usePendingB2BCustomers({
+    enabled: sidebarBadgesEnabled,
+  })
+  const sidebarBadgeAuthError =
+    (ordersActionRequired.isError && isAuthError(ordersActionRequired.error)) ||
+    (customersActionRequired.isError &&
+      isAuthError(customersActionRequired.error))
+  const sidebarBadges: SidebarBadges = {
+    customersActionRequired: customersActionRequired.data
+      ? {
+          count: customersActionRequired.data.count,
+          countExact: customersActionRequired.data.count_exact,
+        }
+      : null,
+    ordersActionRequired: ordersActionRequired.data
+      ? {
+          count: ordersActionRequired.data.count,
+          countExact: ordersActionRequired.data.count_exact,
+        }
+      : null,
+  }
 
   useEffect(() => {
-    if (summary.isError && isAuthError(summary.error)) {
+    if (sidebarBadgeAuthError) {
       clearStoredAdminToken()
       setIsAuthenticated(false)
       queryClient.clear()
     }
-  }, [queryClient, summary.error, summary.isError])
+  }, [queryClient, sidebarBadgeAuthError])
 
   async function handleAuthenticated() {
     setIsAuthenticated(true)
@@ -103,9 +125,9 @@ export function AdminApp() {
 
   return (
     <div className={ADMIN_SHELL_CLASS_NAME}>
-      <Sidebar onLogout={handleLogout} summary={summary.data} />
+      <Sidebar badges={sidebarBadges} onLogout={handleLogout} />
       <main className="min-w-0 p-14 max-admin-layout:p-10">
-        {summary.isError && isAuthError(summary.error) ? (
+        {sidebarBadgeAuthError ? (
           <Navigate replace to="/login" />
         ) : (
           <Routes>
@@ -113,7 +135,7 @@ export function AdminApp() {
               element={<Navigate replace to="/orders?view=action-required" />}
               path="/"
             />
-            <Route element={<OrdersPage />} path="/orders" />
+            <Route element={<OrderExpeditionPage />} path="/orders" />
             <Route element={<OrderDetailPage />} path="/orders/:id" />
             <Route
               element={
@@ -198,11 +220,11 @@ export function AdminApp() {
 }
 
 function Sidebar({
+  badges,
   onLogout,
-  summary,
 }: {
+  badges: SidebarBadges
   onLogout: () => void
-  summary: ActionRequiredSummary | undefined
 }) {
   const store = useAdminStoreSummary()
   let currentSection: string | undefined
@@ -222,7 +244,7 @@ function Sidebar({
                   {item.section}
                 </span>
               )}
-              <SidebarItem item={item} summary={summary} />
+              <SidebarItem badges={badges} item={item} />
             </Fragment>
           )
         })}
@@ -320,14 +342,14 @@ function getStoreFallback(storeName: string) {
 }
 
 function SidebarItem({
+  badges,
   item,
-  summary,
 }: {
+  badges: SidebarBadges
   item: AdminNavItem
-  summary: ActionRequiredSummary | undefined
 }) {
   const location = useLocation()
-  const badge = getBadgeValue(item.badgeKey, summary)
+  const badge = getBadgeValue(item.badgeKey, badges)
   const isActive = location.pathname.startsWith(item.activeMatch)
 
   return (
@@ -352,7 +374,7 @@ function SidebarItem({
         {item.label}
       </span>
       {badge && shouldRenderBadge(badge) && (
-        <Badge className="min-w-12" size="sm" variant="danger">
+        <Badge className="size-14" size="sm" variant="danger">
           {formatCountLabel(badge.count, badge.countExact)}
         </Badge>
       )}
@@ -365,29 +387,13 @@ type BadgeValue = {
   countExact: boolean
 }
 
+type SidebarBadges = Record<BadgeKey, BadgeValue | null>
+
 function getBadgeValue(
   badgeKey: BadgeKey | undefined,
-  summary: ActionRequiredSummary | undefined
+  badges: SidebarBadges
 ): BadgeValue | null {
-  if (badgeKey === "ordersActionRequired") {
-    return summary?.orders
-      ? {
-          count: summary.orders.count,
-          countExact: summary.orders.count_exact,
-        }
-      : null
-  }
-
-  if (badgeKey === "customersActionRequired") {
-    return summary?.customers
-      ? {
-          count: summary.customers.count,
-          countExact: summary.customers.count_exact,
-        }
-      : null
-  }
-
-  return null
+  return badgeKey ? badges[badgeKey] : null
 }
 
 function shouldRenderBadge(badge: BadgeValue) {

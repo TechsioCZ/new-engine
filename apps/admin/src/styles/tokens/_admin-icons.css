@@ -117,6 +117,22 @@
   @apply icon-[mdi--shopping];
 }
 
+@utility token-icon-order-returning {
+  @apply icon-[lucide--smile];
+}
+
+@utility token-icon-order-canceled {
+  @apply icon-[lucide--circle-x];
+}
+
+@utility token-icon-order-print {
+  @apply icon-[lucide--printer];
+}
+
+@utility token-icon-order-status {
+  @apply icon-[lucide--list-checks];
+}
+
 @utility token-icon-cpu {
   @apply icon-[mdi--cpu-64-bit];
 }
