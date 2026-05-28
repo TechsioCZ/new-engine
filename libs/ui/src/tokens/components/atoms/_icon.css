@@ -1,210 +1,189 @@
+/*
+ * Icon — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * Color tokens are exported but not consumed by the TSX (icons inherit from
+ * surrounding text color). They're defined here so they're available when
+ * stories or call sites opt into colored icons.
+ */
+
 @plugin "@iconify/tailwind4";
 
 @theme static {
-  --text-icon-xs: var(--text-xs);
-  --text-icon-sm: var(--text-sm);
-  --text-icon-md: var(--text-md);
-  --text-icon-lg: var(--text-lg);
-  --text-icon-xl: var(--text-xl);
-  --text-icon-2xl: var(--text-2xl);
+  /* === Sizes (text-icon-*) === */
+  --text-icon-xs: 0.8rem;
+  --text-icon-sm: 1rem;
+  --text-icon-md: 1.25rem;
+  --text-icon-lg: 1.56rem;
+  --text-icon-xl: 1.95rem;
+  --text-icon-2xl: 2.44rem;
+
+  /* === Foreground colors === */
+  --color-icon-fg-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-icon-fg-primary: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-icon-fg-secondary: light-dark(
+    oklch(0.7 0.202 44.441),
+    oklch(0.772 0.173 65.367)
+  );
+  --color-icon-fg-success: light-dark(
+    oklch(0.702 0.158 160.438),
+    oklch(0.844 0.143 165.23)
+  );
+  --color-icon-fg-warning: oklch(0.798 0.164 82.706);
+  --color-icon-fg-danger: oklch(0.702 0.189 22.228);
 }
 
-/* Semantic tokens for icons */
+/* === Semantic glyph aliases (not part of Figma export) === */
+
 @utility token-icon-error {
   @apply icon-[mdi-light--alert-circle];
 }
-
 @utility token-icon-success {
   @apply icon-[mdi-light--check-circle];
 }
-
 @utility token-icon-warning {
   @apply icon-[mdi-light--alert];
 }
-
 @utility token-icon-info {
   @apply icon-[mdi-light--information];
 }
-
 @utility token-icon-close {
   @apply icon-[mdi--close];
 }
 
-/* Component tokens for icons */
 @utility token-icon-input-error {
   @apply token-icon-error;
 }
-
 @utility token-icon-input-success {
   @apply token-icon-success;
 }
-
 @utility token-icon-input-warning {
   @apply token-icon-warning;
 }
-
 @utility token-icon-input-info {
   @apply token-icon-info;
 }
 
-/* Navigation icons */
 @utility token-icon-chevron-down {
   @apply icon-[mdi--chevron-down];
 }
-
 @utility token-icon-chevron-right {
   @apply icon-[mdi--chevron-right];
 }
-
 @utility token-icon-chevron-left {
   @apply icon-[mdi--chevron-left];
 }
-
 @utility token-icon-chevron-up {
   @apply icon-[mdi--chevron-up];
 }
 
-/* Action icons */
 @utility token-icon-spinner {
   @apply icon-[svg-spinners--ring-resize];
 }
-
 @utility token-icon-play {
   @apply icon-[mdi--play];
 }
-
 @utility token-icon-pause {
   @apply icon-[mdi--pause];
 }
-
 @utility token-icon-menu {
   @apply icon-[mdi--menu];
 }
-
 @utility token-icon-plus {
   @apply icon-[mdi--plus];
 }
-
 @utility token-icon-minus {
   @apply icon-[mdi--minus];
 }
-
 @utility token-icon-folder {
   @apply icon-[mdi--folder];
 }
-
 @utility token-icon-folder-open {
   @apply icon-[mdi--folder-open];
 }
-
 @utility token-icon-file-document {
   @apply icon-[mdi--file-document];
 }
-
 @utility token-icon-home {
   @apply icon-[mdi--home];
 }
-
 @utility token-icon-shopping-bag {
   @apply icon-[mdi--shopping];
 }
-
 @utility token-icon-cpu {
   @apply icon-[mdi--cpu-64-bit];
 }
-
 @utility token-icon-smartphone {
   @apply icon-[mdi--smartphone];
 }
-
 @utility token-icon-save {
   @apply icon-[mdi--content-save];
 }
-
 @utility token-icon-trash {
   @apply icon-[mdi--delete];
 }
-
 @utility token-icon-copy {
   @apply icon-[mdi--content-copy];
 }
-
 @utility token-icon-clipboard {
   @apply icon-[mdi--clipboard];
 }
-
 @utility token-icon-undo {
   @apply icon-[mdi--undo];
 }
-
 @utility token-icon-redo {
   @apply icon-[mdi--redo];
 }
-
 @utility token-icon-check {
   @apply icon-[mdi--check];
 }
-
 @utility token-icon-check-bold {
   @apply icon-[mdi--check-bold];
 }
-
 @utility token-icon-check-circle {
   @apply icon-[mdi--check-circle];
 }
-
 @utility token-icon-alert {
   @apply icon-[mdi--alert];
 }
-
 @utility token-icon-alert-circle {
   @apply icon-[mdi--alert-circle];
 }
-
 @utility token-icon-information {
   @apply icon-[mdi--information];
 }
-
 @utility token-icon-ellipsis-horizontal {
   @apply icon-[mdi--ellipsis-horizontal];
 }
-
 @utility token-icon-circle {
   @apply icon-[mdi--circle];
 }
-
 @utility token-icon-star {
   @apply icon-[mdi--star];
 }
-
 @utility token-icon-star-half {
   @apply icon-[mdi--star-half];
 }
 
-/* product card icons */
-
 @utility token-icon-cart {
   @apply icon-[mdi-light--cart];
 }
-
 @utility token-icon-eye {
   @apply icon-[mdi--eye];
 }
-
 @utility token-icon-heart {
   @apply icon-[mdi--heart];
 }
-
 @utility token-icon-search {
   @apply icon-[mdi--magnify];
 }
 
-/* Semantic action aliases decoupled from concrete icon glyphs. */
-
 @utility token-icon-increment {
   @apply token-icon-chevron-up;
 }
-
 @utility token-icon-decrement {
   @apply token-icon-chevron-down;
 }
