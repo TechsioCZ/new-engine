@@ -1,65 +1,111 @@
+/*
+ * NumericInput — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * Conventions:
+ *   - Token names match Figma 1:1.
+ *   - All `-invalid` and `-disabled` state colors are flat (no `-base`).
+ *   - `--spacing-numeric-input-{sm,md,lg}` is exported but the TSX uses
+ *     `gap-numeric-input-{size}` utilities (renamed from `-root-{size}`).
+ */
+
 @theme static {
-  /* === BASE TOKEN MAPPING === */
-  --color-numeric-input-bg: var(--color-form-control-bg);
-  --color-numeric-input-hover: oklch(
-    from var(--color-numeric-input-bg) calc(l + var(--state-hover)) c h
+  /* === Container backgrounds === */
+  --color-numeric-input-bg: light-dark(
+    oklch(0.129 0.041 264.695 / 0.05),
+    oklch(1 0 0 / 0.05)
   );
-  --color-numeric-input-focus: oklch(
-    from var(--color-numeric-input-bg) calc(l + var(--state-active)) c h
+  --color-numeric-input-bg-disabled: light-dark(
+    oklch(0.967 0.003 264.542),
+    oklch(0.278 0.034 257.672)
   );
-  --color-numeric-input-border: var(--color-form-control-border);
-  --color-numeric-input-border-hover: var(--color-form-control-border-hover);
-  --color-numeric-input-border-focus: var(--color-form-control-border-focus);
-  --color-numeric-input-fg: var(--color-input-fg);
+  --color-numeric-input-bg-invalid: oklch(0.702 0.189 22.228 / 0.1);
 
-  --color-numeric-input-bg-disabled: var(--color-form-control-bg-disabled);
-  --color-numeric-input-fg-disabled: var(--color-form-control-fg-disabled);
-  --color-numeric-input-border-disabled: var(
-    --color-form-control-border-disabled
+  /* === Container borders === */
+  --color-numeric-input-border: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-numeric-input-border-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-numeric-input-border-focus: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-numeric-input-border-disabled: light-dark(
+    oklch(0.872 0.011 261.787),
+    oklch(0.373 0.034 260.169)
+  );
+  --color-numeric-input-border-invalid: oklch(0.702 0.189 22.228);
+
+  /* === Foreground === */
+  --color-numeric-input-fg: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-numeric-input-fg-disabled: oklch(0.551 0.027 264.328);
+
+  /* === Inner input === */
+  --color-numeric-input-input-bg: oklch(0 0 0 / 0);
+  --color-numeric-input-input-bg-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.1),
+    oklch(1 0 0 / 0.1)
+  );
+  --color-numeric-input-input-bg-focus: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
   );
 
-  --color-numeric-input-invalid-border: var(--color-danger);
-  --color-numeric-input-invalid-bg: --alpha(var(--color-danger) / 10%);
-
-  /* ==== TYPOGRAPHY ==== */
-  --text-numeric-input-sm: var(--text-sm);
-  --text-numeric-input-md: var(--text-md);
-  --text-numeric-input-lg: var(--text-lg);
-
-  /* === INPUT === */
-  --color-numeric-input-input-bg: transparent;
-  --color-numeric-input-input-bg-hover: var(--color-numeric-input-hover);
-  --color-numeric-input-input-bg-focus: var(--color-numeric-input-focus);
-  --padding-numeric-input-input-sm: var(--spacing-100);
-  --padding-numeric-input-input-md: var(--spacing-150);
-  --padding-numeric-input-input-lg: var(--spacing-200);
-
-  /* === TRIGGER === */
-  --color-numeric-input-trigger-container-bg: var(--color-form-control-border);
-  --color-numeric-input-trigger-bg: var(--color-numeric-input-bg);
-  --color-numeric-input-trigger-bg-hover: oklch(
-    from var(--color-numeric-input-trigger-bg) calc(l + var(--state-hover)) c h
+  /* === Triggers === */
+  --color-numeric-input-trigger-container-bg: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
   );
-  --color-numeric-input-trigger-fg: var(--color-numeric-input-fg);
-  --color-numeric-input-trigger-fg-hover: var(--color-primary);
-  --padding-numeric-input-trigger-x: var(--spacing-150);
+  --color-numeric-input-trigger-bg: light-dark(
+    oklch(0.129 0.041 264.695 / 0.05),
+    oklch(1 0 0 / 0.05)
+  );
+  --color-numeric-input-trigger-bg-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.1),
+    oklch(1 0 0 / 0.1)
+  );
+  --color-numeric-input-trigger-fg: light-dark(
+    oklch(0.13 0.043 265.132),
+    oklch(1 0 0)
+  );
+  --color-numeric-input-trigger-fg-hover: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+
+  /* === Focus ring === */
+  --color-numeric-input-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
+
+  /* === Border width === */
+  --border-width-numeric-input: 0.13rem;
+
+  /* === Padding === */
+  --padding-numeric-input-input-sm: 0.31rem;
+  --padding-numeric-input-input-md: 0.59rem;
+  --padding-numeric-input-input-lg: 0.91rem;
+  --padding-numeric-input-trigger-x: 0.63rem;
   --padding-numeric-input-trigger-y: 0rem;
 
-  /* === ROOT GAP === */
-  --gap-numeric-input-root-sm: 0rem;
-  --gap-numeric-input-root-md: 0rem;
-  --gap-numeric-input-root-lg: 0rem;
+  /* === Radius === */
+  --radius-numeric-input: 0.5rem;
+  --radius-numeric-input-sm: 0.25rem;
+  --radius-numeric-input-md: 0.5rem;
+  --radius-numeric-input-lg: 0.75rem;
 
-  /* === INCREMENT BUTTON === */
+  /* === Spacing / gap === */
+  --spacing-numeric-input: 0.06rem;
+  --spacing-numeric-input-sm: 0rem;
+  --spacing-numeric-input-md: 0rem;
+  --spacing-numeric-input-lg: 0rem;
 
-  --radius-numeric-input: var(--radius-form-control);
-  --radius-numeric-input-sm: var(--radius-form-control-sm);
-  --radius-numeric-input-md: var(--radius-form-control-md);
-  --radius-numeric-input-lg: var(--radius-form-control-lg);
-  --border-width-numeric-input: var(--border-width-input);
-
-  /* === FOCUS RING === */
-  --color-numeric-input-ring: var(--color-ring);
+  /* === Text === */
+  --text-numeric-input-sm: 1rem;
+  --text-numeric-input-md: 1.25rem;
+  --text-numeric-input-lg: 1.56rem;
 }
 
 @utility token-icon-numeric-input-increment {
