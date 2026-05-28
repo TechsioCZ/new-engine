@@ -20,20 +20,11 @@
   );
   --color-link-disabled: oklch(0.551 0.027 264.328);
 
-  --color-link-fg-base: oklch(0.507 0.063 255.385);
-  --color-link-fg-hover: light-dark(
-    oklch(0.488 0.243 264.405),
-    oklch(0.504 0.128 245.46)
-  );
-  --color-link-fg-active: light-dark(
-    oklch(0.704 0.158 253.627),
-    oklch(0.748 0.155 233.252)
-  );
-  --color-link-fg-visited: light-dark(
-    oklch(0.547 0.246 262.866),
-    oklch(0.593 0.151 245.368)
-  );
-  --color-link-fg-disabled: oklch(0.551 0.027 264.328);
+  --color-link-fg-base: var(--color-link-base);
+  --color-link-fg-hover: var(--color-link-hover);
+  --color-link-fg-active: var(--color-link-active);
+  --color-link-fg-visited: var(--color-link-visited);
+  --color-link-fg-disabled: var(--color-link-disabled);
 
   --text-link: 1.25rem;
 }

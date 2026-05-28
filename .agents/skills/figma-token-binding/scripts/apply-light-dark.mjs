@@ -24,12 +24,43 @@ import { fileURLToPath } from "node:url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
-const LIGHT_INPUT = join(REPO_ROOT, "libs/ui/src/tokens/figma/light/variables.css")
-const DARK_INPUT = join(REPO_ROOT, "libs/ui/src/tokens/figma/dark/variables.css")
+const LIGHT_INPUT = join(
+  REPO_ROOT,
+  "libs/ui/src/tokens/figma/light/variables.css"
+)
+const DARK_INPUT = join(
+  REPO_ROOT,
+  "libs/ui/src/tokens/figma/dark/variables.css"
+)
 const COMP_DIR_ATOMS = join(REPO_ROOT, "libs/ui/src/tokens/components/atoms")
 
-const PROPERTY_PREFIXES = ["color", "padding", "spacing", "text", "radius", "border-width"]
+const PROPERTY_PREFIXES = [
+  "color",
+  "padding",
+  "spacing",
+  "text",
+  "radius",
+  "border-width",
+]
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
+const THEME_OPEN_RE = /@theme(?:\s+static)?\s*\{/g
+const INNER_DECL_RE = /^([ \t]*)(--[a-z0-9-]+):\s*([^;]+);/gm
+const REF_ALIAS_RE = /^(--color-[a-z0-9-]+?)-(bg|fg|border)(-[a-z0-9-]+)?$/
+const STALE_COMMENT_RE = [
+  /\/\* Dark visuals: explicit \.dark\/\.always-dark, OR \.reverse inside a light parent\. \*\/\n/g,
+  /\/\* Light visuals re-asserted: \.reverse inside a dark parent\. \*\/\n/g,
+  /\/\* Dark mode — class-based path \*\/\n/g,
+  /\/\* Dark mode — system-preference fallback \(suppressed by explicit light class\) \*\/\n/g,
+]
+const STRIP_BLOCK_RES = [
+  /:is\(\.dark, \.always-dark\),\s*\n:is\(\.light, \.always-light\) \.reverse \{/,
+  /:is\(\.dark, \.always-dark\) \.reverse \{/,
+  /:is\(\.dark, \.always-dark\) \{/,
+  /@media \(prefers-color-scheme: dark\) \{/,
+  /@media \(prefers-color-scheme: light\) \{/,
+]
+const BLANK_LINES_RE = /\n{3,}/g
+const TRAILING_WS_RE = /[ \t]+\n/g
 
 function parseDecls(css) {
   const out = new Map()
@@ -41,22 +72,31 @@ function parseDecls(css) {
 }
 
 function isFigmaBoundForComponent(name, component) {
-  if (!name.startsWith("--")) return false
+  if (!name.startsWith("--")) {
+    return false
+  }
   const body = name.slice(2)
   for (const prefix of PROPERTY_PREFIXES) {
-    if (body.startsWith(`${prefix}-${component}-`)) return true
-    if (body === `${prefix}-${component}`) return true
+    if (body.startsWith(`${prefix}-${component}-`)) {
+      return true
+    }
+    if (body === `${prefix}-${component}`) {
+      return true
+    }
   }
   return false
 }
 
 function findClosingBrace(text, openIdx) {
   let depth = 0
-  for (let i = openIdx; i < text.length; i++) {
-    if (text[i] === "{") depth++
-    else if (text[i] === "}") {
-      depth--
-      if (depth === 0) return i
+  for (let i = openIdx; i < text.length; i += 1) {
+    if (text[i] === "{") {
+      depth += 1
+    } else if (text[i] === "}") {
+      depth -= 1
+      if (depth === 0) {
+        return i
+      }
     }
   }
   return -1
@@ -64,75 +104,74 @@ function findClosingBrace(text, openIdx) {
 
 function removeFirstBlock(text, startRegex) {
   const m = text.match(startRegex)
-  if (!m) return { text, removed: false }
+  if (!m) {
+    return { text, removed: false }
+  }
   const start = m.index
   const open = text.indexOf("{", start)
   const close = findClosingBrace(text, open)
-  if (close === -1) return { text, removed: false }
+  if (close === -1) {
+    return { text, removed: false }
+  }
   let end = close + 1
-  while (end < text.length && text[end] === "\n") end++
+  while (end < text.length && text[end] === "\n") {
+    end += 1
+  }
   return { text: text.slice(0, start) + text.slice(end), removed: true }
 }
 
 function stripSelectorBlocks(css) {
-  const candidates = [
-    /:is\(\.dark, \.always-dark\),\s*\n:is\(\.light, \.always-light\) \.reverse \{/,
-    /:is\(\.dark, \.always-dark\) \.reverse \{/,
-    /:is\(\.dark, \.always-dark\) \{/,
-    /@media \(prefers-color-scheme: dark\) \{/,
-    /@media \(prefers-color-scheme: light\) \{/,
-  ]
-  for (let pass = 0; pass < 30; pass++) {
+  let work = css
+  for (let pass = 0; pass < 30; pass += 1) {
     let changed = false
-    for (const re of candidates) {
-      const { text, removed } = removeFirstBlock(css, re)
+    for (const re of STRIP_BLOCK_RES) {
+      const { text, removed } = removeFirstBlock(work, re)
       if (removed) {
-        css = text
+        work = text
         changed = true
       }
     }
-    if (!changed) break
+    if (!changed) {
+      break
+    }
   }
-  return css
+  return work
 }
 
 function stripLeftoverComments(css) {
-  // Remove comments that introduced the now-deleted selector blocks.
-  const phrases = [
-    /\/\* Dark visuals: explicit \.dark\/\.always-dark, OR \.reverse inside a light parent\. \*\/\n/g,
-    /\/\* Light visuals re-asserted: \.reverse inside a dark parent\. \*\/\n/g,
-    /\/\* Dark mode — class-based path \*\/\n/g,
-    /\/\* Dark mode — system-preference fallback \(suppressed by explicit light class\) \*\/\n/g,
-  ]
-  for (const re of phrases) css = css.replace(re, "")
-  // Collapse 3+ blank lines.
-  css = css.replace(/\n{3,}/g, "\n\n")
-  return css
+  let work = css
+  for (const re of STALE_COMMENT_RE) {
+    work = work.replace(re, "")
+  }
+  return work.replace(BLANK_LINES_RE, "\n\n")
 }
 
 function transformThemeBlock(css, valueLookup) {
-  // Find every @theme static { ... } block (there may be only one).
-  const themeOpenRe = /@theme(?:\s+static)?\s*\{/g
-  let match
+  THEME_OPEN_RE.lastIndex = 0
   const segments = []
-  let lastIdx = 0
-  while ((match = themeOpenRe.exec(css)) !== null) {
+  let match = THEME_OPEN_RE.exec(css)
+  while (match !== null) {
     const startBrace = css.indexOf("{", match.index)
     const close = findClosingBrace(css, startBrace)
-    if (close === -1) continue
-    segments.push({ start: match.index, openBrace: startBrace, close })
-    themeOpenRe.lastIndex = close + 1
+    if (close !== -1) {
+      segments.push({ start: match.index, openBrace: startBrace, close })
+      THEME_OPEN_RE.lastIndex = close + 1
+    }
+    match = THEME_OPEN_RE.exec(css)
   }
   let out = css
   // Process in reverse so indices don't shift.
-  for (let i = segments.length - 1; i >= 0; i--) {
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
     const { openBrace, close } = segments[i]
     const inner = out.slice(openBrace + 1, close)
+    INNER_DECL_RE.lastIndex = 0
     const replaced = inner.replace(
-      /^([ \t]*)(--[a-z0-9-]+):\s*([^;]+);/gm,
+      INNER_DECL_RE,
       (full, indent, name, value) => {
         const v = valueLookup(name, value.trim())
-        if (v === null) return full
+        if (v === null) {
+          return full
+        }
         return `${indent}${name}: ${v};`
       }
     )
@@ -141,13 +180,54 @@ function transformThemeBlock(css, valueLookup) {
   return out
 }
 
+// If a token like `--color-X-{bg|fg|border}-Y` has identical light + dark
+// values to a reference token `--color-X-Y` in the same component, alias
+// the derived token instead of duplicating the value. Matches the
+// two-layer convention documented in libs/ui/CLAUDE.md.
+function findReferenceAlias(name, lightDecls, darkDecls, component) {
+  const m = name.match(REF_ALIAS_RE)
+  if (!m) {
+    return null
+  }
+  const refName = `${m[1]}${m[3] ?? ""}`
+  if (refName === name) {
+    return null
+  }
+  if (!lightDecls.has(refName)) {
+    return null
+  }
+  if (!isFigmaBoundForComponent(refName, component)) {
+    return null
+  }
+  if (lightDecls.get(refName) !== lightDecls.get(name)) {
+    return null
+  }
+  if (
+    (darkDecls.get(refName) ?? lightDecls.get(refName)) !==
+    (darkDecls.get(name) ?? lightDecls.get(name))
+  ) {
+    return null
+  }
+  return refName
+}
+
 function buildValueLookup(component, lightDecls, darkDecls) {
-  return (name, originalValue) => {
-    if (!isFigmaBoundForComponent(name, component)) return null
-    if (!lightDecls.has(name)) return null
+  return (name, _originalValue) => {
+    if (!isFigmaBoundForComponent(name, component)) {
+      return null
+    }
+    if (!lightDecls.has(name)) {
+      return null
+    }
+    const ref = findReferenceAlias(name, lightDecls, darkDecls, component)
+    if (ref) {
+      return `var(${ref})`
+    }
     const l = lightDecls.get(name)
     const d = darkDecls.get(name) ?? l
-    if (l === d) return l
+    if (l === d) {
+      return l
+    }
     // Multi-line for readability when values are long.
     if (l.length + d.length > 50) {
       return `light-dark(\n    ${l},\n    ${d}\n  )`
@@ -165,9 +245,14 @@ function processComponent(component, lightDecls, darkDecls) {
   let css = readFileSync(compFile, "utf8")
   css = stripSelectorBlocks(css)
   css = stripLeftoverComments(css)
-  css = transformThemeBlock(css, buildValueLookup(component, lightDecls, darkDecls))
-  css = css.replace(/\n{3,}/g, "\n\n").replace(/[ \t]+\n/g, "\n")
-  if (!css.endsWith("\n")) css += "\n"
+  css = transformThemeBlock(
+    css,
+    buildValueLookup(component, lightDecls, darkDecls)
+  )
+  css = css.replace(BLANK_LINES_RE, "\n\n").replace(TRAILING_WS_RE, "\n")
+  if (!css.endsWith("\n")) {
+    css += "\n"
+  }
   writeFileSync(compFile, css)
   console.log(`✓ rewrote ${compFile}`)
 }
@@ -180,7 +265,9 @@ function main() {
   }
   const lightDecls = parseDecls(readFileSync(LIGHT_INPUT, "utf8"))
   const darkDecls = parseDecls(readFileSync(DARK_INPUT, "utf8"))
-  for (const c of args) processComponent(c, lightDecls, darkDecls)
+  for (const c of args) {
+    processComponent(c, lightDecls, darkDecls)
+  }
 }
 
 main()
