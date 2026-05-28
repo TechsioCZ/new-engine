@@ -1,77 +1,121 @@
+/*
+ * Input — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * Conventions:
+ *   - Base state uses `-base` suffix (bg-base, border-base, fg-base).
+ *   - Validation tokens use `-{role}-base/-hover/-focus`.
+ *   - The shared `--border-width-validation` token from `_semantic.css` is
+ *     still consumed by the TSX; the Figma-exported `--border-width-input-validation`
+ *     is kept available for components that want it.
+ *   - `--padding-input-with-button` keeps the same name (TSX consumes
+ *     `pe-with-button` / `ps-with-button` utilities that resolve to that var).
+ */
+
 @theme static {
-  /* BASE TOKENS - direct mapping from semantic tokens */
-  /* Base input colors */
-  --color-input: var(--color-fill-base);
-  --color-input-border: var(--color-border-primary);
-  --color-input-fg: var(--color-fg-primary);
-  --color-input-bg-disabled: var(--color-bg-disabled);
-
-  /* Validation states - primary colors */
-  --color-input-danger: var(--color-danger);
-  --color-input-success: var(--color-success);
-  --color-input-warning: var(--color-warning);
-
-  /* DERIVED STATES - automatically calculated from base tokens */
-  /* Default state - hover/focus/disabled */
-  --color-input-hover: oklch(
-    from var(--color-input) calc(l + var(--state-hover)) c h
+  /* === Backgrounds === */
+  --color-input-bg-base: light-dark(
+    oklch(0.129 0.041 264.695 / 0.05),
+    oklch(1 0 0 / 0.05)
   );
-  --color-input-focus: oklch(
-    from var(--color-input) calc(l + var(--state-active)) c h
+  --color-input-bg-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.1),
+    oklch(1 0 0 / 0.1)
+  );
+  --color-input-bg-focus: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-input-bg-disabled: light-dark(
+    oklch(0.967 0.003 264.542),
+    oklch(0.278 0.034 257.672)
   );
 
-  --color-input-border-hover: oklch(
-    from var(--color-input-border) calc(l + var(--state-hover)) c h
+  /* === Foregrounds === */
+  --color-input-fg-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-input-fg-disabled: oklch(0.551 0.027 264.328);
+  --color-input-fg-placeholder: oklch(0.554 0.041 257.417);
+
+  /* === Borders === */
+  --color-input-border-base: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
   );
-  --color-input-border-focus: var(--color-primary);
-  --color-input-border-disabled: var(--color-border-disabled);
-
-  /* Error state - hover/focus */
-  --color-input-border-danger: var(--color-input-danger);
-  --color-input-border-danger-hover: oklch(
-    from var(--color-input-danger) calc(l + var(--state-hover)) c h
+  --color-input-border-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
   );
-  --color-input-border-danger-focus: var(--color-input-danger);
-
-  /* Success state - hover/focus */
-  --color-input-border-success: var(--color-input-success);
-  --color-input-border-success-hover: oklch(
-    from var(--color-input-success) calc(l + var(--state-hover)) c h
+  --color-input-border-focus: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
   );
-  --color-input-border-success-focus: var(--color-input-success);
-
-  /* Warning state - hover/focus */
-  --color-input-border-warning: var(--color-input-warning);
-  --color-input-border-warning-hover: oklch(
-    from var(--color-input-warning) calc(l + var(--state-hover)) c h
+  --color-input-border-disabled: light-dark(
+    oklch(0.872 0.011 261.787),
+    oklch(0.373 0.034 260.169)
   );
-  --color-input-border-warning-focus: var(--color-input-warning);
 
-  /* Text colors */
-  --color-input-fg-disabled: var(--color-fg-disabled);
-  --color-input-fg-placeholder: var(--color-fg-placeholder);
+  /* === Validation (danger / success / warning) === */
+  --color-input-danger: oklch(0.702 0.189 22.228);
 
-  /* Focus ring colors - using consistent opacity */
-  --color-input-ring: var(--color-ring);
+  --color-input-border-danger-base: oklch(0.702 0.189 22.228);
+  --color-input-border-danger-hover: light-dark(
+    oklch(0.637 0.208 25.331),
+    oklch(0.711 0.166 22.216)
+  );
+  --color-input-border-danger-focus: light-dark(
+    oklch(0.711 0.166 22.216),
+    oklch(0.808 0.103 19.571)
+  );
 
-  /* Spacing - keeping your existing values */
-  --padding-input-sm: var(--spacing-100) var(--spacing-100);
-  --padding-input-md: var(--spacing-150) var(--spacing-150);
-  --padding-input-lg: var(--spacing-200) var(--spacing-200);
-  --padding-with-button: var(--spacing-950);
+  --color-input-border-success-base: light-dark(
+    oklch(0.702 0.158 160.438),
+    oklch(0.844 0.143 165.23)
+  );
+  --color-input-border-success-hover: light-dark(
+    oklch(0.596 0.127 163.225),
+    oklch(0.773 0.153 163.223)
+  );
+  --color-input-border-success-focus: light-dark(
+    oklch(0.696 0.149 162.48),
+    oklch(0.845 0.13 164.978)
+  );
 
-  /* Typography */
-  --text-input-sm: var(--text-sm);
-  --text-input-md: var(--text-md);
-  --text-input-lg: var(--text-lg);
+  --color-input-border-warning-base: oklch(0.798 0.164 82.706);
+  --color-input-border-warning-hover: light-dark(
+    oklch(0.681 0.142 75.834),
+    oklch(0.795 0.162 86.047)
+  );
+  --color-input-border-warning-focus: light-dark(
+    oklch(0.795 0.162 86.047),
+    oklch(0.861 0.173 91.936)
+  );
 
-  /* Border */
-  --border-width-input: 2px;
-  --radius-input: var(--radius-form-control);
-  --radius-input-sm: var(--radius-form-control-sm);
-  --radius-input-md: var(--radius-form-control-md);
-  --radius-input-lg: var(--radius-form-control-lg);
+  /* === Focus ring === */
+  --color-input-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  /* Form field spacing */
+  /* === Border widths === */
+  --border-width-input: 0.13rem;
+  --border-width-input-validation: 0.19rem;
+
+  /* === Padding === */
+  --padding-input-sm: 0.31rem;
+  --padding-input-md: 0.59rem;
+  --padding-input-lg: 0.91rem;
+  --padding-input-with-button: 7.5rem;
+  --padding-input-with-button-left: 7.5rem;
+  --padding-input-with-button-right: 7.5rem;
+
+  /* === Radius === */
+  --radius-input: 0.5rem;
+  --radius-input-sm: 0.25rem;
+  --radius-input-md: 0.5rem;
+  --radius-input-lg: 0.75rem;
+
+  /* === Text === */
+  --text-input-sm: 1rem;
+  --text-input-md: 1.25rem;
+  --text-input-lg: 1.56rem;
+
+  /* === FormField molecule (not yet in Figma export) === */
   --spacing-form-field-gap: var(--spacing-50);
 }
