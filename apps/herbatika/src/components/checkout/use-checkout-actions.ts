@@ -9,6 +9,7 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils";
+import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils";
 
 type UseCheckoutActionsProps = {
   cartId?: string;
@@ -16,13 +17,15 @@ type UseCheckoutActionsProps = {
   onCompletedOrderIdChange: (orderId: string | null) => void;
   onOrderCompletionAbort: () => void;
   onOrderCompletionStart: () => void;
-  hasPaymentSessions: boolean;
+  onPaymentRedirect: (url: string) => void;
   itemCount: number;
   canInitiatePayment: boolean;
+  selectedPaymentProviderId?: string | null;
   selectedShippingMethodId?: string | null;
   completeCart: () => Promise<unknown>;
   initiatePayment: (providerId: string) => Promise<unknown>;
   onCheckoutErrorChange: (message: string | null) => void;
+  onPaymentProviderSelect: (providerId: string) => void;
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void;
 };
 
@@ -31,13 +34,15 @@ export function useCheckoutActions({
   canInitiatePayment,
   completedOrderId,
   completeCart,
-  hasPaymentSessions,
   initiatePayment,
   itemCount,
   onCheckoutErrorChange,
   onCompletedOrderIdChange,
   onOrderCompletionAbort,
   onOrderCompletionStart,
+  onPaymentProviderSelect,
+  onPaymentRedirect,
+  selectedPaymentProviderId,
   selectedShippingMethodId,
   setShippingMethod,
 }: UseCheckoutActionsProps) {
@@ -78,7 +83,7 @@ export function useCheckoutActions({
     }
 
     try {
-      await initiatePayment(providerId);
+      onPaymentProviderSelect(providerId);
     } catch (error) {
       onCheckoutErrorChange(
         resolveErrorMessage(error, "Nastavenie platby zlyhalo."),
@@ -104,7 +109,7 @@ export function useCheckoutActions({
       return;
     }
 
-    if (!hasPaymentSessions) {
+    if (!selectedPaymentProviderId) {
       onCheckoutErrorChange(
         "Vyberte platobnú metódu pred dokončením objednávky.",
       );
@@ -114,6 +119,14 @@ export function useCheckoutActions({
     onOrderCompletionStart();
 
     try {
+      const paymentCollection = await initiatePayment(selectedPaymentProviderId);
+      const paymentRedirectUrl = resolvePaymentRedirectUrl(paymentCollection);
+
+      if (paymentRedirectUrl) {
+        onPaymentRedirect(paymentRedirectUrl);
+        return;
+      }
+
       const completeResult = await completeCart();
       const orderId = resolveOrderId(completeResult);
 

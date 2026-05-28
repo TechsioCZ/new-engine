@@ -14,6 +14,7 @@ import type {
   MedusaCategoryListInput,
   MedusaCategoryServiceConfig,
 } from "@techsio/storefront-data/categories/medusa-service";
+import type { MedusaCheckoutServiceConfig } from "@techsio/storefront-data/checkout/medusa-service";
 import { createCheckoutQueryKeys } from "@techsio/storefront-data/checkout/query-keys";
 import { createCustomerQueryKeys } from "@techsio/storefront-data/customers/query-keys";
 import type { MedusaCustomerListInput } from "@techsio/storefront-data/customers/medusa-service";
@@ -34,6 +35,7 @@ import type {
   MedusaRegionDetailInput,
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
+import { buildHerbatikaPaymentSessionData } from "./payment-session";
 import { STOREFRONT_PRODUCT_CARD_FIELDS, STOREFRONT_PRODUCT_DETAIL_FIELDS } from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 
@@ -138,4 +140,8 @@ export const storefrontOrderServiceConfig: MedusaOrderServiceConfig = {
   defaultDetailFields: STOREFRONT_ORDER_DETAIL_FIELDS,
   defaultOrder: STOREFRONT_ORDER_DEFAULT_SORT,
   returnNullOnNotFound: true,
+};
+
+export const storefrontCheckoutServiceConfig: MedusaCheckoutServiceConfig = {
+  buildPaymentSessionData: buildHerbatikaPaymentSessionData,
 };

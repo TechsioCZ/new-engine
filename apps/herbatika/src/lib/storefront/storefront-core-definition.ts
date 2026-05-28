@@ -12,6 +12,7 @@ import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import {
   storefrontCatalogServiceConfig,
   storefrontCategoryServiceConfig,
+  storefrontCheckoutServiceConfig,
   storefrontOrderServiceConfig,
   storefrontProductServiceConfig,
   storefrontQueryKeys,
@@ -22,6 +23,9 @@ export const storefrontCoreDefinition = {
   namespace: STOREFRONT_QUERY_KEY_NAMESPACE,
   cacheConfig: storefrontCacheConfig,
   queryKeys: storefrontQueryKeys,
+  checkout: {
+    serviceConfig: storefrontCheckoutServiceConfig,
+  },
   products: {
     serviceConfig: storefrontProductServiceConfig,
     hooks: {

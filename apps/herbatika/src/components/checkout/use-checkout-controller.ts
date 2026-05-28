@@ -17,7 +17,10 @@ import {
   resolveCartTotalWithoutTaxAmount,
   resolveCartItemsSubtotalAmount,
 } from "@/lib/storefront/cart-calculations";
-import { fetchPaymentProviders } from "@/lib/storefront/checkout";
+import {
+  fetchPaymentProviders,
+  resolveSelectedPaymentProviderId,
+} from "@/lib/storefront/checkout";
 import {
   type CheckoutDetailsValues,
   resolveEffectiveCheckoutAddressDetails,
@@ -36,6 +39,11 @@ import {
   resolveCheckoutCountryItemsForRegion,
 } from "./checkout.constants";
 import { resolveHasStoredAddress } from "./checkout-address.utils";
+import {
+  clearStoredPaymentProviderSelection,
+  readStoredPaymentProviderSelection,
+  writeStoredPaymentProviderSelection,
+} from "./checkout-payment-selection-storage";
 import { useCheckoutActions } from "./use-checkout-actions";
 import { useCheckoutDetailsForm } from "./use-checkout-details-form";
 
@@ -48,6 +56,11 @@ export function useCheckoutController() {
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [heurekaConsent, setHeurekaConsent] = useState(false);
+  const [selectedPaymentProviderState, setSelectedPaymentProviderState] =
+    useState<{ cartId?: string | null; providerId: string | null }>({
+      cartId: null,
+      providerId: null,
+    });
   const saveAddressSucceededRef = useRef(false);
 
   const cartQuery = useCart({
@@ -65,11 +78,7 @@ export function useCheckoutController() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const updateCartAddressMutation = useUpdateCartAddress();
   const updateCartMutation = useUpdateCart();
-  const completeCheckoutMutation = storefront.flows.checkout.useCompleteCheckout({
-    cartId: cartQuery.cart?.id,
-    regionId: activeRegionId,
-    enabled: Boolean(activeRegionId),
-  });
+  const completeCheckoutMutation = storefront.flows.cart.useCompleteCart();
   const isUpdatingCartAddress = updateCartAddressMutation.isPending;
   const isBackfillingCartCountry = updateCartMutation.isPending;
   const mutateCart = updateCartMutation.mutate;
@@ -95,6 +104,41 @@ export function useCheckoutController() {
       enabled: Boolean(activeRegionId),
     },
   );
+  const cartSelectedPaymentProviderId = resolveSelectedPaymentProviderId(
+    cartQuery.cart,
+  );
+  const storedPaymentProviderId = readStoredPaymentProviderSelection(
+    cartQuery.cart?.id,
+  );
+  const selectedPaymentProviderId =
+    selectedPaymentProviderState.cartId === cartQuery.cart?.id
+      ? selectedPaymentProviderState.providerId
+      : null;
+  const effectiveSelectedPaymentProviderId =
+    selectedPaymentProviderId ??
+    cartSelectedPaymentProviderId ??
+    storedPaymentProviderId;
+
+  useEffect(() => {
+    const cartId = cartQuery.cart?.id;
+    if (!cartId) {
+      return;
+    }
+
+    const providerId =
+      cartSelectedPaymentProviderId ?? readStoredPaymentProviderSelection(cartId);
+
+    setSelectedPaymentProviderState((current) => {
+      if (current.cartId === cartId && current.providerId) {
+        return current;
+      }
+
+      return {
+        cartId,
+        providerId,
+      };
+    });
+  }, [cartQuery.cart?.id, cartSelectedPaymentProviderId]);
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id;
@@ -145,11 +189,16 @@ export function useCheckoutController() {
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completedOrderId,
-    completeCart: () => completeCheckoutMutation.mutateAsync(undefined),
-    hasPaymentSessions: checkoutPaymentQuery.hasPaymentSessions,
+    completeCart: () =>
+      completeCheckoutMutation.mutateAsync({ cartId: cartQuery.cart?.id }),
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     itemCount: cartQuery.itemCount,
-    onCompletedOrderIdChange: setCompletedOrderId,
+    onCompletedOrderIdChange: (orderId) => {
+      if (orderId) {
+        clearStoredPaymentProviderSelection(cartQuery.cart?.id);
+      }
+      setCompletedOrderId(orderId);
+    },
     onOrderCompletionAbort: () => {
       setAllowCartAutoCreate(true);
     },
@@ -157,6 +206,20 @@ export function useCheckoutController() {
       setAllowCartAutoCreate(false);
     },
     onCheckoutErrorChange: setCheckoutError,
+    onPaymentProviderSelect: (providerId) => {
+      setSelectedPaymentProviderState({
+        cartId: cartQuery.cart?.id,
+        providerId,
+      });
+      writeStoredPaymentProviderSelection({
+        cartId: cartQuery.cart?.id,
+        providerId,
+      });
+    },
+    onPaymentRedirect: (url) => {
+      window.location.assign(url);
+    },
+    selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
   });
@@ -239,7 +302,7 @@ export function useCheckoutController() {
   const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0;
   const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart);
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
-  const hasPayment = checkoutPaymentQuery.hasPaymentSessions;
+  const hasPayment = Boolean(effectiveSelectedPaymentProviderId);
 
   const selectedShippingOptionPrice = useMemo(() => {
     if (!checkoutShippingQuery.selectedShippingMethodId) {
@@ -317,6 +380,7 @@ export function useCheckoutController() {
     isBusy,
     isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
     marketingConsent,
+    selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     setHeurekaConsent,
     setMarketingConsent,
     shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,
@@ -325,7 +389,7 @@ export function useCheckoutController() {
     canCompleteOrder:
       !isBusy &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
-      checkoutPaymentQuery.hasPaymentSessions,
+      Boolean(effectiveSelectedPaymentProviderId),
   };
 }
 

@@ -10,7 +10,6 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section";
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section";
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
-import { resolveSelectedPaymentProviderId } from "@/lib/storefront/checkout";
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section";
 
 type CheckoutStepContentProps = {
@@ -26,9 +25,7 @@ export function CheckoutStepContent({
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba");
   const detailsStepHref = resolveCheckoutStepHref("udaje");
   const summaryStepHref = resolveCheckoutStepHref("suhrn");
-  const selectedPaymentProviderId = resolveSelectedPaymentProviderId(
-    controller.cartQuery.cart,
-  );
+  const selectedPaymentProviderId = controller.selectedPaymentProviderId;
   const selectedShippingOption =
     controller.checkoutShippingQuery.selectedOption;
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined;
@@ -119,12 +116,15 @@ export function CheckoutStepContent({
             hasShipping={controller.hasShipping}
             hasStoredAddress={controller.hasStoredAddress}
             heurekaConsent={controller.heurekaConsent}
-            isCompletingOrder={controller.completeCheckoutMutation.isPending}
+            isCompletingOrder={
+              controller.checkoutPaymentQuery.isInitiatingPayment ||
+              controller.completeCheckoutMutation.isPending
+            }
             marketingConsent={controller.marketingConsent}
             onHeurekaConsentChange={controller.setHeurekaConsent}
             onMarketingConsentChange={controller.setMarketingConsent}
             onCompleteOrder={controller.handleCompleteOrder}
-            paymentProviderId={selectedPaymentProviderId}
+            paymentProviderId={selectedPaymentProviderId ?? undefined}
             paymentLabel={selectedPaymentLabel}
             shippingAddressForm={controller.shippingAddressForm}
             shippingLabel={selectedShippingLabel}
