@@ -1,72 +1,89 @@
+/*
+ * Badge — bound directly to Figma tokens (no fragment imports, no bridges).
+ *
+ * Source: tokens/figma/{light,dark}/variables.css (Figma export).
+ * Re-run the export and update this file when Figma values change.
+ *
+ * Conventions:
+ *   - All Badge color tokens are single-state (no -base/-hover/-active suffixes).
+ *   - Dark mode is overridden via class cascade (`.dark` / `.always-dark`) AND
+ *     `@media (prefers-color-scheme: dark)` so it matches the rest of the
+ *     token system in `_semantic.css`.
+ *   - Font-weight tokens are NOT yet exported from Figma; they stay aliased
+ *     to the global font-weight scale until Figma exports them.
+ *   - `--color-badge-border` (base) is a fallback for the `border-badge-border`
+ *     utility on the root; every variant overrides it with a per-role color.
+ */
+
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-badge-primary: var(--color-primary);
-  --color-badge-secondary: var(--color-secondary);
-  --color-badge-tertiary: var(--color-tertiary);
-  --color-badge-info: var(--color-info);
-  --color-badge-success: var(--color-success);
-  --color-badge-warning: var(--color-warning);
-  --color-badge-danger: var(--color-danger);
+  /* === Sizing === */
+  --padding-badge-sm: 0.19rem;
+  --padding-badge-md: 0.31rem;
+  --padding-badge-lg: 0.63rem;
+  --padding-badge-xl: 0.94rem;
 
-  /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-badge-bg-primary: var(--color-badge-primary);
-  --color-badge-bg-secondary: var(--color-badge-secondary);
-  --color-badge-bg-tertiary: var(--color-badge-tertiary);
-  --color-badge-bg-info: var(--color-badge-info);
-  --color-badge-bg-success: var(--color-badge-success);
-  --color-badge-bg-warning: var(--color-badge-warning);
-  --color-badge-bg-danger: var(--color-badge-danger);
-  --color-badge-bg-discount: var(--color-badge-danger); /* Alias for discount */
+  --text-badge-sm: 0.8rem;
+  --text-badge-md: 0.8rem;
+  --text-badge-lg: 1rem;
+  --text-badge-xl: 1.25rem;
 
-  /* Foreground colors */
-  --color-badge-fg: var(--color-fg-light);
-  --color-badge-fg-primary: var(--color-badge-fg);
-  --color-badge-fg-secondary: var(--color-badge-fg);
-  --color-badge-fg-tertiary: var(--color-badge-fg);
-  --color-badge-fg-info: var(--color-badge-fg);
-  --color-badge-fg-success: var(--color-badge-fg);
-  --color-badge-fg-warning: var(--color-badge-fg);
-  --color-badge-fg-danger: var(--color-badge-fg);
-  --color-badge-fg-discount: var(
-    --color-badge-fg
-  ); /* Keep original for discount */
+  --radius-badge: 0.25rem;
+  --border-width-badge: 0.06rem;
 
-  /* Border colors */
-  --color-badge-border: var(--color-border-primary);
-  --color-badge-border-primary: transparent;
-  --color-badge-border-secondary: transparent;
-  --color-badge-border-tertiary: transparent;
-  --color-badge-border-info: transparent;
-  --color-badge-border-success: transparent;
-  --color-badge-border-warning: transparent;
-  --color-badge-border-danger: transparent;
-  --color-badge-border-discount: transparent;
-
-  /* === COMPONENT VARIANTS === */
-  /* Outline variant */
-  --color-badge-bg-outline: transparent;
-  --color-badge-fg-outline: var(--color-fg-secondary);
-  --color-badge-border-outline: var(--color-badge-border);
-
-  /* === SPACING === */
-  --spacing-badge-sm: var(--spacing-50);
-  --spacing-badge-md: var(--spacing-100);
-  --spacing-badge-lg: var(--spacing-150);
-  --spacing-badge-xl: var(--spacing-200);
-
-  /* === TYPOGRAPHY === */
-  --text-badge-sm: var(--text-xs);
-  --text-badge-md: var(--text-xs);
-  --text-badge-lg: var(--text-sm);
-  --text-badge-xl: var(--text-md);
-
+  /* === Font weights (not yet in Figma export) === */
   --font-weight-badge-sm: var(--font-weight-light);
   --font-weight-badge-md: var(--font-weight-medium);
   --font-weight-badge-lg: var(--font-weight-semibold);
   --font-weight-badge-xl: var(--font-weight-bold);
-  /* === BORDERS & RADIUS === */
-  --radius-badge: var(--radius-sm);
-  --border-width-badge: var(--border-width-sm);
+
+  /* === Base border fallback (overridden by every variant) === */
+  --color-badge-border: oklch(0 0 0 / 0);
+
+  /* === Backgrounds === */
+  --color-badge-bg-primary: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-badge-bg-secondary: light-dark(
+    oklch(0.7 0.202 44.441),
+    oklch(0.772 0.173 65.367)
+  );
+  --color-badge-bg-tertiary: light-dark(
+    oklch(0.823 0.119 346.157),
+    oklch(0.806 0.112 11.594)
+  );
+  --color-badge-bg-info: oklch(0.704 0.123 182.503);
+  --color-badge-bg-success: light-dark(
+    oklch(0.702 0.158 160.438),
+    oklch(0.844 0.143 165.23)
+  );
+  --color-badge-bg-warning: oklch(0.798 0.164 82.706);
+  --color-badge-bg-danger: oklch(0.702 0.189 22.228);
+  --color-badge-bg-discount: oklch(0.702 0.189 22.228);
+  --color-badge-bg-outline: oklch(0 0 0 / 0);
+
+  /* === Foregrounds === */
+  --color-badge-fg-primary: oklch(0.13 0.043 265.132);
+  --color-badge-fg-secondary: oklch(0.13 0.043 265.132);
+  --color-badge-fg-tertiary: oklch(0.13 0.043 265.132);
+  --color-badge-fg-info: oklch(0.13 0.043 265.132);
+  --color-badge-fg-success: oklch(0.13 0.043 265.132);
+  --color-badge-fg-warning: oklch(0.13 0.043 265.132);
+  --color-badge-fg-danger: oklch(0.13 0.043 265.132);
+  --color-badge-fg-discount: oklch(0.13 0.043 265.132);
+  --color-badge-fg-outline: oklch(0.494 0.037 261.595);
+
+  /* === Borders === */
+  --color-badge-border-primary: oklch(0 0 0 / 0);
+  --color-badge-border-secondary: oklch(0 0 0 / 0);
+  --color-badge-border-tertiary: oklch(0 0 0 / 0);
+  --color-badge-border-info: oklch(0 0 0 / 0);
+  --color-badge-border-success: oklch(0 0 0 / 0);
+  --color-badge-border-warning: oklch(0 0 0 / 0);
+  --color-badge-border-danger: oklch(0 0 0 / 0);
+  --color-badge-border-discount: oklch(0 0 0 / 0);
+  --color-badge-border-outline: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
 }

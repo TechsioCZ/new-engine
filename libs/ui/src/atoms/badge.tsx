@@ -38,10 +38,10 @@ const badgeVariants = tv({
       dynamic: [],
     },
     size: {
-      sm: ["text-badge-sm font-badge-sm", "p-badge-sm"],
-      md: ["text-badge-md font-badge-md", "p-badge-md"],
-      lg: ["text-badge-lg font-badge-lg", "p-badge-lg"],
-      xl: ["text-badge-xl font-badge-xl", "p-badge-xl"],
+      sm: ["font-badge-sm text-badge-sm", "p-badge-sm"],
+      md: ["font-badge-md text-badge-md", "p-badge-md"],
+      lg: ["font-badge-lg text-badge-lg", "p-badge-lg"],
+      xl: ["font-badge-xl text-badge-xl", "p-badge-xl"],
     },
   },
   defaultVariants: {
@@ -92,7 +92,7 @@ export function Badge({
         ...style,
         backgroundColor: bgColor,
         color: fgColor,
-        borderColor: borderColor,
+        borderColor,
       }
     : style
 
