@@ -5,6 +5,7 @@ import {
   toActionRequiredOrder,
   toPendingB2BCustomer,
 } from "./rules"
+import { toActionRequiredSummary } from "./summary"
 import type {
   ActionRequiredListParams,
   ActionRequiredOrdersResponse,
@@ -207,12 +208,12 @@ export function createMedusaActionRequiredService(
       limit: ACTION_REQUIRED_DEFAULT_LIST_LIMIT,
       offset: ACTION_REQUIRED_DEFAULT_LIST_OFFSET,
     }
-    const [orders, customers] = await Promise.all([
+    const [ordersResult, customersResult] = await Promise.allSettled([
       getOrders(params, signal),
       getCustomers(params, signal),
     ])
 
-    return { customers, orders }
+    return toActionRequiredSummary(ordersResult, customersResult)
   }
 
   return {

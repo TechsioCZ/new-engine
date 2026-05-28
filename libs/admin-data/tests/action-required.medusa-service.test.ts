@@ -70,13 +70,13 @@ describe("createMedusaActionRequiredService", () => {
 
     const summary = await service.getSummary({})
 
-    expect(summary.orders.orders).toEqual([
+    expect(summary.orders?.orders).toEqual([
       expect.objectContaining({
         id: "ord_1",
         payment_status: "not_paid",
       }),
     ])
-    expect(summary.customers.customers).toEqual([
+    expect(summary.customers?.customers).toEqual([
       expect.objectContaining({
         id: "cus_1",
       }),

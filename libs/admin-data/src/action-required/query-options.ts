@@ -26,6 +26,8 @@ type QueryOptionsInput<TData> = {
   queryOptions?: ReadQueryOptions<TData>
 }
 
+export const ACTION_REQUIRED_SUMMARY_REFETCH_INTERVAL_MS = 60_000
+
 export type ActionRequiredQueryOptionsFactory = {
   getCustomersQueryOptions: (
     input?: ActionRequiredListInput,
@@ -107,6 +109,7 @@ export function createActionRequiredQueryOptionsFactory({
       return {
         queryFn: ({ signal }) => service.getSummary(params, signal),
         queryKey: resolvedQueryKeys.summary(params),
+        refetchInterval: ACTION_REQUIRED_SUMMARY_REFETCH_INTERVAL_MS,
         ...cacheOptions,
         ...options.queryOptions,
       }

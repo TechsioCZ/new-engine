@@ -49,8 +49,8 @@ export type PendingB2BCustomersResponse = {
 }
 
 export type ActionRequiredSummary = {
-  customers: PendingB2BCustomersResponse
-  orders: ActionRequiredOrdersResponse
+  customers: PendingB2BCustomersResponse | null
+  orders: ActionRequiredOrdersResponse | null
 }
 
 export type ActionRequiredListInput = {
