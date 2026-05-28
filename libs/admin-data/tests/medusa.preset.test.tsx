@@ -8,6 +8,7 @@ import type {
   OrderBusinessStatusSummary,
   OrderExpeditionService,
 } from "../src/order-expedition/types"
+import type { AdminDataFetch } from "../src/shared/admin-client"
 
 const createWrapper = (client: QueryClient) =>
   function Wrapper({ children }: { children: ReactNode }) {
@@ -26,6 +27,75 @@ const orderSummary = {
 } satisfies OrderBusinessStatusSummary
 
 describe("createMedusaAdminDataPreset", () => {
+  it("accepts a Medusa SDK at the preset root", async () => {
+    const blockedPayload = {
+      blocked_orders: [
+        {
+          id: "ord_1",
+          order_display_id: "#1",
+          reason: "Order is already completed",
+        },
+      ],
+      message: "One or more selected orders cannot transition",
+    }
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(blockedPayload), {
+          headers: { "content-type": "application/json" },
+          status: 400,
+        })
+      ) as unknown as AdminDataFetch
+    const sdkFetch = vi.fn()
+    const sdkClient = {
+      fetch: sdkFetch,
+      getToken() {
+        return this.token
+      },
+      token: "token_123",
+    }
+    const preset = createMedusaAdminDataPreset({
+      baseUrl: "https://admin.example",
+      fetch: fetchImpl,
+      sdk: {
+        client: sdkClient,
+      },
+    })
+
+    await expect(preset.client.fetchJson("/admin/custom")).resolves.toEqual({
+      ok: true,
+    })
+
+    expect(preset.queryKeys.actionRequired.all()).toEqual([
+      "admin-data",
+      "https://admin.example",
+      "action-required",
+    ])
+    expect(sdkFetch).not.toHaveBeenCalled()
+
+    const init = vi.mocked(fetchImpl).mock.calls[0]?.[1]
+
+    expect(vi.mocked(fetchImpl).mock.calls[0]?.[0]).toBe(
+      "https://admin.example/admin/custom"
+    )
+    expect(new Headers(init?.headers).get("authorization")).toBe(
+      "Bearer token_123"
+    )
+    await expect(
+      preset.client.fetchJson("/admin/order-expedition/status", {
+        method: "POST",
+      })
+    ).rejects.toMatchObject({
+      payload: blockedPayload,
+      status: 400,
+    })
+  })
+
   it("composes action-required query keys, services, and hooks", async () => {
     const service = {
       getCustomers: vi.fn(async () => ({
@@ -137,6 +207,16 @@ describe("createMedusaAdminDataPreset", () => {
 
     await waitFor(() => expect(result.current.summary).toBeDefined())
 
+    expect(result.current.summary).toEqual({
+      customers: expect.objectContaining({
+        count: 0,
+      }),
+      orders: expect.objectContaining({
+        count: 1,
+      }),
+    })
     expect(service.getSummary).toHaveBeenCalledWith({}, expect.any(AbortSignal))
+    expect(service.getOrders).not.toHaveBeenCalled()
+    expect(service.getCustomers).not.toHaveBeenCalled()
   })
 })

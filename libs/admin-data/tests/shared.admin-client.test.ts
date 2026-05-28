@@ -4,7 +4,7 @@ import {
   createFetchAdminDataClient,
   createMedusaSdkAdminDataClient,
 } from "../src/shared/admin-client"
-import type { AdminApiError } from "../src/shared/error-utils"
+import { AdminApiError } from "../src/shared/error-utils"
 
 describe("admin data client", () => {
   it("treats 204 JSON responses as undefined and injects bearer tokens", async () => {
@@ -78,5 +78,52 @@ describe("admin data client", () => {
         headers: expect.objectContaining({ accept: null }),
       })
     )
+  })
+
+  it("parses SDK JSON responses through the admin data client", async () => {
+    const sdkFetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ ok: true }), {
+          headers: { "content-type": "application/json" },
+        })
+    )
+    const client = createMedusaSdkAdminDataClient({
+      client: {
+        fetch: sdkFetch,
+      },
+    })
+
+    await expect(client.fetchJson("/admin/custom")).resolves.toEqual({
+      ok: true,
+    })
+
+    expect(sdkFetch).toHaveBeenCalledWith(
+      "/admin/custom",
+      expect.objectContaining({
+        headers: expect.objectContaining({ accept: null }),
+      })
+    )
+  })
+
+  it("preserves payloads from SDK-compatible client errors when available", async () => {
+    const payload = {
+      blocked_orders: [{ id: "ord_1" }],
+      message: "Order is blocked",
+    }
+    const sdkFetch = vi.fn(async () => {
+      throw new AdminApiError("Order is blocked", 400, payload)
+    })
+    const client = createMedusaSdkAdminDataClient({
+      client: {
+        fetch: sdkFetch,
+      },
+    })
+
+    await expect(
+      client.fetchJson("/admin/order-expedition/status")
+    ).rejects.toMatchObject({
+      payload,
+      status: 400,
+    } satisfies Partial<AdminApiError>)
   })
 })

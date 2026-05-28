@@ -3,6 +3,7 @@ import { AdminApiError } from "./error-utils"
 const TRAILING_SLASHES_REGEX = /\/+$/u
 
 export type AdminDataFetch = typeof fetch
+type ErrorLikePayload = { payload?: unknown }
 type MedusaSdkHeaderValue = string | null | { tags: string[] }
 
 export type AdminDataClientConfig = {
@@ -26,6 +27,11 @@ export type MedusaSdkHttpClient = {
     path: string,
     options?: MedusaSdkFetchOptions
   ) => Promise<TResponse>
+  getToken?: () =>
+    | Promise<string | null | undefined>
+    | string
+    | null
+    | undefined
 }
 
 export type MedusaSdkAdminDataClientConfig = {
@@ -166,6 +172,12 @@ function hasStringMessage(error: unknown): error is { message: string } {
   )
 }
 
+function getErrorPayload(error: unknown) {
+  return typeof error === "object" && error !== null && "payload" in error
+    ? (error as ErrorLikePayload).payload
+    : undefined
+}
+
 function toMedusaHeaders(headers?: HeadersInit) {
   const normalizedHeaders = new Headers(headers)
   const result: Record<string, MedusaSdkHeaderValue> = {}
@@ -195,12 +207,17 @@ async function normalizeSdkError<TResponse>(request: () => Promise<TResponse>) {
   try {
     return await request()
   } catch (error) {
+    if (error instanceof AdminApiError) {
+      throw error
+    }
+
     if (hasNumberStatus(error)) {
       throw new AdminApiError(
         hasStringMessage(error)
           ? error.message
           : `Admin API request failed with ${error.status}`,
-        error.status
+        error.status,
+        getErrorPayload(error)
       )
     }
 
@@ -283,6 +300,14 @@ export function createFetchAdminDataClient({
 
 export const createAdminDataClient = createFetchAdminDataClient
 
+/**
+ * Adapter for callers that explicitly want to use `sdk.client.fetch`.
+ *
+ * Prefer `createMedusaAdminDataPreset({ baseUrl, sdk })` or
+ * `createFetchAdminDataClient` for custom Admin API flows that rely on
+ * structured non-2xx response payloads. Medusa SDK fetch preserves auth headers
+ * but drops those payloads when it throws.
+ */
 export function createMedusaSdkAdminDataClient({
   client,
   sdk,
@@ -328,9 +353,7 @@ export function createMedusaSdkAdminDataClient({
       return (await fetchRawResponse(path, options)).blob()
     },
     fetchJson<TResponse>(path: string, options = {}) {
-      return normalizeSdkError(() =>
-        sdkClient.fetch<TResponse>(path, createSdkOptions(options))
-      )
+      return fetchRawResponse(path, options).then(readJsonResponse<TResponse>)
     },
     async fetchText(path, options = {}) {
       return (await fetchRawResponse(path, options)).text()

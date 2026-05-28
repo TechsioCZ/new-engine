@@ -126,4 +126,24 @@ describe("createMedusaOrderExpeditionService", () => {
       targetStatus: "completed",
     })
   })
+
+  it("rethrows 400 status transitions without a blocker payload", async () => {
+    const error = new AdminApiError("Invalid status transition", 400, {
+      message: "Invalid status transition",
+    })
+    const fetchJsonMock = vi.fn(
+      (): Promise<OrderExpeditionStatusUpdateResponse> => Promise.reject(error)
+    )
+    const client = createClient({
+      fetchJson: fetchJsonMock as AdminDataClient["fetchJson"],
+    })
+    const service = createMedusaOrderExpeditionService(client)
+
+    await expect(
+      service.updateStatus({
+        orderIds: ["ord_1"],
+        targetStatus: "completed",
+      })
+    ).rejects.toBe(error)
+  })
 })

@@ -119,9 +119,15 @@ function toStatusUpdateSuccess(
 function toBlockedStatusUpdateResult(
   error: AdminApiError,
   fallbackTargetStatus: OrderExpeditionTargetStatus
-): OrderExpeditionStatusUpdateResult {
+): OrderExpeditionStatusUpdateResult | null {
+  const blockedOrders = getBlockingOrders(error.payload)
+
+  if (blockedOrders.length === 0) {
+    return null
+  }
+
   return {
-    blockedOrders: getBlockingOrders(error.payload),
+    blockedOrders,
     message: getPayloadMessage(error.payload, error.message),
     ok: false,
     targetStatus: getTargetStatus(error.payload, fallbackTargetStatus),
@@ -196,7 +202,11 @@ export function createMedusaOrderExpeditionService(
       return toStatusUpdateSuccess(response)
     } catch (error) {
       if (error instanceof AdminApiError && error.status === 400) {
-        return toBlockedStatusUpdateResult(error, input.targetStatus)
+        const result = toBlockedStatusUpdateResult(error, input.targetStatus)
+
+        if (result) {
+          return result
+        }
       }
 
       throw error

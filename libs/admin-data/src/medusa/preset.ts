@@ -23,6 +23,7 @@ import type {
 import {
   type AdminDataClient,
   type AdminDataClientConfig,
+  type MedusaSdkAdminDataClientConfig,
   createAdminDataClient,
 } from "../shared/admin-client"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
@@ -48,15 +49,24 @@ type OrderExpeditionPresetConfig = {
 
 type CreatePresetWithFetchClientConfig = AdminDataClientConfig & {
   client?: AdminDataClient
+  sdk?: never
 }
 
 type CreatePresetWithInjectedClientConfig = Partial<AdminDataClientConfig> & {
   client: AdminDataClient
+  sdk?: never
+}
+
+type CreatePresetWithMedusaSdkConfig = Partial<AdminDataClientConfig> & {
+  baseUrl: string
+  client?: never
+  sdk: NonNullable<MedusaSdkAdminDataClientConfig["sdk"]>
 }
 
 export type CreateMedusaAdminDataPresetConfig = (
   | CreatePresetWithFetchClientConfig
   | CreatePresetWithInjectedClientConfig
+  | CreatePresetWithMedusaSdkConfig
 ) & {
   actionRequired?: ActionRequiredPresetConfig
   cacheConfig?: CacheConfig
@@ -89,17 +99,39 @@ export function createMedusaAdminDataQueryKeys(namespace: QueryNamespace) {
   }
 }
 
+function getSdkTokenGetter(sdk: MedusaSdkAdminDataClientConfig["sdk"]) {
+  const getToken = sdk?.client.getToken
+
+  return getToken ? () => getToken.call(sdk.client) : undefined
+}
+
 function resolveFetchClientConfig(
   client: AdminDataClient | undefined,
-  clientConfig: Partial<AdminDataClientConfig>
+  clientConfig: Partial<AdminDataClientConfig> & {
+    sdk?: MedusaSdkAdminDataClientConfig["sdk"]
+  }
 ): AdminDataClient {
   if (client) {
     return client
   }
 
+  if (clientConfig.sdk) {
+    if (!clientConfig.baseUrl) {
+      throw new Error(
+        "createMedusaAdminDataPreset requires baseUrl when sdk is provided"
+      )
+    }
+
+    return createAdminDataClient({
+      baseUrl: clientConfig.baseUrl,
+      fetch: clientConfig.fetch,
+      getToken: clientConfig.getToken ?? getSdkTokenGetter(clientConfig.sdk),
+    })
+  }
+
   if (!clientConfig.baseUrl) {
     throw new Error(
-      "createMedusaAdminDataPreset requires baseUrl when client is not provided"
+      "createMedusaAdminDataPreset requires client, sdk, or baseUrl"
     )
   }
 
