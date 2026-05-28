@@ -1,45 +1,82 @@
+/*
+ * Checkbox — bound directly to Figma tokens (no fragment imports, no bridges).
+ *
+ * Source: tokens/figma/{light,dark}/variables.css (Figma export).
+ * Re-run the export and update this file when Figma values change.
+ *
+ * Conventions:
+ *   - Base state uses `-base` suffix (bg-base, border-base) to match Figma.
+ *   - State tokens (checked, indeterminate, disabled) have no extra suffix.
+ *   - Dark mode is overridden via class cascade (`.dark` / `.always-dark`) AND
+ *     `@media (prefers-color-scheme: dark)` so it matches the rest of the
+ *     token system in `_semantic.css`.
+ *   - `--spacing-checkbox`, `--spacing-checkbox-indeterminate-icon`, and the
+ *     `--spacing-form-checkbox-*` tokens are NOT yet exported from Figma;
+ *     they stay aliased to the global spacing scale.
+ */
+
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-checkbox-primary: var(--color-primary);
-  --color-checkbox-success: var(--color-success);
-  --color-checkbox-danger: var(--color-danger);
-
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-checkbox-bg: var(--color-fill-active);
-  --color-checkbox-bg-checked: var(--color-checkbox-success);
-  --color-checkbox-bg-indeterminate: var(--color-checkbox-primary);
-
-  /* Foreground colors (icons/checkmarks) */
-  --color-checkbox-fg-checked: var(--color-fg-dark);
-  --color-checkbox-fg-indeterminate: var(--color-fg-dark);
-
-  /* Border colors */
-  --color-checkbox-border: var(--color-border-primary);
-  --color-checkbox-border-checked: var(--color-checkbox-success);
-  --color-checkbox-border-indeterminate: var(--color-checkbox-primary);
-
-  /* === VALIDATION STATES === */
-  --color-checkbox-border-error: var(--color-checkbox-danger);
-  --color-checkbox-ring-error: var(--color-checkbox-danger);
-
-  /* === DISABLED STATES === */
-  --color-checkbox-bg-disabled: var(--color-bg-disabled);
-  --color-checkbox-fg-disabled: var(--color-fg-disabled);
-  --color-checkbox-border-disabled: var(--color-border-disabled);
-
-  /* === FOCUS RINGS === */
-  --color-checkbox-ring-focus: var(--color-ring);
-
-  /* === SPACING === */
+  /* === Sizing (not yet in Figma export) === */
   --spacing-checkbox: var(--spacing-200);
   --spacing-checkbox-indeterminate-icon: 60%;
 
-  /* === BORDERS & RADIUS === */
-  --radius-checkbox: var(--radius-sm);
+  /* === Radius === */
+  --radius-checkbox: 0.25rem;
+  --radius-checkbox-indeterminate: 0.25rem;
 
-  /* === FORM CHECKBOX MOLECULE === */
+  /* === Border widths === */
+  --border-width-checkbox: 0.06rem;
+  --border-width-checkbox-error: 0.13rem;
+
+  /* === Backgrounds === */
+  --color-checkbox-bg-base: light-dark(
+    oklch(0.967 0.003 264.542),
+    oklch(0.278 0.034 257.672)
+  );
+  --color-checkbox-bg-checked: light-dark(
+    oklch(0.702 0.158 160.438),
+    oklch(0.844 0.143 165.23)
+  );
+  --color-checkbox-bg-indeterminate: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-checkbox-bg-disabled: light-dark(
+    oklch(0.967 0.003 264.542),
+    oklch(0.278 0.034 257.672)
+  );
+
+  /* === Foregrounds (icons / checkmark) === */
+  --color-checkbox-fg-checked: oklch(1 0 0);
+  --color-checkbox-fg-indeterminate: oklch(1 0 0);
+  --color-checkbox-fg-disabled: oklch(0.551 0.027 264.328);
+
+  /* === Borders === */
+  --color-checkbox-border-base: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-checkbox-border-checked: light-dark(
+    oklch(0.702 0.158 160.438),
+    oklch(0.844 0.143 165.23)
+  );
+  --color-checkbox-border-indeterminate: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-checkbox-border-disabled: light-dark(
+    oklch(0.872 0.011 261.787),
+    oklch(0.373 0.034 260.169)
+  );
+
+  /* === Validation === */
+  --color-checkbox-border-error: oklch(0.702 0.189 22.228);
+  --color-checkbox-ring-error: oklch(0.702 0.189 22.228);
+
+  /* === Focus ring === */
+  --color-checkbox-ring-focus: light-dark(oklch(0 0 0), oklch(1 0 0));
+
+  /* === FormCheckbox molecule (not yet in Figma export) === */
   --spacing-form-checkbox-gap: var(--spacing-150);
   --spacing-form-checkbox-text-offset: calc(
     var(--spacing-checkbox) +
