@@ -1,9 +1,6 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useMemo } from "react"
-import type {
-  OrderBusinessStatusId,
-  OrderExpeditionCarrierKey,
-} from "../../admin-types"
+import type { OrderExpeditionCarrierKey } from "../../admin-types"
 import { ORDER_EXPEDITION_LIST_LIMIT } from "../api/constants"
 import {
   useOrderBusinessStatusesByIds,
@@ -19,30 +16,30 @@ import {
 import {
   ALL_CARRIERS,
   getDashboardCountsByView,
+  getDashboardViewFilter,
   ORDER_DASHBOARD_VIEW_ITEMS,
   type OrderDashboardViewId,
-  type OrderExpeditionQueryView,
 } from "../model/views"
 
 export function useOrderExpeditionData({
-  businessStatus,
   carrier,
   dashboardView,
-  expeditionView,
   offset,
 }: {
-  businessStatus: OrderBusinessStatusId | "all"
   carrier: OrderExpeditionCarrierKey | "all"
   dashboardView: OrderDashboardViewId
-  expeditionView: OrderExpeditionQueryView
   offset: number
 }) {
   const carriersQuery = useOrderExpeditionCarriers()
+  const dashboardViewFilter = useMemo(
+    () => getDashboardViewFilter(dashboardView),
+    [dashboardView]
+  )
   const ordersQuery = useOrderExpeditionOrders({
-    businessStatus,
     carrier,
+    filter: dashboardViewFilter,
     offset,
-    view: expeditionView,
+    view: dashboardView,
   })
   const dashboardCountQueries = useOrderExpeditionDashboardCounts({
     carrier,

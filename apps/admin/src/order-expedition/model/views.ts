@@ -5,7 +5,6 @@ import type {
 import { isOrderBusinessStatusId, ORDER_BUSINESS_STATUS_IDS } from "./statuses"
 
 export const ALL_CARRIERS = "all"
-export const ALL_BUSINESS_STATUSES = "all"
 
 export const ORDER_DASHBOARD_VIEW_IDS = [
   "all",
@@ -13,8 +12,28 @@ export const ORDER_DASHBOARD_VIEW_IDS = [
   ...ORDER_BUSINESS_STATUS_IDS,
 ] as const
 
+export const ORDER_UNRESOLVED_STATUS_IDS = [
+  "new",
+  "awaiting_payment",
+  "paid",
+  "processing",
+  "waiting_for_supplier",
+] as const satisfies readonly OrderBusinessStatusId[]
+
 export type OrderDashboardViewId = (typeof ORDER_DASHBOARD_VIEW_IDS)[number]
-export type OrderExpeditionQueryView = "all" | "action-required"
+
+export type OrderDashboardViewFilter =
+  | {
+      kind: "all"
+    }
+  | {
+      kind: "status"
+      status: OrderBusinessStatusId
+    }
+  | {
+      kind: "statuses"
+      statuses: readonly OrderBusinessStatusId[]
+    }
 
 export const ORDER_DASHBOARD_VIEW_ITEMS: Array<{
   label: string
@@ -72,20 +91,70 @@ export function readOrderExpeditionCarrier(
   return isOrderExpeditionCarrierKey(value) ? value : ALL_CARRIERS
 }
 
-export function getBusinessStatusForDashboardView(
+export function getDashboardViewFilter(
   view: OrderDashboardViewId
-): OrderBusinessStatusId | "all" {
+): OrderDashboardViewFilter {
   if (view === "action-required") {
-    return "awaiting_payment"
+    return {
+      kind: "statuses",
+      statuses: ORDER_UNRESOLVED_STATUS_IDS,
+    }
   }
 
-  return isOrderBusinessStatusId(view) ? view : ALL_BUSINESS_STATUSES
+  if (isOrderBusinessStatusId(view)) {
+    return {
+      kind: "status",
+      status: view,
+    }
+  }
+
+  return {
+    kind: "all",
+  }
 }
 
-export function getExpeditionViewForDashboardView(
-  view: OrderDashboardViewId
-): OrderExpeditionQueryView {
-  return view === "action-required" ? view : "all"
+export function getDashboardCountQueryViews(
+  views: readonly OrderDashboardViewId[]
+) {
+  const queryViews = new Set<OrderDashboardViewId>()
+
+  for (const view of views) {
+    const filter = getDashboardViewFilter(view)
+
+    if (filter.kind === "statuses") {
+      for (const status of filter.statuses) {
+        queryViews.add(status)
+      }
+    } else {
+      queryViews.add(view)
+    }
+  }
+
+  return [...queryViews]
+}
+
+function getAggregateDashboardTabCount(
+  counts: Map<OrderDashboardViewId, DashboardTabCount>,
+  statuses: readonly OrderBusinessStatusId[]
+) {
+  let count = 0
+  let countExact = true
+
+  for (const status of statuses) {
+    const statusCount = counts.get(status)
+
+    if (!statusCount) {
+      return
+    }
+
+    count += statusCount.count
+    countExact = countExact && statusCount.countExact
+  }
+
+  return {
+    count,
+    countExact,
+  }
 }
 
 export function getOffsetSearchParams(
@@ -160,6 +229,15 @@ export function getDashboardCountsByView({
         countExact: count.count_exact,
       })
     }
+  }
+
+  const unresolvedCount = getAggregateDashboardTabCount(
+    counts,
+    ORDER_UNRESOLVED_STATUS_IDS
+  )
+
+  if (unresolvedCount) {
+    counts.set("action-required", unresolvedCount)
   }
 
   const activeTabCount = counts.get(activeView)

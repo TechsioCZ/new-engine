@@ -8,9 +8,12 @@ import type {
   OrderExpeditionOrdersResponse,
 } from "../../admin-types"
 import {
-  getBusinessStatusForDashboardView,
-  type OrderExpeditionQueryView,
+  getDashboardCountQueryViews,
+  getDashboardCountsByView,
+  getDashboardViewFilter,
+  type OrderDashboardViewFilter,
 } from "../model/views"
+import { aggregateOrderExpeditionOrdersResponses } from "./aggregate-orders"
 import {
   ORDER_EXPEDITION_DASHBOARD_COUNT_LIMIT,
   ORDER_EXPEDITION_LIST_LIMIT,
@@ -74,38 +77,76 @@ function fetchOrderExpeditionCarriersFromAdminApi(): Promise<OrderExpeditionCarr
 function fetchOrderExpeditionOrdersFromAdminApi({
   businessStatus,
   carrier,
+  limit,
   offset,
 }: {
   businessStatus: OrderBusinessStatusId | "all"
   carrier: OrderExpeditionCarrierKey | "all"
+  limit: number
   offset: number
-  view: OrderExpeditionQueryView
 }): Promise<OrderExpeditionOrdersResponse> {
   return fetchAdminApi<OrderExpeditionOrdersResponse>(
     "/admin/order-expedition/orders",
     {
       ...(businessStatus === "all" ? {} : { business_status: businessStatus }),
       ...(carrier === "all" ? {} : { carrier }),
-      limit: String(ORDER_EXPEDITION_LIST_LIMIT),
+      limit: String(limit),
       offset: String(offset),
     }
   ).then(normalizeOrderExpeditionOrdersResponse)
+}
+
+async function fetchOrderExpeditionOrdersForFilter({
+  carrier,
+  filter,
+  limit = ORDER_EXPEDITION_LIST_LIMIT,
+  offset,
+}: {
+  carrier: OrderExpeditionCarrierKey | "all"
+  filter: OrderDashboardViewFilter
+  limit?: number
+  offset: number
+}): Promise<OrderExpeditionOrdersResponse> {
+  if (filter.kind !== "statuses") {
+    return fetchOrderExpeditionOrdersFromAdminApi({
+      businessStatus: filter.kind === "status" ? filter.status : "all",
+      carrier,
+      limit,
+      offset,
+    })
+  }
+
+  const aggregateLimit = offset + limit
+  const responses = await Promise.all(
+    filter.statuses.map((status) =>
+      fetchOrderExpeditionOrdersFromAdminApi({
+        businessStatus: status,
+        carrier,
+        limit: aggregateLimit,
+        offset: 0,
+      })
+    )
+  )
+
+  return aggregateOrderExpeditionOrdersResponses({
+    carrier,
+    limit,
+    offset,
+    responses,
+  })
 }
 
 async function fetchOrderExpeditionDashboardCountFromAdminApi({
   carrier,
   view,
 }: OrderExpeditionDashboardCountInput): Promise<OrderExpeditionDashboardCount> {
-  const businessStatus = getBusinessStatusForDashboardView(view)
-  const response = await fetchAdminApi<OrderExpeditionOrdersResponse>(
-    "/admin/order-expedition/orders",
-    {
-      ...(businessStatus === "all" ? {} : { business_status: businessStatus }),
-      ...(carrier === "all" ? {} : { carrier }),
-      limit: String(ORDER_EXPEDITION_DASHBOARD_COUNT_LIMIT),
-      offset: "0",
-    }
-  )
+  const filter = getDashboardViewFilter(view)
+  const response = await fetchOrderExpeditionOrdersForFilter({
+    carrier,
+    filter,
+    limit: ORDER_EXPEDITION_DASHBOARD_COUNT_LIMIT,
+    offset: 0,
+  })
 
   return toOrderExpeditionDashboardCount(
     view,
@@ -144,27 +185,26 @@ export function useOrderExpeditionCarriers() {
 }
 
 export function useOrderExpeditionOrders({
-  businessStatus,
   carrier,
+  filter,
   offset,
   view,
 }: {
-  businessStatus: OrderBusinessStatusId | "all"
   carrier: OrderExpeditionCarrierKey | "all"
+  filter: OrderDashboardViewFilter
   offset: number
-  view: OrderExpeditionQueryView
+  view: OrderExpeditionDashboardCountView
 }) {
   return useQuery({
     queryFn: () =>
-      fetchOrderExpeditionOrdersFromAdminApi({
-        businessStatus,
+      fetchOrderExpeditionOrdersForFilter({
         carrier,
+        filter,
         offset,
-        view,
       }),
     queryKey: getOrderExpeditionOrdersQueryKey({
-      businessStatus,
       carrier,
+      filter,
       offset,
       view,
     }),
@@ -178,8 +218,10 @@ export function useOrderExpeditionDashboardCounts({
   carrier: OrderExpeditionCarrierKey | "all"
   views: OrderExpeditionDashboardCountView[]
 }) {
+  const queryViews = getDashboardCountQueryViews(views)
+
   return useQueries({
-    queries: views.map((view) =>
+    queries: queryViews.map((view) =>
       getOrderExpeditionDashboardCountQueryOptions({ carrier, view })
     ),
   })
@@ -190,10 +232,36 @@ export function useOrderExpeditionDashboardCount({
   enabled = true,
   view,
 }: OrderExpeditionDashboardCountInput & { enabled?: boolean }) {
-  return useQuery({
-    ...getOrderExpeditionDashboardCountQueryOptions({ carrier, view }),
-    enabled,
+  const queryViews = getDashboardCountQueryViews([view])
+  const countQueries = useQueries({
+    queries: queryViews.map((queryView) => ({
+      ...getOrderExpeditionDashboardCountQueryOptions({
+        carrier,
+        view: queryView,
+      }),
+      enabled,
+    })),
   })
+  const countsByView = getDashboardCountsByView({
+    activeCount: 0,
+    activeCountExact: true,
+    activeView: view,
+    countQueries,
+    hasActiveCount: false,
+  })
+  const count = countsByView.get(view)
+
+  return {
+    data: count
+      ? {
+          count: count.count,
+          count_exact: count.countExact,
+          view,
+        }
+      : undefined,
+    error: countQueries.find((query) => query.error)?.error,
+    isError: countQueries.some((query) => query.isError),
+  }
 }
 
 export function useOrderBusinessStatusesByIds(ids: string[]) {

@@ -1,11 +1,8 @@
 import { MEDUSA_BACKEND_URL } from "../../admin-config"
+import type { OrderExpeditionCarrierKey } from "../../admin-types"
 import type {
-  OrderBusinessStatusId,
-  OrderExpeditionCarrierKey,
-} from "../../admin-types"
-import type {
+  OrderDashboardViewFilter,
   OrderDashboardViewId,
-  OrderExpeditionQueryView,
 } from "../model/views"
 import {
   ORDER_EXPEDITION_DASHBOARD_COUNT_LIMIT,
@@ -22,22 +19,22 @@ export const ORDER_EXPEDITION_QUERY_KEYS = {
 }
 
 export function getOrderExpeditionOrdersQueryKey({
-  businessStatus,
   carrier,
+  filter,
   offset,
   view,
 }: {
-  businessStatus: OrderBusinessStatusId | "all"
   carrier: OrderExpeditionCarrierKey | "all"
+  filter: OrderDashboardViewFilter
   offset: number
-  view: OrderExpeditionQueryView
+  view: OrderDashboardViewId
 }) {
   return [
     ...ORDER_EXPEDITION_QUERY_KEYS.orders,
     MEDUSA_BACKEND_URL,
     {
-      businessStatus,
       carrier,
+      filter,
       limit: ORDER_EXPEDITION_LIST_LIMIT,
       offset,
       view,

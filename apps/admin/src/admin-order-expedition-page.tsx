@@ -38,8 +38,6 @@ import {
 } from "./order-expedition/model/target-statuses"
 import {
   ALL_CARRIERS,
-  getBusinessStatusForDashboardView,
-  getExpeditionViewForDashboardView,
   getListSearchParams,
   getOffsetSearchParams,
   isOrderDashboardViewId,
@@ -57,8 +55,6 @@ export function OrderExpeditionPage() {
   const offset = readOffset(searchParams.get("offset"))
   const dashboardView = readOrderDashboardView(searchParams.get("view"))
   const carrier = readOrderExpeditionCarrier(searchParams.get("carrier"))
-  const businessStatus = getBusinessStatusForDashboardView(dashboardView)
-  const expeditionView = getExpeditionViewForDashboardView(dashboardView)
   const [selectedOrdersById, setSelectedOrdersById] = useState<
     Map<string, OrderExpeditionOrder>
   >(new Map())
@@ -89,10 +85,8 @@ export function OrderExpeditionPage() {
     ordersQuery,
     pageIndex,
   } = useOrderExpeditionData({
-    businessStatus,
     carrier,
     dashboardView,
-    expeditionView,
     offset,
   })
 

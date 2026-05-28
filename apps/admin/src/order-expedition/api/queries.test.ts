@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest"
 import type { OrderExpeditionOrdersResponse } from "../../admin-types"
+import { aggregateOrderExpeditionOrdersResponses } from "./aggregate-orders"
 import { normalizeOrderExpeditionOrdersResponse } from "./queries"
 
-function order(id: string): OrderExpeditionOrdersResponse["orders"][number] {
-  return { id } as OrderExpeditionOrdersResponse["orders"][number]
+function order(
+  id: string,
+  createdAt = "2026-05-01T00:00:00.000Z"
+): OrderExpeditionOrdersResponse["orders"][number] {
+  return {
+    created_at: createdAt,
+    id,
+  } as OrderExpeditionOrdersResponse["orders"][number]
 }
 
 function response(
@@ -60,5 +67,38 @@ describe("normalizeOrderExpeditionOrdersResponse", () => {
     )
 
     expect(normalized.count).toBe(52)
+  })
+})
+
+describe("aggregateOrderExpeditionOrdersResponses", () => {
+  it("sums counts, deduplicates orders, and keeps newest orders first", () => {
+    const aggregated = aggregateOrderExpeditionOrdersResponses({
+      carrier: "all",
+      limit: 2,
+      offset: 0,
+      responses: [
+        response({
+          count: 2,
+          orders: [
+            order("order_1", "2026-05-01T00:00:00.000Z"),
+            order("order_2", "2026-05-03T00:00:00.000Z"),
+          ],
+        }),
+        response({
+          count: 1,
+          orders: [
+            order("order_2", "2026-05-03T00:00:00.000Z"),
+            order("order_3", "2026-05-02T00:00:00.000Z"),
+          ],
+        }),
+      ],
+    })
+
+    expect(aggregated.count).toBe(3)
+    expect(aggregated.has_next).toBe(true)
+    expect(aggregated.orders.map((item) => item.id)).toEqual([
+      "order_2",
+      "order_3",
+    ])
   })
 })

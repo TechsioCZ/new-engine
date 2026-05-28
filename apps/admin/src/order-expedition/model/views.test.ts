@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
-  getBusinessStatusForDashboardView,
+  getDashboardCountQueryViews,
   getDashboardCountsByView,
+  getDashboardViewFilter,
+  ORDER_UNRESOLVED_STATUS_IDS,
 } from "./views"
 
 describe("getDashboardCountsByView", () => {
@@ -50,12 +52,61 @@ describe("getDashboardCountsByView", () => {
       countExact: true,
     })
   })
+
+  it("derives the action-required count from unresolved status counts", () => {
+    const counts = getDashboardCountsByView({
+      activeCount: 23,
+      activeCountExact: true,
+      activeView: "all",
+      countQueries: [
+        { data: { count: 1, count_exact: true, view: "new" } },
+        { data: { count: 11, count_exact: true, view: "awaiting_payment" } },
+        { data: { count: 2, count_exact: true, view: "paid" } },
+        { data: { count: 2, count_exact: true, view: "processing" } },
+        {
+          data: {
+            count: 2,
+            count_exact: true,
+            view: "waiting_for_supplier",
+          },
+        },
+      ],
+      hasActiveCount: true,
+    })
+
+    expect(counts.get("action-required")).toEqual({
+      count: 18,
+      countExact: true,
+    })
+  })
 })
 
-describe("getBusinessStatusForDashboardView", () => {
-  it("maps the dashboard action-required view to the same order status filter as the list", () => {
-    expect(getBusinessStatusForDashboardView("action-required")).toBe(
-      "awaiting_payment"
-    )
+describe("getDashboardViewFilter", () => {
+  it("maps the dashboard action-required view to unresolved order statuses", () => {
+    expect(getDashboardViewFilter("action-required")).toEqual({
+      kind: "statuses",
+      statuses: ORDER_UNRESOLVED_STATUS_IDS,
+    })
+  })
+
+  it("keeps awaiting payment as a separate single-status tab", () => {
+    expect(getDashboardViewFilter("awaiting_payment")).toEqual({
+      kind: "status",
+      status: "awaiting_payment",
+    })
+  })
+
+  it("keeps the all-orders view unfiltered", () => {
+    expect(getDashboardViewFilter("all")).toEqual({
+      kind: "all",
+    })
+  })
+})
+
+describe("getDashboardCountQueryViews", () => {
+  it("flattens action-required into the unresolved status count queries", () => {
+    expect(getDashboardCountQueryViews(["action-required"])).toEqual([
+      ...ORDER_UNRESOLVED_STATUS_IDS,
+    ])
   })
 })
