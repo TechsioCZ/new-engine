@@ -31,7 +31,12 @@ figma.connect(
       }),
     },
     example: ({ size, variant, disabled, readonly }) => (
-      <Textarea size={size} variant={variant} disabled={disabled} readonly={readonly} />
+      <Textarea
+        disabled={disabled}
+        readonly={readonly}
+        size={size}
+        variant={variant}
+      />
     ),
   }
 )
