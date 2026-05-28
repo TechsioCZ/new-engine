@@ -1,91 +1,131 @@
+/*
+ * Textarea — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * Conventions:
+ *   - Base bg/fg/border have NO `-base` suffix (Figma's choice for textarea).
+ *   - Validation border tokens use `-{role}-base/-hover` (no `-focus` exported;
+ *     `-focus` falls back semantically to `-base` to preserve TSX behavior).
+ *   - `--color-textarea-bg-borderless(-hover/-focus)` and
+ *     `--color-textarea-placeholder-danger` are NOT in Figma — kept aliased.
+ */
+
 @theme static {
   --opacity-borderless: 60%;
-  /* === BASE COLOR MAPPING === */
-  --color-textarea-base: var(--color-form-control-bg);
-  --color-textarea-success: var(--color-success);
-  --color-textarea-warning: var(--color-warning);
-  --color-textarea-danger: var(--color-danger);
 
-  /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-textarea-bg: var(--color-textarea-base);
-  --color-textarea-bg-borderless: --alpha(
-    var(--color-textarea-base) /
-    var(--opacity-borderless)
+  /* === Backgrounds === */
+  --color-textarea-bg: light-dark(
+    oklch(0.129 0.041 264.695 / 0.05),
+    oklch(1 0 0 / 0.05)
+  );
+  --color-textarea-bg-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.1),
+    oklch(1 0 0 / 0.1)
+  );
+  --color-textarea-bg-focus: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-textarea-bg-disabled: light-dark(
+    oklch(0.967 0.003 264.542),
+    oklch(0.278 0.034 257.672)
   );
 
-  /* Foreground colors */
-  --color-textarea-fg: var(--color-fg-primary);
-  --color-textarea-placeholder: var(--color-form-control-placeholder);
-  --color-textarea-fg-disabled: var(--color-form-control-fg-disabled);
+  /* === Foregrounds === */
+  --color-textarea-fg: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-textarea-fg-disabled: oklch(0.551 0.027 264.328);
+  --color-textarea-fg-placeholder: oklch(0.554 0.041 257.417);
 
-  /* Border colors */
-  --color-textarea-border: var(--color-form-control-border);
-  --color-textarea-border-success: var(--color-textarea-success);
-  --color-textarea-border-warning: var(--color-textarea-warning);
-  --color-textarea-border-danger: var(--color-textarea-danger);
-  --color-textarea-border-disabled: var(--color-form-control-border-disabled);
-
-  /* === STATE VARIATIONS === */
-  /* Default hover/focus states */
-  --color-textarea-bg-hover: oklch(
-    from var(--color-textarea-base) calc(l + var(--state-hover)) c h
+  /* === Borders === */
+  --color-textarea-border: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
   );
-  --color-textarea-bg-focus: oklch(
-    from var(--color-textarea-base) calc(l + var(--state-active)) c h
+  --color-textarea-border-hover: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-textarea-border-focus: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-textarea-border-disabled: light-dark(
+    oklch(0.872 0.011 261.787),
+    oklch(0.373 0.034 260.169)
   );
 
-  /* Border states */
-  --color-textarea-border-hover: var(--color-form-control-border-hover);
-  --color-textarea-border-focus: var(--color-textarea-accent);
-
-  /* === VALIDATION STATES === */
-  /* Success variant */
-  --color-textarea-border-success-hover: oklch(
-    from var(--color-textarea-success) calc(l + var(--state-hover)) c h
+  /* === Validation === */
+  --color-textarea-border-danger-base: oklch(0.702 0.189 22.228);
+  --color-textarea-border-danger-hover: light-dark(
+    oklch(0.637 0.208 25.331),
+    oklch(0.711 0.166 22.216)
   );
-  --color-textarea-border-success-focus: var(--color-textarea-success);
-
-  /* Warning variant */
-  --color-textarea-border-warning-hover: oklch(
-    from var(--color-textarea-warning) calc(l + var(--state-hover)) c h
+  --color-textarea-border-danger-focus: var(
+    --color-textarea-border-danger-base
   );
-  --color-textarea-border-warning-focus: var(--color-textarea-warning);
 
-  /* Danger variant */
-  --color-textarea-border-danger-hover: oklch(
-    from var(--color-textarea-danger) calc(l + var(--state-hover)) c h
+  --color-textarea-border-success-base: light-dark(
+    oklch(0.702 0.158 160.438),
+    oklch(0.844 0.143 165.23)
   );
-  --color-textarea-border-danger-focus: var(--color-textarea-danger);
+  --color-textarea-border-success-hover: light-dark(
+    oklch(0.596 0.127 163.225),
+    oklch(0.773 0.153 163.223)
+  );
+  --color-textarea-border-success-focus: var(
+    --color-textarea-border-success-base
+  );
+
+  --color-textarea-border-warning-base: oklch(0.798 0.164 82.706);
+  --color-textarea-border-warning-hover: light-dark(
+    oklch(0.681 0.142 75.834),
+    oklch(0.795 0.162 86.047)
+  );
+  --color-textarea-border-warning-focus: var(
+    --color-textarea-border-warning-base
+  );
+
+  /* === Placeholder-on-danger (not in Figma) === */
   --color-textarea-placeholder-danger: --alpha(
-    var(--color-textarea-danger) /
+    var(--color-textarea-border-danger-base) /
     var(--opacity-placeholder)
   );
 
-  /* Borderless variant */
-  --color-textarea-bg-borderless-hover: var(--color-textarea-base);
+  /* === Borderless variant (not in Figma) === */
+  --color-textarea-bg-borderless: --alpha(
+    var(--color-textarea-bg) /
+    var(--opacity-borderless)
+  );
+  --color-textarea-bg-borderless-hover: var(--color-textarea-bg);
+  --color-textarea-bg-borderless-focus: var(--color-textarea-bg);
 
-  --color-textarea-bg-borderless-focus: var(--color-textarea-base);
+  /* === Focus ring === */
+  --color-textarea-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  /* === DISABLED STATES === */
-  --color-textarea-bg-disabled: var(--color-form-control-bg-disabled);
+  /* === Border widths === */
+  --border-width-textarea: 0.13rem;
+  --border-width-textarea-validation: 0.19rem;
 
-  /* === SPACING === */
-  --padding-textarea-sm: var(--padding-input-sm);
-  --padding-textarea-md: var(--padding-input-md);
-  --padding-textarea-lg: var(--padding-input-lg);
+  /* === Padding (single value; also exposed split x/y) === */
+  --padding-textarea-sm: 0.31rem;
+  --padding-textarea-md: 0.59rem;
+  --padding-textarea-lg: 0.91rem;
 
-  /* === TYPOGRAPHY === */
-  --text-textarea-sm: var(--text-sm);
-  --text-textarea-md: var(--text-md);
-  --text-textarea-lg: var(--text-lg);
+  --padding-textarea-x-sm: 0.31rem;
+  --padding-textarea-x-md: 0.63rem;
+  --padding-textarea-x-lg: 0.94rem;
+  --padding-textarea-y-sm: 0.31rem;
+  --padding-textarea-y-md: 0.63rem;
+  --padding-textarea-y-lg: 0.94rem;
 
-  /* === BORDERS & RADIUS === */
-  --border-textarea-width: var(--border-width-form-control);
-  --radius-textarea: var(--radius-form-control);
-  --radius-textarea-sm: var(--radius-form-control-sm);
-  --radius-textarea-md: var(--radius-form-control-md);
+  /* === Radius === */
+  --radius-textarea: 0.5rem;
+  --radius-textarea-sm: 0.25rem;
+  --radius-textarea-md: 0.5rem;
+  --radius-textarea-lg: 0.75rem;
 
-  /* === FOCUS RING === */
-  --color-textarea-ring: var(--color-form-control-ring);
+  /* === Text === */
+  --text-textarea-sm: 1rem;
+  --text-textarea-md: 1.25rem;
+  --text-textarea-lg: 1.56rem;
 }
