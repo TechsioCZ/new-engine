@@ -38,6 +38,20 @@ explained, and decided by the user.
 | App-level brand overrides via reference-layer tokens (`--color-button-primary`) | App-level brand overrides will need to target flat names (`--color-button-bg-primary-base`) once bridges are removed |
 | Token names: `--color-{component}-{slot}-{role}` | Token names: `--color-{component}-{slot}-{role}-{state}` (Figma's `-base` for default state, etc.) |
 
+## Sizing primitives & fluid scaling
+
+Figma exports a single number per token. Codebases that use **Utopia-style
+`clamp(min, mid + vw, max)`** for spacing and typography lose fluid scaling
+when those literals are inlined into component CSS. See
+[`./PRIMITIVES-STRATEGY.md`](./PRIMITIVES-STRATEGY.md) for the two strategies
+(A — Figma owns min/max; B — code owns clamp, atoms alias primitives).
+
+Current implementation: **Strategy B**, via a primitive lookup table in
+`apply-light-dark.mjs`. When a Figma value matches a known primitive
+(`--text-sm`, `--spacing-200`, `--radius-md`, `--border-width-lg`, …), the
+script emits `var(--primitive)` instead of the literal — restoring fluid
+behavior with zero Figma schema changes.
+
 ## Prerequisites
 
 - Full Figma exports present at

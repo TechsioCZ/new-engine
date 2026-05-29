@@ -42,6 +42,66 @@ const PROPERTY_PREFIXES = [
   "radius",
   "border-width",
 ]
+
+// Primitive lookup tables for Strategy B. When a Figma-exported value matches
+// a known primitive, the script emits `var(--primitive)` instead of the
+// literal. See PRIMITIVES-STRATEGY.md for the rationale.
+//
+// Keys are the exact rem strings that Figma writes (rounded to 2 dp). Values
+// are the primitive CSS var names from libs/ui/src/tokens/_{typography,
+// spacing,base,semantic}.css. Update this table when primitives change.
+const TEXT_PRIMITIVES = {
+  "0.8rem": "--text-xs",
+  "1rem": "--text-sm",
+  "1.25rem": "--text-md",
+  "1.56rem": "--text-lg",
+  "1.95rem": "--text-xl",
+  "2.44rem": "--text-2xl",
+}
+const SPACING_PRIMITIVES = {
+  "0.19rem": "--spacing-50",
+  "0.31rem": "--spacing-100",
+  "0.63rem": "--spacing-150",
+  "0.94rem": "--spacing-200",
+  "1.25rem": "--spacing-250",
+  "1.5625rem": "--spacing-300",
+  "1.6875rem": "--spacing-350",
+  "2rem": "--spacing-400",
+  "2.25rem": "--spacing-450",
+  "2.5625rem": "--spacing-500",
+  "2.8125rem": "--spacing-550",
+  "3.375rem": "--spacing-600",
+  "3.6875rem": "--spacing-650",
+  "3.9375rem": "--spacing-700",
+  "4.5rem": "--spacing-750",
+  "5.0625rem": "--spacing-800",
+  "5.625rem": "--spacing-850",
+  "6.1875rem": "--spacing-900",
+  "6.75rem": "--spacing-950",
+}
+const RADIUS_PRIMITIVES = {
+  "0rem": "--radius-none",
+  "0.25rem": "--radius-sm",
+  "0.5rem": "--radius-md",
+  "0.75rem": "--radius-lg",
+}
+const BORDER_WIDTH_PRIMITIVES = {
+  "0rem": "--border-width-none",
+  "0.06rem": "--border-width-sm",
+  "0.0625rem": "--border-width-sm",
+  "0.13rem": "--border-width-md",
+  "0.125rem": "--border-width-md",
+  "0.19rem": "--border-width-lg",
+  "0.1875rem": "--border-width-lg",
+}
+const PRIMITIVE_ALIAS_BY_PREFIX = {
+  text: TEXT_PRIMITIVES,
+  padding: SPACING_PRIMITIVES,
+  spacing: SPACING_PRIMITIVES,
+  radius: RADIUS_PRIMITIVES,
+  "border-width": BORDER_WIDTH_PRIMITIVES,
+}
+
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
 const THEME_OPEN_RE = /@theme(?:\s+static)?\s*\{/g
 const INNER_DECL_RE = /^([ \t]*)(--[a-z0-9-]+):\s*([^;]+);/gm
@@ -211,6 +271,49 @@ function findReferenceAlias(name, lightDecls, darkDecls, component) {
   return refName
 }
 
+// Strategy B: alias to a code-side primitive when its value matches.
+function findPrimitiveAlias(name, value) {
+  if (!name.startsWith("--")) {
+    return null
+  }
+  const body = name.slice(2)
+  for (const [prefix, table] of Object.entries(PRIMITIVE_ALIAS_BY_PREFIX)) {
+    if (body.startsWith(`${prefix}-`) || body === prefix) {
+      const primitive = table[value]
+      if (primitive) {
+        return primitive
+      }
+    }
+  }
+  return null
+}
+
+function emitLightDarkPair(l, d) {
+  if (l.length + d.length > 50) {
+    return `light-dark(\n    ${l},\n    ${d}\n  )`
+  }
+  return `light-dark(${l}, ${d})`
+}
+
+function resolveValue(name, lightDecls, darkDecls, component) {
+  const l = lightDecls.get(name)
+  const d = darkDecls.get(name) ?? l
+  if (l === d) {
+    const primitive = findPrimitiveAlias(name, l)
+    if (primitive) {
+      return `var(${primitive})`
+    }
+  }
+  const ref = findReferenceAlias(name, lightDecls, darkDecls, component)
+  if (ref) {
+    return `var(${ref})`
+  }
+  if (l === d) {
+    return l
+  }
+  return emitLightDarkPair(l, d)
+}
+
 function buildValueLookup(component, lightDecls, darkDecls) {
   return (name, _originalValue) => {
     if (!isFigmaBoundForComponent(name, component)) {
@@ -219,20 +322,7 @@ function buildValueLookup(component, lightDecls, darkDecls) {
     if (!lightDecls.has(name)) {
       return null
     }
-    const ref = findReferenceAlias(name, lightDecls, darkDecls, component)
-    if (ref) {
-      return `var(${ref})`
-    }
-    const l = lightDecls.get(name)
-    const d = darkDecls.get(name) ?? l
-    if (l === d) {
-      return l
-    }
-    // Multi-line for readability when values are long.
-    if (l.length + d.length > 50) {
-      return `light-dark(\n    ${l},\n    ${d}\n  )`
-    }
-    return `light-dark(${l}, ${d})`
+    return resolveValue(name, lightDecls, darkDecls, component)
   }
 }
 

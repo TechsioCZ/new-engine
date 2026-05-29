@@ -147,6 +147,15 @@ Create or update Figma variables strictly in tier order: core first, then semant
 
 Core variables hold **raw values only**. Names must be maximally short — strip all redundant words like "Primitive", "Space", "Default".
 
+> **Fluid responsive sizing.** If the codebase uses Utopia-style
+> `clamp(min, mid + vw, max)` for spacing/typography, see
+> [`../figma-token-binding/PRIMITIVES-STRATEGY.md`](../figma-token-binding/PRIMITIVES-STRATEGY.md).
+> Figma can store either a single value (Strategy B — code keeps the clamp
+> formula, atoms alias the primitive) or a min/max pair via an extra mode
+> axis (Strategy A — Figma is the full source of truth). Pick the strategy
+> *before* populating core sizing values, since Strategy A changes the
+> collection mode schema.
+
 **Naming pattern**: `type/value`
 
 Examples — sizing and spacing:
