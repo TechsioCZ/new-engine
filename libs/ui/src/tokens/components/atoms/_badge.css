@@ -22,18 +22,18 @@
 
 @theme static {
   /* === Sizing === */
-  --padding-badge-sm: 0.19rem;
-  --padding-badge-md: 0.31rem;
-  --padding-badge-lg: 0.63rem;
-  --padding-badge-xl: 0.94rem;
+  --padding-badge-sm: var(--spacing-50);
+  --padding-badge-md: var(--spacing-100);
+  --padding-badge-lg: var(--spacing-150);
+  --padding-badge-xl: var(--spacing-200);
 
-  --text-badge-sm: 0.8rem;
-  --text-badge-md: 0.8rem;
-  --text-badge-lg: 1rem;
-  --text-badge-xl: 1.25rem;
+  --text-badge-sm: var(--text-xs);
+  --text-badge-md: var(--text-xs);
+  --text-badge-lg: var(--text-sm);
+  --text-badge-xl: var(--text-md);
 
-  --radius-badge: 0.25rem;
-  --border-width-badge: 0.06rem;
+  --radius-badge: var(--radius-sm);
+  --border-width-badge: var(--border-width-sm);
 
   /* === Font weights (not yet in Figma export) === */
   --font-weight-badge-sm: var(--font-weight-light);
@@ -57,26 +57,14 @@
     oklch(0.823 0.119 346.157),
     oklch(0.806 0.112 11.594)
   );
-  --color-badge-bg-info: light-dark(
-    oklch(0.704 0.123 182.503),
-    oklch(0.844 0.123 182.503)
-  );
+  --color-badge-bg-info: oklch(0.704 0.123 182.503);
   --color-badge-bg-success: light-dark(
     oklch(0.702 0.158 160.438),
     oklch(0.844 0.143 165.23)
   );
-  --color-badge-bg-warning: light-dark(
-    oklch(0.798 0.164 82.706),
-    oklch(0.881 0.181 94.02)
-  );
-  --color-badge-bg-danger: light-dark(
-    oklch(0.702 0.189 22.228),
-    oklch(0.808 0.103 19.571)
-  );
-  --color-badge-bg-discount: light-dark(
-    oklch(0.702 0.189 22.228),
-    oklch(0.808 0.103 19.571)
-  );
+  --color-badge-bg-warning: oklch(0.798 0.164 82.706);
+  --color-badge-bg-danger: oklch(0.702 0.189 22.228);
+  --color-badge-bg-discount: oklch(0.702 0.189 22.228);
   --color-badge-bg-outline: oklch(0 0 0 / 0);
 
   /* === Foregrounds === */

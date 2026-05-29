@@ -81,20 +81,20 @@
   --color-numeric-input-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
   /* === Border width === */
-  --border-width-numeric-input: 0.13rem;
+  --border-width-numeric-input: var(--border-width-md);
 
   /* === Padding === */
-  --padding-numeric-input-input-sm: 0.31rem;
+  --padding-numeric-input-input-sm: var(--spacing-100);
   --padding-numeric-input-input-md: 0.59rem;
   --padding-numeric-input-input-lg: 0.91rem;
-  --padding-numeric-input-trigger-x: 0.63rem;
+  --padding-numeric-input-trigger-x: var(--spacing-150);
   --padding-numeric-input-trigger-y: 0rem;
 
   /* === Radius === */
-  --radius-numeric-input: 0.5rem;
-  --radius-numeric-input-sm: 0.25rem;
-  --radius-numeric-input-md: 0.5rem;
-  --radius-numeric-input-lg: 0.75rem;
+  --radius-numeric-input: var(--radius-md);
+  --radius-numeric-input-sm: var(--radius-sm);
+  --radius-numeric-input-md: var(--radius-md);
+  --radius-numeric-input-lg: var(--radius-lg);
 
   /* === Spacing / gap === */
   --spacing-numeric-input: 0.06rem;
@@ -103,9 +103,9 @@
   --spacing-numeric-input-lg: 0rem;
 
   /* === Text === */
-  --text-numeric-input-sm: 1rem;
-  --text-numeric-input-md: 1.25rem;
-  --text-numeric-input-lg: 1.56rem;
+  --text-numeric-input-sm: var(--text-sm);
+  --text-numeric-input-md: var(--text-md);
+  --text-numeric-input-lg: var(--text-lg);
 }
 
 @utility token-icon-numeric-input-increment {

@@ -95,11 +95,11 @@
   --color-input-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
   /* === Border widths === */
-  --border-width-input: 0.13rem;
-  --border-width-input-validation: 0.19rem;
+  --border-width-input: var(--border-width-md);
+  --border-width-input-validation: var(--border-width-lg);
 
   /* === Padding === */
-  --padding-input-sm: 0.31rem;
+  --padding-input-sm: var(--spacing-100);
   --padding-input-md: 0.59rem;
   --padding-input-lg: 0.91rem;
   --padding-input-with-button: 7.5rem;
@@ -107,15 +107,15 @@
   --padding-input-with-button-right: 7.5rem;
 
   /* === Radius === */
-  --radius-input: 0.5rem;
-  --radius-input-sm: 0.25rem;
-  --radius-input-md: 0.5rem;
-  --radius-input-lg: 0.75rem;
+  --radius-input: var(--radius-md);
+  --radius-input-sm: var(--radius-sm);
+  --radius-input-md: var(--radius-md);
+  --radius-input-lg: var(--radius-lg);
 
   /* === Text === */
-  --text-input-sm: 1rem;
-  --text-input-md: 1.25rem;
-  --text-input-lg: 1.56rem;
+  --text-input-sm: var(--text-sm);
+  --text-input-md: var(--text-md);
+  --text-input-lg: var(--text-lg);
 
   /* === FormField molecule (not yet in Figma export) === */
   --spacing-form-field-gap: var(--spacing-50);

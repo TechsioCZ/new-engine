@@ -11,12 +11,12 @@
 
 @theme static {
   /* === Sizes (text-icon-*) === */
-  --text-icon-xs: 0.8rem;
-  --text-icon-sm: 1rem;
-  --text-icon-md: 1.25rem;
-  --text-icon-lg: 1.56rem;
-  --text-icon-xl: 1.95rem;
-  --text-icon-2xl: 2.44rem;
+  --text-icon-xs: var(--text-xs);
+  --text-icon-sm: var(--text-sm);
+  --text-icon-md: var(--text-md);
+  --text-icon-lg: var(--text-lg);
+  --text-icon-xl: var(--text-xl);
+  --text-icon-2xl: var(--text-2xl);
 
   /* === Foreground colors === */
   --color-icon-fg-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));

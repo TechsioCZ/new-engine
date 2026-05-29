@@ -26,5 +26,5 @@
   --color-link-fg-visited: var(--color-link-visited);
   --color-link-fg-disabled: var(--color-link-disabled);
 
-  --text-link: 1.25rem;
+  --text-link: var(--text-md);
 }

@@ -103,29 +103,29 @@
   --color-textarea-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
   /* === Border widths === */
-  --border-width-textarea: 0.13rem;
-  --border-width-textarea-validation: 0.19rem;
+  --border-width-textarea: var(--border-width-md);
+  --border-width-textarea-validation: var(--border-width-lg);
 
   /* === Padding (single value; also exposed split x/y) === */
-  --padding-textarea-sm: 0.31rem;
+  --padding-textarea-sm: var(--spacing-100);
   --padding-textarea-md: 0.59rem;
   --padding-textarea-lg: 0.91rem;
 
-  --padding-textarea-x-sm: 0.31rem;
-  --padding-textarea-x-md: 0.63rem;
-  --padding-textarea-x-lg: 0.94rem;
-  --padding-textarea-y-sm: 0.31rem;
-  --padding-textarea-y-md: 0.63rem;
-  --padding-textarea-y-lg: 0.94rem;
+  --padding-textarea-x-sm: var(--spacing-100);
+  --padding-textarea-x-md: var(--spacing-150);
+  --padding-textarea-x-lg: var(--spacing-200);
+  --padding-textarea-y-sm: var(--spacing-100);
+  --padding-textarea-y-md: var(--spacing-150);
+  --padding-textarea-y-lg: var(--spacing-200);
 
   /* === Radius === */
-  --radius-textarea: 0.5rem;
-  --radius-textarea-sm: 0.25rem;
-  --radius-textarea-md: 0.5rem;
-  --radius-textarea-lg: 0.75rem;
+  --radius-textarea: var(--radius-md);
+  --radius-textarea-sm: var(--radius-sm);
+  --radius-textarea-md: var(--radius-md);
+  --radius-textarea-lg: var(--radius-lg);
 
   /* === Text === */
-  --text-textarea-sm: 1rem;
-  --text-textarea-md: 1.25rem;
-  --text-textarea-lg: 1.56rem;
+  --text-textarea-sm: var(--text-sm);
+  --text-textarea-md: var(--text-md);
+  --text-textarea-lg: var(--text-lg);
 }

@@ -17,12 +17,12 @@
     oklch(0.278 0.034 257.672)
   );
 
-  --radius-skeleton-text: 0.25rem;
+  --radius-skeleton-text: var(--radius-sm);
 
-  --spacing-skeleton-sm: 0.31rem;
-  --spacing-skeleton-md: 0.63rem;
-  --spacing-skeleton-lg: 0.94rem;
-  --spacing-skeleton-xl: 1.25rem;
+  --spacing-skeleton-sm: var(--spacing-100);
+  --spacing-skeleton-md: var(--spacing-150);
+  --spacing-skeleton-lg: var(--spacing-200);
+  --spacing-skeleton-xl: var(--spacing-250);
 
   /* === Not in Figma export === */
   --spacing-skeleton-text-sm: var(--spacing-skeleton-sm);

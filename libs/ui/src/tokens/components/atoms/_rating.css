@@ -13,13 +13,13 @@
 
   --color-rating-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  --spacing-rating-sm: 0.31rem;
-  --spacing-rating-md: 0.63rem;
-  --spacing-rating-lg: 0.94rem;
+  --spacing-rating-sm: var(--spacing-100);
+  --spacing-rating-md: var(--spacing-150);
+  --spacing-rating-lg: var(--spacing-200);
 
-  --text-rating-sm: 1rem;
-  --text-rating-md: 1.25rem;
-  --text-rating-lg: 1.56rem;
+  --text-rating-sm: var(--text-sm);
+  --text-rating-md: var(--text-md);
+  --text-rating-lg: var(--text-lg);
 }
 
 @utility token-icon-rating {

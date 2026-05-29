@@ -21,12 +21,12 @@
   --spacing-checkbox-indeterminate-icon: 60%;
 
   /* === Radius === */
-  --radius-checkbox: 0.25rem;
-  --radius-checkbox-indeterminate: 0.25rem;
+  --radius-checkbox: var(--radius-sm);
+  --radius-checkbox-indeterminate: var(--radius-sm);
 
   /* === Border widths === */
-  --border-width-checkbox: 0.06rem;
-  --border-width-checkbox-error: 0.13rem;
+  --border-width-checkbox: var(--border-width-sm);
+  --border-width-checkbox-error: var(--border-width-md);
 
   /* === Backgrounds === */
   --color-checkbox-bg-base: light-dark(

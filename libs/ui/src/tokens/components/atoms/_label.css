@@ -13,10 +13,10 @@
 
   --spacing-label: 0.25rem;
 
-  --text-label-sm: 1rem;
-  --text-label-md: 1.25rem;
-  --text-label-lg: 1.56rem;
-  --text-label-current: 1.25rem;
+  --text-label-sm: var(--text-sm);
+  --text-label-md: var(--text-md);
+  --text-label-lg: var(--text-lg);
+  --text-label-current: var(--text-md);
 
   --font-label: var(--font-bold);
 }

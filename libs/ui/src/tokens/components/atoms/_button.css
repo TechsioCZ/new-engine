@@ -16,32 +16,32 @@
 
 @theme static {
   /* === Sizing === */
-  --spacing-button-sm: 0.63rem;
-  --spacing-button-md: 0.94rem;
-  --spacing-button-lg: 1.25rem;
+  --spacing-button-sm: var(--spacing-150);
+  --spacing-button-md: var(--spacing-200);
+  --spacing-button-lg: var(--spacing-250);
 
-  --padding-button-x-sm: 0.94rem;
-  --padding-button-x-md: 1.25rem;
+  --padding-button-x-sm: var(--spacing-200);
+  --padding-button-x-md: var(--spacing-250);
   --padding-button-x-lg: 2.19rem;
-  --padding-button-y-sm: 0.19rem;
-  --padding-button-y-md: 0.31rem;
-  --padding-button-y-lg: 0.63rem;
+  --padding-button-y-sm: var(--spacing-50);
+  --padding-button-y-md: var(--spacing-100);
+  --padding-button-y-lg: var(--spacing-150);
 
   --padding-button-sm: var(--padding-button-y-sm) var(--padding-button-x-sm);
   --padding-button-md: var(--padding-button-y-md) var(--padding-button-x-md);
   --padding-button-lg: var(--padding-button-y-lg) var(--padding-button-x-lg);
 
-  --text-button-sm: 1rem;
-  --text-button-md: 1.25rem;
-  --text-button-lg: 1.56rem;
+  --text-button-sm: var(--text-sm);
+  --text-button-md: var(--text-md);
+  --text-button-lg: var(--text-lg);
 
-  --radius-button-sm: 0.25rem;
-  --radius-button-md: 0.5rem;
-  --radius-button-lg: 0.75rem;
+  --radius-button-sm: var(--radius-sm);
+  --radius-button-md: var(--radius-md);
+  --radius-button-lg: var(--radius-lg);
 
-  --border-width-button-sm: 0.06rem;
-  --border-width-button-md: 0.13rem;
-  --border-width-button-lg: 0.19rem;
+  --border-width-button-sm: var(--border-width-sm);
+  --border-width-button-md: var(--border-width-md);
+  --border-width-button-lg: var(--border-width-lg);
 
   /* === Focus ring === */
   --color-button-ring: light-dark(oklch(0 0 0), oklch(1 0 0));

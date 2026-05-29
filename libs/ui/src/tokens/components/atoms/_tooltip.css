@@ -24,25 +24,25 @@
     oklch(1 0 0 / 0.15)
   );
 
-  --border-width-tooltip: 0.06rem;
-  --radius-tooltip: 0.5rem;
+  --border-width-tooltip: var(--border-width-sm);
+  --radius-tooltip: var(--radius-md);
 
-  --padding-tooltip-x-sm: 0.94rem;
-  --padding-tooltip-x-md: 1.25rem;
+  --padding-tooltip-x-sm: var(--spacing-200);
+  --padding-tooltip-x-md: var(--spacing-250);
   --padding-tooltip-x-lg: 1.88rem;
-  --padding-tooltip-y-sm: 0.63rem;
-  --padding-tooltip-y-md: 0.94rem;
-  --padding-tooltip-y-lg: 1.25rem;
+  --padding-tooltip-y-sm: var(--spacing-150);
+  --padding-tooltip-y-md: var(--spacing-200);
+  --padding-tooltip-y-lg: var(--spacing-250);
 
   --padding-tooltip-sm: var(--padding-tooltip-y-sm) var(--padding-tooltip-x-sm);
   --padding-tooltip-md: var(--padding-tooltip-y-md) var(--padding-tooltip-x-md);
   --padding-tooltip-lg: var(--padding-tooltip-y-lg) var(--padding-tooltip-x-lg);
 
-  --spacing-tooltip-arrow: 0.63rem;
+  --spacing-tooltip-arrow: var(--spacing-150);
 
-  --text-tooltip-sm: 0.8rem;
-  --text-tooltip-md: 1rem;
-  --text-tooltip-lg: 1.25rem;
+  --text-tooltip-sm: var(--text-xs);
+  --text-tooltip-md: var(--text-sm);
+  --text-tooltip-lg: var(--text-md);
 
   /* Zag.js required names — bridged to Figma tokens */
   --tooltip-arrow-size: var(--spacing-tooltip-arrow);

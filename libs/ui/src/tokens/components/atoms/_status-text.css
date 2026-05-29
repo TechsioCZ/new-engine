@@ -18,16 +18,16 @@
     oklch(0.861 0.173 91.936)
   );
 
-  --spacing-status-text-sm: 0.19rem;
-  --spacing-status-text-md: 0.31rem;
-  --spacing-status-text-lg: 0.94rem;
+  --spacing-status-text-sm: var(--spacing-50);
+  --spacing-status-text-md: var(--spacing-100);
+  --spacing-status-text-lg: var(--spacing-200);
 
-  --spacing-status-text-icon-offset: 0.19rem;
-  --spacing-status-text-icon-offset-long-text: 0.31rem;
+  --spacing-status-text-icon-offset: var(--spacing-50);
+  --spacing-status-text-icon-offset-long-text: var(--spacing-100);
 
-  --text-status-text-sm: 1rem;
-  --text-status-text-md: 1.25rem;
-  --text-status-text-lg: 1.56rem;
+  --text-status-text-sm: var(--text-sm);
+  --text-status-text-md: var(--text-md);
+  --text-status-text-lg: var(--text-lg);
 }
 
 @utility token-icon-status-text-success {
