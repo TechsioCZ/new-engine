@@ -23,6 +23,10 @@ const isOnlineCardProviderValue = (normalizedValue: string) => {
   );
 };
 
+const isStripePaymentProviderValue = (normalizedValue: string) => {
+  return normalizedValue.includes("stripe");
+};
+
 export const resolveProviderLabel = (providerId: string) => {
   if (!providerId) {
     return "Neznámy poskytovateľ";
@@ -35,6 +39,10 @@ export const resolveProviderLabel = (providerId: string) => {
 
   if (normalizedValue.includes("gopay")) {
     return "Platba kartou online (GoPay)";
+  }
+
+  if (isStripePaymentProviderValue(normalizedValue)) {
+    return "Platba kartou online (Stripe)";
   }
 
   if (normalizedValue.includes("paypal")) {
@@ -69,6 +77,10 @@ export const resolvePaymentSummaryLabel = (providerId: string) => {
 
   if (normalizedValue.includes("gopay")) {
     return "Platba kartou online cez GoPay";
+  }
+
+  if (isStripePaymentProviderValue(normalizedValue)) {
+    return "Platba kartou online cez Stripe";
   }
 
   if (isOnlineCardProviderValue(normalizedValue)) {
@@ -111,6 +123,10 @@ export const resolvePaymentHint = (providerId: string) => {
     return "GoPay";
   }
 
+  if (isStripePaymentProviderValue(normalizedValue)) {
+    return "Stripe";
+  }
+
   return undefined;
 };
 
@@ -123,6 +139,10 @@ export const resolvePaymentDescription = (providerId: string) => {
 
   if (normalizedValue.includes("gopay")) {
     return "Online platba kartou cez platobnú bránu GoPay.";
+  }
+
+  if (isStripePaymentProviderValue(normalizedValue)) {
+    return "Online platba kartou cez platobnú bránu Stripe.";
   }
 
   return undefined;

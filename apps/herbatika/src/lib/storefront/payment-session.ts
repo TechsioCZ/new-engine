@@ -72,9 +72,11 @@ export const buildHerbatikaPaymentSessionData = ({
       ? {
           cancel_url: cancelUrl ?? returnUrl,
           return_url: returnUrl,
+          success_url: returnUrl,
           provider_metadata: {
             cancel_url: cancelUrl ?? returnUrl,
             return_url: returnUrl,
+            success_url: returnUrl,
           },
         }
       : {}),
