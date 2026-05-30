@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentProps } from "react"
 import { useState } from "react"
+import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import {
   PhoneInput,
@@ -53,7 +54,6 @@ const countries: PhoneInputCountry[] = [
   },
 ]
 
-
 const meta: Meta<typeof PhoneInput> = {
   title: "Molecules/PhoneInput",
   component: PhoneInput,
@@ -64,7 +64,7 @@ const meta: Meta<typeof PhoneInput> = {
         component: `
 A compound phone input for international checkout and account forms.
 
-It keeps the visible input ergonomic for users, emits formatted phone details through \`onValueChange\`, and submits the E.164 number through the hidden \`name\` input when used in native forms.
+It keeps the visible input ergonomic for users, emits formatted phone details through \`onValueChange\`, and submits a valid E.164 number through the hidden \`name\` input when used in native forms. The \`value\` prop is the visible draft value; use \`details.e164\` for the canonical phone number.
 
 ## Sub-components
 - \`PhoneInput\` - Root wrapper and state owner
@@ -108,6 +108,14 @@ It keeps the visible input ergonomic for users, emits formatted phone details th
       control: "boolean",
       description: "Mark the field as required",
     },
+    nativeValidation: {
+      control: "boolean",
+      description: "Use native form validation for invalid non-empty numbers",
+    },
+    nativeValidationMessage: {
+      control: "text",
+      description: "Message shown by native validation for invalid numbers",
+    },
   },
   args: {
     countries,
@@ -132,7 +140,7 @@ function PhoneInputExample({
   label?: string
 }) {
   return (
-    <div className="w-3xs max-w-full">
+    <div className="w-2xs max-w-full">
       <PhoneInput {...props}>
         <PhoneInput.Label>{label}</PhoneInput.Label>
         <PhoneInput.Control>
@@ -307,14 +315,13 @@ export const NativeFormValue: Story = {
           helpText="Submit to inspect the hidden E.164 form value."
           label="Native form phone"
           name="phone"
+          nativeValidation
+          nativeValidationMessage="Enter a valid delivery phone number."
           required
         />
-        <button
-          className="h-form-control-md rounded-button-md bg-button-bg-primary px-300 text-button-fg-primary"
-          type="submit"
-        >
+        <Button type="submit">
           Submit
-        </button>
+        </Button>
         <div className="rounded-md border border-border-primary bg-surface p-200 text-sm">
           Submitted: {submittedValue}
         </div>
