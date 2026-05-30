@@ -32,6 +32,25 @@ const isPaykitProviderRuntime = (
 ): provider is PaykitProviderRuntime =>
   isRecord(provider) && typeof provider.handleWebhook === "function"
 
+const isStripeTestApiKey = (apiKey: unknown): boolean =>
+  typeof apiKey === "string" &&
+  (apiKey.startsWith("sk_test_") || apiKey.startsWith("rk_test_"))
+
+const setStripeProviderSandboxMode = (
+  providerPackage: string,
+  provider: unknown,
+  providerOptions: Record<string, unknown>
+): void => {
+  if (providerPackage !== "@paykit-sdk/stripe" || !isRecord(provider)) {
+    return
+  }
+
+  // TODO(paykit-sdk): Remove this once @paykit-sdk/stripe derives sandbox
+  // mode from the API key instead of requiring `isSandbox` in its options,
+  // then tighten these dynamic provider/client types around PayKitProvider.
+  provider.isSandbox = isStripeTestApiKey(providerOptions.apiKey)
+}
+
 const dynamicImport = new Function("specifier", "return import(specifier)") as (
   specifier: string
 ) => Promise<Record<string, unknown>>
@@ -110,6 +129,7 @@ export const createPaykitClient = async (
   ])
 
   const provider = createProvider(providerOptions)
+  setStripeProviderSandboxMode(providerPackage, provider, providerOptions)
 
   if (!isPaykitProviderRuntime(provider)) {
     throw new Error(
@@ -163,7 +183,10 @@ export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): Record<string, unknown> => ({
   apiKey: options.apiKey,
-  isSandbox: options.isSandbox ?? true,
+  // TODO(paykit-sdk): Remove this workaround once @paykit-sdk/stripe
+  // stops forwarding PayKit-only options into Stripe.StripeConfig, then
+  // tighten these dynamic provider/client types around PayKitProvider.
+  // Stripe infers test/live mode from the API key and rejects `isSandbox`.
   debug: options.debug ?? false,
 })
 
