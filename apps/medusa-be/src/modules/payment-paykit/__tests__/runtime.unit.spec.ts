@@ -46,7 +46,7 @@ describe("PayKit runtime helpers", () => {
     })
   })
 
-  it("maps Stripe options to PayKit's public createStripe options", () => {
+  it("omits Stripe sandbox mode until PayKit stops forwarding it to Stripe", () => {
     expect(
       getStripeProviderOptions({
         apiKey: "sk_test_123",
@@ -56,19 +56,17 @@ describe("PayKit runtime helpers", () => {
       })
     ).toEqual({
       apiKey: "sk_test_123",
-      isSandbox: false,
       debug: true,
     })
   })
 
-  it("passes explicit Stripe sandbox mode by default", () => {
+  it("does not default Stripe sandbox mode because Stripe infers it from the key", () => {
     expect(
       getStripeProviderOptions({
         apiKey: "sk_test_123",
       })
     ).toEqual({
       apiKey: "sk_test_123",
-      isSandbox: true,
       debug: false,
     })
   })

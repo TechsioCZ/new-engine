@@ -36,12 +36,12 @@ import {
 } from "@medusajs/framework/utils"
 import { resolveConfiguredClient } from "../runtime"
 import type {
+  PaykitAdapterOptions,
   PaykitBillingInfo,
   PaykitCreatePaymentInput,
   PaykitCustomer,
   PaykitPayment,
   PaykitPaymentClient,
-  PaykitProviderOptions,
   PaykitUpdatePaymentInput,
   PaykitWebhookEvent,
 } from "../types"
@@ -117,7 +117,7 @@ const joinName = (...values: unknown[]): string | undefined => {
 }
 
 export abstract class PaykitPaymentProviderBase<
-  TOptions extends PaykitProviderOptions = PaykitProviderOptions,
+  TOptions extends PaykitAdapterOptions = PaykitAdapterOptions,
 > extends AbstractPaymentProvider<TOptions> {
   protected readonly options_: TOptions
   private client_: Promise<PaykitPaymentClient> | undefined
