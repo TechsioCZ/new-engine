@@ -3,10 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
-import {
-  PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
-  requirePaykitOptions,
-} from "../config"
+import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
@@ -21,6 +18,7 @@ import {
   fromSmallestCurrencyUnit,
   toSmallestCurrencyUnit,
 } from "../utils/amounts"
+import { requirePaykitOptions } from "../utils/validation"
 
 const getStringValue = (...values: unknown[]): string | undefined => {
   for (const value of values) {
@@ -100,21 +98,16 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
     data: Record<string, unknown>
   ): Record<string, unknown> {
     const providerMetadata = super.getCreateProviderMetadata(input, data)
-    const {
-      success_url: _successUrl,
-      successUrl: _successUrlAlias,
-      ...gopayMetadata
-    } = providerMetadata
-    const returnUrl = getStringValue(
-      providerMetadata.return_url,
-      data.return_url
+    const successUrl = getStringValue(
+      providerMetadata.success_url,
+      providerMetadata.return_url
     )
 
     return {
-      ...gopayMetadata,
-      // GoPay calls this callback URL `return_url`. PayKit's GoPay provider
-      // currently requires it under `success_url`, so rename only at this SDK boundary.
-      ...(returnUrl ? { success_url: returnUrl } : {}),
+      ...providerMetadata,
+      // GoPay calls the callback URL `return_url`; PayKit's provider-level
+      // abstraction expects `success_url` and writes it to GoPay's callback.return_url.
+      ...(successUrl ? { success_url: successUrl } : {}),
     }
   }
 }

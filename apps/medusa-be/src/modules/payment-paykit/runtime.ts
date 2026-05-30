@@ -1,9 +1,10 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
+import type { WebhookHandlerConfig } from "@paykit-sdk/core"
 import type {
+  PaykitAdapterOptions,
   PaykitComgateOptions,
   PaykitGopayOptions,
   PaykitPaymentClient,
-  PaykitProviderOptions,
   PaykitStripeOptions,
   PaykitWebhookEvent,
 } from "./types"
@@ -14,13 +15,11 @@ type PaykitRuntime = {
   refunds: NonNullable<PaykitPaymentClient["refunds"]>
 }
 
-type PaykitProviderRuntime = {
-  handleWebhook: (payload: {
-    body: string
-    headers: Headers
-    fullUrl: string
-    webhookSecret: string
-  }) => Promise<PaykitWebhookEvent[]>
+export type PaykitProviderRuntime = {
+  handleWebhook: (
+    payload: WebhookHandlerConfig,
+    webhookSecret: string | null
+  ) => Promise<PaykitWebhookEvent[]>
 }
 
 type PaykitConstructor = new (provider: unknown) => PaykitRuntime
@@ -32,6 +31,25 @@ const isPaykitProviderRuntime = (
   provider: unknown
 ): provider is PaykitProviderRuntime =>
   isRecord(provider) && typeof provider.handleWebhook === "function"
+
+const isStripeTestApiKey = (apiKey: unknown): boolean =>
+  typeof apiKey === "string" &&
+  (apiKey.startsWith("sk_test_") || apiKey.startsWith("rk_test_"))
+
+const setStripeProviderSandboxMode = (
+  providerPackage: string,
+  provider: unknown,
+  providerOptions: Record<string, unknown>
+): void => {
+  if (providerPackage !== "@paykit-sdk/stripe" || !isRecord(provider)) {
+    return
+  }
+
+  // TODO(paykit-sdk): Remove this once @paykit-sdk/stripe derives sandbox
+  // mode from the API key instead of requiring `isSandbox` in its options,
+  // then tighten these dynamic provider/client types around PayKitProvider.
+  provider.isSandbox = isStripeTestApiKey(providerOptions.apiKey)
+}
 
 const dynamicImport = new Function("specifier", "return import(specifier)") as (
   specifier: string
@@ -111,6 +129,7 @@ export const createPaykitClient = async (
   ])
 
   const provider = createProvider(providerOptions)
+  setStripeProviderSandboxMode(providerPackage, provider, providerOptions)
 
   if (!isPaykitProviderRuntime(provider)) {
     throw new Error(
@@ -125,12 +144,22 @@ export const createPaykitClient = async (
     payments: paykit.payments,
     refunds: paykit.refunds,
     handleWebhook: (payload) =>
-      provider.handleWebhook(toPaykitWebhookPayload(payload, webhookOptions)),
+      callPaykitProviderWebhook(provider, payload, webhookOptions),
   }
 }
 
+export const callPaykitProviderWebhook = (
+  provider: PaykitProviderRuntime,
+  payload: ProviderWebhookPayload["payload"],
+  webhookOptions: Record<string, unknown> = {}
+): Promise<PaykitWebhookEvent[]> =>
+  provider.handleWebhook(
+    toPaykitWebhookPayload(payload),
+    getWebhookSecret(webhookOptions)
+  )
+
 export const resolveConfiguredClient = async (
-  options: PaykitProviderOptions
+  options: PaykitAdapterOptions
 ): Promise<PaykitPaymentClient | undefined> => {
   if (options.client) {
     return options.client
@@ -154,6 +183,10 @@ export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): Record<string, unknown> => ({
   apiKey: options.apiKey,
+  // TODO(paykit-sdk): Remove this workaround once @paykit-sdk/stripe
+  // stops forwarding PayKit-only options into Stripe.StripeConfig, then
+  // tighten these dynamic provider/client types around PayKitProvider.
+  // Stripe infers test/live mode from the API key and rejects `isSandbox`.
   debug: options.debug ?? false,
 })
 
@@ -173,17 +206,19 @@ export const getComgateProviderOptions = (
 })
 
 const toPaykitWebhookPayload = (
-  payload: ProviderWebhookPayload["payload"],
-  providerOptions: Record<string, unknown>
+  payload: ProviderWebhookPayload["payload"]
 ) => ({
   body: rawBodyToString(payload.rawData),
-  headers: toHeaders(payload.headers),
+  headersAsObject: toHeadersAsObject(payload.headers),
   fullUrl: getWebhookFullUrl(payload),
-  webhookSecret:
-    typeof providerOptions.webhookSecret === "string"
-      ? providerOptions.webhookSecret
-      : "",
 })
+
+const getWebhookSecret = (
+  providerOptions: Record<string, unknown>
+): string | null =>
+  typeof providerOptions.webhookSecret === "string"
+    ? providerOptions.webhookSecret
+    : null
 
 const rawBodyToString = (
   rawData: ProviderWebhookPayload["payload"]["rawData"]
@@ -199,21 +234,19 @@ const rawBodyToString = (
   return ""
 }
 
-const toHeaders = (
+const toHeadersAsObject = (
   headers: ProviderWebhookPayload["payload"]["headers"]
-): Headers => {
-  const result = new Headers()
+): Record<string, string> => {
+  const result: Record<string, string> = {}
 
   for (const [key, value] of Object.entries(headers ?? {})) {
     if (Array.isArray(value)) {
-      for (const item of value) {
-        result.append(key, String(item))
-      }
+      result[key] = value.map(String).join(",")
       continue
     }
 
     if (value !== undefined) {
-      result.set(key, String(value))
+      result[key] = String(value)
     }
   }
 

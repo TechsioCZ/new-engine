@@ -51,7 +51,7 @@ describe("PaykitComgatePaymentProvider", () => {
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
         amount: 1050,
-        customer: "customer@example.com",
+        customer: { id: "customer@example.com" },
         provider_metadata: {
           email: "customer@example.com",
           paymentLabel: "Order from Eshop",
@@ -86,7 +86,34 @@ describe("PaykitComgatePaymentProvider", () => {
 
     expect(client.payments.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        customer: "customer@example.com",
+        customer: { id: "customer@example.com" },
+        provider_metadata: expect.objectContaining({
+          email: "customer@example.com",
+        }),
+      })
+    )
+  })
+
+  it("uses payment-session customer email as Comgate payer id", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitComgatePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        customer: { email: "customer@example.com" },
+      },
+      context: {},
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: { id: "customer@example.com" },
         provider_metadata: expect.objectContaining({
           email: "customer@example.com",
         }),

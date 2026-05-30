@@ -3,10 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
-import {
-  PAYKIT_PAYMENT_PROVIDER_IDENTIFIER,
-  requirePaykitOptions,
-} from "../config"
+import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
@@ -21,6 +18,7 @@ import {
   fromSmallestCurrencyUnit,
   toSmallestCurrencyUnit,
 } from "../utils/amounts"
+import { requirePaykitOptions } from "../utils/validation"
 
 const DEFAULT_PAYMENT_LABEL = "Order from Eshop"
 
@@ -107,7 +105,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
   protected override getPaykitCustomer(
     input: InitiatePaymentInput,
     data: Record<string, unknown>
-  ): string {
+  ): { id: string } {
     const email = this.getComgateCustomerEmail(input, data)
 
     if (!email) {
@@ -117,15 +115,26 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
       )
     }
 
-    return email
+    return { id: email }
   }
 
   private getComgateCustomerEmail(
     input: InitiatePaymentInput,
     data: Record<string, unknown>
   ): string | undefined {
+    const dataCustomer = data.customer
+
     return (
-      getEmailValue(data.email) ?? getEmailValue(input.context?.customer?.email)
+      (typeof dataCustomer === "string"
+        ? getEmailValue(dataCustomer)
+        : undefined) ??
+      (dataCustomer &&
+      typeof dataCustomer === "object" &&
+      "email" in dataCustomer
+        ? getEmailValue(dataCustomer.email)
+        : undefined) ??
+      getEmailValue(data.email) ??
+      getEmailValue(input.context?.customer?.email)
     )
   }
 

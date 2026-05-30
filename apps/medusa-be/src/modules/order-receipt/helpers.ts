@@ -21,10 +21,13 @@ export type OrderReceiptAddress = {
 
 export type OrderReceiptLineItem = {
   detail?: {
+    quantity?: OrderReceiptMoney
+    raw_quantity?: OrderReceiptMoney
     raw_unit_price?: OrderReceiptMoney
     title?: string | null
     unit_price?: OrderReceiptMoney
   } | null
+  raw_quantity?: OrderReceiptMoney
   raw_unit_price?: OrderReceiptMoney
   subtotal?: OrderReceiptMoney
   tax_total?: OrderReceiptMoney
@@ -35,6 +38,7 @@ export type OrderReceiptLineItem = {
 }
 
 export type OrderReceiptPayment = {
+  data?: Record<string, unknown> | null
   provider_id?: string | null
 }
 
@@ -262,9 +266,27 @@ export function getItemUnitPrice(item: OrderReceiptLineItem) {
   )
 }
 
+export function getItemQuantity(item: OrderReceiptLineItem) {
+  const quantity = toNumber(
+    item.quantity ??
+      item.detail?.quantity ??
+      item.raw_quantity ??
+      item.detail?.raw_quantity
+  )
+
+  return quantity > 0 ? quantity : 1
+}
+
 export function getItemSubtotal(item: OrderReceiptLineItem) {
+  const quantity = getItemQuantity(item)
+  const unitPrice = getItemUnitPrice(item)
+  const unitPriceSubtotal = quantity * unitPrice
   const subtotal = toNumber(item.subtotal)
   if (subtotal > 0) {
+    if (quantity > 1 && subtotal === unitPrice) {
+      return unitPriceSubtotal
+    }
+
     return subtotal
   }
 
@@ -274,7 +296,7 @@ export function getItemSubtotal(item: OrderReceiptLineItem) {
     return Math.max(0, total - taxTotal)
   }
 
-  return (toNumber(item.quantity) || 1) * getItemUnitPrice(item)
+  return unitPriceSubtotal
 }
 
 function getItemsSubtotal(items: OrderReceiptLineItem[]) {

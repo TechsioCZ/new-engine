@@ -11,7 +11,7 @@ import { GET } from "../../../src/api/hooks/payment/paykit_gopay/route"
 import {
   PAYKIT_GOPAY_WEBHOOK_PATH,
   PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
-} from "../../../src/modules/payment-paykit/config"
+} from "../../../src/modules/payment-paykit/constants"
 
 const createResponse = (): MedusaResponse => {
   const res = {
