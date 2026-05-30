@@ -2,7 +2,6 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import ExcelJS from "exceljs"
 import { getPayload, type PayloadRequest } from "payload"
-import config from "../payload.config"
 import type { Article } from "../payload-types"
 
 type Payload = Awaited<ReturnType<typeof getPayload>>
@@ -23,6 +22,7 @@ type ImportContext = {
   statusOverride: ImportStatus | undefined
   translate: boolean
   overwrite: boolean
+  categoryCache: Map<string, PayloadId>
 }
 
 const REQUIRED_COLUMNS = ["title", "content"]
@@ -70,6 +70,7 @@ export type ArticleImportOptions = {
   translate?: boolean
   overwrite?: boolean
   signal?: AbortSignal
+  payload?: Payload
 }
 
 export type ArticleImportResult = {
@@ -261,6 +262,11 @@ const throwIfAborted = (signal?: AbortSignal) => {
   if (signal?.aborted) {
     throw new Error("Article import aborted")
   }
+}
+
+const getCliPayload = async () => {
+  const { default: config } = await import("../payload.config")
+  return getPayload({ config })
 }
 
 const toRichText = (value: string): ArticleContent => {
@@ -505,6 +511,7 @@ type EnsureCategoryParams = {
   supportedLocales: string[]
   translate: boolean
   overwrite: boolean
+  categoryCache: Map<string, PayloadId>
 }
 
 const ensureCategory = async ({
@@ -516,12 +523,21 @@ const ensureCategory = async ({
   supportedLocales,
   translate,
   overwrite,
+  categoryCache,
 }: EnsureCategoryParams) => {
+  const cacheKey = `${locale ?? "default"}:${slug}`
+  const cachedId = categoryCache.get(cacheKey)
+  if (!overwrite && cachedId !== undefined) {
+    return cachedId
+  }
+
   const existing = await findExistingBySlug(payload, "article-categories", slug)
   if (existing) {
     const writeLocale = resolveWriteLocale(locale, supportedLocales)
+    const id = existing.id as PayloadId
     if (!overwrite && hasLocaleValue(existing.title, locale)) {
-      return existing.id as PayloadId
+      categoryCache.set(cacheKey, id)
+      return id
     }
 
     if (!dryRun) {
@@ -538,10 +554,14 @@ const ensureCategory = async ({
       })
     }
 
-    return existing.id as PayloadId
+    if (!overwrite) {
+      categoryCache.set(cacheKey, id)
+    }
+    return id
   }
 
   if (dryRun) {
+    categoryCache.set(cacheKey, 0)
     return 0
   }
 
@@ -556,7 +576,9 @@ const ensureCategory = async ({
     overrideAccess: true,
   })
 
-  return category.id as PayloadId
+  const id = category.id as PayloadId
+  categoryCache.set(cacheKey, id)
+  return id
 }
 
 const ensureFallbackMedia = async (payload: Payload, dryRun: boolean) => {
@@ -753,6 +775,7 @@ const processArticleRow = async (
     supportedLocales: context.supportedLocales,
     translate,
     overwrite,
+    categoryCache: context.categoryCache,
   })
 
   const featuredImage = ensureFeaturedImage(
@@ -825,6 +848,7 @@ export const runImportFromFile = async (
     translate = false,
     overwrite = false,
     signal,
+    payload: providedPayload,
   } = options
 
   throwIfAborted(signal)
@@ -843,7 +867,7 @@ export const runImportFromFile = async (
 
   debugLog("Payload config loaded")
   throwIfAborted(signal)
-  const payload = await getPayload({ config })
+  const payload = providedPayload ?? (await getCliPayload())
   debugLog("Payload initialized")
   throwIfAborted(signal)
   const fallbackMediaId = await ensureFallbackMedia(payload, dryRun)
@@ -867,6 +891,7 @@ export const runImportFromFile = async (
       statusOverride,
       translate,
       overwrite,
+      categoryCache: new Map(),
     })
 
     if (result === "imported") {

@@ -188,6 +188,7 @@ export const articleImportEndpoint: Endpoint = {
       translate: payload.translate,
       overwrite: payload.overwrite,
       signal: getAbortSignal(req),
+      payload: req.payload,
     }
 
     let tempDir = ""
