@@ -75,7 +75,7 @@ const meta: Meta<typeof PhoneInput> = {
         component: `
 A compound phone input for international checkout and account forms.
 
-It keeps the visible input ergonomic for users, emits formatted phone details through \`onValueChange\`, and submits a valid E.164 number through the hidden \`name\` input when used in native forms. The \`value\` prop is the visible draft value; use \`details.e164\` for the canonical phone number.
+It keeps the visible input ergonomic for users, emits formatted phone details through \`onValueChange\`, and submits E.164 through the hidden \`name\` input once the number is valid. Invalid draft values are either blocked by \`nativeValidation\` or submitted as typed for custom/server validation. The \`value\` prop is the visible draft value; use \`details.e164\` for the canonical phone number.
 
 ## Sub-components
 - \`PhoneInput\` - Root wrapper and state owner

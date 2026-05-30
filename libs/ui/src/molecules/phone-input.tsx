@@ -286,8 +286,7 @@ export function PhoneInput({
       }),
     [countries, inputValue, selectedCountry]
   )
-  const submitsNativeFormValue = Boolean(name)
-  const shouldUseNativeValidation = nativeValidation || submitsNativeFormValue
+  const nativeFormValue = details.isValid ? details.e164 : inputValue
 
   useEffect(() => {
     if (
@@ -378,7 +377,7 @@ export function PhoneInput({
         setInputValue,
         details,
         disabled,
-        nativeValidation: shouldUseNativeValidation,
+        nativeValidation,
         nativeValidationMessage,
         readOnly,
         required,
@@ -391,7 +390,7 @@ export function PhoneInput({
           form={form}
           name={name}
           type="hidden"
-          value={details.isValid ? details.e164 : ""}
+          value={nativeFormValue}
         />
       )}
       <div

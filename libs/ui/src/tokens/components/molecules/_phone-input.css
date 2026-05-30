@@ -51,14 +51,13 @@
   --width-phone-input-trigger: 12ch;
 }
 
-
 @utility phone-input-focus {
-    &:has(:focus-within) {
-      border-color: var(--color-phone-input-border-focus);
-      background: var(--color-phone-input-bg-focus);
-      outline-style: var(--default-ring-style);
-      outline-width: var(--default-ring-width);
-      outline-color: var(--color-form-control-ring);
-      outline-offset: var(--default-ring-offset);
-    }
+  &:has(:focus-within) {
+    border-color: var(--color-phone-input-border-focus);
+    background: var(--color-phone-input-bg-focus);
+    outline-style: var(--default-ring-style);
+    outline-width: var(--default-ring-width);
+    outline-color: var(--color-phone-input-ring);
+    outline-offset: var(--default-ring-offset);
   }
+}
