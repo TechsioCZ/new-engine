@@ -88,8 +88,13 @@ const writeUploadToTempFile = async (file: File) => {
   const dir = await mkdtemp(path.join(tmpdir(), "payload-import-"))
   const filePath = path.join(dir, `${randomUUID()}-${safeName}`)
 
-  const buffer = Buffer.from(await file.arrayBuffer())
-  await writeFile(filePath, buffer)
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    await writeFile(filePath, buffer)
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true })
+    throw error
+  }
 
   return { dir, filePath }
 }

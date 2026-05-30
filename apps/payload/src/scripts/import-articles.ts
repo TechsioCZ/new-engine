@@ -1,9 +1,7 @@
-import { promises as fs } from "node:fs"
-import { createRequire } from "node:module"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import ExcelJS from "exceljs"
 import { getPayload, type PayloadRequest } from "payload"
-import type XLSXType from "xlsx"
 import config from "../payload.config"
 import type { Article } from "../payload-types"
 
@@ -26,9 +24,6 @@ type ImportContext = {
   translate: boolean
   overwrite: boolean
 }
-
-const require = createRequire(import.meta.url)
-const XLSX = require("xlsx") as typeof XLSXType
 
 const REQUIRED_COLUMNS = ["title", "content"]
 export const STATUS_VALUES = ["draft", "published", "archived"] as const
@@ -190,6 +185,37 @@ const normalizeRow = (row: Row): Row => {
   }
 
   return normalized
+}
+
+const getCellValue = (cell: ExcelJS.Cell): RowValue => {
+  const value = cell.value
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value instanceof Date
+  ) {
+    return value
+  }
+
+  if ("result" in value) {
+    const result = value.result
+    return result instanceof Date || typeof result !== "object"
+      ? (result as RowValue)
+      : String(result ?? "")
+  }
+
+  if ("text" in value && typeof value.text === "string") {
+    return value.text
+  }
+
+  if ("richText" in value && Array.isArray(value.richText)) {
+    return value.richText.map((item) => item.text).join("")
+  }
+
+  return String(value)
 }
 
 const firstValue = (row: Row, keys: string[]) => {
@@ -596,22 +622,36 @@ const findAuthor = async (payload: Payload, email: string) => {
 }
 
 const readRows = async (filePath: string, sheetName?: string) => {
-  const workbook = XLSX.read(await fs.readFile(filePath), {
-    cellDates: true,
-    type: "buffer",
-  })
-  const selectedSheetName = sheetName ?? workbook.SheetNames[0]
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(filePath)
+
+  const selectedSheetName = sheetName ?? workbook.worksheets[0]?.name
   if (!selectedSheetName) {
     throw new Error("XLSX file does not contain any sheets")
   }
 
-  const sheet = workbook.Sheets[selectedSheetName]
-  if (!sheet) {
+  const worksheet = workbook.getWorksheet(selectedSheetName)
+  if (!worksheet) {
     throw new Error(`Sheet not found: ${selectedSheetName}`)
   }
 
-  const rows = XLSX.utils.sheet_to_json<Row>(sheet, {
-    defval: "",
+  const headerRow = worksheet.getRow(1)
+  const headers = headerRow.values as ExcelJS.CellValue[]
+  const rows: Row[] = []
+
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) {
+      return
+    }
+
+    const data: Row = {}
+    for (let columnIndex = 1; columnIndex < headers.length; columnIndex += 1) {
+      const header = String(headers[columnIndex] ?? "").trim()
+      if (header) {
+        data[header] = getCellValue(row.getCell(columnIndex))
+      }
+    }
+    rows.push(data)
   })
 
   return {
