@@ -16,9 +16,9 @@
   --color-phone-input-input-bg-hover: transparent;
   --color-phone-input-input-bg-focus: transparent;
 
-  --color-phone-input-danger: var(--color-danger);
-  --color-phone-input-success: var(--color-success);
-  --color-phone-input-warning: var(--color-warning);
+  --color-phone-input-border-danger: var(--color-danger);
+  --color-phone-input-border-success: var(--color-success);
+  --color-phone-input-border-warning: var(--color-warning);
 
   --color-phone-input-placeholder: var(--color-form-control-placeholder);
   --color-phone-input-bg-disabled: var(--color-form-control-bg-disabled);

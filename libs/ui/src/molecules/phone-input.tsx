@@ -93,15 +93,15 @@ const phoneInputVariants = tv({
       "data-[disabled]:bg-phone-input-bg-disabled",
       "data-[disabled]:text-phone-input-fg-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
-      "data-[validation=error]:border-phone-input-danger data-[validation=error]:outline-phone-input-danger",
+      "data-[validation=error]:border-phone-input-border-danger data-[validation=error]:outline-phone-input-border-danger",
       "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
       "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=success]:border-(length:--border-width-validation)",
-      "data-[validation=success]:border-phone-input-success data-[validation=success]:outline-phone-input-success",
+      "data-[validation=success]:border-phone-input-border-success data-[validation=success]:outline-phone-input-border-success",
       "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
       "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=warning]:border-(length:--border-width-validation)",
-      "data-[validation=warning]:border-phone-input-warning data-[validation=warning]:outline-phone-input-warning",
+      "data-[validation=warning]:border-phone-input-border-warning data-[validation=warning]:outline-phone-input-border-warning",
       "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -115,7 +115,7 @@ const phoneInputVariants = tv({
       "border-(length:--border-phone-input-trigger)",
       "focus-visible:outline-none",
       "w-phone-input-trigger-md",
-      "focus-visible:bg-phone-input-trigger-bg-hover"
+      "focus-visible:bg-phone-input-trigger-bg-hover",
     ],
     countryValue: ["flex items-center gap-phone-input-country-value"],
     countryFlag: [
@@ -142,17 +142,17 @@ const phoneInputVariants = tv({
       sm: {
         control: "h-form-control-sm rounded-phone-input-sm text-phone-input-sm",
         input: "text-phone-input-sm",
-        countryTrigger: "w-phone-input-trigger-md"
+        countryTrigger: "w-phone-input-trigger-md",
       },
       md: {
         control: "h-form-control-md rounded-phone-input-md text-phone-input-md",
         input: "text-phone-input-md",
-        countryTrigger: "w-phone-input-trigger-md"
+        countryTrigger: "w-phone-input-trigger-md",
       },
       lg: {
         control: "h-form-control-lg rounded-phone-input-lg text-phone-input-lg",
         input: "text-phone-input-lg",
-        countryTrigger: "w-phone-input-trigger-md"
+        countryTrigger: "w-phone-input-trigger-md",
       },
     },
   },
@@ -289,6 +289,8 @@ export function PhoneInput({
       }),
     [countries, inputValue, selectedCountry]
   )
+  const submitsNativeFormValue = Boolean(name)
+  const shouldUseNativeValidation = nativeValidation || submitsNativeFormValue
 
   useEffect(() => {
     if (
@@ -379,7 +381,7 @@ export function PhoneInput({
         setInputValue,
         details,
         disabled,
-        nativeValidation,
+        nativeValidation: shouldUseNativeValidation,
         nativeValidationMessage,
         readOnly,
         required,
