@@ -1,7 +1,5 @@
 import QRCode from "qrcode"
 
-export const ORDER_PAYMENT_QR_METADATA_KEY = "payment_qr_spayd"
-
 export type OrderPaymentQrOrder = {
   currency_code?: string | null
   custom_display_id?: string | null
@@ -12,6 +10,14 @@ export type OrderPaymentQrOrder = {
     original_order_total?: number | string | null
   } | null
   total?: number | string | { valueOf(): unknown } | null
+}
+
+export type PaymentQrPaymentData = {
+  amount: number | string | { valueOf(): unknown }
+  currency_code?: string | null
+  iban: string | null | undefined
+  message?: string | null
+  reference?: string | null
 }
 
 const VARIABLE_SYMBOL_REGEX = /^\d{1,10}$/
@@ -56,26 +62,31 @@ export class OrderPaymentQr {
     return fields.join("*")
   }
 
-  buildMetadata(
-    metadata: Record<string, unknown> | null | undefined,
-    order: OrderPaymentQrOrder,
-    iban: string | null | undefined
-  ) {
-    const spayd = this.buildSpayd(order, iban)
-    if (!spayd) {
-      return metadata
+  buildPaymentSpayd(payment: PaymentQrPaymentData) {
+    if (!payment.iban) {
+      return null
     }
 
-    return {
-      ...(metadata ?? {}),
-      [ORDER_PAYMENT_QR_METADATA_KEY]: spayd,
+    const amount = formatSpaydAmount(payment.amount)
+    if (!amount) {
+      return null
     }
-  }
 
-  getSpaydFromMetadata(metadata: Record<string, unknown> | null | undefined) {
-    const value = metadata?.[ORDER_PAYMENT_QR_METADATA_KEY]
+    const fields = [
+      "SPD",
+      "1.0",
+      `ACC:${payment.iban.replace(/\s+/g, "").toUpperCase()}`,
+      `AM:${amount}`,
+      `CC:${(payment.currency_code || "CZK").toUpperCase()}`,
+      `MSG:${escapeSpaydValue(payment.message ?? payment.reference ?? "OBJEDNAVKA")}`,
+    ]
 
-    return typeof value === "string" && value.trim() ? value : null
+    const variableSymbol = normalizeVariableSymbol(payment.reference ?? null)
+    if (variableSymbol) {
+      fields.push(`X-VS:${variableSymbol}`)
+    }
+
+    return fields.join("*")
   }
 
   buildPdfCommands(
@@ -148,18 +159,8 @@ export function buildOrderPaymentQrSpayd(
   return orderPaymentQr.buildSpayd(order, iban)
 }
 
-export function buildOrderPaymentQrMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-  order: OrderPaymentQrOrder,
-  iban: string | null | undefined
-) {
-  return orderPaymentQr.buildMetadata(metadata, order, iban)
-}
-
-export function getOrderPaymentQrSpayd(
-  metadata: Record<string, unknown> | null | undefined
-) {
-  return orderPaymentQr.getSpaydFromMetadata(metadata)
+export function buildPaymentQrSpayd(payment: PaymentQrPaymentData) {
+  return orderPaymentQr.buildPaymentSpayd(payment)
 }
 
 export function buildOrderPaymentQrPdfCommands(

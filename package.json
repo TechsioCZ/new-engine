@@ -32,6 +32,7 @@
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.3",
     "@types/bun": "1.3.3",
+    "@types/node": "24.10.1",
     "@typescript-eslint/parser": "^8.47.0",
     "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
@@ -56,6 +57,7 @@
       "@medusajs/admin-bundler>@vitejs/plugin-react": "6.0.1",
       "vite": "8.0.11"
     },
+    "packageExtensionsComment": "@medusajs/utils@2.14.1 misses runtime dependencies on @medusajs/index and @medusajs/medusa in its published metadata. Remove this workaround after upstream declares them.",
     "supportedArchitectures": {
       "os": [
         "current",
@@ -75,6 +77,12 @@
       ]
     },
     "packageExtensions": {
+      "@medusajs/utils@2.14.1": {
+        "dependencies": {
+          "@medusajs/index": "2.14.1",
+          "@medusajs/medusa": "2.14.1"
+        }
+      },
       "@payloadcms/ui@3.84.1": {
         "dependencies": {
           "@floating-ui/react": "0.27.19"
@@ -101,5 +109,14 @@
       "@lexical/code@0.35.0": "patches/@lexical__code@0.35.0.patch",
       "object-inspect@1.13.4": "patches/object-inspect@1.13.4.patch"
     }
+  },
+  "dependencies": {
+    "@medusajs/utils": "^2.15.2",
+    "@medusajs/workflows-sdk": "^2.15.2",
+    "@mikro-orm/core": "6.6.12",
+    "@mikro-orm/migrations": "6.6.12",
+    "@rokmohar/medusa-plugin-meilisearch": "^1.3.8",
+    "graphql": "^16.12.0",
+    "medusa-plugin-content": "0.2.0"
   }
 }

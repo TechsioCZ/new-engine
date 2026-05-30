@@ -3,7 +3,7 @@ import {
   PAYKIT_COMGATE_PROVIDER_ID,
   PAYKIT_GOPAY_PROVIDER_ID,
   PAYKIT_STRIPE_PROVIDER_ID,
-} from "../config"
+} from "../constants"
 import { buildPaykitPaymentProviders } from "../medusa-config"
 
 describe("buildPaykitPaymentProviders", () => {
@@ -23,6 +23,7 @@ describe("buildPaykitPaymentProviders", () => {
         GOPAY_SANDBOX: "false",
         GOPAY_WEBHOOK_URL: "https://shop.example/hooks/gopay",
         STRIPE_API_KEY: "sk_test_123",
+        STRIPE_SANDBOX: "false",
         STRIPE_WEBHOOK_SECRET: "whsec_123",
         COMGATE_MERCHANT: "merchant",
         COMGATE_SECRET: "secret",
@@ -48,6 +49,7 @@ describe("buildPaykitPaymentProviders", () => {
         id: PAYKIT_STRIPE_PROVIDER_ID,
         options: {
           apiKey: "sk_test_123",
+          isSandbox: false,
           webhookSecret: "whsec_123",
           debug: true,
         },

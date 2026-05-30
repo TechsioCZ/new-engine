@@ -1,7 +1,7 @@
 import type { CapturePaymentInput } from "@medusajs/framework/types"
 import { PaymentActions } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
-import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../config"
+import { PAYKIT_GOPAY_WEBHOOK_PATH } from "../constants"
 import { getGopayProviderOptions } from "../runtime"
 import { PaykitGopayPaymentProvider } from "../services/gopay"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
@@ -57,7 +57,7 @@ describe("PaykitGopayPaymentProvider", () => {
     )
   })
 
-  it("renames GoPay return_url to PayKit success_url metadata", async () => {
+  it("maps GoPay return_url metadata to PayKit success_url when needed", async () => {
     const client = createMockPaykitClient()
     const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
       client,
@@ -71,7 +71,6 @@ describe("PaykitGopayPaymentProvider", () => {
         item_id: "cart_123",
         provider_metadata: {
           return_url: "https://shop.example/pokladna",
-          success_url: "https://shop.example/wrong",
         },
       },
       context: {
@@ -87,6 +86,41 @@ describe("PaykitGopayPaymentProvider", () => {
         provider_metadata: {
           return_url: "https://shop.example/pokladna",
           success_url: "https://shop.example/pokladna",
+        },
+      })
+    )
+  })
+
+  it("prefers PayKit success_url metadata over the GoPay return_url alias", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitGopayPaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await provider.initiatePayment({
+      amount: 10.5,
+      currency_code: "czk",
+      data: {
+        session_id: "payses_123",
+        item_id: "cart_123",
+        provider_metadata: {
+          success_url: "https://shop.example/success",
+          return_url: "https://shop.example/return",
+        },
+      },
+      context: {
+        customer: {
+          id: "cus_123",
+          email: "customer@example.com",
+        },
+      },
+    })
+
+    expect(client.payments.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider_metadata: {
+          success_url: "https://shop.example/success",
+          return_url: "https://shop.example/return",
         },
       })
     )

@@ -3,11 +3,11 @@ import { MedusaError } from "@medusajs/framework/utils"
 import {
   QR_PAYMENT_MODULE,
   type QrPaymentModuleService,
-} from "../../../modules/qr-payment"
+} from "../../../modules/payment-qr"
 import type {
   QrPaymentConfigDTO,
   QrPaymentConfigResponse,
-} from "../../../modules/qr-payment/types"
+} from "../../../modules/payment-qr/types"
 import type { PostAdminQrPaymentConfigSchemaType } from "./validators"
 
 const toConfigResponse = (
