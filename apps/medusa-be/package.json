@@ -53,7 +53,6 @@
     "debugProductCount": "medusa exec ./src/scripts/debug-product-count.ts"
   },
   "dependencies": {
-    "@medusajs/deps": "2.15.2",
     "@badgateway/oauth2-client": "^3.3.1",
     "@mdxeditor/editor": "3.54.0",
     "@medusajs/admin-sdk": "^2.15.2",

@@ -130,6 +130,12 @@ const isImportInputError = (error: Error) =>
   error.message.startsWith("Sheet not found:") ||
   error.message.startsWith("Missing required columns:")
 
+const isImportAbortError = (error: Error) =>
+  error.message === "Article import aborted"
+
+const getAbortSignal = (req: ArticleImportRequest) =>
+  req.signal instanceof AbortSignal ? req.signal : undefined
+
 const readImportFormData = async (req: ArticleImportRequest) => {
   if (!req.formData) {
     throw new APIError("Form data parsing is not available", 400)
@@ -176,6 +182,7 @@ export const articleImportEndpoint: Endpoint = {
       status,
       translate: payload.translate,
       overwrite: payload.overwrite,
+      signal: getAbortSignal(req),
     }
 
     let tempDir = ""
@@ -201,6 +208,10 @@ export const articleImportEndpoint: Endpoint = {
 
       if (error instanceof Error && isImportInputError(error)) {
         throw new APIError(error.message, 400)
+      }
+
+      if (error instanceof Error && isImportAbortError(error)) {
+        throw new APIError("Import aborted", 499)
       }
 
       if (error instanceof Error) {

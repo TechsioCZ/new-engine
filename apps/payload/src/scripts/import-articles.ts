@@ -74,6 +74,7 @@ export type ArticleImportOptions = {
   status?: ImportStatus
   translate?: boolean
   overwrite?: boolean
+  signal?: AbortSignal
 }
 
 export type ArticleImportResult = {
@@ -229,6 +230,12 @@ const slugify = (value: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
+
+const throwIfAborted = (signal?: AbortSignal) => {
+  if (signal?.aborted) {
+    throw new Error("Article import aborted")
+  }
+}
 
 const toRichText = (value: string): ArticleContent => {
   const lines = value
@@ -777,13 +784,16 @@ export const runImportFromFile = async (
     status: statusOverride,
     translate = false,
     overwrite = false,
+    signal,
   } = options
 
+  throwIfAborted(signal)
   const supportedLocales = resolveSupportedLocales()
   const locale = resolvePayloadLocale(requestedLocale, supportedLocales)
 
   const resolvedFilePath = path.resolve(process.cwd(), filePath)
   debugLog(`Resolved file path: ${resolvedFilePath}`)
+  throwIfAborted(signal)
   const { selectedSheetName, rows } = await readRows(
     resolvedFilePath,
     sheetName
@@ -792,8 +802,10 @@ export const runImportFromFile = async (
   assertRequiredColumns(rows)
 
   debugLog("Payload config loaded")
+  throwIfAborted(signal)
   const payload = await getPayload({ config })
   debugLog("Payload initialized")
+  throwIfAborted(signal)
   const fallbackMediaId = await ensureFallbackMedia(payload, dryRun)
   debugLog(`Fallback media id: ${fallbackMediaId}`)
 
@@ -805,6 +817,7 @@ export const runImportFromFile = async (
   )
 
   for (const [index, row] of rows.entries()) {
+    throwIfAborted(signal)
     const result = await processArticleRow(row, index, {
       dryRun,
       fallbackMediaId,
@@ -821,6 +834,7 @@ export const runImportFromFile = async (
     } else {
       skipped += 1
     }
+    throwIfAborted(signal)
   }
 
   return {
