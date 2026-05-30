@@ -317,12 +317,20 @@ const hasLocaleValue = (
   value: string | Record<string, string> | undefined,
   locale: PayloadLocale
 ) => {
-  if (!locale || locale === "all") {
+  if (!locale) {
     return false
   }
 
-  if (!value || typeof value !== "object") {
+  if (!value) {
     return false
+  }
+
+  if (typeof value !== "object") {
+    return value.trim().length > 0
+  }
+
+  if (locale === "all") {
+    return Object.values(value).some((item) => item.trim().length > 0)
   }
 
   return Object.hasOwn(value, locale)
@@ -875,6 +883,7 @@ export const runImportFromFile = async (
 
   let imported = 0
   let skipped = 0
+  const categoryCache = new Map<string, PayloadId>()
 
   console.log(
     `${dryRun ? "Dry-run import" : "Importing"} ${rows.length} rows from ${resolvedFilePath} (${selectedSheetName})`
@@ -891,7 +900,7 @@ export const runImportFromFile = async (
       statusOverride,
       translate,
       overwrite,
-      categoryCache: new Map(),
+      categoryCache,
     })
 
     if (result === "imported") {
