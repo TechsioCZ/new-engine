@@ -20,6 +20,7 @@ type GraphWithOptions = (
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const context: Record<string, unknown> = {}
   const fields = req.queryConfig.fields ?? []
   const withInventoryQuantity = fields.some((field) =>
@@ -44,6 +45,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       fields: productFields,
       filters: await normalizeProductSalesChannelFilter(
         query,
+        remoteQuery,
         req.filterableFields
       ),
       pagination: req.queryConfig.pagination,

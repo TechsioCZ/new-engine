@@ -1,0 +1,8 @@
+services:
+  e2e-medusa-be:
+    build:
+      target: dev
+    command: ["npm", "run", "start:ci-dev"]
+    volumes:
+      - .:/var/www
+    working_dir: /var/www/apps/medusa-be
