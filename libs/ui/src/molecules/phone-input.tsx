@@ -114,7 +114,7 @@ const phoneInputVariants = tv({
       "hover:bg-phone-input-trigger-bg-hover",
       "border-(length:--border-phone-input-trigger)",
       "focus-visible:outline-none",
-      "w-phone-input-trigger-md",
+      "w-phone-input-trigger",
       "focus-visible:bg-phone-input-trigger-bg-hover",
     ],
     countryValue: ["flex items-center gap-phone-input-country-value"],
@@ -142,17 +142,14 @@ const phoneInputVariants = tv({
       sm: {
         control: "h-form-control-sm rounded-phone-input-sm text-phone-input-sm",
         input: "text-phone-input-sm",
-        countryTrigger: "w-phone-input-trigger-md",
       },
       md: {
         control: "h-form-control-md rounded-phone-input-md text-phone-input-md",
         input: "text-phone-input-md",
-        countryTrigger: "w-phone-input-trigger-md",
       },
       lg: {
         control: "h-form-control-lg rounded-phone-input-lg text-phone-input-lg",
         input: "text-phone-input-lg",
-        countryTrigger: "w-phone-input-trigger-md",
       },
     },
   },

@@ -48,7 +48,7 @@
   --color-phone-input-trigger-bg-base: transparent;
   --color-phone-input-trigger-bg-hover: var(--color-fill-hover);
   --border-phone-input-trigger: 0;
-  --width-phone-input-trigger-md: 12ch;
+  --width-phone-input-trigger: 12ch;
 }
 
 
