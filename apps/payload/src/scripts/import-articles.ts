@@ -733,8 +733,8 @@ const processArticleRow = async (
   const excerpt =
     getText(row, ["excerpt", "perex", "summary", "description", "popis"]) ||
     content.slice(0, 300)
-  const slug =
-    getText(row, ["slug", "url_slug", "url", "post_url_href"]) || slugify(title)
+  const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
+  const slug = rawSlug ? slugify(rawSlug) : slugify(title)
 
   const data: ArticlePayloadData = {
     title,
