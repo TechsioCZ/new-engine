@@ -412,6 +412,12 @@ const parseStatus = (value: string) => {
     return status as (typeof STATUS_VALUES)[number]
   }
 
+  if (value) {
+    console.warn(
+      `Unknown status value "${value}", defaulting to "draft". Allowed: ${STATUS_VALUES.join(", ")}`
+    )
+  }
+
   return "draft"
 }
 

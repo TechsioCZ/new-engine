@@ -11,13 +11,30 @@ type ImportResult = {
   }
 }
 
-const defaultLocales = ["cs", "sk", "en"]
+const configuredLocales = (
+  process.env.NEXT_PUBLIC_PAYLOAD_LOCALES ?? "cs,sk,en"
+)
+  .split(",")
+  .map((locale) => locale.trim())
+  .filter(Boolean)
+const defaultLocales = configuredLocales.length
+  ? configuredLocales
+  : ["cs", "sk", "en"]
+const defaultLocale = defaultLocales.includes("sk") ? "sk" : defaultLocales[0]
 
 const isFormMessage = (message: string) => Boolean(message)
 
 const parseErrorMessage = async (response: Response) => {
   const payload = await response.json().catch(() => ({}))
   return (payload as { message?: string }).message || "Import failed"
+}
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return "Import failed"
 }
 
 const createFormData = ({
@@ -69,7 +86,7 @@ const sendImportRequest = async (formData: FormData) => {
 
 export default function PayloadImportNav() {
   const [file, setFile] = useState<File | null>(null)
-  const [locale, setLocale] = useState("sk")
+  const [locale, setLocale] = useState(defaultLocale)
   const [status, setStatus] = useState("")
   const [sheetName, setSheetName] = useState("")
   const [dryRun, setDryRun] = useState(false)
@@ -107,7 +124,7 @@ export default function PayloadImportNav() {
         `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
       )
     } catch (error_) {
-      setError((error_ as Error).message)
+      setError(getErrorMessage(error_))
     } finally {
       setIsSubmitting(false)
     }
