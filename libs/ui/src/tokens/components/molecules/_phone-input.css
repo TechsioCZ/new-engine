@@ -13,8 +13,8 @@
   --color-phone-input-border-focus: var(--color-form-control-border-focus);
   --color-phone-input-ring: var(--color-form-control-ring);
   --color-phone-input-input-bg-base: transparent;
-  --color-phone-input-input-bg-base: transparent;
-  --color-phone-input-input-bg-base: transparent;
+  --color-phone-input-input-bg-hover: transparent;
+  --color-phone-input-input-bg-focus: transparent;
 
   --color-phone-input-danger: var(--color-danger);
   --color-phone-input-success: var(--color-success);
@@ -28,13 +28,10 @@
   );
 
   --color-phone-input-divider: var(--color-border-primary);
-  --color-phone-input-country-trigger: var(--color-phone-input-fg);
   --color-phone-input-country-calling-code: var(--color-fg-secondary);
   --color-phone-input-item-meta: var(--color-phone-input-country-calling-code);
 
-  --padding-phone-input-country-trigger: var(--spacing-150);
   --padding-phone-input-country-flag: 0;
-  --padding-phone-input-input: var(--spacing-150);
   --spacing-phone-input-country-value: var(--spacing-100);
   --spacing-phone-input-item: var(--spacing-150);
   --spacing-phone-input-country-flag: 0;
@@ -57,11 +54,11 @@
 
 @utility phone-input-focus {
     &:has(:focus-within) {
-      border-color: var(--color-border-phone-input-border-focus);
+      border-color: var(--color-phone-input-border-focus);
       background: var(--color-phone-input-bg-focus);
       outline-style: var(--default-ring-style);
       outline-width: var(--default-ring-width);
-      outline-color: var(--form-control-ring);
+      outline-color: var(--color-form-control-ring);
       outline-offset: var(--default-ring-offset);
     }
   }
