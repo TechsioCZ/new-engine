@@ -25,6 +25,8 @@ type ImportFormData = {
   overwrite?: boolean
 }
 
+type ArticleImportRequest = Parameters<Endpoint["handler"]>[0]
+
 const parseBoolean = (value: string | null | undefined) =>
   typeof value === "string" &&
   ["1", "true", "yes", "on"].includes(value.toLowerCase())
@@ -112,7 +114,7 @@ const resolveLocale = (
   return supportedLocales.includes(normalized) ? normalized : undefined
 }
 
-const isAuthorized = (req: Parameters<Endpoint["handler"]>[0]) => {
+const isAuthorized = (req: ArticleImportRequest) => {
   const roles = (req.user as { roles?: unknown } | null | undefined)?.roles
   if (Array.isArray(roles) && roles.includes("admin")) {
     return true
@@ -120,6 +122,38 @@ const isAuthorized = (req: Parameters<Endpoint["handler"]>[0]) => {
 
   const apiKey = process.env.PAYLOAD_API_KEY
   return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
+}
+
+const isImportInputError = (error: Error) =>
+  error.message === "XLSX file does not contain any sheets" ||
+  error.message === "No rows found in XLSX file" ||
+  error.message.startsWith("Sheet not found:") ||
+  error.message.startsWith("Missing required columns:")
+
+const readImportFormData = async (req: ArticleImportRequest) => {
+  if (!req.formData) {
+    throw new APIError("Form data parsing is not available", 400)
+  }
+
+  return parseFormData(await req.formData())
+}
+
+const resolveImportLocale = (req: ArticleImportRequest, value?: string) => {
+  const localization = req.payload.config.localization
+  const supportedLocales =
+    localization === false ? undefined : localization?.localeCodes
+  const locale =
+    resolveLocale(supportedLocales, value) ??
+    (localization === false ? undefined : localization.defaultLocale)
+
+  if (value && !locale) {
+    throw new APIError(
+      `Invalid locale ${value}. Supported values: ${supportedLocales?.join(", ")}`,
+      400
+    )
+  }
+
+  return locale
 }
 
 /** Endpoint for uploading XLSX and importing articles through Payload admin. */
@@ -131,27 +165,8 @@ export const articleImportEndpoint: Endpoint = {
       throw new APIError("Unauthorized", 401)
     }
 
-    if (!req.formData) {
-      throw new APIError("Form data parsing is not available", 400)
-    }
-
-    const formData = await req.formData()
-    const payload = parseFormData(formData)
-
-    const localization = req.payload.config.localization
-    const supportedLocales =
-      localization === false ? undefined : localization?.localeCodes
-    const locale =
-      resolveLocale(supportedLocales, payload.locale) ??
-      (localization === false ? undefined : localization.defaultLocale)
-
-    if (payload.locale && !locale) {
-      throw new APIError(
-        `Invalid locale ${payload.locale}. Supported values: ${supportedLocales?.join(", ")}`,
-        400
-      )
-    }
-
+    const payload = await readImportFormData(req)
+    const locale = resolveImportLocale(req, payload.locale)
     const status = parseImportStatus(payload.status)
     const importOptions: ArticleImportOptions = {
       filePath: "",
@@ -173,11 +188,19 @@ export const articleImportEndpoint: Endpoint = {
 
       return buildJsonResponse(req, {
         ok: true,
-        result,
+        result: {
+          total: result.total,
+          imported: result.imported,
+          skipped: result.skipped,
+        },
       })
     } catch (error) {
       if (error instanceof APIError && error.status < 500) {
         throw error
+      }
+
+      if (error instanceof Error && isImportInputError(error)) {
+        throw new APIError(error.message, 400)
       }
 
       if (error instanceof Error) {
