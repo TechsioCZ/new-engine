@@ -18,22 +18,30 @@
   --text-icon-xl: var(--text-xl);
   --text-icon-2xl: var(--text-2xl);
 
-  /* === Foreground colors === */
-  --color-icon-fg-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-icon-fg-primary: light-dark(
+  /* === Reference layer === */
+  --color-icon-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-icon-primary: light-dark(
     oklch(0.807 0.101 250.446),
     oklch(0.827 0.109 229.198)
   );
-  --color-icon-fg-secondary: light-dark(
+  --color-icon-secondary: light-dark(
     oklch(0.7 0.202 44.441),
     oklch(0.772 0.173 65.367)
   );
-  --color-icon-fg-success: light-dark(
+  --color-icon-success: light-dark(
     oklch(0.702 0.158 160.438),
     oklch(0.844 0.143 165.23)
   );
-  --color-icon-fg-warning: oklch(0.798 0.164 82.706);
-  --color-icon-fg-danger: oklch(0.702 0.189 22.228);
+  --color-icon-warning: oklch(0.798 0.164 82.706);
+  --color-icon-danger: oklch(0.702 0.189 22.228);
+
+  /* === Derived (foreground) === */
+  --color-icon-fg-base: var(--color-icon-base);
+  --color-icon-fg-primary: var(--color-icon-primary);
+  --color-icon-fg-secondary: var(--color-icon-secondary);
+  --color-icon-fg-success: var(--color-icon-success);
+  --color-icon-fg-warning: var(--color-icon-warning);
+  --color-icon-fg-danger: var(--color-icon-danger);
 }
 
 /* === Semantic glyph aliases (not part of Figma export) === */

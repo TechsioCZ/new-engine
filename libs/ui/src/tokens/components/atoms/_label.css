@@ -7,9 +7,15 @@
  */
 
 @theme static {
-  --color-label-fg-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-label-fg-disabled: oklch(0.551 0.027 264.328);
-  --color-label-fg-required: oklch(0.702 0.189 22.228);
+  /* === Reference layer === */
+  --color-label-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-label-disabled: oklch(0.551 0.027 264.328);
+  --color-label-required: oklch(0.702 0.189 22.228);
+
+  /* === Derived (foreground) === */
+  --color-label-fg-base: var(--color-label-base);
+  --color-label-fg-disabled: var(--color-label-disabled);
+  --color-label-fg-required: var(--color-label-required);
 
   --spacing-label: 0.25rem;
 

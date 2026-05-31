@@ -8,14 +8,19 @@
  */
 
 @theme static {
-  --color-skeleton-bg-primary: light-dark(
+  /* === Reference layer === */
+  --color-skeleton-primary: light-dark(
     oklch(0.928 0.006 264.531),
     oklch(0.278 0.034 257.672)
   );
-  --color-skeleton-bg-secondary: light-dark(
+  --color-skeleton-secondary: light-dark(
     oklch(0.967 0.003 264.542),
     oklch(0.278 0.034 257.672)
   );
+
+  /* === Derived (background) === */
+  --color-skeleton-bg-primary: var(--color-skeleton-primary);
+  --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
 
   --radius-skeleton-text: var(--radius-sm);
 

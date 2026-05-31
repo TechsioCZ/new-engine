@@ -28,53 +28,61 @@
   --border-width-checkbox: var(--border-width-sm);
   --border-width-checkbox-error: var(--border-width-md);
 
-  /* === Backgrounds === */
-  --color-checkbox-bg-base: light-dark(
+  /* === Reference layer ===
+   * surface = default bg (also reused by bg-disabled, identical value)
+   * checked / indeterminate = state surface (each shared by bg+border)
+   * on-checked = icon color when checked/indeterminate (white)
+   * on-disabled = icon color when disabled (mid-grey)
+   * outline-base / outline-disabled = border colors that differ from surface
+   * error = used by both border-error and ring-error
+   * focus = used by ring-focus
+   */
+  --color-checkbox-surface: light-dark(
     oklch(0.967 0.003 264.542),
     oklch(0.278 0.034 257.672)
   );
-  --color-checkbox-bg-checked: light-dark(
+  --color-checkbox-checked: light-dark(
     oklch(0.702 0.158 160.438),
     oklch(0.844 0.143 165.23)
   );
-  --color-checkbox-bg-indeterminate: light-dark(
+  --color-checkbox-indeterminate: light-dark(
     oklch(0.807 0.101 250.446),
     oklch(0.827 0.109 229.198)
   );
-  --color-checkbox-bg-disabled: light-dark(
-    oklch(0.967 0.003 264.542),
-    oklch(0.278 0.034 257.672)
-  );
-
-  /* === Foregrounds (icons / checkmark) === */
-  --color-checkbox-fg-checked: oklch(1 0 0);
-  --color-checkbox-fg-indeterminate: oklch(1 0 0);
-  --color-checkbox-fg-disabled: oklch(0.551 0.027 264.328);
-
-  /* === Borders === */
-  --color-checkbox-border-base: light-dark(
+  --color-checkbox-on-checked: oklch(1 0 0);
+  --color-checkbox-on-disabled: oklch(0.551 0.027 264.328);
+  --color-checkbox-outline-base: light-dark(
     oklch(0.129 0.041 264.695 / 0.15),
     oklch(1 0 0 / 0.15)
   );
-  --color-checkbox-border-checked: light-dark(
-    oklch(0.702 0.158 160.438),
-    oklch(0.844 0.143 165.23)
-  );
-  --color-checkbox-border-indeterminate: light-dark(
-    oklch(0.807 0.101 250.446),
-    oklch(0.827 0.109 229.198)
-  );
-  --color-checkbox-border-disabled: light-dark(
+  --color-checkbox-outline-disabled: light-dark(
     oklch(0.872 0.011 261.787),
     oklch(0.373 0.034 260.169)
   );
+  --color-checkbox-error: oklch(0.702 0.189 22.228);
+  --color-checkbox-focus: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  /* === Validation === */
-  --color-checkbox-border-error: oklch(0.702 0.189 22.228);
-  --color-checkbox-ring-error: oklch(0.702 0.189 22.228);
+  /* === Derived (backgrounds) === */
+  --color-checkbox-bg-base: var(--color-checkbox-surface);
+  --color-checkbox-bg-checked: var(--color-checkbox-checked);
+  --color-checkbox-bg-indeterminate: var(--color-checkbox-indeterminate);
+  --color-checkbox-bg-disabled: var(--color-checkbox-surface);
 
-  /* === Focus ring === */
-  --color-checkbox-ring-focus: light-dark(oklch(0 0 0), oklch(1 0 0));
+  /* === Derived (foregrounds) === */
+  --color-checkbox-fg-checked: var(--color-checkbox-on-checked);
+  --color-checkbox-fg-indeterminate: var(--color-checkbox-on-checked);
+  --color-checkbox-fg-disabled: var(--color-checkbox-on-disabled);
+
+  /* === Derived (borders) === */
+  --color-checkbox-border-base: var(--color-checkbox-outline-base);
+  --color-checkbox-border-checked: var(--color-checkbox-checked);
+  --color-checkbox-border-indeterminate: var(--color-checkbox-indeterminate);
+  --color-checkbox-border-disabled: var(--color-checkbox-outline-disabled);
+
+  /* === Derived (validation + focus rings) === */
+  --color-checkbox-border-error: var(--color-checkbox-error);
+  --color-checkbox-ring-error: var(--color-checkbox-error);
+  --color-checkbox-ring-focus: var(--color-checkbox-focus);
 
   /* === FormCheckbox molecule (not yet in Figma export) === */
   --spacing-form-checkbox-gap: var(--spacing-150);

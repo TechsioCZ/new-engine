@@ -4,14 +4,20 @@
  */
 
 @theme static {
-  --color-rating-fg-base: light-dark(
+  /* === Reference layer === */
+  --color-rating-base: light-dark(
     oklch(0.872 0.011 261.787),
     oklch(0.373 0.034 260.169)
   );
-  --color-rating-fg-active: oklch(0.798 0.164 82.706);
-  --color-rating-fg-disabled: oklch(0.551 0.027 264.328);
+  --color-rating-active: oklch(0.798 0.164 82.706);
+  --color-rating-disabled: oklch(0.551 0.027 264.328);
+  --color-rating-ring-base: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  --color-rating-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
+  /* === Derived === */
+  --color-rating-fg-base: var(--color-rating-base);
+  --color-rating-fg-active: var(--color-rating-active);
+  --color-rating-fg-disabled: var(--color-rating-disabled);
+  --color-rating-ring: var(--color-rating-ring-base);
 
   --spacing-rating-sm: var(--spacing-100);
   --spacing-rating-md: var(--spacing-150);

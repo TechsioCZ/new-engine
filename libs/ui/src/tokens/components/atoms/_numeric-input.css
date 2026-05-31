@@ -10,75 +10,81 @@
  */
 
 @theme static {
-  /* === Container backgrounds === */
-  --color-numeric-input-bg: light-dark(
+  /* === Reference layer ===
+   * `overlay-5/10/15` — neutral text-on-surface alpha overlays (reused by
+   *   bg, border, hover/focus states across container + inner input + trigger).
+   * `surface-disabled` / `border-disabled-ref` — fully opaque disabled colors.
+   * `on-surface` — primary text color (mode-adaptive).
+   * `accent` — focus/active brand color (also used by trigger-fg-hover).
+   * `fg-disabled-ref` — disabled text color.
+   * `danger` / `danger-alpha` — validation red (border + bg variants).
+   * `transparent` — hollow inner input bg.
+   * `ring-base` — focus ring color.
+   */
+  --color-numeric-input-overlay-5: light-dark(
     oklch(0.129 0.041 264.695 / 0.05),
     oklch(1 0 0 / 0.05)
   );
-  --color-numeric-input-bg-disabled: light-dark(
+  --color-numeric-input-overlay-10: light-dark(
+    oklch(0.129 0.041 264.695 / 0.1),
+    oklch(1 0 0 / 0.1)
+  );
+  --color-numeric-input-overlay-15: light-dark(
+    oklch(0.129 0.041 264.695 / 0.15),
+    oklch(1 0 0 / 0.15)
+  );
+  --color-numeric-input-surface-disabled: light-dark(
     oklch(0.967 0.003 264.542),
     oklch(0.278 0.034 257.672)
   );
-  --color-numeric-input-bg-invalid: oklch(0.702 0.189 22.228 / 0.1);
-
-  /* === Container borders === */
-  --color-numeric-input-border: light-dark(
-    oklch(0.129 0.041 264.695 / 0.15),
-    oklch(1 0 0 / 0.15)
-  );
-  --color-numeric-input-border-hover: light-dark(
-    oklch(0.129 0.041 264.695 / 0.15),
-    oklch(1 0 0 / 0.15)
-  );
-  --color-numeric-input-border-focus: light-dark(
-    oklch(0.807 0.101 250.446),
-    oklch(0.827 0.109 229.198)
-  );
-  --color-numeric-input-border-disabled: light-dark(
+  --color-numeric-input-border-disabled-ref: light-dark(
     oklch(0.872 0.011 261.787),
     oklch(0.373 0.034 260.169)
   );
-  --color-numeric-input-border-invalid: oklch(0.702 0.189 22.228);
-
-  /* === Foreground === */
-  --color-numeric-input-fg: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-numeric-input-fg-disabled: oklch(0.551 0.027 264.328);
-
-  /* === Inner input === */
-  --color-numeric-input-input-bg: oklch(0 0 0 / 0);
-  --color-numeric-input-input-bg-hover: light-dark(
-    oklch(0.129 0.041 264.695 / 0.1),
-    oklch(1 0 0 / 0.1)
-  );
-  --color-numeric-input-input-bg-focus: light-dark(
-    oklch(0.129 0.041 264.695 / 0.15),
-    oklch(1 0 0 / 0.15)
-  );
-
-  /* === Triggers === */
-  --color-numeric-input-trigger-container-bg: light-dark(
-    oklch(0.129 0.041 264.695 / 0.15),
-    oklch(1 0 0 / 0.15)
-  );
-  --color-numeric-input-trigger-bg: light-dark(
-    oklch(0.129 0.041 264.695 / 0.05),
-    oklch(1 0 0 / 0.05)
-  );
-  --color-numeric-input-trigger-bg-hover: light-dark(
-    oklch(0.129 0.041 264.695 / 0.1),
-    oklch(1 0 0 / 0.1)
-  );
-  --color-numeric-input-trigger-fg: light-dark(
+  --color-numeric-input-on-surface: light-dark(
     oklch(0.13 0.043 265.132),
     oklch(1 0 0)
   );
-  --color-numeric-input-trigger-fg-hover: light-dark(
+  --color-numeric-input-accent: light-dark(
     oklch(0.807 0.101 250.446),
     oklch(0.827 0.109 229.198)
   );
+  --color-numeric-input-fg-disabled-ref: oklch(0.551 0.027 264.328);
+  --color-numeric-input-danger: oklch(0.702 0.189 22.228);
+  --color-numeric-input-danger-alpha: oklch(0.702 0.189 22.228 / 0.1);
+  --color-numeric-input-transparent: oklch(0 0 0 / 0);
+  --color-numeric-input-ring-base: light-dark(oklch(0 0 0), oklch(1 0 0));
 
-  /* === Focus ring === */
-  --color-numeric-input-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
+  /* === Derived (container backgrounds) === */
+  --color-numeric-input-bg: var(--color-numeric-input-overlay-5);
+  --color-numeric-input-bg-disabled: var(--color-numeric-input-surface-disabled);
+  --color-numeric-input-bg-invalid: var(--color-numeric-input-danger-alpha);
+
+  /* === Derived (container borders) === */
+  --color-numeric-input-border: var(--color-numeric-input-overlay-15);
+  --color-numeric-input-border-hover: var(--color-numeric-input-overlay-15);
+  --color-numeric-input-border-focus: var(--color-numeric-input-accent);
+  --color-numeric-input-border-disabled: var(--color-numeric-input-border-disabled-ref);
+  --color-numeric-input-border-invalid: var(--color-numeric-input-danger);
+
+  /* === Derived (foreground) === */
+  --color-numeric-input-fg: var(--color-numeric-input-on-surface);
+  --color-numeric-input-fg-disabled: var(--color-numeric-input-fg-disabled-ref);
+
+  /* === Derived (inner input) === */
+  --color-numeric-input-input-bg: var(--color-numeric-input-transparent);
+  --color-numeric-input-input-bg-hover: var(--color-numeric-input-overlay-10);
+  --color-numeric-input-input-bg-focus: var(--color-numeric-input-overlay-15);
+
+  /* === Derived (triggers) === */
+  --color-numeric-input-trigger-container-bg: var(--color-numeric-input-overlay-15);
+  --color-numeric-input-trigger-bg: var(--color-numeric-input-overlay-5);
+  --color-numeric-input-trigger-bg-hover: var(--color-numeric-input-overlay-10);
+  --color-numeric-input-trigger-fg: var(--color-numeric-input-on-surface);
+  --color-numeric-input-trigger-fg-hover: var(--color-numeric-input-accent);
+
+  /* === Derived (focus ring) === */
+  --color-numeric-input-ring: var(--color-numeric-input-ring-base);
 
   /* === Border width === */
   --border-width-numeric-input: var(--border-width-md);

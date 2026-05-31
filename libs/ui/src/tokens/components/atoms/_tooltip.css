@@ -10,19 +10,23 @@
  */
 
 @theme static {
-  --color-tooltip-bg: light-dark(
+  /* === Reference layer === */
+  /* surface = the tooltip fill (used by both bg and arrow). */
+  --color-tooltip-surface: light-dark(
     oklch(0.928 0.006 264.531),
     oklch(0.278 0.034 257.672)
   );
-  --color-tooltip-fg: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-tooltip-arrow: light-dark(
-    oklch(0.928 0.006 264.531),
-    oklch(0.278 0.034 257.672)
-  );
-  --color-tooltip-border-outline: light-dark(
+  --color-tooltip-content: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-tooltip-outline: light-dark(
     oklch(0.129 0.041 264.695 / 0.15),
     oklch(1 0 0 / 0.15)
   );
+
+  /* === Derived === */
+  --color-tooltip-bg: var(--color-tooltip-surface);
+  --color-tooltip-fg: var(--color-tooltip-content);
+  --color-tooltip-arrow: var(--color-tooltip-surface);
+  --color-tooltip-border-outline: var(--color-tooltip-outline);
 
   --border-width-tooltip: var(--border-width-sm);
   --radius-tooltip: var(--radius-md);

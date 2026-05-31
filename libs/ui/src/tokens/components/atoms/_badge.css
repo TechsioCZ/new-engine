@@ -41,54 +41,72 @@
   --font-weight-badge-lg: var(--font-weight-semibold);
   --font-weight-badge-xl: var(--font-weight-bold);
 
-  /* === Base border fallback (overridden by every variant) === */
-  --color-badge-border: oklch(0 0 0 / 0);
-
-  /* === Backgrounds === */
-  --color-badge-bg-primary: light-dark(
+  /* === Reference layer ===
+   * One brand/intent color per variant; danger and discount share a value.
+   * `on-filled` is the text color used on every filled variant (near-black).
+   * `outline-*` are the outline-variant-only border + transparent fills.
+   */
+  --color-badge-primary: light-dark(
     oklch(0.807 0.101 250.446),
     oklch(0.827 0.109 229.198)
   );
-  --color-badge-bg-secondary: light-dark(
+  --color-badge-secondary: light-dark(
     oklch(0.7 0.202 44.441),
     oklch(0.772 0.173 65.367)
   );
-  --color-badge-bg-tertiary: light-dark(
+  --color-badge-tertiary: light-dark(
     oklch(0.823 0.119 346.157),
     oklch(0.806 0.112 11.594)
   );
-  --color-badge-bg-info: oklch(0.704 0.123 182.503);
-  --color-badge-bg-success: light-dark(
+  --color-badge-info: oklch(0.704 0.123 182.503);
+  --color-badge-success: light-dark(
     oklch(0.702 0.158 160.438),
     oklch(0.844 0.143 165.23)
   );
-  --color-badge-bg-warning: oklch(0.798 0.164 82.706);
-  --color-badge-bg-danger: oklch(0.702 0.189 22.228);
-  --color-badge-bg-discount: oklch(0.702 0.189 22.228);
-  --color-badge-bg-outline: oklch(0 0 0 / 0);
-
-  /* === Foregrounds === */
-  --color-badge-fg-primary: oklch(0.13 0.043 265.132);
-  --color-badge-fg-secondary: oklch(0.13 0.043 265.132);
-  --color-badge-fg-tertiary: oklch(0.13 0.043 265.132);
-  --color-badge-fg-info: oklch(0.13 0.043 265.132);
-  --color-badge-fg-success: oklch(0.13 0.043 265.132);
-  --color-badge-fg-warning: oklch(0.13 0.043 265.132);
-  --color-badge-fg-danger: oklch(0.13 0.043 265.132);
-  --color-badge-fg-discount: oklch(0.13 0.043 265.132);
-  --color-badge-fg-outline: oklch(0.494 0.037 261.595);
-
-  /* === Borders === */
-  --color-badge-border-primary: oklch(0 0 0 / 0);
-  --color-badge-border-secondary: oklch(0 0 0 / 0);
-  --color-badge-border-tertiary: oklch(0 0 0 / 0);
-  --color-badge-border-info: oklch(0 0 0 / 0);
-  --color-badge-border-success: oklch(0 0 0 / 0);
-  --color-badge-border-warning: oklch(0 0 0 / 0);
-  --color-badge-border-danger: oklch(0 0 0 / 0);
-  --color-badge-border-discount: oklch(0 0 0 / 0);
-  --color-badge-border-outline: light-dark(
+  --color-badge-warning: oklch(0.798 0.164 82.706);
+  --color-badge-danger: oklch(0.702 0.189 22.228);
+  --color-badge-discount: oklch(0.702 0.189 22.228);
+  --color-badge-on-filled: oklch(0.13 0.043 265.132);
+  --color-badge-outline-fg: oklch(0.494 0.037 261.595);
+  --color-badge-outline-border: light-dark(
     oklch(0.129 0.041 264.695 / 0.15),
     oklch(1 0 0 / 0.15)
   );
+  --color-badge-transparent: oklch(0 0 0 / 0);
+
+  /* === Base border fallback (overridden by every variant) === */
+  --color-badge-border: var(--color-badge-transparent);
+
+  /* === Derived (backgrounds) === */
+  --color-badge-bg-primary: var(--color-badge-primary);
+  --color-badge-bg-secondary: var(--color-badge-secondary);
+  --color-badge-bg-tertiary: var(--color-badge-tertiary);
+  --color-badge-bg-info: var(--color-badge-info);
+  --color-badge-bg-success: var(--color-badge-success);
+  --color-badge-bg-warning: var(--color-badge-warning);
+  --color-badge-bg-danger: var(--color-badge-danger);
+  --color-badge-bg-discount: var(--color-badge-discount);
+  --color-badge-bg-outline: var(--color-badge-transparent);
+
+  /* === Derived (foregrounds) === */
+  --color-badge-fg-primary: var(--color-badge-on-filled);
+  --color-badge-fg-secondary: var(--color-badge-on-filled);
+  --color-badge-fg-tertiary: var(--color-badge-on-filled);
+  --color-badge-fg-info: var(--color-badge-on-filled);
+  --color-badge-fg-success: var(--color-badge-on-filled);
+  --color-badge-fg-warning: var(--color-badge-on-filled);
+  --color-badge-fg-danger: var(--color-badge-on-filled);
+  --color-badge-fg-discount: var(--color-badge-on-filled);
+  --color-badge-fg-outline: var(--color-badge-outline-fg);
+
+  /* === Derived (borders) === */
+  --color-badge-border-primary: var(--color-badge-transparent);
+  --color-badge-border-secondary: var(--color-badge-transparent);
+  --color-badge-border-tertiary: var(--color-badge-transparent);
+  --color-badge-border-info: var(--color-badge-transparent);
+  --color-badge-border-success: var(--color-badge-transparent);
+  --color-badge-border-warning: var(--color-badge-transparent);
+  --color-badge-border-danger: var(--color-badge-transparent);
+  --color-badge-border-discount: var(--color-badge-transparent);
+  --color-badge-border-outline: var(--color-badge-outline-border);
 }

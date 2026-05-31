@@ -13,77 +13,85 @@
 @theme static {
   --opacity-borderless: 60%;
 
-  /* === Backgrounds === */
-  --color-textarea-bg: light-dark(
+  /* === Reference layer === */
+  --color-textarea-overlay-5: light-dark(
     oklch(0.129 0.041 264.695 / 0.05),
     oklch(1 0 0 / 0.05)
   );
-  --color-textarea-bg-hover: light-dark(
+  --color-textarea-overlay-10: light-dark(
     oklch(0.129 0.041 264.695 / 0.1),
     oklch(1 0 0 / 0.1)
   );
-  --color-textarea-bg-focus: light-dark(
+  --color-textarea-overlay-15: light-dark(
     oklch(0.129 0.041 264.695 / 0.15),
     oklch(1 0 0 / 0.15)
   );
-  --color-textarea-bg-disabled: light-dark(
+  --color-textarea-surface-disabled: light-dark(
     oklch(0.967 0.003 264.542),
     oklch(0.278 0.034 257.672)
   );
-
-  /* === Foregrounds === */
-  --color-textarea-fg: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-textarea-fg-disabled: oklch(0.551 0.027 264.328);
-  --color-textarea-fg-placeholder: oklch(0.554 0.041 257.417);
-
-  /* === Borders === */
-  --color-textarea-border: light-dark(
-    oklch(0.129 0.041 264.695 / 0.15),
-    oklch(1 0 0 / 0.15)
-  );
-  --color-textarea-border-hover: light-dark(
-    oklch(0.129 0.041 264.695 / 0.15),
-    oklch(1 0 0 / 0.15)
-  );
-  --color-textarea-border-focus: light-dark(
-    oklch(0.807 0.101 250.446),
-    oklch(0.827 0.109 229.198)
-  );
-  --color-textarea-border-disabled: light-dark(
+  --color-textarea-outline-disabled: light-dark(
     oklch(0.872 0.011 261.787),
     oklch(0.373 0.034 260.169)
   );
-
-  /* === Validation === */
-  --color-textarea-border-danger-base: oklch(0.702 0.189 22.228);
-  --color-textarea-border-danger-hover: light-dark(
+  --color-textarea-on-surface: light-dark(
+    oklch(0.13 0.043 265.132),
+    oklch(1 0 0)
+  );
+  --color-textarea-fg-disabled-ref: oklch(0.551 0.027 264.328);
+  --color-textarea-placeholder-ref: oklch(0.554 0.041 257.417);
+  --color-textarea-accent: light-dark(
+    oklch(0.807 0.101 250.446),
+    oklch(0.827 0.109 229.198)
+  );
+  --color-textarea-danger-base: oklch(0.702 0.189 22.228);
+  --color-textarea-danger-hover: light-dark(
     oklch(0.637 0.208 25.331),
     oklch(0.711 0.166 22.216)
   );
-  --color-textarea-border-danger-focus: var(
-    --color-textarea-border-danger-base
-  );
-
-  --color-textarea-border-success-base: light-dark(
+  --color-textarea-success-base: light-dark(
     oklch(0.702 0.158 160.438),
     oklch(0.844 0.143 165.23)
   );
-  --color-textarea-border-success-hover: light-dark(
+  --color-textarea-success-hover: light-dark(
     oklch(0.596 0.127 163.225),
     oklch(0.773 0.153 163.223)
   );
-  --color-textarea-border-success-focus: var(
-    --color-textarea-border-success-base
-  );
-
-  --color-textarea-border-warning-base: oklch(0.798 0.164 82.706);
-  --color-textarea-border-warning-hover: light-dark(
+  --color-textarea-warning-base: oklch(0.798 0.164 82.706);
+  --color-textarea-warning-hover: light-dark(
     oklch(0.681 0.142 75.834),
     oklch(0.795 0.162 86.047)
   );
-  --color-textarea-border-warning-focus: var(
-    --color-textarea-border-warning-base
-  );
+
+  /* === Derived (backgrounds) === */
+  --color-textarea-bg: var(--color-textarea-overlay-5);
+  --color-textarea-bg-hover: var(--color-textarea-overlay-10);
+  --color-textarea-bg-focus: var(--color-textarea-overlay-15);
+  --color-textarea-bg-disabled: var(--color-textarea-surface-disabled);
+
+  /* === Derived (foregrounds) === */
+  --color-textarea-fg: var(--color-textarea-on-surface);
+  --color-textarea-fg-disabled: var(--color-textarea-fg-disabled-ref);
+  --color-textarea-fg-placeholder: var(--color-textarea-placeholder-ref);
+
+  /* === Derived (borders) === */
+  --color-textarea-border: var(--color-textarea-overlay-15);
+  --color-textarea-border-hover: var(--color-textarea-overlay-15);
+  --color-textarea-border-focus: var(--color-textarea-accent);
+  --color-textarea-border-disabled: var(--color-textarea-outline-disabled);
+
+  /* === Derived (validation) === */
+  --color-textarea-border-danger-base: var(--color-textarea-danger-base);
+  --color-textarea-border-danger-hover: var(--color-textarea-danger-hover);
+  --color-textarea-border-danger-focus: var(--color-textarea-danger-base);
+
+  --color-textarea-border-success-base: var(--color-textarea-success-base);
+  --color-textarea-border-success-hover: var(--color-textarea-success-hover);
+  --color-textarea-border-success-focus: var(--color-textarea-success-base);
+
+  --color-textarea-border-warning-base: var(--color-textarea-warning-base);
+  --color-textarea-border-warning-hover: var(--color-textarea-warning-hover);
+  --color-textarea-border-warning-focus: var(--color-textarea-warning-base);
 
   /* === Placeholder-on-danger (not in Figma) === */
   /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
@@ -102,7 +110,8 @@
   --color-textarea-bg-borderless-focus: var(--color-textarea-bg);
 
   /* === Focus ring === */
-  --color-textarea-ring: light-dark(oklch(0 0 0), oklch(1 0 0));
+  --color-textarea-ring-base: light-dark(oklch(0 0 0), oklch(1 0 0));
+  --color-textarea-ring: var(--color-textarea-ring-base);
 
   /* === Border widths === */
   --border-width-textarea: var(--border-width-md);
