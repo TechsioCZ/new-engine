@@ -76,3 +76,4 @@ static-data/
 plans/
 apps/n1/next-env.d.ts
 .oas/
+libs/ui/.visual-diff/
