@@ -87,7 +87,7 @@ export const mapPaykitStatusToMedusa = (
 export const getPaymentStatusValue = (payment: PaykitPayment): unknown =>
   payment.status ?? payment.state
 
-export const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
+const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
   payment.payment_url ??
   payment.paymentUrl ??
   payment.checkout_url ??
@@ -175,14 +175,26 @@ const mapPaykitWebhookAction = (
   event: PaykitWebhookEvent,
   payment: PaykitPayment
 ): PaymentActions => {
+  if (event.is_raw) {
+    return PaymentActions.NOT_SUPPORTED
+  }
+
   const status = getPaymentStatusValue(payment)
 
   if (event.type === "payment.canceled" || status === "canceled") {
     return PaymentActions.CANCELED
   }
 
-  if (status === "failed" || status === "error") {
+  if (
+    event.type === "payment.failed" ||
+    status === "failed" ||
+    status === "error"
+  ) {
     return PaymentActions.FAILED
+  }
+
+  if (event.type === "payment.succeeded") {
+    return PaymentActions.SUCCESSFUL
   }
 
   const medusaStatus = mapPaykitStatusToMedusa(status)

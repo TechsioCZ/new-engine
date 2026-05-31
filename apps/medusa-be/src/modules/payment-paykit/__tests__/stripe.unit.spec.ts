@@ -186,7 +186,7 @@ describe("PaykitStripePaymentProvider", () => {
     const client = createMockPaykitClient()
     client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        type: "payment.updated",
+        type: "payment.succeeded",
         data: {
           id: "stripe-payment-1",
           amount: 1050,
@@ -219,18 +219,29 @@ describe("PaykitStripePaymentProvider", () => {
     })
   })
 
-  it("maps verified Stripe payment intent events when PayKit reports them as unhandled", async () => {
+  it("skips raw Stripe events before the standard payment event", async () => {
     const client = createMockPaykitClient()
-    const unhandledPaymentIntentError = Object.assign(
-      new Error("Unhandled event type: payment_intent.succeeded"),
+    client.handleWebhook = vi.fn().mockResolvedValue([
       {
-        code: "WEBHOOK_ERROR",
-        provider: "stripe",
-      }
-    )
-    client.handleWebhook = vi
-      .fn()
-      .mockRejectedValue(unhandledPaymentIntentError)
+        type: "stripe.payment_intent.succeeded",
+        is_raw: true,
+        data: {
+          id: "evt_123",
+        },
+      },
+      {
+        type: "payment.succeeded",
+        data: {
+          id: "stripe-payment-1",
+          amount: 1050,
+          currency: "czk",
+          status: "succeeded",
+          metadata: {
+            session_id: "payses_123",
+          },
+        },
+      },
+    ])
     const provider = new PaykitStripePaymentProvider(createMockContainer(), {
       client,
     })
@@ -238,20 +249,7 @@ describe("PaykitStripePaymentProvider", () => {
     await expect(
       provider.getWebhookActionAndData({
         data: {},
-        rawData: JSON.stringify({
-          type: "payment_intent.succeeded",
-          data: {
-            object: {
-              id: "stripe-payment-1",
-              amount: 1050,
-              currency: "czk",
-              status: "succeeded",
-              metadata: {
-                session_id: "payses_123",
-              },
-            },
-          },
-        }),
+        rawData: "",
         headers: {
           "stripe-signature": "sig_123",
         },

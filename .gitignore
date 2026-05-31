@@ -62,7 +62,6 @@ test-results
 .mcp.json
 .schaltwerk/
 
-
 # Frontend demo test pages
 .next/
 
@@ -76,3 +75,4 @@ static-data/
 
 plans/
 apps/n1/next-env.d.ts
+.oas/

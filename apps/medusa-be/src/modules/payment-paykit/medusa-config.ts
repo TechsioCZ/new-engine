@@ -1,18 +1,34 @@
 import {
   PAYKIT_COMGATE_PROVIDER_ID,
   PAYKIT_GOPAY_PROVIDER_ID,
-  PAYKIT_PROVIDER_FEATURE_FLAGS,
   PAYKIT_STRIPE_PROVIDER_ID,
-  type PaykitProviderFeature,
-  parseBooleanEnv,
-} from "./config"
+} from "./constants"
 
 type PaykitConfigEnv = NodeJS.ProcessEnv
+
+const PAYKIT_PROVIDER_FEATURE_FLAGS = {
+  GOPAY: "FEATURE_PAYKIT_GOPAY_ENABLED",
+  STRIPE: "FEATURE_PAYKIT_STRIPE_ENABLED",
+  COMGATE: "FEATURE_PAYKIT_COMGATE_ENABLED",
+} as const
+
+type PaykitProviderFeature = keyof typeof PAYKIT_PROVIDER_FEATURE_FLAGS
 
 export type PaykitPaymentProviderConfig = {
   id: string
   options: Record<string, unknown>
   resolve: string
+}
+
+const parseBooleanEnv = (
+  value: string | undefined,
+  defaultValue: boolean
+): boolean => {
+  if (value === undefined || value === "") {
+    return defaultValue
+  }
+
+  return value === "1" || value.toLowerCase() === "true"
 }
 
 const requirePaykitEnv = (
@@ -85,6 +101,7 @@ export const buildPaykitPaymentProviders = (
       id: PAYKIT_STRIPE_PROVIDER_ID,
       options: {
         apiKey: env.STRIPE_API_KEY,
+        isSandbox: parseBooleanEnv(env.STRIPE_SANDBOX, true),
         webhookSecret: env.STRIPE_WEBHOOK_SECRET,
         debug,
       },

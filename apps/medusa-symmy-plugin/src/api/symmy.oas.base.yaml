@@ -1,0 +1,12 @@
+openapi: 3.0.0
+info:
+  title: Medusa API
+  version: 1.0.0
+tags:
+  - name: Symmy
+    description: >
+      Symmy API routes let authenticated integrations import catalog, customer,
+      inventory, price list, invoice, and fulfillment tracking data into Medusa.
+    externalDocs:
+      description: Learn more about Medusa plugins
+      url: https://docs.medusajs.com/learn/fundamentals/plugins

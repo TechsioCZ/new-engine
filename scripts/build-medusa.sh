@@ -80,12 +80,20 @@ log_info "Working directory: $PROJECT_ROOT"
 step_start
 log_info "Step 1/5: Cleaning up unused apps and libs..."
 
-# Remove all apps except medusa-be, and remove all libs
-find apps -maxdepth 1 -mindepth 1 -type d ! -name 'medusa-be' -exec rm -rf {} + || true
+# Remove all apps except medusa-be and its workspace plugin dependencies, and remove all libs
+find apps -maxdepth 1 -mindepth 1 -type d \
+  ! -name 'medusa-be' \
+  ! -name 'medusa-symmy-plugin' \
+  -exec rm -rf {} + || true
 rm -rf libs || true
 
 # Clean existing node_modules and .medusa to ensure fresh build
-rm -rf node_modules apps/medusa-be/node_modules apps/medusa-be/.medusa || true
+rm -rf \
+  node_modules \
+  apps/medusa-be/node_modules \
+  apps/medusa-be/.medusa \
+  apps/medusa-symmy-plugin/node_modules \
+  apps/medusa-symmy-plugin/.medusa || true
 
 step_end "Cleanup"
 
