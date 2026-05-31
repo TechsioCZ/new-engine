@@ -10,7 +10,7 @@ const tooltipVariants = tv({
       "[--arrow-size:var(--tooltip-arrow-size)]",
       "[--arrow-background:var(--tooltip-arrow-background)]",
       "bg-tooltip-bg",
-      "rounded-tooltip shadow-tooltip",
+      "rounded-tooltip",
     ],
     positioner: ["relative"],
     arrow: "",

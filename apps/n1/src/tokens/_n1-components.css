@@ -51,7 +51,7 @@
 
   /* TOOLTIP */
   --color-tooltip-bg: var(--color-base);
-  --color-tooltip-border: var(--color-border-secondary);
+  --color-tooltip-border-outline: var(--color-border-secondary);
 
   /* === MOLECULES === */
 

@@ -5,7 +5,10 @@
 
 @theme static {
   /* === Reference layer === */
-  --color-status-text: oklch(0.494 0.037 261.595);
+  --color-status-text: light-dark(
+    oklch(0.494 0.037 261.595),
+    oklch(0.704 0.04 256.788)
+  );
   --color-status-text-error: light-dark(
     oklch(0.711 0.166 22.216),
     oklch(0.808 0.103 19.571)
