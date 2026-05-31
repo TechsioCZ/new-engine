@@ -16,20 +16,30 @@
  *   node apply-reverse-blocks.mjs <comp> [<comp> ...]
  */
 
-import { execSync } from "node:child_process"
+import { execFileSync } from "node:child_process"
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
-const COMP_DIR_ATOMS = join(
-  REPO_ROOT,
-  "libs/ui/src/tokens/components/atoms"
-)
+const COMP_DIR_ATOMS = join(REPO_ROOT, "libs/ui/src/tokens/components/atoms")
 const FRAG_DIR_LIGHT = join(REPO_ROOT, "libs/ui/src/tokens/figma/light")
 const FRAG_DIR_DARK = join(REPO_ROOT, "libs/ui/src/tokens/figma/dark")
 const SPLITTER = join(__dirname, "split-figma-tokens.mjs")
+
+// Component names must be plain kebab-case to be safe as filenames and CLI
+// args. This rejects path traversal (../), shell metacharacters, and
+// anything outside the expected token namespace.
+const COMPONENT_NAME_RE = /^[a-z][a-z0-9-]*$/
+function assertSafeComponentName(name) {
+  if (!COMPONENT_NAME_RE.test(name)) {
+    throw new Error(
+      `Refusing unsafe component name: ${JSON.stringify(name)}. ` +
+        "Expected lowercase kebab-case (e.g., 'button', 'numeric-input')."
+    )
+  }
+}
 
 function findClosingBrace(text, openIdx) {
   // openIdx points to '{'
@@ -68,14 +78,15 @@ function stripFragmentHeader(fragText) {
 }
 
 function processComponent(component) {
+  assertSafeComponentName(component)
   const compFile = join(COMP_DIR_ATOMS, `_${component}.css`)
   if (!existsSync(compFile)) {
     console.warn(`! skip ${component}: ${compFile} not found`)
     return
   }
 
-  // 1. regenerate fragments
-  execSync(`node ${SPLITTER} ${component}`, { stdio: "inherit" })
+  // 1. regenerate fragments — argv-style call, no shell interpolation.
+  execFileSync(process.execPath, [SPLITTER, component], { stdio: "inherit" })
 
   const darkFragPath = join(FRAG_DIR_DARK, `${component}.css`)
   const lightFragPath = join(FRAG_DIR_LIGHT, `${component}.css`)
@@ -84,14 +95,17 @@ function processComponent(component) {
     return
   }
 
-  const fragText = stripFragmentHeader(readFileSync(darkFragPath, "utf8")).trim()
+  const fragText = stripFragmentHeader(
+    readFileSync(darkFragPath, "utf8")
+  ).trim()
 
   let comp = readFileSync(compFile, "utf8")
 
   // Remove every existing class-based dark block AND any reverse-related
   // blocks left over from earlier runs; we will reinsert from the fragment.
   // Order matters: collect insertion point, then strip, then insert.
-  const darkStartRegex = /:is\(\.dark, \.always-dark\)(?:,\s*\n:is\(\.light, \.always-light\) \.reverse)? \{/
+  const darkStartRegex =
+    /:is\(\.dark, \.always-dark\)(?:,\s*\n:is\(\.light, \.always-light\) \.reverse)? \{/
   let insertionIdx = -1
   const firstDarkMatch = comp.match(darkStartRegex)
   if (firstDarkMatch) insertionIdx = firstDarkMatch.index
@@ -120,7 +134,7 @@ function processComponent(component) {
   comp = comp.replace(/\n{3,}/g, "\n\n").trimEnd() + "\n"
 
   // Find the end of the last @theme block (or top of file if none) to insert after
-  let inject = "\n" + fragText + "\n"
+  const inject = "\n" + fragText + "\n"
   // Find the position of the original first dark block in the original text — we
   // already lost it. Instead, append fragment after the last `}` of the
   // @theme static block, before any @utility or @keyframes blocks.
@@ -129,7 +143,12 @@ function processComponent(component) {
   let out
   if (insertAtMatch) {
     const insertAt = insertAtMatch.index
-    out = comp.slice(0, insertAt).trimEnd() + "\n\n" + fragText + "\n\n" + comp.slice(insertAt)
+    out =
+      comp.slice(0, insertAt).trimEnd() +
+      "\n\n" +
+      fragText +
+      "\n\n" +
+      comp.slice(insertAt)
   } else {
     out = comp.trimEnd() + "\n\n" + fragText + "\n"
   }

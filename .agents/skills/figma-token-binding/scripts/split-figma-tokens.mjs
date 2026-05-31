@@ -123,7 +123,13 @@ function emitLight(component, lightTokens) {
 
 function emitDark(component, lightTokens, darkTokens) {
   const lightMap = new Map(lightTokens)
-  const overrides = darkTokens.filter(([n, v]) => lightMap.get(n) !== v)
+  // Only tokens present in BOTH modes participate in reverse-block flipping.
+  // Dark-only tokens (no light counterpart) cannot be reverted to a light
+  // value, so they would emit `: undefined;` if left in `lightBody`. Skip
+  // them here — they should live in their own dark-only declaration.
+  const overrides = darkTokens.filter(
+    ([n, v]) => lightMap.has(n) && lightMap.get(n) !== v
+  )
   if (overrides.length === 0) {
     return `${header("dark", component)}/* No tokens differ between light and dark mode. */\n`
   }

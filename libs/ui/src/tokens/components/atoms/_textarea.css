@@ -86,6 +86,7 @@
   );
 
   /* === Placeholder-on-danger (not in Figma) === */
+  /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
   --color-textarea-placeholder-danger: --alpha(
     var(--color-textarea-border-danger-base) /
     var(--opacity-placeholder)
@@ -96,6 +97,7 @@
     var(--color-textarea-bg) /
     var(--opacity-borderless)
   );
+  /* stylelint-enable scss/operator-no-newline-after */
   --color-textarea-bg-borderless-hover: var(--color-textarea-bg);
   --color-textarea-bg-borderless-focus: var(--color-textarea-bg);
 

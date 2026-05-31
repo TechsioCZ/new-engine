@@ -69,7 +69,7 @@ behavior with zero Figma schema changes.
 From the component `.tsx`, list every Tailwind utility that resolves to a
 component-prefixed CSS variable. For Button:
 
-```
+```text
 bg-button-bg-{role}          → --color-button-bg-{role}
 text-button-fg-{role}        → --color-button-fg-{role}
 border-button-border-{role}  → --color-button-border-{role}
@@ -94,7 +94,7 @@ node .agents/skills/figma-token-binding/scripts/split-figma-tokens.mjs <componen
 
 Output:
 
-```
+```text
 libs/ui/src/tokens/figma/light/<component>.css
 libs/ui/src/tokens/figma/dark/<component>.css
 ```
@@ -201,7 +201,7 @@ the UI is fine."
    recent runs have used `http://localhost:55385/`.
 
 2. Find the component's Variants story. URL pattern:
-   ```
+   ```text
    http://localhost:<port>/?path=/story/atoms-<name>--variants
    ```
    For Button: `http://localhost:55385/?path=/story/atoms-button--variants`.
@@ -215,7 +215,7 @@ the UI is fine."
      (prefers-color-scheme: dark)` fallback path
 
    Pseudocode (use whichever tool surface is available):
-   ```
+   ```text
    navigate to http://localhost:<port>/?path=/story/atoms-button--variants
    for theme in [light, dark, reverse]:
      set Storybook globals.theme = theme
@@ -439,9 +439,9 @@ The splitter reads `tokens/figma/{light,dark}/variables.css` and writes
 component fragments. Usage:
 
 ```sh
-node .agents/figma-token-binding/scripts/split-figma-tokens.mjs <component-name>
-node .agents/figma-token-binding/scripts/split-figma-tokens.mjs --list   # list available components
-node .agents/figma-token-binding/scripts/split-figma-tokens.mjs --all    # split every component
+node .agents/skills/figma-token-binding/scripts/split-figma-tokens.mjs <component-name>
+node .agents/skills/figma-token-binding/scripts/split-figma-tokens.mjs --list   # list available components
+node .agents/skills/figma-token-binding/scripts/split-figma-tokens.mjs --all    # split every component
 ```
 
 It identifies a token as belonging to component `X` if and only if the
