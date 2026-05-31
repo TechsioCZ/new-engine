@@ -42,6 +42,12 @@ export function CheckoutDetailsStepSection({
 
   return (
     <section className="space-y-300">
+      <header className="xl:pt-550">
+        <h2 className="text-xl leading-relaxed font-inter font-medium text-fg-primary">
+          Vaše údaje
+        </h2>
+      </header>
+
       <form
         className="space-y-300"
         id={addressFormId}
@@ -79,7 +85,8 @@ export function CheckoutDetailsStepSection({
               showContactFields
               showCustomerNote
               showLoginPrompt
-              title="Doručovacie údaje"
+              showRegistrationOptIn={!controller.isAuthenticated}
+              showRequiredNote
             />
 
             <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">

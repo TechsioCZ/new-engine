@@ -16,7 +16,7 @@ export function CheckoutPurchaseTypeToggle({
 }: CheckoutPurchaseTypeToggleProps) {
   return (
     <RadioGroup
-      className="font-rubik"
+      className="w-auto font-rubik"
       id={id}
       onValueChange={(value) => {
         onValueChange(value === "company");

@@ -2,6 +2,7 @@
 
 import { createFormHook } from "@tanstack/react-form";
 import { FormCheckboxField } from "@/components/forms/form-checkbox-field";
+import { FormPhoneField } from "@/components/forms/form-phone-field";
 import { FormRadioGroupField } from "@/components/forms/form-radio-group-field";
 import { FormSelectField } from "@/components/forms/form-select-field";
 import { FormTextField } from "@/components/forms/form-text-field";
@@ -18,6 +19,7 @@ export const {
 } = createFormHook({
   fieldComponents: {
     CheckboxField: FormCheckboxField,
+    PhoneField: FormPhoneField,
     RadioGroupField: FormRadioGroupField,
     SelectField: FormSelectField,
     TextField: FormTextField,

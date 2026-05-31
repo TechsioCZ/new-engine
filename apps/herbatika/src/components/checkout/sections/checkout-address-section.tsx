@@ -1,3 +1,4 @@
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import {
   type CheckoutAddressScope,
@@ -19,7 +20,9 @@ type CheckoutAddressSectionProps = {
   showContactFields?: boolean;
   showCustomerNote?: boolean;
   showLoginPrompt?: boolean;
-  title: string;
+  showRegistrationOptIn?: boolean;
+  showRequiredNote?: boolean;
+  title?: string;
 };
 
 export function CheckoutAddressSection({
@@ -33,25 +36,41 @@ export function CheckoutAddressSection({
   showContactFields = true,
   showCustomerNote = false,
   showLoginPrompt = false,
+  showRegistrationOptIn = false,
+  showRequiredNote = false,
   title,
 }: CheckoutAddressSectionProps) {
   const scopedValidators = checkoutFieldValidators[scope];
 
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
-      <header>
-        <h2 className="text-xl font-medium text-fg-primary">{title}</h2>
-      </header>
+      {title ? (
+        <header>
+          <h2 className="text-xl font-medium text-fg-primary">{title}</h2>
+        </header>
+      ) : null}
 
       {showLoginPrompt && !isAuthenticated ? <CheckoutLoginPrompt /> : null}
 
       <div className="space-y-250 font-inter">
-        {showCompanyPurchaseToggle ? (
-          <CheckoutPurchaseTypeToggle
-            id={`${fieldPrefix}-purchase-type`}
-            isCompanyPurchase={checkoutDetailsForm.values.isCompanyPurchase}
-            onValueChange={checkoutDetailsForm.setCompanyPurchase}
-          />
+        {showCompanyPurchaseToggle || showRequiredNote ? (
+          <div className="flex flex-wrap items-center justify-between gap-150">
+            {showCompanyPurchaseToggle ? (
+              <CheckoutPurchaseTypeToggle
+                id={`${fieldPrefix}-purchase-type`}
+                isCompanyPurchase={checkoutDetailsForm.values.isCompanyPurchase}
+                onValueChange={checkoutDetailsForm.setCompanyPurchase}
+              />
+            ) : (
+              <span aria-hidden="true" />
+            )}
+
+            {showRequiredNote ? (
+              <p className="text-sm text-fg-secondary">
+                <span className="text-label-fg-required">*</span> povinné
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="grid gap-250 md:grid-cols-2">
@@ -168,12 +187,10 @@ export function CheckoutAddressSection({
                 validators={checkoutFieldValidators.shipping.phone}
               >
                 {(field) => (
-                  <field.TextField
-                    autoComplete="tel"
+                  <field.PhoneField
                     id={`${fieldPrefix}-phone`}
                     label="Telefón"
                     required
-                    type="tel"
                     validationMode="blur"
                   />
                 )}
@@ -246,7 +263,6 @@ export function CheckoutAddressSection({
               >
                 {(field) => (
                   <field.TextareaField
-                    className="min-h-14"
                     id={`${fieldPrefix}-customer-note`}
                     label="Voliteľná poznámka pre zákaznícku podporu"
                     resize="auto"
@@ -257,6 +273,22 @@ export function CheckoutAddressSection({
                 )}
               </checkoutDetailsForm.form.AppField>
             </div>
+          ) : null}
+
+          {showRegistrationOptIn ? (
+            <FormCheckbox
+              className="md:col-span-2"
+              id={`${fieldPrefix}-registration-opt-in`}
+              label={
+                <>
+                  <span>Chcem sa registrovať</span>{" "}
+                  <span className="text-fg-secondary">
+                    (Informácie o registrácii Vám budú zaslané e-mailom)
+                  </span>
+                </>
+              }
+              size="sm"
+            />
           ) : null}
         </div>
       </div>

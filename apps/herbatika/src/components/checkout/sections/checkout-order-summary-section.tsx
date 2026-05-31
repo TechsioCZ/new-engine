@@ -41,7 +41,7 @@ export function CheckoutOrderSummarySection({
   return (
     <section className={`space-y-300 rounded-sm sm:p-550 ${detailsFontClass}`}>
       <header>
-        <h2 className="text-xl font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
+        <h2 className="text-xl leading-relaxed font-medium text-fg-primary">{`Váš košík (${cartItems.length})`}</h2>
       </header>
 
       <div className="space-y-250">
