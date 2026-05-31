@@ -1,31 +1,10 @@
 /*
- * Label — bound directly to Figma tokens.
- * Source: tokens/figma/{light,dark}/variables.css.
+ * Label — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * `--font-label` is not yet exported from Figma; kept aliased to the global
- * font scale.
+ * Kept here: `--font-label` (Figma doesn't yet export the `font-*`
+ * shorthand needed by the `font-label` utility class on Label root).
  */
 
 @theme static {
-  /* === Reference layer === */
-  --color-label: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-label-disabled: oklch(0.551 0.027 264.328);
-  --color-label-required: oklch(0.702 0.189 22.228);
-
-  /* === Derived (foreground) ===
-   * `--color-label-fg` has no hover/active/focus sibling, so per
-   * libs/ui/CLAUDE.md the resting value is named without `-base`.
-   */
-  --color-label-fg: var(--color-label);
-  --color-label-fg-disabled: var(--color-label-disabled);
-  --color-label-fg-required: var(--color-label-required);
-
-  --spacing-label: 0.25rem;
-
-  --text-label-sm: var(--text-sm);
-  --text-label-md: var(--text-md);
-  --text-label-lg: var(--text-lg);
-  --text-label-current: var(--text-md);
-
   --font-label: var(--font-bold);
 }
