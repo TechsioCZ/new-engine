@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-05-31T12:52:16.068Z
+ * Exported at: 2026-05-31T13:01:31.869Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -930,10 +930,10 @@
   --padding-select-item-y: var(--dimension-150);
   --padding-select-trigger-md: var(--spacing-150);
   --padding-select-trigger-sm: var(--spacing-100);
-  --padding-select-trigger-x-md: var(--padding-input-x-md);
-  --padding-select-trigger-x-sm: var(--padding-input-x-sm);
-  --padding-select-trigger-y-md: var(--padding-input-y-md);
-  --padding-select-trigger-y-sm: var(--padding-input-y-sm);
+  --padding-select-trigger-x-md: var(--dimension-150);
+  --padding-select-trigger-x-sm: var(--dimension-100);
+  --padding-select-trigger-y-md: var(--dimension-150);
+  --padding-select-trigger-y-sm: var(--dimension-100);
   --padding-table-caption-lg: var(--dimension-200);
   --padding-table-caption-md: var(--dimension-150);
   --padding-table-caption-sm: var(--dimension-100);
@@ -952,12 +952,12 @@
   --padding-textarea-lg: var(--spacing-200);
   --padding-textarea-md: var(--spacing-150);
   --padding-textarea-sm: var(--spacing-100);
-  --padding-textarea-x-lg: var(--padding-input-x-lg);
-  --padding-textarea-x-md: var(--padding-input-x-md);
-  --padding-textarea-x-sm: var(--padding-input-x-sm);
-  --padding-textarea-y-lg: var(--padding-input-y-lg);
-  --padding-textarea-y-md: var(--padding-input-y-md);
-  --padding-textarea-y-sm: var(--padding-input-y-sm);
+  --padding-textarea-x-lg: var(--dimension-200);
+  --padding-textarea-x-md: var(--dimension-150);
+  --padding-textarea-x-sm: var(--dimension-100);
+  --padding-textarea-y-lg: var(--dimension-200);
+  --padding-textarea-y-md: var(--dimension-150);
+  --padding-textarea-y-sm: var(--dimension-100);
   --padding-toast-root: var(--dimension-250);
   --padding-tooltip-x-lg: var(--dimension-350);
   --padding-tooltip-x-md: var(--dimension-250);
