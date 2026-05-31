@@ -8,12 +8,15 @@
 
 @theme static {
   /* === Reference layer === */
-  --color-label-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-label: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
   --color-label-disabled: oklch(0.551 0.027 264.328);
   --color-label-required: oklch(0.702 0.189 22.228);
 
-  /* === Derived (foreground) === */
-  --color-label-fg-base: var(--color-label-base);
+  /* === Derived (foreground) ===
+   * `--color-label-fg` has no hover/active/focus sibling, so per
+   * libs/ui/CLAUDE.md the resting value is named without `-base`.
+   */
+  --color-label-fg: var(--color-label);
   --color-label-fg-disabled: var(--color-label-disabled);
   --color-label-fg-required: var(--color-label-required);
 

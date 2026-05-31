@@ -7,7 +7,7 @@ const inputVariants = tv({
     "block w-full",
     "font-normal",
     "bg-input-bg-base",
-    "text-input-fg-base",
+    "text-input-fg",
     "placeholder:font-normal",
     "placeholder:text-input-fg-placeholder",
     "border-(length:--border-width-input) border-input-border-base",

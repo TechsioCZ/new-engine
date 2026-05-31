@@ -19,7 +19,7 @@
   --text-icon-2xl: var(--text-2xl);
 
   /* === Reference layer === */
-  --color-icon-base: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
+  --color-icon: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
   --color-icon-primary: light-dark(
     oklch(0.807 0.101 250.446),
     oklch(0.827 0.109 229.198)
@@ -35,8 +35,11 @@
   --color-icon-warning: oklch(0.798 0.164 82.706);
   --color-icon-danger: oklch(0.702 0.189 22.228);
 
-  /* === Derived (foreground) === */
-  --color-icon-fg-base: var(--color-icon-base);
+  /* === Derived (foreground) ===
+   * `--color-icon-fg` has no hover/active/focus sibling — drop `-base`
+   * per libs/ui/CLAUDE.md.
+   */
+  --color-icon-fg: var(--color-icon);
   --color-icon-fg-primary: var(--color-icon-primary);
   --color-icon-fg-secondary: var(--color-icon-secondary);
   --color-icon-fg-success: var(--color-icon-success);

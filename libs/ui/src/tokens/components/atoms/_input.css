@@ -92,8 +92,11 @@
   --color-input-bg-focus: var(--color-input-overlay-15);
   --color-input-bg-disabled: var(--color-input-surface-disabled);
 
-  /* === Derived (foregrounds) === */
-  --color-input-fg-base: var(--color-input-on-surface);
+  /* === Derived (foregrounds) ===
+   * `--color-input-fg` has no hover/active/focus sibling — drop `-base`.
+   * (bg/border DO have hover/focus, so they keep their `-base` suffix.)
+   */
+  --color-input-fg: var(--color-input-on-surface);
   --color-input-fg-disabled: var(--color-input-fg-disabled-ref);
   --color-input-fg-placeholder: var(--color-input-placeholder-ref);
 

@@ -307,7 +307,7 @@
   --color-header-nav-item-bg: oklch(0 0 0 / 0);
   --color-header-nav-item-bg-hover: oklch(0 0 0 / 0);
   --color-highlight-base: oklch(0.373 0.034 260.169);
-  --color-icon-fg-base: oklch(1 0 0);
+  --color-icon-fg: oklch(1 0 0);
   --color-icon-fg-danger: oklch(0.702 0.189 22.228);
   --color-icon-fg-primary: oklch(0.827 0.109 229.198);
   --color-icon-fg-secondary: oklch(0.772 0.173 65.367);
@@ -331,11 +331,11 @@
   --color-input-border-warning-focus: oklch(0.861 0.173 91.936);
   --color-input-border-warning-hover: oklch(0.795 0.162 86.047);
   --color-input-danger: oklch(0.702 0.189 22.228);
-  --color-input-fg-base: oklch(1 0 0);
+  --color-input-fg: oklch(1 0 0);
   --color-input-fg-disabled: oklch(0.551 0.027 264.328);
   --color-input-fg-placeholder: oklch(0.554 0.041 257.417);
   --color-input-ring: oklch(1 0 0);
-  --color-label-fg-base: oklch(1 0 0);
+  --color-label-fg: oklch(1 0 0);
   --color-label-fg-disabled: oklch(0.551 0.027 264.328);
   --color-label-fg-required: oklch(0.702 0.189 22.228);
   --color-link-active: oklch(0.748 0.155 233.252);
