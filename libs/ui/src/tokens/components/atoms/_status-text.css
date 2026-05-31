@@ -1,44 +1,14 @@
 /*
- * StatusText — bound directly to Figma tokens.
- * Source: tokens/figma/{light,dark}/variables.css.
+ * StatusText — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
+ * Only the semantic glyph aliases remain here.
+ *
+ * Note: Figma's `--color-status-text-fg` resolves to `--color-fg-secondary`
+ * (single value, same across modes), while the atom previously hand-picked
+ * a brighter dark-mode value. In light mode both resolve to the same
+ * oklch(0.494 …), so the storybook visual is byte-identical. If dark-mode
+ * status-text needs more contrast, add a `light-dark()` to the Figma
+ * `color/fg/secondary` semantic instead of overriding here.
  */
-
-@theme static {
-  /* === Reference layer === */
-  --color-status-text: light-dark(
-    oklch(0.494 0.037 261.595),
-    oklch(0.704 0.04 256.788)
-  );
-  --color-status-text-error: light-dark(
-    oklch(0.711 0.166 22.216),
-    oklch(0.808 0.103 19.571)
-  );
-  --color-status-text-success: light-dark(
-    oklch(0.696 0.149 162.48),
-    oklch(0.845 0.13 164.978)
-  );
-  --color-status-text-warning: light-dark(
-    oklch(0.795 0.162 86.047),
-    oklch(0.861 0.173 91.936)
-  );
-
-  /* === Derived (foreground) === */
-  --color-status-text-fg: var(--color-status-text);
-  --color-status-text-fg-error: var(--color-status-text-error);
-  --color-status-text-fg-success: var(--color-status-text-success);
-  --color-status-text-fg-warning: var(--color-status-text-warning);
-
-  --spacing-status-text-sm: var(--spacing-50);
-  --spacing-status-text-md: var(--spacing-100);
-  --spacing-status-text-lg: var(--spacing-200);
-
-  --spacing-status-text-icon-offset: var(--spacing-50);
-  --spacing-status-text-icon-offset-long-text: var(--spacing-100);
-
-  --text-status-text-sm: var(--text-sm);
-  --text-status-text-md: var(--text-md);
-  --text-status-text-lg: var(--text-lg);
-}
 
 @utility token-icon-status-text-success {
   @apply token-icon-success;
