@@ -127,55 +127,47 @@ function processComponent(component) {
   const firstDarkMatch = comp.match(darkStartRegex)
   if (firstDarkMatch) insertionIdx = firstDarkMatch.index
 
-  // Strip in repeated passes — bounded to the FIGMA-GENERATED region so
-  // hand-authored selector blocks at file root are preserved (CodeRabbit
-  // feedback on #425). If no region markers exist, skip stripping entirely.
-  const candidateRegexes = [
-    /:is\(\.dark, \.always-dark\),\s*\n:is\(\.light, \.always-light\) \.reverse \{/,
-    /:is\(\.dark, \.always-dark\) \.reverse \{/,
-    /:is\(\.dark, \.always-dark\) \{/,
-    /@media \(prefers-color-scheme: dark\) \{/,
-    /@media \(prefers-color-scheme: light\) \{/,
-  ]
+  // If a previous FIGMA-GENERATED region exists, REPLACE it (markers and
+  // all) with the fresh fragText. Splicing the stripped inner back used
+  // to leave the old markers behind, so the next run would find two
+  // regions and the strip would target an empty one. CodeRabbit feedback
+  // on #425.
+  let preferredInsertAt = -1
   const region = findRegion(comp)
   if (region) {
     const [start, end] = region
-    let inner = comp.slice(start, end)
-    for (let pass = 0; pass < 20; pass++) {
-      let changed = false
-      for (const re of candidateRegexes) {
-        const { text, removed } = removeFirstBlock(inner, re)
-        if (removed) {
-          inner = text
-          changed = true
-        }
-      }
-      if (!changed) break
-    }
-    comp = comp.slice(0, start) + inner + comp.slice(end)
+    preferredInsertAt = start
+    comp = comp.slice(0, start) + comp.slice(end)
   }
 
   // Trim trailing whitespace before the insertion gap, then trim leading at gap
   comp = comp.replace(/\n{3,}/g, "\n\n").trimEnd() + "\n"
 
-  // Find the end of the last @theme block (or top of file if none) to insert after
-  const inject = "\n" + fragText + "\n"
-  // Find the position of the original first dark block in the original text — we
-  // already lost it. Instead, append fragment after the last `}` of the
-  // @theme static block, before any @utility or @keyframes blocks.
-  // Heuristic: find the first @utility/@keyframes/@layer directive; insert before it.
-  const insertAtMatch = comp.match(/^(@utility|@keyframes|@layer)/m)
+  // Insertion point: prefer the location of the removed region. Otherwise
+  // fall back to the heuristic — insert before the first @utility/@keyframes/
+  // @layer directive (so hand-authored utilities stay at the file end), or
+  // append at EOF when nothing matches.
   let out
-  if (insertAtMatch) {
-    const insertAt = insertAtMatch.index
+  if (preferredInsertAt !== -1 && preferredInsertAt <= comp.length) {
     out =
-      comp.slice(0, insertAt).trimEnd() +
+      comp.slice(0, preferredInsertAt).trimEnd() +
       "\n\n" +
       fragText +
       "\n\n" +
-      comp.slice(insertAt)
+      comp.slice(preferredInsertAt)
   } else {
-    out = comp.trimEnd() + "\n\n" + fragText + "\n"
+    const insertAtMatch = comp.match(/^(@utility|@keyframes|@layer)/m)
+    if (insertAtMatch) {
+      const insertAt = insertAtMatch.index
+      out =
+        comp.slice(0, insertAt).trimEnd() +
+        "\n\n" +
+        fragText +
+        "\n\n" +
+        comp.slice(insertAt)
+    } else {
+      out = comp.trimEnd() + "\n\n" + fragText + "\n"
+    }
   }
   // Collapse 3+ blank lines
   out = out.replace(/\n{3,}/g, "\n\n")
