@@ -1,32 +1,7 @@
 /*
- * Rating — bound directly to Figma tokens.
- * Source: tokens/figma/{light,dark}/variables.css.
+ * Rating — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
+ * Only the semantic glyph aliases remain here.
  */
-
-@theme static {
-  /* === Reference layer === */
-  --color-rating-base: light-dark(
-    oklch(0.872 0.011 261.787),
-    oklch(0.373 0.034 260.169)
-  );
-  --color-rating-active: oklch(0.798 0.164 82.706);
-  --color-rating-disabled: oklch(0.551 0.027 264.328);
-  --color-rating-ring-base: light-dark(oklch(0 0 0), oklch(1 0 0));
-
-  /* === Derived === */
-  --color-rating-fg-base: var(--color-rating-base);
-  --color-rating-fg-active: var(--color-rating-active);
-  --color-rating-fg-disabled: var(--color-rating-disabled);
-  --color-rating-ring: var(--color-rating-ring-base);
-
-  --spacing-rating-sm: var(--spacing-100);
-  --spacing-rating-md: var(--spacing-150);
-  --spacing-rating-lg: var(--spacing-200);
-
-  --text-rating-sm: var(--text-sm);
-  --text-rating-md: var(--text-md);
-  --text-rating-lg: var(--text-lg);
-}
 
 @utility token-icon-rating {
   @apply token-icon-star;
