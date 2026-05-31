@@ -1,50 +1,28 @@
 /*
- * Skeleton — bound directly to Figma tokens.
- * Source: tokens/figma/{light,dark}/variables.css.
+ * Skeleton — runtime tokens come from libs/ui/src/tokens/figma/variables.css
+ * (colors, sizing, radius, durations).
  *
- * NOT in Figma export (kept manually): circle sizing, text line height,
- * pulse animation tokens, and the `--spacing-skeleton-text-*` aliases that
- * the TSX consumes via `gap-skeleton-text-*` utilities.
+ * Kept here:
+ *   - `--duration-skeleton-pulse-{slow,normal,fast}` — Figma exports
+ *     `--duration-skeleton-{slow,normal,fast}` (no `-pulse-` infix), but
+ *     the @utility blocks below reference the `-pulse-` names.
+ *   - `--spacing-skeleton-text-{sm,md,lg,xl}` — alias bridges so the
+ *     `gap-skeleton-text-{size}` utility resolves; Figma exports only
+ *     `--spacing-skeleton-{size}` without the `-text-` infix.
+ *   - `@keyframes skeleton-pulse` + `@utility animate-skeleton-pulse-*`
+ *     + reduced-motion overrides — all are runtime-CSS constructs that
+ *     Figma can't model.
  */
 
 @theme static {
-  /* === Reference layer === */
-  --color-skeleton-primary: light-dark(
-    oklch(0.928 0.006 264.531),
-    oklch(0.278 0.034 257.672)
-  );
-  --color-skeleton-secondary: light-dark(
-    oklch(0.967 0.003 264.542),
-    oklch(0.278 0.034 257.672)
-  );
-
-  /* === Derived (background) === */
-  --color-skeleton-bg-primary: var(--color-skeleton-primary);
-  --color-skeleton-bg-secondary: var(--color-skeleton-secondary);
-
-  --radius-skeleton-text: var(--radius-sm);
-
-  --spacing-skeleton-sm: var(--spacing-100);
-  --spacing-skeleton-md: var(--spacing-150);
-  --spacing-skeleton-lg: var(--spacing-200);
-  --spacing-skeleton-xl: var(--spacing-250);
-
-  /* === Not in Figma export === */
-  --spacing-skeleton-text-sm: var(--spacing-skeleton-sm);
-  --spacing-skeleton-text-md: var(--spacing-skeleton-md);
-  --spacing-skeleton-text-lg: var(--spacing-skeleton-lg);
-  --spacing-skeleton-text-xl: var(--spacing-skeleton-xl);
-
   --duration-skeleton-pulse-slow: 3s;
   --duration-skeleton-pulse-normal: 2s;
   --duration-skeleton-pulse-fast: 1s;
 
-  --size-skeleton-circle-sm: 2rem;
-  --size-skeleton-circle-md: 3rem;
-  --size-skeleton-circle-lg: 4rem;
-  --size-skeleton-circle-xl: 6rem;
-
-  --height-skeleton-text-line: 1rem;
+  --spacing-skeleton-text-sm: var(--spacing-skeleton-sm);
+  --spacing-skeleton-text-md: var(--spacing-skeleton-md);
+  --spacing-skeleton-text-lg: var(--spacing-skeleton-lg);
+  --spacing-skeleton-text-xl: var(--spacing-skeleton-xl);
 }
 
 @keyframes skeleton-pulse {
