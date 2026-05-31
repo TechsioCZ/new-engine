@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-05-19T20:43:56.598Z
+ * Exported at: 2026-05-31T12:10:24.975Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -114,9 +114,7 @@
   --color-button-bg-outlined-danger-hover: oklch(0.805 0.111 19.782 / 0.161);
   --color-button-bg-outlined-primary-active: oklch(0.813 0.111 233.957 / 0.122);
   --color-button-bg-outlined-primary-hover: oklch(0.823 0.112 229.19 / 0.161);
-  --color-button-bg-outlined-secondary-active: oklch(
-    0.822 0.171 78.982 / 0.122
-  );
+  --color-button-bg-outlined-secondary-active: oklch(0.822 0.171 78.982 / 0.122);
   --color-button-bg-outlined-secondary-hover: oklch(0.833 0.172 82.058 / 0.161);
   --color-button-bg-outlined-tertiary-active: oklch(0.705 0.19 14.191 / 0.122);
   --color-button-bg-outlined-tertiary-hover: oklch(0.706 0.189 14.04 / 0.161);
