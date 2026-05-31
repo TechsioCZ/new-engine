@@ -9,42 +9,15 @@
 
 @plugin "@iconify/tailwind4";
 
+/*
+ * Icon — color + size tokens come from libs/ui/src/tokens/figma/variables.css.
+ * This file only declares what Figma does not export yet:
+ *   - `--text-icon-2xl` (Figma's icon scale stops at xl)
+ * Plus the @plugin directive and the semantic glyph @utility aliases.
+ */
+
 @theme static {
-  /* === Sizes (text-icon-*) === */
-  --text-icon-xs: var(--text-xs);
-  --text-icon-sm: var(--text-sm);
-  --text-icon-md: var(--text-md);
-  --text-icon-lg: var(--text-lg);
-  --text-icon-xl: var(--text-xl);
   --text-icon-2xl: var(--text-2xl);
-
-  /* === Reference layer === */
-  --color-icon: light-dark(oklch(0.13 0.043 265.132), oklch(1 0 0));
-  --color-icon-primary: light-dark(
-    oklch(0.807 0.101 250.446),
-    oklch(0.827 0.109 229.198)
-  );
-  --color-icon-secondary: light-dark(
-    oklch(0.7 0.202 44.441),
-    oklch(0.772 0.173 65.367)
-  );
-  --color-icon-success: light-dark(
-    oklch(0.702 0.158 160.438),
-    oklch(0.844 0.143 165.23)
-  );
-  --color-icon-warning: oklch(0.798 0.164 82.706);
-  --color-icon-danger: oklch(0.702 0.189 22.228);
-
-  /* === Derived (foreground) ===
-   * `--color-icon-fg` has no hover/active/focus sibling — drop `-base`
-   * per libs/ui/CLAUDE.md.
-   */
-  --color-icon-fg: var(--color-icon);
-  --color-icon-fg-primary: var(--color-icon-primary);
-  --color-icon-fg-secondary: var(--color-icon-secondary);
-  --color-icon-fg-success: var(--color-icon-success);
-  --color-icon-fg-warning: var(--color-icon-warning);
-  --color-icon-fg-danger: var(--color-icon-danger);
 }
 
 /* === Semantic glyph aliases (not part of Figma export) === */
