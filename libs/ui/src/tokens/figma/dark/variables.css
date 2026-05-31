@@ -836,14 +836,11 @@
   --dimension-container-xl: 36rem;
   --dimension-container-xs: 20rem;
   --duration-fast: 1ms;
-  --duration-fast: 1ms;
   --duration-header: 2ms;
-  --duration-normal: 2ms;
   --duration-normal: 2ms;
   --duration-skeleton-fast: 1ms;
   --duration-skeleton-normal: 2ms;
   --duration-skeleton-slow: 3ms;
-  --duration-slow: 3ms;
   --duration-slow: 3ms;
   --height-footer-divider: 0.13rem;
   --height-form-control-lg: 4.38rem;
@@ -1254,7 +1251,6 @@
   --spacing-tree-view-indent-width: 0.06rem;
   --spacing-tree-view-node-padding: 0.31rem;
   --text-2xl: 2.44rem;
-  --text-2xl: 2.44rem;
   --text-accordion-content-lg: 1.56rem;
   --text-accordion-content-md: 1.25rem;
   --text-accordion-content-sm: 1rem;
@@ -1326,9 +1322,7 @@
   --text-label-md: 1.25rem;
   --text-label-sm: 1rem;
   --text-lg: 1.56rem;
-  --text-lg: 1.56rem;
   --text-link: 1.25rem;
-  --text-md: 1.25rem;
   --text-md: 1.25rem;
   --text-menu-item-icon: 1.56rem;
   --text-menu-lg: 1.56rem;
@@ -1387,7 +1381,6 @@
   --text-slider-value: 1rem;
   --text-slider-value-size: 1rem;
   --text-sm: 1rem;
-  --text-sm: 1rem;
   --text-status-text-lg: 1.56rem;
   --text-status-text-md: 1.25rem;
   --text-status-text-sm: 1rem;
@@ -1437,8 +1430,6 @@
   --text-tree-view-md: 1.25rem;
   --text-tree-view-sm: 1rem;
   --text-xl: 1.95rem;
-  --text-xl: 1.95rem;
-  --text-xs: 0.8rem;
   --text-xs: 0.8rem;
   --width-full: 100%;
   --width-header-max: 100%;
