@@ -121,6 +121,13 @@ function emitLight(component, lightTokens) {
   return `${header("light", component)}@theme static {\n${body}\n}\n`
 }
 
+// Region markers wrap every generated override block so future runs of
+// apply-reverse-blocks.mjs / apply-light-dark.mjs can scope their strip
+// to this region only and leave hand-authored selectors at file root
+// alone. Matches CodeRabbit feedback on #425.
+const REGION_START = "/* === FIGMA-GENERATED OVERRIDES START === */"
+const REGION_END = "/* === FIGMA-GENERATED OVERRIDES END === */"
+
 function emitDark(component, lightTokens, darkTokens) {
   const lightMap = new Map(lightTokens)
   // Only tokens present in BOTH modes participate in reverse-block flipping.
@@ -146,6 +153,7 @@ function emitDark(component, lightTokens, darkTokens) {
   // The system-pref blocks mirror the existing convention in tokens/_semantic.css.
   return [
     header("dark", component),
+    `${REGION_START}\n`,
     "/* Dark visuals: explicit .dark/.always-dark, OR .reverse inside a light parent. */\n",
     ":is(.dark, .always-dark),\n",
     ":is(.light, .always-light) .reverse {\n",
@@ -175,6 +183,7 @@ function emitDark(component, lightTokens, darkTokens) {
     `${darkBody("    ")}\n`,
     "  }\n",
     "}\n",
+    `${REGION_END}\n`,
   ].join("")
 }
 

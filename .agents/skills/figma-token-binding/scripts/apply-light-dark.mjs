@@ -122,6 +122,13 @@ const STRIP_BLOCK_RES = [
 const BLANK_LINES_RE = /\n{3,}/g
 const TRAILING_WS_RE = /[ \t]+\n/g
 
+// Region markers. Selector-block / comment removal is scoped to the
+// substring between these markers — never the whole file. The markers
+// are emitted by split-figma-tokens.mjs around generated override blocks.
+// Hand-authored selector blocks at file root are left alone.
+const REGION_START = "/* === FIGMA-GENERATED OVERRIDES START === */"
+const REGION_END = "/* === FIGMA-GENERATED OVERRIDES END === */"
+
 function parseDecls(css) {
   const out = new Map()
   DECL_RE.lastIndex = 0
@@ -180,14 +187,37 @@ function removeFirstBlock(text, startRegex) {
   return { text: text.slice(0, start) + text.slice(end), removed: true }
 }
 
+// Find [start, end] indexes of the substring bounded by the region markers,
+// or null if either marker is missing. The returned range INCLUDES the
+// marker lines so removal of the whole region (when emptied) is possible.
+function findRegion(css) {
+  const startIdx = css.indexOf(REGION_START)
+  if (startIdx === -1) {
+    return null
+  }
+  const endIdx = css.indexOf(REGION_END, startIdx + REGION_START.length)
+  if (endIdx === -1) {
+    return null
+  }
+  return [startIdx, endIdx + REGION_END.length]
+}
+
 function stripSelectorBlocks(css) {
-  let work = css
+  const region = findRegion(css)
+  if (!region) {
+    // No generated region detected — file is either already migrated or
+    // never used the legacy pattern. Do nothing (avoid touching hand-authored
+    // blocks at file root). This matches the CodeRabbit feedback on #425.
+    return css
+  }
+  const [start, end] = region
+  let inner = css.slice(start, end)
   for (let pass = 0; pass < 30; pass += 1) {
     let changed = false
     for (const re of STRIP_BLOCK_RES) {
-      const { text, removed } = removeFirstBlock(work, re)
+      const { text, removed } = removeFirstBlock(inner, re)
       if (removed) {
-        work = text
+        inner = text
         changed = true
       }
     }
@@ -195,15 +225,21 @@ function stripSelectorBlocks(css) {
       break
     }
   }
-  return work
+  return css.slice(0, start) + inner + css.slice(end)
 }
 
 function stripLeftoverComments(css) {
-  let work = css
-  for (const re of STALE_COMMENT_RE) {
-    work = work.replace(re, "")
+  const region = findRegion(css)
+  if (!region) {
+    return css.replace(BLANK_LINES_RE, "\n\n")
   }
-  return work.replace(BLANK_LINES_RE, "\n\n")
+  const [start, end] = region
+  let inner = css.slice(start, end)
+  for (const re of STALE_COMMENT_RE) {
+    inner = inner.replace(re, "")
+  }
+  const out = css.slice(0, start) + inner + css.slice(end)
+  return out.replace(BLANK_LINES_RE, "\n\n")
 }
 
 function transformThemeBlock(css, valueLookup) {

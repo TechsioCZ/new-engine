@@ -28,6 +28,23 @@ const FRAG_DIR_LIGHT = join(REPO_ROOT, "libs/ui/src/tokens/figma/light")
 const FRAG_DIR_DARK = join(REPO_ROOT, "libs/ui/src/tokens/figma/dark")
 const SPLITTER = join(__dirname, "split-figma-tokens.mjs")
 
+// Region markers — block removal is scoped to the substring between them.
+// Hand-authored selector blocks at file root are left alone.
+const REGION_START = "/* === FIGMA-GENERATED OVERRIDES START === */"
+const REGION_END = "/* === FIGMA-GENERATED OVERRIDES END === */"
+
+function findRegion(css) {
+  const startIdx = css.indexOf(REGION_START)
+  if (startIdx === -1) {
+    return null
+  }
+  const endIdx = css.indexOf(REGION_END, startIdx + REGION_START.length)
+  if (endIdx === -1) {
+    return null
+  }
+  return [startIdx, endIdx + REGION_END.length]
+}
+
 // Component names must be plain kebab-case to be safe as filenames and CLI
 // args. This rejects path traversal (../), shell metacharacters, and
 // anything outside the expected token namespace.
@@ -110,7 +127,9 @@ function processComponent(component) {
   const firstDarkMatch = comp.match(darkStartRegex)
   if (firstDarkMatch) insertionIdx = firstDarkMatch.index
 
-  // Strip in repeated passes — there are up to 5 candidate selectors to remove.
+  // Strip in repeated passes — bounded to the FIGMA-GENERATED region so
+  // hand-authored selector blocks at file root are preserved (CodeRabbit
+  // feedback on #425). If no region markers exist, skip stripping entirely.
   const candidateRegexes = [
     /:is\(\.dark, \.always-dark\),\s*\n:is\(\.light, \.always-light\) \.reverse \{/,
     /:is\(\.dark, \.always-dark\) \.reverse \{/,
@@ -118,16 +137,22 @@ function processComponent(component) {
     /@media \(prefers-color-scheme: dark\) \{/,
     /@media \(prefers-color-scheme: light\) \{/,
   ]
-  for (let pass = 0; pass < 20; pass++) {
-    let changed = false
-    for (const re of candidateRegexes) {
-      const { text, removed } = removeFirstBlock(comp, re)
-      if (removed) {
-        comp = text
-        changed = true
+  const region = findRegion(comp)
+  if (region) {
+    const [start, end] = region
+    let inner = comp.slice(start, end)
+    for (let pass = 0; pass < 20; pass++) {
+      let changed = false
+      for (const re of candidateRegexes) {
+        const { text, removed } = removeFirstBlock(inner, re)
+        if (removed) {
+          inner = text
+          changed = true
+        }
       }
+      if (!changed) break
     }
-    if (!changed) break
+    comp = comp.slice(0, start) + inner + comp.slice(end)
   }
 
   // Trim trailing whitespace before the insertion gap, then trim leading at gap

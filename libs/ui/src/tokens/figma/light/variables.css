@@ -655,10 +655,10 @@
   --color-textarea-ring: oklch(0 0 0);
   --color-toast-bg: oklch(0.872 0.011 261.787);
   --color-toast-border: oklch(0.129 0.041 264.695 / 0.15);
-  --color-toast-close-fg: oklch(1 0 0);
+  --color-toast-close-fg: oklch(0.13 0.043 265.132);
   --color-toast-error-bg: oklch(0.702 0.189 22.228);
   --color-toast-error-border: oklch(0.702 0.189 22.228);
-  --color-toast-fg: oklch(1 0 0);
+  --color-toast-fg: oklch(0.13 0.043 265.132);
   --color-toast-info-bg: oklch(0.704 0.123 182.503);
   --color-toast-info-border: oklch(0.704 0.123 182.503);
   --color-toast-success-bg: oklch(0.702 0.158 160.438);
