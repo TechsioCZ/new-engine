@@ -130,31 +130,39 @@ function processComponent(component) {
   // If a previous FIGMA-GENERATED region exists, REPLACE it (markers and
   // all) with the fresh fragText. Splicing the stripped inner back used
   // to leave the old markers behind, so the next run would find two
-  // regions and the strip would target an empty one. CodeRabbit feedback
-  // on #425.
-  let preferredInsertAt = -1
+  // regions and the strip would target an empty one (CodeRabbit on #425).
+  //
+  // Capture the surrounding text as STRINGS, not as a numeric index into
+  // `comp`. Any subsequent normalisation (e.g. collapsing `\n{3,}`) can
+  // shift character positions, so an index recorded here would no longer
+  // point at the removal gap — slicing on a stale index would split the
+  // file mid-rule (CodeRabbit follow-up on the same PR).
+  let preferredPrefix = null
+  let preferredSuffix = null
   const region = findRegion(comp)
   if (region) {
     const [start, end] = region
-    preferredInsertAt = start
-    comp = comp.slice(0, start) + comp.slice(end)
+    preferredPrefix = comp.slice(0, start)
+    preferredSuffix = comp.slice(end)
+    comp = preferredPrefix + preferredSuffix
   }
 
-  // Trim trailing whitespace before the insertion gap, then trim leading at gap
+  // Normalise overall (used by the @utility-heuristic fallback only; the
+  // string-capture path normalises its prefix/suffix independently below).
   comp = comp.replace(/\n{3,}/g, "\n\n").trimEnd() + "\n"
 
-  // Insertion point: prefer the location of the removed region. Otherwise
-  // fall back to the heuristic — insert before the first @utility/@keyframes/
-  // @layer directive (so hand-authored utilities stay at the file end), or
-  // append at EOF when nothing matches.
+  // Insertion: prefer the captured strings around the removed region.
+  // Otherwise fall back to the heuristic — insert before the first
+  // @utility/@keyframes/@layer directive (so hand-authored utilities
+  // stay at the file end), or append at EOF when nothing matches.
   let out
-  if (preferredInsertAt !== -1 && preferredInsertAt <= comp.length) {
+  if (preferredPrefix !== null) {
     out =
-      comp.slice(0, preferredInsertAt).trimEnd() +
+      preferredPrefix.replace(/\n{3,}/g, "\n\n").trimEnd() +
       "\n\n" +
       fragText +
       "\n\n" +
-      comp.slice(preferredInsertAt)
+      preferredSuffix.replace(/^\n+/, "")
   } else {
     const insertAtMatch = comp.match(/^(@utility|@keyframes|@layer)/m)
     if (insertAtMatch) {
