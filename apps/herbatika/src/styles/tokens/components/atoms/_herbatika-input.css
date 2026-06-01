@@ -3,4 +3,10 @@
     --radius-input-sm: var(--radius-xs);
     --radius-input-md: var(--radius-xs);
     --radius-input-lg: var(--radius-lg);
+    /* TEST */
+    /*--color-input-border: var(--color-red-600);*/
+    --padding-input-md: 1.375rem var(--spacing-150);
+    --padding-phone-input-md: 1.375rem var(--spacing-150);
+    --width-phone-input-trigger: 11ch;
+    --height-input-md: 3rem;
 }

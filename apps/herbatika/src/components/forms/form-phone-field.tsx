@@ -28,25 +28,25 @@ const CHECKOUT_PHONE_COUNTRIES: PhoneInputCountry[] = [
     value: "SK",
     label: "Slovensko",
     name: "Slovensko",
-    flag: <Icon icon="icon-[twemoji--flag-slovakia]" size="md" />,
+    flag: <Icon className="brightness-95" icon="icon-[emojione--flag-for-slovakia]" size="md" />,
   },
   {
     value: "CZ",
     label: "Česko",
     name: "Česko",
-    flag: <Icon icon="icon-[twemoji--flag-czechia]" size="md" />,
+    flag: <Icon className="brightness-95" icon="icon-[emojione--flag-for-czechia]" size="md" />,
   },
   {
     value: "AT",
     label: "Rakúsko",
     name: "Rakúsko",
-    flag: <Icon icon="icon-[twemoji--flag-austria]" size="md" />,
+    flag: <Icon className="brightness-95" icon="icon-[emojione--flag-for-austria]" size="md" />,
   },
   {
     value: "HU",
     label: "Maďarsko",
     name: "Maďarsko",
-    flag: <Icon icon="icon-[twemoji--flag-hungary]" size="md" />,
+    flag: <Icon className="brightness-95" icon="icon-[emojione--flag-for-hungary]" size="md" />,
   },
 ];
 
@@ -94,8 +94,8 @@ export function FormPhoneField({
       value={value}
     >
       <PhoneInput.Label>{label}</PhoneInput.Label>
-      <PhoneInput.Control>
-        <PhoneInput.CountryPicker />
+      <PhoneInput.Control className="min-h-input-md">
+        <PhoneInput.CountryPicker triggerProps={{ className: "px-400 gap-x-200" }} />
         <PhoneInput.Input
           autoComplete="tel"
           onBlur={() => {
