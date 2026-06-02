@@ -168,25 +168,36 @@ export const withProductListItems = async (
   container: MedusaContainer,
   lists: ProductListRecord[]
 ) => {
+  const listIds = lists.map((list) => list.id)
+
+  if (!listIds.length) {
+    return lists
+  }
+
   const service = getProductListService(container)
-  const listsWithItems = await Promise.all(
-    lists.map(async (list) => {
-      const items = await service.listProductListItems(
-        {
-          list_id: list.id,
-        },
-        {
-          order: { sort_order: "ASC", created_at: "ASC" },
-          take: INLINE_PRODUCT_LIST_ITEMS_LIMIT,
-        }
-      )
-
-      return {
-        ...list,
-        items: await withProductListItemSelections(container, items),
-      }
-    })
+  const items = await service.listProductListItems(
+    {
+      list_id: { $in: listIds },
+    },
+    {
+      order: { list_id: "ASC", sort_order: "ASC", created_at: "ASC" },
+      take: listIds.length * INLINE_PRODUCT_LIST_ITEMS_LIMIT,
+    }
   )
+  const enrichedItems = await withProductListItemSelections(container, items)
+  const itemsByListId = new Map<string, ProductListItemRecord[]>()
 
-  return listsWithItems
+  for (const item of enrichedItems) {
+    const listItems = itemsByListId.get(item.list_id) ?? []
+
+    if (listItems.length < INLINE_PRODUCT_LIST_ITEMS_LIMIT) {
+      listItems.push(item)
+      itemsByListId.set(item.list_id, listItems)
+    }
+  }
+
+  return lists.map((list) => ({
+    ...list,
+    items: itemsByListId.get(list.id) ?? [],
+  }))
 }

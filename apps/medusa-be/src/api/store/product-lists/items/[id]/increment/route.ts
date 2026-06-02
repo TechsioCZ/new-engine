@@ -3,7 +3,11 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { incrementProductListItemWorkflow } from "../../../../../../workflows/product-list/workflows/increment-product-list-item"
-import { getRouteParam, toProductListItemResponse } from "../../../utils"
+import {
+  getRouteParam,
+  toProductListItemResponse,
+  withProductListItemSelections,
+} from "../../../utils"
 import type { StoreIncrementProductListItemSchemaType } from "../../../validators"
 
 export async function POST(
@@ -21,5 +25,11 @@ export async function POST(
     },
   })
 
-  res.status(200).json({ item: toProductListItemResponse(item) })
+  const [itemWithSelection] = await withProductListItemSelections(req.scope, [
+    item,
+  ])
+
+  res.status(200).json({
+    item: toProductListItemResponse(itemWithSelection ?? item),
+  })
 }

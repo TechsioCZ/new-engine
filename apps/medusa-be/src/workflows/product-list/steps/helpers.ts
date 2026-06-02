@@ -47,6 +47,8 @@ type ProductVariantRecord = {
   }
 }
 
+const PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE = 1000
+
 const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
@@ -312,49 +314,82 @@ export const findProductListItemForSelection = async (
   variantId?: string
 ) => {
   const query = container.resolve(ContainerRegistrationKeys.QUERY)
-  const { data: productLinks } = await query.graph({
-    entity: ProductListItemProductLink.entryPoint,
-    fields: ["product_list_item_id"],
-    filters: {
-      product_id: productId,
-    },
-  })
-  let itemIds = toProductListItemProductLinks(productLinks).flatMap((link) =>
-    link.product_list_item_id ? [link.product_list_item_id] : []
-  )
+  const service = getProductListService(container)
+  let skip = 0
 
-  if (variantId) {
-    const { data: variantLinks } = await query.graph({
-      entity: ProductListItemVariantLink.entryPoint,
+  while (true) {
+    const listItems = await service.listProductListItems(
+      {
+        list_id: listId,
+      },
+      {
+        select: ["id"],
+        skip,
+        take: PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE,
+      }
+    )
+    const listItemIds = listItems.map((item) => item.id)
+
+    if (!listItemIds.length) {
+      return null
+    }
+
+    const { data: productLinks } = await query.graph({
+      entity: ProductListItemProductLink.entryPoint,
       fields: ["product_list_item_id"],
       filters: {
-        product_variant_id: variantId,
+        product_id: productId,
+        product_list_item_id: { $in: listItemIds },
+      },
+      pagination: {
+        take: listItemIds.length,
       },
     })
-    const variantItemIds = new Set(
-      toProductListItemVariantLinks(variantLinks).flatMap((link) =>
-        link.product_list_item_id ? [link.product_list_item_id] : []
-      )
+    let itemIds = toProductListItemProductLinks(productLinks).flatMap((link) =>
+      link.product_list_item_id ? [link.product_list_item_id] : []
     )
 
-    itemIds = itemIds.filter((itemId) => variantItemIds.has(itemId))
-  }
+    if (variantId && itemIds.length) {
+      const { data: variantLinks } = await query.graph({
+        entity: ProductListItemVariantLink.entryPoint,
+        fields: ["product_list_item_id"],
+        filters: {
+          product_list_item_id: { $in: itemIds },
+          product_variant_id: variantId,
+        },
+        pagination: {
+          take: itemIds.length,
+        },
+      })
+      const variantItemIds = new Set(
+        toProductListItemVariantLinks(variantLinks).flatMap((link) =>
+          link.product_list_item_id ? [link.product_list_item_id] : []
+        )
+      )
 
-  if (!itemIds.length) {
-    return null
-  }
-
-  const [item] = await getProductListService(container).listProductListItems(
-    {
-      id: { $in: itemIds },
-      list_id: listId,
-    },
-    {
-      take: 1,
+      itemIds = itemIds.filter((itemId) => variantItemIds.has(itemId))
     }
-  )
 
-  return item ?? null
+    if (itemIds.length) {
+      const [item] = await service.listProductListItems(
+        {
+          id: { $in: itemIds },
+          list_id: listId,
+        },
+        {
+          take: 1,
+        }
+      )
+
+      return item ?? null
+    }
+
+    if (listItems.length < PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE) {
+      return null
+    }
+
+    skip += PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE
+  }
 }
 
 export const createCustomerProductListLink = async (
