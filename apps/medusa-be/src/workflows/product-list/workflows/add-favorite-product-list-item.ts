@@ -26,13 +26,27 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
       key: lockKey,
       timeout: 2,
       ttl: 10,
-    })
+    }).config({ name: "acquire-favorite-customer-lock" })
 
     const favoriteList = createCustomerProductListStep({
       customer_id: input.customer_id,
       data: {},
       type: "favorite",
     })
+
+    const itemLockKey = transform(
+      { favoriteList, input },
+      ({ favoriteList: listResult, input: workflowInput }) => [
+        `product-list-item:${listResult.product_list.id}:${workflowInput.product_id}:${workflowInput.variant_id ?? "product"}`,
+      ]
+    )
+
+    acquireLockStep({
+      executeOnSubWorkflow: true,
+      key: itemLockKey,
+      timeout: 2,
+      ttl: 10,
+    }).config({ name: "acquire-favorite-product-list-item-lock" })
 
     const itemInput = transform(
       { favoriteList, input },
@@ -51,8 +65,13 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
 
     releaseLockStep({
       executeOnSubWorkflow: true,
+      key: itemLockKey,
+    }).config({ name: "release-favorite-product-list-item-lock" })
+
+    releaseLockStep({
+      executeOnSubWorkflow: true,
       key: lockKey,
-    })
+    }).config({ name: "release-favorite-customer-lock" })
 
     const result = transform(
       { favoriteList, item },
