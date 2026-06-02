@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ui-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   check-affected:
     runs-on: ubuntu-latest
@@ -97,6 +101,12 @@ jobs:
 
       - name: Build UI package
         run: pnpm -C libs/ui build
+
+      - name: Fetch semantic-release notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/notes/*:refs/notes/*" || true
 
       - name: Run semantic-release
         env:
