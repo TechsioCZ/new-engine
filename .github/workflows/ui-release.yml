@@ -5,6 +5,13 @@ on:
     branches:
       - master
       - main
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: Run the UI release even when Nx does not mark ui-kit as affected.
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -33,16 +40,27 @@ jobs:
 
       - name: Set Nx SHAs
         uses: nrwl/nx-set-shas@v4
+        with:
+          main-branch-name: master
 
       - name: Check if UI is affected
         id: check
+        env:
+          FORCE_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.force_release }}
         run: |
-          AFFECTED=$(pnpm exec nx show projects --affected --base=$NX_BASE --head=$NX_HEAD)
-          if echo "$AFFECTED" | grep -q "^ui$"; then
-            echo "is_affected=true" >> $GITHUB_OUTPUT
+          if [ "$FORCE_RELEASE" = "true" ]; then
+            echo "is_affected=true" >> "$GITHUB_OUTPUT"
+            echo "UI release was manually forced"
+            exit 0
+          fi
+
+          AFFECTED=$(pnpm exec nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD")
+          echo "$AFFECTED"
+          if echo "$AFFECTED" | grep -q "^ui-kit$"; then
+            echo "is_affected=true" >> "$GITHUB_OUTPUT"
             echo "UI library is affected, will proceed with release"
           else
-            echo "is_affected=false" >> $GITHUB_OUTPUT
+            echo "is_affected=false" >> "$GITHUB_OUTPUT"
             echo "UI library is not affected, skipping release"
           fi
 
@@ -82,5 +100,5 @@ jobs:
 
       - name: Run semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm -C libs/ui semantic-release
