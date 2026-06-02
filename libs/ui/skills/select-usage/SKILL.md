@@ -117,7 +117,7 @@ Source: libs/ui/src/tokens/components/molecules/_select.css
 ## Validation Commands
 
 ```sh
-rg -n "<select\\b|<Select[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
-rg -U -P -n "<Select(?![\\s\\S]{0,700}<Select\\.Item)" apps
-rg -n "<Select[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -n "<select\\b|<Select\\b(?!\\.)[^>]*value=\"|<Select\\.Trigger[^>]*className=.*(border-|bg-|p-|text-)" apps
+rg -U -P -n "<Select\\b(?!\\.)(?![\\s\\S]{0,700}<Select\\.Item)" apps
+rg -n "<Select\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```

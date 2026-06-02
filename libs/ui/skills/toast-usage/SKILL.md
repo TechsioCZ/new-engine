@@ -27,14 +27,30 @@ messages and Dialog for blocking decisions.
 ## Setup
 
 ```tsx
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { Toaster, useToast } from "@techsio/ui-kit/molecules/toast"
 
 function AppShell() {
   return <Toaster />
 }
 
-const toaster = useToast()
-toaster.create({ type: "success", title: "Saved", description: "Changes were saved." })
+function SaveButton() {
+  const toaster = useToast()
+
+  return (
+    <Button
+      onClick={() =>
+        toaster.create({
+          type: "success",
+          title: "Saved",
+          description: "Changes were saved.",
+        })
+      }
+    >
+      Save
+    </Button>
+  )
+}
 ```
 
 Supported API:
@@ -73,7 +89,9 @@ Wrong:
 Correct:
 
 ```tsx
-useToast().create({ type: "success", title: "Saved" })
+const toaster = useToast()
+
+return <Button onClick={() => toaster.create({ type: "success", title: "Saved" })}>Save</Button>
 ```
 
 Source: libs/ui/src/molecules/toast.tsx
@@ -105,7 +123,7 @@ Wrong:
 Correct:
 
 ```tsx
-toaster.create({ type: "success", title: "Saved" })
+<Button onClick={() => toaster.create({ type: "success", title: "Saved" })}>Save</Button>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_toast.css
@@ -117,4 +135,3 @@ rg -n "fixed bottom|toast\\.success|<Toaster|useToast\\(\\)" apps
 rg -n "bg-green-600|bg-red-600|role=\"alert\"" apps
 rg -n "<Toaster[\\s\\S]{0,200}<Button|function .*Button[\\s\\S]{0,400}<Toaster" apps -U
 ```
-

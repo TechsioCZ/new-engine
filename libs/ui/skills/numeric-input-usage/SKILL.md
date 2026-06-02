@@ -198,8 +198,8 @@ Use min/max/step to express domain constraints, not custom blur handlers.
 ## Validation Commands
 
 ```sh
-rg -n "<input[^>]*type=\"number\"|<NumericInput[^>]*(onValueChange|value=\")" apps
-rg -U -n "<NumericInput[\\s\\S]{0,400}<button|<NumericInput[\\s\\S]{0,400}<Input" apps
-rg -n "<NumericInput[^>]*className=.*(bg-|text-|border-|px-|py-)" apps
-rg -U -P -n "<NumericInput(?![\\s\\S]{0,600}<NumericInput\\.Input)" apps
+rg -n "<input[^>]*type=\"number\"|<NumericInput\\b(?!\\.)[^>]*(onValueChange|value=\")" apps
+rg -U -n "<NumericInput\\b(?!\\.)[\\s\\S]{0,400}<button|<NumericInput\\b(?!\\.)[\\s\\S]{0,400}<Input" apps
+rg -n "<NumericInput\\b(?!\\.)[^>]*className=.*(bg-|text-|border-|px-|py-)" apps
+rg -U -P -n "<NumericInput\\b(?!\\.)(?![\\s\\S]{0,600}<NumericInput\\.Input)" apps
 ```

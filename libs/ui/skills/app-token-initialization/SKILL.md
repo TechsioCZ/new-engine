@@ -100,7 +100,7 @@ Correct:
 }
 ```
 
-Start with semantic tokens so components inherit consistently.
+Start with semantic tokens, so components inherit consistently.
 
 Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 
@@ -157,4 +157,3 @@ bunx biome check --write apps/<app>/src/tokens
 ```
 
 For app work, also inspect JSX for token-first usage with `app-ui-kit-audit`.
-

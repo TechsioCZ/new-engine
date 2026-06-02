@@ -333,7 +333,7 @@ skills:
     failure_modes:
       - id: "automatic-figma-side-effect"
         wrong_pattern: "A component skill starts editing Figma after TSX changes."
-        correct_pattern: "Report a handoff to /home/home/025/projects/new-engine/.agents/skills/component-to-figma/SKILL.md; that skill decides the Figma workflow when the maintainer requests it."
+        correct_pattern: "Report a handoff to .agents/skills/component-to-figma/SKILL.md; that skill decides the Figma workflow when the maintainer requests it."
         evidence: "Maintainer interview 2026-06-02: component-to-figma owns Figma authority, normal skills only remind."
       - id: "figma-raw-values"
         wrong_pattern: "Component-specific Figma variable stores a raw color even though code has a semantic alias."

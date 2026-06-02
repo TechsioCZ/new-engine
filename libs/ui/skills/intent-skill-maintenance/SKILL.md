@@ -12,9 +12,9 @@ sources:
   - "libs/ui/skills/_artifacts/domain_map.yaml"
   - "libs/ui/skills/_artifacts/skill_spec.md"
   - "libs/ui/skills/_artifacts/skill_tree.yaml"
-  - "/home/home/025/projects/new-engine/node_modules/.pnpm/@tanstack+intent@0.0.41/node_modules/@tanstack/intent/meta/domain-discovery/SKILL.md"
-  - "/home/home/025/projects/new-engine/node_modules/.pnpm/@tanstack+intent@0.0.41/node_modules/@tanstack/intent/meta/tree-generator/SKILL.md"
-  - "/home/home/025/projects/new-engine/node_modules/.pnpm/@tanstack+intent@0.0.41/node_modules/@tanstack/intent/meta/generate-skill/SKILL.md"
+  - "package:@tanstack/intent@0.0.41/meta/domain-discovery"
+  - "package:@tanstack/intent@0.0.41/meta/tree-generator"
+  - "package:@tanstack/intent@0.0.41/meta/generate-skill"
 ---
 
 # @techsio/ui-kit Intent Skill Maintenance
@@ -138,4 +138,3 @@ Source: libs/ui/skills/_artifacts/skill_spec.md
 node -e 'const fs=require("node:fs"); const YAML=require("yaml"); YAML.parse(fs.readFileSync("libs/ui/skills/_artifacts/domain_map.yaml","utf8")); YAML.parse(fs.readFileSync("libs/ui/skills/_artifacts/skill_tree.yaml","utf8"))'
 rg -n '^name:|^description:|^type:|^library_version:' libs/ui/skills
 ```
-

@@ -146,7 +146,7 @@ skills:
       - figma.config.json
       - src/atoms/figma/button.figma.tsx
       - src/molecules/figma/dialog.figma.tsx
-      - /home/home/025/projects/new-engine/.agents/skills/component-to-figma/SKILL.md
+      - .agents/skills/component-to-figma/SKILL.md
   - name: ui-kit-publish-readiness
     slug: ui-kit-publish-readiness
     type: lifecycle
@@ -275,9 +275,9 @@ skills:
       - skills/_artifacts/domain_map.yaml
       - skills/_artifacts/skill_spec.md
       - skills/_artifacts/skill_tree.yaml
-      - /home/home/025/projects/new-engine/node_modules/.pnpm/@tanstack+intent@0.0.41/node_modules/@tanstack/intent/meta/domain-discovery/SKILL.md
-      - /home/home/025/projects/new-engine/node_modules/.pnpm/@tanstack+intent@0.0.41/node_modules/@tanstack/intent/meta/tree-generator/SKILL.md
-      - /home/home/025/projects/new-engine/node_modules/.pnpm/@tanstack+intent@0.0.41/node_modules/@tanstack/intent/meta/generate-skill/SKILL.md
+      - package:@tanstack/intent@0.0.41/meta/domain-discovery
+      - package:@tanstack/intent@0.0.41/meta/tree-generator
+      - package:@tanstack/intent@0.0.41/meta/generate-skill
   - name: badge-usage
     slug: badge-usage
     type: sub-skill

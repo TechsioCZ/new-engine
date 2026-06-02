@@ -115,7 +115,7 @@ Source: libs/ui/src/tokens/components/molecules/_steps.css
 ## Validation Commands
 
 ```sh
-rg -P -n "setStep|<Steps(?![^>]*count=)|<Steps\\.Progress[^>]*className=.*(bg-|h-|rounded-)" apps
+rg -P -n "setStep|<Steps\\b(?!\\.)(?![^>]*count=)|<Steps\\.Progress[^>]*className=.*(bg-|h-|rounded-)" apps
 rg -P -n "<Steps\\.Item(?![^>]*index=)|<Steps\\.Content(?![^>]*index=)" apps
 rg -n "<Steps\\.NextTrigger|<Steps\\.PrevTrigger|linear" apps
 ```

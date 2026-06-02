@@ -203,7 +203,7 @@ Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 Wrong:
 
 ```tsx
-<Button className="px-200 py-tvoje-mama" />
+<Button className="px-200 py-unknown-token" />
 ```
 
 Correct:

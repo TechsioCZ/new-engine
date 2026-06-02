@@ -111,5 +111,5 @@ None. Phase 4 interview findings are recorded in `domain_map.yaml` under
 | Zag.js | interactive component machines, `connect`, `api.get*Props`, data attributes | covered by `zag-compound-components` |
 | Tailwind CSS v4 | `@theme static`, token utility classes, no config file | covered by `tailwind-token-authoring` and app token skills |
 | Storybook 10 | CSF3, autodocs, Controls, a11y checks | covered by `storybook-authoring` |
-| Figma Code Connect | component mapping and design-system sync handoff | covered by `figma-sync-handoff`, with authority delegated to `/home/home/025/projects/new-engine/.agents/skills/component-to-figma/SKILL.md` |
+| Figma Code Connect | component mapping and design-system sync handoff | covered by `figma-sync-handoff`, with authority delegated to `.agents/skills/component-to-figma/SKILL.md` |
 | Next.js 16+ | NextLink/NextImage adapters in consumer apps | covered by `framework-consumer-integration` |

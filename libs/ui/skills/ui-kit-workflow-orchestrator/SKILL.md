@@ -71,7 +71,7 @@ component-specific skill.
 ```text
 New public component or visual/API change
 -> figma-sync-handoff
--> point to /home/home/025/projects/new-engine/.agents/skills/component-to-figma/SKILL.md
+-> point to .agents/skills/component-to-figma/SKILL.md
 ```
 
 Do not edit Figma automatically from ordinary UI-kit skills.
@@ -157,4 +157,3 @@ Source: libs/ui/skills/_artifacts/domain_map.yaml
 node -e 'const fs=require("node:fs"); const YAML=require("yaml"); YAML.parse(fs.readFileSync("libs/ui/skills/_artifacts/skill_tree.yaml","utf8"))'
 bunx biome check --write libs/ui/skills/ui-kit-workflow-orchestrator/SKILL.md
 ```
-

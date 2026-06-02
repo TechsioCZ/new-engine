@@ -117,7 +117,7 @@ Source: libs/ui/src/tokens/components/molecules/_phone-input.css
 ## Validation Commands
 
 ```sh
-rg -n "type=\"tel\"|<PhoneInput[^>]*className=.*(border-|bg-|text-|p-)" apps
-rg -U -P -n "<PhoneInput(?![\\s\\S]{0,600}<PhoneInput\\.Input)" apps
-rg -n "<PhoneInput[^>]*validateStatus=\"(danger|invalid)\"" apps
+rg -n "type=\"tel\"|<PhoneInput\\b(?!\\.)[^>]*className=.*(border-|bg-|text-|p-)" apps
+rg -U -P -n "<PhoneInput\\b(?!\\.)(?![\\s\\S]{0,600}<PhoneInput\\.Input)" apps
+rg -n "<PhoneInput\\b(?!\\.)[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```

@@ -13,7 +13,7 @@ sources:
   - "libs/ui/figma.config.json"
   - "libs/ui/src/atoms/figma/button.figma.tsx"
   - "libs/ui/src/molecules/figma/dialog.figma.tsx"
-  - "/home/home/025/projects/new-engine/.agents/skills/component-to-figma/SKILL.md"
+  - ".agents/skills/component-to-figma/SKILL.md"
 ---
 
 # @techsio/ui-kit Figma Sync Handoff
@@ -35,7 +35,7 @@ Changed public component API or visual behavior
 The authoritative workflow is:
 
 ```text
-/home/home/025/projects/new-engine/.agents/skills/component-to-figma/SKILL.md
+.agents/skills/component-to-figma/SKILL.md
 ```
 
 ## Core Patterns
@@ -148,4 +148,3 @@ bunx biome check --write libs/ui/src/atoms/figma/button.figma.tsx
 ```
 
 Run `figma:connect:publish` only when the maintainer explicitly asks.
-
