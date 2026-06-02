@@ -9,7 +9,7 @@ export class Migration20260601120000 extends Migration {
       `CREATE INDEX IF NOT EXISTS "IDX_product_list_type" ON "product_list" ("type") WHERE deleted_at IS NULL;`
     )
     this.addSql(
-      `CREATE INDEX IF NOT EXISTS "IDX_product_list_handle" ON "product_list" ("handle") WHERE deleted_at IS NULL;`
+      `CREATE UNIQUE INDEX IF NOT EXISTS "IDX_product_list_custom_handle_unique" ON "product_list" ("handle") WHERE deleted_at IS NULL AND type = 'custom';`
     )
     this.addSql(
       `alter table if exists "product_list" add constraint "product_list_type_check" check ("type" in ('favorite', 'custom'));`

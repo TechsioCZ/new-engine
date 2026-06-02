@@ -52,6 +52,9 @@ export const StoreCreateProductListItemSchema = z
   })
   .strict()
 
+export const StoreCreateFavoriteProductListItemSchema =
+  StoreCreateProductListItemSchema.omit({ quantity: true })
+
 export const StoreIncrementProductListItemSchema = z
   .object({
     quantity: z.number().int().min(1).optional().default(1),
@@ -69,6 +72,9 @@ export type StoreCreateCustomProductListSchemaType = z.infer<
 >
 export type StoreCreateProductListItemSchemaType = z.infer<
   typeof StoreCreateProductListItemSchema
+>
+export type StoreCreateFavoriteProductListItemSchemaType = z.infer<
+  typeof StoreCreateFavoriteProductListItemSchema
 >
 export type StoreIncrementProductListItemSchemaType = z.infer<
   typeof StoreIncrementProductListItemSchema

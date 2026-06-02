@@ -2,6 +2,7 @@ import { Migration } from "@medusajs/framework/mikro-orm/migrations"
 
 export class Migration20260602123000 extends Migration {
   override async up(): Promise<void> {
+    // Values should mirror PRODUCT_LIST_TYPES in constants.ts.
     this.addSql(`
       do $$
       begin
@@ -32,9 +33,15 @@ export class Migration20260602123000 extends Migration {
         end if;
       end $$;
     `)
+    this.addSql(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "IDX_product_list_custom_handle_unique" ON "product_list" ("handle") WHERE deleted_at IS NULL AND type = 'custom';`
+    )
   }
 
   override async down(): Promise<void> {
+    this.addSql(
+      `drop index if exists "IDX_product_list_custom_handle_unique";`
+    )
     this.addSql(
       `alter table if exists "product_list_item" drop constraint if exists "product_list_item_sort_order_check";`
     )

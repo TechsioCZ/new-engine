@@ -48,6 +48,52 @@ type ProductListItemRecord = {
   quantity: number
 }
 
+const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const normalizeTrimmedText = (value: string | undefined, fallback: string) => {
+  const trimmed = value?.trim()
+
+  return trimmed == null || trimmed === "" ? fallback : trimmed
+}
+
+const assertProductListItemRecord = (value: unknown): ProductListItemRecord => {
+  if (
+    hasRecordShape(value) &&
+    typeof value.id === "string" &&
+    typeof value.quantity === "number"
+  ) {
+    return {
+      id: value.id,
+      quantity: value.quantity,
+    }
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "Invalid product list item record"
+  )
+}
+
+const assertProductListRecord = (value: unknown): ProductListRecord => {
+  if (
+    hasRecordShape(value) &&
+    typeof value.id === "string" &&
+    typeof value.type === "string" &&
+    isProductListType(value.type)
+  ) {
+    return {
+      id: value.id,
+      type: value.type,
+    }
+  }
+
+  throw new MedusaError(
+    MedusaError.Types.INVALID_DATA,
+    "Invalid product list record"
+  )
+}
+
 const isProductListType = (type: string): type is ProductListType =>
   PRODUCT_LIST_TYPES.includes(type as ProductListType)
 
@@ -101,8 +147,11 @@ class ProductListModuleService extends MedusaService({
   ) {
     return await this.createProductLists(
       {
-        title: input.title?.trim() || DEFAULT_FAVORITE_LIST_TITLE,
-        handle: input.handle?.trim() || DEFAULT_FAVORITE_LIST_HANDLE,
+        title: normalizeTrimmedText(input.title, DEFAULT_FAVORITE_LIST_TITLE),
+        handle: normalizeTrimmedText(
+          input.handle,
+          DEFAULT_FAVORITE_LIST_HANDLE
+        ),
         type: "favorite",
         description: input.description ?? null,
         metadata: input.metadata ?? null,
@@ -123,11 +172,29 @@ class ProductListModuleService extends MedusaService({
         "Product list title is required"
       )
     }
+    const handle = normalizeTrimmedText(input.handle, kebabCase(title))
+    const [existingList] = await this.listProductLists(
+      {
+        handle,
+        type: "custom",
+      },
+      {
+        take: 1,
+      },
+      sharedContext
+    )
+
+    if (existingList) {
+      throw new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        `Product list handle already exists: ${handle}`
+      )
+    }
 
     return await this.createProductLists(
       {
         title,
-        handle: input.handle?.trim() || kebabCase(title),
+        handle,
         type: "custom",
         description: input.description ?? null,
         metadata: input.metadata ?? null,
@@ -164,11 +231,9 @@ class ProductListModuleService extends MedusaService({
     sharedContext?: Context
   ) {
     const incrementBy = normalizePositiveInteger(quantityToAdd, "quantityToAdd")
-    const item = (await this.retrieveProductListItem(
-      itemId,
-      {},
-      sharedContext
-    )) as ProductListItemRecord
+    const item = assertProductListItemRecord(
+      await this.retrieveProductListItem(itemId, {}, sharedContext)
+    )
 
     return await this.updateProductListItems(
       {
@@ -183,11 +248,9 @@ class ProductListModuleService extends MedusaService({
     listId: string,
     sharedContext?: Context
   ) {
-    const list = (await this.retrieveProductList(
-      listId,
-      {},
-      sharedContext
-    )) as ProductListRecord
+    const list = assertProductListRecord(
+      await this.retrieveProductList(listId, {}, sharedContext)
+    )
 
     if (list.type !== "custom") {
       throw new MedusaError(

@@ -1,5 +1,4 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import type { CreateCustomProductListDTO } from "../../../modules/product-list/service"
 import type {
   CreateCustomerProductListWorkflowInput,
   CreatedProductListResult,
@@ -45,9 +44,7 @@ export const createCustomerProductListStep = createStep(
     const productList =
       input.type === "favorite"
         ? await service.createFavoriteProductList(input.data)
-        : await service.createCustomProductList(
-            input.data as CreateCustomProductListDTO
-          )
+        : await service.createCustomProductList(input.data)
 
     await createCustomerProductListLink(
       container,

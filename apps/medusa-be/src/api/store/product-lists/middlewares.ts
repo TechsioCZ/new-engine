@@ -5,6 +5,7 @@ import {
 import { authenticate, type MiddlewareRoute } from "@medusajs/framework/http"
 import {
   StoreCreateCustomProductListSchema,
+  StoreCreateFavoriteProductListItemSchema,
   StoreCreateFavoriteProductListSchema,
   StoreCreateProductListItemSchema,
   StoreGetProductListsSchema,
@@ -42,7 +43,7 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     matcher: "/store/product-lists/favorites/items",
     middlewares: [
       customerAuth,
-      validateAndTransformBody(StoreCreateProductListItemSchema),
+      validateAndTransformBody(StoreCreateFavoriteProductListItemSchema),
     ],
   },
   {

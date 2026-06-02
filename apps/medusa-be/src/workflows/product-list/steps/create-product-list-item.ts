@@ -5,6 +5,7 @@ import type {
 } from "../types"
 import {
   assertCustomerOwnsProductList,
+  assertProductSelectionExists,
   createProductListItemProductLinks,
   dismissProductListItemProductLinks,
   findProductListItemForSelection,
@@ -31,6 +32,11 @@ export const createProductListItemStep = createStep(
 
     const service = getProductListService(container)
     const productList = await service.retrieveProductList(input.list_id)
+    await assertProductSelectionExists(
+      container,
+      input.product_id,
+      input.variant_id
+    )
     const existingItem = await findProductListItemForSelection(
       container,
       input.list_id,

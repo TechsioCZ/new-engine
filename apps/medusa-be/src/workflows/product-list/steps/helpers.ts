@@ -35,6 +35,69 @@ type ProductListItemVariantLinkRecord = {
   product_list_item_id?: string
 }
 
+type ProductRecord = {
+  id: string
+  status?: string
+}
+
+type ProductVariantRecord = {
+  id: string
+  product?: {
+    id?: string
+  }
+}
+
+const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isCustomerProductListLinkRecord = (
+  value: unknown
+): value is CustomerProductListLinkRecord =>
+  hasRecordShape(value) &&
+  (value.customer_id === undefined || typeof value.customer_id === "string") &&
+  (value.product_list_id === undefined ||
+    typeof value.product_list_id === "string")
+
+const isProductListItemProductLinkRecord = (
+  value: unknown
+): value is ProductListItemProductLinkRecord =>
+  hasRecordShape(value) &&
+  (value.product_id === undefined || typeof value.product_id === "string") &&
+  (value.product_list_item_id === undefined ||
+    typeof value.product_list_item_id === "string")
+
+const isProductListItemVariantLinkRecord = (
+  value: unknown
+): value is ProductListItemVariantLinkRecord =>
+  hasRecordShape(value) &&
+  (value.product_variant_id === undefined ||
+    typeof value.product_variant_id === "string") &&
+  (value.product_list_item_id === undefined ||
+    typeof value.product_list_item_id === "string")
+
+const toCustomerProductListLinks = (value: unknown) =>
+  Array.isArray(value) ? value.filter(isCustomerProductListLinkRecord) : []
+
+const toProductListItemProductLinks = (value: unknown) =>
+  Array.isArray(value) ? value.filter(isProductListItemProductLinkRecord) : []
+
+const toProductListItemVariantLinks = (value: unknown) =>
+  Array.isArray(value) ? value.filter(isProductListItemVariantLinkRecord) : []
+
+const isProductRecord = (value: unknown): value is ProductRecord =>
+  hasRecordShape(value) &&
+  typeof value.id === "string" &&
+  (value.status === undefined || typeof value.status === "string")
+
+const isProductVariantRecord = (
+  value: unknown
+): value is ProductVariantRecord =>
+  hasRecordShape(value) &&
+  typeof value.id === "string" &&
+  (value.product === undefined ||
+    (hasRecordShape(value.product) &&
+      (value.product.id === undefined || typeof value.product.id === "string")))
+
 export type ProductListService = {
   assertListSupportsQuantityIncrement: (listId: string) => Promise<unknown>
   createCustomProductList: (
@@ -105,7 +168,9 @@ export const listCustomerProductListIds = async (
     },
   })
 
-  return (data as CustomerProductListLinkRecord[]).flatMap((link) =>
+  const links = toCustomerProductListLinks(data)
+
+  return links.flatMap((link) =>
     link.product_list_id ? [link.product_list_id] : []
   )
 }
@@ -139,12 +204,78 @@ export const assertCustomerOwnsProductList = async (
   customerId: string,
   listId: string
 ) => {
-  const listIds = await listCustomerProductListIds(container, customerId)
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: CustomerProductListLink.entryPoint,
+    fields: ["product_list_id"],
+    filters: {
+      customer_id: customerId,
+      product_list_id: listId,
+    },
+    pagination: {
+      take: 1,
+    },
+  })
+  const [link] = toCustomerProductListLinks(data)
 
-  if (!listIds.includes(listId)) {
+  if (!link?.product_list_id) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product list ${listId} was not found`
+    )
+  }
+}
+
+export const assertProductSelectionExists = async (
+  container: MedusaContainer,
+  productId: string,
+  variantId?: string
+) => {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: productData } = await query.graph({
+    entity: "product",
+    fields: ["id", "status"],
+    filters: {
+      id: productId,
+      status: "published",
+    },
+    pagination: {
+      take: 1,
+    },
+  })
+  const product = Array.isArray(productData)
+    ? productData.find(isProductRecord)
+    : null
+
+  if (!product) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Product ${productId} was not found`
+    )
+  }
+
+  if (!variantId) {
+    return
+  }
+
+  const { data: variantData } = await query.graph({
+    entity: "product_variant",
+    fields: ["id", "product.id"],
+    filters: {
+      id: variantId,
+    },
+    pagination: {
+      take: 1,
+    },
+  })
+  const variant = Array.isArray(variantData)
+    ? variantData.find(isProductVariantRecord)
+    : null
+
+  if (!variant || variant.product?.id !== productId) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Product variant ${variantId} was not found`
     )
   }
 }
@@ -163,8 +294,8 @@ export const findProductListItemForSelection = async (
       product_id: productId,
     },
   })
-  let itemIds = (productLinks as ProductListItemProductLinkRecord[]).flatMap(
-    (link) => (link.product_list_item_id ? [link.product_list_item_id] : [])
+  let itemIds = toProductListItemProductLinks(productLinks).flatMap((link) =>
+    link.product_list_item_id ? [link.product_list_item_id] : []
   )
 
   if (variantId) {
@@ -176,7 +307,7 @@ export const findProductListItemForSelection = async (
       },
     })
     const variantItemIds = new Set(
-      (variantLinks as ProductListItemVariantLinkRecord[]).flatMap((link) =>
+      toProductListItemVariantLinks(variantLinks).flatMap((link) =>
         link.product_list_item_id ? [link.product_list_item_id] : []
       )
     )

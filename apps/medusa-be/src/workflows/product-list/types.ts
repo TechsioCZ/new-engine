@@ -27,11 +27,17 @@ export type ProductListItemRecord = {
   updated_at?: string | Date
 }
 
-export type CreateCustomerProductListWorkflowInput = {
-  customer_id: string
-  type: "favorite" | "custom"
-  data: CreateFavoriteProductListDTO | CreateCustomProductListDTO
-}
+export type CreateCustomerProductListWorkflowInput =
+  | {
+      customer_id: string
+      type: "favorite"
+      data: CreateFavoriteProductListDTO
+    }
+  | {
+      customer_id: string
+      type: "custom"
+      data: CreateCustomProductListDTO
+    }
 
 export type CreateProductListItemWorkflowInput = {
   customer_id: string

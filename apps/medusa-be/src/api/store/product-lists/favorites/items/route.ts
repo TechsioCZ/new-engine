@@ -4,10 +4,10 @@ import type {
 } from "@medusajs/framework/http"
 import { addFavoriteProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/add-favorite-product-list-item"
 import { toProductListItemResponse, toProductListResponse } from "../../utils"
-import type { StoreCreateProductListItemSchemaType } from "../../validators"
+import type { StoreCreateFavoriteProductListItemSchemaType } from "../../validators"
 
 export async function POST(
-  req: AuthenticatedMedusaRequest<StoreCreateProductListItemSchemaType>,
+  req: AuthenticatedMedusaRequest<StoreCreateFavoriteProductListItemSchemaType>,
   res: MedusaResponse
 ) {
   const { result } = await addFavoriteProductListItemWorkflow(req.scope).run({
