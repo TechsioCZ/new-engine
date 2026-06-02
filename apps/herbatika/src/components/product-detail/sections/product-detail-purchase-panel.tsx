@@ -12,44 +12,9 @@ import type {
   ProductOfferState,
   StorefrontProduct,
 } from "@/components/product-detail/product-detail.types"
-import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
-import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
+import { ProductDetailStockAvailability } from "@/components/product-detail/sections/product-detail-stock-availability"
+import { resolveProductInfoLink } from "@/components/product-detail/utils/product-info-link"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
-import { createBrandSlug } from "@/lib/storefront/brands"
-
-type ProductInfoLink = {
-  href: string | null
-  label: string
-}
-
-const resolveProductInfoLink = (
-  product: StorefrontProduct,
-  primaryCategory?: HttpTypes.StoreProductCategory,
-): ProductInfoLink | null => {
-  const producer = asRecord(
-    (product as StorefrontProduct & { producer?: unknown }).producer,
-  )
-  const producerTitle = asString(producer?.title)
-
-  if (producerTitle) {
-    const producerHandle = asString(producer?.handle)
-    const producerSlug = createBrandSlug(producerHandle || producerTitle)
-
-    return {
-      href: producerSlug ? `/znacka/${producerSlug}` : null,
-      label: producerTitle,
-    }
-  }
-
-  if (!primaryCategory?.handle) {
-    return null
-  }
-
-  return {
-    href: `/c/${primaryCategory.handle}`,
-    label: normalizeCategoryName(primaryCategory.name),
-  }
-}
 
 type ProductDetailPurchasePanelProps = {
   canAddToCart: boolean
@@ -205,13 +170,15 @@ export function ProductDetailPurchasePanel({
         ) : null}
       </div>
 
+      <ProductDetailStockAvailability items={offerState.locationAvailability} />
+
       {variantItems.length > 1 ? (
         <Select
           items={variantItems}
           onValueChange={(details) => {
             onVariantChange(details.value[0] ?? null)
           }}
-          className="w-full sm:max-w-xs"
+          className="w-full"
           size="lg"
           value={selectedVariantId ? [selectedVariantId] : []}
         >

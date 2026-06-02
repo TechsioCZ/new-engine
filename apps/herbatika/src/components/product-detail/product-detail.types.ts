@@ -21,6 +21,7 @@ export type ProductOfferState = {
   ean: string | null;
   availabilityLabel: string;
   deliveryLabel: string;
+  locationAvailability: ProductLocationAvailability[];
   stockAmount: number | null;
   isInStock: boolean;
   offerSource: Record<string, unknown> | null;
@@ -32,6 +33,16 @@ export type ProductOfferState = {
   applyLoyaltyDiscount: boolean;
   applyQuantityDiscount: boolean;
   applyVolumeDiscount: boolean;
+};
+
+export type ProductLocationAvailabilityId = "store" | "makov-warehouse";
+
+export type ProductLocationAvailability = {
+  id: ProductLocationAvailabilityId;
+  label: string;
+  amount: number;
+  displayLabel: string;
+  isInStock: boolean;
 };
 
 export type ProductMediaFact = {

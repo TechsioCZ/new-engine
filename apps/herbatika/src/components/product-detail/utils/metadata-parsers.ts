@@ -19,6 +19,7 @@ import {
   asRecord,
   asString,
 } from "@/components/product-detail/utils/value-utils";
+import { resolveProductLocationAvailability } from "@/components/product-detail/utils/stock-availability";
 
 const normalizeSectionKey = (value: unknown): string | null => {
   const parsed = asString(value);
@@ -160,6 +161,7 @@ export const resolveOfferState = (
     deliveryLabel: isInStock
       ? resolveInStockDeliveryLabel()
       : "po naskladnení",
+    locationAvailability: resolveProductLocationAvailability(source),
     stockAmount,
     isInStock,
     offerSource: source,
