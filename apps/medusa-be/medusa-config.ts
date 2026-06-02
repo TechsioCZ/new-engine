@@ -175,6 +175,10 @@ module.exports = defineConfig({
       options: {},
     },
     {
+      resolve: "medusa-order-dashboard-plugin",
+      options: {},
+    },
+    {
       resolve: "@rokmohar/medusa-plugin-meilisearch",
       options: {
         config: {
