@@ -6,7 +6,7 @@ import {
   getProductListService,
   listCustomerProductListIds,
 } from "../../../workflows/product-list/steps/helpers"
-import { toProductListResponse } from "./utils"
+import { toProductListResponse, withProductListItems } from "./utils"
 import type { StoreGetProductListsSchemaType } from "./validators"
 
 export async function GET(
@@ -38,15 +38,18 @@ export async function GET(
     req.scope
   ).listAndCountProductLists(filters, {
     order: { created_at: "DESC" },
-    relations: ["items"],
     skip: offset,
     take: limit,
   })
+  const productListsWithItems = await withProductListItems(
+    req.scope,
+    productLists
+  )
 
   res.json({
     count,
     limit,
     offset,
-    product_lists: productLists.map(toProductListResponse),
+    product_lists: productListsWithItems.map(toProductListResponse),
   })
 }

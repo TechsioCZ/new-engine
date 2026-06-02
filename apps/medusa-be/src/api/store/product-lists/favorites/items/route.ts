@@ -22,7 +22,11 @@ export async function POST(
   })
 
   res.status(200).json({
-    item: toProductListItemResponse(result.item),
+    item: toProductListItemResponse({
+      ...result.item,
+      product_id: req.validatedBody.product_id,
+      variant_id: req.validatedBody.variant_id ?? null,
+    }),
     product_list: toProductListResponse(result.product_list),
   })
 }

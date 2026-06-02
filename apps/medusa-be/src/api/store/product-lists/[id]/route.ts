@@ -6,7 +6,11 @@ import {
   assertCustomerOwnsProductList,
   getProductListService,
 } from "../../../../workflows/product-list/steps/helpers"
-import { getRouteParam, toProductListResponse } from "../utils"
+import {
+  getRouteParam,
+  toProductListResponse,
+  withProductListItems,
+} from "../utils"
 
 export async function GET(
   req: AuthenticatedMedusaRequest,
@@ -19,9 +23,16 @@ export async function GET(
 
   const productList = await getProductListService(
     req.scope
-  ).retrieveProductList(listId, {
-    relations: ["items"],
-  })
+  ).retrieveProductList(listId)
+  const productListsWithItems = await withProductListItems(req.scope, [
+    productList,
+  ])
+  const productListWithItems = productListsWithItems[0]
 
-  res.json({ product_list: toProductListResponse(productList) })
+  if (!productListWithItems) {
+    res.json({ product_list: toProductListResponse(productList) })
+    return
+  }
+
+  res.json({ product_list: toProductListResponse(productListWithItems) })
 }

@@ -24,5 +24,11 @@ export async function POST(
     },
   })
 
-  res.status(200).json({ item: toProductListItemResponse(item) })
+  res.status(200).json({
+    item: toProductListItemResponse({
+      ...item,
+      product_id: req.validatedBody.product_id,
+      variant_id: req.validatedBody.variant_id ?? null,
+    }),
+  })
 }
