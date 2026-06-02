@@ -12,10 +12,7 @@ import type {
 } from "../types"
 
 export const addFavoriteProductListItemWorkflow = createWorkflow(
-  {
-    idempotent: false,
-    name: "add-favorite-product-list-item-workflow",
-  },
+  "add-favorite-product-list-item-workflow",
   (input: AddFavoriteProductListItemWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list-customer:${workflowInput.customer_id}`,

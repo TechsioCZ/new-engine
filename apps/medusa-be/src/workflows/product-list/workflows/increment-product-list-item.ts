@@ -8,10 +8,7 @@ import { incrementProductListItemStep } from "../steps/increment-product-list-it
 import type { IncrementProductListItemWorkflowInput } from "../types"
 
 export const incrementProductListItemWorkflow = createWorkflow(
-  {
-    idempotent: false,
-    name: "increment-product-list-item-workflow",
-  },
+  "increment-product-list-item-workflow",
   (input: IncrementProductListItemWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list-item:${workflowInput.item_id}`,
