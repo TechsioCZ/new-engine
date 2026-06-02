@@ -10,15 +10,10 @@
 @plugin "@iconify/tailwind4";
 
 /*
- * Icon — color + size tokens come from libs/ui/src/tokens/figma/variables.css.
- * This file only declares what Figma does not export yet:
- *   - `--text-icon-2xl` (Figma's icon scale stops at xl)
- * Plus the @plugin directive and the semantic glyph @utility aliases.
+ * Icon — color + size tokens come from libs/ui/src/tokens/figma/variables.css
+ * (Figma now exports the full icon size scale including 2xl).
+ * Only the @plugin directive and the semantic glyph @utility aliases live here.
  */
-
-@theme static {
-  --text-icon-2xl: var(--text-2xl);
-}
 
 /* === Semantic glyph aliases (not part of Figma export) === */
 

@@ -10,5 +10,5 @@
  */
 
 @theme static {
-  --spacing-form-field-gap: var(--spacing-50);
+  --spacing-form-field-gap: var(--spacing-form-field);
 }

@@ -1,28 +1,20 @@
 /*
  * Checkbox — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * This file only declares what Figma does not export (or where Figma's
- * name doesn't match the utility the TSX consumes):
+ * This file only declares what Figma does not export yet:
  *   - `--spacing-checkbox-indeterminate-icon` — 60% size for the
- *     indeterminate-state icon (Figma has no size-axis equivalent yet).
+ *     indeterminate-state icon (no size-axis equivalent in Figma).
  *   - `--spacing-form-checkbox-gap` — Figma exports `--spacing-form-checkbox`
- *     but the FormCheckbox TSX uses `gap-form-checkbox-gap` (different
- *     suffix); keep this dedicated token until either side migrates.
- *   - `--spacing-form-checkbox-text-offset` — Figma exports a primitive
- *     value (~30px) but FormCheckbox needs the computed `--size-checkbox
- *     + --spacing-form-checkbox-gap` (~24px); keep the calc so the text
- *     indent stays aligned with the box edge.
+ *     (no `-gap` suffix); keep this alias name until FormCheckbox TSX
+ *     adopts the Figma name.
  *
- * Color, border-width, radius, size, ring tokens are owned by Figma.
+ * Color, border-width, radius, size, ring, and form-checkbox-text-offset
+ * are owned by Figma.
  */
 
 @theme static {
   --spacing-checkbox-indeterminate-icon: 60%;
-  --spacing-form-checkbox-gap: var(--spacing-150);
-  --spacing-form-checkbox-text-offset: calc(
-    var(--size-checkbox) +
-    var(--spacing-form-checkbox-gap)
-  );
+  --spacing-form-checkbox-gap: var(--spacing-form-checkbox);
 }
 
 @utility token-icon-checkbox {
