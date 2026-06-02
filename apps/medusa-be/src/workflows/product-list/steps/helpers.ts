@@ -349,13 +349,13 @@ export const findProductListItemForSelection = async (
       link.product_list_item_id ? [link.product_list_item_id] : []
     )
 
-    if (variantId && itemIds.length) {
+    if (itemIds.length) {
       const { data: variantLinks } = await query.graph({
         entity: ProductListItemVariantLink.entryPoint,
         fields: ["product_list_item_id"],
         filters: {
           product_list_item_id: { $in: itemIds },
-          product_variant_id: variantId,
+          ...(variantId ? { product_variant_id: variantId } : {}),
         },
         pagination: {
           take: Math.min(itemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
@@ -367,7 +367,9 @@ export const findProductListItemForSelection = async (
         )
       )
 
-      itemIds = itemIds.filter((itemId) => variantItemIds.has(itemId))
+      itemIds = itemIds.filter((itemId) =>
+        variantId ? variantItemIds.has(itemId) : !variantItemIds.has(itemId)
+      )
     }
 
     if (itemIds.length) {
