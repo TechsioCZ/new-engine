@@ -1,4 +1,4 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -121,7 +121,7 @@ export const withProductListItemSelections = async (
     return items
   }
 
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: productLinks } = await query.graph({
     entity: ProductListItemProductLink.entryPoint,
     fields: ["product_list_item_id", "product_id"],
@@ -166,7 +166,8 @@ export const withProductListItemSelections = async (
 
 export const withProductListItems = async (
   container: MedusaContainer,
-  lists: ProductListRecord[]
+  lists: ProductListRecord[],
+  options: { previewLimit?: number } = {}
 ) => {
   const listIds = lists.map((list) => list.id)
 
@@ -175,14 +176,19 @@ export const withProductListItems = async (
   }
 
   const service = getProductListService(container)
+  const config: Record<string, unknown> = {
+    order: { list_id: "ASC", sort_order: "ASC", created_at: "ASC" },
+  }
+
+  if (options.previewLimit !== undefined) {
+    config.take = listIds.length * options.previewLimit
+  }
+
   const items = await service.listProductListItems(
     {
       list_id: { $in: listIds },
     },
-    {
-      order: { list_id: "ASC", sort_order: "ASC", created_at: "ASC" },
-      take: listIds.length * INLINE_PRODUCT_LIST_ITEMS_LIMIT,
-    }
+    config
   )
   const enrichedItems = await withProductListItemSelections(container, items)
   const itemsByListId = new Map<string, ProductListItemRecord[]>()
@@ -190,7 +196,10 @@ export const withProductListItems = async (
   for (const item of enrichedItems) {
     const listItems = itemsByListId.get(item.list_id) ?? []
 
-    if (listItems.length < INLINE_PRODUCT_LIST_ITEMS_LIMIT) {
+    if (
+      options.previewLimit === undefined ||
+      listItems.length < options.previewLimit
+    ) {
       listItems.push(item)
       itemsByListId.set(item.list_id, listItems)
     }

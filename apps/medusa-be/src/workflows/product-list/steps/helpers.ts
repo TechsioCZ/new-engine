@@ -1,5 +1,5 @@
 import type { Link } from "@medusajs/framework/modules-sdk"
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -48,6 +48,7 @@ type ProductVariantRecord = {
 }
 
 const PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE = 1000
+const CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE = 1000
 
 const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -161,20 +162,36 @@ export const listCustomerProductListIds = async (
   container: MedusaContainer,
   customerId: string
 ) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: CustomerProductListLink.entryPoint,
-    fields: ["product_list_id"],
-    filters: {
-      customer_id: customerId,
-    },
-  })
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const productListIds: string[] = []
+  let skip = 0
 
-  const links = toCustomerProductListLinks(data)
+  while (true) {
+    const { data } = await query.graph({
+      entity: CustomerProductListLink.entryPoint,
+      fields: ["product_list_id"],
+      filters: {
+        customer_id: customerId,
+      },
+      pagination: {
+        skip,
+        take: CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE,
+      },
+    })
 
-  return links.flatMap((link) =>
-    link.product_list_id ? [link.product_list_id] : []
-  )
+    const links = toCustomerProductListLinks(data)
+    productListIds.push(
+      ...links.flatMap((link) =>
+        link.product_list_id ? [link.product_list_id] : []
+      )
+    )
+
+    if (links.length < CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE) {
+      return productListIds
+    }
+
+    skip += CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE
+  }
 }
 
 export const findCustomerFavoriteProductList = async (
@@ -231,7 +248,7 @@ export const assertCustomerOwnsProductList = async (
   customerId: string,
   listId: string
 ) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: CustomerProductListLink.entryPoint,
     fields: ["product_list_id"],
@@ -258,7 +275,7 @@ export const assertProductSelectionExists = async (
   productId: string,
   variantId?: string
 ) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: productData } = await query.graph({
     entity: "product",
     fields: ["id", "status"],
@@ -313,7 +330,7 @@ export const findProductListItemForSelection = async (
   productId: string,
   variantId?: string
 ) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const service = getProductListService(container)
   let skip = 0
 

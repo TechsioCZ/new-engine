@@ -172,7 +172,11 @@ class ProductListModuleService extends MedusaService({
         "Product list title is required"
       )
     }
-    const handle = normalizeTrimmedText(input.handle, kebabCase(title))
+    const trimmedHandle = input.handle?.trim()
+    const handle =
+      trimmedHandle == null || trimmedHandle === ""
+        ? kebabCase(title)
+        : kebabCase(trimmedHandle)
 
     return await this.createProductLists(
       {

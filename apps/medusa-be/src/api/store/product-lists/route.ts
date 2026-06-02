@@ -6,7 +6,11 @@ import {
   getProductListService,
   listCustomerProductListIds,
 } from "../../../workflows/product-list/steps/helpers"
-import { toProductListResponse, withProductListItems } from "./utils"
+import {
+  INLINE_PRODUCT_LIST_ITEMS_LIMIT,
+  toProductListResponse,
+  withProductListItems,
+} from "./utils"
 import type { StoreGetProductListsSchemaType } from "./validators"
 
 export async function GET(
@@ -43,7 +47,8 @@ export async function GET(
   })
   const productListsWithItems = await withProductListItems(
     req.scope,
-    productLists
+    productLists,
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
   )
 
   res.json({

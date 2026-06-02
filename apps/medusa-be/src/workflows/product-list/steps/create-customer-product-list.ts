@@ -24,7 +24,7 @@ const normalizeCustomHandle = (title: string, handle?: string) => {
 
   return trimmedHandle == null || trimmedHandle === ""
     ? kebabCase(title.trim())
-    : trimmedHandle
+    : kebabCase(trimmedHandle)
 }
 
 export const createCustomerProductListStep = createStep(
