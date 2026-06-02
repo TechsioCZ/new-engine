@@ -57,28 +57,6 @@ const normalizeTrimmedText = (value: string | undefined, fallback: string) => {
   return trimmed == null || trimmed === "" ? fallback : trimmed
 }
 
-const isDuplicateHandleError = (error: unknown) => {
-  if (error instanceof MedusaError) {
-    return error.type === MedusaError.Types.DUPLICATE_ERROR
-  }
-
-  if (!(error instanceof Error)) {
-    return false
-  }
-
-  return (
-    error.message.includes("IDX_product_list_custom_handle_unique") ||
-    error.message.includes("duplicate key value")
-  )
-}
-
-const throwDuplicateHandleError = (handle: string): never => {
-  throw new MedusaError(
-    MedusaError.Types.DUPLICATE_ERROR,
-    `Product list handle already exists: ${handle}`
-  )
-}
-
 const assertProductListItemRecord = (value: unknown): ProductListItemRecord => {
   if (
     hasRecordShape(value) &&
@@ -195,39 +173,17 @@ class ProductListModuleService extends MedusaService({
       )
     }
     const handle = normalizeTrimmedText(input.handle, kebabCase(title))
-    const [existingList] = await this.listProductLists(
+
+    return await this.createProductLists(
       {
+        title,
         handle,
         type: "custom",
-      },
-      {
-        take: 1,
+        description: input.description ?? null,
+        metadata: input.metadata ?? null,
       },
       sharedContext
     )
-
-    if (existingList) {
-      throwDuplicateHandleError(handle)
-    }
-
-    try {
-      return await this.createProductLists(
-        {
-          title,
-          handle,
-          type: "custom",
-          description: input.description ?? null,
-          metadata: input.metadata ?? null,
-        },
-        sharedContext
-      )
-    } catch (error) {
-      if (isDuplicateHandleError(error)) {
-        throwDuplicateHandleError(handle)
-      }
-
-      throw error
-    }
   }
 
   async createProductListItemForList(

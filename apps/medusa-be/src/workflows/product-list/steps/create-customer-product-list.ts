@@ -1,3 +1,4 @@
+import { kebabCase, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type {
   CreateCustomerProductListWorkflowInput,
@@ -6,6 +7,7 @@ import type {
 import {
   createCustomerProductListLink,
   dismissCustomerProductListLink,
+  findCustomerCustomProductListByHandle,
   findCustomerFavoriteProductList,
   getProductListService,
 } from "./helpers"
@@ -15,6 +17,14 @@ type CompensationInput = {
   list_id: string
   created: boolean
   linked: boolean
+}
+
+const normalizeCustomHandle = (title: string, handle?: string) => {
+  const trimmedHandle = handle?.trim()
+
+  return trimmedHandle == null || trimmedHandle === ""
+    ? kebabCase(title.trim())
+    : trimmedHandle
 }
 
 export const createCustomerProductListStep = createStep(
@@ -39,6 +49,22 @@ export const createCustomerProductListStep = createStep(
           list_id: existingFavorite.id,
         }
       )
+    }
+
+    if (input.type === "custom") {
+      const handle = normalizeCustomHandle(input.data.title, input.data.handle)
+      const existingCustomList = await findCustomerCustomProductListByHandle(
+        container,
+        input.customer_id,
+        handle
+      )
+
+      if (existingCustomList) {
+        throw new MedusaError(
+          MedusaError.Types.DUPLICATE_ERROR,
+          `Product list handle already exists: ${handle}`
+        )
+      }
     }
 
     const productList =

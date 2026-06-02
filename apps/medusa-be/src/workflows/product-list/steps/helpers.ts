@@ -199,6 +199,31 @@ export const findCustomerFavoriteProductList = async (
   return favorite ?? null
 }
 
+export const findCustomerCustomProductListByHandle = async (
+  container: MedusaContainer,
+  customerId: string,
+  handle: string
+) => {
+  const productListIds = await listCustomerProductListIds(container, customerId)
+
+  if (!productListIds.length) {
+    return null
+  }
+
+  const [customList] = await getProductListService(container).listProductLists(
+    {
+      handle,
+      id: { $in: productListIds },
+      type: "custom",
+    },
+    {
+      take: 1,
+    }
+  )
+
+  return customList ?? null
+}
+
 export const assertCustomerOwnsProductList = async (
   container: MedusaContainer,
   customerId: string,

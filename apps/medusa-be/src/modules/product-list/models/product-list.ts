@@ -20,10 +20,9 @@ const ProductList = model
       where: { deleted_at: null },
     },
     {
-      name: "IDX_product_list_custom_handle_unique",
+      name: "IDX_product_list_handle",
       on: ["handle"],
-      unique: true,
-      where: { deleted_at: null, type: "custom" },
+      where: { deleted_at: null },
     },
   ])
 
