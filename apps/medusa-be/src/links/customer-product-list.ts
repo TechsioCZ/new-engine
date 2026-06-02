@@ -3,12 +3,10 @@ import CustomerModule from "@medusajs/medusa/customer"
 import ProductListModule from "../modules/product-list"
 
 export const CustomerProductListLink = defineLink(
-  {
-    linkable: CustomerModule.linkable.customer,
-    isList: true,
-  },
+  CustomerModule.linkable.customer,
   {
     linkable: ProductListModule.linkable.productList,
     filterable: ["id", "type", "handle"],
+    isList: true,
   }
 )

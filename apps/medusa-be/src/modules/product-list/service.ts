@@ -75,6 +75,22 @@ const normalizePositiveInteger = (value: number | undefined, field: string) => {
   return normalized
 }
 
+const normalizeNonNegativeInteger = (
+  value: number | undefined,
+  field: string
+) => {
+  const normalized = value ?? 0
+
+  if (!Number.isInteger(normalized) || normalized < 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${field} must be a non-negative integer`
+    )
+  }
+
+  return normalized
+}
+
 class ProductListModuleService extends MedusaService({
   ProductList,
   ProductListItem,
@@ -135,7 +151,7 @@ class ProductListModuleService extends MedusaService({
         list_id: input.list_id,
         quantity,
         note: input.note ?? null,
-        sort_order: input.sort_order ?? 0,
+        sort_order: normalizeNonNegativeInteger(input.sort_order, "sort_order"),
         metadata: input.metadata ?? null,
       },
       sharedContext
