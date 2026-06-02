@@ -342,7 +342,7 @@ export const findProductListItemForSelection = async (
         product_list_item_id: { $in: listItemIds },
       },
       pagination: {
-        take: listItemIds.length,
+        take: Math.min(listItemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
       },
     })
     let itemIds = toProductListItemProductLinks(productLinks).flatMap((link) =>
@@ -358,7 +358,7 @@ export const findProductListItemForSelection = async (
           product_variant_id: variantId,
         },
         pagination: {
-          take: itemIds.length,
+          take: Math.min(itemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
         },
       })
       const variantItemIds = new Set(

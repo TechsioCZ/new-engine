@@ -31,7 +31,7 @@ export class Migration20260601120000 extends Migration {
       `CREATE INDEX IF NOT EXISTS "IDX_product_list_item_list_sort_order" ON "product_list_item" ("list_id", "sort_order") WHERE deleted_at IS NULL;`
     )
     this.addSql(
-      `alter table if exists "product_list_item" add constraint "product_list_item_list_id_foreign" foreign key ("list_id") references "product_list" ("id") on update cascade;`
+      `alter table if exists "product_list_item" add constraint "product_list_item_list_id_foreign" foreign key ("list_id") references "product_list" ("id") on update cascade on delete cascade;`
     )
   }
 
