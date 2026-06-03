@@ -169,7 +169,6 @@ const sharedEnvCleanupKeys = [
   "GOPAY_SANDBOX",
   "GOPAY_WEBHOOK_URL",
   "STRIPE_API_KEY",
-  "STRIPE_SANDBOX",
   "STRIPE_WEBHOOK_SECRET",
   "COMGATE_MERCHANT",
   "COMGATE_SECRET",
@@ -219,7 +218,6 @@ const sharedEnvCleanupKeys = [
   "MEDUSA_BE_GOPAY_SANDBOX",
   "MEDUSA_BE_GOPAY_WEBHOOK_URL",
   "MEDUSA_BE_STRIPE_API_KEY",
-  "MEDUSA_BE_STRIPE_SANDBOX",
   "MEDUSA_BE_STRIPE_WEBHOOK_SECRET",
   "MEDUSA_BE_COMGATE_MERCHANT",
   "MEDUSA_BE_COMGATE_SECRET",
@@ -754,7 +752,6 @@ function buildZaneProjectServices(
         "DC_GOPAY_SANDBOX",
         "DC_GOPAY_WEBHOOK_URL",
         "DC_STRIPE_API_KEY",
-        "DC_STRIPE_SANDBOX",
         "DC_STRIPE_WEBHOOK_SECRET",
         "DC_COMGATE_MERCHANT",
         "DC_COMGATE_SECRET",
@@ -919,10 +916,6 @@ function buildZaneProjectServices(
         {
           envVar: "STRIPE_API_KEY",
           source: literalSource(process.env.DC_STRIPE_API_KEY ?? ""),
-        },
-        {
-          envVar: "STRIPE_SANDBOX",
-          source: literalSource(process.env.DC_STRIPE_SANDBOX ?? "true"),
         },
         {
           envVar: "STRIPE_WEBHOOK_SECRET",
