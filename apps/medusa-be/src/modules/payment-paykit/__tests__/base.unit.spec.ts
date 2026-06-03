@@ -1,4 +1,8 @@
-import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
+import {
+  MedusaError,
+  PaymentActions,
+  PaymentSessionStatus,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import {
   type PaykitInjectedDependencies,
@@ -28,6 +32,9 @@ const createProvider = (client = createMockPaykitClient()) =>
 
 const createProviderWithoutClient = () =>
   new TestPaykitPaymentProvider(createMockContainer(), {})
+
+const unsupportedRefundMessage = /PayKit provider does not support refunds/
+const refundMissingIdMessage = /PayKit refund response did not include an id/
 
 describe("PaykitPaymentProviderBase", () => {
   it("persists provider payment id inside data.id on initiatePayment", async () => {
@@ -438,7 +445,39 @@ describe("PaykitPaymentProviderBase", () => {
           idempotency_key: "refund_123",
         },
       })
-    ).rejects.toThrow("PayKit provider does not support refunds")
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.NOT_ALLOWED,
+      message: expect.stringMatching(unsupportedRefundMessage),
+    })
+  })
+
+  it("rejects refund responses without a provider refund id", async () => {
+    const client = createMockPaykitClient({
+      refunds: {
+        create: vi.fn().mockResolvedValue({
+          payment_id: "provider-payment-1",
+          amount: 250,
+        }),
+      },
+    })
+    const provider = createProvider(client)
+
+    await expect(
+      provider.refundPayment({
+        amount: 250,
+        data: {
+          id: "provider-payment-1",
+          amount: 1000,
+          currency: "czk",
+        },
+        context: {
+          idempotency_key: "refund_123",
+        },
+      })
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.INVALID_DATA,
+      message: expect.stringMatching(refundMissingIdMessage),
+    })
   })
 
   it("passes metadata and provider metadata through on updatePayment", async () => {

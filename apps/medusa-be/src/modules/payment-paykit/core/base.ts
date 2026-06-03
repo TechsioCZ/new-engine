@@ -649,6 +649,13 @@ export abstract class PaykitPaymentProviderBase<
         metadata: null,
       })
 
+      if (!refund.id) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "PayKit refund response did not include an id"
+        )
+      }
+
       return {
         data: {
           ...input.data,

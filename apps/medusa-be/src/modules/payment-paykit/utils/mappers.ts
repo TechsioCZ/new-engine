@@ -109,10 +109,7 @@ export const toPaykitPaymentData = (
 
 export const toPaykitRefundData = (
   refund: PaykitRefund
-): Record<string, unknown> => ({
-  ...refund,
-  id: refund.id,
-})
+): Record<string, unknown> => ({ ...refund })
 
 const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
   const data = event.data
