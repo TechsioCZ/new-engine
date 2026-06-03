@@ -8,7 +8,7 @@ import {
   PaymentActions,
   PaymentSessionStatus,
 } from "@medusajs/framework/utils"
-import type { PaykitPayment, PaykitWebhookEvent } from "../types"
+import type { PaykitPayment, PaykitRefund, PaykitWebhookEvent } from "../types"
 
 type PaykitWebhookMappingOptions = {
   normalizeAmount?: (
@@ -106,6 +106,13 @@ export const toPaykitPaymentData = (
     ...(paymentUrl ? { payment_url: paymentUrl } : {}),
   }
 }
+
+export const toPaykitRefundData = (
+  refund: PaykitRefund
+): Record<string, unknown> => ({
+  ...refund,
+  id: refund.id,
+})
 
 const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
   const data = event.data

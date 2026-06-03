@@ -34,15 +34,17 @@ import {
   MedusaError,
   PaymentActions,
 } from "@medusajs/framework/utils"
+import type {
+  BillingInfo,
+  CreatePaymentSchema,
+  UpdatePaymentSchema,
+} from "@paykit-sdk/core"
 import { resolveConfiguredClient } from "../runtime"
 import type {
   PaykitAdapterOptions,
-  PaykitBillingInfo,
-  PaykitCreatePaymentInput,
   PaykitCustomer,
   PaykitPayment,
   PaykitPaymentClient,
-  PaykitUpdatePaymentInput,
   PaykitWebhookEvent,
 } from "../types"
 import {
@@ -50,6 +52,7 @@ import {
   mapPaykitStatusToMedusa,
   mapPaykitWebhookEvent,
   toPaykitPaymentData,
+  toPaykitRefundData,
 } from "../utils/mappers"
 
 export type PaykitInjectedDependencies = Record<string, unknown>
@@ -254,7 +257,7 @@ export abstract class PaykitPaymentProviderBase<
       | InitiatePaymentInput
       | CreateAccountHolderInput
       | UpdateAccountHolderInput
-  ): PaykitBillingInfo | undefined {
+  ): BillingInfo | undefined {
     const currencyCode =
       "currency_code" in input && typeof input.currency_code === "string"
         ? input.currency_code
@@ -286,7 +289,7 @@ export abstract class PaykitPaymentProviderBase<
   private mapPaykitBillingInfo(
     billing: unknown,
     currencyCode?: string
-  ): PaykitBillingInfo | undefined {
+  ): BillingInfo | undefined {
     if (!(isRecord(billing) && isRecord(billing.address))) {
       return
     }
@@ -334,7 +337,7 @@ export abstract class PaykitPaymentProviderBase<
       | InitiatePaymentInput
       | CreateAccountHolderInput
       | UpdateAccountHolderInput
-  ): PaykitBillingInfo | undefined {
+  ): BillingInfo | undefined {
     if (
       !(
         isRecord(billing) &&
@@ -397,7 +400,7 @@ export abstract class PaykitPaymentProviderBase<
   protected getPaykitCustomer(
     input: InitiatePaymentInput,
     data: Record<string, unknown>
-  ): PaykitCreatePaymentInput["customer"] {
+  ): CreatePaymentSchema["customer"] {
     const dataCustomer = data.customer
 
     if (typeof dataCustomer === "string" && dataCustomer.length > 0) {
@@ -501,7 +504,7 @@ export abstract class PaykitPaymentProviderBase<
       session_id: sessionId,
     }
     const providerMetadata = this.getCreateProviderMetadata(input, data)
-    const createInput: PaykitCreatePaymentInput = {
+    const createInput: CreatePaymentSchema = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
       billing: this.mapBillingInfo(input),
       currency: input.currency_code,
@@ -570,7 +573,7 @@ export abstract class PaykitPaymentProviderBase<
       return this.normalizePaymentOutput(payment)
     }
 
-    const updateInput: PaykitUpdatePaymentInput = {
+    const updateInput: UpdatePaymentSchema = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
       currency: input.currency_code,
       metadata: this.toStringMetadata(getMetadataRecord(input.data?.metadata)),
@@ -650,22 +653,16 @@ export abstract class PaykitPaymentProviderBase<
         data: {
           ...input.data,
           id,
-          refund: toPaykitPaymentData(refund),
+          refund: toPaykitRefundData(refund),
           refund_id: refund.id,
         },
       }
     }
 
-    if (!client.payments.refund) {
-      throw new MedusaError(
-        MedusaError.Types.NOT_ALLOWED,
-        "PayKit provider does not support refunds"
-      )
-    }
-
-    const payment = await client.payments.refund(id, { amount })
-
-    return { data: toPaykitPaymentData(payment) }
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "PayKit provider does not support refunds"
+    )
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {

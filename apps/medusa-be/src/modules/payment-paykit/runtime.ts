@@ -1,28 +1,25 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
-import type { WebhookHandlerConfig } from "@paykit-sdk/core"
+import type { PayKit, PayKitProvider } from "@paykit-sdk/core"
 import type {
   PaykitAdapterOptions,
   PaykitComgateOptions,
+  PaykitComgateProviderOptions,
   PaykitGopayOptions,
+  PaykitGopayProviderOptions,
   PaykitPaymentClient,
   PaykitStripeOptions,
+  PaykitStripeProviderOptions,
   PaykitWebhookEvent,
 } from "./types"
 
-type PaykitRuntime = {
-  customers: NonNullable<PaykitPaymentClient["customers"]>
-  payments: PaykitPaymentClient["payments"]
-  refunds: NonNullable<PaykitPaymentClient["refunds"]>
-}
+type PaykitRuntime = Pick<
+  InstanceType<typeof PayKit<PayKitProvider>>,
+  "customers" | "payments" | "refunds"
+>
 
-export type PaykitProviderRuntime = {
-  handleWebhook: (
-    payload: WebhookHandlerConfig,
-    webhookSecret: string | null
-  ) => Promise<PaykitWebhookEvent[]>
-}
+export type PaykitProviderRuntime = Pick<PayKitProvider, "handleWebhook">
 
-type PaykitConstructor = new (provider: unknown) => PaykitRuntime
+type PaykitConstructor = new (provider: PayKitProvider) => PaykitRuntime
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -31,25 +28,6 @@ const isPaykitProviderRuntime = (
   provider: unknown
 ): provider is PaykitProviderRuntime =>
   isRecord(provider) && typeof provider.handleWebhook === "function"
-
-const isStripeTestApiKey = (apiKey: unknown): boolean =>
-  typeof apiKey === "string" &&
-  (apiKey.startsWith("sk_test_") || apiKey.startsWith("rk_test_"))
-
-const setStripeProviderSandboxMode = (
-  providerPackage: string,
-  provider: unknown,
-  providerOptions: Record<string, unknown>
-): void => {
-  if (providerPackage !== "@paykit-sdk/stripe" || !isRecord(provider)) {
-    return
-  }
-
-  // TODO(paykit-sdk): Remove this once @paykit-sdk/stripe derives sandbox
-  // mode from the API key instead of requiring `isSandbox` in its options,
-  // then tighten these dynamic provider/client types around PayKitProvider.
-  provider.isSandbox = isStripeTestApiKey(providerOptions.apiKey)
-}
 
 const dynamicImport = new Function("specifier", "return import(specifier)") as (
   specifier: string
@@ -120,16 +98,15 @@ export const createPaykitClient = async (
   providerOptions: Record<string, unknown>,
   webhookOptions: Record<string, unknown> = providerOptions
 ): Promise<PaykitPaymentClient> => {
-  const [PayKit, createProvider] = await Promise.all([
+  const [PayKitClass, createProvider] = await Promise.all([
     loadExport<PaykitConstructor>("@paykit-sdk/core", "PayKit"),
-    loadExport<(options: Record<string, unknown>) => unknown>(
+    loadExport<(options: Record<string, unknown>) => PayKitProvider>(
       providerPackage,
       providerExport
     ),
   ])
 
   const provider = createProvider(providerOptions)
-  setStripeProviderSandboxMode(providerPackage, provider, providerOptions)
 
   if (!isPaykitProviderRuntime(provider)) {
     throw new Error(
@@ -137,7 +114,7 @@ export const createPaykitClient = async (
     )
   }
 
-  const paykit = new PayKit(provider)
+  const paykit = new PayKitClass(provider)
 
   return {
     customers: paykit.customers,
@@ -170,7 +147,7 @@ export const resolveConfiguredClient = async (
 
 export const getGopayProviderOptions = (
   options: PaykitGopayOptions
-): Record<string, unknown> => ({
+): PaykitGopayProviderOptions => ({
   clientId: options.clientId,
   clientSecret: options.clientSecret,
   goId: options.goId,
@@ -181,12 +158,8 @@ export const getGopayProviderOptions = (
 
 export const getStripeProviderOptions = (
   options: PaykitStripeOptions
-): Record<string, unknown> => ({
+): PaykitStripeProviderOptions => ({
   apiKey: options.apiKey,
-  // TODO(paykit-sdk): Remove this workaround once @paykit-sdk/stripe
-  // stops forwarding PayKit-only options into Stripe.StripeConfig, then
-  // tighten these dynamic provider/client types around PayKitProvider.
-  // Stripe infers test/live mode from the API key and rejects `isSandbox`.
   debug: options.debug ?? false,
 })
 
@@ -198,7 +171,7 @@ export const getStripeWebhookOptions = (
 
 export const getComgateProviderOptions = (
   options: PaykitComgateOptions
-): Record<string, unknown> => ({
+): PaykitComgateProviderOptions => ({
   merchant: options.merchant,
   secret: options.secret,
   isSandbox: options.isSandbox ?? true,

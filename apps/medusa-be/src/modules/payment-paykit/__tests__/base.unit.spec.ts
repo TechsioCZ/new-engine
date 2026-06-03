@@ -417,6 +417,30 @@ describe("PaykitPaymentProviderBase", () => {
     })
   })
 
+  it("rejects refunds when the PayKit provider does not expose refunds.create", async () => {
+    const fullClient = createMockPaykitClient()
+    const client: PaykitPaymentClient = {
+      payments: fullClient.payments,
+      customers: fullClient.customers,
+      handleWebhook: fullClient.handleWebhook,
+    }
+    const provider = createProvider(client)
+
+    await expect(
+      provider.refundPayment({
+        amount: 250,
+        data: {
+          id: "provider-payment-1",
+          amount: 1000,
+          currency: "czk",
+        },
+        context: {
+          idempotency_key: "refund_123",
+        },
+      })
+    ).rejects.toThrow("PayKit provider does not support refunds")
+  })
+
   it("passes metadata and provider metadata through on updatePayment", async () => {
     const client = createMockPaykitClient()
     const provider = createProvider(client)
