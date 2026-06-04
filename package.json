@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "test-all": "cross-env TEST_ALL_ESHOPS=true nx e2e e2e",
