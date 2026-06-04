@@ -219,6 +219,12 @@
       ],
       "checks": [
         {
+          "name": "product_list_type_check",
+          "columnName": "type",
+          "definition": "CHECK ((type = ANY (ARRAY['favorite'::text, 'custom'::text])))",
+          "expression": "type in ('favorite', 'custom')"
+        },
+        {
           "name": "product_list_access_type_check",
           "columnName": "access_type",
           "definition": "CHECK ((access_type = ANY (ARRAY['private'::text, 'public'::text])))",
@@ -416,7 +422,20 @@
           "unique": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "product_list_item_quantity_check",
+          "columnName": "quantity",
+          "definition": "CHECK ((quantity >= 1))",
+          "expression": "quantity >= 1"
+        },
+        {
+          "name": "product_list_item_sort_order_check",
+          "columnName": "sort_order",
+          "definition": "CHECK ((sort_order >= 0))",
+          "expression": "sort_order >= 0"
+        }
+      ],
       "foreignKeys": {
         "product_list_item_list_id_foreign": {
           "constraintName": "product_list_item_list_id_foreign",

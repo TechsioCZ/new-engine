@@ -6,6 +6,9 @@ export class Migration20260601120000 extends Migration {
       `create table if not exists "product_list" ("id" text not null, "title" text not null, "handle" text not null, "type" text not null, "description" text null, "metadata" jsonb null, "created_at" timestamptz not null default now(), "updated_at" timestamptz not null default now(), "deleted_at" timestamptz null, constraint "product_list_pkey" primary key ("id"));`
     )
     this.addSql(
+      `CREATE INDEX IF NOT EXISTS "IDX_product_list_deleted_at" ON "product_list" ("deleted_at") WHERE deleted_at IS NULL;`
+    )
+    this.addSql(
       `CREATE INDEX IF NOT EXISTS "IDX_product_list_type" ON "product_list" ("type") WHERE deleted_at IS NULL;`
     )
     this.addSql(
@@ -26,6 +29,9 @@ export class Migration20260601120000 extends Migration {
     )
     this.addSql(
       `CREATE INDEX IF NOT EXISTS "IDX_product_list_item_list_id" ON "product_list_item" ("list_id") WHERE deleted_at IS NULL;`
+    )
+    this.addSql(
+      `CREATE INDEX IF NOT EXISTS "IDX_product_list_item_deleted_at" ON "product_list_item" ("deleted_at") WHERE deleted_at IS NULL;`
     )
     this.addSql(
       `CREATE INDEX IF NOT EXISTS "IDX_product_list_item_list_sort_order" ON "product_list_item" ("list_id", "sort_order") WHERE deleted_at IS NULL;`

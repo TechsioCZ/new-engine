@@ -4,7 +4,11 @@ import { PRODUCT_LIST_MODULE } from "../../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../../modules/product-list/service"
 import { assertCustomerOwnsProductList } from "../../../../utils/product-list-links"
 import { getRouteParam } from "../../../../utils/route-params"
-import { toProductListResponse, withProductListItems } from "../utils"
+import {
+  INLINE_PRODUCT_LIST_ITEMS_LIMIT,
+  toProductListResponse,
+  withProductListItems,
+} from "../utils"
 
 type RequestWithOptionalCustomerAuth = MedusaRequest & {
   auth_context?: { actor_id?: unknown } | null
@@ -45,9 +49,11 @@ export async function GET(
 
     await assertCustomerOwnsProductList(req.scope, customerId, listId)
   }
-  const productListsWithItems = await withProductListItems(req.scope, [
-    productList,
-  ])
+  const productListsWithItems = await withProductListItems(
+    req.scope,
+    [productList],
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+  )
   const productListWithItems = productListsWithItems[0]
 
   if (!productListWithItems) {

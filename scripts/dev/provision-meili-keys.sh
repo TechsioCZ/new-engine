@@ -27,11 +27,6 @@ Env fallbacks:
 EOF
 }
 
-common::ensure_pnpm "$ROOT_DIR"
-common::require_command jq
-common::require_command node
-common::require_command sed
-
 meili_url="${MEILISEARCH_URL:-http://127.0.0.1:7700}"
 master_key="${MEILISEARCH_MASTER_KEY:-${DC_MEILISEARCH_MASTER_KEY:-}}"
 wait_seconds="60"
@@ -80,6 +75,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+common::ensure_pnpm "$ROOT_DIR"
+common::require_command jq
+common::require_command node
+common::require_command sed
 
 [[ -n "$meili_url" ]] || common::die "Meilisearch URL is required."
 [[ -n "$master_key" ]] || common::die "Meilisearch master key is required."

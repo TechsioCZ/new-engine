@@ -24,5 +24,15 @@ const ProductListItem = model
       where: { deleted_at: null },
     },
   ])
+  .checks([
+    {
+      name: "product_list_item_quantity_check",
+      expression: (columns) => `${columns.quantity} >= 1`,
+    },
+    {
+      name: "product_list_item_sort_order_check",
+      expression: (columns) => `${columns.sort_order} >= 0`,
+    },
+  ])
 
 export default ProductListItem

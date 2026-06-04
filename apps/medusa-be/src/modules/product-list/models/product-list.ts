@@ -33,6 +33,10 @@ const ProductList = model
   ])
   .checks([
     {
+      name: "product_list_type_check",
+      expression: (columns) => `${columns.type} in ('favorite', 'custom')`,
+    },
+    {
       name: "product_list_access_type_check",
       expression: (columns) =>
         `${columns.access_type} in ('private', 'public')`,
