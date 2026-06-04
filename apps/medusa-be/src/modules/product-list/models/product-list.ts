@@ -7,6 +7,7 @@ const ProductList = model
     title: model.text().searchable(),
     handle: model.text().searchable(),
     type: model.text(),
+    access_type: model.text().default("private"),
     description: model.text().nullable(),
     metadata: model.json().nullable(),
     items: model.hasMany(() => ProductListItem, {
@@ -22,6 +23,11 @@ const ProductList = model
     {
       name: "IDX_product_list_handle",
       on: ["handle"],
+      where: { deleted_at: null },
+    },
+    {
+      name: "IDX_product_list_access_type",
+      on: ["access_type"],
       where: { deleted_at: null },
     },
   ])

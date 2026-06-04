@@ -9,6 +9,7 @@ export type ProductListRecord = {
   title: string
   handle: string
   type: string
+  access_type?: string
   description?: string | null
   metadata?: ProductListMetadata | null
   items?: ProductListItemRecord[]

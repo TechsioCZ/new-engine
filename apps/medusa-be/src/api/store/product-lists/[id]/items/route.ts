@@ -2,8 +2,9 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { getRouteParam } from "../../../../../utils/route-params"
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
-import { getRouteParam, toProductListItemResponse } from "../../utils"
+import { toProductListItemResponse } from "../../utils"
 import type { StoreCreateProductListItemSchemaType } from "../../validators"
 
 export async function POST(

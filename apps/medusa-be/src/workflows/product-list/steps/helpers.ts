@@ -18,6 +18,7 @@ import type {
   CreateFavoriteProductListDTO,
   CreateProductListItemDTO,
 } from "../../../modules/product-list/service"
+import { isObjectRecord } from "../../../utils/guards"
 import type { ProductListItemRecord, ProductListRecord } from "../types"
 
 type CustomerProductListLinkRecord = {
@@ -50,13 +51,10 @@ type ProductVariantRecord = {
 const PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE = 1000
 const CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE = 1000
 
-const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const isCustomerProductListLinkRecord = (
   value: unknown
 ): value is CustomerProductListLinkRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   (value.customer_id === undefined || typeof value.customer_id === "string") &&
   (value.product_list_id === undefined ||
     typeof value.product_list_id === "string")
@@ -64,7 +62,7 @@ const isCustomerProductListLinkRecord = (
 const isProductListItemProductLinkRecord = (
   value: unknown
 ): value is ProductListItemProductLinkRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   (value.product_id === undefined || typeof value.product_id === "string") &&
   (value.product_list_item_id === undefined ||
     typeof value.product_list_item_id === "string")
@@ -72,7 +70,7 @@ const isProductListItemProductLinkRecord = (
 const isProductListItemVariantLinkRecord = (
   value: unknown
 ): value is ProductListItemVariantLinkRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   (value.product_variant_id === undefined ||
     typeof value.product_variant_id === "string") &&
   (value.product_list_item_id === undefined ||
@@ -88,17 +86,17 @@ const toProductListItemVariantLinks = (value: unknown) =>
   Array.isArray(value) ? value.filter(isProductListItemVariantLinkRecord) : []
 
 const isProductRecord = (value: unknown): value is ProductRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   typeof value.id === "string" &&
   (value.status === undefined || typeof value.status === "string")
 
 const isProductVariantRecord = (
   value: unknown
 ): value is ProductVariantRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   typeof value.id === "string" &&
   (value.product === undefined ||
-    (hasRecordShape(value.product) &&
+    (isObjectRecord(value.product) &&
       (value.product.id === undefined || typeof value.product.id === "string")))
 
 export type ProductListService = {

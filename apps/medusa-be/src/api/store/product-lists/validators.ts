@@ -34,6 +34,7 @@ export const StoreCreateFavoriteProductListSchema = z
 
 export const StoreCreateCustomProductListSchema = z
   .object({
+    access_type: z.enum(["private", "public"]).optional().default("private"),
     description: nullableTrimmedString,
     handle: optionalTrimmedString,
     metadata: metadataSchema,

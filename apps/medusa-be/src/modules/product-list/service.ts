@@ -1,13 +1,18 @@
-import type { Context } from "@medusajs/framework/types"
+import type { Context, InferTypeOf } from "@medusajs/framework/types"
 import {
   kebabCase,
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { normalizeTrimmedText } from "../../utils/string"
+import { parseInvalidData } from "../../utils/zod"
 import {
   DEFAULT_FAVORITE_LIST_HANDLE,
   DEFAULT_FAVORITE_LIST_TITLE,
+  PRODUCT_LIST_ACCESS_TYPES,
   PRODUCT_LIST_TYPES,
+  type ProductListAccessType,
   type ProductListType,
 } from "./constants"
 import ProductList from "./models/product-list"
@@ -25,6 +30,7 @@ export type CreateFavoriteProductListDTO = {
 export type CreateCustomProductListDTO = {
   title: string
   handle?: string
+  access_type?: ProductListAccessType
   description?: string | null
   metadata?: ProductListMetadata | null
 }
@@ -38,104 +44,28 @@ export type CreateProductListItemDTO = {
   metadata?: ProductListMetadata | null
 }
 
-type ProductListRecord = {
-  id: string
-  type: ProductListType
-}
+type ProductListRecord = InferTypeOf<typeof ProductList>
+type ProductListItemRecord = InferTypeOf<typeof ProductListItem>
 
-type ProductListItemRecord = {
-  id: string
-  quantity: number
-}
-
-const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const normalizeTrimmedText = (value: string | undefined, fallback: string) => {
-  const trimmed = value?.trim()
-
-  return trimmed == null || trimmed === "" ? fallback : trimmed
-}
-
-const assertProductListItemRecord = (value: unknown): ProductListItemRecord => {
-  if (
-    hasRecordShape(value) &&
-    typeof value.id === "string" &&
-    typeof value.quantity === "number"
-  ) {
-    return {
-      id: value.id,
-      quantity: value.quantity,
-    }
-  }
-
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "Invalid product list item record"
-  )
-}
-
-const assertProductListRecord = (value: unknown): ProductListRecord => {
-  if (
-    hasRecordShape(value) &&
-    typeof value.id === "string" &&
-    typeof value.type === "string" &&
-    isProductListType(value.type)
-  ) {
-    return {
-      id: value.id,
-      type: value.type,
-    }
-  }
-
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "Invalid product list record"
-  )
-}
-
-const isProductListType = (type: string): type is ProductListType =>
-  PRODUCT_LIST_TYPES.includes(type as ProductListType)
-
-const assertProductListType = (type: string): ProductListType => {
-  if (isProductListType(type)) {
-    return type
-  }
-
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    `Unsupported product list type: ${type}`
-  )
-}
-
-const normalizePositiveInteger = (value: number | undefined, field: string) => {
-  const normalized = value ?? 1
-
-  if (!Number.isInteger(normalized) || normalized < 1) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `${field} must be a positive integer`
-    )
-  }
-
-  return normalized
-}
-
-const normalizeNonNegativeInteger = (
-  value: number | undefined,
-  field: string
-) => {
-  const normalized = value ?? 0
-
-  if (!Number.isInteger(normalized) || normalized < 0) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `${field} must be a non-negative integer`
-    )
-  }
-
-  return normalized
-}
+const productListAccessTypeSchema = z
+  .enum(PRODUCT_LIST_ACCESS_TYPES)
+  .optional()
+  .default("private")
+const productListTypeSchema = z.enum(PRODUCT_LIST_TYPES)
+const positiveIntegerSchema = (field: string) =>
+  z
+    .number()
+    .int(`${field} must be a positive integer`)
+    .min(1, `${field} must be a positive integer`)
+    .optional()
+    .default(1)
+const nonNegativeIntegerSchema = (field: string) =>
+  z
+    .number()
+    .int(`${field} must be a non-negative integer`)
+    .min(0, `${field} must be a non-negative integer`)
+    .optional()
+    .default(0)
 
 class ProductListModuleService extends MedusaService({
   ProductList,
@@ -183,6 +113,10 @@ class ProductListModuleService extends MedusaService({
         title,
         handle,
         type: "custom",
+        access_type: parseInvalidData(
+          productListAccessTypeSchema,
+          input.access_type
+        ),
         description: input.description ?? null,
         metadata: input.metadata ?? null,
       },
@@ -194,18 +128,21 @@ class ProductListModuleService extends MedusaService({
     input: CreateProductListItemDTO,
     sharedContext?: Context
   ) {
-    const listType = assertProductListType(input.list_type)
+    const listType = parseInvalidData(productListTypeSchema, input.list_type)
     const quantity =
       listType === "favorite"
         ? 1
-        : normalizePositiveInteger(input.quantity, "quantity")
+        : parseInvalidData(positiveIntegerSchema("quantity"), input.quantity)
 
     return await this.createProductListItems(
       {
         list_id: input.list_id,
         quantity,
         note: input.note ?? null,
-        sort_order: normalizeNonNegativeInteger(input.sort_order, "sort_order"),
+        sort_order: parseInvalidData(
+          nonNegativeIntegerSchema("sort_order"),
+          input.sort_order
+        ),
         metadata: input.metadata ?? null,
       },
       sharedContext
@@ -217,9 +154,14 @@ class ProductListModuleService extends MedusaService({
     quantityToAdd = 1,
     sharedContext?: Context
   ) {
-    const incrementBy = normalizePositiveInteger(quantityToAdd, "quantityToAdd")
-    const item = assertProductListItemRecord(
-      await this.retrieveProductListItem(itemId, {}, sharedContext)
+    const incrementBy = parseInvalidData(
+      positiveIntegerSchema("quantityToAdd"),
+      quantityToAdd
+    )
+    const item: ProductListItemRecord = await this.retrieveProductListItem(
+      itemId,
+      {},
+      sharedContext
     )
 
     return await this.updateProductListItems(
@@ -235,11 +177,14 @@ class ProductListModuleService extends MedusaService({
     listId: string,
     sharedContext?: Context
   ) {
-    const list = assertProductListRecord(
-      await this.retrieveProductList(listId, {}, sharedContext)
+    const list: ProductListRecord = await this.retrieveProductList(
+      listId,
+      {},
+      sharedContext
     )
+    const listType = parseInvalidData(productListTypeSchema, list.type)
 
-    if (list.type !== "custom") {
+    if (listType !== "custom") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Only custom product lists support quantity increments"

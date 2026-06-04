@@ -2,9 +2,9 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { getRouteParam } from "../../../../../../utils/route-params"
 import { incrementProductListItemWorkflow } from "../../../../../../workflows/product-list/workflows/increment-product-list-item"
 import {
-  getRouteParam,
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../../utils"

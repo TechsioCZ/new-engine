@@ -13,6 +13,9 @@ import {
 } from "./validators"
 
 const customerAuth = authenticate("customer", ["session", "bearer"])
+const optionalCustomerAuth = authenticate("customer", ["session", "bearer"], {
+  allowUnauthenticated: true,
+})
 
 export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
   {
@@ -28,7 +31,7 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["GET"],
     matcher: "/store/product-lists/:id",
-    middlewares: [customerAuth],
+    middlewares: [optionalCustomerAuth],
   },
   {
     methods: ["POST"],

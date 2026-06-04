@@ -70,6 +70,22 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "access_type": {
+          "name": "access_type",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'private'",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "description": {
           "name": "description",
           "type": "text",
@@ -180,6 +196,15 @@
           "primary": false,
           "unique": false,
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_product_list_handle\" ON \"product_list\" (\"handle\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_product_list_access_type",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_product_list_access_type\" ON \"product_list\" (\"access_type\") WHERE deleted_at IS NULL"
         },
         {
           "keyName": "product_list_pkey",

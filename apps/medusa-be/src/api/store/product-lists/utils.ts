@@ -1,10 +1,8 @@
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  MedusaError,
-} from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
+import { isObjectRecord } from "../../../utils/guards"
 import { getProductListService } from "../../../workflows/product-list/steps/helpers"
 
 export const INLINE_PRODUCT_LIST_ITEMS_LIMIT = 100
@@ -14,6 +12,7 @@ export type ProductListRecord = {
   title: string
   handle: string
   type: string
+  access_type?: string
   description?: string | null
   metadata?: Record<string, unknown> | null
   items?: ProductListItemRecord[]
@@ -44,13 +43,10 @@ type ProductListItemVariantLinkRecord = {
   product_list_item_id?: string
 }
 
-const hasRecordShape = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const isProductListItemProductLinkRecord = (
   value: unknown
 ): value is ProductListItemProductLinkRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   (value.product_id === undefined || typeof value.product_id === "string") &&
   (value.product_list_item_id === undefined ||
     typeof value.product_list_item_id === "string")
@@ -58,7 +54,7 @@ const isProductListItemProductLinkRecord = (
 const isProductListItemVariantLinkRecord = (
   value: unknown
 ): value is ProductListItemVariantLinkRecord =>
-  hasRecordShape(value) &&
+  isObjectRecord(value) &&
   (value.product_variant_id === undefined ||
     typeof value.product_variant_id === "string") &&
   (value.product_list_item_id === undefined ||
@@ -70,27 +66,12 @@ const toProductListItemProductLinks = (value: unknown) =>
 const toProductListItemVariantLinks = (value: unknown) =>
   Array.isArray(value) ? value.filter(isProductListItemVariantLinkRecord) : []
 
-export const getRouteParam = (
-  params: Record<string, string | undefined>,
-  key: string
-) => {
-  const value = params[key]
-
-  if (!value) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Missing route parameter: ${key}`
-    )
-  }
-
-  return value
-}
-
 export const toProductListResponse = (list: ProductListRecord) => ({
   created_at: list.created_at,
   description: list.description ?? null,
   handle: list.handle,
   id: list.id,
+  access_type: list.access_type ?? "private",
   items: list.items?.map(toProductListItemResponse) ?? [],
   metadata: list.metadata ?? null,
   title: list.title,
