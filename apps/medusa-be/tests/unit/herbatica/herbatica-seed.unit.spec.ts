@@ -251,6 +251,41 @@ describe("Herbatica seed price-list parsing", () => {
     ])
   })
 
+  it("uses final variant SKUs in price-list prices after SKU enforcement", () => {
+    const longProductId = `price-list-sku-normalization-${"very-long-segment-".repeat(12)}`
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="${longProductId}">
+          <NAME>Price list normalized SKU product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <STANDARD_PRICE>10</STANDARD_PRICE>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partnerský cenník</TITLE>
+              <PRICE_VAT>8.50</PRICE_VAT>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variantSku = result.products[0]?.variants?.[0]?.sku
+    const priceListSku = result.priceLists.overrides[0]?.prices[0]?.variantSku
+
+    expect(variantSku).toBeDefined()
+    expect(priceListSku).toBe(variantSku)
+  })
+
   it("groups pricelist action prices by source title and date window", () => {
     const xml = `
       <SHOP>

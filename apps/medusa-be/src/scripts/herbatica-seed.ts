@@ -3298,13 +3298,13 @@ export function buildSeedInputFromXml(
     categoryIdToHandle,
     buildOptions
   )
+  enforceUniqueVariantSkus(products)
   const priceLists = buildPriceListsFromProducts(
     products,
     buildOptions.referenceDate
   )
   const { locations: stockLocations, warnings } =
     buildStockLocationsFromItems(items)
-  enforceUniqueVariantSkus(products)
   const hiddenProducts = products.filter(
     (product) => product.status === ProductStatus.DRAFT
   ).length
