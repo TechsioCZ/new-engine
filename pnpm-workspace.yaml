@@ -8,7 +8,56 @@ minimumReleaseAgeExclude:
 # trustPolicy: no-downgrade
 
 overrides:
+  csstype: 3.1.3
+  react: 19.2.3
+  react-dom: 19.2.3
+  '@types/react': 19.2.3
+  '@types/react-dom': 19.2.3
   '@types/node': 24.12.4
+  '@medusajs/admin-bundler>vite': 8.0.11
+  '@medusajs/admin-vite-plugin>vite': 8.0.11
+  '@medusajs/admin-bundler>@vitejs/plugin-react': 6.0.1
+  vite: 8.0.11
+
+supportedArchitectures:
+  os:
+    - current
+    - darwin
+    - linux
+    - win32
+  cpu:
+    - current
+    - x64
+    - arm64
+  libc:
+    - current
+    - glibc
+    - musl
+
+# @medusajs/utils@2.14.1 misses runtime dependencies on @medusajs/index and
+# @medusajs/medusa in its published metadata. Remove after upstream declares them.
+packageExtensions:
+  '@medusajs/utils@2.14.1':
+    dependencies:
+      '@medusajs/index': 2.14.1
+      '@medusajs/medusa': 2.14.1
+  '@payloadcms/ui@3.84.1':
+    dependencies:
+      '@floating-ui/react': 0.27.19
+  '@pigment/auto-translate@1.3.4':
+    dependencies:
+      '@payloadcms/ui': 3.84.1
+  '@medusajs/caching@2.15.2':
+    dependencies:
+      graphql: 16.14.0
+  '@rokmohar/medusa-plugin-meilisearch@*':
+    dependencies:
+      '@medusajs/js-sdk': ^2.15.2
+
+patchedDependencies:
+  medusa-plugin-content@0.2.0: patches/medusa-plugin-content@0.2.0.patch
+  '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
+  object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
 
 packages:
   - packages/**
