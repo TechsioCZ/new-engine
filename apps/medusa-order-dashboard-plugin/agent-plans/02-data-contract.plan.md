@@ -34,3 +34,11 @@ If the route outgrows this local shape, extract to `src/admin/features/order-das
 
 Use `@medusajs/ui`, `@medusajs/icons`, `@medusajs/js-sdk`, `@tanstack/react-query`, and `react-i18next`. Do not copy the custom `apps/admin` shell or introduce `libs/ui` unless explicitly approved.
 
+The dashboard contract must support an operational queue model equivalent to the historical order overview:
+
+- queue chips/tabs with counts for key work states such as all orders, unhandled, accepted payment, resolved, waiting internally, waiting for payment, storno, and carrier-specific groups where product needs them
+- a dashboard/menu badge count for orders requiring action, primarily unhandled orders that are not paid or partially paid
+- stable query params for opening a queue directly from a badge or tab
+- human status/payment/carrier labels, not raw provider or internal enum names
+- per-row flags needed by the table: waiting for payment, unhandled, resolved, storno/canceled, active fulfillment, note, wholesale customer, returning customer, and action-required
+- action eligibility and blocked reasons for manual status change, cancel/storno, label export, expedition PDF, and any deferred carrier action

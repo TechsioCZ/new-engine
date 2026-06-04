@@ -14,6 +14,23 @@ export const ORDER_DASHBOARD_BUSINESS_STATUS_IDS = [
   "canceled",
 ] as const
 
+export const ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS = [
+  "action_required",
+] as const
+
+export const ORDER_DASHBOARD_QUEUE_IDS = [
+  "all",
+  "action_required",
+  "new",
+  "awaiting_payment",
+  "paid",
+  "processing",
+  "waiting_for_supplier",
+  "shipped",
+  "delivered",
+  "canceled",
+] as const
+
 export const ORDER_DASHBOARD_MANUAL_STATUS_IDS = [
   "processing",
   "waiting_for_supplier",
@@ -34,6 +51,11 @@ export type OrderDashboardCarrierKey =
 
 export type OrderDashboardBusinessStatusId =
   (typeof ORDER_DASHBOARD_BUSINESS_STATUS_IDS)[number]
+
+export type OrderDashboardBusinessStatusGroupId =
+  (typeof ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS)[number]
+
+export type OrderDashboardQueueId = (typeof ORDER_DASHBOARD_QUEUE_IDS)[number]
 
 export type OrderDashboardManualStatusId =
   (typeof ORDER_DASHBOARD_MANUAL_STATUS_IDS)[number]
@@ -104,7 +126,16 @@ export type OrderDashboardOrdersResponse = {
   limit: number
   offset: number
   carrier: OrderDashboardCarrierKey | null
+  business_status_group: OrderDashboardBusinessStatusGroupId | null
   business_status: OrderDashboardBusinessStatusId | null
+}
+
+export type OrderDashboardSummaryResponse = {
+  action_required_count: number
+  scanned_count: number
+  status_counts: Record<OrderDashboardBusinessStatusId, number>
+  total_count: number
+  unhandled_count: number
 }
 
 export type OrderDashboardStatusResponse = {

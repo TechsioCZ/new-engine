@@ -12,6 +12,7 @@ import {
   type DataTableSortingState,
   Heading,
   Select,
+  Tabs,
   Text,
   toast,
   useDataTable,
@@ -23,6 +24,7 @@ import { Link } from "react-router-dom"
 import {
   downloadOrderDashboardExpeditionPdf,
   downloadOrderDashboardPacketaLabels,
+  getOrderDashboardSummary,
   listOrderDashboardOrders,
   updateOrderDashboardManualStatus,
   updateOrderDashboardStatuses,
@@ -40,21 +42,28 @@ import {
   sortOrdersByTableState,
 } from "./format"
 import {
+  ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
   ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
+  ORDER_DASHBOARD_QUEUE_IDS,
   ORDER_DASHBOARD_TARGET_STATUSES,
+  type OrderDashboardBusinessStatusGroupId,
   type OrderDashboardBusinessStatusId,
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
+  type OrderDashboardQueueId,
+  type OrderDashboardSummaryResponse,
   type OrderDashboardTargetStatus,
 } from "./types"
 
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
+const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
 const CARRIER_FILTER_ID = "carrier.value"
+const BUSINESS_STATUS_GROUP_FILTER_ID = "business_status.group"
 const BUSINESS_STATUS_FILTER_ID = "business_status.id"
 
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
@@ -94,6 +103,7 @@ const OrderDashboardPage = () => {
     useState<OrderDashboardLabelFormat>("A6")
 
   const carrierFilter = getCarrierFilter(filtering)
+  const businessStatusGroupFilter = getBusinessStatusGroupFilter(filtering)
   const businessStatusFilter = getBusinessStatusFilter(filtering)
   const limit = pagination.pageSize
   const offset = pagination.pageIndex * limit
@@ -101,6 +111,7 @@ const OrderDashboardPage = () => {
   const ordersQuery = useQuery({
     queryFn: () =>
       listOrderDashboardOrders({
+        businessStatusGroup: businessStatusGroupFilter,
         businessStatus: businessStatusFilter,
         carrier: carrierFilter,
         limit,
@@ -109,10 +120,15 @@ const OrderDashboardPage = () => {
     queryKey: [
       ORDER_DASHBOARD_QUERY_KEY,
       carrierFilter,
+      businessStatusGroupFilter,
       businessStatusFilter,
       limit,
       offset,
     ],
+  })
+  const summaryQuery = useQuery({
+    queryFn: getOrderDashboardSummary,
+    queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
   })
 
   const orders = useMemo(
@@ -130,6 +146,17 @@ const OrderDashboardPage = () => {
   const selectedCount = selectedOrders.length
   const onlyPacketaSelected =
     selectedCount > 0 && selectedPacketaOrders.length === selectedCount
+  const activeQueueId: OrderDashboardQueueId =
+    businessStatusGroupFilter ?? businessStatusFilter ?? "all"
+  const queueTabs = useMemo(
+    () =>
+      ORDER_DASHBOARD_QUEUE_IDS.map((queueId) => ({
+        count: getQueueCount(queueId, summaryQuery.data),
+        id: queueId,
+        label: getQueueLabel(queueId, t),
+      })),
+    [summaryQuery.data, t]
+  )
 
   const filters = useMemo(
     () => [
@@ -225,6 +252,16 @@ const OrderDashboardPage = () => {
         ),
         header: t("columns.businessStatus"),
       }),
+      columnHelper.display({
+        cell: ({ row }) => (
+          <ManualStatusControl
+            manualStatus={row.original.manual_status}
+            orderId={row.original.id}
+          />
+        ),
+        header: t("columns.manualStatus"),
+        id: "manual_status",
+      }),
       columnHelper.accessor("payment_status", {
         cell: ({ row }) => (
           <div className="flex flex-col gap-y-1">
@@ -276,7 +313,7 @@ const OrderDashboardPage = () => {
     filters,
     filtering: {
       onFilteringChange: (nextFiltering) => {
-        setFiltering(nextFiltering)
+        setFiltering(normalizeFiltering(nextFiltering))
         setRowSelection({})
       },
       state: filtering,
@@ -303,6 +340,9 @@ const OrderDashboardPage = () => {
 
   const invalidateOrders = () => {
     queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
+    queryClient.invalidateQueries({
+      queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
+    })
     setRowSelection({})
   }
 
@@ -410,17 +450,63 @@ const OrderDashboardPage = () => {
     })
   }
 
+  const handleQueueChange = (value: string) => {
+    if (!isOrderDashboardQueueId(value)) {
+      return
+    }
+
+    setFiltering((currentFiltering) =>
+      getFilteringForQueue(currentFiltering, value)
+    )
+    setPagination((currentPagination) => ({
+      ...currentPagination,
+      pageIndex: 0,
+    }))
+    setRowSelection({})
+  }
+
   const errorMessage = ordersQuery.error
     ? getErrorMessage(ordersQuery.error, t("toast.requestFailed"))
     : null
+  const actionRequiredCount = summaryQuery.data?.action_required_count ?? 0
+  const actionRequiredLabel = summaryQuery.isLoading
+    ? t("summary.actionRequiredLoading")
+    : t("summary.actionRequired", { count: actionRequiredCount })
 
   return (
     <Container className="divide-y p-0">
       <div className="flex flex-col gap-1 px-6 py-4">
-        <Heading level="h1">{t("title")}</Heading>
+        <div className="flex flex-wrap items-center gap-2">
+          <Heading level="h1">{t("title")}</Heading>
+          <Badge
+            color={actionRequiredCount > 0 ? "orange" : "grey"}
+            size="2xsmall"
+          >
+            {actionRequiredLabel}
+          </Badge>
+        </div>
         <Text className="text-ui-fg-subtle" leading="compact" size="small">
           {t("actions.selected", { count: selectedCount })}
         </Text>
+      </div>
+
+      <div className="overflow-x-auto px-6 py-3">
+        <Tabs onValueChange={handleQueueChange} value={activeQueueId}>
+          <Tabs.List className="min-w-max flex-nowrap gap-1">
+            {queueTabs.map((queue) => (
+              <Tabs.Trigger
+                className="shrink-0 gap-1.5"
+                key={queue.id}
+                value={queue.id}
+              >
+                {queue.label}
+                {queue.count === null ? null : (
+                  <Badge size="2xsmall">{queue.count}</Badge>
+                )}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+        </Tabs>
       </div>
 
       <div className="bg-ui-bg-subtle px-6 py-3">
@@ -579,6 +665,63 @@ const OrderDashboardPage = () => {
   )
 }
 
+function ManualStatusControl({
+  manualStatus,
+  orderId,
+}: {
+  manualStatus?: OrderDashboardManualStatusId | null
+  orderId: string
+}) {
+  const { t } = useTranslation("orderDashboard")
+  const queryClient = useQueryClient()
+  const mutation = useMutation({
+    mutationFn: (value: ManualStatusValue) =>
+      updateOrderDashboardManualStatus({
+        orderIds: [orderId],
+        status: value === "clear" ? null : value,
+      }),
+    onError: (error) => {
+      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    },
+    onSuccess: (result) => {
+      if (result.count > 0) {
+        toast.success(t("toast.businessStatusUpdated", { count: result.count }))
+      } else {
+        toast.error(result.skipped[0]?.reason ?? t("toast.manualStatusSkipped"))
+      }
+
+      queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
+      queryClient.invalidateQueries({
+        queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
+      })
+    },
+  })
+
+  return (
+    <Select
+      disabled={mutation.isPending}
+      onValueChange={(value) => {
+        if (value === "clear" || isManualStatus(value)) {
+          mutation.mutate(value)
+        }
+      }}
+      value={manualStatus ?? "clear"}
+    >
+      <Select.Trigger className="w-[180px]">
+        <Select.Value />
+      </Select.Trigger>
+      <Select.Content>
+        <Select.Item value="clear">{t("manualStatus.none")}</Select.Item>
+        {ORDER_DASHBOARD_MANUAL_STATUS_IDS.map((status) => (
+          <Select.Item key={status} value={status}>
+            {t(`manualStatus.${status}`)}
+          </Select.Item>
+        ))}
+      </Select.Content>
+    </Select>
+  )
+}
+
 function getCarrierFilter(filtering: DataTableFilteringState) {
   const value = filtering[CARRIER_FILTER_ID]
   return isOrderDashboardCarrierKey(value) ? value : undefined
@@ -591,6 +734,13 @@ function getBusinessStatusFilter(
   return isOrderDashboardBusinessStatusId(value) ? value : undefined
 }
 
+function getBusinessStatusGroupFilter(
+  filtering: DataTableFilteringState
+): OrderDashboardBusinessStatusGroupId | undefined {
+  const value = filtering[BUSINESS_STATUS_GROUP_FILTER_ID]
+  return isOrderDashboardBusinessStatusGroupId(value) ? value : undefined
+}
+
 function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
   return (
     typeof value === "string" &&
@@ -598,6 +748,86 @@ function isManualStatus(value: unknown): value is OrderDashboardManualStatusId {
       value as OrderDashboardManualStatusId
     )
   )
+}
+
+function isOrderDashboardBusinessStatusGroupId(
+  value: unknown
+): value is OrderDashboardBusinessStatusGroupId {
+  return (
+    typeof value === "string" &&
+    ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS.includes(
+      value as OrderDashboardBusinessStatusGroupId
+    )
+  )
+}
+
+function isOrderDashboardQueueId(value: unknown): value is OrderDashboardQueueId {
+  return (
+    typeof value === "string" &&
+    ORDER_DASHBOARD_QUEUE_IDS.includes(value as OrderDashboardQueueId)
+  )
+}
+
+function normalizeFiltering(filtering: DataTableFilteringState) {
+  const nextFiltering = { ...filtering }
+
+  if (nextFiltering[BUSINESS_STATUS_FILTER_ID]) {
+    delete nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID]
+  }
+
+  return nextFiltering
+}
+
+function getFilteringForQueue(
+  filtering: DataTableFilteringState,
+  queueId: OrderDashboardQueueId
+) {
+  const nextFiltering = { ...filtering }
+
+  delete nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID]
+  delete nextFiltering[BUSINESS_STATUS_FILTER_ID]
+
+  if (queueId === "all") {
+    return nextFiltering
+  }
+
+  if (queueId === "action_required") {
+    nextFiltering[BUSINESS_STATUS_GROUP_FILTER_ID] = queueId
+    return nextFiltering
+  }
+
+  nextFiltering[BUSINESS_STATUS_FILTER_ID] = queueId
+  return nextFiltering
+}
+
+function getQueueCount(
+  queueId: OrderDashboardQueueId,
+  summary?: OrderDashboardSummaryResponse
+) {
+  if (!summary) {
+    return null
+  }
+
+  if (queueId === "all") {
+    return summary.total_count
+  }
+
+  if (queueId === "action_required") {
+    return summary.action_required_count
+  }
+
+  return summary.status_counts[queueId]
+}
+
+function getQueueLabel(
+  queueId: OrderDashboardQueueId,
+  t: (key: string) => string
+) {
+  if (queueId === "all" || queueId === "action_required") {
+    return t(`queues.${queueId}`)
+  }
+
+  return t(`statuses.${queueId}`)
 }
 
 function formatOptionLabel(value: string) {

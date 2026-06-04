@@ -24,10 +24,19 @@ isProject: false
 
 Bulk actions must show selected count and eligible count separately, explain skipped rows before mutation, refetch dashboard data after success, and use Medusa UI feedback patterns.
 
+The core action requirement is one-screen operations: any common bulk order action should be reachable from the dashboard table after selecting rows, without forcing admins into Packeta Labels, Order Operations, or individual order pages for routine work.
+
+Minimum action coverage:
+
+- manual business/status update, including explicit unhandled, resolved, waiting for payment, waiting internally, and storno/cancel transitions where backend rules allow them
+- cancel/storno as a confirmed destructive action, with deletion kept out of scope unless product explicitly approves it
+- expedition PDF export for selected rows
+- Packeta labels for eligible selected rows, with PPL/other carriers either implemented or listed as backend/product gaps
+- selected count, eligible count, and skipped-row reasons before a mutation when selection contains mixed rows
+
 Default destructive policy:
 
 - deletion is out of scope unless product explicitly approves it
 - storno/cancel is the supported path
 - undo is not promised unless backend provides an atomic reversible workflow
 - destructive actions require confirmation and recovery guidance
-

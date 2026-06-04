@@ -8,7 +8,7 @@ This package is the internal Medusa v2 plugin that contributes the unified order
 - Admin UI route code belongs under `src/admin/**`, currently `src/admin/routes/order-dashboard/**`.
 - `apps/medusa-be` is in scope only for plugin registration, the workspace dependency, existing API endpoint compatibility checks, or explicitly approved backend endpoint/workflow work.
 - Do not move this dashboard back into `apps/medusa-be/src/admin` unless the user explicitly reverses the plugin decision.
-- Treat `apps/admin` as historical/reference material for this ticket. Do not implement the delivery path there.
+- Treat `apps/admin` as a legacy sketch for this ticket. Do not implement the delivery path there and do not use it as the acceptance target.
 - Treat `libs/ui` as out of scope for ordinary plugin work. Medusa Admin extensions should use Medusa Admin-compatible packages first: `@medusajs/ui`, `@medusajs/icons`, `@medusajs/admin-sdk`, `@medusajs/js-sdk`, `react-i18next`, and React Query.
 - If a backend gap is found, document the exact missing endpoint, request shape, response shape, and blocked UI behavior before changing backend code.
 
@@ -16,12 +16,12 @@ This package is the internal Medusa v2 plugin that contributes the unified order
 
 Before implementing or changing this dashboard, inspect these sources in this order:
 
-1. Current plugin source under `apps/medusa-order-dashboard-plugin/src/admin`.
-2. Canonical local ticket exports in `apps/admin/local`, when present locally:
+1. Canonical local ticket exports in `apps/medusa-order-dashboard-plugin/local`:
    - `dashboard-objednavek-test-2.md`
    - `dashboard-objednavek-test.md`
    - `admin-obecne-test.md`
    - `admin-raw.md` only as synthesis, not as canonical when it conflicts with clean exports.
+2. Current plugin source under `apps/medusa-order-dashboard-plugin/src/admin`.
 3. Existing Medusa backend Admin API routes under `apps/medusa-be/src/api/admin`.
 4. Existing Medusa Admin customizations under `apps/medusa-be/src/admin` only as compatibility/reference.
 5. Official Medusa Admin UI route and plugin documentation.
@@ -100,6 +100,8 @@ This workspace expects Node `>=24` for `apps/medusa-be`. If local Node is older,
 
 - Plugin source: `apps/medusa-order-dashboard-plugin/src/admin`
 - Plugin package manifest: `apps/medusa-order-dashboard-plugin/package.json`
+- Canonical local notes: `apps/medusa-order-dashboard-plugin/local`
 - Medusa app registration: `apps/medusa-be/medusa-config.ts`
 - Existing backend Admin endpoints: `apps/medusa-be/src/api/admin`
-- Historical/reference Admin UI: `apps/medusa-be/src/admin` and `apps/admin`
+- Compatibility/reference Admin UI: `apps/medusa-be/src/admin`
+- Legacy sketch only: `apps/admin`

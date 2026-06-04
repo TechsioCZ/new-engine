@@ -1,11 +1,13 @@
 import { sdk } from "../../lib/sdk"
 import type {
   OrderDashboardBusinessStatusId,
+  OrderDashboardBusinessStatusGroupId,
   OrderDashboardCarrierKey,
   OrderDashboardLabelFormat,
   OrderDashboardManualStatusId,
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
+  OrderDashboardSummaryResponse,
   OrderDashboardStatusResponse,
   OrderDashboardTargetStatus,
 } from "./types"
@@ -13,6 +15,7 @@ import type {
 const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?([^";]+)"?/i
 
 type ListOrderDashboardOrdersInput = {
+  businessStatusGroup?: OrderDashboardBusinessStatusGroupId
   businessStatus?: OrderDashboardBusinessStatusId
   carrier?: OrderDashboardCarrierKey
   limit: number
@@ -20,6 +23,7 @@ type ListOrderDashboardOrdersInput = {
 }
 
 export function listOrderDashboardOrders({
+  businessStatusGroup,
   businessStatus,
   carrier,
   limit,
@@ -29,12 +33,19 @@ export function listOrderDashboardOrders({
     "/admin/order-expedition/orders",
     {
       query: {
+        business_status_group: businessStatusGroup,
         business_status: businessStatus,
         carrier,
         limit,
         offset,
       },
     }
+  )
+}
+
+export function getOrderDashboardSummary() {
+  return sdk.client.fetch<OrderDashboardSummaryResponse>(
+    "/admin/order-expedition/summary"
   )
 }
 

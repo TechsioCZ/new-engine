@@ -26,3 +26,10 @@ Use `src/admin/i18n/index.ts` and route-local translation resources. Every visib
 
 If Medusa Admin menu replacement limits prevent exact sidebar badge behavior, document the limitation and implement the closest native extension path without forking the admin shell.
 
+Terminology must align with the dashboard workflow:
+
+- use Czech labels with diacritics for the default Czech UI
+- use consistent labels between menu, title, queue tabs, status chips, filters, and actions
+- payment labels must be human-readable, for example karta, převod, dobírka, GoPay, Apple Pay, Google Pay, or QR převod, not raw provider ids
+- queue labels such as Nevyřízené, Přijatá platba, Vyřízené, Storno, Čekáme interně, and Čekající na platbu must be mapped deliberately to backend business/payment states
+- controls that are interactive must not look disabled, and disabled controls must explain the unavailable state where needed

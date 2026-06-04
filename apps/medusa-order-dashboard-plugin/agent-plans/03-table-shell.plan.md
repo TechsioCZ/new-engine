@@ -28,11 +28,14 @@ Default to Medusa Admin-compatible UI. TanStack Table or VTable is allowed only 
 
 Required behavior:
 
+- status queue chips/tabs above the table with visible counts, matching the historical order overview workflow without forking the Medusa Admin shell
+- a clear dashboard badge or count for orders requiring manual action, especially unhandled unpaid orders
 - visible pagination and page size behavior
 - stable selection semantics
 - sort indicators on sortable columns
+- columns for order number/date, customer, shipping method/carrier, payment, sales channel when available, status, and right-aligned emphasized price
 - disabled state only for unavailable controls
 - loading, empty, and error states that keep layout stable
 - no duplicated cancellation indicator
 - no mixed Czech/English visible copy
-
+- filters remain separate from bulk actions; tabs/queues are navigation/filter state, not selected-row actions
