@@ -42,16 +42,12 @@ const createFormData = ({
   locale,
   sheetName,
   status,
-  dryRun,
-  translate,
   overwrite,
 }: {
   file: File
   locale: string
   sheetName: string
   status: string
-  dryRun: boolean
-  translate: boolean
   overwrite: boolean
 }) => {
   const formData = new FormData()
@@ -60,8 +56,8 @@ const createFormData = ({
   if (sheetName) {
     formData.append("sheetName", sheetName)
   }
-  formData.append("dryRun", dryRun ? "1" : "0")
-  formData.append("translate", translate ? "1" : "0")
+  formData.append("dryRun", "0")
+  formData.append("translate", "0")
   formData.append("overwrite", overwrite ? "1" : "0")
   if (status) {
     formData.append("status", status)
@@ -89,8 +85,6 @@ export default function PayloadImportNav() {
   const [locale, setLocale] = useState(defaultLocale)
   const [status, setStatus] = useState("")
   const [sheetName, setSheetName] = useState("")
-  const [dryRun, setDryRun] = useState(false)
-  const [translate, setTranslate] = useState(false)
   const [overwrite, setOverwrite] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState("")
@@ -112,8 +106,6 @@ export default function PayloadImportNav() {
       locale,
       sheetName,
       status,
-      dryRun,
-      translate,
       overwrite,
     })
     setIsSubmitting(true)
@@ -199,22 +191,6 @@ export default function PayloadImportNav() {
           </select>
         </label>
 
-        <label style={{ display: "grid", gap: "4px" }}>
-          <span>Dry run</span>
-          <input
-            checked={dryRun}
-            onChange={(event) => setDryRun(event.target.checked)}
-            type="checkbox"
-          />
-        </label>
-        <label style={{ display: "grid", gap: "4px" }}>
-          <span>Translate</span>
-          <input
-            checked={translate}
-            onChange={(event) => setTranslate(event.target.checked)}
-            type="checkbox"
-          />
-        </label>
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Overwrite</span>
           <input

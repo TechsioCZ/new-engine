@@ -50,8 +50,6 @@ const PayloadImportPage = () => {
   const [sheetName, setSheetName] = useState("")
   const [status, setStatus] = useState("")
   const [overwrite, setOverwrite] = useState(false)
-  const [dryRun, setDryRun] = useState(false)
-  const [translate, setTranslate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -70,8 +68,8 @@ const PayloadImportPage = () => {
     formData.append("file", file)
     formData.append("locale", locale)
     formData.append("overwrite", overwrite ? "1" : "0")
-    formData.append("dryRun", dryRun ? "1" : "0")
-    formData.append("translate", translate ? "1" : "0")
+    formData.append("dryRun", "0")
+    formData.append("translate", "0")
     appendOptional(formData, "sheetName", sheetName)
     appendOptional(formData, "status", status)
 
@@ -170,24 +168,6 @@ const PayloadImportPage = () => {
             type="checkbox"
           />
           <Text size="small">Overwrite</Text>
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            checked={dryRun}
-            onChange={(event) => setDryRun(event.target.checked)}
-            type="checkbox"
-          />
-          <Text size="small">Dry-run</Text>
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            checked={translate}
-            onChange={(event) => setTranslate(event.target.checked)}
-            type="checkbox"
-          />
-          <Text size="small">Translate</Text>
         </label>
 
         <Button disabled={isSubmitting} type="submit">
