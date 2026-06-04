@@ -41,7 +41,6 @@ export type OrderDashboardAdminI18nNamespace = {
     | "waiting_for_supplier",
     string
   >
-  summary: Record<"actionRequired" | "actionRequiredLoading", string>
   table: Record<
     "carrierFilterLimit" | "empty" | "filterTooltip" | "loading",
     string
@@ -122,10 +121,6 @@ const englishOrderDashboardAdminI18n = {
     processing: "Processing",
     shipped: "Shipped",
     waiting_for_supplier: "Waiting internally",
-  },
-  summary: {
-    actionRequired: "Action required {{count}}",
-    actionRequiredLoading: "Action required ...",
   },
   table: {
     carrierFilterLimit:

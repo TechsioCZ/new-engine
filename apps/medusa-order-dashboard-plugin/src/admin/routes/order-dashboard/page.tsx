@@ -470,9 +470,6 @@ const OrderDashboardPage = () => {
     ? getErrorMessage(ordersQuery.error, t("toast.requestFailed"))
     : null
   const actionRequiredCount = summaryQuery.data?.action_required_count ?? 0
-  const actionRequiredLabel = summaryQuery.isLoading
-    ? t("summary.actionRequiredLoading")
-    : t("summary.actionRequired", { count: actionRequiredCount })
 
   useEffect(() => {
     setOrderDashboardSidebarBadgeCount(
@@ -482,19 +479,8 @@ const OrderDashboardPage = () => {
 
   return (
     <Container className="divide-y p-0">
-      <div className="flex flex-col gap-1 px-6 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Heading level="h1">{t("title")}</Heading>
-          <Badge
-            color={actionRequiredCount > 0 ? "orange" : "grey"}
-            size="2xsmall"
-          >
-            {actionRequiredLabel}
-          </Badge>
-        </div>
-        <Text className="text-ui-fg-subtle" leading="compact" size="small">
-          {t("actions.selected", { count: selectedCount })}
-        </Text>
+      <div className="px-6 py-4">
+        <Heading level="h1">{t("title")}</Heading>
       </div>
 
       <div className="overflow-x-auto px-6 py-3">
