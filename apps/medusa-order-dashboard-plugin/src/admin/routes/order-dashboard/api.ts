@@ -7,12 +7,21 @@ import type {
   OrderDashboardManualStatusId,
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
+  OrderDashboardPacketaEligibilityOrder,
   OrderDashboardSummaryResponse,
   OrderDashboardStatusResponse,
   OrderDashboardTargetStatus,
 } from "./types"
 
 const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?([^";]+)"?/i
+const PACKETA_ELIGIBILITY_ORDER_FIELDS = [
+  "id",
+  "display_id",
+  "fulfillments.id",
+  "fulfillments.provider_id",
+  "fulfillments.canceled_at",
+  "fulfillments.data",
+].join(",")
 
 type ListOrderDashboardOrdersInput = {
   businessStatusGroup?: OrderDashboardBusinessStatusGroupId
@@ -103,6 +112,21 @@ export function downloadOrderDashboardPacketaLabels(input: {
     },
     `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`
   )
+}
+
+export async function listOrderDashboardPacketaEligibility(orderIds: string[]) {
+  if (!orderIds.length) {
+    return []
+  }
+
+  const response = await sdk.admin.order.list({
+    fields: PACKETA_ELIGIBILITY_ORDER_FIELDS,
+    id: orderIds,
+    limit: orderIds.length,
+    offset: 0,
+  })
+
+  return response.orders as OrderDashboardPacketaEligibilityOrder[]
 }
 
 async function downloadPdf(

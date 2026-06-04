@@ -4,8 +4,11 @@ export type OrderDashboardAdminI18nNamespace = {
     | "applyManualStatus"
     | "businessStatusPlaceholder"
     | "clearManualStatus"
+    | "closeDetails"
+    | "details"
     | "expeditionPdf"
     | "labelFormat"
+    | "packetaEligible"
     | "packetaLabels"
     | "selected"
     | "targetStatusPlaceholder",
@@ -14,11 +17,30 @@ export type OrderDashboardAdminI18nNamespace = {
   columns: Record<
     | "businessStatus"
     | "carrier"
+    | "address"
     | "created"
     | "customer"
+    | "details"
     | "manualStatus"
     | "order"
     | "payment"
+    | "total",
+    string
+  >
+  detail: Record<
+    | "activeFulfillment"
+    | "address"
+    | "businessStatus"
+    | "carrier"
+    | "fulfillment"
+    | "items"
+    | "manualStatus"
+    | "noActiveFulfillment"
+    | "noItems"
+    | "orderStatus"
+    | "payment"
+    | "quantity"
+    | "title"
     | "total",
     string
   >
@@ -40,6 +62,7 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   menuItem: string
+  packetaSkip: Record<"noActiveLabel" | "notPacketa" | "unchecked", string>
   queues: Record<"action_required" | "all", string>
   statuses: Record<
     | "awaiting_payment"
@@ -79,6 +102,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "missingOrderStatus"
     | "noPacketaSelection"
     | "noSelection"
+    | "packetaEligibilityLoading"
     | "packetaLabelsReady"
     | "pdfReady"
     | "requestFailed"
@@ -93,20 +117,42 @@ const englishOrderDashboardAdminI18n = {
     applyManualStatus: "Apply manual status",
     businessStatusPlaceholder: "Manual status",
     clearManualStatus: "Clear manual status",
+    closeDetails: "Close",
+    details: "Details",
     expeditionPdf: "Expedition PDF",
     labelFormat: "Format",
+    packetaEligible:
+      "{{count}} Packeta printable from {{selectedCount}} selected",
     packetaLabels: "Packeta labels",
     selected: "{{count}} selected",
     targetStatusPlaceholder: "Order status",
   },
   columns: {
+    address: "Address",
     businessStatus: "Status",
     carrier: "Carrier",
     created: "Created",
     customer: "Customer",
+    details: "Details",
     manualStatus: "Manual status",
     order: "Order",
     payment: "Payment",
+    total: "Total",
+  },
+  detail: {
+    activeFulfillment: "Active fulfillment",
+    address: "Address",
+    businessStatus: "Business status",
+    carrier: "Carrier",
+    fulfillment: "Fulfillment",
+    items: "Items",
+    manualStatus: "Manual status",
+    noActiveFulfillment: "No active fulfillment",
+    noItems: "No items available.",
+    orderStatus: "Medusa status",
+    payment: "Payment",
+    quantity: "{{count}} pcs",
+    title: "{{order}} detail",
     total: "Total",
   },
   filters: {
@@ -136,6 +182,11 @@ const englishOrderDashboardAdminI18n = {
       "{{updatedCount}} order(s) will be updated. {{skippedCount}} order(s) will be skipped.",
   },
   menuItem: "Order dashboard",
+  packetaSkip: {
+    noActiveLabel: "No active Packeta packet label",
+    notPacketa: "Carrier is {{carrier}}, not Packeta",
+    unchecked: "Packeta label status could not be checked",
+  },
   queues: {
     action_required: "Action required",
     all: "All",
@@ -175,8 +226,9 @@ const englishOrderDashboardAdminI18n = {
     manualStatusSkipped: "Manual status was not changed",
     missingBusinessStatus: "Select a manual status.",
     missingOrderStatus: "Select a target order status.",
-    noPacketaSelection: "Select only Packeta orders.",
+    noPacketaSelection: "No selected orders have printable Packeta labels.",
     noSelection: "Select at least one order.",
+    packetaEligibilityLoading: "Packeta label eligibility is still loading.",
     packetaLabelsReady: "Packeta labels are ready",
     pdfReady: "Expedition PDF is ready",
     requestFailed: "Operation failed",

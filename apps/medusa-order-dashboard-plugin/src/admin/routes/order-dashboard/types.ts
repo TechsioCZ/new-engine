@@ -116,6 +116,22 @@ export type OrderDashboardOrder = {
   total?: number | string | null
 }
 
+export type OrderDashboardPacketaFulfillment = {
+  id: string
+  canceled_at?: string | null
+  data?: {
+    barcode?: string
+    packet_id?: number
+  } | null
+  provider_id?: string | null
+}
+
+export type OrderDashboardPacketaEligibilityOrder = {
+  id: string
+  display_id?: number | null
+  fulfillments?: OrderDashboardPacketaFulfillment[] | null
+}
+
 export type OrderDashboardOrdersResponse = {
   orders: OrderDashboardOrder[]
   count: number

@@ -20,7 +20,7 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
@@ -28,6 +28,7 @@ import {
   downloadOrderDashboardExpeditionPdf,
   downloadOrderDashboardPacketaLabels,
   getOrderDashboardSummary,
+  listOrderDashboardPacketaEligibility,
   listOrderDashboardOrders,
   updateOrderDashboardManualStatus,
   updateOrderDashboardStatuses,
@@ -39,7 +40,6 @@ import {
   formatPaymentMethodLabel,
   getCarrierLabel,
   getOrderDashboardTransitionBlockReason,
-  getSelectedOrders,
   isOrderDashboardBusinessStatusId,
   isOrderDashboardCarrierKey,
   isOrderDashboardTargetStatus,
@@ -59,6 +59,7 @@ import {
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
+  type OrderDashboardPacketaEligibilityOrder,
   type OrderDashboardQueueId,
   type OrderDashboardSummaryResponse,
   type OrderDashboardTargetStatus,
@@ -107,6 +108,9 @@ const OrderDashboardPage = () => {
   const [rowSelection, setRowSelection] = useState<DataTableRowSelectionState>(
     {}
   )
+  const [selectedOrdersById, setSelectedOrdersById] = useState<
+    Map<string, OrderDashboardOrder>
+  >(() => new Map())
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({})
@@ -121,6 +125,7 @@ const OrderDashboardPage = () => {
   const [blockingOrders, setBlockingOrders] = useState<
     OrderDashboardBlockingOrder[]
   >([])
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null)
 
   const carrierFilter = getCarrierFilter(filtering)
   const businessStatusGroupFilter = getBusinessStatusGroupFilter(filtering)
@@ -156,14 +161,46 @@ const OrderDashboardPage = () => {
     [ordersQuery.data?.orders, sorting]
   )
   const selectedOrders = useMemo(
-    () => getSelectedOrders(orders, rowSelection),
-    [orders, rowSelection]
+    () => Array.from(selectedOrdersById.values()),
+    [selectedOrdersById]
   )
-  const selectedOrderIds = selectedOrders.map((order) => order.id)
-  const selectedPacketaOrders = selectedOrders.filter(
-    (order) => order.carrier.value === "packeta"
+  const selectedOrderIds = useMemo(
+    () => selectedOrders.map((order) => order.id),
+    [selectedOrders]
+  )
+  const selectedPacketaCarrierOrderIds = useMemo(
+    () =>
+      selectedOrders
+        .filter((order) => order.carrier.value === "packeta")
+        .map((order) => order.id),
+    [selectedOrders]
+  )
+  const packetaEligibilityQuery = useQuery({
+    enabled: selectedPacketaCarrierOrderIds.length > 0,
+    queryFn: () =>
+      listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
+    queryKey: [
+      "order-dashboard-packeta-eligibility",
+      selectedPacketaCarrierOrderIds,
+    ],
+  })
+  const packetaLabelPreview = useMemo(
+    () =>
+      getPacketaLabelPreview(
+        selectedOrders,
+        packetaEligibilityQuery.data,
+        t
+      ),
+    [packetaEligibilityQuery.data, selectedOrders, t]
   )
   const selectedCount = selectedOrders.length
+  const packetaEligibleCount = packetaLabelPreview.printableOrders.length
+  const detailOrder = useMemo(
+    () =>
+      orders.find((order) => order.id === detailOrderId) ??
+      (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined),
+    [detailOrderId, orders, selectedOrdersById]
+  )
   const targetStatusOptions = useMemo(
     () => getTargetStatusOptions(selectedOrders, t),
     [selectedOrders, t]
@@ -189,8 +226,6 @@ const OrderDashboardPage = () => {
     manualStatusTarget === undefined
       ? ""
       : getManualStatusLabel(manualStatusTarget, t)
-  const onlyPacketaSelected =
-    selectedCount > 0 && selectedPacketaOrders.length === selectedCount
   const activeQueueId: OrderDashboardQueueId =
     businessStatusGroupFilter ?? businessStatusFilter ?? "all"
   const queueTabs = useMemo(
@@ -278,6 +313,25 @@ const OrderDashboardPage = () => {
         ),
         header: t("columns.carrier"),
       }),
+      columnHelper.accessor("delivery_address", {
+        cell: ({ row }) => {
+          const address = formatOrderDeliveryAddress(
+            row.original.delivery_address
+          )
+
+          return (
+            <Text
+              className="max-w-[240px] truncate text-ui-fg-subtle"
+              leading="compact"
+              size="small"
+              title={address}
+            >
+              {address}
+            </Text>
+          )
+        },
+        header: t("columns.address"),
+      }),
       columnHelper.accessor("business_status.id", {
         cell: ({ row }) => (
           <Badge color={row.original.business_status.tone} size="2xsmall">
@@ -320,9 +374,61 @@ const OrderDashboardPage = () => {
         headerAlign: "right",
         sortLabel: t("columns.total"),
       }),
+      columnHelper.display({
+        cell: ({ row }) => (
+          <Button
+            onClick={() =>
+              setDetailOrderId((currentOrderId) =>
+                currentOrderId === row.original.id ? null : row.original.id
+              )
+            }
+            size="small"
+            type="button"
+            variant="transparent"
+          >
+            {t("actions.details")}
+          </Button>
+        ),
+        header: t("columns.details"),
+        id: "details",
+      }),
     ],
     [locale, t]
   )
+
+  const clearSelection = () => {
+    setRowSelection({})
+    setSelectedOrdersById(new Map())
+  }
+
+  const handleRowSelectionChange = (
+    nextSelection:
+      | DataTableRowSelectionState
+      | ((
+          currentSelection: DataTableRowSelectionState
+        ) => DataTableRowSelectionState)
+  ) => {
+    const resolvedSelection =
+      typeof nextSelection === "function"
+        ? nextSelection(rowSelection)
+        : nextSelection
+
+    setRowSelection(resolvedSelection)
+    setSelectedOrdersById((currentOrdersById) => {
+      const nextOrdersById = new Map(currentOrdersById)
+
+      for (const order of orders) {
+        if (resolvedSelection[order.id]) {
+          nextOrdersById.set(order.id, order)
+        } else {
+          nextOrdersById.delete(order.id)
+        }
+      }
+
+      return nextOrdersById
+    })
+    setBlockingOrders([])
+  }
 
   const table = useDataTable({
     columns,
@@ -335,7 +441,7 @@ const OrderDashboardPage = () => {
     filtering: {
       onFilteringChange: (nextFiltering) => {
         setFiltering(normalizeFiltering(nextFiltering))
-        setRowSelection({})
+        clearSelection()
         setBlockingOrders([])
       },
       state: filtering,
@@ -352,7 +458,7 @@ const OrderDashboardPage = () => {
     },
     rowCount: ordersQuery.data?.count ?? 0,
     rowSelection: {
-      onRowSelectionChange: setRowSelection,
+      onRowSelectionChange: handleRowSelectionChange,
       state: rowSelection,
     },
     sorting: {
@@ -366,7 +472,8 @@ const OrderDashboardPage = () => {
     queryClient.invalidateQueries({
       queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
     })
-    setRowSelection({})
+    clearSelection()
+    setDetailOrderId(null)
   }
 
   const orderStatusMutation = useMutation({
@@ -489,12 +596,36 @@ const OrderDashboardPage = () => {
   }
 
   const handlePacketaLabels = () => {
-    if (!onlyPacketaSelected) {
+    if (!selectedOrderIds.length) {
+      toast.error(t("toast.noSelection"))
+      return
+    }
+
+    if (packetaEligibilityQuery.isLoading) {
+      toast.error(t("toast.packetaEligibilityLoading"))
+      return
+    }
+
+    if (packetaEligibilityQuery.error) {
+      toast.error(
+        getErrorMessage(packetaEligibilityQuery.error, t("toast.requestFailed"))
+      )
+      return
+    }
+
+    if (packetaLabelPreview.skipped.length) {
+      setBlockingOrders(packetaLabelPreview.skipped)
+    }
+
+    if (!packetaLabelPreview.printableOrders.length) {
       toast.error(t("toast.noPacketaSelection"))
       return
     }
 
-    if (selectedOrderIds.length > ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS) {
+    if (
+      packetaLabelPreview.printableOrders.length >
+      ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS
+    ) {
       toast.error(
         `Select up to ${ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS} orders`
       )
@@ -503,7 +634,7 @@ const OrderDashboardPage = () => {
 
     packetaLabelsMutation.mutate({
       labelFormat,
-      orderIds: selectedOrderIds,
+      orderIds: packetaLabelPreview.printableOrders.map((order) => order.id),
     })
   }
 
@@ -519,7 +650,7 @@ const OrderDashboardPage = () => {
       ...currentPagination,
       pageIndex: 0,
     }))
-    setRowSelection({})
+    clearSelection()
     setBlockingOrders([])
   }
 
@@ -551,6 +682,16 @@ const OrderDashboardPage = () => {
       setIsManualStatusPromptOpen(false)
     }
   }, [isManualStatusPromptOpen, manualStatus, selectedCount, targetStatus])
+
+  useEffect(() => {
+    const visibleSelection = getVisibleRowSelection(orders, selectedOrdersById)
+
+    setRowSelection((currentSelection) =>
+      isSameRowSelection(currentSelection, visibleSelection)
+        ? currentSelection
+        : visibleSelection
+    )
+  }, [orders, selectedOrdersById])
 
   return (
     <Container className="divide-y p-0">
@@ -662,9 +803,23 @@ const OrderDashboardPage = () => {
       <div className="bg-ui-bg-subtle px-6 py-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <Text leading="compact" size="small" weight="plus">
-              {t("actions.selected", { count: selectedCount })}
-            </Text>
+            <div className="flex flex-col gap-0.5">
+              <Text leading="compact" size="small" weight="plus">
+                {t("actions.selected", { count: selectedCount })}
+              </Text>
+              {selectedCount ? (
+                <Text
+                  className="text-ui-fg-subtle"
+                  leading="compact"
+                  size="small"
+                >
+                  {t("actions.packetaEligible", {
+                    count: packetaEligibleCount,
+                    selectedCount,
+                  })}
+                </Text>
+              ) : null}
+            </div>
             <Button
               disabled={!selectedCount || expeditionPdfMutation.isPending}
               isLoading={expeditionPdfMutation.isPending}
@@ -693,8 +848,16 @@ const OrderDashboardPage = () => {
               </Select.Content>
             </Select>
             <Button
-              disabled={!onlyPacketaSelected || packetaLabelsMutation.isPending}
-              isLoading={packetaLabelsMutation.isPending}
+              disabled={
+                !selectedCount ||
+                packetaEligibilityQuery.isLoading ||
+                packetaEligibilityQuery.isError ||
+                packetaLabelsMutation.isPending
+              }
+              isLoading={
+                packetaEligibilityQuery.isLoading ||
+                packetaLabelsMutation.isPending
+              }
               onClick={handlePacketaLabels}
               size="small"
               type="button"
@@ -804,6 +967,13 @@ const OrderDashboardPage = () => {
         <BlockingOrdersPanel blockedOrders={blockingOrders} />
       ) : null}
 
+      {detailOrder ? (
+        <OrderDashboardDetailPanel
+          onClose={() => setDetailOrderId(null)}
+          order={detailOrder}
+        />
+      ) : null}
+
       {ordersQuery.data?.carrier_filter_limit_reached ? (
         <div className="bg-ui-bg-subtle px-6 py-2">
           <Text className="text-ui-fg-warning" leading="compact" size="small">
@@ -901,6 +1071,129 @@ function ManualStatusControl({
   )
 }
 
+function OrderDashboardDetailPanel({
+  onClose,
+  order,
+}: {
+  onClose: () => void
+  order: OrderDashboardOrder
+}) {
+  const { i18n, t } = useTranslation("orderDashboard")
+  const locale = useMemo(
+    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
+    [i18n.language, i18n.resolvedLanguage]
+  )
+  const manualStatusLabel = order.manual_status
+    ? t(`manualStatus.${order.manual_status}`)
+    : t("manualStatus.none")
+
+  return (
+    <div className="bg-ui-bg-subtle px-6 py-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <Text leading="compact" size="small" weight="plus">
+            {t("detail.title", { order: order.order_display_id })}
+          </Text>
+          <Text className="text-ui-fg-subtle" leading="compact" size="small">
+            {order.customer}
+            {order.email ? ` - ${order.email}` : ""}
+          </Text>
+        </div>
+        <Button onClick={onClose} size="small" type="button" variant="secondary">
+          {t("actions.closeDetails")}
+        </Button>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <OrderDetailField label={t("detail.address")}>
+          {formatOrderDeliveryAddress(order.delivery_address)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.carrier")}>
+          {getCarrierLabel(order)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.payment")}>
+          {order.payment_status ?? "-"} -{" "}
+          {formatPaymentMethodLabel(order.payment_method)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.total")}>
+          {formatOrderTotal(order, locale)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.orderStatus")}>
+          {order.status ?? "-"}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.businessStatus")}>
+          {t(order.business_status.translation_key)}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.manualStatus")}>
+          {manualStatusLabel}
+        </OrderDetailField>
+        <OrderDetailField label={t("detail.fulfillment")}>
+          {order.has_active_fulfillment
+            ? t("detail.activeFulfillment")
+            : t("detail.noActiveFulfillment")}
+        </OrderDetailField>
+      </div>
+
+      <div className="mt-4">
+        <Text leading="compact" size="small" weight="plus">
+          {t("detail.items")}
+        </Text>
+        <div className="mt-2 divide-y overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-base">
+          {order.items.length ? (
+            order.items.map((item, index) => (
+              <div
+                className="grid gap-2 px-3 py-2 sm:grid-cols-[1fr_auto]"
+                key={item.id ?? `${item.title}-${index}`}
+              >
+                <div className="min-w-0">
+                  <Text leading="compact" size="small">
+                    {item.title}
+                  </Text>
+                  {item.sku || item.variant ? (
+                    <Text
+                      className="text-ui-fg-subtle"
+                      leading="compact"
+                      size="small"
+                    >
+                      {[item.sku, item.variant].filter(Boolean).join(" - ")}
+                    </Text>
+                  ) : null}
+                </div>
+                <Text className="text-ui-fg-subtle" leading="compact" size="small">
+                  {t("detail.quantity", { count: item.quantity })}
+                </Text>
+              </div>
+            ))
+          ) : (
+            <Text className="px-3 py-2 text-ui-fg-subtle" size="small">
+              {t("detail.noItems")}
+            </Text>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OrderDetailField({
+  children,
+  label,
+}: {
+  children: ReactNode
+  label: string
+}) {
+  return (
+    <div className="min-w-0">
+      <Text className="text-ui-fg-muted" leading="compact" size="small">
+        {label}
+      </Text>
+      <Text className="break-words" leading="compact" size="small" weight="plus">
+        {children}
+      </Text>
+    </div>
+  )
+}
+
 function getManualStatusTarget(
   value: ManualStatusValue | ""
 ): ManualStatusTarget | undefined {
@@ -975,6 +1268,67 @@ function getBulkManualStatusPreview(
   }
 
   return { skipped, updatable }
+}
+
+function getPacketaLabelPreview(
+  selectedOrders: OrderDashboardOrder[],
+  eligibilityOrders: OrderDashboardPacketaEligibilityOrder[] | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const eligibilityOrdersById = new Map(
+    (eligibilityOrders ?? []).map((order) => [order.id, order])
+  )
+  const printableOrders: OrderDashboardOrder[] = []
+  const skipped: OrderDashboardBlockingOrder[] = []
+
+  for (const order of selectedOrders) {
+    const eligibilityOrder = eligibilityOrdersById.get(order.id)
+    const skipReason = getPacketaLabelSkipReason(order, eligibilityOrder, t)
+
+    if (skipReason) {
+      skipped.push({
+        id: order.id,
+        order_display_id: order.order_display_id,
+        reason: skipReason,
+      })
+      continue
+    }
+
+    printableOrders.push(order)
+  }
+
+  return { printableOrders, skipped }
+}
+
+function getPacketaLabelSkipReason(
+  order: OrderDashboardOrder,
+  eligibilityOrder: OrderDashboardPacketaEligibilityOrder | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (order.carrier.value !== "packeta") {
+    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order) })
+  }
+
+  if (!eligibilityOrder) {
+    return t("packetaSkip.unchecked")
+  }
+
+  if (!hasPrintablePacketaLabel(eligibilityOrder)) {
+    return t("packetaSkip.noActiveLabel")
+  }
+
+  return
+}
+
+function hasPrintablePacketaLabel(
+  order: OrderDashboardPacketaEligibilityOrder
+) {
+  return (order.fulfillments ?? []).some(
+    (fulfillment) =>
+      fulfillment.provider_id === "packeta_packeta" &&
+      !fulfillment.canceled_at &&
+      typeof fulfillment.data?.packet_id === "number"
+  )
 }
 
 function StatusSelectItem({
@@ -1087,6 +1441,39 @@ function BlockingOrdersPanel({
       </div>
     </div>
   )
+}
+
+function getVisibleRowSelection(
+  orders: OrderDashboardOrder[],
+  selectedOrdersById: Map<string, OrderDashboardOrder>
+) {
+  const visibleSelection: DataTableRowSelectionState = {}
+
+  for (const order of orders) {
+    if (selectedOrdersById.has(order.id)) {
+      visibleSelection[order.id] = true
+    }
+  }
+
+  return visibleSelection
+}
+
+function isSameRowSelection(
+  left: DataTableRowSelectionState,
+  right: DataTableRowSelectionState
+) {
+  const leftKeys = Object.keys(left)
+  const rightKeys = Object.keys(right)
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false
+  }
+
+  return leftKeys.every((key) => left[key] === right[key])
+}
+
+function formatOrderDeliveryAddress(address: string[]) {
+  return address.filter(Boolean).join(", ") || "-"
 }
 
 function getCarrierFilter(filtering: DataTableFilteringState) {
