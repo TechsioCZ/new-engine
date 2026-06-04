@@ -31,5 +31,12 @@ const ProductList = model
       where: { deleted_at: null },
     },
   ])
+  .checks([
+    {
+      name: "product_list_access_type_check",
+      expression: (columns) =>
+        `${columns.access_type} in ('private', 'public')`,
+    },
+  ])
 
 export default ProductList

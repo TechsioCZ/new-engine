@@ -6,7 +6,7 @@ export class Migration20260604120000 extends Migration {
       `alter table if exists "product_list" add column if not exists "access_type" text not null default 'private';`
     )
     this.addSql(
-      `alter table if exists "product_list" add constraint "product_list_access_type_check" check ("access_type" in ('private', 'public'));`
+      `do $$ begin if not exists (select 1 from pg_constraint where conname = 'product_list_access_type_check') then alter table if exists "product_list" add constraint "product_list_access_type_check" check ("access_type" in ('private', 'public')); end if; end $$;`
     )
     this.addSql(
       `CREATE INDEX IF NOT EXISTS "IDX_product_list_access_type" ON "product_list" ("access_type") WHERE deleted_at IS NULL;`

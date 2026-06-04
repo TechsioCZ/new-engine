@@ -217,7 +217,14 @@
           "unique": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "product_list_access_type_check",
+          "columnName": "access_type",
+          "definition": "CHECK ((access_type = ANY (ARRAY['private'::text, 'public'::text])))",
+          "expression": "access_type in ('private', 'public')"
+        }
+      ],
       "foreignKeys": {},
       "nativeEnums": {}
     },

@@ -161,16 +161,29 @@ export const withProductListItems = async (
     order: { list_id: "ASC", sort_order: "ASC", created_at: "ASC" },
   }
 
-  if (options.previewLimit !== undefined) {
-    config.take = listIds.length * options.previewLimit
-  }
-
-  const items = await service.listProductListItems(
-    {
-      list_id: { $in: listIds },
-    },
-    config
-  )
+  const items =
+    options.previewLimit === undefined
+      ? await service.listProductListItems(
+          {
+            list_id: { $in: listIds },
+          },
+          config
+        )
+      : (
+          await Promise.all(
+            listIds.map((listId) =>
+              service.listProductListItems(
+                {
+                  list_id: listId,
+                },
+                {
+                  ...config,
+                  take: options.previewLimit,
+                }
+              )
+            )
+          )
+        ).flat()
   const enrichedItems = await withProductListItemSelections(container, items)
   const itemsByListId = new Map<string, ProductListItemRecord[]>()
 
