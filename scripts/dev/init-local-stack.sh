@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 ENV_TEMPLATE="${ROOT_DIR}/.env.docker"
+# shellcheck source=scripts/dev/lib/common.sh
+source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
 usage() {
   cat <<'EOF'
@@ -126,58 +128,6 @@ prepare_postgres_bind_mount() {
   echo "Prepared Postgres bind-mount path: ${pgdata_parent} (Postgres creates the final docker leaf)"
 }
 
-resolve_pnpm_spec() {
-  node -e '
-const fs = require("node:fs")
-const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"))
-const packageManager = pkg.packageManager
-
-if (typeof packageManager !== "string" || !packageManager.startsWith("pnpm@")) {
-  console.error("package.json must define packageManager as pnpm@<version>.")
-  process.exit(1)
-}
-
-process.stdout.write(packageManager)
-'
-}
-
-ensure_pnpm() {
-  local current_version pnpm_spec pnpm_version
-
-  if ! command -v node >/dev/null 2>&1; then
-    echo "Node is required before pnpm can be bootstrapped. Run this through mise: \`mise run dev:init\`." >&2
-    exit 1
-  fi
-
-  pnpm_spec="$(resolve_pnpm_spec)"
-  pnpm_version="${pnpm_spec#pnpm@}"
-
-  if command -v pnpm >/dev/null 2>&1; then
-    current_version="$(pnpm --version)"
-    if [[ "$current_version" == "$pnpm_version" ]]; then
-      return 0
-    fi
-
-    echo "Found pnpm ${current_version}; installing pinned ${pnpm_spec} for the active Node toolchain."
-  else
-    echo "pnpm is missing; installing pinned ${pnpm_spec} for the active Node toolchain."
-  fi
-
-  if ! command -v npm >/dev/null 2>&1; then
-    echo "npm is required to install ${pnpm_spec}, but npm was not found on PATH." >&2
-    exit 1
-  fi
-
-  npm install --global "$pnpm_spec"
-  hash -r
-
-  current_version="$(pnpm --version)"
-  if [[ "$current_version" != "$pnpm_version" ]]; then
-    echo "Expected pnpm ${pnpm_version}, but PATH resolves pnpm ${current_version} after installation." >&2
-    exit 1
-  fi
-}
-
 main() {
   local superadmin_email superadmin_password
 
@@ -195,7 +145,7 @@ main() {
 
   cd "$ROOT_DIR"
 
-  ensure_pnpm
+  common::ensure_pnpm "$ROOT_DIR"
   mise run dev:install
   mise run dev:resources
   mise run dev:backend

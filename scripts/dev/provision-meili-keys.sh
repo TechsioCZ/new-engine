@@ -27,7 +27,7 @@ Env fallbacks:
 EOF
 }
 
-common::require_command pnpm
+common::ensure_pnpm "$ROOT_DIR"
 common::require_command jq
 common::require_command node
 common::require_command sed
