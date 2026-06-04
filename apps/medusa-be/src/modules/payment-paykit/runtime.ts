@@ -21,6 +21,11 @@ export type PaykitProviderRuntime = Pick<PayKitProvider, "handleWebhook">
 
 type PaykitConstructor = new (provider: PayKitProvider) => PaykitRuntime
 
+type CreatedPaykitClient = {
+  client: PaykitPaymentClient
+  provider: PayKitProvider
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
@@ -97,7 +102,22 @@ export const createPaykitClient = async (
   providerExport: string,
   providerOptions: Record<string, unknown>,
   webhookOptions: Record<string, unknown> = providerOptions
-): Promise<PaykitPaymentClient> => {
+): Promise<PaykitPaymentClient> =>
+  (
+    await createPaykitClientWithProvider(
+      providerPackage,
+      providerExport,
+      providerOptions,
+      webhookOptions
+    )
+  ).client
+
+export const createPaykitClientWithProvider = async (
+  providerPackage: string,
+  providerExport: string,
+  providerOptions: Record<string, unknown>,
+  webhookOptions: Record<string, unknown> = providerOptions
+): Promise<CreatedPaykitClient> => {
   const [PayKitClass, createProvider] = await Promise.all([
     loadExport<PaykitConstructor>("@paykit-sdk/core", "PayKit"),
     loadExport<(options: Record<string, unknown>) => PayKitProvider>(
@@ -117,11 +137,14 @@ export const createPaykitClient = async (
   const paykit = new PayKitClass(provider)
 
   return {
-    customers: paykit.customers,
-    payments: paykit.payments,
-    refunds: paykit.refunds,
-    handleWebhook: (payload) =>
-      callPaykitProviderWebhook(provider, payload, webhookOptions),
+    client: {
+      customers: paykit.customers,
+      payments: paykit.payments,
+      refunds: paykit.refunds,
+      handleWebhook: (payload) =>
+        callPaykitProviderWebhook(provider, payload, webhookOptions),
+    },
+    provider,
   }
 }
 
