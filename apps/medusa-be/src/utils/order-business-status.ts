@@ -14,6 +14,19 @@ export const ORDER_BUSINESS_STATUS_IDS = [
 
 export type OrderBusinessStatusId = (typeof ORDER_BUSINESS_STATUS_IDS)[number]
 
+export const ORDER_BUSINESS_STATUS_GROUP_IDS = ["action_required"] as const
+
+export type OrderBusinessStatusGroupId =
+  (typeof ORDER_BUSINESS_STATUS_GROUP_IDS)[number]
+
+export const ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS = [
+  "new",
+  "awaiting_payment",
+  "paid",
+  "processing",
+  "waiting_for_supplier",
+] as const satisfies readonly OrderBusinessStatusId[]
+
 export const MANUAL_ORDER_BUSINESS_STATUS_IDS = [
   "processing",
   "waiting_for_supplier",
@@ -142,6 +155,14 @@ export function isOrderBusinessStatusId(
   value: unknown
 ): value is OrderBusinessStatusId {
   return isIncluded(ORDER_BUSINESS_STATUS_IDS, value)
+}
+
+export function isActionRequiredOrderBusinessStatusId(
+  value: OrderBusinessStatusId
+) {
+  return (
+    ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS as readonly OrderBusinessStatusId[]
+  ).includes(value)
 }
 
 export function isManualOrderBusinessStatusId(

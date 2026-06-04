@@ -2,7 +2,9 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
+  type OrderBusinessStatusGroupId,
   type OrderBusinessStatusId,
+  isActionRequiredOrderBusinessStatusId,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
 import {
@@ -34,6 +36,7 @@ type CarrierFilterAccumulator = {
   matchingOrders: OrderExpeditionRawOrder[]
 }
 type OrderExpeditionOrderFilters = {
+  businessStatusGroup?: OrderBusinessStatusGroupId
   businessStatus?: OrderBusinessStatusId
   carrier?: OrderExpeditionCarrierKey
 }
@@ -51,6 +54,7 @@ const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const {
+    business_status_group: businessStatusGroup,
     business_status: businessStatus,
     carrier,
     limit,
@@ -60,10 +64,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const normalizedOffset = offset ?? 0
 
   const result =
-    carrier || businessStatus
+    carrier || businessStatus || businessStatusGroup
       ? await fetchFilteredOrders(
           query,
           {
+            businessStatusGroup,
             businessStatus,
             carrier,
           },
@@ -82,6 +87,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     offset: normalizedOffset,
     limit: normalizedLimit,
     carrier: carrier ?? null,
+    business_status_group: businessStatusGroup ?? null,
     business_status: businessStatus ?? null,
   })
 }
@@ -209,11 +215,19 @@ function orderMatchesFilters(
     return false
   }
 
-  if (
-    filters.businessStatus &&
-    resolveOrderBusinessStatus(order).id !== filters.businessStatus
-  ) {
-    return false
+  if (filters.businessStatus || filters.businessStatusGroup) {
+    const businessStatusId = resolveOrderBusinessStatus(order).id
+
+    if (filters.businessStatus && businessStatusId !== filters.businessStatus) {
+      return false
+    }
+
+    if (
+      filters.businessStatusGroup === "action_required" &&
+      !isActionRequiredOrderBusinessStatusId(businessStatusId)
+    ) {
+      return false
+    }
   }
 
   return true
