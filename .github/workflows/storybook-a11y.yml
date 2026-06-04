@@ -22,7 +22,7 @@ jobs:
   storybook-a11y:
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
-      node-version: "26"
+      node-version: "24"
       pnpm-version: ""
       working-directory: libs/ui
       install-command: pnpm install --frozen-lockfile

@@ -1,4 +1,4 @@
-FROM node:26-slim AS deps
+FROM node:24-slim AS deps
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
