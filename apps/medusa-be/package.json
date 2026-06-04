@@ -111,7 +111,7 @@
     "@medusajs/test-utils": "^2.15.2",
     "@swc/core": "^1.15.3",
     "@types/escape-html": "^1.0.4",
-    "@types/node": "^25.9.1",
+    "@types/node": "^24.12.4",
     "@types/qrcode": "^1.5.6",
     "@types/qs": "^6.9.17",
     "@types/react": "^19.2.3",
@@ -124,6 +124,6 @@
     "yalc": "1.0.0-pre.53"
   },
   "engines": {
-    "node": ">=26"
+    "node": ">=24"
   }
 }

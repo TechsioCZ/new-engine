@@ -20,7 +20,7 @@ const baselineCompleteOutputPattern = /baseline_complete:/
 const previewBaselineCompleteEnvPattern = /PREVIEW_BASELINE_COMPLETE:/
 const previewBaselineCompleteFlagPattern =
   /--preview-baseline-complete "\$PREVIEW_BASELINE_COMPLETE"/
-const node26Pattern = /node-version: 26/
+const node24Pattern = /node-version: 24/
 const ciCtlTestPattern = /pnpm exec nx run new-engine-ctl:test/
 const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
@@ -114,6 +114,6 @@ test.skip("preview scope feeds baseline state into prepare decisions", async () 
 test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
   const raw = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8")
 
-  expect(raw).toMatch(node26Pattern)
+  expect(raw).toMatch(node24Pattern)
   expect(raw).toMatch(ciCtlTestPattern)
 })
