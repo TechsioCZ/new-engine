@@ -6,7 +6,16 @@ import {
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlFile,
 } from "../../../src/scripts/herbatica-category-export"
-import { buildSeedInputFromXml } from "../../../src/scripts/herbatica-seed"
+import {
+  buildHerbaticaSeedWorkflowInput,
+  buildSeedInputFromXml,
+} from "../../../src/scripts/herbatica-seed"
+import {
+  HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  HERBATICA_TAX_RATE_CONFIG,
+  HERBATICA_TAX_RATE_COUNTRIES,
+  HERBATICA_WORKFLOW_DEFAULTS,
+} from "../../../src/scripts/herbatica-seed-config"
 
 const DIRTY_FEED_MARKUP_PATTERN =
   /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
@@ -139,8 +148,24 @@ describe("Herbatica seed promo rebase", () => {
 
     expect(variant?.prices).toEqual([
       {
-        amount: 7.99,
+        amount: 9.99,
         currency_code: "eur",
+      },
+    ])
+    expect(result.priceLists.sales).toEqual([
+      {
+        title: "Herbatica sale - Default pricelist - 2026-04-23_2026-05-23",
+        sourceTitle: "Default pricelist",
+        startsAt: "2026-04-23T00:00:00.000Z",
+        endsAt: "2026-05-23T23:59:59.999Z",
+        prices: [
+          {
+            productHandle: "shopitem-42",
+            variantSku: "SHOPITEM-42-42",
+            amount: 7.99,
+            currencyCode: "eur",
+          },
+        ],
       },
     ])
     expect(product?.metadata).toMatchObject({
@@ -158,6 +183,357 @@ describe("Herbatica seed promo rebase", () => {
       compare_at_price: 9.99,
       current_price: 7.99,
       has_active_discount: true,
+    })
+  })
+})
+
+describe("Herbatica seed price-list parsing", () => {
+  it("maps non-default Shoptet pricelists to dynamic override price lists", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="pricelist-override">
+          <NAME>Price list product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <STANDARD_PRICE>10</STANDARD_PRICE>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partnerský cenník</TITLE>
+              <PRICE_VAT>8.50</PRICE_VAT>
+            </PRICELIST>
+            <PRICELIST>
+              <TITLE>Hlavný cenník</TITLE>
+              <PRICE_VAT>9.00</PRICE_VAT>
+            </PRICELIST>
+            <PRICELIST>
+              <TITLE>VIP cenník</TITLE>
+              <PRICE_VAT>10.00</PRICE_VAT>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+
+    expect(result.products[0]?.variants?.[0]?.prices).toEqual([
+      {
+        amount: 10,
+        currency_code: "eur",
+      },
+    ])
+    expect(result.priceLists.overrides).toEqual([
+      {
+        title: "Partnerský cenník",
+        customerGroupName: "Partnerský cenník",
+        prices: [
+          {
+            productHandle: "shopitem-pricelist-override",
+            variantSku: "SHOPITEM-PRICELIST-OVERRIDE-PRICELIST-OVERRIDE",
+            amount: 8.5,
+            currencyCode: "eur",
+          },
+        ],
+      },
+      {
+        title: "VIP cenník",
+        customerGroupName: "VIP cenník",
+        prices: [],
+      },
+    ])
+  })
+
+  it("uses final variant SKUs in price-list prices after SKU enforcement", () => {
+    const longProductId = `price-list-sku-normalization-${"very-long-segment-".repeat(12)}`
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="${longProductId}">
+          <NAME>Price list normalized SKU product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <STANDARD_PRICE>10</STANDARD_PRICE>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partnerský cenník</TITLE>
+              <PRICE_VAT>8.50</PRICE_VAT>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variantSku = result.products[0]?.variants?.[0]?.sku
+    const priceListSku = result.priceLists.overrides[0]?.prices[0]?.variantSku
+
+    expect(variantSku).toBeDefined()
+    expect(priceListSku).toBe(variantSku)
+  })
+
+  it("groups pricelist action prices by source title and date window", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="sale-a">
+          <NAME>Sale A</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partneri</TITLE>
+              <PRICE_VAT>8.50</PRICE_VAT>
+              <ACTION_PRICE>7.25</ACTION_PRICE>
+              <ACTION_PRICE_FROM>2026-06-01</ACTION_PRICE_FROM>
+              <ACTION_PRICE_UNTIL>2026-06-30</ACTION_PRICE_UNTIL>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+        <SHOPITEM id="sale-b">
+          <NAME>Sale B</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>12</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>3</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Partneri</TITLE>
+              <PRICE_VAT>9.50</PRICE_VAT>
+              <ACTION_PRICE>8.25</ACTION_PRICE>
+              <ACTION_PRICE_FROM>2026-06-01</ACTION_PRICE_FROM>
+              <ACTION_PRICE_UNTIL>2026-06-30</ACTION_PRICE_UNTIL>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml, undefined, {
+      referenceDate: new Date("2026-05-26T12:00:00.000Z"),
+    })
+
+    expect(result.priceLists.sales).toEqual([
+      {
+        title: "Herbatica sale - Partneri - 2026-06-01_2026-06-30",
+        sourceTitle: "Partneri",
+        customerGroupName: "Partneri",
+        startsAt: "2026-06-01T00:00:00.000Z",
+        endsAt: "2026-06-30T23:59:59.999Z",
+        prices: [
+          {
+            productHandle: "shopitem-sale-a",
+            variantSku: "SHOPITEM-SALE-A-SALE-A",
+            amount: 7.25,
+            currencyCode: "eur",
+          },
+          {
+            productHandle: "shopitem-sale-b",
+            variantSku: "SHOPITEM-SALE-B-SALE-B",
+            amount: 8.25,
+            currencyCode: "eur",
+          },
+        ],
+      },
+    ])
+  })
+})
+
+describe("Herbatica seed stock parsing", () => {
+  it("preserves simple STOCK/AMOUNT inventory on the default stock location", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="stock-simple">
+          <NAME>Simple stock product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>7</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variant = result.products[0]?.variants?.[0]
+
+    expect(result.stockLocations).toEqual([
+      {
+        name: "European Warehouse",
+        address: {
+          city: "Copenhagen",
+          country_code: "DK",
+          address_1: "",
+        },
+      },
+    ])
+    expect(variant?.quantities).toEqual({
+      quantity: 7,
+      locations: [
+        {
+          stockLocationName: "European Warehouse",
+          quantity: 7,
+        },
+      ],
+    })
+    expect(variant?.metadata).toMatchObject({
+      stock: {
+        amount: 7,
+        warehouses: [],
+      },
+    })
+  })
+
+  it("preserves STOCK/WAREHOUSES quantities per Shoptet warehouse", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="stock-warehouse">
+          <NAME>Warehouse stock product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <WAREHOUSES>
+              <WAREHOUSE>
+                <NAME>Default stock</NAME>
+                <VALUE>84</VALUE>
+              </WAREHOUSE>
+              <WAREHOUSE>
+                <NAME>Pobočka Čadca</NAME>
+                <VALUE>2</VALUE>
+                <LOCATION>Čadca branch</LOCATION>
+              </WAREHOUSE>
+            </WAREHOUSES>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variant = result.products[0]?.variants?.[0]
+
+    expect(result.stockLocations).toEqual([
+      {
+        name: "Default stock",
+        address: {
+          address_1: "Shoptet Warehouse",
+          city: "Unknown",
+          country_code: "SK",
+        },
+      },
+      {
+        name: "Pobočka Čadca",
+        address: {
+          address_1: "Čadca branch",
+          city: "Unknown",
+          country_code: "SK",
+        },
+      },
+    ])
+    expect(variant?.quantities).toEqual({
+      locations: [
+        {
+          stockLocationName: "Default stock",
+          quantity: 84,
+        },
+        {
+          stockLocationName: "Pobočka Čadca",
+          quantity: 2,
+        },
+      ],
+    })
+    expect(variant?.metadata).toMatchObject({
+      stock: {
+        warehouses: [
+          {
+            name: "Default stock",
+            value: 84,
+          },
+          {
+            name: "Pobočka Čadca",
+            value: 2,
+            location: "Čadca branch",
+          },
+        ],
+      },
+    })
+  })
+
+  it("warns and uses fallback stock location name for unnamed warehouses", () => {
+    const xml = `
+      <SHOP>
+        <SHOPITEM id="stock-unnamed">
+          <NAME>Unnamed warehouse product</NAME>
+          <DESCRIPTION>Popis produktu</DESCRIPTION>
+          <PRICE_VAT>9.99</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <WAREHOUSES>
+              <WAREHOUSE>
+                <VALUE>5</VALUE>
+              </WAREHOUSE>
+            </WAREHOUSES>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="1701">Doplnky výživy</CATEGORY>
+          </CATEGORIES>
+        </SHOPITEM>
+      </SHOP>
+    `
+
+    const result = buildSeedInputFromXml(xml)
+    const variant = result.products[0]?.variants?.[0]
+
+    expect(result.stockLocations.map((location) => location.name)).toEqual([
+      "Shoptet Warehouse",
+    ])
+    expect(result.warnings).toEqual([
+      '1 Shoptet warehouse stock entries had no warehouse name and were mapped to "Shoptet Warehouse".',
+    ])
+    expect(variant?.quantities).toEqual({
+      locations: [
+        {
+          stockLocationName: "Shoptet Warehouse",
+          quantity: 5,
+        },
+      ],
     })
   })
 })
@@ -410,6 +786,56 @@ describe("Herbatica seed product content sections", () => {
   })
 })
 
+describe("Herbatica Shoptet workflow input", () => {
+  it("passes Herbatica policy config into generic seed inputs", () => {
+    const parsed = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="policy-product">
+          <NAME>Policy product</NAME>
+          <PRICE_VAT>10</PRICE_VAT>
+          <STANDARD_PRICE>10</STANDARD_PRICE>
+          <ACTION_PRICE>8</ACTION_PRICE>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK>
+            <AMOUNT>2</AMOUNT>
+          </STOCK>
+          <CATEGORIES>
+            <CATEGORY id="policy">Policy</CATEGORY>
+          </CATEGORIES>
+          <PRICELISTS>
+            <PRICELIST>
+              <TITLE>Wholesale</TITLE>
+              <PRICE_VAT>9</PRICE_VAT>
+            </PRICELIST>
+          </PRICELISTS>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    const input = buildHerbaticaSeedWorkflowInput(parsed, {
+      regionsInput: [
+        {
+          name: "Europe",
+          currencyCode: "eur",
+          countries: ["sk"],
+          paymentProviders: undefined,
+          isTaxInclusive: true,
+        },
+      ],
+      fulfillmentSetName: "European Warehouse delivery",
+      fulfillmentSetType: "shipping",
+      serviceZoneName: "Europe",
+    })
+
+    expect(input.workflowDefaults).toBe(HERBATICA_WORKFLOW_DEFAULTS)
+    expect(input.priceLists).toBe(parsed.priceLists)
+    expect(input.priceListSync).toBe(HERBATICA_PRICE_LIST_SYNC_CONFIG)
+    expect(input.taxRates?.config).toBe(HERBATICA_TAX_RATE_CONFIG)
+    expect(input.taxRates?.countries).toBe(HERBATICA_TAX_RATE_COUNTRIES)
+  })
+})
+
 describe("Herbatica committed feed fixtures", () => {
   const productsXmlPath = resolve(
     process.cwd(),
@@ -443,6 +869,11 @@ describe("Herbatica committed feed fixtures", () => {
       products: 4,
       variants: 5,
       hiddenProducts: 1,
+      overridePriceLists: 0,
+      salePriceLists: 1,
+      priceListPrices: 1,
+      stockLocations: 1,
+      warnings: 0,
     })
     expect(result.categories.map((category) => category.handle)).toEqual(
       expect.arrayContaining([

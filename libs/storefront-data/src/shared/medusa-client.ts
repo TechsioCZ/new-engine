@@ -1,5 +1,5 @@
-import Medusa from "@medusajs/js-sdk"
 import type { Config } from "@medusajs/js-sdk"
+import Medusa from "@medusajs/js-sdk"
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
@@ -31,35 +31,92 @@ const patchStorageMethod = <
 >(
   storage: Storage,
   methodName: TMethodName,
-  createFallback: (
-    originalMethod: Storage[TMethodName]
-  ) => Storage[TMethodName]
+  createFallback: (originalMethod: Storage[TMethodName]) => Storage[TMethodName]
 ): (() => void) => {
   const storagePrototype = Object.getPrototypeOf(storage) as Storage
-  const descriptor = Object.getOwnPropertyDescriptor(storagePrototype, methodName)
-  const originalMethod = storagePrototype[methodName]
+  const prototypeDescriptor = Object.getOwnPropertyDescriptor(
+    storagePrototype,
+    methodName
+  )
+  const ownDescriptor = Object.getOwnPropertyDescriptor(storage, methodName)
+  const originalMethod = storage[methodName] ?? storagePrototype[methodName]
+  const fallbackMethod = createFallback(originalMethod)
 
-  Object.defineProperty(storagePrototype, methodName, {
-    configurable: descriptor?.configurable ?? true,
-    enumerable: descriptor?.enumerable ?? false,
-    writable: descriptor?.writable ?? true,
-    value: createFallback(originalMethod),
-  })
+  try {
+    Object.defineProperty(storage, methodName, {
+      configurable: true,
+      enumerable: ownDescriptor?.enumerable ?? false,
+      writable: true,
+      value: fallbackMethod,
+    })
+  } catch {
+    Object.defineProperty(storagePrototype, methodName, {
+      configurable: prototypeDescriptor?.configurable ?? true,
+      enumerable: prototypeDescriptor?.enumerable ?? false,
+      writable: prototypeDescriptor?.writable ?? true,
+      value: fallbackMethod,
+    })
+  }
 
   return () => {
-    if (descriptor) {
-      Object.defineProperty(storagePrototype, methodName, descriptor)
+    if (ownDescriptor) {
+      Object.defineProperty(storage, methodName, ownDescriptor)
       return
     }
 
-    Reflect.deleteProperty(storagePrototype, methodName)
+    Reflect.deleteProperty(storage, methodName)
+
+    if (prototypeDescriptor) {
+      Object.defineProperty(storagePrototype, methodName, prototypeDescriptor)
+    }
   }
+}
+
+const createSafeStorage = (storage: Storage): Storage => {
+  const safeStorage = Object.create(storage) as Storage
+
+  Object.defineProperties(safeStorage, {
+    getItem: {
+      configurable: true,
+      value: (key: string) => {
+        try {
+          return storage.getItem(key)
+        } catch {
+          return null
+        }
+      },
+    },
+    setItem: {
+      configurable: true,
+      value: (key: string, value: string) => {
+        try {
+          storage.setItem(key, value)
+        } catch {
+          return
+        }
+      },
+    },
+    removeItem: {
+      configurable: true,
+      value: (key: string) => {
+        try {
+          storage.removeItem(key)
+        } catch {
+          return
+        }
+      },
+    },
+  })
+
+  return safeStorage
 }
 
 // During SDK construction, Medusa may read/write locale from localStorage.
 // Some browsers expose localStorage but still throw on access, so we
 // temporarily patch those methods just for the constructor call.
-const withSafeLocalStorageMethods = <TValue>(callback: () => TValue): TValue => {
+const withSafeLocalStorageMethods = <TValue>(
+  callback: () => TValue
+): TValue => {
   if (typeof window === "undefined") {
     return callback()
   }
@@ -69,6 +126,35 @@ const withSafeLocalStorageMethods = <TValue>(callback: () => TValue): TValue => 
     storage = window.localStorage
   } catch {
     return callback()
+  }
+
+  const localStorageDescriptor = Object.getOwnPropertyDescriptor(
+    window,
+    "localStorage"
+  )
+  let replacedWindowLocalStorage = false
+  try {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      enumerable: localStorageDescriptor?.enumerable ?? true,
+      value: createSafeStorage(storage),
+    })
+    replacedWindowLocalStorage = true
+  } catch {
+    // Fall back to method patching for environments where window.localStorage
+    // cannot be replaced but its methods can still be wrapped safely.
+  }
+
+  if (replacedWindowLocalStorage) {
+    try {
+      return callback()
+    } finally {
+      if (localStorageDescriptor) {
+        Object.defineProperty(window, "localStorage", localStorageDescriptor)
+      } else {
+        Reflect.deleteProperty(window, "localStorage")
+      }
+    }
   }
 
   const restoreGetItem = patchStorageMethod(
@@ -157,5 +243,7 @@ export function createMedusaSdk(
     return new Medusa(omitKeys(config, ["auth"]))
   }
 
-  return patchClientLocaleStorage(withSafeLocalStorageMethods(() => new Medusa(config)))
+  return patchClientLocaleStorage(
+    withSafeLocalStorageMethods(() => new Medusa(config))
+  )
 }

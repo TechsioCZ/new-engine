@@ -1,0 +1,63 @@
+@theme static {
+  --gap-phone-input-root: var(--spacing-form-field-gap);
+
+  --color-phone-input: var(--color-form-control-bg);
+  --color-phone-input-fg: var(--color-fg-primary);
+  --color-phone-input-bg-hover: oklch(
+    from var(--color-phone-input) calc(l + var(--state-hover)) c h
+  );
+  --color-phone-input-bg-focus: oklch(
+    from var(--color-phone-input) calc(l + var(--state-active)) c h
+  );
+  --color-phone-input-border-hover: var(--color-form-control-border-hover);
+  --color-phone-input-border-focus: var(--color-form-control-border-focus);
+  --color-phone-input-ring: var(--color-form-control-ring);
+  --color-phone-input-input-bg-base: transparent;
+  --color-phone-input-input-bg-hover: transparent;
+  --color-phone-input-input-bg-focus: transparent;
+
+  --color-phone-input-border-danger: var(--color-danger);
+  --color-phone-input-border-success: var(--color-success);
+  --color-phone-input-border-warning: var(--color-warning);
+
+  --color-phone-input-placeholder: var(--color-form-control-placeholder);
+  --color-phone-input-bg-disabled: var(--color-form-control-bg-disabled);
+  --color-phone-input-fg-disabled: var(--color-form-control-fg-disabled);
+  --color-phone-input-border-disabled: var(
+    --color-form-control-border-disabled
+  );
+
+  --color-phone-input-divider: var(--color-border-primary);
+  --color-phone-input-country-calling-code: var(--color-fg-secondary);
+  --color-phone-input-item-meta: var(--color-phone-input-country-calling-code);
+
+  --padding-phone-input-country-flag: 0;
+  --spacing-phone-input-country-value: var(--spacing-100);
+  --spacing-phone-input-item: var(--spacing-150);
+  --spacing-phone-input-country-flag: 0;
+
+  --text-phone-input-sm: var(--text-sm);
+  --text-phone-input-md: var(--text-md);
+  --text-phone-input-lg: var(--text-lg);
+  --text-phone-input-country-flag: var(--text-xs);
+
+  --radius-phone-input-sm: var(--radius-form-control-sm);
+  --radius-phone-input-md: var(--radius-form-control-md);
+  --radius-phone-input-lg: var(--radius-form-control-lg);
+  --radius-phone-input-country-flag: var(--radius-button-sm);
+  --color-phone-input-trigger-bg-base: transparent;
+  --color-phone-input-trigger-bg-hover: var(--color-fill-hover);
+  --border-phone-input-trigger: 0;
+  --width-phone-input-trigger: 12ch;
+}
+
+@utility phone-input-focus {
+  &:has(:focus-within) {
+    border-color: var(--color-phone-input-border-focus);
+    background: var(--color-phone-input-bg-focus);
+    outline-style: var(--default-ring-style);
+    outline-width: var(--default-ring-width);
+    outline-color: var(--color-phone-input-ring);
+    outline-offset: var(--default-ring-offset);
+  }
+}

@@ -1,0 +1,95 @@
+/*
+ * Techsio app theme.
+ *
+ * Import after @techsio/ui-kit/tokens in an app stylesheet. This file keeps the
+ * component token graph intact and only overrides semantic/app-level values.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-body: var(--font-sans);
+  --font-heading: var(--font-sans);
+
+  --color-brand-blue: oklch(57% 0.18 249);
+  --color-brand-blue-dark: oklch(74% 0.14 235);
+  --color-brand-green: oklch(64% 0.16 153);
+  --color-brand-coral: oklch(66% 0.16 28);
+  --color-brand-gold: oklch(78% 0.14 82);
+
+  --color-page-bg: light-dark(oklch(98% 0.012 248), oklch(17% 0.025 250));
+  --color-page-fg: light-dark(oklch(21% 0.03 252), oklch(94% 0.014 248));
+  --color-surface: light-dark(oklch(100% 0 0), oklch(22% 0.027 250));
+  --color-surface-subtle: light-dark(
+    oklch(95% 0.016 248),
+    oklch(27% 0.028 250)
+  );
+  --color-border-muted: light-dark(oklch(86% 0.024 248), oklch(38% 0.032 250));
+
+  --color-primary: light-dark(
+    var(--color-brand-blue),
+    var(--color-brand-blue-dark)
+  );
+  --color-secondary: var(--color-brand-green);
+  --color-tertiary: var(--color-brand-coral);
+  --color-info: light-dark(oklch(58% 0.14 210), oklch(77% 0.13 210));
+  --color-success: light-dark(oklch(58% 0.15 151), oklch(74% 0.14 151));
+  --color-warning: light-dark(var(--color-brand-gold), oklch(83% 0.13 82));
+  --color-danger: light-dark(oklch(58% 0.19 26), oklch(72% 0.16 26));
+
+  --color-base: var(--color-page-bg);
+  --color-base-reverse: var(--color-page-fg);
+  --color-bg-transparent-base: transparent;
+  --color-bg-disabled-base: light-dark(
+    oklch(91% 0.014 248),
+    oklch(31% 0.023 250)
+  );
+  --color-border-primary-base: var(--color-border-muted);
+  --color-border-disabled-base: light-dark(
+    oklch(82% 0.018 248),
+    oklch(35% 0.025 250)
+  );
+
+  --default-ring-style: solid;
+  --default-ring-width: 2px;
+  --default-ring-offset: 2px;
+
+  accent-color: var(--color-primary);
+  background: var(--color-page-bg);
+  color: var(--color-page-fg);
+  font-family: var(--font-body);
+}
+
+html {
+  background: var(--color-page-bg);
+}
+
+body {
+  background: var(--color-page-bg);
+  color: var(--color-page-fg);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-primary) 32%, transparent);
+}
+
+@media (forced-colors: active) {
+  :root {
+    --color-page-bg: Canvas;
+    --color-page-fg: CanvasText;
+    --color-surface: Canvas;
+    --color-surface-subtle: Canvas;
+    --color-border-muted: ButtonBorder;
+    --color-primary: Highlight;
+    --color-secondary: LinkText;
+    --color-tertiary: Mark;
+    --color-info: LinkText;
+    --color-success: Highlight;
+    --color-warning: Mark;
+    --color-danger: Mark;
+  }
+}
