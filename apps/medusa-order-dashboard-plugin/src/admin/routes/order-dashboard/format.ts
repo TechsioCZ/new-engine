@@ -13,6 +13,19 @@ type SortingState = {
   desc: boolean
 }
 
+// Local copy for dashboard pre-checks; the backend mutation remains final.
+const ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS = {
+  archived: [],
+  canceled: ["archived"],
+  completed: ["archived"],
+  draft: ["pending", "requires_action", "completed", "canceled", "archived"],
+  pending: ["draft", "requires_action", "completed", "canceled"],
+  requires_action: ["draft", "pending", "completed", "canceled"],
+} as const satisfies Record<
+  OrderDashboardTargetStatus,
+  readonly OrderDashboardTargetStatus[]
+>
+
 export function formatLocaleCode(language?: string) {
   return language ? language.replace("_", "-") : undefined
 }
@@ -54,15 +67,63 @@ export function getCarrierLabel(order: OrderDashboardOrder) {
   return order.carrier.shipping_method_name ?? order.carrier.label
 }
 
-export function getOrderItemsSummary(order: OrderDashboardOrder) {
-  if (!order.items.length) {
+export function formatPaymentMethodLabel(value: string | null | undefined) {
+  if (!value) {
     return "-"
   }
 
-  return order.items
-    .slice(0, 3)
-    .map((item) => `${item.quantity}x ${item.sku ?? item.title}`)
-    .join(", ")
+  return formatPaymentProviderId(value) ?? value
+}
+
+export function getOrderDashboardTransitionBlockReason(
+  order: Pick<OrderDashboardOrder, "has_active_fulfillment" | "status">,
+  targetStatus: OrderDashboardTargetStatus
+) {
+  const currentStatus = order.status
+
+  if (!currentStatus) {
+    return "Order status is unknown"
+  }
+
+  if (currentStatus === targetStatus) {
+    return `Order is already ${formatStatusForReason(targetStatus)}`
+  }
+
+  if (!isOrderDashboardTransitionSourceStatus(currentStatus)) {
+    return `Order status ${formatStatusForReason(currentStatus)} cannot be changed`
+  }
+
+  if (currentStatus === "archived") {
+    return "Archived orders cannot be changed"
+  }
+
+  if (currentStatus === "canceled" && targetStatus !== "archived") {
+    return "Canceled orders can only be archived"
+  }
+
+  if (currentStatus === "completed" && targetStatus === "canceled") {
+    return "Completed orders cannot be canceled"
+  }
+
+  if (currentStatus === "completed" && targetStatus !== "archived") {
+    return "Completed orders can only be archived"
+  }
+
+  if (
+    targetStatus === "canceled" &&
+    order.has_active_fulfillment
+  ) {
+    return "Orders with active fulfillments cannot be canceled"
+  }
+
+  const allowedTargetStatuses: readonly OrderDashboardTargetStatus[] =
+    ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS[currentStatus]
+
+  if (!allowedTargetStatuses.includes(targetStatus)) {
+    return `${formatStatusSubject(currentStatus)} orders cannot be changed to ${formatStatusForReason(targetStatus)}`
+  }
+
+  return
 }
 
 export function getSelectedOrders(
@@ -163,4 +224,56 @@ function compareNullableNumbers(left: number, right: number) {
   }
 
   return left - right
+}
+
+function formatPaymentProviderId(providerId: string) {
+  const tokens = providerId
+    .replace(/^pp_/u, "")
+    .split(/[_-]+/u)
+    .filter(Boolean)
+
+  if (!tokens.length) {
+    return
+  }
+
+  const meaningfulTokens = tokens[0] === "paykit" ? tokens.slice(1) : tokens
+  const lastToken = meaningfulTokens[meaningfulTokens.length - 1]
+  const labelTokens =
+    meaningfulTokens[0] !== "system" &&
+    meaningfulTokens.length > 1 &&
+    lastToken === "default"
+      ? meaningfulTokens.slice(0, -1)
+      : meaningfulTokens
+
+  return labelTokens.map(formatPaymentProviderToken).join(" ")
+}
+
+function formatPaymentProviderToken(token: string) {
+  switch (token.toLowerCase()) {
+    case "qr":
+      return "QR"
+    case "gopay":
+      return "GoPay"
+    case "paypal":
+      return "PayPal"
+    case "skippay":
+      return "SkipPay"
+    default:
+      return `${token.charAt(0).toUpperCase()}${token.slice(1)}`
+  }
+}
+
+function isOrderDashboardTransitionSourceStatus(
+  value: string
+): value is keyof typeof ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS {
+  return value in ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS
+}
+
+function formatStatusForReason(status: string) {
+  return status.replace(/_/g, " ")
+}
+
+function formatStatusSubject(status: string) {
+  const formatted = formatStatusForReason(status)
+  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
 }

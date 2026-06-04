@@ -1,6 +1,7 @@
 export type OrderDashboardAdminI18nNamespace = {
   actions: Record<
     | "apply"
+    | "applyManualStatus"
     | "businessStatusPlaceholder"
     | "clearManualStatus"
     | "expeditionPdf"
@@ -15,7 +16,6 @@ export type OrderDashboardAdminI18nNamespace = {
     | "carrier"
     | "created"
     | "customer"
-    | "items"
     | "manualStatus"
     | "order"
     | "payment"
@@ -26,6 +26,17 @@ export type OrderDashboardAdminI18nNamespace = {
   labelFormats: Record<"a6" | "a7", string>
   manualStatus: Record<
     "canceled" | "clear" | "none" | "processing" | "waiting_for_supplier",
+    string
+  >
+  manualStatusPrompt: Record<
+    | "description"
+    | "skipped"
+    | "skippedMore"
+    | "target"
+    | "title"
+    | "updated"
+    | "updatedMore"
+    | "willChange",
     string
   >
   menuItem: string
@@ -42,7 +53,11 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   table: Record<
-    "carrierFilterLimit" | "empty" | "filterTooltip" | "loading",
+    | "blockedOrdersTitle"
+    | "carrierFilterLimit"
+    | "empty"
+    | "filterTooltip"
+    | "loading",
     string
   >
   targetStatus: Record<
@@ -57,6 +72,8 @@ export type OrderDashboardAdminI18nNamespace = {
   title: string
   toast: Record<
     | "businessStatusUpdated"
+    | "businessStatusUpdatedWithSkipped"
+    | "blockedOrderStatus"
     | "manualStatusSkipped"
     | "missingBusinessStatus"
     | "missingOrderStatus"
@@ -73,6 +90,7 @@ export type OrderDashboardAdminI18nNamespace = {
 const englishOrderDashboardAdminI18n = {
   actions: {
     apply: "Apply",
+    applyManualStatus: "Apply manual status",
     businessStatusPlaceholder: "Manual status",
     clearManualStatus: "Clear manual status",
     expeditionPdf: "Expedition PDF",
@@ -86,7 +104,6 @@ const englishOrderDashboardAdminI18n = {
     carrier: "Carrier",
     created: "Created",
     customer: "Customer",
-    items: "Items",
     manualStatus: "Manual status",
     order: "Order",
     payment: "Payment",
@@ -107,6 +124,17 @@ const englishOrderDashboardAdminI18n = {
     processing: "Processing",
     waiting_for_supplier: "Waiting for supplier",
   },
+  manualStatusPrompt: {
+    description: "Only manually selected orders will be updated.",
+    skipped: "{{order}}: skipped - {{reason}}",
+    skippedMore: "{{count}} more will be skipped",
+    target: "Target manual status: {{status}}",
+    title: "Apply manual status",
+    updated: "{{order}}: set manual status to {{status}}",
+    updatedMore: "{{count}} more will be updated",
+    willChange:
+      "{{updatedCount}} order(s) will be updated. {{skippedCount}} order(s) will be skipped.",
+  },
   menuItem: "Order dashboard",
   queues: {
     action_required: "Action required",
@@ -123,6 +151,7 @@ const englishOrderDashboardAdminI18n = {
     waiting_for_supplier: "Waiting internally",
   },
   table: {
+    blockedOrdersTitle: "Some orders could not be updated.",
     carrierFilterLimit:
       "The carrier filter scanned {{count}} orders. The result may be incomplete.",
     empty: "No orders found.",
@@ -140,6 +169,9 @@ const englishOrderDashboardAdminI18n = {
   title: "Order dashboard",
   toast: {
     businessStatusUpdated: "Manual status updated for {{count}} orders",
+    businessStatusUpdatedWithSkipped:
+      "Manual status updated for {{count}} orders. {{skippedCount}} skipped.",
+    blockedOrderStatus: "Selected orders do not support that status change.",
     manualStatusSkipped: "Manual status was not changed",
     missingBusinessStatus: "Select a manual status.",
     missingOrderStatus: "Select a target order status.",
