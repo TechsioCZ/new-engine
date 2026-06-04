@@ -18,9 +18,10 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
 import {
   downloadOrderDashboardExpeditionPdf,
   downloadOrderDashboardPacketaLabels,
@@ -472,6 +473,12 @@ const OrderDashboardPage = () => {
   const actionRequiredLabel = summaryQuery.isLoading
     ? t("summary.actionRequiredLoading")
     : t("summary.actionRequired", { count: actionRequiredCount })
+
+  useEffect(() => {
+    setOrderDashboardSidebarBadgeCount(
+      summaryQuery.isLoading ? null : actionRequiredCount
+    )
+  }, [actionRequiredCount, summaryQuery.isLoading])
 
   return (
     <Container className="divide-y p-0">

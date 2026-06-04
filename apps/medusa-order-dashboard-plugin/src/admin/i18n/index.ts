@@ -1,4 +1,7 @@
 import { orderDashboardAdminI18n } from "../routes/order-dashboard/i18n"
+import { startOrderDashboardSidebarBadge } from "../sidebar-badge"
+
+startOrderDashboardSidebarBadge()
 
 export default {
   cs: {
