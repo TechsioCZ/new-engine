@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
-import { resolve } from "node:path"
 import type {
   ExecArgs,
   IFulfillmentModuleService,
@@ -12,20 +11,46 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
-import seedDatabaseWorkflow, {
-  type SeedDatabaseWorkflowInput,
-} from "../workflows/seed/workflows/seed-database"
+import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
+import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
 import {
   excerptPlainText,
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlSource,
   readXmlSource,
 } from "./herbatica-category-export"
+import {
+  HERBATICA_CATEGORIES_XML_ENV,
+  HERBATICA_CATEGORIES_XML_PATHS,
+  HERBATICA_COUNTRIES,
+  HERBATICA_CURRENCIES,
+  HERBATICA_DEFAULT_FULFILLMENT_SET,
+  HERBATICA_DEFAULT_PRICELIST_LABEL,
+  HERBATICA_DEFAULT_REGIONS,
+  HERBATICA_DEFAULT_SHIPPING_PROFILE,
+  HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES,
+  HERBATICA_DEFAULT_STOCK_LOCATION,
+  HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
+  HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  HERBATICA_PRODUCTS_XML_ENV,
+  HERBATICA_PRODUCTS_XML_PATHS,
+  HERBATICA_PROMO_REBASE_DAYS_ENV,
+  HERBATICA_PUBLISHABLE_KEY,
+  HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
+  HERBATICA_SALES_CHANNELS,
+  HERBATICA_SHIPPING_OPTIONS,
+  HERBATICA_TAX_RATE_CONFIG,
+  HERBATICA_TAX_RATE_COUNTRIES,
+  HERBATICA_WORKFLOW_DEFAULTS,
+} from "./herbatica-seed-config"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
 type ProductOptionSeedInput = NonNullable<ProductSeedInput["options"]>[number]
 type CategorySeedInput = SeedDatabaseWorkflowInput["productCategories"][number]
+type PriceListsSeedInput = NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
+type PriceListPriceSeedInput =
+  PriceListsSeedInput["overrides"][number]["prices"][number]
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -71,6 +96,12 @@ type ParsedOssTaxRate = {
   level?: string
 }
 
+type ParsedStockWarehouse = {
+  name?: string
+  quantity?: number
+  location?: string
+}
+
 type ParsedRelatedFile = {
   url?: string
   title?: string
@@ -107,6 +138,7 @@ type ParsedOfferData = {
   stockMinimalAmount?: number
   stockMaximalAmount?: number
   stockMinSupply?: number
+  stockWarehouses: ParsedStockWarehouse[]
   availabilityOutOfStock?: string
   availabilityInStock?: string
   imageRef?: string
@@ -222,18 +254,33 @@ type CategoryBuildResult = {
 type BuildResult = {
   categories: CategorySeedInput[]
   products: ProductSeedInput[]
+  priceLists: NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
+  stockLocations: SeedDatabaseWorkflowInput["stockLocations"]["locations"]
+  warnings: string[]
   stats: {
     shopItems: number
     categories: number
     products: number
     variants: number
     hiddenProducts: number
+    overridePriceLists: number
+    salePriceLists: number
+    priceListPrices: number
+    stockLocations: number
+    warnings: number
   }
 }
 
 type ResolvedFeedPaths = {
   productsXmlPath: string
   categoriesXmlPath?: string
+}
+
+type HerbaticaWorkflowInputOptions = {
+  regionsInput: SeedDatabaseWorkflowInput["regions"]
+  fulfillmentSetName: string
+  fulfillmentSetType: string
+  serviceZoneName: string
 }
 
 type SeedBuildOptions = {
@@ -263,31 +310,19 @@ type BuildVariantsForProductOptions = {
   referenceDate?: Date
 }
 
-const DEFAULT_PRODUCTS_XML_PATHS = [
-  resolve(__dirname, "seed-files/productsComplete.xml"),
-] as const
-
-const DEFAULT_CATEGORIES_XML_PATHS = [
-  resolve(__dirname, "seed-files/categories.xml"),
-] as const
-
-const DEFAULT_COUNTRIES = [
-  "cz",
-  "gb",
-  "de",
-  "dk",
-  "se",
-  "fr",
-  "es",
-  "it",
-  "pl",
-  "at",
-  "sk",
-] as const
-
+const DEFAULT_STOCK_LOCATION_NAME = HERBATICA_DEFAULT_STOCK_LOCATION.name
+const FALLBACK_SHOPTET_WAREHOUSE_NAME =
+  HERBATICA_FALLBACK_SHOPTET_WAREHOUSE.name
+const FALLBACK_SHOPTET_WAREHOUSE_ADDRESS =
+  HERBATICA_FALLBACK_SHOPTET_WAREHOUSE.address
+const DEFAULT_COUNTRIES = HERBATICA_COUNTRIES
 const MAX_HANDLE_LENGTH = 180
 const DEFAULT_OPTION_TITLE = "Variant"
 const DEFAULT_OPTION_VALUE = "Default"
+const DEFAULT_PRICELIST_LABEL = HERBATICA_DEFAULT_PRICELIST_LABEL
+const DEFAULT_SHOPTET_PRICELIST_TITLES: ReadonlySet<string> = new Set(
+  HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES
+)
 const PRODUCT_CONTENT_SECTION_ORDER: ProductContentSectionKey[] = [
   "description",
   "usage",
@@ -1316,6 +1351,59 @@ function resolveOfferCurrentPrice(
   return 0
 }
 
+function resolveOfferDefaultPrice(
+  offer: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData
+): number {
+  return resolveOfferBasePrice(offer, fallbackOffer) ?? 0
+}
+
+function priceAmountsEqual(left?: number, right?: number): boolean {
+  if (left === undefined || right === undefined) {
+    return left === right
+  }
+
+  return Math.abs(left - right) < 0.000_001
+}
+
+function isDefaultPricelistTitle(title?: string): boolean {
+  const comparable = normalizeComparableText(title)
+  return !!comparable && DEFAULT_SHOPTET_PRICELIST_TITLES.has(comparable)
+}
+
+function shouldImportActionPrice(
+  actionPrice?: number,
+  validUntil?: string,
+  referenceDate = new Date()
+): actionPrice is number {
+  if (actionPrice === undefined || actionPrice <= 0) {
+    return false
+  }
+
+  const until = parseIsoDate(validUntil, true)
+  return !until || referenceDate <= until
+}
+
+function serializePriceListDate(
+  value?: string,
+  endOfDay = false
+): string | undefined {
+  return parseIsoDate(value, endOfDay)?.toISOString()
+}
+
+function buildSalePriceListTitle(
+  sourceTitle: string,
+  startsAt?: string,
+  endsAt?: string
+): string {
+  const windowLabel =
+    startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
+  return HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE.replace(
+    "{sourceTitle}",
+    sourceTitle
+  ).replace("{windowLabel}", windowLabel)
+}
+
 function rebaseOfferPromotion(
   offer: ParsedOfferData,
   buildOptions: ResolvedSeedBuildOptions,
@@ -1544,6 +1632,70 @@ function normalizeInventoryQuantity(quantity?: number): number {
   return Math.max(0, Math.trunc(quantity))
 }
 
+function resolveWarehouseStockLocationName(warehouse: ParsedStockWarehouse): {
+  name: string
+  usedFallback: boolean
+} {
+  const name = normalizeInlineText(warehouse.name)
+  if (name) {
+    return {
+      name,
+      usedFallback: false,
+    }
+  }
+
+  return {
+    name: FALLBACK_SHOPTET_WAREHOUSE_NAME,
+    usedFallback: true,
+  }
+}
+
+function buildWarehouseStockLocationAddress(location?: string): {
+  city: string
+  country_code: string
+  address_1: string
+} {
+  const address = normalizeInlineText(location)
+  if (!address) {
+    return { ...FALLBACK_SHOPTET_WAREHOUSE_ADDRESS }
+  }
+
+  return {
+    address_1: address,
+    city: "Unknown",
+    country_code: "SK",
+  }
+}
+
+function buildOfferInventoryQuantities(offer: ParsedOfferData): {
+  quantity?: number
+  supplier_quantity?: number
+  locations?: {
+    stockLocationName: string
+    quantity: number
+  }[]
+} {
+  if (offer.stockWarehouses.length === 0) {
+    const quantity = normalizeInventoryQuantity(offer.stockAmountRaw)
+    return {
+      quantity,
+      locations: [
+        {
+          stockLocationName: DEFAULT_STOCK_LOCATION_NAME,
+          quantity,
+        },
+      ],
+    }
+  }
+
+  return {
+    locations: offer.stockWarehouses.map((warehouse) => ({
+      stockLocationName: resolveWarehouseStockLocationName(warehouse).name,
+      quantity: normalizeInventoryQuantity(warehouse.quantity),
+    })),
+  }
+}
+
 function parseParameters(
   source: string,
   containerTag: string
@@ -1585,6 +1737,10 @@ function parsePricelists(source: string): ParsedPricelist[] {
   }))
 }
 
+function stripNestedPricelists(source: string): string {
+  return source.replace(/<PRICELISTS(?:\s[^>]*)?>[\s\S]*?<\/PRICELISTS>/g, "")
+}
+
 function parseOssTaxRates(source: string): ParsedOssTaxRate[] {
   const ossRatesRaw = extractFirstElementContent(source, "OSS_TAX_RATES")
   if (!ossRatesRaw) {
@@ -1597,38 +1753,63 @@ function parseOssTaxRates(source: string): ParsedOssTaxRate[] {
   }))
 }
 
+function parseStockWarehouses(stockRaw?: string): ParsedStockWarehouse[] {
+  const warehousesRaw = extractFirstElementContent(stockRaw ?? "", "WAREHOUSES")
+  if (!warehousesRaw) {
+    return []
+  }
+
+  return extractElements(warehousesRaw, "WAREHOUSE").map((warehouse) => ({
+    name: extractFirstText(warehouse.inner, "NAME"),
+    quantity: parseInteger(extractFirstText(warehouse.inner, "VALUE")),
+    location: extractFirstText(warehouse.inner, "LOCATION"),
+  }))
+}
+
 function parseOfferData(
   source: string,
   attributes?: Record<string, string>
 ): ParsedOfferData {
-  const stockRaw = extractFirstElementContent(source, "STOCK")
+  const scalarSource = stripNestedPricelists(source)
+  const stockRaw = extractFirstElementContent(scalarSource, "STOCK")
   const stockAmount = parseInteger(extractFirstText(stockRaw ?? "", "AMOUNT"))
+  const stockWarehouses = parseStockWarehouses(stockRaw)
   const stockMinSupply = parseInteger(
-    extractFirstText(source, "STOCK_MIN_SUPPLY")
+    extractFirstText(scalarSource, "STOCK_MIN_SUPPLY")
   )
-  const logisticRaw = extractFirstElementContent(source, "LOGISTIC")
-  const atypicalRaw = extractFirstElementContent(source, "ATYPICAL_PRODUCT")
-  const unitOfMeasureRaw = extractFirstElementContent(source, "UNIT_OF_MEASURE")
+  const logisticRaw = extractFirstElementContent(scalarSource, "LOGISTIC")
+  const atypicalRaw = extractFirstElementContent(
+    scalarSource,
+    "ATYPICAL_PRODUCT"
+  )
+  const unitOfMeasureRaw = extractFirstElementContent(
+    scalarSource,
+    "UNIT_OF_MEASURE"
+  )
 
   return {
     variantId: attributes?.id,
-    code: extractFirstText(source, "CODE"),
-    ean: extractFirstText(source, "EAN"),
-    partNumber: extractFirstText(source, "PART_NUMBER"),
-    productNumber: extractFirstText(source, "PRODUCT_NUMBER"),
-    plu: extractFirstText(source, "PLU"),
-    unit: extractFirstText(source, "UNIT"),
-    currency: extractFirstText(source, "CURRENCY"),
-    vat: parseNumber(extractFirstText(source, "VAT")),
-    priceVat: parseNumber(extractFirstText(source, "PRICE_VAT")),
-    standardPrice: parseNumber(extractFirstText(source, "STANDARD_PRICE")),
-    actionPrice: parseNumber(extractFirstText(source, "ACTION_PRICE")),
-    actionPriceFrom: extractFirstText(source, "ACTION_PRICE_FROM"),
-    actionPriceUntil: extractFirstText(source, "ACTION_PRICE_UNTIL"),
-    purchasePrice: parseNumber(extractFirstText(source, "PURCHASE_PRICE")),
-    purchaseVat: parseNumber(extractFirstText(source, "PURCHASE_VAT")),
+    code: extractFirstText(scalarSource, "CODE"),
+    ean: extractFirstText(scalarSource, "EAN"),
+    partNumber: extractFirstText(scalarSource, "PART_NUMBER"),
+    productNumber: extractFirstText(scalarSource, "PRODUCT_NUMBER"),
+    plu: extractFirstText(scalarSource, "PLU"),
+    unit: extractFirstText(scalarSource, "UNIT"),
+    currency: extractFirstText(scalarSource, "CURRENCY"),
+    vat: parseNumber(extractFirstText(scalarSource, "VAT")),
+    priceVat: parseNumber(extractFirstText(scalarSource, "PRICE_VAT")),
+    standardPrice: parseNumber(
+      extractFirstText(scalarSource, "STANDARD_PRICE")
+    ),
+    actionPrice: parseNumber(extractFirstText(scalarSource, "ACTION_PRICE")),
+    actionPriceFrom: extractFirstText(scalarSource, "ACTION_PRICE_FROM"),
+    actionPriceUntil: extractFirstText(scalarSource, "ACTION_PRICE_UNTIL"),
+    purchasePrice: parseNumber(
+      extractFirstText(scalarSource, "PURCHASE_PRICE")
+    ),
+    purchaseVat: parseNumber(extractFirstText(scalarSource, "PURCHASE_VAT")),
     purchasePriceInclVat: parseBoolean(
-      extractFirstText(source, "PURCHASE_PRICE_INCL_VAT")
+      extractFirstText(scalarSource, "PURCHASE_PRICE_INCL_VAT")
     ),
     stockAmount,
     stockAmountRaw: stockAmount,
@@ -1640,33 +1821,41 @@ function parseOfferData(
       extractFirstText(stockRaw ?? "", "MAXIMAL_AMOUNT")
     ),
     stockMinSupply,
+    stockWarehouses,
     availabilityOutOfStock: extractFirstText(
-      source,
+      scalarSource,
       "AVAILABILITY_OUT_OF_STOCK"
     ),
-    availabilityInStock: extractFirstText(source, "AVAILABILITY_IN_STOCK"),
-    imageRef: extractFirstText(source, "IMAGE_REF"),
-    visible: parseBoolean(extractFirstText(source, "VISIBLE"), true),
-    freeShipping: parseBoolean(extractFirstText(source, "FREE_SHIPPING")),
-    freeBilling: parseBoolean(extractFirstText(source, "FREE_BILLING")),
-    decimalCount: parseInteger(extractFirstText(source, "DECIMAL_COUNT")),
-    negativeAmount: parseBoolean(extractFirstText(source, "NEGATIVE_AMOUNT")),
-    priceRatio: parseNumber(extractFirstText(source, "PRICE_RATIO")),
-    minPriceRatio: parseNumber(extractFirstText(source, "MIN_PRICE_RATIO")),
+    availabilityInStock: extractFirstText(
+      scalarSource,
+      "AVAILABILITY_IN_STOCK"
+    ),
+    imageRef: extractFirstText(scalarSource, "IMAGE_REF"),
+    visible: parseBoolean(extractFirstText(scalarSource, "VISIBLE"), true),
+    freeShipping: parseBoolean(extractFirstText(scalarSource, "FREE_SHIPPING")),
+    freeBilling: parseBoolean(extractFirstText(scalarSource, "FREE_BILLING")),
+    decimalCount: parseInteger(extractFirstText(scalarSource, "DECIMAL_COUNT")),
+    negativeAmount: parseBoolean(
+      extractFirstText(scalarSource, "NEGATIVE_AMOUNT")
+    ),
+    priceRatio: parseNumber(extractFirstText(scalarSource, "PRICE_RATIO")),
+    minPriceRatio: parseNumber(
+      extractFirstText(scalarSource, "MIN_PRICE_RATIO")
+    ),
     applyLoyaltyDiscount: parseBoolean(
-      extractFirstText(source, "APPLY_LOYALTY_DISCOUNT"),
+      extractFirstText(scalarSource, "APPLY_LOYALTY_DISCOUNT"),
       true
     ),
     applyVolumeDiscount: parseBoolean(
-      extractFirstText(source, "APPLY_VOLUME_DISCOUNT"),
+      extractFirstText(scalarSource, "APPLY_VOLUME_DISCOUNT"),
       true
     ),
     applyQuantityDiscount: parseBoolean(
-      extractFirstText(source, "APPLY_QUANTITY_DISCOUNT"),
+      extractFirstText(scalarSource, "APPLY_QUANTITY_DISCOUNT"),
       true
     ),
     applyDiscountCoupon: parseBoolean(
-      extractFirstText(source, "APPLY_DISCOUNT_COUPON"),
+      extractFirstText(scalarSource, "APPLY_DISCOUNT_COUPON"),
       true
     ),
     weightKg: parseNumber(extractFirstText(logisticRaw ?? "", "WEIGHT")),
@@ -2278,6 +2467,11 @@ function buildVariantMetadata(
     stock: {
       amount: offer.stockAmountRaw,
       location: offer.stockLocation,
+      warehouses: offer.stockWarehouses.map((warehouse) => ({
+        name: warehouse.name,
+        value: warehouse.quantity,
+        location: warehouse.location,
+      })),
       minimal_amount: offer.stockMinimalAmount,
       maximal_amount: offer.stockMaximalAmount,
       min_supply: offer.stockMinSupply,
@@ -2419,9 +2613,9 @@ function buildVariantsForProduct({
     if (ean) {
       usedEans.add(ean)
     }
-    const amount = resolveOfferCurrentPrice(topOffer, undefined, referenceDate)
+    const amount = resolveOfferDefaultPrice(topOffer)
     const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
-    const quantity = normalizeInventoryQuantity(topOffer.stockAmountRaw)
+    const quantities = buildOfferInventoryQuantities(topOffer)
     const thumbnail = topOffer.imageRef
     const optionTitle = DEFAULT_OPTION_TITLE
     const optionValue = DEFAULT_OPTION_VALUE
@@ -2450,9 +2644,7 @@ function buildVariantsForProduct({
           images: thumbnail ? [{ url: thumbnail }] : undefined,
           thumbnail,
           metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
-          quantities: {
-            quantity,
-          },
+          quantities,
         },
       ],
     }
@@ -2529,12 +2721,8 @@ function buildVariantsForProduct({
       item.topOffer.currency ??
       "EUR"
     ).toLowerCase()
-    const amount = resolveOfferCurrentPrice(
-      variant,
-      item.topOffer,
-      referenceDate
-    )
-    const quantity = normalizeInventoryQuantity(variant.stockAmountRaw)
+    const amount = resolveOfferDefaultPrice(variant, item.topOffer)
+    const quantities = buildOfferInventoryQuantities(variant)
     const thumbnail = variant.imageRef
     const rawEan = normalizeInlineText(variant.ean)
     const ean = rawEan && !usedEans.has(rawEan) ? rawEan : undefined
@@ -2556,9 +2744,7 @@ function buildVariantsForProduct({
       images: thumbnail ? [{ url: thumbnail }] : undefined,
       thumbnail,
       metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
-      quantities: {
-        quantity,
-      },
+      quantities,
     }
   })
 
@@ -2673,6 +2859,401 @@ function buildProducts(
   })
 }
 
+function getVariantBasePrice(
+  variant: VariantSeedInput
+): PriceListPriceSeedInput | undefined {
+  const price = variant.prices?.[0]
+  if (!(price && variant.sku)) {
+    return
+  }
+
+  return {
+    productHandle: "",
+    variantSku: variant.sku,
+    amount: price.amount,
+    currencyCode: price.currency_code,
+  }
+}
+
+function addPriceListPrice(
+  prices: PriceListPriceSeedInput[],
+  price: PriceListPriceSeedInput
+) {
+  const existingIndex = prices.findIndex(
+    (existing) =>
+      existing.productHandle === price.productHandle &&
+      existing.variantSku === price.variantSku &&
+      existing.currencyCode.toLowerCase() === price.currencyCode.toLowerCase()
+  )
+
+  if (existingIndex === -1) {
+    prices.push(price)
+    return
+  }
+
+  prices[existingIndex] = price
+}
+
+function addSalePriceListPrice(
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>,
+  {
+    sourceTitle,
+    customerGroupName,
+    startsAtRaw,
+    endsAtRaw,
+    price,
+  }: {
+    sourceTitle: string
+    customerGroupName?: string
+    startsAtRaw?: string
+    endsAtRaw?: string
+    price: PriceListPriceSeedInput
+  }
+) {
+  const key = [
+    sourceTitle,
+    customerGroupName ?? "",
+    startsAtRaw ?? "",
+    endsAtRaw ?? "",
+  ].join("|")
+  const startsAt = serializePriceListDate(startsAtRaw)
+  const endsAt = serializePriceListDate(endsAtRaw, true)
+  const salePriceList =
+    salePriceListsByKey.get(key) ??
+    ({
+      title: buildSalePriceListTitle(sourceTitle, startsAtRaw, endsAtRaw),
+      sourceTitle,
+      ...(customerGroupName ? { customerGroupName } : {}),
+      startsAt,
+      endsAt,
+      prices: [],
+    } satisfies PriceListsSeedInput["sales"][number])
+
+  addPriceListPrice(salePriceList.prices, price)
+  salePriceListsByKey.set(key, salePriceList)
+}
+
+function getVariantMetadata(
+  variant: VariantSeedInput
+): Record<string, unknown> | undefined {
+  const { metadata } = variant
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return
+  }
+
+  return metadata
+}
+
+function getMetadataString(
+  metadata: Record<string, unknown> | undefined,
+  key: string
+): string | undefined {
+  return typeof metadata?.[key] === "string" ? metadata[key] : undefined
+}
+
+function getMetadataNumber(
+  metadata: Record<string, unknown> | undefined,
+  key: string
+): number | undefined {
+  return typeof metadata?.[key] === "number" ? metadata[key] : undefined
+}
+
+function getMetadataPricelists(
+  metadata: Record<string, unknown> | undefined
+): ParsedPricelist[] {
+  return Array.isArray(metadata?.pricelists)
+    ? (metadata.pricelists as ParsedPricelist[])
+    : []
+}
+
+function addDefaultSalePriceFromMetadata({
+  basePrice,
+  metadata,
+  referenceDate,
+  salePriceListsByKey,
+}: {
+  basePrice: PriceListPriceSeedInput
+  metadata: Record<string, unknown> | undefined
+  referenceDate: Date
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
+}) {
+  const actionPrice = normalizePriceAmount(
+    getMetadataNumber(metadata, "action_price")
+  )
+  const actionPriceFrom = getMetadataString(metadata, "action_price_from")
+  const actionPriceUntil = getMetadataString(metadata, "action_price_until")
+
+  if (
+    !shouldImportActionPrice(actionPrice, actionPriceUntil, referenceDate) ||
+    priceAmountsEqual(actionPrice, basePrice.amount)
+  ) {
+    return
+  }
+
+  addSalePriceListPrice(salePriceListsByKey, {
+    sourceTitle: DEFAULT_PRICELIST_LABEL,
+    startsAtRaw: actionPriceFrom,
+    endsAtRaw: actionPriceUntil,
+    price: {
+      ...basePrice,
+      amount: actionPrice,
+    },
+  })
+}
+
+function ensureOverridePriceList(
+  overridePriceListsByTitle: Map<
+    string,
+    PriceListsSeedInput["overrides"][number]
+  >,
+  title: string
+): PriceListsSeedInput["overrides"][number] {
+  const existing = overridePriceListsByTitle.get(title)
+  if (existing) {
+    return existing
+  }
+
+  const created = {
+    title,
+    customerGroupName: title,
+    prices: [],
+  } satisfies PriceListsSeedInput["overrides"][number]
+  overridePriceListsByTitle.set(title, created)
+  return created
+}
+
+function addRegularPricelistPrice(
+  overridePriceList: PriceListsSeedInput["overrides"][number],
+  basePrice: PriceListPriceSeedInput,
+  regularPrice?: number
+) {
+  if (
+    regularPrice === undefined ||
+    priceAmountsEqual(regularPrice, basePrice.amount)
+  ) {
+    return
+  }
+
+  addPriceListPrice(overridePriceList.prices, {
+    ...basePrice,
+    amount: regularPrice,
+  })
+}
+
+function addPricelistSalePrice({
+  basePrice,
+  pricelist,
+  referenceDate,
+  regularPrice,
+  salePriceListsByKey,
+  title,
+}: {
+  basePrice: PriceListPriceSeedInput
+  pricelist: ParsedPricelist
+  referenceDate: Date
+  regularPrice?: number
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
+  title: string
+}) {
+  const actionPrice = normalizePriceAmount(pricelist.actionPrice)
+  const comparisonPrice = regularPrice ?? basePrice.amount
+
+  if (
+    !shouldImportActionPrice(
+      actionPrice,
+      pricelist.actionPriceUntil,
+      referenceDate
+    ) ||
+    priceAmountsEqual(actionPrice, comparisonPrice)
+  ) {
+    return
+  }
+
+  addSalePriceListPrice(salePriceListsByKey, {
+    sourceTitle: title,
+    customerGroupName: title,
+    startsAtRaw: pricelist.actionPriceFrom,
+    endsAtRaw: pricelist.actionPriceUntil,
+    price: {
+      ...basePrice,
+      amount: actionPrice,
+    },
+  })
+}
+
+function addVariantPriceListEntries({
+  basePrice,
+  metadata,
+  overridePriceListsByTitle,
+  referenceDate,
+  salePriceListsByKey,
+}: {
+  basePrice: PriceListPriceSeedInput
+  metadata: Record<string, unknown> | undefined
+  overridePriceListsByTitle: Map<
+    string,
+    PriceListsSeedInput["overrides"][number]
+  >
+  referenceDate: Date
+  salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
+}) {
+  addDefaultSalePriceFromMetadata({
+    basePrice,
+    metadata,
+    referenceDate,
+    salePriceListsByKey,
+  })
+
+  for (const pricelist of getMetadataPricelists(metadata)) {
+    const title = normalizeInlineText(pricelist.title)
+    if (!title || isDefaultPricelistTitle(title)) {
+      continue
+    }
+
+    const overridePriceList = ensureOverridePriceList(
+      overridePriceListsByTitle,
+      title
+    )
+    const regularPrice = normalizePriceAmount(
+      pricelist.priceVat ?? pricelist.standardPrice
+    )
+
+    addRegularPricelistPrice(overridePriceList, basePrice, regularPrice)
+    addPricelistSalePrice({
+      basePrice,
+      pricelist,
+      referenceDate,
+      regularPrice,
+      salePriceListsByKey,
+      title,
+    })
+  }
+}
+
+function buildPriceListsFromProducts(
+  products: ProductSeedInput[],
+  referenceDate = new Date()
+): PriceListsSeedInput {
+  const overridePriceListsByTitle = new Map<
+    string,
+    PriceListsSeedInput["overrides"][number]
+  >()
+  const salePriceListsByKey = new Map<
+    string,
+    PriceListsSeedInput["sales"][number]
+  >()
+
+  for (const product of products) {
+    for (const variant of product.variants ?? []) {
+      const basePrice = getVariantBasePrice(variant)
+      if (!basePrice) {
+        continue
+      }
+
+      addVariantPriceListEntries({
+        basePrice: {
+          ...basePrice,
+          productHandle: product.handle,
+        },
+        metadata: getVariantMetadata(variant),
+        overridePriceListsByTitle,
+        referenceDate,
+        salePriceListsByKey,
+      })
+    }
+  }
+
+  return {
+    overrides: [...overridePriceListsByTitle.values()],
+    sales: [...salePriceListsByKey.values()],
+  }
+}
+
+function getItemOffers(item: ParsedShopItem): ParsedOfferData[] {
+  return item.variants.length > 0 ? item.variants : [item.topOffer]
+}
+
+function addWarehouseStockLocation(
+  locationsByName: Map<
+    string,
+    SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
+  >,
+  warehouse: ParsedStockWarehouse
+): boolean {
+  const { name, usedFallback } = resolveWarehouseStockLocationName(warehouse)
+  const address = buildWarehouseStockLocationAddress(warehouse.location)
+  const existingLocation = locationsByName.get(name)
+
+  if (!existingLocation) {
+    locationsByName.set(name, {
+      name,
+      address,
+    })
+    return usedFallback
+  }
+
+  if (
+    existingLocation.address.address_1 ===
+      FALLBACK_SHOPTET_WAREHOUSE_ADDRESS.address_1 &&
+    address.address_1 !== FALLBACK_SHOPTET_WAREHOUSE_ADDRESS.address_1
+  ) {
+    existingLocation.address = address
+  }
+
+  return usedFallback
+}
+
+function addDefaultStockLocation(
+  locationsByName: Map<
+    string,
+    SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
+  >
+) {
+  locationsByName.set(DEFAULT_STOCK_LOCATION_NAME, {
+    ...HERBATICA_DEFAULT_STOCK_LOCATION,
+    address: {
+      ...HERBATICA_DEFAULT_STOCK_LOCATION.address,
+    },
+  })
+}
+
+function buildStockLocationsFromItems(items: ParsedShopItem[]): {
+  locations: SeedDatabaseWorkflowInput["stockLocations"]["locations"]
+  warnings: string[]
+} {
+  const locationsByName = new Map<
+    string,
+    SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
+  >()
+  const warnings: string[] = []
+  const offers = items.flatMap(getItemOffers)
+  const hasSimpleStock = offers.some(
+    (offer) => offer.stockWarehouses.length === 0
+  )
+  let missingWarehouseNames = 0
+
+  for (const warehouse of offers.flatMap((offer) => offer.stockWarehouses)) {
+    if (addWarehouseStockLocation(locationsByName, warehouse)) {
+      missingWarehouseNames += 1
+    }
+  }
+
+  if (hasSimpleStock || locationsByName.size === 0) {
+    addDefaultStockLocation(locationsByName)
+  }
+
+  if (missingWarehouseNames > 0) {
+    warnings.push(
+      `${missingWarehouseNames} Shoptet warehouse stock entries had no warehouse name and were mapped to "${FALLBACK_SHOPTET_WAREHOUSE_NAME}".`
+    )
+  }
+
+  return {
+    locations: [...locationsByName.values()],
+    warnings,
+  }
+}
+
 function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
   const usedSkus = new Set<string>()
 
@@ -2718,6 +3299,12 @@ export function buildSeedInputFromXml(
     buildOptions
   )
   enforceUniqueVariantSkus(products)
+  const priceLists = buildPriceListsFromProducts(
+    products,
+    buildOptions.referenceDate
+  )
+  const { locations: stockLocations, warnings } =
+    buildStockLocationsFromItems(items)
   const hiddenProducts = products.filter(
     (product) => product.status === ProductStatus.DRAFT
   ).length
@@ -2725,17 +3312,81 @@ export function buildSeedInputFromXml(
     (acc, product) => acc + (product.variants?.length ?? 0),
     0
   )
+  const priceListPrices =
+    priceLists.overrides.reduce(
+      (acc, priceList) => acc + priceList.prices.length,
+      0
+    ) +
+    priceLists.sales.reduce(
+      (acc, priceList) => acc + priceList.prices.length,
+      0
+    )
 
   return {
     categories,
     products,
+    priceLists,
+    stockLocations,
+    warnings,
     stats: {
       shopItems: items.length,
       categories: categories.length,
       products: products.length,
       variants,
       hiddenProducts,
+      overridePriceLists: priceLists.overrides.length,
+      salePriceLists: priceLists.sales.length,
+      priceListPrices,
+      stockLocations: stockLocations.length,
+      warnings: warnings.length,
     },
+  }
+}
+
+export function buildHerbaticaSeedWorkflowInput(
+  parsed: BuildResult,
+  {
+    regionsInput,
+    fulfillmentSetName,
+    fulfillmentSetType,
+    serviceZoneName,
+  }: HerbaticaWorkflowInputOptions
+): SeedDatabaseWorkflowInput {
+  return {
+    workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
+    salesChannels: HERBATICA_SALES_CHANNELS,
+    currencies: HERBATICA_CURRENCIES,
+    regions: regionsInput,
+    taxRegions: {
+      countries: [...DEFAULT_COUNTRIES],
+      taxProviderId: undefined,
+    },
+    taxRates: {
+      countries: HERBATICA_TAX_RATE_COUNTRIES,
+      config: HERBATICA_TAX_RATE_CONFIG,
+    },
+    stockLocations: {
+      locations: parsed.stockLocations,
+    },
+    defaultShippingProfile: HERBATICA_DEFAULT_SHIPPING_PROFILE,
+    fulfillmentSets: {
+      name: fulfillmentSetName,
+      type: fulfillmentSetType,
+      serviceZones: [
+        {
+          name: serviceZoneName,
+          geoZones: [...DEFAULT_COUNTRIES].map((country) => ({
+            countryCode: country,
+          })),
+        },
+      ],
+    },
+    shippingOptions: HERBATICA_SHIPPING_OPTIONS,
+    publishableKey: HERBATICA_PUBLISHABLE_KEY,
+    productCategories: parsed.categories,
+    products: parsed.products,
+    priceLists: parsed.priceLists,
+    priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
   }
 }
 
@@ -2745,17 +3396,17 @@ function resolveProductsXmlPath(args?: string[]): string {
     return argPath
   }
 
-  const envPath = normalizeInlineText(process.env.HERBATICA_XML_PATH)
+  const envPath = normalizeInlineText(process.env[HERBATICA_PRODUCTS_XML_ENV])
   if (envPath) {
     return envPath
   }
 
-  const detectedPath = DEFAULT_PRODUCTS_XML_PATHS.find((path) =>
+  const detectedPath = HERBATICA_PRODUCTS_XML_PATHS.find((path) =>
     existsSync(path)
   )
   if (!detectedPath) {
     throw new Error(
-      `Could not find productsComplete.xml. Checked: ${DEFAULT_PRODUCTS_XML_PATHS.join(", ")}`
+      `Could not find productsComplete.xml. Checked: ${HERBATICA_PRODUCTS_XML_PATHS.join(", ")}`
     )
   }
 
@@ -2768,12 +3419,12 @@ function resolveCategoriesXmlPath(args?: string[]): string | undefined {
     return argPath
   }
 
-  const envPath = normalizeInlineText(process.env.HERBATICA_CATEGORIES_XML_PATH)
+  const envPath = normalizeInlineText(process.env[HERBATICA_CATEGORIES_XML_ENV])
   if (envPath) {
     return envPath
   }
 
-  return DEFAULT_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
+  return HERBATICA_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
 }
 
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
@@ -2802,7 +3453,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
     : undefined
   const buildOptions = resolveSeedBuildOptions({
-    promoRebaseDays: parsePositiveIntegerEnv("HERBATICA_PROMO_REBASE_DAYS"),
+    promoRebaseDays: parsePositiveIntegerEnv(HERBATICA_PROMO_REBASE_DAYS_ENV),
   })
 
   if (buildOptions.promoRebaseDays !== undefined) {
@@ -2819,25 +3470,20 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   logger.info(
     `Products set to draft due to visibility rules: ${parsed.stats.hiddenProducts}`
   )
+  logger.info(
+    `Parsed ${parsed.stats.stockLocations} stock locations from stock data`
+  )
+  logger.info(
+    `Parsed ${parsed.stats.overridePriceLists} override price lists, ${parsed.stats.salePriceLists} sale price lists, ${parsed.stats.priceListPrices} price-list prices`
+  )
+  for (const warning of parsed.warnings) {
+    logger.warn(warning)
+  }
 
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
   const existingRegions = await regionService.listRegions({})
-  const defaultRegions: SeedDatabaseWorkflowInput["regions"] = [
-    {
-      name: "Czechia",
-      currencyCode: "czk",
-      countries: ["cz"],
-      paymentProviders: undefined,
-      isTaxInclusive: true,
-    },
-    {
-      name: "Europe",
-      currencyCode: "eur",
-      countries: DEFAULT_COUNTRIES.filter((country) => country !== "cz"),
-      paymentProviders: undefined,
-      isTaxInclusive: true,
-    },
-  ]
+  const defaultRegions: SeedDatabaseWorkflowInput["regions"] =
+    HERBATICA_DEFAULT_REGIONS
 
   const regionsInput: SeedDatabaseWorkflowInput["regions"] =
     existingRegions.length === 0
@@ -2870,12 +3516,13 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     existingFulfillmentSetWithEurope ?? existingFulfillmentSets[0]
 
   const fulfillmentSetName =
-    selectedFulfillmentSet?.name ?? "European Warehouse delivery"
-  const fulfillmentSetType = selectedFulfillmentSet?.type ?? "shipping"
+    selectedFulfillmentSet?.name ?? HERBATICA_DEFAULT_FULFILLMENT_SET.name
+  const fulfillmentSetType =
+    selectedFulfillmentSet?.type ?? HERBATICA_DEFAULT_FULFILLMENT_SET.type
   const serviceZoneName =
     selectedFulfillmentSet?.service_zones?.find((zone) => zone.name)?.name ??
     selectedFulfillmentSet?.service_zones?.[0]?.name ??
-    "Europe"
+    HERBATICA_DEFAULT_FULFILLMENT_SET.serviceZoneName
 
   if (selectedFulfillmentSet) {
     logger.info(
@@ -2883,144 +3530,15 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
 
-  const input: SeedDatabaseWorkflowInput = {
-    salesChannels: [
-      {
-        name: "Default Sales Channel",
-        default: true,
-      },
-    ],
-    currencies: [
-      {
-        code: "czk",
-        default: true,
-      },
-      {
-        code: "eur",
-        default: false,
-      },
-      {
-        code: "usd",
-        default: false,
-      },
-    ],
-    regions: regionsInput,
-    taxRegions: {
-      countries: [...DEFAULT_COUNTRIES],
-      taxProviderId: undefined,
-    },
-    taxRates: {
-      fallbackCountryCode: "sk",
-      countries: [...DEFAULT_COUNTRIES],
-    },
-    stockLocations: {
-      locations: [
-        {
-          name: "European Warehouse",
-          address: {
-            city: "Copenhagen",
-            country_code: "DK",
-            address_1: "",
-          },
-        },
-      ],
-    },
-    defaultShippingProfile: {
-      name: "Default Shipping Profile",
-    },
-    fulfillmentSets: {
-      name: fulfillmentSetName,
-      type: fulfillmentSetType,
-      serviceZones: [
-        {
-          name: serviceZoneName,
-          geoZones: [...DEFAULT_COUNTRIES].map((country) => ({
-            countryCode: country,
-          })),
-        },
-      ],
-    },
-    shippingOptions: [
-      {
-        name: "Standard Shipping",
-        providerId: "manual_manual",
-        type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
-          code: "standard",
-        },
-        prices: [
-          {
-            currencyCode: "usd",
-            amount: 10,
-          },
-          {
-            currencyCode: "eur",
-            amount: 10,
-          },
-          {
-            currencyCode: "czk",
-            amount: 250,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-      {
-        name: "Express Shipping",
-        providerId: "manual_manual",
-        type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
-        },
-        prices: [
-          {
-            currencyCode: "usd",
-            amount: 10,
-          },
-          {
-            currencyCode: "eur",
-            amount: 10,
-          },
-          {
-            currencyCode: "czk",
-            amount: 250,
-          },
-        ],
-        rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
-        ],
-      },
-    ],
-    publishableKey: {
-      title: "Webshop",
-    },
-    productCategories: parsed.categories,
-    products: parsed.products,
-  }
+  const input = buildHerbaticaSeedWorkflowInput(parsed, {
+    regionsInput,
+    fulfillmentSetName,
+    fulfillmentSetType,
+    serviceZoneName,
+  })
 
   logger.info("Running Herbatica seed workflow...")
-  const { result } = await seedDatabaseWorkflow(container).run({
+  const { result } = await seedShoptetImportWorkflow(container).run({
     input,
   })
 
