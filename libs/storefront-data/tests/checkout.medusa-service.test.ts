@@ -89,6 +89,28 @@ describe("createMedusaCheckoutService", () => {
     )
   })
 
+  it("passes configured cart fields to cart-returning checkout calls", async () => {
+    const sdk = createSdkMock()
+    const fields = "id,total,subtotal,tax_total,shipping_subtotal"
+    const query = { fields }
+    const service = createMedusaCheckoutService(sdk as never, {
+      cartFields: fields,
+    })
+
+    await service.addShippingMethod("cart_1", "so_1", { pickup_id: "box_1" })
+    await service.initiatePaymentSession("cart_1", "pp_default")
+
+    expect(sdk.store.cart.addShippingMethod).toHaveBeenCalledWith(
+      "cart_1",
+      {
+        option_id: "so_1",
+        data: { pickup_id: "box_1" },
+      },
+      query
+    )
+    expect(sdk.store.cart.retrieve).toHaveBeenCalledWith("cart_1", query)
+  })
+
   it("throws when cart cannot be resolved for payment initiation", async () => {
     const sdk = createSdkMock({
       retrieveCart: async () => ({ cart: null }),

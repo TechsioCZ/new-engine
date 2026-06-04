@@ -7,6 +7,9 @@ minimumReleaseAgeExclude:
   - '@rokmohar/medusa-plugin-meilisearch'
 # trustPolicy: no-downgrade
 
+overrides:
+  '@types/node': 24.12.4
+
 packages:
   - packages/**
   - apps/**

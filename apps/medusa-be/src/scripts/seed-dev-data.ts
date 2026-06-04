@@ -23,6 +23,10 @@ export default async function seedDevData({ container }: ExecArgs) {
     "sk",
   ]
   const input: SeedDatabaseWorkflowInput = {
+    workflowDefaults: {
+      fulfillmentProviderId: "manual_manual",
+      shippingOptionPriceAmount: 10,
+    },
     salesChannels: [
       {
         name: "Default Sales Channel",

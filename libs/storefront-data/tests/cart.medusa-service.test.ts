@@ -22,7 +22,7 @@ type SdkLike = {
 function createSdkMock(
   fetchImpl?: (
     path: string,
-    init?: { signal?: AbortSignal }
+    init?: { query?: HttpTypes.SelectParams; signal?: AbortSignal }
   ) => Promise<{ cart?: HttpTypes.StoreCart | null }>
 ): SdkLike {
   return {
@@ -202,6 +202,66 @@ describe("createMedusaCartService", () => {
     expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith("cart_1", "item_1")
     expect(sdk.store.cart.transferCart).toHaveBeenCalledWith("cart_1")
     expect(sdk.store.cart.complete).toHaveBeenCalledWith("cart_1")
+  })
+
+  it("passes configured cart fields to retrieve and mutation responses", async () => {
+    const sdk = createSdkMock()
+    sdk.store.cart.create.mockResolvedValue({
+      cart: { id: "cart_created" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.update.mockResolvedValue({
+      cart: { id: "cart_updated" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.createLineItem.mockResolvedValue({
+      cart: { id: "cart_with_item" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.updateLineItem.mockResolvedValue({
+      cart: { id: "cart_item_updated" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.deleteLineItem.mockResolvedValue({
+      parent: { id: "cart_item_removed" } as HttpTypes.StoreCart,
+    })
+    sdk.store.cart.transferCart.mockResolvedValue({
+      cart: { id: "cart_transferred" } as HttpTypes.StoreCart,
+    })
+
+    const fields = "id,total,subtotal,tax_total,item_subtotal,item_tax_total"
+    const query = { fields }
+    const service = createMedusaCartService(sdk as never, {
+      cartFields: fields,
+    })
+
+    await service.retrieveCart("cart_1")
+    await service.createCart({} as never)
+    await service.updateCart("cart_1", {} as never)
+    await service.addLineItem("cart_1", {} as never)
+    await service.updateLineItem("cart_1", "item_1", {} as never)
+    await service.removeLineItem("cart_1", "item_1")
+    await service.transferCart("cart_1")
+
+    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/carts/cart_1", {
+      query,
+      signal: undefined,
+    })
+    expect(sdk.store.cart.create).toHaveBeenCalledWith({}, query)
+    expect(sdk.store.cart.update).toHaveBeenCalledWith("cart_1", {}, query)
+    expect(sdk.store.cart.createLineItem).toHaveBeenCalledWith(
+      "cart_1",
+      {},
+      query
+    )
+    expect(sdk.store.cart.updateLineItem).toHaveBeenCalledWith(
+      "cart_1",
+      "item_1",
+      {},
+      query
+    )
+    expect(sdk.store.cart.deleteLineItem).toHaveBeenCalledWith(
+      "cart_1",
+      "item_1",
+      query
+    )
+    expect(sdk.store.cart.transferCart).toHaveBeenCalledWith("cart_1", query)
   })
 
   it("strips unsupported top-level country_code from cart create/update params", async () => {

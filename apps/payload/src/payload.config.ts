@@ -25,6 +25,7 @@ import { PageCategories } from "./collections/page-categories"
 import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
+import { articleImportEndpoint } from "./lib/endpoints/article-import"
 import { healthEndpoint } from "./lib/endpoints/health"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
 import { pageCategoriesWithPagesEndpoint } from "./lib/endpoints/page-categories-with-pages"
@@ -62,12 +63,20 @@ export default buildConfig({
     importMap: {
       baseDir: path.resolve(dirname),
     },
+    ...(isArticlesEnabled
+      ? {
+          components: {
+            beforeNavLinks: ["/components/admin/payload-import-nav"],
+          },
+        }
+      : {}),
   },
   endpoints: [
     healthEndpoint,
     medusaSsoPostEndpoint,
     ...(isPagesEnabled ? [pageCategoriesWithPagesEndpoint] : []),
     ...(isArticlesEnabled ? [articleCategoriesWithArticlesEndpoint] : []),
+    ...(isArticlesEnabled ? [articleImportEndpoint] : []),
   ],
   routes: {
     admin: "/",
