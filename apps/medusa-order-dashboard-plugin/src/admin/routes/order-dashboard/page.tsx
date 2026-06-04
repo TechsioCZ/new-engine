@@ -236,20 +236,9 @@ const OrderDashboardPage = () => {
       }),
       columnHelper.accessor("business_status.id", {
         cell: ({ row }) => (
-          <div className="flex flex-col gap-y-1">
-            <Badge color={row.original.business_status.tone} size="2xsmall">
-              {t(row.original.business_status.translation_key)}
-            </Badge>
-            {row.original.manual_status ? (
-              <Text
-                className="text-ui-fg-subtle"
-                leading="compact"
-                size="small"
-              >
-                {t(`manualStatus.${row.original.manual_status}`)}
-              </Text>
-            ) : null}
-          </div>
+          <Badge color={row.original.business_status.tone} size="2xsmall">
+            {t(row.original.business_status.translation_key)}
+          </Badge>
         ),
         header: t("columns.businessStatus"),
       }),
