@@ -7,6 +7,8 @@ PROJECT_NAME="${PROJECT_NAME:-new-engine}"
 HEALTH_TIMEOUT_SECONDS="${MISE_DEV_HEALTH_TIMEOUT_SECONDS:-180}"
 KEY_CONFLICT_POLICY="${MISE_DEV_MEILI_KEY_CONFLICT:-prompt}" # prompt|override|keep
 MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
+# shellcheck source=scripts/dev/lib/common.sh
+source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -64,8 +66,7 @@ services_for_phase() {
   local ctl_dist="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
   local ctl_root="$ROOT_DIR/apps/new-engine-ctl"
 
-  require_cmd pnpm
-  require_cmd node
+  common::ensure_pnpm "$ROOT_DIR"
 
   if [[ ! -f "$ctl_dist" ]] ||
     find "$ctl_root/src" "$ctl_root/config" "$ctl_root/scripts" -type f -newer "$ctl_dist" -print -quit | grep -q . ||
