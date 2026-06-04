@@ -1,4 +1,4 @@
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
@@ -84,7 +84,7 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
 # ============================================
 # PROD RUNTIME - minimal final image
 # ============================================
-FROM node:24-slim AS prod
+FROM node:26-slim AS prod
 
 # curl needed for healthcheck
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \

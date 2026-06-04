@@ -20,7 +20,7 @@ Keep orchestration in a repo-owned typed CLI while keeping:
 ## Runtime And Stack
 
 Initial implementation must use:
-- `Node.js >=24`
+- `Node.js >=26`
 - `TypeScript`
 - `commander`
 - `zod`
