@@ -208,7 +208,6 @@ export const findCustomerFavoriteProductList = async (
       type: "favorite",
     },
     {
-      relations: ["items"],
       take: 1,
     }
   )
