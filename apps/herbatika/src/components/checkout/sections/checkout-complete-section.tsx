@@ -13,7 +13,6 @@ import { SupportingText } from "@/components/text/supporting-text";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 
 type CheckoutCompleteSectionProps = {
-  billingAddressForm: AddressFormState;
   canCompleteOrder: boolean;
   cartTotalAmount: number;
   cartTaxAmount: number;
@@ -35,7 +34,6 @@ type CheckoutCompleteSectionProps = {
   shippingLabel?: string;
   shippingOptionId?: string | null;
   shippingStepHref: string;
-  useSameAddress: boolean;
 };
 
 const summaryCardClassName =
@@ -86,38 +84,11 @@ const resolveAddressRows = (form: AddressFormState) => {
   ];
 };
 
-const resolveBillingAddressRows = (form: AddressFormState) => {
-  const hasCompanyDetails = [
-    form.company,
-    form.companyId,
-    form.taxId,
-    form.vatId,
-  ].some(hasTextValue);
-
-  return [
-    { label: "Meno", value: form.firstName },
-    { label: "Priezvisko", value: form.lastName },
-    ...(hasCompanyDetails
-      ? [
-          { label: "Názov firmy", value: form.company },
-          { label: "IČO", value: form.companyId },
-          { label: "DIČ", value: form.taxId },
-          { label: "IČ DPH", value: form.vatId },
-        ]
-      : []),
-    { label: "Krajina", value: resolveCountryLabel(form.countryCode) },
-    { label: "Ulica a číslo domu", value: resolveStreetValue(form) },
-    { label: "Mesto", value: form.city },
-    { label: "PSČ", value: form.postalCode },
-  ];
-};
-
 const resolveValue = (value: string) => {
   return value.trim().length > 0 ? value : "—";
 };
 
 export function CheckoutCompleteSection({
-  billingAddressForm,
   canCompleteOrder,
   cartTotalAmount,
   cartTaxAmount,
@@ -139,10 +110,8 @@ export function CheckoutCompleteSection({
   shippingLabel,
   shippingOptionId,
   shippingStepHref,
-  useSameAddress,
 }: CheckoutCompleteSectionProps) {
   const shippingAddressRows = resolveAddressRows(shippingAddressForm);
-  const billingAddressRows = resolveBillingAddressRows(billingAddressForm);
   const shippingSummaryLabel = hasShipping
     ? (shippingLabel ?? "Zvolená doprava")
     : "Doprava nie je vybraná";
@@ -158,7 +127,9 @@ export function CheckoutCompleteSection({
 
       <section className="rounded-sm border border-border-primary bg-surface space-y-300 p-400 sm:p-550">
         <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
-          <p className="text-sm font-medium mt-200 text-fg-primary">Spolu s DPH</p>
+          <p className="text-sm font-medium mt-200 text-fg-primary">
+            Spolu s DPH
+          </p>
           <div className="text-right space-y-200">
             <p className="font-rubik text-2xl font-bold text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
@@ -262,16 +233,19 @@ export function CheckoutCompleteSection({
         </div>
 
         <div className="grid gap-300">
-            <div className="grid gap-x-250 gap-y-150 grid-cols-2 sm:grid-cols-3">
-              {shippingAddressRows.map((row) => (
-                <div className="space-y-50 px-150 py-100" key={`shipping-${row.label}`}>
-                  <p className="text-sm text-fg-tertiary">{row.label}</p>
-                  <p className="text-sm leading-relaxed text-fg-primary">
-                    {resolveValue(row.value)}
-                  </p>
-                </div>
-              ))}
-            </div>
+          <div className="grid gap-x-250 gap-y-150 grid-cols-2 sm:grid-cols-3">
+            {shippingAddressRows.map((row) => (
+              <div
+                className="space-y-50 px-150 py-100"
+                key={`shipping-${row.label}`}
+              >
+                <p className="text-sm text-fg-tertiary">{row.label}</p>
+                <p className="text-sm leading-relaxed text-fg-primary">
+                  {resolveValue(row.value)}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {!hasStoredAddress ? (

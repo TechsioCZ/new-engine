@@ -11,7 +11,6 @@ type CheckoutCartSidebarSectionProps = {
   cartItemsTotalAmount: number;
   cartTaxAmount: number;
   cartTotalAmount: number;
-  cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   hasShipping: boolean;
   nextStepHref: string;
@@ -23,7 +22,6 @@ export function CheckoutCartSidebarSection({
   cartItemsTotalAmount,
   cartTaxAmount,
   cartTotalAmount,
-  cartTotalWithoutTaxAmount,
   currencyCode,
   hasShipping,
   nextStepHref,
@@ -49,7 +47,9 @@ export function CheckoutCartSidebarSection({
               {hasShipping ? (
                 <div className="flex items-center justify-between">
                   <p className="text-sm leading-relaxed font-normal text-fg-primary">
-                    {shippingLabel ? `${shippingLabel} bez DPH` : "Doprava bez DPH"}
+                    {shippingLabel
+                      ? `${shippingLabel} bez DPH`
+                      : "Doprava bez DPH"}
                   </p>
                   <p className="text-sm leading-relaxed font-normal text-fg-primary">
                     {formatCurrencyAmount(shippingAmount, currencyCode)}
@@ -75,9 +75,6 @@ export function CheckoutCartSidebarSection({
                 <p className="text-2xl leading-tight font-bold text-fg-primary">
                   {formatCurrencyAmount(cartTotalAmount, currencyCode)}
                 </p>
-                {/* <p className="text-xs leading-normal font-normal text-fg-secondary">
-                  {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
-                </p> */}
               </div>
             </div>
           </div>
@@ -94,7 +91,9 @@ export function CheckoutCartSidebarSection({
             uppercase
             variant="primary"
           >
-            <span className="font-normal text-xs sm:text-md">Pokračovať na dopravu a platbu</span>
+            <span className="font-normal text-xs sm:text-md">
+              Pokračovať na dopravu a platbu
+            </span>
           </LinkButton>
         </div>
       </div>

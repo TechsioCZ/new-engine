@@ -55,15 +55,16 @@ export function CheckoutStepContent({
     case "kosik":
       return (
         <CheckoutStepLayout
-          header={<h2 className="text-2xl col-span-full leading-tight font-inter font-semibold text-fg-primary">
-         {`Váš košík (${controller.cartItems.length})`}
-      </h2>}
+          header={
+            <h2 className="text-2xl col-span-full leading-tight font-inter font-semibold text-fg-primary">
+              {`Váš košík (${controller.cartItems.length})`}
+            </h2>
+          }
           aside={
             <CheckoutCartSidebarSection
               cartItemsTotalAmount={controller.cartItemsSubtotalAmount}
               cartTaxAmount={controller.cartTaxAmount}
               cartTotalAmount={controller.cartTotalAmount}
-              cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
               currencyCode={controller.currencyCode}
               hasShipping={controller.hasShipping}
               nextStepHref={shippingStepHref}
@@ -106,7 +107,6 @@ export function CheckoutStepContent({
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
-            billingAddressForm={controller.billingAddressForm}
             canCompleteOrder={controller.canCompleteOrder}
             cartTotalAmount={controller.cartTotalAmount}
             cartTaxAmount={controller.cartTaxAmount}
@@ -131,7 +131,6 @@ export function CheckoutStepContent({
             shippingLabel={selectedShippingLabel}
             shippingOptionId={selectedShippingOptionId}
             shippingStepHref={shippingStepHref}
-            useSameAddress={controller.useSameAddress}
           />
         </CheckoutStepLayout>
       );
@@ -158,7 +157,7 @@ function CheckoutStepLayout({
           {aside}
         </aside>
       </div>
-      {cartItems && <CheckoutInlineProductsSection cartItems={cartItems}/>}
+      {cartItems && <CheckoutInlineProductsSection cartItems={cartItems} />}
     </div>
   );
 }

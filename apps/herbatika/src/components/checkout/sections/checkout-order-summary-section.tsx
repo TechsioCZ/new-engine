@@ -119,7 +119,9 @@ export function CheckoutOrderSummarySection({
 
       <div className="space-y-200 border-t border-border-primary">
         <div className="flex items-center justify-between border-b border-border-primary">
-          <span className="text-fg-secondary py-200">Cena produktov bez DPH</span>
+          <span className="text-fg-secondary py-200">
+            Cena produktov bez DPH
+          </span>
           <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(cartItemsWithoutTaxAmount, currencyCode)}
           </p>
@@ -139,9 +141,7 @@ export function CheckoutOrderSummarySection({
           </p>
         </div>
         <div className="flex items-center justify-between py-200">
-          <span className="text-fg-secondary">
-            {paymentLabel || "Platba"}
-          </span>
+          <span className="text-fg-secondary">{paymentLabel || "Platba"}</span>
           <p className="text-md font-medium text-success-fg">Zadarmo</p>
         </div>
         <div className="flex items-start justify-between border-t border-border-primary pt-150">
@@ -152,9 +152,6 @@ export function CheckoutOrderSummarySection({
             <p className="text-2xl font-bold text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
-            {/* <span className="text-sm text-fg-secondary">
-              {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
-            </span> */}
           </div>
         </div>
       </div>
