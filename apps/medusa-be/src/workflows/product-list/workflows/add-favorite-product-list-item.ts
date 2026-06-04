@@ -1,9 +1,16 @@
+import type { LinkDefinition } from "@medusajs/framework/types"
+import { Modules } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+import {
+  acquireLockStep,
+  createRemoteLinkStep,
+  releaseLockStep,
+} from "@medusajs/medusa/core-flows"
+import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { createCustomerProductListStep } from "../steps/create-customer-product-list"
 import { createProductListItemStep } from "../steps/create-product-list-item"
 import type {
@@ -25,10 +32,38 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
       ttl: 10,
     }).config({ name: "acquire-favorite-customer-lock" })
 
-    const favoriteList = createCustomerProductListStep({
-      customer_id: input.customer_id,
-      data: {},
-      type: "favorite",
+    const favoriteListInput = transform(
+      { input },
+      ({ input: workflowInput }) => ({
+        customer_id: workflowInput.customer_id,
+        data: {},
+        type: "favorite" as const,
+      })
+    )
+
+    const favoriteList = createCustomerProductListStep(favoriteListInput)
+    const customerProductListLinks = transform(
+      { favoriteList, input },
+      ({ favoriteList: listResult, input: workflowInput }) => {
+        if (!listResult.created) {
+          return []
+        }
+
+        return [
+          {
+            [Modules.CUSTOMER]: {
+              customer_id: workflowInput.customer_id,
+            },
+            [PRODUCT_LIST_MODULE]: {
+              product_list_id: listResult.product_list.id,
+            },
+          },
+        ]
+      }
+    )
+
+    createRemoteLinkStep(customerProductListLinks).config({
+      name: "create-favorite-customer-product-list-link",
     })
 
     const itemLockKey = transform(
@@ -58,7 +93,43 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
       })
     )
 
-    const item = createProductListItemStep(itemInput)
+    const itemResult = createProductListItemStep(itemInput)
+    const productListItemLinks = transform(
+      { input, itemResult },
+      ({ input: workflowInput, itemResult: createdItemResult }) => {
+        if (!createdItemResult.created) {
+          return []
+        }
+
+        const links: LinkDefinition[] = [
+          {
+            [PRODUCT_LIST_MODULE]: {
+              product_list_item_id: createdItemResult.item.id,
+            },
+            [Modules.PRODUCT]: {
+              product_id: workflowInput.product_id,
+            },
+          },
+        ]
+
+        if (workflowInput.variant_id) {
+          links.push({
+            [PRODUCT_LIST_MODULE]: {
+              product_list_item_id: createdItemResult.item.id,
+            },
+            [Modules.PRODUCT]: {
+              product_variant_id: workflowInput.variant_id,
+            },
+          })
+        }
+
+        return links
+      }
+    )
+
+    createRemoteLinkStep(productListItemLinks).config({
+      name: "create-favorite-product-list-item-links",
+    })
 
     releaseLockStep({
       executeOnSubWorkflow: true,
@@ -71,10 +142,10 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
     }).config({ name: "release-favorite-customer-lock" })
 
     const result = transform(
-      { favoriteList, item },
-      ({ favoriteList: listResult, item: productListItem }) =>
+      { favoriteList, itemResult },
+      ({ favoriteList: listResult, itemResult: createdItemResult }) =>
         ({
-          item: productListItem,
+          item: createdItemResult.item,
           product_list: listResult.product_list,
         }) satisfies AddFavoriteProductListItemWorkflowResult
     )

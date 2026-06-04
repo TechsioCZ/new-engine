@@ -1,18 +1,37 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import { getAuthenticatedCustomerId } from "../../../../utils/auth"
+import { PRODUCT_LIST_MODULE } from "../../../../modules/product-list/constants"
+import type ProductListModuleService from "../../../../modules/product-list/service"
+import { assertCustomerOwnsProductList } from "../../../../utils/product-list-links"
 import { getRouteParam } from "../../../../utils/route-params"
-import {
-  assertCustomerOwnsProductList,
-  getProductListService,
-} from "../../../../workflows/product-list/steps/helpers"
 import { toProductListResponse, withProductListItems } from "../utils"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+type RequestWithOptionalCustomerAuth = MedusaRequest & {
+  auth_context?: { actor_id?: unknown } | null
+}
+
+const getAuthenticatedCustomerId = (
+  req: RequestWithOptionalCustomerAuth
+): string | undefined => {
+  const authContext = req.auth_context
+
+  if (!authContext || typeof authContext !== "object") {
+    return
+  }
+
+  const { actor_id: actorId } = authContext
+
+  return typeof actorId === "string" ? actorId : undefined
+}
+
+export async function GET(
+  req: RequestWithOptionalCustomerAuth,
+  res: MedusaResponse
+) {
   const listId = getRouteParam(req.params, "id")
-  const productList = await getProductListService(
-    req.scope
-  ).retrieveProductList(listId)
+  const productListService =
+    req.scope.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
+  const productList = await productListService.retrieveProductList(listId)
 
   if (productList.access_type !== "public") {
     const customerId = getAuthenticatedCustomerId(req)

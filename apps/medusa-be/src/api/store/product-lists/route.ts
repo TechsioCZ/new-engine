@@ -2,10 +2,9 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import {
-  getProductListService,
-  listCustomerProductListIds,
-} from "../../../workflows/product-list/steps/helpers"
+import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import type ProductListModuleService from "../../../modules/product-list/service"
+import { listCustomerProductListIds } from "../../../utils/product-list-links"
 import {
   INLINE_PRODUCT_LIST_ITEMS_LIMIT,
   toProductListResponse,
@@ -38,13 +37,14 @@ export async function GET(
     filters.type = type
   }
 
-  const [productLists, count] = await getProductListService(
-    req.scope
-  ).listAndCountProductLists(filters, {
-    order: { created_at: "DESC" },
-    skip: offset,
-    take: limit,
-  })
+  const productListService =
+    req.scope.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
+  const [productLists, count] =
+    await productListService.listAndCountProductLists(filters, {
+      order: { created_at: "DESC" },
+      skip: offset,
+      take: limit,
+    })
   const productListsWithItems = await withProductListItems(
     req.scope,
     productLists,

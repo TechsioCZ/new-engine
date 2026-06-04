@@ -4,7 +4,10 @@ import type {
 } from "@medusajs/framework/http"
 import { getRouteParam } from "../../../../../utils/route-params"
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
-import { toProductListItemResponse } from "../../utils"
+import {
+  toProductListItemResponse,
+  withProductListItemSelections,
+} from "../../utils"
 import type { StoreCreateProductListItemSchemaType } from "../../validators"
 
 export async function POST(
@@ -24,12 +27,11 @@ export async function POST(
       variant_id: req.validatedBody.variant_id,
     },
   })
+  const [itemWithSelection] = await withProductListItemSelections(req.scope, [
+    item,
+  ])
 
   res.status(200).json({
-    item: toProductListItemResponse({
-      ...item,
-      product_id: req.validatedBody.product_id,
-      variant_id: req.validatedBody.variant_id ?? null,
-    }),
+    item: toProductListItemResponse(itemWithSelection ?? item),
   })
 }

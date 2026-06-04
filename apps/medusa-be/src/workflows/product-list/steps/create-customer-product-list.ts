@@ -1,22 +1,19 @@
 import { kebabCase, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import type ProductListModuleService from "../../../modules/product-list/service"
 import type {
   CreateCustomerProductListWorkflowInput,
   CreatedProductListResult,
 } from "../types"
 import {
-  createCustomerProductListLink,
-  dismissCustomerProductListLink,
   findCustomerCustomProductListByHandle,
   findCustomerFavoriteProductList,
-  getProductListService,
 } from "./helpers"
 
 type CompensationInput = {
-  customer_id: string
   list_id: string
   created: boolean
-  linked: boolean
 }
 
 const normalizeCustomHandle = (title: string, handle?: string) => {
@@ -30,7 +27,8 @@ const normalizeCustomHandle = (title: string, handle?: string) => {
 export const createCustomerProductListStep = createStep(
   "create-customer-product-list",
   async (input: CreateCustomerProductListWorkflowInput, { container }) => {
-    const service = getProductListService(container)
+    const service =
+      container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
     const existingFavorite =
       input.type === "favorite"
         ? await findCustomerFavoriteProductList(container, input.customer_id)
@@ -44,8 +42,6 @@ export const createCustomerProductListStep = createStep(
         },
         {
           created: false,
-          customer_id: input.customer_id,
-          linked: false,
           list_id: existingFavorite.id,
         }
       )
@@ -72,12 +68,6 @@ export const createCustomerProductListStep = createStep(
         ? await service.createFavoriteProductList(input.data)
         : await service.createCustomProductList(input.data)
 
-    await createCustomerProductListLink(
-      container,
-      input.customer_id,
-      productList.id
-    )
-
     return new StepResponse<CreatedProductListResult, CompensationInput>(
       {
         created: true,
@@ -85,8 +75,6 @@ export const createCustomerProductListStep = createStep(
       },
       {
         created: true,
-        customer_id: input.customer_id,
-        linked: true,
         list_id: productList.id,
       }
     )
@@ -96,14 +84,8 @@ export const createCustomerProductListStep = createStep(
       return
     }
 
-    if (input.linked) {
-      await dismissCustomerProductListLink(
-        container,
-        input.customer_id,
-        input.list_id
-      )
-    }
-
-    await getProductListService(container).deleteProductLists(input.list_id)
+    await container
+      .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
+      .deleteProductLists(input.list_id)
   }
 )

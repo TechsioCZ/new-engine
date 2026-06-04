@@ -1,36 +1,26 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import type ProductListModuleService from "../../../modules/product-list/service"
 import type {
+  CreatedProductListItemResult,
   CreateProductListItemWorkflowInput,
-  ProductListItemRecord,
 } from "../types"
 import {
-  assertCustomerOwnsProductList,
   assertProductSelectionExists,
-  createProductListItemProductLinks,
-  dismissProductListItemProductLinks,
   findProductListItemForSelection,
-  getProductListService,
   getProductListType,
 } from "./helpers"
 
 type CompensationInput = {
   created: boolean
   item_id: string
-  product_id: string
-  variant_id?: string
-  linked: boolean
 }
 
 export const createProductListItemStep = createStep(
   "create-product-list-item",
   async (input: CreateProductListItemWorkflowInput, { container }) => {
-    await assertCustomerOwnsProductList(
-      container,
-      input.customer_id,
-      input.list_id
-    )
-
-    const service = getProductListService(container)
+    const service =
+      container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
     const productList = await service.retrieveProductList(input.list_id)
     await assertProductSelectionExists(
       container,
@@ -45,14 +35,14 @@ export const createProductListItemStep = createStep(
     )
 
     if (existingItem) {
-      return new StepResponse<ProductListItemRecord, CompensationInput>(
-        existingItem,
+      return new StepResponse<CreatedProductListItemResult, CompensationInput>(
+        {
+          created: false,
+          item: existingItem,
+        },
         {
           created: false,
           item_id: existingItem.id,
-          linked: false,
-          product_id: input.product_id,
-          variant_id: input.variant_id,
         }
       )
     }
@@ -66,35 +56,24 @@ export const createProductListItemStep = createStep(
       sort_order: input.sort_order,
     })
 
-    await createProductListItemProductLinks(
-      container,
-      item.id,
-      input.product_id,
-      input.variant_id
+    return new StepResponse<CreatedProductListItemResult, CompensationInput>(
+      {
+        created: true,
+        item,
+      },
+      {
+        created: true,
+        item_id: item.id,
+      }
     )
-
-    return new StepResponse<ProductListItemRecord, CompensationInput>(item, {
-      created: true,
-      item_id: item.id,
-      linked: true,
-      product_id: input.product_id,
-      variant_id: input.variant_id,
-    })
   },
   async (input, { container }) => {
     if (!(input?.created && input.item_id)) {
       return
     }
 
-    if (input.linked) {
-      await dismissProductListItemProductLinks(
-        container,
-        input.item_id,
-        input.product_id,
-        input.variant_id
-      )
-    }
-
-    await getProductListService(container).deleteProductListItems(input.item_id)
+    await container
+      .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
+      .deleteProductListItems(input.item_id)
   }
 )

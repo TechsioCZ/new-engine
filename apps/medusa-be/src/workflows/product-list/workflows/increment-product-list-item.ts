@@ -4,7 +4,9 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+import { assertCustomerOwnsProductListStep } from "../steps/assert-customer-owns-product-list"
 import { incrementProductListItemStep } from "../steps/increment-product-list-item"
+import { retrieveProductListItemStep } from "../steps/retrieve-product-list-item"
 import type { IncrementProductListItemWorkflowInput } from "../types"
 
 export const incrementProductListItemWorkflow = createWorkflow(
@@ -21,7 +23,31 @@ export const incrementProductListItemWorkflow = createWorkflow(
       ttl: 10,
     })
 
-    const item = incrementProductListItemStep(input)
+    const itemId = transform(
+      { input },
+      ({ input: workflowInput }) => workflowInput.item_id
+    )
+    const currentItem = retrieveProductListItemStep(itemId)
+    const ownershipInput = transform(
+      { currentItem, input },
+      ({ currentItem: productListItem, input: workflowInput }) => ({
+        customer_id: workflowInput.customer_id,
+        list_id: productListItem.list_id,
+      })
+    )
+
+    assertCustomerOwnsProductListStep(ownershipInput)
+
+    const incrementInput = transform(
+      { currentItem, input },
+      ({ currentItem: productListItem, input: workflowInput }) => ({
+        item_id: workflowInput.item_id,
+        list_id: productListItem.list_id,
+        previous_quantity: productListItem.quantity,
+        quantity: workflowInput.quantity,
+      })
+    )
+    const item = incrementProductListItemStep(incrementInput)
 
     releaseLockStep({
       executeOnSubWorkflow: true,

@@ -6,6 +6,7 @@ import { addFavoriteProductListItemWorkflow } from "../../../../../workflows/pro
 import {
   toProductListItemResponse,
   toProductListResponse,
+  withProductListItemSelections,
   withProductListItems,
 } from "../../utils"
 import type { StoreCreateFavoriteProductListItemSchemaType } from "../../validators"
@@ -24,16 +25,13 @@ export async function POST(
       variant_id: req.validatedBody.variant_id,
     },
   })
-  const [productListWithItems] = await withProductListItems(req.scope, [
-    result.product_list,
+  const [[itemWithSelection], [productListWithItems]] = await Promise.all([
+    withProductListItemSelections(req.scope, [result.item]),
+    withProductListItems(req.scope, [result.product_list]),
   ])
 
   res.status(200).json({
-    item: toProductListItemResponse({
-      ...result.item,
-      product_id: req.validatedBody.product_id,
-      variant_id: req.validatedBody.variant_id ?? null,
-    }),
+    item: toProductListItemResponse(itemWithSelection ?? result.item),
     product_list: toProductListResponse(
       productListWithItems ?? result.product_list
     ),

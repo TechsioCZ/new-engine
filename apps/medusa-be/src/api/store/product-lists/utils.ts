@@ -2,8 +2,12 @@ import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
-import { isObjectRecord } from "../../../utils/guards"
-import { getProductListService } from "../../../workflows/product-list/steps/helpers"
+import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import type ProductListModuleService from "../../../modules/product-list/service"
+import {
+  toProductListItemProductLinks,
+  toProductListItemVariantLinks,
+} from "../../../utils/product-list-links"
 
 export const INLINE_PRODUCT_LIST_ITEMS_LIMIT = 100
 
@@ -32,39 +36,6 @@ export type ProductListItemRecord = {
   created_at?: string | Date
   updated_at?: string | Date
 }
-
-type ProductListItemProductLinkRecord = {
-  product_id?: string
-  product_list_item_id?: string
-}
-
-type ProductListItemVariantLinkRecord = {
-  product_variant_id?: string
-  product_list_item_id?: string
-}
-
-const isProductListItemProductLinkRecord = (
-  value: unknown
-): value is ProductListItemProductLinkRecord =>
-  isObjectRecord(value) &&
-  (value.product_id === undefined || typeof value.product_id === "string") &&
-  (value.product_list_item_id === undefined ||
-    typeof value.product_list_item_id === "string")
-
-const isProductListItemVariantLinkRecord = (
-  value: unknown
-): value is ProductListItemVariantLinkRecord =>
-  isObjectRecord(value) &&
-  (value.product_variant_id === undefined ||
-    typeof value.product_variant_id === "string") &&
-  (value.product_list_item_id === undefined ||
-    typeof value.product_list_item_id === "string")
-
-const toProductListItemProductLinks = (value: unknown) =>
-  Array.isArray(value) ? value.filter(isProductListItemProductLinkRecord) : []
-
-const toProductListItemVariantLinks = (value: unknown) =>
-  Array.isArray(value) ? value.filter(isProductListItemVariantLinkRecord) : []
 
 export const toProductListResponse = (list: ProductListRecord) => ({
   created_at: list.created_at,
@@ -156,7 +127,8 @@ export const withProductListItems = async (
     return lists
   }
 
-  const service = getProductListService(container)
+  const service =
+    container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
   const config: Record<string, unknown> = {
     order: { list_id: "ASC", sort_order: "ASC", created_at: "ASC" },
   }

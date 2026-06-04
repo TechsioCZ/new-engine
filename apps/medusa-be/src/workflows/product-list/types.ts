@@ -71,6 +71,11 @@ export type CreatedProductListResult = {
   created: boolean
 }
 
+export type CreatedProductListItemResult = {
+  item: ProductListItemRecord
+  created: boolean
+}
+
 export type AddFavoriteProductListItemWorkflowResult = {
   product_list: ProductListRecord
   item: ProductListItemRecord
