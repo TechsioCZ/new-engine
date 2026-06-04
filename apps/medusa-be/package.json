@@ -79,7 +79,7 @@
     "@paykit-sdk/comgate": "^1.2.0",
     "@paykit-sdk/core": "^1.2.1",
     "@paykit-sdk/gopay": "^1.2.1",
-    "@paykit-sdk/stripe": "^1.2.1",
+    "@paykit-sdk/stripe": "^1.2.2",
     "@rokmohar/medusa-plugin-meilisearch": "^1.4.3",
     "@sentry/node": "^10.29.0",
     "@sentry/opentelemetry": "^10.34.0",
@@ -111,7 +111,7 @@
     "@medusajs/test-utils": "^2.15.2",
     "@swc/core": "^1.15.3",
     "@types/escape-html": "^1.0.4",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.9.1",
     "@types/qrcode": "^1.5.6",
     "@types/qs": "^6.9.17",
     "@types/react": "^19.2.3",
@@ -124,6 +124,6 @@
     "yalc": "1.0.0-pre.53"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   }
 }

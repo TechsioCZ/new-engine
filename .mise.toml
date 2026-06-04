@@ -1,7 +1,7 @@
 [tools]
 "aqua:mikefarah/yq" = "4.45.4"
 "aqua:jqlang/jq" = "1.8.1"
-node = "25.2.1"
+node = "26"
 
 [tasks.dev]
 description = "Incremental local startup after `dev:init`: resources -> meili provisioning -> backend phase -> frontend phase"

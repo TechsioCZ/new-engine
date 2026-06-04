@@ -206,12 +206,12 @@ TEST_BASE_URL=http://127.0.0.1:6006 PLAYWRIGHT_WORKERS=6 pnpm -C libs/ui test:co
 
 - Build + publint: `pnpm -C libs/ui build` runs `rsbuild-plugin-publint` after the build; if exports/entrypoints are wrong, this command fails.
 - Exports only, no barrel: import from explicit subpaths (e.g. `@techsio/ui-kit/atoms/button`, `@techsio/ui-kit/templates/accordion`, `@techsio/ui-kit/utils`). The package root is intentionally not exported.
-- Automated releases: `libs/ui/release.config.mjs` uses semantic-release (tag format `ui-kit-v<version>`) to bump versions, update changelog, and publish to npm. While we are <1.0.0, `BREAKING CHANGE` commits are forced to “minor” bumps to stay in 0.x; remove that release rule when stabilizing for 1.0.0+ to restore SemVer majors.
-- Security posture: releases are restricted to GitHub Actions (`GITHUB_ACTIONS` required), npm publishes use provenance (`NPM_CONFIG_PROVENANCE=true`), and tokens live only in Actions secrets (`GH_TOKEN`, `NPM_TOKEN`). Keep secrets in a protected environment for extra safety.
-- CI workflow: `.github/workflows/ui-release.yml` builds `libs/ui` and runs semantic-release on `master`/`main` with `GH_TOKEN` and `NPM_TOKEN` secrets.
+- Automated releases: `libs/ui/release.config.mjs` uses semantic-release (tag format `ui-kit-v<version>`) to publish to npm and create GitHub releases without pushing generated version/changelog commits back to the protected branch. While we are <1.0.0, `BREAKING CHANGE` commits are forced to “minor” bumps to stay in 0.x; remove that release rule when stabilizing for 1.0.0+ to restore SemVer majors.
+- Security posture: releases are restricted to GitHub Actions (`GITHUB_ACTIONS` required), npm publishes use trusted publishing through GitHub OIDC (`id-token: write`) and do not require an npm token.
+- CI workflow: `.github/workflows/ui-release.yml` builds `libs/ui` and runs semantic-release on `master`/`main` with the workflow `GITHUB_TOKEN`. Use the manual `force_release` dispatch to publish missed UI changes after a skipped release.
 - Local dry run: `pnpm -C libs/ui semantic-release --dry-run`.
 - Commit format: follow Conventional Commits (`feat:`, `fix:`, `chore:`, `BREAKING CHANGE:`) so semantic-release can infer the correct version bump.
-- Required CI secrets: `GH_TOKEN` (repo write) and `NPM_TOKEN` (publish).
+- Required CI secrets: none for npm publishing; npm trusted publishing must be configured on npmjs.com for this repository and workflow path.
 
 ## 9. Conclusion
 
