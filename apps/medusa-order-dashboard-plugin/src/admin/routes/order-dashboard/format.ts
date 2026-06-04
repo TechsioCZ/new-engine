@@ -8,10 +8,10 @@ import {
   type OrderDashboardTargetStatus,
 } from "./types"
 
-type SortingState = {
-  id: string
-  desc: boolean
-}
+type TranslationFunction = (
+  key: string,
+  options?: Record<string, unknown>
+) => string
 
 // Local copy for dashboard pre-checks; the backend mutation remains final.
 const ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS = {
@@ -38,11 +38,21 @@ export function formatOrderDate(
     return "-"
   }
 
-  return new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  }).format(new Date(date))
+  const timestamp = Date.parse(date)
+
+  if (!Number.isFinite(timestamp)) {
+    return "-"
+  }
+
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      day: "numeric",
+      month: "numeric",
+      year: "numeric",
+    }).format(new Date(timestamp))
+  } catch {
+    return "-"
+  }
 }
 
 export function formatOrderTotal(order: OrderDashboardOrder, locale?: string) {
@@ -57,10 +67,14 @@ export function formatOrderTotal(order: OrderDashboardOrder, locale?: string) {
     return String(order.total)
   }
 
-  return new Intl.NumberFormat(locale, {
-    currency: order.currency_code.toUpperCase(),
-    style: "currency",
-  }).format(total)
+  try {
+    return new Intl.NumberFormat(locale, {
+      currency: order.currency_code.toUpperCase(),
+      style: "currency",
+    }).format(total)
+  } catch {
+    return String(order.total)
+  }
 }
 
 export function getCarrierLabel(order: OrderDashboardOrder) {
@@ -77,60 +91,58 @@ export function formatPaymentMethodLabel(value: string | null | undefined) {
 
 export function getOrderDashboardTransitionBlockReason(
   order: Pick<OrderDashboardOrder, "has_active_fulfillment" | "status">,
-  targetStatus: OrderDashboardTargetStatus
+  targetStatus: OrderDashboardTargetStatus,
+  t: TranslationFunction
 ) {
   const currentStatus = order.status
 
   if (!currentStatus) {
-    return "Order status is unknown"
+    return t("targetStatusBlocker.unknownStatus")
   }
 
   if (currentStatus === targetStatus) {
-    return `Order is already ${formatStatusForReason(targetStatus)}`
+    return t("targetStatusBlocker.alreadyStatus", {
+      status: formatTransitionStatusLabel(targetStatus, t),
+    })
   }
 
   if (!isOrderDashboardTransitionSourceStatus(currentStatus)) {
-    return `Order status ${formatStatusForReason(currentStatus)} cannot be changed`
+    return t("targetStatusBlocker.unsupportedStatus", {
+      status: formatTransitionStatusLabel(currentStatus, t),
+    })
   }
 
   if (currentStatus === "archived") {
-    return "Archived orders cannot be changed"
+    return t("targetStatusBlocker.archivedCannotChange")
   }
 
   if (currentStatus === "canceled" && targetStatus !== "archived") {
-    return "Canceled orders can only be archived"
+    return t("targetStatusBlocker.canceledOnlyArchived")
   }
 
   if (currentStatus === "completed" && targetStatus === "canceled") {
-    return "Completed orders cannot be canceled"
+    return t("targetStatusBlocker.completedCannotCanceled")
   }
 
   if (currentStatus === "completed" && targetStatus !== "archived") {
-    return "Completed orders can only be archived"
+    return t("targetStatusBlocker.completedOnlyArchived")
   }
 
-  if (
-    targetStatus === "canceled" &&
-    order.has_active_fulfillment
-  ) {
-    return "Orders with active fulfillments cannot be canceled"
+  if (targetStatus === "canceled" && order.has_active_fulfillment) {
+    return t("targetStatusBlocker.activeFulfillmentCannotCanceled")
   }
 
   const allowedTargetStatuses: readonly OrderDashboardTargetStatus[] =
     ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS[currentStatus]
 
   if (!allowedTargetStatuses.includes(targetStatus)) {
-    return `${formatStatusSubject(currentStatus)} orders cannot be changed to ${formatStatusForReason(targetStatus)}`
+    return t("targetStatusBlocker.targetNotAllowed", {
+      currentStatus: formatTransitionStatusSubject(currentStatus, t),
+      targetStatus: formatTransitionStatusLabel(targetStatus, t),
+    })
   }
 
   return
-}
-
-export function getSelectedOrders(
-  orders: OrderDashboardOrder[],
-  rowSelection: Record<string, boolean>
-) {
-  return orders.filter((order) => rowSelection[order.id])
 }
 
 export function isOrderDashboardCarrierKey(
@@ -162,68 +174,6 @@ export function isOrderDashboardTargetStatus(
       value as OrderDashboardTargetStatus
     )
   )
-}
-
-export function sortOrdersByTableState(
-  orders: OrderDashboardOrder[],
-  sorting: SortingState | null
-) {
-  if (!sorting) {
-    return orders
-  }
-
-  const direction = sorting.desc ? -1 : 1
-
-  return [...orders].sort((left, right) => {
-    switch (sorting.id) {
-      case "created_at":
-        return (
-          compareNullableNumbers(
-            Date.parse(left.created_at ?? ""),
-            Date.parse(right.created_at ?? "")
-          ) * direction
-        )
-      case "order_display_id":
-        return (
-          left.order_display_id.localeCompare(right.order_display_id) *
-          direction
-        )
-      case "total":
-        return (
-          compareNullableNumbers(toNumber(left.total), toNumber(right.total)) *
-          direction
-        )
-      default:
-        return 0
-    }
-  })
-}
-
-function toNumber(value: number | string | null | undefined) {
-  if (value === null || value === undefined) {
-    return Number.NaN
-  }
-
-  return typeof value === "string" ? Number(value) : value
-}
-
-function compareNullableNumbers(left: number, right: number) {
-  const leftValid = Number.isFinite(left)
-  const rightValid = Number.isFinite(right)
-
-  if (!(leftValid || rightValid)) {
-    return 0
-  }
-
-  if (!leftValid) {
-    return 1
-  }
-
-  if (!rightValid) {
-    return -1
-  }
-
-  return left - right
 }
 
 function formatPaymentProviderId(providerId: string) {
@@ -269,11 +219,13 @@ function isOrderDashboardTransitionSourceStatus(
   return value in ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS
 }
 
-function formatStatusForReason(status: string) {
-  return status.replace(/_/g, " ")
+function formatTransitionStatusLabel(status: string, t: TranslationFunction) {
+  return isOrderDashboardTargetStatus(status)
+    ? t(`targetStatus.${status}`)
+    : status.replace(/_/g, " ")
 }
 
-function formatStatusSubject(status: string) {
-  const formatted = formatStatusForReason(status)
+function formatTransitionStatusSubject(status: string, t: TranslationFunction) {
+  const formatted = formatTransitionStatusLabel(status, t)
   return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
 }

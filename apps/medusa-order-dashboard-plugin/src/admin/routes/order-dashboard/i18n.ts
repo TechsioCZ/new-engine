@@ -3,6 +3,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "apply"
     | "applyManualStatus"
     | "businessStatusPlaceholder"
+    | "cancel"
     | "clearManualStatus"
     | "closeDetails"
     | "details"
@@ -62,8 +63,16 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   menuItem: string
+  manualStatusBlocker: Record<
+    | "alreadyClear"
+    | "alreadyStatus"
+    | "canceledStayCanceled"
+    | "higherPriority",
+    string
+  >
   packetaSkip: Record<"noActiveLabel" | "notPacketa" | "unchecked", string>
   queues: Record<"action_required" | "all", string>
+  sidebar: Record<"actionRequiredOrders", string>
   statuses: Record<
     | "awaiting_payment"
     | "canceled"
@@ -81,6 +90,21 @@ export type OrderDashboardAdminI18nNamespace = {
     | "empty"
     | "filterTooltip"
     | "loading",
+    string
+  >
+  tableMessages: Record<"blockedCount" | "moreBlocked", string>
+  targetStatusBlocker: Record<
+    | "activeFulfillmentCannotCanceled"
+    | "alreadyStatus"
+    | "archivedCannotChange"
+    | "canceledOnlyArchived"
+    | "completedCannotCanceled"
+    | "completedOnlyArchived"
+    | "selectedBlockedMany"
+    | "selectedBlockedOne"
+    | "targetNotAllowed"
+    | "unknownStatus"
+    | "unsupportedStatus",
     string
   >
   targetStatus: Record<
@@ -103,6 +127,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "noPacketaSelection"
     | "noSelection"
     | "packetaEligibilityLoading"
+    | "packetaLabelLimit"
     | "packetaLabelsReady"
     | "pdfReady"
     | "requestFailed"
@@ -116,6 +141,7 @@ const englishOrderDashboardAdminI18n = {
     apply: "Apply",
     applyManualStatus: "Apply manual status",
     businessStatusPlaceholder: "Manual status",
+    cancel: "Cancel",
     clearManualStatus: "Clear manual status",
     closeDetails: "Close",
     details: "Details",
@@ -182,6 +208,12 @@ const englishOrderDashboardAdminI18n = {
       "{{updatedCount}} order(s) will be updated. {{skippedCount}} order(s) will be skipped.",
   },
   menuItem: "Order dashboard",
+  manualStatusBlocker: {
+    alreadyClear: "Manual status is already clear",
+    alreadyStatus: "Manual status is already {{status}}",
+    canceledStayCanceled: "Canceled orders stay canceled",
+    higherPriority: "{{status}} status has higher priority",
+  },
   packetaSkip: {
     noActiveLabel: "No active Packeta packet label",
     notPacketa: "Carrier is {{carrier}}, not Packeta",
@@ -190,6 +222,9 @@ const englishOrderDashboardAdminI18n = {
   queues: {
     action_required: "Action required",
     all: "All",
+  },
+  sidebar: {
+    actionRequiredOrders: "{{count}} action required orders",
   },
   statuses: {
     awaiting_payment: "Awaiting payment",
@@ -208,6 +243,27 @@ const englishOrderDashboardAdminI18n = {
     empty: "No orders found.",
     filterTooltip: "Add filter",
     loading: "Loading orders...",
+  },
+  tableMessages: {
+    blockedCount: "{{count}} blocked",
+    moreBlocked: "{{count}} more blocked",
+  },
+  targetStatusBlocker: {
+    activeFulfillmentCannotCanceled:
+      "Orders with active fulfillments cannot be canceled",
+    alreadyStatus: "Order is already {{status}}",
+    archivedCannotChange: "Archived orders cannot be changed",
+    canceledOnlyArchived: "Canceled orders can only be archived",
+    completedCannotCanceled: "Completed orders cannot be canceled",
+    completedOnlyArchived: "Completed orders can only be archived",
+    selectedBlockedMany:
+      "{{status}} is blocked for {{count}} selected orders. Open the status menu for details.",
+    selectedBlockedOne:
+      "{{status}} is blocked for 1 selected order: {{order}} - {{reason}}.",
+    targetNotAllowed:
+      "{{currentStatus}} orders cannot be changed to {{targetStatus}}",
+    unknownStatus: "Order status is unknown",
+    unsupportedStatus: "Order status {{status}} cannot be changed",
   },
   targetStatus: {
     archived: "Archived",
@@ -229,6 +285,7 @@ const englishOrderDashboardAdminI18n = {
     noPacketaSelection: "No selected orders have printable Packeta labels.",
     noSelection: "Select at least one order.",
     packetaEligibilityLoading: "Packeta label eligibility is still loading.",
+    packetaLabelLimit: "Select up to {{count}} orders.",
     packetaLabelsReady: "Packeta labels are ready",
     pdfReady: "Expedition PDF is ready",
     requestFailed: "Operation failed",

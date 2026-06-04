@@ -1,12 +1,16 @@
 import { sdk } from "./lib/sdk"
+import { orderDashboardAdminI18n } from "./routes/order-dashboard/i18n"
 import type { OrderDashboardSummaryResponse } from "./routes/order-dashboard/types"
 
 const ORDER_DASHBOARD_SIDEBAR_BADGE_ID = "order-dashboard-sidebar-badge"
 const ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR =
   'a[href$="/order-dashboard"], a[href$="/order-dashboard/"]'
 const ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS = 60_000
+const ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS = 10_000
 
 let currentCount: number | null = null
+let hasInitialRefreshRun = false
+let lastFetchAt = 0
 let refreshInFlight = false
 let started = false
 
@@ -22,7 +26,11 @@ export function startOrderDashboardSidebarBadge() {
   started = true
 
   const render = () => {
-    if (currentCount === null && getOrderDashboardSidebarLink()) {
+    if (
+      !hasInitialRefreshRun &&
+      getOrderDashboardSidebarLink() &&
+      canRefreshOrderDashboardSidebarBadge()
+    ) {
       void refreshOrderDashboardSidebarBadge()
     }
 
@@ -53,10 +61,12 @@ export function setOrderDashboardSidebarBadgeCount(count: number | null) {
 }
 
 async function refreshOrderDashboardSidebarBadge() {
-  if (refreshInFlight) {
+  if (refreshInFlight || !canRefreshOrderDashboardSidebarBadge()) {
     return
   }
 
+  hasInitialRefreshRun = true
+  lastFetchAt = Date.now()
   refreshInFlight = true
 
   try {
@@ -65,10 +75,17 @@ async function refreshOrderDashboardSidebarBadge() {
     )
     setOrderDashboardSidebarBadgeCount(summary.action_required_count)
   } catch {
-    setOrderDashboardSidebarBadgeCount(null)
+    renderOrderDashboardSidebarBadge(currentCount)
   } finally {
     refreshInFlight = false
   }
+}
+
+function canRefreshOrderDashboardSidebarBadge() {
+  return (
+    Date.now() - lastFetchAt >=
+    ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
+  )
 }
 
 function renderOrderDashboardSidebarBadge(count: number | null) {
@@ -108,7 +125,7 @@ function renderOrderDashboardSidebarBadge(count: number | null) {
   }
 
   const countText = String(count)
-  const label = `${count} action required orders`
+  const label = getOrderDashboardSidebarBadgeLabel(count)
 
   if (badge.textContent !== countText) {
     badge.textContent = countText
@@ -128,15 +145,21 @@ function removeOrderDashboardSidebarBadge() {
 }
 
 function getOrderDashboardSidebarLink() {
-  const links = Array.from(
-    document.querySelectorAll<HTMLAnchorElement>(
-      ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR
-    )
-  )
-
   return (
-    links.find((link) => link.textContent?.includes("Order dashboard")) ??
-    links[0] ??
-    null
+    document.querySelector<HTMLAnchorElement>(
+      ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR
+    ) ?? null
+  )
+}
+
+function getOrderDashboardSidebarBadgeLabel(count: number) {
+  const language = document.documentElement.lang
+  const dictionary = language.toLowerCase().startsWith("cs")
+    ? orderDashboardAdminI18n.cs
+    : orderDashboardAdminI18n.en
+
+  return dictionary.sidebar.actionRequiredOrders.replace(
+    "{{count}}",
+    String(count)
   )
 }

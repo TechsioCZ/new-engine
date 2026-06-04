@@ -114,7 +114,7 @@ Use narrow checks first:
 pnpm.cmd --dir apps/medusa-order-dashboard-plugin run typecheck
 pnpm.cmd --dir apps/medusa-order-dashboard-plugin run build
 pnpm.cmd --dir apps/medusa-be exec medusa build --admin-only
-pnpm.cmd exec biome check --write apps/medusa-order-dashboard-plugin apps/medusa-be/medusa-config.ts apps/medusa-be/package.json
+pnpm.cmd exec biome check --write <changed plugin files> <changed medusa-be files>
 ```
 
 Run browser smoke checks only after the local Medusa Admin can load and the route is reachable with non-destructive data.
