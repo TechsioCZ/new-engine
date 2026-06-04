@@ -71,6 +71,10 @@ type ProductInput = {
     quantities?: {
       quantity?: number
       supplier_quantity?: number
+      locations?: {
+        stockLocationName: string
+        quantity: number
+      }[]
     }
     prices?: {
       amount: number
@@ -196,7 +200,9 @@ function findExistingVariant(
     }
   }
 
-  return (existingProduct.variants ?? []).find((variant) => variant.sku === inputVariant.sku)
+  return (existingProduct.variants ?? []).find(
+    (variant) => variant.sku === inputVariant.sku
+  )
 }
 
 function processProductProducerInput(

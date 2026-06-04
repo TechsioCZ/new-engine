@@ -6,7 +6,11 @@ import type {
   Query,
   StockLocationDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   createInventoryLevelsWorkflow,
@@ -17,8 +21,61 @@ export type CreateInventoryLevelsStepInput = {
   stockLocations: StockLocationDTO[]
   inventoryItems: {
     sku: string
-    quantity: number
+    quantity?: number
+    locations?: {
+      stockLocationName: string
+      quantity: number
+    }[]
   }[]
+}
+
+type ResolvedInventoryItemInput =
+  CreateInventoryLevelsStepInput["inventoryItems"][number] & {
+    id?: string
+  }
+
+function buildInventoryLevelsForItem(
+  inventoryItem: ResolvedInventoryItemInput,
+  stockLocations: StockLocationDTO[]
+): CreateInventoryLevelInput[] {
+  if (inventoryItem.id === undefined) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Inventory item with sku ${inventoryItem.sku} not found.`
+    )
+  }
+  const inventoryItemId = inventoryItem.id
+
+  if (inventoryItem.locations?.length) {
+    return inventoryItem.locations.map((locationQuantity) => {
+      const stockLocation = stockLocations.find(
+        (location) => location.name === locationQuantity.stockLocationName
+      )
+      if (!stockLocation) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Stock location "${locationQuantity.stockLocationName}" not found for SKU ${inventoryItem.sku}.`
+        )
+      }
+
+      return {
+        location_id: stockLocation.id,
+        stocked_quantity: locationQuantity.quantity,
+        inventory_item_id: inventoryItemId,
+      }
+    })
+  }
+
+  if (inventoryItem.quantity === undefined) {
+    return []
+  }
+  const quantity = inventoryItem.quantity
+
+  return stockLocations.map((stockLocation) => ({
+    location_id: stockLocation.id,
+    stocked_quantity: quantity,
+    inventory_item_id: inventoryItemId,
+  }))
 }
 
 const CreateInventoryLevelsStepId = "create-inventory-levels-seed-step"
@@ -39,27 +96,21 @@ export const createInventoryLevelsStep = createStep(
       fields: ["id", "sku"],
     })
 
-    const inventoryItemsMap = input.inventoryItems.map((ii) => ({
-      id: inventoryItems.find((i) => i.sku === ii.sku)?.id,
-      sku: ii.sku,
-      quantity: ii.quantity,
-    }))
+    const inventoryItemsMap = input.inventoryItems.map((ii) => {
+      const inventoryItem = inventoryItems.find((i) => i.sku === ii.sku)
+      return {
+        id: inventoryItem?.id,
+        sku: ii.sku,
+        quantity: ii.quantity,
+        locations: ii.locations,
+      }
+    })
 
     const inventoryLevels: CreateInventoryLevelInput[] = []
-    for (const stockLocation of input.stockLocations) {
-      for (const inventoryItem of inventoryItemsMap) {
-        if (inventoryItem.id === undefined) {
-          throw new Error(
-            `Inventory item with sku ${inventoryItem.sku} not found.`
-          )
-        }
-        const inventoryLevel = {
-          location_id: stockLocation.id,
-          stocked_quantity: inventoryItem.quantity,
-          inventory_item_id: inventoryItem.id,
-        }
-        inventoryLevels.push(inventoryLevel)
-      }
+    for (const inventoryItem of inventoryItemsMap) {
+      inventoryLevels.push(
+        ...buildInventoryLevelsForItem(inventoryItem, input.stockLocations)
+      )
     }
 
     logger.info("Checking for existing inventory levels...")

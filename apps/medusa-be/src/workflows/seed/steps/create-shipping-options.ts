@@ -44,7 +44,7 @@ export type CreateShippingOptionsStepSeedInput = Array<
     CreateShippingOptionsStepInput[0],
     "serviceZoneId" | "shippingProfileId" | "regions"
   > & {
-    providerId?: string // Optional per-option provider, defaults to manual_manual in workflow
+    providerId?: string
   }
 >
 

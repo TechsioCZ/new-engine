@@ -4,25 +4,21 @@ import type {
 } from "@medusajs/framework/types"
 import type { createComgate } from "@paykit-sdk/comgate"
 import type {
-  BillingInfo,
-  CreateCustomerParams,
-  CreatePaymentSchema,
-  CreateRefundSchema,
   Customer,
+  LooseAutoComplete,
   Payee,
+  PayKit,
+  PayKitProvider,
   Payment,
   PaymentStatus,
-  UpdateCustomerParams,
-  UpdatePaymentSchema,
+  Refund,
   WebhookEventPayload,
 } from "@paykit-sdk/core"
 import type { createGopay } from "@paykit-sdk/gopay"
 import type { createStripe } from "@paykit-sdk/stripe"
 
-export type PaykitPaymentStatus =
+export type PaykitPaymentStatus = LooseAutoComplete<
   | PaymentStatus
-  | "pending"
-  | "processing"
   | "requires_action"
   | "requires_more"
   | "requires_capture"
@@ -34,56 +30,78 @@ export type PaykitPaymentStatus =
   | "cancelled"
   | "failed"
   | "error"
-  | string
+>
 
 export type PaykitPayment = Partial<
   Omit<Payment, "amount" | "currency" | "metadata" | "status">
-> &
-  Record<string, unknown> & {
-    id?: string
-    amount?: BigNumberInput
-    amount_paid?: BigNumberInput
-    currency?: string | null
-    currency_code?: string | null
-    customer?: Partial<Payee> | null
-    item_id?: string | null
-    status?: PaykitPaymentStatus
-    state?: PaykitPaymentStatus
-    requires_action?: boolean
-    payment_url?: string | null
-    paymentUrl?: string | null
-    checkout_url?: string | null
-    gw_url?: string | null
-    url?: string | null
-    metadata?: Record<string, unknown> | null
-  }
+> & {
+  id?: string
+  amount?: BigNumberInput
+  amount_paid?: BigNumberInput
+  currency?: string | null
+  currency_code?: string | null
+  customer?: Partial<Payee> | null
+  item_id?: string | null
+  status?: PaykitPaymentStatus
+  state?: PaykitPaymentStatus
+  requires_action?: boolean
+  payment_url?: string | null
+  paymentUrl?: string | null
+  checkout_url?: string | null
+  gw_url?: string | null
+  url?: string | null
+  metadata?: Record<string, unknown> | null
+}
 
-export type PaykitBillingInfo = BillingInfo
-export type PaykitCustomer = Partial<Customer> & Record<string, unknown>
-export type PaykitCreatePaymentInput = CreatePaymentSchema
+export type PaykitCustomer = Partial<Customer>
+export type PaykitRefund = Partial<Refund>
 
-export type PaykitUpdatePaymentInput = UpdatePaymentSchema
+type PaykitSdkProvider = PayKitProvider
+type PaykitSdkClient = Pick<
+  InstanceType<typeof PayKit<PaykitSdkProvider>>,
+  "customers" | "payments" | "refunds"
+>
+type PaykitSdkPayments = PaykitSdkClient["payments"]
+type PaykitSdkRefunds = PaykitSdkClient["refunds"]
+type PaykitSdkCustomers = PaykitSdkClient["customers"]
 
 export type PaykitPaymentClient = {
   payments: {
-    create: (input: PaykitCreatePaymentInput) => Promise<PaykitPayment>
-    retrieve: (id: string) => Promise<PaykitPayment | null>
-    update?: (
-      id: string,
-      input: PaykitUpdatePaymentInput
+    create: (
+      input: Parameters<PaykitSdkPayments["create"]>[0]
     ) => Promise<PaykitPayment>
-    cancel?: (id: string) => Promise<PaykitPayment>
-    capture?: (id: string, input: { amount: number }) => Promise<PaykitPayment>
-    refund?: (id: string, input: { amount: number }) => Promise<PaykitPayment>
+    retrieve: (
+      id: Parameters<PaykitSdkPayments["retrieve"]>[0]
+    ) => Promise<PaykitPayment | null>
+    update?: (
+      id: Parameters<PaykitSdkPayments["update"]>[0],
+      input: Parameters<PaykitSdkPayments["update"]>[1]
+    ) => Promise<PaykitPayment>
+    cancel?: (
+      id: Parameters<PaykitSdkPayments["cancel"]>[0]
+    ) => Promise<PaykitPayment>
+    capture?: (
+      id: Parameters<PaykitSdkPayments["capture"]>[0],
+      input: Parameters<PaykitSdkPayments["capture"]>[1]
+    ) => Promise<PaykitPayment>
   }
   refunds?: {
-    create: (input: CreateRefundSchema) => Promise<PaykitPayment>
+    create: (
+      input: Parameters<PaykitSdkRefunds["create"]>[0]
+    ) => Promise<PaykitRefund>
   }
   customers?: {
-    create: (input: CreateCustomerParams) => Promise<PaykitCustomer>
-    update: (id: string, input: UpdateCustomerParams) => Promise<PaykitCustomer>
-    retrieve: (id: string) => Promise<PaykitCustomer | null>
-    delete: (id: string) => Promise<null>
+    create: (
+      input: Parameters<PaykitSdkCustomers["create"]>[0]
+    ) => Promise<PaykitCustomer>
+    update: (
+      id: Parameters<PaykitSdkCustomers["update"]>[0],
+      input: Parameters<PaykitSdkCustomers["update"]>[1]
+    ) => Promise<PaykitCustomer>
+    retrieve: (
+      id: Parameters<PaykitSdkCustomers["retrieve"]>[0]
+    ) => Promise<PaykitCustomer | null>
+    delete: (id: Parameters<PaykitSdkCustomers["delete"]>[0]) => Promise<null>
   }
   handleWebhook?: (
     payload: ProviderWebhookPayload["payload"]
@@ -101,23 +119,38 @@ export type PaykitAdapterOptions = {
   clientFactory?: PaykitClientFactory
 }
 
+export type PaykitGopayProviderOptions = Partial<
+  Parameters<typeof createGopay>[0]
+>
+export type PaykitStripeProviderOptions = Partial<
+  Parameters<typeof createStripe>[0]
+>
+export type PaykitComgateProviderOptions = Partial<
+  Parameters<typeof createComgate>[0]
+>
+
 export type PaykitGopayOptions = PaykitAdapterOptions &
-  Partial<Parameters<typeof createGopay>[0]>
+  PaykitGopayProviderOptions
 
 export type PaykitStripeOptions = PaykitAdapterOptions &
-  Partial<Parameters<typeof createStripe>[0]> & {
+  PaykitStripeProviderOptions & {
     webhookSecret?: string
   }
 
 export type PaykitComgateOptions = PaykitAdapterOptions &
-  Partial<Parameters<typeof createComgate>[0]> & {
+  PaykitComgateProviderOptions & {
     paymentLabel?: string
   }
 
-export type PaykitWebhookEvent = {
+type PaykitSdkWebhookEvent = WebhookEventPayload<Record<string, unknown>>
+
+export type PaykitWebhookEvent = Partial<
+  Omit<PaykitSdkWebhookEvent, "data" | "type">
+> & {
   type?: WebhookEventPayload["type"] | string
   is_raw?: WebhookEventPayload["is_raw"]
   data?:
+    | PaykitSdkWebhookEvent["data"]
     | PaykitPayment
     | { object?: PaykitPayment | null; payment?: PaykitPayment | null }
     | null
