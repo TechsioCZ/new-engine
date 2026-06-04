@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "scripts": {
     "test-all": "cross-env TEST_ALL_ESHOPS=true nx e2e e2e",
@@ -27,6 +27,7 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
+    "@medusajs/deps": "2.15.2",
     "@nx/esbuild": "22.4.2",
     "@nx/eslint-plugin": "22.4.2",
     "@nx/js": "22.4.2",
