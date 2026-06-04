@@ -27,20 +27,37 @@ type StorefrontAccountOrderDetailSummaryProps = {
   customerEmail?: string | null;
 };
 
+const readOrderAmount = (
+  order: HttpTypes.StoreOrder,
+  key: string,
+): number | null => {
+  const value = (order as unknown as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+};
+
 export function StorefrontAccountOrderDetailSummary({
   order,
   customerEmail,
 }: StorefrontAccountOrderDetailSummaryProps) {
   const orderItems = order.items ?? [];
+  const orderItemsTotal =
+    readOrderAmount(order, "item_total") ??
+    orderItems.reduce((total, item) => {
+      return total + resolveOrderItemTotalAmount(item);
+    }, 0);
+  const orderItemTaxTotal = readOrderAmount(order, "item_tax_total") ?? 0;
   const orderSubtotal =
-    typeof order.item_total === "number"
-      ? order.item_total
-      : orderItems.reduce((total, item) => {
-          return total + resolveOrderItemTotalAmount(item);
-        }, 0);
-  const orderShippingTotal =
-    typeof order.shipping_total === "number" ? order.shipping_total : 0;
-  const orderTaxTotal = typeof order.tax_total === "number" ? order.tax_total : 0;
+    readOrderAmount(order, "item_subtotal") ??
+    Math.max(orderItemsTotal - orderItemTaxTotal, 0);
+  const orderShippingTotal = readOrderAmount(order, "shipping_total") ?? 0;
+  const orderShippingTaxTotal =
+    readOrderAmount(order, "shipping_tax_total") ?? 0;
+  const orderShippingSubtotal =
+    readOrderAmount(order, "shipping_subtotal") ??
+    Math.max(orderShippingTotal - orderShippingTaxTotal, 0);
+  const orderTaxTotal =
+    readOrderAmount(order, "tax_total") ??
+    Math.max(orderItemTaxTotal + orderShippingTaxTotal, 0);
   const orderTotal = resolveOrderTotalAmount(order);
   const addresses = resolveOrderAddresses(order);
   const shippingMethod = resolveOrderShippingMethodLabel(order);
@@ -88,16 +105,16 @@ export function StorefrontAccountOrderDetailSummary({
         <article className="space-y-100">
           <h3 className="font-semibold">Zhrnutie platby</h3>
           <p className="text-fg-secondary text-sm">
-            {`Medzisúčet: ${formatOrderAmount(orderSubtotal, order.currency_code)}`}
+            {`Cena produktov bez DPH: ${formatOrderAmount(orderSubtotal, order.currency_code)}`}
           </p>
           <p className="text-fg-secondary text-sm">
-            {`Doprava: ${formatOrderAmount(orderShippingTotal, order.currency_code)}`}
+            {`Doprava bez DPH: ${formatOrderAmount(orderShippingSubtotal, order.currency_code)}`}
           </p>
           <p className="text-fg-secondary text-sm">
             {`DPH: ${formatOrderAmount(orderTaxTotal, order.currency_code)}`}
           </p>
           <p className="font-semibold text-fg-primary text-sm">
-            {`Celkom: ${formatOrderAmount(orderTotal, order.currency_code)}`}
+            {`Celkom s DPH: ${formatOrderAmount(orderTotal, order.currency_code)}`}
           </p>
         </article>
 

@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { createAuthQueryKeys } from "@techsio/storefront-data/auth/query-keys";
 import { createCartQueryKeys } from "@techsio/storefront-data/cart/query-keys";
+import type { MedusaCartServiceConfig } from "@techsio/storefront-data/cart/medusa-service";
 import {
   createCatalogQueryKeys,
 } from "@techsio/storefront-data/catalog/query-keys";
@@ -46,6 +47,52 @@ export const STOREFRONT_CATALOG_DEFAULT_LIMIT = 24;
 export const STOREFRONT_CATALOG_DEFAULT_SORT = "recommended";
 export const STOREFRONT_ORDER_DEFAULT_SORT = "-created_at";
 
+export const STOREFRONT_CART_FIELDS = [
+  "id",
+  "region_id",
+  "customer_id",
+  "sales_channel_id",
+  "email",
+  "currency_code",
+  "metadata",
+  "created_at",
+  "updated_at",
+  "original_item_total",
+  "original_item_subtotal",
+  "original_item_tax_total",
+  "item_total",
+  "item_subtotal",
+  "item_tax_total",
+  "original_total",
+  "original_subtotal",
+  "original_tax_total",
+  "total",
+  "subtotal",
+  "tax_total",
+  "discount_total",
+  "discount_tax_total",
+  "gift_card_total",
+  "gift_card_tax_total",
+  "shipping_total",
+  "shipping_subtotal",
+  "shipping_tax_total",
+  "original_shipping_total",
+  "original_shipping_subtotal",
+  "original_shipping_tax_total",
+  "completed_at",
+  "billing_address.*",
+  "shipping_address.*",
+  "region.*",
+  "promotions.*",
+  "payment_collection.*",
+  "*items",
+  "items.tax_lines.*",
+  "items.adjustments.*",
+  "shipping_methods.*",
+  "shipping_methods.tax_lines.*",
+  "shipping_methods.adjustments.*",
+].join(",");
+
 export const STOREFRONT_ORDER_LIST_FIELDS = [
   "id",
   "display_id",
@@ -72,15 +119,29 @@ export const STOREFRONT_ORDER_DETAIL_FIELDS = [
   "currency_code",
   "email",
   "total",
+  "subtotal",
+  "original_total",
+  "original_subtotal",
+  "original_tax_total",
   "item_total",
+  "item_subtotal",
+  "item_tax_total",
   "shipping_total",
+  "shipping_subtotal",
+  "shipping_tax_total",
   "tax_total",
+  "discount_total",
+  "discount_tax_total",
+  "gift_card_total",
+  "gift_card_tax_total",
   "billing_address.*",
   "shipping_address.*",
   "shipping_methods.*",
+  "shipping_methods.tax_lines.*",
   "transactions.*",
   "payment_collections.*",
   "*items",
+  "items.tax_lines.*",
 ].join(",");
 
 export const storefrontQueryKeys = {
@@ -142,6 +203,11 @@ export const storefrontOrderServiceConfig: MedusaOrderServiceConfig = {
   returnNullOnNotFound: true,
 };
 
+export const storefrontCartServiceConfig: MedusaCartServiceConfig = {
+  cartFields: STOREFRONT_CART_FIELDS,
+};
+
 export const storefrontCheckoutServiceConfig: MedusaCheckoutServiceConfig = {
+  cartFields: STOREFRONT_CART_FIELDS,
   buildPaymentSessionData: buildHerbatikaPaymentSessionData,
 };

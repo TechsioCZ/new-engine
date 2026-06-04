@@ -1,4 +1,14 @@
 import type { HttpTypes } from "@medusajs/types";
+import {
+  resolveCartItemsTaxAmount,
+  resolveCartShippingTaxAmount,
+} from "./cart-tax-calculations";
+
+export {
+  resolveCartItemsTaxAmount,
+  resolveCartShippingSubtotalAmount,
+  resolveCartShippingTaxAmount,
+} from "./cart-tax-calculations";
 
 export const asFiniteNumber = (value: unknown): number | null => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -166,15 +176,11 @@ export const resolveCartTaxAmount = (
     return Math.max(originalTaxTotal, 0);
   }
 
-  const itemTaxTotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).item_tax_total,
-  );
-  const shippingTaxTotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).shipping_tax_total,
-  );
+  const itemTaxTotal = resolveCartItemsTaxAmount(cart);
+  const shippingTaxTotal = resolveCartShippingTaxAmount(cart);
 
-  if (itemTaxTotal !== null || shippingTaxTotal !== null) {
-    return Math.max((itemTaxTotal ?? 0) + (shippingTaxTotal ?? 0), 0);
+  if (itemTaxTotal > 0 || shippingTaxTotal > 0) {
+    return Math.max(itemTaxTotal + shippingTaxTotal, 0);
   }
 
   return 0;

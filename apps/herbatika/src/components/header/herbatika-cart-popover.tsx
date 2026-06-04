@@ -11,7 +11,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
 import {
   asFiniteNumber,
-  resolveCartItemsTotalAmount,
+  resolveCartItemsSubtotalAmount,
+  resolveCartShippingSubtotalAmount,
+  resolveCartTaxAmount,
 } from "@/lib/storefront/cart-calculations";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
@@ -39,11 +41,14 @@ export function HerbatikaCartPopover({
   const removeLineItemMutation = useRemoveLineItem();
   const cartItems = cart?.items ?? [];
   const cartItemsTotalLabel = formatCurrencyAmount(
-    resolveCartItemsTotalAmount(cart),
+    resolveCartItemsSubtotalAmount(cart),
     currencyCode,
   );
-  const shippingAmount = asFiniteNumber(cart?.shipping_total);
-  const taxAmount = asFiniteNumber(cart?.tax_total);
+  const shippingAmount =
+    asFiniteNumber(cart?.shipping_total) !== null
+      ? resolveCartShippingSubtotalAmount(cart)
+      : null;
+  const taxAmount = resolveCartTaxAmount(cart);
   const discountAmount = asFiniteNumber(cart?.discount_total);
   const hiddenItemCount = Math.max(cartItems.length - 4, 0);
   const visibleItems = cartItems.slice(0, 4);
@@ -198,20 +203,22 @@ export function HerbatikaCartPopover({
 
               <div className="space-y-150 border-border-secondary border-t pt-250">
                 <div className="flex items-center justify-between gap-200">
-                  <span className="text-fg-secondary">Cena produktov:</span>
+                  <span className="text-fg-secondary">
+                    Cena produktov bez DPH:
+                  </span>
                   <span>{cartItemsTotalLabel}</span>
                 </div>
 
                 {shippingAmount !== null && shippingAmount > 0 ? (
                   <div className="flex items-center justify-between gap-200">
-                    <span className="text-fg-secondary">Doprava:</span>
+                    <span className="text-fg-secondary">Doprava bez DPH:</span>
                     <span>
                       {formatCurrencyAmount(shippingAmount, currencyCode)}
                     </span>
                   </div>
                 ) : null}
 
-                {taxAmount !== null && taxAmount > 0 ? (
+                {taxAmount > 0 ? (
                   <div className="flex items-center justify-between gap-200">
                     <span className="text-fg-secondary">DPH:</span>
                     <span>{formatCurrencyAmount(taxAmount, currencyCode)}</span>
@@ -228,7 +235,7 @@ export function HerbatikaCartPopover({
                 ) : null}
 
                 <div className="flex items-center justify-between gap-200 border-border-secondary border-t pt-200 font-bold text-lg">
-                  <span>Spolu:</span>
+                  <span>Spolu s DPH:</span>
                   <span>{cartTotalLabel}</span>
                 </div>
               </div>

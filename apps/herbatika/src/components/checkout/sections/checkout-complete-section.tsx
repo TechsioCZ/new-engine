@@ -16,6 +16,7 @@ type CheckoutCompleteSectionProps = {
   billingAddressForm: AddressFormState;
   canCompleteOrder: boolean;
   cartTotalAmount: number;
+  cartTaxAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   detailsStepHref: string;
@@ -119,6 +120,7 @@ export function CheckoutCompleteSection({
   billingAddressForm,
   canCompleteOrder,
   cartTotalAmount,
+  cartTaxAmount,
   cartTotalWithoutTaxAmount,
   currencyCode,
   detailsStepHref,
@@ -163,6 +165,9 @@ export function CheckoutCompleteSection({
             </p>
             <SupportingText className="text-fg-secondary">
               {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
+            </SupportingText>
+            <SupportingText className="text-fg-secondary">
+              {`DPH: ${formatCurrencyAmount(cartTaxAmount, currencyCode)}`}
             </SupportingText>
           </div>
         </div>

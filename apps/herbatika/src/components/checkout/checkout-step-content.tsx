@@ -40,15 +40,14 @@ export function CheckoutStepContent({
   const orderSummaryAside = (
     <CheckoutOrderSummarySection
       cartItems={controller.cartItems}
-      cartItemsTotalAmount={controller.cartItemsTotalAmount}
       cartItemsWithoutTaxAmount={controller.cartItemsSubtotalAmount}
+      cartTaxAmount={controller.cartTaxAmount}
       cartTotalAmount={controller.cartTotalAmount}
-      cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
       paymentLabel={selectedPaymentLabel}
       shippingLabel={selectedShippingLabel}
-      shippingAmount={controller.cartShippingTotalAmount}
+      shippingAmount={controller.cartShippingSubtotalAmount}
     />
   );
 
@@ -62,12 +61,13 @@ export function CheckoutStepContent({
           aside={
             <CheckoutCartSidebarSection
               cartItemsTotalAmount={controller.cartItemsSubtotalAmount}
+              cartTaxAmount={controller.cartTaxAmount}
               cartTotalAmount={controller.cartTotalAmount}
               cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
               currencyCode={controller.currencyCode}
               hasShipping={controller.hasShipping}
               nextStepHref={shippingStepHref}
-              shippingAmount={controller.cartShippingTotalAmount}
+              shippingAmount={controller.cartShippingSubtotalAmount}
               shippingLabel={selectedShippingLabel}
             />
           }
@@ -109,6 +109,7 @@ export function CheckoutStepContent({
             billingAddressForm={controller.billingAddressForm}
             canCompleteOrder={controller.canCompleteOrder}
             cartTotalAmount={controller.cartTotalAmount}
+            cartTaxAmount={controller.cartTaxAmount}
             cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
             currencyCode={controller.currencyCode}
             detailsStepHref={detailsStepHref}

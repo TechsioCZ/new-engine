@@ -20,6 +20,7 @@ export const storefront = createMedusaStorefrontPreset<
     hooks: storefrontDefinition.auth.hooks,
   },
   cart: {
+    serviceConfig: storefrontDefinition.cart.serviceConfig,
     queryKeys: storefrontDefinition.queryKeys.cart,
     hooks: storefrontDefinition.cart.hooks,
   },

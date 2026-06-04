@@ -7,6 +7,7 @@ import {
   buildUpdateCartParams,
 } from "./cart/params";
 import { cartStorage } from "./cart-storage";
+import { storefrontCartServiceConfig } from "./storefront-config";
 import { storefrontCoreDefinition } from "./storefront-core-definition";
 
 export const storefrontDefinition = {
@@ -22,6 +23,7 @@ export const storefrontDefinition = {
     },
   },
   cart: {
+    serviceConfig: storefrontCartServiceConfig,
     hooks: {
       addressAdapter: herbatikaCheckoutCartAddressAdapter,
       cartStorage,

@@ -13,10 +13,9 @@ import { resolveAvailabilityText } from "../utils/resolve-availability-text";
 
 type CheckoutOrderSummarySectionProps = {
   cartItems: HttpTypes.StoreCartLineItem[];
-  cartItemsTotalAmount: number;
   cartItemsWithoutTaxAmount: number;
+  cartTaxAmount: number;
   cartTotalAmount: number;
-  cartTotalWithoutTaxAmount: number;
   currencyCode: string;
   detailsFont: "inter" | "rubik";
   paymentLabel?: string;
@@ -26,8 +25,8 @@ type CheckoutOrderSummarySectionProps = {
 
 export function CheckoutOrderSummarySection({
   cartItems,
-  cartItemsTotalAmount,
-  cartItemsWithoutTaxAmount,  
+  cartItemsWithoutTaxAmount,
+  cartTaxAmount,
   cartTotalAmount,
   currencyCode,
   detailsFont,
@@ -127,15 +126,21 @@ export function CheckoutOrderSummarySection({
         </div>
         <div className="flex items-center justify-between border-b border-border-primary py-200">
           <span className="text-fg-secondary">
-            {shippingLabel || "Doprava"}
+            {shippingLabel ? `${shippingLabel} bez DPH` : "Doprava bez DPH"}
           </span>
           <p className="text-md font-medium text-fg-primary">
             {formatCurrencyAmount(shippingAmount, currencyCode)}
           </p>
         </div>
+        <div className="flex items-center justify-between border-b border-border-primary py-200">
+          <span className="text-fg-secondary">DPH</span>
+          <p className="text-md font-medium text-fg-primary">
+            {formatCurrencyAmount(cartTaxAmount, currencyCode)}
+          </p>
+        </div>
         <div className="flex items-center justify-between py-200">
           <span className="text-fg-secondary">
-            {paymentLabel || "Platební metoda"}
+            {paymentLabel || "Platba"}
           </span>
           <p className="text-md font-medium text-success-fg">Zadarmo</p>
         </div>

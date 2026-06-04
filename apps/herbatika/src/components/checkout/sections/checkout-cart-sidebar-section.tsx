@@ -9,6 +9,7 @@ import { CheckoutSelectPromoCode } from "../checkout-select-promo-code";
 
 type CheckoutCartSidebarSectionProps = {
   cartItemsTotalAmount: number;
+  cartTaxAmount: number;
   cartTotalAmount: number;
   cartTotalWithoutTaxAmount: number;
   currencyCode: string;
@@ -20,6 +21,7 @@ type CheckoutCartSidebarSectionProps = {
 
 export function CheckoutCartSidebarSection({
   cartItemsTotalAmount,
+  cartTaxAmount,
   cartTotalAmount,
   cartTotalWithoutTaxAmount,
   currencyCode,
@@ -47,13 +49,22 @@ export function CheckoutCartSidebarSection({
               {hasShipping ? (
                 <div className="flex items-center justify-between">
                   <p className="text-sm leading-relaxed font-normal text-fg-primary">
-                    {shippingLabel ?? "Doprava"}
+                    {shippingLabel ? `${shippingLabel} bez DPH` : "Doprava bez DPH"}
                   </p>
                   <p className="text-sm leading-relaxed font-normal text-fg-primary">
                     {formatCurrencyAmount(shippingAmount, currencyCode)}
                   </p>
                 </div>
               ) : null}
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm leading-relaxed font-normal text-fg-primary">
+                  DPH
+                </p>
+                <p className="text-sm leading-relaxed font-normal text-fg-primary">
+                  {formatCurrencyAmount(cartTaxAmount, currencyCode)}
+                </p>
+              </div>
             </div>
 
             <div className="mt-150 flex items-start justify-between gap-300 border-t border-border-secondary pt-350">

@@ -12,6 +12,8 @@ import {
 import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
 import {
   resolveCartItemsTotalAmount,
+  resolveCartTaxAmount,
+  resolveCartShippingSubtotalAmount,
   resolveCartShippingTotalAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
@@ -331,6 +333,18 @@ export function useCheckoutController() {
     return selectedShippingOptionPrice;
   }, [cartQuery.cart, selectedShippingOptionPrice]);
 
+  const cartShippingSubtotalAmount = useMemo(() => {
+    if (cartQuery.cart?.shipping_methods?.length) {
+      return resolveCartShippingSubtotalAmount(cartQuery.cart);
+    }
+
+    return selectedShippingOptionPrice;
+  }, [cartQuery.cart, selectedShippingOptionPrice]);
+
+  const cartTaxAmount = useMemo(() => {
+    return resolveCartTaxAmount(cartQuery.cart);
+  }, [cartQuery.cart]);
+
   const cartTotalAmount = useMemo(() => {
     return resolveCartTotalAmount(cartQuery.cart);
   }, [cartQuery.cart]);
@@ -358,7 +372,9 @@ export function useCheckoutController() {
     cartItems,
     cartQuery,
     cartItemsTotalAmount,
+    cartShippingSubtotalAmount,
     cartShippingTotalAmount,
+    cartTaxAmount,
     cartTotalWithoutTaxAmount,
     cartTotalAmount,
     cartItemsSubtotalAmount,
