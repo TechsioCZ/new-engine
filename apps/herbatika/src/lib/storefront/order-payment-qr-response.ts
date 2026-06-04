@@ -15,6 +15,7 @@ export const ORDER_PAYMENT_QR_FIELDS = [
   "+metadata",
   "payment_collections.*",
   "payment_collections.payments.*",
+  "payment_collections.payments.data",
 ];
 
 export type StoreOrderResponse = {
@@ -26,6 +27,7 @@ export type StoreOrderResponse = {
     metadata?: Record<string, unknown> | null;
     payment_collections?: Array<{
       payments?: Array<{
+        data?: Record<string, unknown> | null;
         provider_id?: string | null;
       }> | null;
     }> | null;
@@ -53,11 +55,18 @@ export function getNotApplicableQrPaymentResponse() {
 export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
   const order = payload.order;
 
-  if (!order?.id || !isQrPaymentOrder(order)) {
+  if (!order?.id) {
     return NOT_APPLICABLE_QR_PAYMENT_RESPONSE;
   }
 
-  const spayd = readString(order.metadata?.[ORDER_PAYMENT_QR_METADATA_KEY]);
+  const qrPayment = findQrPayment(order);
+  if (!qrPayment) {
+    return NOT_APPLICABLE_QR_PAYMENT_RESPONSE;
+  }
+
+  const spayd =
+    readString(qrPayment.data?.[ORDER_PAYMENT_QR_METADATA_KEY]) ??
+    readString(order.metadata?.[ORDER_PAYMENT_QR_METADATA_KEY]);
   if (!spayd) {
     return PENDING_QR_PAYMENT_RESPONSE;
   }
@@ -112,12 +121,16 @@ async function createQrSvg(spayd: string) {
   }
 }
 
-function isQrPaymentOrder(order: NonNullable<StoreOrderResponse["order"]>) {
-  return (order.payment_collections ?? []).some((collection) =>
-    (collection.payments ?? []).some(
-      (payment) => payment.provider_id === ORDER_QR_PAYMENT_PROVIDER_ID,
-    ),
-  );
+function findQrPayment(order: NonNullable<StoreOrderResponse["order"]>) {
+  for (const collection of order.payment_collections ?? []) {
+    for (const payment of collection.payments ?? []) {
+      if (payment.provider_id === ORDER_QR_PAYMENT_PROVIDER_ID) {
+        return payment;
+      }
+    }
+  }
+
+  return null;
 }
 
 function parseSpaydFields(spayd: string) {

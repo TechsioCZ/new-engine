@@ -7,7 +7,7 @@ const normalizeProviderValue = (providerId: string) => {
 
 const isQrPaymentProviderValue = (normalizedValue: string) => {
   return (
-    normalizedValue.includes("system default") ||
+    normalizedValue.includes("qr manual") ||
     normalizedValue.includes("bank") ||
     normalizedValue.includes("wire")
   );
