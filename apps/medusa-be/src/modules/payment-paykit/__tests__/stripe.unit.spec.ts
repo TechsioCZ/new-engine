@@ -1,4 +1,8 @@
-import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
+import {
+  MedusaError,
+  PaymentActions,
+  PaymentSessionStatus,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { PaykitStripePaymentProvider } from "../services/stripe"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
@@ -248,6 +252,26 @@ describe("PaykitStripePaymentProvider", () => {
     })
   })
 
+  it("rejects invalid persisted Stripe capture amounts before normalization", async () => {
+    const client = createMockPaykitClient()
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.capturePayment({
+        data: {
+          id: "stripe-payment-1",
+          amount: { invalid: true },
+          currency: "czk",
+        },
+      })
+    ).rejects.toMatchObject({
+      type: MedusaError.Types.INVALID_DATA,
+      message: "PayKit stored payment amount must be numeric",
+    })
+  })
+
   it("captures checkout-session payments by PaymentIntent id while preserving data.id", async () => {
     const client = createMockPaykitClient({
       payments: {
@@ -363,7 +387,11 @@ describe("PaykitStripePaymentProvider", () => {
   it("expires checkout sessions during cancel instead of canceling a PaymentIntent with cs id", async () => {
     const client = createMockPaykitClient({
       stripeCheckoutSessions: {
-        retrieve: vi.fn(),
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_open",
+          payment_status: "unpaid",
+          status: "open",
+        }),
         expire: vi.fn().mockResolvedValue({
           id: "cs_test_open",
           payment_status: "unpaid",
@@ -381,6 +409,10 @@ describe("PaykitStripePaymentProvider", () => {
       },
     })
 
+    expect(client.stripeCheckoutSessions?.retrieve).toHaveBeenCalledWith(
+      "cs_test_open",
+      { expand: ["payment_intent"] }
+    )
     expect(client.stripeCheckoutSessions?.expire).toHaveBeenCalledWith(
       "cs_test_open"
     )
@@ -388,6 +420,92 @@ describe("PaykitStripePaymentProvider", () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         id: "cs_test_open",
+        status: "canceled",
+      })
+    )
+  })
+
+  it("does not expire completed paid checkout sessions during cancel", async () => {
+    const client = createMockPaykitClient({
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_paid",
+          amount_total: 1050,
+          currency: "czk",
+          payment_intent: {
+            id: "pi_paid",
+            amount: 1050,
+            currency: "czk",
+            status: "succeeded",
+          },
+          payment_status: "paid",
+          status: "complete",
+        }),
+        expire: vi.fn(),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    const result = await provider.cancelPayment({
+      data: {
+        id: "cs_test_paid",
+      },
+    })
+
+    expect(client.stripeCheckoutSessions?.expire).not.toHaveBeenCalled()
+    expect(client.payments.cancel).not.toHaveBeenCalled()
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: "cs_test_paid",
+        payment_intent_id: "pi_paid",
+        status: "succeeded",
+      })
+    )
+  })
+
+  it("cancels capturable PaymentIntents for completed checkout sessions", async () => {
+    const client = createMockPaykitClient({
+      payments: {
+        cancel: vi.fn().mockResolvedValue({
+          id: "pi_manual",
+          amount: 1050,
+          currency: "czk",
+          status: "canceled",
+        }),
+      },
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_manual",
+          payment_intent: {
+            id: "pi_manual",
+            amount: 1050,
+            currency: "czk",
+            status: "requires_capture",
+          },
+          payment_status: "unpaid",
+          status: "complete",
+        }),
+        expire: vi.fn(),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    const result = await provider.cancelPayment({
+      data: {
+        id: "cs_test_manual",
+      },
+    })
+
+    expect(client.stripeCheckoutSessions?.expire).not.toHaveBeenCalled()
+    expect(client.payments.cancel).toHaveBeenCalledWith("pi_manual")
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        id: "cs_test_manual",
+        payment_intent_id: "pi_manual",
         status: "canceled",
       })
     )

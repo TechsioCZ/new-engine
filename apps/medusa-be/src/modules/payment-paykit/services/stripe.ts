@@ -38,6 +38,16 @@ import { requirePaykitOptions } from "../utils/validation"
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
+const isPaymentAmount = (
+  value: unknown
+): value is InitiatePaymentInput["amount"] =>
+  typeof value === "number" ||
+  typeof value === "string" ||
+  (isRecord(value) &&
+    (("value" in value &&
+      (typeof value.value === "number" || typeof value.value === "string")) ||
+      ("toJSON" in value && "valueOf" in value)))
+
 const isStripeCheckoutSessionId = (id: string): boolean => id.startsWith("cs_")
 
 const getStripeCheckoutSessionRetriever = (
@@ -67,6 +77,20 @@ const getStripeCheckoutSessionRetriever = (
         }
       : {}),
   }
+}
+
+const requireStripeCheckoutSessionRetriever = (
+  provider: unknown
+): NonNullable<PaykitPaymentClient["stripeCheckoutSessions"]> => {
+  const checkoutSessions = getStripeCheckoutSessionRetriever(provider)
+
+  if (!checkoutSessions) {
+    throw new Error(
+      "PayKit Stripe temporary Checkout Session fallback could not access provider._native.checkout.sessions. Remove this fallback after the PayKit SDK supports Checkout Session ids returned by createPayment."
+    )
+  }
+
+  return checkoutSessions
 }
 
 const getStripeCustomer = (
@@ -258,22 +282,43 @@ const getPaymentIntentIdFromData = (
     ? data.payment_intent_id
     : undefined
 
-const getCaptureAmount = (
-  input: CapturePaymentInput
-): RefundPaymentInput["amount"] | undefined => {
-  if ("amount" in input) {
-    return Reflect.get(input, "amount") as RefundPaymentInput["amount"]
-  }
-
-  return input.data?.amount as RefundPaymentInput["amount"] | undefined
-}
-
 const getExplicitCaptureAmount = (
   input: CapturePaymentInput
-): RefundPaymentInput["amount"] | undefined =>
-  "amount" in input
-    ? (Reflect.get(input, "amount") as RefundPaymentInput["amount"])
-    : undefined
+): RefundPaymentInput["amount"] | undefined => {
+  if (!("amount" in input)) {
+    return
+  }
+
+  const amount = Reflect.get(input, "amount")
+
+  if (amount !== undefined && !isPaymentAmount(amount)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "PayKit capture amount must be numeric"
+    )
+  }
+
+  return amount
+}
+
+const getStoredCaptureAmount = (
+  data?: Record<string, unknown>
+): RefundPaymentInput["amount"] | undefined => {
+  const amount = data?.amount
+
+  if (amount === undefined) {
+    return
+  }
+
+  if (!isPaymentAmount(amount)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "PayKit stored payment amount must be numeric"
+    )
+  }
+
+  return amount
+}
 
 const withPreservedStripePaymentData = (
   data: Record<string, unknown> | undefined,
@@ -319,7 +364,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
 
     return {
       ...client,
-      stripeCheckoutSessions: getStripeCheckoutSessionRetriever(provider),
+      stripeCheckoutSessions: requireStripeCheckoutSessionRetriever(provider),
     }
   }
 
@@ -379,7 +424,9 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       )
     }
 
-    const amount = getCaptureAmount(input)
+    const explicitAmount = getExplicitCaptureAmount(input)
+    const paymentDataAmount = getStoredCaptureAmount(input.data)
+    const amount = explicitAmount ?? paymentDataAmount
 
     if (amount === undefined) {
       throw new MedusaError(
@@ -392,7 +439,6 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       input.data,
       client
     )
-    const explicitAmount = getExplicitCaptureAmount(input)
     const currencyCode = getCurrencyCode(input.data)
     const normalizedAmount =
       explicitAmount === undefined
@@ -487,26 +533,16 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
 
     if (
       isStripeCheckoutSessionId(providerPaymentId) &&
-      client.stripeCheckoutSessions?.expire
+      client.stripeCheckoutSessions
     ) {
-      // TODO(paykit-sdk): remove this once Stripe delete/cancel supports
-      // Checkout Session ids returned by createPayment's Checkout path.
-      const session =
-        await client.stripeCheckoutSessions.expire(providerPaymentId)
-      const payment = session
-        ? toPaykitPaymentFromStripeCheckoutSession(session)
-        : ({
-            id: providerPaymentId,
-            status: "canceled",
-          } satisfies PaykitPayment)
+      const output = await this.cancelOrExpireCheckoutSessionPayment(
+        data,
+        providerPaymentId,
+        client
+      )
 
-      return {
-        data: withPreservedStripePaymentData(
-          data,
-          providerPaymentId,
-          providerPaymentId,
-          payment
-        ),
+      if (output) {
+        return output
       }
     }
 
@@ -525,6 +561,72 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
         data,
         providerPaymentId,
         operationPaymentId,
+        payment
+      ),
+    }
+  }
+
+  private async cancelOrExpireCheckoutSessionPayment(
+    data: Record<string, unknown> | undefined,
+    providerPaymentId: string,
+    client: PaykitPaymentClient
+  ): Promise<CancelPaymentOutput | undefined> {
+    const session = await client.stripeCheckoutSessions?.retrieve(
+      providerPaymentId,
+      { expand: ["payment_intent"] }
+    )
+
+    if (!session) {
+      return
+    }
+
+    if (session.status === "open" && client.stripeCheckoutSessions?.expire) {
+      // TODO(paykit-sdk): remove this once Stripe delete/cancel supports
+      // Checkout Session ids returned by createPayment's Checkout path.
+      const expiredSession =
+        await client.stripeCheckoutSessions.expire(providerPaymentId)
+      const payment = expiredSession
+        ? toPaykitPaymentFromStripeCheckoutSession(expiredSession)
+        : ({
+            id: providerPaymentId,
+            status: "canceled",
+          } satisfies PaykitPayment)
+
+      return {
+        data: withPreservedStripePaymentData(
+          data,
+          providerPaymentId,
+          providerPaymentId,
+          payment
+        ),
+      }
+    }
+
+    const payment = toPaykitPaymentFromStripeCheckoutSession(session)
+    const operationPaymentId = payment.payment_intent_id
+
+    if (
+      payment.status === "requires_capture" &&
+      operationPaymentId &&
+      client.payments.cancel
+    ) {
+      const canceledPayment = await client.payments.cancel(operationPaymentId)
+
+      return {
+        data: withPreservedStripePaymentData(
+          data,
+          providerPaymentId,
+          operationPaymentId,
+          canceledPayment
+        ),
+      }
+    }
+
+    return {
+      data: withPreservedStripePaymentData(
+        data,
+        providerPaymentId,
+        operationPaymentId ?? providerPaymentId,
         payment
       ),
     }
