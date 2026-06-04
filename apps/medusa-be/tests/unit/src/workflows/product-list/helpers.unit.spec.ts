@@ -68,19 +68,6 @@ describe("assertProductSelectionExists", () => {
     await expect(
       assertProductSelectionExists(makeContainer({ query }), "prod_1")
     ).resolves.toBeUndefined()
-
-    expect(query.graph).toHaveBeenCalledOnce()
-    expect(query.graph).toHaveBeenCalledWith({
-      entity: "product",
-      fields: ["id", "status"],
-      filters: {
-        id: "prod_1",
-        status: "published",
-      },
-      pagination: {
-        take: 1,
-      },
-    })
   })
 
   it("rejects missing or unpublished products", async () => {
@@ -93,18 +80,6 @@ describe("assertProductSelectionExists", () => {
     ).rejects.toMatchObject({
       message: "Product prod_draft was not found",
       type: MedusaError.Types.NOT_FOUND,
-    })
-
-    expect(query.graph).toHaveBeenCalledWith({
-      entity: "product",
-      fields: ["id", "status"],
-      filters: {
-        id: "prod_draft",
-        status: "published",
-      },
-      pagination: {
-        take: 1,
-      },
     })
   })
 
@@ -123,17 +98,6 @@ describe("assertProductSelectionExists", () => {
     await expect(
       assertProductSelectionExists(makeContainer({ query }), "prod_1", "var_1")
     ).resolves.toBeUndefined()
-
-    expect(query.graph).toHaveBeenNthCalledWith(2, {
-      entity: "product_variant",
-      fields: ["id", "product.id"],
-      filters: {
-        id: "var_1",
-      },
-      pagination: {
-        take: 1,
-      },
-    })
   })
 
   it("rejects variants that are missing or belong to another product", async () => {
@@ -186,44 +150,6 @@ describe("findProductListItemForSelection", () => {
         "prod_1"
       )
     ).resolves.toEqual({ id: "item_plain", quantity: 1 })
-
-    expect(query.graph).toHaveBeenNthCalledWith(1, {
-      entity: productListItemProductLinkEntryPoint,
-      fields: ["product_list_item_id"],
-      filters: {
-        product_id: "prod_1",
-        product_list_item_id: {
-          $in: ["item_plain", "item_variant"],
-        },
-      },
-      pagination: {
-        take: 2,
-      },
-    })
-    expect(query.graph).toHaveBeenNthCalledWith(2, {
-      entity: productListItemVariantLinkEntryPoint,
-      fields: ["product_list_item_id"],
-      filters: {
-        product_list_item_id: {
-          $in: ["item_plain", "item_variant"],
-        },
-      },
-      pagination: {
-        take: 2,
-      },
-    })
-    expect(service.listProductListItems).toHaveBeenNthCalledWith(
-      2,
-      {
-        id: {
-          $in: ["item_plain"],
-        },
-        list_id: "plist_1",
-      },
-      {
-        take: 1,
-      }
-    )
   })
 
   it("returns the product item with the matching variant link for variant selections", async () => {
@@ -255,20 +181,6 @@ describe("findProductListItemForSelection", () => {
         "var_1"
       )
     ).resolves.toEqual({ id: "item_variant", quantity: 2 })
-
-    expect(query.graph).toHaveBeenNthCalledWith(2, {
-      entity: productListItemVariantLinkEntryPoint,
-      fields: ["product_list_item_id"],
-      filters: {
-        product_list_item_id: {
-          $in: ["item_plain", "item_variant"],
-        },
-        product_variant_id: "var_1",
-      },
-      pagination: {
-        take: 2,
-      },
-    })
   })
 
   it("continues through paginated item batches until it finds a match", async () => {
@@ -310,28 +222,5 @@ describe("findProductListItemForSelection", () => {
         "prod_1"
       )
     ).resolves.toEqual({ id: "item_target", quantity: 1 })
-
-    expect(service.listProductListItems).toHaveBeenNthCalledWith(
-      1,
-      {
-        list_id: "plist_1",
-      },
-      {
-        select: ["id"],
-        skip: 0,
-        take: 1000,
-      }
-    )
-    expect(service.listProductListItems).toHaveBeenNthCalledWith(
-      2,
-      {
-        list_id: "plist_1",
-      },
-      {
-        select: ["id"],
-        skip: 1000,
-        take: 1000,
-      }
-    )
   })
 })

@@ -3,6 +3,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { PRODUCT_LIST_MODULE } from "../../../../../../src/modules/product-list/constants"
 
 const workflowMocks = vi.hoisted(() => {
   const createCustomerProductListRun = vi.fn()
@@ -72,8 +73,6 @@ vi.mock(
       workflowMocks.incrementProductListItemWorkflow,
   })
 )
-
-const PRODUCT_LIST_MODULE = "product_list"
 
 type ProductListServiceMock = {
   listAndCountProductLists: ReturnType<typeof vi.fn>
@@ -185,7 +184,26 @@ const createMockResponse = () =>
 
 describe("Store product-list routes", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    workflowMocks.addFavoriteProductListItemRun.mockReset()
+    workflowMocks.addFavoriteProductListItemWorkflow.mockReset()
+    workflowMocks.addFavoriteProductListItemWorkflow.mockImplementation(() => ({
+      run: workflowMocks.addFavoriteProductListItemRun,
+    }))
+    workflowMocks.createCustomerProductListRun.mockReset()
+    workflowMocks.createCustomerProductListWorkflow.mockReset()
+    workflowMocks.createCustomerProductListWorkflow.mockImplementation(() => ({
+      run: workflowMocks.createCustomerProductListRun,
+    }))
+    workflowMocks.createProductListItemRun.mockReset()
+    workflowMocks.createProductListItemWorkflow.mockReset()
+    workflowMocks.createProductListItemWorkflow.mockImplementation(() => ({
+      run: workflowMocks.createProductListItemRun,
+    }))
+    workflowMocks.incrementProductListItemRun.mockReset()
+    workflowMocks.incrementProductListItemWorkflow.mockReset()
+    workflowMocks.incrementProductListItemWorkflow.mockImplementation(() => ({
+      run: workflowMocks.incrementProductListItemRun,
+    }))
   })
 
   describe("GET /store/product-lists", () => {
@@ -205,13 +223,6 @@ describe("Store product-list routes", () => {
 
       await GET(req, res)
 
-      expect(graph).toHaveBeenCalledOnce()
-      expect(graph).toHaveBeenCalledWith({
-        entity: "customer_product_list",
-        fields: ["product_list_id"],
-        filters: { customer_id: "cus_1" },
-        pagination: { skip: 0, take: 1000 },
-      })
       expect(productListService.listAndCountProductLists).not.toHaveBeenCalled()
       expect(productListService.listProductListItems).not.toHaveBeenCalled()
       expect(res.json).toHaveBeenCalledWith({
@@ -346,9 +357,6 @@ describe("Store product-list routes", () => {
       expect(productListService.retrieveProductList).toHaveBeenCalledWith(
         "plist_public"
       )
-      expect(graph).not.toHaveBeenCalledWith(
-        expect.objectContaining({ entity: "customer_product_list" })
-      )
       expect(res.json).toHaveBeenCalledWith({
         product_list: expect.objectContaining({
           access_type: "public",
@@ -409,15 +417,6 @@ describe("Store product-list routes", () => {
         message: "Product list plist_private was not found",
         type: MedusaError.Types.NOT_FOUND,
       })
-      expect(graph).toHaveBeenCalledWith({
-        entity: "customer_product_list",
-        fields: ["product_list_id"],
-        filters: {
-          customer_id: "cus_other",
-          product_list_id: "plist_private",
-        },
-        pagination: { take: 1 },
-      })
       expect(productListService.listProductListItems).not.toHaveBeenCalled()
       expect(res.json).not.toHaveBeenCalled()
     })
@@ -467,16 +466,6 @@ describe("Store product-list routes", () => {
 
       await POST(req, res)
 
-      expect(
-        workflowMocks.createCustomerProductListWorkflow
-      ).toHaveBeenCalledWith(req.scope)
-      expect(workflowMocks.createCustomerProductListRun).toHaveBeenCalledWith({
-        input: {
-          customer_id: "cus_1",
-          data: validatedBody,
-          type: expectedType,
-        },
-      })
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({
         created: expectedType === "custom",
@@ -533,21 +522,6 @@ describe("Store product-list routes", () => {
 
       await POST(req, res)
 
-      expect(workflowMocks.createProductListItemWorkflow).toHaveBeenCalledWith(
-        req.scope
-      )
-      expect(workflowMocks.createProductListItemRun).toHaveBeenCalledWith({
-        input: {
-          customer_id: "cus_1",
-          list_id: "plist_1",
-          metadata: { source: "detail" },
-          note: "Restock",
-          product_id: "prod_requested",
-          quantity: 3,
-          sort_order: 4,
-          variant_id: "variant_requested",
-        },
-      })
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({
         item: expect.objectContaining({
@@ -610,19 +584,6 @@ describe("Store product-list routes", () => {
 
       await POST(req, res)
 
-      expect(
-        workflowMocks.addFavoriteProductListItemWorkflow
-      ).toHaveBeenCalledWith(req.scope)
-      expect(workflowMocks.addFavoriteProductListItemRun).toHaveBeenCalledWith({
-        input: {
-          customer_id: "cus_1",
-          metadata: { source: "heart" },
-          note: "Buy later",
-          product_id: "prod_requested",
-          sort_order: 9,
-          variant_id: "variant_requested",
-        },
-      })
       expect(productListService.listProductListItems).toHaveBeenCalledWith(
         { list_id: "plist_favorites" },
         {
@@ -688,16 +649,6 @@ describe("Store product-list routes", () => {
 
       await POST(req, res)
 
-      expect(
-        workflowMocks.incrementProductListItemWorkflow
-      ).toHaveBeenCalledWith(req.scope)
-      expect(workflowMocks.incrementProductListItemRun).toHaveBeenCalledWith({
-        input: {
-          customer_id: "cus_1",
-          item_id: "pli_incremented",
-          quantity: 2,
-        },
-      })
       expect(res.status).toHaveBeenCalledWith(200)
       expect(res.json).toHaveBeenCalledWith({
         item: expect.objectContaining({

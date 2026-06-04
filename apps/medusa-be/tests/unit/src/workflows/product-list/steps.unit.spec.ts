@@ -89,9 +89,17 @@ const makeContainer = (service: MockService) => ({
   }),
 })
 
+const resetHelperMocks = () => {
+  mockAssertProductSelectionExists.mockReset()
+  mockFindCustomerCustomProductListByHandle.mockReset()
+  mockFindCustomerFavoriteProductList.mockReset()
+  mockFindProductListItemForSelection.mockReset()
+  mockGetProductListType.mockReset()
+}
+
 describe("createCustomerProductListStep", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    resetHelperMocks()
   })
 
   it("returns an existing favorite list without creating another one", async () => {
@@ -200,7 +208,7 @@ describe("createCustomerProductListStep", () => {
 
 describe("createProductListItemStep", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    resetHelperMocks()
   })
 
   it("rejects favorite lists when quantity is set before validating the product selection", async () => {
@@ -386,7 +394,7 @@ describe("createProductListItemStep", () => {
 
 describe("incrementProductListItemStep", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    resetHelperMocks()
   })
 
   it("rejects favorite lists before incrementing item quantity", async () => {

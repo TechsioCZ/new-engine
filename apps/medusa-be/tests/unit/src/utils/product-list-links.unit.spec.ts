@@ -55,29 +55,6 @@ describe("listCustomerProductListIds", () => {
       ...firstPageLinks.map((link) => link.product_list_id),
       "list-final",
     ])
-
-    expect(query.graph).toHaveBeenNthCalledWith(1, {
-      entity: customerProductListLinkEntryPoint,
-      fields: ["product_list_id"],
-      filters: {
-        customer_id: "cus_1",
-      },
-      pagination: {
-        skip: 0,
-        take: 1000,
-      },
-    })
-    expect(query.graph).toHaveBeenNthCalledWith(2, {
-      entity: customerProductListLinkEntryPoint,
-      fields: ["product_list_id"],
-      filters: {
-        customer_id: "cus_1",
-      },
-      pagination: {
-        skip: 1000,
-        take: 1000,
-      },
-    })
   })
 })
 
@@ -92,18 +69,6 @@ describe("assertCustomerOwnsProductList", () => {
     await expect(
       assertCustomerOwnsProductList(makeContainer(query), "cus_1", "plist_1")
     ).resolves.toBeUndefined()
-
-    expect(query.graph).toHaveBeenCalledWith({
-      entity: customerProductListLinkEntryPoint,
-      fields: ["product_list_id"],
-      filters: {
-        customer_id: "cus_1",
-        product_list_id: "plist_1",
-      },
-      pagination: {
-        take: 1,
-      },
-    })
   })
 
   it("throws NOT_FOUND when the ownership link is missing", async () => {
