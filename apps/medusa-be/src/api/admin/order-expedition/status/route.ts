@@ -14,6 +14,7 @@ import {
   type OrderExpeditionTargetStatus,
   toOrderExpeditionBlockingOrder,
 } from "../../../../utils/order-expedition"
+import { clearOrderExpeditionSummaryCache } from "../../../../utils/order-expedition-summary-cache"
 import { bulkCancelOrdersWorkflow } from "../../../../workflows/order-expedition/bulk-cancel-orders"
 import {
   bulkUpdateOrderStatusesWorkflow,
@@ -58,6 +59,8 @@ export async function POST(
 
   const { orders: changedOrders } =
     await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
+
+  await clearOrderExpeditionSummaryCache(req.scope)
 
   res.json({
     count: changedOrders.length,

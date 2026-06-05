@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { ICachingModuleService, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
   parseOrderBusinessStatusOrders,
@@ -11,11 +11,14 @@ import {
   type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
+import {
+  ORDER_EXPEDITION_SUMMARY_CACHE_KEY,
+  ORDER_EXPEDITION_SUMMARY_CACHE_TAG,
+  ORDER_EXPEDITION_SUMMARY_CACHE_TTL_SECONDS,
+  resolveOrderExpeditionSummaryCacheService,
+} from "../../../../utils/order-expedition-summary-cache"
 
 const ORDER_EXPEDITION_SUMMARY_BATCH_SIZE = 500
-const ORDER_EXPEDITION_SUMMARY_CACHE_KEY = "order-expedition:summary:v1"
-const ORDER_EXPEDITION_SUMMARY_CACHE_TAG = "order-expedition:summary"
-const ORDER_EXPEDITION_SUMMARY_CACHE_TTL_SECONDS = 120
 
 type OrderExpeditionSummaryResponse = {
   action_required_count: number
@@ -26,7 +29,7 @@ type OrderExpeditionSummaryResponse = {
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const cacheService = resolveSummaryCacheService(req)
+  const cacheService = resolveOrderExpeditionSummaryCacheService(req.scope)
   const cachedSummary = await getCachedSummary(cacheService)
 
   if (cachedSummary) {
@@ -76,14 +79,6 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   await setCachedSummary(cacheService, summary)
 
   res.json(summary)
-}
-
-function resolveSummaryCacheService(req: MedusaRequest) {
-  try {
-    return req.scope.resolve<ICachingModuleService>(Modules.CACHING)
-  } catch {
-    return null
-  }
 }
 
 async function getCachedSummary(
