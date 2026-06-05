@@ -1,0 +1,48 @@
+<svg width="280" height="64" viewBox="0 0 280 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="leafGradientA" x1="5" y1="5" x2="41" y2="41" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62BA46" />
+      <stop offset="1" stop-color="#009869" />
+    </linearGradient>
+    <linearGradient id="leafGradientB" x1="12" y1="12" x2="34" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#009869" />
+      <stop offset="1" stop-color="#62BA46" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="23" cy="23" r="22" fill="#F2FBF7" />
+
+  <g fill="url(#leafGradientA)">
+    <ellipse cx="23" cy="6.5" rx="3.2" ry="2.1" transform="rotate(-8 23 6.5)" />
+    <ellipse cx="13" cy="9" rx="3.1" ry="2" transform="rotate(-32 13 9)" />
+    <ellipse cx="6.5" cy="17" rx="3.1" ry="2" transform="rotate(-60 6.5 17)" />
+    <ellipse cx="6.5" cy="29" rx="3.1" ry="2" transform="rotate(62 6.5 29)" />
+    <ellipse cx="13" cy="37" rx="3.1" ry="2" transform="rotate(30 13 37)" />
+    <ellipse cx="23" cy="39.5" rx="3.2" ry="2.1" transform="rotate(8 23 39.5)" />
+    <ellipse cx="33" cy="37" rx="3.1" ry="2" transform="rotate(-30 33 37)" />
+    <ellipse cx="39.5" cy="29" rx="3.1" ry="2" transform="rotate(-62 39.5 29)" />
+    <ellipse cx="39.5" cy="17" rx="3.1" ry="2" transform="rotate(60 39.5 17)" />
+    <ellipse cx="33" cy="9" rx="3.1" ry="2" transform="rotate(32 33 9)" />
+  </g>
+
+  <g fill="url(#leafGradientB)">
+    <ellipse cx="23" cy="14" rx="2.7" ry="1.8" transform="rotate(-10 23 14)" />
+    <ellipse cx="16" cy="16" rx="2.7" ry="1.8" transform="rotate(-35 16 16)" />
+    <ellipse cx="11.5" cy="22.5" rx="2.7" ry="1.8" transform="rotate(-68 11.5 22.5)" />
+    <ellipse cx="14" cy="30.5" rx="2.7" ry="1.8" transform="rotate(30 14 30.5)" />
+    <ellipse cx="22.5" cy="33" rx="2.7" ry="1.8" transform="rotate(4 22.5 33)" />
+    <ellipse cx="30.5" cy="30.5" rx="2.7" ry="1.8" transform="rotate(-30 30.5 30.5)" />
+    <ellipse cx="35" cy="22.5" rx="2.7" ry="1.8" transform="rotate(68 35 22.5)" />
+    <ellipse cx="30" cy="16" rx="2.7" ry="1.8" transform="rotate(35 30 16)" />
+  </g>
+
+  <text x="55" y="28" fill="#3B3A3C" font-family="Verdana, Arial, sans-serif" font-size="20" font-weight="700">
+    herbatica
+  </text>
+  <text x="55" y="44" fill="#4D4D4D" font-family="Open Sans, Arial, sans-serif" font-size="11" font-weight="600">
+    Zdravie. Krása.
+  </text>
+  <text x="144" y="44" fill="#009869" font-family="Open Sans, Arial, sans-serif" font-size="11" font-weight="700">
+    Príroda!
+  </text>
+</svg>

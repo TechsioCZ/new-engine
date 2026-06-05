@@ -1,0 +1,6 @@
+@theme static {
+    --color-input-border-hover: var(--color-border-secondary);
+    --radius-input-sm: var(--radius-xs);
+    --radius-input-md: var(--radius-xs);
+    --radius-input-lg: var(--radius-lg);
+}

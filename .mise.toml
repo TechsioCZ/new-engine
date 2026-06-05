@@ -35,6 +35,14 @@ run = "mise run dev:internal:backend:prepare && mise run dev:internal:backend:up
 description = "Start and wait for manifest-defined frontend phase services"
 run = "mise run dev:internal:frontend:up && mise run dev:internal:frontend:wait"
 
+[tasks."dev:herbatika:frontend"]
+description = "Run the Herbatika storefront locally on http://localhost:3001"
+run = "pnpm --dir apps/herbatika dev"
+
+[tasks."dev:herbatika:demo-data"]
+description = "Load local Herbatica demo data from committed fixtures and checkout helpers"
+run = "mise run dev:payload:import:herbatica-pages && mise run dev:medusa:ensure:herbatica-demo-checkout"
+
 [tasks."dev:operator"]
 description = "Converge medusa-db bootstrap state for current operator envs, then start operator runtime services"
 run = "bash ./scripts/dev/mise-dev-helpers.sh ensure-operator-db-convergence && mise run dev:internal:operator:up && mise run dev:internal:operator:wait"
@@ -146,6 +154,18 @@ run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec
 [tasks."dev:medusa:seed:herbatica-promos"]
 description = "Seed Herbatica with rebased promo windows (PROMO_REBASE_DAYS defaults to 30)"
 run = """bash -lc 'PROMO_REBASE_DAYS_VAL="${PROMO_REBASE_DAYS:-30}"; echo "Seeding Herbatica with rebased promo windows for $PROMO_REBASE_DAYS_VAL days"; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec -e HERBATICA_PROMO_REBASE_DAYS="$PROMO_REBASE_DAYS_VAL" medusa-be pnpm --filter medusa-be run seedHerbatica'"""
+
+[tasks."dev:medusa:import:herbatica-snapshot"]
+description = "Import Herbatica catalog data from a local backend API snapshot into the running local Medusa stack"
+run = """bash -lc 'SNAPSHOT_DIR_VAL="${SNAPSHOT_DIR:-/var/www/local/medusa-backend-snapshots/zane-demo-smoke}"; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be exec medusa exec ./src/scripts/import-herbatica-snapshot.ts -- "$SNAPSHOT_DIR_VAL" ${IMPORT_ARGS:-}'"""
+
+[tasks."dev:medusa:ensure:herbatica-demo-checkout"]
+description = "Ensure local Herbatica demo checkout data: SK service zones and manual courier shipping"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec medusa-be pnpm --filter medusa-be run ensureHerbaticaDemoCheckout"
+
+[tasks."dev:payload:import:herbatica-pages"]
+description = "Import committed Herbatica static CMS page fixture into the running local Payload stack"
+run = """bash -lc 'LOCALE_VAL="${LOCALE:-sk}"; docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} exec -e NODE_OPTIONS=--no-deprecation payload pnpm --dir apps/payload exec tsx src/scripts/import-herbatica-pages.ts --locale "$LOCALE_VAL" ${PAYLOAD_IMPORT_ARGS:-}'"""
 
 [tasks."dev:medusa:debug-product-count"]
 description = "Debug Medusa product counts in the running local stack"

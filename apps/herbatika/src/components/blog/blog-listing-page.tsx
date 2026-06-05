@@ -1,0 +1,145 @@
+"use client";
+
+import { Link } from "@techsio/ui-kit/atoms/link";
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
+import NextLink from "next/link";
+import {
+  HerbatikaBreadcrumb,
+  type HerbatikaBreadcrumbItem,
+} from "@/components/herbatika-breadcrumb";
+import { asStorefrontRoute, type StorefrontRoute } from "@/lib/route-paths";
+import { routes } from "@/lib/routes";
+import type {
+  BlogTopicFilter,
+  BlogTopicKey,
+  resolveBlogListing,
+} from "@/lib/storefront/blog-content";
+import { BlogListingCard } from "./blog-listing-card";
+
+type BlogListingPageProps = {
+  listing: ReturnType<typeof resolveBlogListing>;
+};
+
+const resolveBlogListingHref = ({
+  topic,
+  page,
+}: {
+  topic: BlogTopicKey;
+  page: number;
+}): StorefrontRoute => {
+  const query = new URLSearchParams();
+
+  if (topic !== "all") {
+    query.set("topic", topic);
+  }
+
+  if (page > 1) {
+    query.set("page", String(page));
+  }
+
+  const serialized = query.toString();
+  return serialized.length > 0
+    ? asStorefrontRoute(`${routes.blog.index}?${serialized}`)
+    : routes.blog.index;
+};
+
+const getFilterLabel = (filter: BlogTopicFilter) => {
+  return `${filter.label} (${filter.count})`;
+};
+
+export function BlogListingPage({ listing }: BlogListingPageProps) {
+  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
+    {
+      label: "Blog",
+      href: routes.blog.index,
+      icon: "token-icon-home",
+    },
+  ];
+
+  const nextPage = listing.hasNextPage ? listing.page + 1 : listing.page;
+  const shouldShowLoadMore = listing.hasNextPage;
+  const shouldShowPageIndicator = listing.totalPages > 1;
+
+  return (
+    <main className="w-full bg-base font-rubik">
+      <div className="mx-auto flex w-full max-w-max-w flex-col gap-blog-listing-page-gap p-blog-listing-page 2xl:p-blog-listing-page-lg">
+        <HerbatikaBreadcrumb items={breadcrumbItems} />
+
+        <section className="space-y-500">
+          <header className="space-y-400">
+            <h1 className="text-4xl leading-tight font-bold text-fg-primary">
+              Trápi ma
+            </h1>
+
+            <p className="font-verdana text-md leading-relaxed text-fg-primary">
+              Najnovšie články o zdraví, kráse, stravovaní a wellness od našich
+              odborníkov.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-250">
+              {listing.topicFilters.map((filter) => {
+                const isActive = filter.key === listing.topic;
+
+                return (
+                  <LinkButton
+                    as={NextLink}
+                    className={`rounded-full px-450 py-250 h-full font-open-sans text-md border-1 border-primary font-bold leading-[18px] ${!isActive && "bg-surface text-fg-muted border-border-muted"}`}
+                    href={resolveBlogListingHref({
+                      topic: filter.key,
+                      page: 1,
+                    })}
+                    key={filter.key}
+                    size="sm"
+                    theme={isActive ? "solid" : "outlined"}
+                    variant={isActive ? "primary" : "secondary"}
+                  >
+                    {getFilterLabel(filter)}
+                  </LinkButton>
+                );
+              })}
+            </div>
+          </header>
+
+          <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-4">
+            {listing.posts.map((post) => (
+              <BlogListingCard key={post.id} post={post} />
+            ))}
+          </div>
+
+          {shouldShowLoadMore || shouldShowPageIndicator ? (
+            <div className="relative flex min-h-600 items-center justify-center">
+              {shouldShowLoadMore ? (
+                <LinkButton
+                  as={NextLink}
+                  className="rounded-full px-550 py-250 font-open-sans text-sm font-semibold"
+                  href={resolveBlogListingHref({
+                    topic: listing.topic,
+                    page: nextPage,
+                  })}
+                  size="sm"
+                  theme="outlined"
+                  variant="primary"
+                >
+                  Zobraziť ďalšie
+                </LinkButton>
+              ) : null}
+
+              {shouldShowPageIndicator ? (
+                <Link
+                  as={NextLink}
+                  className="absolute right-0 text-sm leading-normal font-semibold text-primary underline underline-offset-2 hover:text-primary-hover"
+                  href={resolveBlogListingHref({
+                    topic: listing.topic,
+                    page: nextPage,
+                  })}
+                >
+                  {`Strana ${listing.page}/${listing.totalPages}`}
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      </div>
+    </main>
+  );
+}

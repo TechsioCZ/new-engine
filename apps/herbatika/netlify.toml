@@ -1,0 +1,13 @@
+[build]
+  base = "apps/herbatika"
+  command = "pnpm build"
+  publish = "apps/herbatika/.next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  included_files = ["!node_modules/@swc/**", "!node_modules/@rspack/**"]
