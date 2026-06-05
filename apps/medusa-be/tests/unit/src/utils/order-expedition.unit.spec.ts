@@ -82,6 +82,8 @@ describe("order expedition helpers", () => {
       },
       shipping_methods: [{ name: "Packeta Z-Point" }],
       payment_collections: [{ payments: [{ provider_id: "stripe" }] }],
+      summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
+      total: 0,
       items: [{ id: "item_1", quantity: { value: "2" }, title: "Tea" }],
     })
 
@@ -92,6 +94,7 @@ describe("order expedition helpers", () => {
       order_display_id: "#HERB-1001",
       payment_method: "stripe",
       status: "pending",
+      total: 47.39,
     })
     expect(dto.delivery_address).toEqual(["Ulice 1", "11000 Praha", "CZ"])
     expect(dto.items).toEqual([
@@ -103,6 +106,53 @@ describe("order expedition helpers", () => {
         variant: undefined,
       },
     ])
+  })
+
+  it("uses the latest summary total when query returns a zero order total", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      summary: [
+        {
+          totals: {
+            current_order_total: 50,
+            original_order_total: 60,
+          },
+          version: 1,
+        },
+        {
+          totals: {
+            current_order_total: 47.39,
+            original_order_total: 60,
+          },
+          version: 2,
+        },
+      ],
+      total: 0,
+    })
+
+    expect(dto.total).toBe(47.39)
+  })
+
+  it("keeps a non-zero order total before falling back to summary totals", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
+      total: 12.34,
+    })
+
+    expect(dto.total).toBe(12.34)
+  })
+
+  it("normalizes Medusa amount objects returned by the query layer", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      total: { valueOf: () => "47.390000000000000000" },
+    })
+
+    expect(dto.total).toBe("47.390000000000000000")
   })
 
   it("explains expedition status transition blockers", () => {
