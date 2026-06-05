@@ -84,6 +84,7 @@ log_info "Step 1/5: Cleaning up unused apps and libs..."
 find apps -maxdepth 1 -mindepth 1 -type d \
   ! -name 'medusa-be' \
   ! -name 'medusa-symmy-plugin' \
+  ! -name 'medusa-order-dashboard-plugin' \
   -exec rm -rf {} + || true
 rm -rf libs || true
 
@@ -93,7 +94,9 @@ rm -rf \
   apps/medusa-be/node_modules \
   apps/medusa-be/.medusa \
   apps/medusa-symmy-plugin/node_modules \
-  apps/medusa-symmy-plugin/.medusa || true
+  apps/medusa-symmy-plugin/.medusa \
+  apps/medusa-order-dashboard-plugin/node_modules \
+  apps/medusa-order-dashboard-plugin/.medusa || true
 
 step_end "Cleanup"
 
