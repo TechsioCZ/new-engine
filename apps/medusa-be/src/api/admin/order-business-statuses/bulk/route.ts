@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { IOrderModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { getOrderBusinessManualStatusUpdateBlockReason } from "../../../../utils/order-business-status"
+import { clearOrderExpeditionSummaryCache } from "../../../../utils/order-expedition-summary-cache"
 import {
   buildOrderBusinessStatusMetadata,
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
@@ -80,6 +81,10 @@ export async function POST(
   const updatedOrders = updatedOrderIds.length
     ? await fetchOrderBusinessStatusOrdersByIds(query, updatedOrderIds)
     : []
+
+  if (updatedOrderIds.length) {
+    await clearOrderExpeditionSummaryCache(req.scope)
+  }
 
   res.json({
     count: updatedOrders.length,
