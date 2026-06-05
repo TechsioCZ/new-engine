@@ -134,6 +134,33 @@ describe("order expedition helpers", () => {
     expect(dto.total).toBe(47.39)
   })
 
+  it("uses raw summary totals when scalar summary totals are zeroed", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      summary: [
+        {
+          current_order_total: 0,
+          raw_current_order_total: { value: "47.390000000000000000" },
+          version: 1,
+        },
+      ],
+      total: 0,
+    })
+
+    expect(dto.total).toBe("47.390000000000000000")
+  })
+
+  it("keeps a zero order total when summary data is missing", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      total: 0,
+    })
+
+    expect(dto.total).toBe(0)
+  })
+
   it("keeps a non-zero order total before falling back to summary totals", () => {
     const dto = toOrderExpeditionDto({
       id: "order_1",

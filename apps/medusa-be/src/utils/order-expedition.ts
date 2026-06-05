@@ -555,14 +555,22 @@ function getLatestOrderExpeditionSummaryTotal(
 
   for (const entry of summaries) {
     const amount =
-      normalizeOrderExpeditionAmount(entry.current_order_total) ??
-      normalizeOrderExpeditionAmount(entry.raw_current_order_total) ??
-      normalizeOrderExpeditionAmount(entry.totals?.current_order_total) ??
-      normalizeOrderExpeditionAmount(entry.totals?.raw_current_order_total) ??
-      normalizeOrderExpeditionAmount(entry.original_order_total) ??
-      normalizeOrderExpeditionAmount(entry.raw_original_order_total) ??
-      normalizeOrderExpeditionAmount(entry.totals?.original_order_total) ??
-      normalizeOrderExpeditionAmount(entry.totals?.raw_original_order_total)
+      getOrderExpeditionSummaryAmount(
+        entry.current_order_total,
+        entry.raw_current_order_total
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.totals?.current_order_total,
+        entry.totals?.raw_current_order_total
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.original_order_total,
+        entry.raw_original_order_total
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.totals?.original_order_total,
+        entry.totals?.raw_original_order_total
+      )
 
     if (amount !== undefined) {
       return amount
@@ -570,6 +578,20 @@ function getLatestOrderExpeditionSummaryTotal(
   }
 
   return
+}
+
+function getOrderExpeditionSummaryAmount(
+  amount: number | string | null | undefined,
+  rawAmount: OrderExpeditionRawAmount | null | undefined
+) {
+  const normalizedAmount = normalizeOrderExpeditionAmount(amount)
+  const normalizedRawAmount = normalizeOrderExpeditionAmount(rawAmount)
+
+  if (isNonZeroAmount(normalizedAmount) || normalizedRawAmount === undefined) {
+    return normalizedAmount
+  }
+
+  return normalizedRawAmount
 }
 
 function getOrderExpeditionSummaryVersion(summary: OrderExpeditionSummary) {

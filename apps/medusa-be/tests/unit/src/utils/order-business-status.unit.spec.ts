@@ -131,6 +131,10 @@ describe("order business status", () => {
       overrides: { payment_status: "authorized" },
     },
     {
+      name: "payment is awaiting",
+      overrides: { payment_status: "awaiting" },
+    },
+    {
       name: "payment is partially authorized",
       overrides: { payment_status: "partially_authorized" },
     },
