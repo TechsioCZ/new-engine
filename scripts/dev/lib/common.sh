@@ -78,6 +78,71 @@ common::require_command() {
   command -v "$cmd" >/dev/null 2>&1 || common::die "Required command not found: $cmd"
 }
 
+common::resolve_pnpm_spec() {
+  local root_dir="${1:-$PWD}"
+
+  (
+    cd "$root_dir"
+    node -e '
+const fs = require("node:fs")
+const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"))
+const packageManager = pkg.packageManager
+
+if (typeof packageManager !== "string" || !packageManager.startsWith("pnpm@")) {
+  console.error("package.json must define packageManager as pnpm@<version>.")
+  process.exit(1)
+}
+
+process.stdout.write(packageManager)
+'
+  )
+}
+
+common::ensure_pnpm() {
+  local root_dir="${1:-$PWD}"
+  local current_version pnpm_spec pnpm_version
+
+  common::require_command node
+
+  pnpm_spec="$(common::resolve_pnpm_spec "$root_dir")"
+  pnpm_version="${pnpm_spec#pnpm@}"
+
+  if current_version="$(pnpm --version 2>/dev/null)"; then
+    if [[ "$current_version" == "$pnpm_version" ]]; then
+      return 0
+    fi
+
+    common::info "Found pnpm ${current_version}; repairing to pinned ${pnpm_spec} for the active Node toolchain."
+  else
+    common::info "pnpm is missing or not executable; installing pinned ${pnpm_spec} for the active Node toolchain."
+  fi
+
+  if command -v corepack >/dev/null 2>&1; then
+    if (
+      cd "$root_dir"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack enable pnpm >/dev/null &&
+        COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install >/dev/null
+    ); then
+      hash -r
+      if current_version="$(pnpm --version 2>/dev/null)" && [[ "$current_version" == "$pnpm_version" ]]; then
+        return 0
+      fi
+
+      common::warn "Corepack did not activate ${pnpm_spec}; falling back to npm global install."
+    else
+      common::warn "Corepack failed to activate ${pnpm_spec}; falling back to npm global install."
+    fi
+  fi
+
+  common::require_command npm
+  npm install --global "$pnpm_spec" >&2
+  hash -r
+
+  if ! current_version="$(pnpm --version 2>/dev/null)" || [[ "$current_version" != "$pnpm_version" ]]; then
+    common::die "Expected pnpm ${pnpm_version}, but PATH resolves pnpm ${current_version:-unavailable} after installation."
+  fi
+}
+
 common::gha_output() {
   local key="$1"
   local value="${2-}"

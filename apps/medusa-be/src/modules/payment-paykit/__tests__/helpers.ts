@@ -73,4 +73,5 @@ export const createMockPaykitClient = (
     ...overrides.customers,
   },
   handleWebhook: overrides.handleWebhook,
+  stripeCheckoutSessions: overrides.stripeCheckoutSessions,
 })

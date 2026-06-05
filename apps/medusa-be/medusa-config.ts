@@ -337,6 +337,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/producer",
     },
     {
+      resolve: "./src/modules/product-list",
+    },
+    {
       resolve: "./src/modules/email-log",
     },
     {

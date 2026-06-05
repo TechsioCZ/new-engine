@@ -140,8 +140,8 @@ require_tools() {
   common::require_command bash
   common::require_command git
   common::require_command jq
+  common::ensure_pnpm "$ROOT_DIR"
   common::require_command node
-  common::require_command pnpm
 }
 
 ensure_ctl_built() {
