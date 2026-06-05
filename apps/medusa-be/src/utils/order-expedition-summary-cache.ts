@@ -28,15 +28,21 @@ export async function clearOrderExpeditionSummaryCache(scope: RequestScope) {
       tags: [ORDER_EXPEDITION_SUMMARY_CACHE_TAG],
     })
   } catch (error) {
-    resolveLogger(scope)?.warn(
-      `Order expedition summary cache invalidation failed: ${getErrorMessage(error)}`
-    )
+    const logger = resolveLogger(scope)
+
+    if (typeof logger?.warn === "function") {
+      logger.warn(
+        `Order expedition summary cache invalidation failed: ${getErrorMessage(error)}`
+      )
+    }
   }
 }
 
 function resolveLogger(scope: RequestScope) {
   try {
-    return scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    const logger = scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+    return typeof logger?.warn === "function" ? logger : null
   } catch {
     return null
   }
