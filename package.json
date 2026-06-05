@@ -102,6 +102,12 @@
           "graphql": "16.14.0"
         }
       },
+      "@medusajs/core-flows@2.15.2": {
+        "dependencies": {
+          "@medusajs/utils": "2.15.2",
+          "@medusajs/workflows-sdk": "2.15.2"
+        }
+      },
       "@rokmohar/medusa-plugin-meilisearch@*": {
         "dependencies": {
           "@medusajs/js-sdk": "^2.15.2"
@@ -115,8 +121,6 @@
     }
   },
   "dependencies": {
-    "@medusajs/utils": "^2.15.2",
-    "@medusajs/workflows-sdk": "^2.15.2",
     "@mikro-orm/core": "6.6.12",
     "@mikro-orm/migrations": "6.6.12",
     "@rokmohar/medusa-plugin-meilisearch": "^1.3.8",
