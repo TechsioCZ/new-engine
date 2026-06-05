@@ -23,6 +23,7 @@ type ProductDetailHeroProps = {
   galleryItems: GalleryItem[];
   mediaFacts: ProductMediaFact[];
   isAdding: boolean;
+  maxQuantity: number;
   offerState: ProductOfferState;
   onAddToCart: () => void;
   onQuantityChange: (quantity: number) => void;
@@ -47,6 +48,7 @@ export function ProductDetailHero({
   galleryItems,
   mediaFacts,
   isAdding,
+  maxQuantity,
   offerState,
   onAddToCart,
   onQuantityChange,
@@ -74,6 +76,7 @@ export function ProductDetailHero({
           currentAmountLabel={currentAmountLabel}
           displayOriginalLabel={displayOriginalLabel}
           isAdding={isAdding}
+          maxQuantity={maxQuantity}
           offerState={offerState}
           onAddToCart={onAddToCart}
           onQuantityChange={onQuantityChange}

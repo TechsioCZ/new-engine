@@ -28,6 +28,7 @@ import {
 } from "@/components/product-detail/utils/pricing-utils";
 import { asNumber, asRecord, asString } from "@/components/product-detail/utils/value-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
@@ -98,6 +99,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     () => resolveOfferState(product, selectedVariant),
     [product, selectedVariant],
   );
+  const selectedVariantInventory = useMemo(
+    () => resolveVariantInventoryState(selectedVariant, quantity),
+    [quantity, selectedVariant],
+  );
 
   const productPrice = useMemo(() => {
     if (!product) {
@@ -148,7 +153,9 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode;
   const canAddToCart =
     Boolean(selectedVariant?.id) &&
-    typeof productPrice?.currentAmount === "number";
+    typeof productPrice?.currentAmount === "number" &&
+    selectedVariantInventory.isPurchasable;
+  const maxQuantity = selectedVariantInventory.maxPurchaseQuantity;
 
   const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice);
 
@@ -194,20 +201,26 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     offerState.unitLabel,
   ]);
 
-  const volumeDiscountOptions = useMemo(
-    () =>
-      resolveVolumeDiscountOptions(
-        currentAmount,
-        currentCurrencyCode,
-        offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
-      ),
-    [
+  const volumeDiscountOptions = useMemo(() => {
+    const options = resolveVolumeDiscountOptions(
       currentAmount,
       currentCurrencyCode,
-      offerState.applyQuantityDiscount,
-      offerState.applyVolumeDiscount,
-    ],
-  );
+      offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
+    );
+    const availableQuantity = selectedVariantInventory.availableQuantity;
+
+    if (availableQuantity === null) {
+      return options;
+    }
+
+    return options.filter((option) => option.quantity <= availableQuantity);
+  }, [
+    currentAmount,
+    currentCurrencyCode,
+    offerState.applyQuantityDiscount,
+    offerState.applyVolumeDiscount,
+    selectedVariantInventory.availableQuantity,
+  ]);
 
   const selectedVolumeDiscountOption = useMemo(() => {
     if (volumeDiscountOptions.length === 0) {
@@ -229,6 +242,18 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     setSelectedVariantId(product?.variants?.[0]?.id ?? null);
     setSelectedVolumeDiscountId(null);
   }, [product?.id, product?.variants]);
+
+  useEffect(() => {
+    const availableQuantity = selectedVariantInventory.availableQuantity;
+
+    if (availableQuantity === null || availableQuantity < 1) {
+      return;
+    }
+
+    if (quantity > availableQuantity) {
+      setQuantity(availableQuantity);
+    }
+  }, [quantity, selectedVariantInventory.availableQuantity]);
 
   useEffect(() => {
     setSelectedVolumeDiscountId(volumeDiscountOptions[0]?.id ?? null);
@@ -267,6 +292,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
         : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode, { minimumFractionDigits: 0, maximumFractionDigits: 0}),
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
+    maxQuantity,
     mediaFacts,
     product,
     productCategories,

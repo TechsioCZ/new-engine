@@ -11,6 +11,7 @@ import {
 import { resolveDescription } from "@/components/product-card/product-card.description";
 import { resolveFlags } from "@/components/product-card/product-card.flags";
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing";
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 
 export { getProductPriceLabel } from "@/components/product-card/product-card.pricing";
 
@@ -27,9 +28,11 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
   const { descriptionOverride, isAdding, onAddToCart } = props;
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product);
-  const defaultVariantId = product.variants?.[0]?.id;
+  const defaultVariant = product.variants?.[0] ?? null;
+  const defaultVariantInventory = resolveVariantInventoryState(defaultVariant);
   const canAddToCart =
-    Boolean(defaultVariantId) && typeof price.currentAmount === "number";
+    defaultVariantInventory.isPurchasable &&
+    typeof price.currentAmount === "number";
   const discountLabel = resolveDiscountLabel(price);
   const flags = resolveFlags(product, Boolean(discountLabel));
   const description =

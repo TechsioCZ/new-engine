@@ -19,6 +19,7 @@ import {
   asRecord,
   asString,
 } from "@/components/product-detail/utils/value-utils";
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 
 const normalizeSectionKey = (value: unknown): string | null => {
   const parsed = asString(value);
@@ -135,9 +136,10 @@ export const resolveOfferState = (
   const variantMetadata = asRecord(selectedVariant?.metadata);
   const source = topOffer ?? variantMetadata;
   const stock = asRecord(source?.stock);
-  const stockAmount = asNumber(stock?.amount);
-
-  const isInStock = stockAmount === null ? true : stockAmount > 0;
+  const variantInventory = resolveVariantInventoryState(selectedVariant);
+  const stockAmount =
+    variantInventory.availableQuantity ?? asNumber(stock?.amount);
+  const isInStock = variantInventory.isInStock;
 
   const inStockLabel = asString(source?.availability_in_stock) ?? "Skladom";
   const outOfStockLabel =

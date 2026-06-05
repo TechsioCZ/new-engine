@@ -56,6 +56,7 @@ type ProductDetailPurchasePanelProps = {
   currentAmountLabel: string
   displayOriginalLabel: string | null
   isAdding: boolean
+  maxQuantity: number
   offerState: ProductOfferState
   onAddToCart: () => void
   onQuantityChange: (quantity: number) => void
@@ -75,6 +76,7 @@ export function ProductDetailPurchasePanel({
   currentAmountLabel,
   displayOriginalLabel,
   isAdding,
+  maxQuantity,
   offerState,
   onAddToCart,
   onQuantityChange,
@@ -238,7 +240,7 @@ export function ProductDetailPurchasePanel({
           <NumericInput
             className="min-w-0 w-full px-0 xl:px-300"
             id="product-quantity"
-            max={50}
+            max={maxQuantity}
             min={1}
             onChange={(value) => {
               if (!Number.isFinite(value) || value < 1) {
@@ -246,7 +248,7 @@ export function ProductDetailPurchasePanel({
                 return
               }
 
-              onQuantityChange(Math.floor(value))
+              onQuantityChange(Math.min(Math.floor(value), maxQuantity))
             }}
             value={quantity}
           >

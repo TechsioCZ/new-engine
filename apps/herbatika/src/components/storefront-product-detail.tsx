@@ -81,6 +81,7 @@ export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps
             galleryItems={controller.galleryItems}
             mediaFacts={controller.mediaFacts}
             isAdding={controller.isMainProductAdding}
+            maxQuantity={controller.maxQuantity}
             offerState={controller.offerState}
             onAddToCart={controller.handleAddMainProductToCart}
             onQuantityChange={controller.handleQuantityChange}
