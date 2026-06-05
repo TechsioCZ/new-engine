@@ -330,7 +330,8 @@ const englishOrderDashboardAdminI18n = {
     all: "All",
   },
   sidebar: {
-    actionRequiredOrders: "{{count}} action required orders",
+    actionRequiredOrders:
+      "{{count}} orders waiting for admin confirmation without captured payment",
   },
   statuses: {
     awaiting_payment: "Awaiting payment",

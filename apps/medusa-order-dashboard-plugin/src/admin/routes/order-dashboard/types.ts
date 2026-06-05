@@ -201,6 +201,7 @@ export type OrderDashboardOrdersResponse = {
 
 export type OrderDashboardSummaryResponse = {
   action_required_count: number
+  pending_unpaid_count: number
   scanned_count: number
   status_counts: Record<OrderDashboardBusinessStatusId, number>
   total_count: number

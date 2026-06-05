@@ -699,13 +699,13 @@ const OrderDashboardPage = () => {
   const errorMessage = ordersQuery.error
     ? getErrorMessage(ordersQuery.error, t("toast.requestFailed"))
     : null
-  const actionRequiredCount = summaryQuery.data?.action_required_count ?? 0
+  const pendingUnpaidCount = summaryQuery.data?.pending_unpaid_count ?? 0
 
   useEffect(() => {
     setOrderDashboardSidebarBadgeCount(
-      summaryQuery.isLoading ? null : actionRequiredCount
+      summaryQuery.isLoading ? null : pendingUnpaidCount
     )
-  }, [actionRequiredCount, summaryQuery.isLoading])
+  }, [pendingUnpaidCount, summaryQuery.isLoading])
 
   useEffect(() => {
     if (selectedCount > 0) {

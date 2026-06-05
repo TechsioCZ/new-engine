@@ -123,6 +123,13 @@ const AWAITING_PAYMENT_STATUSES = new Set([
 ])
 
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
+const PENDING_UNPAID_PAYMENT_STATUSES = new Set([
+  "authorized",
+  "awaiting",
+  "not_paid",
+  "partially_authorized",
+  "requires_action",
+])
 
 const SHIPPED_FULFILLMENT_STATUSES = new Set([
   "partially_delivered",
@@ -221,6 +228,16 @@ export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
     order.payment_collections?.find((collection) => collection.status)
       ?.status ??
     (order.payment_collections?.length === 0 ? "not_paid" : undefined)
+  )
+}
+
+export function isPendingUnpaidOrder(order: OrderBusinessStatusInput) {
+  if (order.status !== "pending") {
+    return false
+  }
+
+  return PENDING_UNPAID_PAYMENT_STATUSES.has(
+    getOrderBusinessPaymentStatus(order) ?? ""
   )
 }
 
