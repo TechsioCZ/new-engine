@@ -23,6 +23,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "created"
     | "customer"
     | "details"
+    | "fulfillment"
     | "manualStatus"
     | "order"
     | "payment"
@@ -47,6 +48,20 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   filters: Record<"businessStatus" | "carrier", string>
+  fulfillmentStatus: Record<
+    | "canceled"
+    | "delivered"
+    | "fulfilled"
+    | "not_fulfilled"
+    | "partially_delivered"
+    | "partially_fulfilled"
+    | "partially_returned"
+    | "partially_shipped"
+    | "requires_action"
+    | "returned"
+    | "shipped",
+    string
+  >
   fulfillmentBlocker: Record<
     | "canceled"
     | "missingOrder"
@@ -201,6 +216,7 @@ const englishOrderDashboardAdminI18n = {
     created: "Created",
     customer: "Customer",
     details: "Details",
+    fulfillment: "Fulfillment",
     manualStatus: "Manual status",
     order: "Order",
     payment: "Payment",
@@ -225,6 +241,19 @@ const englishOrderDashboardAdminI18n = {
   filters: {
     businessStatus: "Status",
     carrier: "Carrier",
+  },
+  fulfillmentStatus: {
+    canceled: "Canceled",
+    delivered: "Delivered",
+    fulfilled: "Fulfilled",
+    not_fulfilled: "Not fulfilled",
+    partially_delivered: "Partially delivered",
+    partially_fulfilled: "Partially fulfilled",
+    partially_returned: "Partially returned",
+    partially_shipped: "Partially shipped",
+    requires_action: "Requires action",
+    returned: "Returned",
+    shipped: "Shipped",
   },
   fulfillmentBlocker: {
     canceled: "Canceled orders cannot be fulfilled",

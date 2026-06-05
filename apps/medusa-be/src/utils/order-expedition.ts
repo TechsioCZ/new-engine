@@ -149,6 +149,7 @@ export type OrderExpeditionOrderDto = {
   carrier: ResolvedOrderExpeditionCarrier
   payment_method: string
   payment_status?: string | null
+  fulfillment_status?: string | null
   status?: string | null
   manual_status?: ManualOrderBusinessStatusId | null
   total?: number | string | null
@@ -393,6 +394,7 @@ export function toOrderExpeditionDto(
     carrier: resolveOrderExpeditionCarrier(order),
     payment_method: getOrderExpeditionPaymentMethod(order),
     payment_status: order.payment_status,
+    fulfillment_status: order.fulfillment_status,
     status: order.status,
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
     total: order.total,

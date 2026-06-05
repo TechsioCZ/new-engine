@@ -107,6 +107,7 @@ export type OrderDashboardOrder = {
   delivery_address: string[]
   display_id?: number | null
   email?: string | null
+  fulfillment_status?: string | null
   has_active_fulfillment: boolean
   items: OrderDashboardItem[]
   manual_status?: OrderDashboardManualStatusId | null

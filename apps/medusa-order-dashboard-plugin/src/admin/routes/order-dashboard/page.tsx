@@ -13,6 +13,7 @@ import {
   Heading,
   Prompt,
   Select,
+  StatusBadge,
   Tabs,
   Text,
   Tooltip,
@@ -91,8 +92,22 @@ type TranslationFunction = (
   key: string,
   options?: Record<string, unknown>
 ) => string
+type StatusBadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
 
 const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
+const fulfillmentStatusColors = {
+  canceled: "red",
+  delivered: "green",
+  fulfilled: "green",
+  not_fulfilled: "red",
+  partially_delivered: "orange",
+  partially_fulfilled: "orange",
+  partially_returned: "orange",
+  partially_shipped: "orange",
+  requires_action: "orange",
+  returned: "green",
+  shipped: "green",
+} as const satisfies Record<string, StatusBadgeColor>
 
 const OrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
@@ -335,6 +350,21 @@ const OrderDashboardPage = () => {
           </Badge>
         ),
         header: t("columns.businessStatus"),
+      }),
+      columnHelper.accessor("fulfillment_status", {
+        cell: ({ row }) => {
+          const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
+
+          return (
+            <StatusBadge
+              className="text-nowrap"
+              color={fulfillmentStatus.color}
+            >
+              {fulfillmentStatus.label}
+            </StatusBadge>
+          )
+        },
+        header: t("columns.fulfillment"),
       }),
       columnHelper.display({
         cell: ({ row }) => (
@@ -1130,6 +1160,7 @@ function OrderDashboardDetailPanel({
   const manualStatusLabel = order.manual_status
     ? t(`manualStatus.${order.manual_status}`)
     : t("manualStatus.none")
+  const fulfillmentStatus = getFulfillmentStatusDisplay(order, t)
 
   return (
     <div className="bg-ui-bg-subtle px-6 py-4">
@@ -1172,9 +1203,7 @@ function OrderDashboardDetailPanel({
           {manualStatusLabel}
         </OrderDetailField>
         <OrderDetailField label={t("detail.fulfillment")}>
-          {order.has_active_fulfillment
-            ? t("detail.activeFulfillment")
-            : t("detail.noActiveFulfillment")}
+          {fulfillmentStatus.label}
         </OrderDetailField>
       </div>
 
@@ -1255,6 +1284,40 @@ function getManualStatusLabel(
   return status === null
     ? t("manualStatus.clear")
     : t(`manualStatus.${status}`)
+}
+
+function getFulfillmentStatusDisplay(
+  order: OrderDashboardOrder,
+  t: TranslationFunction
+) {
+  const status = order.fulfillment_status?.toLowerCase()
+
+  if (!status) {
+    return {
+      color: "grey" as const,
+      label: order.has_active_fulfillment
+        ? t("detail.activeFulfillment")
+        : t("detail.noActiveFulfillment"),
+    }
+  }
+
+  if (isKnownFulfillmentStatus(status)) {
+    return {
+      color: fulfillmentStatusColors[status],
+      label: t(`fulfillmentStatus.${status}`),
+    }
+  }
+
+  return {
+    color: "grey" as const,
+    label: formatOptionLabel(status),
+  }
+}
+
+function isKnownFulfillmentStatus(
+  status: string
+): status is keyof typeof fulfillmentStatusColors {
+  return status in fulfillmentStatusColors
 }
 
 function getBulkManualStatusBlockReason(
