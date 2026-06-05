@@ -3,11 +3,15 @@ import type {
   OrderDashboardBusinessStatusId,
   OrderDashboardBusinessStatusGroupId,
   OrderDashboardCarrierKey,
+  OrderDashboardFulfillmentCreateItem,
+  OrderDashboardFulfillmentOrder,
   OrderDashboardLabelFormat,
   OrderDashboardManualStatusId,
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
   OrderDashboardPacketaEligibilityOrder,
+  OrderDashboardShippingOption,
+  OrderDashboardStockLocation,
   OrderDashboardSummaryResponse,
   OrderDashboardStatusResponse,
   OrderDashboardTargetStatus,
@@ -21,6 +25,24 @@ const PACKETA_ELIGIBILITY_ORDER_FIELDS = [
   "fulfillments.provider_id",
   "fulfillments.canceled_at",
   "fulfillments.data",
+].join(",")
+const FULFILLMENT_ORDER_FIELDS = [
+  "id",
+  "display_id",
+  "status",
+  "no_notification",
+  "currency_code",
+  "*items",
+  "*items.variant",
+  "+items.variant.product.shipping_profile.id",
+  "+shipping_methods.shipping_option_id",
+  "shipping_methods.name",
+].join(",")
+const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
+  "id",
+  "name",
+  "provider_id",
+  "shipping_profile_id",
 ].join(",")
 
 type ListOrderDashboardOrdersInput = {
@@ -127,6 +149,62 @@ export async function listOrderDashboardPacketaEligibility(orderIds: string[]) {
   })
 
   return response.orders as OrderDashboardPacketaEligibilityOrder[]
+}
+
+export async function listOrderDashboardFulfillmentOrders(orderIds: string[]) {
+  if (!orderIds.length) {
+    return []
+  }
+
+  const response = await sdk.admin.order.list({
+    fields: FULFILLMENT_ORDER_FIELDS,
+    id: orderIds,
+    limit: orderIds.length,
+    offset: 0,
+  })
+
+  return response.orders as OrderDashboardFulfillmentOrder[]
+}
+
+export async function listOrderDashboardStockLocations() {
+  const response = await sdk.admin.stockLocation.list({
+    fields: "id,name",
+    limit: 100,
+    offset: 0,
+  })
+
+  return response.stock_locations as OrderDashboardStockLocation[]
+}
+
+export async function listOrderDashboardShippingOptions(stockLocationId: string) {
+  if (!stockLocationId) {
+    return []
+  }
+
+  const response = await sdk.admin.shippingOption.list({
+    fields: FULFILLMENT_SHIPPING_OPTION_FIELDS,
+    limit: 100,
+    offset: 0,
+    stock_location_id: stockLocationId,
+  })
+
+  return response.shipping_options as OrderDashboardShippingOption[]
+}
+
+export function createOrderDashboardFulfillment(input: {
+  items: OrderDashboardFulfillmentCreateItem[]
+  locationId: string
+  noNotification: boolean
+  orderId: string
+  shippingOptionId?: string
+}) {
+  return sdk.admin.order.createFulfillment(input.orderId, {
+    items: input.items,
+    location_id: input.locationId,
+    metadata: {},
+    no_notification: input.noNotification,
+    shipping_option_id: input.shippingOptionId,
+  })
 }
 
 async function downloadPdf(

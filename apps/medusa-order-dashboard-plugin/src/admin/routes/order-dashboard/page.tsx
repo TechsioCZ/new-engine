@@ -1,4 +1,5 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { Buildings } from "@medusajs/icons"
 import {
   Badge,
   Button,
@@ -32,6 +33,7 @@ import {
   updateOrderDashboardManualStatus,
   updateOrderDashboardStatuses,
 } from "./api"
+import { OrderFulfillmentModal } from "./fulfillment-modal"
 import {
   formatLocaleCode,
   formatOrderDate,
@@ -47,6 +49,7 @@ import {
   ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
+  ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
   ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
@@ -118,6 +121,7 @@ const OrderDashboardPage = () => {
   const [manualStatus, setManualStatus] = useState<ManualStatusValue | "">("")
   const [isManualStatusPromptOpen, setIsManualStatusPromptOpen] =
     useState(false)
+  const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false)
   const [labelFormat, setLabelFormat] =
     useState<OrderDashboardLabelFormat>("A6")
   const [blockingOrders, setBlockingOrders] = useState<
@@ -457,11 +461,15 @@ const OrderDashboardPage = () => {
     },
   })
 
-  const invalidateOrders = () => {
+  const refreshOrders = () => {
     queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
     queryClient.invalidateQueries({
       queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
     })
+  }
+
+  const invalidateOrders = () => {
+    refreshOrders()
     clearSelection()
     setDetailOrderId(null)
   }
@@ -627,6 +635,25 @@ const OrderDashboardPage = () => {
     })
   }
 
+  const handleFulfillmentOpen = () => {
+    if (!selectedOrderIds.length) {
+      toast.error(t("toast.noSelection"))
+      return
+    }
+
+    if (selectedOrderIds.length > ORDER_DASHBOARD_MAX_FULFILLMENT_IDS) {
+      toast.error(
+        t("toast.fulfillmentLimit", {
+          count: ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
+        })
+      )
+      return
+    }
+
+    setBlockingOrders([])
+    setIsFulfillmentModalOpen(true)
+  }
+
   const handleQueueChange = (value: string) => {
     if (!isOrderDashboardQueueId(value)) {
       return
@@ -670,7 +697,17 @@ const OrderDashboardPage = () => {
     if (isManualStatusPromptOpen) {
       setIsManualStatusPromptOpen(false)
     }
-  }, [isManualStatusPromptOpen, manualStatus, selectedCount, targetStatus])
+
+    if (isFulfillmentModalOpen) {
+      setIsFulfillmentModalOpen(false)
+    }
+  }, [
+    isFulfillmentModalOpen,
+    isManualStatusPromptOpen,
+    manualStatus,
+    selectedCount,
+    targetStatus,
+  ])
 
   useEffect(() => {
     const visibleSelection = getVisibleRowSelection(orders, selectedOrdersById)
@@ -765,6 +802,15 @@ const OrderDashboardPage = () => {
         </Prompt.Content>
       </Prompt>
 
+      <OrderFulfillmentModal
+        onCompleted={invalidateOrders}
+        onOpenChange={setIsFulfillmentModalOpen}
+        onOrdersChanged={refreshOrders}
+        open={isFulfillmentModalOpen}
+        selectedOrderIds={selectedOrderIds}
+        selectedOrders={selectedOrders}
+      />
+
       <div className="px-6 py-4">
         <Heading level="h1">{t("title")}</Heading>
       </div>
@@ -852,6 +898,16 @@ const OrderDashboardPage = () => {
               variant="secondary"
             >
               {t("actions.packetaLabels")}
+            </Button>
+            <Button
+              disabled={!selectedCount}
+              onClick={handleFulfillmentOpen}
+              size="small"
+              type="button"
+              variant="secondary"
+            >
+              <Buildings />
+              {t("actions.fulfillItems")}
             </Button>
           </div>
 

@@ -1,4 +1,5 @@
 export const ORDER_DASHBOARD_PAGE_SIZE = 50
+export const ORDER_DASHBOARD_MAX_FULFILLMENT_IDS = 50
 export const ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS = 100
 
 export const ORDER_DASHBOARD_CARRIER_KEYS = ["ppl", "packeta", "other"] as const
@@ -130,6 +131,57 @@ export type OrderDashboardPacketaEligibilityOrder = {
   id: string
   display_id?: number | null
   fulfillments?: OrderDashboardPacketaFulfillment[] | null
+}
+
+export type OrderDashboardFulfillmentItem = {
+  id: string
+  title: string
+  quantity: number
+  requires_shipping?: boolean | null
+  variant_sku?: string | null
+  variant_title?: string | null
+  detail?: {
+    fulfilled_quantity?: number | null
+  } | null
+  variant?: {
+    product?: {
+      shipping_profile?: {
+        id?: string | null
+      } | null
+    } | null
+  } | null
+}
+
+export type OrderDashboardFulfillmentShippingMethod = {
+  id?: string | null
+  name?: string | null
+  shipping_option_id?: string | null
+}
+
+export type OrderDashboardFulfillmentOrder = {
+  id: string
+  display_id?: number | string | null
+  no_notification?: boolean | null
+  status?: string | null
+  items?: OrderDashboardFulfillmentItem[] | null
+  shipping_methods?: OrderDashboardFulfillmentShippingMethod[] | null
+}
+
+export type OrderDashboardStockLocation = {
+  id: string
+  name: string
+}
+
+export type OrderDashboardShippingOption = {
+  id: string
+  name: string
+  provider_id?: string | null
+  shipping_profile_id?: string | null
+}
+
+export type OrderDashboardFulfillmentCreateItem = {
+  id: string
+  quantity: number
 }
 
 export type OrderDashboardOrdersResponse = {

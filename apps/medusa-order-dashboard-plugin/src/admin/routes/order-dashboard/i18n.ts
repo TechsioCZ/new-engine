@@ -8,6 +8,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "closeDetails"
     | "details"
     | "expeditionPdf"
+    | "fulfillItems"
     | "labelFormat"
     | "packetaEligible"
     | "packetaLabels"
@@ -46,6 +47,41 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   filters: Record<"businessStatus" | "carrier", string>
+  fulfillmentBlocker: Record<
+    | "canceled"
+    | "missingOrder"
+    | "noFulfillableItems"
+    | "noShippingOption"
+    | "shippingOptionUnavailable"
+    | "shippingProfileMismatch",
+    string
+  >
+  fulfillmentModal: Record<
+    | "confirm"
+    | "description"
+    | "eligible"
+    | "eligibleMore"
+    | "failed"
+    | "failedCount"
+    | "failedMore"
+    | "fulfilled"
+    | "fulfilledCount"
+    | "fulfilledMore"
+    | "items"
+    | "loading"
+    | "location"
+    | "locationPlaceholder"
+    | "noEligible"
+    | "notifyCustomers"
+    | "previewUnavailable"
+    | "selected"
+    | "skipped"
+    | "skippedCount"
+    | "skippedMore"
+    | "stockLocationsUnavailable"
+    | "title",
+    string
+  >
   labelFormats: Record<"a6" | "a7", string>
   manualStatus: Record<
     "canceled" | "clear" | "none" | "processing" | "waiting_for_supplier",
@@ -121,6 +157,10 @@ export type OrderDashboardAdminI18nNamespace = {
     | "businessStatusUpdated"
     | "businessStatusUpdatedWithSkipped"
     | "blockedOrderStatus"
+    | "fulfillmentCreated"
+    | "fulfillmentCreatedWithFailed"
+    | "fulfillmentLimit"
+    | "fulfillmentSkipped"
     | "manualStatusSkipped"
     | "missingBusinessStatus"
     | "missingOrderStatus"
@@ -146,6 +186,7 @@ const englishOrderDashboardAdminI18n = {
     closeDetails: "Close",
     details: "Details",
     expeditionPdf: "Expedition PDF",
+    fulfillItems: "Fulfill items",
     labelFormat: "Format",
     packetaEligible:
       "{{count}} Packeta printable from {{selectedCount}} selected",
@@ -184,6 +225,42 @@ const englishOrderDashboardAdminI18n = {
   filters: {
     businessStatus: "Status",
     carrier: "Carrier",
+  },
+  fulfillmentBlocker: {
+    canceled: "Canceled orders cannot be fulfilled",
+    missingOrder: "Order details could not be loaded",
+    noFulfillableItems: "No shipping items are awaiting fulfillment",
+    noShippingOption: "Order has no shipping option",
+    shippingOptionUnavailable:
+      "Order shipping option is not available from the selected stock location",
+    shippingProfileMismatch:
+      "No fulfillable items match the order shipping profile",
+  },
+  fulfillmentModal: {
+    confirm: "Fulfill eligible orders",
+    description:
+      "Eligible orders will be fulfilled from the selected stock location using each order's original shipping option.",
+    eligible: "{{count}} eligible",
+    eligibleMore: "{{count}} more eligible",
+    failed: "{{order}}: failed - {{reason}}",
+    failedCount: "{{count}} failed",
+    failedMore: "{{count}} more failed",
+    fulfilled: "{{order}}: fulfilled",
+    fulfilledCount: "{{count}} fulfilled",
+    fulfilledMore: "{{count}} more fulfilled",
+    items: "{{count}} item(s)",
+    loading: "Loading fulfillment preview...",
+    location: "Stock location",
+    locationPlaceholder: "Select stock location",
+    noEligible: "No selected orders are eligible for fulfillment.",
+    notifyCustomers: "Notify customers",
+    previewUnavailable: "Select a stock location to preview eligibility.",
+    selected: "{{count}} selected",
+    skipped: "{{order}}: skipped - {{reason}}",
+    skippedCount: "{{count}} skipped",
+    skippedMore: "{{count}} more skipped",
+    stockLocationsUnavailable: "No stock locations are available.",
+    title: "Fulfill items",
   },
   labelFormats: {
     a6: "A6",
@@ -279,6 +356,11 @@ const englishOrderDashboardAdminI18n = {
     businessStatusUpdatedWithSkipped:
       "Manual status updated for {{count}} orders. {{skippedCount}} skipped.",
     blockedOrderStatus: "Selected orders do not support that status change.",
+    fulfillmentCreated: "Fulfillment created for {{count}} orders",
+    fulfillmentCreatedWithFailed:
+      "Fulfillment created for {{count}} orders. {{failedCount}} failed.",
+    fulfillmentLimit: "Select up to {{count}} orders for bulk fulfillment.",
+    fulfillmentSkipped: "No selected orders can be fulfilled.",
     manualStatusSkipped: "Manual status was not changed",
     missingBusinessStatus: "Select a manual status.",
     missingOrderStatus: "Select a target order status.",
