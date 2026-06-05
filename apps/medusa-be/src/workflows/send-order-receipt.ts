@@ -1,18 +1,19 @@
 import type {
-  INotificationModuleService,
+  CreateNotificationDTO,
   Logger,
   Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
-  Modules,
 } from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
   StepResponse,
+  transform,
   WorkflowResponse,
+  when,
 } from "@medusajs/framework/workflows-sdk"
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
@@ -22,6 +23,7 @@ import {
   getOrderDisplayId,
   type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
+import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
   order_id: string
@@ -32,6 +34,11 @@ type OrderReceiptWorkflowResult = {
   email?: string
   order_id: string
   sent: boolean
+}
+
+type PreparedOrderReceiptNotification = {
+  notifications: CreateNotificationDTO[]
+  result: OrderReceiptWorkflowResult
 }
 
 type QueryOrder = OrderReceiptOrder &
@@ -90,16 +97,14 @@ function getCustomerName(order: QueryOrder) {
   return customerName || address?.company || addressName || undefined
 }
 
-const sendOrderReceiptStep = createStep(
-  "send-order-receipt",
+const prepareOrderReceiptNotificationStep = createStep(
+  "prepare-order-receipt-notification",
   async (
     input: WorkflowInput,
     { container }
-  ): Promise<StepResponse<OrderReceiptWorkflowResult>> => {
+  ): Promise<StepResponse<PreparedOrderReceiptNotification>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>("logger")
-    const notificationModuleService: INotificationModuleService =
-      container.resolve(Modules.NOTIFICATION)
     const orderReceiptModuleService =
       container.resolve<OrderReceiptModuleService>(ORDER_RECEIPT_MODULE)
 
@@ -119,15 +124,18 @@ const sendOrderReceiptStep = createStep(
     if (!order.email) {
       logger.warn(`Order ${order.id} has no email; receipt email skipped.`)
       return new StepResponse({
-        order_id: order.id,
-        sent: false,
+        notifications: [],
+        result: {
+          order_id: order.id,
+          sent: false,
+        },
       })
     }
 
     const attachment =
       await orderReceiptModuleService.generateOrderReceiptAttachment(order)
 
-    await notificationModuleService.createNotifications({
+    const notification = {
       attachments: [
         {
           content: attachment.content.toString("base64"),
@@ -149,12 +157,15 @@ const sendOrderReceiptStep = createStep(
       template: "order-placed",
       to: order.email,
       trigger_type: "order.placed",
-    } as Parameters<INotificationModuleService["createNotifications"]>[0])
+    } as CreateNotificationDTO
 
     return new StepResponse({
-      email: order.email,
-      order_id: order.id,
-      sent: true,
+      notifications: [notification],
+      result: {
+        email: order.email,
+        order_id: order.id,
+        sent: true,
+      },
     })
   }
 )
@@ -162,7 +173,21 @@ const sendOrderReceiptStep = createStep(
 export const sendOrderReceiptWorkflow = createWorkflow(
   "send-order-receipt",
   (input: WorkflowInput) => {
-    const result = sendOrderReceiptStep(input)
+    const prepared = prepareOrderReceiptNotificationStep(input)
+    const notificationInput = transform(
+      { prepared },
+      ({ prepared: preparedReceipt }) => preparedReceipt.notifications
+    )
+
+    when(
+      { prepared },
+      ({ prepared: preparedReceipt }) => preparedReceipt.result.sent
+    ).then(() => sendNotificationStep(notificationInput))
+
+    const result = transform(
+      { prepared },
+      ({ prepared: preparedReceipt }) => preparedReceipt.result
+    )
 
     return new WorkflowResponse(result)
   }
