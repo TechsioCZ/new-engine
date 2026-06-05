@@ -328,7 +328,11 @@ export function OrderFulfillmentModal({
               </div>
 
               {previewError ? (
-                <Text className="text-ui-fg-error" leading="compact" size="small">
+                <Text
+                  className="text-ui-fg-error"
+                  leading="compact"
+                  size="small"
+                >
                   {getErrorMessage(previewError, t("toast.requestFailed"))}
                 </Text>
               ) : isPreviewLoading ? (
@@ -339,61 +343,65 @@ export function OrderFulfillmentModal({
                 >
                   {t("fulfillmentModal.loading")}
                 </Text>
-              ) : !stockLocations.length ? (
-                <Text className="text-ui-fg-error" leading="compact" size="small">
-                  {t("fulfillmentModal.stockLocationsUnavailable")}
-                </Text>
-              ) : !locationId ? (
-                <Text
-                  className="text-ui-fg-subtle"
-                  leading="compact"
-                  size="small"
-                >
-                  {t("fulfillmentModal.previewUnavailable")}
-                </Text>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <FulfillmentMetric
-                      label={t("fulfillmentModal.selected", {
-                        count: selectedOrders.length,
-                      })}
-                    />
-                    <FulfillmentMetric
-                      label={t("fulfillmentModal.eligible", {
+              ) : stockLocations.length ? (
+                locationId ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <FulfillmentMetric
+                        label={t("fulfillmentModal.selected", {
+                          count: selectedOrders.length,
+                        })}
+                      />
+                      <FulfillmentMetric
+                        label={t("fulfillmentModal.eligible", {
+                          count: preview.fulfillable.length,
+                        })}
+                      />
+                      <FulfillmentMetric
+                        label={t("fulfillmentModal.skippedCount", {
+                          count: preview.skipped.length,
+                        })}
+                      />
+                    </div>
+
+                    <FulfillmentPreviewSection
+                      emptyMessage={t("fulfillmentModal.noEligible")}
+                      orders={preview.fulfillable}
+                      title={t("fulfillmentModal.eligible", {
                         count: preview.fulfillable.length,
                       })}
                     />
-                    <FulfillmentMetric
-                      label={t("fulfillmentModal.skippedCount", {
-                        count: preview.skipped.length,
-                      })}
-                    />
+
+                    {preview.skipped.length ? (
+                      <BlockingOrderPreviewSection
+                        blockedOrders={preview.skipped}
+                        hiddenLabelKey="fulfillmentModal.skippedMore"
+                        rowLabelKey="fulfillmentModal.skipped"
+                        title={t("fulfillmentModal.skippedCount", {
+                          count: preview.skipped.length,
+                        })}
+                      />
+                    ) : null}
+
+                    {result ? <FulfillmentResultPanel result={result} /> : null}
                   </div>
-
-                  <FulfillmentPreviewSection
-                    emptyMessage={t("fulfillmentModal.noEligible")}
-                    orders={preview.fulfillable}
-                    title={t("fulfillmentModal.eligible", {
-                      count: preview.fulfillable.length,
-                    })}
-                  />
-
-                  {preview.skipped.length ? (
-                    <BlockingOrderPreviewSection
-                      blockedOrders={preview.skipped}
-                      hiddenLabelKey="fulfillmentModal.skippedMore"
-                      rowLabelKey="fulfillmentModal.skipped"
-                      title={t("fulfillmentModal.skippedCount", {
-                        count: preview.skipped.length,
-                      })}
-                    />
-                  ) : null}
-
-                  {result ? (
-                    <FulfillmentResultPanel result={result} />
-                  ) : null}
-                </div>
+                ) : (
+                  <Text
+                    className="text-ui-fg-subtle"
+                    leading="compact"
+                    size="small"
+                  >
+                    {t("fulfillmentModal.previewUnavailable")}
+                  </Text>
+                )
+              ) : (
+                <Text
+                  className="text-ui-fg-error"
+                  leading="compact"
+                  size="small"
+                >
+                  {t("fulfillmentModal.stockLocationsUnavailable")}
+                </Text>
               )}
             </div>
           </FocusModal.Body>
@@ -447,12 +455,20 @@ function FulfillmentPreviewSection({
                 <Text leading="compact" size="small" weight="plus">
                   {order.order_display_id}
                 </Text>
-                <Text className="text-ui-fg-subtle" leading="compact" size="small">
+                <Text
+                  className="text-ui-fg-subtle"
+                  leading="compact"
+                  size="small"
+                >
                   {order.itemSummaries
                     .map((item) => `${item.quantity}x ${item.title}`)
                     .join(", ")}
                 </Text>
-                <Text className="text-ui-fg-muted" leading="compact" size="small">
+                <Text
+                  className="text-ui-fg-muted"
+                  leading="compact"
+                  size="small"
+                >
                   {t("fulfillmentModal.items", { count: itemCount })}
                 </Text>
               </div>
@@ -527,7 +543,7 @@ function FulfillmentResultPanel({
   const hiddenFulfilledCount = result.fulfilled.length - fulfilledOrders.length
 
   return (
-    <div className="flex flex-col gap-3 border-t border-ui-border-base pt-4">
+    <div className="flex flex-col gap-3 border-ui-border-base border-t pt-4">
       {result.fulfilled.length ? (
         <div className="flex flex-col gap-2">
           <Text leading="compact" size="small" weight="plus">
@@ -602,11 +618,7 @@ function getBulkFulfillmentPreview(
       continue
     }
 
-    const skipReason = getFulfillmentSkipReason(
-      order,
-      shippingOptionsById,
-      t
-    )
+    const skipReason = getFulfillmentSkipReason(order, shippingOptionsById, t)
 
     if (skipReason) {
       skipped.push({
@@ -624,17 +636,22 @@ function getBulkFulfillmentPreview(
 
     const shippingOption = shippingOptionsById.get(shippingOptionId)
     const items = getFulfillableShippingItems(order, shippingOption)
+    const fulfillmentItems = items.map((item) => ({
+      id: item.id,
+      quantity: getFulfillableQuantity(item),
+      title: item.title,
+    }))
 
     fulfillable.push({
       id: selectedOrder.id,
-      itemSummaries: items.map((item) => ({
+      itemSummaries: fulfillmentItems.map((item) => ({
         id: item.id,
-        quantity: getFulfillableQuantity(item),
+        quantity: item.quantity,
         title: item.title,
       })),
-      items: items.map((item) => ({
+      items: fulfillmentItems.map((item) => ({
         id: item.id,
-        quantity: getFulfillableQuantity(item),
+        quantity: item.quantity,
       })),
       order_display_id: orderDisplayId,
       shippingOptionId,

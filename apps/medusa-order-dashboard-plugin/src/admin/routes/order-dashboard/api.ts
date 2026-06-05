@@ -1,7 +1,7 @@
 import { sdk } from "../../lib/sdk"
 import type {
-  OrderDashboardBusinessStatusId,
   OrderDashboardBusinessStatusGroupId,
+  OrderDashboardBusinessStatusId,
   OrderDashboardCarrierKey,
   OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentOrder,
@@ -11,9 +11,9 @@ import type {
   OrderDashboardOrdersResponse,
   OrderDashboardPacketaEligibilityOrder,
   OrderDashboardShippingOption,
+  OrderDashboardStatusResponse,
   OrderDashboardStockLocation,
   OrderDashboardSummaryResponse,
-  OrderDashboardStatusResponse,
   OrderDashboardTargetStatus,
 } from "./types"
 
@@ -167,28 +167,54 @@ export async function listOrderDashboardFulfillmentOrders(orderIds: string[]) {
 }
 
 export async function listOrderDashboardStockLocations() {
-  const response = await sdk.admin.stockLocation.list({
-    fields: "id,name",
-    limit: 100,
-    offset: 0,
-  })
+  const limit = 100
+  const stockLocations: OrderDashboardStockLocation[] = []
 
-  return response.stock_locations as OrderDashboardStockLocation[]
+  for (let offset = 0; ; offset += limit) {
+    const response = await sdk.admin.stockLocation.list({
+      fields: "id,name",
+      limit,
+      offset,
+    })
+
+    const page = response.stock_locations as OrderDashboardStockLocation[]
+    stockLocations.push(...page)
+
+    if (page.length < limit) {
+      break
+    }
+  }
+
+  return stockLocations
 }
 
-export async function listOrderDashboardShippingOptions(stockLocationId: string) {
+export async function listOrderDashboardShippingOptions(
+  stockLocationId: string
+) {
   if (!stockLocationId) {
     return []
   }
 
-  const response = await sdk.admin.shippingOption.list({
-    fields: FULFILLMENT_SHIPPING_OPTION_FIELDS,
-    limit: 100,
-    offset: 0,
-    stock_location_id: stockLocationId,
-  })
+  const limit = 100
+  const shippingOptions: OrderDashboardShippingOption[] = []
 
-  return response.shipping_options as OrderDashboardShippingOption[]
+  for (let offset = 0; ; offset += limit) {
+    const response = await sdk.admin.shippingOption.list({
+      fields: FULFILLMENT_SHIPPING_OPTION_FIELDS,
+      limit,
+      offset,
+      stock_location_id: stockLocationId,
+    })
+
+    const page = response.shipping_options as OrderDashboardShippingOption[]
+    shippingOptions.push(...page)
+
+    if (page.length < limit) {
+      break
+    }
+  }
+
+  return shippingOptions
 }
 
 export function createOrderDashboardFulfillment(input: {

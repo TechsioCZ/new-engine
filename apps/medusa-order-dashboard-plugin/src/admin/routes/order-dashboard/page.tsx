@@ -29,12 +29,11 @@ import {
   downloadOrderDashboardExpeditionPdf,
   downloadOrderDashboardPacketaLabels,
   getOrderDashboardSummary,
-  listOrderDashboardPacketaEligibility,
   listOrderDashboardOrders,
+  listOrderDashboardPacketaEligibility,
   updateOrderDashboardManualStatus,
   updateOrderDashboardStatuses,
 } from "./api"
-import { OrderFulfillmentModal } from "./fulfillment-modal"
 import {
   formatLocaleCode,
   formatOrderDate,
@@ -46,12 +45,13 @@ import {
   isOrderDashboardCarrierKey,
   isOrderDashboardTargetStatus,
 } from "./format"
+import { OrderFulfillmentModal } from "./fulfillment-modal"
 import {
   ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
-  ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
+  ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
   ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
   ORDER_DASHBOARD_QUEUE_IDS,
@@ -200,11 +200,7 @@ const OrderDashboardPage = () => {
   })
   const packetaLabelPreview = useMemo(
     () =>
-      getPacketaLabelPreview(
-        selectedOrders,
-        packetaEligibilityQuery.data,
-        t
-      ),
+      getPacketaLabelPreview(selectedOrders, packetaEligibilityQuery.data, t),
     [packetaEligibilityQuery.data, selectedOrders, t]
   )
   const selectedCount = selectedOrders.length
@@ -786,7 +782,11 @@ const OrderDashboardPage = () => {
                   </Text>
                 ))}
                 {manualStatusPreview.updatable.length > 10 ? (
-                  <Text className="text-ui-fg-muted" leading="compact" size="small">
+                  <Text
+                    className="text-ui-fg-muted"
+                    leading="compact"
+                    size="small"
+                  >
                     {t("manualStatusPrompt.updatedMore", {
                       count: manualStatusPreview.updatable.length - 10,
                     })}
@@ -809,7 +809,11 @@ const OrderDashboardPage = () => {
                   </Text>
                 ))}
                 {manualStatusPreview.skipped.length > 10 ? (
-                  <Text className="text-ui-fg-muted" leading="compact" size="small">
+                  <Text
+                    className="text-ui-fg-muted"
+                    leading="compact"
+                    size="small"
+                  >
                     {t("manualStatusPrompt.skippedMore", {
                       count: manualStatusPreview.skipped.length - 10,
                     })}
@@ -980,8 +984,7 @@ const OrderDashboardPage = () => {
             </Select>
             <Button
               disabled={
-                !selectedCount ||
-                !targetStatus ||
+                !(selectedCount && targetStatus) ||
                 selectedTargetStatusBlockers.length > 0 ||
                 orderStatusMutation.isPending
               }
@@ -994,13 +997,13 @@ const OrderDashboardPage = () => {
               {t("actions.apply")}
             </Button>
 
-              <Select
-                onValueChange={(value) => {
-                  if (value === "clear" || isManualStatus(value)) {
-                    setManualStatus(value)
-                    setBlockingOrders([])
-                  }
-                }}
+            <Select
+              onValueChange={(value) => {
+                if (value === "clear" || isManualStatus(value)) {
+                  setManualStatus(value)
+                  setBlockingOrders([])
+                }
+              }}
               value={manualStatus}
             >
               <Select.Trigger className="w-[200px]">
@@ -1067,10 +1070,7 @@ const OrderDashboardPage = () => {
         </div>
       ) : (
         <DataTable instance={table}>
-          <DataTable.FilterBar
-            alwaysShow
-            columnsTooltip={t("columns.order")}
-          />
+          <DataTable.FilterBar alwaysShow columnsTooltip={t("columns.order")} />
           <DataTable.Table
             emptyState={{
               empty: {
@@ -1174,7 +1174,12 @@ function OrderDashboardDetailPanel({
             {order.email ? ` - ${order.email}` : ""}
           </Text>
         </div>
-        <Button onClick={onClose} size="small" type="button" variant="secondary">
+        <Button
+          onClick={onClose}
+          size="small"
+          type="button"
+          variant="secondary"
+        >
           {t("actions.closeDetails")}
         </Button>
       </div>
@@ -1232,7 +1237,11 @@ function OrderDashboardDetailPanel({
                     </Text>
                   ) : null}
                 </div>
-                <Text className="text-ui-fg-subtle" leading="compact" size="small">
+                <Text
+                  className="text-ui-fg-subtle"
+                  leading="compact"
+                  size="small"
+                >
                   {t("detail.quantity", { count: item.quantity })}
                 </Text>
               </div>
@@ -1260,7 +1269,12 @@ function OrderDetailField({
       <Text className="text-ui-fg-muted" leading="compact" size="small">
         {label}
       </Text>
-      <Text className="break-words" leading="compact" size="small" weight="plus">
+      <Text
+        className="break-words"
+        leading="compact"
+        size="small"
+        weight="plus"
+      >
         {children}
       </Text>
     </div>
@@ -1281,9 +1295,7 @@ function getManualStatusLabel(
   status: ManualStatusTarget,
   t: TranslationFunction
 ) {
-  return status === null
-    ? t("manualStatus.clear")
-    : t(`manualStatus.${status}`)
+  return status === null ? t("manualStatus.clear") : t(`manualStatus.${status}`)
 }
 
 function getFulfillmentStatusDisplay(
@@ -1456,7 +1468,7 @@ function StatusSelectItem({
     <Select.Item
       className={
         isBlocked
-          ? "data-[disabled]:cursor-not-allowed data-[disabled]:text-ui-fg-disabled data-[disabled]:pointer-events-auto"
+          ? "data-[disabled]:pointer-events-auto data-[disabled]:cursor-not-allowed data-[disabled]:text-ui-fg-disabled"
           : undefined
       }
       disabled={isBlocked}
@@ -1537,12 +1549,21 @@ function BlockingOrdersPanel({
 
   return (
     <div className="flex flex-col gap-2 bg-ui-bg-subtle px-6 py-4">
-      <Text className="text-ui-fg-error" leading="compact" size="small" weight="plus">
+      <Text
+        className="text-ui-fg-error"
+        leading="compact"
+        size="small"
+        weight="plus"
+      >
         {t("table.blockedOrdersTitle")}
       </Text>
       <div className="flex flex-col gap-1">
         {visibleOrders.map((order) => (
-          <Text key={`${order.id}-${order.reason}`} leading="compact" size="small">
+          <Text
+            key={`${order.id}-${order.reason}`}
+            leading="compact"
+            size="small"
+          >
             {order.order_display_id}: {order.reason}
           </Text>
         ))}
@@ -1628,7 +1649,9 @@ function isOrderDashboardBusinessStatusGroupId(
   )
 }
 
-function isOrderDashboardQueueId(value: unknown): value is OrderDashboardQueueId {
+function isOrderDashboardQueueId(
+  value: unknown
+): value is OrderDashboardQueueId {
   return (
     typeof value === "string" &&
     ORDER_DASHBOARD_QUEUE_IDS.includes(value as OrderDashboardQueueId)
@@ -1686,10 +1709,7 @@ function getQueueCount(
   return summary.status_counts[queueId]
 }
 
-function getQueueLabel(
-  queueId: OrderDashboardQueueId,
-  t: TranslationFunction
-) {
+function getQueueLabel(queueId: OrderDashboardQueueId, t: TranslationFunction) {
   if (queueId === "all" || queueId === "action_required") {
     return t(`queues.${queueId}`)
   }
