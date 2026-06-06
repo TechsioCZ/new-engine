@@ -2,19 +2,21 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { getRouteParam } from "../../../../../utils/route-params"
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
 import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../utils"
-import type { StoreCreateProductListItemSchemaType } from "../../validators"
+import {
+  type StoreCreateProductListItemSchemaType,
+  StoreProductListParamsSchema,
+} from "../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreCreateProductListItemSchemaType>,
   res: MedusaResponse
 ) {
-  const listId = getRouteParam(req.params, "id")
+  const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: item } = await createProductListItemWorkflow(req.scope).run({
     input: {
       customer_id: req.auth_context.actor_id,

@@ -4,12 +4,14 @@ import {
 } from "@medusajs/framework"
 import { authenticate, type MiddlewareRoute } from "@medusajs/framework/http"
 import {
+  StoreChangeProductListItemQuantitySchema,
   StoreCreateCustomProductListSchema,
   StoreCreateFavoriteProductListItemSchema,
   StoreCreateFavoriteProductListSchema,
   StoreCreateProductListItemSchema,
   StoreGetProductListsSchema,
-  StoreIncrementProductListItemSchema,
+  StoreUpdateProductListItemSchema,
+  StoreUpdateProductListSchema,
 } from "./validators"
 
 const customerAuth = authenticate("customer", ["session", "bearer"])
@@ -32,6 +34,19 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     methods: ["GET"],
     matcher: "/store/product-lists/:id",
     middlewares: [optionalCustomerAuth],
+  },
+  {
+    methods: ["POST"],
+    matcher: "/store/product-lists/:id",
+    middlewares: [
+      customerAuth,
+      validateAndTransformBody(StoreUpdateProductListSchema),
+    ],
+  },
+  {
+    methods: ["DELETE"],
+    matcher: "/store/product-lists/:id",
+    middlewares: [customerAuth],
   },
   {
     methods: ["POST"],
@@ -66,11 +81,29 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
+    methods: ["DELETE"],
+    matcher: "/store/product-lists/:id/items/:item_id",
+    middlewares: [customerAuth],
+  },
+  {
     methods: ["POST"],
-    matcher: "/store/product-lists/items/:id/increment",
+    matcher: "/store/product-lists/items/:id",
     middlewares: [
       customerAuth,
-      validateAndTransformBody(StoreIncrementProductListItemSchema),
+      validateAndTransformBody(StoreUpdateProductListItemSchema),
+    ],
+  },
+  {
+    methods: ["DELETE"],
+    matcher: "/store/product-lists/items/:id",
+    middlewares: [customerAuth],
+  },
+  {
+    methods: ["POST"],
+    matcher: "/store/product-lists/items/:id/change-quantity",
+    middlewares: [
+      customerAuth,
+      validateAndTransformBody(StoreChangeProductListItemQuantitySchema),
     ],
   },
 ]

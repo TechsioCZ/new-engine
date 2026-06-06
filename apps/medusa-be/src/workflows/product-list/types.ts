@@ -2,6 +2,8 @@ import type {
   CreateCustomProductListDTO,
   CreateFavoriteProductListDTO,
   ProductListMetadata,
+  UpdateCustomProductListDTO,
+  UpdateProductListItemDTO,
 } from "../../modules/product-list/service"
 
 export type ProductListRecord = {
@@ -51,10 +53,33 @@ export type CreateProductListItemWorkflowInput = {
   metadata?: ProductListMetadata | null
 }
 
-export type IncrementProductListItemWorkflowInput = {
+export type ChangeProductListItemQuantityWorkflowInput = {
   customer_id: string
   item_id: string
   quantity: number
+}
+
+export type UpdateProductListItemWorkflowInput = {
+  customer_id: string
+  item_id: string
+  data: UpdateProductListItemDTO
+}
+
+export type DeleteProductListItemWorkflowInput = {
+  customer_id: string
+  expected_list_id?: string
+  item_id: string
+}
+
+export type UpdateProductListWorkflowInput = {
+  customer_id: string
+  list_id: string
+  data: UpdateCustomProductListDTO
+}
+
+export type DeleteProductListWorkflowInput = {
+  customer_id: string
+  list_id: string
 }
 
 export type AddFavoriteProductListItemWorkflowInput = {

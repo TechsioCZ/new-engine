@@ -56,9 +56,52 @@ export const StoreCreateProductListItemSchema = z
 export const StoreCreateFavoriteProductListItemSchema =
   StoreCreateProductListItemSchema.omit({ quantity: true })
 
-export const StoreIncrementProductListItemSchema = z
+export const StoreChangeProductListItemQuantitySchema = z
   .object({
-    quantity: z.number().int().min(1).optional().default(1),
+    quantity: z
+      .number()
+      .int()
+      .refine((value) => value !== 0, {
+        message: "quantity must be a non-zero integer",
+      }),
+  })
+  .strict()
+
+export const StoreUpdateProductListItemSchema = z
+  .object({
+    metadata: metadataSchema,
+    note: nullableTrimmedString,
+    quantity: z.number().int().min(1).optional(),
+    sort_order: z.number().int().min(0).optional(),
+  })
+  .strict()
+
+export const StoreUpdateProductListSchema = z
+  .object({
+    access_type: z.enum(["private", "public"]).optional(),
+    description: nullableTrimmedString,
+    handle: optionalTrimmedString,
+    metadata: metadataSchema,
+    title: optionalTrimmedString,
+  })
+  .strict()
+
+export const StoreDeleteProductListItemParamsSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    item_id: z.string().trim().min(1),
+  })
+  .strict()
+
+export const StoreProductListParamsSchema = z
+  .object({
+    id: z.string().trim().min(1),
+  })
+  .strict()
+
+export const StoreProductListItemParamsSchema = z
+  .object({
+    id: z.string().trim().min(1),
   })
   .strict()
 
@@ -77,6 +120,21 @@ export type StoreCreateProductListItemSchemaType = z.infer<
 export type StoreCreateFavoriteProductListItemSchemaType = z.infer<
   typeof StoreCreateFavoriteProductListItemSchema
 >
-export type StoreIncrementProductListItemSchemaType = z.infer<
-  typeof StoreIncrementProductListItemSchema
+export type StoreChangeProductListItemQuantitySchemaType = z.infer<
+  typeof StoreChangeProductListItemQuantitySchema
+>
+export type StoreUpdateProductListItemSchemaType = z.infer<
+  typeof StoreUpdateProductListItemSchema
+>
+export type StoreUpdateProductListSchemaType = z.infer<
+  typeof StoreUpdateProductListSchema
+>
+export type StoreDeleteProductListItemParamsSchemaType = z.infer<
+  typeof StoreDeleteProductListItemParamsSchema
+>
+export type StoreProductListParamsSchemaType = z.infer<
+  typeof StoreProductListParamsSchema
+>
+export type StoreProductListItemParamsSchemaType = z.infer<
+  typeof StoreProductListItemParamsSchema
 >
