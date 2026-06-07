@@ -23,9 +23,7 @@ type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug;
 };
 
-export function CheckoutFlow({
-  activeStep,
-}: CheckoutFlowProps) {
+export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const router = useRouter();
   const controller = useCheckoutController();
   const requiredStep = resolveRequiredCheckoutStepSlug({

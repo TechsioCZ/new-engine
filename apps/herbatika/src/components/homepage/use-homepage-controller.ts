@@ -1,19 +1,19 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useMemo } from "react";
+import { useCatalogProducts } from "@/lib/storefront/catalog-products";
+import { useCategories } from "@/lib/storefront/categories";
+import {
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
+} from "@/lib/storefront/category-query-config";
+import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config";
 import {
   PRODUCT_SECTIONS,
   PRODUCTS_PER_COLLECTION_SECTION,
 } from "./homepage.data";
 import type { HomepageProductSection } from "./homepage.types";
 import { useHomepagePrefetch } from "./use-homepage-prefetch";
-import { useCatalogProducts } from "@/lib/storefront/catalog-products";
-import {
-  CATEGORY_TREE_FIELDS,
-  CATEGORY_TREE_LIMIT,
-} from "@/lib/storefront/category-query-config";
-import { useCategories } from "@/lib/storefront/categories";
-import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config";
 
 type UseHomepageControllerResult = {
   productsError: string | null;

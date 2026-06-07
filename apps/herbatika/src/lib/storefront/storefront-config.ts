@@ -1,43 +1,44 @@
 import type { HttpTypes } from "@medusajs/types";
 import { createAuthQueryKeys } from "@techsio/storefront-data/auth/query-keys";
-import { createCartQueryKeys } from "@techsio/storefront-data/cart/query-keys";
 import type { MedusaCartServiceConfig } from "@techsio/storefront-data/cart/medusa-service";
-import {
-  createCatalogQueryKeys,
-} from "@techsio/storefront-data/catalog/query-keys";
+import { createCartQueryKeys } from "@techsio/storefront-data/cart/query-keys";
 import type {
   MedusaCatalogListInput,
   MedusaCatalogServiceConfig,
 } from "@techsio/storefront-data/catalog/medusa-service";
-import { createCategoryQueryKeys } from "@techsio/storefront-data/categories/query-keys";
+import { createCatalogQueryKeys } from "@techsio/storefront-data/catalog/query-keys";
 import type {
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,
   MedusaCategoryServiceConfig,
 } from "@techsio/storefront-data/categories/medusa-service";
+import { createCategoryQueryKeys } from "@techsio/storefront-data/categories/query-keys";
 import type { MedusaCheckoutServiceConfig } from "@techsio/storefront-data/checkout/medusa-service";
 import { createCheckoutQueryKeys } from "@techsio/storefront-data/checkout/query-keys";
-import { createCustomerQueryKeys } from "@techsio/storefront-data/customers/query-keys";
 import type { MedusaCustomerListInput } from "@techsio/storefront-data/customers/medusa-service";
-import { createOrderQueryKeys } from "@techsio/storefront-data/orders/query-keys";
+import { createCustomerQueryKeys } from "@techsio/storefront-data/customers/query-keys";
 import type {
   MedusaOrderDetailInput,
   MedusaOrderListInput,
   MedusaOrderServiceConfig,
 } from "@techsio/storefront-data/orders/medusa-service";
-import { createProductQueryKeys } from "@techsio/storefront-data/products/query-keys";
+import { createOrderQueryKeys } from "@techsio/storefront-data/orders/query-keys";
 import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
   MedusaProductServiceConfig,
 } from "@techsio/storefront-data/products/medusa-service";
-import { createRegionQueryKeys } from "@techsio/storefront-data/regions/query-keys";
+import { createProductQueryKeys } from "@techsio/storefront-data/products/query-keys";
 import type {
   MedusaRegionDetailInput,
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
+import { createRegionQueryKeys } from "@techsio/storefront-data/regions/query-keys";
 import { buildHerbatikaPaymentSessionData } from "./payment-session";
-import { PRODUCT_CARD_FIELDS, PRODUCT_DETAIL_FIELDS } from "./product-query-config";
+import {
+  PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
+} from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 
 export const CATEGORY_FIELDS =
@@ -154,12 +155,14 @@ export const storefrontQueryKeys = {
   orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
     STOREFRONT_QUERY_KEY_NAMESPACE,
   ),
-  products: createProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>(
-    STOREFRONT_QUERY_KEY_NAMESPACE,
-  ),
-  regions: createRegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>(
-    STOREFRONT_QUERY_KEY_NAMESPACE,
-  ),
+  products: createProductQueryKeys<
+    MedusaProductListInput,
+    MedusaProductDetailInput
+  >(STOREFRONT_QUERY_KEY_NAMESPACE),
+  regions: createRegionQueryKeys<
+    MedusaRegionListInput,
+    MedusaRegionDetailInput
+  >(STOREFRONT_QUERY_KEY_NAMESPACE),
   categories: createCategoryQueryKeys<
     MedusaCategoryListInput,
     MedusaCategoryDetailInput

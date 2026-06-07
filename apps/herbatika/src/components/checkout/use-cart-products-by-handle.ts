@@ -3,10 +3,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useMemo } from "react";
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils";
-import {
-  PRODUCT_CARD_FIELDS,
-  useProducts,
-} from "@/lib/storefront/products";
+import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products";
 
 export const resolveCartProductHandles = (
   cartItems: HttpTypes.StoreCartLineItem[],

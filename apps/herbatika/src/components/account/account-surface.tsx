@@ -9,10 +9,7 @@ type AccountSurfaceProps = {
 const ACCOUNT_SURFACE_CLASSNAME =
   "rounded-lg border border-border-secondary bg-surface p-550";
 
-export function AccountSurface({
-  children,
-  className,
-}: AccountSurfaceProps) {
+export function AccountSurface({ children, className }: AccountSurfaceProps) {
   return (
     <section
       className={

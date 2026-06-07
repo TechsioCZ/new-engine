@@ -3,7 +3,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useMemo } from "react";
-import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,
@@ -14,24 +13,25 @@ import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils";
+import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
 import { useCatalogProducts } from "@/lib/storefront/catalog-products";
 import {
   buildCatalogProductsParams,
   resolveCatalogActiveFilterCount,
   resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state";
+import { useCategories } from "@/lib/storefront/categories";
 import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
-import { useCategories } from "@/lib/storefront/categories";
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
-import {
-  PLP_PAGE_SIZE,
-  type NuqsPlpQueryState,
-} from "@/lib/storefront/plp-query-state";
-import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import {
+  type NuqsPlpQueryState,
+  PLP_PAGE_SIZE,
+} from "@/lib/storefront/plp-query-state";
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 
 const resolveBreadcrumbItems = (

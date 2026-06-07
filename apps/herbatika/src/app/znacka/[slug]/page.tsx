@@ -87,10 +87,7 @@ export default async function BrandPage({
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <BrandListing
-        brandFacetId={brand.facetId}
-        brandTitle={brand.title}
-      />
+      <BrandListing brandFacetId={brand.facetId} brandTitle={brand.title} />
     </HydrationBoundary>
   );
 }

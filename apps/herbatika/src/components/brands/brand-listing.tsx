@@ -2,8 +2,8 @@
 
 import { CatalogListingShell } from "@/components/catalog-listing-shell";
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
-import { CategoryResultsSection } from "@/components/category/category-results-section";
 import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
+import { CategoryResultsSection } from "@/components/category/category-results-section";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
@@ -14,10 +14,7 @@ type BrandListingProps = {
   brandTitle: string;
 };
 
-export function BrandListing({
-  brandFacetId,
-  brandTitle,
-}: BrandListingProps) {
+export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
   const controller = useBrandListingController({ brandFacetId });
 
   return (

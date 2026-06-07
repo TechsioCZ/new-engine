@@ -1,22 +1,19 @@
 "use client";
 
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
+import { Icon } from "@techsio/ui-kit/atoms/icon";
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import NextLink from "next/link";
 import { useMemo } from "react";
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel";
 import { SupportingText } from "@/components/text/supporting-text";
+import { useCategories } from "@/lib/storefront/categories";
 import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
-import { useCategories } from "@/lib/storefront/categories";
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
-import {
-  RELATED_PRODUCT_FIELDS,
-  useProducts,
-} from "@/lib/storefront/products";
+import { RELATED_PRODUCT_FIELDS, useProducts } from "@/lib/storefront/products";
 import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
 
 const EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE = "novinky";
@@ -74,7 +71,10 @@ export function CheckoutEmptyCartSection() {
     <section className="space-y-800">
       <div className="grid gap-450 items-center mt-600">
         <div className="flex flex-col items-center gap-350">
-            <Icon icon="token-icon-cart text-[128px] text-primary" size="current" />
+          <Icon
+            icon="token-icon-cart text-[128px] text-primary"
+            size="current"
+          />
 
           <div className="min-w-0 space-y-300">
             <div className="space-y-150">

@@ -82,9 +82,7 @@ export function AccountOrderDetailSummary({
         </div>
 
         <div className="flex flex-wrap items-center gap-200">
-          <Badge variant={orderProgress.variant}>
-            {orderProgress.label}
-          </Badge>
+          <Badge variant={orderProgress.variant}>{orderProgress.label}</Badge>
           {invoiceUrl && (
             <LinkButton
               as={NextLink}
@@ -137,9 +135,13 @@ export function AccountOrderDetailSummary({
           {addresses.shipping ? (
             <div className="space-y-50 text-fg-secondary text-sm">
               {addresses.shipping.fullName && (
-                <p className="font-medium text-fg-primary">{addresses.shipping.fullName}</p>
+                <p className="font-medium text-fg-primary">
+                  {addresses.shipping.fullName}
+                </p>
               )}
-              {addresses.shipping.company && <p>{addresses.shipping.company}</p>}
+              {addresses.shipping.company && (
+                <p>{addresses.shipping.company}</p>
+              )}
               {addresses.shipping.lines.map((line) => (
                 <p key={line}>{line}</p>
               ))}
@@ -154,7 +156,9 @@ export function AccountOrderDetailSummary({
           {addresses.billing ? (
             <div className="space-y-50 text-fg-secondary text-sm">
               {addresses.billing.fullName && (
-                <p className="font-medium text-fg-primary">{addresses.billing.fullName}</p>
+                <p className="font-medium text-fg-primary">
+                  {addresses.billing.fullName}
+                </p>
               )}
               {addresses.billing.company && <p>{addresses.billing.company}</p>}
               {addresses.billing.lines.map((line) => (

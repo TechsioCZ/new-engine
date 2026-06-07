@@ -1,5 +1,4 @@
-import type { HttpTypes } from "@medusajs/types";
-import type { FindParams } from "@medusajs/types";
+import type { FindParams, HttpTypes } from "@medusajs/types";
 
 export const DEFAULT_CATEGORY_PAGE_SIZE = 24;
 export const CATEGORY_TREE_FIELDS =

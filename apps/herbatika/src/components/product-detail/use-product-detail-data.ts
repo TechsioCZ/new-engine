@@ -2,13 +2,17 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
+import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import { useEffect, useMemo, useState } from "react";
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
 import type { Product } from "@/components/product-detail/product-detail.types";
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log";
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products";
-import { resolveGalleryItems, resolveProductHighlights } from "@/components/product-detail/utils/display-utils";
+import {
+  resolveGalleryItems,
+  resolveProductHighlights,
+} from "@/components/product-detail/utils/display-utils";
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
 import { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts";
 import {
@@ -26,14 +30,17 @@ import {
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils";
-import { asNumber, asRecord, asString } from "@/components/product-detail/utils/value-utils";
+import {
+  asNumber,
+  asRecord,
+  asString,
+} from "@/components/product-detail/utils/value-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
-import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
-import { IconType } from "@techsio/ui-kit/atoms/icon";
 
 type UseProductDetailDataProps = {
   handle: string;
@@ -43,10 +50,12 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const region = useRegionContext();
   const regionCurrencyCode = resolveRegionCurrency(region);
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-  const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<string | null>(
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     null,
   );
+  const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<
+    string | null
+  >(null);
 
   const productQuery = useProduct({
     handle,
@@ -62,7 +71,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
       return null;
     }
 
-    return variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
+    return (
+      variants.find((variant) => variant.id === selectedVariantId) ??
+      variants[0]
+    );
   }, [selectedVariantId, variants]);
 
   const optionTitlesById = useMemo(() => {
@@ -86,8 +98,9 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   const variantItems = useMemo<SelectItem[]>(() => {
     return variants
-      .filter((variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
-        Boolean(variant.id),
+      .filter(
+        (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
+          Boolean(variant.id),
       )
       .map((variant) => ({
         value: variant.id,
@@ -228,8 +241,9 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     }
 
     return (
-      volumeDiscountOptions.find((option) => option.id === selectedVolumeDiscountId) ??
-      volumeDiscountOptions[0]
+      volumeDiscountOptions.find(
+        (option) => option.id === selectedVolumeDiscountId,
+      ) ?? volumeDiscountOptions[0]
     );
   }, [selectedVolumeDiscountId, volumeDiscountOptions]);
 
@@ -270,7 +284,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
           {
             label: normalizeCategoryName(primaryCategory.name),
             href: `/c/${primaryCategory.handle}`,
-            icon: "token-icon-home" as IconType
+            icon: "token-icon-home" as IconType,
           },
         ]
       : []),
@@ -289,7 +303,11 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     freeShippingThresholdLabel:
       freeShippingThresholdAmount === null
         ? null
-        : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode, { minimumFractionDigits: 0, maximumFractionDigits: 0}),
+        : formatCurrencyAmount(
+            freeShippingThresholdAmount,
+            currentCurrencyCode,
+            { minimumFractionDigits: 0, maximumFractionDigits: 0 },
+          ),
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
     maxQuantity,

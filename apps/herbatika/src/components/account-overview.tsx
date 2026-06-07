@@ -36,12 +36,16 @@ export function AccountOverview() {
       <ul className="flex flex-col flex-wrap gap-200">
         <li>
           <span>Zákazník: </span>
-          <span className="text-fg-secondary">{`${authQuery.customer.first_name ?? ""} ${authQuery.customer.last_name ?? ""}`.trim() ||
-            "Zákazník"}</span>
+          <span className="text-fg-secondary">
+            {`${authQuery.customer.first_name ?? ""} ${authQuery.customer.last_name ?? ""}`.trim() ||
+              "Zákazník"}
+          </span>
         </li>
         <li>
           <span>Email: </span>
-          <span className="text-fg-secondary">{authQuery.customer.email ?? "-"}</span>
+          <span className="text-fg-secondary">
+            {authQuery.customer.email ?? "-"}
+          </span>
         </li>
         <li>
           <span>Objednávky: </span>

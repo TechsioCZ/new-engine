@@ -3,24 +3,20 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
+import { AccountSurface } from "@/components/account/account-surface";
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items";
 import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { OrderSkeleton } from "@/components/loading/order-skeleton";
-import {
-  AccountSurface,
-} from "@/components/account/account-surface";
-import { resolveOrderDisplayId } from "@/lib/storefront/order-format";
 import { useAuth } from "@/lib/storefront/auth";
+import { resolveOrderDisplayId } from "@/lib/storefront/order-format";
 import { useOrder } from "@/lib/storefront/orders";
 
 type AccountOrderDetailProps = {
   orderId: string;
 };
 
-export function AccountOrderDetail({
-  orderId,
-}: AccountOrderDetailProps) {
+export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
   const authQuery = useAuth();
   const orderQuery = useOrder({
     id: orderId,
@@ -37,7 +33,12 @@ export function AccountOrderDetail({
         <StatusText showIcon status="error">
           {orderQuery.error}
         </StatusText>
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
+        <LinkButton
+          as={NextLink}
+          href="/account/orders"
+          variant="secondary"
+          size="sm"
+        >
           Späť na objednávky
         </LinkButton>
       </AccountSurface>
@@ -51,7 +52,12 @@ export function AccountOrderDetail({
         <p className="text-sm text-fg-secondary">
           Skontrolujte URL alebo sa vráťte do zoznamu objednávok.
         </p>
-        <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
+        <LinkButton
+          as={NextLink}
+          href="/account/orders"
+          variant="secondary"
+          size="sm"
+        >
           Späť na objednávky
         </LinkButton>
       </AccountSurface>
@@ -77,7 +83,6 @@ export function AccountOrderDetail({
       />
 
       <AccountOrderDetailItems order={order} />
-
     </div>
   );
 }

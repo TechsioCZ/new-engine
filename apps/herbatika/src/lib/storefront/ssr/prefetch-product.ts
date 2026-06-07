@@ -3,9 +3,9 @@ import "server-only";
 import { dehydrate } from "@tanstack/react-query";
 import { resolveRelatedCategoryIds } from "../category-tree";
 import {
+  buildProductListParams,
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
-  buildProductListParams,
 } from "../product-query-config";
 import { PDP_RELATED_PRODUCTS_LIMIT } from "./constants";
 import {
@@ -15,7 +15,9 @@ import {
 } from "./context";
 import type { ProductDetailParams } from "./types";
 
-export const prefetchProductDetailPageStorefrontData = async (handle: string) => {
+export const prefetchProductDetailPageStorefrontData = async (
+  handle: string,
+) => {
   const { queryClient, region } = await getRegionServerContext();
 
   if (region) {

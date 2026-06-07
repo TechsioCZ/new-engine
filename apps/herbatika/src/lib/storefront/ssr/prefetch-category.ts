@@ -2,12 +2,12 @@ import "server-only";
 
 import { dehydrate } from "@tanstack/react-query";
 import { buildCatalogProductsParams } from "../catalog-query-state";
-import { collectDescendantCategoryIds } from "../category-tree";
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "../category-query-config";
+import { collectDescendantCategoryIds } from "../category-tree";
 import { PLP_PAGE_SIZE } from "../plp-config";
 import type { PlpQueryState } from "../plp-query-state";
 import {
@@ -34,12 +34,16 @@ export const prefetchCategoryPageStorefrontData = async (
   );
 
   const activeCategory =
-    categoryResponse.categories.find((category) => category.handle === slug) ?? null;
+    categoryResponse.categories.find((category) => category.handle === slug) ??
+    null;
 
   if (region && activeCategory) {
     const categoryIds = [
       activeCategory.id,
-      ...collectDescendantCategoryIds(categoryResponse.categories, activeCategory.id),
+      ...collectDescendantCategoryIds(
+        categoryResponse.categories,
+        activeCategory.id,
+      ),
     ];
     const catalogListParams = buildCatalogProductsParams({
       queryState,

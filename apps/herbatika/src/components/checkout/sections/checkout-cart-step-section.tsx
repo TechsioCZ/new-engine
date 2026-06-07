@@ -2,20 +2,17 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { useState } from "react";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import { CheckoutCartItemRow } from "./checkout-cart-item-row";
-import { useCartProductsByHandle } from "../use-cart-products-by-handle";
-import {
-  useRemoveLineItem,
-  useUpdateLineItem,
-} from "@/lib/storefront/cart";
+import { useState } from "react";
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils";
+import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products";
-import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
+import { useCartProductsByHandle } from "../use-cart-products-by-handle";
+import { CheckoutCartItemRow } from "./checkout-cart-item-row";
 
 type CheckoutCartStepSectionProps = {
   cartId?: string;
@@ -33,14 +30,17 @@ export function CheckoutCartStepSection({
   const [lineItemError, setLineItemError] = useState<string | null>(null);
   const updateLineItemMutation = useUpdateLineItem();
   const removeLineItemMutation = useRemoveLineItem();
-  const { productsByHandle: cartProductsByHandle } =
-    useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS);
+  const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
+    cartItems,
+    PRODUCT_DETAIL_FIELDS,
+  );
 
   const isPending =
     updateLineItemMutation.isPending || removeLineItemMutation.isPending;
   const supportedCurrencyCode = resolveSupportedCurrencyCode(currencyCode);
-  const freeShippingThresholdAmount =
-    resolveFreeShippingThresholdAmount(supportedCurrencyCode);
+  const freeShippingThresholdAmount = resolveFreeShippingThresholdAmount(
+    supportedCurrencyCode,
+  );
   const missingAmount =
     freeShippingThresholdAmount === null
       ? 0
@@ -48,7 +48,10 @@ export function CheckoutCartStepSection({
   const progressValue =
     freeShippingThresholdAmount === null
       ? 0
-      : Math.min((cartItemsTotalAmount / freeShippingThresholdAmount) * 100, 100);
+      : Math.min(
+          (cartItemsTotalAmount / freeShippingThresholdAmount) * 100,
+          100,
+        );
   const missingAmountLabel =
     freeShippingThresholdAmount === null
       ? null
@@ -56,7 +59,11 @@ export function CheckoutCartStepSection({
   const freeShippingTargetLabel =
     freeShippingThresholdAmount === null
       ? null
-      : formatCurrencyAmount(freeShippingThresholdAmount, supportedCurrencyCode, {minimumFractionDigits: 0, maximumFractionDigits: 0});
+      : formatCurrencyAmount(
+          freeShippingThresholdAmount,
+          supportedCurrencyCode,
+          { minimumFractionDigits: 0, maximumFractionDigits: 0 },
+        );
 
   const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
     if (!cartId) {
@@ -161,7 +168,6 @@ export function CheckoutCartStepSection({
           {lineItemError}
         </StatusText>
       ) : null}
-
     </section>
   );
 }

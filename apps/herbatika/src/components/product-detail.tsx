@@ -6,16 +6,14 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
 import { useEffect } from "react";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
+import type { ProductDetailProps } from "@/components/product-detail/product-detail.types";
+import { ProductDetailHero } from "@/components/product-detail/sections/product-detail-hero";
 import { ProductDetailMetrics } from "@/components/product-detail/sections/product-detail-metrics";
 import { ProductDetailOffers } from "@/components/product-detail/sections/product-detail-offers";
 import { ProductDetailRelated } from "@/components/product-detail/sections/product-detail-related";
 import { ProductDetailSkeleton } from "@/components/product-detail/sections/product-detail-skeleton";
 import { ProductDetailTabs } from "@/components/product-detail/sections/product-detail-tabs";
-import { ProductDetailHero } from "@/components/product-detail/sections/product-detail-hero";
-import {
-  useProductDetailController,
-} from "@/components/product-detail/use-product-detail-controller";
-import type { ProductDetailProps } from "@/components/product-detail/product-detail.types";
+import { useProductDetailController } from "@/components/product-detail/use-product-detail-controller";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 
 export function ProductDetail({ handle }: ProductDetailProps) {

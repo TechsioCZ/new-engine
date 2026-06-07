@@ -4,11 +4,11 @@ import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";
-import { CATEGORY_TREE_FIELDS } from "@/lib/storefront/category-query-config";
 import {
   usePrefetchCategories,
   usePrefetchCategory,
 } from "@/lib/storefront/categories";
+import { CATEGORY_TREE_FIELDS } from "@/lib/storefront/category-query-config";
 import { plpQueryParsers } from "@/lib/storefront/plp-query-state";
 import {
   useCatalogListingInteractions,
@@ -37,8 +37,14 @@ export function useCategoryListingController({
     countryCode: region?.country_code,
     setQueryState,
   });
-  const prefetchCategory = usePrefetchCategory({ defaultDelay: 200, skipMode: "any" });
-  const prefetchCategories = usePrefetchCategories({ defaultDelay: 250, skipMode: "any" });
+  const prefetchCategory = usePrefetchCategory({
+    defaultDelay: 200,
+    skipMode: "any",
+  });
+  const prefetchCategories = usePrefetchCategories({
+    defaultDelay: 250,
+    skipMode: "any",
+  });
 
   useCatalogListingPageBounds({
     isLoading: listingQueries.catalogQuery.isLoading,
@@ -80,7 +86,9 @@ export function useCategoryListingController({
     },
     onCategoryMouseLeave: (category: HttpTypes.StoreProductCategory) => {
       prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`);
-      prefetchCategories.cancelPrefetch(`prefetch-category-children-${category.id}`);
+      prefetchCategories.cancelPrefetch(
+        `prefetch-category-children-${category.id}`,
+      );
     },
   };
 }

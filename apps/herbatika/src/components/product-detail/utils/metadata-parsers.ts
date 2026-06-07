@@ -5,9 +5,9 @@ import {
   PRODUCT_FALLBACK_IMAGE,
 } from "@/components/product-detail/product-detail.constants";
 import type {
+  Product,
   ProductDetailContentSection,
   ProductOfferState,
-  Product,
 } from "@/components/product-detail/product-detail.types";
 import {
   hasRenderableHtmlContent,
@@ -159,9 +159,7 @@ export const resolveOfferState = (
     code: asString(source?.code) ?? asString(selectedVariant?.sku),
     ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
     availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
-    deliveryLabel: isInStock
-      ? resolveInStockDeliveryLabel()
-      : "po naskladnení",
+    deliveryLabel: isInStock ? resolveInStockDeliveryLabel() : "po naskladnení",
     stockAmount,
     isInStock,
     offerSource: source,
@@ -208,7 +206,9 @@ export const resolveProductContentSections = (
 
   const sections = PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
     let html =
-      sectionHtmlByKey.get(sectionKey) ?? asString(sectionMap?.[sectionKey]) ?? "";
+      sectionHtmlByKey.get(sectionKey) ??
+      asString(sectionMap?.[sectionKey]) ??
+      "";
 
     if (!html && sectionKey === "description") {
       html = fallbackHtml;

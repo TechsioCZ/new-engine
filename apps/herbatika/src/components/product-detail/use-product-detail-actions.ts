@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  ProductDetailDataState,
-} from "@/components/product-detail/use-product-detail-data";
 import type { Product } from "@/components/product-detail/product-detail.types";
+import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data";
 import {
   PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
@@ -51,9 +49,7 @@ export function useProductDetailActions({
       });
     } catch (error) {
       setAddToCartError(
-        error instanceof Error
-          ? error.message
-          : "Pridanie do košíka zlyhalo.",
+        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo.",
       );
     }
   };
@@ -81,8 +77,13 @@ export function useProductDetailActions({
         selectedVariant.id,
       );
     },
-    handleRelatedProductHoverEnd: (sectionId: string, hoveredProduct: Product) => {
-      prefetchProduct.cancelPrefetch(`${sectionId}-product-${hoveredProduct.id}`);
+    handleRelatedProductHoverEnd: (
+      sectionId: string,
+      hoveredProduct: Product,
+    ) => {
+      prefetchProduct.cancelPrefetch(
+        `${sectionId}-product-${hoveredProduct.id}`,
+      );
     },
     handleRelatedProductHoverStart: (
       sectionId: string,

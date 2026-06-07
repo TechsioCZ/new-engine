@@ -4,14 +4,14 @@ import type { HttpTypes } from "@medusajs/types";
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
 import type { ReactNode } from "react";
+import type {
+  Product,
+  ProductMediaFact,
+  ProductOfferState,
+} from "@/components/product-detail/product-detail.types";
 import { ProductDetailDeliveryInfo } from "@/components/product-detail/sections/product-detail-delivery-info";
 import { ProductDetailMediaColumn } from "@/components/product-detail/sections/product-detail-media-column";
 import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel";
-import type {
-  ProductMediaFact,
-  ProductOfferState,
-  Product,
-} from "@/components/product-detail/product-detail.types";
 
 type ProductDetailHeroProps = {
   children?: ReactNode;

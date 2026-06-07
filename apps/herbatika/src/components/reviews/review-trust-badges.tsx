@@ -44,7 +44,11 @@ export function ReviewTrustBadges({
   return (
     <ul
       aria-label="Hodnotenia obchodu"
-      className={joinClassNames(ROOT_CLASS_NAME, sizeClassNames.root, className)}
+      className={joinClassNames(
+        ROOT_CLASS_NAME,
+        sizeClassNames.root,
+        className,
+      )}
     >
       {sources.map((source) => (
         <li

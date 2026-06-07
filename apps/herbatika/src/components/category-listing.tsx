@@ -8,8 +8,8 @@ import { normalizeCategoryName } from "@/components/category/category-product-ut
 import { CategoryResultsSection } from "@/components/category/category-results-section";
 import { CategoryRichText } from "@/components/category/category-rich-text";
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller";
-import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
@@ -31,9 +31,7 @@ const humanizeCategorySlug = (value: string) => {
     .join(" ");
 };
 
-export function CategoryListing({
-  slug,
-}: CategoryListingProps) {
+export function CategoryListing({ slug }: CategoryListingProps) {
   const controller = useCategoryListingController({ slug });
   const hasResultProducts = controller.products.length > 0;
   const isResultsLoading =

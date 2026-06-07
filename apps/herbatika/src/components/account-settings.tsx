@@ -167,7 +167,10 @@ export function AccountSettings() {
           />
         </div>
 
-        <form.AppField name="phone" validators={accountSettingsValidators.phone}>
+        <form.AppField
+          name="phone"
+          validators={accountSettingsValidators.phone}
+        >
           {(field) => (
             <field.TextField
               id="account-settings-phone"

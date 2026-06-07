@@ -8,9 +8,9 @@ import type {
 } from "@techsio/storefront-data/catalog/types";
 import { useMemo } from "react";
 import {
-  PLP_PAGE_SIZE,
   type CatalogProductsParams,
   type CatalogQueryState,
+  PLP_PAGE_SIZE,
 } from "./catalog-query-state";
 import { resolveVariantInventoryState } from "./product-availability";
 import { PRODUCT_CARD_FIELDS } from "./product-query-config";
@@ -41,7 +41,9 @@ const productNeedsInventorySnapshot = (product: HttpTypes.StoreProduct) =>
       !resolveVariantInventoryState(variant).isInventoryKnown,
   );
 
-const resolveInventorySnapshotHandles = (products: HttpTypes.StoreProduct[]) => {
+const resolveInventorySnapshotHandles = (
+  products: HttpTypes.StoreProduct[],
+) => {
   const handles = new Set<string>();
 
   for (const product of products) {
@@ -141,8 +143,10 @@ export const useCatalogProducts = (
   };
 };
 
-export const useSuspenseCatalogProducts = catalogHooks.useSuspenseCatalogProducts;
-export const usePrefetchCatalogProducts = catalogHooks.usePrefetchCatalogProducts;
+export const useSuspenseCatalogProducts =
+  catalogHooks.useSuspenseCatalogProducts;
+export const usePrefetchCatalogProducts =
+  catalogHooks.usePrefetchCatalogProducts;
 export const prefetchCatalogProducts = catalogHooks.prefetchCatalogProducts;
 
 export const fetchCatalogProducts = (

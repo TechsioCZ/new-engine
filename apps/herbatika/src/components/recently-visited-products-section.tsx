@@ -6,14 +6,11 @@ import { useMemo, useState } from "react";
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact";
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton";
 import { SupportingText } from "@/components/text/supporting-text";
+import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products";
 import {
   orderProductsByHandles,
   useRecentlyVisitedProductHandles,
 } from "@/lib/storefront/recently-visited-products";
-import {
-  PRODUCT_CARD_FIELDS,
-  useProducts,
-} from "@/lib/storefront/products";
 
 type RecentlyVisitedProductsSectionProps = {
   className?: string;

@@ -73,7 +73,9 @@ function ReviewCard({
               size="md"
               value={review.rating}
             />
-            <p className="text-xs leading-tight text-fg-placeholder">{review.dateLabel}</p>
+            <p className="text-xs leading-tight text-fg-placeholder">
+              {review.dateLabel}
+            </p>
           </div>
 
           <p className="truncate text-md leading-tight font-semibold text-fg-primary">
@@ -98,7 +100,9 @@ function ReviewCard({
       {review.verifiedPurchase ? (
         <div className="mt-auto flex items-center gap-150 text-primary">
           <Icon icon="token-icon-check" size="lg" />
-          <span className="text-sm leading-relaxed font-medium">Overený nákup</span>
+          <span className="text-sm leading-relaxed font-medium">
+            Overený nákup
+          </span>
         </div>
       ) : null}
     </article>
@@ -121,7 +125,8 @@ export function ReviewsSection({
   const resolvedHeadingText =
     headingText ?? (isHomepage ? "Overené zákazníkmi" : "Hodnotenia produktu");
   const resolvedLinkHref = linkHref ?? (isHomepage ? null : "#reviews");
-  const resolvedLinkLabel = linkLabel ?? (isHomepage ? null : "Všetky hodnotenia");
+  const resolvedLinkLabel =
+    linkLabel ?? (isHomepage ? null : "Všetky hodnotenia");
   const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel);
 
   return (

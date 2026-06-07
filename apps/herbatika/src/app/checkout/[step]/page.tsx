@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import {
-  DEFAULT_CHECKOUT_STEP_SLUG,
-} from "@/components/checkout/checkout.constants";
+import { Suspense } from "react";
+import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants";
 import {
   isCheckoutStepSlug,
   resolveCheckoutStepHref,
@@ -20,9 +18,7 @@ function CheckoutStepPageFallback() {
   return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
 }
 
-async function CheckoutStepPageContent({
-  params,
-}: CheckoutStepPageProps) {
+async function CheckoutStepPageContent({ params }: CheckoutStepPageProps) {
   await connection();
   const { step } = await params;
 
@@ -31,7 +27,9 @@ async function CheckoutStepPageContent({
   }
 
   return (
-    <Suspense fallback={<main className="mx-auto min-h-dvh w-full max-w-max-w" />}>
+    <Suspense
+      fallback={<main className="mx-auto min-h-dvh w-full max-w-max-w" />}
+    >
       <CheckoutFlow activeStep={step} />
     </Suspense>
   );

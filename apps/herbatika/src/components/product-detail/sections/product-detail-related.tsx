@@ -2,8 +2,8 @@
 
 import { ProductCollectionSection } from "@/components/product/product-collection-section";
 import type {
-  RelatedProductsSection,
   Product,
+  RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types";
 import { SupportingText } from "@/components/text/supporting-text";
 

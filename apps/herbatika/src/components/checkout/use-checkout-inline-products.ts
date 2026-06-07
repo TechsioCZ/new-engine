@@ -2,18 +2,18 @@
 
 import type { HttpTypes } from "@medusajs/types";
 import { useMemo } from "react";
-import { useCartProductsByHandle } from "./use-cart-products-by-handle";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
-import {
-  resolveRecommendedProductFamilyKey,
-  selectRecommendedProductRepresentatives,
-} from "@/lib/storefront/recommended-product-families";
+import { asStorefrontString } from "@/lib/storefront/product-pricing";
 import {
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
-import { asStorefrontString } from "@/lib/storefront/product-pricing";
+import {
+  resolveRecommendedProductFamilyKey,
+  selectRecommendedProductRepresentatives,
+} from "@/lib/storefront/recommended-product-families";
+import { useCartProductsByHandle } from "./use-cart-products-by-handle";
 
 const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10;
 const CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT = 32;
@@ -21,10 +21,8 @@ const CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT = 32;
 export function useCheckoutInlineProducts(
   cartItems: HttpTypes.StoreCartLineItem[],
 ) {
-  const {
-    isLoading: isCartProductsLoading,
-    products: cartProducts,
-  } = useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS);
+  const { isLoading: isCartProductsLoading, products: cartProducts } =
+    useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS);
 
   const relatedCategoryIds = useMemo(() => {
     const seenCategoryIds = new Set<string>();
@@ -61,10 +59,14 @@ export function useCheckoutInlineProducts(
     const cartProductHandlesSet = new Set(
       cartProducts
         .map((product) => asStorefrontString(product.handle))
-        .filter((productHandle): productHandle is string => Boolean(productHandle)),
+        .filter((productHandle): productHandle is string =>
+          Boolean(productHandle),
+        ),
     );
     const cartFamilyKeys = new Set(
-      cartProducts.map((product) => resolveRecommendedProductFamilyKey(product)),
+      cartProducts.map((product) =>
+        resolveRecommendedProductFamilyKey(product),
+      ),
     );
 
     const filteredProducts = relatedProductsQuery.products.filter((product) => {

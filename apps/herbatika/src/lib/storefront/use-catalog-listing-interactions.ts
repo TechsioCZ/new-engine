@@ -7,7 +7,7 @@ import { toggleSelection } from "@/components/category/category-selection-utils"
 import {
   type NuqsPlpQueryState,
   type ProductSortValue,
-  plpQueryParsers,
+  type plpQueryParsers,
   resolveCatalogQueryStatePatch,
 } from "@/lib/storefront/plp-query-state";
 import {

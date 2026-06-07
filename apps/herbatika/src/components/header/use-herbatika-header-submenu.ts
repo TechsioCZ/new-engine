@@ -8,11 +8,11 @@ import {
   resolveCategoryRank,
 } from "@/components/category/category-product-utils";
 import { resolveCategoryImage } from "@/lib/category-images";
+import { useCategories } from "@/lib/storefront/categories";
 import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
-import { useCategories } from "@/lib/storefront/categories";
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
 
 type HerbatikaHeaderSubmenuChildItem = {

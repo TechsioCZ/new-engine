@@ -1,11 +1,11 @@
-import type {
-  RelatedProductsSection,
-  Product,
-} from "@/components/product-detail/product-detail.types";
 import {
   RELATED_PRODUCTS_PER_SECTION,
   RELATED_RECOMMENDATION_SECTION_TITLES,
 } from "@/components/product-detail/product-detail.constants";
+import type {
+  Product,
+  RelatedProductsSection,
+} from "@/components/product-detail/product-detail.types";
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -108,7 +108,10 @@ const fillSectionProducts = (
   }
 
   const start = sectionIndex * RELATED_PRODUCTS_PER_SECTION;
-  const initialSlice = products.slice(start, start + RELATED_PRODUCTS_PER_SECTION);
+  const initialSlice = products.slice(
+    start,
+    start + RELATED_PRODUCTS_PER_SECTION,
+  );
 
   if (initialSlice.length >= RELATED_PRODUCTS_PER_SECTION) {
     return initialSlice;
@@ -146,5 +149,7 @@ export const resolveRelatedSections = (
     },
   );
 
-  return recommendationSections.filter((section) => section.products.length > 0);
+  return recommendationSections.filter(
+    (section) => section.products.length > 0,
+  );
 };

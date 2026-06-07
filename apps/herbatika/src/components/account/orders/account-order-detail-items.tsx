@@ -35,7 +35,8 @@ export function AccountOrderDetailItems({
               orderItems.map((item) => {
                 const quantity = resolveOrderItemQuantity(item);
                 const lineTotal = resolveOrderItemTotalAmount(item);
-                const unitPrice = quantity > 0 ? lineTotal / quantity : lineTotal;
+                const unitPrice =
+                  quantity > 0 ? lineTotal / quantity : lineTotal;
 
                 return (
                   <Table.Row key={item.id}>
@@ -53,7 +54,10 @@ export function AccountOrderDetailItems({
               })
             ) : (
               <Table.Row>
-                <Table.Cell className="py-350 text-fg-secondary text-sm" colSpan={5}>
+                <Table.Cell
+                  className="py-350 text-fg-secondary text-sm"
+                  colSpan={5}
+                >
                   Objednávka neobsahuje položky.
                 </Table.Cell>
               </Table.Row>
@@ -74,9 +78,13 @@ export function AccountOrderDetailItems({
                 className="space-y-100 rounded-md border border-border-secondary bg-base p-250"
                 key={item.id}
               >
-                <p className="font-medium text-fg-primary text-sm">{item.title ?? "-"}</p>
+                <p className="font-medium text-fg-primary text-sm">
+                  {item.title ?? "-"}
+                </p>
                 {item.variant_title && (
-                  <p className="text-fg-secondary text-xs">{item.variant_title}</p>
+                  <p className="text-fg-secondary text-xs">
+                    {item.variant_title}
+                  </p>
                 )}
                 <div className="grid grid-cols-2 gap-150 text-xs">
                   <p className="text-fg-secondary">{`Množstvo: ${quantity}`}</p>
@@ -91,7 +99,9 @@ export function AccountOrderDetailItems({
             );
           })
         ) : (
-          <p className="text-fg-secondary text-sm">Objednávka neobsahuje položky.</p>
+          <p className="text-fg-secondary text-sm">
+            Objednávka neobsahuje položky.
+          </p>
         )}
       </div>
     </section>

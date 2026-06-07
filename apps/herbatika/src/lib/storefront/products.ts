@@ -4,9 +4,9 @@ import type { HttpTypes } from "@medusajs/types";
 import type { StorefrontProductListInput } from "./product-query-config";
 import {
   buildProductListParams,
-  RELATED_PRODUCT_FIELDS,
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
+  RELATED_PRODUCT_FIELDS,
   SEARCH_PRODUCT_CARD_FIELDS,
 } from "./product-query-config";
 import { storefront } from "./storefront";
@@ -49,8 +49,7 @@ export const usePrefetchProducts = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.prefetchProducts(toProductListParams(input), ...prefetchArgs),
+    ) => prefetch.prefetchProducts(toProductListParams(input), ...prefetchArgs),
     prefetchFirstPage: (
       input: ProductListInput,
       ...prefetchArgs: Parameters<typeof prefetch.prefetchFirstPage> extends [
@@ -69,8 +68,7 @@ export const usePrefetchProducts = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.delayedPrefetch(toProductListParams(input), ...prefetchArgs),
+    ) => prefetch.delayedPrefetch(toProductListParams(input), ...prefetchArgs),
   };
 };
 

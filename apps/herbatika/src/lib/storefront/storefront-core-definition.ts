@@ -5,18 +5,18 @@ import {
 } from "./category-query-config";
 import { buildHerbatikaOrderListParams } from "./order-query-config";
 import {
-  DEFAULT_PRODUCT_PAGE_SIZE,
   buildProductListParams,
+  DEFAULT_PRODUCT_PAGE_SIZE,
 } from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 import {
+  CATALOG_DEFAULT_LIMIT,
   storefrontCatalogServiceConfig,
   storefrontCategoryServiceConfig,
   storefrontCheckoutServiceConfig,
   storefrontOrderServiceConfig,
   storefrontProductServiceConfig,
   storefrontQueryKeys,
-  CATALOG_DEFAULT_LIMIT,
 } from "./storefront-config";
 
 export const storefrontCoreDefinition = {
