@@ -12,6 +12,7 @@ import type {
   ProductOfferState,
   Product,
 } from "@/components/product-detail/product-detail.types"
+import { ProductListPickerPopover } from "@/components/product-lists/product-list-picker-popover"
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
@@ -138,15 +139,11 @@ export function ProductDetailPurchasePanel({
             ) : null}
           </div>
 
-          <Button
-            aria-label="Pridať do obľúbených"
-            className="h-750 min-h-750 w-750 min-w-750 p-0 text-fg-secondary hover:text-fg-primary sm:h-600 sm:min-h-600 sm:w-600 sm:min-w-600"
-            size="sm"
-            theme="borderless"
-            variant="secondary"
-          >
-            <Icon icon="token-icon-heart" size="2xl" />
-          </Button>
+          <ProductListPickerPopover
+            product={product}
+            quantity={quantity}
+            selectedVariantId={selectedVariantId}
+          />
         </div>
       </div>
 
