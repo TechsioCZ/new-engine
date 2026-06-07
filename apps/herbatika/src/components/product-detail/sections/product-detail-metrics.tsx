@@ -1,10 +1,10 @@
 "use client";
 
-import { StorefrontReviewsSection } from "@/components/reviews/storefront-reviews-section";
+import { ReviewsSection } from "@/components/reviews/reviews-section";
 
 export function ProductDetailMetrics() {
   return (
-    <StorefrontReviewsSection
+    <ReviewsSection
       sectionClassName="space-y-500 pt-750"
       variant="product"
     />

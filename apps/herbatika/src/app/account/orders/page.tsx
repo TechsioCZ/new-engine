@@ -1,5 +1,5 @@
-import { StorefrontAccountOrdersList } from "@/components/storefront-account-orders-list";
+import { AccountOrdersList } from "@/components/account-orders-list";
 
 export default function AccountOrdersPage() {
-  return <StorefrontAccountOrdersList />;
+  return <AccountOrdersList />;
 }

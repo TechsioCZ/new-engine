@@ -2,20 +2,20 @@ import type { HttpTypes } from "@medusajs/types";
 
 export const DEFAULT_PRODUCT_PAGE_SIZE = 12;
 
-export const STOREFRONT_PRODUCT_VARIANT_INVENTORY_FIELDS =
+export const PRODUCT_VARIANT_INVENTORY_FIELDS =
   "+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder";
 
-export const STOREFRONT_PRODUCT_CARD_FIELDS =
-  `id,title,handle,thumbnail,*variants.calculated_price,${STOREFRONT_PRODUCT_VARIANT_INVENTORY_FIELDS},+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map`;
+export const PRODUCT_CARD_FIELDS =
+  `id,title,handle,thumbnail,*variants.calculated_price,${PRODUCT_VARIANT_INVENTORY_FIELDS},+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map`;
 
-export const STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS =
-  STOREFRONT_PRODUCT_CARD_FIELDS;
+export const SEARCH_PRODUCT_CARD_FIELDS =
+  PRODUCT_CARD_FIELDS;
 
-export const STOREFRONT_RELATED_PRODUCT_FIELDS =
-  `${STOREFRONT_PRODUCT_CARD_FIELDS},+metadata.source_shopitem_id`;
+export const RELATED_PRODUCT_FIELDS =
+  `${PRODUCT_CARD_FIELDS},+metadata.source_shopitem_id`;
 
-export const STOREFRONT_PRODUCT_DETAIL_FIELDS =
-  `${STOREFRONT_PRODUCT_CARD_FIELDS},description,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,producer.id,producer.title,producer.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+metadata.content_sections,+metadata.related_products,+metadata.alternative_products`;
+export const PRODUCT_DETAIL_FIELDS =
+  `${PRODUCT_CARD_FIELDS},description,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,producer.id,producer.title,producer.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+metadata.content_sections,+metadata.related_products,+metadata.alternative_products`;
 
 export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
   handle?: string | string[];

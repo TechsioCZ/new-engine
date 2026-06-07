@@ -2,7 +2,7 @@
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import type { ReactNode } from "react";
-import { StorefrontAccountSkeletonSurface } from "@/components/account/storefront-account-surface";
+import { AccountSkeletonSurface } from "@/components/account/account-surface";
 
 type AccountLayoutSkeletonProps = {
   surface?: ReactNode;
@@ -35,7 +35,7 @@ export function AccountLayoutSkeleton({
           <Skeleton.Rectangle className="h-650 rounded-md" />
         </aside>
 
-        {surface ?? <StorefrontAccountSkeletonSurface lines={surfaceLines} />}
+        {surface ?? <AccountSkeletonSurface lines={surfaceLines} />}
       </div>
     </main>
   );

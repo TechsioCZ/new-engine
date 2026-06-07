@@ -5,8 +5,8 @@ import { buildCatalogProductsParams } from "../catalog-query-state";
 import { collectDescendantCategoryIds } from "../category-tree";
 import {
   buildCategoryListParams,
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
 } from "../category-query-config";
 import { PLP_PAGE_SIZE } from "../plp-config";
 import type { PlpQueryState } from "../plp-query-state";
@@ -24,8 +24,8 @@ export const prefetchCategoryPageStorefrontData = async (
 
   const categoryListParams = buildCategoryListParams({
     page: 1,
-    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
-    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    fields: CATEGORY_TREE_FIELDS,
   });
 
   const categoryResponse = await fetchServerCategories(

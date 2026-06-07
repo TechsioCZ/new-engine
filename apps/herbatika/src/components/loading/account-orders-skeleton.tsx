@@ -1,11 +1,11 @@
 "use client";
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { StorefrontAccountSurface } from "@/components/account/storefront-account-surface";
+import { AccountSurface } from "@/components/account/account-surface";
 
 export function AccountOrdersSkeleton() {
   return (
-    <StorefrontAccountSurface className="space-y-500">
+    <AccountSurface className="space-y-500">
       <header className="space-y-200">
         <Skeleton.Rectangle className="h-7 w-32 rounded-full" />
         <Skeleton.Rectangle className="h-4 w-72 rounded-full" />
@@ -100,6 +100,6 @@ export function AccountOrdersSkeleton() {
       <div className="flex justify-start">
         <Skeleton.Rectangle className="h-9 w-48 rounded-full" />
       </div>
-    </StorefrontAccountSurface>
+    </AccountSurface>
   );
 }

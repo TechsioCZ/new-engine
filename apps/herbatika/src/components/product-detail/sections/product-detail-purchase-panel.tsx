@@ -10,7 +10,7 @@ import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
 import NextLink from "next/link"
 import type {
   ProductOfferState,
-  StorefrontProduct,
+  Product,
 } from "@/components/product-detail/product-detail.types"
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
@@ -23,11 +23,11 @@ type ProductInfoLink = {
 }
 
 const resolveProductInfoLink = (
-  product: StorefrontProduct,
+  product: Product,
   primaryCategory?: HttpTypes.StoreProductCategory,
 ): ProductInfoLink | null => {
   const producer = asRecord(
-    (product as StorefrontProduct & { producer?: unknown }).producer,
+    (product as Product & { producer?: unknown }).producer,
   )
   const producerTitle = asString(producer?.title)
 
@@ -61,7 +61,7 @@ type ProductDetailPurchasePanelProps = {
   onAddToCart: () => void
   onQuantityChange: (quantity: number) => void
   onVariantChange: (variantId: string | null) => void
-  product: StorefrontProduct
+  product: Product
   productCategories: HttpTypes.StoreProductCategory[]
   productHighlights: string[]
   quantity: number

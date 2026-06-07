@@ -13,7 +13,7 @@ import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigati
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 
-type StorefrontCategoryListingProps = {
+type CategoryListingProps = {
   slug: string;
 };
 
@@ -31,9 +31,9 @@ const humanizeCategorySlug = (value: string) => {
     .join(" ");
 };
 
-export function StorefrontCategoryListing({
+export function CategoryListing({
   slug,
-}: StorefrontCategoryListingProps) {
+}: CategoryListingProps) {
   const controller = useCategoryListingController({ slug });
   const hasResultProducts = controller.products.length > 0;
   const isResultsLoading =

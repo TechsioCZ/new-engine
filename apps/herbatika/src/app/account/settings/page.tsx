@@ -1,5 +1,5 @@
-import { StorefrontAccountSettings } from "@/components/storefront-account-settings";
+import { AccountSettings } from "@/components/account-settings";
 
 export default function AccountSettingsPage() {
-  return <StorefrontAccountSettings />;
+  return <AccountSettings />;
 }

@@ -3,15 +3,15 @@
 import { ProductCollectionSection } from "@/components/product/product-collection-section";
 import type {
   RelatedProductsSection,
-  StorefrontProduct,
+  Product,
 } from "@/components/product-detail/product-detail.types";
 import { SupportingText } from "@/components/text/supporting-text";
 
 type ProductDetailRelatedProps = {
   isProductAdding: (productId: string) => boolean;
-  onAddToCart: (product: StorefrontProduct) => void;
-  onProductHoverEnd: (sectionId: string, product: StorefrontProduct) => void;
-  onProductHoverStart: (sectionId: string, product: StorefrontProduct) => void;
+  onAddToCart: (product: Product) => void;
+  onProductHoverEnd: (sectionId: string, product: Product) => void;
+  onProductHoverStart: (sectionId: string, product: Product) => void;
   sections: RelatedProductsSection[];
 };
 

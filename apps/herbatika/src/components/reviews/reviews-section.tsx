@@ -5,28 +5,28 @@ import { Rating } from "@techsio/ui-kit/atoms/rating";
 import type { StaticImageData } from "next/image";
 import NextImage from "next/image";
 import NextLink from "next/link";
-import { StorefrontReviewTrustBadges } from "@/components/reviews/storefront-review-trust-badges";
+import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges";
 import {
-  STOREFRONT_PRODUCT_REVIEWS,
-  STOREFRONT_REVIEW_VERIFIED_CUSTOMER_BADGE,
-} from "@/components/reviews/storefront-reviews.data";
+  PRODUCT_REVIEWS,
+  REVIEW_VERIFIED_CUSTOMER_BADGE,
+} from "@/components/reviews/reviews.data";
 import type {
-  StorefrontReviewItem,
-  StorefrontReviewTrustSource,
-} from "@/components/reviews/storefront-reviews.types";
+  ReviewItem,
+  ReviewTrustSource,
+} from "@/components/reviews/reviews.types";
 
-type StorefrontReviewsVariant = "product" | "homepage";
+type ReviewsVariant = "product" | "homepage";
 
-type StorefrontReviewsSectionProps = {
+type ReviewsSectionProps = {
   sectionClassName?: string;
-  variant?: StorefrontReviewsVariant;
+  variant?: ReviewsVariant;
   linkHref?: string | null;
   linkLabel?: string | null;
   headingText?: string;
   scoreLabel?: string | null;
   ratingValue?: number;
-  reviews?: readonly StorefrontReviewItem[];
-  trustSources?: readonly StorefrontReviewTrustSource[];
+  reviews?: readonly ReviewItem[];
+  trustSources?: readonly ReviewTrustSource[];
   sourceBadge?: StaticImageData;
 };
 
@@ -40,9 +40,9 @@ function ReviewCard({
   sourceBadge,
   variant,
 }: {
-  review: StorefrontReviewItem;
+  review: ReviewItem;
   sourceBadge: StaticImageData;
-  variant: StorefrontReviewsVariant;
+  variant: ReviewsVariant;
 }) {
   const isHomepage = variant === "homepage";
 
@@ -105,7 +105,7 @@ function ReviewCard({
   );
 }
 
-export function StorefrontReviewsSection({
+export function ReviewsSection({
   sectionClassName = "space-y-500 pt-750",
   variant = "product",
   linkHref,
@@ -113,10 +113,10 @@ export function StorefrontReviewsSection({
   headingText,
   scoreLabel = "5,0",
   ratingValue = 5,
-  reviews = STOREFRONT_PRODUCT_REVIEWS,
+  reviews = PRODUCT_REVIEWS,
   trustSources,
-  sourceBadge = STOREFRONT_REVIEW_VERIFIED_CUSTOMER_BADGE,
-}: StorefrontReviewsSectionProps) {
+  sourceBadge = REVIEW_VERIFIED_CUSTOMER_BADGE,
+}: ReviewsSectionProps) {
   const isHomepage = variant === "homepage";
   const resolvedHeadingText =
     headingText ?? (isHomepage ? "Overené zákazníkmi" : "Hodnotenia produktu");
@@ -148,7 +148,7 @@ export function StorefrontReviewsSection({
         </div>
 
         {isHomepage ? (
-          <StorefrontReviewTrustBadges className="sm:w-auto" sources={trustSources} />
+          <ReviewTrustBadges className="sm:w-auto" sources={trustSources} />
         ) : null}
 
         {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (

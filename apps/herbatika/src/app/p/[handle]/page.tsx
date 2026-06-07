@@ -1,5 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query";
-import { StorefrontProductDetail } from "@/components/storefront-product-detail";
+import { ProductDetail } from "@/components/product-detail";
 import { prefetchProductDetailPageStorefrontData } from "@/lib/storefront/ssr";
 
 type ProductDetailPageProps = {
@@ -14,7 +14,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <StorefrontProductDetail handle={handle} />
+      <ProductDetail handle={handle} />
     </HydrationBoundary>
   );
 }

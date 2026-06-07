@@ -4,10 +4,10 @@ import type { HttpTypes } from "@medusajs/types";
 import type { StorefrontProductListInput } from "./product-query-config";
 import {
   buildProductListParams,
-  STOREFRONT_RELATED_PRODUCT_FIELDS,
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
-  STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
+  RELATED_PRODUCT_FIELDS,
+  PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
+  SEARCH_PRODUCT_CARD_FIELDS,
 } from "./product-query-config";
 import { storefront } from "./storefront";
 
@@ -76,8 +76,8 @@ export const usePrefetchProducts = (
 
 export {
   buildProductListParams,
-  STOREFRONT_RELATED_PRODUCT_FIELDS,
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
-  STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
+  RELATED_PRODUCT_FIELDS,
+  PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
+  SEARCH_PRODUCT_CARD_FIELDS,
 };

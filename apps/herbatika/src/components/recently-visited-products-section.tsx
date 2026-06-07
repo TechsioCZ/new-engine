@@ -11,7 +11,7 @@ import {
   useRecentlyVisitedProductHandles,
 } from "@/lib/storefront/recently-visited-products";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
+  PRODUCT_CARD_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
 
@@ -63,7 +63,7 @@ export function RecentlyVisitedProductsSection({
     page: 1,
     limit: productHandles.length,
     handle: productHandles.length > 0 ? productHandles : undefined,
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+    fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && productHandles.length > 0),
   });
 

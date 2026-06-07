@@ -1,6 +1,6 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
-import { StorefrontCategoryListing } from "@/components/storefront-category-listing";
+import { CategoryListing } from "@/components/category-listing";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr";
 
@@ -38,7 +38,7 @@ export default async function CategoryPage({
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <StorefrontCategoryListing slug={normalizedSlug} />
+      <CategoryListing slug={normalizedSlug} />
     </HydrationBoundary>
   );
 }

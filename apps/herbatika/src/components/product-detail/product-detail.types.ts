@@ -1,9 +1,9 @@
 import type { HttpTypes } from "@medusajs/types";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 
-export type StorefrontProduct = HttpTypes.StoreProduct;
+export type Product = HttpTypes.StoreProduct;
 
-export type StorefrontProductDetailProps = {
+export type ProductDetailProps = {
   handle: string;
 };
 
@@ -59,5 +59,5 @@ export type VolumeDiscountOption = {
 export type RelatedProductsSection = {
   id: string;
   title: string;
-  products: StorefrontProduct[];
+  products: Product[];
 };

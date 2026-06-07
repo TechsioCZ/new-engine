@@ -9,8 +9,8 @@ import {
 } from "@/components/category/category-product-utils";
 import { resolveCategoryImage } from "@/lib/category-images";
 import {
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
@@ -53,8 +53,8 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) => {
 export function useHerbatikaHeaderSubmenu() {
   const categoriesQuery = useCategories({
     page: 1,
-    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
-    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    fields: CATEGORY_TREE_FIELDS,
   });
 
   const categoryById = useMemo(() => {

@@ -11,7 +11,7 @@ import {
   resolveCatalogQueryStatePatch,
 } from "@/lib/storefront/plp-query-state";
 import {
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products";
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
@@ -141,7 +141,7 @@ export function useCatalogListingInteractions({
       }
 
       prefetchProduct.delayedPrefetch(
-        { handle: product.handle, fields: STOREFRONT_PRODUCT_DETAIL_FIELDS },
+        { handle: product.handle, fields: PRODUCT_DETAIL_FIELDS },
         180,
         `${productPrefetchKeyPrefix}-${product.id}`,
       );

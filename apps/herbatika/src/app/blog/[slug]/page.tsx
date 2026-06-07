@@ -10,13 +10,13 @@ import {
 } from "@/lib/storefront/blog-content";
 import {
   buildCategoryListParams,
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { fetchCmsBlogPost, fetchCmsBlogPosts } from "@/lib/storefront/cms";
 import {
   buildProductListParams,
-  STOREFRONT_PRODUCT_CARD_FIELDS,
+  PRODUCT_CARD_FIELDS,
 } from "@/lib/storefront/product-query-config";
 import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
 import { getRegionServerContext } from "@/lib/storefront/ssr/context";
@@ -48,8 +48,8 @@ async function resolveRecommendedProductsForBlogPost(
     queryClient,
     buildCategoryListParams({
       page: 1,
-      limit: STOREFRONT_CATEGORY_TREE_LIMIT,
-      fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+      limit: CATEGORY_TREE_LIMIT,
+      fields: CATEGORY_TREE_FIELDS,
     }),
   );
 
@@ -80,7 +80,7 @@ async function resolveRecommendedProductsForBlogPost(
     buildProductListParams({
       page: 1,
       limit: recommendedProductsCandidateLimit,
-      fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+      fields: PRODUCT_CARD_FIELDS,
       order: "-created_at",
       category_id: recommendedCategoryIds,
       region_id: region?.region_id,

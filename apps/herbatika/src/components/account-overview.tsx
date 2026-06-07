@@ -2,13 +2,13 @@
 
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import {
-  StorefrontAccountSkeletonSurface,
-  StorefrontAccountSurface,
-} from "@/components/account/storefront-account-surface";
+  AccountSkeletonSurface,
+  AccountSurface,
+} from "@/components/account/account-surface";
 import { useAuth } from "@/lib/storefront/auth";
 import { useOrders } from "@/lib/storefront/orders";
 
-export function StorefrontAccountOverview() {
+export function AccountOverview() {
   const authQuery = useAuth();
   const ordersQuery = useOrders({
     page: 1,
@@ -17,7 +17,7 @@ export function StorefrontAccountOverview() {
   });
 
   if (authQuery.isLoading) {
-    return <StorefrontAccountSkeletonSurface lines={4} />;
+    return <AccountSkeletonSurface lines={4} />;
   }
 
   if (!authQuery.customer) {
@@ -25,7 +25,7 @@ export function StorefrontAccountOverview() {
   }
 
   return (
-    <StorefrontAccountSurface className="space-y-500">
+    <AccountSurface className="space-y-500">
       <header className="space-y-200">
         <h2 className="text-xl font-semibold">Prehľad účtu</h2>
         <p className="text-sm text-fg-secondary">
@@ -54,6 +54,6 @@ export function StorefrontAccountOverview() {
           {ordersQuery.error}
         </StatusText>
       )}
-    </StorefrontAccountSurface>
+    </AccountSurface>
   );
 }

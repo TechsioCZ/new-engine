@@ -1,7 +1,7 @@
 import { HydrationBoundary } from "@tanstack/react-query";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { StorefrontBrandListing } from "@/components/brands/storefront-brand-listing";
+import { BrandListing } from "@/components/brands/brand-listing";
 import { createBrandHref, resolveBrandBySlug } from "@/lib/storefront/brands";
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
@@ -87,7 +87,7 @@ export default async function BrandPage({
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <StorefrontBrandListing
+      <BrandListing
         brandFacetId={brand.facetId}
         brandTitle={brand.title}
       />

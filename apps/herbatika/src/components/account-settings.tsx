@@ -5,9 +5,9 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { FormInput } from "@techsio/ui-kit/molecules/form-input";
 import { useEffect, useRef, useState } from "react";
 import {
-  StorefrontAccountSkeletonSurface,
-  StorefrontAccountSurface,
-} from "@/components/account/storefront-account-surface";
+  AccountSkeletonSurface,
+  AccountSurface,
+} from "@/components/account/account-surface";
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
 import {
   accountSettingsValidators,
@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/storefront/auth";
 import { useUpdateCustomer } from "@/lib/storefront/customers";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 
-export function StorefrontAccountSettings() {
+export function AccountSettings() {
   const authQuery = useAuth();
   const updateCustomerMutation = useUpdateCustomer();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -75,22 +75,22 @@ export function StorefrontAccountSettings() {
   }, [authQuery.customer, form]);
 
   if (authQuery.isLoading) {
-    return <StorefrontAccountSkeletonSurface lines={6} />;
+    return <AccountSkeletonSurface lines={6} />;
   }
 
   if (!authQuery.customer) {
     return (
-      <StorefrontAccountSurface className="space-y-300">
+      <AccountSurface className="space-y-300">
         <h2 className="text-lg font-semibold">Nastavenia účtu</h2>
         <p className="text-fg-secondary text-sm">
           Údaje účtu nie sú dostupné. Skúste stránku obnoviť.
         </p>
-      </StorefrontAccountSurface>
+      </AccountSurface>
     );
   }
 
   return (
-    <StorefrontAccountSurface className="space-y-500">
+    <AccountSurface className="space-y-500">
       <header className="space-y-200">
         <h2 className="text-xl font-semibold">Nastavenia účtu</h2>
         <p className="text-fg-secondary text-sm">
@@ -202,6 +202,6 @@ export function StorefrontAccountSettings() {
           </Button>
         </div>
       </form>
-    </StorefrontAccountSurface>
+    </AccountSurface>
   );
 }

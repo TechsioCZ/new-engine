@@ -14,7 +14,7 @@ import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { STOREFRONT_PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products";
+import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products";
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 
 type CheckoutCartStepSectionProps = {
@@ -34,7 +34,7 @@ export function CheckoutCartStepSection({
   const updateLineItemMutation = useUpdateLineItem();
   const removeLineItemMutation = useRemoveLineItem();
   const { productsByHandle: cartProductsByHandle } =
-    useCartProductsByHandle(cartItems, STOREFRONT_PRODUCT_DETAIL_FIELDS);
+    useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS);
 
   const isPending =
     updateLineItemMutation.isPending || removeLineItemMutation.isPending;

@@ -37,17 +37,17 @@ import type {
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
 import { buildHerbatikaPaymentSessionData } from "./payment-session";
-import { STOREFRONT_PRODUCT_CARD_FIELDS, STOREFRONT_PRODUCT_DETAIL_FIELDS } from "./product-query-config";
+import { PRODUCT_CARD_FIELDS, PRODUCT_DETAIL_FIELDS } from "./product-query-config";
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
 
-export const STOREFRONT_CATEGORY_FIELDS =
+export const CATEGORY_FIELDS =
   "id,name,handle,parent_category_id,rank,is_active,category_children";
 
-export const STOREFRONT_CATALOG_DEFAULT_LIMIT = 24;
-export const STOREFRONT_CATALOG_DEFAULT_SORT = "recommended";
-export const STOREFRONT_ORDER_DEFAULT_SORT = "-created_at";
+export const CATALOG_DEFAULT_LIMIT = 24;
+export const CATALOG_DEFAULT_SORT = "recommended";
+export const ORDER_DEFAULT_SORT = "-created_at";
 
-export const STOREFRONT_CART_FIELDS = [
+export const CART_FIELDS = [
   "id",
   "region_id",
   "customer_id",
@@ -93,7 +93,7 @@ export const STOREFRONT_CART_FIELDS = [
   "shipping_methods.adjustments.*",
 ].join(",");
 
-export const STOREFRONT_ORDER_LIST_FIELDS = [
+export const ORDER_LIST_FIELDS = [
   "id",
   "display_id",
   "status",
@@ -108,7 +108,7 @@ export const STOREFRONT_ORDER_LIST_FIELDS = [
   "items.quantity",
 ].join(",");
 
-export const STOREFRONT_ORDER_DETAIL_FIELDS = [
+export const ORDER_DETAIL_FIELDS = [
   "id",
   "display_id",
   "status",
@@ -174,8 +174,8 @@ export const storefrontProductServiceConfig: MedusaProductServiceConfig<
   MedusaProductListInput,
   MedusaProductDetailInput
 > = {
-  defaultListFields: STOREFRONT_PRODUCT_CARD_FIELDS,
-  defaultDetailFields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  defaultListFields: PRODUCT_CARD_FIELDS,
+  defaultDetailFields: PRODUCT_DETAIL_FIELDS,
 };
 
 export const storefrontCategoryServiceConfig: MedusaCategoryServiceConfig<
@@ -183,8 +183,8 @@ export const storefrontCategoryServiceConfig: MedusaCategoryServiceConfig<
   MedusaCategoryListInput,
   MedusaCategoryDetailInput
 > = {
-  defaultListFields: STOREFRONT_CATEGORY_FIELDS,
-  defaultDetailFields: STOREFRONT_CATEGORY_FIELDS,
+  defaultListFields: CATEGORY_FIELDS,
+  defaultDetailFields: CATEGORY_FIELDS,
 };
 
 export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
@@ -192,22 +192,22 @@ export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
   MedusaCatalogListInput,
   import("@techsio/storefront-data/catalog/types").CatalogFacets
 > = {
-  defaultLimit: STOREFRONT_CATALOG_DEFAULT_LIMIT,
-  defaultSort: STOREFRONT_CATALOG_DEFAULT_SORT,
+  defaultLimit: CATALOG_DEFAULT_LIMIT,
+  defaultSort: CATALOG_DEFAULT_SORT,
 };
 
 export const storefrontOrderServiceConfig: MedusaOrderServiceConfig = {
-  defaultListFields: STOREFRONT_ORDER_LIST_FIELDS,
-  defaultDetailFields: STOREFRONT_ORDER_DETAIL_FIELDS,
-  defaultOrder: STOREFRONT_ORDER_DEFAULT_SORT,
+  defaultListFields: ORDER_LIST_FIELDS,
+  defaultDetailFields: ORDER_DETAIL_FIELDS,
+  defaultOrder: ORDER_DEFAULT_SORT,
   returnNullOnNotFound: true,
 };
 
 export const storefrontCartServiceConfig: MedusaCartServiceConfig = {
-  cartFields: STOREFRONT_CART_FIELDS,
+  cartFields: CART_FIELDS,
 };
 
 export const storefrontCheckoutServiceConfig: MedusaCheckoutServiceConfig = {
-  cartFields: STOREFRONT_CART_FIELDS,
+  cartFields: CART_FIELDS,
   buildPaymentSessionData: buildHerbatikaPaymentSessionData,
 };

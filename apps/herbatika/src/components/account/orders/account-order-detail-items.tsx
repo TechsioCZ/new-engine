@@ -6,13 +6,13 @@ import {
   resolveOrderItemTotalAmount,
 } from "@/lib/storefront/order-format";
 
-type StorefrontAccountOrderDetailItemsProps = {
+type AccountOrderDetailItemsProps = {
   order: HttpTypes.StoreOrder;
 };
 
-export function StorefrontAccountOrderDetailItems({
+export function AccountOrderDetailItems({
   order,
-}: StorefrontAccountOrderDetailItemsProps) {
+}: AccountOrderDetailItemsProps) {
   const orderItems = order.items ?? [];
 
   return (

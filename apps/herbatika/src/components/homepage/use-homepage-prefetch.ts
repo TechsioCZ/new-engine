@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types";
 import {
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products";
 
@@ -30,7 +30,7 @@ export function useHomepagePrefetch(
     delayedPrefetch(
       {
         handle: product.handle,
-        fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+        fields: PRODUCT_DETAIL_FIELDS,
       },
       120,
       `home-product-${product.id}`,

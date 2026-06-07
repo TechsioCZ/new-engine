@@ -9,7 +9,7 @@ import { RecentlyVisitedProductsSection } from "@/components/recently-visited-pr
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 import { useSearchListingController } from "./search/use-search-listing-controller";
 
-export function StorefrontSearchResults() {
+export function SearchResults() {
   const controller = useSearchListingController();
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1);
 

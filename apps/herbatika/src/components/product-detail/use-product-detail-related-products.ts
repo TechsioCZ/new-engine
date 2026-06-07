@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { RELATED_PRODUCTS_LIMIT } from "@/components/product-detail/product-detail.constants";
-import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
+import type { Product } from "@/components/product-detail/product-detail.types";
 import {
   orderProductsByReferenceCodes,
   resolveProductReferenceHandle,
@@ -11,13 +11,13 @@ import {
 } from "@/components/product-detail/utils/related-products";
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  STOREFRONT_RELATED_PRODUCT_FIELDS,
+  PRODUCT_CARD_FIELDS,
+  RELATED_PRODUCT_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
 
 type UseProductDetailRelatedProductsProps = {
-  product: StorefrontProduct | null;
+  product: Product | null;
 };
 
 export function useProductDetailRelatedProducts({
@@ -41,7 +41,7 @@ export function useProductDetailRelatedProducts({
     limit: RELATED_PRODUCTS_LIMIT,
     handle:
       relatedReferenceHandles.length > 0 ? relatedReferenceHandles : undefined,
-    fields: STOREFRONT_RELATED_PRODUCT_FIELDS,
+    fields: RELATED_PRODUCT_FIELDS,
     enabled: Boolean(product?.id && relatedReferenceHandles.length > 0),
   });
 
@@ -50,7 +50,7 @@ export function useProductDetailRelatedProducts({
     limit: RELATED_PRODUCTS_LIMIT,
     category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
     order: "-created_at",
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+    fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(product?.id),
   });
   const relatedProducts = useMemo(() => {
@@ -60,7 +60,7 @@ export function useProductDetailRelatedProducts({
     );
     const products = [...referencedProducts, ...fallbackProductsQuery.products];
     const usedProductIds = new Set<string>();
-    const filtered: StorefrontProduct[] = [];
+    const filtered: Product[] = [];
 
     for (const relatedProduct of products) {
       if (!relatedProduct.id || relatedProduct.id === product?.id) {

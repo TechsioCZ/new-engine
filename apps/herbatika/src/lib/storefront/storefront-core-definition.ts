@@ -16,7 +16,7 @@ import {
   storefrontOrderServiceConfig,
   storefrontProductServiceConfig,
   storefrontQueryKeys,
-  STOREFRONT_CATALOG_DEFAULT_LIMIT,
+  CATALOG_DEFAULT_LIMIT,
 } from "./storefront-config";
 
 export const storefrontCoreDefinition = {
@@ -54,7 +54,7 @@ export const storefrontCoreDefinition = {
     serviceConfig: storefrontCatalogServiceConfig,
     hooks: {
       requireRegion: true,
-      defaultPageSize: STOREFRONT_CATALOG_DEFAULT_LIMIT,
+      defaultPageSize: CATALOG_DEFAULT_LIMIT,
     },
   },
 } as const;

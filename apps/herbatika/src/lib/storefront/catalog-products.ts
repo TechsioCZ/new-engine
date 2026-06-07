@@ -13,7 +13,7 @@ import {
   type CatalogQueryState,
 } from "./catalog-query-state";
 import { resolveVariantInventoryState } from "./product-availability";
-import { STOREFRONT_PRODUCT_CARD_FIELDS } from "./product-query-config";
+import { PRODUCT_CARD_FIELDS } from "./product-query-config";
 import { useProducts } from "./products";
 import { storefront } from "./storefront";
 
@@ -96,7 +96,7 @@ export const useCatalogProducts = (
   const inventorySnapshotsQuery = useProducts({
     handle: inventorySnapshotHandles,
     limit: Math.max(1, inventorySnapshotHandles.length),
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+    fields: PRODUCT_CARD_FIELDS,
     enabled: catalogQuery.isSuccess && shouldLoadInventorySnapshots,
   });
   const inventoryProductByHandle = useMemo(

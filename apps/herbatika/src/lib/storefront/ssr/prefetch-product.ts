@@ -3,8 +3,8 @@ import "server-only";
 import { dehydrate } from "@tanstack/react-query";
 import { resolveRelatedCategoryIds } from "../category-tree";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
   buildProductListParams,
 } from "../product-query-config";
 import { PDP_RELATED_PRODUCTS_LIMIT } from "./constants";
@@ -21,7 +21,7 @@ export const prefetchProductDetailPageStorefrontData = async (handle: string) =>
   if (region) {
     const detailParams: ProductDetailParams = {
       handle,
-      fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+      fields: PRODUCT_DETAIL_FIELDS,
       region_id: region.region_id,
       country_code: region.country_code,
     };
@@ -35,7 +35,7 @@ export const prefetchProductDetailPageStorefrontData = async (handle: string) =>
         limit: PDP_RELATED_PRODUCTS_LIMIT,
         category_id: relatedCategoryIds,
         order: "-created_at",
-        fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+        fields: PRODUCT_CARD_FIELDS,
         region_id: region.region_id,
         country_code: region.country_code,
       });

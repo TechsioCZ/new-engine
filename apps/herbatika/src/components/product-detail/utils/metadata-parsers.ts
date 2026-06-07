@@ -7,7 +7,7 @@ import {
 import type {
   ProductDetailContentSection,
   ProductOfferState,
-  StorefrontProduct,
+  Product,
 } from "@/components/product-detail/product-detail.types";
 import {
   hasRenderableHtmlContent,
@@ -75,7 +75,7 @@ export const normalizeCategoryName = (value?: string | null) => {
   return value.replace(/^>\s*/, "").trim();
 };
 
-export const resolveProductImages = (product: StorefrontProduct | null): string[] => {
+export const resolveProductImages = (product: Product | null): string[] => {
   if (!product) {
     return [];
   }
@@ -128,7 +128,7 @@ export const resolveVariantLabel = (
 };
 
 export const resolveOfferState = (
-  product: StorefrontProduct | null,
+  product: Product | null,
   selectedVariant: HttpTypes.StoreProductVariant | null,
 ): ProductOfferState => {
   const metadata = asRecord(product?.metadata);
@@ -177,7 +177,7 @@ export const resolveOfferState = (
 };
 
 export const resolveProductContentSections = (
-  product: StorefrontProduct | null,
+  product: Product | null,
   shortDescriptionHtml: string,
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata);

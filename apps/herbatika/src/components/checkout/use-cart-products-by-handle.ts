@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { useMemo } from "react";
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
+  PRODUCT_CARD_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
 
@@ -27,7 +27,7 @@ export const resolveCartProductHandles = (
 
 export function useCartProductsByHandle(
   cartItems: HttpTypes.StoreCartLineItem[],
-  fields = STOREFRONT_PRODUCT_CARD_FIELDS,
+  fields = PRODUCT_CARD_FIELDS,
 ) {
   const productHandles = useMemo(
     () => resolveCartProductHandles(cartItems),

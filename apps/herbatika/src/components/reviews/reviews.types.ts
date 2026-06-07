@@ -1,6 +1,6 @@
 import type { StaticImageData } from "next/image";
 
-export type StorefrontReviewItem = {
+export type ReviewItem = {
   id: string;
   author: string;
   dateLabel: string;
@@ -10,7 +10,7 @@ export type StorefrontReviewItem = {
   verifiedPurchase?: boolean;
 };
 
-export type StorefrontReviewTrustSource = {
+export type ReviewTrustSource = {
   id: string;
   logo: StaticImageData;
   logoAlt: string;

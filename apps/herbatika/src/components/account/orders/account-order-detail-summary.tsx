@@ -22,7 +22,7 @@ import {
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format";
 
-type StorefrontAccountOrderDetailSummaryProps = {
+type AccountOrderDetailSummaryProps = {
   order: HttpTypes.StoreOrder;
   customerEmail?: string | null;
 };
@@ -35,10 +35,10 @@ const readOrderAmount = (
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 };
 
-export function StorefrontAccountOrderDetailSummary({
+export function AccountOrderDetailSummary({
   order,
   customerEmail,
-}: StorefrontAccountOrderDetailSummaryProps) {
+}: AccountOrderDetailSummaryProps) {
   const orderItems = order.items ?? [];
   const orderItemsTotal =
     readOrderAmount(order, "item_total") ??

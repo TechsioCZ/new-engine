@@ -1,4 +1,4 @@
-import { StorefrontAccountOrderDetail } from "@/components/storefront-account-order-detail";
+import { AccountOrderDetail } from "@/components/account-order-detail";
 
 type AccountOrderDetailPageProps = {
   params: Promise<{
@@ -11,5 +11,5 @@ export default async function AccountOrderDetailPage({
 }: AccountOrderDetailPageProps) {
   const { id } = await params;
 
-  return <StorefrontAccountOrderDetail orderId={id} />;
+  return <AccountOrderDetail orderId={id} />;
 }

@@ -3,24 +3,24 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import NextLink from "next/link";
-import { StorefrontAccountOrderDetailItems } from "@/components/account/orders/storefront-account-order-detail-items";
-import { StorefrontAccountOrderDetailSummary } from "@/components/account/orders/storefront-account-order-detail-summary";
+import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items";
+import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary";
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
 import { OrderSkeleton } from "@/components/loading/order-skeleton";
 import {
-  StorefrontAccountSurface,
-} from "@/components/account/storefront-account-surface";
+  AccountSurface,
+} from "@/components/account/account-surface";
 import { resolveOrderDisplayId } from "@/lib/storefront/order-format";
 import { useAuth } from "@/lib/storefront/auth";
 import { useOrder } from "@/lib/storefront/orders";
 
-type StorefrontAccountOrderDetailProps = {
+type AccountOrderDetailProps = {
   orderId: string;
 };
 
-export function StorefrontAccountOrderDetail({
+export function AccountOrderDetail({
   orderId,
-}: StorefrontAccountOrderDetailProps) {
+}: AccountOrderDetailProps) {
   const authQuery = useAuth();
   const orderQuery = useOrder({
     id: orderId,
@@ -33,20 +33,20 @@ export function StorefrontAccountOrderDetail({
 
   if (orderQuery.error) {
     return (
-      <StorefrontAccountSurface className="space-y-400">
+      <AccountSurface className="space-y-400">
         <StatusText showIcon status="error">
           {orderQuery.error}
         </StatusText>
         <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
           Späť na objednávky
         </LinkButton>
-      </StorefrontAccountSurface>
+      </AccountSurface>
     );
   }
 
   if (!orderQuery.order) {
     return (
-      <StorefrontAccountSurface className="space-y-400">
+      <AccountSurface className="space-y-400">
         <h2 className="text-lg font-semibold">Objednávka nebola nájdená</h2>
         <p className="text-sm text-fg-secondary">
           Skontrolujte URL alebo sa vráťte do zoznamu objednávok.
@@ -54,7 +54,7 @@ export function StorefrontAccountOrderDetail({
         <LinkButton as={NextLink} href="/account/orders" variant="secondary" size="sm">
           Späť na objednávky
         </LinkButton>
-      </StorefrontAccountSurface>
+      </AccountSurface>
     );
   }
 
@@ -71,12 +71,12 @@ export function StorefrontAccountOrderDetail({
         ]}
       />
 
-      <StorefrontAccountOrderDetailSummary
+      <AccountOrderDetailSummary
         customerEmail={authQuery.customer?.email}
         order={order}
       />
 
-      <StorefrontAccountOrderDetailItems order={order} />
+      <AccountOrderDetailItems order={order} />
 
     </div>
   );

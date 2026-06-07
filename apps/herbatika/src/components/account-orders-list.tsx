@@ -9,8 +9,8 @@ import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import NextLink from "next/link";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useTransition } from "react";
-import { StorefrontAccountOrderGroup } from "@/components/account/orders/storefront-account-order-group";
-import { StorefrontAccountSurface } from "@/components/account/storefront-account-surface";
+import { AccountOrderGroup } from "@/components/account/orders/account-order-group";
+import { AccountSurface } from "@/components/account/account-surface";
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton";
 import { useAuth } from "@/lib/storefront/auth";
 import { getOrderDetailQueryOptions, useOrders } from "@/lib/storefront/orders";
@@ -18,7 +18,7 @@ import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-bui
 
 const ORDER_PAGE_SIZE = 10;
 
-export function StorefrontAccountOrdersList() {
+export function AccountOrdersList() {
   const queryClient = useQueryClient();
   const authQuery = useAuth();
   const [isPageTransitionPending, startTransition] = useTransition();
@@ -76,7 +76,7 @@ export function StorefrontAccountOrdersList() {
 
   if (ordersQuery.error) {
     return (
-      <StorefrontAccountSurface className="space-y-400">
+      <AccountSurface className="space-y-400">
         <StatusText showIcon status="error">
           {ordersQuery.error}
         </StatusText>
@@ -88,13 +88,13 @@ export function StorefrontAccountOrdersList() {
         >
           Skúsiť znova
         </Button>
-      </StorefrontAccountSurface>
+      </AccountSurface>
     );
   }
 
   if (ordersQuery.orders.length === 0) {
     return (
-      <StorefrontAccountSurface className="space-y-400">
+      <AccountSurface className="space-y-400">
         <h2 className="text-lg font-semibold">Objednávky</h2>
         <p className="text-sm text-fg-secondary">
           Zatiaľ nemáte žiadnu dokončenú objednávku.
@@ -102,12 +102,12 @@ export function StorefrontAccountOrdersList() {
         <LinkButton as={NextLink} href="/" variant="secondary">
           Prejsť na produkty
         </LinkButton>
-      </StorefrontAccountSurface>
+      </AccountSurface>
     );
   }
 
   return (
-    <StorefrontAccountSurface className="space-y-500">
+    <AccountSurface className="space-y-500">
       <header className="space-y-200">
         <h2 className="text-lg font-semibold">Objednávky</h2>
         <p className="text-sm text-fg-secondary">
@@ -123,7 +123,7 @@ export function StorefrontAccountOrdersList() {
       <div className="space-y-300">
         {ordersQuery.orders.map((order) => {
           return (
-            <StorefrontAccountOrderGroup
+            <AccountOrderGroup
               key={order.id}
               onPrefetchOrderDetail={prefetchOrderDetail}
               order={order}
@@ -143,6 +143,6 @@ export function StorefrontAccountOrdersList() {
           variant="outlined"
         />
       )}
-    </StorefrontAccountSurface>
+    </AccountSurface>
   );
 }

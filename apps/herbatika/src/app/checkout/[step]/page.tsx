@@ -8,7 +8,7 @@ import {
   isCheckoutStepSlug,
   resolveCheckoutStepHref,
 } from "@/components/checkout/checkout-route.utils";
-import { StorefrontCheckoutFlow } from "@/components/storefront-checkout-flow";
+import { CheckoutFlow } from "@/components/checkout-flow";
 
 type CheckoutStepPageProps = {
   params: Promise<{
@@ -32,7 +32,7 @@ async function CheckoutStepPageContent({
 
   return (
     <Suspense fallback={<main className="mx-auto min-h-dvh w-full max-w-max-w" />}>
-      <StorefrontCheckoutFlow activeStep={step} />
+      <CheckoutFlow activeStep={step} />
     </Suspense>
   );
 }

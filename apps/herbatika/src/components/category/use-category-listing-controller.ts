@@ -4,7 +4,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useQueryStates } from "nuqs";
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries";
-import { STOREFRONT_CATEGORY_TREE_FIELDS } from "@/lib/storefront/category-query-config";
+import { CATEGORY_TREE_FIELDS } from "@/lib/storefront/category-query-config";
 import {
   usePrefetchCategories,
   usePrefetchCategory,
@@ -72,7 +72,7 @@ export function useCategoryListingController({
           page: 1,
           limit: 100,
           parent_category_id: category.id,
-          fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+          fields: CATEGORY_TREE_FIELDS,
         },
         300,
         `prefetch-category-children-${category.id}`,

@@ -21,8 +21,8 @@ import {
   resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state";
 import {
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
@@ -93,8 +93,8 @@ export function useCategoryListingQueries({
   const regionCurrencyCode = resolveRegionCurrency(region);
   const categoriesQuery = useCategories({
     page: 1,
-    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
-    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    fields: CATEGORY_TREE_FIELDS,
   });
 
   const categoryByHandle = useMemo(() => {

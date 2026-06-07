@@ -4,9 +4,9 @@ import { useState } from "react";
 import type {
   ProductDetailDataState,
 } from "@/components/product-detail/use-product-detail-data";
-import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
+import type { Product } from "@/components/product-detail/product-detail.types";
 import {
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products";
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
@@ -37,7 +37,7 @@ export function useProductDetailActions({
   });
 
   const addProductToCart = async (
-    productToAdd: StorefrontProduct,
+    productToAdd: Product,
     quantityToAdd: number,
     variantIdOverride?: string | null,
   ) => {
@@ -67,7 +67,7 @@ export function useProductDetailActions({
 
       void addProductToCart(product, quantity, selectedVariant.id);
     },
-    handleAddRelatedProductToCart: (productToAdd: StorefrontProduct) => {
+    handleAddRelatedProductToCart: (productToAdd: Product) => {
       void addProductToCart(productToAdd, 1);
     },
     handleAddVolumeDiscountToCart: () => {
@@ -81,12 +81,12 @@ export function useProductDetailActions({
         selectedVariant.id,
       );
     },
-    handleRelatedProductHoverEnd: (sectionId: string, hoveredProduct: StorefrontProduct) => {
+    handleRelatedProductHoverEnd: (sectionId: string, hoveredProduct: Product) => {
       prefetchProduct.cancelPrefetch(`${sectionId}-product-${hoveredProduct.id}`);
     },
     handleRelatedProductHoverStart: (
       sectionId: string,
-      hoveredProduct: StorefrontProduct,
+      hoveredProduct: Product,
     ) => {
       if (!hoveredProduct.handle) {
         return;
@@ -95,7 +95,7 @@ export function useProductDetailActions({
       prefetchProduct.delayedPrefetch(
         {
           handle: hoveredProduct.handle,
-          fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+          fields: PRODUCT_DETAIL_FIELDS,
         },
         220,
         `${sectionId}-product-${hoveredProduct.id}`,

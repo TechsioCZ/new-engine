@@ -19,13 +19,13 @@ import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section";
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller";
 
-type StorefrontCheckoutFlowProps = {
+type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug;
 };
 
-export function StorefrontCheckoutFlow({
+export function CheckoutFlow({
   activeStep,
-}: StorefrontCheckoutFlowProps) {
+}: CheckoutFlowProps) {
   const router = useRouter();
   const controller = useCheckoutController();
   const requiredStep = resolveRequiredCheckoutStepSlug({

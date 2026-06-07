@@ -3,7 +3,7 @@
 import type {
   ProductDetailContentSection,
   ProductMediaFact,
-  StorefrontProduct,
+  Product,
 } from "@/components/product-detail/product-detail.types";
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
 import { asRecord, asString } from "@/components/product-detail/utils/value-utils";
@@ -113,7 +113,7 @@ const resolveDailyCapsuleDose = (texts: string[]): number | null => {
   return null;
 };
 
-const collectParameterTexts = (product: StorefrontProduct | null): string[] => {
+const collectParameterTexts = (product: Product | null): string[] => {
   const metadata = asRecord(product?.metadata);
   const topOffer = asRecord(metadata?.top_offer);
   const parameters = Array.isArray(topOffer?.parameters) ? topOffer.parameters : [];
@@ -127,7 +127,7 @@ const collectParameterTexts = (product: StorefrontProduct | null): string[] => {
 };
 
 const collectTexts = (
-  product: StorefrontProduct | null,
+  product: Product | null,
   sections: ProductDetailContentSection[],
 ): string[] => {
   if (!product) {
@@ -149,7 +149,7 @@ const collectTexts = (
 };
 
 export const resolveProductMediaFacts = (
-  product: StorefrontProduct | null,
+  product: Product | null,
   sections: ProductDetailContentSection[],
 ): ProductMediaFact[] => {
   const texts = collectTexts(product, sections);

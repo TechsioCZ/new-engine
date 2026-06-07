@@ -8,13 +8,13 @@ import { useMemo } from "react";
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel";
 import { SupportingText } from "@/components/text/supporting-text";
 import {
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config";
 import { useCategories } from "@/lib/storefront/categories";
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
 import {
-  STOREFRONT_RELATED_PRODUCT_FIELDS,
+  RELATED_PRODUCT_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
 import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families";
@@ -27,8 +27,8 @@ export function CheckoutEmptyCartSection() {
   const region = useRegionContext();
   const categoriesQuery = useCategories({
     page: 1,
-    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
-    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    fields: CATEGORY_TREE_FIELDS,
   });
 
   const recommendationCategoryIds = useMemo(() => {
@@ -54,7 +54,7 @@ export function CheckoutEmptyCartSection() {
     page: 1,
     limit: EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT,
     order: "-created_at",
-    fields: STOREFRONT_RELATED_PRODUCT_FIELDS,
+    fields: RELATED_PRODUCT_FIELDS,
     category_id:
       recommendationCategoryIds.length > 0
         ? recommendationCategoryIds

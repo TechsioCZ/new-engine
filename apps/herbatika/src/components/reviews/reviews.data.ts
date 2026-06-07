@@ -3,11 +3,11 @@ import heurekaLogo from "@/assets/third-parties/heureka.avif";
 import verifiedCustomerBadge from "@/assets/third-parties/overeny-zakaznik.avif";
 import zboziLogo from "@/assets/third-parties/zbozi-seznam.avif";
 import type {
-  StorefrontReviewItem,
-  StorefrontReviewTrustSource,
-} from "@/components/reviews/storefront-reviews.types";
+  ReviewItem,
+  ReviewTrustSource,
+} from "@/components/reviews/reviews.types";
 
-export const STOREFRONT_PRODUCT_REVIEWS: readonly StorefrontReviewItem[] = [
+export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
   {
     id: "review-denisa",
     author: "Denisa Sczyrzická",
@@ -42,7 +42,7 @@ export const STOREFRONT_PRODUCT_REVIEWS: readonly StorefrontReviewItem[] = [
   },
 ];
 
-export const STOREFRONT_HEUREKA_REVIEWS: readonly StorefrontReviewItem[] = [
+export const HEUREKA_REVIEWS: readonly ReviewItem[] = [
   {
     id: "heureka-review-denisa-delivery",
     author: "Denisa Sczyrzická",
@@ -78,7 +78,7 @@ export const STOREFRONT_HEUREKA_REVIEWS: readonly StorefrontReviewItem[] = [
   },
 ];
 
-export const STOREFRONT_REVIEW_TRUST_SOURCES: readonly StorefrontReviewTrustSource[] = [
+export const REVIEW_TRUST_SOURCES: readonly ReviewTrustSource[] = [
   {
     id: "heureka",
     logo: heurekaLogo,
@@ -105,4 +105,4 @@ export const STOREFRONT_REVIEW_TRUST_SOURCES: readonly StorefrontReviewTrustSour
   },
 ];
 
-export const STOREFRONT_REVIEW_VERIFIED_CUSTOMER_BADGE = verifiedCustomerBadge;
+export const REVIEW_VERIFIED_CUSTOMER_BADGE = verifiedCustomerBadge;

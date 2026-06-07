@@ -10,7 +10,7 @@ import { ProductDetailPurchasePanel } from "@/components/product-detail/sections
 import type {
   ProductMediaFact,
   ProductOfferState,
-  StorefrontProduct,
+  Product,
 } from "@/components/product-detail/product-detail.types";
 
 type ProductDetailHeroProps = {
@@ -28,7 +28,7 @@ type ProductDetailHeroProps = {
   onAddToCart: () => void;
   onQuantityChange: (quantity: number) => void;
   onVariantChange: (variantId: string | null) => void;
-  product: StorefrontProduct;
+  product: Product;
   productCategories: HttpTypes.StoreProductCategory[];
   productHighlights: string[];
   quantity: number;

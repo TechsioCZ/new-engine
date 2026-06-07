@@ -15,10 +15,10 @@ import { ProductDetailHero } from "@/components/product-detail/sections/product-
 import {
   useProductDetailController,
 } from "@/components/product-detail/use-product-detail-controller";
-import type { StorefrontProductDetailProps } from "@/components/product-detail/product-detail.types";
+import type { ProductDetailProps } from "@/components/product-detail/product-detail.types";
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
 
-export function StorefrontProductDetail({ handle }: StorefrontProductDetailProps) {
+export function ProductDetail({ handle }: ProductDetailProps) {
   const controller = useProductDetailController({ handle });
 
   useEffect(() => {

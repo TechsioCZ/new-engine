@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
+
+import type { Product } from "@/components/product-detail/product-detail.types";
 import { asRecord } from "@/components/product-detail/utils/value-utils";
 
-export function useProductDetailDebugLog(product: StorefrontProduct | null) {
+export function useProductDetailDebugLog(product: Product | null) {
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || !product) {
       return;

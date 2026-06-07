@@ -9,8 +9,8 @@ import {
 } from "../catalog-query-state";
 import {
   buildCategoryListParams,
-  STOREFRONT_CATEGORY_TREE_FIELDS,
-  STOREFRONT_CATEGORY_TREE_LIMIT,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
 } from "../category-query-config";
 import {
   HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
@@ -67,8 +67,8 @@ export const prefetchHomePageStorefrontData = async () => {
   const { queryClient, region } = await getRegionServerContext();
   const categoryListParams = buildCategoryListParams({
     page: 1,
-    limit: STOREFRONT_CATEGORY_TREE_LIMIT,
-    fields: STOREFRONT_CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    fields: CATEGORY_TREE_FIELDS,
   });
   const categoryResponse = await fetchServerCategories(
     queryClient,

@@ -6,7 +6,7 @@ import {
 import type {
   ProductMediaFact,
   ProductPriceState,
-  StorefrontProduct,
+  Product,
   VolumeDiscountOption,
 } from "@/components/product-detail/product-detail.types";
 import {
@@ -42,7 +42,7 @@ const resolveAmountWithoutTax = (params: {
 };
 
 export const resolvePriceState = (
-  product: StorefrontProduct,
+  product: Product,
   selectedVariantId: string | null,
   expectedCurrencyCode?: string | null,
 ): ProductPriceState => {

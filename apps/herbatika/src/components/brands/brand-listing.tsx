@@ -9,15 +9,15 @@ import { RecentlyVisitedProductsSection } from "@/components/recently-visited-pr
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
 import { useBrandListingController } from "./use-brand-listing-controller";
 
-type StorefrontBrandListingProps = {
+type BrandListingProps = {
   brandFacetId: string;
   brandTitle: string;
 };
 
-export function StorefrontBrandListing({
+export function BrandListing({
   brandFacetId,
   brandTitle,
-}: StorefrontBrandListingProps) {
+}: BrandListingProps) {
   const controller = useBrandListingController({ brandFacetId });
 
   return (

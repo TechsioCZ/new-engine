@@ -9,8 +9,8 @@ import {
   selectRecommendedProductRepresentatives,
 } from "@/lib/storefront/recommended-product-families";
 import {
-  STOREFRONT_PRODUCT_CARD_FIELDS,
-  STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS,
   useProducts,
 } from "@/lib/storefront/products";
 import { asStorefrontString } from "@/lib/storefront/product-pricing";
@@ -24,7 +24,7 @@ export function useCheckoutInlineProducts(
   const {
     isLoading: isCartProductsLoading,
     products: cartProducts,
-  } = useCartProductsByHandle(cartItems, STOREFRONT_PRODUCT_DETAIL_FIELDS);
+  } = useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS);
 
   const relatedCategoryIds = useMemo(() => {
     const seenCategoryIds = new Set<string>();
@@ -48,7 +48,7 @@ export function useCheckoutInlineProducts(
     limit: CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT,
     category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
     order: "-created_at",
-    fields: STOREFRONT_PRODUCT_CARD_FIELDS,
+    fields: PRODUCT_CARD_FIELDS,
     enabled: relatedCategoryIds.length > 0,
   });
 

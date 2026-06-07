@@ -14,15 +14,15 @@ import {
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format";
 
-type StorefrontAccountOrderGroupProps = {
+type AccountOrderGroupProps = {
   order: HttpTypes.StoreOrder;
   onPrefetchOrderDetail: (orderId: string) => void;
 };
 
-export function StorefrontAccountOrderGroup({
+export function AccountOrderGroup({
   order,
   onPrefetchOrderDetail,
-}: StorefrontAccountOrderGroupProps) {
+}: AccountOrderGroupProps) {
   const detailHref = `/account/orders/${order.id}`;
   const invoiceUrl = resolveOrderInvoiceUrl(order);
   const orderTotalAmount = resolveOrderTotalAmount(order);

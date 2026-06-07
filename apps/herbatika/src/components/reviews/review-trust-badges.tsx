@@ -1,19 +1,19 @@
 import NextImage from "next/image";
-import { STOREFRONT_REVIEW_TRUST_SOURCES } from "@/components/reviews/storefront-reviews.data";
-import type { StorefrontReviewTrustSource } from "@/components/reviews/storefront-reviews.types";
+import { REVIEW_TRUST_SOURCES } from "@/components/reviews/reviews.data";
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types";
 
-type StorefrontReviewTrustBadgesProps = {
-  sources?: readonly StorefrontReviewTrustSource[];
-  size?: StorefrontReviewTrustBadgeSize;
+type ReviewTrustBadgesProps = {
+  sources?: readonly ReviewTrustSource[];
+  size?: ReviewTrustBadgeSize;
   className?: string;
 };
 
-type StorefrontReviewTrustBadgeSize = "sm" | "md";
+type ReviewTrustBadgeSize = "sm" | "md";
 
 const ROOT_CLASS_NAME = "grid w-full grid-cols-1 sm:grid-cols-3";
 
 const SIZE_CLASS_NAMES: Record<
-  StorefrontReviewTrustBadgeSize,
+  ReviewTrustBadgeSize,
   { root: string; item: string }
 > = {
   sm: {
@@ -30,11 +30,11 @@ function joinClassNames(...classNames: Array<string | undefined>) {
   return classNames.filter(Boolean).join(" ");
 }
 
-export function StorefrontReviewTrustBadges({
-  sources = STOREFRONT_REVIEW_TRUST_SOURCES,
+export function ReviewTrustBadges({
+  sources = REVIEW_TRUST_SOURCES,
   size = "sm",
   className,
-}: StorefrontReviewTrustBadgesProps) {
+}: ReviewTrustBadgesProps) {
   if (sources.length === 0) {
     return null;
   }

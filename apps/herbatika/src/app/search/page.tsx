@@ -1,5 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query";
-import { StorefrontSearchResults } from "@/components/storefront-search-results";
+import { SearchResults } from "@/components/search-results";
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state";
 import { prefetchSearchPageStorefrontData } from "@/lib/storefront/ssr";
 
@@ -16,7 +16,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <StorefrontSearchResults />
+      <SearchResults />
     </HydrationBoundary>
   );
 }

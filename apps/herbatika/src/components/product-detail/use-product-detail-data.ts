@@ -5,7 +5,7 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import type { SelectItem } from "@techsio/ui-kit/molecules/select";
 import { useEffect, useMemo, useState } from "react";
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
-import type { StorefrontProduct } from "@/components/product-detail/product-detail.types";
+import type { Product } from "@/components/product-detail/product-detail.types";
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log";
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products";
 import { resolveGalleryItems, resolveProductHighlights } from "@/components/product-detail/utils/display-utils";
@@ -30,7 +30,7 @@ import { asNumber, asRecord, asString } from "@/components/product-detail/utils/
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping";
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { STOREFRONT_PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
+import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products";
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products";
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { IconType } from "@techsio/ui-kit/atoms/icon";
@@ -50,10 +50,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   const productQuery = useProduct({
     handle,
-    fields: STOREFRONT_PRODUCT_DETAIL_FIELDS,
+    fields: PRODUCT_DETAIL_FIELDS,
   });
 
-  const product = (productQuery.product ?? null) as StorefrontProduct | null;
+  const product = (productQuery.product ?? null) as Product | null;
   const variants = product?.variants ?? [];
   const productCategories = product?.categories ?? [];
 

@@ -1,7 +1,7 @@
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
 import type { ReactNode } from "react";
 
-type StorefrontAccountSurfaceProps = {
+type AccountSurfaceProps = {
   children: ReactNode;
   className?: string;
 };
@@ -9,10 +9,10 @@ type StorefrontAccountSurfaceProps = {
 const ACCOUNT_SURFACE_CLASSNAME =
   "rounded-lg border border-border-secondary bg-surface p-550";
 
-export function StorefrontAccountSurface({
+export function AccountSurface({
   children,
   className,
-}: StorefrontAccountSurfaceProps) {
+}: AccountSurfaceProps) {
   return (
     <section
       className={
@@ -26,18 +26,18 @@ export function StorefrontAccountSurface({
   );
 }
 
-type StorefrontAccountSkeletonSurfaceProps = {
+type AccountSkeletonSurfaceProps = {
   lines?: number;
 };
 
-export function StorefrontAccountSkeletonSurface({
+export function AccountSkeletonSurface({
   lines = 6,
-}: StorefrontAccountSkeletonSurfaceProps) {
+}: AccountSkeletonSurfaceProps) {
   return (
-    <StorefrontAccountSurface>
+    <AccountSurface>
       <Skeleton>
         <Skeleton.Text noOfLines={lines} />
       </Skeleton>
-    </StorefrontAccountSurface>
+    </AccountSurface>
   );
 }

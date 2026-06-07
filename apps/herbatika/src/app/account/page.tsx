@@ -1,5 +1,5 @@
-import { StorefrontAccountOverview } from "@/components/storefront-account-overview";
+import { AccountOverview } from "@/components/account-overview";
 
 export default function AccountPage() {
-  return <StorefrontAccountOverview />;
+  return <AccountOverview />;
 }

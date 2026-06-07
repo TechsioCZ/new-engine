@@ -1,6 +1,6 @@
 import type {
   RelatedProductsSection,
-  StorefrontProduct,
+  Product,
 } from "@/components/product-detail/product-detail.types";
 import {
   RELATED_PRODUCTS_PER_SECTION,
@@ -38,7 +38,7 @@ export const resolveProductReferenceHandle = (code: string) => {
 };
 
 export const resolveRelatedProductReferenceCodes = (
-  product: StorefrontProduct | null,
+  product: Product | null,
 ): string[] => {
   const metadata = isRecord(product?.metadata) ? product.metadata : null;
   const codes = [
@@ -62,13 +62,13 @@ export const resolveRelatedProductReferenceCodes = (
 };
 
 export const orderProductsByReferenceCodes = (
-  products: StorefrontProduct[],
+  products: Product[],
   referenceCodes: string[],
-): StorefrontProduct[] => {
-  const productBySourceId = new Map<string, StorefrontProduct>();
-  const productByHandle = new Map<string, StorefrontProduct>();
+): Product[] => {
+  const productBySourceId = new Map<string, Product>();
+  const productByHandle = new Map<string, Product>();
   const usedProductIds = new Set<string>();
-  const result: StorefrontProduct[] = [];
+  const result: Product[] = [];
 
   for (const product of products) {
     if (product.handle) {
@@ -100,9 +100,9 @@ export const orderProductsByReferenceCodes = (
 };
 
 const fillSectionProducts = (
-  products: StorefrontProduct[],
+  products: Product[],
   sectionIndex: number,
-): StorefrontProduct[] => {
+): Product[] => {
   if (products.length === 0) {
     return [];
   }
@@ -134,7 +134,7 @@ const fillSectionProducts = (
 };
 
 export const resolveRelatedSections = (
-  products: StorefrontProduct[],
+  products: Product[],
 ): RelatedProductsSection[] => {
   const recommendationSections = RELATED_RECOMMENDATION_SECTION_TITLES.map(
     (title, sectionIndex) => {

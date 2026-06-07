@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import type { IconType } from "@techsio/ui-kit/atoms/icon";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { Footer } from "@techsio/ui-kit/organisms/footer";
-import { StorefrontReviewTrustBadges } from "@/components/reviews/storefront-review-trust-badges";
+import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges";
 import { HerbatikaLogo } from "./herbatika-logo";
 
 const FOOTER_COLUMNS = [
@@ -113,7 +113,7 @@ export function HerbatikaFooter() {
               ))}
             </div>
 
-            <StorefrontReviewTrustBadges
+            <ReviewTrustBadges
               className="lg:w-auto"
               size="md"
             />
