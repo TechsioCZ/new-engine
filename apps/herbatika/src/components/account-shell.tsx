@@ -23,7 +23,7 @@ type AccountNavItemType = {
 const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
   { href: "/account", label: "Prehľad", icon:"token-icon-user"},
   { href: "/account/orders", label: "Objednávky", icon:"token-icon-order"},
-  { href: "/account/lists", label: "Seznamy", icon:"token-icon-heart"},
+  { href: "/account/lists", label: "Zoznamy", icon:"token-icon-heart"},
   { href: "/account/settings", label: "Nastavenia", icon:"token-icon-settings"},
 ] as const;
 

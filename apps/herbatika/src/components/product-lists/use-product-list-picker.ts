@@ -1,7 +1,7 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { Product } from "@/components/product-detail/product-detail.types";
 import { useAuth } from "@/lib/storefront/auth";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
@@ -60,7 +60,6 @@ export function useProductListPicker({
   const [showNewListInput, setShowNewListInput] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [activeListKey, setActiveListKey] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const shouldFetchLists = isOpen && authQuery.isAuthenticated;
@@ -97,7 +96,7 @@ export function useProductListPicker({
     return [
       {
         key: favoriteList?.id ?? "favorite",
-        title: "Oblíbené",
+        title: "Obľúbené",
         count: getProductListItemCount(favoriteList),
         checked: isProductInProductList(
           favoriteList,
@@ -126,25 +125,23 @@ export function useProductListPicker({
     setShowNewListInput(false);
     setNewListTitle("");
     setActiveListKey(null);
-    setMessage(null);
     setError(null);
   }, [isOpen]);
 
   const addProductToList = async (row: ProductListPickerRow) => {
     if (row.checked) {
-      setMessage("Produkt už je v tomto seznamu.");
       return;
     }
 
     setActiveListKey(row.key);
     setError(null);
-    setMessage(null);
 
     try {
       if (row.isFavorite) {
         await addFavoriteItemMutation.mutateAsync({
           productId: product.id,
           variantId: selectedVariantId,
+          quantity: quantityToAdd,
         });
       } else if (row.list?.id) {
         await addItemMutation.mutateAsync({
@@ -154,11 +151,9 @@ export function useProductListPicker({
           quantity: quantityToAdd,
         });
       }
-
-      setMessage(`Produkt byl přidán do seznamu ${row.title}.`);
     } catch (mutationError) {
       setError(
-        resolveErrorMessage(mutationError, "Produkt se nepodařilo přidat."),
+        resolveErrorMessage(mutationError, "Produkt sa nepodarilo pridať."),
       );
     } finally {
       setActiveListKey(null);
@@ -170,13 +165,12 @@ export function useProductListPicker({
 
     const title = newListTitle.trim();
     if (!title) {
-      setError("Zadejte název seznamu.");
+      setError("Zadajte názov zoznamu.");
       return;
     }
 
     setActiveListKey("new-list");
     setError(null);
-    setMessage(null);
 
     try {
       const createdList = await createCustomMutation.mutateAsync({
@@ -185,7 +179,7 @@ export function useProductListPicker({
       });
 
       if (!createdList?.id) {
-        throw new Error("Backend nevrátil ID nového seznamu.");
+        throw new Error("Backend nevrátil ID nového zoznamu.");
       }
 
       await addItemMutation.mutateAsync({
@@ -195,12 +189,11 @@ export function useProductListPicker({
         quantity: quantityToAdd,
       });
 
-      setMessage(`Produkt byl přidán do seznamu ${title}.`);
       setNewListTitle("");
       setShowNewListInput(false);
     } catch (mutationError) {
       setError(
-        resolveErrorMessage(mutationError, "Seznam se nepodařilo vytvořit."),
+        resolveErrorMessage(mutationError, "Zoznam sa nepodarilo vytvoriť."),
       );
     } finally {
       setActiveListKey(null);
@@ -220,12 +213,10 @@ export function useProductListPicker({
     isOpen,
     listsQuery,
     loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
-    message,
     newListTitle,
     rows,
     setError,
     setIsOpen,
-    setMessage,
     setNewListTitle,
     setShowNewListInput,
     showNewListInput,

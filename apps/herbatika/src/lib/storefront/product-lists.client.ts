@@ -1,12 +1,17 @@
 "use client";
 
-import { storefrontSdk } from "./sdk";
 import type {
   AddFavoriteProductListItemInput,
   AddProductListItemInput,
+  ChangeProductListItemQuantityInput,
   CreateCustomProductListInput,
   CreateFavoriteProductListInput,
+  CreateProductListCartInput,
+  DeleteProductListInput,
+  DeleteProductListItemInput,
   IncrementProductListItemInput,
+  ProductListCartResponse,
+  ProductListDeleteResponse,
   ProductListItemResponse,
   ProductListListInput,
   ProductListListResponse,
@@ -14,7 +19,10 @@ import type {
   ProductListResponse,
   StoreProductList,
   StoreProductListItem,
+  UpdateProductListInput,
+  UpdateProductListItemInput,
 } from "./product-lists.types";
+import { storefrontSdk } from "./sdk";
 
 const PRODUCT_LISTS_PATH = "/store/product-lists";
 
@@ -30,6 +38,20 @@ const normalizeQuantity = (quantity?: number | null) => {
   }
 
   return Math.max(1, Math.floor(quantity));
+};
+
+const normalizeQuantityDelta = (quantity?: number | null) => {
+  if (typeof quantity !== "number" || !Number.isFinite(quantity)) {
+    return 1;
+  }
+
+  const quantityDelta = Math.trunc(quantity);
+
+  if (quantityDelta === 0) {
+    throw new Error("Quantity change must be a non-zero integer.");
+  }
+
+  return quantityDelta;
 };
 
 const normalizeProductListsResponse = (
@@ -48,9 +70,8 @@ const normalizeProductListsResponse = (
   };
 };
 
-export const resolveProductListFromResponse = (
-  response: ProductListResponse,
-) => response.product_list ?? response.productList ?? response.list ?? null;
+export const resolveProductListFromResponse = (response: ProductListResponse) =>
+  response.product_list ?? response.productList ?? response.list ?? null;
 
 export const resolveProductListItemFromResponse = (
   response: ProductListItemResponse,
@@ -59,6 +80,10 @@ export const resolveProductListItemFromResponse = (
   response.productListItem ??
   response.item ??
   null;
+
+export const resolveProductListCartFromResponse = (
+  response: ProductListCartResponse,
+) => response.cart ?? null;
 
 export const getProductListItems = (list?: StoreProductList | null) =>
   list?.items ?? [];
@@ -85,10 +110,10 @@ export const isFavoriteProductList = (list?: StoreProductList | null) => {
 
 export const getProductListTitle = (list?: StoreProductList | null) => {
   if (isFavoriteProductList(list)) {
-    return "Oblíbené";
+    return "Obľúbené";
   }
 
-  return list?.title?.trim() || "Seznam";
+  return list?.title?.trim() || "Zoznam";
 };
 
 const getProductListItemProductId = (item: StoreProductListItem) => {
@@ -200,6 +225,31 @@ export const createCustomProductList = async (
   return resolveProductListFromResponse(response);
 };
 
+export const updateProductList = async (input: UpdateProductListInput) => {
+  const response = await storefrontSdk.client.fetch<ProductListResponse>(
+    `${PRODUCT_LISTS_PATH}/${input.listId}`,
+    {
+      method: "POST",
+      body: compactRecord({
+        title: input.title,
+        access_type: input.access_type,
+        description: input.description,
+        handle: input.handle,
+        metadata: input.metadata,
+      }),
+    },
+  );
+
+  return resolveProductListFromResponse(response);
+};
+
+export const deleteProductList = async (input: DeleteProductListInput) => {
+  return storefrontSdk.client.fetch<ProductListDeleteResponse>(
+    `${PRODUCT_LISTS_PATH}/${input.listId}`,
+    { method: "DELETE" },
+  );
+};
+
 export const addProductListItem = async (input: AddProductListItemInput) => {
   return storefrontSdk.client.fetch<ProductListItemResponse>(
     `${PRODUCT_LISTS_PATH}/${input.listId}/items`,
@@ -227,6 +277,7 @@ export const addFavoriteProductListItem = async (
       body: compactRecord({
         product_id: input.productId,
         variant_id: input.variantId ?? undefined,
+        quantity: normalizeQuantity(input.quantity),
         note: input.note,
         sort_order: input.sortOrder,
         metadata: input.metadata,
@@ -235,14 +286,72 @@ export const addFavoriteProductListItem = async (
   );
 };
 
-export const incrementProductListItem = async (
-  input: IncrementProductListItemInput,
+export const createProductListCart = async (
+  input: CreateProductListCartInput,
 ) => {
-  return storefrontSdk.client.fetch<ProductListItemResponse>(
-    `${PRODUCT_LISTS_PATH}/items/${input.itemId}/increment`,
+  const response = await storefrontSdk.client.fetch<ProductListCartResponse>(
+    `${PRODUCT_LISTS_PATH}/${input.listId}/cart`,
     {
       method: "POST",
-      body: compactRecord({ quantity: normalizeQuantity(input.quantity) }),
+      body: compactRecord({
+        region_id: input.regionId ?? undefined,
+        country_code: input.countryCode ?? undefined,
+        email: input.email ?? undefined,
+        sales_channel_id: input.salesChannelId ?? undefined,
+      }),
     },
+  );
+  const cart = resolveProductListCartFromResponse(response);
+
+  if (!cart) {
+    throw new Error("Backend nevrátil košík.");
+  }
+
+  return cart;
+};
+
+export const updateProductListItem = async (
+  input: UpdateProductListItemInput,
+) => {
+  return storefrontSdk.client.fetch<ProductListItemResponse>(
+    `${PRODUCT_LISTS_PATH}/items/${input.itemId}`,
+    {
+      method: "POST",
+      body: compactRecord({
+        quantity: normalizeQuantity(input.quantity),
+        note: input.note,
+        sort_order: input.sortOrder,
+        metadata: input.metadata,
+      }),
+    },
+  );
+};
+
+export const changeProductListItemQuantity = async (
+  input: ChangeProductListItemQuantityInput,
+) => {
+  return storefrontSdk.client.fetch<ProductListItemResponse>(
+    `${PRODUCT_LISTS_PATH}/items/${input.itemId}/change-quantity`,
+    {
+      method: "POST",
+      body: { quantity: normalizeQuantityDelta(input.quantity) },
+    },
+  );
+};
+
+export const incrementProductListItem = async (
+  input: IncrementProductListItemInput,
+) =>
+  changeProductListItemQuantity({
+    itemId: input.itemId,
+    quantity: normalizeQuantity(input.quantity) ?? 1,
+  });
+
+export const deleteProductListItem = async (
+  input: DeleteProductListItemInput,
+) => {
+  return storefrontSdk.client.fetch<ProductListDeleteResponse>(
+    `${PRODUCT_LISTS_PATH}/${input.listId}/items/${input.itemId}`,
+    { method: "DELETE" },
   );
 };

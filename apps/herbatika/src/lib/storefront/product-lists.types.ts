@@ -55,6 +55,15 @@ export type ProductListItemResponse = ProductListResponse & {
   productListItem?: StoreProductListItem;
 };
 
+export type ProductListCartResponse = {
+  cart?: HttpTypes.StoreCart | null;
+};
+
+export type ProductListDeleteResponse = {
+  deleted: boolean;
+  id: string;
+};
+
 export type ProductListListInput = {
   handle?: string;
   type?: StoreProductListType;
@@ -85,6 +94,19 @@ export type CreateCustomProductListInput = {
   metadata?: Record<string, unknown>;
 };
 
+export type UpdateProductListInput = {
+  listId: string;
+  title?: string;
+  access_type?: StoreProductListAccessType;
+  description?: string;
+  handle?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type DeleteProductListInput = {
+  listId: string;
+};
+
 export type AddProductListItemInput = {
   listId: string;
   productId: string;
@@ -97,10 +119,33 @@ export type AddProductListItemInput = {
 
 export type AddFavoriteProductListItemInput = Omit<
   AddProductListItemInput,
-  "listId" | "quantity"
+  "listId"
 >;
 
-export type IncrementProductListItemInput = {
+export type CreateProductListCartInput = {
+  listId: string;
+  regionId?: string | null;
+  countryCode?: string | null;
+  email?: string | null;
+  salesChannelId?: string | null;
+};
+
+export type ChangeProductListItemQuantityInput = {
   itemId: string;
   quantity?: number;
+};
+
+export type IncrementProductListItemInput = ChangeProductListItemQuantityInput;
+
+export type UpdateProductListItemInput = {
+  itemId: string;
+  quantity?: number | null;
+  note?: string | null;
+  sortOrder?: number | null;
+  metadata?: Record<string, unknown> | null;
+};
+
+export type DeleteProductListItemInput = {
+  listId: string;
+  itemId: string;
 };

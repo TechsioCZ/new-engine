@@ -3,22 +3,26 @@
 import type { HttpTypes } from "@medusajs/types";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Link } from "@techsio/ui-kit/atoms/link";
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
 import Image from "next/image";
 import NextLink from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants";
 import { resolvePriceState } from "@/components/product-card/product-card.pricing";
 import type { StoreProductListItem } from "@/lib/storefront/product-lists";
 
 type AccountProductListItemRowProps = {
-  canIncrement: boolean;
+  canChangeQuantity: boolean;
   isAddingToCart: boolean;
-  isIncrementing: boolean;
+  isDeleting: boolean;
+  isSettingQuantity: boolean;
   item: StoreProductListItem;
   onAddToCart: (
     item: StoreProductListItem,
     product: HttpTypes.StoreProduct,
   ) => void;
-  onIncrement: (item: StoreProductListItem) => void;
+  onDelete: (item: StoreProductListItem) => void;
+  onQuantitySet: (item: StoreProductListItem, quantity: number) => void;
   product: HttpTypes.StoreProduct | null;
 };
 
@@ -29,12 +33,14 @@ const resolveQuantity = (item: StoreProductListItem) => {
 };
 
 export function AccountProductListItemRow({
-  canIncrement,
+  canChangeQuantity,
   isAddingToCart,
-  isIncrementing,
+  isDeleting,
+  isSettingQuantity,
   item,
   onAddToCart,
-  onIncrement,
+  onDelete,
+  onQuantitySet,
   product,
 }: AccountProductListItemRowProps) {
   const itemProduct = product ?? item.product ?? null;
@@ -44,6 +50,45 @@ export function AccountProductListItemRow({
   const price = itemProduct ? resolvePriceState(itemProduct) : null;
   const quantity = resolveQuantity(item);
   const canAddToCart = Boolean(itemProduct);
+  const [localQuantity, setLocalQuantity] = useState(quantity);
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearPendingUpdate = useCallback(() => {
+    if (updateTimeoutRef.current === null) {
+      return;
+    }
+
+    clearTimeout(updateTimeoutRef.current);
+    updateTimeoutRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    setLocalQuantity(quantity);
+    clearPendingUpdate();
+  }, [clearPendingUpdate, quantity]);
+
+  useEffect(() => {
+    return clearPendingUpdate;
+  }, [clearPendingUpdate]);
+
+  const handleQuantityChange = (nextQuantity: number) => {
+    if (!item.id || isSettingQuantity || !Number.isFinite(nextQuantity)) {
+      return;
+    }
+
+    const normalizedQuantity = Math.max(1, Math.round(nextQuantity));
+    setLocalQuantity(normalizedQuantity);
+    clearPendingUpdate();
+
+    if (normalizedQuantity === quantity) {
+      return;
+    }
+
+    updateTimeoutRef.current = setTimeout(() => {
+      onQuantitySet(item, normalizedQuantity);
+      updateTimeoutRef.current = null;
+    }, 250);
+  };
 
   return (
     <article className="flex flex-col gap-300 rounded-md border border-border-secondary bg-base p-300 md:flex-row md:items-center">
@@ -71,27 +116,49 @@ export function AccountProductListItemRow({
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-x-300 gap-y-100 text-sm">
-          <span className="text-fg-secondary">{quantity} ks</span>
+          {canChangeQuantity ? null : (
+            <span className="text-fg-secondary">{quantity} ks</span>
+          )}
           {price ? (
             <span className="font-semibold">{price.currentLabel}</span>
           ) : null}
         </div>
       </div>
 
-      <div className="flex flex-wrap justify-end gap-200">
-        {canIncrement ? (
-          <Button
-            disabled={!item.id || isIncrementing}
-            icon="token-icon-plus"
-            isLoading={isIncrementing}
-            onClick={() => onIncrement(item)}
+      <div className="flex flex-wrap items-center justify-end gap-200">
+        {canChangeQuantity ? (
+          <NumericInput
+            allowOverflow={false}
+            disabled={!item.id || isSettingQuantity}
+            min={1}
+            onChange={handleQuantityChange}
             size="sm"
-            theme="outlined"
-            variant="secondary"
+            step={1}
+            value={localQuantity}
+            className="w-20"
           >
-            Navýšit
-          </Button>
+            <NumericInput.Control>
+              <NumericInput.DecrementTrigger
+                disabled={isSettingQuantity || localQuantity <= 1}
+              />
+              <NumericInput.Input aria-label={`Množstvo pre ${productTitle}`} />
+              <NumericInput.IncrementTrigger disabled={isSettingQuantity} />
+            </NumericInput.Control>
+          </NumericInput>
         ) : null}
+        <Button
+          aria-label={`Odstrániť ${productTitle} zo zoznamu`}
+          disabled={!item.id || isDeleting}
+          icon="token-icon-trash"
+          isLoading={isDeleting}
+          loadingText="Odstraňujem"
+          onClick={() => onDelete(item)}
+          size="sm"
+          theme="borderless"
+          variant="danger"
+        >
+          Odstrániť
+        </Button>
         <Button
           disabled={!canAddToCart}
           icon="token-icon-cart"
@@ -104,7 +171,7 @@ export function AccountProductListItemRow({
           size="sm"
           variant="primary"
         >
-          Do košíku
+          Do košíka
         </Button>
       </div>
     </article>

@@ -2,7 +2,6 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
 import { Icon } from "@techsio/ui-kit/atoms/icon";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Header } from "@techsio/ui-kit/organisms/header";
@@ -129,14 +128,16 @@ export function HerbatikaHeader() {
             </span>
           </NextLink>
 
-          <Button
-            aria-label="Obľúbené"
+          <LinkButton
+            aria-label="Obľúbené zoznamy"
+            as={NextLink}
             className="text-3xl text-fg-secondary hover:text-primary"
+            href="/account/lists"
             icon="token-icon-heart"
+            iconSize="2xl"
             size="current"
             theme="unstyled"
-            type="button"
-            iconSize="2xl"
+            variant="secondary"
           />
 
           <HerbatikaAccountPopover />

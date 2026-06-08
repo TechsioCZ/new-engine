@@ -1,45 +1,20 @@
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import type {
+  Product,
+  ProductMediaFact,
+  ProductPriceState,
+  VolumeDiscountOption,
+} from "@/components/product-detail/product-detail.types";
 import {
   DEFAULT_CURRENCY_CODE,
   resolveSupportedCurrencyCode,
 } from "@/lib/storefront/currency";
-import type {
-  ProductMediaFact,
-  ProductPriceState,
-  Product,
-  VolumeDiscountOption,
-} from "@/components/product-detail/product-detail.types";
+import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import {
   asStorefrontNumber,
+  resolveAmountWithoutTax,
   resolveProductTopOffer,
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing";
-
-const resolveAmountWithoutTax = (params: {
-  amountWithTax: number | null;
-  amountWithoutTax: number | null;
-  vatRate: number | null;
-}): number | null => {
-  const { amountWithTax, amountWithoutTax, vatRate } = params;
-
-  if (
-    typeof amountWithoutTax === "number" &&
-    amountWithoutTax > 0 &&
-    (typeof amountWithTax !== "number" || amountWithoutTax <= amountWithTax)
-  ) {
-    return amountWithoutTax;
-  }
-
-  if (
-    typeof amountWithTax === "number" &&
-    typeof vatRate === "number" &&
-    vatRate > 0
-  ) {
-    return amountWithTax / (1 + vatRate / 100);
-  }
-
-  return null;
-};
 
 export const resolvePriceState = (
   product: Product,
@@ -75,7 +50,9 @@ export const resolvePriceState = (
       : null;
   const resolvedCalculatedAmountWithoutTax = resolveAmountWithoutTax({
     amountWithTax:
-      typeof resolvedCalculatedAmount === "number" ? resolvedCalculatedAmount : null,
+      typeof resolvedCalculatedAmount === "number"
+        ? resolvedCalculatedAmount
+        : null,
     amountWithoutTax: explicitCalculatedAmountWithoutTax,
     vatRate,
   });
@@ -96,7 +73,8 @@ export const resolvePriceState = (
   return {
     currentLabel: formatCurrencyAmount(resolvedCalculatedAmount, currencyCode),
     originalLabel:
-      normalizedOriginalAmount && normalizedOriginalAmount > resolvedCalculatedAmount
+      normalizedOriginalAmount &&
+      normalizedOriginalAmount > resolvedCalculatedAmount
         ? formatCurrencyAmount(normalizedOriginalAmount, currencyCode)
         : null,
     currentAmount: resolvedCalculatedAmount,
@@ -226,7 +204,10 @@ export const resolveVolumeDiscountOptions = (
       id: `quantity-tier-${option.quantity}`,
       title: `Kúpte ${option.quantity} a ušetrite`,
       quantity: option.quantity,
-      totalAmountLabel: formatCurrencyAmount(discountedTotalAmount, currencyCode),
+      totalAmountLabel: formatCurrencyAmount(
+        discountedTotalAmount,
+        currencyCode,
+      ),
       perUnitLabel: `${formatCurrencyAmount(discountedUnitAmount, currencyCode)} / kus`,
       oldTotalAmountLabel:
         discountedTotalAmount < originalTotalAmount

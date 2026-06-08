@@ -40,7 +40,7 @@ function ProductListPickerListRow({
         aria-label={
           row.checked
             ? `${row.title} už obsahuje produkt`
-            : `Přidat do seznamu ${row.title}`
+            : `Pridať do zoznamu ${row.title}`
         }
         checked={row.checked}
         disabled={isMutating}
@@ -54,7 +54,7 @@ function ProductListPickerListRow({
       <span className="text-fg-tertiary text-xs">{row.count}</span>
       {row.list?.id ? (
         <LinkButton
-          aria-label={`Otevřít seznam ${row.title}`}
+          aria-label={`Otvoriť zoznam ${row.title}`}
           as={NextLink}
           className="h-500 w-500 p-0"
           href={`/account/lists?list=${encodeURIComponent(row.list.id)}`}
@@ -67,7 +67,7 @@ function ProductListPickerListRow({
       ) : (
         <span className="h-500 w-500" />
       )}
-      {isPending ? <span className="sr-only">Přidávám produkt</span> : null}
+      {isPending ? <span className="sr-only">Pridávam produkt</span> : null}
     </div>
   );
 }
@@ -94,7 +94,7 @@ export function ProductListPickerPopover({
       size="sm"
     >
       <Popover.Trigger
-        aria-label="Přidat do seznamu"
+        aria-label="Pridať do zoznamu"
         className="h-750 min-h-750 w-750 min-w-750 p-0 text-fg-secondary hover:text-fg-primary sm:h-600 sm:min-h-600 sm:w-600 sm:min-w-600"
         icon="token-icon-heart"
         iconSize="2xl"
@@ -108,14 +108,14 @@ export function ProductListPickerPopover({
           <Popover.Arrow />
           <div className="border-border-secondary border-b px-350 py-300">
             <Popover.Title className="mb-0 text-sm">
-              Vyberte seznam
+              Vyberte zoznam
             </Popover.Title>
           </div>
 
           {!picker.authQuery.isAuthenticated ? (
             <div className="space-y-300 px-350 py-350">
               <p className="text-fg-secondary text-sm">
-                Pro ukládání produktů do seznamů se prosím přihlaste.
+                Na ukladanie produktov do zoznamov sa prosím prihláste.
               </p>
               <LinkButton
                 as={NextLink}
@@ -124,7 +124,7 @@ export function ProductListPickerPopover({
                 size="sm"
                 variant="primary"
               >
-                Přihlásit se
+                Prihlásiť sa
               </LinkButton>
             </div>
           ) : picker.listsQuery.isLoading || picker.detailsAreLoading ? (
@@ -159,10 +159,10 @@ export function ProductListPickerPopover({
                       className="sr-only"
                       htmlFor="product-list-picker-new-list-title"
                     >
-                      Název nového seznamu
+                      Názov nového zoznamu
                     </label>
                     <Input
-                      aria-label="Název nového seznamu"
+                      aria-label="Názov nového zoznamu"
                       autoFocus
                       disabled={picker.isMutating}
                       id="product-list-picker-new-list-title"
@@ -171,7 +171,7 @@ export function ProductListPickerPopover({
                         picker.setNewListTitle(event.target.value);
                         picker.setError(null);
                       }}
-                      placeholder="Název seznamu"
+                      placeholder="Názov zoznamu"
                       size="sm"
                       value={picker.newListTitle}
                     />
@@ -193,34 +193,27 @@ export function ProductListPickerPopover({
                     onClick={() => {
                       picker.setShowNewListInput(true);
                       picker.setError(null);
-                      picker.setMessage(null);
                     }}
                     size="sm"
                     theme="borderless"
                     variant="primary"
                   >
-                    Nový seznam
+                    Nový zoznam
                   </Button>
                 )}
               </div>
 
-              {picker.listsQuery.error || picker.detailsError || picker.error ? (
+              {picker.listsQuery.error ||
+              picker.detailsError ||
+              picker.error ? (
                 <div className="px-350 pb-300">
                   <StatusText showIcon status="error">
                     {picker.error ??
                       picker.listsQuery.error ??
                       resolveErrorMessage(
                         picker.detailsError,
-                        "Seznamy se nepodařilo načíst.",
+                        "Zoznamy sa nepodarilo načítať.",
                       )}
-                  </StatusText>
-                </div>
-              ) : null}
-
-              {picker.message ? (
-                <div className="px-350 pb-300" aria-live="polite">
-                  <StatusText showIcon status="success">
-                    {picker.message}
                   </StatusText>
                 </div>
               ) : null}
