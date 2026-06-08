@@ -412,3 +412,7 @@ export function useAccountProductLists() {
     statusError,
   };
 }
+
+export type AccountProductListsController = ReturnType<
+  typeof useAccountProductLists
+>;

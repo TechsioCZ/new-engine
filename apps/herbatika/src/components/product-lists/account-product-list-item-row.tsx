@@ -91,7 +91,7 @@ export function AccountProductListItemRow({
   };
 
   return (
-    <article className="flex flex-col gap-300 rounded-md border border-border-secondary bg-base p-300 md:flex-row md:items-center">
+    <article className="flex flex-col gap-300 border-b border-border-secondary bg-base p-300 md:flex-row md:items-center">
       <NextLink className="shrink-0" href={productHref}>
         <Image
           alt={productTitle}
@@ -125,7 +125,7 @@ export function AccountProductListItemRow({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-200">
+      <div className="flex flex-wrap items-center justify-end gap-300">
         {canChangeQuantity ? (
           <NumericInput
             allowOverflow={false}
@@ -147,19 +147,6 @@ export function AccountProductListItemRow({
           </NumericInput>
         ) : null}
         <Button
-          aria-label={`Odstrániť ${productTitle} zo zoznamu`}
-          disabled={!item.id || isDeleting}
-          icon="token-icon-trash"
-          isLoading={isDeleting}
-          loadingText="Odstraňujem"
-          onClick={() => onDelete(item)}
-          size="sm"
-          theme="borderless"
-          variant="danger"
-        >
-          Odstrániť
-        </Button>
-        <Button
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
@@ -173,6 +160,19 @@ export function AccountProductListItemRow({
         >
           Do košíka
         </Button>
+        <Button
+          aria-label={`Odstrániť ${productTitle} zo zoznamu`}
+          disabled={!item.id || isDeleting}
+          icon="token-icon-trash"
+          isLoading={isDeleting}
+          loadingText="Odstraňujem"
+          onClick={() => onDelete(item)}
+          size="current"
+          iconSize="md"
+          theme="unstyled"
+          variant="danger"
+          className="text-danger"
+        />
       </div>
     </article>
   );
