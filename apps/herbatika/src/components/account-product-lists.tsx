@@ -4,7 +4,6 @@ import { Button } from "@techsio/ui-kit/atoms/button";
 import { Input } from "@techsio/ui-kit/atoms/input";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Dialog } from "@techsio/ui-kit/molecules/dialog";
 import { Tabs } from "@techsio/ui-kit/molecules/tabs";
 import NextLink from "next/link";
@@ -35,9 +34,6 @@ export function AccountProductLists() {
   if (accountLists.listsQuery.error) {
     return (
       <AccountSurface className="space-y-400">
-        <StatusText showIcon status="error">
-          {accountLists.listsQuery.error}
-        </StatusText>
         <Button
           onClick={() => void accountLists.listsQuery.query.refetch()}
           variant="secondary"
@@ -58,14 +54,6 @@ export function AccountProductLists() {
           </p>
         </div>
       </header>
-
-      {accountLists.statusError &&
-      !accountLists.showCreateListDialog &&
-      !accountLists.deleteList ? (
-        <StatusText showIcon status="error">
-          {accountLists.statusError}
-        </StatusText>
-      ) : null}
 
       <Dialog
         actions={
@@ -134,11 +122,6 @@ export function AccountProductLists() {
               value={accountLists.newListTitle}
             />
           </div>
-          {accountLists.statusError ? (
-            <StatusText showIcon status="error">
-              {accountLists.statusError}
-            </StatusText>
-          ) : null}
         </form>
       </Dialog>
 
@@ -185,13 +168,7 @@ export function AccountProductLists() {
         }?`}
         hideCloseButton
         className="shadow-md"
-      >
-        {accountLists.statusError ? (
-          <StatusText showIcon status="error">
-            {accountLists.statusError}
-          </StatusText>
-        ) : null}
-      </Dialog>
+      />
 
       {accountLists.sortedLists.length === 0 ? (
         <div className="space-y-300 rounded-md border border-border-secondary bg-base p-400">
@@ -270,11 +247,8 @@ export function AccountProductLists() {
                     <Skeleton>
                       <Skeleton.Text noOfLines={5} />
                     </Skeleton>
-                  ) : accountLists.activeListQuery.error ? (
-                    <StatusText showIcon status="error">
-                      {accountLists.activeListQuery.error}
-                    </StatusText>
-                  ) : accountLists.activeItems.length === 0 ? (
+                  ) : accountLists.activeListQuery.error ? null : accountLists
+                      .activeItems.length === 0 ? (
                     <div className="rounded-md border border-border-secondary bg-base p-400">
                       <p className="text-fg-secondary text-sm">
                         Tento zoznam je zatiaľ prázdny.

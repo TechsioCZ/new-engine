@@ -5,11 +5,9 @@ import { Checkbox } from "@techsio/ui-kit/atoms/checkbox";
 import { Input } from "@techsio/ui-kit/atoms/input";
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Popover } from "@techsio/ui-kit/molecules/popover";
 import NextLink from "next/link";
 import type { Product } from "@/components/product-detail/product-detail.types";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
   type ProductListPickerRow,
   useProductListPicker,
@@ -195,6 +193,7 @@ export function ProductListPickerPopover({
                       picker.setError(null);
                     }}
                     size="sm"
+                    iconSize="md"
                     theme="borderless"
                     variant="primary"
                   >
@@ -202,21 +201,6 @@ export function ProductListPickerPopover({
                   </Button>
                 )}
               </div>
-
-              {picker.listsQuery.error ||
-              picker.detailsError ||
-              picker.error ? (
-                <div className="px-350 pb-300">
-                  <StatusText showIcon status="error">
-                    {picker.error ??
-                      picker.listsQuery.error ??
-                      resolveErrorMessage(
-                        picker.detailsError,
-                        "Zoznamy sa nepodarilo načítať.",
-                      )}
-                  </StatusText>
-                </div>
-              ) : null}
             </>
           )}
         </Popover.Content>
