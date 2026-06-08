@@ -1,7 +1,5 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
-import { normalizeProductListType } from "../../../modules/product-list/normalizers"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListItemRecord } from "../types"
 
@@ -22,16 +20,6 @@ export const updateProductListItemStep = createStep(
   async (input: UpdateProductListItemStepInput, { container }) => {
     const service =
       container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
-    const productList = await service.retrieveProductList(input.list_id)
-    const productListType = normalizeProductListType(productList.type)
-
-    if (productListType !== "custom" && input.data.quantity !== undefined) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Only custom product lists support quantity updates"
-      )
-    }
-
     const item = await service.updateProductListItemForList(
       input.item_id,
       input.data

@@ -12,6 +12,12 @@ const nullableTrimmedString = z.preprocess(
   z.string().trim().min(1).nullable().optional()
 )
 
+const optionalEmailString = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim().length === 0 ? undefined : value,
+  z.string().trim().email().optional()
+)
+
 const metadataSchema = z.record(z.string(), z.unknown()).nullable().optional()
 
 export const StoreGetProductListsSchema = z
@@ -54,7 +60,7 @@ export const StoreCreateProductListItemSchema = z
   .strict()
 
 export const StoreCreateFavoriteProductListItemSchema =
-  StoreCreateProductListItemSchema.omit({ quantity: true })
+  StoreCreateProductListItemSchema
 
 export const StoreChangeProductListItemQuantitySchema = z
   .object({
@@ -85,6 +91,19 @@ export const StoreUpdateProductListSchema = z
     title: optionalTrimmedString,
   })
   .strict()
+
+export const StoreCreateProductListCartSchema = z
+  .object({
+    country_code: optionalTrimmedString,
+    email: optionalEmailString,
+    region_id: optionalTrimmedString,
+    sales_channel_id: optionalTrimmedString,
+  })
+  .strict()
+  .refine((data) => data.region_id || data.country_code, {
+    message: "region_id or country_code is required",
+    path: ["region_id"],
+  })
 
 export const StoreDeleteProductListItemParamsSchema = z
   .object({
@@ -128,6 +147,9 @@ export type StoreUpdateProductListItemSchemaType = z.infer<
 >
 export type StoreUpdateProductListSchemaType = z.infer<
   typeof StoreUpdateProductListSchema
+>
+export type StoreCreateProductListCartSchemaType = z.infer<
+  typeof StoreCreateProductListCartSchema
 >
 export type StoreDeleteProductListItemParamsSchemaType = z.infer<
   typeof StoreDeleteProductListItemParamsSchema

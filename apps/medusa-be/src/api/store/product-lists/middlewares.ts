@@ -8,6 +8,7 @@ import {
   StoreCreateCustomProductListSchema,
   StoreCreateFavoriteProductListItemSchema,
   StoreCreateFavoriteProductListSchema,
+  StoreCreateProductListCartSchema,
   StoreCreateProductListItemSchema,
   StoreGetProductListsSchema,
   StoreUpdateProductListItemSchema,
@@ -70,6 +71,14 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreCreateCustomProductListSchema),
+    ],
+  },
+  {
+    methods: ["POST"],
+    matcher: "/store/product-lists/:id/cart",
+    middlewares: [
+      customerAuth,
+      validateAndTransformBody(StoreCreateProductListCartSchema),
     ],
   },
   {
