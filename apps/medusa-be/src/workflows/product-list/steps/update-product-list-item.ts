@@ -30,19 +30,19 @@ export const updateProductListItemStep = createStep(
       input.previous_item
     )
   },
-  async (item, { container }) => {
-    if (!item?.id) {
+  async (previousItem, { container }) => {
+    if (!previousItem?.id) {
       return
     }
 
     await container
       .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
       .updateProductListItems({
-        id: item.id,
-        metadata: item.metadata ?? null,
-        note: item.note ?? null,
-        quantity: item.quantity,
-        sort_order: item.sort_order,
+        id: previousItem.id,
+        metadata: previousItem.metadata ?? null,
+        note: previousItem.note ?? null,
+        quantity: previousItem.quantity,
+        sort_order: previousItem.sort_order,
       })
   }
 )

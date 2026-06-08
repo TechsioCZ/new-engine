@@ -18,7 +18,11 @@ export const createCartFromProductListWorkflow = createWorkflow(
 
     assertCustomerOwnsProductListStep(ownershipInput)
 
-    const cartItems = getProductListCartItemsStep(input.list_id)
+    const listId = transform(
+      { input },
+      ({ input: workflowInput }) => workflowInput.list_id
+    )
+    const cartItems = getProductListCartItemsStep(listId)
     const cartInput = transform(
       { cartItems, input },
       ({ cartItems: items, input: workflowInput }) => ({

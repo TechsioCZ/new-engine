@@ -60,7 +60,9 @@ export const StoreCreateProductListItemSchema = z
   .strict()
 
 export const StoreCreateFavoriteProductListItemSchema =
-  StoreCreateProductListItemSchema
+  StoreCreateProductListItemSchema.extend({
+    quantity: z.number().int().min(1).optional(),
+  })
 
 export const StoreChangeProductListItemQuantitySchema = z
   .object({
@@ -68,7 +70,7 @@ export const StoreChangeProductListItemQuantitySchema = z
       .number()
       .int()
       .refine((value) => value !== 0, {
-        message: "quantity must be a non-zero integer",
+        error: () => "quantity must be a non-zero integer",
       }),
   })
   .strict()
@@ -107,7 +109,7 @@ export const StoreCreateProductListCartSchema = z
   })
   .strict()
   .refine((data) => data.region_id || data.country_code, {
-    message: "region_id or country_code is required",
+    error: () => "region_id or country_code is required",
     path: ["region_id"],
   })
 

@@ -14,6 +14,7 @@ export const assertProductListItemBelongsToListStep = createStep(
       input.expected_list_id !== undefined &&
       input.item.list_id !== input.expected_list_id
     ) {
+      // Intentionally return NOT_FOUND to avoid leaking that an item exists on another list.
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Product list item ${input.item.id} was not found`

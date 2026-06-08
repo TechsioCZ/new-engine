@@ -6,7 +6,7 @@ import type {
   ICartModuleService,
   MedusaContainer,
 } from "@medusajs/framework/types"
-import { MedusaError, Modules } from "@medusajs/framework/utils"
+import { Modules } from "@medusajs/framework/utils"
 import { createCartFromProductListWorkflow } from "../../../../../workflows/product-list/workflows/create-cart-from-product-list"
 import {
   type StoreCreateProductListCartSchemaType,
@@ -18,13 +18,6 @@ const refetchCart = async (id: string, scope: MedusaContainer) => {
   const cart = await cartService.retrieveCart(id, {
     relations: ["items"],
   })
-
-  if (!cart) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      `Cart with id '${id}' not found`
-    )
-  }
 
   return cart
 }

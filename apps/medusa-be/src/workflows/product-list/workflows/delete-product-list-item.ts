@@ -62,7 +62,7 @@ export const deleteProductListItemWorkflow = createWorkflow(
           [PRODUCT_LIST_MODULE]: {
             product_list_item_id: workflowInput.item_id,
           },
-        }) as DeleteEntityInput
+        }) satisfies DeleteEntityInput
     )
 
     removeRemoteLinkStep(linkDeleteInput)
