@@ -74,6 +74,7 @@ export function useProductListPicker({
     [listsQuery.productLists],
   );
   const detailQueries = useProductListDetails(listIds, {
+    customerId,
     enabled: shouldFetchLists && listIds.length > 0,
   });
   const createCustomMutation = useCreateCustomProductList();

@@ -347,11 +347,15 @@ export const changeProductListItemQuantity = async (
 
 export const incrementProductListItem = async (
   input: IncrementProductListItemInput,
-) =>
-  changeProductListItemQuantity({
-    itemId: input.itemId,
-    quantity: normalizeQuantity(input.quantity) ?? 1,
-  });
+) => {
+  return storefrontSdk.client.fetch<ProductListItemResponse>(
+    `${PRODUCT_LISTS_PATH}/items/${input.itemId}/increment`,
+    {
+      method: "POST",
+      body: { quantity: normalizeQuantity(input.quantity) ?? 1 },
+    },
+  );
+};
 
 export const deleteProductListItem = async (
   input: DeleteProductListItemInput,

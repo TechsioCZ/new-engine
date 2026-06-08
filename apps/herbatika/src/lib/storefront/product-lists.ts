@@ -101,8 +101,15 @@ export const productListQueryKeys = {
         customerId: input?.customerId ?? null,
       },
     ] as const,
-  detail: (id?: string | null) =>
-    [...productListQueryKeys.all(), "detail", id ?? ""] as const,
+  detail: (id?: string | null, customerId?: string | null) =>
+    [
+      ...productListQueryKeys.all(),
+      "detail",
+      {
+        customerId: customerId ?? null,
+        id: id ?? "",
+      },
+    ] as const,
 };
 
 export function useProductLists(input: ProductListListInput = {}) {
@@ -129,11 +136,11 @@ export function useProductLists(input: ProductListListInput = {}) {
 
 export function useProductList(
   id?: string | null,
-  options?: { enabled?: boolean },
+  options?: { customerId?: string | null; enabled?: boolean },
 ) {
   const enabled = Boolean(id) && (options?.enabled ?? true);
   const query = useQuery({
-    queryKey: productListQueryKeys.detail(id),
+    queryKey: productListQueryKeys.detail(id, options?.customerId),
     queryFn: ({ signal }) => getProductList(id as string, signal),
     enabled,
   });
@@ -151,13 +158,13 @@ export function useProductList(
 
 export function useProductListDetails(
   ids: string[],
-  options?: { enabled?: boolean },
+  options?: { customerId?: string | null; enabled?: boolean },
 ) {
   const enabled = options?.enabled ?? true;
 
   return useQueries({
     queries: ids.map((id) => ({
-      queryKey: productListQueryKeys.detail(id),
+      queryKey: productListQueryKeys.detail(id, options?.customerId),
       queryFn: ({ signal }: { signal: AbortSignal }) =>
         getProductList(id, signal),
       enabled: enabled && Boolean(id),

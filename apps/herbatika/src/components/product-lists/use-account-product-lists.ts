@@ -74,6 +74,7 @@ export function useAccountProductLists() {
     [listsQuery.productLists],
   );
   const activeListQuery = useProductList(activeListId, {
+    customerId,
     enabled: authQuery.isAuthenticated && Boolean(activeListId),
   });
   const activeList =
