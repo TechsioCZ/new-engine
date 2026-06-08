@@ -70,7 +70,6 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
             name="product-list-title"
             onChange={(event) => {
               accountLists.setNewListTitle(event.target.value);
-              accountLists.setStatusError(null);
             }}
             placeholder="Názov zoznamu"
             size="sm"

@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { useAuth } from "@/lib/storefront/auth";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
@@ -52,6 +53,7 @@ export function useAccountProductLists() {
   const region = useRegionContext();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useAppToast();
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [showCreateListDialog, setShowCreateListDialog] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
@@ -64,7 +66,6 @@ export function useAccountProductLists() {
     null,
   );
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
-  const [statusError, setStatusError] = useState<string | null>(null);
 
   const customerId = authQuery.customer?.id ?? null;
   const listsQuery = useProductLists({
@@ -85,9 +86,6 @@ export function useAccountProductLists() {
     sortedLists.find((list) => list.id === activeListId) ??
     null;
   const activeListSupportsQuantity = Boolean(activeList);
-  const activeListCanMutate = activeList
-    ? !isFavoriteProductList(activeList)
-    : false;
   const deleteList = useMemo(
     () =>
       sortedLists.find(
@@ -181,13 +179,11 @@ export function useAccountProductLists() {
 
   const openCreateListDialog = () => {
     setShowCreateListDialog(true);
-    setStatusError(null);
   };
 
   const closeCreateListDialog = () => {
     setShowCreateListDialog(false);
     setNewListTitle("");
-    setStatusError(null);
   };
 
   const openDeleteListDialog = (listId: string) => {
@@ -197,12 +193,10 @@ export function useAccountProductLists() {
     }
 
     setDeleteListId(listId);
-    setStatusError(null);
   };
 
   const closeDeleteListDialog = () => {
     setDeleteListId(null);
-    setStatusError(null);
   };
 
   const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
@@ -210,11 +204,9 @@ export function useAccountProductLists() {
 
     const title = newListTitle.trim();
     if (!title) {
-      setStatusError("Zadajte názov zoznamu.");
+      toast.warning({ title: "Zadajte názov zoznamu." });
       return;
     }
-
-    setStatusError(null);
 
     try {
       const createdList = await createListMutation.mutateAsync({
@@ -229,9 +221,12 @@ export function useAccountProductLists() {
       setNewListTitle("");
       setShowCreateListDialog(false);
     } catch (error) {
-      setStatusError(
-        resolveErrorMessage(error, "Zoznam sa nepodarilo vytvoriť."),
-      );
+      toast.error({
+        title: resolveErrorMessage(
+          error,
+          "Zoznam sa nepodarilo vytvoriť.",
+        ),
+      });
     }
   };
 
@@ -245,7 +240,6 @@ export function useAccountProductLists() {
         : 1;
 
     setActiveProductId(product.id);
-    setStatusError(null);
 
     try {
       await addToCart.addProductToCart({
@@ -254,7 +248,9 @@ export function useAccountProductLists() {
         variantId: item.variant_id,
       });
     } catch (error) {
-      setStatusError(resolveErrorMessage(error, "Pridanie do košíka zlyhalo."));
+      toast.error({
+        title: resolveErrorMessage(error, "Pridanie do košíka zlyhalo."),
+      });
     } finally {
       setActiveProductId(null);
     }
@@ -266,11 +262,11 @@ export function useAccountProductLists() {
     }
 
     if (!region?.region_id && !region?.country_code) {
-      setStatusError("Región sa ešte načítava. Skúste to prosím o chvíľu.");
+      toast.warning({
+        title: "Región sa ešte načítava. Skúste to prosím o chvíľu.",
+      });
       return;
     }
-
-    setStatusError(null);
 
     if (activeListAvailabilitySummary.canAddWholeList) {
       try {
@@ -281,17 +277,19 @@ export function useAccountProductLists() {
           email: authQuery.customer?.email,
         });
       } catch (error) {
-        setStatusError(resolveListCartErrorMessage(error));
+        toast.error({ title: resolveListCartErrorMessage(error) });
       }
       return;
     }
+
+    const { purchasableItems } = activeListAvailabilitySummary;
 
     setIsAddingListToCart(true);
 
     try {
       let failedCount = 0;
 
-      for (const purchasableItem of activeListAvailabilitySummary.purchasableItems) {
+      for (const purchasableItem of purchasableItems) {
         const { item, product } = purchasableItem;
 
         setActiveProductId(product.id);
@@ -311,11 +309,15 @@ export function useAccountProductLists() {
         return;
       }
 
-      setStatusError(
-        failedCount === activeListAvailabilitySummary.purchasableItems.length
-          ? "Dostupné položky sa nepodarilo pridať do košíka."
-          : "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
-      );
+      if (failedCount === purchasableItems.length) {
+        toast.error({
+          title: "Dostupné položky sa nepodarilo pridať do košíka.",
+        });
+      } else {
+        toast.warning({
+          title: "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
+        });
+      }
     } finally {
       setActiveProductId(null);
       setIsAddingListToCart(false);
@@ -345,7 +347,6 @@ export function useAccountProductLists() {
     }
 
     setActiveQuantitySetItemId(item.id);
-    setStatusError(null);
 
     try {
       await updateItemMutation.mutateAsync({
@@ -353,9 +354,12 @@ export function useAccountProductLists() {
         quantity: nextQuantity,
       });
     } catch (error) {
-      setStatusError(
-        resolveErrorMessage(error, "Množstvo sa nepodarilo upraviť."),
-      );
+      toast.error({
+        title: resolveErrorMessage(
+          error,
+          "Množstvo sa nepodarilo upraviť.",
+        ),
+      });
     } finally {
       setActiveQuantitySetItemId(null);
     }
@@ -375,8 +379,6 @@ export function useAccountProductLists() {
       sortedLists.find((list) => list.id !== deletedListId) ??
       null;
 
-    setStatusError(null);
-
     try {
       await deleteListMutation.mutateAsync({ listId: deletedListId });
 
@@ -391,9 +393,9 @@ export function useAccountProductLists() {
 
       setDeleteListId(null);
     } catch (error) {
-      setStatusError(
-        resolveErrorMessage(error, "Zoznam sa nepodarilo zmazať."),
-      );
+      toast.error({
+        title: resolveErrorMessage(error, "Zoznam sa nepodarilo zmazať."),
+      });
     }
   };
 
@@ -403,7 +405,6 @@ export function useAccountProductLists() {
     }
 
     setActiveDeleteItemId(item.id);
-    setStatusError(null);
 
     try {
       await deleteItemMutation.mutateAsync({
@@ -411,12 +412,12 @@ export function useAccountProductLists() {
         itemId: item.id,
       });
     } catch (error) {
-      setStatusError(
-        resolveErrorMessage(
+      toast.error({
+        title: resolveErrorMessage(
           error,
           "Produkt sa nepodarilo odstrániť zo zoznamu.",
         ),
-      );
+      });
     } finally {
       setActiveDeleteItemId(null);
     }
@@ -429,7 +430,6 @@ export function useAccountProductLists() {
     activeListAvailabilitySummary,
     activeListCanCreateCart,
     activeListPriceSummary,
-    activeListCanMutate,
     activeListId,
     activeListSupportsQuantity,
     activeListQuery,
@@ -440,7 +440,6 @@ export function useAccountProductLists() {
     createListCartMutation,
     createListMutation,
     deleteList,
-    deleteListId,
     deleteListMutation,
     handleAddToCart,
     handleAddListToCart,
@@ -456,11 +455,8 @@ export function useAccountProductLists() {
     productsById,
     selectList,
     setNewListTitle,
-    setShowCreateListDialog,
-    setStatusError,
     showCreateListDialog,
     sortedLists,
-    statusError,
   };
 }
 

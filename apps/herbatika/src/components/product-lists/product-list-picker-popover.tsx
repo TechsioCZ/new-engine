@@ -167,7 +167,6 @@ export function ProductListPickerPopover({
                       name="product-list-title"
                       onChange={(event) => {
                         picker.setNewListTitle(event.target.value);
-                        picker.setError(null);
                       }}
                       placeholder="Názov zoznamu"
                       size="sm"
@@ -190,7 +189,6 @@ export function ProductListPickerPopover({
                     icon="token-icon-plus"
                     onClick={() => {
                       picker.setShowNewListInput(true);
-                      picker.setError(null);
                     }}
                     size="sm"
                     iconSize="md"

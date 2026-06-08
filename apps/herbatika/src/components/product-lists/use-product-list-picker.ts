@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { Product } from "@/components/product-detail/product-detail.types";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { useAuth } from "@/lib/storefront/auth";
 import { resolveErrorMessage } from "@/lib/storefront/error-utils";
 import {
@@ -56,11 +57,11 @@ export function useProductListPicker({
 }: UseProductListPickerInput) {
   const pathname = usePathname();
   const authQuery = useAuth();
+  const toast = useAppToast();
   const [isOpen, setIsOpen] = useState(false);
   const [showNewListInput, setShowNewListInput] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [activeListKey, setActiveListKey] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const customerId = authQuery.customer?.id ?? null;
   const shouldFetchLists = isOpen && authQuery.isAuthenticated;
@@ -131,7 +132,6 @@ export function useProductListPicker({
     setShowNewListInput(false);
     setNewListTitle("");
     setActiveListKey(null);
-    setError(null);
   }, [isOpen]);
 
   const addProductToList = async (row: ProductListPickerRow) => {
@@ -139,8 +139,11 @@ export function useProductListPicker({
       return;
     }
 
+    if (!row.isFavorite && !row.list?.id) {
+      return;
+    }
+
     setActiveListKey(row.key);
-    setError(null);
 
     try {
       if (row.isFavorite) {
@@ -158,9 +161,12 @@ export function useProductListPicker({
         });
       }
     } catch (mutationError) {
-      setError(
-        resolveErrorMessage(mutationError, "Produkt sa nepodarilo pridať."),
-      );
+      toast.error({
+        title: resolveErrorMessage(
+          mutationError,
+          "Produkt sa nepodarilo pridať.",
+        ),
+      });
     } finally {
       setActiveListKey(null);
     }
@@ -171,12 +177,11 @@ export function useProductListPicker({
 
     const title = newListTitle.trim();
     if (!title) {
-      setError("Zadajte názov zoznamu.");
+      toast.warning({ title: "Zadajte názov zoznamu." });
       return;
     }
 
     setActiveListKey("new-list");
-    setError(null);
 
     try {
       const createdList = await createCustomMutation.mutateAsync({
@@ -198,9 +203,12 @@ export function useProductListPicker({
       setNewListTitle("");
       setShowNewListInput(false);
     } catch (mutationError) {
-      setError(
-        resolveErrorMessage(mutationError, "Zoznam sa nepodarilo vytvoriť."),
-      );
+      toast.error({
+        title: resolveErrorMessage(
+          mutationError,
+          "Zoznam sa nepodarilo vytvoriť.",
+        ),
+      });
     } finally {
       setActiveListKey(null);
     }
@@ -212,8 +220,6 @@ export function useProductListPicker({
     authQuery,
     detailsAreLoading:
       listIds.length > 0 && detailQueries.some((query) => query.isLoading),
-    detailsError: detailQueries.find((query) => query.error)?.error,
-    error,
     handleCreateList,
     isMutating,
     isOpen,
@@ -221,7 +227,6 @@ export function useProductListPicker({
     loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
     newListTitle,
     rows,
-    setError,
     setIsOpen,
     setNewListTitle,
     setShowNewListInput,
