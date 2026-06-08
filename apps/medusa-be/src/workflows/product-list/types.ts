@@ -59,6 +59,12 @@ export type ChangeProductListItemQuantityWorkflowInput = {
   quantity: number
 }
 
+export type IncrementProductListItemWorkflowInput = {
+  customer_id: string
+  item_id: string
+  quantity: number
+}
+
 export type UpdateProductListItemWorkflowInput = {
   customer_id: string
   item_id: string

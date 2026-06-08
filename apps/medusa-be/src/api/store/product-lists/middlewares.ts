@@ -11,6 +11,7 @@ import {
   StoreCreateProductListCartSchema,
   StoreCreateProductListItemSchema,
   StoreGetProductListsSchema,
+  StoreIncrementProductListItemQuantitySchema,
   StoreUpdateProductListItemSchema,
   StoreUpdateProductListSchema,
 } from "./validators"
@@ -113,6 +114,14 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreChangeProductListItemQuantitySchema),
+    ],
+  },
+  {
+    methods: ["POST"],
+    matcher: "/store/product-lists/items/:id/increment",
+    middlewares: [
+      customerAuth,
+      validateAndTransformBody(StoreIncrementProductListItemQuantitySchema),
     ],
   },
 ]

@@ -73,6 +73,12 @@ export const StoreChangeProductListItemQuantitySchema = z
   })
   .strict()
 
+export const StoreIncrementProductListItemQuantitySchema = z
+  .object({
+    quantity: z.number().int().min(1),
+  })
+  .strict()
+
 export const StoreUpdateProductListItemSchema = z
   .object({
     metadata: metadataSchema,
@@ -141,6 +147,9 @@ export type StoreCreateFavoriteProductListItemSchemaType = z.infer<
 >
 export type StoreChangeProductListItemQuantitySchemaType = z.infer<
   typeof StoreChangeProductListItemQuantitySchema
+>
+export type StoreIncrementProductListItemQuantitySchemaType = z.infer<
+  typeof StoreIncrementProductListItemQuantitySchema
 >
 export type StoreUpdateProductListItemSchemaType = z.infer<
   typeof StoreUpdateProductListItemSchema
