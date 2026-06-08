@@ -27,6 +27,8 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
 import {
   buildProductMap,
+  resolveProductListAvailabilitySummary,
+  resolveProductListItemQuantity,
   resolveProductListPriceSummary,
   sortProductLists,
   uniqueProductIds,
@@ -54,6 +56,7 @@ export function useAccountProductLists() {
   const [showCreateListDialog, setShowCreateListDialog] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
+  const [isAddingListToCart, setIsAddingListToCart] = useState(false);
   const [activeQuantitySetItemId, setActiveQuantitySetItemId] = useState<
     string | null
   >(null);
@@ -121,6 +124,14 @@ export function useAccountProductLists() {
       }),
     [activeItems, productsById, regionCurrencyCode],
   );
+  const activeListAvailabilitySummary = useMemo(
+    () =>
+      resolveProductListAvailabilitySummary({
+        items: activeItems,
+        productsById,
+      }),
+    [activeItems, productsById],
+  );
   const createListMutation = useCreateCustomProductList();
   const createListCartMutation = useCreateProductListCart();
   const deleteListMutation = useDeleteProductList();
@@ -132,7 +143,7 @@ export function useAccountProductLists() {
   });
   const activeListCanCreateCart = Boolean(
     activeList?.id &&
-      activeItems.length > 0 &&
+      activeListAvailabilitySummary.canAddAnyToCart &&
       (region?.region_id || region?.country_code),
   );
 
@@ -250,7 +261,7 @@ export function useAccountProductLists() {
   };
 
   const handleAddListToCart = async () => {
-    if (!activeList?.id) {
+    if (!activeList?.id || !activeListAvailabilitySummary.canAddAnyToCart) {
       return;
     }
 
@@ -261,15 +272,53 @@ export function useAccountProductLists() {
 
     setStatusError(null);
 
+    if (activeListAvailabilitySummary.canAddWholeList) {
+      try {
+        await createListCartMutation.mutateAsync({
+          listId: activeList.id,
+          regionId: region.region_id,
+          countryCode: region.country_code,
+          email: authQuery.customer?.email,
+        });
+      } catch (error) {
+        setStatusError(resolveListCartErrorMessage(error));
+      }
+      return;
+    }
+
+    setIsAddingListToCart(true);
+
     try {
-      await createListCartMutation.mutateAsync({
-        listId: activeList.id,
-        regionId: region.region_id,
-        countryCode: region.country_code,
-        email: authQuery.customer?.email,
-      });
-    } catch (error) {
-      setStatusError(resolveListCartErrorMessage(error));
+      let failedCount = 0;
+
+      for (const purchasableItem of activeListAvailabilitySummary.purchasableItems) {
+        const { item, product } = purchasableItem;
+
+        setActiveProductId(product.id);
+
+        try {
+          await addToCart.addProductToCart({
+            product,
+            quantity: resolveProductListItemQuantity(item),
+            variantId: item.variant_id,
+          });
+        } catch {
+          failedCount += 1;
+        }
+      }
+
+      if (failedCount === 0) {
+        return;
+      }
+
+      setStatusError(
+        failedCount === activeListAvailabilitySummary.purchasableItems.length
+          ? "Dostupné položky sa nepodarilo pridať do košíka."
+          : "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
+      );
+    } finally {
+      setActiveProductId(null);
+      setIsAddingListToCart(false);
     }
   };
 
@@ -377,6 +426,7 @@ export function useAccountProductLists() {
     activeDeleteItemId,
     activeItems,
     activeList,
+    activeListAvailabilitySummary,
     activeListCanCreateCart,
     activeListPriceSummary,
     activeListCanMutate,
@@ -398,6 +448,7 @@ export function useAccountProductLists() {
     handleDeleteList,
     handleDeleteItem,
     handleQuantitySet,
+    isAddingListToCart,
     listsQuery,
     newListTitle,
     openCreateListDialog,

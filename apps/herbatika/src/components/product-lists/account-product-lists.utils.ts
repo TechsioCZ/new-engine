@@ -29,6 +29,21 @@ export type ProductListItemAvailability = {
   canAddToCart: boolean;
 };
 
+export type ProductListAvailableItem = {
+  item: StoreProductListItem;
+  product: HttpTypes.StoreProduct;
+};
+
+export type ProductListAvailabilitySummary = {
+  addToCartLabel: string;
+  canAddAnyToCart: boolean;
+  canAddWholeList: boolean;
+  purchasableItems: ProductListAvailableItem[];
+  skippedCount: number;
+  statusLabel: string | null;
+  statusVariant: "danger" | "warning";
+};
+
 export const sortProductLists = (lists: StoreProductList[]) => {
   return [...lists].sort((first, second) => {
     if (isFavoriteProductList(first)) {
@@ -152,6 +167,47 @@ export const resolveProductListItemAvailability = (
     badgeLabel: null,
     badgeVariant: "warning",
     canAddToCart: true,
+  };
+};
+
+export const resolveProductListAvailabilitySummary = (params: {
+  items: StoreProductListItem[];
+  productsById: Map<string, HttpTypes.StoreProduct>;
+}): ProductListAvailabilitySummary => {
+  const purchasableItems: ProductListAvailableItem[] = [];
+  let skippedCount = 0;
+
+  for (const item of params.items) {
+    const product = resolveProductListItemProduct(item, params.productsById);
+    const availability = resolveProductListItemAvailability(item, product);
+
+    if (availability.canAddToCart && product) {
+      purchasableItems.push({ item, product });
+    } else {
+      skippedCount += 1;
+    }
+  }
+
+  const totalCount = params.items.length;
+  const purchasableCount = purchasableItems.length;
+  const canAddAnyToCart = purchasableCount > 0;
+  const canAddWholeList = totalCount > 0 && skippedCount === 0;
+
+  return {
+    addToCartLabel: canAddAnyToCart
+      ? canAddWholeList
+        ? "Pridať všetko do košíka"
+        : "Pridať dostupné do košíka"
+      : "Žiadne dostupné položky",
+    canAddAnyToCart,
+    canAddWholeList,
+    purchasableItems,
+    skippedCount,
+    statusLabel:
+      skippedCount > 0
+        ? `Momentálne nedostupné položky: ${skippedCount}`
+        : null,
+    statusVariant: canAddAnyToCart ? "warning" : "danger",
   };
 };
 

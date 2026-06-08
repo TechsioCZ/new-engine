@@ -32,6 +32,11 @@ function ProductListSummary({
 }: {
   accountLists: AccountProductListsController;
 }) {
+  const availabilitySummary = accountLists.activeListAvailabilitySummary;
+  const isAddingListToCart =
+    accountLists.createListCartMutation.isPending ||
+    accountLists.isAddingListToCart;
+
   return (
     <div className="pt-300">
       <div className="ml-auto w-full space-y-200 sm:max-w-sm">
@@ -51,19 +56,16 @@ function ProductListSummary({
         </div>
         <Button
           block
-          disabled={
-            !accountLists.activeListCanCreateCart ||
-            accountLists.createListCartMutation.isPending
-          }
+          disabled={!accountLists.activeListCanCreateCart || isAddingListToCart}
           icon="token-icon-cart"
-          isLoading={accountLists.createListCartMutation.isPending}
+          isLoading={isAddingListToCart}
           loadingText="Pridávam"
           onClick={() => void accountLists.handleAddListToCart()}
           size="sm"
           type="button"
           variant="primary"
         >
-          Pridať všetko do košíka
+          {availabilitySummary.addToCartLabel}
         </Button>
       </div>
     </div>
