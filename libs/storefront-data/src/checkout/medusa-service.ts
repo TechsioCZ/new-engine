@@ -8,18 +8,20 @@ export type MedusaPaymentSessionDataInput = {
   providerId: string
 }
 
+type MaybePromise<T> = T | Promise<T>
+
 export type MedusaCheckoutServiceConfig = {
   cartFields?: string
   buildPaymentSessionData?: (
     input: MedusaPaymentSessionDataInput
-  ) => Record<string, unknown> | undefined
+  ) => MaybePromise<Record<string, unknown> | undefined>
 }
 
 const buildCartSelectParams = (
   fields?: string
 ): HttpTypes.SelectParams | undefined => {
   if (!fields) {
-    return undefined
+    return
   }
 
   return { fields }
@@ -75,17 +77,18 @@ export function createMedusaCheckoutService(
       input: { cart_id: string; data?: Record<string, unknown> },
       signal?: AbortSignal
     ): Promise<HttpTypes.StoreCartShippingOption> {
-      const response = await sdk.client.fetch<HttpTypes.StoreShippingOptionResponse>(
-        `/store/shipping-options/${optionId}/calculate`,
-        {
-          method: "POST",
-          body: {
-            cart_id: input.cart_id,
-            data: input.data,
-          },
-          signal,
-        }
-      )
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreShippingOptionResponse>(
+          `/store/shipping-options/${optionId}/calculate`,
+          {
+            method: "POST",
+            body: {
+              cart_id: input.cart_id,
+              data: input.data,
+            },
+            signal,
+          }
+        )
       return response.shipping_option
     },
 
@@ -144,7 +147,7 @@ export function createMedusaCheckoutService(
         throw new Error("Failed to load cart for payment")
       }
 
-      const paymentSessionData = config?.buildPaymentSessionData?.({
+      const paymentSessionData = await config?.buildPaymentSessionData?.({
         cart: resolvedCart,
         cartId,
         providerId,
