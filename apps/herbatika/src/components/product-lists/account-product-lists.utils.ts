@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types";
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
 import {
   getProductListTitle,
   isFavoriteProductList,
@@ -20,6 +21,12 @@ const UNAVAILABLE_PRICE_LABEL = "Nie je dostupné";
 export type ProductListPriceSummary = {
   totalWithTaxLabel: string;
   totalWithoutTaxLabel: string;
+};
+
+export type ProductListItemAvailability = {
+  badgeLabel: string | null;
+  badgeVariant: "danger" | "warning";
+  canAddToCart: boolean;
 };
 
 export const sortProductLists = (lists: StoreProductList[]) => {
@@ -67,7 +74,7 @@ export const buildProductMap = (
   return map;
 };
 
-const resolveProductListItemQuantity = (item: StoreProductListItem) => {
+export const resolveProductListItemQuantity = (item: StoreProductListItem) => {
   return typeof item.quantity === "number" && item.quantity > 0
     ? Math.floor(item.quantity)
     : 1;
@@ -96,6 +103,56 @@ const resolveProductListItemVariant = (
     variants[0] ??
     null
   );
+};
+
+export const resolveProductListItemAvailability = (
+  item: StoreProductListItem,
+  product: HttpTypes.StoreProduct | null,
+): ProductListItemAvailability => {
+  if (!product) {
+    return {
+      badgeLabel: "Produkt nie je dostupný",
+      badgeVariant: "danger",
+      canAddToCart: false,
+    };
+  }
+
+  const quantity = resolveProductListItemQuantity(item);
+  const variant = resolveProductListItemVariant(item, product);
+  const inventory = resolveVariantInventoryState(variant, quantity);
+
+  if (!inventory.hasVariant || !inventory.hasPrice) {
+    return {
+      badgeLabel: "Produkt nie je dostupný",
+      badgeVariant: "danger",
+      canAddToCart: false,
+    };
+  }
+
+  if (!inventory.isInStock) {
+    return {
+      badgeLabel: "Momentálne nie je skladom",
+      badgeVariant: "warning",
+      canAddToCart: false,
+    };
+  }
+
+  if (!inventory.isPurchasable) {
+    return {
+      badgeLabel:
+        inventory.availableQuantity === null
+          ? "Momentálne nie je skladom"
+          : `Dostupné len ${inventory.availableQuantity} ks`,
+      badgeVariant: "warning",
+      canAddToCart: false,
+    };
+  }
+
+  return {
+    badgeLabel: null,
+    badgeVariant: "warning",
+    canAddToCart: true,
+  };
 };
 
 const resolveProductListItemPrice = (params: {

@@ -1,15 +1,20 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
+import { Badge } from "@techsio/ui-kit/atoms/badge";
 import { Button } from "@techsio/ui-kit/atoms/button";
 import { Link } from "@techsio/ui-kit/atoms/link";
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
 import Image from "next/image";
 import NextLink from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants";
 import { resolvePriceState } from "@/components/product-card/product-card.pricing";
 import type { StoreProductListItem } from "@/lib/storefront/product-lists";
+import {
+  resolveProductListItemAvailability,
+  resolveProductListItemQuantity,
+} from "./account-product-lists.utils";
 
 type AccountProductListItemRowProps = {
   canChangeQuantity: boolean;
@@ -24,12 +29,6 @@ type AccountProductListItemRowProps = {
   onDelete: (item: StoreProductListItem) => void;
   onQuantitySet: (item: StoreProductListItem, quantity: number) => void;
   product: HttpTypes.StoreProduct | null;
-};
-
-const resolveQuantity = (item: StoreProductListItem) => {
-  return typeof item.quantity === "number" && item.quantity > 0
-    ? Math.floor(item.quantity)
-    : 1;
 };
 
 export function AccountProductListItemRow({
@@ -48,8 +47,10 @@ export function AccountProductListItemRow({
   const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#";
   const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE;
   const price = itemProduct ? resolvePriceState(itemProduct) : null;
-  const quantity = resolveQuantity(item);
-  const canAddToCart = Boolean(itemProduct);
+  const quantity = resolveProductListItemQuantity(item);
+  const availability = resolveProductListItemAvailability(item, itemProduct);
+  const canAddToCart = availability.canAddToCart;
+  const availabilityBadgeId = useId();
   const [localQuantity, setLocalQuantity] = useState(quantity);
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -122,6 +123,15 @@ export function AccountProductListItemRow({
           {price ? (
             <span className="font-semibold">{price.currentLabel}</span>
           ) : null}
+          {availability.badgeLabel ? (
+            <Badge
+              id={availabilityBadgeId}
+              size="sm"
+              variant={availability.badgeVariant}
+            >
+              {availability.badgeLabel}
+            </Badge>
+          ) : null}
         </div>
       </div>
 
@@ -147,6 +157,9 @@ export function AccountProductListItemRow({
           </NumericInput>
         ) : null}
         <Button
+          aria-describedby={
+            availability.badgeLabel ? availabilityBadgeId : undefined
+          }
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
