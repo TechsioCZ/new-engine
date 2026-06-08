@@ -14,6 +14,19 @@ export const ORDER_BUSINESS_STATUS_IDS = [
 
 export type OrderBusinessStatusId = (typeof ORDER_BUSINESS_STATUS_IDS)[number]
 
+export const ORDER_BUSINESS_STATUS_GROUP_IDS = ["action_required"] as const
+
+export type OrderBusinessStatusGroupId =
+  (typeof ORDER_BUSINESS_STATUS_GROUP_IDS)[number]
+
+export const ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS = [
+  "new",
+  "awaiting_payment",
+  "paid",
+  "processing",
+  "waiting_for_supplier",
+] as const satisfies readonly OrderBusinessStatusId[]
+
 export const MANUAL_ORDER_BUSINESS_STATUS_IDS = [
   "processing",
   "waiting_for_supplier",
@@ -110,6 +123,13 @@ const AWAITING_PAYMENT_STATUSES = new Set([
 ])
 
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
+const PENDING_UNPAID_PAYMENT_STATUSES = new Set([
+  "authorized",
+  "awaiting",
+  "not_paid",
+  "partially_authorized",
+  "requires_action",
+])
 
 const SHIPPED_FULFILLMENT_STATUSES = new Set([
   "partially_delivered",
@@ -142,6 +162,14 @@ export function isOrderBusinessStatusId(
   value: unknown
 ): value is OrderBusinessStatusId {
   return isIncluded(ORDER_BUSINESS_STATUS_IDS, value)
+}
+
+export function isActionRequiredOrderBusinessStatusId(
+  value: OrderBusinessStatusId
+) {
+  return (
+    ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS as readonly OrderBusinessStatusId[]
+  ).includes(value)
 }
 
 export function isManualOrderBusinessStatusId(
@@ -200,6 +228,16 @@ export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
     order.payment_collections?.find((collection) => collection.status)
       ?.status ??
     (order.payment_collections?.length === 0 ? "not_paid" : undefined)
+  )
+}
+
+export function isPendingUnpaidOrder(order: OrderBusinessStatusInput) {
+  if (order.status !== "pending") {
+    return false
+  }
+
+  return PENDING_UNPAID_PAYMENT_STATUSES.has(
+    getOrderBusinessPaymentStatus(order) ?? ""
   )
 }
 

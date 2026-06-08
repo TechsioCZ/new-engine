@@ -3,8 +3,10 @@ import {
   createWorkflow,
   transform,
   WorkflowResponse,
+  when,
 } from "@medusajs/framework/workflows-sdk"
 import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
+// biome-ignore lint/performance/noNamespaceImport: Existing seed workflow groups many step helpers through this barrel.
 import * as Steps from "../steps"
 
 const SeedDatabaseWorkflowId = "seed-database-workflow"
@@ -280,21 +282,26 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
 
   const syncPriceListsResult = Steps.syncPriceListsStep(syncPriceListsInput)
 
-  const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput = transform(
-    {
-      createProductsResult,
-      createTaxRegionsResult,
-      input,
-    },
-    (data) => ({
-      enabled: Boolean(data.input.taxRates),
-      countries: data.input.taxRates?.countries,
-      config: data.input.taxRates?.config,
-      productIds: data.input.taxRates ? data.createProductsResult.result : [],
-    })
-  )
+  const createTaxRatesResult = when(
+    { input },
+    ({ input: workflowInput }) => !!workflowInput.taxRates
+  ).then(() => {
+    const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput = transform(
+      {
+        createProductsResult,
+        createTaxRegionsResult,
+        input,
+      },
+      (data) => ({
+        enabled: true,
+        countries: data.input.taxRates?.countries,
+        config: data.input.taxRates?.config,
+        productIds: data.createProductsResult.result,
+      })
+    )
 
-  const createTaxRatesResult = Steps.createTaxRatesStep(createTaxRatesStepInput)
+    return Steps.createTaxRatesStep(createTaxRatesStepInput)
+  })
 
   const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
     transform(

@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("@medusajs/framework/utils", () => ({
   ContainerRegistrationKeys: {
+    LOGGER: "logger",
     QUERY: "query",
   },
   Modules: {
+    CACHING: "caching",
     ORDER: "order",
   },
 }))
@@ -22,6 +24,8 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     const { POST } = await import(
       "../../../../../../../src/api/admin/order-business-statuses/bulk/route"
     )
+    const clearCache = vi.fn().mockResolvedValue(undefined)
+    const warn = vi.fn()
     const updateOrders = vi.fn().mockResolvedValue(undefined)
     const graph = vi
       .fn()
@@ -51,9 +55,25 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       })
     const req = {
       scope: {
-        resolve: vi.fn((key) =>
-          key === "query" ? { graph } : { updateOrders }
-        ),
+        resolve: vi.fn((key) => {
+          if (key === "query") {
+            return { graph }
+          }
+
+          if (key === "order") {
+            return { updateOrders }
+          }
+
+          if (key === "caching") {
+            return { clear: clearCache }
+          }
+
+          if (key === "logger") {
+            return { warn }
+          }
+
+          throw new Error(`Unexpected container key: ${String(key)}`)
+        }),
       },
       validatedBody: {
         order_ids: ["order_1", "order_2", "order_missing"],
@@ -67,6 +87,9 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     expect(updateOrders).toHaveBeenCalledTimes(1)
     expect(updateOrders).toHaveBeenCalledWith("order_1", {
       metadata: { order_business_status_manual: "processing" },
+    })
+    expect(clearCache).toHaveBeenCalledWith({
+      tags: ["order-expedition:summary"],
     })
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -92,6 +115,8 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     const { POST } = await import(
       "../../../../../../../src/api/admin/order-business-statuses/bulk/route"
     )
+    const clearCache = vi.fn().mockResolvedValue(undefined)
+    const warn = vi.fn()
     const updateOrders = vi.fn((id: string) =>
       id === "order_2"
         ? Promise.reject(new Error("database conflict"))
@@ -125,9 +150,25 @@ describe("POST /admin/order-business-statuses/bulk", () => {
       })
     const req = {
       scope: {
-        resolve: vi.fn((key) =>
-          key === "query" ? { graph } : { updateOrders }
-        ),
+        resolve: vi.fn((key) => {
+          if (key === "query") {
+            return { graph }
+          }
+
+          if (key === "order") {
+            return { updateOrders }
+          }
+
+          if (key === "caching") {
+            return { clear: clearCache }
+          }
+
+          if (key === "logger") {
+            return { warn }
+          }
+
+          throw new Error(`Unexpected container key: ${String(key)}`)
+        }),
       },
       validatedBody: {
         order_ids: ["order_1", "order_2"],
@@ -139,6 +180,9 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     await POST(req, res)
 
     expect(updateOrders).toHaveBeenCalledTimes(2)
+    expect(clearCache).toHaveBeenCalledWith({
+      tags: ["order-expedition:summary"],
+    })
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         count: 1,

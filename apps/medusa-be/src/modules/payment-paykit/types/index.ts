@@ -50,6 +50,7 @@ export type PaykitPayment = Partial<
   checkout_url?: string | null
   gw_url?: string | null
   url?: string | null
+  payment_intent_id?: string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -106,6 +107,41 @@ export type PaykitPaymentClient = {
   handleWebhook?: (
     payload: ProviderWebhookPayload["payload"]
   ) => Promise<PaykitWebhookEvent | PaykitWebhookEvent[] | undefined>
+  stripeCheckoutSessions?: {
+    retrieve: (
+      id: string,
+      options?: Record<string, unknown>
+    ) => Promise<PaykitStripeCheckoutSession | null>
+    expire?: (id: string) => Promise<PaykitStripeCheckoutSession | null>
+  }
+}
+
+export type PaykitStripeCheckoutSession = {
+  id: string
+  amount_total?: number | null
+  amount_subtotal?: number | null
+  currency?: string | null
+  customer?: string | { id?: string | null } | null
+  customer_email?: string | null
+  metadata?: Record<string, string> | null
+  payment_intent?: string | PaykitStripePaymentIntent | null
+  payment_status?: string | null
+  status?: string | null
+  url?: string | null
+}
+
+export type PaykitStripePaymentIntent = {
+  id?: string | null
+  amount?: number | null
+  currency?: string | null
+  customer?: string | { id?: string | null } | null
+  metadata?: Record<string, string> | null
+  next_action?: {
+    redirect_to_url?: {
+      url?: string | null
+    } | null
+  } | null
+  status?: string | null
 }
 
 export type PaykitClientFactory = () =>

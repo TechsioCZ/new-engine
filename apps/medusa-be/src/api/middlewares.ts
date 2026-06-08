@@ -23,6 +23,7 @@ import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeProducersRoutesMiddlewares } from "./store/producers/middlewares"
+import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 
 const originalErrorHandler = errorHandler()
 
@@ -60,6 +61,7 @@ export default defineMiddlewares({
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
+    ...storeProductListsRoutesMiddlewares,
     ...storeProducersRoutesMiddlewares,
   ],
 })
