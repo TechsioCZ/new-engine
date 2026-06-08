@@ -12,6 +12,8 @@ import {
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { assertCustomerOwnsProductListStep } from "../steps/assert-customer-owns-product-list"
 import { deleteProductListStep } from "../steps/delete-product-list"
+import { deleteProductListItemsStep } from "../steps/delete-product-list-items"
+import { listProductListItemIdsStep } from "../steps/list-product-list-item-ids"
 import { retrieveProductListStep } from "../steps/retrieve-product-list"
 import type { DeleteProductListWorkflowInput } from "../types"
 
@@ -40,6 +42,23 @@ export const deleteProductListWorkflow = createWorkflow(
 
     assertCustomerOwnsProductListStep(ownershipInput)
 
+    const itemIds = listProductListItemIdsStep(listId)
+    const itemLinkDeleteInput = transform({ itemIds }, ({ itemIds: ids }) =>
+      ids.map(
+        (itemId) =>
+          ({
+            [PRODUCT_LIST_MODULE]: {
+              product_list_item_id: itemId,
+            },
+          }) satisfies DeleteEntityInput
+      )
+    )
+
+    removeRemoteLinkStep(itemLinkDeleteInput).config({
+      name: "remove-product-list-item-links",
+    })
+    deleteProductListItemsStep(itemIds)
+
     const customerLinkDeleteInput = transform(
       { input },
       ({ input: workflowInput }) =>
@@ -50,7 +69,9 @@ export const deleteProductListWorkflow = createWorkflow(
         }) satisfies DeleteEntityInput
     )
 
-    removeRemoteLinkStep(customerLinkDeleteInput)
+    removeRemoteLinkStep(customerLinkDeleteInput).config({
+      name: "remove-customer-product-list-link",
+    })
     const deleted = deleteProductListStep(currentList)
 
     releaseLockStep({
