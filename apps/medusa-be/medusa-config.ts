@@ -175,6 +175,10 @@ module.exports = defineConfig({
       options: {},
     },
     {
+      resolve: "medusa-order-dashboard-plugin",
+      options: {},
+    },
+    {
       resolve: "@rokmohar/medusa-plugin-meilisearch",
       options: {
         config: {
@@ -331,6 +335,9 @@ module.exports = defineConfig({
     },
     {
       resolve: "./src/modules/producer",
+    },
+    {
+      resolve: "./src/modules/product-list",
     },
     {
       resolve: "./src/modules/email-log",

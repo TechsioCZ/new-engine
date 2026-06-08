@@ -50,8 +50,8 @@ dev::run_ctl() {
 
   ctl_root="${REPO_ROOT}/apps/new-engine-ctl"
   ctl_dist="${ctl_root}/dist/cli.js"
+  common::ensure_pnpm "$REPO_ROOT"
   common::require_command node
-  common::require_command pnpm
 
   if [[ ! -f "$ctl_dist" ]] || find "$ctl_root/src" "$ctl_root/config" -type f -newer "$ctl_dist" -print -quit | grep -q .; then
     (
