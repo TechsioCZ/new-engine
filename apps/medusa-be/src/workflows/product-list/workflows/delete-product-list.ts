@@ -43,15 +43,14 @@ export const deleteProductListWorkflow = createWorkflow(
     assertCustomerOwnsProductListStep(ownershipInput)
 
     const itemIds = listProductListItemIdsStep(listId)
-    const itemLinkDeleteInput = transform({ itemIds }, ({ itemIds: ids }) =>
-      ids.map(
-        (itemId) =>
-          ({
-            [PRODUCT_LIST_MODULE]: {
-              product_list_item_id: itemId,
-            },
-          }) satisfies DeleteEntityInput
-      )
+    const itemLinkDeleteInput = transform(
+      { itemIds },
+      ({ itemIds: ids }): DeleteEntityInput[] =>
+        ids.map((itemId) => ({
+          [PRODUCT_LIST_MODULE]: {
+            product_list_item_id: itemId,
+          },
+        }))
     )
 
     removeRemoteLinkStep(itemLinkDeleteInput).config({
@@ -61,12 +60,11 @@ export const deleteProductListWorkflow = createWorkflow(
 
     const customerLinkDeleteInput = transform(
       { input },
-      ({ input: workflowInput }) =>
-        ({
-          [PRODUCT_LIST_MODULE]: {
-            product_list_id: workflowInput.list_id,
-          },
-        }) satisfies DeleteEntityInput
+      ({ input: workflowInput }): DeleteEntityInput => ({
+        [PRODUCT_LIST_MODULE]: {
+          product_list_id: workflowInput.list_id,
+        },
+      })
     )
 
     removeRemoteLinkStep(customerLinkDeleteInput).config({

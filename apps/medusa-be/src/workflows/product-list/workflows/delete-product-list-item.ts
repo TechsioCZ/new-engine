@@ -57,12 +57,11 @@ export const deleteProductListItemWorkflow = createWorkflow(
 
     const linkDeleteInput = transform(
       { input },
-      ({ input: workflowInput }) =>
-        ({
-          [PRODUCT_LIST_MODULE]: {
-            product_list_item_id: workflowInput.item_id,
-          },
-        }) satisfies DeleteEntityInput
+      ({ input: workflowInput }): DeleteEntityInput => ({
+        [PRODUCT_LIST_MODULE]: {
+          product_list_item_id: workflowInput.item_id,
+        },
+      })
     )
 
     removeRemoteLinkStep(linkDeleteInput)
