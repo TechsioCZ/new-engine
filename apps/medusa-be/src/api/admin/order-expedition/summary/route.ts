@@ -9,6 +9,7 @@ import {
   ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS,
   ORDER_BUSINESS_STATUS_IDS,
   type OrderBusinessStatusId,
+  isPendingUnpaidOrder,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
 import {
@@ -22,6 +23,7 @@ const ORDER_EXPEDITION_SUMMARY_BATCH_SIZE = 500
 
 type OrderExpeditionSummaryResponse = {
   action_required_count: number
+  pending_unpaid_count: number
   scanned_count: number
   status_counts: Record<OrderBusinessStatusId, number>
   total_count: number
@@ -40,6 +42,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   let offset = 0
   let totalCount: number | null = null
+  let pendingUnpaidCount = 0
   let scannedCount = 0
   const statusCounts = createEmptyStatusCounts()
 
@@ -59,6 +62,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     for (const order of orders) {
       const statusId = resolveOrderBusinessStatus(order).id
       statusCounts[statusId] += 1
+      pendingUnpaidCount += isPendingUnpaidOrder(order) ? 1 : 0
     }
 
     offset += orders.length
@@ -70,6 +74,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const summary: OrderExpeditionSummaryResponse = {
     action_required_count: getActionRequiredCount(statusCounts),
+    pending_unpaid_count: pendingUnpaidCount,
     scanned_count: scannedCount,
     status_counts: statusCounts,
     total_count: totalCount ?? scannedCount,
@@ -130,6 +135,7 @@ function isOrderExpeditionSummaryResponse(
 
   return (
     typeof summary.action_required_count === "number" &&
+    typeof summary.pending_unpaid_count === "number" &&
     typeof summary.scanned_count === "number" &&
     typeof summary.total_count === "number" &&
     typeof summary.unhandled_count === "number" &&

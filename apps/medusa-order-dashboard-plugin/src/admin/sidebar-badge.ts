@@ -55,8 +55,10 @@ export function startOrderDashboardSidebarBadge() {
   )
 }
 
-export function setOrderDashboardSidebarBadgeCount(count: number | null) {
-  currentCount = count
+export function setOrderDashboardSidebarBadgeCount(
+  count: number | null | undefined
+) {
+  currentCount = normalizeOrderDashboardSidebarBadgeCount(count)
   renderOrderDashboardSidebarBadge(currentCount)
 }
 
@@ -73,7 +75,7 @@ async function refreshOrderDashboardSidebarBadge() {
     const summary = await sdk.client.fetch<OrderDashboardSummaryResponse>(
       "/admin/order-expedition/summary"
     )
-    setOrderDashboardSidebarBadgeCount(summary.action_required_count)
+    setOrderDashboardSidebarBadgeCount(summary.pending_unpaid_count)
   } catch {
     renderOrderDashboardSidebarBadge(currentCount)
   } finally {
@@ -88,14 +90,15 @@ function canRefreshOrderDashboardSidebarBadge() {
   )
 }
 
-function renderOrderDashboardSidebarBadge(count: number | null) {
+function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
   if (typeof document === "undefined") {
     return
   }
 
   const link = getOrderDashboardSidebarLink()
+  const normalizedCount = normalizeOrderDashboardSidebarBadgeCount(count)
 
-  if (!link || count === null || count <= 0) {
+  if (!link || normalizedCount === null || normalizedCount <= 0) {
     removeOrderDashboardSidebarBadge()
     return
   }
@@ -124,8 +127,8 @@ function renderOrderDashboardSidebarBadge(count: number | null) {
     link.appendChild(badge)
   }
 
-  const countText = String(count)
-  const label = getOrderDashboardSidebarBadgeLabel(count)
+  const countText = String(normalizedCount)
+  const label = getOrderDashboardSidebarBadgeLabel(normalizedCount)
 
   if (badge.textContent !== countText) {
     badge.textContent = countText
@@ -138,6 +141,12 @@ function renderOrderDashboardSidebarBadge(count: number | null) {
   if (badge.title !== label) {
     badge.title = label
   }
+}
+
+function normalizeOrderDashboardSidebarBadgeCount(
+  count: number | null | undefined
+) {
+  return typeof count === "number" && Number.isFinite(count) ? count : null
 }
 
 function removeOrderDashboardSidebarBadge() {
