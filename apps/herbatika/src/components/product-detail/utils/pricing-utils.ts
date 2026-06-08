@@ -11,35 +11,10 @@ import {
 import { formatCurrencyAmount } from "@/lib/storefront/price-format";
 import {
   asStorefrontNumber,
+  resolveAmountWithoutTax,
   resolveProductTopOffer,
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing";
-
-const resolveAmountWithoutTax = (params: {
-  amountWithTax: number | null;
-  amountWithoutTax: number | null;
-  vatRate: number | null;
-}): number | null => {
-  const { amountWithTax, amountWithoutTax, vatRate } = params;
-
-  if (
-    typeof amountWithoutTax === "number" &&
-    amountWithoutTax > 0 &&
-    (typeof amountWithTax !== "number" || amountWithoutTax <= amountWithTax)
-  ) {
-    return amountWithoutTax;
-  }
-
-  if (
-    typeof amountWithTax === "number" &&
-    typeof vatRate === "number" &&
-    vatRate > 0
-  ) {
-    return amountWithTax / (1 + vatRate / 100);
-  }
-
-  return null;
-};
 
 export const resolvePriceState = (
   product: Product,
