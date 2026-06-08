@@ -88,6 +88,7 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
         metadata: workflowInput.metadata,
         note: workflowInput.note,
         product_id: workflowInput.product_id,
+        quantity: workflowInput.quantity,
         sort_order: workflowInput.sort_order,
         variant_id: workflowInput.variant_id,
       })
