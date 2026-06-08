@@ -95,7 +95,7 @@ export function ProductListPickerPopover({
     >
       <Popover.Trigger
         aria-label="Pridať do zoznamu"
-        className="h-750 min-h-750 w-750 min-w-750 p-0 text-fg-secondary hover:text-fg-primary sm:h-600 sm:min-h-600 sm:w-600 sm:min-w-600"
+        className="h-750 min-h-750 w-750 min-w-750 p-0 text-fg-secondary hover:text-fg-primary sm:h-600 sm:min-h-600 sm:w-600 sm:min-w-600 hover:text-primary hover:bg-transparent"
         icon="token-icon-heart"
         iconSize="2xl"
         size="sm"
