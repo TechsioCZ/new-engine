@@ -176,7 +176,13 @@ export const listProductLists = async (
   input: ProductListListInput = {},
   signal?: AbortSignal,
 ) => {
-  const { enabled: _enabled, limit = 20, offset = 0, ...query } = input;
+  const {
+    enabled: _enabled,
+    customerId: _customerId,
+    limit = 20,
+    offset = 0,
+    ...query
+  } = input;
   const response = await storefrontSdk.client.fetch<ProductListListResponse>(
     PRODUCT_LISTS_PATH,
     {

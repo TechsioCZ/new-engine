@@ -98,6 +98,7 @@ export const productListQueryKeys = {
         type: input?.type,
         limit: input?.limit,
         offset: input?.offset,
+        customerId: input?.customerId ?? null,
       },
     ] as const,
   detail: (id?: string | null) =>

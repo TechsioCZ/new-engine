@@ -69,6 +69,7 @@ export type ProductListListInput = {
   type?: StoreProductListType;
   limit?: number;
   offset?: number;
+  customerId?: string | null;
   enabled?: boolean;
 };
 

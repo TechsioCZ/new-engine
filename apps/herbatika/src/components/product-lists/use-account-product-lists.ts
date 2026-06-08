@@ -63,7 +63,9 @@ export function useAccountProductLists() {
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  const customerId = authQuery.customer?.id ?? null;
   const listsQuery = useProductLists({
+    customerId,
     limit: 100,
     enabled: authQuery.isAuthenticated,
   });

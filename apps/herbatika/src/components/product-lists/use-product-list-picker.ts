@@ -62,8 +62,13 @@ export function useProductListPicker({
   const [activeListKey, setActiveListKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const customerId = authQuery.customer?.id ?? null;
   const shouldFetchLists = isOpen && authQuery.isAuthenticated;
-  const listsQuery = useProductLists({ limit: 100, enabled: shouldFetchLists });
+  const listsQuery = useProductLists({
+    customerId,
+    limit: 100,
+    enabled: shouldFetchLists,
+  });
   const listIds = useMemo(
     () => listsQuery.productLists.map((list) => list.id).filter(Boolean),
     [listsQuery.productLists],
