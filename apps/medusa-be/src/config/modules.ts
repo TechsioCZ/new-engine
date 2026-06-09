@@ -197,6 +197,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-list",
     },
     {
+      resolve: "./src/modules/product-review",
+    },
+    {
       resolve: "./src/modules/company",
     },
     {
@@ -210,6 +213,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/order-receipt",
+    },
+    {
+      resolve: "./src/modules/workflow-queue",
     },
     ...buildPaymentQrModules(env),
     buildEventBusModule(env),
