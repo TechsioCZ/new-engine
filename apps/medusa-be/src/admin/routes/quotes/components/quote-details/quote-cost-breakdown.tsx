@@ -1,34 +1,39 @@
 import type { AdminOrder } from "@medusajs/framework/types"
 import { Text } from "@medusajs/ui"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { formatAmount } from "../../../../utils"
 
-export const CostBreakdown = ({ order }: { order: AdminOrder }) => (
-  <div className="flex flex-col gap-y-2 px-6 py-4 text-ui-fg-subtle">
-    <Cost
-      label="Discounts"
-      secondaryValue=""
-      value={
-        order.discount_total > 0
-          ? `- ${formatAmount(order.discount_total, order.currency_code)}`
-          : "-"
-      }
-    />
-    {(order.shipping_methods || [])
-      .sort((m1, m2) =>
-        (m1.created_at as string).localeCompare(m2.created_at as string)
-      )
-      .map((sm) => (
-        <div key={sm.id}>
-          <Cost
-            label={"Shipping"}
-            secondaryValue={sm.name}
-            value={formatAmount(sm.total, order.currency_code)}
-          />
-        </div>
-      ))}
-  </div>
-)
+export const CostBreakdown = ({ order }: { order: AdminOrder }) => {
+  const { t } = useTranslation("quotes")
+
+  return (
+    <div className="flex flex-col gap-y-2 px-6 py-4 text-ui-fg-subtle">
+      <Cost
+        label={t("cost.discounts")}
+        secondaryValue=""
+        value={
+          order.discount_total > 0
+            ? `- ${formatAmount(order.discount_total, order.currency_code)}`
+            : "-"
+        }
+      />
+      {(order.shipping_methods || [])
+        .sort((m1, m2) =>
+          (m1.created_at as string).localeCompare(m2.created_at as string)
+        )
+        .map((sm) => (
+          <div key={sm.id}>
+            <Cost
+              label={t("cost.shipping")}
+              secondaryValue={sm.name}
+              value={formatAmount(sm.total, order.currency_code)}
+            />
+          </div>
+        ))}
+    </div>
+  )
+}
 
 export const Cost = ({
   label,

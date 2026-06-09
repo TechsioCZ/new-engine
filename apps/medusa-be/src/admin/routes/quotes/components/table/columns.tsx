@@ -28,28 +28,28 @@ type QuoteTableRow = {
 const columnHelper = createColumnHelper<QuoteTableRow>()
 
 export const useQuotesTableColumns = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
 
   return useMemo(
     () => [
       columnHelper.accessor("draft_order.display_id", {
-        header: t("fields.id"),
+        header: t("columns.id"),
         cell: ({ getValue }) => <TextCell text={`#${getValue()}`} />,
       }),
       columnHelper.accessor("status", {
-        header: t("fields.status"),
+        header: t("columns.status"),
         cell: ({ getValue }) => <QuoteStatusBadge status={getValue()} />,
       }),
       columnHelper.accessor("customer.email", {
-        header: t("fields.email"),
+        header: t("columns.email"),
         cell: ({ getValue }) => <TextCell text={getValue()} />,
       }),
       columnHelper.accessor("draft_order.customer.employee.company.name", {
-        header: t("fields.company"),
+        header: t("columns.company"),
         cell: ({ getValue }) => <TextCell text={getValue()} />,
       }),
       columnHelper.accessor("draft_order.total", {
-        header: t("fields.total"),
+        header: t("columns.total"),
         cell: ({ getValue, row }) => (
           <TextCell
             text={`${row.original.draft_order.currency_code.toUpperCase()} ${getValue()}`}
@@ -58,7 +58,7 @@ export const useQuotesTableColumns = () => {
       }),
 
       columnHelper.accessor("created_at", {
-        header: t("fields.createdAt"),
+        header: t("columns.createdAt"),
         cell: ({ getValue }) => <DateCell date={getValue()} />,
       }),
     ],

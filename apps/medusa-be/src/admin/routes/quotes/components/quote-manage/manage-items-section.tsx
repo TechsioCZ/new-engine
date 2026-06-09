@@ -26,7 +26,7 @@ export const ManageItemsSection = ({
   order,
   preview,
 }: ManageItemsSectionProps) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
   /**
    * STATE
    */

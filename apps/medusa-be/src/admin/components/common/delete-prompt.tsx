@@ -1,46 +1,51 @@
-import { Trash } from "@medusajs/icons";
-import { Button, Prompt } from "@medusajs/ui";
+import { Trash } from "@medusajs/icons"
+import { Button, Prompt } from "@medusajs/ui"
 
 interface DeletePromptProps {
-  handleDelete: () => void;
-  loading: boolean;
-  open: boolean;
-  setOpen: (open: boolean) => void;
+  cancelText: string
+  confirmText: string
+  description: string
+  handleDelete: () => void
+  loading: boolean
+  open: boolean
+  setOpen: (open: boolean) => void
+  title: string
 }
 
 export const DeletePrompt = ({
+  cancelText,
+  confirmText,
+  description,
   handleDelete,
   loading,
   open,
   setOpen,
+  title,
 }: DeletePromptProps) => {
   const handleConfirmDelete = async () => {
-    handleDelete();
-    setOpen(false);
-  };
+    handleDelete()
+    setOpen(false)
+  }
 
   return (
-    <Prompt open={open} onOpenChange={setOpen}>
-      <Prompt.Content className="p-4 pb-0 border-b shadow-ui-fg-shadow">
-        <Prompt.Title>Confirm Deletion</Prompt.Title>
-        <Prompt.Description>
-          Are you sure you want to delete this item? This action cannot be
-          undone.
-        </Prompt.Description>
+    <Prompt onOpenChange={setOpen} open={open}>
+      <Prompt.Content className="border-b p-4 pb-0 shadow-ui-fg-shadow">
+        <Prompt.Title>{title}</Prompt.Title>
+        <Prompt.Description>{description}</Prompt.Description>
         <Prompt.Footer>
           <Button
-            variant="danger"
-            onClick={handleConfirmDelete}
             isLoading={loading}
+            onClick={handleConfirmDelete}
+            variant="danger"
           >
             <Trash />
-            Delete
+            {confirmText}
           </Button>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            Cancel
+          <Button onClick={() => setOpen(false)} variant="secondary">
+            {cancelText}
           </Button>
         </Prompt.Footer>
       </Prompt.Content>
     </Prompt>
-  );
-};
+  )
+}

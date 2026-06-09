@@ -1,5 +1,6 @@
 import { Button, Drawer, toast } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../../types"
 import { CoolSwitch } from "../../../components/common"
 import { useUpdateApprovalSettings } from "../../../hooks/api"
@@ -13,6 +14,7 @@ export function CompanyApprovalSettingsDrawer({
   open: boolean
   setOpen: (open: boolean) => void
 }) {
+  const { t } = useTranslation("companies")
   const [requiresAdminApproval, setRequiresAdminApproval] = useState(
     company.approval_settings?.requires_admin_approval
   )
@@ -33,10 +35,10 @@ export function CompanyApprovalSettingsDrawer({
       {
         onSuccess: async () => {
           setOpen(false)
-          toast.success("Company approval settings updated successfully")
+          toast.success(t("toasts.approvalSettingsUpdated"))
         },
         onError: (_error) => {
-          toast.error("Failed to update company approval settings")
+          toast.error(t("errors.updateApprovalSettingsFailed"))
         },
       }
     )
@@ -46,15 +48,15 @@ export function CompanyApprovalSettingsDrawer({
     <Drawer onOpenChange={setOpen} open={open}>
       <Drawer.Content className="z-50">
         <Drawer.Header>
-          <Drawer.Title>Company Approval Settings</Drawer.Title>
+          <Drawer.Title>{t("approvalSettings.title")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <CoolSwitch
               checked={requiresAdminApproval}
-              description="Require company admin approval for all orders placed by this company."
+              description={t("approvalSettings.adminApprovalDescription")}
               fieldName="requires_admin_approval"
-              label="Requires Admin Approval"
+              label={t("approvalSettings.adminApprovalLabel")}
               onChange={() => setRequiresAdminApproval(!requiresAdminApproval)}
             />
           </div>
@@ -62,9 +64,11 @@ export function CompanyApprovalSettingsDrawer({
           <div className="flex items-center gap-2">
             <CoolSwitch
               checked={requiresSalesManagerApproval}
-              description="Require sales manager approval for all orders placed by this company."
+              description={t(
+                "approvalSettings.salesManagerApprovalDescription"
+              )}
               fieldName="requires_sales_manager_approval"
-              label="Requires Sales Manager Approval"
+              label={t("approvalSettings.salesManagerApprovalLabel")}
               onChange={() =>
                 setRequiresSalesManagerApproval(!requiresSalesManagerApproval)
               }
@@ -73,10 +77,10 @@ export function CompanyApprovalSettingsDrawer({
         </Drawer.Body>
         <Drawer.Footer>
           <Button onClick={() => setOpen(false)} variant="secondary">
-            Cancel
+            {t("actions.cancel")}
           </Button>
           <Button isLoading={isPending} onClick={handleSubmit}>
-            Save
+            {t("actions.save")}
           </Button>
         </Drawer.Footer>
       </Drawer.Content>

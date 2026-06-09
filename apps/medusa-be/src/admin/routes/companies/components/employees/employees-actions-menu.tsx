@@ -1,6 +1,7 @@
 import { EllipsisHorizontal, PencilSquare, Trash } from "@medusajs/icons"
 import { DropdownMenu, IconButton, toast } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { QueryCompany, QueryEmployee } from "../../../../../types"
 import { DeletePrompt } from "../../../../components/common"
 import { useDeleteEmployee } from "../../../../hooks/api"
@@ -13,6 +14,7 @@ export const EmployeesActionsMenu = ({
   company: QueryCompany
   employee: QueryEmployee
 }) => {
+  const { t } = useTranslation("companies")
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
@@ -21,7 +23,7 @@ export const EmployeesActionsMenu = ({
   const handleDelete = async () => {
     await mutateDelete(employee.id, {
       onSuccess: () => {
-        toast.success("Employee deleted successfully")
+        toast.success(t("toasts.employeeDeleted"))
       },
     })
   }
@@ -40,7 +42,7 @@ export const EmployeesActionsMenu = ({
             onClick={() => setEditOpen(true)}
           >
             <PencilSquare />
-            Edit
+            {t("actions.edit")}
           </DropdownMenu.Item>
           <DropdownMenu.Separator />
           <DropdownMenu.Item
@@ -48,7 +50,7 @@ export const EmployeesActionsMenu = ({
             onClick={() => setDeleteOpen(true)}
           >
             <Trash />
-            Delete
+            {t("actions.delete")}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu>
@@ -60,10 +62,14 @@ export const EmployeesActionsMenu = ({
         toast={toast}
       />
       <DeletePrompt
+        cancelText={t("actions.cancel")}
+        confirmText={t("actions.delete")}
+        description={t("prompts.deleteDescription")}
         handleDelete={handleDelete}
         loading={loadingDelete}
         open={deleteOpen}
         setOpen={setDeleteOpen}
+        title={t("prompts.deleteTitle")}
       />
     </>
   )

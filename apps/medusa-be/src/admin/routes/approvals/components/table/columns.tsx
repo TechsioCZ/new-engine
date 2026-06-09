@@ -33,35 +33,35 @@ const getStatusColor = (status: ApprovalStatusType) => {
 }
 
 export const useApprovalsTableColumns = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation("approvals")
 
   return useMemo(
     () => [
       columnHelper.accessor("id", {
-        header: t("fields.id"),
+        header: t("columns.id"),
         cell: ({ getValue }) => <TextCell text={`#${getValue().slice(-4)}`} />,
       }),
       columnHelper.accessor("updated_at", {
-        header: t("Updated at"),
+        header: t("columns.updatedAt"),
         cell: ({ getValue }) => <DateCell date={getValue()} />,
       }),
       columnHelper.accessor("company.name", {
-        header: t("fields.company"),
+        header: t("columns.company"),
         cell: ({ getValue }) => <TextCell text={getValue()} />,
       }),
       columnHelper.accessor("approval_status.status", {
-        header: t("fields.status"),
+        header: t("columns.status"),
         cell: ({ getValue }) => {
           const status = getValue()
           return (
             <StatusBadge color={getStatusColor(status)}>
-              {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
+              {t(`statuses.${status.toLowerCase()}`)}
             </StatusBadge>
           )
         },
       }),
       columnHelper.accessor("items", {
-        header: t("fields.items"),
+        header: t("columns.items"),
         cell: ({ getValue, row }) => (
           <ItemsPopover
             currencyCode={row.original.currency_code}
@@ -70,7 +70,7 @@ export const useApprovalsTableColumns = () => {
         ),
       }),
       columnHelper.accessor("actions", {
-        header: t("Actions"),
+        header: t("columns.actions"),
         cell: ({ row }) => <ApprovalActions cart={row.original} />,
       }),
     ],

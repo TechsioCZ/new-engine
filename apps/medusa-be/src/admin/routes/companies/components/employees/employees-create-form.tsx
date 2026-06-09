@@ -1,5 +1,6 @@
 import { Button, CurrencyInput, Drawer, Input, Label, Text } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
 import { CoolSwitch } from "../../../../components/common"
 import { currencySymbolMap } from "../../../../utils"
@@ -15,6 +16,7 @@ export function EmployeesCreateForm({
   error: Error | null
   company: QueryCompany
 }) {
+  const { t } = useTranslation("companies")
   const [formData, setFormData] = useState<
     Omit<AdminCreateEmployee, "spending_limit"> & {
       spending_limit: string
@@ -56,57 +58,59 @@ export function EmployeesCreateForm({
     <form onSubmit={onSubmit}>
       <Drawer.Body className="flex flex-col gap-6 p-4">
         <div className="flex flex-col gap-3">
-          <h2 className="h2-core">Details</h2>
+          <h2 className="h2-core">{t("employees.details")}</h2>
           <div className="flex flex-col gap-2">
             <Label className="txt-compact-small font-medium" size="xsmall">
-              First Name
+              {t("employees.firstName")}
             </Label>
             <Input
               name="first_name"
               onChange={handleChange}
-              placeholder="John"
+              placeholder={t("placeholders.firstName")}
               type="text"
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label className="txt-compact-small font-medium" size="xsmall">
-              Last Name
+              {t("employees.lastName")}
             </Label>
             <Input
               name="last_name"
               onChange={handleChange}
-              placeholder="Doe"
+              placeholder={t("placeholders.lastName")}
               type="text"
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label className="txt-compact-small font-medium" size="xsmall">
-              Email
+              {t("columns.email")}
             </Label>
             <Input
               name="email"
               onChange={handleChange}
-              placeholder="john.doe@example.com"
+              placeholder={t("placeholders.employeeEmail")}
               type="email"
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label className="txt-compact-small font-medium" size="xsmall">
-              Phone
+              {t("columns.phone")}
             </Label>
             <Input
               name="phone"
               onChange={handleChange}
-              placeholder="0612345678"
+              placeholder={t("placeholders.phone")}
               type="text"
             />
           </div>
         </div>
         <div className="flex flex-col gap-3">
-          <h2 className="h2-core">Permissions</h2>
+          <h2 className="h2-core">{t("employees.permissions")}</h2>
           <div className="flex flex-col gap-2">
             <Label className="txt-compact-small font-medium" size="xsmall">
-              Spending Limit ({company.currency_code?.toUpperCase() || "USD"})
+              {t("employees.spendingLimitWithCurrency", {
+                currency: company.currency_code?.toUpperCase() || "USD",
+              })}
             </Label>
             <CurrencyInput
               code={company.currency_code || "USD"}
@@ -117,7 +121,7 @@ export function EmployeesCreateForm({
                   spending_limit: e.target.value.replace(/[^0-9]/g, ""),
                 })
               }
-              placeholder="1000"
+              placeholder={t("placeholders.spendingLimit")}
               symbol={currencySymbolMap[company.currency_code || "USD"]}
               type="text"
               value={formData.spending_limit ? formData.spending_limit : ""}
@@ -125,17 +129,17 @@ export function EmployeesCreateForm({
           </div>
           <div className="flex flex-col gap-2">
             <Label className="txt-compact-small font-medium" size="xsmall">
-              Admin Access
+              {t("employees.adminLabel")}
             </Label>
             <CoolSwitch
               checked={formData.is_admin}
-              description="Enable to grant admin access"
+              description={t("employees.adminDescription")}
               fieldName="is_admin"
-              label="Is Admin"
+              label={t("employees.adminBadge")}
               onChange={(checked) =>
                 setFormData({ ...formData, is_admin: checked })
               }
-              tooltip="Admins can manage the company's details and employee permissions."
+              tooltip={t("employees.adminTooltip")}
             />
           </div>
         </div>
@@ -143,11 +147,11 @@ export function EmployeesCreateForm({
       <Drawer.Footer>
         <Drawer.Close asChild>
           <Button type="button" variant="secondary">
-            Cancel
+            {t("actions.cancel")}
           </Button>
         </Drawer.Close>
         <Button disabled={loading} type="submit">
-          {loading ? "Saving..." : "Save"}
+          {loading ? t("status.saving") : t("actions.save")}
         </Button>
         {error && <Text className="text-red-500">{error.message}</Text>}
       </Drawer.Footer>

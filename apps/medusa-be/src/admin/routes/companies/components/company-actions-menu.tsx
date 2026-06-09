@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/framework/types"
 import { Link, LockClosedSolid, PencilSquare, Trash } from "@medusajs/icons"
 import { toast } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import type { QueryCompany } from "../../../../types"
 import { ActionMenu } from "../../../components/common"
@@ -20,6 +21,7 @@ export const CompanyActionsMenu = ({
   company: QueryCompany
   customerGroups?: HttpTypes.AdminCustomerGroup[]
 }) => {
+  const { t } = useTranslation("companies")
   const [editOpen, setEditOpen] = useState(false)
   const [customerGroupOpen, setCustomerGroupOpen] = useState(false)
   const [approvalSettingsOpen, setApprovalSettingsOpen] = useState(false)
@@ -33,7 +35,7 @@ export const CompanyActionsMenu = ({
     mutateDelete(company.id, {
       onSuccess: () => {
         navigate("/companies")
-        toast.success(`Company ${company.name} deleted successfully`)
+        toast.success(t("toasts.companyDeleted", { name: company.name }))
       },
     })
   }
@@ -46,17 +48,17 @@ export const CompanyActionsMenu = ({
             actions: [
               {
                 icon: <PencilSquare />,
-                label: "Edit details",
+                label: t("actions.editDetails"),
                 onClick: () => setEditOpen(true),
               },
               {
                 icon: <Link />,
-                label: "Manage customer group",
+                label: t("actions.manageCustomerGroup"),
                 onClick: () => setCustomerGroupOpen(true),
               },
               {
                 icon: <LockClosedSolid />,
-                label: "Approval settings",
+                label: t("approvalSettings.title"),
                 onClick: () => setApprovalSettingsOpen(true),
               },
             ],
@@ -65,7 +67,7 @@ export const CompanyActionsMenu = ({
             actions: [
               {
                 icon: <Trash />,
-                label: "Delete",
+                label: t("actions.delete"),
                 onClick: () => setDeleteOpen(true),
               },
             ],
@@ -90,10 +92,14 @@ export const CompanyActionsMenu = ({
         setOpen={setApprovalSettingsOpen}
       />
       <DeletePrompt
+        cancelText={t("actions.cancel")}
+        confirmText={t("actions.delete")}
+        description={t("prompts.deleteDescription")}
         handleDelete={handleDelete}
         loading={loadingDelete}
         open={deleteOpen}
         setOpen={setDeleteOpen}
+        title={t("prompts.deleteTitle")}
       />
     </>
   )

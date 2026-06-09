@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next"
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
-import { IFilter } from "./types"
+import type { IFilter } from "./types"
 
 interface SelectFilterProps extends IFilter {
   options: { label: string; value: unknown }[]
@@ -61,7 +61,7 @@ export const SelectFilter = ({
       clearTimeout(timeoutId)
     }
 
-    if (!open && !currentValue.length) {
+    if (!(open || currentValue.length)) {
       timeoutId = setTimeout(() => {
         removeFilter(key)
       }, 200)
@@ -98,58 +98,57 @@ export const SelectFilter = ({
     : null
 
   return (
-    <Popover.Root modal open={open} onOpenChange={handleOpenChange}>
+    <Popover.Root modal onOpenChange={handleOpenChange} open={open}>
       <FilterChip
-        hasOperator
         hadPreviousValue={!!normalizedPrev?.length}
-        readonly={readonly}
+        hasOperator
         label={label}
-        value={normalizedValues?.join(", ")}
         onRemove={handleRemove}
+        readonly={readonly}
+        value={normalizedValues?.join(", ")}
       />
       {!readonly && (
         <Popover.Portal>
           <Popover.Content
-            hideWhenDetached
             align="start"
-            sideOffset={8}
-            collisionPadding={8}
             className={clx(
-              "bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg outline-none"
+              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
             )}
+            collisionPadding={8}
+            hideWhenDetached
             onInteractOutside={(e) => {
-              if (e.target instanceof HTMLElement) {
-                if (
-                  e.target.attributes.getNamedItem("data-name")?.value ===
+              if (
+                e.target instanceof HTMLElement &&
+                e.target.attributes.getNamedItem("data-name")?.value ===
                   "filters_menu_content"
-                ) {
-                  e.preventDefault()
-                  e.stopPropagation()
-                }
+              ) {
+                e.preventDefault()
+                e.stopPropagation()
               }
             }}
+            sideOffset={8}
           >
             <Command className="h-full">
               {searchable && (
                 <div className="border-b p-1">
                   <div className="grid grid-cols-[1fr_20px] gap-x-2 rounded-md px-2 py-1">
                     <Command.Input
+                      className="txt-compact-small bg-transparent outline-none placeholder:text-ui-fg-muted"
+                      onValueChange={setSearch}
+                      placeholder={t("filters.search")}
                       ref={setSearchRef}
                       value={search}
-                      onValueChange={setSearch}
-                      className="txt-compact-small placeholder:text-ui-fg-muted bg-transparent outline-none"
-                      placeholder="Search"
                     />
                     <div className="flex h-5 w-5 items-center justify-center">
                       <button
-                        disabled={!search}
-                        onClick={handleClearSearch}
                         className={clx(
-                          "transition-fg text-ui-fg-muted focus-visible:bg-ui-bg-base-pressed rounded-md outline-none",
+                          "rounded-md text-ui-fg-muted outline-none transition-fg focus-visible:bg-ui-bg-base-pressed",
                           {
                             invisible: !search,
                           }
                         )}
+                        disabled={!search}
+                        onClick={handleClearSearch}
                       >
                         <XMarkMini />
                       </button>
@@ -170,16 +169,16 @@ export const SelectFilter = ({
 
                   return (
                     <Command.Item
+                      className="txt-compact-small relative flex cursor-pointer select-none items-center gap-x-2 rounded-md bg-ui-bg-base px-2 py-1.5 text-ui-fg-base outline-none transition-colors hover:bg-ui-bg-base-hover focus-visible:bg-ui-bg-base-pressed aria-selected:bg-ui-bg-base-pressed data-[disabled]:pointer-events-none data-[disabled]:text-ui-fg-disabled"
                       key={String(option.value)}
-                      className="bg-ui-bg-base hover:bg-ui-bg-base-hover aria-selected:bg-ui-bg-base-pressed focus-visible:bg-ui-bg-base-pressed text-ui-fg-base data-[disabled]:text-ui-fg-disabled txt-compact-small relative flex cursor-pointer select-none items-center gap-x-2 rounded-md px-2 py-1.5 outline-none transition-colors data-[disabled]:pointer-events-none"
-                      value={option.label}
                       onSelect={() => {
                         handleSelect(option.value)
                       }}
+                      value={option.label}
                     >
                       <div
                         className={clx(
-                          "transition-fg flex h-5 w-5 items-center justify-center",
+                          "flex h-5 w-5 items-center justify-center transition-fg",
                           {
                             "[&_svg]:invisible": !isSelected,
                           }

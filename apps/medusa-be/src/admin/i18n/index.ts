@@ -1,7 +1,19 @@
 import {
+  type ApprovalAdminI18nNamespace,
+  approvalAdminI18n,
+} from "../../modules/approval/admin/i18n"
+import {
+  type CompanyAdminI18nNamespace,
+  companyAdminI18n,
+} from "../../modules/company/admin/i18n"
+import {
   type ProducerAdminI18nNamespace,
   producerAdminI18n,
 } from "../../modules/producer/admin/i18n"
+import {
+  type QuoteAdminI18nNamespace,
+  quoteAdminI18n,
+} from "../../modules/quote/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 
 type AdminLocale = "cs" | "en"
@@ -33,6 +45,44 @@ type OrderCommercialValuesNamespace = {
   totals: Record<"delta" | "new" | "orderDiscount" | "original", string>
 }
 
+type AdminDefaultTranslationNamespace = {
+  fields: Record<"date" | "product", string>
+  filters: {
+    addFilter: string
+    clearAll: string
+    search: string
+    compare: Record<
+      | "andLabel"
+      | "exact"
+      | "greaterThan"
+      | "greaterThanLabel"
+      | "lessThan"
+      | "lessThanLabel"
+      | "range",
+      string
+    >
+  }
+  general: Record<
+    | "countSelected"
+    | "is"
+    | "next"
+    | "noRecordsMessage"
+    | "noRecordsTitle"
+    | "noResultsMessage"
+    | "noResultsTitle"
+    | "of"
+    | "pages"
+    | "prev"
+    | "results",
+    string
+  >
+  orderCommercialValues: OrderCommercialValuesNamespace
+  routeModal: Record<
+    "cancel" | "continue" | "leaveDescription" | "leaveTitle",
+    string
+  >
+}
+
 type OrderBusinessStatusesNamespace = {
   columns: Record<
     | "businessStatus"
@@ -55,11 +105,12 @@ type OrderBusinessStatusesNamespace = {
 type AdminI18nResources = Record<
   AdminLocale,
   {
+    approvals: ApprovalAdminI18nNamespace
+    companies: CompanyAdminI18nNamespace
     orderBusinessStatuses: OrderBusinessStatusesNamespace
     producers: ProducerAdminI18nNamespace
-    translation: {
-      orderCommercialValues: OrderCommercialValuesNamespace
-    }
+    quotes: QuoteAdminI18nNamespace
+    translation: AdminDefaultTranslationNamespace
   }
 >
 
@@ -255,20 +306,107 @@ const orderCommercialValues = {
   },
 } satisfies Record<AdminLocale, OrderCommercialValuesNamespace>
 
-const resources = {
+const defaultTranslation = {
   cs: {
-    orderBusinessStatuses: orderBusinessStatuses.cs,
-    producers: producerAdminI18n.cs,
-    translation: {
-      orderCommercialValues: orderCommercialValues.cs,
+    fields: {
+      date: "Datum",
+      product: "Produkt",
+    },
+    filters: {
+      addFilter: "Přidat filtr",
+      clearAll: "Vymazat vše",
+      search: "Hledat",
+      compare: {
+        andLabel: "a",
+        exact: "Přesná hodnota",
+        greaterThan: "Větší než",
+        greaterThanLabel: "více než {{value}}",
+        lessThan: "Menší než",
+        lessThanLabel: "méně než {{value}}",
+        range: "Rozsah",
+      },
+    },
+    general: {
+      countSelected: "{{count}} vybráno",
+      is: "je",
+      next: "Další",
+      noRecordsMessage: "Zatím nejsou k dispozici žádné záznamy.",
+      noRecordsTitle: "Žádné záznamy",
+      noResultsMessage: "Upravte hledání nebo filtry a zkuste to znovu.",
+      noResultsTitle: "Žádné výsledky",
+      of: "z",
+      pages: "stránek",
+      prev: "Předchozí",
+      results: "výsledků",
+    },
+    orderCommercialValues: orderCommercialValues.cs,
+    routeModal: {
+      cancel: "Zrušit",
+      continue: "Pokračovat",
+      leaveDescription:
+        "Máte neuložené změny, které se při opuštění formuláře ztratí.",
+      leaveTitle: "Opravdu chcete tento formulář opustit?",
     },
   },
   en: {
+    fields: {
+      date: "Date",
+      product: "Product",
+    },
+    filters: {
+      addFilter: "Add filter",
+      clearAll: "Clear all",
+      search: "Search",
+      compare: {
+        andLabel: "and",
+        exact: "Exact",
+        greaterThan: "Greater than",
+        greaterThanLabel: "greater than {{value}}",
+        lessThan: "Less than",
+        lessThanLabel: "less than {{value}}",
+        range: "Range",
+      },
+    },
+    general: {
+      countSelected: "{{count}} selected",
+      is: "is",
+      next: "Next",
+      noRecordsMessage: "There are no records to show yet.",
+      noRecordsTitle: "No records",
+      noResultsMessage: "Adjust your search or filters and try again.",
+      noResultsTitle: "No results",
+      of: "of",
+      pages: "pages",
+      prev: "Previous",
+      results: "results",
+    },
+    orderCommercialValues: orderCommercialValues.en,
+    routeModal: {
+      cancel: "Cancel",
+      continue: "Continue",
+      leaveDescription:
+        "You have unsaved changes that will be lost if you exit this form.",
+      leaveTitle: "Are you sure you want to leave this form?",
+    },
+  },
+} satisfies Record<AdminLocale, AdminDefaultTranslationNamespace>
+
+const resources = {
+  cs: {
+    approvals: approvalAdminI18n.cs,
+    companies: companyAdminI18n.cs,
+    orderBusinessStatuses: orderBusinessStatuses.cs,
+    producers: producerAdminI18n.cs,
+    quotes: quoteAdminI18n.cs,
+    translation: defaultTranslation.cs,
+  },
+  en: {
+    approvals: approvalAdminI18n.en,
+    companies: companyAdminI18n.en,
     orderBusinessStatuses: orderBusinessStatuses.en,
     producers: producerAdminI18n.en,
-    translation: {
-      orderCommercialValues: orderCommercialValues.en,
-    },
+    quotes: quoteAdminI18n.en,
+    translation: defaultTranslation.en,
   },
 } satisfies AdminI18nResources
 

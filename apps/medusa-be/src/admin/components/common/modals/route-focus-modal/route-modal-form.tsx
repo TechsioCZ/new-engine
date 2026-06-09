@@ -1,14 +1,15 @@
-import { Prompt } from "@medusajs/ui";
-import { PropsWithChildren } from "react";
-import { FieldValues, UseFormReturn } from "react-hook-form";
-import { useBlocker } from "react-router-dom";
-import { Form } from "../../form";
+import { Prompt } from "@medusajs/ui"
+import type { PropsWithChildren } from "react"
+import type { FieldValues, UseFormReturn } from "react-hook-form"
+import { useTranslation } from "react-i18next"
+import { useBlocker } from "react-router-dom"
+import { Form } from "../../form"
 
 type RouteModalFormProps<TFieldValues extends FieldValues> = PropsWithChildren<{
-  form: UseFormReturn<TFieldValues>;
-  blockSearch?: boolean;
-  onClose?: (isSubmitSuccessful: boolean) => void;
-}>;
+  form: UseFormReturn<TFieldValues>
+  blockSearch?: boolean
+  onClose?: (isSubmitSuccessful: boolean) => void
+}>
 
 export const RouteModalForm = <TFieldValues extends FieldValues = any>({
   form,
@@ -16,48 +17,49 @@ export const RouteModalForm = <TFieldValues extends FieldValues = any>({
   children,
   onClose,
 }: RouteModalFormProps<TFieldValues>) => {
+  const { t } = useTranslation()
   const {
     formState: { isDirty },
-  } = form;
+  } = form
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-    const { isSubmitSuccessful } = nextLocation.state || {};
+    const { isSubmitSuccessful } = nextLocation.state || {}
 
     if (isSubmitSuccessful) {
-      onClose?.(true);
-      return false;
+      onClose?.(true)
+      return false
     }
 
-    const isPathChanged = currentLocation.pathname !== nextLocation.pathname;
-    const isSearchChanged = currentLocation.search !== nextLocation.search;
+    const isPathChanged = currentLocation.pathname !== nextLocation.pathname
+    const isSearchChanged = currentLocation.search !== nextLocation.search
 
     if (blockSearch) {
-      const ret = isDirty && (isPathChanged || isSearchChanged);
+      const ret = isDirty && (isPathChanged || isSearchChanged)
 
       if (!ret) {
-        onClose?.(isSubmitSuccessful);
+        onClose?.(isSubmitSuccessful)
       }
 
-      return ret;
+      return ret
     }
 
-    const ret = isDirty && isPathChanged;
+    const ret = isDirty && isPathChanged
 
     if (!ret) {
-      onClose?.(isSubmitSuccessful);
+      onClose?.(isSubmitSuccessful)
     }
 
-    return ret;
-  });
+    return ret
+  })
 
   const handleCancel = () => {
-    blocker?.reset?.();
-  };
+    blocker?.reset?.()
+  }
 
   const handleContinue = () => {
-    blocker?.proceed?.();
-    onClose?.(false);
-  };
+    blocker?.proceed?.()
+    onClose?.(false)
+  }
 
   return (
     <Form {...form}>
@@ -65,25 +67,23 @@ export const RouteModalForm = <TFieldValues extends FieldValues = any>({
       <Prompt open={blocker.state === "blocked"} variant="confirmation">
         <Prompt.Content>
           <Prompt.Header>
-            <Prompt.Title>
-              Are you sure you want to leave this form?
-            </Prompt.Title>
+            <Prompt.Title>{t("routeModal.leaveTitle")}</Prompt.Title>
 
             <Prompt.Description>
-              You have unsaved changes that will be lost if you exit this form.
+              {t("routeModal.leaveDescription")}
             </Prompt.Description>
           </Prompt.Header>
 
           <Prompt.Footer>
             <Prompt.Cancel onClick={handleCancel} type="button">
-              Cancel
+              {t("routeModal.cancel")}
             </Prompt.Cancel>
             <Prompt.Action onClick={handleContinue} type="button">
-              Continue
+              {t("routeModal.continue")}
             </Prompt.Action>
           </Prompt.Footer>
         </Prompt.Content>
       </Prompt>
     </Form>
-  );
-};
+  )
+}

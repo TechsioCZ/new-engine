@@ -43,7 +43,7 @@ function ManageItem({
   currencyCode,
   orderId,
 }: ManageItemProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
   const [showPriceForm, setShowPriceForm] = useState(false)
 
   const { mutateAsync: addItems } = useAddItemsToQuote(orderId)
@@ -81,7 +81,7 @@ function ManageItem({
       typeof quantity === "number" &&
       quantity <= item.detail.fulfilled_quantity
     ) {
-      toast.error(t("orders.edits.validation.quantityLowerThanFulfillment"))
+      toast.error(t("validation.quantityLowerThanFulfillment"))
       return
     }
 
@@ -178,13 +178,13 @@ function ManageItem({
 
           {isAddedItem && (
             <Badge className="mr-1" color="blue" rounded="full" size="2xsmall">
-              {t("general.new")}
+              {t("badges.new")}
             </Badge>
           )}
 
           {isItemRemoved ? (
             <Badge className="mr-1" color="red" rounded="full" size="2xsmall">
-              {t("general.removed")}
+              {t("badges.removed")}
             </Badge>
           ) : (
             isItemUpdated && (
@@ -194,7 +194,7 @@ function ManageItem({
                 rounded="full"
                 size="2xsmall"
               >
-                {t("general.modified")}
+                {t("badges.modified")}
               </Badge>
             )
           )}
@@ -235,7 +235,7 @@ function ManageItem({
               {
                 actions: [
                   {
-                    label: "Update Price",
+                    label: t("actions.updatePrice"),
                     onClick: () => setShowPriceForm(!showPriceForm),
                     icon: <PencilSquare />,
                   },
@@ -272,9 +272,7 @@ function ManageItem({
         <div className="grid grid-cols-1 gap-2 p-3 md:grid-cols-2">
           <div>
             <Form.Label>{t("fields.price")}</Form.Label>
-            <Form.Hint className="!mt-1">
-              Override the unit price of this product
-            </Form.Hint>
+            <Form.Hint className="!mt-1">{t("form.unitPriceHint")}</Form.Hint>
           </div>
 
           <div className="flex items-center gap-1">

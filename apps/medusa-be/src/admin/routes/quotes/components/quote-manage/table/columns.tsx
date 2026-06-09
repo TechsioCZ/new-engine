@@ -16,7 +16,7 @@ type ManageItemsTableRow = {
 const columnHelper = createColumnHelper<ManageItemsTableRow>()
 
 export const useManageItemsTableColumns = (_currencyCode: string) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
 
   return useMemo(
     () => [

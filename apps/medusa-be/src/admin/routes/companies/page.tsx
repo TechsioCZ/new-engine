@@ -9,11 +9,13 @@ import {
   Text,
   Toaster,
 } from "@medusajs/ui"
+import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../types"
 import { useAdminCustomerGroups, useCompanies } from "../../hooks/api"
 import { CompanyActionsMenu, CompanyCreateDrawer } from "./components"
 
 const Companies = () => {
+  const { t } = useTranslation("companies")
   const { data, isPending } = useCompanies({
     fields:
       "*employees,*employees.customer,*employees.company,*customer_group,*approval_settings",
@@ -25,21 +27,23 @@ const Companies = () => {
     <>
       <Container className="flex flex-col overflow-hidden p-0">
         <div className="flex justify-between p-6">
-          <Heading className="h1-core font-medium font-sans">Companies</Heading>
+          <Heading className="h1-core font-medium font-sans">
+            {t("menuItem")}
+          </Heading>
           <CompanyCreateDrawer />
         </div>
-        {isPending && <Text>Loading...</Text>}
+        {isPending && <Text>{t("status.loading")}</Text>}
         <Table>
           <Table.Header>
             <Table.Row>
               <Table.HeaderCell />
-              <Table.HeaderCell>Name</Table.HeaderCell>
-              <Table.HeaderCell>Phone</Table.HeaderCell>
-              <Table.HeaderCell>Email</Table.HeaderCell>
-              <Table.HeaderCell>Address</Table.HeaderCell>
-              <Table.HeaderCell>Employees</Table.HeaderCell>
-              <Table.HeaderCell>Customer Group</Table.HeaderCell>
-              <Table.HeaderCell>Actions</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.name")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.phone")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.email")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.address")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.employees")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.customerGroup")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.actions")}</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
           {data?.companies && (
@@ -90,8 +94,9 @@ const Companies = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "Companies",
+  label: "menuItem",
   icon: BuildingStorefront,
+  translationNs: "companies",
 })
 
 export default Companies

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { DataTable } from "../../../../admin/components"
 import { useDataTable } from "../../../../admin/hooks"
 import { useQuotes } from "../../../../admin/hooks/api"
@@ -9,6 +10,7 @@ const PAGE_SIZE = 50
 const PREFIX = "quo"
 
 export const QuotesTable = () => {
+  const { t } = useTranslation("quotes")
   const { searchParams, raw } = useQuotesTableQuery({
     pageSize: PAGE_SIZE,
     prefix: PREFIX,
@@ -45,9 +47,8 @@ export const QuotesTable = () => {
         isLoading={isPending}
         navigateTo={(row) => `/quotes/${row.original.id}`}
         noRecords={{
-          title: "No quotes found",
-          message:
-            "There are currently no quotes. Create one from the storefront.",
+          title: t("noRecords.title"),
+          message: t("noRecords.message"),
         }}
         orderBy={["id", "created_at"]}
         pageSize={PAGE_SIZE}

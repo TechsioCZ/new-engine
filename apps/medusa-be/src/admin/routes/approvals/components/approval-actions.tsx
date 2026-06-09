@@ -1,6 +1,7 @@
 import { Check, XMark } from "@medusajs/icons"
 import { IconButton, usePrompt } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { ApprovalStatusType, ApprovalType } from "../../../../types/approval"
 import { useUpdateApproval } from "../../../hooks/api/approvals"
 
@@ -16,6 +17,7 @@ export type ApprovalActionCart = {
 }
 
 export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
+  const { t } = useTranslation("approvals")
   const [isApproving, setIsApproving] = useState(false)
   const [isRejecting, setIsRejecting] = useState(false)
 
@@ -34,8 +36,10 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
   const approveCart = async () => {
     setIsApproving(true)
     const confirmed = await dialog({
-      title: "Are you sure you want to approve this cart?",
-      description: "This action cannot be undone.",
+      title: t("prompts.approveTitle"),
+      description: t("prompts.approveDescription"),
+      confirmText: t("actions.approve"),
+      cancelText: t("actions.cancel"),
     })
 
     if (confirmed) {
@@ -49,8 +53,10 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
   const rejectCart = async () => {
     setIsRejecting(true)
     const confirmed = await dialog({
-      title: "Are you sure you want to reject this cart?",
-      description: "This action cannot be undone.",
+      title: t("prompts.rejectTitle"),
+      description: t("prompts.rejectDescription"),
+      confirmText: t("actions.reject"),
+      cancelText: t("actions.cancel"),
     })
 
     if (confirmed) {
@@ -69,6 +75,7 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
     return (
       <div className="flex gap-2">
         <IconButton
+          aria-label={t("actions.reject")}
           className="h-8 w-8"
           isLoading={isRejecting}
           onClick={rejectCart}
@@ -76,6 +83,7 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
           <XMark />
         </IconButton>
         <IconButton
+          aria-label={t("actions.approve")}
           className="h-8 w-8"
           isLoading={isApproving}
           onClick={approveCart}

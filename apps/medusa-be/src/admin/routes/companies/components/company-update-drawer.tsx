@@ -1,4 +1,5 @@
 import { Drawer, toast } from "@medusajs/ui"
+import { useTranslation } from "react-i18next"
 import type { AdminUpdateCompany, QueryCompany } from "../../../../types"
 import { useUpdateCompany } from "../../../hooks/api"
 import { CompanyForm } from "./company-form"
@@ -12,6 +13,7 @@ export function CompanyUpdateDrawer({
   open: boolean
   setOpen: (open: boolean) => void
 }) {
+  const { t } = useTranslation("companies")
   const { mutateAsync, isPending, error } = useUpdateCompany(company.id)
 
   const currentData = {
@@ -31,10 +33,10 @@ export function CompanyUpdateDrawer({
     await mutateAsync(formData, {
       onSuccess: async () => {
         setOpen(false)
-        toast.success(`Company ${formData.name} updated successfully`)
+        toast.success(t("toasts.companyUpdated", { name: formData.name }))
       },
       onError: (_error) => {
-        toast.error("Failed to update company")
+        toast.error(t("errors.updateCompanyFailed"))
       },
     })
   }
@@ -43,7 +45,7 @@ export function CompanyUpdateDrawer({
     <Drawer onOpenChange={setOpen} open={open}>
       <Drawer.Content className="z-50">
         <Drawer.Header>
-          <Drawer.Title>Edit Company</Drawer.Title>
+          <Drawer.Title>{t("actions.editDetails")}</Drawer.Title>
         </Drawer.Header>
 
         <CompanyForm

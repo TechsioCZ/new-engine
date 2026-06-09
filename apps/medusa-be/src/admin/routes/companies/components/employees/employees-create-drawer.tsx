@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Button, Drawer, toast } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
 import {
   useAdminCreateCustomer,
@@ -9,6 +10,7 @@ import {
 import { EmployeesCreateForm } from "./employees-create-form"
 
 export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
+  const { t } = useTranslation("companies")
   const [open, setOpen] = useState(false)
 
   const {
@@ -34,7 +36,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
       spending_limit === undefined ||
       is_admin === undefined
     ) {
-      toast.error("Missing required employee details")
+      toast.error(t("errors.missingEmployeeDetails"))
       return
     }
 
@@ -47,7 +49,7 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     })
 
     if (!customer?.id) {
-      toast.error("Failed to create customer")
+      toast.error(t("errors.createCustomerFailed"))
       return
     }
 
@@ -58,13 +60,15 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     })
 
     if (!employee) {
-      toast.error("Failed to create employee")
+      toast.error(t("errors.createEmployeeFailed"))
       return
     }
 
     setOpen(false)
     toast.success(
-      `Employee ${customer?.first_name} ${customer?.last_name} created successfully`
+      t("toasts.employeeCreated", {
+        name: `${customer?.first_name} ${customer?.last_name}`,
+      })
     )
   }
 
@@ -75,12 +79,12 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
     <Drawer onOpenChange={setOpen} open={open}>
       <Drawer.Trigger asChild>
         <Button size="small" variant="secondary">
-          Add
+          {t("actions.add")}
         </Button>
       </Drawer.Trigger>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>Add Company Customer</Drawer.Title>
+          <Drawer.Title>{t("employees.createTitle")}</Drawer.Title>
         </Drawer.Header>
         <EmployeesCreateForm
           company={company}

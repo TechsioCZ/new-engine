@@ -45,7 +45,7 @@ export const QuoteItem = ({
   originalItem?: AdminOrderLineItem
   currencyCode: string
 }) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
 
   const isAddedItem = useMemo(
     () => !!item.actions?.find((a) => a.action === "ITEM_ADD"),
@@ -120,13 +120,13 @@ export const QuoteItem = ({
                 rounded="full"
                 size="2xsmall"
               >
-                {t("general.new")}
+                {t("badges.new")}
               </Badge>
             )}
 
             {isItemRemoved ? (
               <Badge className="mr-1" color="red" rounded="full" size="2xsmall">
-                {t("general.removed")}
+                {t("badges.removed")}
               </Badge>
             ) : (
               isItemUpdated && (
@@ -136,7 +136,7 @@ export const QuoteItem = ({
                   rounded="full"
                   size="2xsmall"
                 >
-                  {t("general.modified")}
+                  {t("badges.modified")}
                 </Badge>
               )
             )}

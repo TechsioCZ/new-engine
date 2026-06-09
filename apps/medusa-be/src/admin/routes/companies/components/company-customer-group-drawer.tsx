@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Button, Drawer, Hint, Table, toast } from "@medusajs/ui"
+import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../../types"
 import {
   useAddCompanyToCustomerGroup,
@@ -17,6 +18,7 @@ export function CompanyCustomerGroupDrawer({
   open: boolean
   setOpen: (open: boolean) => void
 }) {
+  const { t } = useTranslation("companies")
   const { mutateAsync: addMutate, isPending: addLoading } =
     useAddCompanyToCustomerGroup(company.id)
 
@@ -27,10 +29,10 @@ export function CompanyCustomerGroupDrawer({
     await addMutate(groupId, {
       onSuccess: async () => {
         setOpen(false)
-        toast.success("Company added to customer group successfully")
+        toast.success(t("toasts.companyAddedToCustomerGroup"))
       },
       onError: (_error) => {
-        toast.error("Failed to add company to customer group")
+        toast.error(t("errors.updateCustomerGroupFailed"))
       },
     })
   }
@@ -38,11 +40,11 @@ export function CompanyCustomerGroupDrawer({
   const handleRemove = async (groupId: string) => {
     await removeMutate(groupId, {
       onSuccess: async () => {
-        toast.success("Company removed from customer group successfully")
+        toast.success(t("toasts.companyRemovedFromCustomerGroup"))
       },
       onError: (error) => {
         console.log(error)
-        toast.error("Failed to remove company from customer group")
+        toast.error(t("errors.removeCustomerGroupFailed"))
       },
     })
   }
@@ -51,21 +53,28 @@ export function CompanyCustomerGroupDrawer({
     <Drawer onOpenChange={setOpen} open={open}>
       <Drawer.Content className="z-50">
         <Drawer.Header>
-          <Drawer.Title>Add {company.name} to a Customer Group</Drawer.Title>
+          <Drawer.Title>
+            {company.name
+              ? t("customerGroup.title", { name: company.name })
+              : t("customerGroup.titleFallback")}
+          </Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="h-full space-y-4 overflow-y-hidden">
           <Hint variant="info">
-            Adding {company.name} to a customer group will automatically add{" "}
-            {company.employees?.length} linked employee
-            {company.employees?.length === 1 ? "" : "s"} to the customer group.
+            {t("customerGroup.hint", {
+              count: company.employees?.length ?? 0,
+              name: company.name,
+            })}
           </Hint>
           <div className="h-full overflow-y-auto">
             <Table>
               <Table.Header>
                 <Table.Row>
-                  <Table.HeaderCell>Customer Group</Table.HeaderCell>
+                  <Table.HeaderCell>
+                    {t("columns.customerGroup")}
+                  </Table.HeaderCell>
                   <Table.HeaderCell className="text-right">
-                    Actions
+                    {t("columns.actions")}
                   </Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
@@ -83,7 +92,7 @@ export function CompanyCustomerGroupDrawer({
                             onClick={() => handleRemove(group.id)}
                             variant="danger"
                           >
-                            Remove
+                            {t("customerGroup.remove")}
                           </Button>
                         ) : (
                           <Button
@@ -95,7 +104,7 @@ export function CompanyCustomerGroupDrawer({
                             isLoading={addLoading}
                             onClick={() => handleAdd(group.id)}
                           >
-                            Add
+                            {t("customerGroup.add")}
                           </Button>
                         )}
                       </Table.Cell>
@@ -103,7 +112,7 @@ export function CompanyCustomerGroupDrawer({
                   ))
                 ) : (
                   <Table.Row>
-                    <Table.Cell>No customer groups found</Table.Cell>
+                    <Table.Cell>{t("customerGroup.empty")}</Table.Cell>
                   </Table.Row>
                 )}
               </Table.Body>

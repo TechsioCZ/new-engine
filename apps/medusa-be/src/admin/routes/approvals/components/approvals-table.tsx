@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { DataTable } from "../../../../admin/components"
 import { useDataTable } from "../../../../admin/hooks"
 import { useApprovals } from "../../../../admin/hooks/api"
@@ -8,6 +9,7 @@ import { useApprovalsTableQuery } from "./table/query"
 const PAGE_SIZE = 50
 
 export const ApprovalsTable = () => {
+  const { t } = useTranslation("approvals")
   const { searchParams, raw } = useApprovalsTableQuery({
     pageSize: PAGE_SIZE,
   })
@@ -36,8 +38,8 @@ export const ApprovalsTable = () => {
         filters={filters}
         isLoading={isPending}
         noRecords={{
-          title: "No approvals found",
-          message: "There are currently no approvals.",
+          title: t("noRecords.title"),
+          message: t("noRecords.message"),
         }}
         orderBy={["id", "created_at"]}
         pageSize={PAGE_SIZE}

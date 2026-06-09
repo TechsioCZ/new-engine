@@ -21,7 +21,7 @@ type ReturnCreateFormProps = {
 }
 
 export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
   const { handleSuccess } = useRouteModal()
   const { order: preview } = useOrderPreview(order.id)
 
@@ -42,10 +42,10 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
     try {
       await confirmQuote({})
 
-      toast.success("Successfully updated quote")
+      toast.success(t("toasts.quoteUpdated"))
       handleSuccess()
     } catch (e) {
-      toast.error(t("general.error"), {
+      toast.error(t("validation.genericError"), {
         description: e.message,
       })
     }
@@ -62,7 +62,7 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
         <RouteFocusModal.Body className="flex size-full justify-center overflow-y-auto">
           <div className="mt-16 w-[720px] max-w-[100%] px-4 md:p-0">
-            <Heading level="h1">Manage Quote</Heading>
+            <Heading level="h1">{t("sections.manageQuote")}</Heading>
 
             <ManageItemsSection order={order} preview={preview} />
 
@@ -70,7 +70,7 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
             <div className="mt-8 border-y border-dotted py-4">
               <div className="mb-2 flex items-center justify-between">
                 <span className="txt-small text-ui-fg-subtle">
-                  {t("orders.edits.currentTotal")}
+                  {t("totals.currentTotal")}
                 </span>
 
                 <span className="txt-small text-ui-fg-subtle">
@@ -80,7 +80,7 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
               <div className="mb-2 flex items-center justify-between">
                 <span className="txt-small text-ui-fg-subtle">
-                  {t("orders.edits.newTotal")}
+                  {t("totals.newTotal")}
                 </span>
 
                 <span className="txt-small text-ui-fg-subtle">

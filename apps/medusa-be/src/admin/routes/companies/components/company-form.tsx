@@ -1,5 +1,6 @@
 import { Button, Drawer, Input, Label, Select, Text } from "@medusajs/ui"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import type { AdminUpdateCompany } from "../../../../types"
 import { useRegions } from "../../../hooks/api"
 
@@ -14,6 +15,7 @@ export function CompanyForm({
   loading: boolean
   error: Error | null
 }) {
+  const { t } = useTranslation("companies")
   const [formData, setFormData] = useState<AdminUpdateCompany>(
     company || ({} as AdminUpdateCompany)
   )
@@ -44,65 +46,65 @@ export function CompanyForm({
     <form onSubmit={handleFormSubmit}>
       <Drawer.Body className="p-4">
         <div className="flex flex-col gap-2">
-          <Label size="xsmall">Company Name</Label>
+          <Label size="xsmall">{t("fields.name")}</Label>
           <Input
             name="name"
             onChange={handleChange}
-            placeholder="Medusa"
+            placeholder={t("placeholders.name")}
             type="text"
             value={formData.name}
           />
-          <Label size="xsmall">Company Phone</Label>
+          <Label size="xsmall">{t("fields.phone")}</Label>
           <Input
             name="phone"
             onChange={handleChange}
-            placeholder="1234567890"
+            placeholder={t("placeholders.phone")}
             type="text"
             value={formData.phone}
           />
-          <Label size="xsmall">Company Email</Label>
+          <Label size="xsmall">{t("fields.email")}</Label>
           <Input
             name="email"
             onChange={handleChange}
-            placeholder="medusa@medusa.com"
+            placeholder={t("placeholders.email")}
             type="email"
             value={formData.email}
           />
-          <Label size="xsmall">Company Address</Label>
+          <Label size="xsmall">{t("fields.address")}</Label>
           <Input
             name="address"
             onChange={handleChange}
-            placeholder="1234 Main St"
+            placeholder={t("placeholders.address")}
             type="text"
             value={formData.address || ""}
           />
-          <Label size="xsmall">Company City</Label>
+          <Label size="xsmall">{t("fields.city")}</Label>
           <Input
             name="city"
             onChange={handleChange}
-            placeholder="New York"
+            placeholder={t("placeholders.city")}
             type="text"
             value={formData.city || ""}
           />
-          <Label size="xsmall">Company State</Label>
+          <Label size="xsmall">{t("fields.state")}</Label>
           <Input
             name="state"
             onChange={handleChange}
-            placeholder="NY"
+            placeholder={t("placeholders.state")}
             type="text"
             value={formData.state || ""}
           />
-          <Label size="xsmall">Company Zip</Label>
+          <Label size="xsmall">{t("fields.zip")}</Label>
           <Input
             name="zip"
             onChange={handleChange}
-            placeholder="10001"
+            placeholder={t("placeholders.zip")}
             type="text"
             value={formData.zip || ""}
           />
           <div className="flex w-full gap-4">
             <div className="flex w-1/2 flex-col gap-2">
-              <Label size="xsmall">Company Country</Label>
+              <Label size="xsmall">{t("fields.country")}</Label>
               <Select
                 disabled={regionsLoading}
                 name="country"
@@ -110,7 +112,7 @@ export function CompanyForm({
                 value={formData.country || ""}
               >
                 <Select.Trigger disabled={regionsLoading}>
-                  <Select.Value placeholder="Select a country" />
+                  <Select.Value placeholder={t("form.selectCountry")} />
                 </Select.Trigger>
                 <Select.Content className="z-50">
                   {countries?.map((country) => (
@@ -125,7 +127,7 @@ export function CompanyForm({
               </Select>
             </div>
             <div className="flex w-1/2 flex-col gap-2">
-              <Label size="xsmall">Currency</Label>
+              <Label size="xsmall">{t("fields.currency")}</Label>
 
               <Select
                 defaultValue={currencyCodes?.[0]}
@@ -135,7 +137,7 @@ export function CompanyForm({
                 value={formData.currency_code || ""}
               >
                 <Select.Trigger disabled={regionsLoading}>
-                  <Select.Value placeholder="Select a currency" />
+                  <Select.Value placeholder={t("form.selectCurrency")} />
                 </Select.Trigger>
 
                 <Select.Content className="z-50">
@@ -149,11 +151,11 @@ export function CompanyForm({
             </div>
           </div>
           {/* TODO: Add logo upload */}
-          <Label size="xsmall">Company Logo URL</Label>
+          <Label size="xsmall">{t("fields.logoUrl")}</Label>
           <Input
             name="logo_url"
             onChange={handleChange}
-            placeholder="https://example.com/logo.png"
+            placeholder={t("placeholders.logoUrl")}
             type="text"
             value={formData.logo_url || ""}
           />
@@ -162,15 +164,15 @@ export function CompanyForm({
       <Drawer.Footer>
         <Drawer.Close asChild>
           <Button type="button" variant="secondary">
-            Cancel
+            {t("actions.cancel")}
           </Button>
         </Drawer.Close>
         <Button isLoading={loading} type="submit">
-          Save
+          {t("actions.save")}
         </Button>
         {error && (
           <Text className="txt-compact-small text-ui-fg-warning">
-            Error: {error?.message}
+            {t("errors.saveErrorPrefix")} {error?.message}
           </Text>
         )}
       </Drawer.Footer>

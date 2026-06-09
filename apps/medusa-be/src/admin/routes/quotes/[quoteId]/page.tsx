@@ -32,7 +32,7 @@ const QuoteDetails = () => {
   const [showSendQuote, setShowSendQuote] = useState(false)
   const [showRejectQuote, setShowRejectQuote] = useState(false)
   const prompt = usePrompt()
-  const { t } = useTranslation()
+  const { t } = useTranslation("quotes")
   const navigate = useNavigate()
   const resolvedQuoteId = quoteId ?? ""
   const { quote, isLoading } = useQuote(
@@ -77,9 +77,8 @@ const QuoteDetails = () => {
 
   const handleSendQuote = async () => {
     const res = await prompt({
-      title: "Send quote?",
-      description:
-        "You are about to send this quote to the customer. Do you want to continue?",
+      title: t("prompts.sendTitle"),
+      description: t("prompts.sendDescription"),
       confirmText: t("actions.continue"),
       cancelText: t("actions.cancel"),
       variant: "confirmation",
@@ -89,7 +88,7 @@ const QuoteDetails = () => {
       await sendQuote(
         {},
         {
-          onSuccess: () => toast.success("Successfully sent quote to customer"),
+          onSuccess: () => toast.success(t("toasts.quoteSent")),
           onError: (e) => toast.error(e.message),
         }
       )
@@ -98,9 +97,8 @@ const QuoteDetails = () => {
 
   const handleRejectQuote = async () => {
     const res = await prompt({
-      title: "Reject quote?",
-      description:
-        "You are about to reject this customer's quote. Do you want to continue?",
+      title: t("prompts.rejectTitle"),
+      description: t("prompts.rejectDescription"),
       confirmText: t("actions.continue"),
       cancelText: t("actions.cancel"),
       variant: "confirmation",
@@ -108,8 +106,7 @@ const QuoteDetails = () => {
 
     if (res) {
       await rejectQuote(undefined, {
-        onSuccess: () =>
-          toast.success("Successfully rejected customer's quote"),
+        onSuccess: () => toast.success(t("toasts.quoteRejected")),
         onError: (e) => toast.error(e.message),
       })
     }
@@ -124,7 +121,7 @@ const QuoteDetails = () => {
   }
 
   if (!preview) {
-    throw new Error("preview not found")
+    throw new Error(t("validation.previewNotFound"))
   }
 
   return (
@@ -136,14 +133,14 @@ const QuoteDetails = () => {
               <div className="flex items-center justify-between px-6 py-4">
                 <Text className="txt-compact-small">
                   <CheckCircleSolid className="mr-2 inline-block text-green-500 text-lg" />
-                  Quote accepted by customer. Order is ready for processing.
+                  {t("toasts.quoteAcceptedReady")}
                 </Text>
 
                 <Button
                   onClick={() => navigate(`/orders/${quote.draft_order_id}`)}
                   size="small"
                 >
-                  View Order
+                  {t("actions.viewOrder")}
                 </Button>
               </div>
             </Container>
@@ -164,7 +161,7 @@ const QuoteDetails = () => {
                     size="small"
                     variant="secondary"
                   >
-                    Reject Quote
+                    {t("actions.rejectQuote")}
                   </Button>
                 )}
 
@@ -175,7 +172,7 @@ const QuoteDetails = () => {
                     size="small"
                     variant="secondary"
                   >
-                    Send Quote
+                    {t("actions.sendQuote")}
                   </Button>
                 )}
               </div>
@@ -190,12 +187,12 @@ const QuoteDetails = () => {
         <div className="mt-2 flex w-full max-w-[100%] flex-col gap-y-3 xl:mt-0 xl:max-w-[400px]">
           <Container className="divide-y p-0">
             <div className="flex items-center justify-between px-6 py-4">
-              <Heading level="h2">Customer</Heading>
+              <Heading level="h2">{t("sections.customer")}</Heading>
             </div>
 
             <div className="grid grid-cols-2 items-start px-6 py-4 text-ui-fg-subtle">
               <Text leading="compact" size="small" weight="plus">
-                Email
+                {t("customer.email")}
               </Text>
 
               <Link
@@ -209,7 +206,7 @@ const QuoteDetails = () => {
 
             <div className="grid grid-cols-2 items-start px-6 py-4 text-ui-fg-subtle">
               <Text leading="compact" size="small" weight="plus">
-                Phone
+                {t("customer.phone")}
               </Text>
 
               <Text className="text-pretty" leading="compact" size="small">
@@ -219,7 +216,7 @@ const QuoteDetails = () => {
 
             <div className="grid grid-cols-2 items-start px-6 py-4 text-ui-fg-subtle">
               <Text leading="compact" size="small" weight="plus">
-                Spending Limit
+                {t("customer.spendingLimit")}
               </Text>
 
               <Text className="text-pretty" leading="compact" size="small">
@@ -234,12 +231,12 @@ const QuoteDetails = () => {
 
           <Container className="divide-y p-0">
             <div className="flex items-center justify-between px-6 py-4">
-              <Heading level="h2">Company</Heading>
+              <Heading level="h2">{t("sections.company")}</Heading>
             </div>
 
             <div className="grid grid-cols-2 items-start px-6 py-4 text-ui-fg-subtle">
               <Text leading="compact" size="small" weight="plus">
-                Name
+                {t("fields.name")}
               </Text>
 
               <Link

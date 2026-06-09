@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 import { RouteFocusModal } from "../../../../components/common/modals/route-focus-modal/route-focus-modal"
 import { useQuote } from "../../../../hooks/api/quotes"
 import { ManageQuoteForm } from "../../components"
 
 const QuoteManage = () => {
+  const { t } = useTranslation("quotes")
   const { quoteId } = useParams()
   const { quote, isLoading } = useQuote(
     quoteId ?? "",
@@ -19,7 +21,7 @@ const QuoteManage = () => {
   }
 
   if (!quote) {
-    throw new Error("quote not found")
+    throw new Error(t("validation.quoteNotFound"))
   }
 
   return (
