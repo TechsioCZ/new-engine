@@ -23,6 +23,7 @@ import type {
   UpdateProductListInput,
   UpdateProductListItemInput,
 } from "./types"
+import { compactRecord } from "../shared/object-utils"
 export {
   findProductListItem,
   getProductListItemCount,
@@ -38,11 +39,6 @@ export {
 const DEFAULT_PRODUCT_LISTS_PATH = "/store/product-lists"
 
 type PlainQuery = Record<string, unknown>
-
-const compactRecord = (record: Record<string, unknown>) =>
-  Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined)
-  )
 
 const normalizeQuantity = (quantity?: number | null) => {
   if (typeof quantity !== "number" || !Number.isFinite(quantity)) {
@@ -75,6 +71,25 @@ export type MedusaProductListListInput = {
 
 export type MedusaProductListDetailInput = {
   id?: string | null
+}
+
+export type MedusaProductListListHookInput = MedusaProductListListInput & {
+  page?: number
+  customerId?: string | null
+  enabled?: boolean
+}
+
+export type MedusaProductListDetailHookInput = MedusaProductListDetailInput & {
+  customerId?: string | null
+  enabled?: boolean
+}
+
+export type MedusaProductListListKeyInput = MedusaProductListListInput & {
+  customerId?: string | null
+}
+
+export type MedusaProductListDetailKeyInput = MedusaProductListDetailInput & {
+  customerId?: string | null
 }
 
 export type MedusaProductListServiceConfig<

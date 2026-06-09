@@ -241,13 +241,10 @@
       "types": "./dist/src/product-lists/query-keys.d.ts",
       "import": "./dist/product-lists/query-keys.js"
     },
-<<<<<<< Updated upstream
-=======
     "./product-lists/query-options": {
       "types": "./dist/src/product-lists/query-options.d.ts",
       "import": "./dist/product-lists/query-options.js"
     },
->>>>>>> Stashed changes
     "./product-lists/types": {
       "types": "./dist/src/product-lists/types.d.ts",
       "import": "./dist/product-lists/types.js"
@@ -300,8 +297,6 @@
     }
   },
   "devDependencies": {
-    "@medusajs/js-sdk": "2.14.1",
-    "@medusajs/types": "2.14.1",
     "@rsbuild/plugin-react": "^1.4.1",
     "@rslib/core": "^0.18.0",
     "@testing-library/react": "^16.3.1",

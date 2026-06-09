@@ -30,13 +30,8 @@ import type {
 } from "../src/orders/medusa-service"
 import type { OrderQueryKeys } from "../src/orders/types"
 import type {
-<<<<<<< Updated upstream
-  MedusaProductListDetailInput,
-  MedusaProductListListInput,
-=======
   MedusaProductListDetailKeyInput,
   MedusaProductListListKeyInput,
->>>>>>> Stashed changes
 } from "../src/product-lists/medusa-service"
 import type { ProductListQueryKeys } from "../src/product-lists/types"
 import type { CartQueryKeys } from "../src/cart/types"
@@ -249,8 +244,6 @@ describe("createMedusaStorefrontPreset", () => {
         id: "list_1",
       },
     ])
-<<<<<<< Updated upstream
-=======
   })
 
   it("exposes product-list hook input controls through preset types", () => {
@@ -264,6 +257,9 @@ describe("createMedusaStorefrontPreset", () => {
     type ProductListInput = Parameters<
       typeof preset.hooks.productLists.useProductList
     >[0]
+    type SuspenseProductListInput = Parameters<
+      typeof preset.hooks.productLists.useSuspenseProductList
+    >[0]
 
     const listInput = {
       page: 2,
@@ -276,10 +272,19 @@ describe("createMedusaStorefrontPreset", () => {
       customerId: "cus_1",
       enabled: false,
     } satisfies ProductListInput
+    const suspenseDetailInput = {
+      id: "list_1",
+      customerId: "cus_1",
+    } satisfies SuspenseProductListInput
+    // @ts-expect-error suspense product-list detail input requires id
+    const missingSuspenseInput: SuspenseProductListInput = {
+      customerId: "cus_1",
+    }
 
     expect(listInput.page).toBe(2)
     expect(detailInput.enabled).toBe(false)
->>>>>>> Stashed changes
+    expect(suspenseDetailInput.id).toBe("list_1")
+    expect(missingSuspenseInput.customerId).toBe("cus_1")
   })
 
   it("passes domain hook overrides to the composed hooks", async () => {
@@ -415,13 +420,8 @@ describe("createMedusaStorefrontPreset", () => {
     }
     const customProductListNamespace = ["custom", "product-lists"] as const
     const customProductListQueryKeys: ProductListQueryKeys<
-<<<<<<< Updated upstream
-      MedusaProductListListInput & { customerId?: string | null },
-      MedusaProductListDetailInput & { customerId?: string | null }
-=======
       MedusaProductListListKeyInput,
       MedusaProductListDetailKeyInput
->>>>>>> Stashed changes
     > = {
       all: () => createQueryKey(customProductListNamespace),
       list: (params) =>

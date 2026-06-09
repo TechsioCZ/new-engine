@@ -7,6 +7,7 @@ import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
+import { compactRecord } from "../shared/object-utils"
 import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createProductListQueryKeys } from "./query-keys"
@@ -73,11 +74,6 @@ export type ProductListQueryOptionsFactory<
     }
   ) => QueryFactoryOptions<TProductList | null>
 }
-
-const compactRecord = (record: Record<string, unknown>) =>
-  Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined)
-  )
 
 const stripListInput = <TInput extends ProductListListInputBase>(
   input: TInput

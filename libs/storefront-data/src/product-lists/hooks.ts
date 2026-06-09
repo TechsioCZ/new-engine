@@ -21,6 +21,7 @@ import type {
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 import type { QueryResult } from "../shared/hook-result-types"
+import { compactRecord } from "../shared/object-utils"
 import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { CartQueryKeys } from "../cart/types"
@@ -58,8 +59,10 @@ type SuspenseListInput<TInput extends ProductListListInputBase> = Omit<
 >
 type SuspenseDetailInput<TInput extends ProductListDetailInputBase> = Omit<
   TInput,
-  "enabled"
->
+  "enabled" | "id"
+> & {
+  id: NonNullable<TInput["id"]>
+}
 
 export type CreateProductListHooksConfig<
   TProductList,
@@ -272,11 +275,6 @@ export type ProductListHooks<
     TContext
   >
 }
-
-const compactRecord = (record: Record<string, unknown>) =>
-  Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined)
-  )
 
 const stripListInput = (input: ProductListListInputBase) => {
   const {
@@ -519,6 +517,10 @@ export function createProductListHooks<
       queryOptions?: SuspenseQueryOptions<TProductList | null>
     }
   ): UseSuspenseProductListResult<TProductList> {
+    if (!input.id) {
+      throw new Error("Product list id is required")
+    }
+
     const query = useSuspenseQuery({
       ...getDetailQueryOptions(input as TDetailInput, {
         queryOptions: options?.queryOptions as ReadQueryOptions<
