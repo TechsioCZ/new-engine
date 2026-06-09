@@ -340,6 +340,9 @@ module.exports = defineConfig({
       resolve: "./src/modules/product-list",
     },
     {
+      resolve: "./src/modules/product-review",
+    },
+    {
       resolve: "./src/modules/email-log",
     },
     {
