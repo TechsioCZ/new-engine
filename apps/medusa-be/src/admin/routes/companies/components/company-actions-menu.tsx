@@ -1,5 +1,10 @@
-import type { HttpTypes } from "@medusajs/framework/types"
-import { Link, LockClosedSolid, PencilSquare, Trash } from "@medusajs/icons"
+import {
+  ArrowUturnLeft,
+  Link,
+  LockClosedSolid,
+  PencilSquare,
+  Trash,
+} from "@medusajs/icons"
 import { toast } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -7,20 +12,14 @@ import { useNavigate } from "react-router-dom"
 import type { QueryCompany } from "../../../../types"
 import { ActionMenu } from "../../../components/common"
 import { DeletePrompt } from "../../../components/common/delete-prompt"
-import { useDeleteCompany } from "../../../hooks/api"
+import { useDeleteCompany, useRestoreCompany } from "../../../hooks/api"
 import {
   CompanyApprovalSettingsDrawer,
   CompanyCustomerGroupDrawer,
   CompanyUpdateDrawer,
 } from "./"
 
-export const CompanyActionsMenu = ({
-  company,
-  customerGroups,
-}: {
-  company: QueryCompany
-  customerGroups?: HttpTypes.AdminCustomerGroup[]
-}) => {
+export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
   const { t } = useTranslation("companies")
   const [editOpen, setEditOpen] = useState(false)
   const [customerGroupOpen, setCustomerGroupOpen] = useState(false)
@@ -28,16 +27,48 @@ export const CompanyActionsMenu = ({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
     useDeleteCompany(company.id)
+  const { mutateAsync: mutateRestore, isPending: loadingRestore } =
+    useRestoreCompany(company.id)
 
   const navigate = useNavigate()
 
   const handleDelete = () => {
-    mutateDelete(company.id, {
+    mutateDelete(undefined, {
       onSuccess: () => {
         navigate("/companies")
         toast.success(t("toasts.companyDeleted", { name: company.name }))
       },
     })
+  }
+
+  const handleRestore = () => {
+    mutateRestore(undefined, {
+      onSuccess: () => {
+        toast.success(t("toasts.companyRestored", { name: company.name }))
+      },
+      onError: () => {
+        toast.error(t("errors.restoreCompanyFailed"))
+      },
+    })
+  }
+
+  if (company.deleted_at) {
+    return (
+      <ActionMenu
+        groups={[
+          {
+            actions: [
+              {
+                disabled: loadingRestore,
+                icon: <ArrowUturnLeft />,
+                label: t("actions.restore"),
+                onClick: handleRestore,
+              },
+            ],
+          },
+        ]}
+      />
+    )
   }
 
   return (
@@ -82,7 +113,6 @@ export const CompanyActionsMenu = ({
       />
       <CompanyCustomerGroupDrawer
         company={company}
-        customerGroups={customerGroups}
         open={customerGroupOpen}
         setOpen={setCustomerGroupOpen}
       />

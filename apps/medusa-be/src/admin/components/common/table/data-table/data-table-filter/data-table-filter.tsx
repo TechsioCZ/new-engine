@@ -1,5 +1,10 @@
 import { Button, clx } from "@medusajs/ui"
-import * as Popover from "@radix-ui/react-popover"
+import {
+  Content as PopoverContent,
+  Portal as PopoverPortal,
+  Root as PopoverRoot,
+  Trigger as PopoverTrigger,
+} from "@radix-ui/react-popover"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
@@ -69,30 +74,16 @@ export const DataTableFilter = ({
 
   useEffect(() => {
     if (initialMount.current) {
-      const params = new URLSearchParams(searchParams)
-
-      filters.forEach((filter) => {
-        const key = prefix ? `${prefix}_${filter.key}` : filter.key
-        const value = params.get(key)
-        if (value && !activeFilters.find((af) => af.key === filter.key)) {
-          if (filter.type === "select") {
-            setActiveFilters((prev) => [
-              ...prev,
-              {
-                ...filter,
-                multiple: filter.multiple,
-                options: filter.options,
-                openOnMount: false,
-              },
-            ])
-          } else {
-            setActiveFilters((prev) => [
-              ...prev,
-              { ...filter, openOnMount: false },
-            ])
-          }
-        }
+      const missingFilters = getMissingActiveFilters({
+        activeFilters,
+        filters,
+        prefix,
+        searchParams,
       })
+
+      if (missingFilters.length) {
+        setActiveFilters((prev) => [...prev, ...missingFilters])
+      }
     }
 
     initialMount.current = false
@@ -158,18 +149,18 @@ export const DataTableFilter = ({
                 />
               )
             default:
-              break
+              return null
           }
         })}
         {!readonly && availableFilters.length > 0 && (
-          <Popover.Root modal onOpenChange={setOpen} open={open}>
-            <Popover.Trigger asChild id="filters_menu_trigger">
+          <PopoverRoot modal onOpenChange={setOpen} open={open}>
+            <PopoverTrigger asChild id="filters_menu_trigger">
               <Button size="small" variant="secondary">
                 {t("filters.addFilter")}
               </Button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content
+            </PopoverTrigger>
+            <PopoverPortal>
+              <PopoverContent
                 align="start"
                 className={clx(
                   "z-[1] h-full max-h-[200px] w-[300px] overflow-auto rounded-lg bg-ui-bg-base p-1 text-ui-fg-base shadow-elevation-flyout outline-none"
@@ -188,20 +179,20 @@ export const DataTableFilter = ({
                 sideOffset={8}
               >
                 {availableFilters.map((filter) => (
-                  <div
-                    className="txt-compact-small relative flex cursor-pointer select-none items-center rounded-md bg-ui-bg-base px-2 py-1.5 text-ui-fg-base outline-none transition-colors hover:bg-ui-bg-base-hover focus-visible:bg-ui-bg-base-pressed data-[disabled]:pointer-events-none data-[disabled]:text-ui-fg-disabled"
+                  <button
+                    className="txt-compact-small relative flex w-full cursor-pointer select-none items-center rounded-md bg-ui-bg-base px-2 py-1.5 text-left text-ui-fg-base outline-none transition-colors hover:bg-ui-bg-base-hover focus-visible:bg-ui-bg-base-pressed data-[disabled]:pointer-events-none data-[disabled]:text-ui-fg-disabled"
                     key={filter.key}
                     onClick={() => {
                       addFilter(filter)
                     }}
-                    role="menuitem"
+                    type="button"
                   >
                     {filter.label}
-                  </div>
+                  </button>
                 ))}
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
+              </PopoverContent>
+            </PopoverPortal>
+          </PopoverRoot>
         )}
         {!readonly && activeFilters.length > 0 && (
           <ClearAllFilters filters={filters} prefix={prefix} />
@@ -225,9 +216,9 @@ const ClearAllFilters = ({ filters, prefix }: ClearAllFiltersProps) => {
     setSearchParams((prev) => {
       const newValues = new URLSearchParams(prev)
 
-      filters.forEach((filter) => {
+      for (const filter of filters) {
         newValues.delete(prefix ? `${prefix}_${filter.key}` : filter.key)
-      })
+      }
 
       return newValues
     })
@@ -262,7 +253,7 @@ const getInitialFilters = ({
   const params = new URLSearchParams(searchParams)
   const activeFilters: (Filter & { openOnMount: boolean })[] = []
 
-  filters.forEach((filter) => {
+  for (const filter of filters) {
     const key = prefix ? `${prefix}_${filter.key}` : filter.key
     const value = params.get(key)
     if (value) {
@@ -277,7 +268,42 @@ const getInitialFilters = ({
         activeFilters.push({ ...filter, openOnMount: false })
       }
     }
-  })
+  }
 
   return activeFilters
+}
+
+const getMissingActiveFilters = ({
+  searchParams,
+  filters,
+  activeFilters,
+  prefix,
+}: {
+  searchParams: URLSearchParams
+  filters: Filter[]
+  activeFilters: (Filter & { openOnMount: boolean })[]
+  prefix?: string
+}) => {
+  const params = new URLSearchParams(searchParams)
+  const missingFilters: (Filter & { openOnMount: boolean })[] = []
+
+  for (const filter of filters) {
+    const key = prefix ? `${prefix}_${filter.key}` : filter.key
+    const value = params.get(key)
+
+    if (value && !activeFilters.find((af) => af.key === filter.key)) {
+      if (filter.type === "select") {
+        missingFilters.push({
+          ...filter,
+          multiple: filter.multiple,
+          options: filter.options,
+          openOnMount: false,
+        })
+      } else {
+        missingFilters.push({ ...filter, openOnMount: false })
+      }
+    }
+  }
+
+  return missingFilters
 }

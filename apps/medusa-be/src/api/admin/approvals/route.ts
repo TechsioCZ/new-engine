@@ -3,11 +3,32 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import type { AdminApproval, AdminCartWithApprovals } from "../../../types"
 import type { AdminGetApprovalsType } from "./validators"
 
 type ApprovalStatusFilters = {
   status?: AdminGetApprovalsType["status"]
 }
+
+type GraphApprovalCart = Omit<AdminCartWithApprovals, "approval_requests"> & {
+  approvals?: AdminApproval[]
+  approval_requests?: AdminApproval[]
+}
+
+const normalizeApprovalCart = (
+  cart: GraphApprovalCart
+): AdminCartWithApprovals => {
+  const { approvals, approval_requests, ...normalizedCart } = cart
+
+  return {
+    ...normalizedCart,
+    approval_requests: approval_requests ?? approvals ?? [],
+  }
+}
+
+const isApprovalCart = (
+  cart: GraphApprovalCart | null
+): cart is GraphApprovalCart => Boolean(cart)
 
 export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetApprovalsType>,
@@ -35,8 +56,9 @@ export const GET = async (
   })
 
   const carts = approvalStatuses
-    .map((approvalStatus) => approvalStatus.cart)
-    .filter(Boolean)
+    .map((approvalStatus) => approvalStatus.cart as GraphApprovalCart | null)
+    .filter(isApprovalCart)
+    .map(normalizeApprovalCart)
 
   res.json({
     carts_with_approvals: carts,

@@ -1,24 +1,69 @@
 import {
   createWorkflow,
+  transform,
   type WorkflowData,
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
 import type { ModuleUpdateEmployee, QueryEmployee } from "../../../types"
-import { removeAdminRoleStep, updateEmployeesStep } from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps"
+import {
+  getEmployeeAdminStateStep,
+  removeAdminRoleStep,
+  setAdminRoleStep,
+  updateEmployeesStep,
+} from "../steps"
 
 export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
   (
     input: WorkflowData<ModuleUpdateEmployee>
   ): WorkflowResponse<QueryEmployee> => {
-    const updatedEmployee = updateEmployeesStep(input)
+    validateCompanyActiveStep(input.company_id)
 
-    when(updatedEmployee, ({ is_admin }) => is_admin === false).then(() => {
+    const previousEmployee = getEmployeeAdminStateStep({
+      company_id: input.company_id,
+      id: input.id,
+    })
+    const updateInput = transform(
+      { input, previousEmployee },
+      (updateData) => updateData.input
+    )
+    const updatedEmployee = updateEmployeesStep(updateInput)
+
+    const adminRoleChange = transform(
+      { previousEmployee, updatedEmployee },
+      (roleData) => ({
+        customerId: roleData.updatedEmployee.customer?.id ?? "",
+        email: roleData.updatedEmployee.customer?.email ?? "",
+        shouldRemoveAdminRole:
+          roleData.previousEmployee.is_admin === true &&
+          roleData.updatedEmployee.is_admin === false &&
+          !!roleData.updatedEmployee.customer?.email,
+        shouldSetAdminRole:
+          roleData.previousEmployee.is_admin === false &&
+          roleData.updatedEmployee.is_admin === true &&
+          !!roleData.updatedEmployee.customer?.id,
+      })
+    )
+
+    when(
+      adminRoleChange,
+      ({ shouldRemoveAdminRole }) => shouldRemoveAdminRole
+    ).then(() => {
       removeAdminRoleStep({
-        email: updatedEmployee.customer.email,
+        email: adminRoleChange.email,
       })
     })
+
+    when(adminRoleChange, ({ shouldSetAdminRole }) => shouldSetAdminRole).then(
+      () => {
+        setAdminRoleStep({
+          customerId: adminRoleChange.customerId,
+          employeeId: updatedEmployee.id,
+        })
+      }
+    )
 
     return new WorkflowResponse(updatedEmployee)
   }

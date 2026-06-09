@@ -9,6 +9,7 @@ import {
   adminEmployeeQueryConfig,
 } from "./query-config"
 import {
+  AdminAddCompanyToCustomerGroup,
   AdminCreateCompany,
   AdminCreateEmployee,
   AdminGetApprovalSettingsParams,
@@ -57,6 +58,27 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     matcher: "/admin/companies/:id",
     middlewares: [
       validateAndTransformBody(AdminUpdateCompany),
+      validateAndTransformQuery(
+        AdminGetCompanyParams,
+        adminCompanyQueryConfig.retrieve
+      ),
+    ],
+  },
+  {
+    method: ["POST"],
+    matcher: "/admin/companies/:id/customer-group",
+    middlewares: [
+      validateAndTransformBody(AdminAddCompanyToCustomerGroup),
+      validateAndTransformQuery(
+        AdminGetCompanyParams,
+        adminCompanyQueryConfig.retrieve
+      ),
+    ],
+  },
+  {
+    method: ["POST"],
+    matcher: "/admin/companies/:id/restore",
+    middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
         adminCompanyQueryConfig.retrieve

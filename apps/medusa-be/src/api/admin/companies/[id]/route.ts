@@ -26,6 +26,7 @@ export const GET = async (
       entity: "companies",
       fields: req.queryConfig.fields,
       filters: { id },
+      withDeleted: req.queryConfig.withDeleted,
     },
     { throwIfKeyNotFound: true }
   )
@@ -39,9 +40,13 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+  const workflowInput = {
+    id,
+    update: { ...req.validatedBody },
+  }
 
   await updateCompaniesWorkflow.run({
-    input: { ...req.body, id },
+    input: workflowInput,
     container: req.scope,
   })
 
@@ -69,6 +74,7 @@ export const DELETE = async (
     input: {
       id,
     },
+    container: req.scope,
   })
 
   res.status(200).json({

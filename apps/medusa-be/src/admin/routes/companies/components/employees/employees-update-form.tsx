@@ -9,6 +9,7 @@ import {
 } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
 import type {
   AdminUpdateEmployee,
   QueryCompany,
@@ -16,6 +17,10 @@ import type {
 } from "../../../../../types"
 import { CoolSwitch } from "../../../../components/common"
 import { currencySymbolMap } from "../../../../utils"
+
+const getCurrencySymbol = (currencyCode: string) =>
+  currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
+  currencyCode.toUpperCase()
 
 export function EmployeesUpdateForm({
   company,
@@ -31,6 +36,9 @@ export function EmployeesUpdateForm({
   error: Error | null
 }) {
   const { t } = useTranslation("companies")
+  const navigate = useNavigate()
+  const currencyCode = company.currency_code?.toLowerCase() || "usd"
+  const customerId = employee.customer?.id
   const [formData, setFormData] = useState<{
     spending_limit: string
     is_admin: boolean
@@ -47,12 +55,8 @@ export function EmployeesUpdateForm({
       : undefined
 
     const data = {
-      ...formData,
-      id: employee?.id,
+      is_admin: formData.is_admin,
       spending_limit: spendingLimit,
-      raw_spending_limit: {
-        value: spendingLimit,
-      },
     }
 
     handleSubmit(data)
@@ -64,13 +68,22 @@ export function EmployeesUpdateForm({
         <div className="flex flex-col gap-2">
           <div className="mb-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h2 className="h2-core">{t("employees.details")}</h2>
-              <a
-                className="txt-compact-small self-end text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-                href={`/app/customers/${employee?.customer?.id}/edit`}
+              <Text leading="compact" size="small" weight="plus">
+                {t("employees.details")}
+              </Text>
+              <Button
+                disabled={!customerId}
+                onClick={() => {
+                  if (customerId) {
+                    navigate(`/customers/${customerId}/edit`)
+                  }
+                }}
+                size="small"
+                type="button"
+                variant="secondary"
               >
                 {t("actions.editCustomerDetails")}
-              </a>
+              </Button>
             </div>
             <Container className="overflow-hidden p-0">
               <Table>
@@ -107,13 +120,15 @@ export function EmployeesUpdateForm({
             </Container>
           </div>
           <div className="flex flex-col gap-4">
-            <h2 className="h2-core">{t("employees.permissions")}</h2>
+            <Text leading="compact" size="small" weight="plus">
+              {t("employees.permissions")}
+            </Text>
             <div className="flex flex-col gap-2">
               <Label className="txt-compact-small font-medium" size="xsmall">
                 {t("columns.spendingLimit")}
               </Label>
               <CurrencyInput
-                code={company.currency_code || "USD"}
+                code={currencyCode}
                 name="spending_limit"
                 onChange={(e) =>
                   setFormData({
@@ -122,7 +137,7 @@ export function EmployeesUpdateForm({
                   })
                 }
                 placeholder={t("placeholders.spendingLimit")}
-                symbol={currencySymbolMap[company.currency_code || "USD"]}
+                symbol={getCurrencySymbol(currencyCode)}
                 value={formData.spending_limit}
               />
             </div>
@@ -145,15 +160,23 @@ export function EmployeesUpdateForm({
         </div>
       </Drawer.Body>
       <Drawer.Footer>
-        <Drawer.Close asChild>
-          <Button type="button" variant="secondary">
-            {t("actions.cancel")}
-          </Button>
-        </Drawer.Close>
-        <Button disabled={loading} type="submit">
-          {loading ? t("status.saving") : t("actions.save")}
-        </Button>
-        {error && <Text className="text-red-500">{error.message}</Text>}
+        <div className="flex w-full flex-col gap-3">
+          {error && (
+            <Text className="txt-compact-small text-ui-fg-error">
+              {error.message}
+            </Text>
+          )}
+          <div className="flex justify-end gap-2">
+            <Drawer.Close asChild>
+              <Button size="small" type="button" variant="secondary">
+                {t("actions.cancel")}
+              </Button>
+            </Drawer.Close>
+            <Button disabled={loading} size="small" type="submit">
+              {loading ? t("status.saving") : t("actions.save")}
+            </Button>
+          </div>
+        </div>
       </Drawer.Footer>
     </form>
   )

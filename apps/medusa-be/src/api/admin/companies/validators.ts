@@ -1,9 +1,16 @@
 import { z } from "@medusajs/framework/zod"
-import { createSelectParams } from "@medusajs/medusa/api/utils/validators"
+import {
+  createFindParams,
+  createSelectParams,
+} from "@medusajs/medusa/api/utils/validators"
 
 /* Company Validators */
 export type AdminGetCompanyParamsType = z.infer<typeof AdminGetCompanyParams>
-export const AdminGetCompanyParams = createSelectParams()
+export const AdminGetCompanyParams = createFindParams().merge(
+  z.object({
+    q: z.string().optional(),
+  })
+)
 
 export type AdminCreateCompanyType = z.infer<typeof AdminCreateCompany>
 export const AdminCreateCompany = z
@@ -79,7 +86,6 @@ export const AdminCreateEmployee = z
 export type AdminUpdateEmployeeType = z.infer<typeof AdminUpdateEmployee>
 export const AdminUpdateEmployee = z
   .object({
-    id: z.string(),
     spending_limit: z.number().optional(),
     raw_spending_limit: z
       .object({

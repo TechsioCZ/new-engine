@@ -20,6 +20,9 @@ type ReturnCreateFormProps = {
   order: AdminOrder
 }
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
   const { t } = useTranslation("quotes")
   const { handleSuccess } = useRouteModal()
@@ -40,13 +43,13 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
   const handleSubmit = form.handleSubmit(async () => {
     try {
-      await confirmQuote({})
+      await confirmQuote()
 
       toast.success(t("toasts.quoteUpdated"))
       handleSuccess()
     } catch (e) {
       toast.error(t("validation.genericError"), {
-        description: e.message,
+        description: getErrorMessage(e),
       })
     }
   })

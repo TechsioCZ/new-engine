@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import {
   deleteEmployeesWorkflow,
@@ -10,10 +13,10 @@ import type {
 } from "../../../validators"
 
 export const GET = async (
-  req: MedusaRequest<StoreGetEmployeeParamsType>,
+  req: AuthenticatedMedusaRequest<StoreGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const { employeeId } = req.params
+  const { id, employeeId } = req.params
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -25,6 +28,7 @@ export const GET = async (
       fields: req.queryConfig.fields,
       filters: {
         ...req.filterableFields,
+        company_id: id,
         id: employeeId,
       },
     },
@@ -35,7 +39,7 @@ export const GET = async (
 }
 
 export const POST = async (
-  req: MedusaRequest<StoreUpdateEmployeeType>,
+  req: AuthenticatedMedusaRequest<StoreUpdateEmployeeType>,
   res: MedusaResponse
 ) => {
   const { id, employeeId } = req.params
@@ -61,6 +65,7 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: {
         ...req.filterableFields,
+        company_id: id,
         id: employeeId,
       },
     },
@@ -70,11 +75,17 @@ export const POST = async (
   res.json({ employee })
 }
 
-export const DELETE = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { employeeId } = req.params
+export const DELETE = async (
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) => {
+  const { id, employeeId } = req.params
 
   await deleteEmployeesWorkflow.run({
-    input: [employeeId],
+    input: {
+      company_id: id,
+      id: employeeId,
+    },
     container: req.scope,
   })
 

@@ -21,14 +21,18 @@ import { orderPreviewQueryKey } from "./order-preview"
 
 export const quoteQueryKey = queryKeysFactory("quote")
 
+type UpdateQuoteItemPayload = HttpTypes.AdminUpdateOrderEditItem & {
+  unit_price?: number
+}
+
+type QueryOptions<TData> = Omit<
+  UseQueryOptions<TData, FetchError, TData, QueryKey>,
+  "queryFn" | "queryKey"
+>
+
 export const useQuotes = (
   quoteQuery: QuoteFilterParams,
-  options?: UseQueryOptions<
-    StoreQuotesResponse,
-    FetchError,
-    StoreQuotesResponse,
-    QueryKey
-  >
+  options?: QueryOptions<StoreQuotesResponse>
 ) => {
   const fetchQuotes = (filters: QuoteFilterParams, headers?: ClientHeaders) =>
     sdk.client.fetch<StoreQuotesResponse>("/admin/quotes", {
@@ -39,7 +43,7 @@ export const useQuotes = (
   const { data, ...rest } = useQuery({
     ...options,
     queryFn: () => fetchQuotes(quoteQuery),
-    queryKey: quoteQueryKey.list(),
+    queryKey: quoteQueryKey.list(quoteQuery),
   })
 
   return { ...data, ...rest }
@@ -48,12 +52,7 @@ export const useQuotes = (
 export const useQuote = (
   id: string,
   quoteQuery?: QuoteFilterParams,
-  options?: UseQueryOptions<
-    StoreQuoteResponse,
-    FetchError,
-    StoreQuoteResponse,
-    QueryKey
-  >
+  options?: QueryOptions<StoreQuoteResponse>
 ) => {
   const fetchQuote = (
     quoteId: string,
@@ -67,7 +66,7 @@ export const useQuote = (
 
   const { data, ...rest } = useQuery({
     queryFn: () => fetchQuote(id, quoteQuery),
-    queryKey: quoteQueryKey.detail(id),
+    queryKey: quoteQueryKey.detail(id, quoteQuery),
     ...options,
   })
 
@@ -103,7 +102,7 @@ export const useUpdateQuoteItem = (
   options?: UseMutationOptions<
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError,
-    HttpTypes.AdminUpdateOrderEditItem & { itemId: string }
+    UpdateQuoteItemPayload & { itemId: string }
   >
 ) => {
   const queryClient = useQueryClient()
@@ -112,7 +111,7 @@ export const useUpdateQuoteItem = (
     mutationFn: ({
       itemId,
       ...payload
-    }: HttpTypes.AdminUpdateOrderEditItem & { itemId: string }) =>
+    }: UpdateQuoteItemPayload & { itemId: string }) =>
       sdk.admin.orderEdit.updateOriginalItem(id, itemId, payload),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
@@ -153,7 +152,7 @@ export const useUpdateAddedQuoteItem = (
   options?: UseMutationOptions<
     HttpTypes.AdminOrderEditPreviewResponse,
     FetchError,
-    HttpTypes.AdminUpdateOrderEditItem & { actionId: string }
+    UpdateQuoteItemPayload & { actionId: string }
   >
 ) => {
   const queryClient = useQueryClient()
@@ -162,7 +161,7 @@ export const useUpdateAddedQuoteItem = (
     mutationFn: ({
       actionId,
       ...payload
-    }: HttpTypes.AdminUpdateOrderEditItem & { actionId: string }) =>
+    }: UpdateQuoteItemPayload & { actionId: string }) =>
       sdk.admin.orderEdit.updateAddedItem(id, actionId, payload),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
@@ -217,7 +216,7 @@ export const useSendQuote = (
       })
 
       queryClient.invalidateQueries({
-        queryKey: quoteQueryKey.detail(id),
+        queryKey: quoteQueryKey.details(),
       })
 
       queryClient.invalidateQueries({
@@ -249,7 +248,7 @@ export const useRejectQuote = (
       })
 
       queryClient.invalidateQueries({
-        queryKey: quoteQueryKey.detail(id),
+        queryKey: quoteQueryKey.details(),
       })
 
       queryClient.invalidateQueries({

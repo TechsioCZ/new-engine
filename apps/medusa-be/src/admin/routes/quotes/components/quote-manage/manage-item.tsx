@@ -31,11 +31,18 @@ import {
 import { currencySymbolMap } from "../../../../utils"
 
 type ManageItemProps = {
-  originalItem: AdminOrder["items"][0]
+  originalItem?: AdminOrder["items"][0]
   item: AdminOrderPreview["items"][0]
   currencyCode: string
   orderId: string
 }
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
+const getCurrencySymbol = (currencyCode: string) =>
+  currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
+  currencyCode.toUpperCase()
 
 function ManageItem({
   originalItem,
@@ -102,7 +109,7 @@ function ManageItem({
         })
       }
     } catch (e) {
-      toast.error(e.message)
+      toast.error(getErrorMessage(e))
     }
   }
 
@@ -119,7 +126,7 @@ function ManageItem({
         })
       }
     } catch (e) {
-      toast.error(e.message)
+      toast.error(getErrorMessage(e))
     }
   }
 
@@ -133,11 +140,15 @@ function ManageItem({
         await undoAction(updateItemAction.id)
       }
     } catch (e) {
-      toast.error(e.message)
+      toast.error(getErrorMessage(e))
     }
   }
 
   const onDuplicate = async () => {
+    if (!item.variant_id) {
+      return
+    }
+
     try {
       await addItems({
         items: [
@@ -148,7 +159,7 @@ function ManageItem({
         ],
       })
     } catch (e) {
-      toast.error(e.message)
+      toast.error(getErrorMessage(e))
     }
   }
 
@@ -285,7 +296,7 @@ function ManageItem({
                       <CurrencyInput
                         {...field}
                         className="bg-ui-bg-field-component hover:bg-ui-bg-field-component-hover"
-                        code={currencySymbolMap[currencyCode]}
+                        code={currencyCode}
                         defaultValue={item.unit_price}
                         min={0}
                         onBlur={() => {
@@ -296,7 +307,7 @@ function ManageItem({
                             quantity: item.quantity,
                           })
                         }}
-                        symbol={currencyCode}
+                        symbol={getCurrencySymbol(currencyCode)}
                         type="numeric"
                       />
                     </Form.Control>

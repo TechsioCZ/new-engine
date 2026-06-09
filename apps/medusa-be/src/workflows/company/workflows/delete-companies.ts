@@ -4,11 +4,16 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import type { ModuleDeleteCompany } from "../../../types"
 import { deleteApprovalSettingsStep } from "../../approval/steps/delete-approval-settings"
-import { deleteCompaniesStep } from "../steps"
+import {
+  deleteCompaniesStep,
+  removeCompanyCustomerGroupLinkStep,
+} from "../steps"
 
 export const deleteCompaniesWorkflow = createWorkflow(
   "delete-companies",
   (input: ModuleDeleteCompany) => {
+    removeCompanyCustomerGroupLinkStep(input.id)
+
     deleteCompaniesStep([input.id])
 
     deleteApprovalSettingsStep({

@@ -1,31 +1,12 @@
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import type { QueryQuote } from "../../../../../types"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"
 import { TextCell } from "../../../../components/common/table/table-cells/text-cell"
 import QuoteStatusBadge from "../quote-status-badge"
 
-type QuoteTableRow = {
-  created_at: Date | string
-  customer: {
-    email: string
-  }
-  draft_order: {
-    currency_code: string
-    customer: {
-      employee: {
-        company: {
-          name: string
-        }
-      }
-    }
-    display_id: string | number
-    total: number
-  }
-  status: string
-}
-
-const columnHelper = createColumnHelper<QuoteTableRow>()
+const columnHelper = createColumnHelper<QueryQuote>()
 
 export const useQuotesTableColumns = () => {
   const { t } = useTranslation("quotes")
@@ -40,13 +21,17 @@ export const useQuotesTableColumns = () => {
         header: t("columns.status"),
         cell: ({ getValue }) => <QuoteStatusBadge status={getValue()} />,
       }),
-      columnHelper.accessor("customer.email", {
+      columnHelper.display({
+        id: "email",
         header: t("columns.email"),
-        cell: ({ getValue }) => <TextCell text={getValue()} />,
+        cell: ({ row }) => <TextCell text={row.original.customer?.email} />,
       }),
-      columnHelper.accessor("draft_order.customer.employee.company.name", {
+      columnHelper.display({
+        id: "company",
         header: t("columns.company"),
-        cell: ({ getValue }) => <TextCell text={getValue()} />,
+        cell: ({ row }) => (
+          <TextCell text={row.original.customer?.employee?.company?.name} />
+        ),
       }),
       columnHelper.accessor("draft_order.total", {
         header: t("columns.total"),

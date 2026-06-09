@@ -1,5 +1,5 @@
 import { Button, Drawer, toast } from "@medusajs/ui"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../../types"
 import { CoolSwitch } from "../../../components/common"
@@ -16,19 +16,33 @@ export function CompanyApprovalSettingsDrawer({
 }) {
   const { t } = useTranslation("companies")
   const [requiresAdminApproval, setRequiresAdminApproval] = useState(
-    company.approval_settings?.requires_admin_approval
+    company.approval_settings?.requires_admin_approval ?? false
   )
   const [requiresSalesManagerApproval, setRequiresSalesManagerApproval] =
-    useState(company.approval_settings?.requires_sales_manager_approval)
+    useState(
+      company.approval_settings?.requires_sales_manager_approval ?? false
+    )
 
   const { mutateAsync, isPending } = useUpdateApprovalSettings(company.id)
 
-  const { approval_settings } = company
+  useEffect(() => {
+    setRequiresAdminApproval(
+      company.approval_settings?.requires_admin_approval ?? false
+    )
+    setRequiresSalesManagerApproval(
+      company.approval_settings?.requires_sales_manager_approval ?? false
+    )
+  }, [company.approval_settings])
 
   const handleSubmit = async () => {
+    if (!company.approval_settings?.id) {
+      toast.error(t("errors.updateApprovalSettingsFailed"))
+      return
+    }
+
     await mutateAsync(
       {
-        id: approval_settings.id,
+        id: company.approval_settings.id,
         requires_admin_approval: requiresAdminApproval,
         requires_sales_manager_approval: requiresSalesManagerApproval,
       },
@@ -76,10 +90,14 @@ export function CompanyApprovalSettingsDrawer({
           </div>
         </Drawer.Body>
         <Drawer.Footer>
-          <Button onClick={() => setOpen(false)} variant="secondary">
+          <Button
+            onClick={() => setOpen(false)}
+            size="small"
+            variant="secondary"
+          >
             {t("actions.cancel")}
           </Button>
-          <Button isLoading={isPending} onClick={handleSubmit}>
+          <Button isLoading={isPending} onClick={handleSubmit} size="small">
             {t("actions.save")}
           </Button>
         </Drawer.Footer>

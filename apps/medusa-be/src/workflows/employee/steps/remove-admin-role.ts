@@ -25,6 +25,10 @@ export const removeAdminRoleStep = createStep(
       },
     })
 
+    if (!providerIdentity) {
+      return new StepResponse(undefined)
+    }
+
     await authModuleService.updateProviderIdentities([
       {
         id: providerIdentity.id,

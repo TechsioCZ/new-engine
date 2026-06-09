@@ -4,6 +4,9 @@ import type { AdminUpdateCompany, QueryCompany } from "../../../../types"
 import { useUpdateCompany } from "../../../hooks/api"
 import { CompanyForm } from "./company-form"
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 export function CompanyUpdateDrawer({
   company,
   open,
@@ -14,7 +17,7 @@ export function CompanyUpdateDrawer({
   setOpen: (open: boolean) => void
 }) {
   const { t } = useTranslation("companies")
-  const { mutateAsync, isPending, error } = useUpdateCompany(company.id)
+  const { mutateAsync, isPending } = useUpdateCompany(company.id)
 
   const currentData = {
     address: company.address,
@@ -30,15 +33,15 @@ export function CompanyUpdateDrawer({
   }
 
   const handleSubmit = async (formData: AdminUpdateCompany) => {
-    await mutateAsync(formData, {
-      onSuccess: async () => {
-        setOpen(false)
-        toast.success(t("toasts.companyUpdated", { name: formData.name }))
-      },
-      onError: (_error) => {
-        toast.error(t("errors.updateCompanyFailed"))
-      },
-    })
+    try {
+      await mutateAsync(formData)
+      setOpen(false)
+      toast.success(t("toasts.companyUpdated", { name: formData.name }))
+    } catch (error) {
+      toast.error(
+        `${t("errors.updateCompanyFailed")}: ${getErrorMessage(error)}`
+      )
+    }
   }
 
   return (
@@ -50,7 +53,7 @@ export function CompanyUpdateDrawer({
 
         <CompanyForm
           company={currentData}
-          error={error}
+          error={null}
           handleSubmit={handleSubmit}
           loading={isPending}
         />

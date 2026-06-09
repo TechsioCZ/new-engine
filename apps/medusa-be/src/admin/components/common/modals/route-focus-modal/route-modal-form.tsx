@@ -11,7 +11,7 @@ type RouteModalFormProps<TFieldValues extends FieldValues> = PropsWithChildren<{
   onClose?: (isSubmitSuccessful: boolean) => void
 }>
 
-export const RouteModalForm = <TFieldValues extends FieldValues = any>({
+export const RouteModalForm = <TFieldValues extends FieldValues = FieldValues>({
   form,
   blockSearch = false,
   children,

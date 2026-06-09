@@ -9,7 +9,7 @@ export type ApprovalActionCart = {
   approval_status: {
     status: ApprovalStatusType
   }
-  approvals: {
+  approval_requests: {
     id: string
     status: ApprovalStatusType
     type: ApprovalType
@@ -23,14 +23,14 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
 
   const dialog = usePrompt()
 
-  const awaitingSalesManagerApproval = cart.approvals.find(
+  const awaitingSalesManagerApproval = cart.approval_requests.find(
     (approval) =>
       approval.type === ApprovalType.SALES_MANAGER &&
       approval.status === ApprovalStatusType.PENDING
   )
 
   const { mutateAsync: updateApproval } = useUpdateApproval(
-    awaitingSalesManagerApproval?.id
+    awaitingSalesManagerApproval?.id ?? ""
   )
 
   const approveCart = async () => {
@@ -42,7 +42,7 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
       cancelText: t("actions.cancel"),
     })
 
-    if (confirmed) {
+    if (confirmed && awaitingSalesManagerApproval) {
       await updateApproval({
         status: ApprovalStatusType.APPROVED,
       })
@@ -59,7 +59,7 @@ export const ApprovalActions = ({ cart }: { cart: ApprovalActionCart }) => {
       cancelText: t("actions.cancel"),
     })
 
-    if (confirmed) {
+    if (confirmed && awaitingSalesManagerApproval) {
       await updateApproval({
         status: ApprovalStatusType.REJECTED,
       })

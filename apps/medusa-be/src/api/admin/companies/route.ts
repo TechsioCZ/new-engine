@@ -12,13 +12,14 @@ export const GET = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { fields, pagination } = req.queryConfig
+  const { fields, pagination, withDeleted } = req.queryConfig
 
   const { data: companies, metadata } = await query.graph({
     entity: "companies",
     fields,
     filters: req.filterableFields,
     pagination,
+    withDeleted,
   })
 
   res.json({

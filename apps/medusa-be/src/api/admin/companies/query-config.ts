@@ -1,18 +1,7 @@
+import { adminCompanyDisplayFields } from "../../../types/company/admin-fields"
+
 /* Company Query Config */
-export const adminCompanyFields = [
-  "id",
-  "name",
-  "logo_url",
-  "email",
-  "phone",
-  "address",
-  "city",
-  "state",
-  "zip",
-  "country",
-  "currency_code",
-  "*employees",
-]
+export const adminCompanyFields = [...adminCompanyDisplayFields]
 
 export const adminCompanyQueryConfig = {
   list: {

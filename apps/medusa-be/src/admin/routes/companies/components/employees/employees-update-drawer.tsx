@@ -8,6 +8,9 @@ import type {
 import { useUpdateEmployee } from "../../../../hooks/api"
 import { EmployeesUpdateForm } from "."
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 export function EmployeesUpdateDrawer({
   company,
   employee,
@@ -22,20 +25,23 @@ export function EmployeesUpdateDrawer({
   toast: typeof toastType
 }) {
   const { t } = useTranslation("companies")
-  const { mutateAsync, isPending, error } = useUpdateEmployee(
+  const { mutateAsync, isPending } = useUpdateEmployee(
     employee.company_id,
     employee.id
   )
 
   const handleSubmit = async (formData: AdminUpdateEmployee) => {
-    await mutateAsync(formData, {
-      onSuccess: () => {
-        setOpen(false)
-        toast.success(
-          t("toasts.employeeUpdated", { email: employee?.customer?.email })
-        )
-      },
-    })
+    try {
+      await mutateAsync(formData)
+      setOpen(false)
+      toast.success(
+        t("toasts.employeeUpdated", { email: employee?.customer?.email })
+      )
+    } catch (error) {
+      toast.error(
+        `${t("errors.updateEmployeeFailed")}: ${getErrorMessage(error)}`
+      )
+    }
   }
 
   return (
@@ -48,7 +54,7 @@ export function EmployeesUpdateDrawer({
         <EmployeesUpdateForm
           company={company}
           employee={employee}
-          error={error}
+          error={null}
           handleSubmit={handleSubmit}
           loading={isPending}
         />

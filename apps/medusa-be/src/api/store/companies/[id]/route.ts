@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import {
   deleteCompaniesWorkflow,
@@ -10,7 +13,7 @@ import type {
 } from "../validators"
 
 export const GET = async (
-  req: MedusaRequest<StoreGetCompanyParamsType>,
+  req: AuthenticatedMedusaRequest<StoreGetCompanyParamsType>,
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
@@ -29,7 +32,7 @@ export const GET = async (
 }
 
 export const POST = async (
-  req: MedusaRequest<StoreUpdateCompanyType>,
+  req: AuthenticatedMedusaRequest<StoreUpdateCompanyType>,
   res: MedusaResponse
 ) => {
   const { id } = req.params
@@ -38,7 +41,7 @@ export const POST = async (
   await updateCompaniesWorkflow.run({
     input: {
       id,
-      ...req.body,
+      update: { ...req.validatedBody },
     },
     container: req.scope,
   })
@@ -57,7 +60,10 @@ export const POST = async (
   res.json({ company })
 }
 
-export const DELETE = async (req: MedusaRequest, res: MedusaResponse) => {
+export const DELETE = async (
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) => {
   const { id } = req.params
 
   await deleteCompaniesWorkflow.run({

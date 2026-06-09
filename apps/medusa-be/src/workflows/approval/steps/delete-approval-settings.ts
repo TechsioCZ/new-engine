@@ -2,6 +2,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {
   IApprovalModuleService,
+  ModuleApprovalSettings,
   ModuleApprovalSettingsFilters,
 } from "../../../types"
 
@@ -32,13 +33,13 @@ export const deleteApprovalSettingsStep = createStep(
       approvalSettings.map((setting) => setting.id)
     )
 
-    return new StepResponse(
-      undefined,
-      approvalSettings.map((setting) => setting.company_id)
-    )
+    return new StepResponse(undefined, approvalSettings)
   },
-  async (companyIds: string[] | undefined, { container }) => {
-    if (!companyIds) {
+  async (
+    approvalSettings: ModuleApprovalSettings[] | undefined,
+    { container }
+  ) => {
+    if (!approvalSettings?.length) {
       return
     }
 
@@ -46,10 +47,11 @@ export const deleteApprovalSettingsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.createApprovalSettings(
-      companyIds.map((id) => ({
-        company_id: id,
-        requires_admin_approval: false,
-        requires_sales_manager_approval: false,
+      approvalSettings.map((setting) => ({
+        company_id: setting.company_id,
+        requires_admin_approval: setting.requires_admin_approval,
+        requires_sales_manager_approval:
+          setting.requires_sales_manager_approval,
       }))
     )
   }

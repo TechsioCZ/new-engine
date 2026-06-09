@@ -7,7 +7,12 @@ import {
 import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ModuleCreateEmployee, ModuleEmployee } from "../../../types"
-import { createEmployeesStep, setAdminRoleStep } from "../steps"
+import { validateCompanyActiveStep } from "../../company/steps"
+import {
+  createEmployeesStep,
+  prepareEmployeeCustomerLinkStep,
+  setAdminRoleStep,
+} from "../steps"
 import { addEmployeeToCustomerGroupStep } from "../steps/add-employee-to-customer-group"
 
 type WorkflowInput = {
@@ -18,6 +23,12 @@ type WorkflowInput = {
 export const createEmployeesWorkflow = createWorkflow(
   "create-employees",
   (input: WorkflowInput): WorkflowResponse<ModuleEmployee> => {
+    validateCompanyActiveStep(input.employeeData.company_id)
+    prepareEmployeeCustomerLinkStep({
+      company_id: input.employeeData.company_id,
+      customer_id: input.customerId,
+    })
+
     const employee = createEmployeesStep(input.employeeData)
 
     createRemoteLinkStep([
@@ -41,6 +52,7 @@ export const createEmployeesWorkflow = createWorkflow(
     )
 
     addEmployeeToCustomerGroupStep({
+      customer_id: input.customerId,
       employee_id: employee.id,
     })
 

@@ -26,7 +26,14 @@ import {
   useState,
 } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import {
+  Link,
+  type LoaderFunctionArgs,
+  type UIMatch,
+  useNavigate,
+  useParams,
+} from "react-router-dom"
+import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import {
   listProducerAttributeTypes,
   type Producer,
@@ -34,6 +41,7 @@ import {
   type ProducerAttributeType,
   type ProducerInput,
   type ProducerProductOption,
+  type ProducerResponse,
   type ProductSummary,
   producerQueryKeys,
   restoreProducer,
@@ -51,6 +59,23 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  const id = params.id
+
+  if (!id) {
+    return { producer: undefined }
+  }
+
+  return retrieveProducer(id)
+}
+
+export const handle = {
+  breadcrumb: (match: UIMatch<ProducerResponse>) =>
+    match.data?.producer?.title ??
+    match.data?.producer?.id ??
+    translateBreadcrumb("producers:columns.producer", "Producer"),
+}
 
 const PRODUCT_ORDER_OPTIONS = [
   { labelKey: "orderOptions.titleAsc", value: "title" },

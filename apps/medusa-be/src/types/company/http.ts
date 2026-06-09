@@ -18,6 +18,10 @@ export type AdminCompanyResponse = {
   company: QueryCompany
 }
 
+export type AdminCreateCompaniesResponse = {
+  companies: QueryCompany[]
+}
+
 export type AdminCompaniesResponse = PaginatedResponse<{
   companies: QueryCompany[]
 }>
@@ -54,7 +58,9 @@ export type AdminCreateEmployee = {
   customer_id: string
 }
 
-export type AdminUpdateEmployee = Partial<AdminCreateEmployee>
+export type AdminUpdateEmployee = Partial<
+  Pick<AdminCreateEmployee, "spending_limit" | "is_admin">
+>
 
 /* Store */
 

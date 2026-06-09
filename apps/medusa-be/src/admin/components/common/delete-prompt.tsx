@@ -1,7 +1,7 @@
 import { Trash } from "@medusajs/icons"
 import { Button, Prompt } from "@medusajs/ui"
 
-interface DeletePromptProps {
+type DeletePromptProps = {
   cancelText: string
   confirmText: string
   description: string

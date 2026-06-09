@@ -51,10 +51,10 @@ const ItemsPopover = ({
                     <Text className="max-w-60 truncate font-medium">
                       {item.product_title}
                     </Text>
-                    <Text className="text-gray-500 text-sm">
+                    <Text className="text-sm text-ui-fg-subtle">
                       {item.variant_title}
                     </Text>
-                    <Text className="text-gray-500 text-sm">
+                    <Text className="text-sm text-ui-fg-subtle">
                       {item.quantity} x{" "}
                       {formatAmount(item.unit_price, currencyCode)}
                       <br />

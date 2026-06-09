@@ -3,6 +3,10 @@ import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
 import { type FormEvent, useState } from "react"
 
+export const handle = {
+  breadcrumb: () => "Payload import",
+}
+
 type ImportResult = {
   ok: boolean
   result: {

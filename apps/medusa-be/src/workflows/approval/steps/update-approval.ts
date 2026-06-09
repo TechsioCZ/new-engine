@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { MedusaError } from "@medusajs/utils"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
@@ -26,6 +27,13 @@ export const updateApprovalStep = createStep(
         id: input.id,
       },
     })
+
+    if (!approval) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Approval ${input.id} was not found`
+      )
+    }
 
     if (input.status === ApprovalStatusType.REJECTED) {
       const { data: approvalsToReject } = await query.graph({

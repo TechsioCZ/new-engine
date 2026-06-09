@@ -1,8 +1,4 @@
-import type {
-  AdminOrder,
-  AdminOrderLineItem,
-  AdminOrderPreview,
-} from "@medusajs/framework/types"
+import type { AdminOrder, AdminOrderPreview } from "@medusajs/framework/types"
 import { Button, Heading, Input, toast } from "@medusajs/ui"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -21,6 +17,9 @@ type ManageItemsSectionProps = {
 }
 
 let addedVariants: string[] = []
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
 
 export const ManageItemsSection = ({
   order,
@@ -50,7 +49,7 @@ export const ManageItemsSection = ({
         })),
       })
     } catch (e) {
-      toast.error(e.message)
+      toast.error(getErrorMessage(e))
     }
 
     setIsOpen("inbound-items", false)
@@ -62,7 +61,7 @@ export const ManageItemsSection = ({
         (i) =>
           i.title.toLowerCase().includes(filterTerm) ||
           i.product_title?.toLowerCase().includes(filterTerm)
-      ) as AdminOrderLineItem[],
+      ),
     [preview, filterTerm]
   )
 
@@ -131,10 +130,6 @@ export const ManageItemsSection = ({
 
       {filteredItems.map((item) => {
         const originalItem = originalItemsMap.get(item.id)
-
-        if (!originalItem) {
-          return null
-        }
 
         return (
           <ManageItem

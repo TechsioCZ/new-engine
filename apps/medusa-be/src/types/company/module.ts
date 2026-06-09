@@ -30,6 +30,7 @@ export type ModuleCompany = {
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
   created_at: Date
   updated_at: Date
+  deleted_at?: Date | null
   customer_group: CustomerGroupDTO
   approval_settings: ModuleApprovalSettings
 }

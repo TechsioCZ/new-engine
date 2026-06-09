@@ -10,7 +10,12 @@ import type {
 /* Admin */
 export type AdminApprovalSettings = QueryApprovalSettings
 
+export type AdminApprovalSettingsResponse = {
+  approvalSettings: AdminApprovalSettings[]
+}
+
 export type AdminUpdateApprovalSettings = {
+  id: string
   requires_admin_approval: boolean
   requires_sales_manager_approval: boolean
 }
@@ -30,7 +35,6 @@ export type AdminCartWithApprovals = HttpTypes.StoreCart & {
 
 export type AdminUpdateApproval = {
   status: ApprovalStatusType
-  handled_by: string
 }
 
 export type AdminApprovalStatus = QueryApprovalStatus

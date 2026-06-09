@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next"
 import { ApprovalStatusType } from "../../../../../types/approval"
+import type { Filter } from "../../../../components/common/table/data-table/data-table-filter"
 
 export const useApprovalsTableFilters = () => {
   const { t } = useTranslation("approvals")
-  const filters: Record<string, unknown>[] = [
+  const filters: Filter[] = [
     {
       label: t("filters.status"),
       key: "status",

@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { MedusaError } from "@medusajs/utils"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
@@ -30,6 +31,13 @@ export const updateApprovalStatusStep = createStep(
         take: 1,
       },
     })
+
+    if (!approvalStatus) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Approval status for cart ${input.cart_id} was not found`
+      )
+    }
 
     const previousData = approvalStatus
 

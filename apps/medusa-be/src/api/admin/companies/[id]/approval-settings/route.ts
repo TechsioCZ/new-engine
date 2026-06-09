@@ -5,7 +5,7 @@ import type {
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows"
 import { adminApprovalSettingsFields } from "../../query-config"
-import type { AdminCreateApprovalSettingsType } from "../../validators"
+import type { AdminUpdateApprovalSettingsType } from "../../validators"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
@@ -31,7 +31,7 @@ export const GET = async (
 }
 
 export const POST = async (
-  req: AuthenticatedMedusaRequest<AdminCreateApprovalSettingsType>,
+  req: AuthenticatedMedusaRequest<AdminUpdateApprovalSettingsType>,
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)

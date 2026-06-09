@@ -10,22 +10,24 @@ import {
 import type {
   AdminCompaniesResponse,
   AdminCompanyResponse,
+  AdminCreateCompaniesResponse,
   AdminCreateCompany,
   AdminUpdateCompany,
 } from "../../../types"
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
+import { customerQueryKey } from "./customers"
 
 export const companyQueryKey = queryKeysFactory("company")
 
+type QueryOptions<TData> = Omit<
+  UseQueryOptions<TData, FetchError, TData, QueryKey>,
+  "queryFn" | "queryKey"
+>
+
 export const useCompanies = (
   query?: Record<string, string>,
-  options?: UseQueryOptions<
-    AdminCompaniesResponse,
-    FetchError,
-    AdminCompaniesResponse,
-    QueryKey
-  >
+  options?: QueryOptions<AdminCompaniesResponse>
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -47,12 +49,7 @@ export const useCompanies = (
 export const useCompany = (
   companyId: string,
   query?: Record<string, string>,
-  options?: UseQueryOptions<
-    AdminCompanyResponse,
-    FetchError,
-    AdminCompanyResponse,
-    QueryKey
-  >
+  options?: QueryOptions<AdminCompanyResponse>
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
@@ -65,7 +62,7 @@ export const useCompany = (
     )
 
   return useQuery({
-    queryKey: companyQueryKey.detail(companyId),
+    queryKey: companyQueryKey.detail(companyId, query),
     queryFn: fetchCompany,
     ...options,
   })
@@ -73,7 +70,7 @@ export const useCompany = (
 
 export const useCreateCompany = (
   options?: UseMutationOptions<
-    AdminCompanyResponse,
+    AdminCreateCompaniesResponse,
     FetchError,
     AdminCreateCompany
   >
@@ -82,7 +79,7 @@ export const useCreateCompany = (
 
   return useMutation({
     mutationFn: (company: AdminCreateCompany) =>
-      sdk.client.fetch<AdminCompanyResponse>("/admin/companies", {
+      sdk.client.fetch<AdminCreateCompaniesResponse>("/admin/companies", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,9 +90,11 @@ export const useCreateCompany = (
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
-        queryKey: companyQueryKey.detail(data.company.id),
-      })
+      for (const company of data.companies) {
+        queryClient.invalidateQueries({
+          queryKey: companyQueryKey.detail(company.id),
+        })
+      }
       options?.onSuccess?.(data, variables, context)
     },
     ...options,
@@ -126,7 +125,10 @@ export const useUpdateCompany = (
         queryKey: companyQueryKey.lists(),
       })
       queryClient.invalidateQueries({
-        queryKey: companyQueryKey.detail(companyId),
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
       })
       options?.onSuccess?.(data, variables, context)
     },
@@ -148,6 +150,42 @@ export const useDeleteCompany = (
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
+      })
+      options?.onSuccess?.(data, variables, context)
+    },
+    ...options,
+  })
+}
+
+export const useRestoreCompany = (
+  companyId: string,
+  options?: UseMutationOptions<AdminCompanyResponse, FetchError>
+) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () =>
+      sdk.client.fetch<AdminCompanyResponse>(
+        `/admin/companies/${companyId}/restore`,
+        {
+          method: "POST",
+        }
+      ),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.lists(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
+      })
       options?.onSuccess?.(data, variables, context)
     },
     ...options,
@@ -161,20 +199,24 @@ export const useAddCompanyToCustomerGroup = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (groupId: string) =>
-      sdk.client.fetch(`/admin/companies/${companyId}/customer-group`, {
+    mutationFn: async (groupId: string) => {
+      await sdk.client.fetch(`/admin/companies/${companyId}/customer-group`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: { group_id: groupId },
-      }),
+      })
+    },
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
       queryClient.invalidateQueries({
-        queryKey: companyQueryKey.detail(companyId),
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
       })
       options?.onSuccess?.(data, variables, context)
     },
@@ -189,8 +231,8 @@ export const useRemoveCompanyFromCustomerGroup = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (groupId: string) =>
-      sdk.client.fetch(
+    mutationFn: async (groupId: string) => {
+      await sdk.client.fetch(
         `/admin/companies/${companyId}/customer-group/${groupId}`,
         {
           method: "DELETE",
@@ -198,13 +240,17 @@ export const useRemoveCompanyFromCustomerGroup = (
             Accept: "text/plain",
           },
         }
-      ),
+      )
+    },
     onSuccess: (_, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
       queryClient.invalidateQueries({
-        queryKey: companyQueryKey.detail(companyId),
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
       })
       options?.onSuccess?.(undefined, variables, context)
     },

@@ -10,7 +10,13 @@ import {
 } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import {
+  Link,
+  type LoaderFunctionArgs,
+  type UIMatch,
+  useNavigate,
+  useParams,
+} from "react-router-dom"
 import { JsonViewSection } from "../../../components/common/json-view-section"
 import { useOrderPreview } from "../../../hooks/api"
 import {
@@ -18,6 +24,9 @@ import {
   useRejectQuote,
   useSendQuote,
 } from "../../../hooks/api/quotes"
+import { translateBreadcrumb } from "../../../lib/breadcrumb"
+import { sdk } from "../../../lib/sdk"
+import type { StoreQuoteResponse } from "../../../types"
 import { formatAmount } from "../../../utils"
 import {
   CostBreakdown,
@@ -26,6 +35,25 @@ import {
   QuoteTotal,
 } from "../components/quote-details"
 import { QuoteMessages } from "../components/quote-messages"
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  const quoteId = params.quoteId
+
+  if (!quoteId) {
+    return { quote: undefined }
+  }
+
+  return sdk.client.fetch<StoreQuoteResponse>(`/admin/quotes/${quoteId}`, {
+    query: {
+      fields: "id",
+    },
+  })
+}
+
+export const handle = {
+  breadcrumb: (match: UIMatch<StoreQuoteResponse>) =>
+    match.data?.quote?.id ?? translateBreadcrumb("quotes:menuItem", "Quote"),
+}
 
 const QuoteDetails = () => {
   const { quoteId } = useParams()
@@ -85,13 +113,10 @@ const QuoteDetails = () => {
     })
 
     if (res) {
-      await sendQuote(
-        {},
-        {
-          onSuccess: () => toast.success(t("toasts.quoteSent")),
-          onError: (e) => toast.error(e.message),
-        }
-      )
+      await sendQuote(undefined, {
+        onSuccess: () => toast.success(t("toasts.quoteSent")),
+        onError: (e) => toast.error(e.message),
+      })
     }
   }
 
@@ -123,6 +148,23 @@ const QuoteDetails = () => {
   if (!preview) {
     throw new Error(t("validation.previewNotFound"))
   }
+
+  const quoteCustomer = quote.draft_order?.customer
+  const quoteEmployee = (
+    quoteCustomer as
+      | (typeof quoteCustomer & {
+          employee?: {
+            company?: {
+              currency_code?: string | null
+              id?: string | null
+              name?: string | null
+            } | null
+            spending_limit?: number | null
+          } | null
+        })
+      | undefined
+  )?.employee
+  const quoteCompany = quoteEmployee?.company
 
   return (
     <div className="flex flex-col gap-y-3">
@@ -221,9 +263,10 @@ const QuoteDetails = () => {
 
               <Text className="text-pretty" leading="compact" size="small">
                 {formatAmount(
-                  quote?.customer?.employee?.spending_limit,
-                  (quote?.customer?.employee?.company
-                    ?.currency_code as string) || "USD"
+                  quoteEmployee?.spending_limit,
+                  quoteCompany?.currency_code ||
+                    quote.draft_order?.currency_code ||
+                    "USD"
                 )}
               </Text>
             </div>
@@ -239,13 +282,19 @@ const QuoteDetails = () => {
                 {t("fields.name")}
               </Text>
 
-              <Link
-                className="text-pretty text-blue-500 text-sm"
-                onClick={(e) => e.stopPropagation()}
-                to={`/companies/${quote?.customer?.employee?.company.id}`}
-              >
-                {quote?.customer?.employee?.company?.name}
-              </Link>
+              {quoteCompany?.id ? (
+                <Link
+                  className="text-pretty text-blue-500 text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                  to={`/companies/${quoteCompany.id}`}
+                >
+                  {quoteCompany.name}
+                </Link>
+              ) : (
+                <Text className="text-pretty" leading="compact" size="small">
+                  {quoteCompany?.name ?? "-"}
+                </Text>
+              )}
             </div>
           </Container>
         </div>

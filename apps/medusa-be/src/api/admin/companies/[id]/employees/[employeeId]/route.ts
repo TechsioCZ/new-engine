@@ -16,7 +16,7 @@ export const GET = async (
   req: AuthenticatedMedusaRequest<AdminGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
-  const { employeeId } = req.params
+  const { id, employeeId } = req.params
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -25,7 +25,7 @@ export const GET = async (
     {
       entity: "employee",
       fields: req.queryConfig?.fields,
-      filters: { ...req.filterableFields, id: employeeId },
+      filters: { ...req.filterableFields, company_id: id, id: employeeId },
     },
     { throwIfKeyNotFound: true }
   )
@@ -39,7 +39,7 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id, employeeId } = req.params
-  const { spending_limit, is_admin } = req.body
+  const { spending_limit, is_admin } = req.validatedBody
 
   await updateEmployeesWorkflow.run({
     input: {
@@ -57,7 +57,7 @@ export const POST = async (
     {
       entity: "employee",
       fields: req.queryConfig?.fields,
-      filters: { ...req.filterableFields, id: employeeId },
+      filters: { ...req.filterableFields, company_id: id, id: employeeId },
     },
     { throwIfKeyNotFound: true }
   )

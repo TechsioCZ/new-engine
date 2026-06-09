@@ -1,5 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows/update-approval-settings"
 import { storeApprovalSettingsFields } from "../../query-config"
 import type { StoreUpdateApprovalSettingsType } from "../../validators"
@@ -22,11 +25,19 @@ export const POST = async (
 
   const { requires_admin_approval } = req.validatedBody
 
+  if (!approval_settings) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Approval settings for company ${id} were not found`
+    )
+  }
+
   await updateApprovalSettingsWorkflow.run({
     input: {
       id: approval_settings.id,
       requires_admin_approval,
     },
+    container: req.scope,
   })
 
   res.status(201).send()

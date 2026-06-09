@@ -46,7 +46,7 @@ export const createRequestForQuoteWorkflow = createWorkflow(
 
     const customer = useRemoteQueryStep({
       entry_point: "customer",
-      fields: ["id", "customer"],
+      fields: ["id", "email"],
       variables: { id: input.customer_id },
       list: false,
       throw_if_key_not_found: true,

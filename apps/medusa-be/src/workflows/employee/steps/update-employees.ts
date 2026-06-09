@@ -1,4 +1,7 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
@@ -17,28 +20,46 @@ export const updateEmployeesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const { company_id: companyId, ...updatePayload } = input
+    const filters = {
+      id: input.id,
+      ...(companyId ? { company_id: companyId } : {}),
+    }
 
     const {
       data: [currentData],
-    } = await query.graph({
-      entity: "employee",
-      fields: ["*"],
-      filters: {
-        id: input.id,
+    } = await query.graph(
+      {
+        entity: "employee",
+        fields: ["*"],
+        filters,
       },
-    })
+      { throwIfKeyNotFound: true }
+    )
 
-    const updatedEmployee = await companyModuleService.updateEmployees(input)
+    if (!currentData) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "Employee was not found for the requested company."
+      )
+    }
+
+    const updatedEmployee =
+      await companyModuleService.updateEmployees(updatePayload)
 
     const {
       data: [employee],
-    } = await query.graph({
-      entity: "employee",
-      fields: ["*", "customer.*", "company.*"],
-      filters: {
-        id: updatedEmployee.id,
+    } = await query.graph(
+      {
+        entity: "employee",
+        fields: ["*", "customer.*", "company.*"],
+        filters: {
+          ...filters,
+          id: updatedEmployee.id,
+        },
       },
-    })
+      { throwIfKeyNotFound: true }
+    )
 
     return new StepResponse(
       employee as unknown as QueryEmployee,

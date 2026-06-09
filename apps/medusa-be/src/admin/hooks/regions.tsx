@@ -5,7 +5,7 @@ import { sdk } from "../lib/sdk"
 export function useRegions() {
   const [data, setData] = useState<HttpTypes.AdminRegion[] | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState<unknown>(null)
 
   useEffect(() => {
     const fetchRegions = async () => {

@@ -4,7 +4,10 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export const addEmployeeToCustomerGroupStep = createStep(
   "add-employee-to-customer-group",
-  async (input: { employee_id: string }, { container }) => {
+  async (
+    input: { customer_id: string; employee_id: string },
+    { container }
+  ) => {
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
     const {
@@ -13,7 +16,7 @@ export const addEmployeeToCustomerGroupStep = createStep(
       {
         entity: "employee",
         filters: { id: input.employee_id },
-        fields: ["id", "customer.*", "company.*"],
+        fields: ["id", "company.*"],
       },
       { throwIfKeyNotFound: true }
     )
@@ -33,15 +36,15 @@ export const addEmployeeToCustomerGroupStep = createStep(
       Modules.CUSTOMER
     )
 
-    if (!(employee.customer?.id && company.customer_group?.id)) {
+    if (!(input.customer_id && company.customer_group?.id)) {
       return new StepResponse(null, {
-        customer_id: employee.customer?.id,
+        customer_id: input.customer_id,
         group_id: company.customer_group?.id,
       })
     }
 
     await customerModuleService.addCustomerToGroup({
-      customer_id: employee.customer.id,
+      customer_id: input.customer_id,
       customer_group_id: company.customer_group.id,
     })
 
@@ -50,7 +53,7 @@ export const addEmployeeToCustomerGroupStep = createStep(
     )
 
     return new StepResponse(customerGroup, {
-      customer_id: employee.customer.id,
+      customer_id: input.customer_id,
       group_id: company.customer_group.id,
     })
   },

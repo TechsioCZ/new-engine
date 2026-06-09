@@ -15,8 +15,11 @@ import type {
 } from "../../../types"
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
+import { companyQueryKey } from "./companies"
 
 export const employeeQueryKey = queryKeysFactory("employee")
+
+type AdminCreateEmployeeBody = Omit<AdminCreateEmployee, "company_id">
 
 export const useEmployees = (
   companyId: string,
@@ -41,7 +44,7 @@ export const useEmployees = (
     )
 
   return useQuery({
-    queryKey: employeeQueryKey.list(companyId),
+    queryKey: employeeQueryKey.list({ companyId, query }),
     queryFn: fetchEmployees,
     ...options,
   })
@@ -52,13 +55,13 @@ export const useCreateEmployee = (
   options?: UseMutationOptions<
     AdminEmployeeResponse,
     FetchError,
-    AdminCreateEmployee
+    AdminCreateEmployeeBody
   >
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (employee: AdminCreateEmployee) =>
+    mutationFn: (employee: AdminCreateEmployeeBody) =>
       sdk.client.fetch<AdminEmployeeResponse>(
         `/admin/companies/${companyId}/employees`,
         {
@@ -71,7 +74,13 @@ export const useCreateEmployee = (
       ),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
-        queryKey: employeeQueryKey.list(companyId),
+        queryKey: employeeQueryKey.lists(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.lists(),
       })
       options?.onSuccess?.(data, variables, context)
     },
@@ -107,7 +116,13 @@ export const useUpdateEmployee = (
         queryKey: employeeQueryKey.detail(employeeId),
       })
       queryClient.invalidateQueries({
-        queryKey: employeeQueryKey.list(companyId),
+        queryKey: employeeQueryKey.lists(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.lists(),
       })
       options?.onSuccess?.(data, variables, context)
     },
@@ -131,7 +146,13 @@ export const useDeleteEmployee = (
       ),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
-        queryKey: employeeQueryKey.list(companyId),
+        queryKey: employeeQueryKey.lists(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.lists(),
       })
       options?.onSuccess?.(data, variables, context)
     },

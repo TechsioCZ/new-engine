@@ -1,5 +1,7 @@
+import type { Filter } from "../../../../components/common/table/data-table/data-table-filter"
+
 export const useQuotesTableFilters = () => {
-  const filters: Record<string, unknown>[] = []
+  const filters: Filter[] = []
 
   return filters
 }

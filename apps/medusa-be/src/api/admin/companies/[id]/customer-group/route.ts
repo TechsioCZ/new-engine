@@ -12,7 +12,7 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
-  const { group_id } = req.body
+  const { group_id } = req.validatedBody
 
   await addCompanyToCustomerGroupWorkflow.run({
     input: { company_id: id, group_id },
@@ -24,7 +24,7 @@ export const POST = async (
   } = await query.graph(
     {
       entity: "companies",
-      fields: req.remoteQueryConfig?.fields,
+      fields: req.queryConfig.fields,
       filters: { id },
     },
     { throwIfKeyNotFound: true }

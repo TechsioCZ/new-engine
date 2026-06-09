@@ -15,6 +15,7 @@ import {
   StoreGetCompanyParams,
   StoreGetEmployeeParams,
   StoreUpdateApprovalSettings,
+  StoreUpdateCompany,
   StoreUpdateEmployee,
 } from "./validators"
 
@@ -60,11 +61,18 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     method: ["POST"],
     matcher: "/store/companies/:id",
     middlewares: [
+      ensureRole("company_admin"),
+      validateAndTransformBody(StoreUpdateCompany),
       validateAndTransformQuery(
         StoreGetCompanyParams,
         storeCompanyQueryConfig.retrieve
       ),
     ],
+  },
+  {
+    method: ["DELETE"],
+    matcher: "/store/companies/:id",
+    middlewares: [ensureRole("company_admin")],
   },
 
   /* Employee middlewares */
@@ -111,6 +119,11 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
         storeEmployeeQueryConfig.retrieve
       ),
     ],
+  },
+  {
+    method: ["DELETE"],
+    matcher: "/store/companies/:id/employees/:employee_id",
+    middlewares: [ensureRole("company_admin")],
   },
   {
     method: ["POST"],

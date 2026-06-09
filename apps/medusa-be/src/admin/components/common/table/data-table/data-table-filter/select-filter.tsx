@@ -1,6 +1,10 @@
 import { CheckMini, EllipseMiniSolid, XMarkMini } from "@medusajs/icons"
 import { clx } from "@medusajs/ui"
-import * as Popover from "@radix-ui/react-popover"
+import {
+  Content as PopoverContent,
+  Portal as PopoverPortal,
+  Root as PopoverRoot,
+} from "@radix-ui/react-popover"
 import { Command } from "cmdk"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -10,11 +14,19 @@ import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
 import type { IFilter } from "./types"
 
-interface SelectFilterProps extends IFilter {
+type SelectFilterProps = IFilter & {
   options: { label: string; value: unknown }[]
   readonly?: boolean
   multiple?: boolean
   searchable?: boolean
+}
+
+const normalizeValue = (value?: string | string[]) => {
+  if (!value) {
+    return null
+  }
+
+  return Array.isArray(value) ? value : [value]
 }
 
 export const SelectFilter = ({
@@ -52,8 +64,8 @@ export const SelectFilter = ({
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-  const handleOpenChange = (open: boolean) => {
-    setOpen(open)
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
 
     setPreviousValue(labelValues)
 
@@ -61,7 +73,7 @@ export const SelectFilter = ({
       clearTimeout(timeoutId)
     }
 
-    if (!(open || currentValue.length)) {
+    if (!(nextOpen || currentValue.length)) {
       timeoutId = setTimeout(() => {
         removeFilter(key)
       }, 200)
@@ -86,19 +98,11 @@ export const SelectFilter = ({
     }
   }
 
-  const normalizedValues = labelValues
-    ? Array.isArray(labelValues)
-      ? labelValues
-      : [labelValues]
-    : null
-  const normalizedPrev = previousValue
-    ? Array.isArray(previousValue)
-      ? previousValue
-      : [previousValue]
-    : null
+  const normalizedValues = labelValues.length ? labelValues : null
+  const normalizedPrev = normalizeValue(previousValue)
 
   return (
-    <Popover.Root modal onOpenChange={handleOpenChange} open={open}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
       <FilterChip
         hadPreviousValue={!!normalizedPrev?.length}
         hasOperator
@@ -108,8 +112,8 @@ export const SelectFilter = ({
         value={normalizedValues?.join(", ")}
       />
       {!readonly && (
-        <Popover.Portal>
-          <Popover.Content
+        <PopoverPortal>
+          <PopoverContent
             align="start"
             className={clx(
               "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
@@ -149,6 +153,7 @@ export const SelectFilter = ({
                         )}
                         disabled={!search}
                         onClick={handleClearSearch}
+                        type="button"
                       >
                         <XMarkMini />
                       </button>
@@ -192,9 +197,9 @@ export const SelectFilter = ({
                 })}
               </Command.List>
             </Command>
-          </Popover.Content>
-        </Popover.Portal>
+          </PopoverContent>
+        </PopoverPortal>
       )}
-    </Popover.Root>
+    </PopoverRoot>
   )
 }

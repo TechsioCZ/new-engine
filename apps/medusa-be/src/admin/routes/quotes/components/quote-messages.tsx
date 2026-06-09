@@ -63,21 +63,11 @@ export function QuoteMessages({
     [preview]
   )
 
-  const handleCreateMessage = async () => {
-    await createMessage(
-      {},
-      {
-        onSuccess: () => toast.success(t("toasts.messageSent")),
-        onError: (e) => toast.error(e.message),
-      }
-    )
-  }
-
   const handleSubmit = form.handleSubmit(async (data) => {
     await createMessage(
       {
         text: data.text,
-        item_id: data.item_id,
+        item_id: data.item_id ?? undefined,
       },
       {
         onSuccess: () => {
@@ -192,7 +182,6 @@ export function QuoteMessages({
             <Button
               className="self-end"
               disabled={isCreatingMessage}
-              onClick={() => handleCreateMessage}
               size="small"
               type="submit"
             >

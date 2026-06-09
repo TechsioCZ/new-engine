@@ -1,19 +1,11 @@
+import type { HttpTypes } from "@medusajs/types"
 import { Checkbox } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { ProductCell, ProductHeader } from "../../../../../components"
 
-type ManageItemsTableRow = {
-  id: string
-  product_title: string
-  quantity: number
-  thumbnail?: string
-  unit_price: number
-  variant_title?: string
-}
-
-const columnHelper = createColumnHelper<ManageItemsTableRow>()
+const columnHelper = createColumnHelper<HttpTypes.AdminProductVariant>()
 
 export const useManageItemsTableColumns = (_currencyCode: string) => {
   const { t } = useTranslation("quotes")
@@ -52,7 +44,12 @@ export const useManageItemsTableColumns = (_currencyCode: string) => {
       columnHelper.display({
         id: "product",
         header: () => <ProductHeader />,
-        cell: ({ row }) => <ProductCell product={row.original.product} />,
+        cell: ({ row }) =>
+          row.original.product ? (
+            <ProductCell product={row.original.product} />
+          ) : (
+            "-"
+          ),
       }),
       columnHelper.accessor("sku", {
         header: t("fields.sku"),

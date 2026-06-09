@@ -9,6 +9,7 @@ import {
 import type {
   AdminApproval,
   AdminApprovalSettings,
+  AdminApprovalSettingsResponse,
   AdminApprovalsResponse,
   AdminUpdateApproval,
   AdminUpdateApprovalSettings,
@@ -30,21 +31,30 @@ export const useUpdateApprovalSettings = (
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: AdminUpdateApprovalSettings) =>
-      sdk.client.fetch<AdminUpdateApprovalSettings>(
+    mutationFn: async (payload: AdminUpdateApprovalSettings) => {
+      const data = await sdk.client.fetch<AdminApprovalSettingsResponse>(
         `/admin/companies/${companyId}/approval-settings`,
         {
           body: payload,
           method: "POST",
         }
-      ),
+      )
+
+      const approvalSettings = data.approvalSettings[0]
+
+      if (!approvalSettings) {
+        throw new Error("Approval settings update returned no data")
+      }
+
+      return approvalSettings
+    },
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
         queryKey: approvalSettingsQueryKey.detail(companyId),
       })
 
       queryClient.invalidateQueries({
-        queryKey: companyQueryKey.detail(companyId),
+        queryKey: companyQueryKey.details(),
       })
 
       options?.onSuccess?.(data, variables, context)

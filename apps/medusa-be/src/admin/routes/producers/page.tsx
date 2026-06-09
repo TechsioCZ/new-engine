@@ -24,6 +24,7 @@ import {
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { formatLocaleCode } from "../../lib/format-locale-code"
 import {
   createProducer,
@@ -48,6 +49,10 @@ import {
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+
+export const handle = {
+  breadcrumb: () => translateBreadcrumb("producers:menuItem", "Producers"),
+}
 
 const ORDER_OPTIONS = [
   { labelKey: "orderOptions.titleAsc", value: "title" },
@@ -245,16 +250,16 @@ const ProducerFormDrawer = ({
         return updateProducer(producer.id, input)
       }
 
-      const handle = input.handle ?? toDefaultHandle(input.title)
+      const resolvedHandle = input.handle ?? toDefaultHandle(input.title)
       const existingResponse = await listProducers({
-        handle,
+        handle: resolvedHandle,
         include_deleted: true,
         limit: 1,
         offset: 0,
         order_by: "title",
       })
       const existing = existingResponse.producers.find(
-        (candidate) => candidate.handle === handle
+        (candidate) => candidate.handle === resolvedHandle
       )
 
       if (existing?.deleted_at) {
@@ -262,7 +267,7 @@ const ProducerFormDrawer = ({
           cancelText: t("actions.cancel"),
           confirmText: t("actions.restore"),
           description: t("prompts.restoreProducerDescription", {
-            handle,
+            handle: resolvedHandle,
             title: existing.title,
           }),
           title: t("prompts.restoreProducerTitle"),
@@ -275,14 +280,16 @@ const ProducerFormDrawer = ({
         await restoreProducer(existing.id)
         const response = await updateProducer(existing.id, {
           ...input,
-          handle,
+          handle: resolvedHandle,
         })
 
         return { ...response, action: "restored" as const }
       }
 
       if (existing) {
-        throw new Error(t("toasts.producerExistsError", { handle }))
+        throw new Error(
+          t("toasts.producerExistsError", { handle: resolvedHandle })
+        )
       }
 
       const response = await createProducer({ ...input, handle })
