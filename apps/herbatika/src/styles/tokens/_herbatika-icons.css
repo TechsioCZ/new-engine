@@ -1,0 +1,255 @@
+@theme static {
+  --text-icon-xs: var(--text-xs);
+  --text-icon-sm: 16px;
+  --text-icon-md: 20px;
+  --text-icon-lg: 24px;
+  --text-icon-xl: 26px;
+  --text-icon-2xl: 32px;
+  --text-icon-cart: 64px;
+  --text-icon-delivery-size: 22px;
+}
+
+
+/* NAVIGATION AND DIRECTION */
+@utility token-icon-home {
+  /* @apply icon-[solar--home-angle-outline];*/
+  @apply icon-[hugeicons--home-04];
+}
+
+@utility token-icon-arrow-right {
+  @apply icon-[solar--arrow-right-linear];
+}
+
+@utility token-icon-chevron-right {
+  /* @apply icon-[solar--alt-arrow-right-line-duotone]; */
+  @apply icon-[fluent--chevron-right-12-filled];
+}
+
+@utility token-icon-chevron-left {
+  /* @apply icon-[solar--alt-arrow-left-line-duotone]; */
+  @apply icon-[fluent--chevron-left-12-filled];
+}
+
+@utility token-icon-chevron-up {
+  @apply icon-[solar--alt-arrow-up-line-duotone];
+}
+
+@utility token-icon-search {
+  @apply icon-[mdi--search];
+  /*@apply icon-[solar--minimalistic-magnifer-outline];*/
+}
+
+@utility token-icon-chevron-down {
+  @apply icon-[solar--alt-arrow-down-line-duotone];
+}
+
+/* ACTIONS AND STATUS */
+@utility token-icon-check {
+  @apply icon-[mdi--check];
+}
+
+@utility token-icon-alert {
+  @apply icon-[solar--danger-circle-linear];
+}
+
+@utility token-icon-pen {
+  @apply icon-[solar--pen-outline];
+}
+
+@utility token-icon-trash {
+  @apply icon-[solar--trash-bin-minimalistic-linear];
+}
+
+@utility token-icon-copy {
+  @apply icon-[solar--copy-linear];
+}
+
+@utility token-icon-send {
+  @apply icon-[solar--plain-outline];
+}
+
+/* ACCOUNT AND CONTACT */
+@utility token-icon-user {
+  @apply icon-[solar--user-outline];
+}
+
+@utility token-icon-heart {
+  @apply icon-[solar--heart-outline];
+}
+
+@utility token-icon-phone {
+  @apply icon-[solar--phone-outline];
+}
+
+@utility token-icon-phone-talk {
+  @apply icon-[solar--phone-calling-linear];
+}
+
+@utility token-icon-email {
+  @apply icon-[solar--letter-outline];
+}
+
+@utility token-icon-conversation {
+  @apply icon-[solar--chat-dots-outline];
+}
+
+@utility token-icon-logout {
+  /*@apply icon-[mdi--logout];*/
+  @apply icon-[solar--logout-2-outline];
+}
+
+@utility token-icon-order {
+  @apply icon-[solar--clipboard-list-outline];
+}
+
+@utility token-icon-settings {
+  @apply icon-[solar--settings-outline];
+}
+
+/* PRODUCT AND CONTENT */
+@utility token-icon-cart {
+  @apply icon-[solar--cart-large-minimalistic-outline];
+}
+
+@utility token-icon-save-money {
+  @apply icon-[mdi--piggy-bank-outline];
+}
+
+@utility token-icon-leaf {
+  @apply icon-[solar--leaf-linear];
+}
+
+@utility token-icon-calendar {
+  @apply icon-[solar--calendar-linear];
+}
+
+@utility token-icon-pill {
+  /*@apply icon-[mdi--pill];*/
+  @apply icon-[solar--pill-outline];
+}
+
+@utility token-icon-list {
+  /*@apply icon-[mdi--format-list-bulleted];*/
+  @apply icon-[solar--list-outline];
+}
+
+@utility token-icon-label {
+  @apply icon-[solar--tag-outline];
+}
+
+@utility token-icon-shopping-basket-in {
+  @apply icon-[hugeicons--shopping-basket-check-in-01];
+}
+
+/* CHECKOUT, PAYMENT, AND DELIVERY */
+@utility token-icon-paypal {
+  @apply icon-[mdi--paypal];
+}
+
+@utility token-icon-credit-card {
+  @apply icon-[solar--card-2-linear];
+}
+
+@utility token-icon-bank {
+  @apply icon-[mdi--bank-outline];
+}
+
+@utility token-icon-cash {
+  @apply icon-[solar--hand-money-linear];
+}
+
+@utility token-icon-wallet {
+  @apply icon-[solar--wallet-2-linear];
+}
+
+@utility token-icon-box {
+  @apply icon-[solar--box-linear];
+}
+
+@utility token-icon-truck {
+  @apply icon-[mdi--truck-outline];
+}
+
+@utility token-icon-truck-fast {
+  @apply icon-[mdi--truck-fast-outline];
+}
+
+@utility token-icon-truck-delivery {
+  @apply icon-[mdi--truck-delivery-outline];
+}
+
+@utility token-icon-shield-check {
+  @apply icon-[clarity--shield-check-line];
+}
+
+/* SOCIAL AND BRAND */
+@utility token-icon-fb {
+  @apply icon-[mdi--facebook];
+}
+
+@utility token-icon-instagram {
+  @apply icon-[mdi--instagram];
+}
+
+@utility token-icon-youtube {
+  @apply icon-[mdi--youtube];
+}
+
+@utility token-icon-linkedin {
+  @apply icon-[mdi--linkedin];
+}
+
+@utility token-icon-tiktok {
+  @apply icon-[ic--outline-tiktok];
+}
+
+@utility token-icon-music {
+  /*@apply icon-[mdi--music-note];*/
+  @apply icon-[solar--music-note-3-bold]; 
+}
+
+/* MARKET FLAGS */
+@utility token-icon-sk {
+  /*@apply icon-[cif--sk];*/
+  @apply icon-[emojione--flag-for-slovakia];
+}
+
+@utility token-icon-cz {
+  /*@apply icon-[cif--cz];*/
+  @apply icon-[emojione--flag-for-czechia];
+}
+
+@utility token-icon-hu {
+  /*@apply icon-[cif--hu];*/
+  @apply icon-[emojione--flag-for-hungary];
+}
+
+@utility token-icon-ro {
+  /*@apply icon-[cif--ro];*/
+  @apply icon-[emojione--flag-for-romania];
+}
+
+/* UI KIT BRIDGE TOKENS */
+@utility token-icon-increment {
+  @apply icon-[mdi--plus];
+}
+
+@utility token-icon-decrement {
+  @apply icon-[mdi--minus];
+}
+
+@utility token-icon-circle {
+  @apply icon-[mdi--circle];
+}
+
+@utility token-icon-triangle-right {
+  @apply icon-[solar--alt-arrow-right-bold];
+}
+
+@utility token-icon-breadcrumb-separator {
+  @apply token-icon-triangle-right;
+}
+
+@utility token-icon-star {
+  @apply icon-[solar--star-bold];
+}

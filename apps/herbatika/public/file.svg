@@ -1,0 +1,13 @@
+<svg fill="none" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Obr&#225;zok nie je dostupn&#253;</title>
+  <desc id="desc">Produktov&#253; obr&#225;zok sa nepodarilo na&#269;&#237;ta&#357;.</desc>
+  <rect width="512" height="512" rx="40" fill="#FFFFFF"/>
+  <rect x="78" y="118" width="204" height="216" rx="28" transform="rotate(-18 180 226)" fill="#D7DFDA"/>
+  <rect x="138" y="80" width="236" height="236" rx="30" fill="#FFFFFF" stroke="#C3CDC8" stroke-width="16"/>
+  <rect x="180" y="122" width="152" height="112" rx="10" fill="#F4F7F5" stroke="#AAB6B0" stroke-width="12"/>
+  <circle cx="224" cy="160" r="18" fill="#AAB6B0"/>
+  <path d="M190 222l46-48 38 40 22-24 34 40H190v-8Z" fill="#AAB6B0"/>
+  <path d="M168 292h176" stroke="#AAB6B0" stroke-width="12" stroke-linecap="round"/>
+  <text x="256" y="392" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#59635E">Obr&#225;zok nie je</text>
+  <text x="256" y="434" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#59635E">dostupn&#253;</text>
+</svg>
