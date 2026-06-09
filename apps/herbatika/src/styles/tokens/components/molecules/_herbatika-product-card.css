@@ -1,0 +1,19 @@
+@theme static {
+  --color-product-card-button-cart-bg: var(--color-primary);
+  --color-product-card-button-cart-bg-hover: var(--color-primary-hover);
+  --color-product-card-button-cart-fg: var(--color-fg-reverse);
+
+  --spacing-product-card-padding: var(--spacing-500);
+  --spacing-product-card-col-layout: var(--spacing-450);
+  --spacing-product-card-box: var(--spacing-100);
+
+  --text-product-card-name-size: var(--text-lg);
+  --text-product-card-price-size: var(--text-xl);
+
+  --font-weight-product-card-name: var(--font-weight-semibold);
+  --font-weight-product-card-price: var(--font-weight-bold);
+
+  --border-product-card-width: 0px;
+  --radius-product-card-image: 0;
+  --aspect-product-card-image: 4 / 3;
+}

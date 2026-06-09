@@ -1,0 +1,23 @@
+@theme static {
+  --container-max-w: 88.75rem;
+  --container-header-search: 30.625rem;
+  --container-footer-intro: 24rem;
+  --container-auth-content: 48rem;
+  --container-account-content: 80rem;
+
+  /* checkout */
+  --container-checkout: 78.75rem;
+  --container-checkout-step: 44.625rem; /* old value 42.625rem */
+  --container-submenu: 86rem;
+
+  --container-search-form: 28.75rem;
+
+  /* breakpoints */
+  --breakpoint-2xs: 26rem;
+  --breakpoint-xs: 30rem;
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem; /* old value: 64rem */
+  --breakpoint-xl: 80rem;
+  --breakpoint-2xl: 88.75rem;
+}

@@ -21,7 +21,7 @@
       "types": "./dist/src/shared/cache-config.d.ts",
       "import": "./dist/shared/cache-config.js"
     },
-    "./shared/checkout-flow-utils":{
+    "./shared/checkout-flow-utils": {
       "types": "./dist/src/shared/checkout-flow-utils.d.ts",
       "import": "./dist/shared/checkout-flow-utils.js"
     },
@@ -300,6 +300,8 @@
     }
   },
   "devDependencies": {
+    "@medusajs/js-sdk": "2.14.1",
+    "@medusajs/types": "2.14.1",
     "@rsbuild/plugin-react": "^1.4.1",
     "@rslib/core": "^0.18.0",
     "@testing-library/react": "^16.3.1",
