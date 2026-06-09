@@ -35,8 +35,13 @@ export function CompanyForm({
     setFormData({ ...formData, country: value })
   }
 
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    await handleSubmit(formData)
+  }
+
   return (
-    <form>
+    <form onSubmit={handleFormSubmit}>
       <Drawer.Body className="p-4">
         <div className="flex flex-col gap-2">
           <Label size="xsmall">Company Name</Label>
@@ -156,12 +161,11 @@ export function CompanyForm({
       </Drawer.Body>
       <Drawer.Footer>
         <Drawer.Close asChild>
-          <Button variant="secondary">Cancel</Button>
+          <Button type="button" variant="secondary">
+            Cancel
+          </Button>
         </Drawer.Close>
-        <Button
-          isLoading={loading}
-          onClick={async () => await handleSubmit(formData)}
-        >
+        <Button isLoading={loading} type="submit">
           Save
         </Button>
         {error && (

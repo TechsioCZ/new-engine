@@ -1,6 +1,6 @@
 import { Button, Drawer } from "@medusajs/ui"
 import { useState } from "react"
-import type { AdminCreateCompany } from "../../../../types"
+import type { AdminCreateCompany, AdminUpdateCompany } from "../../../../types"
 import { useCreateCompany } from "../../../hooks/api"
 import { CompanyForm } from "./company-form"
 
@@ -9,8 +9,8 @@ export function CompanyCreateDrawer() {
 
   const { mutateAsync, isPending, error } = useCreateCompany()
 
-  const handleSubmit = async (formData: AdminCreateCompany) => {
-    await mutateAsync(formData, {
+  const handleSubmit = async (formData: AdminUpdateCompany) => {
+    await mutateAsync(formData as AdminCreateCompany, {
       onSuccess: () => {
         setOpen(false)
       },

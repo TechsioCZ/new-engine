@@ -142,7 +142,9 @@ export function EmployeesCreateForm({
       </Drawer.Body>
       <Drawer.Footer>
         <Drawer.Close asChild>
-          <Button variant="secondary">Cancel</Button>
+          <Button type="button" variant="secondary">
+            Cancel
+          </Button>
         </Drawer.Close>
         <Button disabled={loading} type="submit">
           {loading ? "Saving..." : "Save"}
