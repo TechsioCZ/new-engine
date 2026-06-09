@@ -241,6 +241,13 @@
       "types": "./dist/src/product-lists/query-keys.d.ts",
       "import": "./dist/product-lists/query-keys.js"
     },
+<<<<<<< Updated upstream
+=======
+    "./product-lists/query-options": {
+      "types": "./dist/src/product-lists/query-options.d.ts",
+      "import": "./dist/product-lists/query-options.js"
+    },
+>>>>>>> Stashed changes
     "./product-lists/types": {
       "types": "./dist/src/product-lists/types.d.ts",
       "import": "./dist/product-lists/types.js"

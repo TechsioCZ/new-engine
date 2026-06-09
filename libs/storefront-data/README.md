@@ -171,6 +171,7 @@ Domain subpaths:
 - `@techsio/storefront-data/<domain>/hooks`
 - `@techsio/storefront-data/<domain>/medusa-service`
 - `@techsio/storefront-data/<domain>/query-keys`
+- `@techsio/storefront-data/<domain>/query-options` where the domain exposes SSR/query-option helpers
 - `@techsio/storefront-data/<domain>/types`
 
 Product-list utilities:

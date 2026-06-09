@@ -39,8 +39,13 @@ import type {
   MedusaProductListInput,
 } from "../products/medusa-service"
 import type {
+<<<<<<< Updated upstream
   MedusaProductListDetailInput,
   MedusaProductListListInput,
+=======
+  MedusaProductListDetailKeyInput,
+  MedusaProductListListKeyInput,
+>>>>>>> Stashed changes
 } from "../product-lists/medusa-service"
 import type {
   MedusaRegionDetailInput,
@@ -57,8 +62,13 @@ export type MedusaStorefrontQueryKeys = {
   checkout: CheckoutQueryKeys
   products: ProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>
   productLists: ProductListQueryKeys<
+<<<<<<< Updated upstream
     MedusaProductListListInput & { customerId?: string | null },
     MedusaProductListDetailInput & { customerId?: string | null }
+=======
+    MedusaProductListListKeyInput,
+    MedusaProductListDetailKeyInput
+>>>>>>> Stashed changes
   >
   orders: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   customers: CustomerQueryKeys<MedusaCustomerListInput>
@@ -91,8 +101,13 @@ export function createMedusaStorefrontQueryKeys(
       MedusaProductDetailInput
     >(namespace),
     productLists: createProductListQueryKeys<
+<<<<<<< Updated upstream
       MedusaProductListListInput & { customerId?: string | null },
       MedusaProductListDetailInput & { customerId?: string | null }
+=======
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
+>>>>>>> Stashed changes
     >(namespace),
     orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
       namespace

@@ -30,8 +30,13 @@ import type {
 } from "../src/orders/medusa-service"
 import type { OrderQueryKeys } from "../src/orders/types"
 import type {
+<<<<<<< Updated upstream
   MedusaProductListDetailInput,
   MedusaProductListListInput,
+=======
+  MedusaProductListDetailKeyInput,
+  MedusaProductListListKeyInput,
+>>>>>>> Stashed changes
 } from "../src/product-lists/medusa-service"
 import type { ProductListQueryKeys } from "../src/product-lists/types"
 import type { CartQueryKeys } from "../src/cart/types"
@@ -244,6 +249,37 @@ describe("createMedusaStorefrontPreset", () => {
         id: "list_1",
       },
     ])
+<<<<<<< Updated upstream
+=======
+  })
+
+  it("exposes product-list hook input controls through preset types", () => {
+    const { sdk } = createSdkMock()
+    const preset = createMedusaStorefrontPreset({
+      sdk,
+    })
+    type ProductListsInput = NonNullable<
+      Parameters<typeof preset.hooks.productLists.useProductLists>[0]
+    >
+    type ProductListInput = Parameters<
+      typeof preset.hooks.productLists.useProductList
+    >[0]
+
+    const listInput = {
+      page: 2,
+      limit: 12,
+      customerId: "cus_1",
+      enabled: false,
+    } satisfies ProductListsInput
+    const detailInput = {
+      id: "list_1",
+      customerId: "cus_1",
+      enabled: false,
+    } satisfies ProductListInput
+
+    expect(listInput.page).toBe(2)
+    expect(detailInput.enabled).toBe(false)
+>>>>>>> Stashed changes
   })
 
   it("passes domain hook overrides to the composed hooks", async () => {
@@ -379,8 +415,13 @@ describe("createMedusaStorefrontPreset", () => {
     }
     const customProductListNamespace = ["custom", "product-lists"] as const
     const customProductListQueryKeys: ProductListQueryKeys<
+<<<<<<< Updated upstream
       MedusaProductListListInput & { customerId?: string | null },
       MedusaProductListDetailInput & { customerId?: string | null }
+=======
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
+>>>>>>> Stashed changes
     > = {
       all: () => createQueryKey(customProductListNamespace),
       list: (params) =>

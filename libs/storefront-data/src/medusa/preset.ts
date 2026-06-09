@@ -128,11 +128,22 @@ import {
   createProductListHooks,
   type ProductListHooks,
 } from "../product-lists/hooks"
+<<<<<<< Updated upstream
 import {
   createMedusaProductListService,
   type MedusaProductListDetailInput,
   type MedusaProductListListInput,
   type MedusaProductListServiceConfig,
+=======
+import type {
+  MedusaProductListDetailHookInput,
+  MedusaProductListDetailInput,
+  MedusaProductListDetailKeyInput,
+  MedusaProductListListHookInput,
+  MedusaProductListListInput,
+  MedusaProductListListKeyInput,
+  MedusaProductListServiceConfig,
+>>>>>>> Stashed changes
 } from "../product-lists/medusa-service"
 import type {
   ProductListBase,
@@ -241,6 +252,7 @@ type MedusaProductHooksConfig<TProduct> = OmitFactoryConfig<
   >
 >
 
+<<<<<<< Updated upstream
 type MedusaProductListKeyInput = MedusaProductListListInput & {
   customerId?: string | null
 }
@@ -249,17 +261,27 @@ type MedusaProductListDetailKeyInput = MedusaProductListDetailInput & {
   customerId?: string | null
 }
 
+=======
+>>>>>>> Stashed changes
 type MedusaProductListHooksConfig = Omit<
   OmitFactoryConfig<
     CreateProductListHooksConfig<
       ProductListBase<ProductListItemBase>,
       ProductListItemBase,
       HttpTypes.StoreCart,
+<<<<<<< Updated upstream
       MedusaProductListKeyInput,
       MedusaProductListListInput,
       MedusaProductListDetailKeyInput,
       MedusaProductListDetailInput,
       MedusaProductListKeyInput,
+=======
+      MedusaProductListListHookInput,
+      MedusaProductListListInput,
+      MedusaProductListDetailHookInput,
+      MedusaProductListDetailInput,
+      MedusaProductListListKeyInput,
+>>>>>>> Stashed changes
       MedusaProductListDetailKeyInput
     >
   >,
@@ -446,7 +468,11 @@ type CreateMedusaStorefrontPresetConfigBase<
     >
     hooks?: MedusaProductListHooksConfig
     queryKeys?: ProductListQueryKeys<
+<<<<<<< Updated upstream
       MedusaProductListKeyInput,
+=======
+      MedusaProductListListKeyInput,
+>>>>>>> Stashed changes
       MedusaProductListDetailKeyInput
     >
   }
@@ -611,8 +637,13 @@ type MedusaStorefrontHooks<
     ProductListBase<ProductListItemBase>,
     ProductListItemBase,
     HttpTypes.StoreCart,
+<<<<<<< Updated upstream
     MedusaProductListKeyInput,
     MedusaProductListDetailKeyInput
+=======
+    MedusaProductListListHookInput,
+    MedusaProductListDetailHookInput
+>>>>>>> Stashed changes
   >
   orders: OrderHooks<
     HttpTypes.StoreOrder,
@@ -790,6 +821,12 @@ export function createMedusaStorefrontPreset<
       hooks: config.products?.hooks,
       queryKeys: queryKeys.products,
     },
+    productLists: {
+      service: config.productLists?.service,
+      serviceConfig: config.productLists?.serviceConfig,
+      hooks: config.productLists?.hooks,
+      queryKeys: queryKeys.productLists,
+    },
     orders: {
       service: config.orders?.service,
       serviceConfig: config.orders?.serviceConfig,
@@ -827,12 +864,16 @@ export function createMedusaStorefrontPreset<
       config.checkout?.serviceConfig
     ),
     products: serverRead.services.products,
+<<<<<<< Updated upstream
     productLists:
       config.productLists?.service ??
       createMedusaProductListService(
         config.sdk,
         config.productLists?.serviceConfig
       ),
+=======
+    productLists: serverRead.services.productLists,
+>>>>>>> Stashed changes
     orders: serverRead.services.orders,
     customers:
       config.customers?.service ?? createMedusaCustomerService(config.sdk),
@@ -949,11 +990,19 @@ export function createMedusaStorefrontPreset<
       ProductListBase<ProductListItemBase>,
       ProductListItemBase,
       HttpTypes.StoreCart,
+<<<<<<< Updated upstream
       MedusaProductListKeyInput,
       MedusaProductListListInput,
       MedusaProductListDetailKeyInput,
       MedusaProductListDetailInput,
       MedusaProductListKeyInput,
+=======
+      MedusaProductListListHookInput,
+      MedusaProductListListInput,
+      MedusaProductListDetailHookInput,
+      MedusaProductListDetailInput,
+      MedusaProductListListKeyInput,
+>>>>>>> Stashed changes
       MedusaProductListDetailKeyInput
     >({
       ...(config.productLists?.hooks ?? {}),
