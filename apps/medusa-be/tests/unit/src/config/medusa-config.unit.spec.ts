@@ -146,6 +146,22 @@ describe("readMedusaConfigEnv", () => {
     ])
   })
 
+  it("does not register Meilisearch when search is disabled", () => {
+    const env = readMedusaConfigEnv({
+      ...baseEnv,
+      MEILISEARCH_ENABLED: "0",
+    })
+
+    expect(env.meilisearchHost).toBeUndefined()
+    expect(buildPlugins(env)).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resolve: "@rokmohar/medusa-plugin-meilisearch",
+        }),
+      ])
+    )
+  })
+
   it("keeps project CORS values separate", () => {
     const env = readMedusaConfigEnv({
       ...baseEnv,
