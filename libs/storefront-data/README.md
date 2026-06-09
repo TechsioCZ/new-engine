@@ -173,6 +173,9 @@ Domain subpaths:
 - `@techsio/storefront-data/<domain>/query-keys`
 - `@techsio/storefront-data/<domain>/types`
 
+Product-list utilities:
+- `@techsio/storefront-data/product-lists/utils`
+
 Supported domains:
 - `auth`
 - `cart`
@@ -182,6 +185,7 @@ Supported domains:
 - `collections`
 - `customers`
 - `orders`
+- `product-lists`
 - `products`
 - `regions`
 

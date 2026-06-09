@@ -29,6 +29,11 @@ import type {
   MedusaOrderListInput,
 } from "../src/orders/medusa-service"
 import type { OrderQueryKeys } from "../src/orders/types"
+import type {
+  MedusaProductListDetailInput,
+  MedusaProductListListInput,
+} from "../src/product-lists/medusa-service"
+import type { ProductListQueryKeys } from "../src/product-lists/types"
 import type { CartQueryKeys } from "../src/cart/types"
 import { createQueryKey } from "../src/shared/query-keys"
 
@@ -65,6 +70,15 @@ const createSdkMock = () => {
       if (path === "/store/payment-providers") {
         return {
           payment_providers: [],
+        }
+      }
+
+      if (path === "/store/product-lists/list_1/cart") {
+        return {
+          cart: {
+            id: "cart_from_list",
+            region_id: "reg_1",
+          },
         }
       }
 
@@ -214,6 +228,22 @@ describe("createMedusaStorefrontPreset", () => {
         limit: 12,
       })
     ).toEqual(["tenant", "n1", "products", "list", { limit: 12 }])
+
+    expect(
+      preset.queryKeys.productLists.detail({
+        id: "list_1",
+        customerId: "cus_1",
+      })
+    ).toEqual([
+      "tenant",
+      "n1",
+      "product-lists",
+      "detail",
+      {
+        customerId: "cus_1",
+        id: "list_1",
+      },
+    ])
   })
 
   it("passes domain hook overrides to the composed hooks", async () => {
@@ -313,7 +343,7 @@ describe("createMedusaStorefrontPreset", () => {
     )
   })
 
-  it("uses custom customer/order query keys for auth cross-domain invalidation", async () => {
+  it("uses custom user-data query keys for auth cross-domain invalidation", async () => {
     const { sdk } = createSdkMock()
     const customAuthService: AuthService<
       HttpTypes.StoreCustomer,
@@ -347,6 +377,17 @@ describe("createMedusaStorefrontPreset", () => {
       detail: (params) =>
         createQueryKey(customOrderNamespace, "detail", params ?? {}),
     }
+    const customProductListNamespace = ["custom", "product-lists"] as const
+    const customProductListQueryKeys: ProductListQueryKeys<
+      MedusaProductListListInput & { customerId?: string | null },
+      MedusaProductListDetailInput & { customerId?: string | null }
+    > = {
+      all: () => createQueryKey(customProductListNamespace),
+      list: (params) =>
+        createQueryKey(customProductListNamespace, "list", params ?? {}),
+      detail: (params) =>
+        createQueryKey(customProductListNamespace, "detail", params ?? {}),
+    }
 
     const preset = createMedusaStorefrontPreset({
       sdk,
@@ -358,6 +399,9 @@ describe("createMedusaStorefrontPreset", () => {
       },
       orders: {
         queryKeys: customOrderQueryKeys,
+      },
+      productLists: {
+        queryKeys: customProductListQueryKeys,
       },
     })
 
@@ -372,6 +416,12 @@ describe("createMedusaStorefrontPreset", () => {
       { id: "addr_old" },
     ])
     queryClient.setQueryData(customOrderQueryKeys.list({}), [{ id: "order_old" }])
+    queryClient.setQueryData(
+      customProductListQueryKeys.list({
+        customerId: "cus_old",
+      }),
+      [{ id: "list_old" }]
+    )
     const wrapper = createWrapper(queryClient)
 
     const { result } = renderHook(() => preset.hooks.auth.useLogin(), {
@@ -393,6 +443,86 @@ describe("createMedusaStorefrontPreset", () => {
     ).toBe(true)
     expect(queryClient.getQueryState(customOrderQueryKeys.list({}))?.isInvalidated).toBe(
       true
+    )
+    expect(
+      queryClient.getQueryState(
+        customProductListQueryKeys.list({
+          customerId: "cus_old",
+        })
+      )?.isInvalidated
+    ).toBe(true)
+  })
+
+  it("syncs carts created from product lists through preset cart cache", async () => {
+    const { sdk, spies } = createSdkMock()
+    let storedCartId: string | null = null
+    const preset = createMedusaStorefrontPreset({
+      sdk,
+      cart: {
+        hooks: {
+          cartStorage: {
+            get: () => storedCartId,
+            set: (value) => {
+              storedCartId = value
+            },
+            clear: () => {
+              storedCartId = null
+            },
+          },
+        },
+      },
+    })
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+
+    const { result } = renderHook(
+      () => preset.hooks.productLists.useCreateProductListCart(),
+      { wrapper }
+    )
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        listId: "list_1",
+        regionId: "reg_1",
+      })
+    })
+
+    expect(spies.clientFetch).toHaveBeenCalledWith(
+      "/store/product-lists/list_1/cart",
+      {
+        method: "POST",
+        body: {
+          region_id: "reg_1",
+        },
+      }
+    )
+    expect(storedCartId).toBe("cart_from_list")
+    expect(
+      queryClient.getQueryData(preset.queryKeys.cart.detail("cart_from_list"))
+    ).toEqual(
+      expect.objectContaining({
+        id: "cart_from_list",
+        region_id: "reg_1",
+      })
+    )
+    expect(
+      queryClient.getQueryData(
+        preset.queryKeys.cart.active({
+          cartId: "cart_from_list",
+          regionId: "reg_1",
+        })
+      )
+    ).toEqual(
+      expect.objectContaining({
+        id: "cart_from_list",
+        region_id: "reg_1",
+      })
     )
   })
 

@@ -124,6 +124,23 @@ import type {
 } from "../products/medusa-service"
 import type { ProductQueryKeys } from "../products/types"
 import {
+  type CreateProductListHooksConfig,
+  createProductListHooks,
+  type ProductListHooks,
+} from "../product-lists/hooks"
+import {
+  createMedusaProductListService,
+  type MedusaProductListDetailInput,
+  type MedusaProductListListInput,
+  type MedusaProductListServiceConfig,
+} from "../product-lists/medusa-service"
+import type {
+  ProductListBase,
+  ProductListItemBase,
+  ProductListQueryKeys,
+  ProductListService,
+} from "../product-lists/types"
+import {
   type CreateRegionHooksConfig,
   createRegionHooks,
   type RegionHooks,
@@ -224,6 +241,31 @@ type MedusaProductHooksConfig<TProduct> = OmitFactoryConfig<
   >
 >
 
+type MedusaProductListKeyInput = MedusaProductListListInput & {
+  customerId?: string | null
+}
+
+type MedusaProductListDetailKeyInput = MedusaProductListDetailInput & {
+  customerId?: string | null
+}
+
+type MedusaProductListHooksConfig = Omit<
+  OmitFactoryConfig<
+    CreateProductListHooksConfig<
+      ProductListBase<ProductListItemBase>,
+      ProductListItemBase,
+      HttpTypes.StoreCart,
+      MedusaProductListKeyInput,
+      MedusaProductListListInput,
+      MedusaProductListDetailKeyInput,
+      MedusaProductListDetailInput,
+      MedusaProductListKeyInput,
+      MedusaProductListDetailKeyInput
+    >
+  >,
+  "cartQueryKeys" | "cartStorage" | "isActiveCartQueryKey"
+>
+
 type MedusaOrderHooksConfig = OmitFactoryConfig<
   CreateOrderHooksConfig<
     HttpTypes.StoreOrder,
@@ -238,6 +280,14 @@ type MedusaOrderService = OrderService<
   HttpTypes.StoreOrder,
   MedusaOrderListInput,
   MedusaOrderDetailInput
+>
+
+type MedusaProductListService = ProductListService<
+  ProductListBase<ProductListItemBase>,
+  ProductListItemBase,
+  HttpTypes.StoreCart,
+  MedusaProductListListInput,
+  MedusaProductListDetailInput
 >
 
 type MedusaCustomerAddressUpdateHookInput = MedusaCustomerAddressUpdateInput & {
@@ -387,6 +437,19 @@ type CreateMedusaStorefrontPresetConfigBase<
       MedusaProductDetailInput
     >
   }
+  productLists?: {
+    service?: MedusaProductListService
+    serviceConfig?: MedusaProductListServiceConfig<
+      ProductListBase<ProductListItemBase>,
+      ProductListItemBase,
+      HttpTypes.StoreCart
+    >
+    hooks?: MedusaProductListHooksConfig
+    queryKeys?: ProductListQueryKeys<
+      MedusaProductListKeyInput,
+      MedusaProductListDetailKeyInput
+    >
+  }
   orders?: {
     service?: MedusaOrderService
     serviceConfig?: MedusaOrderServiceConfig
@@ -471,6 +534,7 @@ type MedusaStorefrontServices<
       MedusaProductDetailInput
     >
   >
+  productLists: MedusaProductListService
   orders: MedusaOrderService
   customers: MedusaCustomerService
   regions: ReturnType<typeof createMedusaRegionService>
@@ -542,6 +606,13 @@ type MedusaStorefrontHooks<
     TProduct,
     MedusaProductListInput,
     MedusaProductDetailInput
+  >
+  productLists: ProductListHooks<
+    ProductListBase<ProductListItemBase>,
+    ProductListItemBase,
+    HttpTypes.StoreCart,
+    MedusaProductListKeyInput,
+    MedusaProductListDetailKeyInput
   >
   orders: OrderHooks<
     HttpTypes.StoreOrder,
@@ -693,6 +764,8 @@ export function createMedusaStorefrontPreset<
     cart: config.cart?.queryKeys ?? defaultQueryKeys.cart,
     checkout: config.checkout?.queryKeys ?? defaultQueryKeys.checkout,
     products: config.products?.queryKeys ?? defaultQueryKeys.products,
+    productLists:
+      config.productLists?.queryKeys ?? defaultQueryKeys.productLists,
     orders: config.orders?.queryKeys ?? defaultQueryKeys.orders,
     customers: config.customers?.queryKeys ?? defaultQueryKeys.customers,
     regions: config.regions?.queryKeys ?? defaultQueryKeys.regions,
@@ -754,6 +827,12 @@ export function createMedusaStorefrontPreset<
       config.checkout?.serviceConfig
     ),
     products: serverRead.services.products,
+    productLists:
+      config.productLists?.service ??
+      createMedusaProductListService(
+        config.sdk,
+        config.productLists?.serviceConfig
+      ),
     orders: serverRead.services.orders,
     customers:
       config.customers?.service ?? createMedusaCustomerService(config.sdk),
@@ -778,10 +857,12 @@ export function createMedusaStorefrontPreset<
     const presetAuthInvalidateKeys = [
       queryKeys.customers.all(),
       queryKeys.orders.all(),
+      queryKeys.productLists.all(),
     ]
     const presetAuthRemoveOnLogoutKeys = [
       queryKeys.customers.all(),
       queryKeys.orders.all(),
+      queryKeys.productLists.all(),
     ]
     return {
       includeDefaults: authInvalidationOverrides?.includeDefaults ?? false,
@@ -863,6 +944,26 @@ export function createMedusaStorefrontPreset<
       queryKeys: queryKeys.products,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
+    }),
+    productLists: createProductListHooks<
+      ProductListBase<ProductListItemBase>,
+      ProductListItemBase,
+      HttpTypes.StoreCart,
+      MedusaProductListKeyInput,
+      MedusaProductListListInput,
+      MedusaProductListDetailKeyInput,
+      MedusaProductListDetailInput,
+      MedusaProductListKeyInput,
+      MedusaProductListDetailKeyInput
+    >({
+      ...(config.productLists?.hooks ?? {}),
+      service: services.productLists,
+      queryKeys: queryKeys.productLists,
+      queryKeyNamespace: namespace,
+      cacheConfig: resolvedCacheConfig,
+      cartQueryKeys: queryKeys.cart,
+      cartStorage: cartHookOverrides?.cartStorage,
+      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
     }),
     orders: createOrderHooks<
       HttpTypes.StoreOrder,

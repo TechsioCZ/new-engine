@@ -16,6 +16,8 @@ import { createOrderQueryKeys } from "../orders/query-keys"
 import type { OrderQueryKeys } from "../orders/types"
 import { createProductQueryKeys } from "../products/query-keys"
 import type { ProductQueryKeys } from "../products/types"
+import { createProductListQueryKeys } from "../product-lists/query-keys"
+import type { ProductListQueryKeys } from "../product-lists/types"
 import { createRegionQueryKeys } from "../regions/query-keys"
 import type { RegionQueryKeys } from "../regions/types"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
@@ -37,6 +39,10 @@ import type {
   MedusaProductListInput,
 } from "../products/medusa-service"
 import type {
+  MedusaProductListDetailInput,
+  MedusaProductListListInput,
+} from "../product-lists/medusa-service"
+import type {
   MedusaRegionDetailInput,
   MedusaRegionListInput,
 } from "../regions/medusa-service"
@@ -50,6 +56,10 @@ export type MedusaStorefrontQueryKeys = {
   cart: CartQueryKeys
   checkout: CheckoutQueryKeys
   products: ProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>
+  productLists: ProductListQueryKeys<
+    MedusaProductListListInput & { customerId?: string | null },
+    MedusaProductListDetailInput & { customerId?: string | null }
+  >
   orders: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   customers: CustomerQueryKeys<MedusaCustomerListInput>
   regions: RegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>
@@ -79,6 +89,10 @@ export function createMedusaStorefrontQueryKeys(
     products: createProductQueryKeys<
       MedusaProductListInput,
       MedusaProductDetailInput
+    >(namespace),
+    productLists: createProductListQueryKeys<
+      MedusaProductListListInput & { customerId?: string | null },
+      MedusaProductListDetailInput & { customerId?: string | null }
     >(namespace),
     orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
       namespace
