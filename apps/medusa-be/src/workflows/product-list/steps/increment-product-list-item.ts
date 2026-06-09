@@ -1,7 +1,5 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
-import { normalizeProductListType } from "../../../modules/product-list/normalizers"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListItemRecord } from "../types"
 
@@ -20,22 +18,9 @@ type CompensationInput = {
 export const incrementProductListItemStep = createStep(
   "increment-product-list-item",
   async (input: IncrementProductListItemStepInput, { container }) => {
-    const service =
-      container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
-    const productList = await service.retrieveProductList(input.list_id)
-    const productListType = normalizeProductListType(productList.type)
-
-    if (productListType !== "custom") {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Only custom product lists support quantity increments"
-      )
-    }
-
-    const item = await service.incrementProductListItemQuantity(
-      input.item_id,
-      input.quantity
-    )
+    const item = await container
+      .resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
+      .incrementProductListItemQuantity(input.item_id, input.quantity)
 
     return new StepResponse<ProductListItemRecord, CompensationInput>(item, {
       item_id: input.item_id,

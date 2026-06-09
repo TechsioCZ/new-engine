@@ -211,38 +211,55 @@ describe("createProductListItemStep", () => {
     resetHelperMocks()
   })
 
-  it("rejects favorite lists when quantity is set before validating the product selection", async () => {
+  it("creates favorite list items when quantity is set", async () => {
+    const createdItem = {
+      id: "plitem_new",
+      list_id: "plist_favorite",
+      quantity: 2,
+      sort_order: 0,
+    }
     const service = makeService()
     service.retrieveProductList.mockResolvedValue({
       id: "plist_favorite",
       type: "favorite",
     })
+    service.createProductListItemForList.mockResolvedValue(createdItem)
     mockGetProductListType.mockReturnValue("favorite")
+    mockAssertProductSelectionExists.mockResolvedValue(undefined)
+    mockFindProductListItemForSelection.mockResolvedValue(null)
     const container = makeContainer(service)
     const { createProductListItemStep } = await import(
       "../../../../../src/workflows/product-list/steps/create-product-list-item"
     )
 
-    await expect(
-      (createProductListItemStep as MockStep)(
-        {
-          customer_id: "cus_1",
-          list_id: "plist_favorite",
-          product_id: "prod_1",
-          quantity: 2,
-        },
-        { container }
-      )
-    ).rejects.toMatchObject({
-      message: "Quantity cannot be set on a favorites list",
-      type: MedusaError.Types.INVALID_DATA,
-    })
+    const result = await (createProductListItemStep as MockStep)(
+      {
+        customer_id: "cus_1",
+        list_id: "plist_favorite",
+        product_id: "prod_1",
+        quantity: 2,
+      },
+      { container }
+    )
 
-    expect(service.retrieveProductList).toHaveBeenCalledWith("plist_favorite")
-    expect(mockGetProductListType).toHaveBeenCalledWith("favorite")
-    expect(mockAssertProductSelectionExists).not.toHaveBeenCalled()
-    expect(mockFindProductListItemForSelection).not.toHaveBeenCalled()
-    expect(service.createProductListItemForList).not.toHaveBeenCalled()
+    expect(service.createProductListItemForList).toHaveBeenCalledWith({
+      list_id: "plist_favorite",
+      list_type: "favorite",
+      metadata: undefined,
+      note: undefined,
+      quantity: 2,
+      sort_order: undefined,
+    })
+    expect(result).toEqual({
+      compensateInput: {
+        created: true,
+        item_id: "plitem_new",
+      },
+      payload: {
+        created: true,
+        item: createdItem,
+      },
+    })
   })
 
   it("creates favorite list items when quantity is omitted", async () => {
@@ -397,34 +414,40 @@ describe("incrementProductListItemStep", () => {
     resetHelperMocks()
   })
 
-  it("rejects favorite lists before incrementing item quantity", async () => {
+  it("increments favorite list item quantities and records compensation input", async () => {
+    const incrementedItem = {
+      id: "plitem_1",
+      list_id: "plist_favorite",
+      quantity: 3,
+    }
     const service = makeService()
-    service.retrieveProductList.mockResolvedValue({
-      id: "plist_favorite",
-      type: "favorite",
-    })
+    service.incrementProductListItemQuantity.mockResolvedValue(incrementedItem)
     const container = makeContainer(service)
     const { incrementProductListItemStep } = await import(
       "../../../../../src/workflows/product-list/steps/increment-product-list-item"
     )
 
-    await expect(
-      (incrementProductListItemStep as MockStep)(
-        {
-          item_id: "plitem_1",
-          list_id: "plist_favorite",
-          previous_quantity: 1,
-          quantity: 2,
-        },
-        { container }
-      )
-    ).rejects.toMatchObject({
-      message: "Only custom product lists support quantity increments",
-      type: MedusaError.Types.INVALID_DATA,
-    })
+    const result = await (incrementProductListItemStep as MockStep)(
+      {
+        item_id: "plitem_1",
+        list_id: "plist_favorite",
+        previous_quantity: 1,
+        quantity: 2,
+      },
+      { container }
+    )
 
-    expect(service.retrieveProductList).toHaveBeenCalledWith("plist_favorite")
-    expect(service.incrementProductListItemQuantity).not.toHaveBeenCalled()
+    expect(service.incrementProductListItemQuantity).toHaveBeenCalledWith(
+      "plitem_1",
+      2
+    )
+    expect(result).toEqual({
+      compensateInput: {
+        item_id: "plitem_1",
+        previous_quantity: 1,
+      },
+      payload: incrementedItem,
+    })
   })
 
   it("increments custom list item quantities and records compensation input", async () => {

@@ -1,0 +1,6 @@
+@theme static {
+    --padding-phone-input-country-flag: 0;
+    --spacing-phone-input-country-value: var(--spacing-100);
+    --spacing-phone-input-item: var(--spacing-150);
+    --spacing-phone-input-country-flag: var(--spacing-200);
+}
