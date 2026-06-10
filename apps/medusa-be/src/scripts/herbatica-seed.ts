@@ -17,8 +17,15 @@ import {
   excerptPlainText,
   type HerbaticaCategoryExport,
   parseHerbaticaCategoriesXmlSource,
-  readXmlSource,
 } from "./herbatica-category-export"
+import {
+  extractElements,
+  extractFirstElementContent,
+  extractFirstText,
+  normalizeInlineText,
+  normalizeText,
+  readXmlSource,
+} from "./herbatica-xml-utils"
 import {
   HERBATICA_CATEGORIES_XML_ENV,
   HERBATICA_CATEGORIES_XML_PATHS,
@@ -36,6 +43,7 @@ import {
   HERBATICA_PRODUCTS_XML_PATHS,
   HERBATICA_PROMO_REBASE_DAYS_ENV,
   HERBATICA_PUBLISHABLE_KEY,
+  HERBATICA_REVIEWS_XML_ENV,
   HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
   HERBATICA_SALES_CHANNELS,
   HERBATICA_SHIPPING_OPTIONS,
@@ -43,6 +51,7 @@ import {
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
 } from "./herbatica-seed-config"
+import { importHerbaticaReviews } from "./herbatica-reviews-seed"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
@@ -51,11 +60,6 @@ type CategorySeedInput = SeedDatabaseWorkflowInput["productCategories"][number]
 type PriceListsSeedInput = NonNullable<SeedDatabaseWorkflowInput["priceLists"]>
 type PriceListPriceSeedInput =
   PriceListsSeedInput["overrides"][number]["prices"][number]
-
-type XmlElement = {
-  attributes: Record<string, string>
-  inner: string
-}
 
 type ParsedParameter = {
   name: string
@@ -274,6 +278,7 @@ type BuildResult = {
 type ResolvedFeedPaths = {
   productsXmlPath: string
   categoriesXmlPath?: string
+  reviewsXmlPath?: string
 }
 
 type HerbaticaWorkflowInputOptions = {
@@ -577,48 +582,6 @@ const PRODUCT_CONTENT_TEXT_LABEL_DEFINITIONS: ProductContentTextLabelDefinition[
 
 const PRODUCT_CONTENT_BLOCK_REGEX =
   /<(h[1-6]|p|div|ul|ol|table|blockquote)[^>]*>[\s\S]*?<\/\1>/gi
-
-const ENTITY_MAP: Record<string, string> = {
-  "&quot;": '"',
-  "&apos;": "'",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&amp;": "&",
-  "&nbsp;": " ",
-}
-
-function decodeXml(value: string): string {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
-      const parsed = Number.parseInt(hex, 16)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
-    })
-    .replace(/&#([0-9]+);/g, (match, num) => {
-      const parsed = Number.parseInt(num, 10)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
-    })
-    .replace(
-      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
-      (entity) => ENTITY_MAP[entity] ?? entity
-    )
-}
-
-function normalizeText(value?: string): string | undefined {
-  if (value === undefined) {
-    return
-  }
-  const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
-  return decoded === "" ? undefined : decoded
-}
-
-function normalizeInlineText(value?: string): string | undefined {
-  const normalized = normalizeText(value)
-  if (normalized === undefined) {
-    return
-  }
-  return normalized.replace(/\s+/g, " ").trim()
-}
 
 function stripHtmlTags(value?: string): string | undefined {
   if (!value) {
@@ -1065,48 +1028,6 @@ function buildProductCardCopyConfig(
     skip: 0,
     take: 3,
   }
-}
-
-function parseAttributes(raw?: string): Record<string, string> {
-  if (!raw) {
-    return {}
-  }
-
-  const attributes: Record<string, string> = {}
-  const regex = /([:\w-]+)\s*=\s*"([^"]*)"/g
-  for (const match of raw.matchAll(regex)) {
-    const key = normalizeInlineText(match[1])
-    if (!key) {
-      continue
-    }
-    attributes[key] = normalizeText(match[2]) ?? ""
-  }
-  return attributes
-}
-
-function extractElements(source: string, tag: string): XmlElement[] {
-  const regex = new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "g")
-  const result: XmlElement[] = []
-  for (const match of source.matchAll(regex)) {
-    result.push({
-      attributes: parseAttributes(match[1]),
-      inner: match[2] ?? "",
-    })
-  }
-  return result
-}
-
-function extractFirstElementContent(
-  source: string,
-  tag: string
-): string | undefined {
-  const regex = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`)
-  const match = source.match(regex)
-  return match?.[1]
-}
-
-function extractFirstText(source: string, tag: string): string | undefined {
-  return normalizeText(extractFirstElementContent(source, tag))
 }
 
 function parseNumber(value?: string): number | undefined {
@@ -3427,10 +3348,25 @@ function resolveCategoriesXmlPath(args?: string[]): string | undefined {
   return HERBATICA_CATEGORIES_XML_PATHS.find((path) => existsSync(path))
 }
 
+function resolveReviewsXmlPath(args?: string[]): string | undefined {
+  const argPath = normalizeInlineText(args?.[2])
+  if (argPath) {
+    return argPath
+  }
+
+  const envPath = normalizeInlineText(process.env[HERBATICA_REVIEWS_XML_ENV])
+  if (envPath) {
+    return envPath
+  }
+
+  return undefined
+}
+
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
   return {
     productsXmlPath: resolveProductsXmlPath(args),
     categoriesXmlPath: resolveCategoriesXmlPath(args),
+    reviewsXmlPath: resolveReviewsXmlPath(args),
   }
 }
 
@@ -3447,7 +3383,6 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       "Categories XML feed not found, falling back to categories derived from product paths."
     )
   }
-
   const xml = await readXmlSource(feedPaths.productsXmlPath)
   const categoryExports = feedPaths.categoriesXmlPath
     ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
@@ -3541,6 +3476,14 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const { result } = await seedShoptetImportWorkflow(container).run({
     input,
   })
+
+  if (feedPaths.reviewsXmlPath) {
+    await importHerbaticaReviews({
+      container,
+      logger,
+      xmlPath: feedPaths.reviewsXmlPath,
+    })
+  }
 
   logger.info("Herbatica seed completed successfully")
   logger.info(`Result: ${JSON.stringify(result, null, 2)}`)
