@@ -348,6 +348,9 @@ module.exports = defineConfig({
     {
       resolve: "./src/modules/order-receipt",
     },
+    {
+      resolve: "./src/modules/workflow-queue",
+    },
     ...(FEATURE_PAYMENT_QR_ENABLED
       ? [
           {

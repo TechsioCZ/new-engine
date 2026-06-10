@@ -13,4 +13,5 @@ export type CreateReviewInput = {
 
 export type CreateReviewWorkflowInput = {
   review: CreateReviewInput
+  review_token_id?: string
 }

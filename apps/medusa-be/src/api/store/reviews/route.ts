@@ -1,51 +1,52 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { MedusaError } from "@medusajs/framework/utils"
-import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
-import type ProductReviewModuleService from "../../../modules/product-review/service"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
-import { ensureProductExists, getCustomerId, retrieveCustomer } from "./helpers"
+import {
+  ensureProductExists,
+  ensureReviewDoesNotExist,
+  getCustomerId,
+  getReviewAuthorName,
+  getReviewTokenCustomerId,
+  retrieveCustomer,
+  retrieveReviewToken,
+} from "./helpers"
 import type { StoreCreateReviewSchemaType } from "./validators"
 
 export async function POST(
   req: MedusaRequest<StoreCreateReviewSchemaType>,
   res: MedusaResponse
 ) {
-  const customerId = getCustomerId(req)
-  const { content, product_id, rating, title } = req.validatedBody
+  const { content, product_id, rating, review_token, title } = req.validatedBody
+  const tokenRecord = review_token
+    ? await retrieveReviewToken(req, review_token, product_id)
+    : undefined
+  const customerId = tokenRecord
+    ? getReviewTokenCustomerId(tokenRecord)
+    : getCustomerId(req)
 
   await ensureProductExists(req, product_id)
+  await ensureReviewDoesNotExist({
+    customerId,
+    productId: product_id,
+    req,
+  })
 
-  const [existingReview] = await req.scope
-    .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
-    .listReviews(
-      {
-        customer_id: customerId,
-        product_id,
-      },
-      {
-        take: 1,
-      }
-    )
-
-  if (existingReview) {
-    throw new MedusaError(
-      MedusaError.Types.DUPLICATE_ERROR,
-      "You have already reviewed this product."
-    )
-  }
-
-  const customer = await retrieveCustomer(req, customerId)
+  const customer = tokenRecord ? undefined : await retrieveCustomer(req, customerId)
+  const authorName = getReviewAuthorName({
+    customer,
+    reviewToken: tokenRecord,
+  })
   const { result: review } = await createReviewWorkflow(req.scope).run({
     input: {
       review: {
         content,
         customer_id: customerId,
-        first_name: customer?.first_name ?? null,
-        last_name: customer?.last_name ?? null,
+        first_name: authorName.first_name,
+        last_name: authorName.last_name,
         product_id,
         rating,
         title,
       },
+      review_token_id: tokenRecord?.id,
     },
   })
 

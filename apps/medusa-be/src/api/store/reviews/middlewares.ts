@@ -11,7 +11,9 @@ export const storeReviewRoutesMiddlewares: MiddlewareRoute[] = [
     methods: ["POST"],
     matcher: "/store/reviews",
     middlewares: [
-      authenticate("customer", ["session", "bearer"]),
+      authenticate("customer", ["session", "bearer"], {
+        allowUnauthenticated: true,
+      }),
       validateAndTransformBody(StoreCreateReviewSchema),
     ],
   },

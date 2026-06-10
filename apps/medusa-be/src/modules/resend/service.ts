@@ -34,7 +34,13 @@ type NotificationAttachment = {
 
 type Template = ResendEmailTemplate
 
-type TemplateVariableValue = string | number
+type TemplateVariableValue =
+  | boolean
+  | null
+  | number
+  | string
+  | TemplateVariableValue[]
+  | { [key: string]: TemplateVariableValue }
 
 type ResendTemplateEmailOptions = {
   attachments?: {
@@ -150,8 +156,8 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     for (const variable of definition.requiredVariables) {
       const value = data?.[variable]
 
-      if (typeof value === "string" || typeof value === "number") {
-        variables[variable] = value
+      if (value !== undefined && value !== null) {
+        variables[variable] = value as TemplateVariableValue
       } else {
         missingVariables.push(variable)
       }
@@ -160,7 +166,9 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     for (const variable of definition.optionalVariables) {
       const value = data?.[variable]
       variables[variable] =
-        typeof value === "string" || typeof value === "number" ? value : ""
+        value !== undefined && value !== null
+          ? (value as TemplateVariableValue)
+          : ""
     }
 
     return {
