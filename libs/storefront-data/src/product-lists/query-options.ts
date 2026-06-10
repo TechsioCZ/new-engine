@@ -7,9 +7,12 @@ import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
-import { compactRecord } from "../shared/object-utils"
-import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
+import {
+  createDefaultListParams,
+  stripDetailInput,
+  withCustomerScope,
+} from "./input-utils"
 import { createProductListQueryKeys } from "./query-keys"
 import type {
   ProductListCartLike,
@@ -74,65 +77,6 @@ export type ProductListQueryOptionsFactory<
     }
   ) => QueryFactoryOptions<TProductList | null>
 }
-
-const stripListInput = <TInput extends ProductListListInputBase>(
-  input: TInput
-) => {
-  const {
-    enabled: _enabled,
-    customerId: _customerId,
-    page: _page,
-    ...params
-  } = input
-
-  return params
-}
-
-const stripDetailInput = <TInput extends ProductListDetailInputBase>(
-  input: TInput
-) => {
-  const { enabled: _enabled, customerId: _customerId, ...params } = input
-
-  return params
-}
-
-const createDefaultListParams = <TInput extends ProductListListInputBase>(
-  input: TInput,
-  defaultPageSize: number
-) => {
-  const params = stripListInput(input) as Record<string, unknown>
-
-  if (typeof input.page !== "number") {
-    return compactRecord(params)
-  }
-
-  const pagination = resolvePagination(
-    {
-      page: input.page,
-      limit: input.limit,
-      offset: input.offset,
-    },
-    defaultPageSize
-  )
-
-  return compactRecord({
-    ...params,
-    limit: pagination.limit,
-    offset: pagination.offset,
-  })
-}
-
-const withCustomerScope = <
-  TParams,
-  TInput extends { customerId?: string | null },
->(
-  params: TParams,
-  input: TInput
-) =>
-  ({
-    ...(params as object),
-    customerId: input.customerId ?? null,
-  })
 
 export function createProductListQueryOptionsFactory<
   TProductList,

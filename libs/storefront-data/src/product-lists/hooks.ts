@@ -12,7 +12,9 @@ import {
 } from "../shared/cart-cache-sync"
 import {
   type CacheConfig,
+  type CacheStrategy,
   createCacheConfig,
+  getPrefetchCacheOptions,
 } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
@@ -21,11 +23,16 @@ import type {
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 import type { QueryResult } from "../shared/hook-result-types"
-import { compactRecord } from "../shared/object-utils"
-import { resolvePagination } from "../shared/pagination"
+import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { CartQueryKeys } from "../cart/types"
 import type { StorageValueStore } from "../shared/storage-value-store"
+import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
+import {
+  createDefaultListParams,
+  stripDetailInput,
+  withCustomerScope,
+} from "./input-utils"
 import { createProductListQueryKeys } from "./query-keys"
 import type {
   AddFavoriteProductListItemInput,
@@ -62,6 +69,20 @@ type SuspenseDetailInput<TInput extends ProductListDetailInputBase> = Omit<
   "enabled" | "id"
 > & {
   id: NonNullable<TInput["id"]>
+}
+
+export type ProductListPrefetchHookOptions = {
+  cacheStrategy?: CacheStrategy
+  defaultDelay?: number
+  skipIfCached?: boolean
+  skipMode?: PrefetchSkipMode
+}
+
+export type ProductListPrefetchOptions = {
+  cacheStrategy?: CacheStrategy
+  prefetchedBy?: string
+  skipIfCached?: boolean
+  skipMode?: PrefetchSkipMode
 }
 
 export type CreateProductListHooksConfig<
@@ -151,6 +172,30 @@ export type ProductListHooks<
       queryOptions?: ReadQueryOptions<TProductList | null>
     }
   ) => QueryResult<TProductList | null>[]
+  usePrefetchProductLists: (options?: ProductListPrefetchHookOptions) => {
+    prefetchProductLists: (
+      input?: TListInput,
+      prefetchOptions?: ProductListPrefetchOptions
+    ) => Promise<void>
+    delayedPrefetch: (
+      input?: TListInput,
+      delay?: number,
+      prefetchId?: string
+    ) => string
+    cancelPrefetch: (prefetchId: string) => void
+  }
+  usePrefetchProductList: (options?: ProductListPrefetchHookOptions) => {
+    prefetchProductList: (
+      input: TDetailInput,
+      prefetchOptions?: ProductListPrefetchOptions
+    ) => Promise<void>
+    delayedPrefetch: (
+      input: TDetailInput,
+      delay?: number,
+      prefetchId?: string
+    ) => string
+    cancelPrefetch: (prefetchId: string) => void
+  }
   useCreateFavoriteProductList: <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductList | null,
@@ -276,57 +321,6 @@ export type ProductListHooks<
   >
 }
 
-const stripListInput = (input: ProductListListInputBase) => {
-  const {
-    enabled: _enabled,
-    customerId: _customerId,
-    page: _page,
-    ...params
-  } = input
-
-  return params
-}
-
-const stripDetailInput = (input: ProductListDetailInputBase) => {
-  const { enabled: _enabled, customerId: _customerId, ...params } = input
-  return params
-}
-
-const createDefaultListParams = <TListInput extends ProductListListInputBase>(
-  input: TListInput,
-  defaultPageSize: number
-) => {
-  const params = stripListInput(input)
-
-  if (typeof input.page !== "number") {
-    return compactRecord(params)
-  }
-
-  const pagination = resolvePagination(
-    {
-      page: input.page,
-      limit: input.limit,
-      offset: input.offset,
-    },
-    defaultPageSize
-  )
-
-  return compactRecord({
-    ...params,
-    limit: pagination.limit,
-    offset: pagination.offset,
-  })
-}
-
-const withCustomerScope = <TParams, TInput extends { customerId?: string | null }>(
-  params: TParams,
-  input: TInput
-) =>
-  ({
-    ...(params as object),
-    customerId: input.customerId ?? null,
-  })
-
 export function createProductListHooks<
   TProductList,
   TProductListItem,
@@ -424,6 +418,54 @@ export function createProductListHooks<
       },
       ...resolvedCacheConfig.userData,
       ...(options?.queryOptions ?? {}),
+    }
+  }
+
+  const createProductListsPrefetchQueryOptions = (
+    input: TListInput,
+    options?: {
+      cacheStrategy?: CacheStrategy
+      prefetchedBy?: string
+    }
+  ) => {
+    const listParams = buildList(input)
+    const prefetchCacheOptions = getPrefetchCacheOptions(
+      resolvedCacheConfig,
+      options?.cacheStrategy ?? "userData"
+    )
+
+    return {
+      queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
+      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+        service.listProductLists(listParams, signal),
+      ...prefetchCacheOptions,
+      meta: options?.prefetchedBy
+        ? { prefetchedBy: options.prefetchedBy }
+        : undefined,
+    }
+  }
+
+  const createProductListPrefetchQueryOptions = (
+    input: TDetailInput,
+    options?: {
+      cacheStrategy?: CacheStrategy
+      prefetchedBy?: string
+    }
+  ) => {
+    const detailParams = buildDetail(input)
+    const prefetchCacheOptions = getPrefetchCacheOptions(
+      resolvedCacheConfig,
+      options?.cacheStrategy ?? "userData"
+    )
+
+    return {
+      queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
+      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+        service.getProductList(detailParams, signal),
+      ...prefetchCacheOptions,
+      meta: options?.prefetchedBy
+        ? { prefetchedBy: options.prefetchedBy }
+        : undefined,
     }
   }
 
@@ -557,6 +599,142 @@ export function createProductListHooks<
         enabled: enabled && Boolean(input.id),
       })),
     })
+  }
+
+  function usePrefetchProductLists(options?: ProductListPrefetchHookOptions) {
+    const queryClient = useQueryClient()
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
+    const cacheStrategy = options?.cacheStrategy ?? "userData"
+    const defaultDelay = options?.defaultDelay ?? 800
+    const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
+
+    const prefetchProductLists = async (
+      input = {} as TListInput,
+      prefetchOptions?: ProductListPrefetchOptions
+    ) => {
+      const cacheStrategyResolved =
+        prefetchOptions?.cacheStrategy ?? cacheStrategy
+      const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
+      const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
+      const queryOptions = createProductListsPrefetchQueryOptions(input, {
+        cacheStrategy: cacheStrategyResolved,
+        prefetchedBy: prefetchOptions?.prefetchedBy,
+      })
+      const prefetchCacheOptions = getPrefetchCacheOptions(
+        resolvedCacheConfig,
+        cacheStrategyResolved
+      )
+
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey: queryOptions.queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached: skipIfCachedResolved,
+          skipMode: skipModeResolved,
+        })
+      ) {
+        return
+      }
+
+      await queryClient.prefetchQuery(queryOptions)
+    }
+
+    const delayedPrefetch = (
+      input = {} as TListInput,
+      delay = defaultDelay,
+      prefetchId?: string
+    ) => {
+      const queryOptions = createProductListsPrefetchQueryOptions(input, {
+        cacheStrategy,
+      })
+      const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
+
+      return schedulePrefetch(
+        () => {
+          prefetchProductLists(input)
+        },
+        id,
+        delay
+      )
+    }
+
+    return {
+      prefetchProductLists,
+      delayedPrefetch,
+      cancelPrefetch,
+    }
+  }
+
+  function usePrefetchProductList(options?: ProductListPrefetchHookOptions) {
+    const queryClient = useQueryClient()
+    const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
+    const cacheStrategy = options?.cacheStrategy ?? "userData"
+    const defaultDelay = options?.defaultDelay ?? 400
+    const skipIfCached = options?.skipIfCached ?? true
+    const skipMode = options?.skipMode ?? "fresh"
+
+    const prefetchProductList = async (
+      input: TDetailInput,
+      prefetchOptions?: ProductListPrefetchOptions
+    ) => {
+      if (!input.id) {
+        return
+      }
+
+      const cacheStrategyResolved =
+        prefetchOptions?.cacheStrategy ?? cacheStrategy
+      const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
+      const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
+      const queryOptions = createProductListPrefetchQueryOptions(input, {
+        cacheStrategy: cacheStrategyResolved,
+        prefetchedBy: prefetchOptions?.prefetchedBy,
+      })
+      const prefetchCacheOptions = getPrefetchCacheOptions(
+        resolvedCacheConfig,
+        cacheStrategyResolved
+      )
+
+      if (
+        shouldSkipPrefetch({
+          queryClient,
+          queryKey: queryOptions.queryKey,
+          cacheOptions: prefetchCacheOptions,
+          skipIfCached: skipIfCachedResolved,
+          skipMode: skipModeResolved,
+        })
+      ) {
+        return
+      }
+
+      await queryClient.prefetchQuery(queryOptions)
+    }
+
+    const delayedPrefetch = (
+      input: TDetailInput,
+      delay = defaultDelay,
+      prefetchId?: string
+    ) => {
+      const queryOptions = createProductListPrefetchQueryOptions(input, {
+        cacheStrategy,
+      })
+      const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
+
+      return schedulePrefetch(
+        () => {
+          prefetchProductList(input)
+        },
+        id,
+        delay
+      )
+    }
+
+    return {
+      prefetchProductList,
+      delayedPrefetch,
+      cancelPrefetch,
+    }
   }
 
   function useCreateFavoriteProductList<TContext = unknown>(
@@ -850,6 +1028,8 @@ export function createProductListHooks<
     useProductList,
     useSuspenseProductList,
     useProductListDetails,
+    usePrefetchProductLists,
+    usePrefetchProductList,
     useCreateFavoriteProductList,
     useCreateCustomProductList,
     useUpdateProductList,

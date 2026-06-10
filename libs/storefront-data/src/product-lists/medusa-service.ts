@@ -24,17 +24,6 @@ import type {
   UpdateProductListItemInput,
 } from "./types"
 import { compactRecord } from "../shared/object-utils"
-export {
-  findProductListItem,
-  getProductListItemCount,
-  getProductListItemProductId,
-  getProductListItemVariantId,
-  getProductListItems,
-  isFavoriteProductList,
-  isProductInProductList,
-  productListItemMatchesSelection,
-  resolveProductListItemQuantity,
-} from "./utils"
 
 const DEFAULT_PRODUCT_LISTS_PATH = "/store/product-lists"
 
@@ -380,7 +369,9 @@ export function createMedusaProductListService<
         ProductListItemResponse<TProductList, ProductListItemBase>
       >(`${basePath}/items/${input.itemId}/change-quantity`, {
         method: "POST",
-        body: { quantity: normalizeQuantityDelta(input.quantity) },
+        body: compactRecord({
+          quantity: normalizeQuantityDelta(input.quantity),
+        }),
       })
 
       return resolveItemFromResponse(response)
@@ -393,7 +384,9 @@ export function createMedusaProductListService<
         ProductListItemResponse<TProductList, ProductListItemBase>
       >(`${basePath}/items/${input.itemId}/increment`, {
         method: "POST",
-        body: { quantity: normalizeQuantity(input.quantity) ?? 1 },
+        body: compactRecord({
+          quantity: normalizeQuantity(input.quantity) ?? 1,
+        }),
       })
 
       return resolveItemFromResponse(response)

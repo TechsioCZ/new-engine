@@ -90,6 +90,55 @@ describe("createMedusaProductListService", () => {
     expect(sdk.client.fetch).not.toHaveBeenCalled()
   })
 
+  it("sends compact relative quantity payloads", async () => {
+    const sdk = createSdkMock({
+      product_list_item: {
+        id: "item_1",
+        quantity: 2,
+      },
+    })
+    const service = createMedusaProductListService(sdk)
+
+    await service.changeProductListItemQuantity({
+      itemId: "item_1",
+      quantity: 2.9,
+    })
+
+    expect(sdk.client.fetch).toHaveBeenCalledWith(
+      "/store/product-lists/items/item_1/change-quantity",
+      {
+        method: "POST",
+        body: {
+          quantity: 2,
+        },
+      }
+    )
+  })
+
+  it("sends compact increment payloads with default quantity", async () => {
+    const sdk = createSdkMock({
+      product_list_item: {
+        id: "item_1",
+        quantity: 1,
+      },
+    })
+    const service = createMedusaProductListService(sdk)
+
+    await service.incrementProductListItem({
+      itemId: "item_1",
+    })
+
+    expect(sdk.client.fetch).toHaveBeenCalledWith(
+      "/store/product-lists/items/item_1/increment",
+      {
+        method: "POST",
+        body: {
+          quantity: 1,
+        },
+      }
+    )
+  })
+
   it("creates a cart from a product list and maps storefront cart input fields", async () => {
     const sdk = createSdkMock({
       cart: {
