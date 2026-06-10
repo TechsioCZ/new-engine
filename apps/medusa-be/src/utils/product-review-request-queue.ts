@@ -44,19 +44,17 @@ type EmailLogService = EmailLogModuleService & {
 type WorkflowQueueItemDTO = {
   arguments: Record<string, unknown> | null
   id: string
+  order_id?: null | string
   workflow: string
 }
 
 type WorkflowQueueService = WorkflowQueueModuleService & {
   createWorkflowQueueItems: (data: {
     arguments: Record<string, unknown>
+    order_id?: string
     run_at: Date
     workflow: string
   }) => Promise<WorkflowQueueItemDTO>
-  hasQueuedWorkflowForOrder: (input: {
-    orderId: string
-    workflow: string
-  }) => Promise<boolean>
 }
 
 function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
@@ -110,12 +108,20 @@ async function hasQueuedReviewRequest(
   container: MedusaContainer,
   orderId: string
 ) {
-  return container
-    .resolve<WorkflowQueueService>(WORKFLOW_QUEUE_MODULE)
-    .hasQueuedWorkflowForOrder({
-      orderId,
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "workflow_queue_item",
+    fields: ["id"],
+    filters: {
+      order_id: orderId,
       workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
-    })
+    },
+    pagination: {
+      take: 1,
+    },
+  })
+
+  return Array.isArray(data) && data.length > 0
 }
 
 export async function scheduleProductReviewRequestForOrder({
@@ -169,6 +175,7 @@ export async function scheduleProductReviewRequestForOrder({
 
   const queueItem = await workflowQueueService.createWorkflowQueueItems({
     workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
+    order_id: order.id,
     run_at: runAt,
     arguments: {
       order_id: order.id,

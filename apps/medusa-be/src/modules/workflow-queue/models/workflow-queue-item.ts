@@ -6,6 +6,7 @@ const WorkflowQueueItem = model
     run_at: model.dateTime(),
     workflow: model.text(),
     arguments: model.json(),
+    order_id: model.text().nullable(),
   })
   .indexes([
     {
@@ -16,6 +17,11 @@ const WorkflowQueueItem = model
     {
       name: "IDX_workflow_queue_item_workflow",
       on: ["workflow"],
+      where: "deleted_at IS NULL",
+    },
+    {
+      name: "IDX_workflow_queue_item_workflow_order_id",
+      on: ["workflow", "order_id"],
       where: "deleted_at IS NULL",
     },
   ])
