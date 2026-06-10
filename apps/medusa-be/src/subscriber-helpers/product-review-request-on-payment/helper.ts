@@ -3,6 +3,7 @@ import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 export type PaymentPaidEvent = {
+  entity?: string
   id?: string
   order?: {
     id?: string
@@ -19,6 +20,8 @@ export type PaymentPaidEvent = {
   }
   payment_collection_id?: string
   payment_id?: string
+  resource_type?: string
+  type?: string
 }
 
 type PaymentQueryResult = {
@@ -30,6 +33,35 @@ type OrderPaymentCollectionQueryResult = {
     id?: string
   } | null
   order_id?: string
+}
+
+function getExplicitEntityType(data: PaymentPaidEvent) {
+  return data.resource_type ?? data.entity ?? data.type
+}
+
+function hasEntityType(data: PaymentPaidEvent, type: string) {
+  return getExplicitEntityType(data) === type
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isOrderPaymentCollectionQueryResult(
+  value: unknown
+): value is OrderPaymentCollectionQueryResult {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  return (
+    typeof value.order_id === "string" ||
+    (isRecord(value.order) && typeof value.order.id === "string")
+  )
+}
+
+function isPaymentQueryResult(value: unknown): value is PaymentQueryResult {
+  return isRecord(value) && typeof value.payment_collection_id === "string"
 }
 
 function getOrderIdFromEventData(data: PaymentPaidEvent): string | undefined {
@@ -45,6 +77,11 @@ function getOrderIdFromEventData(data: PaymentPaidEvent): string | undefined {
     return data.payment_collection.order.id
   }
 
+  if (hasEntityType(data, "order") && data.id) {
+    return data.id
+  }
+
+  // Medusa payment events currently only carry `id`; keep prefix fallback for legacy payloads.
   if (data.id?.startsWith("order_")) {
     return data.id
   }
@@ -63,6 +100,11 @@ function getPaymentCollectionIdFromEventData(
     return data.payment_collection.id
   }
 
+  if (hasEntityType(data, "payment_collection") && data.id) {
+    return data.id
+  }
+
+  // Medusa payment events currently only carry `id`; keep prefix fallback for legacy payloads.
   if (data.id?.startsWith("paycol_")) {
     return data.id
   }
@@ -79,6 +121,11 @@ function getPaymentIdFromEventData(data: PaymentPaidEvent): string | undefined {
     return data.payment.id
   }
 
+  if (hasEntityType(data, "payment") && data.id) {
+    return data.id
+  }
+
+  // Medusa payment events currently only carry `id`; keep prefix fallback for legacy payloads.
   if (data.id?.startsWith("pay_")) {
     return data.id
   }
@@ -95,9 +142,13 @@ async function getOrderIdFromPaymentCollection(
     fields: ["order.id", "order_id", "payment_collection_id"],
     filters: { payment_collection_id: paymentCollectionId },
   })
-  const link = (data as OrderPaymentCollectionQueryResult[])[0]
+  if (!Array.isArray(data) || !isOrderPaymentCollectionQueryResult(data[0])) {
+    return undefined
+  }
 
-  return link?.order?.id ?? link?.order_id
+  const link = data[0]
+
+  return link.order?.id ?? link.order_id
 }
 
 async function getOrderIdFromPayment(query: Query, paymentId: string) {
@@ -106,8 +157,11 @@ async function getOrderIdFromPayment(query: Query, paymentId: string) {
     fields: ["id", "payment_collection_id"],
     filters: { id: paymentId },
   })
-  const paymentCollectionId = (data as PaymentQueryResult[])[0]
-    ?.payment_collection_id
+  if (!Array.isArray(data) || !isPaymentQueryResult(data[0])) {
+    return undefined
+  }
+
+  const paymentCollectionId = data[0].payment_collection_id
 
   if (!paymentCollectionId) {
     return undefined

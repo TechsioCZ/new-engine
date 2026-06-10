@@ -65,6 +65,16 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
   ) => Promise<WorkflowQueueItemDTO[]>
 }
 
+function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+
+  return typeof record.id === "string" && typeof record.display_id === "number"
+}
+
 async function retrieveOrderForReviewRequest(
   container: MedusaContainer,
   orderId: string
@@ -76,7 +86,11 @@ async function retrieveOrderForReviewRequest(
     filters: { id: orderId },
   })
 
-  return (data as ReviewRequestOrder[])[0]
+  if (!Array.isArray(data) || !isReviewRequestOrder(data[0])) {
+    return undefined
+  }
+
+  return data[0]
 }
 
 async function hasReviewRequestEmailLog(

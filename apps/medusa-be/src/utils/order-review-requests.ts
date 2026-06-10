@@ -127,7 +127,7 @@ export function getReviewRequestRunAt(order: ReviewRequestOrder) {
 }
 
 export function getReviewRequestMessage() {
-  return "Napiš recenzi produktu"
+  return process.env.PRODUCT_REVIEW_REQUEST_MESSAGE ?? "Napiš recenzi produktu"
 }
 
 export { getOrderDisplayId }

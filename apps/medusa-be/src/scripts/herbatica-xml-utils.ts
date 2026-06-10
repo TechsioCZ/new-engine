@@ -69,8 +69,13 @@ export function parseAttributes(raw?: string): Record<string, string> {
   return attributes
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 export function extractElements(source: string, tag: string): XmlElement[] {
-  const regex = new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "g")
+  const escapedTag = escapeRegExp(tag)
+  const regex = new RegExp(`<${escapedTag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`, "g")
   const result: XmlElement[] = []
 
   for (const match of source.matchAll(regex)) {
@@ -87,7 +92,8 @@ export function extractFirstElementContent(
   source: string,
   tag: string
 ): string | undefined {
-  const regex = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`)
+  const escapedTag = escapeRegExp(tag)
+  const regex = new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`)
   return source.match(regex)?.[1]
 }
 

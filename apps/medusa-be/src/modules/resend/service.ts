@@ -77,6 +77,27 @@ function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
   return isRecord(value) && typeof value.id === "string"
 }
 
+function isTemplateVariableValue(value: unknown): value is TemplateVariableValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isTemplateVariableValue)
+  }
+
+  if (isRecord(value) && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.values(value).every(isTemplateVariableValue)
+  }
+
+  return false
+}
+
 function toErrorResponse(value: unknown): ResendApiErrorResponse {
   if (!isRecord(value)) {
     return {}
@@ -156,8 +177,8 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     for (const variable of definition.requiredVariables) {
       const value = data?.[variable]
 
-      if (value !== undefined && value !== null) {
-        variables[variable] = value as TemplateVariableValue
+      if (isTemplateVariableValue(value)) {
+        variables[variable] = value
       } else {
         missingVariables.push(variable)
       }
@@ -165,10 +186,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
     for (const variable of definition.optionalVariables) {
       const value = data?.[variable]
-      variables[variable] =
-        value !== undefined && value !== null
-          ? (value as TemplateVariableValue)
-          : ""
+      variables[variable] = isTemplateVariableValue(value) ? value : ""
     }
 
     return {

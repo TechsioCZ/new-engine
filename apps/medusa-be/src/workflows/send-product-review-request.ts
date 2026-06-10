@@ -163,6 +163,18 @@ function getReviewUrl(token: string) {
   return `${storefrontUrl}/${reviewPath}/${token}`
 }
 
+function isReviewRequestOrderWithItems(
+  value: unknown
+): value is ReviewRequestOrderWithItems {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+
+  const record = value as Record<string, unknown>
+
+  return typeof record.id === "string" && typeof record.display_id === "number"
+}
+
 function getUniqueProductItems(order: ReviewRequestOrderWithItems) {
   const items: ReviewRequestOrderItem[] = []
   const seenProductIds = new Set<string>()
@@ -273,7 +285,11 @@ const buildProductReviewRequestNotificationStep = createStep(
         id: input.order_id,
       },
     })
-    const order = (data as ReviewRequestOrderWithItems[])[0]
+    if (!Array.isArray(data) || !isReviewRequestOrderWithItems(data[0])) {
+      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
+    }
+
+    const order = data[0]
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")

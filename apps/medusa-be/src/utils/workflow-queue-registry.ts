@@ -1,4 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework"
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   sendProductReviewRequestWorkflow,
   type SendProductReviewRequestWorkflowInput,
@@ -25,7 +26,8 @@ const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {
     input
   ) => {
     if (!isSendProductReviewRequestWorkflowInput(input)) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Invalid arguments for ${workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST}`
       )
     }
