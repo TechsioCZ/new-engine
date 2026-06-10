@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 import type { QueryQuote } from "../../../../types"
 import { Form } from "../../../components/common/form"
-import { useCreateQuoteMessage } from "../../../hooks/api/quotes"
+import { useCreateQuoteMessage } from "../../../hooks/api"
 import { QuoteItem } from "./quote-details"
 
 export const CreateQuoteMessageForm = z.object({

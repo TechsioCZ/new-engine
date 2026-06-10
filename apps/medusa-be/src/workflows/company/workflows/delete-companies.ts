@@ -3,7 +3,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import type { ModuleDeleteCompany } from "../../../types"
-import { deleteApprovalSettingsStep } from "../../approval/steps/delete-approval-settings"
+import { deleteApprovalSettingsStep } from "../../approval/steps"
 import {
   deleteCompaniesStep,
   removeCompanyCustomerGroupLinkStep,

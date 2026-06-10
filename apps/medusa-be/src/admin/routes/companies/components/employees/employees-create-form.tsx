@@ -3,7 +3,7 @@ import { Button, CurrencyInput, Drawer, Input, Label, Text } from "@medusajs/ui"
 import { type ChangeEvent, type FormEvent, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
-import { CoolSwitch } from "../../../../components/common"
+import { CoolSwitch } from "../../../../components"
 import { currencySymbolMap } from "../../../../utils"
 
 type EmployeeCreateFormData = Omit<
@@ -22,10 +22,14 @@ export type EmployeeCreateSubmitData = Omit<
   AdminCreateEmployee,
   "spending_limit"
 > &
-  Pick<
-    HttpTypes.AdminCreateCustomer,
-    "email" | "first_name" | "last_name" | "phone"
+  Omit<
+    Pick<
+      HttpTypes.AdminCreateCustomer,
+      "email" | "first_name" | "last_name" | "phone"
+    >,
+    "email"
   > & {
+    email: string
     spending_limit: number
   }
 
@@ -126,8 +130,16 @@ export function EmployeesCreateForm({
       ? Number.parseInt(formData.spending_limit, 10)
       : 0
 
-    const data = {
+    const email = formData.email?.trim()
+
+    if (!email) {
+      setValidationErrors({ email: t("validation.required") })
+      return
+    }
+
+    const data: EmployeeCreateSubmitData = {
       ...formData,
+      email,
       spending_limit: spendingLimit,
     }
 

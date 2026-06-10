@@ -1,7 +1,7 @@
 import { MagnifyingGlass } from "@medusajs/icons"
 import { Popover, Table, Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
-import { formatAmount } from "../../../utils/format-amount"
+import { formatAmount } from "../../../utils"
 
 export type ApprovalItem = {
   id: string

@@ -85,7 +85,8 @@ const PayloadImportPage = () => {
       })
 
       if (!response.ok) {
-        throw new Error(await parseErrorMessage(response))
+        setError(await parseErrorMessage(response))
+        return
       }
 
       const data = (await response.json()) as ImportResult

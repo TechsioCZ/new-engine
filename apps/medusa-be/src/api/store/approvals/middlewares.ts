@@ -7,7 +7,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/medusa"
-import { ApprovalType } from "../../../types/approval"
+import { ApprovalType } from "../../../types"
 import { ensureRole } from "../../middlewares/ensure-role"
 import { approvalTransformQueryConfig } from "./query-config"
 import { StoreGetApprovals, StoreUpdateApproval } from "./validators"

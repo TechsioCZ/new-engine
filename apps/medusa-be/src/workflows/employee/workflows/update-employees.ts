@@ -37,12 +37,12 @@ export const updateEmployeesWorkflow = createWorkflow(
         customerId: roleData.updatedEmployee.customer?.id ?? "",
         email: roleData.updatedEmployee.customer?.email ?? "",
         shouldRemoveAdminRole:
-          roleData.previousEmployee.is_admin === true &&
-          roleData.updatedEmployee.is_admin === false &&
+          roleData.previousEmployee.is_admin &&
+          !roleData.updatedEmployee.is_admin &&
           !!roleData.updatedEmployee.customer?.email,
         shouldSetAdminRole:
-          roleData.previousEmployee.is_admin === false &&
-          roleData.updatedEmployee.is_admin === true &&
+          !roleData.previousEmployee.is_admin &&
+          roleData.updatedEmployee.is_admin &&
           !!roleData.updatedEmployee.customer?.id,
       })
     )

@@ -10,8 +10,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import type { QueryCompany } from "../../../../types"
-import { ActionMenu } from "../../../components/common"
-import { DeletePrompt } from "../../../components/common/delete-prompt"
+import { ActionMenu, DeletePrompt } from "../../../components"
 import { useDeleteCompany, useRestoreCompany } from "../../../hooks/api"
 import {
   CompanyApprovalSettingsDrawer,

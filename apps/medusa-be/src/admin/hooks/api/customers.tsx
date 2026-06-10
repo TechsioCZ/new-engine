@@ -39,14 +39,19 @@ type CustomerGroupCompanyOwnersQueryOptions = Omit<
   enabled?: boolean
 }
 
-export const useAdminCustomerGroups = (
-  query?: HttpTypes.AdminGetCustomerGroupsParams,
-  options?: UseQueryOptions<
+type AdminCustomerGroupsQueryOptions = Omit<
+  UseQueryOptions<
     HttpTypes.AdminCustomerGroupListResponse,
     FetchError,
     HttpTypes.AdminCustomerGroupListResponse,
     QueryKey
-  >
+  >,
+  "queryFn" | "queryKey"
+>
+
+export const useAdminCustomerGroups = (
+  query?: HttpTypes.AdminGetCustomerGroupsParams,
+  options?: AdminCustomerGroupsQueryOptions
 ) =>
   useQuery({
     queryKey: customerQueryKey.list({ scope: "groups", ...query }),

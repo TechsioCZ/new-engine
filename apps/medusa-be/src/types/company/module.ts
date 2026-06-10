@@ -2,7 +2,7 @@
 
 import type { CustomerGroupDTO } from "@medusajs/framework/types"
 import type { CustomerDTO } from "@medusajs/types"
-import type { ModuleApprovalSettings } from "../approval/module"
+import type { ModuleApprovalSettings } from "../approval"
 
 export const ModuleCompanySpendingLimitResetFrequency = {
   NEVER: "never",

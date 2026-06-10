@@ -30,9 +30,9 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
   const resolveCustomerId = async (
     email: string,
     customerData: {
-      first_name: string
-      last_name: string
-      phone?: string
+      first_name?: string | null
+      last_name?: string | null
+      phone?: string | null
     }
   ) => {
     const existingCustomer = await findCustomerByEmail(email)

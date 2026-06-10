@@ -15,7 +15,7 @@ import type {
   QueryCompany,
   QueryEmployee,
 } from "../../../../../types"
-import { CoolSwitch } from "../../../../components/common"
+import { CoolSwitch } from "../../../../components"
 import { currencySymbolMap } from "../../../../utils"
 
 const getCurrencySymbol = (currencyCode: string) =>

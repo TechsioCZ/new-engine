@@ -42,7 +42,7 @@ export const createEmployeesWorkflow = createWorkflow(
       },
     ])
 
-    when(input.employeeData, (employeeData) => !!employeeData.is_admin).then(
+    when(input.employeeData, (employeeData) => employeeData.is_admin).then(
       () => {
         setAdminRoleStep({
           employeeId: employee.id,

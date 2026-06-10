@@ -17,24 +17,24 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+import type { StoreQuoteResponse } from "../../../../types"
 import { JsonViewSection } from "../../../components/common/json-view-section"
-import { useOrderPreview } from "../../../hooks/api"
 import {
+  useOrderPreview,
   useQuote,
   useRejectQuote,
   useSendQuote,
-} from "../../../hooks/api/quotes"
+} from "../../../hooks/api"
 import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import { sdk } from "../../../lib/sdk"
-import type { StoreQuoteResponse } from "../../../types"
 import { formatAmount } from "../../../utils"
 import {
   CostBreakdown,
   QuoteDetailsHeader,
   QuoteItems,
+  QuoteMessages,
   QuoteTotal,
-} from "../components/quote-details"
-import { QuoteMessages } from "../components/quote-messages"
+} from "../components"
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const quoteId = params.quoteId
@@ -263,7 +263,7 @@ const QuoteDetails = () => {
 
               <Text className="text-pretty" leading="compact" size="small">
                 {formatAmount(
-                  quoteEmployee?.spending_limit,
+                  quoteEmployee?.spending_limit ?? 0,
                   quoteCompany?.currency_code ||
                     quote.draft_order?.currency_code ||
                     "USD"

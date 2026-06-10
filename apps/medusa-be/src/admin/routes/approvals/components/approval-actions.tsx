@@ -2,8 +2,8 @@ import { Check, XMark } from "@medusajs/icons"
 import { IconButton, usePrompt } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ApprovalStatusType, ApprovalType } from "../../../../types/approval"
-import { useUpdateApproval } from "../../../hooks/api/approvals"
+import { ApprovalStatusType, ApprovalType } from "../../../../types"
+import { useUpdateApproval } from "../../../hooks/api"
 
 export type ApprovalActionCart = {
   approval_status: {

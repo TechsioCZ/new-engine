@@ -292,7 +292,10 @@ const ProducerFormDrawer = ({
         )
       }
 
-      const response = await createProducer({ ...input, handle })
+      const response = await createProducer({
+        ...input,
+        handle: resolvedHandle,
+      })
 
       return { ...response, action: "created" as const }
     },

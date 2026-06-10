@@ -3,7 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows/update-approval-settings"
+import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows"
 import { storeApprovalSettingsFields } from "../../query-config"
 import type { StoreUpdateApprovalSettingsType } from "../../validators"
 
