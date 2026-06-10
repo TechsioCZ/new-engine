@@ -1,4 +1,4 @@
-import type { ExecArgs, Logger } from "@medusajs/framework/types"
+import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
@@ -44,6 +44,27 @@ type ReviewRecord = {
   customer_id: string
   id: string
   product_id: string
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isProductVariantRecord = (value: unknown): value is ProductVariantRecord =>
+  isRecord(value) && typeof value.id === "string"
+
+const isReviewRecord = (value: unknown): value is ReviewRecord =>
+  isRecord(value) &&
+  typeof value.customer_id === "string" &&
+  typeof value.id === "string" &&
+  typeof value.product_id === "string"
+
+const toValidDate = (value?: string) => {
+  if (!value) {
+    return
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : date
 }
 
 const parseRating = (value?: string) => {
@@ -140,7 +161,7 @@ const addMapValue = (
 }
 
 const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product_variant",
     fields: ["id", "sku", "ean", "metadata", "product.id"],
@@ -150,7 +171,9 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
   const byGtin = new Map<string, Set<string>>()
   const byVariantId = new Map<string, Set<string>>()
 
-  for (const variant of data as ProductVariantRecord[]) {
+  for (const variant of Array.isArray(data)
+    ? data.filter(isProductVariantRecord)
+    : []) {
     const productId = variant.product?.id
     addMapValue(bySku, variant.sku, productId)
     addMapValue(bySku, getMetadataString(variant.metadata, "code"), productId)
@@ -261,7 +284,7 @@ export const importHerbaticaReviews = async ({
     {
       select: ["id", "customer_id", "product_id"],
     }
-  )) as ReviewRecord[]
+  )).filter(isReviewRecord)
   const existingKeys = new Set(
     existingReviews.map((review) => `${review.customer_id}:${review.product_id}`)
   )
@@ -287,9 +310,10 @@ export const importHerbaticaReviews = async ({
       }
 
       existingKeys.add(key)
+      const reviewDate = toValidDate(review.timestamp)
       pendingReviews.push({
         content: review.content,
-        created_at: review.timestamp ? new Date(review.timestamp) : undefined,
+        created_at: reviewDate,
         customer_id: customerId,
         first_name: getReviewerFirstName(review.reviewerName),
         last_name: null,
@@ -297,7 +321,7 @@ export const importHerbaticaReviews = async ({
         rating: review.rating,
         status: "approved",
         title: "Overená recenzia Herbatica",
-        updated_at: review.timestamp ? new Date(review.timestamp) : undefined,
+        updated_at: reviewDate,
       })
     }
   }

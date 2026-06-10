@@ -32,6 +32,15 @@ export type ReviewTokenDTO = {
   used_at?: Date | string | null
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const isCustomerRecord = (value: unknown): value is CustomerRecord =>
+  isRecord(value) && typeof value.id === "string"
+
+const isProductRecord = (value: unknown): value is ProductRecord =>
+  isRecord(value) && typeof value.id === "string"
+
 type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   listReviewTokens: (
     filters?: Record<string, unknown>,
@@ -168,7 +177,7 @@ export const retrieveCustomer = async (
     },
   })
 
-  return (data as CustomerRecord[])[0]
+  return Array.isArray(data) && isCustomerRecord(data[0]) ? data[0] : undefined
 }
 
 export const ensureProductExists = async (
@@ -184,7 +193,7 @@ export const ensureProductExists = async (
     },
   })
 
-  if (!(data as ProductRecord[])[0]?.id) {
+  if (!(Array.isArray(data) && isProductRecord(data[0]))) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product "${productId}" was not found.`

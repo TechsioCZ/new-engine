@@ -31,7 +31,7 @@ export type ReviewsResponse = {
   reviews: Review[]
 }
 
-export type ReviewInput = {
+export type ReviewFormInput = {
   content: string
   first_name?: null | string
   last_name?: null | string
@@ -39,6 +39,8 @@ export type ReviewInput = {
   status: ReviewStatus
   title: string
 }
+
+export type ReviewInput = Partial<ReviewFormInput>
 
 export type ReviewResponse = {
   review: Review

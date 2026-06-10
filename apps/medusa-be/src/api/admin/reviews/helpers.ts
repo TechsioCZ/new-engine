@@ -1,6 +1,9 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { ProductRecord } from "../../review-normalizers"
+import {
+  filterProductRecords,
+  type ProductRecord,
+} from "../../review-normalizers"
 
 export const getProductsById = async (
   req: MedusaRequest,
@@ -20,6 +23,6 @@ export const getProductsById = async (
   })
 
   return new Map(
-    (data as ProductRecord[]).map((product) => [product.id, product])
+    filterProductRecords(data).map((product) => [product.id, product])
   )
 }

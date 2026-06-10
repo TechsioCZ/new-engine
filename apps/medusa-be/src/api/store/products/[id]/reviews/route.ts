@@ -1,8 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
 import {
+  filterReviewRecords,
   normalizePublicReview,
-  type ReviewRecord,
 } from "../../../../review-normalizers"
 import { PRODUCT_REVIEW_MODULE } from "../../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../../modules/product-review/service"
@@ -51,7 +51,11 @@ export async function GET(
   res: MedusaResponse
 ) {
   const { limit, offset } = req.validatedQuery
-  const productId = req.params.id as string
+  const productId = typeof req.params.id === "string" ? req.params.id : undefined
+
+  if (!productId) {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product id is required")
+  }
   const service = req.scope.resolve<ProductReviewModuleService>(
     PRODUCT_REVIEW_MODULE
   )
@@ -64,13 +68,14 @@ export async function GET(
     skip: offset,
     take: limit,
   })
+  const reviewRecords = filterReviewRecords(reviews)
   const summary = await getReviewSummary(req, productId)
 
   res.json({
     count,
     limit,
     offset,
-    reviews: (reviews as ReviewRecord[]).map(normalizePublicReview),
+    reviews: reviewRecords.map(normalizePublicReview),
     summary,
   })
 }

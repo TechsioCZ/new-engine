@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import {
+  filterReviewRecords,
   getUniqueReviewProductIds,
   normalizeAdminReview,
   normalizeAdminReviewFilters,
   normalizeReviewOrder,
-  type ReviewRecord,
 } from "../../review-normalizers"
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
@@ -27,17 +27,16 @@ export async function GET(
       skip: offset,
       take: limit,
     })
+  const reviewRecords = filterReviewRecords(reviews)
   const productsById = await getProductsById(
     req,
-    getUniqueReviewProductIds(reviews as ReviewRecord[])
+    getUniqueReviewProductIds(reviewRecords)
   )
 
   res.json({
     count,
     limit,
     offset,
-    reviews: (reviews as ReviewRecord[]).map((review) =>
-      normalizeAdminReview(review, productsById)
-    ),
+    reviews: reviewRecords.map((review) => normalizeAdminReview(review, productsById)),
   })
 }

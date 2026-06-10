@@ -1,22 +1,25 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import {
+  isReviewRecord,
   normalizeAdminReview,
-  type ReviewRecord,
 } from "../../../review-normalizers"
 import { PRODUCT_REVIEW_MODULE } from "../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../modules/product-review/service"
 import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewSchemaType } from "../validators"
 
-type ReviewRouteParams = {
-  id: string
-}
+const getReviewRouteId = (req: MedusaRequest) =>
+  typeof req.params.id === "string" ? req.params.id : undefined
 
 async function getNormalizedReview(req: MedusaRequest, id: string) {
-  const review = (await req.scope
+  const review = await req.scope
     .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
-    .retrieveReview(id)) as ReviewRecord
+    .retrieveReview(id)
+
+  if (!isReviewRecord(review)) {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Review was not found")
+  }
 
   const productsById = await getProductsById(req, [review.product_id])
 
@@ -24,7 +27,7 @@ async function getNormalizedReview(req: MedusaRequest, id: string) {
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const { id } = req.params as ReviewRouteParams
+  const id = getReviewRouteId(req)
 
   if (!id) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Review id is required")
@@ -37,7 +40,7 @@ export async function PATCH(
   req: MedusaRequest<AdminUpdateReviewSchemaType>,
   res: MedusaResponse
 ) {
-  const { id } = req.params as ReviewRouteParams
+  const id = getReviewRouteId(req)
 
   if (!id) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Review id is required")

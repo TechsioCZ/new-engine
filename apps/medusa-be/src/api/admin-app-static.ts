@@ -15,6 +15,12 @@ const APP_PATH_PREFIX_REGEX = /^\/app\/?/
 const getAdminPublicDir = () =>
   ADMIN_PUBLIC_DIRS.find((dir) => fs.existsSync(path.join(dir, "index.html")))
 
+const isPathInsideDirectory = (baseDir: string, filePath: string) => {
+  const relative = path.relative(baseDir, filePath)
+
+  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative)
+}
+
 const getRequestPath = (req: MedusaRequest) => {
   if ("path" in req && typeof req.path === "string") {
     return req.path
@@ -40,14 +46,19 @@ const resolveAdminFile = (
     return
   }
 
-  const requestedFile = path.join(adminPublicDir, normalizedRelativePath)
+  const requestedFile = path.resolve(adminPublicDir, normalizedRelativePath)
+
+  if (!isPathInsideDirectory(adminPublicDir, requestedFile)) {
+    return
+  }
 
   if (fs.existsSync(requestedFile) && fs.statSync(requestedFile).isFile()) {
     return requestedFile
   }
 
   if (!path.extname(normalizedRelativePath)) {
-    return path.join(adminPublicDir, "index.html")
+    const indexFile = path.resolve(adminPublicDir, "index.html")
+    return isPathInsideDirectory(adminPublicDir, indexFile) ? indexFile : undefined
   }
 
   return

@@ -17,6 +17,7 @@ import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import {
   type Review,
+  type ReviewFormInput,
   type ReviewInput,
   type ReviewStatus,
   retrieveReview,
@@ -49,7 +50,7 @@ const getCustomerName = (review: Review) => {
   return name || review.customer_id
 }
 
-const toFormState = (review: Review): ReviewInput => ({
+const toFormState = (review: Review): ReviewFormInput => ({
   content: review.content,
   first_name: review.first_name ?? "",
   last_name: review.last_name ?? "",
@@ -68,7 +69,7 @@ const ReviewEditDrawer = ({
   review: Review
 }) => {
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<ReviewInput>(() => toFormState(review))
+  const [form, setForm] = useState<ReviewFormInput>(() => toFormState(review))
 
   useEffect(() => {
     if (open) {
