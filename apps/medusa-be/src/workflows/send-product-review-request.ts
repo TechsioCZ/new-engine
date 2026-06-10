@@ -7,6 +7,8 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { EMAIL_LOG_MODULE } from "../modules/email-log"
+import type EmailLogModuleService from "../modules/email-log/service"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
 import {
@@ -34,6 +36,17 @@ type ReviewRequestOrderItem = {
 
 type ReviewRequestOrderWithItems = ReviewRequestOrder & {
   items?: ReviewRequestOrderItem[] | null
+}
+
+type EmailLogDTO = {
+  order_id: string | null
+}
+
+type EmailLogService = EmailLogModuleService & {
+  listEmailLogs: (
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ) => Promise<EmailLogDTO[]>
 }
 
 type ReviewTokenDTO = {
@@ -109,6 +122,7 @@ const ORDER_REVIEW_REQUEST_FIELDS = [
   "items.title",
 ]
 
+const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
 const DEFAULT_PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const DEFAULT_REVIEW_TOKEN_EXPIRY_DAYS = 90
 const DAY_IN_MS = 24 * 60 * 60 * 1000
@@ -163,6 +177,27 @@ function getUniqueProductItems(order: ReviewRequestOrderWithItems) {
   }
 
   return items
+}
+
+async function hasReviewRequestEmailLog({
+  emailLogService,
+  orderId,
+}: {
+  emailLogService: EmailLogService
+  orderId: string
+}) {
+  const logs = await emailLogService.listEmailLogs(
+    {
+      order_id: orderId,
+      type: PRODUCT_REVIEW_REQUEST_TEMPLATE,
+    },
+    {
+      select: ["order_id"],
+      take: 1,
+    }
+  )
+
+  return logs.length > 0
 }
 
 async function getOrCreateReviewTokens({
@@ -226,6 +261,7 @@ const buildProductReviewRequestNotificationStep = createStep(
   ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
     const reviewService = container.resolve<ProductReviewModuleServiceWithTokens>(
       PRODUCT_REVIEW_MODULE
     )
@@ -246,6 +282,18 @@ const buildProductReviewRequestNotificationStep = createStep(
     if (!order.email) {
       logger.warn(
         `Order ${order.id} has no email; product review request skipped.`
+      )
+      return new StepResponse([])
+    }
+
+    if (
+      await hasReviewRequestEmailLog({
+        emailLogService,
+        orderId: order.id,
+      })
+    ) {
+      logger.info(
+        `Order ${getOrderDisplayId(order)} already has a product review request email log; skipping notification.`
       )
       return new StepResponse([])
     }
@@ -301,7 +349,7 @@ const buildProductReviewRequestNotificationStep = createStep(
         receiver_id: order.customer_id ?? undefined,
         resource_id: order.id,
         resource_type: "order",
-        template: "product-review-request",
+        template: PRODUCT_REVIEW_REQUEST_TEMPLATE,
         to: order.email,
         trigger_type: "order.product_review_request",
       },

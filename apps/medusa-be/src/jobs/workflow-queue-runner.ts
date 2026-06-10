@@ -7,6 +7,7 @@ import { getQueuedWorkflowRunner } from "../utils/workflow-queue-registry"
 
 const JOB_LOCK_KEY = "workflow-queue-runner-job"
 const JOB_LOCK_TIMEOUT = 60
+const DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE = 500
 const DEFAULT_WORKFLOW_QUEUE_RUNNER_SCHEDULE = "0 * * * *"
 
 type WorkflowQueueItemDTO = {
@@ -21,6 +22,16 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
     filters?: Record<string, unknown>,
     config?: Record<string, unknown>
   ) => Promise<WorkflowQueueItemDTO[]>
+}
+
+function getWorkflowQueueRunnerBatchSize() {
+  const configuredBatchSize = Number(process.env.WORKFLOW_QUEUE_RUNNER_BATCH_SIZE)
+
+  if (Number.isInteger(configuredBatchSize) && configuredBatchSize > 0) {
+    return configuredBatchSize
+  }
+
+  return DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE
 }
 
 function withQueueItemId(
@@ -40,6 +51,7 @@ async function executeWorkflowQueueRunner(
     WORKFLOW_QUEUE_MODULE
   )
   const now = new Date()
+  const batchSize = getWorkflowQueueRunnerBatchSize()
 
   logger.info("Workflow Queue Runner: Starting...")
 
@@ -49,6 +61,7 @@ async function executeWorkflowQueueRunner(
     },
     {
       order: { run_at: "ASC" },
+      take: batchSize,
     }
   )
 
