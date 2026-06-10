@@ -15,6 +15,8 @@ import {
 import { workflowQueueNames } from "./workflow-queue-registry"
 
 const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
+const getReviewRequestDeduplicationKey = (orderId: string) =>
+  `${workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST}:${orderId}`
 
 const ORDER_FIELDS = [
   "id",
@@ -44,14 +46,14 @@ type EmailLogService = EmailLogModuleService & {
 type WorkflowQueueItemDTO = {
   arguments: Record<string, unknown> | null
   id: string
-  order_id?: null | string
+  deduplication_key?: null | string
   workflow: string
 }
 
 type WorkflowQueueService = WorkflowQueueModuleService & {
   createWorkflowQueueItems: (data: {
     arguments: Record<string, unknown>
-    order_id?: string
+    deduplication_key?: string
     run_at: Date
     workflow: string
   }) => Promise<WorkflowQueueItemDTO>
@@ -113,7 +115,7 @@ async function hasQueuedReviewRequest(
     entity: "workflow_queue_item",
     fields: ["id"],
     filters: {
-      order_id: orderId,
+      deduplication_key: getReviewRequestDeduplicationKey(orderId),
       workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
     },
     pagination: {
@@ -175,7 +177,7 @@ export async function scheduleProductReviewRequestForOrder({
 
   const queueItem = await workflowQueueService.createWorkflowQueueItems({
     workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
-    order_id: order.id,
+    deduplication_key: getReviewRequestDeduplicationKey(order.id),
     run_at: runAt,
     arguments: {
       order_id: order.id,
