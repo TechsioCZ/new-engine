@@ -2,6 +2,11 @@
   "name": "@techsio/storefront-data",
   "version": "0.1.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechsioCZ/new-engine.git",
+    "directory": "libs/storefront-data"
+  },
   "exports": {
     ".": null,
     "./package.json": "./package.json",
@@ -275,7 +280,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "scripts": {
     "build": "rslib build",
@@ -299,6 +305,7 @@
   "devDependencies": {
     "@rsbuild/plugin-react": "^1.4.1",
     "@rslib/core": "^0.18.0",
+    "@tanstack/intent": "^0.0.42",
     "@testing-library/react": "^16.3.1",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
@@ -318,5 +325,8 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "tanstack-intent"
+  ]
 }
