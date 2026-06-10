@@ -1,66 +1,61 @@
 "use client";
 
 import type { HttpTypes } from "@medusajs/types";
+import type {
+  MedusaProductListListHookInput,
+} from "@techsio/storefront-data/product-lists/medusa-service";
+import type {
+  AddFavoriteProductListItemInput,
+  AddProductListItemInput,
+  ChangeProductListItemQuantityInput,
+  CreateCustomProductListInput,
+  CreateFavoriteProductListInput,
+  CreateProductListCartInput,
+  DeleteProductListInput,
+  DeleteProductListItemInput,
+  IncrementProductListItemInput,
+  ProductListAccessType,
+  ProductListBase,
+  ProductListCartResponse as SharedProductListCartResponse,
+  ProductListDeleteResponse,
+  ProductListItemBase,
+  ProductListItemResponse as SharedProductListItemResponse,
+  ProductListListResponse as SharedProductListListResponse,
+  ProductListListResult as SharedProductListListResult,
+  ProductListResponse as SharedProductListResponse,
+  ProductListType,
+  UpdateProductListInput,
+  UpdateProductListItemInput,
+} from "@techsio/storefront-data/product-lists/types";
 import {
-  useMutation,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { cartStorage } from "./cart-storage";
+  findProductListItem as findSharedProductListItem,
+  getProductListItemCount as getSharedProductListItemCount,
+  getProductListItems as getSharedProductListItems,
+  isFavoriteProductList as isSharedFavoriteProductList,
+  isProductInProductList as isSharedProductInProductList,
+  resolveProductListItemQuantity as resolveSharedProductListItemQuantity,
+} from "@techsio/storefront-data/product-lists/utils";
 import { resolveErrorMessage } from "./error-utils";
-import {
-  addFavoriteProductListItem,
-  addProductListItem,
-  changeProductListItemQuantity,
-  createCustomProductList,
-  createFavoriteProductList,
-  createProductListCart,
-  deleteProductList,
-  deleteProductListItem,
-  findProductListItem,
-  getProductList,
-  getProductListItemCount,
-  getProductListItems,
-  getProductListTitle,
-  incrementProductListItem,
-  isFavoriteProductList,
-  isProductInProductList,
-  listProductLists,
-  resolveProductListCartFromResponse,
-  resolveProductListFromResponse,
-  resolveProductListItemFromResponse,
-  updateProductList,
-  updateProductListItem,
-} from "./product-lists.client";
-import type { ProductListListInput } from "./product-lists.types";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
-import { storefrontDefinition } from "./storefront-definition";
+import { storefront } from "./storefront";
 
-export {
-  addFavoriteProductListItem,
-  addProductListItem,
-  changeProductListItemQuantity,
-  createCustomProductList,
-  createFavoriteProductList,
-  createProductListCart,
-  deleteProductList,
-  deleteProductListItem,
-  findProductListItem,
-  getProductList,
-  getProductListItemCount,
-  getProductListItems,
-  getProductListTitle,
-  incrementProductListItem,
-  isFavoriteProductList,
-  isProductInProductList,
-  listProductLists,
-  resolveProductListCartFromResponse,
-  resolveProductListFromResponse,
-  resolveProductListItemFromResponse,
-  updateProductList,
-  updateProductListItem,
-};
+const productListHooks = storefront.hooks.productLists;
+
+export type StoreProductListType = ProductListType;
+export type StoreProductListAccessType = ProductListAccessType;
+export type StoreProductListItem = ProductListItemBase;
+export type StoreProductList = ProductListBase<StoreProductListItem>;
+export type ProductListListInput = MedusaProductListListHookInput;
+export type ProductListListResult =
+  SharedProductListListResult<StoreProductList>;
+export type ProductListListResponse =
+  SharedProductListListResponse<StoreProductList>;
+export type ProductListResponse = SharedProductListResponse<StoreProductList>;
+export type ProductListItemResponse = SharedProductListItemResponse<
+  StoreProductList,
+  StoreProductListItem
+>;
+export type ProductListCartResponse =
+  SharedProductListCartResponse<HttpTypes.StoreCart>;
 
 export type {
   AddFavoriteProductListItemInput,
@@ -72,226 +67,118 @@ export type {
   DeleteProductListInput,
   DeleteProductListItemInput,
   IncrementProductListItemInput,
-  ProductListCartResponse,
   ProductListDeleteResponse,
-  ProductListItemResponse,
-  ProductListListInput,
-  ProductListListResponse,
-  ProductListListResult,
-  ProductListResponse,
-  StoreProductList,
-  StoreProductListAccessType,
-  StoreProductListItem,
-  StoreProductListType,
   UpdateProductListInput,
   UpdateProductListItemInput,
-} from "./product-lists.types";
-
-export const productListQueryKeys = {
-  all: () => [STOREFRONT_QUERY_KEY_NAMESPACE, "product-lists"] as const,
-  lists: (input?: ProductListListInput) =>
-    [
-      ...productListQueryKeys.all(),
-      "list",
-      {
-        handle: input?.handle,
-        type: input?.type,
-        limit: input?.limit,
-        offset: input?.offset,
-        customerId: input?.customerId ?? null,
-      },
-    ] as const,
-  detail: (id?: string | null, customerId?: string | null) =>
-    [
-      ...productListQueryKeys.all(),
-      "detail",
-      {
-        customerId: customerId ?? null,
-        id: id ?? "",
-      },
-    ] as const,
 };
 
-export function useProductLists(input: ProductListListInput = {}) {
-  const enabled = input.enabled ?? true;
-  const query = useQuery({
-    queryKey: productListQueryKeys.lists(input),
-    queryFn: ({ signal }) => listProductLists(input, signal),
-    enabled,
-  });
+export const productListQueryKeys = storefront.queryKeys.productLists;
+
+export const getProductListItems = (
+  list?: StoreProductList | null,
+): StoreProductListItem[] => getSharedProductListItems(list);
+
+export const getProductListItemCount = (list?: StoreProductList | null) =>
+  getSharedProductListItemCount(list);
+
+export const isFavoriteProductList = (list?: StoreProductList | null) =>
+  isSharedFavoriteProductList(list);
+
+export const isProductInProductList = (
+  list: StoreProductList | null | undefined,
+  productId: string,
+  variantId?: string | null,
+) => isSharedProductInProductList(list, productId, variantId);
+
+export const findProductListItem = (
+  list: StoreProductList | null | undefined,
+  productId: string,
+  variantId?: string | null,
+): StoreProductListItem | undefined =>
+  findSharedProductListItem(list, productId, variantId);
+
+export const resolveProductListItemQuantity = (item: StoreProductListItem) =>
+  resolveSharedProductListItemQuantity(item);
+
+export const getProductListTitle = (list?: StoreProductList | null) => {
+  if (isFavoriteProductList(list)) {
+    return "Obľúbené";
+  }
+
+  return list?.title?.trim() || "Zoznam";
+};
+
+type ProductListDetailOptions = {
+  customerId?: string | null;
+  enabled?: boolean;
+};
+
+export function useProductLists(
+  input: ProductListListInput = {},
+  options?: Parameters<typeof productListHooks.useProductLists>[1],
+) {
+  const result = productListHooks.useProductLists(input, options);
 
   return {
-    productLists: query.data?.productLists ?? [],
-    count: query.data?.count ?? 0,
-    limit: query.data?.limit ?? input.limit ?? 20,
-    offset: query.data?.offset ?? input.offset ?? 0,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    error: query.error
-      ? resolveErrorMessage(query.error, "Zoznamy sa nepodarilo načítať.")
+    ...result,
+    error: result.query.error
+      ? resolveErrorMessage(
+          result.query.error,
+          "Zoznamy sa nepodarilo načítať.",
+        )
       : null,
-    query,
   };
 }
 
 export function useProductList(
   id?: string | null,
-  options?: { customerId?: string | null; enabled?: boolean },
+  options?: ProductListDetailOptions,
 ) {
-  const enabled = Boolean(id) && (options?.enabled ?? true);
-  const query = useQuery({
-    queryKey: productListQueryKeys.detail(id, options?.customerId),
-    queryFn: ({ signal }) => getProductList(id as string, signal),
-    enabled,
+  const result = productListHooks.useProductList({
+    customerId: options?.customerId,
+    enabled: options?.enabled,
+    id,
   });
 
   return {
-    productList: query.data ?? null,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    error: query.error
-      ? resolveErrorMessage(query.error, "Zoznam sa nepodarilo načítať.")
+    ...result,
+    error: result.query.error
+      ? resolveErrorMessage(result.query.error, "Zoznam sa nepodarilo načítať.")
       : null,
-    query,
   };
 }
 
 export function useProductListDetails(
   ids: string[],
-  options?: { customerId?: string | null; enabled?: boolean },
+  options?: ProductListDetailOptions,
 ) {
-  const enabled = options?.enabled ?? true;
-
-  return useQueries({
-    queries: ids.map((id) => ({
-      queryKey: productListQueryKeys.detail(id, options?.customerId),
-      queryFn: ({ signal }: { signal: AbortSignal }) =>
-        getProductList(id, signal),
-      enabled: enabled && Boolean(id),
+  return productListHooks.useProductListDetails(
+    ids.map((id) => ({
+      customerId: options?.customerId,
+      id,
     })),
-  });
-}
-
-const useInvalidateProductLists = () => {
-  const queryClient = useQueryClient();
-
-  return () =>
-    queryClient.invalidateQueries({
-      queryKey: productListQueryKeys.all(),
-    });
-};
-
-const syncCreatedProductListCart = (
-  queryClient: ReturnType<typeof useQueryClient>,
-  cart: HttpTypes.StoreCart,
-) => {
-  const cartQueryKeys = storefrontDefinition.queryKeys.cart;
-  const regionId = typeof cart.region_id === "string" ? cart.region_id : null;
-
-  queryClient.setQueryData(cartQueryKeys.detail(cart.id), cart);
-  queryClient.setQueryData(
-    cartQueryKeys.active({ cartId: cart.id, regionId }),
-    cart,
+    {
+      enabled: options?.enabled,
+    },
   );
-  cartStorage.setCartId(cart.id);
-  queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() });
-};
-
-export function useCreateFavoriteProductList() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: createFavoriteProductList,
-    onSuccess: invalidateProductLists,
-  });
 }
 
-export function useCreateCustomProductList() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: createCustomProductList,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useCreateProductListCart() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: createProductListCart,
-    onSuccess: (cart) => syncCreatedProductListCart(queryClient, cart),
-  });
-}
-
-export function useUpdateProductList() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: updateProductList,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useDeleteProductList() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: deleteProductList,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useAddProductListItem() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: addProductListItem,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useAddFavoriteProductListItem() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: addFavoriteProductListItem,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useChangeProductListItemQuantity() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: changeProductListItemQuantity,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useUpdateProductListItem() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: updateProductListItem,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useDeleteProductListItem() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: deleteProductListItem,
-    onSuccess: invalidateProductLists,
-  });
-}
-
-export function useIncrementProductListItem() {
-  const invalidateProductLists = useInvalidateProductLists();
-
-  return useMutation({
-    mutationFn: incrementProductListItem,
-    onSuccess: invalidateProductLists,
-  });
-}
+export const useCreateFavoriteProductList =
+  productListHooks.useCreateFavoriteProductList;
+export const useCreateCustomProductList =
+  productListHooks.useCreateCustomProductList;
+export const useCreateProductListCart =
+  productListHooks.useCreateProductListCart;
+export const useUpdateProductList = productListHooks.useUpdateProductList;
+export const useDeleteProductList = productListHooks.useDeleteProductList;
+export const useAddProductListItem = productListHooks.useAddProductListItem;
+export const useAddFavoriteProductListItem =
+  productListHooks.useAddFavoriteProductListItem;
+export const useChangeProductListItemQuantity =
+  productListHooks.useChangeProductListItemQuantity;
+export const useUpdateProductListItem =
+  productListHooks.useUpdateProductListItem;
+export const useDeleteProductListItem =
+  productListHooks.useDeleteProductListItem;
+export const useIncrementProductListItem =
+  productListHooks.useIncrementProductListItem;

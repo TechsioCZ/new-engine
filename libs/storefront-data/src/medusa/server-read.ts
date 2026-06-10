@@ -53,6 +53,27 @@ import {
   type MedusaOrderServiceConfig,
 } from "../orders/medusa-service"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
+import {
+  createMedusaProductListService,
+  type MedusaProductListDetailHookInput,
+  type MedusaProductListDetailInput,
+  type MedusaProductListDetailKeyInput,
+  type MedusaProductListListHookInput,
+  type MedusaProductListListInput,
+  type MedusaProductListListKeyInput,
+  type MedusaProductListServiceConfig,
+} from "../product-lists/medusa-service"
+import {
+  type CreateProductListQueryOptionsFactoryConfig,
+  createProductListQueryOptionsFactory,
+  type ProductListQueryOptionsFactory,
+} from "../product-lists/query-options"
+import type {
+  ProductListBase,
+  ProductListItemBase,
+  ProductListQueryKeys,
+  ProductListService,
+} from "../product-lists/types"
 import type {
   CreateProductHooksConfig,
 } from "../products/hooks"
@@ -116,6 +137,27 @@ type MedusaOrderServerReadHooksConfig = Pick<
   "buildListParams" | "buildDetailParams"
 >
 
+type MedusaProductListServerReadHooksConfig = Pick<
+  OmitFactoryConfig<
+    CreateProductListQueryOptionsFactoryConfig<
+      ProductListBase<ProductListItemBase>,
+      ProductListItemBase,
+      HttpTypes.StoreCart,
+      MedusaProductListListHookInput,
+      MedusaProductListListInput,
+      MedusaProductListDetailHookInput,
+      MedusaProductListDetailInput,
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
+    >
+  >,
+  | "buildListParams"
+  | "buildDetailParams"
+  | "buildListKeyParams"
+  | "buildDetailKeyParams"
+  | "defaultPageSize"
+>
+
 type MedusaRegionServerReadHooksConfig = Pick<
   OmitFactoryConfig<
     CreateRegionHooksConfig<
@@ -174,6 +216,10 @@ type MedusaCatalogServerReadHooksConfig<TProduct, TFacets> = Pick<
 
 type MedusaStorefrontReadQueryKeys = {
   products: ProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>
+  productLists: ProductListQueryKeys<
+    MedusaProductListListKeyInput,
+    MedusaProductListDetailKeyInput
+  >
   orders: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   regions: RegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>
   categories: CategoryQueryKeys<
@@ -191,6 +237,14 @@ type MedusaOrderReadService = OrderService<
   HttpTypes.StoreOrder,
   MedusaOrderListInput,
   MedusaOrderDetailInput
+>
+
+type MedusaProductListReadService = ProductListService<
+  ProductListBase<ProductListItemBase>,
+  ProductListItemBase,
+  HttpTypes.StoreCart,
+  MedusaProductListListInput,
+  MedusaProductListDetailInput
 >
 
 export type CreateMedusaStorefrontServerReadPresetConfig<
@@ -213,6 +267,19 @@ export type CreateMedusaStorefrontServerReadPresetConfig<
     queryKeys?: ProductQueryKeys<
       MedusaProductListInput,
       MedusaProductDetailInput
+    >
+  }
+  productLists?: {
+    service?: MedusaProductListReadService
+    serviceConfig?: MedusaProductListServiceConfig<
+      ProductListBase<ProductListItemBase>,
+      ProductListItemBase,
+      HttpTypes.StoreCart
+    >
+    hooks?: MedusaProductListServerReadHooksConfig
+    queryKeys?: ProductListQueryKeys<
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
     >
   }
   orders?: {
@@ -274,6 +341,7 @@ type MedusaStorefrontReadServices<
       MedusaProductDetailInput
     >
   >
+  productLists: MedusaProductListReadService
   orders: MedusaOrderReadService
   regions: ReturnType<typeof createMedusaRegionService>
   categories: ReturnType<
@@ -310,6 +378,11 @@ type MedusaStorefrontReadQueries<
     TProduct,
     MedusaProductListInput,
     MedusaProductDetailInput
+  >
+  productLists: ProductListQueryOptionsFactory<
+    ProductListBase<ProductListItemBase>,
+    MedusaProductListListHookInput,
+    MedusaProductListDetailHookInput
   >
   orders: OrderQueryOptionsFactory<
     HttpTypes.StoreOrder,
@@ -393,6 +466,8 @@ export function createMedusaStorefrontServerReadPreset<
 
   const queryKeys: MedusaStorefrontReadQueryKeys = {
     products: config.products?.queryKeys ?? defaultQueryKeys.products,
+    productLists:
+      config.productLists?.queryKeys ?? defaultQueryKeys.productLists,
     orders: config.orders?.queryKeys ?? defaultQueryKeys.orders,
     regions: config.regions?.queryKeys ?? defaultQueryKeys.regions,
     categories: config.categories?.queryKeys ?? defaultQueryKeys.categories,
@@ -412,6 +487,12 @@ export function createMedusaStorefrontServerReadPreset<
       MedusaProductListInput,
       MedusaProductDetailInput
     >(config.sdk, config.products?.serviceConfig),
+    productLists:
+      config.productLists?.service ??
+      createMedusaProductListService(
+        config.sdk,
+        config.productLists?.serviceConfig
+      ),
     orders:
       config.orders?.service ??
       createMedusaOrderService(config.sdk, config.orders?.serviceConfig),
@@ -446,6 +527,13 @@ export function createMedusaStorefrontServerReadPreset<
       queryKeyNamespace: namespace,
       cacheConfig,
       ...(config.products?.hooks ?? {}),
+    }),
+    productLists: createProductListQueryOptionsFactory({
+      service: services.productLists,
+      queryKeys: queryKeys.productLists,
+      queryKeyNamespace: namespace,
+      cacheConfig,
+      ...(config.productLists?.hooks ?? {}),
     }),
     orders: createOrderQueryOptionsFactory({
       service: services.orders,

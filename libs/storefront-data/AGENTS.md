@@ -32,6 +32,7 @@ src/
   checkout/           # createCheckoutHooks factory + checkout flow
   orders/             # createOrderHooks factory
   customers/          # createCustomerHooks factory
+  product-lists/      # createProductListHooks factory + Medusa product-list service
 ```
 
 ## Commands

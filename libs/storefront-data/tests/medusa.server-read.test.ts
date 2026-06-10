@@ -3,6 +3,11 @@ import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
 import { createOrderQueryKeys } from "../src/orders/query-keys"
+import type {
+  MedusaProductListDetailKeyInput,
+  MedusaProductListListKeyInput,
+} from "../src/product-lists/medusa-service"
+import { createProductListQueryKeys } from "../src/product-lists/query-keys"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import { createRegionQueryKeys } from "../src/regions/query-keys"
 
@@ -24,6 +29,21 @@ const createSdkMock = () => {
           count: 1,
           limit: 20,
           offset: 0,
+        }
+      }
+
+      if (path === "/store/product-lists") {
+        return {
+          product_lists: [{ id: "list_1", title: "Favorite" }],
+          count: 1,
+          limit: 5,
+          offset: 5,
+        }
+      }
+
+      if (path === "/store/product-lists/list_1") {
+        return {
+          product_list: { id: "list_1", title: "Favorite" },
         }
       }
 
@@ -64,6 +84,10 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       "tenant",
       "demo",
     ])
+    const productListQueryKeys = createProductListQueryKeys<
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
+    >(["tenant", "demo"])
     const preset = createMedusaStorefrontServerReadPreset({
       sdk,
       queryKeyNamespace: ["tenant", "demo"],
@@ -77,12 +101,39 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       limit: 2,
     })
     const regionQuery = preset.queries.regions.getListQueryOptions({})
+    const productListQuery = preset.queries.productLists.getListQueryOptions({
+      page: 2,
+      limit: 5,
+      customerId: "cus_1",
+      enabled: true,
+    })
+    const productListDetailQuery =
+      preset.queries.productLists.getDetailQueryOptions({
+        id: "list_1",
+        customerId: "cus_1",
+        enabled: true,
+      })
 
     expect(productQuery.queryKey).toEqual(productQueryKeys.list({ limit: 2 }))
     expect(regionQuery.queryKey).toEqual(regionQueryKeys.list({}))
+    expect(productListQuery.queryKey).toEqual(
+      productListQueryKeys.list({
+        customerId: "cus_1",
+        limit: 5,
+        offset: 5,
+      })
+    )
+    expect(productListDetailQuery.queryKey).toEqual(
+      productListQueryKeys.detail({
+        customerId: "cus_1",
+        id: "list_1",
+      })
+    )
 
     await queryClient.prefetchQuery(productQuery)
     await queryClient.prefetchQuery(regionQuery)
+    await queryClient.prefetchQuery(productListQuery)
+    await queryClient.prefetchQuery(productListDetailQuery)
 
     expect(spies.clientFetch).toHaveBeenCalledWith(
       "/store/products",
@@ -96,6 +147,21 @@ describe("createMedusaStorefrontServerReadPreset", () => {
       "/store/regions",
       expect.objectContaining({
         query: {},
+      })
+    )
+    expect(spies.clientFetch).toHaveBeenCalledWith(
+      "/store/product-lists",
+      expect.objectContaining({
+        query: expect.objectContaining({
+          limit: 5,
+          offset: 5,
+        }),
+      })
+    )
+    expect(spies.clientFetch).toHaveBeenCalledWith(
+      "/store/product-lists/list_1",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
       })
     )
   })

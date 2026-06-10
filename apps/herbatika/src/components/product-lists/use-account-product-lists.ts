@@ -112,6 +112,12 @@ export function useAccountProductLists() {
     () => buildProductMap(activeItems, productsQuery.products),
     [activeItems, productsQuery.products],
   );
+  const activeProductsAreLoading = useMemo(() => {
+    return (
+      productsQuery.isLoading &&
+      productIds.some((productId) => !productsById.has(productId))
+    );
+  }, [productIds, productsById, productsQuery.isLoading]);
   const regionCurrencyCode = resolveRegionCurrency(region);
   const activeListPriceSummary = useMemo(
     () =>
@@ -433,6 +439,7 @@ export function useAccountProductLists() {
     activeListId,
     activeListSupportsQuantity,
     activeListQuery,
+    activeProductsAreLoading,
     activeProductId,
     activeQuantitySetItemId,
     closeCreateListDialog,
