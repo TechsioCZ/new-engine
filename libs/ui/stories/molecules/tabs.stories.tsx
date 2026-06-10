@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Tabs } from '../../src/molecules/tabs'
-import { Icon } from '../../src/atoms/icon'
 import { Badge } from '../../src/atoms/badge'
 
 const meta: Meta<typeof Tabs> = {
@@ -498,16 +497,13 @@ export const WithIcons: Story = {
     <div className="w-full max-w-2xl">
       <Tabs defaultValue="tab1" variant="line">
         <Tabs.List>
-          <Tabs.Trigger value="tab1">
-            <Icon icon="icon-[mdi--home]" className="mr-50" />
+          <Tabs.Trigger icon="icon-[mdi--home]" iconSize="sm" value="tab1">
             Home
           </Tabs.Trigger>
-          <Tabs.Trigger value="tab2">
-            <Icon icon="icon-[mdi--account]" className="mr-50" />
+          <Tabs.Trigger icon="icon-[mdi--account]" iconSize="sm" value="tab2">
             Profile
           </Tabs.Trigger>
-          <Tabs.Trigger value="tab3">
-            <Icon icon="icon-[mdi--cog]" className="mr-50" />
+          <Tabs.Trigger icon="icon-[mdi--cog]" iconSize="sm" value="tab3">
             Settings
           </Tabs.Trigger>
           <Tabs.Indicator />

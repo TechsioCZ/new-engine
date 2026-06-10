@@ -62,6 +62,70 @@
   --color-tip: var(--color-herbatika-tip);
   --color-new: var(--color-herbatika-new);
 
+  /* Figma semantic aliases consumed by migrated ui-kit tokens */
+  --color-bg-primary-base: var(--color-primary);
+  --color-bg-primary-hover: var(--color-primary-hover);
+  --color-bg-primary-active: var(--color-primary-active);
+  --color-bg-light-primary-base: var(--color-primary-light);
+  --color-bg-light-primary-hover: oklch(
+    from var(--color-primary-light) calc(l - 0.04) c h
+  );
+  --color-bg-light-primary-active: oklch(
+    from var(--color-primary-light) calc(l - 0.08) c h
+  );
+
+  --color-bg-secondary-base: var(--color-secondary);
+  --color-bg-secondary-hover: var(--color-secondary-hover);
+  --color-bg-secondary-active: var(--color-secondary-active);
+  --color-bg-light-secondary-base: var(--color-secondary-light);
+  --color-bg-light-secondary-hover: oklch(
+    from var(--color-secondary-light) calc(l - 0.04) c h
+  );
+  --color-bg-light-secondary-active: oklch(
+    from var(--color-secondary-light) calc(l - 0.08) c h
+  );
+
+  --color-bg-tertiary-base: var(--color-tertiary);
+  --color-bg-tertiary-hover: var(--color-tertiary-hover);
+  --color-bg-tertiary-active: var(--color-tertiary-active);
+  --color-bg-light-tertiary-base: var(--color-tertiary-light);
+  --color-bg-light-tertiary-hover: oklch(
+    from var(--color-tertiary-light) calc(l - 0.04) c h
+  );
+  --color-bg-light-tertiary-active: oklch(
+    from var(--color-tertiary-light) calc(l - 0.08) c h
+  );
+
+  --color-bg-danger-base: var(--color-danger);
+  --color-bg-danger-hover: oklch(from var(--color-danger) calc(l - 0.05) c h);
+  --color-bg-danger-active: oklch(from var(--color-danger) calc(l - 0.1) c h);
+  --color-bg-danger-subtle: oklch(
+    from var(--color-danger) 0.96 calc(c * 0.18) h
+  );
+  --color-bg-light-danger-base: var(--color-bg-danger-subtle);
+  --color-bg-light-danger-hover: oklch(
+    from var(--color-bg-danger-subtle) calc(l - 0.04) c h
+  );
+  --color-bg-light-danger-active: oklch(
+    from var(--color-bg-danger-subtle) calc(l - 0.08) c h
+  );
+
+  --color-bg-warning-base: var(--color-warning);
+  --color-bg-warning-hover: oklch(from var(--color-warning) calc(l - 0.05) c h);
+  --color-bg-warning-active: oklch(from var(--color-warning) calc(l - 0.1) c h);
+  --color-bg-light-warning-base: oklch(
+    from var(--color-warning) 0.96 calc(c * 0.18) h
+  );
+  --color-bg-light-warning-hover: oklch(
+    from var(--color-bg-light-warning-base) calc(l - 0.04) c h
+  );
+  --color-bg-light-warning-active: oklch(
+    from var(--color-bg-light-warning-base) calc(l - 0.08) c h
+  );
+
+  --color-bg-success: var(--color-success);
+  --color-bg-info: var(--color-info);
+
   /* Foreground */
   --color-fg-light: var(--color-herbatika-fg);
   --color-fg-dark: var(--color-herbatika-white);
@@ -75,6 +139,8 @@
     from var(--color-herbatika-fg-muted) calc(l + 0.06) c h
   );
   --color-fg-reverse: var(--color-herbatika-white);
+  --color-fill-surface: var(--color-surface);
+  --color-fill-overlay: var(--color-overlay);
 
   /* Surfaces */
   --color-base-light: var(--color-herbatika-base);
@@ -100,7 +166,6 @@
   --color-border-search: oklch(0.8975 0 0);
   --color-border-muted: oklch(0.7137 0.0192 261.32);
 
-
   /* Links and rings */
   --color-link: var(--color-herbatika-primary);
   --color-ring: oklch(from var(--color-herbatika-primary) calc(l + 0.08) c h);
@@ -109,11 +174,17 @@
   --color-primary-accent-fg: var(--color-herbatika-primary);
   --color-secondary-accent-fg: var(--color-herbatika-secondary-strong);
   --color-tertiary-accent-fg: var(--color-herbatika-tertiary);
+  --color-fg-accent-primary: var(--color-primary-accent-fg);
+  --color-fg-accent-secondary: var(--color-secondary-accent-fg);
+  --color-fg-accent-tertiary: var(--color-tertiary-accent-fg);
   --color-warning-fg: oklch(
     from var(--color-herbatika-warning) calc(l - 0.32) c h
   );
   --color-success-fg: oklch(0.634 0.1331 165.09);
   --color-danger-fg: var(--color-herbatika-danger);
+  --color-fg-accent-warning: var(--color-warning-fg);
+  --color-fg-accent-success: var(--color-success-fg);
+  --color-fg-accent-danger: var(--color-danger-fg);
 
   /* Disabled */
   --color-bg-disabled: oklch(0.967 0.0029 264.54);

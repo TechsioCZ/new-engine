@@ -16,4 +16,5 @@
   --border-product-card-width: 0px;
   --radius-product-card-image: 0;
   --aspect-product-card-image: 4 / 3;
+  --color-product-card-bg: var(--color-surface);
 }

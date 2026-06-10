@@ -1,5 +1,5 @@
 @theme static {
-    --color-checkbox-bg: var(--color-surface);
-    --spacing-checkbox: 1rem;
-    --radius-checkbox: var(--radius-2xs);
+  --color-checkbox-bg-base: var(--color-surface);
+  --size-checkbox: 1rem;
+  --radius-checkbox: var(--radius-2xs);
 }

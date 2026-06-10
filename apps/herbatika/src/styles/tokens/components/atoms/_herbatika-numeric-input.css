@@ -13,7 +13,6 @@
   --color-numeric-input-trigger-fg-hover: var(--color-fg-primary);
   --padding-numeric-input-input-sm: var(--spacing-200);
   --padding-numeric-input-input-md: 0;
-  --container-numeric-input: 7.375rem;
-
+  --width-numeric-input-md: 7.375rem;
+  --padding-numeric-input-trigger-x: var(--spacing-150);
 }
-

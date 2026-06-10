@@ -174,7 +174,6 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
       size="sm"
       value={accountLists.activeListId ?? accountLists.sortedLists[0]?.id}
       variant="line"
-      className="p-200"
     >
       <div className="flex items-center gap-100 overflow-x-auto">
         <Tabs.List className="min-w-max bg-base border-product-list-tabs-border">
@@ -184,7 +183,7 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
 
             return (
               <Fragment key={list.id}>
-                <Tabs.Trigger value={list.id}>
+                <Tabs.Trigger value={list.id} className="py-200 px-200">
                   {`${listTitle} (${getProductListItemCount(list)})`}
                 </Tabs.Trigger>
                 {canDeleteList ? (
