@@ -17,6 +17,8 @@ export const getProductListItemCount = <
     return 0
   }
 
+  // `items_count` is the canonical product-list counter; `item_count` is kept
+  // as a fallback for API responses that still use the older alias.
   if (typeof list.items_count === "number") {
     return list.items_count
   }

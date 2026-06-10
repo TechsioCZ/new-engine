@@ -20,12 +20,20 @@ describe("product list utilities", () => {
       getProductListItemCount({
         id: "list_3",
         items_count: 4,
+        item_count: 2,
         items: [{ id: "item_1" }],
       })
     ).toBe(4)
     expect(
       getProductListItemCount({
         id: "list_4",
+        item_count: 3,
+        items: [{ id: "item_1" }],
+      })
+    ).toBe(3)
+    expect(
+      getProductListItemCount({
+        id: "list_5",
         items: [{ id: "item_1" }, { id: "item_2" }],
       })
     ).toBe(2)
