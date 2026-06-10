@@ -6,6 +6,9 @@
   --padding-button-sm: var(--spacing-100) var(--spacing-250);
   --padding-button-md: var(--spacing-100) var(--spacing-300);
   --padding-button-lg: var(--spacing-400) var(--spacing-500);
+  --spacing-button-sm: var(--spacing-150);
+  --spacing-button-md: var(--spacing-200);
+  --spacing-button-lg: var(--spacing-250);
 
   --radius-button-sm: var(--radius-sm);
   --radius-button-md: var(--radius-sm);
