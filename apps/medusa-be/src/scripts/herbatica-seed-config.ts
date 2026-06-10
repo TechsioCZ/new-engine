@@ -6,6 +6,7 @@ import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed
 export const HERBATICA_PRODUCTS_XML_ENV = "HERBATICA_XML_PATH"
 export const HERBATICA_CATEGORIES_XML_ENV = "HERBATICA_CATEGORIES_XML_PATH"
 export const HERBATICA_PROMO_REBASE_DAYS_ENV = "HERBATICA_PROMO_REBASE_DAYS"
+export const HERBATICA_REVIEWS_XML_ENV = "HERBATICA_REVIEWS_XML_PATH"
 
 export const HERBATICA_PRODUCTS_XML_PATHS = [
   resolve(__dirname, "seed-files/productsComplete.xml"),
