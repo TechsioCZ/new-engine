@@ -21,6 +21,7 @@ type PrepareEmployeeCustomerLinkInput = {
 type EmployeeCustomerLinkRow = {
   customer_id?: string
   employee_id?: string
+  id?: string
 }
 
 type EmployeeCustomerLinkCompensation = {
@@ -80,10 +81,11 @@ export const prepareEmployeeCustomerLinkStep = createStep(
 
     const { data: existingLinks } = (await query.graph({
       entity: EMPLOYEE_CUSTOMER_LINK_ENTRY_POINT,
-      fields: ["customer_id", "employee_id"],
+      fields: ["id", "customer_id", "employee_id"],
       filters: {
         customer_id: input.customer_id,
       },
+      withDeleted: true,
     })) as { data: EmployeeCustomerLinkRow[] }
     const employeeIds = [
       ...new Set(
@@ -158,8 +160,16 @@ export const prepareEmployeeCustomerLinkStep = createStep(
       .filter(
         (
           existingLink
-        ): existingLink is { customer_id: string; employee_id: string } =>
-          Boolean(existingLink.customer_id && existingLink.employee_id)
+        ): existingLink is {
+          customer_id: string
+          employee_id: string
+          id: string
+        } =>
+          Boolean(
+            existingLink.customer_id &&
+              existingLink.employee_id &&
+              existingLink.id
+          )
       )
       .filter((existingLink) =>
         staleEmployeeIds.includes(existingLink.employee_id)

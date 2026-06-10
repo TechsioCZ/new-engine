@@ -33,16 +33,27 @@ type AuthService = {
 
 type MockContainer = ReturnType<typeof makeContainer>
 
+type CompanyAuthMetadataCompensation =
+  | string[]
+  | {
+      admin_candidates: Array<{
+        customer_id?: string | null
+        email?: string | null
+      }>
+      company_ids: string[]
+      provider_identity_ids: string[]
+    }
+
 type MockStep = {
   (
     input: string[],
     context: { container: MockContainer }
   ): Promise<{
-    compensateInput?: string[]
+    compensateInput?: CompanyAuthMetadataCompensation
     payload: unknown
   }>
   compensate: (
-    input: string[] | undefined,
+    input: CompanyAuthMetadataCompensation | undefined,
     context: { container: MockContainer }
   ) => Promise<void>
 }
@@ -164,12 +175,12 @@ describe("company admin auth metadata steps", () => {
           {
             employees: [
               {
-                customer: { email: "admin@example.com" },
+                customer: { email: "admin@example.com", id: "cus_1" },
                 deleted_at: null,
                 is_admin: true,
               },
               {
-                customer: { email: "deleted-admin@example.com" },
+                customer: { email: "deleted-admin@example.com", id: "cus_2" },
                 deleted_at: new Date(),
                 is_admin: true,
               },
@@ -193,6 +204,7 @@ describe("company admin auth metadata steps", () => {
         "employees.deleted_at",
         "employees.is_admin",
         "employees.customer.email",
+        "employees.customer.id",
       ],
       filters: { id: ["comp_1"] },
     })
@@ -212,6 +224,65 @@ describe("company admin auth metadata steps", () => {
         },
       },
     ])
-    expect(result.compensateInput).toEqual(["authpi_1"])
+    expect(result.compensateInput).toEqual({
+      admin_candidates: [
+        {
+          customer_id: "cus_1",
+          email: "admin@example.com",
+        },
+      ],
+      company_ids: ["comp_1"],
+      provider_identity_ids: ["authpi_1"],
+    })
+  })
+
+  it("does not clear restored admin metadata on compensation when another active admin role remains", async () => {
+    const { restoreCompanyAdminAuthMetadataStep } = await import(
+      "../../../../../src/workflows/company/steps/restore-company-admin-auth-metadata"
+    )
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          { customer_id: "cus_1", employee_id: "emp_restored" },
+          { customer_id: "cus_1", employee_id: "emp_other" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "emp_restored",
+            is_admin: true,
+          },
+          {
+            company: { deleted_at: null, id: "comp_2" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "emp_other",
+            is_admin: true,
+          },
+        ],
+      })
+    const authService = makeAuthService()
+    const container = makeContainer({ authService, graph })
+
+    await (restoreCompanyAdminAuthMetadataStep as MockStep).compensate(
+      {
+        admin_candidates: [
+          {
+            customer_id: "cus_1",
+            email: "admin@example.com",
+          },
+        ],
+        company_ids: ["comp_1"],
+        provider_identity_ids: ["authpi_1"],
+      },
+      { container }
+    )
+
+    expect(authService.updateProviderIdentities).not.toHaveBeenCalled()
   })
 })

@@ -18,11 +18,15 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { id } = req.params
 
   const { data: approvalSettings, metadata } = await query.graph({
     entity: "approval_settings",
     fields: adminApprovalSettingsFields,
-    filters: req.filterableFields,
+    filters: {
+      ...req.filterableFields,
+      company_id: id,
+    },
     pagination: {
       ...req.remoteQueryConfig.pagination,
     },

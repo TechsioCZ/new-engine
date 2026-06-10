@@ -131,6 +131,16 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   },
   /* Approval Settings Middlewares */
   {
+    method: ["GET"],
+    matcher: "/admin/companies/:id/approval-settings",
+    middlewares: [
+      validateAndTransformQuery(
+        AdminGetApprovalSettingsParams,
+        adminApprovalSettingsQueryConfig.list
+      ),
+    ],
+  },
+  {
     method: ["POST"],
     matcher: "/admin/companies/:id/approval-settings",
     middlewares: [

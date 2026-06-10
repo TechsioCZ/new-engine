@@ -8,7 +8,7 @@ import {
   Tooltip,
   toast,
 } from "@medusajs/ui"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../../types"
 import {
@@ -37,6 +37,7 @@ export function CompanyCustomerGroupDrawer({
   const { t } = useTranslation("companies")
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const debouncedQ = useDebouncedValue(q)
   const customerGroupsQuery = useMemo(
     () => ({
@@ -219,7 +220,13 @@ export function CompanyCustomerGroupDrawer({
 
   return (
     <Drawer onOpenChange={setOpen} open={open}>
-      <Drawer.Content className="z-50">
+      <Drawer.Content
+        className="z-50"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          searchInputRef.current?.focus()
+        }}
+      >
         <Drawer.Header>
           <Drawer.Title>
             {company.name
@@ -240,6 +247,7 @@ export function CompanyCustomerGroupDrawer({
               setQ(event.target.value)
             }}
             placeholder={t("search.customerGroups")}
+            ref={searchInputRef}
             value={q}
           />
           <div className="h-full overflow-y-auto">

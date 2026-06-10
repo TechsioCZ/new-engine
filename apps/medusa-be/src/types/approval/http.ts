@@ -43,7 +43,6 @@ export type StoreApprovalSettings = QueryApprovalSettings
 
 export type StoreUpdateApprovalSettings = {
   requires_admin_approval: boolean
-  requires_sales_manager_approval: boolean
 }
 
 export type StoreApproval = QueryApproval

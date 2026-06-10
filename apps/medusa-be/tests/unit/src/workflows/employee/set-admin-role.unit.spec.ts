@@ -34,11 +34,23 @@ type MockStep = {
     input: { employeeId: string; customerId: string },
     context: { container: MockContainer }
   ): Promise<{
-    compensateInput?: { providerIdentityId: string }
+    compensateInput?: {
+      customerId: string
+      email: string
+      employeeId: string
+      providerIdentityId: string
+    }
     payload: unknown
   }>
   compensate: (
-    input: { providerIdentityId: string } | undefined,
+    input:
+      | {
+          customerId: string
+          email: string
+          employeeId: string
+          providerIdentityId: string
+        }
+      | undefined,
     context: { container: MockContainer }
   ) => Promise<void>
 }
@@ -118,19 +130,45 @@ describe("setAdminRoleStep", () => {
         },
       },
     ])
-    expect(result.compensateInput).toEqual({ providerIdentityId: "authpi_1" })
+    expect(result.compensateInput).toEqual({
+      customerId: "cus_1",
+      email: "employee@example.com",
+      employeeId: "employee_1",
+      providerIdentityId: "authpi_1",
+    })
   })
 
-  it("clears the company admin role on compensation", async () => {
+  it("clears the company admin role on compensation when no other active admin role remains", async () => {
     const { setAdminRoleStep } = await import(
       "../../../../../src/workflows/employee/steps/set-admin-role"
     )
-    const graph = vi.fn()
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [{ customer_id: "cus_1", employee_id: "employee_1" }],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "employee_1",
+            is_admin: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
     const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
     const container = makeContainer({ graph, updateProviderIdentities })
 
     await (setAdminRoleStep as MockStep).compensate(
-      { providerIdentityId: "authpi_1" },
+      {
+        customerId: "cus_1",
+        email: "employee@example.com",
+        employeeId: "employee_1",
+        providerIdentityId: "authpi_1",
+      },
       { container }
     )
 
@@ -142,5 +180,51 @@ describe("setAdminRoleStep", () => {
         },
       },
     ])
+  })
+
+  it("keeps the company admin role on compensation when another active admin role remains", async () => {
+    const { setAdminRoleStep } = await import(
+      "../../../../../src/workflows/employee/steps/set-admin-role"
+    )
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          { customer_id: "cus_1", employee_id: "employee_1" },
+          { customer_id: "cus_1", employee_id: "employee_2" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "employee_1",
+            is_admin: true,
+          },
+          {
+            company: { deleted_at: null, id: "comp_2" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "employee_2",
+            is_admin: true,
+          },
+        ],
+      })
+    const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
+    const container = makeContainer({ graph, updateProviderIdentities })
+
+    await (setAdminRoleStep as MockStep).compensate(
+      {
+        customerId: "cus_1",
+        email: "employee@example.com",
+        employeeId: "employee_1",
+        providerIdentityId: "authpi_1",
+      },
+      { container }
+    )
+
+    expect(updateProviderIdentities).not.toHaveBeenCalled()
   })
 })

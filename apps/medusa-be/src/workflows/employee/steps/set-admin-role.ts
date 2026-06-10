@@ -1,13 +1,21 @@
 import type { IAuthModuleService } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
+
+type SetAdminRoleCompensation = {
+  customerId: string
+  email: string
+  employeeId: string
+  providerIdentityId: string
+}
 
 export const setAdminRoleStep = createStep(
   "set-admin-role",
   async (
     input: { employeeId: string; customerId: string },
     { container }
-  ): Promise<StepResponse<undefined, { providerIdentityId: string }>> => {
+  ): Promise<StepResponse<undefined, SetAdminRoleCompensation>> => {
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
 
     const {
@@ -73,11 +81,31 @@ export const setAdminRoleStep = createStep(
     ])
 
     return new StepResponse(undefined, {
+      customerId: input.customerId,
+      email: customer.email,
+      employeeId: input.employeeId,
       providerIdentityId: providerIdentity.id,
     })
   },
-  async (input: { providerIdentityId: string } | undefined, { container }) => {
+  async (input: SetAdminRoleCompensation | undefined, { container }) => {
     if (!input) {
+      return
+    }
+
+    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const providerIdentityIds =
+      await getProviderIdentityIdsWithoutActiveAdminRole({
+        candidates: [
+          {
+            customer_id: input.customerId,
+            email: input.email,
+          },
+        ],
+        excludedEmployeeIds: [input.employeeId],
+        query,
+      })
+
+    if (!providerIdentityIds.includes(input.providerIdentityId)) {
       return
     }
 

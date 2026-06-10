@@ -332,6 +332,7 @@ export function EmployeesCreateForm({
               aria-invalid={!!validationErrors.email}
               aria-required
               autoComplete="off"
+              autoFocus
               name="employee_customer_email"
               onChange={handleChange}
               placeholder={t("placeholders.employeeEmail")}

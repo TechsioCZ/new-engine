@@ -486,6 +486,7 @@ describe("customer-group sync steps", () => {
           {
             customer_id: "cus_1",
             employee_id: "emp_deleted",
+            id: "link_deleted",
           },
         ],
       })
@@ -550,10 +551,11 @@ describe("customer-group sync steps", () => {
 
     expect(graph).toHaveBeenNthCalledWith(1, {
       entity: "employee_customer",
-      fields: ["customer_id", "employee_id"],
+      fields: ["id", "customer_id", "employee_id"],
       filters: {
         customer_id: "cus_1",
       },
+      withDeleted: true,
     })
     expect(linkService.dismiss).toHaveBeenCalledWith({
       company: { employee_id: "emp_deleted" },
@@ -586,7 +588,13 @@ describe("customer-group sync steps", () => {
           spending_limit: 120,
         },
       ],
-      links: [{ customer_id: "cus_1", employee_id: "emp_deleted" }],
+      links: [
+        {
+          customer_id: "cus_1",
+          employee_id: "emp_deleted",
+          id: "link_deleted",
+        },
+      ],
       provider_identity_ids: ["authpi_1"],
       restored_customer_groups: [
         {
@@ -660,6 +668,7 @@ describe("customer-group sync steps", () => {
           {
             customer_id: "cus_1",
             employee_id: "emp_deleted",
+            id: "link_deleted",
           },
         ],
       })
@@ -826,7 +835,7 @@ describe("customer-group sync steps", () => {
       .mockResolvedValueOnce({
         data: [
           {
-            company: { id: "comp_1" },
+            company: { deleted_at: null, id: "comp_1" },
             deleted_at: new Date(),
             id: "emp_deleted",
             is_admin: true,
@@ -884,6 +893,94 @@ describe("customer-group sync steps", () => {
           employee_id: ["emp_deleted"],
         },
       },
+    })
+  })
+
+  it("does not restore a same-company deleted employee when another active company owns the customer", async () => {
+    const { createOrRestoreEmployeeStep } = await import(
+      "../../../../../src/workflows/employee/steps/create-or-restore-employee"
+    )
+    const companyService = makeCompanyService({
+      createEmployees: vi.fn().mockResolvedValue({ id: "emp_new" }),
+      restoreEmployees: vi.fn(),
+    })
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            deleted_at: new Date(),
+            employee_id: "emp_deleted",
+          },
+          {
+            customer_id: "cus_1",
+            deleted_at: null,
+            employee_id: "emp_active_other",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            deleted_at: new Date(),
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+          {
+            company: { deleted_at: null, id: "comp_2" },
+            deleted_at: null,
+            id: "emp_active_other",
+            is_admin: false,
+            spending_limit: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ company: { id: "comp_1" }, id: "emp_new" }],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    const result = await (
+      createOrRestoreEmployeeStep as MockStep<{
+        company_id: string
+        customer_id: string
+        is_admin: boolean
+        spending_limit: number
+      }>
+    )(
+      {
+        company_id: "comp_1",
+        customer_id: "cus_1",
+        is_admin: false,
+        spending_limit: 50,
+      },
+      { container }
+    )
+
+    expect(companyService.restoreEmployees).not.toHaveBeenCalled()
+    expect(linkService.restore).not.toHaveBeenCalled()
+    expect(companyService.createEmployees).toHaveBeenCalledWith({
+      company_id: "comp_1",
+      customer_id: "cus_1",
+      is_admin: false,
+      spending_limit: 50,
+    })
+    expect(linkService.create).toHaveBeenCalledWith({
+      company: { employee_id: "emp_new" },
+      customer: { customer_id: "cus_1" },
+    })
+    expect(result.compensateInput).toEqual({
+      action: "created",
+      customer_id: "cus_1",
+      employee_id: "emp_new",
     })
   })
 

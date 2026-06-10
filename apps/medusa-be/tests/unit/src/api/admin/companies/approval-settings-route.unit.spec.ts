@@ -16,20 +16,26 @@ vi.mock("../../../../../../src/workflows/approval/workflows", () => ({
 }))
 
 const createMockRequest = ({
+  filterableFields = {},
   graph,
   params = { id: "comp_1" },
+  remoteQueryConfig = { pagination: { skip: 0, take: 20 } },
   validatedBody = {
     id: "apprset_from_body",
     requires_admin_approval: true,
     requires_sales_manager_approval: false,
   },
 }: {
+  filterableFields?: Record<string, unknown>
   graph: ReturnType<typeof vi.fn>
   params?: Record<string, string>
+  remoteQueryConfig?: { pagination: Record<string, unknown> }
   validatedBody?: Record<string, unknown>
 }) =>
   ({
+    filterableFields,
     params,
+    remoteQueryConfig,
     scope: {
       resolve: vi.fn((key: string) => {
         if (key === ContainerRegistrationKeys.QUERY) {
@@ -46,6 +52,68 @@ const createMockResponse = () =>
   ({
     json: vi.fn().mockReturnThis(),
   }) as any
+
+describe("GET /admin/companies/:id/approval-settings", () => {
+  beforeEach(() => {
+    workflowMocks.ensureApprovalSettingsRun.mockReset()
+    workflowMocks.updateApprovalSettingsRun.mockReset()
+  })
+
+  it("lists approval settings scoped to the route company id", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/admin/companies/[id]/approval-settings/route"
+    )
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          company_id: "comp_1",
+          id: "apprset_1",
+          requires_admin_approval: true,
+          requires_sales_manager_approval: false,
+        },
+      ],
+      metadata: { count: 1, skip: 0, take: 20 },
+    })
+    const req = createMockRequest({
+      filterableFields: { company_id: "comp_from_query" },
+      graph,
+    })
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(graph).toHaveBeenCalledWith({
+      entity: "approval_settings",
+      fields: [
+        "id",
+        "company_id",
+        "requires_admin_approval",
+        "requires_sales_manager_approval",
+        "*company",
+      ],
+      filters: {
+        company_id: "comp_1",
+      },
+      pagination: {
+        skip: 0,
+        take: 20,
+      },
+    })
+    expect(res.json).toHaveBeenCalledWith({
+      approvalSettings: [
+        {
+          company_id: "comp_1",
+          id: "apprset_1",
+          requires_admin_approval: true,
+          requires_sales_manager_approval: false,
+        },
+      ],
+      count: 1,
+      limit: 20,
+      offset: 0,
+    })
+  })
+})
 
 describe("POST /admin/companies/:id/approval-settings", () => {
   beforeEach(() => {

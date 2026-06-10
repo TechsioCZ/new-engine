@@ -15,7 +15,10 @@ type EmployeeCustomerLinkRow = {
 }
 
 type RestorableEmployee = {
-  company?: { id?: string } | null
+  company?: {
+    deleted_at?: Date | string | null
+    id?: string
+  } | null
   deleted_at?: Date | string | null
   id: string
   is_admin?: boolean
@@ -91,13 +94,21 @@ export const createOrRestoreEmployeeStep = createStep(
             "is_admin",
             "spending_limit",
             "company.id",
+            "company.deleted_at",
           ],
           filters: { id: employeeIds },
           withDeleted: true,
         })) as { data: RestorableEmployee[] })
       : { data: [] }
+    const activeOtherCompanyEmployee = existingEmployees.find(
+      (existingEmployee) =>
+        !(
+          existingEmployee.deleted_at || existingEmployee.company?.deleted_at
+        ) && existingEmployee.company?.id !== input.company_id
+    )
     const restorableEmployee = existingEmployees.find(
       (existingEmployee) =>
+        !activeOtherCompanyEmployee &&
         existingEmployee.deleted_at &&
         existingEmployee.company?.id === input.company_id
     )
