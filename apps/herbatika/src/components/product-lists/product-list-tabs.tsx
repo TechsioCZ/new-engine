@@ -27,6 +27,45 @@ function ProductListEmptyPanel() {
   );
 }
 
+function ProductListItemsSkeleton() {
+  const rows = [0, 1, 2] as const;
+
+  return (
+    <Skeleton aria-label="Načítavam produkty zoznamu">
+      <div className="space-y-250">
+        {rows.map((row) => (
+          <article
+            className="flex flex-col gap-300 border-b border-border-secondary bg-base p-300 md:flex-row md:items-center"
+            key={row}
+          >
+            <Skeleton.Rectangle className="h-850 w-850 shrink-0 rounded-md" />
+            <div className="min-w-0 flex-1 space-y-150">
+              <Skeleton.Text
+                containerClassName="max-w-md"
+                lastLineWidth="55%"
+                noOfLines={2}
+                size="sm"
+              />
+              <Skeleton.Rectangle className="h-500 w-32 rounded-md" />
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-300">
+              <Skeleton.Rectangle className="h-600 w-20 rounded-md" />
+              <Skeleton.Rectangle className="h-600 w-28 rounded-md" />
+              <Skeleton.Rectangle className="h-600 w-600 rounded-md" />
+            </div>
+          </article>
+        ))}
+        <div className="pt-300">
+          <div className="ml-auto w-full space-y-200 sm:max-w-sm">
+            <Skeleton.Text noOfLines={2} size="sm" />
+            <Skeleton.Rectangle className="h-600 rounded-md" />
+          </div>
+        </div>
+      </div>
+    </Skeleton>
+  );
+}
+
 function ProductListSummary({
   accountLists,
 }: {
@@ -78,15 +117,15 @@ function ProductListActiveContent({
   accountLists: AccountProductListsController;
 }) {
   if (accountLists.activeListQuery.isLoading) {
-    return (
-      <Skeleton>
-        <Skeleton.Text noOfLines={5} />
-      </Skeleton>
-    );
+    return <ProductListItemsSkeleton />;
   }
 
   if (accountLists.activeListQuery.error) {
     return null;
+  }
+
+  if (accountLists.activeProductsAreLoading) {
+    return <ProductListItemsSkeleton />;
   }
 
   if (accountLists.activeItems.length === 0) {

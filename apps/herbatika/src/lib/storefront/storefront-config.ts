@@ -30,6 +30,11 @@ import type {
 } from "@techsio/storefront-data/products/medusa-service";
 import { createProductQueryKeys } from "@techsio/storefront-data/products/query-keys";
 import type {
+  MedusaProductListDetailKeyInput,
+  MedusaProductListListKeyInput,
+} from "@techsio/storefront-data/product-lists/medusa-service";
+import { createProductListQueryKeys } from "@techsio/storefront-data/product-lists/query-keys";
+import type {
   MedusaRegionDetailInput,
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
@@ -158,6 +163,10 @@ export const storefrontQueryKeys = {
   products: createProductQueryKeys<
     MedusaProductListInput,
     MedusaProductDetailInput
+  >(STOREFRONT_QUERY_KEY_NAMESPACE),
+  productLists: createProductListQueryKeys<
+    MedusaProductListListKeyInput,
+    MedusaProductListDetailKeyInput
   >(STOREFRONT_QUERY_KEY_NAMESPACE),
   regions: createRegionQueryKeys<
     MedusaRegionListInput,

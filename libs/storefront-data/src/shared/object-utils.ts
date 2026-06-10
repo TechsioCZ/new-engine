@@ -13,6 +13,11 @@ export const toPlainRecord = (
   return value
 }
 
+export const compactRecord = (record: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(record).filter(([, value]) => value !== undefined)
+  )
+
 export function omitKeys<
   TObject extends object,
   const TKeys extends readonly (keyof TObject)[],
