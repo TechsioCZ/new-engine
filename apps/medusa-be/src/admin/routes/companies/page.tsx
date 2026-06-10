@@ -6,6 +6,7 @@ import {
   Container,
   Heading,
   Input,
+  Select,
   StatusBadge,
   Table,
   Text,
@@ -26,6 +27,15 @@ import { useDebouncedValue } from "../../lib/use-debounced-value"
 import { CompanyActionsMenu, CompanyCreateDrawer } from "./components"
 
 const PAGE_SIZE = 20
+const COMPANY_STATUS_OPTIONS = ["active", "deleted", "all"] as const
+type CompanyStatusFilter = (typeof COMPANY_STATUS_OPTIONS)[number]
+const ORDER_OPTIONS = [
+  { labelKey: "nameAsc", value: "name" },
+  { labelKey: "nameDesc", value: "-name" },
+  { labelKey: "newest", value: "-created_at" },
+  { labelKey: "recentlyUpdated", value: "-updated_at" },
+] as const
+type CompanyOrder = (typeof ORDER_OPTIONS)[number]["value"]
 
 export const handle = {
   breadcrumb: () => translateBreadcrumb("companies:menuItem", "Companies"),
@@ -41,21 +51,27 @@ const formatCompanyAddress = (company: QueryCompany) => {
   return addressParts.length ? addressParts.join(", ") : "-"
 }
 
+const getActiveEmployeeCount = (company: QueryCompany) =>
+  company.employees?.filter((employee) => !employee.deleted_at).length ?? 0
+
 const Companies = () => {
   const { t } = useTranslation("companies")
   const navigate = useNavigate()
   const [pageIndex, setPageIndex] = useState(0)
+  const [orderBy, setOrderBy] = useState<CompanyOrder>("name")
   const [q, setQ] = useState("")
+  const [status, setStatus] = useState<CompanyStatusFilter>("active")
   const debouncedQ = useDebouncedValue(q)
   const companiesQuery = useMemo(
     () => ({
       fields: adminCompanyDisplayFieldsQuery,
       limit: String(PAGE_SIZE),
       offset: String(pageIndex * PAGE_SIZE),
+      order_by: orderBy,
       q: debouncedQ,
-      with_deleted: "true",
+      status,
     }),
-    [debouncedQ, pageIndex]
+    [debouncedQ, orderBy, pageIndex, status]
   )
   const { data, isPending } = useCompanies(companiesQuery)
   const companies = data?.companies ?? []
@@ -125,7 +141,7 @@ const Companies = () => {
             </StatusBadge>
           </Table.Cell>
           <Table.Cell>{formatCompanyAddress(company)}</Table.Cell>
-          <Table.Cell>{company.employees?.length || 0}</Table.Cell>
+          <Table.Cell>{getActiveEmployeeCount(company)}</Table.Cell>
           <Table.Cell>
             {company.customer_group?.name ? (
               <Badge color="blue" size="small">
@@ -152,7 +168,7 @@ const Companies = () => {
           </Heading>
           <CompanyCreateDrawer />
         </div>
-        <div className="border-ui-border-base border-t px-6 py-4">
+        <div className="grid grid-cols-1 gap-3 border-ui-border-base border-t px-6 py-4 md:grid-cols-[minmax(0,1fr)_220px_180px]">
           <Input
             onChange={(event) => {
               setPageIndex(0)
@@ -161,6 +177,42 @@ const Companies = () => {
             placeholder={t("search.companies")}
             value={q}
           />
+          <Select
+            onValueChange={(value) => {
+              setPageIndex(0)
+              setOrderBy(value as CompanyOrder)
+            }}
+            value={orderBy}
+          >
+            <Select.Trigger>
+              <Select.Value />
+            </Select.Trigger>
+            <Select.Content>
+              {ORDER_OPTIONS.map((option) => (
+                <Select.Item key={option.value} value={option.value}>
+                  {t(`orderOptions.${option.labelKey}`)}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+          <Select
+            onValueChange={(value) => {
+              setPageIndex(0)
+              setStatus(value as CompanyStatusFilter)
+            }}
+            value={status}
+          >
+            <Select.Trigger>
+              <Select.Value />
+            </Select.Trigger>
+            <Select.Content>
+              {COMPANY_STATUS_OPTIONS.map((option) => (
+                <Select.Item key={option} value={option}>
+                  {t(`filters.status.${option}`)}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
         </div>
         {isPending && <Text>{t("status.loading")}</Text>}
         <Table>

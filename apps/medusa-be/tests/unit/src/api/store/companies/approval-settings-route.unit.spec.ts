@@ -1,18 +1,19 @@
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/utils"
+import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowMocks = vi.hoisted(() => ({
+  ensureApprovalSettingsRun: vi.fn(),
   updateApprovalSettingsRun: vi.fn(),
 }))
 
-vi.mock(
-  "../../../../../../src/workflows/approval/workflows/update-approval-settings",
-  () => ({
-    updateApprovalSettingsWorkflow: {
-      run: workflowMocks.updateApprovalSettingsRun,
-    },
-  })
-)
+vi.mock("../../../../../../src/workflows/approval/workflows", () => ({
+  ensureApprovalSettingsWorkflow: {
+    run: workflowMocks.ensureApprovalSettingsRun,
+  },
+  updateApprovalSettingsWorkflow: {
+    run: workflowMocks.updateApprovalSettingsRun,
+  },
+}))
 
 const createMockRequest = ({
   graph,
@@ -43,22 +44,37 @@ const createMockResponse = () =>
 
 describe("POST /store/companies/:id/approval-settings", () => {
   beforeEach(() => {
+    workflowMocks.ensureApprovalSettingsRun.mockReset()
     workflowMocks.updateApprovalSettingsRun.mockReset()
   })
 
-  it("returns a controlled not-found error when approval settings are missing", async () => {
+  it("creates missing approval settings before applying the update", async () => {
     const { POST } = await import(
       "../../../../../../src/api/store/companies/[id]/approval-settings/route"
     )
     const graph = vi.fn().mockResolvedValue({ data: [] })
+    workflowMocks.ensureApprovalSettingsRun.mockResolvedValue({
+      result: [{ id: "apprset_created", company_id: "comp_1" }],
+    })
     const req = createMockRequest({ graph })
     const res = createMockResponse()
 
-    await expect(POST(req, res)).rejects.toMatchObject({
-      message: "Approval settings for company comp_1 were not found",
-      type: MedusaError.Types.NOT_FOUND,
+    await POST(req, res)
+
+    expect(workflowMocks.ensureApprovalSettingsRun).toHaveBeenCalledWith({
+      container: req.scope,
+      input: ["comp_1"],
     })
-    expect(workflowMocks.updateApprovalSettingsRun).not.toHaveBeenCalled()
+    expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
+      container: req.scope,
+      input: {
+        company_id: "comp_1",
+        id: "apprset_created",
+        requires_admin_approval: true,
+      },
+    })
+    expect(res.status).toHaveBeenCalledWith(201)
+    expect(res.send).toHaveBeenCalled()
   })
 
   it("updates the existing approval settings record", async () => {
@@ -73,9 +89,11 @@ describe("POST /store/companies/:id/approval-settings", () => {
 
     await POST(req, res)
 
+    expect(workflowMocks.ensureApprovalSettingsRun).not.toHaveBeenCalled()
     expect(workflowMocks.updateApprovalSettingsRun).toHaveBeenCalledWith({
       container: req.scope,
       input: {
+        company_id: "comp_1",
         id: "apprset_1",
         requires_admin_approval: true,
       },

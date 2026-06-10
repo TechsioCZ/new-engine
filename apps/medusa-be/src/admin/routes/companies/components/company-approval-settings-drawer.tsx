@@ -5,6 +5,9 @@ import type { QueryCompany } from "../../../../types"
 import { CoolSwitch } from "../../../components"
 import { useUpdateApprovalSettings } from "../../../hooks/api"
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 export function CompanyApprovalSettingsDrawer({
   company,
   open,
@@ -35,27 +38,18 @@ export function CompanyApprovalSettingsDrawer({
   }, [company.approval_settings])
 
   const handleSubmit = async () => {
-    if (!company.approval_settings?.id) {
-      toast.error(t("errors.updateApprovalSettingsFailed"))
-      return
-    }
-
-    await mutateAsync(
-      {
-        id: company.approval_settings.id,
+    try {
+      await mutateAsync({
         requires_admin_approval: requiresAdminApproval,
         requires_sales_manager_approval: requiresSalesManagerApproval,
-      },
-      {
-        onSuccess: async () => {
-          setOpen(false)
-          toast.success(t("toasts.approvalSettingsUpdated"))
-        },
-        onError: (_error) => {
-          toast.error(t("errors.updateApprovalSettingsFailed"))
-        },
-      }
-    )
+      })
+      setOpen(false)
+      toast.success(t("toasts.approvalSettingsUpdated"))
+    } catch (error) {
+      toast.error(
+        `${t("errors.updateApprovalSettingsFailed")}: ${getErrorMessage(error)}`
+      )
+    }
   }
 
   return (

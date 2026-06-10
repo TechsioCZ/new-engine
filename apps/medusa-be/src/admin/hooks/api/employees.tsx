@@ -146,6 +146,9 @@ export const useDeleteEmployee = (
       ),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({
+        queryKey: employeeQueryKey.detail(variables),
+      })
+      queryClient.invalidateQueries({
         queryKey: employeeQueryKey.lists(),
       })
       queryClient.invalidateQueries({

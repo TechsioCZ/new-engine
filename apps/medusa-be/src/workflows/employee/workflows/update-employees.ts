@@ -36,6 +36,7 @@ export const updateEmployeesWorkflow = createWorkflow(
       (roleData) => ({
         customerId: roleData.updatedEmployee.customer?.id ?? "",
         email: roleData.updatedEmployee.customer?.email ?? "",
+        employeeId: roleData.updatedEmployee.id,
         shouldRemoveAdminRole:
           roleData.previousEmployee.is_admin &&
           !roleData.updatedEmployee.is_admin &&
@@ -52,7 +53,9 @@ export const updateEmployeesWorkflow = createWorkflow(
       ({ shouldRemoveAdminRole }) => shouldRemoveAdminRole
     ).then(() => {
       removeAdminRoleStep({
+        customer_id: adminRoleChange.customerId,
         email: adminRoleChange.email,
+        excluded_employee_ids: [adminRoleChange.employeeId],
       })
     })
 

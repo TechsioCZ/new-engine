@@ -23,6 +23,10 @@ type SetCompanyCustomerGroupInput = {
 type SetCompanyCustomerGroupCompensation = {
   company_id: string
   customer_ids: string[]
+  dismissed_deleted_owner_links: Array<{
+    company_id: string
+    customer_group_id: string
+  }>
   new_group_id: string
   previous_group_id?: string
 }
@@ -140,9 +144,9 @@ export const setCompanyCustomerGroupStep = createStep(
         )
       }
 
-      await Promise.all(
+      await link.dismiss(
         targetGroupOwnerIds.map((ownerId) =>
-          link.dismiss(getCompanyCustomerGroupLink(ownerId, input.group_id))
+          getCompanyCustomerGroupLink(ownerId, input.group_id)
         )
       )
     }
@@ -174,6 +178,10 @@ export const setCompanyCustomerGroupStep = createStep(
       {
         company_id: input.company_id,
         customer_ids: newGroupCustomers.map(({ customer_id }) => customer_id),
+        dismissed_deleted_owner_links: targetGroupOwnerIds.map((ownerId) => ({
+          company_id: ownerId,
+          customer_group_id: input.group_id,
+        })),
         new_group_id: input.group_id,
         previous_group_id: previousGroupId,
       }
@@ -220,6 +228,17 @@ export const setCompanyCustomerGroupStep = createStep(
           }))
         )
       }
+    }
+
+    if (input.dismissed_deleted_owner_links.length) {
+      await link.create(
+        input.dismissed_deleted_owner_links.map((dismissedLink) =>
+          getCompanyCustomerGroupLink(
+            dismissedLink.company_id,
+            dismissedLink.customer_group_id
+          )
+        )
+      )
     }
   }
 )

@@ -8,7 +8,9 @@ import {
 export type AdminGetCompanyParamsType = z.infer<typeof AdminGetCompanyParams>
 export const AdminGetCompanyParams = createFindParams().merge(
   z.object({
+    order_by: z.string().optional(),
     q: z.string().optional(),
+    status: z.enum(["active", "deleted", "all"]).optional(),
   })
 )
 
@@ -119,7 +121,7 @@ export type AdminUpdateApprovalSettingsType = z.infer<
 >
 export const AdminUpdateApprovalSettings = z
   .object({
-    id: z.string(),
+    id: z.string().optional(),
     requires_admin_approval: z.boolean(),
     requires_sales_manager_approval: z.boolean(),
   })

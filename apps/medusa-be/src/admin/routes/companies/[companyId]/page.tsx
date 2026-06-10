@@ -93,6 +93,8 @@ const CompanyDetails = () => {
 
   const company = data?.company
   const isDeleted = Boolean(company?.deleted_at)
+  const activeEmployees =
+    company?.employees?.filter((employee) => !employee.deleted_at) ?? []
 
   const openCustomer = (employee: QueryEmployee) => {
     if (employee.customer?.id) {
@@ -222,7 +224,7 @@ const CompanyDetails = () => {
           </div>
           {!isDeleted && <EmployeeCreateDrawer company={company} />}
         </div>
-        {company?.employees && company?.employees.length > 0 ? (
+        {activeEmployees.length > 0 ? (
           <Table>
             <Table.Header>
               <Table.Row>
@@ -236,7 +238,7 @@ const CompanyDetails = () => {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {company?.employees.map((employee: QueryEmployee) => (
+              {activeEmployees.map((employee: QueryEmployee) => (
                 <Table.Row
                   aria-label={employee.customer?.email || employee.id}
                   className="cursor-pointer"

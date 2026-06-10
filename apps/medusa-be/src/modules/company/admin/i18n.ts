@@ -2,6 +2,7 @@ export type CompanyAdminI18nNamespace = {
   actions: Record<
     | "add"
     | "cancel"
+    | "clear"
     | "createCompany"
     | "delete"
     | "edit"
@@ -63,7 +64,9 @@ export type CompanyAdminI18nNamespace = {
     | "emptyTitle"
     | "firstName"
     | "lastName"
+    | "newCustomerHint"
     | "permissions"
+    | "searchingCustomers"
     | "spendingLimitWithCurrency"
     | "title",
     string
@@ -73,6 +76,8 @@ export type CompanyAdminI18nNamespace = {
     | "createCompanyFailed"
     | "createCustomerFailed"
     | "createEmployeeFailed"
+    | "deleteCompanyFailed"
+    | "deleteEmployeeFailed"
     | "loadCustomerGroupsFailed"
     | "missingEmployeeDetails"
     | "removeCustomerGroupFailed"
@@ -99,8 +104,15 @@ export type CompanyAdminI18nNamespace = {
     | "zip",
     string
   >
+  filters: {
+    status: Record<"active" | "all" | "deleted", string>
+  }
   form: Record<"selectCountry" | "selectCurrency", string>
   menuItem: string
+  orderOptions: Record<
+    "nameAsc" | "nameDesc" | "newest" | "recentlyUpdated",
+    string
+  >
   pagination: Record<"next" | "of" | "pages" | "previous" | "results", string>
   placeholders: Record<
     | "address"
@@ -117,7 +129,13 @@ export type CompanyAdminI18nNamespace = {
     | "zip",
     string
   >
-  prompts: Record<"deleteDescription" | "deleteTitle", string>
+  prompts: Record<
+    | "deleteDescription"
+    | "deleteEmployeeDescription"
+    | "deleteEmployeeTitle"
+    | "deleteTitle",
+    string
+  >
   search: Record<"companies" | "customerGroups", string>
   status: Record<"active" | "deleted" | "empty" | "loading" | "saving", string>
   toasts: Record<
@@ -141,6 +159,7 @@ export const companyAdminI18n = {
     actions: {
       add: "Přidat",
       cancel: "Zrušit",
+      clear: "Vymazat",
       createCompany: "Vytvořit firmu",
       delete: "Smazat",
       edit: "Upravit",
@@ -202,7 +221,10 @@ export const companyAdminI18n = {
       emptyTitle: "Žádné záznamy",
       firstName: "Jméno",
       lastName: "Příjmení",
+      newCustomerHint:
+        "Zákazník s tímto e-mailem nebyl nalezen. Doplňte údaje pro vytvoření nového zákazníka.",
       permissions: "Oprávnění",
+      searchingCustomers: "Hledám existující zákazníky...",
       spendingLimitWithCurrency: "Limit útraty ({{currency}})",
       title: "Zaměstnanci",
     },
@@ -211,6 +233,8 @@ export const companyAdminI18n = {
       createCompanyFailed: "Firmu se nepodařilo vytvořit",
       createCustomerFailed: "Zákazníka se nepodařilo vytvořit",
       createEmployeeFailed: "Zaměstnance se nepodařilo vytvořit",
+      deleteCompanyFailed: "Firmu se nepodařilo smazat",
+      deleteEmployeeFailed: "Zaměstnance se nepodařilo odebrat",
       loadCustomerGroupsFailed: "Zákaznické skupiny se nepodařilo načíst",
       missingEmployeeDetails: "Chybí povinné údaje zaměstnance",
       removeCustomerGroupFailed:
@@ -238,11 +262,24 @@ export const companyAdminI18n = {
       state: "Kraj/stát firmy",
       zip: "PSČ firmy",
     },
+    filters: {
+      status: {
+        active: "Pouze aktivní",
+        all: "Všechny stavy",
+        deleted: "Pouze smazané",
+      },
+    },
     form: {
       selectCountry: "Vyberte zemi",
       selectCurrency: "Vyberte měnu",
     },
     menuItem: "Firmy",
+    orderOptions: {
+      nameAsc: "Název A-Z",
+      nameDesc: "Název Z-A",
+      newest: "Nejnovější",
+      recentlyUpdated: "Naposledy upravené",
+    },
     pagination: {
       next: "Další",
       of: "z",
@@ -267,6 +304,9 @@ export const companyAdminI18n = {
     prompts: {
       deleteDescription:
         "Opravdu chcete tuto firmu smazat? Firmu bude možné později obnovit.",
+      deleteEmployeeDescription:
+        "Odebrat {{email}} z této firmy? Zákaznický účet nebude smazán.",
+      deleteEmployeeTitle: "Odebrat zaměstnance",
       deleteTitle: "Potvrdit smazání",
     },
     search: {
@@ -302,6 +342,7 @@ export const companyAdminI18n = {
     actions: {
       add: "Add",
       cancel: "Cancel",
+      clear: "Clear",
       createCompany: "Create Company",
       delete: "Delete",
       edit: "Edit",
@@ -362,7 +403,10 @@ export const companyAdminI18n = {
       emptyTitle: "No records",
       firstName: "First Name",
       lastName: "Last Name",
+      newCustomerHint:
+        "No customer with this email was found. Fill in the details to create a new customer.",
       permissions: "Permissions",
+      searchingCustomers: "Searching existing customers...",
       spendingLimitWithCurrency: "Spending Limit ({{currency}})",
       title: "Employees",
     },
@@ -371,6 +415,8 @@ export const companyAdminI18n = {
       createCompanyFailed: "Failed to create company",
       createCustomerFailed: "Failed to create customer",
       createEmployeeFailed: "Failed to create employee",
+      deleteCompanyFailed: "Failed to delete company",
+      deleteEmployeeFailed: "Failed to remove employee",
       loadCustomerGroupsFailed: "Failed to load customer groups",
       missingEmployeeDetails: "Missing required employee details",
       removeCustomerGroupFailed: "Failed to remove company from customer group",
@@ -396,11 +442,24 @@ export const companyAdminI18n = {
       state: "Company State",
       zip: "Company Zip",
     },
+    filters: {
+      status: {
+        active: "Active only",
+        all: "All statuses",
+        deleted: "Deleted only",
+      },
+    },
     form: {
       selectCountry: "Select a country",
       selectCurrency: "Select a currency",
     },
     menuItem: "Companies",
+    orderOptions: {
+      nameAsc: "Name A-Z",
+      nameDesc: "Name Z-A",
+      newest: "Newest",
+      recentlyUpdated: "Recently updated",
+    },
     pagination: {
       next: "Next",
       of: "of",
@@ -425,6 +484,9 @@ export const companyAdminI18n = {
     prompts: {
       deleteDescription:
         "Are you sure you want to delete this company? You can restore it later.",
+      deleteEmployeeDescription:
+        "Remove {{email}} from this company? This does not delete the customer account.",
+      deleteEmployeeTitle: "Remove employee",
       deleteTitle: "Confirm Deletion",
     },
     search: {

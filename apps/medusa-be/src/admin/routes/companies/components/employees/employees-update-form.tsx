@@ -47,7 +47,7 @@ export function EmployeesUpdateForm({
     is_admin: employee?.is_admin,
   })
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const spendingLimit = formData.spending_limit
@@ -59,7 +59,7 @@ export function EmployeesUpdateForm({
       spending_limit: spendingLimit,
     }
 
-    handleSubmit(data)
+    await handleSubmit(data)
   }
 
   return (

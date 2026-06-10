@@ -101,7 +101,14 @@ export interface IApprovalModuleService extends IModuleService {
     sharedContext?: Context
   ): Promise<ModuleApprovalSettings[]>
 
+  softDeleteApprovalSettings(
+    ids: string[],
+    sharedContext?: Context
+  ): Promise<void>
+
   deleteApprovalSettings(ids: string[], sharedContext?: Context): Promise<void>
+
+  restoreApprovalSettings(ids: string[], sharedContext?: Context): Promise<void>
 
   /* Entity: Approval Status */
   createApprovalStatus(

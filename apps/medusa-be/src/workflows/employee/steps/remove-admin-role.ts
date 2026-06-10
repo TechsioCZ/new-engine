@@ -1,47 +1,52 @@
 import type { IAuthModuleService } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
 export const removeAdminRoleStep = createStep(
   "remove-admin-role",
   async (
-    input: { email: string },
+    input: {
+      customer_id?: string
+      email: string
+      excluded_employee_ids?: string[]
+    },
     { container }
-  ): Promise<StepResponse<undefined, string>> => {
+  ): Promise<StepResponse<undefined, string[]>> => {
     const authModuleService = container.resolve<IAuthModuleService>(
       Modules.AUTH
     )
 
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const providerIdentityIds =
+      await getProviderIdentityIdsWithoutActiveAdminRole({
+        candidates: [
+          {
+            customer_id: input.customer_id,
+            email: input.email,
+          },
+        ],
+        excludedEmployeeIds: input.excluded_employee_ids ?? [],
+        query,
+      })
 
-    const {
-      data: [providerIdentity],
-    } = await query.graph({
-      entity: "provider_identity",
-      fields: ["id"],
-      filters: {
-        provider: "emailpass",
-        entity_id: input.email,
-      },
-    })
-
-    if (!providerIdentity) {
-      return new StepResponse(undefined)
+    if (!providerIdentityIds.length) {
+      return new StepResponse(undefined, [])
     }
 
-    await authModuleService.updateProviderIdentities([
-      {
-        id: providerIdentity.id,
+    await authModuleService.updateProviderIdentities(
+      providerIdentityIds.map((providerIdentityId) => ({
+        id: providerIdentityId,
         user_metadata: {
           role: null,
         },
-      },
-    ])
+      }))
+    )
 
-    return new StepResponse(undefined, providerIdentity.id)
+    return new StepResponse(undefined, providerIdentityIds)
   },
-  async (providerIdentityId: string | undefined, { container }) => {
-    if (!providerIdentityId) {
+  async (providerIdentityIds: string[] | undefined, { container }) => {
+    if (!providerIdentityIds?.length) {
       return
     }
 
@@ -49,13 +54,13 @@ export const removeAdminRoleStep = createStep(
       Modules.AUTH
     )
 
-    await authModuleService.updateProviderIdentities([
-      {
+    await authModuleService.updateProviderIdentities(
+      providerIdentityIds.map((providerIdentityId) => ({
         id: providerIdentityId,
         user_metadata: {
           role: "company_admin",
         },
-      },
-    ])
+      }))
+    )
   }
 )

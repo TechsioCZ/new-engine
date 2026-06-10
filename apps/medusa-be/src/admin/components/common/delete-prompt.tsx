@@ -5,7 +5,7 @@ type DeletePromptProps = {
   cancelText: string
   confirmText: string
   description: string
-  handleDelete: () => void
+  handleDelete: () => Promise<void> | void
   loading: boolean
   open: boolean
   setOpen: (open: boolean) => void
@@ -23,8 +23,12 @@ export const DeletePrompt = ({
   title,
 }: DeletePromptProps) => {
   const handleConfirmDelete = async () => {
-    handleDelete()
-    setOpen(false)
+    try {
+      await handleDelete()
+      setOpen(false)
+    } catch {
+      // Mutation handlers surface the error; keep the prompt open.
+    }
   }
 
   return (

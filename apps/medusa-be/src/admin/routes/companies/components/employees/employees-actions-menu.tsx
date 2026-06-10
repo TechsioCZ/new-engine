@@ -7,6 +7,9 @@ import { DeletePrompt } from "../../../../components/common"
 import { useDeleteEmployee } from "../../../../hooks/api"
 import { EmployeesUpdateDrawer } from "."
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 export const EmployeesActionsMenu = ({
   company,
   employee,
@@ -18,10 +21,15 @@ export const EmployeesActionsMenu = ({
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
-    useDeleteEmployee(employee.company_id)
+    useDeleteEmployee(company.id)
 
   const handleDelete = async () => {
     await mutateDelete(employee.id, {
+      onError: (error) => {
+        toast.error(
+          `${t("errors.deleteEmployeeFailed")}: ${getErrorMessage(error)}`
+        )
+      },
       onSuccess: () => {
         toast.success(t("toasts.employeeDeleted"))
       },
@@ -64,12 +72,14 @@ export const EmployeesActionsMenu = ({
       <DeletePrompt
         cancelText={t("actions.cancel")}
         confirmText={t("actions.delete")}
-        description={t("prompts.deleteDescription")}
+        description={t("prompts.deleteEmployeeDescription", {
+          email: employee.customer?.email ?? employee.id,
+        })}
         handleDelete={handleDelete}
         loading={loadingDelete}
         open={deleteOpen}
         setOpen={setDeleteOpen}
-        title={t("prompts.deleteTitle")}
+        title={t("prompts.deleteEmployeeTitle")}
       />
     </>
   )

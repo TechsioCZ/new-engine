@@ -68,31 +68,42 @@ export function EmployeeCreateDrawer({ company }: { company: QueryCompany }) {
   }
 
   const handleSubmit = async (formData: EmployeeCreateSubmitData) => {
-    const { email, first_name, last_name, phone, spending_limit, is_admin } =
-      formData
+    const {
+      customer_id,
+      email,
+      first_name,
+      last_name,
+      phone,
+      spending_limit,
+      is_admin,
+    } = formData
 
     let customerId: string
-    let reusedExistingCustomer = false
+    let reusedExistingCustomer = Boolean(customer_id)
 
-    try {
-      const resolvedCustomer = await resolveCustomerId(email, {
-        first_name,
-        last_name,
-        phone,
-      })
+    if (customer_id) {
+      customerId = customer_id
+    } else {
+      try {
+        const resolvedCustomer = await resolveCustomerId(email, {
+          first_name,
+          last_name,
+          phone,
+        })
 
-      if (!resolvedCustomer) {
-        toast.error(t("errors.createCustomerFailed"))
+        if (!resolvedCustomer) {
+          toast.error(t("errors.createCustomerFailed"))
+          return
+        }
+
+        customerId = resolvedCustomer.customerId
+        reusedExistingCustomer = resolvedCustomer.reusedExistingCustomer
+      } catch (error) {
+        toast.error(
+          `${t("errors.createCustomerFailed")}: ${getErrorMessage(error)}`
+        )
         return
       }
-
-      customerId = resolvedCustomer.customerId
-      reusedExistingCustomer = resolvedCustomer.reusedExistingCustomer
-    } catch (error) {
-      toast.error(
-        `${t("errors.createCustomerFailed")}: ${getErrorMessage(error)}`
-      )
-      return
     }
 
     try {

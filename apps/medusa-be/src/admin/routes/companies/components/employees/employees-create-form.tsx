@@ -1,9 +1,25 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Button, CurrencyInput, Drawer, Input, Label, Text } from "@medusajs/ui"
-import { type ChangeEvent, type FormEvent, useState } from "react"
+import {
+  Button,
+  CurrencyInput,
+  clx,
+  Drawer,
+  Input,
+  Label,
+  Text,
+} from "@medusajs/ui"
+import {
+  type ChangeEvent,
+  type FormEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
 import { CoolSwitch } from "../../../../components"
+import { useAdminCustomerSearch } from "../../../../hooks/api"
+import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 import { currencySymbolMap } from "../../../../utils"
 
 type EmployeeCreateFormData = Omit<
@@ -34,6 +50,11 @@ export type EmployeeCreateSubmitData = Omit<
   }
 
 type EmployeeCreateRequiredField = "email"
+
+type CustomerOption = Pick<
+  HttpTypes.AdminCustomer,
+  "email" | "first_name" | "id" | "last_name" | "phone"
+>
 
 const getCurrencySymbol = (currencyCode: string) =>
   currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
@@ -69,6 +90,85 @@ const FieldError = ({ error, id }: { error?: string; id: string }) => {
   )
 }
 
+const getCustomerName = (customer: CustomerOption) =>
+  [customer.first_name, customer.last_name].filter(Boolean).join(" ")
+
+const getCustomerLabel = (customer: CustomerOption) =>
+  getCustomerName(customer) || customer.email || customer.id
+
+const CustomerSelection = ({
+  clearLabel,
+  emailInput,
+  onClear,
+  onSelect,
+  options,
+  selectedCustomer,
+}: {
+  clearLabel: string
+  emailInput: string
+  onClear: () => void
+  onSelect: (customer: CustomerOption) => void
+  options: CustomerOption[]
+  selectedCustomer: CustomerOption | null
+}) => {
+  if (selectedCustomer) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2">
+        <div className="flex min-w-0 flex-col">
+          <Text leading="compact" size="small" weight="plus">
+            {getCustomerLabel(selectedCustomer)}
+          </Text>
+          <Text
+            className="truncate text-ui-fg-subtle"
+            leading="compact"
+            size="small"
+          >
+            {selectedCustomer.email}
+          </Text>
+        </div>
+        <Button
+          onClick={onClear}
+          size="small"
+          type="button"
+          variant="secondary"
+        >
+          {clearLabel}
+        </Button>
+      </div>
+    )
+  }
+
+  if (!options.length) {
+    return null
+  }
+
+  const normalizedEmail = emailInput.toLowerCase()
+
+  return (
+    <div className="overflow-hidden rounded-md border border-ui-border-base bg-ui-bg-base">
+      {options.map((customer) => (
+        <button
+          className={clx(
+            "flex w-full flex-col px-3 py-2 text-left hover:bg-ui-bg-base-hover",
+            customer.email?.toLowerCase() === normalizedEmail &&
+              "bg-ui-bg-subtle"
+          )}
+          key={customer.id}
+          onClick={() => onSelect(customer)}
+          type="button"
+        >
+          <Text leading="compact" size="small" weight="plus">
+            {getCustomerLabel(customer)}
+          </Text>
+          <Text className="text-ui-fg-subtle" leading="compact" size="small">
+            {customer.email}
+          </Text>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function EmployeesCreateForm({
   handleSubmit,
   loading,
@@ -92,15 +192,63 @@ export function EmployeesCreateForm({
   const [validationErrors, setValidationErrors] = useState<
     Partial<Record<EmployeeCreateRequiredField, string>>
   >({})
+  const emailInput = formData.email?.trim() ?? ""
+  const debouncedEmail = useDebouncedValue(emailInput, 300)
+  const searchEnabled = debouncedEmail.length >= 3
+  const { data: customerSearch, isFetching: customerSearchLoading } =
+    useAdminCustomerSearch(debouncedEmail, {
+      enabled: searchEnabled,
+    })
 
   const currencyCode = company.currency_code?.toLowerCase() || "usd"
+  const customerOptions = useMemo(
+    () => (customerSearch?.customers ?? []) as CustomerOption[],
+    [customerSearch?.customers]
+  )
+  const exactCustomer = useMemo(() => {
+    const normalizedEmail = emailInput.toLowerCase()
+
+    return (
+      customerOptions.find(
+        (customer) => customer.email?.toLowerCase() === normalizedEmail
+      ) ?? null
+    )
+  }, [customerOptions, emailInput])
+  const selectedCustomer =
+    customerOptions.find((customer) => customer.id === formData.customer_id) ??
+    null
+  const showNewCustomerFields =
+    Boolean(emailInput) &&
+    !formData.customer_id &&
+    searchEnabled &&
+    !customerSearchLoading &&
+    !exactCustomer
+
+  useEffect(() => {
+    if (!exactCustomer || formData.customer_id === exactCustomer.id) {
+      return
+    }
+
+    setFormData((current) => ({
+      ...current,
+      customer_id: exactCustomer.id,
+      first_name: "",
+      last_name: "",
+      phone: "",
+    }))
+  }, [exactCustomer, formData.customer_id])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value =
       e.target.type === "checkbox" ? e.target.checked : e.target.value
-    const field = e.target.name
+    const field =
+      e.target.name === "employee_customer_email" ? "email" : e.target.name
 
-    setFormData({ ...formData, [field]: value })
+    setFormData({
+      ...formData,
+      [field]: value,
+      ...(field === "email" ? { customer_id: "" } : {}),
+    })
 
     if (field === "email") {
       setValidationErrors((prev) => ({ ...prev, email: undefined }))
@@ -146,33 +294,35 @@ export function EmployeesCreateForm({
     await handleSubmit(data)
   }
 
+  const handleCustomerSelect = (customer: CustomerOption) => {
+    setFormData({
+      ...formData,
+      customer_id: customer.id,
+      email: customer.email ?? emailInput,
+      first_name: "",
+      last_name: "",
+      phone: "",
+    })
+  }
+
+  const handleCustomerClear = () => {
+    setFormData({
+      ...formData,
+      customer_id: "",
+      email: "",
+      first_name: "",
+      last_name: "",
+      phone: "",
+    })
+  }
+
   return (
-    <form noValidate onSubmit={onSubmit}>
+    <form autoComplete="off" noValidate onSubmit={onSubmit}>
       <Drawer.Body className="flex flex-col gap-6 p-4">
         <div className="flex flex-col gap-3">
           <Text leading="compact" size="small" weight="plus">
             {t("employees.details")}
           </Text>
-          <div className="flex flex-col gap-2">
-            <RequiredLabel>{t("employees.firstName")}</RequiredLabel>
-            <Input
-              name="first_name"
-              onChange={handleChange}
-              placeholder={t("placeholders.firstName")}
-              type="text"
-              value={formData.first_name || ""}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <RequiredLabel>{t("employees.lastName")}</RequiredLabel>
-            <Input
-              name="last_name"
-              onChange={handleChange}
-              placeholder={t("placeholders.lastName")}
-              type="text"
-              value={formData.last_name || ""}
-            />
-          </div>
           <div className="flex flex-col gap-2">
             <RequiredLabel required>{t("columns.email")}</RequiredLabel>
             <Input
@@ -181,7 +331,8 @@ export function EmployeesCreateForm({
               }
               aria-invalid={!!validationErrors.email}
               aria-required
-              name="email"
+              autoComplete="off"
+              name="employee_customer_email"
               onChange={handleChange}
               placeholder={t("placeholders.employeeEmail")}
               required
@@ -192,17 +343,67 @@ export function EmployeesCreateForm({
               error={validationErrors.email}
               id="employee-email-error"
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <RequiredLabel>{t("columns.phone")}</RequiredLabel>
-            <Input
-              name="phone"
-              onChange={handleChange}
-              placeholder={t("placeholders.phone")}
-              type="text"
-              value={formData.phone || ""}
+            {customerSearchLoading && (
+              <Text
+                className="text-ui-fg-subtle"
+                leading="compact"
+                size="small"
+              >
+                {t("employees.searchingCustomers")}
+              </Text>
+            )}
+            <CustomerSelection
+              clearLabel={t("actions.clear")}
+              emailInput={emailInput}
+              onClear={handleCustomerClear}
+              onSelect={handleCustomerSelect}
+              options={customerOptions}
+              selectedCustomer={selectedCustomer}
             />
+            {showNewCustomerFields && (
+              <Text
+                className="text-ui-fg-subtle"
+                leading="compact"
+                size="small"
+              >
+                {t("employees.newCustomerHint")}
+              </Text>
+            )}
           </div>
+          {showNewCustomerFields && (
+            <>
+              <div className="flex flex-col gap-2">
+                <RequiredLabel>{t("employees.firstName")}</RequiredLabel>
+                <Input
+                  name="first_name"
+                  onChange={handleChange}
+                  placeholder={t("placeholders.firstName")}
+                  type="text"
+                  value={formData.first_name || ""}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <RequiredLabel>{t("employees.lastName")}</RequiredLabel>
+                <Input
+                  name="last_name"
+                  onChange={handleChange}
+                  placeholder={t("placeholders.lastName")}
+                  type="text"
+                  value={formData.last_name || ""}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <RequiredLabel>{t("columns.phone")}</RequiredLabel>
+                <Input
+                  name="phone"
+                  onChange={handleChange}
+                  placeholder={t("placeholders.phone")}
+                  type="text"
+                  value={formData.phone || ""}
+                />
+              </div>
+            </>
+          )}
         </div>
         <div className="flex flex-col gap-3">
           <Text leading="compact" size="small" weight="plus">

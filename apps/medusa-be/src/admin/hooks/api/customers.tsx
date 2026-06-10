@@ -49,6 +49,22 @@ type AdminCustomerGroupsQueryOptions = Omit<
   "queryFn" | "queryKey"
 >
 
+type AdminCustomerSearchResponse = Awaited<
+  ReturnType<typeof sdk.admin.customer.list>
+>
+
+type AdminCustomerSearchQueryOptions = Omit<
+  UseQueryOptions<
+    AdminCustomerSearchResponse,
+    FetchError,
+    AdminCustomerSearchResponse,
+    QueryKey
+  >,
+  "enabled" | "queryFn" | "queryKey"
+> & {
+  enabled?: boolean
+}
+
 export const useAdminCustomerGroups = (
   query?: HttpTypes.AdminGetCustomerGroupsParams,
   options?: AdminCustomerGroupsQueryOptions
@@ -87,6 +103,29 @@ export const useCustomerGroupCompanyOwners = (
         `/admin/company-customer-group-links?${searchParams.toString()}`
       )
     },
+  })
+}
+
+export const useAdminCustomerSearch = (
+  email: string,
+  options?: AdminCustomerSearchQueryOptions
+) => {
+  const { enabled, ...queryOptions } = options ?? {}
+  const normalizedEmail = email.trim().toLowerCase()
+
+  return useQuery({
+    ...queryOptions,
+    enabled: Boolean(normalizedEmail) && (enabled ?? true),
+    queryKey: customerQueryKey.list({
+      email: normalizedEmail,
+      scope: "email-search",
+    }),
+    queryFn: () =>
+      sdk.admin.customer.list({
+        fields: "id,email,first_name,last_name,phone",
+        limit: 5,
+        q: normalizedEmail,
+      }),
   })
 }
 

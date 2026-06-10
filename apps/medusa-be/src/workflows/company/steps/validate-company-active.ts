@@ -5,25 +5,37 @@ import type { ICompanyModuleService } from "../../../types"
 
 export const validateCompanyActiveStep = createStep(
   "validate-company-active",
-  async (companyId: string | undefined, { container }) => {
-    if (!companyId) {
+  async (companyId: string | string[] | undefined, { container }) => {
+    if (!companyId || (Array.isArray(companyId) && !companyId.length)) {
       return new StepResponse(undefined)
     }
 
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
-    const company = await companyModuleService.retrieveCompany(companyId, {
-      select: ["id", "deleted_at"],
-      withDeleted: true,
-    })
+    const companyIds = Array.isArray(companyId) ? companyId : [companyId]
+    const companies = Array.isArray(companyId)
+      ? await companyModuleService.listCompanies(
+          { id: companyIds },
+          {
+            select: ["id", "deleted_at"],
+            withDeleted: true,
+          }
+        )
+      : [
+          await companyModuleService.retrieveCompany(companyId, {
+            select: ["id", "deleted_at"],
+            withDeleted: true,
+          }),
+        ]
+    const deletedCompany = companies.find((company) => company.deleted_at)
 
-    if (company.deleted_at) {
+    if (deletedCompany) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Cannot mutate employees for a deleted company."
+        "Cannot mutate a deleted company."
       )
     }
 
-    return new StepResponse(company.id)
+    return new StepResponse(companyIds)
   }
 )

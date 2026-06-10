@@ -1,4 +1,8 @@
-import type { IAuthModuleService } from "@medusajs/framework/types"
+import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
+import type {
+  IAuthModuleService,
+  ICustomerModuleService,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -7,6 +11,7 @@ import {
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
+import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
 type DeleteEmployeesStepInput =
   | string
@@ -17,20 +22,27 @@ type DeleteEmployeesStepInput =
     }
 
 type DeletedEmployee = {
+  company?: {
+    customer_group?: {
+      id?: string | null
+    } | null
+  } | null
   customer?: {
     email?: string | null
+    id?: string | null
   } | null
   id: string
   is_admin?: boolean
 }
 
-type ProviderIdentity = {
-  id?: string
-}
-
 type DeleteEmployeesCompensation = {
+  employee_link_delete_input: DeleteEntityInput
   employee_ids: string[]
   provider_identity_ids: string[]
+  removed_customer_groups: Array<{
+    customer_group_id: string
+    customer_id: string
+  }>
 }
 
 const normalizeInput = (input: DeleteEmployeesStepInput) =>
@@ -45,6 +57,7 @@ export const deleteEmployeesStep = createStep(
     const { company_id: companyId, id } = normalizeInput(input)
     const ids = Array.isArray(id) ? id : [id]
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
@@ -55,7 +68,13 @@ export const deleteEmployeesStep = createStep(
     } = await query.graph(
       {
         entity: "employee",
-        fields: ["id", "is_admin", "customer.email"],
+        fields: [
+          "id",
+          "is_admin",
+          "company.customer_group.id",
+          "customer.email",
+          "customer.id",
+        ],
         filters: {
           id: ids,
           ...(companyId ? { company_id: companyId } : {}),
@@ -71,26 +90,30 @@ export const deleteEmployeesStep = createStep(
       )
     }
 
-    const adminEmails = employees
+    const removedCustomerGroups = employees.flatMap((employee) => {
+      if (!(employee.customer?.id && employee.company?.customer_group?.id)) {
+        return []
+      }
+
+      return [
+        {
+          customer_group_id: employee.company.customer_group.id,
+          customer_id: employee.customer.id,
+        },
+      ]
+    })
+    const adminCandidates = employees
       .filter((employee) => employee.is_admin)
-      .map((employee) => employee.customer?.email)
-      .filter((email): email is string => Boolean(email))
-    const { data: providerIdentities }: { data: ProviderIdentity[] } =
-      adminEmails.length
-        ? await query.graph({
-            entity: "provider_identity",
-            fields: ["id"],
-            filters: {
-              entity_id: adminEmails,
-              provider: "emailpass",
-            },
-          })
-        : { data: [] }
-    const providerIdentityIds = providerIdentities
-      .map((providerIdentity) => providerIdentity.id)
-      .filter((providerIdentityId): providerIdentityId is string =>
-        Boolean(providerIdentityId)
-      )
+      .map((employee) => ({
+        customer_id: employee.customer?.id,
+        email: employee.customer?.email,
+      }))
+    const providerIdentityIds =
+      await getProviderIdentityIdsWithoutActiveAdminRole({
+        candidates: adminCandidates,
+        excludedEmployeeIds: ids,
+        query,
+      })
 
     if (providerIdentityIds.length) {
       const authModuleService = container.resolve<IAuthModuleService>(
@@ -107,11 +130,28 @@ export const deleteEmployeesStep = createStep(
       )
     }
 
+    if (removedCustomerGroups.length) {
+      const customerModuleService = container.resolve<ICustomerModuleService>(
+        Modules.CUSTOMER
+      )
+
+      await customerModuleService.removeCustomerFromGroup(removedCustomerGroups)
+    }
+
+    const employeeLinkDeleteInput: DeleteEntityInput = {
+      [COMPANY_MODULE]: {
+        employee_id: ids,
+      },
+    }
+
+    await link.delete(employeeLinkDeleteInput)
     await companyModuleService.softDeleteEmployees(ids)
 
     return new StepResponse(ids, {
+      employee_link_delete_input: employeeLinkDeleteInput,
       employee_ids: ids,
       provider_identity_ids: providerIdentityIds,
+      removed_customer_groups: removedCustomerGroups,
     })
   },
   async (input: DeleteEmployeesCompensation | undefined, { container }) => {
@@ -122,6 +162,19 @@ export const deleteEmployeesStep = createStep(
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
     await companyModuleService.restoreEmployees(input.employee_ids)
+
+    const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
+    await link.restore(input.employee_link_delete_input)
+
+    if (input.removed_customer_groups.length) {
+      const customerModuleService = container.resolve<ICustomerModuleService>(
+        Modules.CUSTOMER
+      )
+
+      await customerModuleService.addCustomerToGroup(
+        input.removed_customer_groups
+      )
+    }
 
     if (input.provider_identity_ids.length) {
       const authModuleService = container.resolve<IAuthModuleService>(

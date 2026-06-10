@@ -16,11 +16,13 @@ type RemoveCompanyCustomerGroupLinkCompensation = {
   company_id: string
   customer_ids: string[]
   group_id?: string
+  link_removed?: boolean
 }
 
 type RemoveCompanyCustomerGroupLinkInput = {
   company_id: string
   expected_group_id?: string
+  preserve_link?: boolean
 }
 
 const normalizeInput = (
@@ -61,8 +63,11 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
   ): Promise<
     StepResponse<undefined, RemoveCompanyCustomerGroupLinkCompensation>
   > => {
-    const { company_id: companyId, expected_group_id: expectedGroupId } =
-      normalizeInput(input)
+    const {
+      company_id: companyId,
+      expected_group_id: expectedGroupId,
+      preserve_link: preserveLink,
+    } = normalizeInput(input)
     const query = container.resolve(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
@@ -98,6 +103,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       return new StepResponse(undefined, {
         company_id: companyId,
         customer_ids: [],
+        link_removed: false,
       })
     }
 
@@ -112,7 +118,9 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       )
     }
 
-    await link.dismiss(getCompanyCustomerGroupLink(companyId, groupId))
+    if (!preserveLink) {
+      await link.dismiss(getCompanyCustomerGroupLink(companyId, groupId))
+    }
 
     return new StepResponse(undefined, {
       company_id: companyId,
@@ -120,6 +128,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
         ({ customer_id }) => customer_id
       ),
       group_id: groupId,
+      link_removed: !preserveLink,
     })
   },
   async (
@@ -136,7 +145,9 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       Modules.CUSTOMER
     )
 
-    await link.create(getCompanyCustomerGroupLink(input.company_id, groupId))
+    if (input.link_removed) {
+      await link.create(getCompanyCustomerGroupLink(input.company_id, groupId))
+    }
 
     if (input.customer_ids.length) {
       await customerModuleService.addCustomerToGroup(

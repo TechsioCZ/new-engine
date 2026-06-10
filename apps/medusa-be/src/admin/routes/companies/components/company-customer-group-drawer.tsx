@@ -22,6 +22,9 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 
+const getActiveEmployeeCount = (company: QueryCompany) =>
+  company.employees?.filter((employee) => !employee.deleted_at).length ?? 0
+
 export function CompanyCustomerGroupDrawer({
   company,
   open,
@@ -227,7 +230,7 @@ export function CompanyCustomerGroupDrawer({
         <Drawer.Body className="h-full space-y-4 overflow-y-hidden">
           <Hint variant="info">
             {t("customerGroup.hint", {
-              count: company.employees?.length ?? 0,
+              count: getActiveEmployeeCount(company),
               name: company.name,
             })}
           </Hint>

@@ -15,7 +15,7 @@ export type AdminApprovalSettingsResponse = {
 }
 
 export type AdminUpdateApprovalSettings = {
-  id: string
+  id?: string
   requires_admin_approval: boolean
   requires_sales_manager_approval: boolean
 }

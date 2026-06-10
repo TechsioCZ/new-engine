@@ -4,22 +4,90 @@ import type {
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows"
-import type { AdminCreateCompanyType } from "./validators"
+import type {
+  AdminCreateCompanyType,
+  AdminGetCompanyParamsType,
+} from "./validators"
+
+type CompanyListStatus = NonNullable<AdminGetCompanyParamsType["status"]>
+
+const ORDER_FIELDS = new Set(["name", "created_at", "updated_at"])
+const LEADING_DASH_REGEX = /^-/
+const LIKE_WILDCARD_REGEX = /[%_\\]/g
+
+const escapeLikePattern = (value: string) =>
+  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
+
+const parseCompanyOrder = (input?: string) => {
+  const value = input ?? "name"
+  const direction = value.startsWith("-") ? "DESC" : "ASC"
+  const field = value.replace(LEADING_DASH_REGEX, "")
+
+  if (!ORDER_FIELDS.has(field)) {
+    return { name: "ASC" }
+  }
+
+  return {
+    [field]: direction,
+  }
+}
+
+const buildCompanyListFilters = (
+  filterableFields: Record<string, unknown>,
+  withDeleted?: boolean
+) => {
+  const {
+    order_by: _orderBy,
+    q,
+    status: requestedStatus,
+    ...filters
+  } = filterableFields
+  const status =
+    (requestedStatus as CompanyListStatus | undefined) ??
+    (withDeleted ? "all" : "active")
+  const searchTerm = typeof q === "string" ? q.trim() : ""
+
+  if (searchTerm) {
+    const escapedSearchTerm = escapeLikePattern(searchTerm)
+
+    filters.$or = [
+      { name: { $ilike: `%${escapedSearchTerm}%` } },
+      { email: { $ilike: `%${escapedSearchTerm}%` } },
+      { phone: { $ilike: `%${escapedSearchTerm}%` } },
+    ]
+  }
+
+  if (status === "deleted") {
+    filters.deleted_at = { $ne: null }
+  }
+
+  return {
+    filters,
+    withDeleted: status !== "active",
+  }
+}
 
 export const GET = async (
-  req: AuthenticatedMedusaRequest,
+  req: AuthenticatedMedusaRequest<unknown, AdminGetCompanyParamsType>,
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { fields, pagination, withDeleted } = req.queryConfig
+  const listFilters = buildCompanyListFilters(req.filterableFields, withDeleted)
+  const order = parseCompanyOrder(
+    req.validatedQuery.order_by ?? req.validatedQuery.order
+  )
 
   const { data: companies, metadata } = await query.graph({
     entity: "companies",
     fields,
-    filters: req.filterableFields,
-    pagination,
-    withDeleted,
+    filters: listFilters.filters,
+    pagination: {
+      ...pagination,
+      order,
+    },
+    withDeleted: listFilters.withDeleted,
   })
 
   res.json({

@@ -18,6 +18,9 @@ import {
   CompanyUpdateDrawer,
 } from "./"
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
   const { t } = useTranslation("companies")
   const [editOpen, setEditOpen] = useState(false)
@@ -31,13 +34,17 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
 
   const navigate = useNavigate()
 
-  const handleDelete = () => {
-    mutateDelete(undefined, {
-      onSuccess: () => {
-        navigate("/companies")
-        toast.success(t("toasts.companyDeleted", { name: company.name }))
+  const handleDelete = async () => {
+    await mutateDelete(undefined, {
+      onError: (error) => {
+        toast.error(
+          `${t("errors.deleteCompanyFailed")}: ${getErrorMessage(error)}`
+        )
       },
     })
+
+    navigate("/companies")
+    toast.success(t("toasts.companyDeleted", { name: company.name }))
   }
 
   const handleRestore = () => {

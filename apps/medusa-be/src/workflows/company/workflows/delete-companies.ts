@@ -5,6 +5,7 @@ import {
 import type { ModuleDeleteCompany } from "../../../types"
 import { deleteApprovalSettingsStep } from "../../approval/steps"
 import {
+  clearCompanyAdminAuthMetadataStep,
   deleteCompaniesStep,
   removeCompanyCustomerGroupLinkStep,
 } from "../steps"
@@ -12,7 +13,12 @@ import {
 export const deleteCompaniesWorkflow = createWorkflow(
   "delete-companies",
   (input: ModuleDeleteCompany) => {
-    removeCompanyCustomerGroupLinkStep(input.id)
+    removeCompanyCustomerGroupLinkStep({
+      company_id: input.id,
+      preserve_link: true,
+    })
+
+    clearCompanyAdminAuthMetadataStep([input.id])
 
     deleteCompaniesStep([input.id])
 

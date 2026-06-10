@@ -2,7 +2,6 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {
   IApprovalModuleService,
-  ModuleApprovalSettings,
   ModuleApprovalSettingsFilters,
 } from "../../../types"
 
@@ -28,31 +27,22 @@ export const deleteApprovalSettingsStep = createStep(
     }
 
     const approvalSettings = await approvalModule.listApprovalSettings(filters)
+    const approvalSettingsIds = approvalSettings.map((setting) => setting.id)
 
-    await approvalModule.deleteApprovalSettings(
-      approvalSettings.map((setting) => setting.id)
-    )
+    if (approvalSettingsIds.length) {
+      await approvalModule.softDeleteApprovalSettings(approvalSettingsIds)
+    }
 
-    return new StepResponse(undefined, approvalSettings)
+    return new StepResponse(undefined, approvalSettingsIds)
   },
-  async (
-    approvalSettings: ModuleApprovalSettings[] | undefined,
-    { container }
-  ) => {
-    if (!approvalSettings?.length) {
+  async (approvalSettingsIds: string[] | undefined, { container }) => {
+    if (!approvalSettingsIds?.length) {
       return
     }
 
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    await approvalModule.createApprovalSettings(
-      approvalSettings.map((setting) => ({
-        company_id: setting.company_id,
-        requires_admin_approval: setting.requires_admin_approval,
-        requires_sales_manager_approval:
-          setting.requires_sales_manager_approval,
-      }))
-    )
+    await approvalModule.restoreApprovalSettings(approvalSettingsIds)
   }
 )

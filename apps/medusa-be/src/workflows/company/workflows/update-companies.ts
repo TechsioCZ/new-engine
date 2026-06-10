@@ -3,7 +3,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import type { ModuleUpdateCompany } from "../../../types"
-import { updateCompaniesStep } from "../steps"
+import { updateCompaniesStep, validateCompanyActiveStep } from "../steps"
 
 type UpdateCompaniesWorkflowInput = {
   id: string
@@ -12,6 +12,9 @@ type UpdateCompaniesWorkflowInput = {
 
 export const updateCompaniesWorkflow = createWorkflow(
   "update-companies",
-  (input: UpdateCompaniesWorkflowInput) =>
-    new WorkflowResponse(updateCompaniesStep(input))
+  (input: UpdateCompaniesWorkflowInput) => {
+    validateCompanyActiveStep(input.id)
+
+    return new WorkflowResponse(updateCompaniesStep(input))
+  }
 )
