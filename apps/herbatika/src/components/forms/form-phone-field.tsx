@@ -94,7 +94,7 @@ export function FormPhoneField({
       value={value}
     >
       <PhoneInput.Label>{label}</PhoneInput.Label>
-      <PhoneInput.Control className="min-h-input-md">
+      <PhoneInput.Control className="min-h-phone-input-md rounded-l-xs  rounded-r-xs">
         <PhoneInput.CountryPicker triggerProps={{ className: "px-400 gap-x-200" }} />
         <PhoneInput.Input
           autoComplete="tel"

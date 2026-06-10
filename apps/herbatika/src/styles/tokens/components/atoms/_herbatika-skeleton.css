@@ -1,5 +1,6 @@
 @theme static {
   --color-skeleton-bg-primary: var(--color-gray-200);
   --color-skeleton-bg-secondary: var(--color-gray-100);
+  --color-skeleton-bg-highlight: var(--color-gray-300);
   --height-skeleton-text-line: 1rem;
 }
