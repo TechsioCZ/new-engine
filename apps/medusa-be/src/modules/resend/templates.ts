@@ -17,6 +17,7 @@ export const resendEmailTemplates = {
   FORGOT_PASSWORD: "user-forgotpwd",
   ORDER_PLACED: "order-placed",
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
+  PRODUCT_REVIEW_REQUEST: "product-review-request",
 } as const
 
 export const resendTemplateDefinitions = {
@@ -40,6 +41,13 @@ export const resendTemplateDefinitions = {
     optionalVariables: ["store_name", "total"],
     requiredVariables: ["order_display_id", "payment_url"],
     subject: "Zaplaťte prosím svou objednávku",
+  }),
+  [resendEmailTemplates.PRODUCT_REVIEW_REQUEST]: defineTemplate({
+    id: "product-review-request",
+    label: "Product review request",
+    optionalVariables: ["order_display_id", "order_id", "store_name"],
+    requiredVariables: ["items", "message", "products"],
+    subject: "Napiš recenzi produktu",
   }),
 } as const
 
