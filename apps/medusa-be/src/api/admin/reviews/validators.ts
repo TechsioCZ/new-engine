@@ -22,7 +22,22 @@ export const AdminUpdateReviewStatusSchema = z
   })
   .strict()
 
+export const AdminUpdateReviewSchema = z
+  .object({
+    content: z.string().trim().min(1).optional(),
+    first_name: z.string().trim().nullable().optional(),
+    last_name: z.string().trim().nullable().optional(),
+    rating: z.coerce.number().int().min(1).max(5).optional(),
+    status: ReviewStatusSchema.optional(),
+    title: z.string().trim().min(1).optional(),
+  })
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "At least one field must be provided",
+  })
+
 export type AdminGetReviewsSchemaType = z.infer<typeof AdminGetReviewsSchema>
+export type AdminUpdateReviewSchemaType = z.infer<typeof AdminUpdateReviewSchema>
 export type AdminUpdateReviewStatusSchemaType = z.infer<
   typeof AdminUpdateReviewStatusSchema
 >

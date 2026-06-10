@@ -12,6 +12,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   listReviews,
   type Review,
@@ -60,9 +61,11 @@ const ReviewRows = ({
   isLoading,
   reviews,
   selectedIds,
+  onOpenReview,
   setSelectedIds,
 }: {
   isLoading: boolean
+  onOpenReview: (reviewId: string) => void
   reviews: Review[]
   selectedIds: Set<string>
   setSelectedIds: (ids: Set<string>) => void
@@ -99,8 +102,12 @@ const ReviewRows = ({
     const checked = selectedIds.has(review.id)
 
     return (
-      <Table.Row key={review.id}>
-        <Table.Cell>
+      <Table.Row
+        className="cursor-pointer"
+        key={review.id}
+        onClick={() => onOpenReview(review.id)}
+      >
+        <Table.Cell onClick={(event) => event.stopPropagation()}>
           <input
             aria-label={`Select review ${review.title}`}
             checked={checked}
@@ -150,6 +157,7 @@ const ReviewRows = ({
 }
 
 const ReviewsPage = () => {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [query, setQuery] = useState("")
@@ -300,6 +308,7 @@ const ReviewsPage = () => {
         <Table.Body>
           <ReviewRows
             isLoading={isLoading}
+            onOpenReview={(reviewId) => navigate(`/reviews/${reviewId}`)}
             reviews={reviews}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}

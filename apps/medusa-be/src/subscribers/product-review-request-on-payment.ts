@@ -5,7 +5,7 @@ import { scheduleProductReviewRequestForOrder } from "../utils/product-review-re
 import {
   type PaymentPaidEvent,
   resolveOrderIdFromPaymentEvent,
-} from "./product-review-request-on-payment/helper"
+} from "../subscriber-helpers/product-review-request-on-payment/helper"
 
 export default async function productReviewRequestOnPaymentHandler({
   event,

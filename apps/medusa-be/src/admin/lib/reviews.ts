@@ -31,6 +31,19 @@ export type ReviewsResponse = {
   reviews: Review[]
 }
 
+export type ReviewInput = {
+  content: string
+  first_name?: null | string
+  last_name?: null | string
+  rating: number
+  status: ReviewStatus
+  title: string
+}
+
+export type ReviewResponse = {
+  review: Review
+}
+
 export type UpdateReviewStatusResponse = {
   reviews: Review[]
 }
@@ -48,6 +61,7 @@ const toSearch = (params: Record<string, number | string | undefined>) => {
 }
 
 export const reviewQueryKeys = {
+  detail: (id: string) => ["reviews", id] as const,
   list: (params: Record<string, unknown>) => ["reviews", params] as const,
   lists: () => ["reviews"] as const,
 }
@@ -59,6 +73,15 @@ export const listReviews = (params: {
   q?: string
   status?: ReviewStatus
 }) => sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
+
+export const retrieveReview = (id: string) =>
+  sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`)
+
+export const updateReview = (id: string, input: ReviewInput) =>
+  sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`, {
+    body: input,
+    method: "PATCH",
+  })
 
 export const updateReviewStatus = (input: {
   ids: string[]
