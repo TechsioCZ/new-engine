@@ -6,6 +6,7 @@ import {
 } from "../../../review-normalizers"
 import { PRODUCT_REVIEW_MODULE } from "../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../modules/product-review/service"
+import { updateReviewWorkflow } from "../../../../workflows/product-review/workflows/update-review"
 import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewSchemaType } from "../validators"
 
@@ -46,12 +47,13 @@ export async function PATCH(
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Review id is required")
   }
 
-  await req.scope
-    .resolve<ProductReviewModuleService>(PRODUCT_REVIEW_MODULE)
-    .updateReviews({
+  const { result: review } = await updateReviewWorkflow(req.scope).run({
+    input: {
       id,
-      ...req.validatedBody,
-    })
+      review: req.validatedBody,
+    },
+  })
+  const productsById = await getProductsById(req, [review.product_id])
 
-  res.json({ review: await getNormalizedReview(req, id) })
+  res.json({ review: normalizeAdminReview(review, productsById) })
 }

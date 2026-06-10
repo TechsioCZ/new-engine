@@ -15,3 +15,20 @@ export type CreateReviewWorkflowInput = {
   review: CreateReviewInput
   review_token_id?: string
 }
+
+export type UpdateReviewInput = Partial<
+  Pick<
+    CreateReviewInput,
+    "content" | "first_name" | "last_name" | "rating" | "status" | "title"
+  >
+>
+
+export type UpdateReviewWorkflowInput = {
+  id: string
+  review: UpdateReviewInput
+}
+
+export type UpdateReviewStatusWorkflowInput = {
+  ids: string[]
+  status: ReviewStatus
+}
