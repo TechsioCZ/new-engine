@@ -53,6 +53,9 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
     },
     queryKeys: storefrontCoreDefinition.queryKeys.products,
   },
+  productLists: {
+    queryKeys: storefrontCoreDefinition.productLists.queryKeys,
+  },
   orders: {
     serviceConfig: storefrontCoreDefinition.orders.serviceConfig,
     hooks: storefrontCoreDefinition.orders.hooks,

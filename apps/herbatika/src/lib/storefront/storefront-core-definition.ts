@@ -35,6 +35,9 @@ export const storefrontCoreDefinition = {
       defaultPageSize: DEFAULT_PRODUCT_PAGE_SIZE,
     },
   },
+  productLists: {
+    queryKeys: storefrontQueryKeys.productLists,
+  },
   orders: {
     serviceConfig: storefrontOrderServiceConfig,
     hooks: {
