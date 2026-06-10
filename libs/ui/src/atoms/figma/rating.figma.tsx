@@ -38,5 +38,5 @@ figma.connect(
         size={size}
       />
     ),
-  },
+  }
 )

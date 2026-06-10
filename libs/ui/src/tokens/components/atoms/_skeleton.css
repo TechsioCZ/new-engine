@@ -1,34 +1,30 @@
-@theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Background colors using reference layer */
-  --color-skeleton-bg: var(--color-overlay);
-  --color-skeleton-bg-primary: var(--color-skeleton-bg);
-  --color-skeleton-bg-secondary: var(--color-surface);
+/*
+ * Skeleton — runtime tokens come from libs/ui/src/tokens/figma/variables.css
+ * (colors, sizing, radius, durations).
+ *
+ * Kept here:
+ *   - `--duration-skeleton-pulse-{slow,normal,fast}` — Figma exports
+ *     `--duration-skeleton-{slow,normal,fast}` (no `-pulse-` infix), but
+ *     the @utility blocks below reference the `-pulse-` names.
+ *   - `--spacing-skeleton-text-{sm,md,lg,xl}` — alias bridges so the
+ *     `gap-skeleton-text-{size}` utility resolves; Figma exports only
+ *     `--spacing-skeleton-{size}` without the `-text-` infix.
+ *   - `@keyframes skeleton-pulse` + `@utility animate-skeleton-pulse-*`
+ *     + reduced-motion overrides — all are runtime-CSS constructs that
+ *     Figma can't model.
+ */
 
-  /* === ANIMATION === */
-  /* Use global motion tokens for consistent behavior */
+@theme static {
   --duration-skeleton-pulse-slow: 3s;
   --duration-skeleton-pulse-normal: 2s;
   --duration-skeleton-pulse-fast: 1s;
 
-  /* === SPACING === */
-  --spacing-skeleton-text-sm: var(--spacing-100);
-  --spacing-skeleton-text-md: var(--spacing-150);
-  --spacing-skeleton-text-lg: var(--spacing-200);
-  --spacing-skeleton-text-xl: var(--spacing-250);
-
-  /* === SIZING === */
-  --size-skeleton-circle-sm: 2rem;
-  --size-skeleton-circle-md: 3rem;
-  --size-skeleton-circle-lg: 4rem;
-  --size-skeleton-circle-xl: 6rem;
-  --height-skeleton-text-line: 1rem; /* Match text line height */
-
-  /* === BORDERS & RADIUS === */
-  --radius-skeleton-text: var(--radius-sm);
+  --spacing-skeleton-text-sm: var(--spacing-skeleton-sm);
+  --spacing-skeleton-text-md: var(--spacing-skeleton-md);
+  --spacing-skeleton-text-lg: var(--spacing-skeleton-lg);
+  --spacing-skeleton-text-xl: var(--spacing-skeleton-xl);
 }
 
-/* === ANIMATIONS === */
 @keyframes skeleton-pulse {
   0%,
   100% {
@@ -65,8 +61,6 @@
   }
 }
 
-/* Display reduced motion for storybook without having to
- enable the prefers-reduced-motion feature in DevTools */
 @layer utilities {
   .force-reduced-motion {
     animation: none;

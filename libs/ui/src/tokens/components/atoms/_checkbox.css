@@ -1,50 +1,20 @@
+/*
+ * Checkbox — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * This file only declares what Figma does not export yet:
+ *   - `--spacing-checkbox-indeterminate-icon` — 60% size for the
+ *     indeterminate-state icon (no size-axis equivalent in Figma).
+ *   - `--spacing-form-checkbox-gap` — Figma exports `--spacing-form-checkbox`
+ *     (no `-gap` suffix); keep this alias name until FormCheckbox TSX
+ *     adopts the Figma name.
+ *
+ * Color, border-width, radius, size, ring, and form-checkbox-text-offset
+ * are owned by Figma.
+ */
+
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-checkbox-primary: var(--color-primary);
-  --color-checkbox-success: var(--color-success);
-  --color-checkbox-danger: var(--color-danger);
-
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-checkbox-bg: var(--color-fill-active);
-  --color-checkbox-bg-checked: var(--color-checkbox-success);
-  --color-checkbox-bg-indeterminate: var(--color-checkbox-primary);
-
-  /* Foreground colors (icons/checkmarks) */
-  --color-checkbox-fg-checked: var(--color-fg-dark);
-  --color-checkbox-fg-indeterminate: var(--color-fg-dark);
-
-  /* Border colors */
-  --color-checkbox-border: var(--color-border-primary);
-  --color-checkbox-border-checked: var(--color-checkbox-success);
-  --color-checkbox-border-indeterminate: var(--color-checkbox-primary);
-
-  /* === VALIDATION STATES === */
-  --color-checkbox-border-error: var(--color-checkbox-danger);
-  --color-checkbox-ring-error: var(--color-checkbox-danger);
-
-  /* === DISABLED STATES === */
-  --color-checkbox-bg-disabled: var(--color-bg-disabled);
-  --color-checkbox-fg-disabled: var(--color-fg-disabled);
-  --color-checkbox-border-disabled: var(--color-border-disabled);
-
-  /* === FOCUS RINGS === */
-  --color-checkbox-ring-focus: var(--color-ring);
-
-  /* === SPACING === */
-  --spacing-checkbox: var(--spacing-200);
   --spacing-checkbox-indeterminate-icon: 60%;
-
-  /* === BORDERS & RADIUS === */
-  --radius-checkbox: var(--radius-sm);
-
-  /* === FORM CHECKBOX MOLECULE === */
-  --spacing-form-checkbox-gap: var(--spacing-150);
-  --spacing-form-checkbox-text-offset: calc(
-    var(--spacing-checkbox) +
-    var(--spacing-form-checkbox-gap)
-  );
+  --spacing-form-checkbox-gap: var(--spacing-form-checkbox);
 }
 
 @utility token-icon-checkbox {

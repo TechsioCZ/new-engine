@@ -6,6 +6,9 @@
   --padding-button-sm: var(--spacing-100) var(--spacing-250);
   --padding-button-md: var(--spacing-100) var(--spacing-300);
   --padding-button-lg: var(--spacing-400) var(--spacing-500);
+  --spacing-button-sm: var(--spacing-150);
+  --spacing-button-md: var(--spacing-200);
+  --spacing-button-lg: var(--spacing-250);
 
   --radius-button-sm: var(--radius-sm);
   --radius-button-md: var(--radius-sm);
@@ -16,29 +19,30 @@
   --color-button-fg-tertiary: var(--color-fg-reverse);
   --color-button-fg-outlined-primary: var(--color-primary);
   --color-button-fg-outlined-secondary: var(--color-fg-primary);
-  --color-button-fg-light: var(--color-primary);
+  --color-button-fg-primary-light: var(--color-primary);
+  --color-button-fg-secondary-light: var(--color-secondary);
+  --color-button-fg-tertiary-light: var(--color-tertiary);
   --color-button-fg-danger: var(--color-fg-reverse);
   --color-button-border-secondary: var(--color-border-secondary);
   --color-button-border-tertiary: var(--color-tertiary);
 
-  --color-button-bg-tertiary: var(--color-tertiary);
+  --color-button-bg-tertiary-base: var(--color-tertiary);
   --color-button-bg-tertiary-hover: var(--color-tertiary-hover);
   --color-button-bg-tertiary-active: var(--color-tertiary-active);
 
   --color-button-fg-primary-borderless: var(--color-primary);
   --color-button-fg-secondary-borderless: var(--color-fg-primary);
   --color-button-fg-tertiary-borderless: var(--color-tertiary);
-  
+
   --text-button-sm: var(--text-sm);
   --text-button-lg: var(--text-sm);
-  --border-button-width-sm: var(--border-width-sm);
+  --border-width-button-sm: var(--border-width-sm);
   --padding-button-sm: var(--spacing-100) var(--spacing-250);
+  --color-button-bg-borderless-base: transparent;
 
   /* herbatika specific button */
 
   --color-button-border-tertiary: var(--color-border-secondary);
   --color-button-bg-outlined-tertiary: var(--color-surface);
   --color-button-bg-outlined-tertiary-hover: var(--color-base);
-  --radius-button-outlined-tertiary: var(--radius-xs);
-  --font-weight-button-outlined-tertiary-md: var(--font-weight-normal);
 }

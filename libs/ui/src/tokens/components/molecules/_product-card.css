@@ -16,30 +16,24 @@
   --color-product-card-stock-fg-limited-stock: var(--color-warning);
   --color-product-card-stock-fg-out-of-stock: var(--color-danger);
 
-  /* === STATE VARIATIONS === */
-  /* Add to cart button */
-  --color-product-card-button-cart-bg: var(--color-button-primary);
-  --color-product-card-button-cart-bg-hover: oklch(
-    from var(--color-product-card-button-cart-bg) calc(l + var(--state-hover)) c
-      h
-  );
-  --color-product-card-button-cart-fg: var(--color-button-fg);
+  /* === Button slots ===
+   * Per @KaiUweCZE on #425: keep ProductCard button tokens linked to the
+   * Button atom's token layer so a brand-driven Button retheme propagates
+   * automatically and hover values match Figma's hand-picked colors
+   * instead of the old `oklch(... calc(l + var(--state-hover)) ...)`
+   * derivation. cart/detail/wishlist map to primary/secondary/tertiary.
+   */
+  --color-product-card-button-cart-bg: var(--color-button-bg-primary-base);
+  --color-product-card-button-cart-bg-hover: var(--color-button-bg-primary-hover);
+  --color-product-card-button-cart-fg: var(--color-button-fg-primary);
 
-  /* Detail button */
-  --color-product-card-button-detail-bg: var(--color-button-secondary);
-  --color-product-card-button-detail-bg-hover: oklch(
-    from var(--color-product-card-button-detail-bg) calc(l + var(--state-hover))
-      c h
-  );
-  --color-product-card-button-detail-fg: var(--color-button-fg);
+  --color-product-card-button-detail-bg: var(--color-button-bg-secondary-base);
+  --color-product-card-button-detail-bg-hover: var(--color-button-bg-secondary-hover);
+  --color-product-card-button-detail-fg: var(--color-button-fg-secondary);
 
-  /* Wishlist button */
-  --color-product-card-button-wishlist-bg: var(--color-button-tertiary);
-  --color-product-card-button-wishlist-bg-hover: oklch(
-    from var(--color-product-card-button-wishlist-bg)
-      calc(l + var(--state-hover)) c h
-  );
-  --color-product-card-button-wishlist-fg: var(--color-button-fg);
+  --color-product-card-button-wishlist-bg: var(--color-button-bg-tertiary-base);
+  --color-product-card-button-wishlist-bg-hover: var(--color-button-bg-tertiary-hover);
+  --color-product-card-button-wishlist-fg: var(--color-button-fg-tertiary);
 
   /* === SPACING === */
   --spacing-product-card-padding: var(--spacing-150);

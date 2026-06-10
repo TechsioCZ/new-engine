@@ -25,9 +25,9 @@ const numericInputVariants = tv({
       "data-disabled:bg-numeric-input-bg-disabled",
       "data-disabled:border-numeric-input-border-disabled",
       "data-disabled:text-numeric-input-fg-disabled",
-      "data-invalid:bg-numeric-input-invalid-bg",
+      "data-invalid:bg-numeric-input-bg-invalid",
       "data-invalid:border-(length:--border-width-validation)",
-      "data-invalid:border-numeric-input-invalid-border",
+      "data-invalid:border-numeric-input-border-invalid",
       "text-numeric-input-fg",
       "has-[input:not(:disabled):hover]:bg-numeric-input-input-bg-hover",
       "has-[input:focus]:bg-numeric-input-input-bg-focus",
@@ -63,19 +63,19 @@ const numericInputVariants = tv({
   variants: {
     size: {
       sm: {
-        root: "gap-numeric-input-root-sm text-numeric-input-sm",
+        root: "gap-numeric-input-sm text-numeric-input-sm",
         container: "h-form-control-sm rounded-numeric-input-sm",
         trigger: "text-numeric-input-sm",
         input: "pl-numeric-input-input-sm text-numeric-input-sm",
       },
       md: {
-        root: "gap-numeric-input-root-md text-numeric-input-md",
+        root: "gap-numeric-input-md text-numeric-input-md",
         container: "h-form-control-md rounded-numeric-input-md",
         trigger: "text-numeric-input-md",
         input: "pl-numeric-input-input-md text-numeric-input-md",
       },
       lg: {
-        root: "gap-numeric-input-root-lg text-numeric-input-lg",
+        root: "gap-numeric-input-lg text-numeric-input-lg",
         container: "h-form-control-lg rounded-numeric-input-lg",
         trigger: "text-numeric-input-lg",
         input: "pl-numeric-input-input-lg text-numeric-input-lg",

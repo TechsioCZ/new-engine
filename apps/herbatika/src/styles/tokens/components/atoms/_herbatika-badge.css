@@ -1,6 +1,6 @@
 @theme static {
-  --spacing-badge-md: var(--spacing-100) var(--spacing-200);
-  --spacing-badge-lg: var(--spacing-200);
+  --padding-badge-md: var(--spacing-100) var(--spacing-200);
+  --padding-badge-lg: var(--spacing-200);
   --text-badge-md: var(--text-xs);
   --font-weight-badge-md: var(--font-weight-bold);
   --radius-badge: var(--radius-xs);

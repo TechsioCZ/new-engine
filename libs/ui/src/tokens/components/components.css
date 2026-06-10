@@ -8,6 +8,7 @@
 @import "./atoms/_image.css";
 @import "./atoms/_input.css";
 @import "./atoms/_label.css";
+@import "./atoms/_link.css";
 @import "./atoms/_numeric-input.css";
 @import "./atoms/_rating.css";
 @import "./atoms/_skeleton.css";

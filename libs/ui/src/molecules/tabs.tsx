@@ -1,4 +1,4 @@
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import * as tabs from "@zag-js/tabs"
 import {
   type ComponentPropsWithoutRef,
@@ -8,7 +8,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
+import { Button, type ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
 const tabsVariants = tv({
@@ -231,9 +231,8 @@ Tabs.List = function TabsList({
 }
 
 // Trigger component
-interface TabsTriggerProps extends ComponentPropsWithoutRef<"button"> {
+type TabsTriggerProps = Omit<ButtonProps, "value"> & {
   value: string
-  disabled?: boolean
   ref?: Ref<HTMLButtonElement>
 }
 
@@ -243,19 +242,26 @@ Tabs.Trigger = function TabsTrigger({
   children,
   ref,
   className,
+  size = "current",
+  theme = "unstyled",
+  type = "button",
   ...props
 }: TabsTriggerProps) {
   const { api, styles } = useTabsContext()
+  const triggerProps = mergeProps(
+    props,
+    api.getTriggerProps({ value, disabled })
+  )
 
   return (
     <Button
+      {...triggerProps}
       className={styles.trigger({ className })}
-      ref={ref}
-      theme="borderless"
-      type="button"
-      {...api.getTriggerProps({ value, disabled })}
       data-disabled={disabled || undefined}
-      {...props}
+      ref={ref}
+      size={size}
+      theme={theme}
+      type={type}
     >
       {children}
     </Button>

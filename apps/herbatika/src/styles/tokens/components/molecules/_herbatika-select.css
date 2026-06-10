@@ -3,6 +3,8 @@
   --radius-select: var(--radius-xs);
   --radius-select-lg: var(--radius-xs);
   --radius-select-md: var(--radius-xs);  
+  --padding-select-trigger-sm: var(--padding-input-sm);
+  --padding-select-trigger-md: var(--padding-input-md);
 
   --color-select-content-bg: var(--color-surface);
   --color-select-content-border: var(--color-border-primary);

@@ -28,28 +28,28 @@
 
   /* === PRODUCT CARD BUTTONS ===*/
   /*Add to cart button*/
-  --color-button-cart: var(--color-button-primary);
+  --color-button-cart: var(--color-primary);
   --color-button-cart-hover: oklch(
     from var(--color-button-cart) calc(l + var(--state-hover)) c h
   );
 
-  --color-button-cart-fg: var(--color-button-fg);
+  --color-button-cart-fg: var(--color-fg-light);
 
   /* Detail button */
-  --color-button-detail: var(--color-button-secondary);
+  --color-button-detail: var(--color-secondary);
   --color-button-detail-hover: oklch(
     from var(--color-button-detail) calc(l + var(--state-hover)) c h
   );
 
-  --color-button-detail-fg: var(--color-button-fg);
+  --color-button-detail-fg: var(--color-fg-light);
 
   /* wishlist button */
-  --color-button-wishlist: var(--color-button-tertiary);
+  --color-button-wishlist: var(--color-tertiary);
   --color-button-wishlist-hover: oklch(
     from var(--color-button-wishlist) calc(l + var(--state-hover)) c h
   );
 
-  --color-button-wishlist-fg: var(--color-button-fg);
+  --color-button-wishlist-fg: var(--color-fg-light);
 
   /* === PRODUCT CARD IMAGE === */
   --aspect-pc-image: var(--aspect-ratio-square);

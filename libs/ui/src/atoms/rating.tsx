@@ -18,7 +18,7 @@ const rating = tv({
     item: [
       "cursor-pointer transition-colors duration-200",
       "cursor-pointer transition-colors duration-200 motion-reduce:transition-none",
-      "text-rating-fg",
+      "text-rating-fg-base",
       "data-highlighted:text-rating-fg-active",
       "data-disabled:cursor-not-allowed",
       "data-disabled:data-highlighted:text-rating-fg-disabled",
