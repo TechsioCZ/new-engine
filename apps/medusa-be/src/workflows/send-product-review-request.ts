@@ -49,6 +49,7 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
     data: Array<{
       customer_id: string | null
       email: string
+      expires_at: Date
       order_id: string
       product_id: string
       token: string
@@ -109,11 +110,23 @@ const ORDER_REVIEW_REQUEST_FIELDS = [
 ]
 
 const DEFAULT_PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
+const DEFAULT_REVIEW_TOKEN_EXPIRY_DAYS = 90
+const DAY_IN_MS = 24 * 60 * 60 * 1000
 const LEADING_SLASH_REGEX = /^\/+/
 const TRAILING_SLASH_REGEX = /\/$/
 
 function createToken() {
   return randomBytes(32).toString("base64url")
+}
+
+function getReviewTokenExpiryDate() {
+  const configuredDays = Number(process.env.PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS)
+  const expiryDays =
+    Number.isFinite(configuredDays) && configuredDays > 0
+      ? configuredDays
+      : DEFAULT_REVIEW_TOKEN_EXPIRY_DAYS
+
+  return new Date(Date.now() + expiryDays * DAY_IN_MS)
 }
 
 function getProductTitle(item: ReviewRequestOrderItem) {
@@ -185,10 +198,12 @@ async function getOrCreateReviewTokens({
   )
 
   if (missingProductIds.length) {
+    const expiresAt = getReviewTokenExpiryDate()
     const createdTokens = await reviewService.createReviewTokens(
       missingProductIds.map((productId) => ({
         customer_id: order.customer_id ?? null,
         email,
+        expires_at: expiresAt,
         order_id: order.id,
         product_id: productId,
         token: createToken(),

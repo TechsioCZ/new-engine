@@ -41,6 +41,12 @@ type EmailLogService = EmailLogModuleService & {
   ) => Promise<EmailLogDTO[]>
 }
 
+type DatabaseConnection = {
+  raw: <T = unknown>(sql: string, bindings?: unknown[]) => Promise<T>
+}
+
+type RawRows<T> = T[] | { rows?: T[] }
+
 type WorkflowQueueItemDTO = {
   arguments: Record<string, unknown> | null
   id: string
@@ -92,27 +98,30 @@ async function hasReviewRequestEmailLog(
   return logs.length > 0
 }
 
-function isQueueItemForOrder(item: WorkflowQueueItemDTO, orderId: string) {
-  return item.arguments?.order_id === orderId
+function getRows<T>(result: RawRows<T>) {
+  return Array.isArray(result) ? result : (result.rows ?? [])
 }
 
 async function hasQueuedReviewRequest(
   container: MedusaContainer,
   orderId: string
 ) {
-  const workflowQueueService = container.resolve<WorkflowQueueService>(
-    WORKFLOW_QUEUE_MODULE
+  const pgConnection = container.resolve<DatabaseConnection>(
+    ContainerRegistrationKeys.PG_CONNECTION
   )
-  const queuedItems = await workflowQueueService.listWorkflowQueueItems(
-    {
-      workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
-    },
-    {
-      select: ["id", "arguments", "workflow"],
-    }
+  const rows = getRows(
+    await pgConnection.raw<RawRows<{ id: string }>>(
+      `select "id"
+         from "workflow_queue_item"
+        where "workflow" = ?
+          and "arguments"->>'order_id' = ?
+          and "deleted_at" is null
+        limit 1`,
+      [workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST, orderId]
+    )
   )
 
-  return queuedItems.some((item) => isQueueItemForOrder(item, orderId))
+  return rows.length > 0
 }
 
 export async function scheduleProductReviewRequestForOrder({

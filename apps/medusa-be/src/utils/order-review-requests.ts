@@ -1,4 +1,3 @@
-import type { Query } from "@medusajs/framework/types"
 import { getOrderDisplayId } from "./order-payment-reminders"
 
 export type ReviewRequestOrder = {
@@ -19,26 +18,10 @@ export type ReviewRequestOrder = {
   status?: string | null
 }
 
-const BATCH_SIZE = 100
-const DEFAULT_MAX_ORDERS = 500
 const DEFAULT_REVIEW_REQUEST_DELAY_MINUTES = 7 * 24 * 60
 const MINUTE_IN_MS = 60 * 1000
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
-
-const ORDER_FIELDS = [
-  "id",
-  "customer_id",
-  "custom_display_id",
-  "display_id",
-  "email",
-  "payment_status",
-  "payment_collections.completed_at",
-  "payment_collections.payments.captured_at",
-  "payment_collections.status",
-  "payment_collections.updated_at",
-  "status",
-]
 
 function getReviewRequestDelayMs() {
   const configuredMinutes = Number(
@@ -132,36 +115,6 @@ export function isReviewRequestReadyOrder(
   }
 
   return now.getTime() - paidAt.getTime() >= getReviewRequestDelayMs()
-}
-
-export async function fetchPaidReviewRequestOrders(
-  query: Query,
-  maxOrders = DEFAULT_MAX_ORDERS
-) {
-  const paidOrders: ReviewRequestOrder[] = []
-  let offset = 0
-
-  while (paidOrders.length < maxOrders) {
-    const { data } = await query.graph({
-      entity: "order",
-      fields: ORDER_FIELDS,
-      pagination: {
-        skip: offset,
-        take: BATCH_SIZE,
-      },
-    })
-
-    const orders = data as ReviewRequestOrder[]
-    paidOrders.push(...orders.filter((order) => isPaidOrder(order)))
-
-    if (orders.length < BATCH_SIZE) {
-      break
-    }
-
-    offset += BATCH_SIZE
-  }
-
-  return paidOrders.slice(0, maxOrders)
 }
 
 export function getReviewRequestRunAt(order: ReviewRequestOrder) {

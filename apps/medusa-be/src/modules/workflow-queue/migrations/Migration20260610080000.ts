@@ -14,6 +14,9 @@ export class Migration20260610080000 extends Migration {
     this.addSql(
       `CREATE INDEX IF NOT EXISTS "IDX_workflow_queue_item_workflow" ON "workflow_queue_item" ("workflow") WHERE deleted_at IS NULL;`
     )
+    this.addSql(
+      `CREATE INDEX IF NOT EXISTS "IDX_workflow_queue_item_workflow_order_id" ON "workflow_queue_item" ("workflow", (("arguments"->>'order_id'))) WHERE deleted_at IS NULL;`
+    )
   }
 
   override async down(): Promise<void> {
