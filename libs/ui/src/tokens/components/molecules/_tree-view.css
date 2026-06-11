@@ -1,59 +1,20 @@
+/*
+ * TreeView — runtime tokens come from libs/ui/src/tokens/figma/variables.css
+ * (Figma namespace: tree-view; code classes renamed to match).
+ *
+ * Kept here (not in Figma yet — queued for figma-additions):
+ *   - `--color-tree-view-root-bg` transparent root.
+ *   - `--font-weight-tree-view-label`.
+ *   - `--opacity-tree-view-indent`.
+ *   - `--tree-indent-per-level` — consumed as a raw var() in the TSX
+ *     indent calc; aliases Figma's indent-per-level token.
+ */
+
 @theme static {
-  /* === BASE TOKEN MAPPING === */
-  --color-tree-bg: var(--color-base);
-  --color-tree-fg: var(--color-fg-primary);
-  --color-tree-border: var(--color-border-primary);
-  --color-tree-icon-hover: var(--color-fg-primary);
-  --color-tree-accent: var(--color-primary);
-
-  /* === STATE VARIATIONS === */
-  --color-tree-node-bg-hover: var(--color-primary-hover);
-  --color-tree-fg-hover: var(--color-fg-reverse);
-  --color-tree-fg-selected: var(--color-tree-accent);
-
-  /* === ROOT === */
-  --color-tree-root-bg: transparent;
-
-  /* === LABEL === */
-  --color-tree-label-fg: var(--color-tree-fg);
-
-  /* === NODE === */
-  --color-tree-ring: var(--color-ring);
-
-  /* === INDENT GUIDE === */
-  --color-tree-indent-bg: var(--color-tree-border);
-  --width-tree-indent: 1px;
-
-  /* === DISABLED STATES === */
-  --color-tree-fg-disabled: var(--color-fg-disabled);
-
-  /* === SPACING === */
-  --tree-indent-per-level: var(--spacing-100);
-  --spacing-tree-icon: var(--spacing-150);
-  --padding-tree-node: var(--spacing-100);
-
-  /* === TYPOGRAPHY === */
-  /* Tree text size */
-  --text-tree-sm: var(--text-sm);
-  --text-tree-md: var(--text-md);
-  --text-tree-lg: var(--text-lg);
-
-  /* Node icon size */
-  --text-tree-icon-sm: var(--text-icon-sm);
-  --text-tree-icon-md: var(--text-icon-md);
-  --text-tree-icon-lg: var(--text-icon-lg);
-
-  --text-tree-indicator-sm: var(--text-icon-md);
-  --text-tree-indicator-md: var(--text-icon-lg);
-  --text-tree-indicator-lg: var(--text-icon-xl);
-
-  /* Tree font weight */
-  --font-weight-tree-label: var(--font-weight-medium);
-
-  /* === BORDERS & RADIUS === */
-  --radius-tree: 0;
-  /* === OPACITY === */
-  --opacity-tree-indent: 100%;
+  --color-tree-view-root-bg: transparent;
+  --font-weight-tree-view-label: var(--font-weight-medium);
+  --opacity-tree-view-indent: 100%;
+  --tree-indent-per-level: var(--spacing-tree-view-indent-per-level);
 }
 
 /* Tree Icons - using semantic tokens */
