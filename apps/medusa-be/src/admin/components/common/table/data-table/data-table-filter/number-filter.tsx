@@ -49,7 +49,6 @@ export const NumberFilter = ({
     getOperator(currentValue)
   )
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedOnChange = useCallback(
     debounce((e: ChangeEvent<HTMLInputElement>, operator: Operator) => {
       const value = e.target.value
