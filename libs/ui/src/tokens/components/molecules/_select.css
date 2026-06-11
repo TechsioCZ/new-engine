@@ -1,97 +1,46 @@
+/*
+ * Select — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--color-select-trigger-border` — base trigger border (Figma only
+ *     exports hover/focus/validation variants; queued for
+ *     figma-additions). Also fixes the previously-dangling class.
+ *   - `--color-select-danger` — helper-text color seed (Figma has only
+ *     border validation colors).
+ *   - `--padding-select-item` composite bridge (Figma splits x/y).
+ *   - `--spacing-content` — consumed as a raw var() inside calc() in the
+ *     TSX; aliases Figma's --spacing-select-content.
+ *   - `--shadow-select-content` (figma-additions backlog).
+ *   - `--radius-select` base radius (Figma exports only sm/md/lg).
+ *   - `--z-content` layering (code-side).
+ */
+
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  --color-select: var(--color-form-control-bg);
-  --color-select-accent: var(--color-primary);
+  --color-select-trigger-border: var(--color-form-control-border);
   --color-select-danger: var(--color-danger);
-  --color-select-success: var(--color-success);
-  --color-select-warning: var(--color-warning);
-  --color-select-fg: var(--color-fg-primary);
 
-  /* === STATE VARIATIONS === */
-  --color-select-hover: oklch(
-    from var(--color-select) calc(l + var(--state-hover)) c h
-  );
+  --padding-select-item: var(--padding-select-item-y) var(--padding-select-item-x);
 
-  /* === ROOT === */
-  --gap-select-root: var(--spacing-150);
+  --spacing-content: var(--spacing-select-content);
 
-  /* === TRIGGER === */
-  --color-select-trigger-bg-hover: var(--color-select-hover);
-  --color-select-trigger: var(--color-select-fg);
-  --color-select-trigger-hover: var(--color-select-accent);
-  --color-select-trigger-border-hover: var(--color-form-control-border-hover);
-  --color-select-trigger-border-focus: var(--color-select-accent);
-  --color-select-ring: var(--color-form-control-ring);
-  --padding-select-trigger-sm: var(--padding-input-sm);
-  --padding-select-trigger-md: var(--padding-input-md);
-
-  /* === CLEAR TRIGGER === */
-  --color-select-clear-trigger-fg: var(--color-select-fg);
-  --color-select-clear-trigger-bg: transparent;
-  --padding-select-clear-trigger: var(--spacing-100);
-  --spacing-select-right: var(--spacing-450);
-
-  /* === DROPDOWN CONTENT === */
-  --color-select-content-bg: var(--color-surface);
-  --color-select-content-border: var(--color-border-primary);
   --shadow-select-content: var(--shadow-md);
 
-  /* === OPTION ITEM === */
-  --color-select-item-bg: transparent;
-  --color-select-item-fg: var(--color-select-fg);
-  --color-select-item-bg-hover: var(--color-select-hover);
-  --color-select-item-bg-selected: oklch(
-    from var(--color-select) calc(l - var(--surface-increment)) c h
-  );
-  --color-select-item-selected-fg: var(--color-select-accent);
-  --padding-select-item: var(--spacing-150) var(--spacing-250);
-
-  /* === INDICATOR === */
-  --color-select-indicator: var(--color-select-accent);
-
-  /* === PLACEHOLDER === */
-  --color-select-placeholder: var(--color-form-control-placeholder);
-
-  /* === DISABLED STATES === */
-  --color-select-bg-disabled: var(--color-bg-disabled);
-  --color-select-fg-disabled: var(--color-fg-disabled);
-  --color-select-border-disabled: var(--color-border-disabled);
-
-  /* === SPACING === */
-  --spacing-content: var(--spacing-450);
-
-  /* === TYPOGRAPHY === */
-  /* Trigger typography - size variants */
-  --text-select-trigger-xs: var(--text-xs);
-  --text-select-trigger-sm: var(--text-sm);
-  --text-select-trigger-md: var(--text-md);
-  --text-select-trigger-lg: var(--text-lg);
-
-  /* Item typography - size variants */
-  --text-select-item-xs: var(--text-xs);
-  --text-select-item-sm: var(--text-sm);
-  --text-select-item-md: var(--text-md);
-  --text-select-item-lg: var(--text-lg);
-
-  /* Value text typography - size variants */
-  --text-select-value-xs: var(--text-xs);
-  --text-select-value-sm: var(--text-sm);
-  --text-select-value-md: var(--text-md);
-  --text-select-value-lg: var(--text-lg);
-
-  --text-select-item-group-label-xs: var(--text-xs);
-  --text-select-item-group-label-sm: var(--text-sm);
-  --text-select-item-group-label-md: var(--text-md);
-  --text-select-item-group-label-lg: var(--text-lg);
-
-  /* === BORDERS & RADIUS === */
-  --border-width-select: var(--border-width-form-control);
   --radius-select: var(--radius-form-control);
-  --radius-select-sm: var(--radius-form-control-sm);
-  --radius-select-md: var(--radius-form-control-md);
 
-  /* === Z-INDEX === */
   --z-content: 50;
+}
+
+/*
+ * TEMPORARY override (unlayered :root beats @layer theme): Figma's
+ * --color-fg-accent-primary has no dark-mode variant yet; the select
+ * indicator, selected item fg, and trigger hover fg would dull in dark
+ * mode. Remove once Figma's color/fg/accent/primary gets light-dark
+ * values.
+ */
+:root {
+  --color-select-indicator: var(--color-primary);
+  --color-select-item-fg-selected: var(--color-primary);
+  --color-select-trigger-fg-hover: var(--color-primary);
 }
 
 /* === ICONS === */
