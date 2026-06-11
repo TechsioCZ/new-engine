@@ -181,7 +181,7 @@ const radioCardVariants = tv({
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
         itemAddon: [
           "p-radio-card-item-addon-sm",
-          "text-radio-card-item-addon-sm",
+          "text-radio-card-addon-sm",
         ],
       },
       md: {
@@ -197,7 +197,7 @@ const radioCardVariants = tv({
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
         itemAddon: [
           "p-radio-card-item-addon-md",
-          "text-radio-card-item-addon-md",
+          "text-radio-card-addon-md",
         ],
       },
       lg: {
@@ -213,7 +213,7 @@ const radioCardVariants = tv({
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
         itemAddon: [
           "p-radio-card-item-addon-lg",
-          "text-radio-card-item-addon-lg",
+          "text-radio-card-addon-lg",
         ],
       },
     },
