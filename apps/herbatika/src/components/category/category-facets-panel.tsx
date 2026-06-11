@@ -1,24 +1,24 @@
-import { AsideFilter } from "@/components/aside-filter";
-import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section";
+import { AsideFilter } from "@/components/aside-filter"
+import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
 
 type CategoryFacetsPanelProps = {
-  activeFilterCount: number;
-  brandItems: AsideFilterChipItem[];
-  currencyCode: string;
-  formItems: AsideFilterChipItem[];
-  ingredientItems: AsideFilterChipItem[];
-  isLoading: boolean;
-  onBrandToggle: (itemId: string) => void;
-  onFormToggle: (itemId: string) => void;
-  onIngredientToggle: (itemId: string) => void;
-  onPriceRangeCommit: (range: { min?: number; max?: number }) => void;
-  onReset: () => void;
-  onStatusToggle: (itemId: string) => void;
-  priceBounds: { min: number; max: number } | null;
-  selectedPriceRange: { min?: number; max?: number };
-  showBrandFilter?: boolean;
-  statusItems: AsideFilterChipItem[];
-};
+  activeFilterCount: number
+  brandItems: AsideFilterChipItem[]
+  currencyCode: string
+  formItems: AsideFilterChipItem[]
+  ingredientItems: AsideFilterChipItem[]
+  isLoading: boolean
+  onBrandToggle: (itemId: string) => void
+  onFormToggle: (itemId: string) => void
+  onIngredientToggle: (itemId: string) => void
+  onPriceRangeCommit: (range: { min?: number; max?: number }) => void
+  onReset: () => void
+  onStatusToggle: (itemId: string) => void
+  priceBounds: { min: number; max: number } | null
+  selectedPriceRange: { min?: number; max?: number }
+  showBrandFilter?: boolean
+  statusItems: AsideFilterChipItem[]
+}
 
 export function CategoryFacetsPanel({
   activeFilterCount,
@@ -55,7 +55,7 @@ export function CategoryFacetsPanel({
     selectedPriceRange,
     showBrandFilter,
     statusItems,
-  };
+  }
 
   return (
     <>
@@ -64,11 +64,11 @@ export function CategoryFacetsPanel({
       </div>
 
       <details className="space-y-300 xl:hidden">
-        <summary className="cursor-pointer rounded-2xl border border-border-secondary bg-surface px-400 py-300 text-sm font-medium text-fg-primary">
+        <summary className="cursor-pointer rounded-2xl border border-border-secondary bg-surface px-400 py-300 font-medium text-fg-primary text-sm">
           {activeFilterCount > 0 ? `Filtr (${activeFilterCount})` : "Filtr"}
         </summary>
         <AsideFilter {...filterProps} />
       </details>
     </>
-  );
+  )
 }

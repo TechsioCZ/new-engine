@@ -97,15 +97,14 @@ export function createMedusaOrderService(
       }
 
       try {
-        const response = await sdk.client.fetch<{ order: HttpTypes.StoreOrder }>(
-          `/store/orders/${params.id}`,
-          {
-            query: {
-              fields: detailFields,
-            },
-            signal,
-          }
-        )
+        const response = await sdk.client.fetch<{
+          order: HttpTypes.StoreOrder
+        }>(`/store/orders/${params.id}`, {
+          query: {
+            fields: detailFields,
+          },
+          signal,
+        })
 
         return response.order ?? null
       } catch (error) {

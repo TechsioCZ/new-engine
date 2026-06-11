@@ -38,4 +38,4 @@ export default {
         "Nepouzivej primo icon knihovny, pouzij @techsio/ui-kit/atoms/icon.",
     },
   },
-};
+}

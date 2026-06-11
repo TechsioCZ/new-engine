@@ -62,7 +62,11 @@ const resolveNonNegativeInteger = (
   value: number | undefined,
   fallbackValue: number
 ): number => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return fallbackValue
   }
 
@@ -77,7 +81,11 @@ const resolveNonNegativeInteger = (
 const normalizeNonNegativeNumber = (
   value: number | undefined
 ): number | undefined => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return
   }
 
@@ -88,7 +96,9 @@ const normalizeNonNegativeNumber = (
   return value
 }
 
-const normalizeStringArray = (values: string[] | undefined): string[] | undefined => {
+const normalizeStringArray = (
+  values: string[] | undefined
+): string[] | undefined => {
   if (!Array.isArray(values)) {
     return
   }
@@ -210,7 +220,10 @@ const buildDefaultListQuery = (
   }
 ): MedusaCatalogListQuery => {
   const normalizedPage = resolvePositiveInteger(params.page, 1)
-  const normalizedLimit = resolvePositiveInteger(params.limit, defaults.defaultLimit)
+  const normalizedLimit = resolvePositiveInteger(
+    params.limit,
+    defaults.defaultLimit
+  )
   const normalizedPriceMin = normalizeNonNegativeNumber(params.price_min)
   const normalizedPriceMax = normalizeNonNegativeNumber(params.price_max)
   const normalizedStatus = normalizeStringArray(params.status)
@@ -294,10 +307,16 @@ export function createMedusaCatalogService<
         }
       )
 
-      const normalizedResponse: CatalogListResponse<HttpTypes.StoreProduct, TFacets> = {
+      const normalizedResponse: CatalogListResponse<
+        HttpTypes.StoreProduct,
+        TFacets
+      > = {
         products: rawResponse.products ?? [],
         count: rawResponse.count ?? 0,
-        page: resolvePositiveInteger(rawResponse.page, resolvePositiveInteger(params.page, 1)),
+        page: resolvePositiveInteger(
+          rawResponse.page,
+          resolvePositiveInteger(params.page, 1)
+        ),
         limit: resolvePositiveInteger(
           rawResponse.limit,
           resolvePositiveInteger(params.limit, defaultLimit)

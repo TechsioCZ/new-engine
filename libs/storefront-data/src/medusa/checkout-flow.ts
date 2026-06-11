@@ -1,6 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { QueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import {
   type ActiveCartQueryKeyMatcher,
@@ -31,7 +31,7 @@ type MedusaCheckoutShippingHook = (
     onSuccess?: (cart: HttpTypes.StoreCart) => void
     onError?: (error: unknown) => void
   }
- ) => {
+) => {
   shippingOptions: HttpTypes.StoreCartShippingOption[]
   shippingPrices: Record<string, number>
   isLoading: boolean
@@ -55,7 +55,7 @@ type MedusaCheckoutPaymentHook = (
     onSuccess?: (paymentCollection: HttpTypes.StorePaymentCollection) => void
     onError?: (error: unknown) => void
   }
- ) => {
+) => {
   paymentProviders: HttpTypes.StorePaymentProvider[]
   initiatePayment: (providerId: string) => void
   initiatePaymentAsync: (
@@ -100,10 +100,7 @@ export type UseMedusaCheckoutShippingReturn = {
   isLoading: boolean
   isFetching: boolean
   isCalculating: boolean
-  setShipping: (
-    optionId: string,
-    data?: MedusaShippingMethodData
-  ) => void
+  setShipping: (optionId: string, data?: MedusaShippingMethodData) => void
   isSettingShipping: boolean
   canLoadShipping: boolean
   canSetShipping: boolean
@@ -181,12 +178,11 @@ export type UseMedusaCompleteCheckoutOptions = {
   onError?: (error: MedusaCompleteCheckoutError) => void
 }
 
-
 const defaultNormalizeShippingData = (
   data?: MedusaShippingMethodData
 ): Record<string, unknown> | undefined => {
   if (!data) {
-    return 
+    return
   }
 
   const entries = Object.entries(data).filter(
@@ -194,7 +190,7 @@ const defaultNormalizeShippingData = (
   )
 
   if (entries.length === 0) {
-    return 
+    return
   }
 
   return Object.fromEntries(entries)
@@ -227,7 +223,6 @@ const isSameShippingSelection = ({
     toComparableShippingData(toPlainRecord(currentData))
   )
 }
-
 
 const defaultResolvePaymentProviderId = ({
   requestedPaymentProviderId,
@@ -303,9 +298,9 @@ const completeCheckoutOrder = async ({
   completeCartMutation,
 }: {
   cartId: string
-  completeCartMutation: (
-    input: { cartId?: string }
-  ) => Promise<MedusaCompleteCartResult>
+  completeCartMutation: (input: {
+    cartId?: string
+  }) => Promise<MedusaCompleteCartResult>
 }): Promise<HttpTypes.StoreOrder> => {
   const result = await completeCartMutation({ cartId })
   if (result.type !== "order") {
@@ -530,7 +525,7 @@ export function createMedusaCheckoutFlow({
       MedusaCompleteCheckoutSuccess,
       MedusaCompleteCheckoutError,
       MedusaCompleteCheckoutRequest | undefined
->({
+    >({
       mutationFn: async (request) => {
         const { resolvedCartId: mutationCartId, normalizedCart: mutationCart } =
           resolveCheckoutCartInput({

@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import type { RegionInfo } from "@techsio/storefront-data/shared/region";
-import { useEffect, useMemo, useState } from "react";
-import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config";
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { useEffect, useMemo, useState } from "react"
 import {
   getStoredRegionPreference,
   persistRegionPreference,
-} from "./region-preferences";
-import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection";
-import { storefront } from "./storefront";
+} from "./region-preferences"
+import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config"
+import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection"
+import { storefront } from "./storefront"
 
-const regionHooks = storefront.hooks.regions;
+const regionHooks = storefront.hooks.regions
 
 export const {
   useRegions,
@@ -19,80 +19,78 @@ export const {
   useSuspenseRegion,
   usePrefetchRegions,
   usePrefetchRegion,
-} = regionHooks;
+} = regionHooks
 
 type UseRegionBootstrapOptions = {
-  initialRegion?: RegionInfo | null;
-};
+  initialRegion?: RegionInfo | null
+}
 
 export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
-  const initialRegion = options.initialRegion ?? null;
+  const initialRegion = options.initialRegion ?? null
 
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(
-    initialRegion?.region_id ?? null,
-  );
+    initialRegion?.region_id ?? null
+  )
 
   const { regions, isLoading, isFetching, error } = useRegions({
     fields: REGION_LIST_FIELDS,
     limit: REGION_LIST_LIMIT,
-  });
+  })
 
   useEffect(() => {
-    const storedRegion = getStoredRegionPreference();
-    const storedRegionId = storedRegion?.region_id ?? null;
+    const storedRegion = getStoredRegionPreference()
+    const storedRegionId = storedRegion?.region_id ?? null
 
     if (!storedRegionId) {
-      return;
+      return
     }
 
-    setSelectedRegionId((currentRegionId) => {
-      return currentRegionId ?? storedRegionId;
-    });
-  }, []);
+    setSelectedRegionId((currentRegionId) => currentRegionId ?? storedRegionId)
+  }, [])
 
   useEffect(() => {
     if (regions.length === 0) {
-      return;
+      return
     }
 
-    const resolvedRegion = resolveRegionByIdOrDefault(regions, selectedRegionId);
+    const resolvedRegion = resolveRegionByIdOrDefault(regions, selectedRegionId)
 
     if (!resolvedRegion) {
-      return;
+      return
     }
 
     if (resolvedRegion.id !== selectedRegionId) {
-      setSelectedRegionId(resolvedRegion.id);
+      setSelectedRegionId(resolvedRegion.id)
     }
 
-    persistRegionPreference(toRegionInfo(resolvedRegion));
-  }, [regions, selectedRegionId]);
+    persistRegionPreference(toRegionInfo(resolvedRegion))
+  }, [regions, selectedRegionId])
 
   const selectedRegion = useMemo(() => {
     if (!selectedRegionId) {
-      return null;
+      return null
     }
 
-    return regions.find((region) => region.id === selectedRegionId) ?? null;
-  }, [regions, selectedRegionId]);
+    return regions.find((region) => region.id === selectedRegionId) ?? null
+  }, [regions, selectedRegionId])
 
   const region = useMemo(() => {
     if (selectedRegion) {
-      return toRegionInfo(selectedRegion);
+      return toRegionInfo(selectedRegion)
     }
 
-    return initialRegion;
-  }, [initialRegion, selectedRegion]);
+    return initialRegion
+  }, [initialRegion, selectedRegion])
 
   const setRegionById = (regionId: string) => {
-    const nextRegion = regions.find((region) => region.id === regionId);
+    const nextRegion = regions.find((region) => region.id === regionId)
     if (!nextRegion) {
-      return;
+      return
     }
 
-    setSelectedRegionId(nextRegion.id);
-    persistRegionPreference(toRegionInfo(nextRegion));
-  };
+    setSelectedRegionId(nextRegion.id)
+    persistRegionPreference(toRegionInfo(nextRegion))
+  }
 
   return {
     region,
@@ -103,5 +101,5 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     isFetching,
     error,
     setRegionById,
-  };
+  }
 }

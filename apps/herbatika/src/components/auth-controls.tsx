@@ -1,22 +1,22 @@
-"use client";
+"use client"
 
-import { AuthShell } from "@/components/auth/auth-shell";
-import { RegisterForm } from "@/components/auth/register-form";
-import { useAuthController } from "@/components/auth/use-auth-controller";
-import { LoginForm } from "./auth/login-form";
+import { AuthShell } from "@/components/auth/auth-shell"
+import { RegisterForm } from "@/components/auth/register-form"
+import { useAuthController } from "@/components/auth/use-auth-controller"
+import { LoginForm } from "./auth/login-form"
 
-type AuthControlsMode = "login" | "register";
+type AuthControlsMode = "login" | "register"
 
 type AuthControlsProps = {
-  mode: AuthControlsMode;
-  afterAuthHref?: string;
-};
+  mode: AuthControlsMode
+  afterAuthHref?: string
+}
 
 export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
   const controller = useAuthController({
     mode,
     afterAuthHref,
-  });
+  })
 
   return (
     <AuthShell
@@ -45,5 +45,5 @@ export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
         />
       )}
     </AuthShell>
-  );
+  )
 }

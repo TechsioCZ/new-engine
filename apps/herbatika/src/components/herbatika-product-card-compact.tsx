@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
-import NextImage from "next/image";
-import NextLink from "next/link";
+import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
+import NextImage from "next/image"
+import NextLink from "next/link"
 import {
   type HerbatikaProductCardBaseProps,
   useHerbatikaProductCardState,
-} from "@/components/herbatika-product-card.shared";
+} from "@/components/herbatika-product-card.shared"
 
 export type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
   onCompactImageError?: (
-    product: HerbatikaProductCardBaseProps["product"],
-  ) => void;
-};
+    product: HerbatikaProductCardBaseProps["product"]
+  ) => void
+}
 
 export function HerbatikaProductCardCompact({
   product,
@@ -22,8 +22,8 @@ export function HerbatikaProductCardCompact({
 }: HerbatikaProductCardCompactProps) {
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product, () => {
-      onCompactImageError?.(product);
-    });
+      onCompactImageError?.(product)
+    })
 
   return (
     <ProductCard>
@@ -36,19 +36,19 @@ export function HerbatikaProductCardCompact({
         onMouseLeave={() => onProductHoverEnd?.(product)}
       >
         <ProductCard.Image
-          as={NextImage}
           alt={title}
+          as={NextImage}
+          className="w-full object-contain"
+          height={320}
+          onError={handleImageError}
+          sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
           src={imageSrc}
           width={320}
-          height={320}
-          sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-          className="w-full object-contain"
-          onError={handleImageError}
         />
       </NextLink>
 
       <div className="mt-250 flex flex-col gap-150">
-        <ProductCard.Name className="text-md leading-snug font-bold text-primary">
+        <ProductCard.Name className="font-bold text-md text-primary leading-snug">
           <NextLink className="hover:text-primary-hover" href={productHref}>
             {title}
           </NextLink>
@@ -59,5 +59,5 @@ export function HerbatikaProductCardCompact({
         </ProductCard.Price>
       </div>
     </ProductCard>
-  );
+  )
 }

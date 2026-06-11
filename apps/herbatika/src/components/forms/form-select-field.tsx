@@ -1,25 +1,25 @@
-"use client";
+"use client"
 
-import type { ReactNode } from "react";
 import {
   Select,
   type SelectItem,
   type SelectSize,
-} from "@techsio/ui-kit/molecules/select";
-import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors";
-import { useFieldContext } from "@/lib/forms/core/herbatika-form-context";
+} from "@techsio/ui-kit/molecules/select"
+import type { ReactNode } from "react"
+import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
+import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
 type FormSelectFieldProps = {
-  id: string;
-  items: SelectItem[];
-  label: ReactNode;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  size?: SelectSize;
-  validationMode?: "none" | "blur";
-  onValueChange?: (value: string) => void;
-};
+  id: string
+  items: SelectItem[]
+  label: ReactNode
+  placeholder?: string
+  required?: boolean
+  disabled?: boolean
+  size?: SelectSize
+  validationMode?: "none" | "blur"
+  onValueChange?: (value: string) => void
+}
 
 export function FormSelectField({
   disabled = false,
@@ -32,13 +32,13 @@ export function FormSelectField({
   size = "md",
   validationMode = "blur",
 }: FormSelectFieldProps) {
-  const field = useFieldContext<string>();
-  const value = typeof field.state.value === "string" ? field.state.value : "";
+  const field = useFieldContext<string>()
+  const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
     meta: field.state.meta,
     submissionAttempts: field.form.state.submissionAttempts,
     validationMode,
-  });
+  })
 
   return (
     <Select
@@ -47,10 +47,10 @@ export function FormSelectField({
       items={items}
       name={field.name}
       onValueChange={(details) => {
-        const nextValue = details.value[0] ?? "";
-        field.handleChange(nextValue);
-        field.handleBlur();
-        onValueChange?.(nextValue);
+        const nextValue = details.value[0] ?? ""
+        field.handleChange(nextValue)
+        field.handleBlur()
+        onValueChange?.(nextValue)
       }}
       required={required}
       size={size}
@@ -77,5 +77,5 @@ export function FormSelectField({
         <Select.StatusText>{fieldFeedback.errorText}</Select.StatusText>
       ) : null}
     </Select>
-  );
+  )
 }

@@ -1,43 +1,41 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import type { StorefrontProductListInput } from "./product-query-config";
+import type { HttpTypes } from "@medusajs/types"
+import type { StorefrontProductListInput } from "./product-query-config"
 import {
   buildProductListParams,
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
   RELATED_PRODUCT_FIELDS,
   SEARCH_PRODUCT_CARD_FIELDS,
-} from "./product-query-config";
-import { storefront } from "./storefront";
+} from "./product-query-config"
+import { storefront } from "./storefront"
 
-type ProductHooks = typeof storefront.hooks.products;
-type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1];
+type ProductHooks = typeof storefront.hooks.products
+type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1]
 
 export type ProductListInput = StorefrontProductListInput & {
-  enabled?: boolean;
-};
+  enabled?: boolean
+}
 
-const productHooks = storefront.hooks.products;
+const productHooks = storefront.hooks.products
 const toProductListParams = (
-  input: ProductListInput,
+  input: ProductListInput
 ): HttpTypes.StoreProductListParams =>
-  input as unknown as HttpTypes.StoreProductListParams;
+  input as unknown as HttpTypes.StoreProductListParams
 
 export const useProducts = (
   input: ProductListInput,
-  options?: UseProductsOptions,
-) => {
-  return productHooks.useProducts(toProductListParams(input), options);
-};
+  options?: UseProductsOptions
+) => productHooks.useProducts(toProductListParams(input), options)
 
-export const useProduct = productHooks.useProduct;
-export const usePrefetchProduct = productHooks.usePrefetchProduct;
+export const useProduct = productHooks.useProduct
+export const usePrefetchProduct = productHooks.usePrefetchProduct
 
 export const usePrefetchProducts = (
   ...args: Parameters<ProductHooks["usePrefetchProducts"]>
 ) => {
-  const prefetch = productHooks.usePrefetchProducts(...args);
+  const prefetch = productHooks.usePrefetchProducts(...args)
 
   return {
     ...prefetch,
@@ -69,8 +67,8 @@ export const usePrefetchProducts = (
         ? TRest
         : never
     ) => prefetch.delayedPrefetch(toProductListParams(input), ...prefetchArgs),
-  };
-};
+  }
+}
 
 export {
   buildProductListParams,
@@ -78,4 +76,4 @@ export {
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
   SEARCH_PRODUCT_CARD_FIELDS,
-};
+}

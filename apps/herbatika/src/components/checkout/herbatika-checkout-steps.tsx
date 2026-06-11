@@ -1,30 +1,30 @@
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Tooltip } from "@techsio/ui-kit/atoms/tooltip";
-import { Steps } from "@techsio/ui-kit/molecules/steps";
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
+import { Steps } from "@techsio/ui-kit/molecules/steps"
 
 export type HerbatikaCheckoutStepItem = {
-  id: string;
-  title: string;
-};
+  id: string
+  title: string
+}
 
 type HerbatikaCheckoutStepsProps = {
-  step: number;
-  steps: ReadonlyArray<HerbatikaCheckoutStepItem>;
-};
+  step: number
+  steps: readonly HerbatikaCheckoutStepItem[]
+}
 
 export function HerbatikaCheckoutSteps({
   step,
   steps,
 }: HerbatikaCheckoutStepsProps) {
-  const completionStepIndex = steps.length;
-  const visualStepCount = steps.length + 1;
+  const completionStepIndex = steps.length
+  const visualStepCount = steps.length + 1
 
   return (
     <Steps count={visualStepCount} linear size="sm" step={step}>
-      <Steps.List className="w-full md:w-fit mx-auto md:justify-start p-300 rounded-xl">
+      <Steps.List className="mx-auto w-full rounded-xl p-300 md:w-fit md:justify-start">
         {steps.map((item, index) => (
           <Steps.Item
-            className="flex-none min-w-max gap-x-450 sm:gap-x-150"
+            className="min-w-max flex-none gap-x-450 sm:gap-x-150"
             index={index}
             key={item.id}
           >
@@ -45,7 +45,7 @@ export function HerbatikaCheckoutSteps({
                   />
                 </Tooltip>
               </Steps.Indicator>
-              <Steps.ItemText className="hidden sm:inline-flex uppercase">
+              <Steps.ItemText className="hidden uppercase sm:inline-flex">
                 <Steps.Title>{item.title}</Steps.Title>
               </Steps.ItemText>
             </Steps.Trigger>
@@ -59,7 +59,7 @@ export function HerbatikaCheckoutSteps({
           </Steps.Item>
         ))}
         <Steps.Item
-          className="flex-none min-w-max"
+          className="min-w-max flex-none"
           index={completionStepIndex}
           key="completed"
         >
@@ -79,5 +79,5 @@ export function HerbatikaCheckoutSteps({
         </Steps.Item>
       </Steps.List>
     </Steps>
-  );
+  )
 }

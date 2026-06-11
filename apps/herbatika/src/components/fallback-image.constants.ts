@@ -1,1 +1,1 @@
-export const FALLBACK_IMAGE_SRC = "/file.svg";
+export const FALLBACK_IMAGE_SRC = "/file.svg"

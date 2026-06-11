@@ -1,76 +1,76 @@
-import type { CatalogFacetItem } from "@techsio/storefront-data/catalog/types";
+import type { CatalogFacetItem } from "@techsio/storefront-data/catalog/types"
 
 export type CategoryFacetChipItem = {
-  id: string;
-  label: string;
-  count: number;
-  checked: boolean;
-  disabled: boolean;
-};
+  id: string
+  label: string
+  count: number
+  checked: boolean
+  disabled: boolean
+}
 
 export const toggleSelection = (currentItems: string[], itemId: string) => {
   if (currentItems.includes(itemId)) {
-    return currentItems.filter((existingId) => existingId !== itemId);
+    return currentItems.filter((existingId) => existingId !== itemId)
   }
 
-  return [...currentItems, itemId];
-};
+  return [...currentItems, itemId]
+}
 
 export const buildFacetChipItems = (
   currentFacetItems: CatalogFacetItem[],
   seedFacetItems: CatalogFacetItem[],
-  selectedIds: string[],
+  selectedIds: string[]
 ): CategoryFacetChipItem[] => {
   const currentCountById = new Map(
-    currentFacetItems.map((item) => [item.id, item.count]),
-  );
+    currentFacetItems.map((item) => [item.id, item.count])
+  )
   const seedCountById = new Map(
-    seedFacetItems.map((item) => [item.id, item.count]),
-  );
-  const labelById = new Map<string, string>();
-  const orderedIds: string[] = [];
-  const seenIds = new Set<string>();
-  const hasSelectionInFacet = selectedIds.length > 0;
+    seedFacetItems.map((item) => [item.id, item.count])
+  )
+  const labelById = new Map<string, string>()
+  const orderedIds: string[] = []
+  const seenIds = new Set<string>()
+  const hasSelectionInFacet = selectedIds.length > 0
 
   const pushOrderedId = (id: string) => {
     if (seenIds.has(id)) {
-      return;
+      return
     }
 
-    seenIds.add(id);
-    orderedIds.push(id);
-  };
+    seenIds.add(id)
+    orderedIds.push(id)
+  }
 
   for (const item of seedFacetItems) {
-    labelById.set(item.id, item.label);
-    pushOrderedId(item.id);
+    labelById.set(item.id, item.label)
+    pushOrderedId(item.id)
   }
 
   for (const item of currentFacetItems) {
-    labelById.set(item.id, item.label);
-    pushOrderedId(item.id);
+    labelById.set(item.id, item.label)
+    pushOrderedId(item.id)
   }
 
   for (const selectedId of selectedIds) {
     if (!labelById.has(selectedId)) {
-      labelById.set(selectedId, selectedId);
+      labelById.set(selectedId, selectedId)
     }
 
-    pushOrderedId(selectedId);
+    pushOrderedId(selectedId)
   }
 
-  const selectedIdSet = new Set(selectedIds);
+  const selectedIdSet = new Set(selectedIds)
 
   return orderedIds.map((id) => {
-    const label = labelById.get(id) ?? id;
-    const checked = selectedIdSet.has(id);
-    const currentCount = currentCountById.get(id) ?? 0;
-    const seedCount = seedCountById.get(id) ?? 0;
+    const label = labelById.get(id) ?? id
+    const checked = selectedIdSet.has(id)
+    const currentCount = currentCountById.get(id) ?? 0
+    const seedCount = seedCountById.get(id) ?? 0
     const count = checked
       ? currentCount
       : hasSelectionInFacet
         ? seedCount
-        : currentCount;
+        : currentCount
 
     return {
       id,
@@ -78,6 +78,6 @@ export const buildFacetChipItems = (
       count,
       checked,
       disabled: count === 0 && !checked,
-    };
-  });
-};
+    }
+  })
+}

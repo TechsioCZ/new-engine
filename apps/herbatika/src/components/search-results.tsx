@@ -1,25 +1,25 @@
-"use client";
+"use client"
 
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { CatalogListingShell } from "@/components/catalog-listing-shell";
-import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
-import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
-import { CategoryResultsSection } from "@/components/category/category-results-section";
-import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
-import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
-import { useSearchListingController } from "./search/use-search-listing-controller";
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { CatalogListingShell } from "@/components/catalog-listing-shell"
+import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
+import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
+import { CategoryResultsSection } from "@/components/category/category-results-section"
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import { useSearchListingController } from "./search/use-search-listing-controller"
 
 export function SearchResults() {
-  const controller = useSearchListingController();
-  const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1);
+  const controller = useSearchListingController()
+  const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-search-page-gap p-search-page font-rubik 2xl:p-search-page-lg">
       <section className="space-y-300">
-        <h1 className="text-4xl font-bold leading-snug text-fg-primary">
+        <h1 className="font-bold text-4xl text-fg-primary leading-snug">
           Vyhľadávanie
         </h1>
-        <p className="text-sm text-fg-secondary">
+        <p className="text-fg-secondary text-sm">
           Vyhľadajte produkty v katalógu.
         </p>
       </section>
@@ -32,13 +32,7 @@ export function SearchResults() {
         </div>
       ) : null}
 
-      {!controller.query ? (
-        <section className="rounded-lg border border-border-secondary bg-base p-400">
-          <p className="text-sm text-fg-secondary">
-            Zadajte výraz do vyhľadávania v hornom paneli.
-          </p>
-        </section>
-      ) : (
+      {controller.query ? (
         <CatalogListingShell
           facets={
             <CategoryFacetsPanel
@@ -63,12 +57,12 @@ export function SearchResults() {
             <CategoryResultsSection
               activeSort={controller.queryState.sort}
               addToCartError={controller.addToCartError}
-              categoriesError={null}
               catalogError={controller.catalogError}
+              categoriesError={null}
               isEmpty={controller.products.length === 0}
               isLoading={controller.isResultsLoading}
-              isRefreshing={controller.isResultsRefreshing}
               isProductAdding={controller.isProductAdding}
+              isRefreshing={controller.isResultsRefreshing}
               layout="catalog"
               onAddToCart={controller.onAddToCart}
               onProductHoverEnd={controller.onProductHoverEnd}
@@ -85,9 +79,15 @@ export function SearchResults() {
             />
           }
         />
+      ) : (
+        <section className="rounded-lg border border-border-secondary bg-base p-400">
+          <p className="text-fg-secondary text-sm">
+            Zadajte výraz do vyhľadávania v hornom paneli.
+          </p>
+        </section>
       )}
 
       <RecentlyVisitedProductsSection hideWhenEmpty />
     </main>
-  );
+  )
 }

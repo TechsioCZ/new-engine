@@ -1,14 +1,14 @@
-import type { HttpTypes } from "@medusajs/types";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
+import type { HttpTypes } from "@medusajs/types"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import NextLink from "next/link"
 import {
   resolveOrderAddresses,
   resolveOrderContactEmail,
   resolveOrderPaymentMethodLabel,
   resolveOrderShippingMethodLabel,
   resolveOrderTrackingCode,
-} from "@/lib/storefront/order-detail-format";
+} from "@/lib/storefront/order-detail-format"
 import {
   formatOrderAmount,
   formatOrderDate,
@@ -20,60 +20,61 @@ import {
   resolveOrderPaymentStatusLabel,
   resolveOrderProgressState,
   resolveOrderTotalAmount,
-} from "@/lib/storefront/order-format";
+} from "@/lib/storefront/order-format"
 
 type AccountOrderDetailSummaryProps = {
-  order: HttpTypes.StoreOrder;
-  customerEmail?: string | null;
-};
+  order: HttpTypes.StoreOrder
+  customerEmail?: string | null
+}
 
 const readOrderAmount = (
   order: HttpTypes.StoreOrder,
-  key: string,
+  key: string
 ): number | null => {
-  const value = (order as unknown as Record<string, unknown>)[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-};
+  const value = (order as unknown as Record<string, unknown>)[key]
+  return typeof value === "number" && Number.isFinite(value) ? value : null
+}
 
 export function AccountOrderDetailSummary({
   order,
   customerEmail,
 }: AccountOrderDetailSummaryProps) {
-  const orderItems = order.items ?? [];
+  const orderItems = order.items ?? []
   const orderItemsTotal =
     readOrderAmount(order, "item_total") ??
-    orderItems.reduce((total, item) => {
-      return total + resolveOrderItemTotalAmount(item);
-    }, 0);
-  const orderItemTaxTotal = readOrderAmount(order, "item_tax_total") ?? 0;
+    orderItems.reduce(
+      (total, item) => total + resolveOrderItemTotalAmount(item),
+      0
+    )
+  const orderItemTaxTotal = readOrderAmount(order, "item_tax_total") ?? 0
   const orderSubtotal =
     readOrderAmount(order, "item_subtotal") ??
-    Math.max(orderItemsTotal - orderItemTaxTotal, 0);
-  const orderShippingTotal = readOrderAmount(order, "shipping_total") ?? 0;
+    Math.max(orderItemsTotal - orderItemTaxTotal, 0)
+  const orderShippingTotal = readOrderAmount(order, "shipping_total") ?? 0
   const orderShippingTaxTotal =
-    readOrderAmount(order, "shipping_tax_total") ?? 0;
+    readOrderAmount(order, "shipping_tax_total") ?? 0
   const orderShippingSubtotal =
     readOrderAmount(order, "shipping_subtotal") ??
-    Math.max(orderShippingTotal - orderShippingTaxTotal, 0);
+    Math.max(orderShippingTotal - orderShippingTaxTotal, 0)
   const orderTaxTotal =
     readOrderAmount(order, "tax_total") ??
-    Math.max(orderItemTaxTotal + orderShippingTaxTotal, 0);
-  const orderTotal = resolveOrderTotalAmount(order);
-  const addresses = resolveOrderAddresses(order);
-  const shippingMethod = resolveOrderShippingMethodLabel(order);
-  const paymentMethod = resolveOrderPaymentMethodLabel(order);
-  const trackingCode = resolveOrderTrackingCode(order);
-  const invoiceUrl = resolveOrderInvoiceUrl(order);
-  const resolvedEmail = resolveOrderContactEmail(order, customerEmail);
-  const orderProgress = resolveOrderProgressState(order);
-  const paymentStatus = resolveOrderPaymentStatusLabel(order);
-  const fulfillmentStatus = resolveOrderFulfillmentStatusLabel(order);
+    Math.max(orderItemTaxTotal + orderShippingTaxTotal, 0)
+  const orderTotal = resolveOrderTotalAmount(order)
+  const addresses = resolveOrderAddresses(order)
+  const shippingMethod = resolveOrderShippingMethodLabel(order)
+  const paymentMethod = resolveOrderPaymentMethodLabel(order)
+  const trackingCode = resolveOrderTrackingCode(order)
+  const invoiceUrl = resolveOrderInvoiceUrl(order)
+  const resolvedEmail = resolveOrderContactEmail(order, customerEmail)
+  const orderProgress = resolveOrderProgressState(order)
+  const paymentStatus = resolveOrderPaymentStatusLabel(order)
+  const fulfillmentStatus = resolveOrderFulfillmentStatusLabel(order)
 
   return (
     <section className="space-y-400 rounded-lg border border-border-secondary bg-surface p-550">
       <header className="flex flex-wrap items-start justify-between gap-300 border-border-secondary border-b pb-300">
         <div className="space-y-100">
-          <h2 className="text-xl font-semibold">
+          <h2 className="font-semibold text-xl">
             {`Objednávka ${resolveOrderDisplayId(order)}`}
           </h2>
           <p className="text-fg-secondary text-sm">
@@ -202,5 +203,5 @@ export function AccountOrderDetailSummary({
         </article>
       </div>
     </section>
-  );
+  )
 }

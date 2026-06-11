@@ -9,7 +9,6 @@
   --text-icon-delivery-size: 22px;
 }
 
-
 /* NAVIGATION AND DIRECTION */
 @utility token-icon-home {
   /* @apply icon-[solar--home-angle-outline];*/
@@ -205,7 +204,7 @@
 
 @utility token-icon-music {
   /*@apply icon-[mdi--music-note];*/
-  @apply icon-[solar--music-note-3-bold]; 
+  @apply icon-[solar--music-note-3-bold];
 }
 
 /* MARKET FLAGS */

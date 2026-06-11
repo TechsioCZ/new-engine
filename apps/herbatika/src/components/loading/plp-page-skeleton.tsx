@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 
 type PlpPageSkeletonProps = {
-  variant: "search" | "category" | "brand";
-};
+  variant: "search" | "category" | "brand"
+}
 
 function CategoryDescriptionSkeleton() {
   return (
@@ -22,17 +22,21 @@ function CategoryDescriptionSkeleton() {
             key={`category-context-skeleton-${index + 1}`}
           >
             <Skeleton.Circle className="h-6 w-6 shrink-0" />
-            <Skeleton.Text noOfLines={1} size="sm" containerClassName="w-full" />
+            <Skeleton.Text
+              containerClassName="w-full"
+              noOfLines={1}
+              size="sm"
+            />
           </div>
         ))}
       </div>
     </section>
-  );
+  )
 }
 
 export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
-  const isSearch = variant === "search";
-  const isCategory = variant === "category";
+  const isSearch = variant === "search"
+  const isCategory = variant === "category"
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-category-page-gap p-category-page font-rubik 2xl:p-category-page-lg">
@@ -51,16 +55,19 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
       </section>
 
       {isSearch ? (
-        <Skeleton.Text noOfLines={3} size="lg" containerClassName="w-full" />
+        <Skeleton.Text containerClassName="w-full" noOfLines={3} size="lg" />
       ) : null}
 
       {isCategory ? <CategoryDescriptionSkeleton /> : null}
 
       <section className="space-y-400">
         <div className="flex min-w-0 flex-col gap-600 md:grid md:grid-cols-12 md:items-start">
-            <aside className="hidden md:col-span-3 md:block">
-              <Skeleton.Rectangle variant="primary" className="h-164 rounded-2xl" />
-            </aside>
+          <aside className="hidden md:col-span-3 md:block">
+            <Skeleton.Rectangle
+              className="h-164 rounded-2xl"
+              variant="primary"
+            />
+          </aside>
 
           <div className="space-y-400 md:col-span-9">
             <Skeleton.Rectangle className="h-16 rounded-xl" />
@@ -69,5 +76,5 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
         </div>
       </section>
     </main>
-  );
+  )
 }

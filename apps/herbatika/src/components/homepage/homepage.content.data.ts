@@ -1,7 +1,7 @@
 import type {
   BlogTeaserItem,
   ProductSectionDefinition,
-} from "./homepage.data.types";
+} from "./homepage.data.types"
 
 export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
   {
@@ -19,7 +19,7 @@ export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
     title: "Aktuálne v zľave",
     viewAllHref: "/c/vypredaj-zlavy-a-akcie",
   },
-];
+]
 
 export const BLOG_POSTS: BlogTeaserItem[] = [
   {
@@ -58,4 +58,4 @@ export const BLOG_POSTS: BlogTeaserItem[] = [
     publishedAt: "2025-12-06",
     readingTime: "9 min",
   },
-];
+]

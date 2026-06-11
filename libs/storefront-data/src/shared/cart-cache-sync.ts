@@ -165,8 +165,8 @@ const resolveActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys,
   options?: CartCacheSyncOptions
 ): ActiveCartQueryKeyMatcher =>
-  options?.isActiveCartQueryKey ?? createDefaultActiveCartQueryMatcher(queryKeys)
-
+  options?.isActiveCartQueryKey ??
+  createDefaultActiveCartQueryMatcher(queryKeys)
 
 export function syncCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,

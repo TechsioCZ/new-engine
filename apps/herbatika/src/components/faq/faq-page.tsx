@@ -1,14 +1,14 @@
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb";
-import { FaqAccordion } from "./faq-accordion";
-import { faqItemCount, faqItems } from "./faq-page.data";
+} from "@/components/herbatika-breadcrumb"
+import { FaqAccordion } from "./faq-accordion"
+import { faqItemCount, faqItems } from "./faq-page.data"
 
 const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
   { label: "Domov", href: "/", icon: "token-icon-home" },
   { label: "Časté otázky" },
-];
+]
 
 export function FaqPage() {
   return (
@@ -18,14 +18,14 @@ export function FaqPage() {
 
         <section className="mx-auto w-full max-w-7xl space-y-500">
           <div className="space-y-400">
-            <h1 className="text-4xl leading-tight font-bold text-fg-primary">
+            <h1 className="font-bold text-4xl text-fg-primary leading-tight">
               Často kladené otázky
             </h1>
-            <p className="font-verdana text-md leading-relaxed text-fg-secondary">
+            <p className="font-verdana text-fg-secondary text-md leading-relaxed">
               Prehľad odpovedí z pôvodného Herbatica FAQ.
             </p>
           </div>
-          <p className="font-verdana text-sm leading-normal text-fg-secondary">
+          <p className="font-verdana text-fg-secondary text-sm leading-normal">
             {faqItemCount} položiek celkom
           </p>
 
@@ -33,5 +33,5 @@ export function FaqPage() {
         </section>
       </div>
     </main>
-  );
+  )
 }

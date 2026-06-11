@@ -1,3 +1,4 @@
+import type { UseMutationResult } from "@tanstack/react-query"
 import {
   useMutation,
   useQueries,
@@ -5,27 +6,26 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import type { UseMutationResult } from "@tanstack/react-query"
-import {
-  type ActiveCartQueryKeyMatcher,
-  syncCartCaches,
-} from "../shared/cart-cache-sync"
+import type { CartQueryKeys } from "../cart/types"
 import {
   type CacheConfig,
   type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import {
+  type ActiveCartQueryKeyMatcher,
+  syncCartCaches,
+} from "../shared/cart-cache-sync"
 import { toErrorMessage } from "../shared/error-utils"
+import type { QueryResult } from "../shared/hook-result-types"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import type { QueryResult } from "../shared/hook-result-types"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
-import type { CartQueryKeys } from "../cart/types"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import {
@@ -269,7 +269,11 @@ export type ProductListHooks<
     TContext
   >
   useCreateProductListCart: <TContext = unknown>(
-    options?: ProductListMutationOptions<TCart, CreateProductListCartInput, TContext>
+    options?: ProductListMutationOptions<
+      TCart,
+      CreateProductListCartInput,
+      TContext
+    >
   ) => UseMutationResult<TCart, unknown, CreateProductListCartInput, TContext>
   useUpdateProductListItem: <TContext = unknown>(
     options?: ProductListMutationOptions<
@@ -565,9 +569,8 @@ export function createProductListHooks<
 
     const query = useSuspenseQuery({
       ...getDetailQueryOptions(input as TDetailInput, {
-        queryOptions: options?.queryOptions as ReadQueryOptions<
-          TProductList | null
-        >,
+        queryOptions:
+          options?.queryOptions as ReadQueryOptions<TProductList | null>,
       }),
     })
     const { data, isFetching } = query
@@ -894,7 +897,11 @@ export function createProductListHooks<
   }
 
   function useCreateProductListCart<TContext = unknown>(
-    options?: ProductListMutationOptions<TCart, CreateProductListCartInput, TContext>
+    options?: ProductListMutationOptions<
+      TCart,
+      CreateProductListCartInput,
+      TContext
+    >
   ) {
     const queryClient = useQueryClient()
 

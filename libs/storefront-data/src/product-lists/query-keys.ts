@@ -1,11 +1,8 @@
-import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductListQueryKeys } from "./types"
 
-export function createProductListQueryKeys<
-  TListKeyParams,
-  TDetailKeyParams,
->(
+export function createProductListQueryKeys<TListKeyParams, TDetailKeyParams>(
   namespace: QueryNamespace
 ): ProductListQueryKeys<TListKeyParams, TDetailKeyParams> {
   return {

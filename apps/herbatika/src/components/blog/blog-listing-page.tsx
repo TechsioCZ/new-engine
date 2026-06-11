@@ -1,47 +1,46 @@
-"use client";
+"use client"
 
-import { Link } from "@techsio/ui-kit/atoms/link";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
+import { Link } from "@techsio/ui-kit/atoms/link"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import NextLink from "next/link"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb";
+} from "@/components/herbatika-breadcrumb"
 import type {
   BlogTopicFilter,
   BlogTopicKey,
   resolveBlogListing,
-} from "@/lib/storefront/blog-content";
-import { BlogListingCard } from "./blog-listing-card";
+} from "@/lib/storefront/blog-content"
+import { BlogListingCard } from "./blog-listing-card"
 
 type BlogListingPageProps = {
-  listing: ReturnType<typeof resolveBlogListing>;
-};
+  listing: ReturnType<typeof resolveBlogListing>
+}
 
 const resolveBlogListingHref = ({
   topic,
   page,
 }: {
-  topic: BlogTopicKey;
-  page: number;
+  topic: BlogTopicKey
+  page: number
 }) => {
-  const query = new URLSearchParams();
+  const query = new URLSearchParams()
 
   if (topic !== "all") {
-    query.set("topic", topic);
+    query.set("topic", topic)
   }
 
   if (page > 1) {
-    query.set("page", String(page));
+    query.set("page", String(page))
   }
 
-  const serialized = query.toString();
-  return serialized.length > 0 ? `/blog?${serialized}` : "/blog";
-};
+  const serialized = query.toString()
+  return serialized.length > 0 ? `/blog?${serialized}` : "/blog"
+}
 
-const getFilterLabel = (filter: BlogTopicFilter) => {
-  return `${filter.label} (${filter.count})`;
-};
+const getFilterLabel = (filter: BlogTopicFilter) =>
+  `${filter.label} (${filter.count})`
 
 export function BlogListingPage({ listing }: BlogListingPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
@@ -50,11 +49,11 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
       href: "/blog",
       icon: "token-icon-home",
     },
-  ];
+  ]
 
-  const nextPage = listing.hasNextPage ? listing.page + 1 : listing.page;
-  const shouldShowLoadMore = listing.hasNextPage;
-  const shouldShowPageIndicator = listing.totalPages > 1;
+  const nextPage = listing.hasNextPage ? listing.page + 1 : listing.page
+  const shouldShowLoadMore = listing.hasNextPage
+  const shouldShowPageIndicator = listing.totalPages > 1
 
   return (
     <main className="w-full bg-base font-rubik">
@@ -63,23 +62,23 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
         <section className="space-y-500">
           <header className="space-y-400">
-            <h1 className="text-4xl leading-tight font-bold text-fg-primary">
+            <h1 className="font-bold text-4xl text-fg-primary leading-tight">
               Trápi ma
             </h1>
 
-            <p className="font-verdana text-md leading-relaxed text-fg-primary">
+            <p className="font-verdana text-fg-primary text-md leading-relaxed">
               Najnovšie články o zdraví, kráse, stravovaní a wellness od našich
               odborníkov.
             </p>
 
             <div className="flex flex-wrap items-center gap-250">
               {listing.topicFilters.map((filter) => {
-                const isActive = filter.key === listing.topic;
+                const isActive = filter.key === listing.topic
 
                 return (
                   <LinkButton
                     as={NextLink}
-                    className={`rounded-full px-450 py-250 h-full font-open-sans text-md border-1 border-primary font-bold leading-[18px] ${!isActive && "bg-surface text-fg-muted border-border-muted"}`}
+                    className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md leading-[18px] ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
                     href={resolveBlogListingHref({
                       topic: filter.key,
                       page: 1,
@@ -91,7 +90,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   >
                     {getFilterLabel(filter)}
                   </LinkButton>
-                );
+                )
               })}
             </div>
           </header>
@@ -107,7 +106,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
               {shouldShowLoadMore ? (
                 <LinkButton
                   as={NextLink}
-                  className="rounded-full px-550 py-250 font-open-sans text-sm font-semibold"
+                  className="rounded-full px-550 py-250 font-open-sans font-semibold text-sm"
                   href={resolveBlogListingHref({
                     topic: listing.topic,
                     page: nextPage,
@@ -123,7 +122,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
               {shouldShowPageIndicator ? (
                 <Link
                   as={NextLink}
-                  className="absolute right-0 text-sm leading-normal font-semibold text-primary underline underline-offset-2 hover:text-primary-hover"
+                  className="absolute right-0 font-semibold text-primary text-sm leading-normal underline underline-offset-2 hover:text-primary-hover"
                   href={resolveBlogListingHref({
                     topic: listing.topic,
                     page: nextPage,
@@ -137,5 +136,5 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
         </section>
       </div>
     </main>
-  );
+  )
 }

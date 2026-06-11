@@ -1,13 +1,13 @@
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import NextLink from "next/link";
-import NextImage from "next/image";
-import type { BlogPost } from "@/lib/storefront/blog-content";
-import { formatBlogDate, formatTopicFromKey } from "./blog-formatters";
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Link } from "@techsio/ui-kit/atoms/link"
+import NextImage from "next/image"
+import NextLink from "next/link"
+import type { BlogPost } from "@/lib/storefront/blog-content"
+import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
 type BlogRelatedCardProps = {
-  post: BlogPost;
-};
+  post: BlogPost
+}
 
 export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
   return (
@@ -18,19 +18,19 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
           className="aspect-video w-full object-cover"
           height={320}
           loading="lazy"
+          quality={50}
           src={post.imageSrc}
           width={520}
-          quality={50}
         />
       </Link>
 
       <div className="space-y-200 p-300">
         <div className="flex items-center justify-between gap-200">
-          <p className="text-2xs leading-normal text-fg-secondary">
+          <p className="text-2xs text-fg-secondary leading-normal">
             {formatBlogDate(post.publishedAt)}
           </p>
           <Badge
-            className="rounded-full px-200 py-100 text-2xs font-medium"
+            className="rounded-full px-200 py-100 font-medium text-2xs"
             variant="secondary"
           >
             {formatTopicFromKey(post.topic)}
@@ -39,16 +39,16 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
 
         <Link
           as={NextLink}
-          className="line-clamp-2 text-lg leading-snug font-bold text-fg-primary hover:text-primary"
+          className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug hover:text-primary"
           href={`/blog/${post.slug}`}
         >
           {post.title}
         </Link>
 
-        <p className="line-clamp-3 text-xs leading-relaxed text-fg-secondary">
+        <p className="line-clamp-3 text-fg-secondary text-xs leading-relaxed">
           {post.excerpt}
         </p>
       </div>
     </article>
-  );
+  )
 }

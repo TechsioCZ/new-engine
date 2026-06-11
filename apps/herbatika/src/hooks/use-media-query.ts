@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react"
 
 export const mediaQueryBreakpoints = {
   xs: "(min-width: 30rem)",
@@ -9,49 +9,49 @@ export const mediaQueryBreakpoints = {
   lg: "(min-width: 64rem)",
   xl: "(min-width: 80rem)",
   "2xl": "(min-width: 88.75rem)",
-} as const;
+} as const
 
-export type MediaQueryBreakpoint = keyof typeof mediaQueryBreakpoints;
+export type MediaQueryBreakpoint = keyof typeof mediaQueryBreakpoints
 
 type UseMediaQueryOptions = {
-  defaultMatches?: boolean;
-};
+  defaultMatches?: boolean
+}
 
 function resolveMediaQuery(query: MediaQueryBreakpoint | string) {
   return Object.hasOwn(mediaQueryBreakpoints, query)
     ? mediaQueryBreakpoints[query as MediaQueryBreakpoint]
-    : query;
+    : query
 }
 
 export function useMediaQuery(
   query: MediaQueryBreakpoint | string,
-  { defaultMatches = false }: UseMediaQueryOptions = {},
+  { defaultMatches = false }: UseMediaQueryOptions = {}
 ) {
-  const mediaQuery = resolveMediaQuery(query);
+  const mediaQuery = resolveMediaQuery(query)
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       if (typeof window === "undefined") {
-        return () => {};
+        return () => {}
       }
 
-      const mediaQueryList = window.matchMedia(mediaQuery);
-      mediaQueryList.addEventListener("change", onStoreChange);
+      const mediaQueryList = window.matchMedia(mediaQuery)
+      mediaQueryList.addEventListener("change", onStoreChange)
 
-      return () => mediaQueryList.removeEventListener("change", onStoreChange);
+      return () => mediaQueryList.removeEventListener("change", onStoreChange)
     },
-    [mediaQuery],
-  );
+    [mediaQuery]
+  )
 
   const getSnapshot = useCallback(() => {
     if (typeof window === "undefined") {
-      return defaultMatches;
+      return defaultMatches
     }
 
-    return window.matchMedia(mediaQuery).matches;
-  }, [defaultMatches, mediaQuery]);
+    return window.matchMedia(mediaQuery).matches
+  }, [defaultMatches, mediaQuery])
 
-  const getServerSnapshot = useCallback(() => defaultMatches, [defaultMatches]);
+  const getServerSnapshot = useCallback(() => defaultMatches, [defaultMatches])
 
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { CatalogListingShell } from "@/components/catalog-listing-shell";
-import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
-import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
-import { CategoryResultsSection } from "@/components/category/category-results-section";
-import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
-import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
-import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
-import { useBrandListingController } from "./use-brand-listing-controller";
+import { CatalogListingShell } from "@/components/catalog-listing-shell"
+import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
+import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
+import { CategoryResultsSection } from "@/components/category/category-results-section"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import { useBrandListingController } from "./use-brand-listing-controller"
 
 type BrandListingProps = {
-  brandFacetId: string;
-  brandTitle: string;
-};
+  brandFacetId: string
+  brandTitle: string
+}
 
 export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
-  const controller = useBrandListingController({ brandFacetId });
+  const controller = useBrandListingController({ brandFacetId })
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-listing-page-gap p-brand-listing-page font-rubik 2xl:p-brand-listing-page-lg">
@@ -28,7 +28,7 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
       />
 
       <section>
-        <h1 className="text-4xl font-bold leading-snug text-fg-primary">
+        <h1 className="font-bold text-4xl text-fg-primary leading-snug">
           {brandTitle}
         </h1>
       </section>
@@ -58,8 +58,8 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
             addToCartError={controller.addToCartError}
-            categoriesError={null}
             catalogError={controller.catalogError}
+            categoriesError={null}
             emptyMessage="Táto značka zatiaľ nemá dostupné produkty pre zvolený filter."
             isEmpty={controller.products.length === 0}
             isLoading={controller.isResultsLoading}
@@ -84,5 +84,5 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
 
       <RecentlyVisitedProductsSection hideWhenEmpty />
     </main>
-  );
+  )
 }

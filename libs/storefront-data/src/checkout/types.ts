@@ -1,5 +1,5 @@
-import type { QueryKey } from "../shared/query-keys"
 import type { MutationOptions } from "../shared/hook-types"
+import type { QueryKey } from "../shared/query-keys"
 
 /**
  * Mutation options with full TanStack Query lifecycle support

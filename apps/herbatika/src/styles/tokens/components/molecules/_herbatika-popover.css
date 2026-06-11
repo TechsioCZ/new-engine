@@ -1,4 +1,4 @@
 @theme static {
-    --shadow-popover: var(--shadow-md);
-    --color-popover-border: var(--color-border-primary);
+  --shadow-popover: var(--shadow-md);
+  --color-popover-border: var(--color-border-primary);
 }

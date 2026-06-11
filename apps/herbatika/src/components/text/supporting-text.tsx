@@ -1,8 +1,8 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react"
 
 type SupportingTextProps = HTMLAttributes<HTMLParagraphElement> & {
-  children: ReactNode;
-};
+  children: ReactNode
+}
 
 export function SupportingText({
   className,
@@ -11,12 +11,12 @@ export function SupportingText({
 }: SupportingTextProps) {
   return (
     <p
-      className={["text-sm leading-relaxed text-fg-secondary", className]
+      className={["text-fg-secondary text-sm leading-relaxed", className]
         .filter(Boolean)
         .join(" ")}
       {...props}
     >
       {children}
     </p>
-  );
+  )
 }

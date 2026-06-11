@@ -1,26 +1,26 @@
-import type { HttpTypes } from "@medusajs/types";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import NextImage from "next/image";
-import NextLink from "next/link";
-import { CategoryRichText } from "@/components/category/category-rich-text";
+import type { HttpTypes } from "@medusajs/types"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Link } from "@techsio/ui-kit/atoms/link"
+import NextImage from "next/image"
+import NextLink from "next/link"
+import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb";
-import type { BlogPost } from "@/lib/storefront/blog-content";
-import { BlogArticleSidebar } from "./blog-article-sidebar";
-import { BlogAuthorCard } from "./blog-author-card";
-import { formatBlogDate } from "./blog-formatters";
-import { BlogRelatedCard } from "./blog-related-card";
-import { InlineProductsCarousel } from "./inline-products-carousel";
+} from "@/components/herbatika-breadcrumb"
+import type { BlogPost } from "@/lib/storefront/blog-content"
+import { BlogArticleSidebar } from "./blog-article-sidebar"
+import { BlogAuthorCard } from "./blog-author-card"
+import { formatBlogDate } from "./blog-formatters"
+import { BlogRelatedCard } from "./blog-related-card"
+import { InlineProductsCarousel } from "./inline-products-carousel"
 
 type BlogDetailPageProps = {
-  post: BlogPost;
-  recommendedProducts: HttpTypes.StoreProduct[];
-  relatedPosts: BlogPost[];
-  sidebarFeaturedProduct: HttpTypes.StoreProduct | null;
-};
+  post: BlogPost
+  recommendedProducts: HttpTypes.StoreProduct[]
+  relatedPosts: BlogPost[]
+  sidebarFeaturedProduct: HttpTypes.StoreProduct | null
+}
 
 export function BlogDetailPage({
   post,
@@ -37,9 +37,9 @@ export function BlogDetailPage({
     {
       label: post.title,
     },
-  ];
-  const hasStructuredSections = post.sections.length > 0;
-  const hasHighlights = post.bulletPoints.length > 0;
+  ]
+  const hasStructuredSections = post.sections.length > 0
+  const hasHighlights = post.bulletPoints.length > 0
 
   return (
     <main className="w-full bg-base font-rubik">
@@ -48,11 +48,11 @@ export function BlogDetailPage({
 
         <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
           <div className="space-y-400">
-            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface max-xs:pb-100 p-400">
+            <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400 max-xs:pb-100">
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
                   <span
-                    className="inline-flex items-center rounded-xs bg-highlight px-200 py-100 text-xs leading-[15px] text-primary"
+                    className="inline-flex items-center rounded-xs bg-highlight px-200 py-100 text-primary text-xs leading-[15px]"
                     key={tag}
                   >
                     {tag}
@@ -60,17 +60,17 @@ export function BlogDetailPage({
                 ))}
               </div>
 
-              <h1 className="text-4xl leading-tight font-bold text-fg-primary">
+              <h1 className="font-bold text-4xl text-fg-primary leading-tight">
                 {post.title}
               </h1>
 
               <NextImage
                 alt={post.title}
-                className="inline-block xs:hidden aspect-product-detail-image w-full object-cover rounded-2xl"
+                className="inline-block xs:hidden aspect-product-detail-image w-full rounded-2xl object-cover"
                 height={620}
+                quality={50}
                 src={post.imageSrc}
                 width={1200}
-                quality={50}
               />
 
               <div className="hidden space-y-300 md:block">
@@ -78,14 +78,14 @@ export function BlogDetailPage({
               </div>
             </section>
 
-            <section className="hidden xs:inline-block overflow-hidden rounded-2xl border border-border-secondary bg-surface">
+            <section className="xs:inline-block hidden overflow-hidden rounded-2xl border border-border-secondary bg-surface">
               <NextImage
                 alt={post.title}
                 className="aspect-product-detail-image w-full object-cover"
                 height={620}
+                quality={50}
                 src={post.imageSrc}
                 width={1200}
-                quality={50}
               />
             </section>
 
@@ -100,14 +100,14 @@ export function BlogDetailPage({
               >
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-300 [&::-webkit-details-marker]:hidden">
                   <div className="flex items-center gap-250">
-                    <span className="inline-flex p-50 items-center justify-center rounded-xs bg-highlight text-primary">
+                    <span className="inline-flex items-center justify-center rounded-xs bg-highlight p-50 text-primary">
                       <Icon icon="token-icon-list" size="2xl" />
                     </span>
                     <div>
-                      <h2 className="text-xl leading-tight font-bold text-fg-primary">
+                      <h2 className="font-bold text-fg-primary text-xl leading-tight">
                         Obsah článku
                       </h2>
-                      <p className="text-sm leading-normal text-fg-secondary">
+                      <p className="text-fg-secondary text-sm leading-normal">
                         {`${post.sections.length} kapitol`}
                       </p>
                     </div>
@@ -122,7 +122,7 @@ export function BlogDetailPage({
                 <ul className="space-y-100 pl-500">
                   {post.sections.map((section) => (
                     <li
-                      className="list-inside list-disc marker:text-lg text-sm leading-relaxed text-fg-secondary marker:text-fg-disabled"
+                      className="list-inside list-disc text-fg-secondary text-sm leading-relaxed marker:text-fg-disabled marker:text-lg"
                       key={section.title}
                     >
                       {section.title}
@@ -141,13 +141,13 @@ export function BlogDetailPage({
               ) : (
                 post.sections.map((section) => (
                   <section className="space-y-250" key={section.title}>
-                    <h2 className="text-xl leading-tight text-fg-primary">
+                    <h2 className="text-fg-primary text-xl leading-tight">
                       {section.title}
                     </h2>
 
                     {section.paragraphs.map((paragraph) => (
                       <p
-                        className="text-md leading-relaxed text-fg-primary"
+                        className="text-fg-primary text-md leading-relaxed"
                         key={paragraph}
                       >
                         {paragraph}
@@ -158,7 +158,7 @@ export function BlogDetailPage({
                       <ul className="space-y-100 pl-350">
                         {section.bulletPoints.map((item) => (
                           <li
-                            className="list-disc text-md leading-relaxed text-fg-primary marker:text-primary"
+                            className="list-disc text-fg-primary text-md leading-relaxed marker:text-primary"
                             key={item}
                           >
                             {item}
@@ -190,7 +190,7 @@ export function BlogDetailPage({
                           aria-hidden="true"
                           className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
                         />
-                        <span className="text-md leading-[1.5] text-fg-primary">
+                        <span className="text-fg-primary text-md leading-[1.5]">
                           {item}
                         </span>
                       </li>
@@ -204,13 +204,13 @@ export function BlogDetailPage({
 
             <section className="space-y-350">
               <div className="flex flex-wrap items-center justify-between gap-300">
-                <h2 className="text-3xl leading-tight font-bold text-fg-primary">
+                <h2 className="font-bold text-3xl text-fg-primary leading-tight">
                   Ďalšie články
                 </h2>
 
                 <Link
                   as={NextLink}
-                  className="text-md leading-tight font-medium text-fg-primary underline underline-offset-2 hover:text-primary"
+                  className="font-medium text-fg-primary text-md leading-tight underline underline-offset-2 hover:text-primary"
                   href="/blog"
                 >
                   Zobraziť všetky →
@@ -231,13 +231,13 @@ export function BlogDetailPage({
         </div>
       </div>
     </main>
-  );
+  )
 }
 
 function BlogPostIntro({ post }: { post: BlogPost }) {
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-sm leading-normal text-fg-secondary">
+      <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-fg-secondary text-sm leading-normal">
         <p>
           <strong className="font-semibold text-fg-primary">Autor:</strong>{" "}
           {post.author}
@@ -256,7 +256,7 @@ function BlogPostIntro({ post }: { post: BlogPost }) {
         </p>
       </div>
 
-      <p className="text-md leading-relaxed text-fg-primary">{post.lead}</p>
+      <p className="text-fg-primary text-md leading-relaxed">{post.lead}</p>
     </>
-  );
+  )
 }

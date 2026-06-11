@@ -1,9 +1,9 @@
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 
 type CheckoutFeedbackSectionProps = {
-  cartError: string | null;
-  checkoutError: string | null;
-};
+  cartError: string | null
+  checkoutError: string | null
+}
 
 export function CheckoutFeedbackSection({
   cartError,
@@ -22,5 +22,5 @@ export function CheckoutFeedbackSection({
         </StatusText>
       ) : null}
     </>
-  );
+  )
 }

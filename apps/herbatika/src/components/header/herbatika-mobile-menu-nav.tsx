@@ -1,80 +1,80 @@
-"use client";
+"use client"
 
-import { Accordion } from "@techsio/ui-kit/molecules/accordion";
-import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header";
-import NextLink from "next/link";
-import { usePathname } from "next/navigation";
-import { useContext, useEffect, useMemo, useState } from "react";
-import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation";
-import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data";
-import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu";
+import { Accordion } from "@techsio/ui-kit/molecules/accordion"
+import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
+import NextLink from "next/link"
+import { usePathname } from "next/navigation"
+import { useContext, useEffect, useMemo, useState } from "react"
+import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation"
+import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
+import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu"
 
 type HerbatikaMobileMenuChildItem = {
-  href: string;
-  id: string;
-  label: string;
-};
+  href: string
+  id: string
+  label: string
+}
 
 type HerbatikaMobileMenuLinkEntry = {
-  href: string;
-  label: string;
-  type: "link";
-};
+  href: string
+  label: string
+  type: "link"
+}
 
 type HerbatikaMobileMenuGroupEntry = {
-  href: string;
-  items: readonly HerbatikaMobileMenuChildItem[];
-  label: string;
-  type: "group";
-  value: string;
-};
+  href: string
+  items: readonly HerbatikaMobileMenuChildItem[]
+  label: string
+  type: "group"
+  value: string
+}
 
 type HerbatikaMobileMenuEntry =
   | HerbatikaMobileMenuLinkEntry
-  | HerbatikaMobileMenuGroupEntry;
+  | HerbatikaMobileMenuGroupEntry
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
-  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle),
-);
+  HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle)
+)
 
 const resolveRootHandleFromHref = (href: string) => {
   if (!href.startsWith("/c/")) {
-    return null;
+    return null
   }
 
-  return href.slice(3);
-};
+  return href.slice(3)
+}
 
 const resolveMobileChildItems = (
   featuredItems: Array<{
-    handle: string;
-    id: string;
-    label: string;
-  }>,
+    handle: string
+    id: string
+    label: string
+  }>
 ): readonly HerbatikaMobileMenuChildItem[] =>
   featuredItems.map((item) => ({
     href: `/c/${item.handle}`,
     id: item.id,
     label: item.label,
-  }));
+  }))
 
 const buildMobileMenuEntries = (
   groupsByRootHandle: ReturnType<
     typeof useHerbatikaHeaderSubmenu
-  >["groupsByRootHandle"],
+  >["groupsByRootHandle"]
 ): readonly HerbatikaMobileMenuEntry[] =>
   PRIMARY_NAV_ITEMS.map((item) => {
-    const rootHandle = resolveRootHandleFromHref(item.href);
+    const rootHandle = resolveRootHandleFromHref(item.href)
 
-    if (!rootHandle || !SUBMENU_ROOT_HANDLES.has(rootHandle)) {
+    if (!(rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle))) {
       return {
         href: item.href,
         label: item.label,
         type: "link",
-      } satisfies HerbatikaMobileMenuLinkEntry;
+      } satisfies HerbatikaMobileMenuLinkEntry
     }
 
-    const submenuGroup = groupsByRootHandle.get(rootHandle);
+    const submenuGroup = groupsByRootHandle.get(rootHandle)
 
     return {
       href: item.href,
@@ -82,44 +82,44 @@ const buildMobileMenuEntries = (
       label: item.label,
       type: "group",
       value: rootHandle,
-    } satisfies HerbatikaMobileMenuGroupEntry;
-  });
+    } satisfies HerbatikaMobileMenuGroupEntry
+  })
 
 const resolveExpandedValues = (
   pathname: string,
-  mobileMenuEntries: readonly HerbatikaMobileMenuEntry[],
+  mobileMenuEntries: readonly HerbatikaMobileMenuEntry[]
 ) => {
   const activeGroup = mobileMenuEntries.find(
     (entry) =>
       entry.type === "group" &&
       (pathname === entry.href ||
-        entry.items.some((item) => item.href === pathname)),
-  );
+        entry.items.some((item) => item.href === pathname))
+  )
 
   if (!activeGroup || activeGroup.type !== "group") {
-    return [];
+    return []
   }
 
-  return [activeGroup.value];
-};
+  return [activeGroup.value]
+}
 
 export function HerbatikaMobileMenuNav() {
-  const pathname = usePathname();
-  const { setIsMobileMenuOpen } = useContext(HeaderContext);
-  const { groupsByRootHandle } = useHerbatikaHeaderSubmenu();
+  const pathname = usePathname()
+  const { setIsMobileMenuOpen } = useContext(HeaderContext)
+  const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
   const mobileMenuEntries = useMemo(
     () => buildMobileMenuEntries(groupsByRootHandle),
-    [groupsByRootHandle],
-  );
+    [groupsByRootHandle]
+  )
   const [expandedValues, setExpandedValues] = useState<string[]>(() =>
-    resolveExpandedValues(pathname, mobileMenuEntries),
-  );
+    resolveExpandedValues(pathname, mobileMenuEntries)
+  )
 
   useEffect(() => {
-    setExpandedValues(resolveExpandedValues(pathname, mobileMenuEntries));
-  }, [mobileMenuEntries, pathname]);
+    setExpandedValues(resolveExpandedValues(pathname, mobileMenuEntries))
+  }, [mobileMenuEntries, pathname])
 
-  const handleClose = () => setIsMobileMenuOpen(false);
+  const handleClose = () => setIsMobileMenuOpen(false)
 
   return (
     <Header.Nav className="w-full min-w-0 gap-y-0">
@@ -149,7 +149,7 @@ export function HerbatikaMobileMenuNav() {
                   {entry.items.map((item) => (
                     <li key={item.id}>
                       <NextLink
-                        className="block border-border-secondary/40 hover:bg-surface hover:text-primary text-sm px-350 py-150"
+                        className="block border-border-secondary/40 px-350 py-150 text-sm hover:bg-surface hover:text-primary"
                         href={item.href}
                         onClick={handleClose}
                       >
@@ -162,7 +162,7 @@ export function HerbatikaMobileMenuNav() {
             </Accordion.Item>
           ) : (
             <Header.NavItem
-              className="min-w-0 w-full text-md bg-primary border-border-secondary border-b hover:text-fg-reverse hover:bg-accordion-bg-hover"
+              className="w-full min-w-0 border-border-secondary border-b bg-primary text-md hover:bg-accordion-bg-hover hover:text-fg-reverse"
               key={entry.href}
             >
               <NextLink
@@ -173,9 +173,9 @@ export function HerbatikaMobileMenuNav() {
                 {entry.label}
               </NextLink>
             </Header.NavItem>
-          ),
+          )
         )}
       </Accordion>
     </Header.Nav>
-  );
+  )
 }

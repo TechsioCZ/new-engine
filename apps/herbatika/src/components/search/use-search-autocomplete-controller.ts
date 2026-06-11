@@ -1,31 +1,31 @@
-"use client";
+"use client"
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"
 import {
-  useId,
-  useState,
   type FocusEvent,
   type FormEvent,
   type KeyboardEvent,
   type MouseEvent,
-} from "react";
+  useId,
+  useState,
+} from "react"
 import {
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteSuggestion,
-} from "@/lib/search-autocomplete/search-autocomplete-types";
-import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel";
+} from "@/lib/search-autocomplete/search-autocomplete-types"
+import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel"
 import {
   clampSearchAutocompleteIndex,
   createSearchAutocompleteSections,
-} from "./search-autocomplete-sections";
-import { useSearchAutocomplete } from "./use-search-autocomplete";
+} from "./search-autocomplete-sections"
+import { useSearchAutocomplete } from "./use-search-autocomplete"
 
 type UseSearchAutocompleteControllerInput = {
-  countryCode?: string;
-  currencyCode: string;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  regionId?: string;
-};
+  countryCode?: string
+  currencyCode: string
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  regionId?: string
+}
 
 export function useSearchAutocompleteController({
   countryCode,
@@ -33,111 +33,111 @@ export function useSearchAutocompleteController({
   onSubmit,
   regionId,
 }: UseSearchAutocompleteControllerInput) {
-  const router = useRouter();
-  const panelId = `${useId()}-search-autocomplete`;
-  const [value, setValue] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const router = useRouter()
+  const panelId = `${useId()}-search-autocomplete`
+  const [value, setValue] = useState("")
+  const [isFocused, setIsFocused] = useState(false)
+  const [isDismissed, setIsDismissed] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
   const autocomplete = useSearchAutocomplete({
     countryCode,
     currencyCode,
     query: value,
     regionId,
-  });
-  const normalizedQuery = value.trim();
-  const sections = createSearchAutocompleteSections(autocomplete.data);
-  const flatItems = sections.flatMap((section) => section.items);
-  const activeItem = flatItems[activeIndex] ?? null;
+  })
+  const normalizedQuery = value.trim()
+  const sections = createSearchAutocompleteSections(autocomplete.data)
+  const flatItems = sections.flatMap((section) => section.items)
+  const activeItem = flatItems[activeIndex] ?? null
   const shouldShowPanel =
     isFocused &&
     !isDismissed &&
     normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH &&
-    autocomplete.status !== "idle";
+    autocomplete.status !== "idle"
   const activeItemId =
     shouldShowPanel && activeItem
       ? getSearchAutocompleteOptionId(panelId, activeItem)
-      : undefined;
-  const hasItems = flatItems.length > 0;
+      : undefined
+  const hasItems = flatItems.length > 0
 
   const closePanel = () => {
-    setIsDismissed(true);
-    setActiveIndex(-1);
-  };
+    setIsDismissed(true)
+    setActiveIndex(-1)
+  }
 
   const resetPanel = () => {
-    setIsDismissed(false);
-    setActiveIndex(-1);
-  };
+    setIsDismissed(false)
+    setActiveIndex(-1)
+  }
 
   const handleFocus = () => {
-    setIsFocused(true);
-    setIsDismissed(false);
-  };
+    setIsFocused(true)
+    setIsDismissed(false)
+  }
 
   const handleValueChange = (nextValue: string) => {
-    setValue(nextValue);
-    resetPanel();
-  };
+    setValue(nextValue)
+    resetPanel()
+  }
 
   const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
-    const nextFocusedElement = event.relatedTarget;
+    const nextFocusedElement = event.relatedTarget
     if (
       nextFocusedElement instanceof Node &&
       event.currentTarget.contains(nextFocusedElement)
     ) {
-      return;
+      return
     }
 
-    setIsFocused(false);
-    resetPanel();
-  };
+    setIsFocused(false)
+    resetPanel()
+  }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    closePanel();
-    onSubmit(event);
-  };
+    closePanel()
+    onSubmit(event)
+  }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
-      setIsDismissed(true);
-      setActiveIndex(-1);
-      return;
+      setIsDismissed(true)
+      setActiveIndex(-1)
+      return
     }
 
-    if (!shouldShowPanel || !hasItems) {
-      return;
+    if (!(shouldShowPanel && hasItems)) {
+      return
     }
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
+      event.preventDefault()
       setActiveIndex((currentIndex) =>
         clampSearchAutocompleteIndex(
           event.key === "ArrowDown" ? currentIndex + 1 : currentIndex - 1,
-          flatItems.length,
-        ),
-      );
-      return;
+          flatItems.length
+        )
+      )
+      return
     }
 
     if (event.key === "Enter" && activeItem) {
-      event.preventDefault();
-      router.push(activeItem.href);
-      closePanel();
+      event.preventDefault()
+      router.push(activeItem.href)
+      closePanel()
     }
-  };
+  }
 
   const handleItemMouseEnter = (item: SearchAutocompleteSuggestion) => {
     setActiveIndex(
       flatItems.findIndex(
-        (candidate) => candidate.id === item.id && candidate.type === item.type,
-      ),
-    );
-  };
+        (candidate) => candidate.id === item.id && candidate.type === item.type
+      )
+    )
+  }
 
   const handlePanelMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault();
-  };
+    event.preventDefault()
+  }
 
   return {
     activeItemId,
@@ -156,5 +156,5 @@ export function useSearchAutocompleteController({
     shouldShowPanel,
     status: autocomplete.status,
     value,
-  };
+  }
 }

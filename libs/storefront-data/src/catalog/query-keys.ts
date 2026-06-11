@@ -1,5 +1,5 @@
-import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { QueryNamespace } from "../shared/query-keys"
+import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { CatalogQueryKeys } from "./types"
 
 export function createCatalogQueryKeys<TListParams>(

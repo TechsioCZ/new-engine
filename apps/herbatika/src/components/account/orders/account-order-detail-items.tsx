@@ -1,23 +1,23 @@
-import type { HttpTypes } from "@medusajs/types";
-import { Table } from "@techsio/ui-kit/organisms/table";
+import type { HttpTypes } from "@medusajs/types"
+import { Table } from "@techsio/ui-kit/organisms/table"
 import {
   formatOrderAmount,
   resolveOrderItemQuantity,
   resolveOrderItemTotalAmount,
-} from "@/lib/storefront/order-format";
+} from "@/lib/storefront/order-format"
 
 type AccountOrderDetailItemsProps = {
-  order: HttpTypes.StoreOrder;
-};
+  order: HttpTypes.StoreOrder
+}
 
 export function AccountOrderDetailItems({
   order,
 }: AccountOrderDetailItemsProps) {
-  const orderItems = order.items ?? [];
+  const orderItems = order.items ?? []
 
   return (
     <section className="space-y-300 rounded-lg border border-border-secondary bg-surface p-550">
-      <h3 className="text-lg font-semibold">Položky objednávky</h3>
+      <h3 className="font-semibold text-lg">Položky objednávky</h3>
 
       <div className="hidden overflow-x-auto lg:block">
         <Table size="sm" variant="line">
@@ -33,10 +33,10 @@ export function AccountOrderDetailItems({
           <Table.Body>
             {orderItems.length > 0 ? (
               orderItems.map((item) => {
-                const quantity = resolveOrderItemQuantity(item);
-                const lineTotal = resolveOrderItemTotalAmount(item);
+                const quantity = resolveOrderItemQuantity(item)
+                const lineTotal = resolveOrderItemTotalAmount(item)
                 const unitPrice =
-                  quantity > 0 ? lineTotal / quantity : lineTotal;
+                  quantity > 0 ? lineTotal / quantity : lineTotal
 
                 return (
                   <Table.Row key={item.id}>
@@ -50,7 +50,7 @@ export function AccountOrderDetailItems({
                       {formatOrderAmount(lineTotal, order.currency_code)}
                     </Table.Cell>
                   </Table.Row>
-                );
+                )
               })
             ) : (
               <Table.Row>
@@ -69,9 +69,9 @@ export function AccountOrderDetailItems({
       <div className="space-y-200 lg:hidden">
         {orderItems.length > 0 ? (
           orderItems.map((item) => {
-            const quantity = resolveOrderItemQuantity(item);
-            const lineTotal = resolveOrderItemTotalAmount(item);
-            const unitPrice = quantity > 0 ? lineTotal / quantity : lineTotal;
+            const quantity = resolveOrderItemQuantity(item)
+            const lineTotal = resolveOrderItemTotalAmount(item)
+            const unitPrice = quantity > 0 ? lineTotal / quantity : lineTotal
 
             return (
               <article
@@ -96,7 +96,7 @@ export function AccountOrderDetailItems({
                   {formatOrderAmount(lineTotal, order.currency_code)}
                 </p>
               </article>
-            );
+            )
           })
         ) : (
           <p className="text-fg-secondary text-sm">
@@ -105,5 +105,5 @@ export function AccountOrderDetailItems({
         )}
       </div>
     </section>
-  );
+  )
 }

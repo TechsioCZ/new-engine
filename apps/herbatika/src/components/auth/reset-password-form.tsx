@@ -1,24 +1,24 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import NextLink from "next/link";
-import { useState } from "react";
-import { PasswordRequirements } from "@/components/auth/password-requirements";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import NextLink from "next/link"
+import { useState } from "react"
+import { PasswordRequirements } from "@/components/auth/password-requirements"
 import {
-  resetPasswordValidators,
   type ResetPasswordFormValues,
-} from "@/lib/auth/auth-form-validators";
-import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
+  resetPasswordValidators,
+} from "@/lib/auth/auth-form-validators"
+import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 
 type ResetPasswordFormProps = {
-  isBusy: boolean;
-  defaultValues: ResetPasswordFormValues;
-  loginHref: string;
-  hasToken: boolean;
-  onSubmit: (values: ResetPasswordFormValues) => Promise<string | null>;
-};
+  isBusy: boolean
+  defaultValues: ResetPasswordFormValues
+  loginHref: string
+  hasToken: boolean
+  onSubmit: (values: ResetPasswordFormValues) => Promise<string | null>
+}
 
 export const ResetPasswordForm = ({
   isBusy,
@@ -27,21 +27,21 @@ export const ResetPasswordForm = ({
   hasToken,
   onSubmit,
 }: ResetPasswordFormProps) => {
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
-      setSubmitError(null);
-      const error = await onSubmit(value);
+      setSubmitError(null)
+      const error = await onSubmit(value)
       if (error) {
-        setSubmitError(error);
-        return;
+        setSubmitError(error)
+        return
       }
-      setIsSuccess(true);
+      setIsSuccess(true)
     },
-  });
+  })
 
   if (!hasToken) {
     return (
@@ -49,21 +49,21 @@ export const ResetPasswordForm = ({
         <StatusText showIcon status="error">
           Tento odkaz je neplatný alebo už vypršal.
         </StatusText>
-        <p className="text-sm text-fg-secondary">
+        <p className="text-fg-secondary text-sm">
           Skúste si vyžiadať nový odkaz na obnovu hesla.
         </p>
         <div className="flex flex-wrap gap-200">
           <LinkButton
             as={NextLink}
             href="/auth/forgot-password"
-            variant="primary"
             size="sm"
+            variant="primary"
           >
             Vyžiadať nový odkaz
           </LinkButton>
         </div>
       </div>
-    );
+    )
   }
 
   if (isSuccess) {
@@ -73,12 +73,17 @@ export const ResetPasswordForm = ({
           Heslo bolo úspešne zmenené. Môžete sa prihlásiť pomocou nového hesla.
         </StatusText>
         <div className="flex flex-wrap gap-200">
-          <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm">
+          <LinkButton
+            as={NextLink}
+            href={loginHref}
+            size="sm"
+            variant="primary"
+          >
             Prejsť na prihlásenie
           </LinkButton>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -86,8 +91,8 @@ export const ResetPasswordForm = ({
       className="flex flex-col gap-300"
       noValidate
       onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       {submitError && (
@@ -134,10 +139,10 @@ export const ResetPasswordForm = ({
       </form.AppField>
 
       <div className="flex flex-wrap gap-200">
-        <Button isLoading={isBusy} type="submit" size="sm">
+        <Button isLoading={isBusy} size="sm" type="submit">
           Obnoviť heslo
         </Button>
       </div>
     </form>
-  );
-};
+  )
+}

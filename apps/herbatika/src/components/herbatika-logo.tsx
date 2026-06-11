@@ -1,13 +1,13 @@
-import { Link } from "@techsio/ui-kit/atoms/link";
-import NextLink from "next/link";
-import NextImage from "next/image";
-import logo from "@/assets/herbatica-logo.avif";
+import { Link } from "@techsio/ui-kit/atoms/link"
+import NextImage from "next/image"
+import NextLink from "next/link"
+import logo from "@/assets/herbatica-logo.avif"
 
-interface HerbatikaLogoProps {
-  className?: string;
-  href?: string;
-  imageClassName?: string;
-  size?: "sm" | "md" | "lg";
+type HerbatikaLogoProps = {
+  className?: string
+  href?: string
+  imageClassName?: string
+  size?: "sm" | "md" | "lg"
 }
 
 export function HerbatikaLogo({
@@ -17,8 +17,14 @@ export function HerbatikaLogo({
   size = "md",
 }: HerbatikaLogoProps) {
   const sizeClass =
-    size === "sm" ? "h-11 w-auto" : size === "lg" ? "h-header-logo w-auto" : "h-13 w-auto";
-  const imageClasses = imageClassName ? `${sizeClass} ${imageClassName}` : sizeClass;
+    size === "sm"
+      ? "h-11 w-auto"
+      : size === "lg"
+        ? "h-header-logo w-auto"
+        : "h-13 w-auto"
+  const imageClasses = imageClassName
+    ? `${sizeClass} ${imageClassName}`
+    : sizeClass
 
   return (
     <Link as={NextLink} className={className} href={href}>
@@ -31,5 +37,5 @@ export function HerbatikaLogo({
         width={280}
       />
     </Link>
-  );
+  )
 }

@@ -13,7 +13,6 @@ import {
   type MedusaUpdateCustomerData,
 } from "../auth/medusa-service"
 import type { AuthQueryKeys, AuthService } from "../auth/types"
-import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
 import {
   type CartHooks,
   type CreateCartHooksConfig,
@@ -112,18 +111,6 @@ import type {
 } from "../orders/medusa-service"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
 import {
-  type CreateProductHooksConfig,
-  createProductHooks,
-  type ProductHooks,
-} from "../products/hooks"
-import type {
-  createMedusaProductService,
-  MedusaProductDetailInput,
-  MedusaProductListInput,
-  MedusaProductServiceConfig,
-} from "../products/medusa-service"
-import type { ProductQueryKeys } from "../products/types"
-import {
   type CreateProductListHooksConfig,
   createProductListHooks,
   type ProductListHooks,
@@ -144,6 +131,18 @@ import type {
   ProductListService,
 } from "../product-lists/types"
 import {
+  type CreateProductHooksConfig,
+  createProductHooks,
+  type ProductHooks,
+} from "../products/hooks"
+import type {
+  createMedusaProductService,
+  MedusaProductDetailInput,
+  MedusaProductListInput,
+  MedusaProductServiceConfig,
+} from "../products/medusa-service"
+import type { ProductQueryKeys } from "../products/types"
+import {
   type CreateRegionHooksConfig,
   createRegionHooks,
   type RegionHooks,
@@ -155,6 +154,7 @@ import type {
 } from "../regions/medusa-service"
 import type { RegionQueryKeys } from "../regions/types"
 import type { CacheConfig } from "../shared/cache-config"
+import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createMedusaCartFlow } from "./cart-flow"
 import { createMedusaCheckoutFlow } from "./checkout-flow"
@@ -707,8 +707,7 @@ const createDefaultCatalogFacets = (): CatalogFacets => ({
 export const createMedusaStorefrontQueryKeys =
   createMedusaStorefrontQueryKeysFromFoundation
 
-export type MedusaStorefrontQueryKeys =
-  MedusaStorefrontQueryKeysFromFoundation
+export type MedusaStorefrontQueryKeys = MedusaStorefrontQueryKeysFromFoundation
 
 /**
  * Create a complete Medusa storefront data preset with shared namespace/cache config.
@@ -751,8 +750,11 @@ export function createMedusaStorefrontPreset<
   TCustomerAddressCreateInput,
   TCustomerAddressUpdateInput
 > {
-  const { namespace, cacheConfig: resolvedCacheConfig, defaultQueryKeys } =
-    resolveMedusaStorefrontFoundation(config)
+  const {
+    namespace,
+    cacheConfig: resolvedCacheConfig,
+    defaultQueryKeys,
+  } = resolveMedusaStorefrontFoundation(config)
 
   const resolveQueryKeys = () => ({
     auth: config.auth?.queryKeys ?? defaultQueryKeys.auth,
@@ -872,8 +874,7 @@ export function createMedusaStorefrontPreset<
       ],
     }
   }
-  const resolvedAuthInvalidateOnAuthChange =
-    resolveAuthInvalidateOnAuthChange()
+  const resolvedAuthInvalidateOnAuthChange = resolveAuthInvalidateOnAuthChange()
 
   // Safe: non-default facet shapes must provide catalog.fallbackFacets via
   // CreateMedusaStorefrontPresetConfig, so the default fallback is only used

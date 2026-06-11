@@ -1,33 +1,33 @@
-"use client";
+"use client"
 
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   clearStoredCarrierPickupSelection,
   writeStoredCarrierPickupSelection,
-} from "./carrier-pickup-selection-storage";
+} from "./carrier-pickup-selection-storage"
 import {
   resolveCompleteCartFailure,
   resolveOrderId,
-} from "./checkout-completion.utils";
-import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils";
+} from "./checkout-completion.utils"
+import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
 
 type UseCheckoutActionsProps = {
-  cartId?: string;
-  completedOrderId: string | null;
-  onCompletedOrderIdChange: (orderId: string | null) => void;
-  onOrderCompletionAbort: () => void;
-  onOrderCompletionStart: () => void;
-  onPaymentRedirect: (url: string) => void;
-  itemCount: number;
-  canInitiatePayment: boolean;
-  selectedPaymentProviderId?: string | null;
-  selectedShippingMethodId?: string | null;
-  completeCart: () => Promise<unknown>;
-  initiatePayment: (providerId: string) => Promise<unknown>;
-  onCheckoutErrorChange: (message: string | null) => void;
-  onPaymentProviderSelect: (providerId: string) => void;
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void;
-};
+  cartId?: string
+  completedOrderId: string | null
+  onCompletedOrderIdChange: (orderId: string | null) => void
+  onOrderCompletionAbort: () => void
+  onOrderCompletionStart: () => void
+  onPaymentRedirect: (url: string) => void
+  itemCount: number
+  canInitiatePayment: boolean
+  selectedPaymentProviderId?: string | null
+  selectedShippingMethodId?: string | null
+  completeCart: () => Promise<unknown>
+  initiatePayment: (providerId: string) => Promise<unknown>
+  onCheckoutErrorChange: (message: string | null) => void
+  onPaymentProviderSelect: (providerId: string) => void
+  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
+}
 
 export function useCheckoutActions({
   cartId,
@@ -47,112 +47,112 @@ export function useCheckoutActions({
   setShippingMethod,
 }: UseCheckoutActionsProps) {
   const resetFeedback = () => {
-    onCheckoutErrorChange(null);
+    onCheckoutErrorChange(null)
     if (completedOrderId) {
-      onCompletedOrderIdChange(null);
-      onOrderCompletionAbort();
+      onCompletedOrderIdChange(null)
+      onOrderCompletionAbort()
     }
-  };
+  }
 
   const handleSelectShipping = (
     optionId: string,
-    data?: Record<string, unknown>,
+    data?: Record<string, unknown>
   ) => {
-    resetFeedback();
+    resetFeedback()
 
     try {
       if (data) {
-        writeStoredCarrierPickupSelection({ cartId, data, optionId });
+        writeStoredCarrierPickupSelection({ cartId, data, optionId })
       } else {
-        clearStoredCarrierPickupSelection(cartId);
+        clearStoredCarrierPickupSelection(cartId)
       }
-      setShippingMethod(optionId, data);
+      setShippingMethod(optionId, data)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
-      );
+        resolveErrorMessage(error, "Nastavenie dopravy zlyhalo.")
+      )
     }
-  };
+  }
 
   const handleSelectPaymentProvider = async (providerId: string) => {
-    resetFeedback();
+    resetFeedback()
 
     if (!canInitiatePayment) {
-      onCheckoutErrorChange("Najprv vyberte dopravu.");
-      return;
+      onCheckoutErrorChange("Najprv vyberte dopravu.")
+      return
     }
 
     try {
-      onPaymentProviderSelect(providerId);
+      onPaymentProviderSelect(providerId)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, "Nastavenie platby zlyhalo."),
-      );
+        resolveErrorMessage(error, "Nastavenie platby zlyhalo.")
+      )
     }
-  };
+  }
 
   const handleCompleteOrder = async () => {
-    resetFeedback();
+    resetFeedback()
 
     if (!cartId) {
-      onCheckoutErrorChange("Košík nie je pripravený.");
-      return;
+      onCheckoutErrorChange("Košík nie je pripravený.")
+      return
     }
 
     if (itemCount < 1) {
-      onCheckoutErrorChange("Košík je prázdny. Pridajte najprv produkty.");
-      return;
+      onCheckoutErrorChange("Košík je prázdny. Pridajte najprv produkty.")
+      return
     }
 
     if (!selectedShippingMethodId) {
-      onCheckoutErrorChange("Vyberte dopravu pred dokončením objednávky.");
-      return;
+      onCheckoutErrorChange("Vyberte dopravu pred dokončením objednávky.")
+      return
     }
 
     if (!selectedPaymentProviderId) {
       onCheckoutErrorChange(
-        "Vyberte platobnú metódu pred dokončením objednávky.",
-      );
-      return;
+        "Vyberte platobnú metódu pred dokončením objednávky."
+      )
+      return
     }
 
-    onOrderCompletionStart();
+    onOrderCompletionStart()
 
     try {
-      const paymentCollection = await initiatePayment(selectedPaymentProviderId);
-      const paymentRedirectUrl = resolvePaymentRedirectUrl(paymentCollection);
+      const paymentCollection = await initiatePayment(selectedPaymentProviderId)
+      const paymentRedirectUrl = resolvePaymentRedirectUrl(paymentCollection)
 
       if (paymentRedirectUrl) {
-        onPaymentRedirect(paymentRedirectUrl);
-        return;
+        onPaymentRedirect(paymentRedirectUrl)
+        return
       }
 
-      const completeResult = await completeCart();
-      const orderId = resolveOrderId(completeResult);
+      const completeResult = await completeCart()
+      const orderId = resolveOrderId(completeResult)
 
       if (orderId) {
-        onCompletedOrderIdChange(orderId);
-        return;
+        onCompletedOrderIdChange(orderId)
+        return
       }
 
       const completionFailureMessage =
-        resolveCompleteCartFailure(completeResult);
+        resolveCompleteCartFailure(completeResult)
 
       if (completionFailureMessage) {
-        onOrderCompletionAbort();
-        onCheckoutErrorChange(completionFailureMessage);
-        return;
+        onOrderCompletionAbort()
+        onCheckoutErrorChange(completionFailureMessage)
+        return
       }
 
-      onOrderCompletionAbort();
-      onCheckoutErrorChange("Dokončenie objednávky zlyhalo.");
+      onOrderCompletionAbort()
+      onCheckoutErrorChange("Dokončenie objednávky zlyhalo.")
     } catch (error) {
-      onOrderCompletionAbort();
+      onOrderCompletionAbort()
       onCheckoutErrorChange(
-        resolveErrorMessage(error, "Dokončenie objednávky zlyhalo."),
-      );
+        resolveErrorMessage(error, "Dokončenie objednávky zlyhalo.")
+      )
     }
-  };
+  }
 
   return {
     completedOrderId,
@@ -160,5 +160,5 @@ export function useCheckoutActions({
     handleSelectPaymentProvider,
     handleSelectShipping,
     resetFeedback,
-  };
+  }
 }

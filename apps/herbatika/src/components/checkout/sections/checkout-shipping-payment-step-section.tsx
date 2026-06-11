@@ -1,11 +1,11 @@
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextLink from "next/link";
-import { type ComponentProps, useState } from "react";
-import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils";
-import type { CheckoutController } from "@/components/checkout/use-checkout-controller";
-import { CheckoutPaymentSection } from "./checkout-payment-section";
-import { CheckoutShippingSection } from "./checkout-shipping-section";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import NextLink from "next/link"
+import { type ComponentProps, useState } from "react"
+import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
+import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { CheckoutPaymentSection } from "./checkout-payment-section"
+import { CheckoutShippingSection } from "./checkout-shipping-section"
 
 type CheckoutShippingPaymentStepController = Pick<
   CheckoutController,
@@ -17,16 +17,16 @@ type CheckoutShippingPaymentStepController = Pick<
   | "hasPayment"
   | "hasShipping"
   | "isBusy"
->;
+>
 
 type CheckoutShippingPaymentStepSectionProps = {
-  backStepHref: string;
-  controller: CheckoutShippingPaymentStepController;
-  nextStepHref: string;
+  backStepHref: string
+  controller: CheckoutShippingPaymentStepController
+  nextStepHref: string
   selectedPaymentProviderId?: ComponentProps<
     typeof CheckoutPaymentSection
-  >["selectedPaymentProviderId"];
-};
+  >["selectedPaymentProviderId"]
+}
 
 export function CheckoutShippingPaymentStepSection({
   backStepHref,
@@ -36,28 +36,28 @@ export function CheckoutShippingPaymentStepSection({
 }: CheckoutShippingPaymentStepSectionProps) {
   const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
     string | null
-  >(null);
+  >(null)
   const pendingPickupOption =
     controller.checkoutShippingQuery.shippingOptions.find(
-      (option) => option.id === pendingPickupOptionId,
-    );
+      (option) => option.id === pendingPickupOptionId
+    )
   const hasPendingPickupRequirement = Boolean(
-    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption),
-  );
+    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption)
+  )
   const paymentSelectionMessage = controller.checkoutPaymentQuery
     .canInitiatePayment
     ? null
     : hasPendingPickupRequirement
       ? "Pre voľbu platby najprv vyberte výdajné miesto."
-      : "Pre voľbu platby najprv vyberte dopravu.";
+      : "Pre voľbu platby najprv vyberte dopravu."
 
   return (
     <section className="space-y-400">
       <CheckoutShippingSection
         currencyCode={controller.currencyCode}
         isBusy={controller.isBusy}
-        onSelectShipping={controller.handleSelectShipping}
         onPendingPickupOptionIdChange={setPendingPickupOptionId}
+        onSelectShipping={controller.handleSelectShipping}
         pendingPickupOptionId={pendingPickupOptionId}
         selectedShippingMethodId={
           controller.checkoutShippingQuery.selectedShippingMethodId
@@ -77,15 +77,15 @@ export function CheckoutShippingPaymentStepSection({
         selectionMessage={paymentSelectionMessage}
       />
 
-      <div className="flex flex-col gap-250 pt-150 px-500 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-250 px-500 pt-150 sm:flex-row sm:items-center">
         <LinkButton
           as={NextLink}
+          className="hover:button-bg-outlined-tertiary-hover"
           href={backStepHref}
+          icon="token-icon-chevron-left"
           size="lg"
           theme="outlined"
-          icon="token-icon-chevron-left"
           variant="tertiary"
-          className="hover:button-bg-outlined-tertiary-hover"
         >
           <span className="font-normal">Späť na košík</span>
         </LinkButton>
@@ -111,5 +111,5 @@ export function CheckoutShippingPaymentStepSection({
         )}
       </div>
     </section>
-  );
+  )
 }

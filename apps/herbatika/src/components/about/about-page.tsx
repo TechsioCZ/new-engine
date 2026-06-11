@@ -1,7 +1,7 @@
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb";
+} from "@/components/herbatika-breadcrumb"
 import {
   AboutArticleSections,
   AboutClosingStatement,
@@ -9,13 +9,13 @@ import {
   AboutContact,
   AboutMilestones,
   AboutPrinciples,
-} from "./about-page-sections";
-import { AboutHero } from "./about-page-top";
+} from "./about-page-sections"
+import { AboutHero } from "./about-page-top"
 
 const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
   { label: "Domov", href: "/", icon: "token-icon-home" },
   { label: "O nás" },
-];
+]
 
 export function AboutPage() {
   return (
@@ -32,5 +32,5 @@ export function AboutPage() {
         <AboutContact />
       </div>
     </main>
-  );
+  )
 }

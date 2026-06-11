@@ -94,6 +94,40 @@
       }
     },
     {
+      "includes": ["apps/herbatika/**/*"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noNoninteractiveElementInteractions": "warn",
+            "noStaticElementInteractions": "warn",
+            "useSemanticElements": "warn"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "warn",
+            "noVoid": "off"
+          },
+          "nursery": {
+            "noShadow": "warn"
+          },
+          "performance": {
+            "noBarrelFile": "info"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "style": {
+            "noExportedImports": "off",
+            "noNestedTernary": "warn"
+          },
+          "suspicious": {
+            "noDocumentCookie": "off",
+            "noRedeclare": "warn",
+            "useAwait": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["apps/medusa-be/**/*"],
       "linter": {
         "rules": {

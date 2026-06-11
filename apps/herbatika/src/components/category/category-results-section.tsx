@@ -1,43 +1,43 @@
-import type { HttpTypes } from "@medusajs/types";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import { Pagination } from "@techsio/ui-kit/molecules/pagination";
-import NextLink from "next/link";
-import type { ReactNode } from "react";
+import type { HttpTypes } from "@medusajs/types"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import NextLink from "next/link"
+import type { ReactNode } from "react"
 import {
   HerbatikaProductGrid,
   type HerbatikaProductGridLayout,
-} from "@/components/product/herbatika-product-grid";
-import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
-import type { ProductSortValue } from "@/lib/storefront/plp-query-state";
-import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder";
-import { CategorySortTabs } from "./category-sort-tabs";
+} from "@/components/product/herbatika-product-grid"
+import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
+import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
+import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
+import { CategorySortTabs } from "./category-sort-tabs"
 
 type CategoryResultsSectionProps = {
-  activeSort: ProductSortValue;
-  addToCartError: string | null;
-  categoriesError: string | null;
-  catalogError: string | null;
-  isEmpty: boolean;
-  isLoading: boolean;
-  isProductAdding: (productId: string) => boolean;
-  emptyMessage?: string;
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>;
-  onProductHoverEnd: (product: HttpTypes.StoreProduct) => void;
-  onProductHoverStart: (product: HttpTypes.StoreProduct) => void;
-  onSortChange: (value: ProductSortValue) => void;
-  page: number;
-  pageSize: number;
-  products: HttpTypes.StoreProduct[];
-  layout?: HerbatikaProductGridLayout;
-  loadingSkeleton?: ReactNode;
-  showCategoryNotFound: boolean;
-  sortItems: Array<{ label: string; value: ProductSortValue }>;
-  totalCount: number;
-  totalPages: number;
-  totalProducts: number;
-  isRefreshing?: boolean;
-};
+  activeSort: ProductSortValue
+  addToCartError: string | null
+  categoriesError: string | null
+  catalogError: string | null
+  isEmpty: boolean
+  isLoading: boolean
+  isProductAdding: (productId: string) => boolean
+  emptyMessage?: string
+  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>
+  onProductHoverEnd: (product: HttpTypes.StoreProduct) => void
+  onProductHoverStart: (product: HttpTypes.StoreProduct) => void
+  onSortChange: (value: ProductSortValue) => void
+  page: number
+  pageSize: number
+  products: HttpTypes.StoreProduct[]
+  layout?: HerbatikaProductGridLayout
+  loadingSkeleton?: ReactNode
+  showCategoryNotFound: boolean
+  sortItems: Array<{ label: string; value: ProductSortValue }>
+  totalCount: number
+  totalPages: number
+  totalProducts: number
+  isRefreshing?: boolean
+}
 
 export function CategoryResultsSection({
   activeSort,
@@ -64,12 +64,12 @@ export function CategoryResultsSection({
   totalProducts,
   isRefreshing = false,
 }: CategoryResultsSectionProps) {
-  const getPageUrl = usePaginationUrlBuilder();
+  const getPageUrl = usePaginationUrlBuilder()
   const resolvedLoadingSkeleton = loadingSkeleton ?? (
     <HerbatikaProductGridSkeleton layout={layout} />
-  );
-  const shouldShowInitialSkeleton = isLoading && products.length === 0;
-  const shouldShowProductsGrid = !showCategoryNotFound && products.length > 0;
+  )
+  const shouldShowInitialSkeleton = isLoading && products.length === 0
+  const shouldShowProductsGrid = !showCategoryNotFound && products.length > 0
 
   return (
     <div className="min-w-0 space-y-400 xl:col-span-9">
@@ -108,11 +108,9 @@ export function CategoryResultsSection({
 
       {shouldShowInitialSkeleton && resolvedLoadingSkeleton}
 
-      {!isLoading && !showCategoryNotFound && isEmpty && (
+      {!(isLoading || showCategoryNotFound) && isEmpty && (
         <div className="rounded-lg border border-border-secondary bg-base p-400">
-          <p className="text-sm text-fg-secondary">
-            {emptyMessage}
-          </p>
+          <p className="text-fg-secondary text-sm">{emptyMessage}</p>
         </div>
       )}
 
@@ -140,5 +138,5 @@ export function CategoryResultsSection({
         />
       )}
     </div>
-  );
+  )
 }

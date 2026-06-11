@@ -12,6 +12,7 @@ import {
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import { invalidateCartCaches, syncCartCaches } from "../shared/cart-cache-sync"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   MutationOptions,
@@ -24,7 +25,6 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import type { StorageValueStore } from "../shared/storage-value-store"
-import { invalidateCartCaches, syncCartCaches } from "../shared/cart-cache-sync"
 import { createCartQueryKeys } from "./query-keys"
 import type {
   AddLineItemInputBase,

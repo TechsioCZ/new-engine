@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import NextLink from "next/link";
-import { useState } from "react";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import NextLink from "next/link"
+import { useState } from "react"
 import {
-  forgotPasswordValidators,
   type ForgotPasswordFormValues,
-} from "@/lib/auth/auth-form-validators";
-import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
-import { AuthFooter } from "./auth-footer";
+  forgotPasswordValidators,
+} from "@/lib/auth/auth-form-validators"
+import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
+import { AuthFooter } from "./auth-footer"
 
 type ForgotPasswordFormProps = {
-  isBusy: boolean;
-  defaultValues: ForgotPasswordFormValues;
-  loginHref: string;
-  onSubmit: (values: ForgotPasswordFormValues) => Promise<string | null>;
-};
+  isBusy: boolean
+  defaultValues: ForgotPasswordFormValues
+  loginHref: string
+  onSubmit: (values: ForgotPasswordFormValues) => Promise<string | null>
+}
 
 export const ForgotPasswordForm = ({
   isBusy,
@@ -25,21 +25,21 @@ export const ForgotPasswordForm = ({
   loginHref,
   onSubmit,
 }: ForgotPasswordFormProps) => {
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
-      setSubmitError(null);
-      const error = await onSubmit(value);
+      setSubmitError(null)
+      const error = await onSubmit(value)
       if (error) {
-        setSubmitError(error);
-        return;
+        setSubmitError(error)
+        return
       }
-      setSubmittedEmail(value.email);
+      setSubmittedEmail(value.email)
     },
-  });
+  })
 
   if (submittedEmail) {
     return (
@@ -47,17 +47,23 @@ export const ForgotPasswordForm = ({
         <StatusText showIcon={false} status="success">
           {`Odkaz na obnovu hesla sme odoslali na ${submittedEmail}. Skontrolujte si schránku.`}
         </StatusText>
-        <p className="text-sm text-fg-secondary">
+        <p className="text-fg-secondary text-sm">
           E-mail vám nedorazil? Skontrolujte priečinok spam alebo to skúste
           znovu o pár minút.
         </p>
         <div className="flex flex-wrap gap-200">
-          <LinkButton as={NextLink} href={loginHref} variant="primary" size="sm" block>
+          <LinkButton
+            as={NextLink}
+            block
+            href={loginHref}
+            size="sm"
+            variant="primary"
+          >
             Späť na prihlásenie
           </LinkButton>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -65,8 +71,8 @@ export const ForgotPasswordForm = ({
       className="flex flex-col gap-300"
       noValidate
       onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       {submitError && (
@@ -90,11 +96,11 @@ export const ForgotPasswordForm = ({
       </form.AppField>
 
       <div className="flex flex-wrap gap-200">
-        <Button isLoading={isBusy} type="submit" size="sm" block>
+        <Button block isLoading={isBusy} size="sm" type="submit">
           Zaslať odkaz
         </Button>
       </div>
-      <AuthFooter text="" href="/auth/login" linkText="Späť na prihlásenie" />
+      <AuthFooter href="/auth/login" linkText="Späť na prihlásenie" text="" />
     </form>
-  );
-};
+  )
+}

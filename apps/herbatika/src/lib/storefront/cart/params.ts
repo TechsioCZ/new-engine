@@ -1,57 +1,57 @@
 import type {
-  AddLineItemInputBase,
-  CartCreateInputBase,
-  UpdateCartInputBase,
-} from "@techsio/storefront-data/cart/types";
-import type {
   MedusaCartAddItemParams,
   MedusaCartCreateParams,
   MedusaCartUpdateParams,
-} from "@techsio/storefront-data/cart/medusa-service";
+} from "@techsio/storefront-data/cart/medusa-service"
+import type {
+  AddLineItemInputBase,
+  CartCreateInputBase,
+  UpdateCartInputBase,
+} from "@techsio/storefront-data/cart/types"
 
-type CartPayloadInput = Record<string, unknown> & { salesChannelId?: string };
+type CartPayloadInput = Record<string, unknown> & { salesChannelId?: string }
 
 const normalizeCountryCode = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return undefined;
+    return
   }
 
-  const normalized = value.trim().toLowerCase();
+  const normalized = value.trim().toLowerCase()
   if (!/^[a-z]{2}$/.test(normalized)) {
-    return undefined;
+    return
   }
 
-  return normalized;
-};
+  return normalized
+}
 
 const normalizeAddressPayload = (
-  value: unknown,
+  value: unknown
 ): Record<string, unknown> | undefined => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
+    return
   }
 
-  const address = { ...(value as Record<string, unknown>) };
-  const fieldAliases: Array<[camel: string, snake: string]> = [
+  const address = { ...(value as Record<string, unknown>) }
+  const fieldAliases: [camel: string, snake: string][] = [
     ["firstName", "first_name"],
     ["lastName", "last_name"],
     ["address1", "address_1"],
     ["address2", "address_2"],
     ["postalCode", "postal_code"],
     ["countryCode", "country_code"],
-  ];
+  ]
 
   for (const [camel, snake] of fieldAliases) {
     if (address[snake] !== undefined || address[camel] === undefined) {
-      continue;
+      continue
     }
 
-    address[snake] = address[camel];
-    delete address[camel];
+    address[snake] = address[camel]
+    delete address[camel]
   }
 
-  return address;
-};
+  return address
+}
 
 const normalizeCartPayload = (input: CartPayloadInput) => {
   const {
@@ -67,33 +67,33 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
     country_code: _countryCode,
     salesChannelId,
     ...rest
-  } = input;
+  } = input
 
-  const normalizedCountryCode = normalizeCountryCode(_countryCode);
-  const shippingAddress = normalizeAddressPayload(_shippingAddress);
-  const billingAddress = normalizeAddressPayload(_billingAddress);
+  const normalizedCountryCode = normalizeCountryCode(_countryCode)
+  const shippingAddress = normalizeAddressPayload(_shippingAddress)
+  const billingAddress = normalizeAddressPayload(_billingAddress)
 
   const resolvedShippingAddress = (() => {
-    if (!shippingAddress && !normalizedCountryCode) {
-      return undefined;
+    if (!(shippingAddress || normalizedCountryCode)) {
+      return
     }
 
-    const nextShippingAddress = shippingAddress ?? {};
+    const nextShippingAddress = shippingAddress ?? {}
     if (nextShippingAddress.countryCode !== undefined) {
-      delete nextShippingAddress.countryCode;
+      nextShippingAddress.countryCode = undefined
     }
     if (
       normalizedCountryCode &&
       nextShippingAddress.country_code === undefined
     ) {
-      nextShippingAddress.country_code = normalizedCountryCode;
+      nextShippingAddress.country_code = normalizedCountryCode
     }
 
-    return nextShippingAddress;
-  })();
+    return nextShippingAddress
+  })()
 
   if (billingAddress?.countryCode !== undefined) {
-    delete billingAddress.countryCode;
+    billingAddress.countryCode = undefined
   }
 
   const payload = {
@@ -103,32 +103,30 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
       ? { shipping_address: resolvedShippingAddress }
       : {}),
     ...(billingAddress ? { billing_address: billingAddress } : {}),
-  };
+  }
 
-  return payload;
-};
+  return payload
+}
 
 export const buildCreateCartParams = (
-  input: CartCreateInputBase,
-): MedusaCartCreateParams => {
-  return normalizeCartPayload(input as CartPayloadInput) as MedusaCartCreateParams;
-};
+  input: CartCreateInputBase
+): MedusaCartCreateParams =>
+  normalizeCartPayload(input as CartPayloadInput) as MedusaCartCreateParams
 
 export const buildUpdateCartParams = (
-  input: UpdateCartInputBase,
-): MedusaCartUpdateParams => {
-  return normalizeCartPayload(input as CartPayloadInput) as MedusaCartUpdateParams;
-};
+  input: UpdateCartInputBase
+): MedusaCartUpdateParams =>
+  normalizeCartPayload(input as CartPayloadInput) as MedusaCartUpdateParams
 
 export const buildCreateCartInputFromAddLineItemInput = (
-  input: AddLineItemInputBase,
+  input: AddLineItemInputBase
 ): CartCreateInputBase => {
-  const { metadata: _lineItemMetadata, ...rest } = input;
-  return rest as CartCreateInputBase;
-};
+  const { metadata: _lineItemMetadata, ...rest } = input
+  return rest as CartCreateInputBase
+}
 
 export const buildAddLineItemParams = (
-  input: AddLineItemInputBase,
+  input: AddLineItemInputBase
 ): MedusaCartAddItemParams => {
   const {
     cartId: _cartId,
@@ -140,10 +138,10 @@ export const buildAddLineItemParams = (
     salesChannelId: _salesChannelId,
     variantId,
     ...rest
-  } = input as AddLineItemInputBase & Record<string, unknown>;
+  } = input as AddLineItemInputBase & Record<string, unknown>
 
   return {
     ...(rest as Omit<MedusaCartAddItemParams, "variant_id">),
     variant_id: variantId,
-  };
-};
+  }
+}

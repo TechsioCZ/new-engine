@@ -1,22 +1,22 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import { useState } from "react";
-import { PasswordRequirements } from "@/components/auth/password-requirements";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useState } from "react"
+import { PasswordRequirements } from "@/components/auth/password-requirements"
 import {
-  registerValidators,
   type RegisterFormValues,
-} from "@/lib/auth/auth-form-validators";
-import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form";
-import { AuthFooter } from "./auth-footer";
+  registerValidators,
+} from "@/lib/auth/auth-form-validators"
+import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
+import { AuthFooter } from "./auth-footer"
 
 type RegisterFormProps = {
-  isBusy: boolean;
-  defaultValues: RegisterFormValues;
-  loginHref: string;
-  onSubmit: (values: RegisterFormValues) => Promise<string | null>;
-};
+  isBusy: boolean
+  defaultValues: RegisterFormValues
+  loginHref: string
+  onSubmit: (values: RegisterFormValues) => Promise<string | null>
+}
 
 export const RegisterForm = ({
   isBusy,
@@ -24,19 +24,19 @@ export const RegisterForm = ({
   loginHref,
   onSubmit,
 }: RegisterFormProps) => {
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value, formApi }) => {
-      setSubmitError(null);
-      const error = await onSubmit(value);
-      setSubmitError(error);
+      setSubmitError(null)
+      const error = await onSubmit(value)
+      setSubmitError(error)
       if (!error) {
-        formApi.reset(defaultValues);
+        formApi.reset(defaultValues)
       }
     },
-  });
+  })
 
   return (
     <form
@@ -44,8 +44,8 @@ export const RegisterForm = ({
       className="grid gap-300 md:grid-cols-2"
       noValidate
       onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       {submitError && (
@@ -56,7 +56,10 @@ export const RegisterForm = ({
         </div>
       )}
 
-      <form.AppField name="first_name" validators={registerValidators.first_name}>
+      <form.AppField
+        name="first_name"
+        validators={registerValidators.first_name}
+      >
         {(field) => (
           <field.TextField
             autoComplete="off"
@@ -155,8 +158,12 @@ export const RegisterForm = ({
         </Button>
       </div>
       <div className="md:col-span-2">
-        <AuthFooter href={loginHref} linkText="Prihlásiť sa" text="Už máte účet?" />
+        <AuthFooter
+          href={loginHref}
+          linkText="Prihlásiť sa"
+          text="Už máte účet?"
+        />
       </div>
     </form>
-  );
-};
+  )
+}

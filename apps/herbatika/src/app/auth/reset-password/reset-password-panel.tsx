@@ -1,49 +1,52 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { ResetPasswordForm } from "@/components/auth/reset-password-form";
-import { requestPasswordUpdateProxy } from "@/lib/storefront/auth/proxy";
+import { useState } from "react"
+import { ResetPasswordForm } from "@/components/auth/reset-password-form"
+import { requestPasswordUpdateProxy } from "@/lib/storefront/auth/proxy"
 
-const LOGIN_HREF = "/auth/login";
+const LOGIN_HREF = "/auth/login"
 
 type ResetPasswordPanelProps = {
-  token: string | null;
-  email: string | null;
-};
+  token: string | null
+  email: string | null
+}
 
-export const ResetPasswordPanel = ({ token, email }: ResetPasswordPanelProps) => {
-  const [isBusy, setIsBusy] = useState(false);
-  const hasToken = Boolean(token);
+export const ResetPasswordPanel = ({
+  token,
+  email,
+}: ResetPasswordPanelProps) => {
+  const [isBusy, setIsBusy] = useState(false)
+  const hasToken = Boolean(token)
 
   const handleSubmit = async (values: {
-    password: string;
-    confirm_password: string;
+    password: string
+    confirm_password: string
   }) => {
     if (!token) {
-      return "Tento odkaz je neplatný alebo už vypršal.";
+      return "Tento odkaz je neplatný alebo už vypršal."
     }
 
-    setIsBusy(true);
+    setIsBusy(true)
     try {
       await requestPasswordUpdateProxy({
         password: values.password,
         token,
-      });
-      return null;
+      })
+      return null
     } catch (error) {
       return error instanceof Error
         ? error.message
-        : "Nepodarilo sa obnoviť heslo.";
+        : "Nepodarilo sa obnoviť heslo."
     } finally {
-      setIsBusy(false);
+      setIsBusy(false)
     }
-  };
+  }
 
   return (
-    <section className="space-y-400 max-w-max-w mx-auto p-400">
+    <section className="mx-auto max-w-max-w space-y-400 p-400">
       <header className="space-y-200">
-        <h1 className="text-lg font-semibold">Obnova hesla</h1>
-        <p className="text-sm text-fg-secondary">
+        <h1 className="font-semibold text-lg">Obnova hesla</h1>
+        <p className="text-fg-secondary text-sm">
           {email
             ? `Nastavte nové heslo pre účet ${email}.`
             : "Zadajte nové heslo pre váš účet."}
@@ -58,5 +61,5 @@ export const ResetPasswordPanel = ({ token, email }: ResetPasswordPanelProps) =>
         onSubmit={handleSubmit}
       />
     </section>
-  );
-};
+  )
+}

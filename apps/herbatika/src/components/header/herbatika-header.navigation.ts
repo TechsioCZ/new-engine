@@ -1,15 +1,15 @@
-import giftIcon from "@/assets/icons/gift-icon.avif";
-import flameIcon from "@/assets/icons/flame-icon.avif";
-import { StaticImageData } from "next/image";
+import type { StaticImageData } from "next/image"
+import flameIcon from "@/assets/icons/flame-icon.avif"
+import giftIcon from "@/assets/icons/gift-icon.avif"
 
 type HeaderNavItem = {
-  href: string;
-  label: string;
-};
+  href: string
+  label: string
+}
 
 type HeaderActionItem = HeaderNavItem & {
-  src: StaticImageData;
-};
+  src: StaticImageData
+}
 
 export const PRIMARY_NAV_ITEMS: HeaderNavItem[] = [
   { href: "/c/trapi-ma", label: "Trápi ma" },
@@ -19,7 +19,7 @@ export const PRIMARY_NAV_ITEMS: HeaderNavItem[] = [
   { href: "/c/eko-domacnost", label: "EKO domácnosť" },
   { href: "/c/ucinne-zlozky-od-a-po-z", label: "Účinné zložky od A po Z" },
   { href: "/c/novinky", label: "Novinky" },
-];
+]
 
 export const HEADER_ACTION_ITEMS: HeaderActionItem[] = [
   {
@@ -32,4 +32,4 @@ export const HEADER_ACTION_ITEMS: HeaderActionItem[] = [
     src: flameIcon,
     label: "Akcie",
   },
-];
+]

@@ -1,78 +1,78 @@
 import {
   ORDER_QR_PAYMENT_PROVIDER_ID,
   type StorefrontOrderPaymentQrStatus,
-} from "./order-payment-qr.constants";
-export { ORDER_QR_PAYMENT_PROVIDER_ID };
-export type { StorefrontOrderPaymentQrStatus };
+} from "./order-payment-qr.constants"
+export { ORDER_QR_PAYMENT_PROVIDER_ID }
+export type { StorefrontOrderPaymentQrStatus }
 
 export type StorefrontOrderPaymentQr = {
-  amount: number | null;
-  currencyCode: string;
-  iban: string;
-  message: string | null;
-  orderDisplayId: string;
-  orderId: string;
-  providerId: typeof ORDER_QR_PAYMENT_PROVIDER_ID;
-  qrSvg: string;
-  spayd: string;
-  variableSymbol: string | null;
-};
+  amount: number | null
+  currencyCode: string
+  iban: string
+  message: string | null
+  orderDisplayId: string
+  orderId: string
+  providerId: typeof ORDER_QR_PAYMENT_PROVIDER_ID
+  qrSvg: string
+  spayd: string
+  variableSymbol: string | null
+}
 
 export type StorefrontOrderPaymentQrResult =
   | {
-      qrPayment: StorefrontOrderPaymentQr;
-      status: "ready";
+      qrPayment: StorefrontOrderPaymentQr
+      status: "ready"
     }
   | {
-      qrPayment: null;
-      status: Exclude<StorefrontOrderPaymentQrStatus, "ready">;
-    };
+      qrPayment: null
+      status: Exclude<StorefrontOrderPaymentQrStatus, "ready">
+    }
 
 type StoreOrderPaymentQrResponse = {
   qr_payment?: {
-    amount?: number | null;
-    currency_code?: string | null;
-    iban?: string | null;
-    message?: string | null;
-    order_display_id?: string | null;
-    order_id?: string | null;
-    provider_id?: string | null;
-    qr_svg?: string | null;
-    spayd?: string | null;
-    variable_symbol?: string | null;
-  } | null;
-  status?: StorefrontOrderPaymentQrStatus | null;
-};
+    amount?: number | null
+    currency_code?: string | null
+    iban?: string | null
+    message?: string | null
+    order_display_id?: string | null
+    order_id?: string | null
+    provider_id?: string | null
+    qr_svg?: string | null
+    spayd?: string | null
+    variable_symbol?: string | null
+  } | null
+  status?: StorefrontOrderPaymentQrStatus | null
+}
 
 type FetchOrderPaymentQrOptions = {
-  orderId: string;
-};
+  orderId: string
+}
 
 export const fetchOrderPaymentQr = async ({
   orderId,
 }: FetchOrderPaymentQrOptions): Promise<StorefrontOrderPaymentQrResult> => {
   const response = await fetch(
     `/api/storefront/orders/${encodeURIComponent(orderId)}/qr-payment`,
-    { method: "GET" },
-  );
+    { method: "GET" }
+  )
 
   if (!response.ok) {
-    throw new Error(`QR payment request failed with status ${response.status}.`);
+    throw new Error(`QR payment request failed with status ${response.status}.`)
   }
 
-  const payload = (await response.json()) as StoreOrderPaymentQrResponse;
+  const payload = (await response.json()) as StoreOrderPaymentQrResponse
 
-  return mapOrderPaymentQr(payload);
-};
+  return mapOrderPaymentQr(payload)
+}
 
 function mapOrderPaymentQr(
-  payload: StoreOrderPaymentQrResponse,
+  payload: StoreOrderPaymentQrResponse
 ): StorefrontOrderPaymentQrResult {
-  const status = normalizeQrPaymentStatus(payload.status);
-  const qrPayment = payload.qr_payment;
+  const status = normalizeQrPaymentStatus(payload.status)
+  const qrPayment = payload.qr_payment
 
   if (status !== "ready") {
-    return { qrPayment: null, status };
+    return { qrPayment: null, status }
   }
 
   if (
@@ -83,13 +83,14 @@ function mapOrderPaymentQr(
     typeof qrPayment.qr_svg !== "string" ||
     typeof qrPayment.spayd !== "string"
   ) {
-    return { qrPayment: null, status: "unavailable" };
+    return { qrPayment: null, status: "unavailable" }
   }
 
   return {
     qrPayment: {
       amount:
-        typeof qrPayment.amount === "number" && Number.isFinite(qrPayment.amount)
+        typeof qrPayment.amount === "number" &&
+        Number.isFinite(qrPayment.amount)
           ? qrPayment.amount
           : null,
       currencyCode: qrPayment.currency_code?.trim().toUpperCase() || "EUR",
@@ -103,11 +104,11 @@ function mapOrderPaymentQr(
       variableSymbol: qrPayment.variable_symbol ?? null,
     },
     status: "ready",
-  };
+  }
 }
 
 function normalizeQrPaymentStatus(
-  status: StoreOrderPaymentQrResponse["status"],
+  status: StoreOrderPaymentQrResponse["status"]
 ): StorefrontOrderPaymentQrResult["status"] {
   if (
     status === "ready" ||
@@ -115,8 +116,8 @@ function normalizeQrPaymentStatus(
     status === "not_applicable" ||
     status === "unavailable"
   ) {
-    return status;
+    return status
   }
 
-  return "unavailable";
+  return "unavailable"
 }

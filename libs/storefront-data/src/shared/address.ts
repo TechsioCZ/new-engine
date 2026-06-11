@@ -52,7 +52,10 @@ export class StorefrontAddressValidationError extends Error {
   ) {
     super(
       message ??
-        getStorefrontAddressValidationMessage(issues, "Address validation failed")
+        getStorefrontAddressValidationMessage(
+          issues,
+          "Address validation failed"
+        )
     )
     this.name = "StorefrontAddressValidationError"
     this.issues = [...issues]

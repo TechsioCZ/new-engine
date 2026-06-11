@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { SearchForm } from "@techsio/ui-kit/molecules/search-form";
-import type { FormEvent } from "react";
-import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types";
-import { SearchAutocompletePanel } from "./search-autocomplete-panel";
-import { useSearchAutocompleteController } from "./use-search-autocomplete-controller";
+import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
+import type { FormEvent } from "react"
+import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+import { SearchAutocompletePanel } from "./search-autocomplete-panel"
+import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 
 type SearchAutocompleteProps = {
-  countryCode?: string;
-  currencyCode: string;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  regionId?: string;
-  variant: "desktop" | "mobile";
-};
+  countryCode?: string
+  currencyCode: string
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  regionId?: string
+  variant: "desktop" | "mobile"
+}
 
 export function SearchAutocomplete({
   countryCode,
@@ -21,13 +21,13 @@ export function SearchAutocomplete({
   regionId,
   variant,
 }: SearchAutocompleteProps) {
-  const isMobile = variant === "mobile";
+  const isMobile = variant === "mobile"
   const controller = useSearchAutocompleteController({
     countryCode,
     currencyCode,
     onSubmit,
     regionId,
-  });
+  })
 
   return (
     <div className="relative w-full" onBlur={controller.handleBlur}>
@@ -41,9 +41,7 @@ export function SearchAutocomplete({
           <SearchForm.Input
             aria-activedescendant={controller.activeItemId}
             aria-autocomplete="list"
-            aria-controls={
-              controller.hasItems ? controller.panelId : undefined
-            }
+            aria-controls={controller.hasItems ? controller.panelId : undefined}
             aria-expanded={controller.shouldShowPanel}
             aria-haspopup="listbox"
             className={`${isMobile ? "px-350 text-sm" : "px-400"} h-full font-verdana`}
@@ -80,5 +78,5 @@ export function SearchAutocomplete({
         ) : null}
       </SearchForm>
     </div>
-  );
+  )
 }

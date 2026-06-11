@@ -50,7 +50,8 @@ const defaultReportLogoutError = (
   error: unknown,
   context: MedusaLogoutErrorContext
 ) => {
-  let message = "[storefront-data/auth] Failed to cleanup auth session after register error."
+  let message =
+    "[storefront-data/auth] Failed to cleanup auth session after register error."
 
   if (context === "logout") {
     message = "[storefront-data/auth] Failed to logout customer session."
@@ -143,10 +144,11 @@ export function createMedusaAuthService(
   return {
     async getCustomer(signal?: AbortSignal) {
       try {
-        const { customer } = await sdk.client.fetch<HttpTypes.StoreCustomerResponse>(
-          "/store/customers/me",
-          { signal }
-        )
+        const { customer } =
+          await sdk.client.fetch<HttpTypes.StoreCustomerResponse>(
+            "/store/customers/me",
+            { signal }
+          )
         if (!customer) {
           return null
         }
@@ -194,10 +196,14 @@ export function createMedusaAuthService(
 
     async register(data) {
       // Step 1: Register creates auth identity (email + password)
-      const registrationToken = await sdk.auth.register("customer", "emailpass", {
-        email: data.email,
-        password: data.password,
-      })
+      const registrationToken = await sdk.auth.register(
+        "customer",
+        "emailpass",
+        {
+          email: data.email,
+          password: data.password,
+        }
+      )
       let customerCreated = false
 
       try {

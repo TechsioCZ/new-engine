@@ -1,52 +1,52 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import type { ReactNode } from "react";
-import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel";
+import type { HttpTypes } from "@medusajs/types"
+import type { ReactNode } from "react"
+import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import {
   HerbatikaProductGrid,
   type HerbatikaProductGridLayout,
-} from "@/components/product/herbatika-product-grid";
-import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton";
-import { SupportingText } from "@/components/text/supporting-text";
+} from "@/components/product/herbatika-product-grid"
+import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
+import { SupportingText } from "@/components/text/supporting-text"
 
 type ProductCollectionSectionCommonProps = {
-  title: string;
-  products: HttpTypes.StoreProduct[];
-  id?: string;
-  subtitle?: string;
-  shouldShowSkeleton?: boolean;
-  emptyText?: string;
-  sectionClassName?: string;
-  headerClassName?: string;
-  titleClassName?: string;
-  subtitleClassName?: string;
-  headerAction?: ReactNode;
-  keyPrefix?: string;
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void;
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void;
-};
+  title: string
+  products: HttpTypes.StoreProduct[]
+  id?: string
+  subtitle?: string
+  shouldShowSkeleton?: boolean
+  emptyText?: string
+  sectionClassName?: string
+  headerClassName?: string
+  titleClassName?: string
+  subtitleClassName?: string
+  headerAction?: ReactNode
+  keyPrefix?: string
+  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
+  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
+}
 
 type ProductCollectionSectionGridProps = ProductCollectionSectionCommonProps & {
-  display?: "grid";
-  layout: HerbatikaProductGridLayout;
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void;
-  isProductAdding?: (product: HttpTypes.StoreProduct) => boolean;
-};
+  display?: "grid"
+  layout: HerbatikaProductGridLayout
+  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void
+  isProductAdding?: (product: HttpTypes.StoreProduct) => boolean
+}
 
 type ProductCollectionSectionCarouselProps =
   ProductCollectionSectionCommonProps & {
-    display: "carousel";
-    slidesSm?: number;
-    slidesMd?: number;
-    slidesLg?: number;
-  };
+    display: "carousel"
+    slidesSm?: number
+    slidesMd?: number
+    slidesLg?: number
+  }
 
 type ProductCollectionSectionProps =
   | ProductCollectionSectionGridProps
-  | ProductCollectionSectionCarouselProps;
+  | ProductCollectionSectionCarouselProps
 
-const EMPTY_PRODUCTS_TEXT = "Produkty sa momentálne načítavajú.";
+const EMPTY_PRODUCTS_TEXT = "Produkty sa momentálne načítavajú."
 
 export function ProductCollectionSection(props: ProductCollectionSectionProps) {
   const {
@@ -64,32 +64,32 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
     keyPrefix,
     onProductHoverStart,
     onProductHoverEnd,
-  } = props;
-  const isCarousel = props.display === "carousel";
+  } = props
+  const isCarousel = props.display === "carousel"
   const sectionClassNames = ["space-y-400", sectionClassName]
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
   const headerClassNames = [
     "flex items-end justify-between gap-400",
     headerClassName,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
   const titleClassNames = [
     "text-3xl font-bold leading-none text-fg-primary",
     titleClassName,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
   const subtitleClassNames = [
     "mt-100 text-sm text-fg-secondary",
     subtitleClassName,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(" ")
   const skeletonLayout: HerbatikaProductGridLayout = isCarousel
     ? "collection"
-    : props.layout;
+    : props.layout
 
   return (
     <section className={sectionClassNames} id={id}>
@@ -126,10 +126,10 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
           />
         )
       ) : (
-        <SupportingText className="text-sm text-fg-secondary">
+        <SupportingText className="text-fg-secondary text-sm">
           {emptyText}
         </SupportingText>
       )}
     </section>
-  );
+  )
 }

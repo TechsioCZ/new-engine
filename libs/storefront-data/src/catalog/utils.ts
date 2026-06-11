@@ -10,7 +10,11 @@ export const resolvePositiveInteger = (
       ? Math.trunc(fallbackValue)
       : 1
 
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return normalizedFallback
   }
 

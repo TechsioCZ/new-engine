@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { Tabs } from "@techsio/ui-kit/molecules/tabs";
-import { Fragment } from "react";
-import { AccountProductListItemRow } from "@/components/product-lists/account-product-list-item-row";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { Tabs } from "@techsio/ui-kit/molecules/tabs"
+import { Fragment } from "react"
+import { AccountProductListItemRow } from "@/components/product-lists/account-product-list-item-row"
 import {
   findProductListItem,
   getProductListItemCount,
   getProductListTitle,
   isFavoriteProductList,
-} from "@/lib/storefront/product-lists";
-import type { AccountProductListsController } from "./use-account-product-lists";
+} from "@/lib/storefront/product-lists"
+import type { AccountProductListsController } from "./use-account-product-lists"
 
 type ProductListTabsProps = {
-  accountLists: AccountProductListsController;
-};
+  accountLists: AccountProductListsController
+}
 
 function ProductListEmptyPanel() {
   return (
@@ -24,18 +24,18 @@ function ProductListEmptyPanel() {
         Tento zoznam je zatiaľ prázdny.
       </p>
     </div>
-  );
+  )
 }
 
 function ProductListItemsSkeleton() {
-  const rows = [0, 1, 2] as const;
+  const rows = [0, 1, 2] as const
 
   return (
     <Skeleton aria-label="Načítavam produkty zoznamu">
       <div className="space-y-250">
         {rows.map((row) => (
           <article
-            className="flex flex-col gap-300 border-b border-border-secondary bg-base p-300 md:flex-row md:items-center"
+            className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center"
             key={row}
           >
             <Skeleton.Rectangle className="h-850 w-850 shrink-0 rounded-md" />
@@ -63,18 +63,18 @@ function ProductListItemsSkeleton() {
         </div>
       </div>
     </Skeleton>
-  );
+  )
 }
 
 function ProductListSummary({
   accountLists,
 }: {
-  accountLists: AccountProductListsController;
+  accountLists: AccountProductListsController
 }) {
-  const availabilitySummary = accountLists.activeListAvailabilitySummary;
+  const availabilitySummary = accountLists.activeListAvailabilitySummary
   const isAddingListToCart =
     accountLists.createListCartMutation.isPending ||
-    accountLists.isAddingListToCart;
+    accountLists.isAddingListToCart
 
   return (
     <div className="pt-300">
@@ -108,42 +108,42 @@ function ProductListSummary({
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
 function ProductListActiveContent({
   accountLists,
 }: {
-  accountLists: AccountProductListsController;
+  accountLists: AccountProductListsController
 }) {
   if (accountLists.activeListQuery.isLoading) {
-    return <ProductListItemsSkeleton />;
+    return <ProductListItemsSkeleton />
   }
 
   if (accountLists.activeListQuery.error) {
-    return null;
+    return null
   }
 
   if (accountLists.activeProductsAreLoading) {
-    return <ProductListItemsSkeleton />;
+    return <ProductListItemsSkeleton />
   }
 
   if (accountLists.activeItems.length === 0) {
-    return <ProductListEmptyPanel />;
+    return <ProductListEmptyPanel />
   }
 
   return (
     <div className="space-y-250">
       {accountLists.activeItems.map((item) => {
-        const productId = item.product_id ?? item.product?.id;
-        const variantId = item.variant_id ?? item.variant?.id;
+        const productId = item.product_id ?? item.product?.id
+        const variantId = item.variant_id ?? item.variant?.id
         const product = productId
           ? (accountLists.productsById.get(productId) ?? null)
-          : (item.product ?? null);
+          : (item.product ?? null)
         const existingItem =
           productId && accountLists.activeList
             ? findProductListItem(accountLists.activeList, productId, variantId)
-            : item;
+            : item
 
         return (
           <AccountProductListItemRow
@@ -160,11 +160,11 @@ function ProductListActiveContent({
             onQuantitySet={accountLists.handleQuantitySet}
             product={product}
           />
-        );
+        )
       })}
       <ProductListSummary accountLists={accountLists} />
     </div>
-  );
+  )
 }
 
 export function ProductListTabs({ accountLists }: ProductListTabsProps) {
@@ -176,14 +176,14 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
       variant="line"
     >
       <div className="flex items-center gap-100 overflow-x-auto">
-        <Tabs.List className="min-w-max bg-base border-product-list-tabs-border">
+        <Tabs.List className="min-w-max border-product-list-tabs-border bg-base">
           {accountLists.sortedLists.map((list) => {
-            const listTitle = getProductListTitle(list);
-            const canDeleteList = !isFavoriteProductList(list);
+            const listTitle = getProductListTitle(list)
+            const canDeleteList = !isFavoriteProductList(list)
 
             return (
               <Fragment key={list.id}>
-                <Tabs.Trigger value={list.id} className="py-200 px-200">
+                <Tabs.Trigger className="px-200 py-200" value={list.id}>
                   {`${listTitle} (${getProductListItemCount(list)})`}
                 </Tabs.Trigger>
                 {canDeleteList ? (
@@ -199,7 +199,7 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
                   />
                 ) : null}
               </Fragment>
-            );
+            )
           })}
           <Tabs.Indicator />
         </Tabs.List>
@@ -225,5 +225,5 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
         </Tabs.Content>
       ))}
     </Tabs>
-  );
+  )
 }

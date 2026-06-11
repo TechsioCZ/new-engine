@@ -1,10 +1,9 @@
-const isObject = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === "object" && value !== null;
-};
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
 
 export const resolveOrderId = (result: unknown) => {
   if (!isObject(result)) {
-    return null;
+    return null
   }
 
   if (
@@ -12,19 +11,19 @@ export const resolveOrderId = (result: unknown) => {
     isObject(result.order) &&
     typeof result.order.id === "string"
   ) {
-    return result.order.id;
+    return result.order.id
   }
 
   if (isObject(result.order) && typeof result.order.id === "string") {
-    return result.order.id;
+    return result.order.id
   }
 
-  return null;
-};
+  return null
+}
 
 export const resolveCompleteCartFailure = (result: unknown) => {
   if (!isObject(result)) {
-    return null;
+    return null
   }
 
   if (
@@ -32,8 +31,8 @@ export const resolveCompleteCartFailure = (result: unknown) => {
     isObject(result.error) &&
     typeof result.error.message === "string"
   ) {
-    return result.error.message;
+    return result.error.message
   }
 
-  return null;
-};
+  return null
+}

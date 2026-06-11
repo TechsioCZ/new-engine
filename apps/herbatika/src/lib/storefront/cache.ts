@@ -1,4 +1,4 @@
-import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config";
+import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 
 export const storefrontCacheConfig = createCacheConfig({
   static: {
@@ -23,4 +23,4 @@ export const storefrontCacheConfig = createCacheConfig({
     refetchOnMount: true,
     refetchOnReconnect: true,
   },
-});
+})

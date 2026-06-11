@@ -1,19 +1,19 @@
-"use client";
+"use client"
 
-import { ProductCollectionSection } from "@/components/product/product-collection-section";
+import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import type {
   Product,
   RelatedProductsSection,
-} from "@/components/product-detail/product-detail.types";
-import { SupportingText } from "@/components/text/supporting-text";
+} from "@/components/product-detail/product-detail.types"
+import { SupportingText } from "@/components/text/supporting-text"
 
 type ProductDetailRelatedProps = {
-  isProductAdding: (productId: string) => boolean;
-  onAddToCart: (product: Product) => void;
-  onProductHoverEnd: (sectionId: string, product: Product) => void;
-  onProductHoverStart: (sectionId: string, product: Product) => void;
-  sections: RelatedProductsSection[];
-};
+  isProductAdding: (productId: string) => boolean
+  onAddToCart: (product: Product) => void
+  onProductHoverEnd: (sectionId: string, product: Product) => void
+  onProductHoverStart: (sectionId: string, product: Product) => void
+  sections: RelatedProductsSection[]
+}
 
 export function ProductDetailRelated({
   isProductAdding,
@@ -23,7 +23,7 @@ export function ProductDetailRelated({
   sections,
 }: ProductDetailRelatedProps) {
   if (sections.length === 0) {
-    return null;
+    return null
   }
 
   return (
@@ -41,13 +41,13 @@ export function ProductDetailRelated({
           keyPrefix={section.id}
           layout="collection"
           onAddToCart={(productToAdd) => {
-            onAddToCart(productToAdd);
+            onAddToCart(productToAdd)
           }}
           onProductHoverEnd={(hoveredProduct) => {
-            onProductHoverEnd(section.id, hoveredProduct);
+            onProductHoverEnd(section.id, hoveredProduct)
           }}
           onProductHoverStart={(hoveredProduct) => {
-            onProductHoverStart(section.id, hoveredProduct);
+            onProductHoverStart(section.id, hoveredProduct)
           }}
           products={section.products}
           sectionClassName="py-500"
@@ -56,5 +56,5 @@ export function ProductDetailRelated({
         />
       ))}
     </>
-  );
+  )
 }

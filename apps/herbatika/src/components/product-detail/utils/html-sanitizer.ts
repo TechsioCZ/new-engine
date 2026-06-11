@@ -22,59 +22,66 @@ const ALLOWED_HTML_TAGS = new Set([
   "tr",
   "u",
   "ul",
-]);
+])
 
-const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"]);
+const ALLOWED_GLOBAL_ATTRIBUTES = new Set(["title"])
 
 const ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   a: new Set(["href", "target", "rel", "title"]),
-  img: new Set(["src", "alt", "width", "height", "loading", "decoding", "title"]),
+  img: new Set([
+    "src",
+    "alt",
+    "width",
+    "height",
+    "loading",
+    "decoding",
+    "title",
+  ]),
   td: new Set(["colspan", "rowspan", "title"]),
   th: new Set(["colspan", "rowspan", "title"]),
-};
+}
 
 const isSafeAnchorHref = (value: string): boolean =>
-  /^(https?:|mailto:|tel:|\/|#)/i.test(value);
+  /^(https?:|mailto:|tel:|\/|#)/i.test(value)
 
-const isSafeImageSrc = (value: string): boolean => /^(https?:|\/)/i.test(value);
+const isSafeImageSrc = (value: string): boolean => /^(https?:|\/)/i.test(value)
 
 const isAllowedImageLoading = (value: string): boolean =>
-  value === "lazy" || value === "eager";
+  value === "lazy" || value === "eager"
 
 const isAllowedImageDecoding = (value: string): boolean =>
-  value === "async" || value === "sync" || value === "auto";
+  value === "async" || value === "sync" || value === "auto"
 
-const escapeHtmlAttribute = (value: string): string => {
-  return value
+const escapeHtmlAttribute = (value: string): string =>
+  value
     .replaceAll("&", "&amp;")
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-};
+    .replaceAll(">", "&gt;")
 
 const parseTagAttributes = (rawAttributes: string) => {
-  const attributes: Array<{ name: string; value: string }> = [];
+  const attributes: Array<{ name: string; value: string }> = []
   const attributePattern =
-    /([a-zA-Z0-9:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    /([a-zA-Z0-9:-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g
 
-  let match = attributePattern.exec(rawAttributes);
+  let match = attributePattern.exec(rawAttributes)
   while (match) {
-    const name = match[1]?.toLowerCase();
-    const value = (match[2] ?? match[3] ?? match[4] ?? "").trim();
+    const name = match[1]?.toLowerCase()
+    const value = (match[2] ?? match[3] ?? match[4] ?? "").trim()
 
     if (name) {
-      attributes.push({ name, value });
+      attributes.push({ name, value })
     }
 
-    match = attributePattern.exec(rawAttributes);
+    match = attributePattern.exec(rawAttributes)
   }
 
-  return attributes;
-};
+  return attributes
+}
 
 export const sanitizeHtml = (html: string): string => {
   if (!html) {
-    return "";
+    return ""
   }
 
   const cleanedHtml = html
@@ -83,168 +90,176 @@ export const sanitizeHtml = (html: string): string => {
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
     .replace(/<object[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed[\s\S]*?<\/embed>/gi, "");
+    .replace(/<embed[\s\S]*?<\/embed>/gi, "")
 
   const sanitized = cleanedHtml.replace(
     /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
     (_, closingSlash: string, rawTag: string, rawAttributes: string) => {
-      const tag = rawTag.toLowerCase();
+      const tag = rawTag.toLowerCase()
 
       if (!ALLOWED_HTML_TAGS.has(tag)) {
-        return "";
+        return ""
       }
 
-      const isClosingTag = closingSlash === "/";
+      const isClosingTag = closingSlash === "/"
       if (isClosingTag) {
         if (tag === "br" || tag === "img") {
-          return "";
+          return ""
         }
 
-        return `</${tag}>`;
+        return `</${tag}>`
       }
 
       const allowedAttributesForTag =
-        ALLOWED_TAG_ATTRIBUTES[tag] ?? new Set<string>();
+        ALLOWED_TAG_ATTRIBUTES[tag] ?? new Set<string>()
 
-      const sanitizedAttributes: string[] = [];
-      let sanitizedHref: string | null = null;
-      let sanitizedImageSrc: string | null = null;
-      let hasImageLoading = false;
-      let hasImageDecoding = false;
-      let targetValue: string | null = null;
-      let relValue: string | null = null;
+      const sanitizedAttributes: string[] = []
+      let sanitizedHref: string | null = null
+      let sanitizedImageSrc: string | null = null
+      let hasImageLoading = false
+      let hasImageDecoding = false
+      let targetValue: string | null = null
+      let relValue: string | null = null
 
       for (const attribute of parseTagAttributes(rawAttributes ?? "")) {
-        const { name, value } = attribute;
+        const { name, value } = attribute
 
         if (
-          !ALLOWED_GLOBAL_ATTRIBUTES.has(name) &&
-          !allowedAttributesForTag.has(name)
+          !(
+            ALLOWED_GLOBAL_ATTRIBUTES.has(name) ||
+            allowedAttributesForTag.has(name)
+          )
         ) {
-          continue;
+          continue
         }
 
         if (tag === "a" && name === "href") {
           if (!isSafeAnchorHref(value)) {
-            continue;
+            continue
           }
 
-          sanitizedHref = value;
-          continue;
+          sanitizedHref = value
+          continue
         }
 
         if (tag === "img" && name === "src") {
           if (!isSafeImageSrc(value)) {
-            continue;
+            continue
           }
 
-          sanitizedImageSrc = value;
-          continue;
+          sanitizedImageSrc = value
+          continue
         }
 
         if (tag === "img" && name === "loading") {
           if (!isAllowedImageLoading(value)) {
-            continue;
+            continue
           }
 
-          hasImageLoading = true;
+          hasImageLoading = true
         }
 
         if (tag === "img" && name === "decoding") {
           if (!isAllowedImageDecoding(value)) {
-            continue;
+            continue
           }
 
-          hasImageDecoding = true;
+          hasImageDecoding = true
         }
 
         if (tag === "a" && name === "target") {
-          targetValue = value;
-          continue;
+          targetValue = value
+          continue
         }
 
         if (tag === "a" && name === "rel") {
-          relValue = value;
-          continue;
+          relValue = value
+          continue
         }
 
         if (!value) {
-          continue;
+          continue
         }
 
-        sanitizedAttributes.push(`${name}="${escapeHtmlAttribute(value)}"`);
+        sanitizedAttributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
       }
 
       if (tag === "a" && sanitizedHref) {
-        sanitizedAttributes.push(`href="${escapeHtmlAttribute(sanitizedHref)}"`);
+        sanitizedAttributes.push(`href="${escapeHtmlAttribute(sanitizedHref)}"`)
 
         if (/^https?:/i.test(sanitizedHref)) {
-          sanitizedAttributes.push('target="_blank"');
-          sanitizedAttributes.push('rel="noopener noreferrer"');
+          sanitizedAttributes.push('target="_blank"')
+          sanitizedAttributes.push('rel="noopener noreferrer"')
         } else {
           if (targetValue) {
-            sanitizedAttributes.push(`target="${escapeHtmlAttribute(targetValue)}"`);
+            sanitizedAttributes.push(
+              `target="${escapeHtmlAttribute(targetValue)}"`
+            )
           }
 
           if (relValue) {
-            sanitizedAttributes.push(`rel="${escapeHtmlAttribute(relValue)}"`);
+            sanitizedAttributes.push(`rel="${escapeHtmlAttribute(relValue)}"`)
           }
         }
       }
 
       if (tag === "img") {
         if (!sanitizedImageSrc) {
-          return "";
+          return ""
         }
 
-        sanitizedAttributes.push(`src="${escapeHtmlAttribute(sanitizedImageSrc)}"`);
+        sanitizedAttributes.push(
+          `src="${escapeHtmlAttribute(sanitizedImageSrc)}"`
+        )
 
         if (!hasImageLoading) {
-          sanitizedAttributes.push('loading="lazy"');
+          sanitizedAttributes.push('loading="lazy"')
         }
 
         if (!hasImageDecoding) {
-          sanitizedAttributes.push('decoding="async"');
+          sanitizedAttributes.push('decoding="async"')
         }
       }
 
       const attributesString =
-        sanitizedAttributes.length > 0 ? ` ${sanitizedAttributes.join(" ")}` : "";
+        sanitizedAttributes.length > 0
+          ? ` ${sanitizedAttributes.join(" ")}`
+          : ""
 
       if (tag === "br" || tag === "img") {
-        return `<${tag}${attributesString}>`;
+        return `<${tag}${attributesString}>`
       }
 
-      const isSelfClosing = /\/\s*$/.test(rawAttributes ?? "");
+      const isSelfClosing = /\/\s*$/.test(rawAttributes ?? "")
       if (isSelfClosing) {
-        return `<${tag}${attributesString} />`;
+        return `<${tag}${attributesString} />`
       }
 
-      return `<${tag}${attributesString}>`;
-    },
-  );
+      return `<${tag}${attributesString}>`
+    }
+  )
 
-  return sanitized.trim();
-};
+  return sanitized.trim()
+}
 
 export const hasRenderableHtmlContent = (
-  value: string | null | undefined,
+  value: string | null | undefined
 ): boolean => {
   if (!value) {
-    return false;
+    return false
   }
 
-  const sanitizedHtml = sanitizeHtml(value);
+  const sanitizedHtml = sanitizeHtml(value)
   if (!sanitizedHtml) {
-    return false;
+    return false
   }
 
-  return stripHtml(sanitizedHtml).length > 0 || /<\s*img\b/i.test(sanitizedHtml);
-};
+  return stripHtml(sanitizedHtml).length > 0 || /<\s*img\b/i.test(sanitizedHtml)
+}
 
 export const stripHtml = (value: string | null | undefined): string => {
   if (!value) {
-    return "";
+    return ""
   }
 
   return value
@@ -253,5 +268,5 @@ export const stripHtml = (value: string | null | undefined): string => {
     .replace(/<[^>]+>/g, " ")
     .replace(/&nbsp;/gi, " ")
     .replace(/\s+/g, " ")
-    .trim();
-};
+    .trim()
+}

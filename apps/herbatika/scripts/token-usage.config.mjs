@@ -1,5 +1,5 @@
 const spacingScale = Array.from({ length: 19 }, (_, index) =>
-  String((index + 1) * 50),
+  String((index + 1) * 50)
 )
 
 export default {

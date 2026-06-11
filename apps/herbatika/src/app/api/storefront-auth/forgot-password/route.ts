@@ -1,32 +1,32 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
 import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
   serverError,
-} from "../_lib";
+} from "../_lib"
 
 type ForgotPasswordBody = {
-  email?: string;
-};
+  email?: string
+}
 
 type ForgotPasswordResponse = {
-  success: true;
-};
+  success: true
+}
 
 export async function POST(request: Request) {
-  let body: ForgotPasswordBody;
+  let body: ForgotPasswordBody
 
   try {
-    body = (await request.json()) as ForgotPasswordBody;
+    body = (await request.json()) as ForgotPasswordBody
   } catch {
-    return badRequest("Telo požiadavky musí byť platné JSON.");
+    return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const email = body.email?.trim();
+  const email = body.email?.trim()
 
   if (!email) {
-    return badRequest("E-mail je povinný.");
+    return badRequest("E-mail je povinný.")
   }
 
   try {
@@ -42,20 +42,20 @@ export async function POST(request: Request) {
           identifier: email,
         }),
         cache: "no-store",
-      },
-    );
+      }
+    )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse);
+      return buildErrorResponse(medusaResponse)
     }
 
     return NextResponse.json<ForgotPasswordResponse>(
       { success: true },
-      { status: 200 },
-    );
+      { status: 200 }
+    )
   } catch (error) {
     return serverError("Nepodarilo sa odoslať odkaz na obnovu hesla.", {
       error: error instanceof Error ? error.message : String(error),
-    });
+    })
   }
 }

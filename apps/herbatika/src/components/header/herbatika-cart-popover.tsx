@@ -1,30 +1,30 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Popover } from "@techsio/ui-kit/molecules/popover";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import NextLink from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart";
+import type { HttpTypes } from "@medusajs/types"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { Popover } from "@techsio/ui-kit/molecules/popover"
+import NextLink from "next/link"
+import { useEffect, useRef, useState } from "react"
+import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import {
   asFiniteNumber,
   resolveCartItemsSubtotalAmount,
   resolveCartShippingSubtotalAmount,
   resolveCartTaxAmount,
-} from "@/lib/storefront/cart-calculations";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
-import { CartItemRow } from "./herbatika-cart-item-row";
+} from "@/lib/storefront/cart-calculations"
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {
-  cart: HttpTypes.StoreCart | null | undefined;
-  cartTotalLabel: string;
-  currencyCode: "EUR" | "CZK";
-  itemCount: number;
-};
+  cart: HttpTypes.StoreCart | null | undefined
+  cartTotalLabel: string
+  currencyCode: "EUR" | "CZK"
+  itemCount: number
+}
 
 export function HerbatikaCartPopover({
   cart,
@@ -32,70 +32,71 @@ export function HerbatikaCartPopover({
   currencyCode,
   itemCount,
 }: HerbatikaCartPopoverProps) {
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const updateLineItemMutation = useUpdateLineItem();
-  const removeLineItemMutation = useRemoveLineItem();
-  const cartItems = cart?.items ?? [];
+    null
+  )
+  const updateLineItemMutation = useUpdateLineItem()
+  const removeLineItemMutation = useRemoveLineItem()
+  const cartItems = cart?.items ?? []
   const cartItemsTotalLabel = formatCurrencyAmount(
     resolveCartItemsSubtotalAmount(cart),
-    currencyCode,
-  );
+    currencyCode
+  )
   const shippingAmount =
     asFiniteNumber(cart?.shipping_total) !== null
       ? resolveCartShippingSubtotalAmount(cart)
-      : null;
-  const taxAmount = resolveCartTaxAmount(cart);
-  const discountAmount = asFiniteNumber(cart?.discount_total);
-  const hiddenItemCount = Math.max(cartItems.length - 4, 0);
-  const visibleItems = cartItems.slice(0, 4);
+      : null
+  const taxAmount = resolveCartTaxAmount(cart)
+  const discountAmount = asFiniteNumber(cart?.discount_total)
+  const hiddenItemCount = Math.max(cartItems.length - 4, 0)
+  const visibleItems = cartItems.slice(0, 4)
   const isPending =
-    updateLineItemMutation.isPending || removeLineItemMutation.isPending;
+    updateLineItemMutation.isPending || removeLineItemMutation.isPending
 
   const clearHoverCloseTimeout = () => {
     if (!hoverCloseTimeoutRef.current) {
-      return;
+      return
     }
 
-    clearTimeout(hoverCloseTimeoutRef.current);
-    hoverCloseTimeoutRef.current = null;
-  };
+    clearTimeout(hoverCloseTimeoutRef.current)
+    hoverCloseTimeoutRef.current = null
+  }
 
   const handlePreviewOpen = () => {
-    clearHoverCloseTimeout();
-    setIsPopoverOpen(true);
-  };
+    clearHoverCloseTimeout()
+    setIsPopoverOpen(true)
+  }
 
   const schedulePreviewClose = () => {
-    clearHoverCloseTimeout();
+    clearHoverCloseTimeout()
     hoverCloseTimeoutRef.current = setTimeout(() => {
-      setIsPopoverOpen(false);
-      hoverCloseTimeoutRef.current = null;
-    }, 120);
-  };
+      setIsPopoverOpen(false)
+      hoverCloseTimeoutRef.current = null
+    }, 120)
+  }
 
   const handleClose = () => {
-    clearHoverCloseTimeout();
-    setIsPopoverOpen(false);
-  };
+    clearHoverCloseTimeout()
+    setIsPopoverOpen(false)
+  }
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (hoverCloseTimeoutRef.current) {
-        clearTimeout(hoverCloseTimeoutRef.current);
+        clearTimeout(hoverCloseTimeoutRef.current)
       }
-    };
-  }, []);
+    },
+    []
+  )
 
   const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
     if (!cart?.id) {
-      return;
+      return
     }
 
-    setErrorMessage(null);
+    setErrorMessage(null)
     updateLineItemMutation.mutate(
       {
         cartId: cart.id,
@@ -104,18 +105,18 @@ export function HerbatikaCartPopover({
       },
       {
         onError: (error) => {
-          setErrorMessage(resolveErrorMessage(error));
+          setErrorMessage(resolveErrorMessage(error))
         },
-      },
-    );
-  };
+      }
+    )
+  }
 
   const handleRemove = (lineItemId: string) => {
     if (!cart?.id) {
-      return;
+      return
     }
 
-    setErrorMessage(null);
+    setErrorMessage(null)
     removeLineItemMutation.mutate(
       {
         cartId: cart.id,
@@ -123,11 +124,11 @@ export function HerbatikaCartPopover({
       },
       {
         onError: (error) => {
-          setErrorMessage(resolveErrorMessage(error));
+          setErrorMessage(resolveErrorMessage(error))
         },
-      },
-    );
-  };
+      }
+    )
+  }
 
   return (
     <Popover.Root
@@ -144,7 +145,7 @@ export function HerbatikaCartPopover({
           <LinkButton
             {...api.getAnchorProps()}
             as={NextLink}
-            className="relative sm:w-36 inline-flex items-center gap-250 text-xl data-[state=open]:bg-button-bg-primary-hover py-550"
+            className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
             data-state={isPopoverOpen ? "open" : "closed"}
             href="/checkout/kosik"
             onClick={handleClose}
@@ -156,12 +157,16 @@ export function HerbatikaCartPopover({
           >
             <div className="relative">
               <Icon icon="token-icon-cart" size="2xl" />
-              <Badge className="absolute -top-[7px] bg-surface text-primary -right-200 min-w-500 justify-center rounded-full px-100 py-50 text-[11px]"
-                variant="success">
+              <Badge
+                className="-top-[7px] -right-200 absolute min-w-500 justify-center rounded-full bg-surface px-100 py-50 text-[11px] text-primary"
+                variant="success"
+              >
                 {itemCount > 99 ? "99+" : String(itemCount)}
               </Badge>
             </div>
-            <span className="text-md font-normal font-sans">{cartTotalLabel}</span>
+            <span className="font-normal font-sans text-md">
+              {cartTotalLabel}
+            </span>
           </LinkButton>
         )}
       </Popover.Context>
@@ -178,7 +183,7 @@ export function HerbatikaCartPopover({
           </Popover.Title>
           {visibleItems.length > 0 ? (
             <>
-              <div className="space-y-250 pt-200 overflow-y-auto pr-100">
+              <div className="space-y-250 overflow-y-auto pt-200 pr-100">
                 {visibleItems.map((item) => (
                   <CartItemRow
                     currencyCode={currencyCode}
@@ -262,7 +267,7 @@ export function HerbatikaCartPopover({
                 aria-hidden="true"
                 className="grid place-items-center text-primary"
               >
-                <Icon icon="token-icon-cart" className="text-icon-cart" />
+                <Icon className="text-icon-cart" icon="token-icon-cart" />
               </span>
               <div className="space-y-50">
                 <p className="font-semibold text-fg-primary">
@@ -277,5 +282,5 @@ export function HerbatikaCartPopover({
         </Popover.Content>
       </Popover.Positioner>
     </Popover.Root>
-  );
+  )
 }

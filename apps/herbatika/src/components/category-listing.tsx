@@ -1,65 +1,64 @@
-"use client";
+"use client"
 
-import { CatalogListingShell } from "@/components/catalog-listing-shell";
-import { CategoryContextPanel } from "@/components/category/category-context-panel";
-import { CategoryFacetsPanel } from "@/components/category/category-facets-panel";
-import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants";
-import { normalizeCategoryName } from "@/components/category/category-product-utils";
-import { CategoryResultsSection } from "@/components/category/category-results-section";
-import { CategoryRichText } from "@/components/category/category-rich-text";
-import { useCategoryListingController } from "@/components/category/use-category-listing-controller";
-import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation";
-import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
-import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section";
-import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state";
+import { CatalogListingShell } from "@/components/catalog-listing-shell"
+import { CategoryContextPanel } from "@/components/category/category-context-panel"
+import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
+import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
+import { normalizeCategoryName } from "@/components/category/category-product-utils"
+import { CategoryResultsSection } from "@/components/category/category-results-section"
+import { CategoryRichText } from "@/components/category/category-rich-text"
+import { useCategoryListingController } from "@/components/category/use-category-listing-controller"
+import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
 type CategoryListingProps = {
-  slug: string;
-};
+  slug: string
+}
 
-const humanizeCategorySlug = (value: string) => {
-  return value
+const humanizeCategorySlug = (value: string) =>
+  value
     .split("-")
     .filter(Boolean)
     .map((word, index) => {
       if (index > 0 && word.length <= 2) {
-        return word.toLowerCase();
+        return word.toLowerCase()
       }
 
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     })
-    .join(" ");
-};
+    .join(" ")
 
 export function CategoryListing({ slug }: CategoryListingProps) {
-  const controller = useCategoryListingController({ slug });
-  const hasResultProducts = controller.products.length > 0;
+  const controller = useCategoryListingController({ slug })
+  const hasResultProducts = controller.products.length > 0
   const isResultsLoading =
     controller.categoriesQuery.isLoading ||
-    (controller.catalogQuery.isLoading && !hasResultProducts);
+    (controller.catalogQuery.isLoading && !hasResultProducts)
   const isResultsRefreshing =
     controller.catalogQuery.isFetching &&
-    (hasResultProducts || controller.catalogQuery.query.isPlaceholderData);
+    (hasResultProducts || controller.catalogQuery.query.isPlaceholderData)
   const fallbackNavTitle =
     PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??
-    humanizeCategorySlug(slug);
+    humanizeCategorySlug(slug)
   const categoryTitle = normalizeCategoryName(
-    controller.activeCategory?.name ?? fallbackNavTitle,
-  );
+    controller.activeCategory?.name ?? fallbackNavTitle
+  )
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-category-page-gap p-category-page font-rubik 2xl:p-category-page-lg">
       <HerbatikaBreadcrumb items={controller.breadcrumbItems} />
 
       <section>
-        <h1 className="text-4xl font-bold leading-snug text-fg-primary">
+        <h1 className="font-bold text-4xl text-fg-primary leading-snug">
           {categoryTitle}
         </h1>
       </section>
 
       <CategoryContextPanel
-        introHtml={controller.categoryIntroHtml}
         imageTiles={controller.categoryContextImageTiles}
+        introHtml={controller.categoryIntroHtml}
         introText={controller.categoryIntroText}
       />
 
@@ -87,12 +86,12 @@ export function CategoryListing({ slug }: CategoryListingProps) {
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
             addToCartError={controller.addToCartError}
-            categoriesError={controller.categoriesError}
             catalogError={controller.catalogError}
+            categoriesError={controller.categoriesError}
             isEmpty={controller.products.length === 0}
             isLoading={isResultsLoading}
-            isRefreshing={isResultsRefreshing}
             isProductAdding={controller.isProductAdding}
+            isRefreshing={isResultsRefreshing}
             onAddToCart={controller.onAddToCart}
             onProductHoverEnd={controller.onProductHoverEnd}
             onProductHoverStart={controller.onProductHoverStart}
@@ -116,5 +115,5 @@ export function CategoryListing({ slug }: CategoryListingProps) {
 
       <RecentlyVisitedProductsSection hideWhenEmpty />
     </main>
-  );
+  )
 }

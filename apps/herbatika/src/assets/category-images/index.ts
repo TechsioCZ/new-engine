@@ -3,13 +3,13 @@ import aromaterapia from "./aromaterapia.webp"
 import bylinneExtrakty from "./bylinne-extrakty.webp"
 import caje from "./caje.webp"
 import cbd from "./cbd.webp"
+import chudnutie from "./chudnutie.webp"
 import cukriky from "./cukriky.webp"
 import doplnkyMuz from "./doplnky-muz.webp"
 import doplnkyZena from "./doplnky-zena.webp"
 import dychanie from "./dychanie.webp"
 import ekoDoplnky from "./eko-doplnky.webp"
 import hormon from "./hormon.webp"
-import chudnutie from "./chudnutie.webp"
 import imunita from "./imunita.webp"
 import kava from "./kava.webp"
 import klby from "./klby.webp"
@@ -275,7 +275,7 @@ export const categoryImageItems = {
 } as const
 
 export const categoryTrapiMa = {
-     kozneProblemy: {
+  kozneProblemy: {
     src: kozneProblemy,
     label: "Kožné problémy",
   },
@@ -322,7 +322,7 @@ export const categoryTrapiMa = {
 } as const
 
 export const categoryPrirodnaKozmetika = {
-    pletovaKozmetika: {
+  pletovaKozmetika: {
     src: pletova,
     label: "Pleťová kozmetika",
   },
@@ -356,7 +356,8 @@ export const categoryPrirodnaKozmetika = {
   },
 } as const
 
-export const categoryDoplnkyVyzivy = { vitaminyAMineraly: {
+export const categoryDoplnkyVyzivy = {
+  vitaminyAMineraly: {
     src: vitaminy,
     label: "Vitamíny a minerály",
   },
@@ -391,10 +392,11 @@ export const categoryDoplnkyVyzivy = { vitaminyAMineraly: {
   doplnkyStravyPreDeti: {
     src: vitamnyDeti,
     label: "Doplnky stravy pre deti",
-  },}
+  },
+}
 
 export const categoryPotravinyNapoje = {
-      caje: {
+  caje: {
     src: caje,
     label: "Čaje",
   },
@@ -425,7 +427,7 @@ export const categoryPotravinyNapoje = {
 } as const
 
 export const categoryEkoDomacnost = {
-    oblecenieAObuv: {
+  oblecenieAObuv: {
     src: oblecenie,
     label: "Oblečenie a obuv",
   },

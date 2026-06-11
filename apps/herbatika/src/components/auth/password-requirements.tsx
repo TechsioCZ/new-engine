@@ -1,9 +1,9 @@
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { PASSWORD_REQUIREMENTS } from "@/lib/auth/auth-form-validators";
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { PASSWORD_REQUIREMENTS } from "@/lib/auth/auth-form-validators"
 
 type PasswordRequirementsProps = {
-  password: string;
-};
+  password: string
+}
 
 export const PasswordRequirements = ({
   password,
@@ -11,11 +11,13 @@ export const PasswordRequirements = ({
   const requirements = PASSWORD_REQUIREMENTS.map((requirement) => ({
     ...requirement,
     met: requirement.test(password),
-  }));
+  }))
 
   return (
     <div className="space-y-100">
-      <p className="text-sm font-medium text-fg-secondary">Požiadavky na heslo:</p>
+      <p className="font-medium text-fg-secondary text-sm">
+        Požiadavky na heslo:
+      </p>
       <ul className="space-y-100">
         {requirements.map((requirement) => (
           <li
@@ -36,5 +38,5 @@ export const PasswordRequirements = ({
         ))}
       </ul>
     </div>
-  );
-};
+  )
+}

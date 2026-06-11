@@ -1,13 +1,13 @@
-import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group";
+import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
 
 type CheckoutPurchaseTypeToggleProps = {
-  id: string;
-  isCompanyPurchase: boolean;
-  onValueChange: (isCompanyPurchase: boolean) => void;
-};
+  id: string
+  isCompanyPurchase: boolean
+  onValueChange: (isCompanyPurchase: boolean) => void
+}
 
-const PRIVATE_PURCHASE_LABEL = "Súkromná osoba";
-const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu";
+const PRIVATE_PURCHASE_LABEL = "Súkromná osoba"
+const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu"
 
 export function CheckoutPurchaseTypeToggle({
   id,
@@ -19,7 +19,7 @@ export function CheckoutPurchaseTypeToggle({
       className="w-auto font-rubik"
       id={id}
       onValueChange={(value) => {
-        onValueChange(value === "company");
+        onValueChange(value === "company")
       }}
       orientation="horizontal"
       size="sm"
@@ -44,5 +44,5 @@ export function CheckoutPurchaseTypeToggle({
         </RadioGroup.Item>
       </RadioGroup.ItemGroup>
     </RadioGroup>
-  );
+  )
 }
