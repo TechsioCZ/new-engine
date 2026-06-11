@@ -28,7 +28,7 @@ const accordionVariants = tv({
       "font-accordion-title",
       "bg-accordion-title-bg text-accordion-title-fg",
       "hover:bg-accordion-title-bg-hover",
-      "pr-accordion-icon",
+      "pr-accordion-icon-right",
       "data-[disabled=true]:cursor-not-allowed",
     ],
     subtitle: ["text-accordion-subtitle-fg"],
@@ -58,7 +58,7 @@ const accordionVariants = tv({
     size: {
       sm: {
         title: "p-accordion-title-sm text-accordion-title-sm",
-        content: "px-accordion-content-sm text-accordion-content-sm",
+        content: "px-accordion-content-x-sm text-accordion-content-sm",
         subtitle: "text-accordion-subtitle-sm",
       },
       md: {
