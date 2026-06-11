@@ -32,18 +32,18 @@ const radioGroupVariants = tv({
       "row-start-1 self-center",
       "inline-grid shrink-0 place-items-center rounded-radio-group-control",
       "border-(length:--border-width-radio-group)",
-      "border-radio-group-item-control-border",
-      "bg-radio-group-item-control-bg",
+      "border-radio-group-item-border-base",
+      "bg-radio-group-item-bg",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "data-hover:bg-radio-group-item-control-bg-hover",
-      "data-hover:border-radio-group-item-control-border-hover",
-      "data-disabled:bg-radio-group-item-control-bg-disabled",
-      "data-disabled:border-radio-group-item-control-border-disabled",
+      "data-hover:bg-radio-group-item-bg-hover",
+      "data-hover:border-radio-group-item-border-hover",
+      "data-disabled:bg-radio-group-item-bg-disabled",
+      "data-disabled:border-radio-group-item-border-disabled",
       "data-focus-visible:outline-(style:--default-ring-style)",
       "data-focus-visible:outline-(length:--default-ring-width)",
       "data-focus-visible:outline-radio-group-ring",
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-invalid:border-radio-group-item-control-border-error",
+      "data-invalid:border-radio-group-item-border-error",
       "data-invalid:outline-offset-(length:--default-ring-offset)",
     ],
     itemContent: ["col-start-2 row-start-1 min-w-0 flex flex-col"],
@@ -68,35 +68,35 @@ const radioGroupVariants = tv({
     variant: {
       outline: {
         itemControl: [
-          "data-[state=checked]:bg-radio-group-item-control-bg-outline-checked",
-          "data-[state=checked]:border-radio-group-item-control-border-outline-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-outline-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-control-border-outline-checked-hover",
+          "data-[state=checked]:bg-radio-group-item-bg-outline-checked",
+          "data-[state=checked]:border-radio-group-item-border-outline-checked",
+          "data-hover:data-[state=checked]:bg-radio-group-item-bg-outline-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-border-outline-checked-hover",
         ],
         itemIndicator: "text-radio-group-item-indicator-outline",
       },
       subtle: {
         itemControl: [
-          "data-[state=checked]:bg-radio-group-item-control-bg-subtle-checked",
-          "data-[state=checked]:border-radio-group-item-control-border-subtle-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-subtle-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-control-border-subtle-checked-hover",
+          "data-[state=checked]:bg-radio-group-item-bg-subtle-checked",
+          "data-[state=checked]:border-radio-group-item-border-subtle-checked",
+          "data-hover:data-[state=checked]:bg-radio-group-item-bg-subtle-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-border-subtle-checked-hover",
         ],
         itemIndicator: "text-radio-group-item-indicator-subtle",
       },
       solid: {
         itemControl: [
-          "data-[state=checked]:bg-radio-group-item-control-bg-solid-checked",
-          "data-[state=checked]:border-radio-group-item-control-border-solid-checked",
-          "data-hover:data-[state=checked]:bg-radio-group-item-control-bg-solid-checked-hover",
-          "data-hover:data-[state=checked]:border-radio-group-item-control-border-solid-checked-hover",
+          "data-[state=checked]:bg-radio-group-item-bg-solid-checked",
+          "data-[state=checked]:border-radio-group-item-border-solid-checked",
+          "data-hover:data-[state=checked]:bg-radio-group-item-bg-solid-checked-hover",
+          "data-hover:data-[state=checked]:border-radio-group-item-border-solid-checked-hover",
         ],
         itemIndicator: "text-radio-group-item-indicator-solid",
       },
     },
     size: {
       sm: {
-        root: "gap-radio-group-root-sm",
+        root: "gap-radio-group-stack-sm",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-sm data-[orientation=vertical]:gap-radio-group-items-vertical-sm",
         item: "gap-x-radio-group-item-sm",
@@ -107,7 +107,7 @@ const radioGroupVariants = tv({
         itemDescription: "text-radio-group-item-description-sm",
       },
       md: {
-        root: "gap-radio-group-root-md",
+        root: "gap-radio-group-stack-md",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-md data-[orientation=vertical]:gap-radio-group-items-vertical-md",
         item: "gap-x-radio-group-item-md",
@@ -118,7 +118,7 @@ const radioGroupVariants = tv({
         itemDescription: "text-radio-group-item-description-md",
       },
       lg: {
-        root: "gap-radio-group-root-lg",
+        root: "gap-radio-group-stack-lg",
         itemGroup:
           "data-[orientation=horizontal]:gap-radio-group-items-horizontal-lg data-[orientation=vertical]:gap-radio-group-items-vertical-lg",
         item: "gap-x-radio-group-item-lg",
