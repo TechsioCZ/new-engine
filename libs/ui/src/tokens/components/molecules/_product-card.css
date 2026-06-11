@@ -1,3 +1,21 @@
+/*
+ * ProductCard — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--product-card-layout-{row,column}-grid` — runtime grid templates
+ *     composed from the Figma image min/max tokens.
+ *   - `--spacing-product-card-max` (100%) — percent value.
+ *   - `--border-product-card-width` — consumed via border-(length:--…);
+ *     aliases Figma's --border-width-product-card.
+ *
+ * Note (Kai, #425): the button-slot linkage to the Button atom layer
+ * (cart/detail/wishlist → button primary/secondary/tertiary) now lives
+ * in Figma, where the product-card button tokens alias the same semantic
+ * tokens the Button atom uses. A Figma-side retheme of those semantics
+ * propagates to both. Queued Figma improvement: alias product-card
+ * button tokens to the button component layer directly.
+ */
+
 @theme static {
   --product-card-layout-row-grid: minmax(
       var(--width-product-card-image-min),
@@ -5,65 +23,10 @@
     )
     minmax(0, 1fr);
   --product-card-layout-column-grid: 1fr;
-  /* === BASE COLORS === */
-  --color-product-card-bg: var(--color-surface);
-  --color-product-card-name-fg: var(--color-fg-primary);
 
-  --color-product-card-price-fg: var(--color-fg-primary);
-  --color-product-card-border: var(--color-border-primary);
-
-  --color-product-card-stock-fg-in-stock: var(--color-success);
-  --color-product-card-stock-fg-limited-stock: var(--color-warning);
-  --color-product-card-stock-fg-out-of-stock: var(--color-danger);
-
-  /* === Button slots ===
-   * Per @KaiUweCZE on #425: keep ProductCard button tokens linked to the
-   * Button atom's token layer so a brand-driven Button retheme propagates
-   * automatically and hover values match Figma's hand-picked colors
-   * instead of the old `oklch(... calc(l + var(--state-hover)) ...)`
-   * derivation. cart/detail/wishlist map to primary/secondary/tertiary.
-   */
-  --color-product-card-button-cart-bg: var(--color-button-bg-primary-base);
-  --color-product-card-button-cart-bg-hover: var(--color-button-bg-primary-hover);
-  --color-product-card-button-cart-fg: var(--color-button-fg-primary);
-
-  --color-product-card-button-detail-bg: var(--color-button-bg-secondary-base);
-  --color-product-card-button-detail-bg-hover: var(--color-button-bg-secondary-hover);
-  --color-product-card-button-detail-fg: var(--color-button-fg-secondary);
-
-  --color-product-card-button-wishlist-bg: var(--color-button-bg-tertiary-base);
-  --color-product-card-button-wishlist-bg-hover: var(--color-button-bg-tertiary-hover);
-  --color-product-card-button-wishlist-fg: var(--color-button-fg-tertiary);
-
-  /* === SPACING === */
-  --spacing-product-card-padding: var(--spacing-150);
-  --spacing-product-card-row-layout: var(--spacing-250);
-  --spacing-product-card-col-layout: var(--spacing-100);
-  --spacing-product-card-box: var(--spacing-150);
   --spacing-product-card-max: 100%;
-  --spacing-product-card-buttons: var(--spacing-150);
 
-  /* === SIZING === */
-  --width-product-card-image-min: 8rem;
-  --width-product-card-image-max: 12rem;
-
-  /* === TYPOGRAPHY === */
-  --text-product-card-name-size: var(--text-md);
-  --text-product-card-stock-size: var(--text-sm);
-  --text-product-card-price-size: var(--text-lg);
-  --leading-product-card-name: var(--line-height-snug);
-
-  --font-weight-product-card-name: var(--font-weight-medium);
-  --font-weight-product-card-price: var(--font-weight-medium);
-  --font-weight-product-card-stock: var(--font-weight-medium);
-
-  /* === BORDERS & RADIUS === */
-  --border-product-card-width: var(--border-width-sm);
-  --radius-product-card: var(--radius-md);
-  --radius-product-card-image: var(--radius-product-card);
-
-  /* === ASPECT RATIOS === */
-  --aspect-product-card-image: var(--aspect-square);
+  --border-product-card-width: var(--border-width-product-card);
 }
 
 /* === UTILITIES === */
