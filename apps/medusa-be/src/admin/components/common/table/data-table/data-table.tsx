@@ -1,22 +1,22 @@
-import { clx } from "@medusajs/ui";
-import { memo } from "react";
-import { NoRecords, NoResultsProps } from "../";
-import { TableSkeleton } from "../../skeleton";
-import { DataTableQuery, DataTableQueryProps } from "./data-table-query";
-import { DataTableRoot, DataTableRootProps } from "./data-table-root";
+import { clx } from "@medusajs/ui"
+import { memo } from "react"
+import { TableSkeleton } from "../../skeleton"
+import { NoRecords, type NoResultsProps } from "../"
+import { DataTableQuery, type DataTableQueryProps } from "./data-table-query"
+import { DataTableRoot, type DataTableRootProps } from "./data-table-root"
 
 interface DataTableProps<TData>
   extends Omit<DataTableRootProps<TData>, "noResults">,
     DataTableQueryProps {
-  isLoading?: boolean;
-  pageSize: number;
-  queryObject?: Record<string, any>;
-  noRecords?: Pick<NoResultsProps, "title" | "message">;
+  isLoading?: boolean
+  pageSize: number
+  queryObject?: Record<string, any>
+  noRecords?: Pick<NoResultsProps, "title" | "message">
 }
 
 // Maybe we should use the memoized version of DataTableRoot
 // const MemoizedDataTableRoot = memo(DataTableRoot) as typeof DataTableRoot
-const MemoizedDataTableQuery = memo(DataTableQuery);
+const MemoizedDataTableQuery = memo(DataTableQuery)
 
 export const DataTable = <TData,>({
   table,
@@ -39,20 +39,20 @@ export const DataTable = <TData,>({
   if (isLoading) {
     return (
       <TableSkeleton
-        layout={layout}
-        rowCount={pageSize}
-        search={!!search}
         filters={!!filters?.length}
+        layout={layout}
         orderBy={!!orderBy?.length}
         pagination={!!pagination}
+        rowCount={pageSize}
+        search={!!search}
       />
-    );
+    )
   }
 
   const noQuery =
-    Object.values(queryObject).filter((v) => Boolean(v)).length === 0;
-  const noResults = !isLoading && count === 0 && !noQuery;
-  const noRecords = !isLoading && count === 0 && noQuery;
+    Object.values(queryObject).filter((v) => Boolean(v)).length === 0
+  const noResults = count === 0 && !noQuery
+  const noRecords = count === 0 && noQuery
 
   if (noRecords) {
     return (
@@ -62,7 +62,7 @@ export const DataTable = <TData,>({
         })}
         {...noRecordsProps}
       />
-    );
+    )
   }
 
   return (
@@ -72,22 +72,22 @@ export const DataTable = <TData,>({
       })}
     >
       <MemoizedDataTableQuery
-        search={search}
-        orderBy={orderBy}
         filters={filters}
+        orderBy={orderBy}
         prefix={prefix}
+        search={search}
       />
       <DataTableRoot
-        table={table}
-        count={count}
         columns={columns}
-        pagination
-        navigateTo={navigateTo}
         commands={commands}
-        noResults={noResults}
-        noHeader={noHeader}
+        count={count}
         layout={layout}
+        navigateTo={navigateTo}
+        noHeader={noHeader}
+        noResults={noResults}
+        pagination
+        table={table}
       />
     </div>
-  );
-};
+  )
+}

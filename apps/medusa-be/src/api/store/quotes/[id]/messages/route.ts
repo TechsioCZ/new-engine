@@ -31,7 +31,7 @@ export const POST = async (
     {
       entity: "quote",
       fields: req.queryConfig.fields,
-      filters: { id },
+      filters: { id, customer_id: req.auth_context.actor_id },
     },
     { throwIfKeyNotFound: true }
   )

@@ -4,7 +4,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import { authenticate } from "@medusajs/medusa"
-import { ensureRole } from "../../middlewares/ensure-role"
+import { ensureCompanyMember, ensureRole } from "../../middlewares/ensure-role"
 import {
   storeCompanyQueryConfig,
   storeEmployeeQueryConfig,
@@ -51,6 +51,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     method: ["GET"],
     matcher: "/store/companies/:id",
     middlewares: [
+      ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetCompanyParams,
         storeCompanyQueryConfig.retrieve
@@ -80,6 +81,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     method: ["GET"],
     matcher: "/store/companies/:id/employees",
     middlewares: [
+      ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetEmployeeParams,
         storeEmployeeQueryConfig.list
@@ -102,6 +104,7 @@ export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
     method: ["GET"],
     matcher: "/store/companies/:id/employees/:employee_id",
     middlewares: [
+      ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetEmployeeParams,
         storeEmployeeQueryConfig.retrieve

@@ -16,6 +16,64 @@ type CompanyWithEmployees = {
   employees?: CompanyEmployee[]
 }
 
+const getCustomerId = (req: AuthenticatedMedusaRequest) => {
+  const appMetadata = req.auth_context.app_metadata as
+    | {
+        customer_id?: string
+      }
+    | undefined
+  const { customer_id } = appMetadata ?? {}
+
+  return customer_id ?? req.auth_context.actor_id
+}
+
+const findRouteCompany = async (req: AuthenticatedMedusaRequest) => {
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const companyId = req.params.id
+
+  if (!companyId) {
+    return
+  }
+
+  const {
+    data: [company],
+  } = await query.graph({
+    entity: "companies",
+    fields: [
+      "id",
+      "employees.id",
+      "employees.is_admin",
+      "employees.customer.id",
+    ],
+    filters: { id: companyId },
+  })
+
+  return company as CompanyWithEmployees | undefined
+}
+
+export const ensureCompanyMember = async (
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const customerId = getCustomerId(req)
+
+  if (!customerId) {
+    return res.status(403).json({ message: "Forbidden" })
+  }
+
+  const company = await findRouteCompany(req)
+  const isCompanyMember = company?.employees?.some(
+    (employee) => employee.customer?.id === customerId
+  )
+
+  if (isCompanyMember) {
+    return next()
+  }
+
+  return res.status(403).json({ message: "Forbidden" })
+}
+
 export const ensureRole =
   (role: string) =>
   async (
@@ -27,9 +85,7 @@ export const ensureRole =
       return res.status(403).json({ message: "Forbidden" })
     }
 
-    const { customer_id: customerId } = req.auth_context.app_metadata as {
-      customer_id?: string
-    }
+    const customerId = getCustomerId(req)
 
     if (!customerId) {
       return res.status(403).json({ message: "Forbidden" })
@@ -54,25 +110,8 @@ export const ensureRole =
       return res.status(403).json({ message: "Forbidden" })
     }
 
-    const {
-      data: [company],
-    } = await query.graph({
-      entity: "companies",
-      fields: [
-        "id",
-        "employees.id",
-        "employees.is_admin",
-        "employees.customer.id",
-      ],
-      filters: { id: companyId },
-    })
-
-    if (company?.employees?.length === 0) {
-      return next()
-    }
-
-    const typedCompany = company as CompanyWithEmployees
-    const isCompanyAdmin = typedCompany.employees?.some(
+    const company = await findRouteCompany(req)
+    const isCompanyAdmin = company?.employees?.some(
       (employee) => employee.is_admin && employee.customer?.id === customerId
     )
 

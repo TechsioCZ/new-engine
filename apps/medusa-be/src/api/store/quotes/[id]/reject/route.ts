@@ -1,11 +1,14 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { customerRejectQuoteWorkflow } from "../../../../../workflows/quote/workflows"
 import type { RejectQuoteType } from "../../validators"
 
 export const POST = async (
-  req: MedusaRequest<RejectQuoteType>,
+  req: AuthenticatedMedusaRequest<RejectQuoteType>,
   res: MedusaResponse
 ) => {
   const { id } = req.params
@@ -21,6 +24,7 @@ export const POST = async (
   await customerRejectQuoteWorkflow(req.scope).run({
     input: {
       quote_id: id,
+      customer_id: req.auth_context.actor_id,
       ...req.validatedBody,
     },
   })
@@ -31,7 +35,7 @@ export const POST = async (
     {
       entity: "quote",
       fields: req.queryConfig.fields,
-      filters: { id },
+      filters: { id, customer_id: req.auth_context.actor_id },
     },
     { throwIfKeyNotFound: true }
   )

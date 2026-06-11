@@ -109,6 +109,84 @@ describe("ensureRole", () => {
     expect(res.json).toHaveBeenCalledWith({ message: "Forbidden" })
   })
 
+  it("rejects empty route companies instead of treating them as implicitly admin-manageable", async () => {
+    const { ensureRole } = await import(
+      "../../../../../src/api/middlewares/ensure-role"
+    )
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          employees: [],
+          id: "comp_1",
+        },
+      ],
+    })
+    const req = createRequest({ graph, params: { id: "comp_1" } })
+    const res = createResponse()
+    const next = vi.fn()
+
+    await ensureRole("company_admin")(req, res, next)
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ message: "Forbidden" })
+  })
+
+  it("allows route company members for member-scoped store reads", async () => {
+    const { ensureCompanyMember } = await import(
+      "../../../../../src/api/middlewares/ensure-role"
+    )
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          employees: [
+            {
+              customer: { id: "cus_1" },
+              is_admin: false,
+            },
+          ],
+          id: "comp_1",
+        },
+      ],
+    })
+    const req = createRequest({ graph, params: { id: "comp_1" } })
+    const res = createResponse()
+    const next = vi.fn()
+
+    await ensureCompanyMember(req, res, next)
+
+    expect(next).toHaveBeenCalledOnce()
+    expect(res.status).not.toHaveBeenCalled()
+  })
+
+  it("rejects non-members for route company member-scoped store reads", async () => {
+    const { ensureCompanyMember } = await import(
+      "../../../../../src/api/middlewares/ensure-role"
+    )
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          employees: [
+            {
+              customer: { id: "cus_2" },
+              is_admin: true,
+            },
+          ],
+          id: "comp_1",
+        },
+      ],
+    })
+    const req = createRequest({ graph, params: { id: "comp_1" } })
+    const res = createResponse()
+    const next = vi.fn()
+
+    await ensureCompanyMember(req, res, next)
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ message: "Forbidden" })
+  })
+
   it("uses current customer employee admin state when no company id is in the route", async () => {
     const { ensureRole } = await import(
       "../../../../../src/api/middlewares/ensure-role"

@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
 import type {
@@ -7,7 +10,7 @@ import type {
 } from "../../validators"
 
 export const GET = async (
-  req: MedusaRequest<StoreGetEmployeeParamsType>,
+  req: AuthenticatedMedusaRequest<StoreGetEmployeeParamsType>,
   res: MedusaResponse
 ) => {
   const { id } = req.params
@@ -37,7 +40,7 @@ export const GET = async (
 }
 
 export const POST = async (
-  req: MedusaRequest<StoreCreateEmployeeType>,
+  req: AuthenticatedMedusaRequest<StoreCreateEmployeeType>,
   res: MedusaResponse
 ) => {
   const { id } = req.params

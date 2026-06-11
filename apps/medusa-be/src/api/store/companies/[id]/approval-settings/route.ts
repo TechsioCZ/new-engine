@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -11,7 +14,7 @@ import { storeApprovalSettingsFields } from "../../query-config"
 import type { StoreUpdateApprovalSettingsType } from "../../validators"
 
 export const POST = async (
-  req: MedusaRequest<StoreUpdateApprovalSettingsType>,
+  req: AuthenticatedMedusaRequest<StoreUpdateApprovalSettingsType>,
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
