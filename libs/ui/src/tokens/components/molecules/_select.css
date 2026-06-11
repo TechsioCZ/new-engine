@@ -11,7 +11,6 @@
  *   - `--spacing-content` — consumed as a raw var() inside calc() in the
  *     TSX; aliases Figma's --spacing-select-content.
  *   - `--shadow-select-content` (figma-additions backlog).
- *   - `--radius-select` base radius (Figma exports only sm/md/lg).
  *   - `--z-content` layering (code-side).
  */
 
@@ -24,8 +23,6 @@
   --spacing-content: var(--spacing-select-content);
 
   --shadow-select-content: var(--shadow-md);
-
-  --radius-select: var(--radius-form-control);
 
   --z-content: 50;
 }
