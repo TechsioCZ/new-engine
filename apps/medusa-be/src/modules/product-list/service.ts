@@ -178,8 +178,11 @@ class ProductListModuleService extends MedusaService({
     input: CreateProductListItemDTO,
     sharedContext?: Context
   ) {
-    normalizeProductListType(input.list_type)
-    const quantity = normalizePositiveInteger("quantity", input.quantity)
+    const listType = normalizeProductListType(input.list_type)
+    const quantity =
+      listType === "favorite"
+        ? 1
+        : normalizePositiveInteger("quantity", input.quantity)
 
     return await this.createProductListItems(
       {
