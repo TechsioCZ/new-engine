@@ -1,58 +1,29 @@
-@theme static {
-  /* === BASE TOKEN MAPPING === */
-  --color-toast-bg: var(--color-highlight);
-  --color-toast-fg: var(--color-fg-dark);
-  --color-toast-error: var(--color-danger);
-  --color-toast-success: var(--color-success);
-  --color-toast-info: var(--color-info);
-  --color-toast-warning: var(--color-warning);
+/*
+ * Toast — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here (not in Figma yet — queued for figma-additions):
+ *   - `--spacing-toast-width` fixed root width.
+ *   - per-type title/icon foregrounds (Figma exports only per-type
+ *     bg/border; titles and icons alias the shared toast fg).
+ *   - `--color-toast-close-fg-hover` hover state.
+ *   - `--font-weight-toast-title`.
+ */
 
-  /* === TYPE SPECIFIC COLORS === */
-  /* Error */
-  --color-toast-error-bg: var(--color-toast-error);
-  --color-toast-error-border: var(--color-toast-error);
+@theme static {
+  --spacing-toast-width: 360px;
+
   --color-toast-error-title: var(--color-toast-fg);
   --color-toast-error-icon: var(--color-toast-fg);
-
-  /* Success */
-  --color-toast-success-bg: var(--color-toast-success);
-  --color-toast-success-border: var(--color-toast-success);
   --color-toast-success-title: var(--color-toast-fg);
   --color-toast-success-icon: var(--color-toast-fg);
-
-  /* Info */
-  --color-toast-info-bg: var(--color-toast-info);
-  --color-toast-info-border: var(--color-toast-info);
   --color-toast-info-title: var(--color-toast-fg);
   --color-toast-info-icon: var(--color-toast-fg);
-
-  /* Warning */
-  --color-toast-warning-bg: var(--color-toast-warning);
-  --color-toast-warning-border: var(--color-toast-warning);
   --color-toast-warning-title: var(--color-toast-fg);
   --color-toast-warning-icon: var(--color-toast-fg);
 
-  /* === CLOSE BUTTON === */
-  --color-toast-close-fg: var(--color-toast-fg);
   --color-toast-close-fg-hover: var(--color-fg-primary);
 
-  /* === ROOT === */
-  --spacing-toast-width: 360px;
-
-  /* === SPACING === */
-  --padding-toast-root: var(--spacing-250);
-  --gap-toast-content: var(--spacing-200);
-  --spacing-toast-description-gap: var(--spacing-100);
-
-  /* === TYPOGRAPHY === */
   --font-weight-toast-title: var(--font-weight-medium);
-  --text-toast-title-size: var(--text-md);
-  --text-toast-description-size: var(--text-sm);
-  --text-toast-icon-size: var(--text-lg);
-
-  /* === BORDERS & RADIUS === */
-  --border-width-toast: var(--border-width-sm);
-  --radius-toast-root: var(--radius-sm);
 }
 
 /* Icons */
