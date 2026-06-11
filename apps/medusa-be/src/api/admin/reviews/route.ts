@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
+import type ProductReviewModuleService from "../../../modules/product-review/service"
 import {
   filterReviewRecords,
   getUniqueReviewProductIds,
@@ -6,8 +8,6 @@ import {
   normalizeAdminReviewFilters,
   normalizeReviewOrder,
 } from "../../review-normalizers"
-import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
-import type ProductReviewModuleService from "../../../modules/product-review/service"
 import { getProductsById } from "./helpers"
 import type { AdminGetReviewsSchemaType } from "./validators"
 
@@ -37,6 +37,8 @@ export async function GET(
     count,
     limit,
     offset,
-    reviews: reviewRecords.map((review) => normalizeAdminReview(review, productsById)),
+    reviews: reviewRecords.map((review) =>
+      normalizeAdminReview(review, productsById)
+    ),
   })
 }

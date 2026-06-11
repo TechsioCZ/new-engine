@@ -10,7 +10,7 @@ interface DataTableProps<TData>
     DataTableQueryProps {
   isLoading?: boolean
   pageSize: number
-  queryObject?: Record<string, any>
+  queryObject?: Record<string, unknown>
   noRecords?: Pick<NoResultsProps, "title" | "message">
 }
 

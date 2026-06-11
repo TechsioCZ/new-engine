@@ -5,9 +5,9 @@ export const cartFields = [
   "*company",
   "*region",
   "currency_code",
-];
+]
 
 export const retrieveCartTransformQueryConfig = {
   defaults: cartFields,
   isList: false,
-};
+}

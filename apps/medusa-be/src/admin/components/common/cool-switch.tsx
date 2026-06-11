@@ -1,5 +1,5 @@
-import { Switch, Label, Container, Text, Tooltip } from "@medusajs/ui";
-import { InformationCircleSolid } from "@medusajs/icons";
+import { InformationCircleSolid } from "@medusajs/icons"
+import { Container, Label, Switch, Text, Tooltip } from "@medusajs/ui"
 
 const CoolSwitch = ({
   checked,
@@ -9,29 +9,27 @@ const CoolSwitch = ({
   description,
   tooltip,
 }: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  fieldName: string;
-  label: string;
-  description: string;
-  tooltip?: string;
-}) => {
-  return (
-    <Container className="bg-ui-bg-subtle flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Switch name={fieldName} checked={checked} onCheckedChange={onChange} />
-        <Label size="xsmall" className="txt-compact-small font-medium">
-          {label}
-        </Label>
-        {tooltip && (
-          <Tooltip content={tooltip} className="z-50">
-            <InformationCircleSolid color="gray" />
-          </Tooltip>
-        )}
-      </div>
-      <Text size="xsmall">{description}</Text>
-    </Container>
-  );
-};
+  checked: boolean
+  onChange: (checked: boolean) => void
+  fieldName: string
+  label: string
+  description: string
+  tooltip?: string
+}) => (
+  <Container className="flex flex-col gap-2 bg-ui-bg-subtle">
+    <div className="flex items-center gap-2">
+      <Switch checked={checked} name={fieldName} onCheckedChange={onChange} />
+      <Label className="txt-compact-small font-medium" size="xsmall">
+        {label}
+      </Label>
+      {tooltip && (
+        <Tooltip className="z-50" content={tooltip}>
+          <InformationCircleSolid color="gray" />
+        </Tooltip>
+      )}
+    </div>
+    <Text size="xsmall">{description}</Text>
+  </Container>
+)
 
-export { CoolSwitch };
+export { CoolSwitch }

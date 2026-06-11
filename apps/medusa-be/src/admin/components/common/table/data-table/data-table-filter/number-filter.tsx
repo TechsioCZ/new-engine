@@ -1,21 +1,23 @@
 import { EllipseMiniSolid } from "@medusajs/icons"
-import { Input, Label, clx } from "@medusajs/ui"
-import * as Popover from "@radix-ui/react-popover"
-import * as RadioGroup from "@radix-ui/react-radio-group"
-import { debounce } from "lodash"
+import { clx, Input, Label } from "@medusajs/ui"
 import {
-  ChangeEvent,
-  useCallback,
-  useEffect,
-  useState,
-} from "react"
+  Content as PopoverContent,
+  Portal as PopoverPortal,
+  Root as PopoverRoot,
+} from "@radix-ui/react-popover"
+import {
+  Indicator as RadioGroupIndicator,
+  Item as RadioGroupItem,
+  Root as RadioGroupRoot,
+} from "@radix-ui/react-radio-group"
+import type { TFunction } from "i18next"
+import { debounce } from "lodash"
+import { type ChangeEvent, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
-import { IFilter } from "./types"
-import { TFunction } from "i18next"
 import FilterChip from "./filter-chip"
+import type { IFilter } from "./types"
 
 type NumberFilterProps = IFilter
 
@@ -49,66 +51,75 @@ export const NumberFilter = ({
     getOperator(currentValue)
   )
 
-  const debouncedOnChange = useCallback(
-    debounce((e: ChangeEvent<HTMLInputElement>, operator: Operator) => {
-      const value = e.target.value
-      const curr = JSON.parse(currentValue?.join(",") || "{}")
-      const isCurrentNumber = !isNaN(Number(curr))
+  const debouncedOnChange = useMemo(
+    () =>
+      debounce(
+        (e: ChangeEvent<HTMLInputElement>, selectedOperator: Operator) => {
+          const value = e.target.value
+          const curr = JSON.parse(currentValue?.join(",") || "{}")
+          const isCurrentNumber = !Number.isNaN(Number(curr))
 
-      const handleValue = (operator: Operator) => {
-        if (!value && isCurrentNumber) {
-          selectedParams.delete()
-          return
-        }
+          const handleValue = (valueOperator: Operator) => {
+            if (!value && isCurrentNumber) {
+              selectedParams.delete()
+              return
+            }
 
-        if (curr && !value) {
-          delete curr[operator]
-          selectedParams.add(JSON.stringify(curr))
-          return
-        }
+            if (curr && !value) {
+              delete curr[valueOperator]
+              selectedParams.add(JSON.stringify(curr))
+              return
+            }
 
-        if (!curr) {
-          selectedParams.add(JSON.stringify({ [operator]: value }))
-          return
-        }
+            if (!curr) {
+              selectedParams.add(JSON.stringify({ [valueOperator]: value }))
+              return
+            }
 
-        selectedParams.add(JSON.stringify({ ...curr, [operator]: value }))
-      }
-
-      switch (operator) {
-        case "eq":
-          if (!value) {
-            selectedParams.delete()
-          } else {
-            selectedParams.add(value)
+            selectedParams.add(
+              JSON.stringify({ ...curr, [valueOperator]: value })
+            )
           }
-          break
-        case "lt":
-        case "gt":
-          handleValue(operator)
-          break
-      }
-    }, 500),
+
+          switch (selectedOperator) {
+            case "eq":
+              if (value) {
+                selectedParams.add(value)
+              } else {
+                selectedParams.delete()
+              }
+              break
+            case "lt":
+            case "gt":
+              handleValue(selectedOperator)
+              break
+            default:
+              break
+          }
+        },
+        500
+      ),
     [selectedParams, currentValue]
   )
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       debouncedOnChange.cancel()
-    }
-  }, [debouncedOnChange])
+    },
+    [debouncedOnChange]
+  )
 
   let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-  const handleOpenChange = (open: boolean) => {
-    setOpen(open)
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
     setPreviousValue(currentValue)
 
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
 
-    if (!open && !currentValue.length) {
+    if (!(nextOpen || currentValue.length)) {
       timeoutId = setTimeout(() => {
         removeFilter(key)
       }, 200)
@@ -139,124 +150,126 @@ export const NumberFilter = ({
   const previousDisplayValue = parseDisplayValue(previousValue, t)
 
   return (
-    <Popover.Root modal open={open} onOpenChange={handleOpenChange}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
       <FilterChip
-        hasOperator
         hadPreviousValue={!!previousDisplayValue}
+        hasOperator
         label={label}
-        value={displayValue}
         onRemove={handleRemove}
         readonly={readonly}
+        value={displayValue}
       />
       {!readonly && (
-        <Popover.Portal>
-          <Popover.Content
-            data-name="number_filter_content"
+        <PopoverPortal>
+          <PopoverContent
             align="start"
-            sideOffset={8}
-            collisionPadding={24}
             className={clx(
-              "bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout max-h-[var(--radix-popper-available-height)] w-[300px] divide-y overflow-y-auto rounded-lg outline-none"
+              "max-h-[var(--radix-popper-available-height)] w-[300px] divide-y overflow-y-auto rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
             )}
+            collisionPadding={24}
+            data-name="number_filter_content"
             onInteractOutside={(e) => {
-              if (e.target instanceof HTMLElement) {
-                if (
-                  e.target.attributes.getNamedItem("data-name")?.value ===
+              if (
+                e.target instanceof HTMLElement &&
+                e.target.attributes.getNamedItem("data-name")?.value ===
                   "filters_menu_content"
-                ) {
-                  e.preventDefault()
-                }
+              ) {
+                e.preventDefault()
               }
             }}
+            sideOffset={8}
           >
             <div className="p-1">
-              <RadioGroup.Root
-                value={operator}
-                onValueChange={(val) => setOperator(val as Comparison)}
-                className="flex flex-col items-start"
-                orientation="vertical"
+              <RadioGroupRoot
                 autoFocus
+                className="flex flex-col items-start"
+                onValueChange={(val) => setOperator(val as Comparison)}
+                orientation="vertical"
+                value={operator}
               >
                 {operators.map((o) => (
-                  <RadioGroup.Item
+                  <RadioGroupItem
+                    className="txt-compact-small grid w-full grid-cols-[20px_1fr] gap-2 rounded-[4px] px-2 py-1.5 text-left outline-none transition-fg hover:bg-ui-bg-base-hover focus-visible:bg-ui-bg-base-hover active:bg-ui-bg-base-pressed"
                     key={o.operator}
                     value={o.operator}
-                    className="txt-compact-small hover:bg-ui-bg-base-hover focus-visible:bg-ui-bg-base-hover active:bg-ui-bg-base-pressed transition-fg grid w-full grid-cols-[20px_1fr] gap-2 rounded-[4px] px-2 py-1.5 text-left outline-none"
                   >
                     <div className="size-5">
-                      <RadioGroup.Indicator>
+                      <RadioGroupIndicator>
                         <EllipseMiniSolid />
-                      </RadioGroup.Indicator>
+                      </RadioGroupIndicator>
                     </div>
                     <span className="w-full">{o.label}</span>
-                  </RadioGroup.Item>
+                  </RadioGroupItem>
                 ))}
-              </RadioGroup.Root>
+              </RadioGroupRoot>
             </div>
             <div>
               {operator === "range" ? (
-                <div className="px-1 pb-3 pt-1" key="range">
+                <div className="px-1 pt-1 pb-3" key="range">
                   <div className="px-2 py-1.5">
-                    <Label size="xsmall" weight="plus" htmlFor={GT_KEY}>
+                    <Label htmlFor={GT_KEY} size="xsmall" weight="plus">
                       {t("filters.compare.greaterThan")}
                     </Label>
                   </div>
                   <div className="px-2 py-0.5">
                     <Input
+                      defaultValue={getValue(currentValue, "gt")}
                       name={GT_KEY}
+                      onChange={(e) => debouncedOnChange(e, "gt")}
                       size="small"
                       type="number"
-                      defaultValue={getValue(currentValue, "gt")}
-                      onChange={(e) => debouncedOnChange(e, "gt")}
                     />
                   </div>
                   <div className="px-2 py-1.5">
-                    <Label size="xsmall" weight="plus" htmlFor={LT_KEY}>
+                    <Label htmlFor={LT_KEY} size="xsmall" weight="plus">
                       {t("filters.compare.lessThan")}
                     </Label>
                   </div>
                   <div className="px-2 py-0.5">
                     <Input
+                      defaultValue={getValue(currentValue, "lt")}
                       name={LT_KEY}
+                      onChange={(e) => debouncedOnChange(e, "lt")}
                       size="small"
                       type="number"
-                      defaultValue={getValue(currentValue, "lt")}
-                      onChange={(e) => debouncedOnChange(e, "lt")}
                     />
                   </div>
                 </div>
               ) : (
-                <div className="px-1 pb-3 pt-1" key="exact">
+                <div className="px-1 pt-1 pb-3" key="exact">
                   <div className="px-2 py-1.5">
-                    <Label size="xsmall" weight="plus" htmlFor={EQ_KEY}>
+                    <Label htmlFor={EQ_KEY} size="xsmall" weight="plus">
                       {label}
                     </Label>
                   </div>
                   <div className="px-2 py-0.5">
                     <Input
+                      defaultValue={getValue(currentValue, "eq")}
                       name={EQ_KEY}
+                      onChange={(e) => debouncedOnChange(e, "eq")}
                       size="small"
                       type="number"
-                      defaultValue={getValue(currentValue, "eq")}
-                      onChange={(e) => debouncedOnChange(e, "eq")}
                     />
                   </div>
                 </div>
               )}
             </div>
-          </Popover.Content>
-        </Popover.Portal>
+          </PopoverContent>
+        </PopoverPortal>
       )}
-    </Popover.Root>
+    </PopoverRoot>
   )
 }
 
-const parseDisplayValue = (value: string[] | null | undefined, t: TFunction) => {
+const parseDisplayValue = (
+  value: string[] | null | undefined,
+  t: TFunction
+) => {
   const parsed = JSON.parse(value?.join(",") || "{}")
   let displayValue = ""
 
   if (typeof parsed === "object") {
-    const parts = []
+    const parts: string[] = []
     if (parsed.gt) {
       parts.push(t("filters.compare.greaterThanLabel", { value: parsed.gt }))
     }
@@ -281,12 +294,12 @@ const parseDisplayValue = (value: string[] | null | undefined, t: TFunction) => 
 
 const parseValue = (value: string[] | null | undefined) => {
   if (!value) {
-    return undefined
+    return
   }
 
   const val = value.join(",")
   if (!val) {
-    return undefined
+    return
   }
 
   return JSON.parse(val)
@@ -305,7 +318,7 @@ const getValue = (
     return parsed
   }
 
-  return undefined
+  return
 }
 
 const getOperator = (value?: string[] | null): Comparison | undefined => {

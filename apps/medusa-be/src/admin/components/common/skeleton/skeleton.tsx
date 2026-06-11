@@ -1,51 +1,51 @@
-import { Container, Heading, Text, clx } from "@medusajs/ui";
-import { CSSProperties, ComponentPropsWithoutRef } from "react";
+import { Container, clx, type Heading, type Text } from "@medusajs/ui"
+import type { ComponentPropsWithoutRef, CSSProperties } from "react"
 
 type SkeletonProps = {
-  className?: string;
-  style?: CSSProperties;
-};
+  className?: string
+  style?: CSSProperties
+}
 
-export const Skeleton = ({ className, style }: SkeletonProps) => {
-  return (
-    <div
-      aria-hidden
-      className={clx(
-        "bg-ui-bg-component h-3 w-3 animate-pulse rounded-[4px]",
-        className
-      )}
-      style={style}
-    />
-  );
-};
+export const Skeleton = ({ className, style }: SkeletonProps) => (
+  <div
+    aria-hidden
+    className={clx(
+      "h-3 w-3 animate-pulse rounded-[4px] bg-ui-bg-component",
+      className
+    )}
+    style={style}
+  />
+)
 
 type TextSkeletonProps = {
-  size?: ComponentPropsWithoutRef<typeof Text>["size"];
-  leading?: ComponentPropsWithoutRef<typeof Text>["leading"];
-  characters?: number;
-};
+  size?: ComponentPropsWithoutRef<typeof Text>["size"]
+  leading?: ComponentPropsWithoutRef<typeof Text>["leading"]
+  characters?: number
+}
 
 type HeadingSkeletonProps = {
-  level?: ComponentPropsWithoutRef<typeof Heading>["level"];
-  characters?: number;
-};
+  level?: ComponentPropsWithoutRef<typeof Heading>["level"]
+  characters?: number
+}
 
 export const HeadingSkeleton = ({
   level = "h1",
   characters = 10,
 }: HeadingSkeletonProps) => {
-  let charWidth = 9;
+  let charWidth = 9
 
   switch (level) {
     case "h1":
-      charWidth = 11;
-      break;
+      charWidth = 11
+      break
     case "h2":
-      charWidth = 10;
-      break;
+      charWidth = 10
+      break
     case "h3":
-      charWidth = 9;
-      break;
+      charWidth = 9
+      break
+    default:
+      break
   }
 
   return (
@@ -59,32 +59,34 @@ export const HeadingSkeleton = ({
         width: `${charWidth * characters}px`,
       }}
     />
-  );
-};
+  )
+}
 
 export const TextSkeleton = ({
   size = "small",
   leading = "compact",
   characters = 10,
 }: TextSkeletonProps) => {
-  let charWidth = 9;
+  let charWidth = 9
 
   switch (size) {
     case "xlarge":
-      charWidth = 13;
-      break;
+      charWidth = 13
+      break
     case "large":
-      charWidth = 11;
-      break;
+      charWidth = 11
+      break
     case "base":
-      charWidth = 10;
-      break;
+      charWidth = 10
+      break
     case "small":
-      charWidth = 9;
-      break;
+      charWidth = 9
+      break
     case "xsmall":
-      charWidth = 8;
-      break;
+      charWidth = 8
+      break
+    default:
+      break
   }
 
   return (
@@ -100,67 +102,65 @@ export const TextSkeleton = ({
         width: `${charWidth * characters}px`,
       }}
     />
-  );
-};
+  )
+}
 
-export const IconButtonSkeleton = () => {
-  return <Skeleton className="h-7 w-7 rounded-md" />;
-};
+export const IconButtonSkeleton = () => (
+  <Skeleton className="h-7 w-7 rounded-md" />
+)
 
 type GeneralSectionSkeletonProps = {
-  rowCount?: number;
-};
+  rowCount?: number
+}
 
 export const GeneralSectionSkeleton = ({
   rowCount,
 }: GeneralSectionSkeletonProps) => {
-  const rows = Array.from({ length: rowCount ?? 0 }, (_, i) => i);
+  const rows = Array.from({ length: rowCount ?? 0 }, (_, i) => i)
 
   return (
-    <Container className="divide-y p-0" aria-hidden>
+    <Container aria-hidden className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
         <HeadingSkeleton characters={16} />
         <IconButtonSkeleton />
       </div>
       {rows.map((row) => (
         <div
-          key={row}
-          className="grid grid-cols-2 items-center px-6 py-4"
           aria-hidden
+          className="grid grid-cols-2 items-center px-6 py-4"
+          key={row}
         >
-          <TextSkeleton size="small" leading="compact" characters={12} />
-          <TextSkeleton size="small" leading="compact" characters={24} />
+          <TextSkeleton characters={12} leading="compact" size="small" />
+          <TextSkeleton characters={24} leading="compact" size="small" />
         </div>
       ))}
     </Container>
-  );
-};
+  )
+}
 
-export const TableFooterSkeleton = ({ layout }: { layout: "fill" | "fit" }) => {
-  return (
-    <div
-      className={clx("flex items-center justify-between p-4", {
-        "border-t": layout === "fill",
-      })}
-    >
-      <Skeleton className="h-7 w-[138px]" />
-      <div className="flex items-center gap-x-2">
-        <Skeleton className="h-7 w-24" />
-        <Skeleton className="h-7 w-11" />
-        <Skeleton className="h-7 w-11" />
-      </div>
+export const TableFooterSkeleton = ({ layout }: { layout: "fill" | "fit" }) => (
+  <div
+    className={clx("flex items-center justify-between p-4", {
+      "border-t": layout === "fill",
+    })}
+  >
+    <Skeleton className="h-7 w-[138px]" />
+    <div className="flex items-center gap-x-2">
+      <Skeleton className="h-7 w-24" />
+      <Skeleton className="h-7 w-11" />
+      <Skeleton className="h-7 w-11" />
     </div>
-  );
-};
+  </div>
+)
 
 type TableSkeletonProps = {
-  rowCount?: number;
-  search?: boolean;
-  filters?: boolean;
-  orderBy?: boolean;
-  pagination?: boolean;
-  layout?: "fit" | "fill";
-};
+  rowCount?: number
+  search?: boolean
+  filters?: boolean
+  orderBy?: boolean
+  pagination?: boolean
+  layout?: "fit" | "fill"
+}
 
 export const TableSkeleton = ({
   rowCount = 10,
@@ -171,12 +171,12 @@ export const TableSkeleton = ({
   layout = "fit",
 }: TableSkeletonProps) => {
   // Row count + header row
-  const totalRowCount = rowCount + 1;
+  const totalRowCount = rowCount + 1
 
-  const rows = Array.from({ length: totalRowCount }, (_, i) => i);
-  const hasToolbar = search || filters || orderBy;
+  const rows = Array.from({ length: totalRowCount }, (_, i) => i)
+  const hasToolbar = search || filters || orderBy
 
-  console.log({ filters });
+  console.log({ filters })
 
   return (
     <div
@@ -198,45 +198,41 @@ export const TableSkeleton = ({
       )}
       <div className="flex flex-col divide-y border-y">
         {rows.map((row) => (
-          <Skeleton key={row} className="h-10 w-full rounded-none" />
+          <Skeleton className="h-10 w-full rounded-none" key={row} />
         ))}
       </div>
       {pagination && <TableFooterSkeleton layout={layout} />}
     </div>
-  );
-};
+  )
+}
 
-export const TableSectionSkeleton = (props: TableSkeletonProps) => {
-  return (
-    <Container className="divide-y p-0" aria-hidden>
-      <div className="flex items-center justify-between px-6 py-4" aria-hidden>
-        <HeadingSkeleton level="h2" characters={16} />
-        <IconButtonSkeleton />
-      </div>
-      <TableSkeleton {...props} />
-    </Container>
-  );
-};
+export const TableSectionSkeleton = (props: TableSkeletonProps) => (
+  <Container aria-hidden className="divide-y p-0">
+    <div aria-hidden className="flex items-center justify-between px-6 py-4">
+      <HeadingSkeleton characters={16} level="h2" />
+      <IconButtonSkeleton />
+    </div>
+    <TableSkeleton {...props} />
+  </Container>
+)
 
-export const JsonViewSectionSkeleton = () => {
-  return (
-    <Container className="divide-y p-0" aria-hidden>
-      <div className="flex items-center justify-between px-6 py-4" aria-hidden>
-        <div aria-hidden className="flex items-center gap-x-4">
-          <HeadingSkeleton level="h2" characters={16} />
-          <Skeleton className="h-5 w-12 rounded-md" />
-        </div>
-        <IconButtonSkeleton />
+export const JsonViewSectionSkeleton = () => (
+  <Container aria-hidden className="divide-y p-0">
+    <div aria-hidden className="flex items-center justify-between px-6 py-4">
+      <div aria-hidden className="flex items-center gap-x-4">
+        <HeadingSkeleton characters={16} level="h2" />
+        <Skeleton className="h-5 w-12 rounded-md" />
       </div>
-    </Container>
-  );
-};
+      <IconButtonSkeleton />
+    </div>
+  </Container>
+)
 
 type SingleColumnPageSkeletonProps = {
-  sections?: number;
-  showJSON?: boolean;
-  showMetadata?: boolean;
-};
+  sections?: number
+  showJSON?: boolean
+  showMetadata?: boolean
+}
 
 export const SingleColumnPageSkeleton = ({
   sections = 2,
@@ -248,27 +244,27 @@ export const SingleColumnPageSkeleton = ({
       {Array.from({ length: sections }, (_, i) => i).map((section) => {
         return (
           <Skeleton
-            key={section}
             className={clx("h-full max-h-[460px] w-full rounded-lg", {
               // First section is smaller on most pages, this gives us less
               // layout shifting in general,
               "max-h-[219px]": section === 0,
             })}
+            key={section}
           />
-        );
+        )
       })}
       {showMetadata && <Skeleton className="h-[60px] w-full rounded-lg" />}
       {showJSON && <Skeleton className="h-[60px] w-full rounded-lg" />}
     </div>
-  );
-};
+  )
+}
 
 type TwoColumnPageSkeletonProps = {
-  mainSections?: number;
-  sidebarSections?: number;
-  showJSON?: boolean;
-  showMetadata?: boolean;
-};
+  mainSections?: number
+  sidebarSections?: number
+  showJSON?: boolean
+  showMetadata?: boolean
+}
 
 export const TwoColumnPageSkeleton = ({
   mainSections = 2,
@@ -276,22 +272,20 @@ export const TwoColumnPageSkeleton = ({
   showJSON = false,
   showMetadata = true,
 }: TwoColumnPageSkeletonProps) => {
-  const showExtraData = showJSON || showMetadata;
+  const showExtraData = showJSON || showMetadata
 
   return (
     <div className="flex flex-col gap-y-3">
       <div className="flex flex-col gap-x-4 gap-y-3 xl:flex-row xl:items-start">
         <div className="flex w-full flex-col gap-y-3">
-          {Array.from({ length: mainSections }, (_, i) => i).map((section) => {
-            return (
-              <Skeleton
-                key={section}
-                className={clx("h-full max-h-[460px] w-full rounded-lg", {
-                  "max-h-[219px]": section === 0,
-                })}
-              />
-            );
-          })}
+          {Array.from({ length: mainSections }, (_, i) => i).map((section) => (
+            <Skeleton
+              className={clx("h-full max-h-[460px] w-full rounded-lg", {
+                "max-h-[219px]": section === 0,
+              })}
+              key={section}
+            />
+          ))}
           {showExtraData && (
             <div className="hidden flex-col gap-y-3 xl:flex">
               {showMetadata && (
@@ -303,16 +297,14 @@ export const TwoColumnPageSkeleton = ({
         </div>
         <div className="flex w-full max-w-[100%] flex-col gap-y-3 xl:mt-0 xl:max-w-[440px]">
           {Array.from({ length: sidebarSections }, (_, i) => i).map(
-            (section) => {
-              return (
-                <Skeleton
-                  key={section}
-                  className={clx("h-full max-h-[320px] w-full rounded-lg", {
-                    "max-h-[140px]": section === 0,
-                  })}
-                />
-              );
-            }
+            (section) => (
+              <Skeleton
+                className={clx("h-full max-h-[320px] w-full rounded-lg", {
+                  "max-h-[140px]": section === 0,
+                })}
+                key={section}
+              />
+            )
           )}
           {showExtraData && (
             <div className="flex flex-col gap-y-3 xl:hidden">
@@ -325,5 +317,5 @@ export const TwoColumnPageSkeleton = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

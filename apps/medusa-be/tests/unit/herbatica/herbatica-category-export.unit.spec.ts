@@ -5,9 +5,9 @@ import {
   excerptPlainText,
   parseHerbaticaCategoriesXmlFile,
   parseHerbaticaCategoriesXmlSource,
-  readXmlSource,
   stripHtmlToPlainText,
 } from "../../../src/scripts/herbatica-category-export"
+import { readXmlSource } from "../../../src/scripts/herbatica-xml-utils"
 
 describe("Herbatica category export parser", () => {
   const xmlPath = resolve(

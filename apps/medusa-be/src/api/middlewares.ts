@@ -23,11 +23,11 @@ import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publi
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
-import { storeMiddlewares } from "./store/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
-import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
+import { storeMiddlewares } from "./store/middlewares"
 import { storeProducersRoutesMiddlewares } from "./store/producers/middlewares"
+import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
 
 const originalErrorHandler = errorHandler()

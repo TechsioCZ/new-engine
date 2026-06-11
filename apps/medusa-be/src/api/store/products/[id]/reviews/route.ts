@@ -1,12 +1,15 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { PRODUCT_REVIEW_MODULE } from "../../../../../modules/product-review"
+import type ProductReviewModuleService from "../../../../../modules/product-review/service"
 import {
   filterReviewRecords,
   normalizePublicReview,
 } from "../../../../review-normalizers"
-import { PRODUCT_REVIEW_MODULE } from "../../../../../modules/product-review"
-import type ProductReviewModuleService from "../../../../../modules/product-review/service"
 import type { StoreGetProductReviewsSchemaType } from "./validators"
 
 type ReviewRatingRecord = {
@@ -32,7 +35,8 @@ async function getReviewSummary(req: MedusaRequest, productId: string) {
       take: 1,
     },
   })
-  const count = metadata?.count ?? (Array.isArray(firstPage) ? firstPage.length : 0)
+  const count =
+    metadata?.count ?? (Array.isArray(firstPage) ? firstPage.length : 0)
 
   if (!count) {
     return {
@@ -64,10 +68,14 @@ export async function GET(
   res: MedusaResponse
 ) {
   const { limit, offset } = req.validatedQuery
-  const productId = typeof req.params.id === "string" ? req.params.id : undefined
+  const productId =
+    typeof req.params.id === "string" ? req.params.id : undefined
 
   if (!productId) {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Product id is required")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Product id is required"
+    )
   }
   const service = req.scope.resolve<ProductReviewModuleService>(
     PRODUCT_REVIEW_MODULE

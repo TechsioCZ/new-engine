@@ -18,7 +18,11 @@ const getAdminPublicDir = () =>
 const isPathInsideDirectory = (baseDir: string, filePath: string) => {
   const relative = path.relative(baseDir, filePath)
 
-  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative)
+  return (
+    Boolean(relative) &&
+    !relative.startsWith("..") &&
+    !path.isAbsolute(relative)
+  )
 }
 
 const getRequestPath = (req: MedusaRequest) => {
@@ -58,7 +62,9 @@ const resolveAdminFile = (
 
   if (!path.extname(normalizedRelativePath)) {
     const indexFile = path.resolve(adminPublicDir, "index.html")
-    return isPathInsideDirectory(adminPublicDir, indexFile) ? indexFile : undefined
+    return isPathInsideDirectory(adminPublicDir, indexFile)
+      ? indexFile
+      : undefined
   }
 
   return

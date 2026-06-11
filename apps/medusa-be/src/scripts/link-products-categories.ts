@@ -1,5 +1,30 @@
-import type { ExecArgs } from "@medusajs/framework/types"
+import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
+
+type ProductCategoryRecord = {
+  handle: string
+  id: string
+}
+
+type ProductRecord = {
+  categories?: { id: string }[]
+  handle: string
+  id: string
+}
+
+type ProductService = {
+  listProductCategories: (
+    filters: Record<string, unknown>
+  ) => Promise<ProductCategoryRecord[]>
+  listProducts: (
+    filters: Record<string, unknown>,
+    config?: { relations?: string[] }
+  ) => Promise<ProductRecord[]>
+  updateProducts: (
+    id: string,
+    data: { category_ids: string[] }
+  ) => Promise<unknown>
+}
 
 // Mapping of product handles to category handles
 const productCategoryMapping: Record<string, string[]> = {
@@ -56,11 +81,28 @@ const productCategoryMapping: Record<string, string[]> = {
   "pleated-midi-skirt": ["skirts"],
 }
 
+async function logCategoryProductCounts(
+  productService: ProductService,
+  categories: ProductCategoryRecord[],
+  logger: Logger
+) {
+  for (const category of categories) {
+    const productsInCategory = await productService.listProducts({
+      categories: { id: category.id },
+    })
+
+    const count = productsInCategory.length
+    if (count > 0) {
+      logger.info(`Category ${category.handle} has ${count} products`)
+    }
+  }
+}
+
 export default async function linkProductsToCategories({
   container,
 }: ExecArgs) {
-  const productService = container.resolve(Modules.PRODUCT)
-  const logger = container.resolve("logger")
+  const productService = container.resolve<ProductService>(Modules.PRODUCT)
+  const logger = container.resolve<Logger>("logger")
 
   logger.info("Starting to link products to categories...")
 
@@ -139,17 +181,7 @@ export default async function linkProductsToCategories({
 
   logger.info(`Successfully linked ${linkedCount} products to categories`)
 
-  // Update category product counts
-  for (const category of categories) {
-    const productsInCategory = await productService.listProducts({
-      categories: { id: category.id },
-    })
-
-    const count = productsInCategory.length
-    if (count > 0) {
-      logger.info(`Category ${category.handle} has ${count} products`)
-    }
-  }
+  await logCategoryProductCounts(productService, categories, logger)
 
   logger.info("Finished linking products to categories!")
 }

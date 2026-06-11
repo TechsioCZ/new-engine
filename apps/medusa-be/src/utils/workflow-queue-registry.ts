@@ -1,8 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
 import {
-  sendProductReviewRequestWorkflow,
   type SendProductReviewRequestWorkflowInput,
+  sendProductReviewRequestWorkflow,
 } from "../workflows/send-product-review-request"
 
 export const workflowQueueNames = {

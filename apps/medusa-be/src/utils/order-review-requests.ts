@@ -1,5 +1,3 @@
-import { getOrderDisplayId } from "./order-payment-reminders"
-
 export type ReviewRequestOrder = {
   id: string
   customer_id?: string | null
@@ -129,5 +127,3 @@ export function getReviewRequestRunAt(order: ReviewRequestOrder) {
 export function getReviewRequestMessage() {
   return process.env.PRODUCT_REVIEW_REQUEST_MESSAGE ?? "Napiš recenzi produktu"
 }
-
-export { getOrderDisplayId }

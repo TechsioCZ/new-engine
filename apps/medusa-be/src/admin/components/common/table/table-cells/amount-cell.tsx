@@ -1,14 +1,14 @@
-import { clx } from "@medusajs/ui";
-import { formatAmount } from "../../../../utils";
-import { PlaceholderCell } from "./placeholder-cell";
+import { clx } from "@medusajs/ui"
+import { formatAmount } from "../../../../utils"
+import { PlaceholderCell } from "./placeholder-cell"
 
 type AmountCellProps = {
-  currencyCode: string;
-  amount?: number | null;
-  originalAmount?: number | null;
-  align?: "left" | "right";
-  className?: string;
-};
+  currencyCode: string
+  amount?: number | null
+  originalAmount?: number | null
+  align?: "left" | "right"
+  className?: string
+}
 
 export const AmountCell = ({
   currencyCode,
@@ -18,13 +18,16 @@ export const AmountCell = ({
   className,
 }: AmountCellProps) => {
   if (typeof amount === "undefined" || amount === null) {
-    return <PlaceholderCell />;
+    return <PlaceholderCell />
   }
 
-  const formatted = formatAmount(amount, currencyCode);
-  const originalAmountPresent = typeof originalAmount === "number";
-  const originalAmountDiffers = originalAmount !== amount;
-  const shouldShowAmountDiff = originalAmountPresent && originalAmountDiffers;
+  const formatted = formatAmount(amount, currencyCode)
+  const originalAmountPresent = typeof originalAmount === "number"
+  const originalAmountDiffers = originalAmount !== amount
+  const shouldShowAmountDiff = originalAmountPresent && originalAmountDiffers
+  const originalFormatted = originalAmountPresent
+    ? formatAmount(originalAmount, currencyCode)
+    : undefined
 
   return (
     <div
@@ -40,16 +43,14 @@ export const AmountCell = ({
     >
       {shouldShowAmountDiff ? (
         <>
-          <span className="truncate line-through text-xs">
-            {formatAmount(originalAmount!, currencyCode)}
+          <span className="truncate text-xs line-through">
+            {originalFormatted}
           </span>
-          <span className="truncate text-blue-400 txt-small">{formatted}</span>
+          <span className="txt-small truncate text-blue-400">{formatted}</span>
         </>
       ) : (
-        <>
-          <span className="truncate">{formatted}</span>
-        </>
+        <span className="truncate">{formatted}</span>
       )}
     </div>
-  );
-};
+  )
+}

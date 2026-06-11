@@ -545,7 +545,17 @@ function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {
 function getLatestOrderExpeditionSummaryTotal(
   summary: OrderExpeditionRawOrder["summary"]
 ) {
-  const summaries = (Array.isArray(summary) ? summary : summary ? [summary] : [])
+  let summaryEntries: OrderExpeditionSummary[]
+
+  if (Array.isArray(summary)) {
+    summaryEntries = summary
+  } else if (summary) {
+    summaryEntries = [summary]
+  } else {
+    summaryEntries = []
+  }
+
+  const summaries = summaryEntries
     .slice()
     .sort(
       (left, right) =>

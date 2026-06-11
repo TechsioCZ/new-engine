@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
   getOrderBusinessManualStatusUpdateBlockReason,
-  isPendingUnpaidOrder,
   isManualOrderBusinessStatusId,
+  isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
   ORDER_BUSINESS_STATUSES,
   type OrderBusinessStatusInput,
@@ -142,8 +142,9 @@ describe("order business status", () => {
     name: string
     overrides: Partial<OrderBusinessStatusInput>
   }[])("counts pending unpaid orders when $name", ({ overrides }) => {
-    expect(isPendingUnpaidOrder(createOrder({ status: "pending", ...overrides })))
-      .toBe(true)
+    expect(
+      isPendingUnpaidOrder(createOrder({ status: "pending", ...overrides }))
+    ).toBe(true)
   })
 
   it.each([

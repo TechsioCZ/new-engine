@@ -1,13 +1,17 @@
-import { Input, Label, clx } from "@medusajs/ui";
-import * as Popover from "@radix-ui/react-popover";
-import { debounce } from "lodash";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
-import { useSelectedParams } from "../hooks";
-import { useDataTableFilterContext } from "./context";
-import { IFilter } from "./types";
-import FilterChip from "./filter-chip";
+import { clx, Input, Label } from "@medusajs/ui"
+import {
+  Content as PopoverContent,
+  Portal as PopoverPortal,
+  Root as PopoverRoot,
+} from "@radix-ui/react-popover"
+import { debounce } from "lodash"
+import { type ChangeEvent, useEffect, useMemo, useState } from "react"
+import { useSelectedParams } from "../hooks"
+import { useDataTableFilterContext } from "./context"
+import FilterChip from "./filter-chip"
+import type { IFilter } from "./types"
 
-type StringFilterProps = IFilter;
+type StringFilterProps = IFilter
 
 export const StringFilter = ({
   filter,
@@ -15,110 +19,111 @@ export const StringFilter = ({
   readonly,
   openOnMount,
 }: StringFilterProps) => {
-  const [open, setOpen] = useState(openOnMount);
+  const [open, setOpen] = useState(openOnMount)
 
-  const { key, label } = filter;
+  const { key, label } = filter
 
-  const { removeFilter } = useDataTableFilterContext();
-  const selectedParams = useSelectedParams({ param: key, prefix });
+  const { removeFilter } = useDataTableFilterContext()
+  const selectedParams = useSelectedParams({ param: key, prefix })
 
-  const query = selectedParams.get();
+  const query = selectedParams.get()
 
   const [previousValue, setPreviousValue] = useState<string | undefined>(
     query?.[0]
-  );
+  )
 
-  const debouncedOnChange = useCallback(
-    debounce((e: ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
+  const debouncedOnChange = useMemo(
+    () =>
+      debounce((e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value
 
-      if (!value) {
-        selectedParams.delete();
-      } else {
-        selectedParams.add(value);
-      }
-    }, 500),
+        if (value) {
+          selectedParams.add(value)
+        } else {
+          selectedParams.delete()
+        }
+      }, 500),
     [selectedParams]
-  );
+  )
 
-  useEffect(() => {
-    return () => {
-      debouncedOnChange.cancel();
-    };
-  }, [debouncedOnChange]);
+  useEffect(
+    () => () => {
+      debouncedOnChange.cancel()
+    },
+    [debouncedOnChange]
+  )
 
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-  const handleOpenChange = (open: boolean) => {
-    setOpen(open);
-    setPreviousValue(query?.[0]);
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen)
+    setPreviousValue(query?.[0])
 
     if (timeoutId) {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId)
     }
 
-    if (!open && !query.length) {
+    if (!(nextOpen || query.length)) {
       timeoutId = setTimeout(() => {
-        removeFilter(key);
-      }, 200);
+        removeFilter(key)
+      }, 200)
     }
-  };
+  }
 
   const handleRemove = () => {
-    selectedParams.delete();
-    removeFilter(key);
-  };
+    selectedParams.delete()
+    removeFilter(key)
+  }
 
   return (
-    <Popover.Root modal open={open} onOpenChange={handleOpenChange}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
       <FilterChip
-        hasOperator
         hadPreviousValue={!!previousValue}
+        hasOperator
         label={label}
-        value={query?.[0]}
         onRemove={handleRemove}
         readonly={readonly}
+        value={query?.[0]}
       />
       {!readonly && (
-        <Popover.Portal>
-          <Popover.Content
-            hideWhenDetached
+        <PopoverPortal>
+          <PopoverContent
             align="start"
-            sideOffset={8}
-            collisionPadding={8}
             className={clx(
-              "bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg outline-none"
+              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
             )}
+            collisionPadding={8}
+            hideWhenDetached
             onInteractOutside={(e) => {
-              if (e.target instanceof HTMLElement) {
-                if (
-                  e.target.attributes.getNamedItem("data-name")?.value ===
+              if (
+                e.target instanceof HTMLElement &&
+                e.target.attributes.getNamedItem("data-name")?.value ===
                   "filters_menu_content"
-                ) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
+              ) {
+                e.preventDefault()
+                e.stopPropagation()
               }
             }}
+            sideOffset={8}
           >
-            <div className="px-1 pb-3 pt-1">
+            <div className="px-1 pt-1 pb-3">
               <div className="px-2 py-1.5">
-                <Label size="xsmall" weight="plus" htmlFor={key}>
+                <Label htmlFor={key} size="xsmall" weight="plus">
                   {label}
                 </Label>
               </div>
               <div className="px-2 py-0.5">
                 <Input
-                  name={key}
-                  size="small"
                   defaultValue={query?.[0] || undefined}
+                  name={key}
                   onChange={debouncedOnChange}
+                  size="small"
                 />
               </div>
             </div>
-          </Popover.Content>
-        </Popover.Portal>
+          </PopoverContent>
+        </PopoverPortal>
       )}
-    </Popover.Root>
-  );
-};
+    </PopoverRoot>
+  )
+}

@@ -1,65 +1,163 @@
-import { CommandBar, Table, clx } from "@medusajs/ui";
+import { CommandBar, clx, Table } from "@medusajs/ui"
 import {
-  ColumnDef,
-  Table as ReactTable,
-  Row,
+  type Cell,
+  type ColumnDef,
   flexRender,
-} from "@tanstack/react-table";
+  type Table as ReactTable,
+  type Row,
+} from "@tanstack/react-table"
 import {
-  ComponentPropsWithoutRef,
+  type ComponentPropsWithoutRef,
   Fragment,
-  UIEvent,
+  type UIEvent,
   useEffect,
   useRef,
   useState,
-} from "react";
-import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import { NoResults } from "../empty-state";
+} from "react"
+import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
+import { NoResults } from "../empty-state"
 
 type BulkCommand = {
-  label: string;
-  shortcut: string;
-  action: (selection: Record<string, boolean>) => Promise<void>;
-};
+  label: string
+  shortcut: string
+  action: (selection: Record<string, boolean>) => Promise<void>
+}
 
-export interface DataTableRootProps<TData> {
+type BodyCellProps<TData> = {
+  cell: Cell<TData, unknown>
+  cells: Cell<TData, unknown>[]
+  hasSelect: boolean
+  index: number
+  isOdd: boolean
+  isRowDisabled: boolean
+  rowDepth: number
+  showStickyBorder: boolean
+  to?: string
+}
+
+export type DataTableRootProps<TData> = {
   /**
    * The table instance to render
    */
-  table: ReactTable<TData>;
+  table: ReactTable<TData>
   /**
    * The columns to render
    */
-  columns: ColumnDef<TData, any>[];
+  // biome-ignore lint/suspicious/noExplicitAny: ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
+  columns: ColumnDef<TData, any>[]
   /**
    * Function to generate a link to navigate to when clicking on a row
    */
-  navigateTo?: (row: Row<TData>) => string;
+  navigateTo?: (row: Row<TData>) => string
   /**
    * Bulk actions to render
    */
-  commands?: BulkCommand[];
+  commands?: BulkCommand[]
   /**
    * The total number of items in the table
    */
-  count?: number;
+  count?: number
   /**
    * Whether to display pagination controls
    */
-  pagination?: boolean;
+  pagination?: boolean
   /**
    * Whether the table is empty due to no results from the active query
    */
-  noResults?: boolean;
+  noResults?: boolean
   /**
    * Whether to display the tables header
    */
-  noHeader?: boolean;
+  noHeader?: boolean
   /**
    * The layout of the table
    */
-  layout?: "fill" | "fit";
+  layout?: "fill" | "fit"
+}
+
+const getFirstContentCellIndex = <TData,>(cells: Cell<TData, unknown>[]) =>
+  cells.findIndex((cell) => cell.column.id !== "select")
+
+const getIsFirstContentCell = <TData,>(
+  cell: Cell<TData, unknown>,
+  cells: Cell<TData, unknown>[],
+  index: number
+) => {
+  const firstCell = getFirstContentCellIndex(cells)
+
+  if (firstCell === -1) {
+    return index === 0
+  }
+
+  return cell.column.id === cells[firstCell].column.id
+}
+
+const getDepthOffset = (rowDepth: number, isFirstCell: boolean) => {
+  if (rowDepth <= 0 || !isFirstCell) {
+    return
+  }
+
+  return rowDepth * 14 + 24
+}
+
+const BodyCell = <TData,>({
+  cell,
+  cells,
+  hasSelect,
+  index,
+  isOdd,
+  isRowDisabled,
+  rowDepth,
+  showStickyBorder,
+  to,
+}: BodyCellProps<TData>) => {
+  const isSelectCell = cell.column.id === "select"
+  const isFirstCell = getIsFirstContentCell(cell, cells, index)
+  const isStickyCell = isSelectCell || isFirstCell
+  const depthOffset = getDepthOffset(rowDepth, isFirstCell)
+  const hasLeftOffset = isStickyCell && hasSelect && !isSelectCell
+  const inner = flexRender(cell.column.columnDef.cell, cell.getContext())
+  const isTabableLink = isFirstCell && !!to
+  const shouldRenderAsLink = !!to && !isSelectCell
+
+  return (
+    <Table.Cell
+      className={clx({
+        "!pl-0 !pr-0": shouldRenderAsLink,
+        "sticky left-0 bg-ui-bg-base transition-fg after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-[''] group-hover/row:bg-ui-bg-base-hover group-has-[[data-row-link]:focus-visible]:bg-ui-bg-base-hover group-data-[selected=true]/row:bg-ui-bg-highlight group-data-[selected=true]/row:group-hover/row:bg-ui-bg-highlight-hover":
+          isStickyCell,
+        "bg-ui-bg-subtle group-hover/row:bg-ui-bg-subtle-hover":
+          isOdd && isStickyCell,
+        "left-[68px]": hasLeftOffset,
+        "after:bg-ui-border-base":
+          showStickyBorder && isStickyCell && !isSelectCell,
+        "!bg-ui-bg-disabled !hover:bg-ui-bg-disabled": isRowDisabled,
+      })}
+      style={{
+        paddingLeft: depthOffset ? `${depthOffset}px` : undefined,
+      }}
+    >
+      {shouldRenderAsLink ? (
+        <Link
+          className="size-full outline-none"
+          data-row-link
+          tabIndex={isTabableLink ? 0 : -1}
+          to={to}
+        >
+          <div
+            className={clx("flex size-full items-center pr-6", {
+              "pl-6": isTabableLink && !hasLeftOffset,
+            })}
+          >
+            {inner}
+          </div>
+        </Link>
+      ) : (
+        inner
+      )}
+    </Table.Cell>
+  )
 }
 
 /**
@@ -87,40 +185,42 @@ export const DataTableRoot = <TData,>({
   noHeader = false,
   layout = "fit",
 }: DataTableRootProps<TData>) => {
-  const { t } = useTranslation();
-  const [showStickyBorder, setShowStickyBorder] = useState(false);
+  const { t } = useTranslation()
+  const [showStickyBorder, setShowStickyBorder] = useState(false)
 
-  const scrollableRef = useRef<HTMLDivElement>(null);
+  const scrollableRef = useRef<HTMLDivElement>(null)
 
-  const hasSelect = columns.find((c) => c.id === "select");
-  const hasActions = columns.find((c) => c.id === "actions");
-  const hasCommandBar = commands && commands.length > 0;
+  const hasSelect = columns.find((c) => c.id === "select")
+  const hasActions = columns.find((c) => c.id === "actions")
+  const hasCommandBar = commands && commands.length > 0
 
-  const rowSelection = table.getState().rowSelection;
-  const { pageIndex, pageSize } = table.getState().pagination;
+  const rowSelection = table.getState().rowSelection
+  const { pageIndex, pageSize } = table.getState().pagination
 
-  const colCount = columns.length - (hasSelect ? 1 : 0) - (hasActions ? 1 : 0);
-  const colWidth = 100 / colCount;
+  const colCount = columns.length - (hasSelect ? 1 : 0) - (hasActions ? 1 : 0)
+  const colWidth = 100 / colCount
 
   const handleHorizontalScroll = (e: UIEvent<HTMLDivElement>) => {
-    const scrollLeft = e.currentTarget.scrollLeft;
+    const scrollLeft = e.currentTarget.scrollLeft
 
     if (scrollLeft > 0) {
-      setShowStickyBorder(true);
+      setShowStickyBorder(true)
     } else {
-      setShowStickyBorder(false);
+      setShowStickyBorder(false)
     }
-  };
+  }
 
   const handleAction = async (action: BulkCommand["action"]) => {
     await action(rowSelection).then(() => {
-      table.resetRowSelection();
-    });
-  };
+      table.resetRowSelection()
+    })
+  }
 
   useEffect(() => {
-    scrollableRef.current?.scroll({ top: 0, left: 0 });
-  }, [pageIndex]);
+    if (pageIndex >= 0) {
+      scrollableRef.current?.scroll({ top: 0, left: 0 })
+    }
+  }, [pageIndex])
 
   return (
     <div
@@ -129,91 +229,88 @@ export const DataTableRoot = <TData,>({
       })}
     >
       <div
-        ref={scrollableRef}
-        onScroll={handleHorizontalScroll}
         className={clx("w-full", {
           "min-h-0 flex-grow overflow-auto": layout === "fill",
           "overflow-x-auto": layout === "fit",
         })}
+        onScroll={handleHorizontalScroll}
+        ref={scrollableRef}
       >
-        {!noResults ? (
+        {noResults ? (
+          <div className={clx({ "border-b": layout === "fit" })}>
+            <NoResults />
+          </div>
+        ) : (
           <Table className="relative w-full">
             {!noHeader && (
               <Table.Header className="border-t-0">
-                {table.getHeaderGroups().map((headerGroup) => {
-                  return (
-                    <Table.Row
-                      key={headerGroup.id}
-                      className={clx({
-                        "relative border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap":
-                          hasActions,
-                        "[&_th:first-of-type]:w-[1%] [&_th:first-of-type]:whitespace-nowrap":
-                          hasSelect,
-                      })}
-                    >
-                      {headerGroup.headers.map((header, index) => {
-                        const isActionHeader = header.id === "actions";
-                        const isSelectHeader = header.id === "select";
-                        const isSpecialHeader =
-                          isActionHeader || isSelectHeader;
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <Table.Row
+                    className={clx({
+                      "relative border-b-0 [&_th:last-of-type]:w-[1%] [&_th:last-of-type]:whitespace-nowrap":
+                        hasActions,
+                      "[&_th:first-of-type]:w-[1%] [&_th:first-of-type]:whitespace-nowrap":
+                        hasSelect,
+                    })}
+                    key={headerGroup.id}
+                  >
+                    {headerGroup.headers.map((header, index) => {
+                      const isActionHeader = header.id === "actions"
+                      const isSelectHeader = header.id === "select"
+                      const isSpecialHeader = isActionHeader || isSelectHeader
 
-                        const firstHeader = headerGroup.headers.findIndex(
-                          (h) => h.id !== "select"
-                        );
-                        const isFirstHeader =
-                          firstHeader !== -1
-                            ? header.id === headerGroup.headers[firstHeader].id
-                            : index === 0;
+                      const firstHeader = headerGroup.headers.findIndex(
+                        (h) => h.id !== "select"
+                      )
+                      const isFirstHeader =
+                        firstHeader !== -1
+                          ? header.id === headerGroup.headers[firstHeader].id
+                          : index === 0
 
-                        const isStickyHeader = isSelectHeader || isFirstHeader;
+                      const isStickyHeader = isSelectHeader || isFirstHeader
 
-                        return (
-                          <Table.HeaderCell
-                            data-table-header-id={header.id}
-                            key={header.id}
-                            style={{
-                              width: !isSpecialHeader
-                                ? `${colWidth}%`
-                                : undefined,
-                            }}
-                            className={clx({
-                              "bg-ui-bg-base sticky left-0 after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-['']":
-                                isStickyHeader,
-                              "left-[68px]":
-                                isStickyHeader && hasSelect && !isSelectHeader,
-                              "after:bg-ui-border-base":
-                                showStickyBorder &&
-                                isStickyHeader &&
-                                !isSpecialHeader,
-                            })}
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                          </Table.HeaderCell>
-                        );
-                      })}
-                    </Table.Row>
-                  );
-                })}
+                      return (
+                        <Table.HeaderCell
+                          className={clx({
+                            "sticky left-0 bg-ui-bg-base after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-['']":
+                              isStickyHeader,
+                            "left-[68px]":
+                              isStickyHeader && hasSelect && !isSelectHeader,
+                            "after:bg-ui-border-base":
+                              showStickyBorder &&
+                              isStickyHeader &&
+                              !isSpecialHeader,
+                          })}
+                          data-table-header-id={header.id}
+                          key={header.id}
+                          style={{
+                            width: isSpecialHeader ? undefined : `${colWidth}%`,
+                          }}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                        </Table.HeaderCell>
+                      )
+                    })}
+                  </Table.Row>
+                ))}
               </Table.Header>
             )}
             <Table.Body className="border-b-0">
               {table.getRowModel().rows.map((row) => {
-                const to = navigateTo ? navigateTo(row) : undefined;
-                const isRowDisabled = hasSelect && !row.getCanSelect();
+                const to = navigateTo ? navigateTo(row) : undefined
+                const isRowDisabled = hasSelect && !row.getCanSelect()
 
-                const isOdd = row.depth % 2 !== 0;
+                const isOdd = row.depth % 2 !== 0
 
-                const cells = row.getVisibleCells();
+                const cells = row.getVisibleCells()
 
                 return (
                   <Table.Row
-                    key={row.id}
-                    data-selected={row.getIsSelected()}
                     className={clx(
-                      "transition-fg group/row group relative [&_td:last-of-type]:w-[1%] [&_td:last-of-type]:whitespace-nowrap",
+                      "group/row group relative transition-fg [&_td:last-of-type]:w-[1%] [&_td:last-of-type]:whitespace-nowrap",
                       "has-[[data-row-link]:focus-visible]:bg-ui-bg-base-hover",
                       {
                         "bg-ui-bg-subtle hover:bg-ui-bg-subtle-hover": isOdd,
@@ -224,95 +321,28 @@ export const DataTableRoot = <TData,>({
                           isRowDisabled,
                       }
                     )}
+                    data-selected={row.getIsSelected()}
+                    key={row.id}
                   >
-                    {cells.map((cell, index) => {
-                      const visibleCells = row.getVisibleCells();
-                      const isSelectCell = cell.column.id === "select";
-
-                      const firstCell = visibleCells.findIndex(
-                        (h) => h.column.id !== "select"
-                      );
-                      const isFirstCell =
-                        firstCell !== -1
-                          ? cell.column.id === visibleCells[firstCell].column.id
-                          : index === 0;
-
-                      const isStickyCell = isSelectCell || isFirstCell;
-
-                      /**
-                       * If the table has nested rows, we need to offset the cell padding
-                       * to indicate the depth of the row.
-                       */
-                      const depthOffset =
-                        row.depth > 0 && isFirstCell
-                          ? row.depth * 14 + 24
-                          : undefined;
-
-                      const hasLeftOffset =
-                        isStickyCell && hasSelect && !isSelectCell;
-
-                      const Inner = flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      );
-
-                      const isTabableLink = isFirstCell && !!to;
-                      const shouldRenderAsLink = !!to && !isSelectCell;
-
-                      return (
-                        <Table.Cell
-                          key={cell.id}
-                          className={clx({
-                            "!pl-0 !pr-0": shouldRenderAsLink,
-                            "bg-ui-bg-base group-data-[selected=true]/row:bg-ui-bg-highlight group-data-[selected=true]/row:group-hover/row:bg-ui-bg-highlight-hover group-hover/row:bg-ui-bg-base-hover transition-fg group-has-[[data-row-link]:focus-visible]:bg-ui-bg-base-hover sticky left-0 after:absolute after:inset-y-0 after:right-0 after:h-full after:w-px after:bg-transparent after:content-['']":
-                              isStickyCell,
-                            "bg-ui-bg-subtle group-hover/row:bg-ui-bg-subtle-hover":
-                              isOdd && isStickyCell,
-                            "left-[68px]": hasLeftOffset,
-                            "after:bg-ui-border-base":
-                              showStickyBorder && isStickyCell && !isSelectCell,
-                            "!bg-ui-bg-disabled !hover:bg-ui-bg-disabled":
-                              isRowDisabled,
-                          })}
-                          style={{
-                            paddingLeft: depthOffset
-                              ? `${depthOffset}px`
-                              : undefined,
-                          }}
-                        >
-                          {shouldRenderAsLink ? (
-                            <Link
-                              to={to}
-                              className="size-full outline-none"
-                              data-row-link
-                              tabIndex={isTabableLink ? 0 : -1}
-                            >
-                              <div
-                                className={clx(
-                                  "flex size-full items-center pr-6",
-                                  {
-                                    "pl-6": isTabableLink && !hasLeftOffset,
-                                  }
-                                )}
-                              >
-                                {Inner}
-                              </div>
-                            </Link>
-                          ) : (
-                            Inner
-                          )}
-                        </Table.Cell>
-                      );
-                    })}
+                    {cells.map((cell, index) => (
+                      <BodyCell
+                        cell={cell}
+                        cells={cells}
+                        hasSelect={Boolean(hasSelect)}
+                        index={index}
+                        isOdd={isOdd}
+                        isRowDisabled={Boolean(isRowDisabled)}
+                        key={cell.id}
+                        rowDepth={row.depth}
+                        showStickyBorder={showStickyBorder}
+                        to={to}
+                      />
+                    ))}
                   </Table.Row>
-                );
+                )
               })}
             </Table.Body>
           </Table>
-        ) : (
-          <div className={clx({ "border-b": layout === "fit" })}>
-            <NoResults />
-          </div>
         )}
       </div>
       {pagination && (
@@ -320,12 +350,12 @@ export const DataTableRoot = <TData,>({
           <Pagination
             canNextPage={table.getCanNextPage()}
             canPreviousPage={table.getCanPreviousPage()}
-            nextPage={table.nextPage}
-            previousPage={table.previousPage}
             count={count}
-            pageIndex={pageIndex}
+            nextPage={table.nextPage}
             pageCount={table.getPageCount()}
+            pageIndex={pageIndex}
             pageSize={pageSize}
+            previousPage={table.previousPage}
           />
         </div>
       )}
@@ -338,32 +368,30 @@ export const DataTableRoot = <TData,>({
               })}
             </CommandBar.Value>
             <CommandBar.Seperator />
-            {commands?.map((command, index) => {
-              return (
-                <Fragment key={index}>
-                  <CommandBar.Command
-                    label={command.label}
-                    shortcut={command.shortcut}
-                    action={() => handleAction(command.action)}
-                  />
-                  {index < commands.length - 1 && <CommandBar.Seperator />}
-                </Fragment>
-              );
-            })}
+            {commands?.map((command, index) => (
+              <Fragment key={`${command.label}-${command.shortcut}`}>
+                <CommandBar.Command
+                  action={() => handleAction(command.action)}
+                  label={command.label}
+                  shortcut={command.shortcut}
+                />
+                {index < commands.length - 1 && <CommandBar.Seperator />}
+              </Fragment>
+            ))}
           </CommandBar.Bar>
         </CommandBar>
       )}
     </div>
-  );
-};
+  )
+}
 
 type PaginationProps = Omit<
   ComponentPropsWithoutRef<typeof Table.Pagination>,
   "translations"
->;
+>
 
 const Pagination = (props: PaginationProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   const translations = {
     of: t("general.of"),
@@ -371,7 +399,7 @@ const Pagination = (props: PaginationProps) => {
     pages: t("general.pages"),
     prev: t("general.prev"),
     next: t("general.next"),
-  };
+  }
 
   return (
     <Table.Pagination
@@ -379,5 +407,5 @@ const Pagination = (props: PaginationProps) => {
       {...props}
       translations={translations}
     />
-  );
-};
+  )
+}

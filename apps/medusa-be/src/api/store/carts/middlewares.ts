@@ -2,13 +2,10 @@ import {
   authenticate,
   validateAndTransformBody,
   validateAndTransformQuery,
-} from "@medusajs/framework";
-import { MiddlewareRoute } from "@medusajs/medusa";
-import { retrieveCartTransformQueryConfig } from "./query-config";
-import {
-  GetCartLineItemsBulkParams,
-  StoreAddLineItemsBulk,
-} from "./validators";
+} from "@medusajs/framework"
+import type { MiddlewareRoute } from "@medusajs/medusa"
+import { retrieveCartTransformQueryConfig } from "./query-config"
+import { GetCartLineItemsBulkParams, StoreAddLineItemsBulk } from "./validators"
 
 export const storeCartsMiddlewares: MiddlewareRoute[] = [
   {
@@ -27,4 +24,4 @@ export const storeCartsMiddlewares: MiddlewareRoute[] = [
     matcher: "/store/carts/:id/approvals",
     middlewares: [authenticate("customer", ["bearer", "session"])],
   },
-];
+]

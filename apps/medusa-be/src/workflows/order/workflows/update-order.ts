@@ -3,7 +3,10 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
-import { updateOrderStep } from "../steps/update-order"
+import {
+  type UpdateOrderStepInput,
+  updateOrderStep,
+} from "../steps/update-order"
 
 /*
   A workflow to update the order. We use this in the quote workflows to convert a draft order
@@ -11,7 +14,7 @@ import { updateOrderStep } from "../steps/update-order"
 */
 export const updateOrderWorkflow = createWorkflow(
   "b2b-update-order-workflow",
-  (input: { id: string; is_draft_order: boolean; status: string }) => {
+  (input: UpdateOrderStepInput) => {
     useRemoteQueryStep({
       entry_point: "order",
       fields: ["id"],

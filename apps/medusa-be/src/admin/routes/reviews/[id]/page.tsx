@@ -45,7 +45,10 @@ const formatDate = (date: string | undefined) => {
 }
 
 const getCustomerName = (review: Review) => {
-  const name = [review.first_name, review.last_name].filter(Boolean).join(" ").trim()
+  const name = [review.first_name, review.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
 
   return name || review.customer_id
 }
@@ -83,7 +86,9 @@ const ReviewEditDrawer = ({
       toast.error("Failed to update review")
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: reviewQueryKeys.detail(review.id) })
+      await queryClient.invalidateQueries({
+        queryKey: reviewQueryKeys.detail(review.id),
+      })
       await queryClient.invalidateQueries({ queryKey: reviewQueryKeys.lists() })
       toast.success("Review updated")
       onOpenChange(false)
@@ -91,7 +96,7 @@ const ReviewEditDrawer = ({
   })
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer onOpenChange={onOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
           <Drawer.Title>Edit review</Drawer.Title>
@@ -100,38 +105,54 @@ const ReviewEditDrawer = ({
           <div className="flex flex-col gap-2">
             <Label>Title</Label>
             <Input
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
+              }
               value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label>Content</Label>
             <Textarea
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  content: event.target.value,
+                }))
+              }
               rows={8}
               value={form.content}
-              onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">
               <Label>Rating</Label>
               <Input
-                min={1}
                 max={5}
+                min={1}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    rating: Number(event.target.value),
+                  }))
+                }
                 type="number"
                 value={form.rating}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, rating: Number(event.target.value) }))
-                }
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                value={form.status}
                 onValueChange={(value) =>
-                  setForm((current) => ({ ...current, status: value as ReviewStatus }))
+                  setForm((current) => ({
+                    ...current,
+                    status: value as ReviewStatus,
+                  }))
                 }
+                value={form.status}
               >
                 <Select.Trigger>
                   <Select.Value />
@@ -150,19 +171,25 @@ const ReviewEditDrawer = ({
             <div className="flex flex-col gap-2">
               <Label>First name</Label>
               <Input
-                value={form.first_name ?? ""}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, first_name: event.target.value }))
+                  setForm((current) => ({
+                    ...current,
+                    first_name: event.target.value,
+                  }))
                 }
+                value={form.first_name ?? ""}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label>Last name</Label>
               <Input
-                value={form.last_name ?? ""}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, last_name: event.target.value }))
+                  setForm((current) => ({
+                    ...current,
+                    last_name: event.target.value,
+                  }))
                 }
+                value={form.last_name ?? ""}
               />
             </div>
           </div>
@@ -208,7 +235,10 @@ const ReviewsDetailPage = () => {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <Link className="inline-flex items-center gap-1 text-ui-fg-subtle" to="/reviews">
+        <Link
+          className="inline-flex items-center gap-1 text-ui-fg-subtle"
+          to="/reviews"
+        >
           <ArrowLeft />
           <Text size="small">Back to reviews</Text>
         </Link>
@@ -221,45 +251,51 @@ const ReviewsDetailPage = () => {
               {review.product?.title ?? review.product_id}
             </Text>
           </div>
-          <Button onClick={() => setEditOpen(true)} size="small" variant="secondary">
+          <Button
+            onClick={() => setEditOpen(true)}
+            size="small"
+            variant="secondary"
+          >
             <PencilSquare />
             Edit
           </Button>
         </div>
         <div className="grid gap-6 px-6 py-4 md:grid-cols-[1fr_280px]">
           <div className="flex flex-col gap-3">
-            <Text size="small" leading="compact" weight="plus">
+            <Text leading="compact" size="small" weight="plus">
               Review content
             </Text>
             <Text>{review.content}</Text>
           </div>
           <div className="flex flex-col gap-4">
             <div>
-              <Text size="small" leading="compact" weight="plus">
+              <Text leading="compact" size="small" weight="plus">
                 Status
               </Text>
-              <StatusBadge color={STATUS_BADGE_COLOR[review.status]}>{review.status}</StatusBadge>
+              <StatusBadge color={STATUS_BADGE_COLOR[review.status]}>
+                {review.status}
+              </StatusBadge>
             </div>
             <div>
-              <Text size="small" leading="compact" weight="plus">
+              <Text leading="compact" size="small" weight="plus">
                 Rating
               </Text>
               <Text>{review.rating}/5</Text>
             </div>
             <div>
-              <Text size="small" leading="compact" weight="plus">
+              <Text leading="compact" size="small" weight="plus">
                 Customer
               </Text>
               <Text>{getCustomerName(review)}</Text>
             </div>
             <div>
-              <Text size="small" leading="compact" weight="plus">
+              <Text leading="compact" size="small" weight="plus">
                 Created
               </Text>
               <Text>{formatDate(review.created_at)}</Text>
             </div>
             <div>
-              <Text size="small" leading="compact" weight="plus">
+              <Text leading="compact" size="small" weight="plus">
                 Updated
               </Text>
               <Text>{formatDate(review.updated_at)}</Text>
@@ -267,7 +303,11 @@ const ReviewsDetailPage = () => {
           </div>
         </div>
       </Container>
-      <ReviewEditDrawer onOpenChange={setEditOpen} open={editOpen} review={review} />
+      <ReviewEditDrawer
+        onOpenChange={setEditOpen}
+        open={editOpen}
+        review={review}
+      />
     </div>
   )
 }

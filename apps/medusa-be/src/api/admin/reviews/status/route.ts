@@ -1,9 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { updateReviewStatusWorkflow } from "../../../../workflows/product-review/workflows/update-review-status"
 import {
   getUniqueReviewProductIds,
   normalizeAdminReview,
 } from "../../../review-normalizers"
-import { updateReviewStatusWorkflow } from "../../../../workflows/product-review/workflows/update-review-status"
 import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewStatusSchemaType } from "../validators"
 
@@ -24,6 +24,8 @@ export async function POST(
   )
 
   res.status(200).json({
-    reviews: reviews.map((review) => normalizeAdminReview(review, productsById)),
+    reviews: reviews.map((review) =>
+      normalizeAdminReview(review, productsById)
+    ),
   })
 }

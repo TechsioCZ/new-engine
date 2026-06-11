@@ -1,16 +1,16 @@
-import { ExclamationCircle, MagnifyingGlass, PlusMini } from "@medusajs/icons";
-import { Button, Text, clx } from "@medusajs/ui";
-import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { ExclamationCircle, MagnifyingGlass, PlusMini } from "@medusajs/icons"
+import { Button, clx, Text } from "@medusajs/ui"
+import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 
 export type NoResultsProps = {
-  title?: string;
-  message?: string;
-  className?: string;
-};
+  title?: string
+  message?: string
+  className?: string
+}
 
 export const NoResults = ({ title, message, className }: NoResultsProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   return (
     <div
@@ -21,48 +21,48 @@ export const NoResults = ({ title, message, className }: NoResultsProps) => {
     >
       <div className="flex flex-col items-center gap-y-2">
         <MagnifyingGlass />
-        <Text size="small" leading="compact" weight="plus">
+        <Text leading="compact" size="small" weight="plus">
           {title ?? t("general.noResultsTitle")}
         </Text>
-        <Text size="small" className="text-ui-fg-subtle">
+        <Text className="text-ui-fg-subtle" size="small">
           {message ?? t("general.noResultsMessage")}
         </Text>
       </div>
     </div>
-  );
-};
+  )
+}
 
 type ActionProps = {
   action?: {
-    to: string;
-    label: string;
-  };
-};
+    to: string
+    label: string
+  }
+}
 
 type NoRecordsProps = {
-  title?: string;
-  message?: string;
-  className?: string;
-  buttonVariant?: string;
-} & ActionProps;
+  title?: string
+  message?: string
+  className?: string
+  buttonVariant?: string
+} & ActionProps
 
 const DefaultButton = ({ action }: ActionProps) =>
   action && (
     <Link to={action.to}>
-      <Button variant="secondary" size="small">
+      <Button size="small" variant="secondary">
         {action.label}
       </Button>
     </Link>
-  );
+  )
 
 const TransparentIconLeftButton = ({ action }: ActionProps) =>
   action && (
     <Link to={action.to}>
-      <Button variant="transparent" className="text-ui-fg-interactive">
+      <Button className="text-ui-fg-interactive" variant="transparent">
         <PlusMini /> {action.label}
       </Button>
     </Link>
-  );
+  )
 
 export const NoRecords = ({
   title,
@@ -71,7 +71,7 @@ export const NoRecords = ({
   className,
   buttonVariant = "default",
 }: NoRecordsProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   return (
     <div
@@ -84,11 +84,11 @@ export const NoRecords = ({
         <ExclamationCircle className="text-ui-fg-subtle" />
 
         <div className="flex flex-col items-center gap-y-1">
-          <Text size="small" leading="compact" weight="plus">
+          <Text leading="compact" size="small" weight="plus">
             {title ?? t("general.noRecordsTitle")}
           </Text>
 
-          <Text size="small" className="text-ui-fg-muted">
+          <Text className="text-ui-fg-muted" size="small">
             {message ?? t("general.noRecordsMessage")}
           </Text>
         </div>
@@ -99,5 +99,5 @@ export const NoRecords = ({
         <TransparentIconLeftButton action={action} />
       )}
     </div>
-  );
-};
+  )
+}

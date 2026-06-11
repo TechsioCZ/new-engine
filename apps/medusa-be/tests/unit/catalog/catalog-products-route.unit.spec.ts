@@ -332,7 +332,7 @@ describe("GET /store/catalog/products", () => {
 
   afterEach(() => {
     if (originalMeilisearchEnabled === undefined) {
-      delete process.env.MEILISEARCH_ENABLED
+      Reflect.deleteProperty(process.env, "MEILISEARCH_ENABLED")
       return
     }
 

@@ -1,26 +1,26 @@
-import {
+import type {
   IAuthModuleService,
   IUserModuleService,
-} from "@medusajs/framework/types";
-import { Modules } from "@medusajs/framework/utils";
-import jwt from "jsonwebtoken";
-import Scrypt from "scrypt-kdf";
+} from "@medusajs/framework/types"
+import { Modules } from "@medusajs/framework/utils"
+import jwt from "jsonwebtoken"
+import Scrypt from "scrypt-kdf"
 
-export const adminHeaders = {
+export const adminHeaders: { headers: Record<string, string> } = {
   headers: {},
-};
+}
 
-export const createAdminUser = async (adminHeaders, appContainer) => {
-  const userModule: IUserModuleService = appContainer.resolve(Modules.USER);
-  const authModule: IAuthModuleService = appContainer.resolve(Modules.AUTH);
+export const createAdminUser = async (targetAdminHeaders, appContainer) => {
+  const userModule: IUserModuleService = appContainer.resolve(Modules.USER)
+  const authModule: IAuthModuleService = appContainer.resolve(Modules.AUTH)
   const user = await userModule.createUsers({
     first_name: "Admin",
     last_name: "User",
     email: "admin@medusa.js",
-  });
+  })
 
-  const hashConfig = { logN: 15, r: 8, p: 1 };
-  const passwordHash = await Scrypt.kdf("somepassword", hashConfig);
+  const hashConfig = { logN: 15, r: 8, p: 1 }
+  const passwordHash = await Scrypt.kdf("somepassword", hashConfig)
 
   const authIdentity = await authModule.createAuthIdentities({
     provider_identities: [
@@ -35,7 +35,7 @@ export const createAdminUser = async (adminHeaders, appContainer) => {
     app_metadata: {
       user_id: user.id,
     },
-  });
+  })
 
   const token = jwt.sign(
     {
@@ -47,12 +47,12 @@ export const createAdminUser = async (adminHeaders, appContainer) => {
     {
       expiresIn: "1d",
     }
-  );
+  )
 
-  adminHeaders.headers["authorization"] = `Bearer ${token}`;
+  targetAdminHeaders.headers.authorization = `Bearer ${token}`
 
-  return { user, authIdentity };
-};
+  return { user, authIdentity }
+}
 
 export const createStoreUser = async ({ api, storeHeaders }) => {
   const registerToken = (
@@ -60,7 +60,7 @@ export const createStoreUser = async ({ api, storeHeaders }) => {
       email: "test@email.com",
       password: "password",
     })
-  ).data.token;
+  ).data.token
 
   const customer = (
     await api.post(
@@ -75,14 +75,14 @@ export const createStoreUser = async ({ api, storeHeaders }) => {
         },
       }
     )
-  ).data.customer;
+  ).data.customer
 
   const token = (
     await api.post("/auth/customer/emailpass", {
       email: "test@email.com",
       password: "password",
     })
-  ).data.token;
+  ).data.token
 
-  return { customer, token };
-};
+  return { customer, token }
+}

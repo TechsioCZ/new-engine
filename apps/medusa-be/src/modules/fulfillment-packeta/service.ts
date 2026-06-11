@@ -449,32 +449,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       config,
     } = params
 
-    const firstName = shippingAddress.first_name ?? ""
-    const lastName = shippingAddress.last_name ?? ""
-    if (!(firstName || lastName)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Packeta: Shipping address first_name or last_name is required"
-      )
-    }
-
-    const orderNumber =
-      order.display_id?.toString() || order.id || `fulfillment-${Date.now()}`
-
-    const orderTotal =
-      toFiniteNumber(order.total) ??
-      toFiniteNumber((order as { item_total?: unknown }).item_total)
-    if (shippingData.supports_cod && orderTotal === undefined) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Packeta: order total or item_total is required for COD shipments"
-      )
-    }
-    const totalNumber = orderTotal ?? 1
-    const packetWeight =
-      toFiniteNumber((shippingData as { weight?: unknown }).weight) ??
-      (await this.calculateOrderItemsWeightKg(order, items)) ??
-      DEFAULT_PACKET_WEIGHT_KG
+    const recipient = this.getRequiredRecipientName(shippingAddress)
+    const orderNumber = this.getPacketOrderNumber(order)
+    const totalNumber = this.getPacketOrderTotal(order, shippingData)
+    const packetWeight = await this.getPacketWeight(order, items, shippingData)
 
     if (packetWeight === DEFAULT_PACKET_WEIGHT_KG) {
       this.logger_.warn(
@@ -482,32 +460,136 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       )
     }
 
-    const currency = order.currency_code?.toUpperCase()
-    if (!currency && shippingData.supports_cod) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Packeta: currency_code is required on the order for COD shipments"
-      )
-    }
-
-    const attributes: PacketaPacketAttributes = {
-      number: orderNumber,
-      name: firstName,
-      surname: lastName,
-      email: order.email ?? undefined,
-      phone: shippingAddress.phone ?? undefined,
-      addressId: accessPointId,
-      value: totalNumber,
-      currency: currency ?? "CZK",
-      weight: packetWeight,
-      eshop: config.sender_label ?? undefined,
-    }
+    const attributes = this.buildBasePacketAttributes({
+      accessPointId,
+      config,
+      currency: this.getPacketCurrency(order, shippingData),
+      order,
+      orderNumber,
+      packetWeight,
+      recipient,
+      shippingAddress,
+      totalNumber,
+    })
 
     if (shippingData.supports_cod) {
       attributes.cod = totalNumber
     }
 
     return attributes
+  }
+
+  private getRequiredRecipientName(
+    shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
+  ): { firstName: string; lastName: string } {
+    const firstName = shippingAddress.first_name ?? ""
+    const lastName = shippingAddress.last_name ?? ""
+
+    if (firstName || lastName) {
+      return { firstName, lastName }
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Packeta: Shipping address first_name or last_name is required"
+    )
+  }
+
+  private getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {
+    return (
+      order.display_id?.toString() || order.id || `fulfillment-${Date.now()}`
+    )
+  }
+
+  private getPacketOrderTotal(
+    order: Partial<FulfillmentOrderDTO>,
+    shippingData: PacketaShippingOptionData
+  ): number {
+    const orderTotal =
+      toFiniteNumber(order.total) ??
+      toFiniteNumber((order as { item_total?: unknown }).item_total)
+
+    if (orderTotal !== undefined) {
+      return orderTotal
+    }
+
+    if (!shippingData.supports_cod) {
+      return 1
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Packeta: order total or item_total is required for COD shipments"
+    )
+  }
+
+  private async getPacketWeight(
+    order: Partial<FulfillmentOrderDTO>,
+    items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
+    shippingData: PacketaShippingOptionData
+  ): Promise<number> {
+    return (
+      toFiniteNumber((shippingData as { weight?: unknown }).weight) ??
+      (await this.calculateOrderItemsWeightKg(order, items)) ??
+      DEFAULT_PACKET_WEIGHT_KG
+    )
+  }
+
+  private getPacketCurrency(
+    order: Partial<FulfillmentOrderDTO>,
+    shippingData: PacketaShippingOptionData
+  ): string {
+    const currency = order.currency_code?.toUpperCase()
+
+    if (currency) {
+      return currency
+    }
+
+    if (!shippingData.supports_cod) {
+      return "CZK"
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Packeta: currency_code is required on the order for COD shipments"
+    )
+  }
+
+  private buildBasePacketAttributes(params: {
+    order: Partial<FulfillmentOrderDTO>
+    shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
+    accessPointId: number
+    config: PacketaOptions
+    currency: string
+    orderNumber: string
+    packetWeight: number
+    recipient: { firstName: string; lastName: string }
+    totalNumber: number
+  }): PacketaPacketAttributes {
+    const {
+      order,
+      shippingAddress,
+      accessPointId,
+      config,
+      currency,
+      orderNumber,
+      packetWeight,
+      recipient,
+      totalNumber,
+    } = params
+
+    return {
+      number: orderNumber,
+      name: recipient.firstName,
+      surname: recipient.lastName,
+      email: order.email ?? undefined,
+      phone: shippingAddress.phone ?? undefined,
+      addressId: accessPointId,
+      value: totalNumber,
+      currency,
+      weight: packetWeight,
+      eshop: config.sender_label ?? undefined,
+    }
   }
 
   private async calculateOrderItemsWeightKg(

@@ -49,4 +49,4 @@ export const currencySymbolMap = {
   lkr: "₨",
   mmk: "K",
   uzs: "лв",
-};
+}

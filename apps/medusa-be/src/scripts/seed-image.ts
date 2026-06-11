@@ -18,6 +18,109 @@ export default async function seedImages({ container }: ExecArgs) {
     MedusaShorts: "Medusa Shorts",
   } as const
 
+  async function readLocalUploadFile(
+    filePath: string,
+    access: "private" | "public"
+  ) {
+    try {
+      logger.info(`Reading file: ${filePath}`)
+      const buffer = await readFile(filePath)
+      const filename = path.basename(filePath)
+      const mimeType = mime.getType(filePath) || "application/octet-stream"
+
+      logger.info(`Successfully read file: ${filename} (${mimeType})`)
+      return {
+        filename,
+        mimeType,
+        content: buffer.toString("base64"),
+        access,
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      const errorStack = error instanceof Error ? error.stack : undefined
+      logger.error(
+        `Error reading file ${filePath}: ${errorMessage}\n${errorStack || ""}`
+      )
+      return null
+    }
+  }
+
+  async function uploadProductFiles(
+    productName: string,
+    filePaths: string[],
+    access: "private" | "public"
+  ) {
+    logger.info(
+      `Processing product: ${productName} with ${filePaths.length} files`
+    )
+
+    const files = await Promise.all(
+      filePaths.map((filePath) => readLocalUploadFile(filePath, access))
+    )
+    const validFiles = files.filter(
+      (f): f is NonNullable<typeof f> => f !== null
+    )
+    logger.info(
+      `Valid files for ${productName}: ${validFiles.length}/${files.length}`
+    )
+
+    if (validFiles.length === 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `No valid files processed for product ${productName}`
+      )
+    }
+
+    logger.info(`Uploading files for product: ${productName}`)
+
+    const { result } = await uploadFilesWorkflow(container).run({
+      input: {
+        files: validFiles,
+      },
+    })
+
+    const transformedResult = result.map((file) => ({
+      ...file,
+      url: file.url
+        ? file.url.replace("medusa-minio:9004", "localhost:9004")
+        : file.url,
+    }))
+
+    logger.info(
+      `Upload successful for ${productName}. Files uploaded: ${JSON.stringify(
+        transformedResult,
+        null,
+        2
+      )}`
+    )
+
+    return transformedResult
+  }
+
+  async function uploadProductFilesOrThrow(
+    productName: string,
+    filePaths: string[],
+    access: "private" | "public"
+  ) {
+    try {
+      return await uploadProductFiles(productName, filePaths, access)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      const errorStack = error instanceof Error ? error.stack : undefined
+      logger.error(
+        `Error processing product ${productName}: ${errorMessage}\n${
+          errorStack || ""
+        }`
+      )
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Error processing ${productName}: ${errorMessage}`
+      )
+    }
+  }
+
   async function uploadLocalFiles(
     productImageMap: Record<string, string[]>,
     access: "private" | "public" = "private"
@@ -26,97 +129,11 @@ export default async function seedImages({ container }: ExecArgs) {
       const results: Record<string, FileDTO[]> = {}
 
       for (const [productName, filePaths] of Object.entries(productImageMap)) {
-        logger.info(
-          `Processing product: ${productName} with ${filePaths.length} files`
+        results[productName] = await uploadProductFilesOrThrow(
+          productName,
+          filePaths,
+          access
         )
-
-        try {
-          // Read all local files for this product
-          const files = await Promise.all(
-            filePaths.map(async (filePath) => {
-              try {
-                logger.info(`Reading file: ${filePath}`)
-                const buffer = await readFile(filePath)
-                const filename = path.basename(filePath)
-                const mimeType =
-                  mime.getType(filePath) || "application/octet-stream"
-
-                logger.info(`Successfully read file: ${filename} (${mimeType})`)
-                return {
-                  filename,
-                  mimeType,
-                  content: buffer.toString("base64"),
-                  access,
-                }
-              } catch (error) {
-                const errorMessage =
-                  error instanceof Error ? error.message : String(error)
-                const errorStack =
-                  error instanceof Error ? error.stack : undefined
-                logger.error(
-                  `Error reading file ${filePath}: ${errorMessage}\n${
-                    errorStack || ""
-                  }`
-                )
-                return null
-              }
-            })
-          )
-
-          // Filter out failed files
-          const validFiles = files.filter(
-            (f): f is NonNullable<typeof f> => f !== null
-          )
-          logger.info(
-            `Valid files for ${productName}: ${validFiles.length}/${files.length}`
-          )
-
-          if (validFiles.length === 0) {
-            throw new MedusaError(
-              MedusaError.Types.INVALID_DATA,
-              `No valid files processed for product ${productName}`
-            )
-          }
-
-          logger.info(`Uploading files for product: ${productName}`)
-
-          const { result } = await uploadFilesWorkflow(container).run({
-            input: {
-              files: validFiles,
-            },
-          })
-
-          // Transform the result to replace the URL
-          const transformedResult = result.map((file) => ({
-            ...file,
-            url: file.url
-              ? file.url.replace("medusa-minio:9004", "localhost:9004")
-              : file.url,
-          }))
-
-          logger.info(
-            `Upload successful for ${productName}. Files uploaded: ${JSON.stringify(
-              transformedResult,
-              null,
-              2
-            )}`
-          )
-
-          results[productName] = transformedResult
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error)
-          const errorStack = error instanceof Error ? error.stack : undefined
-          logger.error(
-            `Error processing product ${productName}: ${errorMessage}\n${
-              errorStack || ""
-            }`
-          )
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Error processing ${productName}: ${errorMessage}`
-          )
-        }
       }
 
       logger.info(
