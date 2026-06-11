@@ -1,26 +1,27 @@
+/*
+ * Slider — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - hover-state oklch() derivations — Figma exports no slider hover
+ *     tokens yet (queued for figma-additions).
+ *   - `--spacing-slider-track-{sm,md,lg}` aliases — Figma renamed the
+ *     track axis to --size-slider-track-*, but h-/w- utilities only read
+ *     --spacing-*/--height-*/--width-* namespaces.
+ *   - marker dimensions, marker text padding (composite), vertical
+ *     marker height, thumb shadow — not in Figma yet (figma-additions).
+ */
+
 @theme static {
   --spacing-slider-slim: 2px;
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-slider-primary: var(--color-primary);
-  --color-slider-base: var(--color-surface);
-  --color-slider-error: var(--color-danger);
-  --color-slider-accent: oklch(
-    from var(--color-slider-base) calc(l - var(--surface-increment) * 2) c h
-  );
+  --spacing-slider-marker: var(--spacing-slider-slim);
+  --padding-marker-text: 0 0 0 var(--spacing-150);
+  --height-marker-vertical: var(--spacing-300);
 
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-slider-range-bg: var(--color-slider-primary);
-  --color-slider-track-bg: var(--color-slider-base);
-  --color-slider-marker-bg: var(--color-slider-accent);
-  --color-slider-thumb-bg: var(--color-base-light);
+  --spacing-slider-track-sm: var(--size-slider-track-sm);
+  --spacing-slider-track-md: var(--size-slider-track-md);
+  --spacing-slider-track-lg: var(--size-slider-track-lg);
 
-  /* Border colors */
-  --color-slider-border: var(--color-border-primary);
-
-  /* === STATE VARIATIONS === */
-  /* Hover states */
+  /* Hover states — Figma exports none for slider yet. */
   --color-slider-track-bg-hover: oklch(
     from var(--color-slider-track-bg) calc(l + var(--state-hover)) c h
   );
@@ -31,42 +32,5 @@
     from var(--color-slider-thumb-bg) calc(l + var(--state-hover)) c h
   );
 
-  /* === VALIDATION STATES === */
-  --color-slider-range-bg-error: var(--color-slider-error);
-  --color-slider-border-error: var(--color-slider-error);
-
-  /* === DISABLED STATES === */
-  --color-slider-bg-disabled: var(--color-bg-disabled);
-  --color-slider-thumb-bg-disabled: var(--color-fg-disabled);
-  --color-slider-range-bg-disabled: var(--color-fg-disabled);
-  --color-slider-border-disabled: var(--color-border-disabled);
-
-  /* === SPACING === */
-  --spacing-slider-root: var(--spacing-200);
-
-  --spacing-slider-thumb-sm: var(--spacing-200);
-  --spacing-slider-thumb-md: var(--spacing-250);
-  --spacing-slider-thumb-lg: var(--spacing-350);
-
-  --spacing-slider-track-sm: var(--spacing-100);
-  --spacing-slider-track-md: var(--spacing-150);
-  --spacing-slider-track-lg: var(--spacing-200);
-
-  --spacing-slider-marker: var(--spacing-slider-slim);
-  --padding-marker-text: 0 0 0 var(--spacing-150);
-
-  /* === TYPOGRAPHY === */
-  --text-slider-value-size: var(--text-sm);
-  --height-marker-vertical: var(--spacing-300);
-
-  /* === BORDERS & RADIUS === */
-  --border-width-slider: var(--border-width-sm);
-  --radius-slider-track: var(--radius-full);
-  --radius-slider-thumb: var(--radius-full);
-
-  /* === SHADOWS === */
   --shadow-slider-thumb: var(--shadow-sm);
-
-  /* === FOCUS RINGS === */
-  --color-slider-ring: var(--color-ring);
 }
