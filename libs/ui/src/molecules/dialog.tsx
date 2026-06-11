@@ -18,43 +18,43 @@ const dialogVariants = tv({
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    title: ["font-dialog-title text-dialog-title-fg text-dialog-title-size"],
-    description: ["text-dialog-description-fg text-dialog-description-size"],
+    title: ["font-dialog-title text-dialog-title-fg text-dialog-title"],
+    description: ["text-dialog-description-fg text-dialog-description"],
     trigger: [],
     closeTrigger: [
       "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
       "flex items-center justify-center",
-      "rounded-dialog-close-trigger p-dialog-close-trigger-padding",
+      "rounded-dialog-close-trigger p-dialog-close-trigger",
       "text-dialog-close-trigger-fg",
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
     actions:
-      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions",
+      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
   },
   variants: {
     placement: {
       center: {
         positioner: "items-center justify-center",
         content:
-          "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-center",
+          "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
       },
       left: {
         positioner: "items-stretch justify-start",
-        content: "h-full rounded-dialog-left border-l-0",
+        content: "h-full rounded-dialog-content-side border-l-0",
       },
       right: {
         positioner: "items-stretch justify-end",
-        content: "h-full rounded-dialog-right border-r-0",
+        content: "h-full rounded-dialog-content-side border-r-0",
       },
       top: {
         positioner: "items-start justify-stretch",
-        content: "w-full rounded-dialog-top border-t-0",
+        content: "w-full rounded-dialog-content-edge border-t-0",
       },
       bottom: {
         positioner: "items-end justify-stretch",
-        content: "w-full rounded-dialog-bottom border-b-0",
+        content: "w-full rounded-dialog-content-edge border-b-0",
       },
     },
     position: {
