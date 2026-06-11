@@ -1,36 +1,18 @@
+/*
+ * Menu — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--shadow-menu-content-shadow` — not in Figma yet (queued for
+ *     figma-additions).
+ *   - semantic glyph @utility aliases.
+ */
+
 @theme static {
-  /* ===== MENU CONTENT PANEL ===== */
-  --color-menu-content-bg: var(--color-surface);
-  --color-menu-content-border: var(--color-border-primary);
-  --radius-menu: var(--radius-sm);
   --shadow-menu-content-shadow: var(--shadow-lg);
 
-  --padding-menu-content: var(--spacing-200);
-
-  /* ===== MENU ITEM ===== */
-  --color-menu-item-fg: var(--color-fg-primary);
-  --color-menu-item-hover: var(--color-surface-hover);
-  --radius-menu-item: var(--radius-xs);
-
-  --padding-menu-item-x: var(--spacing-250);
-  --padding-menu-item-y: var(--spacing-200);
-  --gap-menu-item: var(--spacing-200);
-
-  /* ===== MENU ITEM ICON ===== */
-  --text-menu-item-icon-size: var(--text-lg);
-  --color-menu-item-icon-fg: var(--color-fg-secondary);
-
-  /* ===== MENU SEPARATOR ===== */
-  --color-menu-separator-bg: var(--color-border-primary);
-  --height-menu-separator: 1px;
-  --margin-menu-separator: var(--spacing-200);
-
-  /* ===== MENU SUBMENU INDICATOR ===== */
-  --color-menu-submenu-indicator-fg: var(--color-fg-secondary);
-  --spacing-menu-submenu-indicator: var(--spacing-250);
-
-  /* ===== MENU DISABLED STATE ===== */
-  --color-menu-fg-disabled: var(--color-fg-disabled);
+  /* Tailwind's h- utility doesn't read the --size-* namespace; alias the
+   * Figma token into --height-* so `h-menu-separator` keeps working. */
+  --height-menu-separator: var(--size-menu-separator-height);
 }
 
 /* Semantic tokens for menu icons */
