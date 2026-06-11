@@ -88,16 +88,16 @@ const radioCardVariants = tv({
     ],
     itemAddon: [
       "border-t-(length:--border-width-radio-card-addon)",
-      "border-radio-card-item-addon-border",
-      "font-radio-card-item-addon",
-      "text-radio-card-item-addon-fg",
+      "border-radio-card-addon-border",
+      "font-radio-card-addon",
+      "text-radio-card-addon-fg",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "data-disabled:border-radio-card-item-addon-border-disabled",
-      "data-disabled:bg-radio-card-item-addon-bg-disabled",
-      "data-disabled:text-radio-card-item-addon-fg-disabled",
-      "data-disabled:data-[state=checked]:border-radio-card-item-addon-border-disabled",
-      "data-disabled:data-[state=checked]:bg-radio-card-item-addon-bg-disabled",
-      "data-disabled:data-[state=checked]:text-radio-card-item-addon-fg-disabled",
+      "data-disabled:border-radio-card-addon-border-disabled",
+      "data-disabled:bg-radio-card-addon-bg-disabled",
+      "data-disabled:text-radio-card-addon-fg-disabled",
+      "data-disabled:data-[state=checked]:border-radio-card-addon-border-disabled",
+      "data-disabled:data-[state=checked]:bg-radio-card-addon-bg-disabled",
+      "data-disabled:data-[state=checked]:text-radio-card-addon-fg-disabled",
     ],
     hiddenInput: "sr-only",
   },
@@ -137,8 +137,8 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-indicator-content-fg-subtle-checked",
         ],
         itemAddon: [
-          "data-[state=checked]:border-radio-card-item-addon-border-subtle-checked",
-          "data-[state=checked]:text-radio-card-item-addon-fg-subtle-checked",
+          "data-[state=checked]:border-radio-card-addon-border-subtle-checked",
+          "data-[state=checked]:text-radio-card-addon-fg-subtle-checked",
         ],
       },
       solid: {
@@ -162,14 +162,14 @@ const radioCardVariants = tv({
           "data-[state=checked]:text-radio-card-item-indicator-content-fg-solid-checked",
         ],
         itemAddon: [
-          "data-[state=checked]:border-radio-card-item-addon-border-solid-checked",
-          "data-[state=checked]:text-radio-card-item-addon-fg-solid-checked",
+          "data-[state=checked]:border-radio-card-addon-border-solid-checked",
+          "data-[state=checked]:text-radio-card-addon-fg-solid-checked",
         ],
       },
     },
     size: {
       sm: {
-        root: "gap-radio-card-root-sm",
+        root: "gap-radio-card-stack-sm",
         itemControl: [
           "gap-radio-card-item-control-sm",
           "p-radio-card-item-control-sm",
@@ -180,12 +180,12 @@ const radioCardVariants = tv({
         itemIndicator: "size-radio-card-indicator-sm",
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
         itemAddon: [
-          "p-radio-card-item-addon-sm",
+          "p-radio-card-addon-sm",
           "text-radio-card-addon-sm",
         ],
       },
       md: {
-        root: "gap-radio-card-root-md",
+        root: "gap-radio-card-stack-md",
         itemControl: [
           "gap-radio-card-item-control-md",
           "p-radio-card-item-control-md",
@@ -196,12 +196,12 @@ const radioCardVariants = tv({
         itemIndicator: "size-radio-card-indicator-md",
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
         itemAddon: [
-          "p-radio-card-item-addon-md",
+          "p-radio-card-addon-md",
           "text-radio-card-addon-md",
         ],
       },
       lg: {
-        root: "gap-radio-card-root-lg",
+        root: "gap-radio-card-stack-lg",
         itemControl: [
           "gap-radio-card-item-control-lg",
           "p-radio-card-item-control-lg",
@@ -212,7 +212,7 @@ const radioCardVariants = tv({
         itemIndicator: "size-radio-card-indicator-lg",
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
         itemAddon: [
-          "p-radio-card-item-addon-lg",
+          "p-radio-card-addon-lg",
           "text-radio-card-addon-lg",
         ],
       },

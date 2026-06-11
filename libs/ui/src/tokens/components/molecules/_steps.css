@@ -1,100 +1,23 @@
 /*
  * Steps — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * Kept here (not in Figma yet — queued for figma-additions):
- *   - trigger bg states (alpha/oklch runtime derivations)
- *   - indicator hover states + the whole "solid" indicator variant
- *   - description fg current/complete, separator-bg-current,
- *     progress bg/range, content complete states
- *   - root/list/panels/navigation gaps, trigger + content paddings,
- *     list-vertical min width, separator offsets
- *   - bare text-steps-{title,description,icon} defaults
- *   - border-width-steps-content, radius trigger/progress
- *   - progress/separator height-width aliases (h-/w- can't read --size-*)
+ * Kept here:
+ *   - `--spacing-steps-list-vertical` (container-based width).
+ *   - bare text defaults (Figma exports per-size only).
+ *   - h-/w- aliases for the Figma progress/separator size axes.
  */
 
 @theme static {
-  /* Trigger states — runtime alpha/oklch */
-  --color-steps-trigger-bg-hover: oklch(
-    from var(--color-overlay) calc(l - var(--surface-increment)) c h
-  );
-  --color-steps-trigger-bg-current: oklch(
-    from var(--color-primary) l c h /
-    0.12
-  );
-  --color-steps-trigger-bg-complete: oklch(
-    from var(--color-success) l c h /
-    0.12
-  );
-
-  /* Indicator hover + solid variant */
-  --color-steps-indicator-bg-hover: var(--color-float);
-  --color-steps-indicator-border-hover: var(--color-primary);
-  --color-steps-indicator-bg-solid: var(--color-float);
-  --color-steps-indicator-bg-solid-hover: oklch(
-    from var(--color-float) calc(l - var(--surface-increment)) c h
-  );
-  --color-steps-indicator-bg-solid-current: var(--color-primary);
-  --color-steps-indicator-bg-solid-complete: var(--color-success);
-  --color-steps-indicator-fg-solid: var(--color-fg-primary);
-  --color-steps-indicator-fg-solid-current: var(--color-fg-reverse);
-  --color-steps-indicator-fg-solid-complete: var(--color-fg-reverse);
-
-  /* Text states Figma doesn't export */
-  --color-steps-description-fg-current: var(--color-fg-primary);
-  --color-steps-description-fg-complete: var(--color-fg-primary);
-
-  /* Separator / progress */
-  --color-steps-separator-bg-current: var(--color-primary-light);
-  --color-steps-progress-bg: var(--color-border-primary);
-  --color-steps-progress-range-bg: var(--color-primary);
-
-  /* Content complete states */
-  --color-steps-content-bg-complete: var(--color-overlay);
-  --color-steps-content-border-complete: var(--color-success);
-
-  /* === SPACING === */
-  --gap-steps-root: var(--spacing-300);
-  --gap-steps-list: var(--spacing-150);
-  --gap-steps-panels: var(--spacing-250);
-  --gap-steps-navigation: var(--spacing-150);
-
-  --padding-steps-trigger-x: var(--spacing-150);
-  --padding-steps-trigger-y: var(--spacing-100);
-  --padding-steps-content-sm: var(--spacing-200);
-  --padding-steps-content-md: var(--spacing-250);
-  --padding-steps-content-lg: var(--spacing-300);
-
   --spacing-steps-list-vertical: var(--container-xs);
-  --spacing-steps-separator-offset: var(--spacing-200);
-  --spacing-steps-separator-vertical: var(--spacing-400);
 
-  /* === TYPOGRAPHY (bare defaults; Figma exports per-size only) === */
   --text-steps-title: var(--text-md);
   --text-steps-description: var(--text-sm);
   --text-steps-icon: var(--text-md);
 
-  /* === BORDERS & RADIUS === */
-  --border-width-steps-content: var(--border-width-sm);
-  --radius-steps-trigger: var(--radius-sm);
-  --radius-steps-progress: 999px;
-
-  /* h-/w- can't read --size-*; alias the Figma progress/separator axes */
   --height-steps-progress: var(--size-steps-progress-height);
   --width-steps-progress: var(--size-steps-progress-width);
   --height-steps-separator: var(--size-steps-separator-height);
   --width-steps-separator: var(--size-steps-separator-width);
-}
-
-/*
- * TEMPORARY override (unlayered :root beats @layer theme): Figma's
- * fg-accent-{primary,success} have no dark-mode variants yet; current/
- * complete title accents would dull in dark mode. Remove once the Figma
- * accent semantics get light-dark values.
- */
-:root {
-  --color-steps-title-fg-current: var(--color-primary);
-  --color-steps-title-fg-complete: var(--color-success);
 }
 
 @utility token-icon-steps-check {

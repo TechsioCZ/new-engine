@@ -23,17 +23,6 @@
   --border-pagination-width: var(--border-width-pagination);
 }
 
-/*
- * TEMPORARY override (unlayered :root beats @layer theme): Figma's
- * --color-fg-accent-primary has no dark-mode variant yet, which would
- * dull the outlined/minimal active-page accent in dark mode. Remove
- * once Figma's color/fg/accent/primary gets light-dark values.
- */
-:root {
-  --color-pagination-fg-outlined-active: var(--color-primary);
-  --color-pagination-fg-minimal-active: var(--color-primary);
-}
-
 @utility token-icon-pagination-prev {
   @apply token-icon-chevron-left;
 }

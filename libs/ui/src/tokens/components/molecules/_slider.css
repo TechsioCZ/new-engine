@@ -1,36 +1,17 @@
 /*
  * Slider — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * Kept here:
- *   - hover-state oklch() derivations — Figma exports no slider hover
- *     tokens yet (queued for figma-additions).
- *   - `--spacing-slider-track-{sm,md,lg}` aliases — Figma renamed the
- *     track axis to --size-slider-track-*, but h-/w- utilities only read
- *     --spacing-*/--height-*/--width-* namespaces.
- *   - marker dimensions, marker text padding (composite), vertical
- *     marker height, thumb shadow — not in Figma yet (figma-additions).
+ * Kept here (namespace aliases — h-/w- utilities can't read --size-*):
+ *   - track sizes, marker size, vertical marker height.
+ *   - `--padding-marker-text` composite built from the Figma offset.
  */
 
 @theme static {
-  --spacing-slider-slim: 2px;
-  --spacing-slider-marker: var(--spacing-slider-slim);
-  --padding-marker-text: 0 0 0 var(--spacing-150);
-  --height-marker-vertical: var(--spacing-300);
-
   --spacing-slider-track-sm: var(--size-slider-track-sm);
   --spacing-slider-track-md: var(--size-slider-track-md);
   --spacing-slider-track-lg: var(--size-slider-track-lg);
 
-  /* Hover states — Figma exports none for slider yet. */
-  --color-slider-track-bg-hover: oklch(
-    from var(--color-slider-track-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-slider-range-bg-hover: oklch(
-    from var(--color-slider-range-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-slider-thumb-bg-hover: oklch(
-    from var(--color-slider-thumb-bg) calc(l + var(--state-hover)) c h
-  );
-
-  --shadow-slider-thumb: var(--shadow-sm);
+  --spacing-slider-marker: var(--size-slider-marker);
+  --height-marker-vertical: var(--size-slider-marker-vertical-height);
+  --padding-marker-text: 0 0 0 var(--spacing-slider-marker-text);
 }

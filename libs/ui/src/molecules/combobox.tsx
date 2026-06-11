@@ -35,9 +35,9 @@ const comboboxVariants = tv({
       "data-[validation=warning]:border-combobox-border-warning",
     ],
     input: [
-      "relative h-full w-full border-none bg-combobox-input-bg",
+      "relative h-full w-full border-none bg-combobox-input-bg-base",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
-      "focus:bg-combobox-input-bg-focused",
+      "focus:bg-combobox-input-bg-focus",
       "placeholder:text-combobox-fg-placeholder",
       "data-disabled:text-combobox-fg-disabled",
       "data-disabled:bg-combobox-bg-disabled",

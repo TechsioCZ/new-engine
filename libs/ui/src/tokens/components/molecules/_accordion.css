@@ -4,7 +4,6 @@
  * Kept here:
  *   - `--padding-accordion-{title,content}-{size}` combined shorthands
  *     for the `p-accordion-*` utilities (Figma has split x/y axes).
- *   - `--shadow-accordion-*` — not in Figma yet (figma-additions).
  *   - glyph @utility alias.
  */
 
@@ -15,11 +14,6 @@
 
   --padding-accordion-content-md: var(--padding-accordion-content-y-md) var(--padding-accordion-content-x-md);
   --padding-accordion-content-lg: var(--padding-accordion-content-y-lg) var(--padding-accordion-content-x-lg);
-
-  --shadow-accordion-root-sm: var(--shadow-primary);
-  --shadow-accordion-root-md: var(--shadow-xl);
-  --shadow-accordion-content-sm: var(--shadow-sm);
-  --shadow-accordion-content-md: var(--shadow-primary);
 }
 
 /* Semantic tokens for accordion icons */

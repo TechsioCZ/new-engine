@@ -1,55 +1,12 @@
 /*
- * RadioGroup — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ * RadioGroup — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css.
  *
- * Kept here:
- *   - `--radio-group-item-grid` runtime grid template.
- *   - hover states (base + per-variant checked) — Figma exports no
- *     radio-group hover tokens yet (figma-additions backlog). Named in
- *     the Figma item-bg/item-border convention so a future export makes
- *     these dead code.
- *   - orientation gaps (items-vertical/-horizontal) — not in Figma.
+ * Kept: `--radio-group-item-grid` runtime grid template.
  */
 
 @theme static {
   --radio-group-item-grid: min-content minmax(0, 1fr);
-
-  /* Hover states — Figma exports none yet. */
-  --color-radio-group-item-bg-hover: oklch(
-    from var(--color-radio-group-item-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-radio-group-item-border-hover: oklch(
-    from var(--color-radio-group-item-border-base)
-      calc(l + var(--state-hover)) c h
-  );
-  --color-radio-group-item-bg-outline-checked-hover: var(
-    --color-radio-group-item-bg-hover
-  );
-  --color-radio-group-item-border-outline-checked-hover: var(--color-primary-hover);
-  --color-radio-group-item-bg-subtle-checked-hover: var(--color-primary-light-hover);
-  --color-radio-group-item-border-subtle-checked-hover: var(--color-primary-light-hover);
-  --color-radio-group-item-bg-solid-checked-hover: var(--color-primary-hover);
-  --color-radio-group-item-border-solid-checked-hover: var(--color-primary-hover);
-
-  /* Orientation gaps — not in Figma. */
-  --gap-radio-group-items-vertical-sm: var(--spacing-100);
-  --gap-radio-group-items-vertical-md: var(--spacing-150);
-  --gap-radio-group-items-vertical-lg: var(--spacing-200);
-
-  --gap-radio-group-items-horizontal-sm: var(--spacing-150);
-  --gap-radio-group-items-horizontal-md: var(--spacing-250);
-  --gap-radio-group-items-horizontal-lg: var(--spacing-300);
-}
-
-/*
- * TEMPORARY override (unlayered :root beats @layer theme): Figma's
- * --color-fg-accent-primary has no dark-mode variant yet; the outline/
- * subtle indicators and outline checked border would dull in dark mode.
- * Remove once Figma's color/fg/accent/primary gets light-dark values.
- */
-:root {
-  --color-radio-group-item-indicator-outline: var(--color-primary);
-  --color-radio-group-item-indicator-subtle: var(--color-primary);
-  --color-radio-group-item-border-outline-checked: var(--color-primary);
 }
 
 @utility token-icon-radio-group-checked {

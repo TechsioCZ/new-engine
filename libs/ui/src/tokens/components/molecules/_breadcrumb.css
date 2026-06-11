@@ -1,27 +1,7 @@
 /*
- * Breadcrumb — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
- *
- * Kept here:
- *   - `--radius-breadcrumb-link` — not in Figma yet (queued for
- *     figma-additions).
- *   - semantic glyph @utility aliases.
+ * Breadcrumb — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css. Only glyph aliases live here.
  */
-
-@theme static {
-  --radius-breadcrumb-link: var(--radius-sm);
-}
-
-/*
- * TEMPORARY override (unlayered :root beats @layer theme, so this wins
- * over figma/variables.css): Figma's --color-fg-accent-primary is a
- * single muted oklch with no dark-mode variant, which dulls the current
- * item and hover accent in dark mode. Remove once Figma's
- * color/fg/accent/primary gets light-dark mode values and is re-exported.
- */
-:root {
-  --color-breadcrumb-item-current: var(--color-primary);
-  --color-breadcrumb-item-hover: var(--color-primary);
-}
 
 @utility token-icon-breadcrumb-separator {
   @apply token-icon-chevron-right;

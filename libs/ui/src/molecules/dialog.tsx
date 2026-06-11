@@ -85,7 +85,7 @@ const dialogVariants = tv({
     },
     behavior: {
       modal: {
-        backdrop: "bg-dialog-backdrop-bg",
+        backdrop: "bg-dialog-backdrop-bg-modal",
       },
       modeless: {
         backdrop: "bg-transparent",

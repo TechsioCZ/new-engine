@@ -2,43 +2,24 @@
  * Select — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * Kept here:
- *   - `--color-select-trigger-border` — base trigger border (Figma only
- *     exports hover/focus/validation variants; queued for
- *     figma-additions). Also fixes the previously-dangling class.
  *   - `--color-select-danger` — helper-text color seed (Figma has only
  *     border validation colors).
  *   - `--padding-select-item` composite bridge (Figma splits x/y).
  *   - `--spacing-content` — consumed as a raw var() inside calc() in the
  *     TSX; aliases Figma's --spacing-select-content.
- *   - `--shadow-select-content` (figma-additions backlog).
  *   - `--z-content` layering (code-side).
  */
 
 @theme static {
-  --color-select-trigger-border: var(--color-form-control-border);
   --color-select-danger: var(--color-danger);
 
   --padding-select-item: var(--padding-select-item-y) var(--padding-select-item-x);
 
   --spacing-content: var(--spacing-select-content);
 
-  --shadow-select-content: var(--shadow-md);
-
   --z-content: 50;
 }
 
-/*
- * TEMPORARY override (unlayered :root beats @layer theme): Figma's
- * --color-fg-accent-primary has no dark-mode variant yet; the select
- * indicator, selected item fg, and trigger hover fg would dull in dark
- * mode. Remove once Figma's color/fg/accent/primary gets light-dark
- * values.
- */
-:root {
-  --color-select-indicator: var(--color-primary);
-  --color-select-item-fg-selected: var(--color-primary);
-  --color-select-trigger-fg-hover: var(--color-primary);
-}
 
 /* === ICONS === */
 @utility token-icon-select-indicator {

@@ -98,7 +98,7 @@ const radioGroupVariants = tv({
       sm: {
         root: "gap-radio-group-stack-sm",
         itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-items-horizontal-sm data-[orientation=vertical]:gap-radio-group-items-vertical-sm",
+          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-sm data-[orientation=vertical]:gap-radio-group-stack-vertical-sm",
         item: "gap-x-radio-group-item-sm",
         itemControl: "size-radio-group-control-sm",
         itemContent: "gap-radio-group-item-content-sm",
@@ -109,7 +109,7 @@ const radioGroupVariants = tv({
       md: {
         root: "gap-radio-group-stack-md",
         itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-items-horizontal-md data-[orientation=vertical]:gap-radio-group-items-vertical-md",
+          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-md data-[orientation=vertical]:gap-radio-group-stack-vertical-md",
         item: "gap-x-radio-group-item-md",
         itemControl: "size-radio-group-control-md",
         itemContent: "gap-radio-group-item-content-md",
@@ -120,7 +120,7 @@ const radioGroupVariants = tv({
       lg: {
         root: "gap-radio-group-stack-lg",
         itemGroup:
-          "data-[orientation=horizontal]:gap-radio-group-items-horizontal-lg data-[orientation=vertical]:gap-radio-group-items-vertical-lg",
+          "data-[orientation=horizontal]:gap-radio-group-stack-horizontal-lg data-[orientation=vertical]:gap-radio-group-stack-vertical-lg",
         item: "gap-x-radio-group-item-lg",
         itemControl: "size-radio-group-control-lg",
         itemContent: "gap-radio-group-item-content-lg",

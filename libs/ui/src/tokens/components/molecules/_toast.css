@@ -1,29 +1,11 @@
 /*
  * Toast — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
- * Kept here (not in Figma yet — queued for figma-additions):
- *   - `--spacing-toast-width` fixed root width.
- *   - per-type title/icon foregrounds (Figma exports only per-type
- *     bg/border; titles and icons alias the shared toast fg).
- *   - `--color-toast-close-fg-hover` hover state.
- *   - `--font-weight-toast-title`.
+ * Kept: `--spacing-toast-width` alias — w- utility can't read --size-*.
  */
 
 @theme static {
-  --spacing-toast-width: 360px;
-
-  --color-toast-error-title: var(--color-toast-fg);
-  --color-toast-error-icon: var(--color-toast-fg);
-  --color-toast-success-title: var(--color-toast-fg);
-  --color-toast-success-icon: var(--color-toast-fg);
-  --color-toast-info-title: var(--color-toast-fg);
-  --color-toast-info-icon: var(--color-toast-fg);
-  --color-toast-warning-title: var(--color-toast-fg);
-  --color-toast-warning-icon: var(--color-toast-fg);
-
-  --color-toast-close-fg-hover: var(--color-fg-primary);
-
-  --font-weight-toast-title: var(--font-weight-medium);
+  --spacing-toast-width: var(--size-toast-width);
 }
 
 /* Icons */

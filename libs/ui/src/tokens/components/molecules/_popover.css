@@ -6,7 +6,6 @@
  *     CSS variable names; they alias the Figma popover tokens.
  *   - `--padding-popover-trigger` — composite x/y shorthand (Figma has no
  *     composite paddings; queued for figma-additions as split x/y).
- *   - `--shadow-popover` — not in Figma yet (queued for figma-additions).
  */
 
 @theme static {
@@ -14,6 +13,4 @@
   --arrow-background: var(--color-popover-arrow);
 
   --padding-popover-trigger: var(--spacing-100) var(--spacing-150);
-
-  --shadow-popover: var(--shadow-primary);
 }

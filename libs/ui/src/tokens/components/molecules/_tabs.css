@@ -16,7 +16,5 @@
   --padding-tabs-trigger-md: var(--padding-tabs-trigger-y-md) var(--padding-tabs-trigger-x-md);
   --padding-tabs-trigger-lg: var(--padding-tabs-trigger-y-lg) var(--padding-tabs-trigger-x-lg);
 
-  --width-tabs-indicator: var(--spacing-tabs-indicator-height);
-
-  --radius-tabs-indicator: var(--radius-none);
+  --width-tabs-indicator: var(--size-tabs-indicator-width);
 }

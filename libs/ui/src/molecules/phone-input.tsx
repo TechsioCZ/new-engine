@@ -123,19 +123,19 @@ const phoneInputVariants = tv({
       "rounded-phone-input-country-flag",
       "font-medium text-phone-input-country-flag uppercase",
     ],
-    countryCallingCode: ["font-medium text-phone-input-country-calling-code"],
+    countryCallingCode: ["font-medium text-phone-input-country-calling-code-fg"],
     input: [
       "min-w-0 flex-1 border-0",
       "bg-phone-input-input-bg-base",
       "text-phone-input-fg",
-      "placeholder:text-phone-input-placeholder",
+      "placeholder:text-phone-input-fg-placeholder",
       "hover:bg-phone-input-input-bg-hover",
       "focus:bg-phone-input-input-bg-focus",
       "focus-visible:outline-none",
       "disabled:text-phone-input-fg-disabled",
     ],
     itemContent: ["flex min-w-0 items-center gap-phone-input-item"],
-    itemMeta: ["shrink-0 text-phone-input-item-meta"],
+    itemMeta: ["shrink-0 text-phone-input-item-meta-fg"],
   },
   variants: {
     size: {

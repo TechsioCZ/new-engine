@@ -2,34 +2,16 @@
  * Dialog — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * Kept here:
- *   - `--color-dialog-backdrop-bg` — runtime --alpha() scrim. Figma's
- *     --color-dialog-backdrop-bg-modal is an OPAQUE fill-overlay; using
- *     it would hide the page behind the dialog. Queued as a Figma fix
- *     (backdrop needs an alpha scrim variable).
  *   - `--container-dialog-center-h-max` — 80svh runtime viewport unit
  *     (Figma's -center-max-h is a fixed size; svh can't be modelled).
  *   - `--container-dialog-center-w-max` — kept alongside for symmetry
  *     with the h-max name the TSX consumes.
- *   - `--shadow-dialog-content` — not in Figma yet (figma-additions).
  *   - `--z-dialog-*` — z-index layering, code-side concern.
  */
 
-:root {
-  --opacity-backdrop: 10%;
-}
-
 @theme static {
-  /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
-  --color-dialog-backdrop-bg: --alpha(
-    var(--color-fg-primary) /
-    var(--opacity-backdrop)
-  );
-  /* stylelint-enable scss/operator-no-newline-after */
-
   --container-dialog-center-h-max: 80svh;
   --container-dialog-center-w-max: var(--container-dialog-center-max-w);
-
-  --shadow-dialog-content: var(--shadow-primary);
 
   --z-dialog-backdrop: 10;
   --z-dialog-positioner: 20;

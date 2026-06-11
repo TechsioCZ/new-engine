@@ -9,8 +9,6 @@
  *   - `--padding-color-select-atom` (composite "0 0") and
  *     `--size-color-select-icon` (50%) — runtime/percent values Figma
  *     can't model.
- *   - `--shadow-color-select` — not in Figma yet (queued for
- *     figma-additions).
  */
 
 :root {
@@ -32,8 +30,6 @@
 
   --padding-color-select-atom: 0 0;
   --size-color-select-icon: 50%;
-
-  --shadow-color-select: var(--shadow-sm);
 }
 
 @utility token-icon-color-select {

@@ -2,14 +2,10 @@
  * Menu — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
  *
  * Kept here:
- *   - `--shadow-menu-content-shadow` — not in Figma yet (queued for
- *     figma-additions).
  *   - semantic glyph @utility aliases.
  */
 
 @theme static {
-  --shadow-menu-content-shadow: var(--shadow-lg);
-
   /* Tailwind's h- utility doesn't read the --size-* namespace; alias the
    * Figma token into --height-* so `h-menu-separator` keeps working. */
   --height-menu-separator: var(--size-menu-separator-height);

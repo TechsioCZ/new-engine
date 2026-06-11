@@ -63,7 +63,7 @@ const menuVariants = tv({
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     content: [
       "border border-menu-content-border bg-menu-content-bg",
-      "rounded-menu shadow-menu-content-shadow",
+      "rounded-menu shadow-menu-content",
       "p-menu-content",
       "overflow-auto",
       "focus-visible:outline-none",

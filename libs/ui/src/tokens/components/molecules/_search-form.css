@@ -1,15 +1,4 @@
 /*
- * SearchForm — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
- *
- * Kept here (Figma doesn't export these yet — see figma-additions backlog):
- *   - `--radius-search-form` (base radius without size suffix)
- *   - `--radius-search-form-input` (0 — inner input corners are squared
- *     against the attached button)
- *   - `--padding-search-form-clear-button` (clear-button reserve)
+ * SearchForm — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css.
  */
-
-@theme static {
-  --radius-search-form: var(--radius-form-control);
-  --radius-search-form-input: 0;
-  --padding-search-form-clear-button: var(--spacing-200);
-}

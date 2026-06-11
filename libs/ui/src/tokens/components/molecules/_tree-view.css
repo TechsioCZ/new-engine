@@ -1,19 +1,12 @@
 /*
- * TreeView — runtime tokens come from libs/ui/src/tokens/figma/variables.css
- * (Figma namespace: tree-view; code classes renamed to match).
+ * TreeView — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css (tree-view namespace).
  *
- * Kept here (not in Figma yet — queued for figma-additions):
- *   - `--color-tree-view-root-bg` transparent root.
- *   - `--font-weight-tree-view-label`.
- *   - `--opacity-tree-view-indent`.
- *   - `--tree-indent-per-level` — consumed as a raw var() in the TSX
- *     indent calc; aliases Figma's indent-per-level token.
+ * Kept: `--tree-indent-per-level` — consumed as a raw var() in the TSX
+ * indent calc; aliases Figma's indent-per-level token.
  */
 
 @theme static {
-  --color-tree-view-root-bg: transparent;
-  --font-weight-tree-view-label: var(--font-weight-medium);
-  --opacity-tree-view-indent: 100%;
   --tree-indent-per-level: var(--spacing-tree-view-indent-per-level);
 }
 
