@@ -3,7 +3,10 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import * as Steps from "../steps"
+import {
+  type CreateProductCategoriesStepInput,
+  createProductCategoriesStep,
+} from "../steps/create-product-categories"
 
 export type CategoryRaw = {
   title: string
@@ -15,7 +18,7 @@ export type CategoryRaw = {
 
 const seedCategoriesWorkflowId = "seed-categories-workflow"
 function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
-  const productCategories: Steps.CreateProductCategoriesStepInput = transform(
+  const productCategories: CreateProductCategoriesStepInput = transform(
     {
       input,
     },
@@ -29,7 +32,7 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
       }))
   )
 
-  Steps.createProductCategoriesStep(productCategories)
+  createProductCategoriesStep(productCategories)
 
   return new WorkflowResponse({
     result: {

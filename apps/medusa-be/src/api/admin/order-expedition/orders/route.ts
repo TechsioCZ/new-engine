@@ -2,9 +2,9 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
+  isActionRequiredOrderBusinessStatusId,
   type OrderBusinessStatusGroupId,
   type OrderBusinessStatusId,
-  isActionRequiredOrderBusinessStatusId,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
 import {

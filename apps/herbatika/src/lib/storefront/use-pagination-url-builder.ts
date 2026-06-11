@@ -1,26 +1,26 @@
-"use client";
+"use client"
 
-import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { usePathname, useSearchParams } from "next/navigation"
+import { useCallback } from "react"
 
 export function usePaginationUrlBuilder(pageParam = "page") {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   return useCallback(
     ({ page }: { page: number }) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams.toString())
 
       if (page <= 1) {
-        params.delete(pageParam);
+        params.delete(pageParam)
       } else {
-        params.set(pageParam, String(page));
+        params.set(pageParam, String(page))
       }
 
-      const query = params.toString();
+      const query = params.toString()
 
-      return query ? `${pathname}?${query}` : pathname;
+      return query ? `${pathname}?${query}` : pathname
     },
-    [pageParam, pathname, searchParams],
-  );
+    [pageParam, pathname, searchParams]
+  )
 }

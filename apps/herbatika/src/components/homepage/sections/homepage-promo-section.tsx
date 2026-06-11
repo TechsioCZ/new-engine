@@ -1,4 +1,4 @@
-import NextImage from "next/image";
+import NextImage from "next/image"
 
 export function HomepagePromoSection() {
   return (
@@ -15,29 +15,28 @@ export function HomepagePromoSection() {
       </div>
 
       <div className="flex flex-col justify-center gap-300">
-        <h2 className="text-2xl leading-tight font-bold text-fg-primary">
+        <h2 className="font-bold text-2xl text-fg-primary leading-tight">
           Prírodná kozmetika, doplnky výživy a tradičná medicína
         </h2>
-        <p className="text-sm leading-relaxed text-fg-secondary">
-          Spoznajte blahodarné účinky prírodnej kozmetiky 
-          a jej pozitívny vplyv nielen na pokožku. 
-          Upevnite si vaše zdravie pomocou doplnkov stravy a tradičnej
-          medicíny.Toto všetko nájdete v našej pestrej ponuke, ktorá
+        <p className="text-fg-secondary text-sm leading-relaxed">
+          Spoznajte blahodarné účinky prírodnej kozmetiky a jej pozitívny vplyv
+          nielen na pokožku. Upevnite si vaše zdravie pomocou doplnkov stravy a
+          tradičnej medicíny.Toto všetko nájdete v našej pestrej ponuke, ktorá
           je navyše obohatená aj o zdravotné doplnky z prírodných materiálov.
         </p>
-        <p className="text-sm leading-relaxed text-fg-secondary">
-          Špecializujeme sa na výber tých najkvalitnejších produktov, 
-          ktoré aj my sami používame, vylepšujeme a opakovane testujeme. 
-          Máme radi kvalitu a potrpíme si na detaily. 
-          Sme pripravení, pomôcť vám s výberom produktov 
-          špeciálne podľa vašich potrieb alebo na váš zdravotný problém.
+        <p className="text-fg-secondary text-sm leading-relaxed">
+          Špecializujeme sa na výber tých najkvalitnejších produktov, ktoré aj
+          my sami používame, vylepšujeme a opakovane testujeme. Máme radi
+          kvalitu a potrpíme si na detaily. Sme pripravení, pomôcť vám s výberom
+          produktov špeciálne podľa vašich potrieb alebo na váš zdravotný
+          problém.
         </p>
-        <p className="text-sm leading-relaxed text-fg-secondary">
-          Herbatica má už aj svoju značku, pod ktorou vyrábame množstvo 
-          produktov, ktoré inde nenájdete. Máme radi 
-          kvalitu a detaily a na tie sa sústredíme v každom našom produkte.
+        <p className="text-fg-secondary text-sm leading-relaxed">
+          Herbatica má už aj svoju značku, pod ktorou vyrábame množstvo
+          produktov, ktoré inde nenájdete. Máme radi kvalitu a detaily a na tie
+          sa sústredíme v každom našom produkte.
         </p>
       </div>
     </section>
-  );
+  )
 }

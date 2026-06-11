@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Rating } from "@techsio/ui-kit/atoms/rating";
+import { Rating } from "@techsio/ui-kit/atoms/rating"
 
 export function AboutReviewRating() {
   return (
@@ -11,5 +11,5 @@ export function AboutReviewRating() {
       size="lg"
       value={5}
     />
-  );
+  )
 }

@@ -7,7 +7,8 @@ npx tsc --noEmit                            # typecheck
 bunx biome check --write .                  # lint (monorepo root)
 pnpm test:unit                              # unit tests
 pnpm test:integration:modules               # module tests (isolated)
-pnpm test:integration:http                  # HTTP/e2e tests
+pnpm test:integration:http                  # Medusa in-app HTTP integration tests
+pnpm test:e2e:http                          # external-backend HTTP e2e tests
 npx medusa exec ./src/scripts/my-script.ts  # run script
 npx medusa db:generate MODULE               # gen migration
 ```
@@ -19,6 +20,8 @@ npx medusa db:generate MODULE               # gen migration
 `scripts/build-medusa.sh` (monorepo root) - used by Docker and Zerops (zerops uses project-level envs, don't add to build:envVariables if name of project-level env is the same!!!), not local dev.
 
 **Build-time secrets:** Medusa validates `JWT_SECRET`/`COOKIE_SECRET` at build but uses them only at runtime. Script provides placeholders; real secrets via runtime env vars.
+
+**Build-only providers:** `medusa-config.ts` fails fast on unknown provider envs. Build wrappers set local/in-memory provider defaults so builds do not require live Redis, Meilisearch, or S3. Runtime provider envs still come from compose/Zerops/Zane and should stay explicit.
 
 **Silent failures:** Build may exit 0 with empty `.medusa/`. Script validates `.medusa/server/medusa-config.js` exists, fails fast with log tail if missing.
 
@@ -332,12 +335,13 @@ export default async function seed({ container, args }: ExecArgs) {}
 
 ## Testing
 
-Uses Vitest for unit, HTTP integration, and module integration tests. `@medusajs/test-utils` is for **integration only**; unit tests import Vitest APIs explicitly.
+Uses Vitest for unit, HTTP integration, HTTP e2e, and module integration tests. `@medusajs/test-utils` is for **integration only**; unit tests import Vitest APIs explicitly.
 
 | Type | Location | Command |
 |------|----------|---------|
 | Unit | `tests/unit/**/*.unit.spec.ts` | `pnpm test:unit` |
 | HTTP Integration | `integration-tests/http/` | `pnpm test:integration:http` |
+| HTTP E2E | `e2e-tests/http/` | `pnpm test:e2e:http` |
 | Module Integration | `src/modules/*/__tests__/*.spec.ts` | `pnpm test:integration:modules` |
 
 **⚠️ Job tests in `tests/unit/jobs/`**, NOT `src/jobs/__tests__/` - Medusa loads all `src/jobs/` files at runtime.

@@ -1,14 +1,14 @@
-import type { HttpTypes } from "@medusajs/types";
-import NextImage from "next/image";
+import type { HttpTypes } from "@medusajs/types"
+import NextImage from "next/image"
 import {
   BLOG_PROMO_BANNER,
   BLOG_SIDEBAR_CATEGORIES,
-} from "@/lib/storefront/blog-content";
-import { BlogFeaturedProductCard } from "./blog-featured-product-card";
+} from "@/lib/storefront/blog-content"
+import { BlogFeaturedProductCard } from "./blog-featured-product-card"
 
 type BlogArticleSidebarProps = {
-  featuredProduct: HttpTypes.StoreProduct | null;
-};
+  featuredProduct: HttpTypes.StoreProduct | null
+}
 
 export function BlogArticleSidebar({
   featuredProduct,
@@ -16,14 +16,14 @@ export function BlogArticleSidebar({
   return (
     <aside className="flex w-full flex-col gap-500 xl:w-[342px]">
       <section className="space-y-500 rounded-lg border border-border-secondary bg-surface p-550">
-        <h2 className="text-xl leading-[18px] font-semibold text-fg-primary">
+        <h2 className="font-semibold text-fg-primary text-xl leading-[18px]">
           Kategórie
         </h2>
 
         <div className="flex flex-wrap gap-250">
           {BLOG_SIDEBAR_CATEGORIES.map((category) => (
             <span
-              className="inline-flex items-center justify-center rounded-sm bg-highlight px-200 py-150 text-[13.4px] leading-[17.28px] font-normal text-primary"
+              className="inline-flex items-center justify-center rounded-sm bg-highlight px-200 py-150 font-normal text-[13.4px] text-primary leading-[17.28px]"
               key={category.label}
             >
               {`${category.label} (${category.count})`}
@@ -38,9 +38,9 @@ export function BlogArticleSidebar({
           className="object-cover"
           fill
           loading="lazy"
-          src={BLOG_PROMO_BANNER.imageSrc}
           quality={50}
           sizes="(min-width: 1280px) 25vw, 100vw"
+          src={BLOG_PROMO_BANNER.imageSrc}
         />
       </div>
 
@@ -48,5 +48,5 @@ export function BlogArticleSidebar({
         <BlogFeaturedProductCard product={featuredProduct} />
       ) : null}
     </aside>
-  );
+  )
 }

@@ -2,14 +2,10 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { ICachingModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
-  ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-  parseOrderBusinessStatusOrders,
-} from "../../order-business-statuses/utils"
-import {
   ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS,
+  isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_IDS,
   type OrderBusinessStatusId,
-  isPendingUnpaidOrder,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
 import {
@@ -18,6 +14,10 @@ import {
   ORDER_EXPEDITION_SUMMARY_CACHE_TTL_SECONDS,
   resolveOrderExpeditionSummaryCacheService,
 } from "../../../../utils/order-expedition-summary-cache"
+import {
+  ORDER_BUSINESS_STATUS_ORDER_FIELDS,
+  parseOrderBusinessStatusOrders,
+} from "../../order-business-statuses/utils"
 
 const ORDER_EXPEDITION_SUMMARY_BATCH_SIZE = 500
 
@@ -167,11 +167,11 @@ function getActionRequiredCount(
 }
 
 function createEmptyStatusCounts() {
-  return ORDER_BUSINESS_STATUS_IDS.reduce(
-    (counts, statusId) => ({
-      ...counts,
-      [statusId]: 0,
-    }),
-    {} as Record<OrderBusinessStatusId, number>
-  )
+  const counts = {} as Record<OrderBusinessStatusId, number>
+
+  for (const statusId of ORDER_BUSINESS_STATUS_IDS) {
+    counts[statusId] = 0
+  }
+
+  return counts
 }

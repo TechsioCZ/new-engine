@@ -148,9 +148,7 @@ export function createProductListQueryOptionsFactory<
       const cacheStrategy = options?.cacheStrategy ?? "userData"
 
       return {
-        queryKey: resolvedQueryKeys.detail(
-          buildDetailKey(input, detailParams)
-        ),
+        queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
         queryFn: ({ signal }) => {
           if (!input.id) {
             throw new Error("Product list id is required")

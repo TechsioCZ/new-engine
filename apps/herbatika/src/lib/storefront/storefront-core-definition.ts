@@ -1,14 +1,14 @@
-import { storefrontCacheConfig } from "./cache";
+import { storefrontCacheConfig } from "./cache"
 import {
   buildCategoryListParams,
   DEFAULT_CATEGORY_PAGE_SIZE,
-} from "./category-query-config";
-import { buildHerbatikaOrderListParams } from "./order-query-config";
+} from "./category-query-config"
+import { buildHerbatikaOrderListParams } from "./order-query-config"
 import {
   buildProductListParams,
   DEFAULT_PRODUCT_PAGE_SIZE,
-} from "./product-query-config";
-import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys";
+} from "./product-query-config"
+import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys"
 import {
   CATALOG_DEFAULT_LIMIT,
   storefrontCatalogServiceConfig,
@@ -17,7 +17,7 @@ import {
   storefrontOrderServiceConfig,
   storefrontProductServiceConfig,
   storefrontQueryKeys,
-} from "./storefront-config";
+} from "./storefront-config"
 
 export const storefrontCoreDefinition = {
   namespace: STOREFRONT_QUERY_KEY_NAMESPACE,
@@ -60,4 +60,4 @@ export const storefrontCoreDefinition = {
       defaultPageSize: CATALOG_DEFAULT_LIMIT,
     },
   },
-} as const;
+} as const

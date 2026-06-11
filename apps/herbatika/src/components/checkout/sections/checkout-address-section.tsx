@@ -1,29 +1,29 @@
-import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
-import type { SelectItem } from "@techsio/ui-kit/molecules/select";
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import {
   type CheckoutAddressScope,
   resolveCheckoutAddressFieldName,
-} from "@/components/checkout/checkout-address.utils";
-import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form";
-import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators";
-import { CheckoutLoginPrompt } from "./checkout-login-prompt";
-import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle";
+} from "@/components/checkout/checkout-address.utils"
+import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
+import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+import { CheckoutLoginPrompt } from "./checkout-login-prompt"
+import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
 type CheckoutAddressSectionProps = {
-  checkoutDetailsForm: CheckoutDetailsFormController;
-  countryItems: SelectItem[];
-  fieldPrefix: string;
-  isAuthenticated?: boolean;
-  scope: CheckoutAddressScope;
-  showCompanyFields?: boolean;
-  showCompanyPurchaseToggle?: boolean;
-  showContactFields?: boolean;
-  showCustomerNote?: boolean;
-  showLoginPrompt?: boolean;
-  showRegistrationOptIn?: boolean;
-  showRequiredNote?: boolean;
-  title?: string;
-};
+  checkoutDetailsForm: CheckoutDetailsFormController
+  countryItems: SelectItem[]
+  fieldPrefix: string
+  isAuthenticated?: boolean
+  scope: CheckoutAddressScope
+  showCompanyFields?: boolean
+  showCompanyPurchaseToggle?: boolean
+  showContactFields?: boolean
+  showCustomerNote?: boolean
+  showLoginPrompt?: boolean
+  showRegistrationOptIn?: boolean
+  showRequiredNote?: boolean
+  title?: string
+}
 
 export function CheckoutAddressSection({
   checkoutDetailsForm,
@@ -40,13 +40,13 @@ export function CheckoutAddressSection({
   showRequiredNote = false,
   title,
 }: CheckoutAddressSectionProps) {
-  const scopedValidators = checkoutFieldValidators[scope];
+  const scopedValidators = checkoutFieldValidators[scope]
 
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
       {title ? (
         <header>
-          <h2 className="text-xl font-medium text-fg-primary">{title}</h2>
+          <h2 className="font-medium text-fg-primary text-xl">{title}</h2>
         </header>
       ) : null}
 
@@ -66,7 +66,7 @@ export function CheckoutAddressSection({
             )}
 
             {showRequiredNote ? (
-              <p className="text-sm text-fg-secondary">
+              <p className="text-fg-secondary text-sm">
                 <span className="text-label-fg-required">*</span> povinné
               </p>
             ) : null}
@@ -293,5 +293,5 @@ export function CheckoutAddressSection({
         </div>
       </div>
     </section>
-  );
+  )
 }

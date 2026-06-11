@@ -1,57 +1,53 @@
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox";
-import NextLink from "next/link";
-import type { AddressFormState } from "@/components/checkout/checkout.constants";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
+import NextLink from "next/link"
+import type { AddressFormState } from "@/components/checkout/checkout.constants"
 import {
   resolveCountryLabel,
   resolvePaymentIcon,
   resolveShippingIcon,
-} from "@/components/checkout/checkout-display.utils";
-import { SupportingText } from "@/components/text/supporting-text";
-import { formatCurrencyAmount } from "@/lib/storefront/price-format";
+} from "@/components/checkout/checkout-display.utils"
+import { SupportingText } from "@/components/text/supporting-text"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 type CheckoutCompleteSectionProps = {
-  canCompleteOrder: boolean;
-  cartTotalAmount: number;
-  cartTaxAmount: number;
-  cartTotalWithoutTaxAmount: number;
-  currencyCode: string;
-  detailsStepHref: string;
-  hasPayment: boolean;
-  hasShipping: boolean;
-  hasStoredAddress: boolean;
-  heurekaConsent: boolean;
-  isCompletingOrder: boolean;
-  marketingConsent: boolean;
-  onHeurekaConsentChange: (value: boolean) => void;
-  onMarketingConsentChange: (value: boolean) => void;
-  onCompleteOrder: () => Promise<void>;
-  paymentProviderId?: string;
-  paymentLabel?: string;
-  shippingAddressForm: AddressFormState;
-  shippingLabel?: string;
-  shippingOptionId?: string | null;
-  shippingStepHref: string;
-};
+  canCompleteOrder: boolean
+  cartTotalAmount: number
+  cartTaxAmount: number
+  cartTotalWithoutTaxAmount: number
+  currencyCode: string
+  detailsStepHref: string
+  hasPayment: boolean
+  hasShipping: boolean
+  hasStoredAddress: boolean
+  heurekaConsent: boolean
+  isCompletingOrder: boolean
+  marketingConsent: boolean
+  onHeurekaConsentChange: (value: boolean) => void
+  onMarketingConsentChange: (value: boolean) => void
+  onCompleteOrder: () => Promise<void>
+  paymentProviderId?: string
+  paymentLabel?: string
+  shippingAddressForm: AddressFormState
+  shippingLabel?: string
+  shippingOptionId?: string | null
+  shippingStepHref: string
+}
 
 const summaryCardClassName =
-  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350";
+  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350"
 const summaryEditLinkClassName =
-  "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary";
+  "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
 const summaryInlineLinkClassName =
-  "text-fg-primary underline underline-offset-2 hover:text-primary";
+  "text-fg-primary underline underline-offset-2 hover:text-primary"
 
-const hasTextValue = (value: string) => {
-  return value.trim().length > 0;
-};
+const hasTextValue = (value: string) => value.trim().length > 0
 
-const resolveStreetValue = (form: AddressFormState) => {
-  return [form.address1.trim(), form.address2.trim()]
-    .filter(Boolean)
-    .join(", ");
-};
+const resolveStreetValue = (form: AddressFormState) =>
+  [form.address1.trim(), form.address2.trim()].filter(Boolean).join(", ")
 
 const resolveAddressRows = (form: AddressFormState) => {
   const hasCompanyDetails = [
@@ -59,7 +55,7 @@ const resolveAddressRows = (form: AddressFormState) => {
     form.companyId,
     form.taxId,
     form.vatId,
-  ].some(hasTextValue);
+  ].some(hasTextValue)
 
   return [
     { label: "Meno", value: form.firstName },
@@ -81,12 +77,10 @@ const resolveAddressRows = (form: AddressFormState) => {
     ...(hasTextValue(form.customerNote)
       ? [{ label: "Poznámka", value: form.customerNote }]
       : []),
-  ];
-};
+  ]
+}
 
-const resolveValue = (value: string) => {
-  return value.trim().length > 0 ? value : "—";
-};
+const resolveValue = (value: string) => (value.trim().length > 0 ? value : "—")
 
 export function CheckoutCompleteSection({
   canCompleteOrder,
@@ -111,27 +105,27 @@ export function CheckoutCompleteSection({
   shippingOptionId,
   shippingStepHref,
 }: CheckoutCompleteSectionProps) {
-  const shippingAddressRows = resolveAddressRows(shippingAddressForm);
+  const shippingAddressRows = resolveAddressRows(shippingAddressForm)
   const shippingSummaryLabel = hasShipping
     ? (shippingLabel ?? "Zvolená doprava")
-    : "Doprava nie je vybraná";
+    : "Doprava nie je vybraná"
   const paymentSummaryLabel = hasPayment
     ? (paymentLabel ?? "Zvolená platba")
-    : "Platba nie je vybraná";
+    : "Platba nie je vybraná"
 
   return (
     <section className="space-y-300 font-inter">
-      <h2 className="font-rubik text-xl font-medium text-fg-primary">
+      <h2 className="font-medium font-rubik text-fg-primary text-xl">
         Súhrn objednávky
       </h2>
 
-      <section className="rounded-sm border border-border-primary bg-surface space-y-300 p-400 sm:p-550">
-        <div className="flex items-start justify-between gap-200 border-b border-border-secondary pb-250">
-          <p className="text-sm font-medium mt-200 text-fg-primary">
+      <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-400 sm:p-550">
+        <div className="flex items-start justify-between gap-200 border-border-secondary border-b pb-250">
+          <p className="mt-200 font-medium text-fg-primary text-sm">
             Spolu s DPH
           </p>
-          <div className="text-right space-y-200">
-            <p className="font-rubik text-2xl font-bold text-fg-primary">
+          <div className="space-y-200 text-right">
+            <p className="font-bold font-rubik text-2xl text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
             <SupportingText className="text-fg-secondary">
@@ -167,16 +161,16 @@ export function CheckoutCompleteSection({
             iconPosition="right"
             isLoading={isCompletingOrder}
             onClick={() => {
-              void onCompleteOrder();
+              runDetachedPromise(onCompleteOrder())
             }}
+            size="lg"
             type="button"
             uppercase
-            size="lg"
           >
             Dokončiť objednávku
           </Button>
 
-          <p className="mx-auto max-w-[42rem] text-center text-xs leading-relaxed text-fg-secondary">
+          <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
             Potvrdzujem, že som sa oboznámil s{" "}
             <NextLink
               className={summaryInlineLinkClassName}
@@ -216,7 +210,7 @@ export function CheckoutCompleteSection({
 
       <section className={`${summaryCardClassName}`}>
         <div className="flex items-center justify-between gap-200">
-          <p className="font-rubik text-lg font-medium text-fg-primary">
+          <p className="font-medium font-rubik text-fg-primary text-lg">
             Vaše údaje
           </p>
           <LinkButton
@@ -224,23 +218,23 @@ export function CheckoutCompleteSection({
             className={summaryEditLinkClassName}
             href={detailsStepHref}
             icon="token-icon-pen"
+            iconSize="lg"
             size="sm"
             theme="unstyled"
-            iconSize="lg"
           >
             Upraviť
           </LinkButton>
         </div>
 
         <div className="grid gap-300">
-          <div className="grid gap-x-250 gap-y-150 grid-cols-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-250 gap-y-150 sm:grid-cols-3">
             {shippingAddressRows.map((row) => (
               <div
                 className="space-y-50 px-150 py-100"
                 key={`shipping-${row.label}`}
               >
-                <p className="text-sm text-fg-tertiary">{row.label}</p>
-                <p className="text-sm leading-relaxed text-fg-primary">
+                <p className="text-fg-tertiary text-sm">{row.label}</p>
+                <p className="text-fg-primary text-sm leading-relaxed">
                   {resolveValue(row.value)}
                 </p>
               </div>
@@ -248,14 +242,14 @@ export function CheckoutCompleteSection({
           </div>
         </div>
 
-        {!hasStoredAddress ? (
+        {hasStoredAddress ? null : (
           <SupportingText className="text-warning">
             Niektoré povinné údaje ešte nie sú uložené.
           </SupportingText>
-        ) : null}
+        )}
       </section>
     </section>
-  );
+  )
 }
 
 function SummaryRecapCard({
@@ -264,10 +258,10 @@ function SummaryRecapCard({
   label,
   tone = "default",
 }: {
-  href: string;
-  icon: IconType;
-  label: string;
-  tone?: "default" | "warning";
+  href: string
+  icon: IconType
+  label: string
+  tone?: "default" | "warning"
 }) {
   return (
     <div className={`${summaryCardClassName}`}>
@@ -279,8 +273,8 @@ function SummaryRecapCard({
           <p
             className={
               tone === "warning"
-                ? "text-sm font-medium text-warning"
-                : "text-sm font-medium text-fg-primary"
+                ? "font-medium text-sm text-warning"
+                : "font-medium text-fg-primary text-sm"
             }
           >
             {label}
@@ -292,13 +286,13 @@ function SummaryRecapCard({
           className={summaryEditLinkClassName}
           href={href}
           icon="token-icon-pen"
+          iconSize="lg"
           size="sm"
           theme="unstyled"
-          iconSize="lg"
         >
           Upraviť
         </LinkButton>
       </div>
     </div>
-  );
+  )
 }

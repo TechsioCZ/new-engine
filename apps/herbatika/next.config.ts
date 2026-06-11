@@ -1,31 +1,31 @@
-import { join } from "node:path";
-import type { NextConfig } from "next";
+import { join } from "node:path"
+import type { NextConfig } from "next"
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   if (!baseUrl) {
-    return [];
+    return []
   }
 
   try {
-    const parsedUrl = new URL(baseUrl);
-    const protocol = parsedUrl.protocol === "http:" ? "http" : "https";
+    const parsedUrl = new URL(baseUrl)
+    const protocol = parsedUrl.protocol === "http:" ? "http" : "https"
 
     return [
       {
         protocol,
         hostname: parsedUrl.hostname,
       },
-    ] as const;
+    ] as const
   } catch {
-    return [];
+    return []
   }
-};
+}
 
 const resolveMedusaImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL);
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL)
 
 const resolvePayloadImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL);
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -71,7 +71,7 @@ const nextConfig: NextConfig = {
     product: {
       stale: 3600,
       revalidate: 3600,
-      expire: 86400,
+      expire: 86_400,
     },
   },
 
@@ -80,6 +80,6 @@ const nextConfig: NextConfig = {
     cpus: 1,
     webpackMemoryOptimizations: true,
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

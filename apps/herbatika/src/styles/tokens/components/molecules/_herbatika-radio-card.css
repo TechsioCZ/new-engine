@@ -1,5 +1,5 @@
 @theme static {
-  --gap-radio-card-root-sm: var(--spacing-150);  
+  --gap-radio-card-root-sm: var(--spacing-150);
   --gap-radio-card-item-control-sm: var(--spacing-200);
 
   --padding-radio-card-item-addon-sm: var(--spacing-500);

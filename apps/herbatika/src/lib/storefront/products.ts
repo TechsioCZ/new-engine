@@ -1,43 +1,47 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import type { StorefrontProductListInput } from "./product-query-config";
+import type { HttpTypes } from "@medusajs/types"
+import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
 import {
-  buildProductListParams,
-  PRODUCT_CARD_FIELDS,
-  PRODUCT_DETAIL_FIELDS,
-  RELATED_PRODUCT_FIELDS,
-  SEARCH_PRODUCT_CARD_FIELDS,
-} from "./product-query-config";
-import { storefront } from "./storefront";
+  buildProductListParams as buildStorefrontProductListParams,
+  PRODUCT_CARD_FIELDS as STOREFRONT_PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS as STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  RELATED_PRODUCT_FIELDS as STOREFRONT_RELATED_PRODUCT_FIELDS,
+  SEARCH_PRODUCT_CARD_FIELDS as STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
+} from "./product-query-config"
+import { storefront } from "./storefront"
 
-type ProductHooks = typeof storefront.hooks.products;
-type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1];
+export const buildProductListParams = buildStorefrontProductListParams
+export const PRODUCT_CARD_FIELDS = STOREFRONT_PRODUCT_CARD_FIELDS
+export const PRODUCT_DETAIL_FIELDS = STOREFRONT_PRODUCT_DETAIL_FIELDS
+export const RELATED_PRODUCT_FIELDS = STOREFRONT_RELATED_PRODUCT_FIELDS
+export const SEARCH_PRODUCT_CARD_FIELDS = STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS
 
-export type ProductListInput = StorefrontProductListInput & {
-  enabled?: boolean;
-};
+type ProductHooks = typeof storefront.hooks.products
+type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1]
 
-const productHooks = storefront.hooks.products;
+export type ProductListInput = BaseStorefrontProductListInput & {
+  enabled?: boolean
+}
+
+const productHooks = storefront.hooks.products
 const toProductListParams = (
-  input: ProductListInput,
+  input: ProductListInput
 ): HttpTypes.StoreProductListParams =>
-  input as unknown as HttpTypes.StoreProductListParams;
+  input as unknown as HttpTypes.StoreProductListParams
 
 export const useProducts = (
   input: ProductListInput,
-  options?: UseProductsOptions,
-) => {
-  return productHooks.useProducts(toProductListParams(input), options);
-};
+  options?: UseProductsOptions
+) => productHooks.useProducts(toProductListParams(input), options)
 
-export const useProduct = productHooks.useProduct;
-export const usePrefetchProduct = productHooks.usePrefetchProduct;
+export const useProduct = productHooks.useProduct
+export const usePrefetchProduct = productHooks.usePrefetchProduct
 
 export const usePrefetchProducts = (
   ...args: Parameters<ProductHooks["usePrefetchProducts"]>
 ) => {
-  const prefetch = productHooks.usePrefetchProducts(...args);
+  const prefetch = productHooks.usePrefetchProducts(...args)
 
   return {
     ...prefetch,
@@ -69,13 +73,5 @@ export const usePrefetchProducts = (
         ? TRest
         : never
     ) => prefetch.delayedPrefetch(toProductListParams(input), ...prefetchArgs),
-  };
-};
-
-export {
-  buildProductListParams,
-  RELATED_PRODUCT_FIELDS,
-  PRODUCT_CARD_FIELDS,
-  PRODUCT_DETAIL_FIELDS,
-  SEARCH_PRODUCT_CARD_FIELDS,
-};
+  }
+}

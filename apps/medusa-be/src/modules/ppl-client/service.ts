@@ -76,6 +76,11 @@ type CachedToken = {
   expiresAt: number
 }
 
+type UsablePplConfig = PplConfigDTO & {
+  client_id: string
+  client_secret: string
+}
+
 /**
  * Module options passed from medusa-config.ts
  */
@@ -204,27 +209,42 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
    * Returns null if PPL is disabled or not configured
    */
   async getEffectiveConfig(): Promise<PplOptions | null> {
-    // 1. Check Redis cache
-    if (this.cacheService_) {
-      const cached = await this.cacheService_.get({ key: CACHE_KEYS.CONFIG })
-      if (cached) {
-        return cached as PplOptions
-      }
+    const cached = await this.getCachedEffectiveConfig()
+    if (cached) {
+      return cached
     }
 
-    // 2. Fetch from DB
     const config = await this.getConfig()
-    if (!config?.is_enabled) {
+    if (!this.isConfigUsable(config)) {
       return null
     }
 
-    // 3. Validate required fields
-    if (!(config.client_id && config.client_secret)) {
+    const options = this.buildEffectiveOptions(config)
+    await this.cacheEffectiveConfig(options)
+
+    return options
+  }
+
+  private async getCachedEffectiveConfig(): Promise<PplOptions | null> {
+    if (!this.cacheService_) {
       return null
     }
 
-    // 4. Build options (environment from module options)
-    const options: PplOptions = {
+    const cached = await this.cacheService_.get({ key: CACHE_KEYS.CONFIG })
+
+    return cached ? (cached as PplOptions) : null
+  }
+
+  private isConfigUsable(
+    config: PplConfigDTO | null | undefined
+  ): config is UsablePplConfig {
+    return Boolean(
+      config?.is_enabled && config.client_id && config.client_secret
+    )
+  }
+
+  private buildEffectiveOptions(config: UsablePplConfig): PplOptions {
+    return {
       client_id: config.client_id,
       client_secret: config.client_secret,
       environment: this.environment_,
@@ -241,18 +261,19 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       sender_phone: config.sender_phone ?? undefined,
       sender_email: config.sender_email ?? undefined,
     }
+  }
 
-    // 5. Cache result
-    if (this.cacheService_) {
-      await this.cacheService_.set({
-        key: CACHE_KEYS.CONFIG,
-        data: options,
-        ttl: CACHE_TTL.CONFIG,
-        tags: [CACHE_TAGS.ALL],
-      })
+  private async cacheEffectiveConfig(options: PplOptions): Promise<void> {
+    if (!this.cacheService_) {
+      return
     }
 
-    return options
+    await this.cacheService_.set({
+      key: CACHE_KEYS.CONFIG,
+      data: options,
+      ttl: CACHE_TTL.CONFIG,
+      tags: [CACHE_TAGS.ALL],
+    })
   }
 
   /**

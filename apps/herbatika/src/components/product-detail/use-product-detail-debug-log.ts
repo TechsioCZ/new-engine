@@ -1,17 +1,17 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
+import { useEffect } from "react"
 
-import type { Product } from "@/components/product-detail/product-detail.types";
-import { asRecord } from "@/components/product-detail/utils/value-utils";
+import type { Product } from "@/components/product-detail/product-detail.types"
+import { asRecord } from "@/components/product-detail/utils/value-utils"
 
 export function useProductDetailDebugLog(product: Product | null) {
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || !product) {
-      return;
+      return
     }
 
-    const metadata = asRecord(product.metadata);
+    const metadata = asRecord(product.metadata)
 
     console.info("[PDP] loaded product", {
       id: product.id,
@@ -24,6 +24,6 @@ export function useProductDetailDebugLog(product: Product | null) {
         ? metadata.content_sections.length
         : 0,
       hasContentSectionsMap: asRecord(metadata?.content_sections_map) !== null,
-    });
-  }, [product]);
+    })
+  }, [product])
 }

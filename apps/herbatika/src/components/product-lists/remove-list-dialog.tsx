@@ -1,13 +1,14 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Dialog } from "@techsio/ui-kit/molecules/dialog";
-import { getProductListTitle } from "@/lib/storefront/product-lists";
-import type { AccountProductListsController } from "./use-account-product-lists";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { getProductListTitle } from "@/lib/storefront/product-lists"
+import type { AccountProductListsController } from "./use-account-product-lists"
 
 type RemoveListDialogProps = {
-  accountLists: AccountProductListsController;
-};
+  accountLists: AccountProductListsController
+}
 
 export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
   return (
@@ -28,7 +29,9 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
             disabled={accountLists.deleteListMutation.isPending}
             icon="token-icon-trash"
             isLoading={accountLists.deleteListMutation.isPending}
-            onClick={() => void accountLists.handleDeleteList()}
+            onClick={() => {
+              runDetachedPromise(accountLists.handleDeleteList())
+            }}
             size="sm"
             type="button"
             variant="danger"
@@ -43,7 +46,7 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
       hideCloseButton
       onOpenChange={({ open }) => {
         if (!open) {
-          accountLists.closeDeleteListDialog();
+          accountLists.closeDeleteListDialog()
         }
       }}
       open={Boolean(accountLists.deleteList)}
@@ -55,5 +58,5 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
           : ""
       }?`}
     />
-  );
+  )
 }

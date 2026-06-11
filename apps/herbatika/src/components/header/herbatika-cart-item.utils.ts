@@ -1,60 +1,60 @@
-import type { HttpTypes } from "@medusajs/types";
-import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants";
-import { asFiniteNumber } from "@/lib/storefront/cart-calculations";
+import type { HttpTypes } from "@medusajs/types"
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
+import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
 
-export const FALLBACK_MAX_QUANTITY = 99;
+export const FALLBACK_MAX_QUANTITY = 99
 
 export const resolveLineItemProductHandle = (
-  item: HttpTypes.StoreCartLineItem,
+  item: HttpTypes.StoreCartLineItem
 ) => {
-  const itemRecord = item as unknown as Record<string, unknown>;
+  const itemRecord = item as unknown as Record<string, unknown>
   return typeof itemRecord.product_handle === "string"
     ? itemRecord.product_handle
-    : null;
-};
+    : null
+}
 
 export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
-  const productHandle = resolveLineItemProductHandle(item);
+  const productHandle = resolveLineItemProductHandle(item)
 
   if (productHandle) {
-    return `/p/${productHandle}`;
+    return `/p/${productHandle}`
   }
 
-  return "/checkout/kosik";
-};
+  return "/checkout/kosik"
+}
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
-  const itemRecord = item as unknown as Record<string, unknown>;
+  const itemRecord = item as unknown as Record<string, unknown>
   const metadata =
     itemRecord.metadata &&
     typeof itemRecord.metadata === "object" &&
     !Array.isArray(itemRecord.metadata)
       ? (itemRecord.metadata as Record<string, unknown>)
-      : null;
+      : null
   const variant =
     itemRecord.variant &&
     typeof itemRecord.variant === "object" &&
     !Array.isArray(itemRecord.variant)
       ? (itemRecord.variant as Record<string, unknown>)
-      : null;
+      : null
 
-  const metadataInventory = asFiniteNumber(metadata?.inventory_quantity);
+  const metadataInventory = asFiniteNumber(metadata?.inventory_quantity)
   if (metadataInventory !== null) {
-    return metadataInventory;
+    return metadataInventory
   }
 
-  const variantInventory = asFiniteNumber(variant?.inventory_quantity);
+  const variantInventory = asFiniteNumber(variant?.inventory_quantity)
   if (variantInventory !== null) {
-    return variantInventory;
+    return variantInventory
   }
 
-  return asFiniteNumber(itemRecord.variant_inventory_quantity);
-};
+  return asFiniteNumber(itemRecord.variant_inventory_quantity)
+}
 
 export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {
   if (typeof item.thumbnail === "string" && item.thumbnail.length > 0) {
-    return item.thumbnail;
+    return item.thumbnail
   }
 
-  return FALLBACK_IMAGE_SRC;
-};
+  return FALLBACK_IMAGE_SRC
+}

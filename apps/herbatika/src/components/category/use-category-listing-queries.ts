@@ -1,198 +1,201 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import { useMemo } from "react";
+import type { HttpTypes } from "@medusajs/types"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useMemo } from "react"
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,
   resolveCategoryIntroHtml,
   resolveCategoryIntroText,
-} from "@/components/category/category-context.utils";
+} from "@/components/category/category-context.utils"
 import {
   normalizeCategoryName,
   resolveCategoryRank,
-} from "@/components/category/category-product-utils";
-import { useCategoryFacetItems } from "@/components/category/use-category-facet-items";
-import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb";
-import { useCatalogProducts } from "@/lib/storefront/catalog-products";
+} from "@/components/category/category-product-utils"
+import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
+import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
   buildCatalogProductsParams,
   resolveCatalogActiveFilterCount,
   resolveCatalogPriceBounds,
-} from "@/lib/storefront/catalog-query-state";
-import { useCategories } from "@/lib/storefront/categories";
+} from "@/lib/storefront/catalog-query-state"
+import { useCategories } from "@/lib/storefront/categories"
 import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
-} from "@/lib/storefront/category-query-config";
-import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+} from "@/lib/storefront/category-query-config"
+import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   type NuqsPlpQueryState,
   PLP_PAGE_SIZE,
-} from "@/lib/storefront/plp-query-state";
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
+} from "@/lib/storefront/plp-query-state"
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 const resolveBreadcrumbItems = (
   slug: string,
   activeCategory: HttpTypes.StoreProductCategory | null,
-  categoryById: Map<string, HttpTypes.StoreProductCategory>,
+  categoryById: Map<string, HttpTypes.StoreProductCategory>
 ) => {
   const items: HerbatikaBreadcrumbItem[] = [
     { label: "Domů", href: "/", icon: "token-icon-home" },
-  ];
+  ]
 
   if (!activeCategory) {
-    items.push({ label: normalizeCategoryName(slug) });
-    return items;
+    items.push({ label: normalizeCategoryName(slug) })
+    return items
   }
 
-  const trail: HttpTypes.StoreProductCategory[] = [];
-  let currentCategory: HttpTypes.StoreProductCategory | null = activeCategory;
+  const trail: HttpTypes.StoreProductCategory[] = []
+  let currentCategory: HttpTypes.StoreProductCategory | null = activeCategory
 
   while (currentCategory) {
-    trail.unshift(currentCategory);
+    trail.unshift(currentCategory)
 
     if (!currentCategory.parent_category_id) {
-      break;
+      break
     }
 
     currentCategory =
-      categoryById.get(currentCategory.parent_category_id) ?? null;
+      categoryById.get(currentCategory.parent_category_id) ?? null
   }
 
   for (let index = 0; index < trail.length; index += 1) {
-    const category = trail[index];
-    const label = normalizeCategoryName(category.name);
-    const isLast = index === trail.length - 1;
+    const category = trail[index]
+    const label = normalizeCategoryName(category.name)
+    const isLast = index === trail.length - 1
+    const href =
+      isLast || !category.handle ? undefined : `/c/${category.handle}`
 
     items.push({
       label,
-      href: isLast
-        ? undefined
-        : category.handle
-          ? `/c/${category.handle}`
-          : undefined,
-    });
+      href,
+    })
   }
 
-  return items;
-};
+  return items
+}
 
 type UseCategoryListingQueriesProps = {
-  queryState: NuqsPlpQueryState;
-  slug: string;
-};
+  queryState: NuqsPlpQueryState
+  slug: string
+}
 
 export function useCategoryListingQueries({
   queryState,
   slug,
 }: UseCategoryListingQueriesProps) {
-  const region = useRegionContext();
-  const regionCurrencyCode = resolveRegionCurrency(region);
+  const region = useRegionContext()
+  const regionCurrencyCode = resolveRegionCurrency(region)
   const categoriesQuery = useCategories({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
-  });
+  })
 
   const categoryByHandle = useMemo(() => {
-    const map = new Map<string, HttpTypes.StoreProductCategory>();
+    const map = new Map<string, HttpTypes.StoreProductCategory>()
     for (const category of categoriesQuery.categories) {
       if (category.handle) {
-        map.set(category.handle, category);
+        map.set(category.handle, category)
       }
     }
 
-    return map;
-  }, [categoriesQuery.categories]);
+    return map
+  }, [categoriesQuery.categories])
 
   const categoryById = useMemo(() => {
-    const map = new Map<string, HttpTypes.StoreProductCategory>();
+    const map = new Map<string, HttpTypes.StoreProductCategory>()
     for (const category of categoriesQuery.categories) {
-      map.set(category.id, category);
+      map.set(category.id, category)
     }
 
-    return map;
-  }, [categoriesQuery.categories]);
+    return map
+  }, [categoriesQuery.categories])
 
-  const activeCategory = categoryByHandle.get(slug) ?? null;
+  const activeCategory = categoryByHandle.get(slug) ?? null
 
   const activeCategoryFilterIds = useMemo(() => {
     if (!activeCategory) {
-      return [];
+      return []
     }
 
     return [
       activeCategory.id,
       ...collectDescendantCategoryIds(
         categoriesQuery.categories,
-        activeCategory.id,
+        activeCategory.id
       ),
-    ];
-  }, [activeCategory, categoriesQuery.categories]);
+    ]
+  }, [activeCategory, categoriesQuery.categories])
 
-  const topLevelCategories = useMemo(() => {
-    return categoriesQuery.categories
-      .filter((category) => !category.parent_category_id && category.handle)
-      .sort((left, right) => {
-        const rankDifference =
-          resolveCategoryRank(left) - resolveCategoryRank(right);
-        if (rankDifference !== 0) {
-          return rankDifference;
-        }
+  const topLevelCategories = useMemo(
+    () =>
+      categoriesQuery.categories
+        .filter((category) => !category.parent_category_id && category.handle)
+        .sort((left, right) => {
+          const rankDifference =
+            resolveCategoryRank(left) - resolveCategoryRank(right)
+          if (rankDifference !== 0) {
+            return rankDifference
+          }
 
-        return normalizeCategoryName(left.name).localeCompare(
-          normalizeCategoryName(right.name),
-          "sk",
-        );
-      });
-  }, [categoriesQuery.categories]);
+          return normalizeCategoryName(left.name).localeCompare(
+            normalizeCategoryName(right.name),
+            "sk"
+          )
+        }),
+    [categoriesQuery.categories]
+  )
 
-  const breadcrumbItems = useMemo(() => {
-    return resolveBreadcrumbItems(slug, activeCategory, categoryById);
-  }, [activeCategory, categoryById, slug]);
+  const breadcrumbItems = useMemo(
+    () => resolveBreadcrumbItems(slug, activeCategory, categoryById),
+    [activeCategory, categoryById, slug]
+  )
 
-  const catalogProductsInput = useMemo(() => {
-    return buildCatalogProductsParams({
-      queryState,
-      categoryIds: activeCategoryFilterIds,
-      limit: PLP_PAGE_SIZE,
-    });
-  }, [activeCategoryFilterIds, queryState]);
+  const catalogProductsInput = useMemo(
+    () =>
+      buildCatalogProductsParams({
+        queryState,
+        categoryIds: activeCategoryFilterIds,
+        limit: PLP_PAGE_SIZE,
+      }),
+    [activeCategoryFilterIds, queryState]
+  )
 
-  const isCatalogQueryEnabled = Boolean(
-    region?.region_id && activeCategory?.id,
-  );
+  const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id)
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
     enabled: isCatalogQueryEnabled,
-  });
+  })
 
-  const catalogFacetSeedInput = useMemo(() => {
-    return buildCatalogProductsParams({
-      queryState: {
-        ...queryState,
-        page: 1,
-        sort: "recommended",
-        status: [],
-        form: [],
-        brand: [],
-        ingredient: [],
-        price_min: null,
-        price_max: null,
-      },
-      categoryIds: activeCategoryFilterIds,
-      limit: 1,
-    });
-  }, [activeCategoryFilterIds, queryState]);
+  const catalogFacetSeedInput = useMemo(
+    () =>
+      buildCatalogProductsParams({
+        queryState: {
+          ...queryState,
+          page: 1,
+          sort: "recommended",
+          status: [],
+          form: [],
+          brand: [],
+          ingredient: [],
+          price_min: null,
+          price_max: null,
+        },
+        categoryIds: activeCategoryFilterIds,
+        limit: 1,
+      }),
+    [activeCategoryFilterIds, queryState]
+  )
 
   const catalogFacetSeedQuery = useCatalogProducts({
     ...catalogFacetSeedInput,
     enabled: isCatalogQueryEnabled,
-  });
+  })
 
   const {
     asideBrandItems,
@@ -203,7 +206,7 @@ export function useCategoryListingQueries({
     catalogFacets: catalogQuery.facets,
     queryState,
     seedFacets: catalogFacetSeedQuery.facets,
-  });
+  })
 
   const categoryContextImageTiles = useMemo(
     () =>
@@ -218,8 +221,8 @@ export function useCategoryListingQueries({
       activeCategoryFilterIds,
       categoriesQuery.categories,
       categoryById,
-    ],
-  );
+    ]
+  )
 
   return {
     activeAsideFilterCount: resolveCatalogActiveFilterCount(queryState),
@@ -237,7 +240,7 @@ export function useCategoryListingQueries({
     categoriesError: categoriesQuery.error
       ? resolveErrorMessage(
           categoriesQuery.error,
-          "Načítanie kategórií zlyhalo.",
+          "Načítanie kategórií zlyhalo."
         )
       : null,
     categoriesQuery,
@@ -268,5 +271,5 @@ export function useCategoryListingQueries({
       categoriesQuery.categories.length > 0 &&
       !activeCategory,
     topLevelCategories,
-  };
+  }
 }

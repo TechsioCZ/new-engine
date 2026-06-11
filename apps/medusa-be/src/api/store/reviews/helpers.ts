@@ -74,8 +74,8 @@ export const getReviewAuthorName = ({
   customer?: CustomerRecord
   reviewToken?: ReviewTokenDTO
 }) => ({
-  first_name: reviewToken ? "Anonym" : customer?.first_name ?? null,
-  last_name: reviewToken ? null : customer?.last_name ?? null,
+  first_name: reviewToken ? "Anonym" : (customer?.first_name ?? null),
+  last_name: reviewToken ? null : (customer?.last_name ?? null),
 })
 
 export function assertReviewTokenUsable(
@@ -105,7 +105,10 @@ export function assertReviewTokenUsable(
 
   if (reviewToken.expires_at) {
     const expiresAt = new Date(reviewToken.expires_at)
-    if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
+    if (
+      !Number.isNaN(expiresAt.getTime()) &&
+      expiresAt.getTime() < Date.now()
+    ) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Review token has expired."

@@ -75,7 +75,10 @@ function escapeRegExp(value: string) {
 
 export function extractElements(source: string, tag: string): XmlElement[] {
   const escapedTag = escapeRegExp(tag)
-  const regex = new RegExp(`<${escapedTag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`, "g")
+  const regex = new RegExp(
+    `<${escapedTag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`,
+    "g"
+  )
   const result: XmlElement[] = []
 
   for (const match of source.matchAll(regex)) {
@@ -93,7 +96,9 @@ export function extractFirstElementContent(
   tag: string
 ): string | undefined {
   const escapedTag = escapeRegExp(tag)
-  const regex = new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`)
+  const regex = new RegExp(
+    `<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`
+  )
   return source.match(regex)?.[1]
 }
 

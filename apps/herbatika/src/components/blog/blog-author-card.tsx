@@ -1,33 +1,33 @@
-import NextImage from "next/image";
-import type { BlogPost } from "@/lib/storefront/blog-content";
+import NextImage from "next/image"
+import type { BlogPost } from "@/lib/storefront/blog-content"
 
 type BlogAuthorCardProps = {
-  post: BlogPost;
-};
+  post: BlogPost
+}
 
 export function BlogAuthorCard({ post }: BlogAuthorCardProps) {
   return (
     <section className="flex flex-col gap-500 rounded-2xl border border-border-secondary bg-surface p-400 sm:flex-row sm:items-center">
       <NextImage
         alt={post.author}
-        className="h-blog-detail-author-image aspect-square rounded-md object-cover"
+        className="aspect-square h-blog-detail-author-image rounded-md object-cover"
         height={124}
+        quality={50}
         src={post.authorImageSrc}
         width={124}
-        quality={50}
       />
 
       <div className="space-y-200">
-        <p className="text-xs leading-normal text-fg-secondary">
+        <p className="text-fg-secondary text-xs leading-normal">
           {post.authorRole}
         </p>
-        <h3 className="text-xl leading-tight font-bold text-fg-primary">
+        <h3 className="font-bold text-fg-primary text-xl leading-tight">
           {post.author}
         </h3>
-        <p className="text-md leading-relaxed text-fg-secondary">
+        <p className="text-fg-secondary text-md leading-relaxed">
           {post.authorBio}
         </p>
       </div>
     </section>
-  );
+  )
 }

@@ -77,7 +77,9 @@ function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
   return isRecord(value) && typeof value.id === "string"
 }
 
-function isTemplateVariableValue(value: unknown): value is TemplateVariableValue {
+function isTemplateVariableValue(
+  value: unknown
+): value is TemplateVariableValue {
   if (
     value === null ||
     typeof value === "string" ||

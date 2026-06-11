@@ -1,61 +1,61 @@
-import BLOG_BANNER from "@/assets/blog-banner.webp";
+import BLOG_BANNER from "@/assets/blog-banner.webp"
 
-export type BlogTopicKey = "all" | "fitness" | "krasa" | "zdravie";
+export type BlogTopicKey = "all" | "fitness" | "krasa" | "zdravie"
 
 export type BlogPostSection = {
-  title: string;
-  paragraphs: string[];
-  bulletPoints?: string[];
-};
+  title: string
+  paragraphs: string[]
+  bulletPoints?: string[]
+}
 
 export type BlogPost = {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  contentHtml?: string;
-  imageSrc: string;
-  topic: Exclude<BlogTopicKey, "all">;
-  tags: string[];
-  publishedAt: string;
-  author: string;
-  authorRole: string;
-  authorBio: string;
-  authorImageSrc: string;
-  readingTime: string;
-  lead: string;
-  bulletPoints: string[];
-  sections: BlogPostSection[];
-};
+  id: string
+  slug: string
+  title: string
+  excerpt: string
+  contentHtml?: string
+  imageSrc: string
+  topic: Exclude<BlogTopicKey, "all">
+  tags: string[]
+  publishedAt: string
+  author: string
+  authorRole: string
+  authorBio: string
+  authorImageSrc: string
+  readingTime: string
+  lead: string
+  bulletPoints: string[]
+  sections: BlogPostSection[]
+}
 
 export type BlogRecommendedProductsConfig = {
-  categoryHandles: string[];
-  limit?: number;
-};
+  categoryHandles: string[]
+  limit?: number
+}
 
 export type BlogTopicFilter = {
-  key: BlogTopicKey;
-  label: string;
-  count: number;
-};
+  key: BlogTopicKey
+  label: string
+  count: number
+}
 
 export type ResolveBlogListingInput = {
-  posts?: BlogPost[];
-  topic?: BlogTopicKey;
-  page?: number;
-  pageSize?: number;
-};
+  posts?: BlogPost[]
+  topic?: BlogTopicKey
+  page?: number
+  pageSize?: number
+}
 
-export const BLOG_PAGE_SIZE = 12;
+export const BLOG_PAGE_SIZE = 12
 
 const BLOG_TOPIC_ONLY_FILTERS: Array<{
-  key: Exclude<BlogTopicKey, "all">;
-  label: string;
+  key: Exclude<BlogTopicKey, "all">
+  label: string
 }> = [
   { key: "fitness", label: "Fitness" },
   { key: "krasa", label: "Krása" },
   { key: "zdravie", label: "Zdravie" },
-];
+]
 
 export const BLOG_SIDEBAR_CATEGORIES = [
   { label: "Kapsuly", count: 4 },
@@ -67,7 +67,7 @@ export const BLOG_SIDEBAR_CATEGORIES = [
   { label: "Kvapky", count: 27 },
   { label: "Sprej", count: 3 },
   { label: "Sirup", count: 1 },
-];
+]
 
 export const BLOG_PROMO_BANNER = {
   title: "ZĽAVA 20 %",
@@ -75,7 +75,7 @@ export const BLOG_PROMO_BANNER = {
   codeLabel: "KÓD:",
   codeValue: "TOP20",
   imageSrc: BLOG_BANNER,
-};
+}
 
 export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
   {
@@ -506,33 +506,31 @@ export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
       },
     ],
   },
-];
+]
 
 const normalizeBlogTopic = (topic: BlogTopicKey | undefined): BlogTopicKey => {
   if (!topic) {
-    return "all";
+    return "all"
   }
 
   if (topic === "all") {
-    return "all";
+    return "all"
   }
 
   if (BLOG_TOPIC_ONLY_FILTERS.some((item) => item.key === topic)) {
-    return topic;
+    return topic
   }
 
-  return "all";
-};
+  return "all"
+}
 
 export const resolveBlogTopicFilters = (
-  posts = HERBATIKA_BLOG_POSTS,
+  posts = HERBATIKA_BLOG_POSTS
 ): BlogTopicFilter[] => {
-  const topicCounts = BLOG_TOPIC_ONLY_FILTERS.map((topicFilter) => {
-    return {
-      ...topicFilter,
-      count: posts.filter((post) => post.topic === topicFilter.key).length,
-    };
-  });
+  const topicCounts = BLOG_TOPIC_ONLY_FILTERS.map((topicFilter) => ({
+    ...topicFilter,
+    count: posts.filter((post) => post.topic === topicFilter.key).length,
+  }))
 
   return [
     {
@@ -541,8 +539,8 @@ export const resolveBlogTopicFilters = (
       count: posts.length,
     },
     ...topicCounts,
-  ];
-};
+  ]
+}
 
 export const resolveBlogListing = ({
   posts = HERBATIKA_BLOG_POSTS,
@@ -550,20 +548,20 @@ export const resolveBlogListing = ({
   page,
   pageSize = BLOG_PAGE_SIZE,
 }: ResolveBlogListingInput) => {
-  const normalizedTopic = normalizeBlogTopic(topic);
-  const safePageSize = Math.max(pageSize, 1);
+  const normalizedTopic = normalizeBlogTopic(topic)
+  const safePageSize = Math.max(pageSize, 1)
 
   const filteredPosts =
     normalizedTopic === "all"
       ? posts
-      : posts.filter((post) => post.topic === normalizedTopic);
+      : posts.filter((post) => post.topic === normalizedTopic)
 
-  const totalItems = filteredPosts.length;
-  const totalPages = Math.max(Math.ceil(totalItems / safePageSize), 1);
+  const totalItems = filteredPosts.length
+  const totalPages = Math.max(Math.ceil(totalItems / safePageSize), 1)
   const safePage =
-    Number.isFinite(page) && Number(page) > 0 ? Math.floor(Number(page)) : 1;
-  const normalizedPage = Math.min(safePage, totalPages);
-  const start = (normalizedPage - 1) * safePageSize;
+    Number.isFinite(page) && Number(page) > 0 ? Math.floor(Number(page)) : 1
+  const normalizedPage = Math.min(safePage, totalPages)
+  const start = (normalizedPage - 1) * safePageSize
 
   return {
     topic: normalizedTopic,
@@ -575,8 +573,8 @@ export const resolveBlogListing = ({
     hasNextPage: normalizedPage < totalPages,
     posts: filteredPosts.slice(start, start + safePageSize),
     topicFilters: resolveBlogTopicFilters(posts),
-  };
-};
+  }
+}
 
 const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Record<
   string,
@@ -666,23 +664,18 @@ const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Record<
     ],
     limit: 10,
   },
-};
+}
 
 export const resolveBlogPostBySlug = (
   slug: string,
-  posts = HERBATIKA_BLOG_POSTS,
-) => {
-  return posts.find((post) => post.slug === slug) ?? null;
-};
+  posts = HERBATIKA_BLOG_POSTS
+) => posts.find((post) => post.slug === slug) ?? null
 
-export const resolveBlogRecommendedProductsConfig = (slug: string) => {
-  return BLOG_RECOMMENDED_PRODUCTS_BY_SLUG[slug] ?? null;
-};
+export const resolveBlogRecommendedProductsConfig = (slug: string) =>
+  BLOG_RECOMMENDED_PRODUCTS_BY_SLUG[slug] ?? null
 
 export const resolveRelatedBlogPosts = (
   slug: string,
   limit = 4,
-  posts = HERBATIKA_BLOG_POSTS,
-) => {
-  return posts.filter((post) => post.slug !== slug).slice(0, limit);
-};
+  posts = HERBATIKA_BLOG_POSTS
+) => posts.filter((post) => post.slug !== slug).slice(0, limit)

@@ -1,11 +1,11 @@
-import googleLogo from "@/assets/third-parties/google.avif";
-import heurekaLogo from "@/assets/third-parties/heureka.avif";
-import verifiedCustomerBadge from "@/assets/third-parties/overeny-zakaznik.avif";
-import zboziLogo from "@/assets/third-parties/zbozi-seznam.avif";
+import googleLogo from "@/assets/third-parties/google.avif"
+import heurekaLogo from "@/assets/third-parties/heureka.avif"
+import verifiedCustomerBadge from "@/assets/third-parties/overeny-zakaznik.avif"
+import zboziLogo from "@/assets/third-parties/zbozi-seznam.avif"
 import type {
   ReviewItem,
   ReviewTrustSource,
-} from "@/components/reviews/reviews.types";
+} from "@/components/reviews/reviews.types"
 
 export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
   {
@@ -40,7 +40,7 @@ export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
     rating: 5,
     verifiedPurchase: true,
   },
-];
+]
 
 export const HEUREKA_REVIEWS: readonly ReviewItem[] = [
   {
@@ -76,7 +76,7 @@ export const HEUREKA_REVIEWS: readonly ReviewItem[] = [
     rating: 5,
     title: "Rýchle doručenie",
   },
-];
+]
 
 export const REVIEW_TRUST_SOURCES: readonly ReviewTrustSource[] = [
   {
@@ -103,6 +103,6 @@ export const REVIEW_TRUST_SOURCES: readonly ReviewTrustSource[] = [
     scoreLabel: "5,0/5",
     reviewCountLabel: "(85x)",
   },
-];
+]
 
-export const REVIEW_VERIFIED_CUSTOMER_BADGE = verifiedCustomerBadge;
+export const REVIEW_VERIFIED_CUSTOMER_BADGE = verifiedCustomerBadge

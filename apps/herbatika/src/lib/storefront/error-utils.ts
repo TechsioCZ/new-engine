@@ -1,36 +1,36 @@
 const resolveObjectErrorMessage = (error: unknown) => {
   if (!(error && typeof error === "object")) {
-    return null;
+    return null
   }
 
   if (!("message" in error)) {
-    return null;
+    return null
   }
 
-  const message = (error as { message?: unknown }).message;
+  const message = (error as { message?: unknown }).message
   if (typeof message !== "string" || message.trim().length === 0) {
-    return null;
+    return null
   }
 
-  return message;
-};
+  return message
+}
 
 export const resolveErrorMessage = (
   error: unknown,
-  fallbackMessage = "Nastala neznáma chyba.",
+  fallbackMessage = "Nastala neznáma chyba."
 ) => {
   if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
+    return error.message
   }
 
   if (typeof error === "string" && error.trim().length > 0) {
-    return error;
+    return error
   }
 
-  const objectMessage = resolveObjectErrorMessage(error);
+  const objectMessage = resolveObjectErrorMessage(error)
   if (objectMessage) {
-    return objectMessage;
+    return objectMessage
   }
 
-  return fallbackMessage;
-};
+  return fallbackMessage
+}

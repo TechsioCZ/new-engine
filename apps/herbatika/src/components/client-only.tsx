@@ -1,22 +1,22 @@
-"use client";
+"use client"
 
-import type { PropsWithChildren, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import type { PropsWithChildren, ReactNode } from "react"
+import { useEffect, useState } from "react"
 
 type ClientOnlyProps = PropsWithChildren<{
-  fallback?: ReactNode;
-}>;
+  fallback?: ReactNode
+}>
 
 export function ClientOnly({ children, fallback = null }: ClientOnlyProps) {
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    setIsMounted(true)
+  }, [])
 
   if (!isMounted) {
-    return <>{fallback}</>;
+    return <>{fallback}</>
   }
 
-  return <>{children}</>;
+  return <>{children}</>
 }

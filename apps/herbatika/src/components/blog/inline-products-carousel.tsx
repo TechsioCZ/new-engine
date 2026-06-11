@@ -1,36 +1,36 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import { useState } from "react";
+import type { HttpTypes } from "@medusajs/types"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import {
   Carousel,
   type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel";
-import { HerbatikaProductCard } from "@/components/herbatika-product-card";
-import { SupportingText } from "@/components/text/supporting-text";
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
+} from "@techsio/ui-kit/molecules/carousel"
+import { useState } from "react"
+import { HerbatikaProductCard } from "@/components/herbatika-product-card"
+import { SupportingText } from "@/components/text/supporting-text"
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
 
 type InlineProductsCarouselProps = {
-  products: HttpTypes.StoreProduct[];
-  keyPrefix?: string;
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void;
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void;
-  slidesSm?: number;
-  slidesMd?: number;
-  slidesLg?: number;
-};
+  products: HttpTypes.StoreProduct[]
+  keyPrefix?: string
+  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
+  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
+  slidesSm?: number
+  slidesMd?: number
+  slidesLg?: number
+}
 
 type InlineProductsSlidesProps = {
-  slides: CarouselSlide[];
-  slidesPerPage: number;
-};
+  slides: CarouselSlide[]
+  slidesPerPage: number
+}
 
 function InlineProductsSlides({
   slides,
   slidesPerPage,
 }: InlineProductsSlidesProps) {
-  const hasOverflow = slides.length > slidesPerPage;
+  const hasOverflow = slides.length > slidesPerPage
 
   return (
     <Carousel.Root
@@ -46,16 +46,12 @@ function InlineProductsSlides({
       <Carousel.Slides slides={slides} />
       {hasOverflow ? (
         <>
-          <Carousel.Previous
-            className="-translate-y-1/2 absolute top-1/2 left-100 rounded-full aspect-square text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active"
-          />
-          <Carousel.Next
-            className="-translate-y-1/2 absolute top-1/2 right-100 rounded-full aspect-square text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active"
-          />
+          <Carousel.Previous className="-translate-y-1/2 absolute top-1/2 left-100 aspect-square rounded-full text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active" />
+          <Carousel.Next className="-translate-y-1/2 absolute top-1/2 right-100 aspect-square rounded-full text-lg shadow-carousel-trigger active:text-carousel-trigger-fg-active" />
         </>
       ) : null}
     </Carousel.Root>
-  );
+  )
 }
 
 export function InlineProductsCarousel({
@@ -67,27 +63,27 @@ export function InlineProductsCarousel({
   slidesMd = 2,
   slidesLg = 4,
 }: InlineProductsCarouselProps) {
-  const region = useRegionContext();
-  const [addToCartError, setAddToCartError] = useState<string | null>(null);
+  const region = useRegionContext()
+  const [addToCartError, setAddToCartError] = useState<string | null>(null)
   const addToCart = useAddProductToCart({
     regionId: region?.region_id,
     countryCode: region?.country_code,
-  });
+  })
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
-    setAddToCartError(null);
+    setAddToCartError(null)
 
     try {
       await addToCart.addProductToCart({
         product,
         quantity: 1,
-      });
+      })
     } catch (error) {
       setAddToCartError(
-        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo.",
-      );
+        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."
+      )
     }
-  };
+  }
 
   const slides: CarouselSlide[] = products.map((product, index) => ({
     id: `${keyPrefix}-${product.id ?? product.handle ?? index}`,
@@ -100,10 +96,10 @@ export function InlineProductsCarousel({
         product={product}
       />
     ),
-  }));
+  }))
 
   if (slides.length === 0) {
-    return null;
+    return null
   }
 
   return (
@@ -119,10 +115,10 @@ export function InlineProductsCarousel({
       </div>
 
       {addToCartError ? (
-        <SupportingText className="text-sm text-danger">
+        <SupportingText className="text-danger text-sm">
           {addToCartError}
         </SupportingText>
       ) : null}
     </section>
-  );
+  )
 }

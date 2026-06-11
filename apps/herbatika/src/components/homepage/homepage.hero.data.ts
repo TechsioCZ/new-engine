@@ -1,9 +1,8 @@
-import type { HeroBannerItem } from "./homepage.data.types";
-import firstCarouselSlide from "@/assets/homepage-carousel/first.avif";
-import secondCarouselSlide from "@/assets/homepage-carousel/second.avif";
-import thirdCarouselSlide from "@/assets/homepage-carousel/third.avif";
-import fourthCarouselSlide from "@/assets/homepage-carousel/fourth.avif";
-
+import firstCarouselSlide from "@/assets/homepage-carousel/first.avif"
+import fourthCarouselSlide from "@/assets/homepage-carousel/fourth.avif"
+import secondCarouselSlide from "@/assets/homepage-carousel/second.avif"
+import thirdCarouselSlide from "@/assets/homepage-carousel/third.avif"
+import type { HeroBannerItem } from "./homepage.data.types"
 
 export const HERO_BANNERS: HeroBannerItem[] = [
   {
@@ -71,5 +70,4 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     imageSrc:
       "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&w=900&q=80",
   },
-];
-
+]

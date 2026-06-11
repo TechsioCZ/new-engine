@@ -5,10 +5,19 @@ import path from "node:path"
 import { pathToFileURL } from "node:url"
 
 const DEFAULT_CONFIG_PATH = "scripts/token-usage.config.mjs"
-const BASE_EXCLUDE_PATTERNS = ["**/node_modules/**", "**/.next/**", "**/.git/**"]
+const BASE_EXCLUDE_PATTERNS = [
+  "**/node_modules/**",
+  "**/.next/**",
+  "**/.git/**",
+]
 const CLASS_TOKEN_SPLIT_REGEX = /\s+/
 const VARIANT_PREFIX_REGEX =
   /^(?:[a-z0-9@_-]+:|[a-z0-9@_-]+-\[[^\]]+\]:|data-\[[^\]]+\]:|aria-\[[^\]]+\]:|\[[^\]]+\]:|\*:|!)/i
+const PLAUSIBLE_CLASS_TOKEN_REGEX = /[a-z]/i
+const CSS_TOKEN_SHORTHAND_REGEX = /\(--[\w-]+\)/
+const CSS_VAR_TOKEN_REGEX = /var\(--[\w-]+\)/
+const OPACITY_SUFFIX_REGEX = /\/\d+$/
+const NUMERIC_SCALE_VALUE_REGEX = /^\d+(?:\.\d+)?$/
 
 function parseArgs(argv) {
   const args = { configPath: DEFAULT_CONFIG_PATH, json: false }
@@ -31,7 +40,6 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--config=")) {
       args.configPath = arg.slice("--config=".length)
-      continue
     }
   }
 
@@ -107,7 +115,7 @@ function isPlausibleClassToken(token) {
     return false
   }
 
-  return /[a-z]/i.test(token)
+  return PLAUSIBLE_CLASS_TOKEN_REGEX.test(token)
 }
 
 function extractClassEntries(content) {
@@ -169,7 +177,8 @@ function extractClassEntries(content) {
         continue
       }
 
-      const literalStart = callStart + stringMatch.index + stringMatch[0].indexOf(classString)
+      const literalStart =
+        callStart + stringMatch.index + stringMatch[0].indexOf(classString)
       addClassString(classString, literalStart)
     }
   }
@@ -187,7 +196,9 @@ function stripVariants(className) {
 
 function resolvePrefixValue(baseClass, prefixes) {
   const normalized = baseClass.startsWith("-") ? baseClass.slice(1) : baseClass
-  const sortedPrefixes = prefixes.slice().sort((left, right) => right.length - left.length)
+  const sortedPrefixes = prefixes
+    .slice()
+    .sort((left, right) => right.length - left.length)
 
   for (const prefix of sortedPrefixes) {
     const prefixWithDash = `${prefix}-`
@@ -212,15 +223,19 @@ function checkNoArbitraryValues(className, ruleConfig) {
 
   const baseClass = stripVariants(className)
   const allowPatterns = ruleConfig.allowClassPatterns ?? []
-  if (allowPatterns.some((pattern) => pattern.test(className) || pattern.test(baseClass))) {
+  if (
+    allowPatterns.some(
+      (pattern) => pattern.test(className) || pattern.test(baseClass)
+    )
+  ) {
     return null
   }
 
   const hasArbitrarySyntax =
     baseClass.includes("[") ||
     baseClass.includes("]") ||
-    /\(--[\w-]+\)/.test(baseClass) ||
-    /var\(--[\w-]+\)/.test(baseClass)
+    CSS_TOKEN_SHORTHAND_REGEX.test(baseClass) ||
+    CSS_VAR_TOKEN_REGEX.test(baseClass)
 
   if (!hasArbitrarySyntax) {
     return null
@@ -228,7 +243,8 @@ function checkNoArbitraryValues(className, ruleConfig) {
 
   return {
     rule: "no-arbitrary-values",
-    message: "Nepoužívej arbitrary utility hodnoty, použij token utility z libs/ui.",
+    message:
+      "Nepoužívej arbitrary utility hodnoty, použij token utility z libs/ui.",
   }
 }
 
@@ -237,15 +253,20 @@ function checkNoTailwindPalette(className, ruleConfig) {
     return null
   }
 
-  const baseClass = stripVariants(className).replace(/\/\d+$/, "")
-  const match = resolvePrefixValue(baseClass, ruleConfig.colorUtilityPrefixes ?? [])
+  const baseClass = stripVariants(className).replace(OPACITY_SUFFIX_REGEX, "")
+  const match = resolvePrefixValue(
+    baseClass,
+    ruleConfig.colorUtilityPrefixes ?? []
+  )
   if (!match) {
     return null
   }
 
   const palette = ruleConfig.paletteNames ?? []
   const value = match.value
-  const isPalette = palette.some((colorName) => value === colorName || value.startsWith(`${colorName}-`))
+  const isPalette = palette.some(
+    (colorName) => value === colorName || value.startsWith(`${colorName}-`)
+  )
   if (!isPalette) {
     return null
   }
@@ -280,7 +301,7 @@ function checkNoTailwindSpacingScale(className, ruleConfig) {
     return null
   }
 
-  if (!/^\d+(?:\.\d+)?$/.test(value)) {
+  if (!NUMERIC_SCALE_VALUE_REGEX.test(value)) {
     return null
   }
 
@@ -307,7 +328,12 @@ function checkNoTailwindContainerScale(className, ruleConfig) {
   }
 
   const value = match.value
-  if (!value || value.startsWith("[") || value.startsWith("(") || value.includes("/")) {
+  if (
+    !value ||
+    value.startsWith("[") ||
+    value.startsWith("(") ||
+    value.includes("/")
+  ) {
     return null
   }
 
@@ -346,51 +372,73 @@ function resolveRuleConfigMap(config) {
     noArbitraryValues: rules.noArbitraryValues ?? { enabled: false },
     noTailwindPalette: rules.noTailwindPalette ?? { enabled: false },
     noTailwindSpacingScale: rules.noTailwindSpacingScale ?? { enabled: false },
-    noTailwindContainerScale: rules.noTailwindContainerScale ?? { enabled: false },
+    noTailwindContainerScale: rules.noTailwindContainerScale ?? {
+      enabled: false,
+    },
+  }
+}
+
+function shouldScanEntry(relativePath, excludeRegexes) {
+  return !excludeRegexes.some((regex) => regex.test(relativePath))
+}
+
+function collectSourceFilesFromDirectory({
+  absoluteDir,
+  excludeRegexes,
+  extensions,
+  files,
+  rootDir,
+}) {
+  if (!fs.existsSync(absoluteDir)) {
+    return
+  }
+
+  const entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
+  for (const entry of entries) {
+    const absolutePath = path.join(absoluteDir, entry.name)
+    const relativePath = normalizePath(path.relative(rootDir, absolutePath))
+
+    if (!shouldScanEntry(relativePath, excludeRegexes)) {
+      continue
+    }
+
+    if (entry.isDirectory()) {
+      collectSourceFilesFromDirectory({
+        absoluteDir: absolutePath,
+        excludeRegexes,
+        extensions,
+        files,
+        rootDir,
+      })
+      continue
+    }
+
+    if (!(entry.isFile() && extensions.has(path.extname(entry.name)))) {
+      continue
+    }
+
+    files.push(relativePath)
   }
 }
 
 function listSourceFiles(rootDir, config) {
   const extensions = new Set(config.fileExtensions ?? [".ts", ".tsx"])
-  const excludeRegexes = [...BASE_EXCLUDE_PATTERNS, ...(config.exclude ?? [])].map(globToRegExp)
+  const excludeRegexes = [
+    ...BASE_EXCLUDE_PATTERNS,
+    ...(config.exclude ?? []),
+  ].map(globToRegExp)
   const scanDirectories = config.scanDirectories ?? []
 
   const files = []
 
-  const walk = (absoluteDir) => {
-    if (!fs.existsSync(absoluteDir)) {
-      return
-    }
-
-    const entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
-    for (const entry of entries) {
-      const absolutePath = path.join(absoluteDir, entry.name)
-      const relativePath = normalizePath(path.relative(rootDir, absolutePath))
-
-      if (excludeRegexes.some((regex) => regex.test(relativePath))) {
-        continue
-      }
-
-      if (entry.isDirectory()) {
-        walk(absolutePath)
-        continue
-      }
-
-      if (!entry.isFile()) {
-        continue
-      }
-
-      const extension = path.extname(entry.name)
-      if (!extensions.has(extension)) {
-        continue
-      }
-
-      files.push(relativePath)
-    }
-  }
-
   for (const relativeDir of scanDirectories) {
-    walk(path.resolve(rootDir, relativeDir))
+    collectSourceFilesFromDirectory({
+      absoluteDir: path.resolve(rootDir, relativeDir),
+      excludeRegexes,
+      extensions,
+      files,
+      rootDir,
+    })
   }
 
   return files.sort((left, right) => left.localeCompare(right))
@@ -409,7 +457,9 @@ function printSummary(findings, scannedFileCount) {
   }
 
   console.log(`Total violations: ${findings.length}`)
-  for (const [rule, count] of [...byRule.entries()].sort((left, right) => left[0].localeCompare(right[0]))) {
+  for (const [rule, count] of [...byRule.entries()].sort((left, right) =>
+    left[0].localeCompare(right[0])
+  )) {
     console.log(`- ${rule}: ${count}`)
   }
 
@@ -421,7 +471,9 @@ function printSummary(findings, scannedFileCount) {
     groupedByFile.get(finding.file).push(finding)
   }
 
-  for (const [file, fileFindings] of [...groupedByFile.entries()].sort((left, right) => left[0].localeCompare(right[0]))) {
+  for (const [file, fileFindings] of [...groupedByFile.entries()].sort(
+    (left, right) => left[0].localeCompare(right[0])
+  )) {
     console.log(`\n${file}`)
     for (const finding of fileFindings) {
       console.log(`  L${finding.line} ${finding.className}`)
@@ -477,8 +529,8 @@ async function main() {
           findings,
         },
         null,
-        2,
-      ),
+        2
+      )
     )
   } else {
     printSummary(findings, sourceFiles.length)

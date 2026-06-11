@@ -23,7 +23,13 @@ export type ReviewRecord = {
 
 type PublicReviewRecord = Pick<
   ReviewRecord,
-  "content" | "created_at" | "first_name" | "id" | "last_name" | "rating" | "title"
+  | "content"
+  | "created_at"
+  | "first_name"
+  | "id"
+  | "last_name"
+  | "rating"
+  | "title"
 >
 
 const LIKE_WILDCARD_REGEX = /[%_\\]/g

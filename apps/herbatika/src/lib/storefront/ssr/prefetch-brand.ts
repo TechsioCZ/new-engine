@@ -1,16 +1,16 @@
-import "server-only";
+import "server-only"
 
-import { dehydrate } from "@tanstack/react-query";
-import { buildCatalogProductsParams } from "../catalog-query-state";
-import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state";
-import { prefetchServerCatalogProducts } from "../storefront-server";
-import { getRegionServerContext } from "./context";
+import { dehydrate } from "@tanstack/react-query"
+import { buildCatalogProductsParams } from "../catalog-query-state"
+import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
+import { prefetchServerCatalogProducts } from "../storefront-server"
+import { getRegionServerContext } from "./context"
 
 export const prefetchBrandPageStorefrontData = async (
   brandFacetId: string,
-  queryState: PlpQueryState,
+  queryState: PlpQueryState
 ) => {
-  const { queryClient, region } = await getRegionServerContext();
+  const { queryClient, region } = await getRegionServerContext()
 
   if (region) {
     await Promise.all([
@@ -24,7 +24,7 @@ export const prefetchBrandPageStorefrontData = async (
           limit: PLP_PAGE_SIZE,
           regionId: region.region_id,
           countryCode: region.country_code,
-        }),
+        })
       ),
       prefetchServerCatalogProducts(
         queryClient,
@@ -43,13 +43,13 @@ export const prefetchBrandPageStorefrontData = async (
           limit: 1,
           regionId: region.region_id,
           countryCode: region.country_code,
-        }),
+        })
       ),
-    ]);
+    ])
   }
 
   return {
     region,
     dehydratedState: dehydrate(queryClient),
-  };
-};
+  }
+}

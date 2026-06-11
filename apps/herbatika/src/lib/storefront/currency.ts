@@ -1,25 +1,24 @@
-export const DEFAULT_CURRENCY_CODE = "EUR";
+export const DEFAULT_CURRENCY_CODE = "EUR"
 
-export type HerbatikaCurrencyCode = "EUR" | "CZK";
+export type HerbatikaCurrencyCode = "EUR" | "CZK"
 
 export const normalizeSupportedCurrencyCode = (
-  value: unknown,
+  value: unknown
 ): HerbatikaCurrencyCode | null => {
   if (typeof value !== "string") {
-    return null;
+    return null
   }
 
-  const normalizedCurrencyCode = value.trim().toUpperCase();
+  const normalizedCurrencyCode = value.trim().toUpperCase()
   if (normalizedCurrencyCode === "EUR" || normalizedCurrencyCode === "CZK") {
-    return normalizedCurrencyCode;
+    return normalizedCurrencyCode
   }
 
-  return null;
-};
+  return null
+}
 
 export const resolveSupportedCurrencyCode = (
   value: unknown,
-  fallbackCurrencyCode: HerbatikaCurrencyCode = DEFAULT_CURRENCY_CODE,
-): HerbatikaCurrencyCode => {
-  return normalizeSupportedCurrencyCode(value) ?? fallbackCurrencyCode;
-};
+  fallbackCurrencyCode: HerbatikaCurrencyCode = DEFAULT_CURRENCY_CODE
+): HerbatikaCurrencyCode =>
+  normalizeSupportedCurrencyCode(value) ?? fallbackCurrencyCode

@@ -29,7 +29,7 @@ const buildCartSelectParams = (
   fields?: string
 ): HttpTypes.SelectParams | undefined => {
   if (!fields) {
-    return undefined
+    return
   }
 
   return { fields }

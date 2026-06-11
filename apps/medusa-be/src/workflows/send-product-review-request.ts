@@ -1,6 +1,13 @@
 import { randomBytes } from "node:crypto"
-import type { CreateNotificationDTO, Logger, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
+import type {
+  CreateNotificationDTO,
+  Logger,
+  Query,
+} from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import {
   createStep,
   createWorkflow,
@@ -13,10 +20,12 @@ import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
 import {
   getOrderDisplayId,
+  getStorefrontUrl,
+} from "../utils/order-payment-reminders"
+import {
   getReviewRequestMessage,
   type ReviewRequestOrder,
 } from "../utils/order-review-requests"
-import { getStorefrontUrl } from "../utils/order-payment-reminders"
 import { sendNotificationStep } from "./steps/send-notification"
 import { deleteWorkflowQueueItemStep } from "./workflow-queue/steps/delete-workflow-queue-item"
 
@@ -149,7 +158,8 @@ function getProductTitle(item: ReviewRequestOrderItem) {
 
 function getProductReviewRequestPath() {
   return (
-    process.env.PRODUCT_REVIEW_REQUEST_PATH ?? DEFAULT_PRODUCT_REVIEW_REQUEST_PATH
+    process.env.PRODUCT_REVIEW_REQUEST_PATH ??
+    DEFAULT_PRODUCT_REVIEW_REQUEST_PATH
   ).replace(LEADING_SLASH_REGEX, "")
 }
 
@@ -274,9 +284,10 @@ const buildProductReviewRequestNotificationStep = createStep(
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
-    const reviewService = container.resolve<ProductReviewModuleServiceWithTokens>(
-      PRODUCT_REVIEW_MODULE
-    )
+    const reviewService =
+      container.resolve<ProductReviewModuleServiceWithTokens>(
+        PRODUCT_REVIEW_MODULE
+      )
 
     const { data } = await query.graph({
       entity: "order",
@@ -285,7 +296,7 @@ const buildProductReviewRequestNotificationStep = createStep(
         id: input.order_id,
       },
     })
-    if (!Array.isArray(data) || !isReviewRequestOrderWithItems(data[0])) {
+    if (!(Array.isArray(data) && isReviewRequestOrderWithItems(data[0]))) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 

@@ -1,13 +1,13 @@
-import { CategoryRichText } from "@/components/category/category-rich-text";
+import { CategoryRichText } from "@/components/category/category-rich-text"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb";
-import type { CmsPage } from "@/lib/storefront/cms";
+} from "@/components/herbatika-breadcrumb"
+import type { CmsPage } from "@/lib/storefront/cms"
 
 type CmsPageSurfaceProps = {
-  page: CmsPage;
-};
+  page: CmsPage
+}
 
 export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
@@ -19,7 +19,7 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
     {
       label: page.title ?? "Stránka",
     },
-  ];
+  ]
 
   return (
     <main className="w-full bg-base font-rubik">
@@ -29,11 +29,11 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
         <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-600">
           <header className="space-y-200">
             {page.category?.title ? (
-              <p className="text-sm leading-normal font-semibold text-primary">
+              <p className="font-semibold text-primary text-sm leading-normal">
                 {page.category.title}
               </p>
             ) : null}
-            <h1 className="text-4xl leading-tight font-bold text-fg-primary">
+            <h1 className="font-bold text-4xl text-fg-primary leading-tight">
               {page.title}
             </h1>
           </header>
@@ -45,5 +45,5 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
         </article>
       </div>
     </main>
-  );
+  )
 }

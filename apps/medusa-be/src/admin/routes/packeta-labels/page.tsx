@@ -48,6 +48,10 @@ type LabelFormat = "A6" | "A7"
 
 const PAGE_SIZE = 50
 
+export const handle = {
+  breadcrumb: () => "Packeta Labels",
+}
+
 const ORDER_FIELDS = [
   "id",
   "display_id",

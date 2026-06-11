@@ -1,69 +1,72 @@
-import type { HttpTypes } from "@medusajs/types";
-import { asRecord } from "./product-card.parsers";
+import type { HttpTypes } from "@medusajs/types"
+import { asRecord } from "./product-card.parsers"
 
-const decodeHtmlEntities = (value: string): string => {
-  return value
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/
+const SENTENCE_TRAILING_PUNCTUATION_PATTERN = /[.!?]+$/
+
+const decodeHtmlEntities = (value: string): string =>
+  value
     .replaceAll(/&nbsp;/gi, " ")
     .replaceAll(/&amp;/gi, "&")
     .replaceAll(/&lt;/gi, "<")
     .replaceAll(/&gt;/gi, ">")
     .replaceAll(/&quot;/gi, '"')
-    .replaceAll(/&#39;/gi, "'");
-};
+    .replaceAll(/&#39;/gi, "'")
 
-const stripHtml = (value: string): string => {
-  return decodeHtmlEntities(value)
+const stripHtml = (value: string): string =>
+  decodeHtmlEntities(value)
     .replaceAll(/<br\s*\/?>/gi, "\n")
     .replaceAll(/<\/(p|div|li|ul|ol|h[1-6])>/gi, "\n")
     .replaceAll(/<[^>]*>/g, "")
     .replaceAll(/[ \t]+\n/g, "\n")
     .replaceAll(/\n{2,}/g, "\n")
     .replaceAll(/[ \t]{2,}/g, " ")
-    .trim();
-};
+    .trim()
 
 const toBulletLines = (value: string): string | null => {
   const sentences = value
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim().replace(/[.!?]+$/, ""))
-    .filter(Boolean);
+    .split(SENTENCE_BOUNDARY_PATTERN)
+    .map((sentence) =>
+      sentence.trim().replace(SENTENCE_TRAILING_PUNCTUATION_PATTERN, "")
+    )
+    .filter(Boolean)
 
   if (sentences.length < 2) {
-    return null;
+    return null
   }
 
   return sentences
     .slice(0, 3)
     .map((sentence) => `• ${sentence}`)
-    .join("\n");
-};
+    .join("\n")
+}
 
 const extractListItems = (value: string): string[] => {
-  const listMatches = [...value.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)];
+  const listMatches = [...value.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
   if (listMatches.length === 0) {
-    return [];
+    return []
   }
 
-  return listMatches.map((item) => stripHtml(item[1] || "")).filter(Boolean);
-};
+  return listMatches.map((item) => stripHtml(item[1] || "")).filter(Boolean)
+}
 
 export const resolveDescription = (
-  product: HttpTypes.StoreProduct,
+  product: HttpTypes.StoreProduct
 ): string | null => {
-  const metadata = asRecord(product.metadata);
-  const contentSectionsMap = asRecord(metadata?.content_sections_map);
+  const metadata = asRecord(product.metadata)
+  const contentSectionsMap = asRecord(metadata?.content_sections_map)
   const descriptionSection =
     typeof contentSectionsMap?.description === "string"
       ? contentSectionsMap.description
-      : null;
+      : null
   const usageSection =
     typeof contentSectionsMap?.usage === "string"
       ? contentSectionsMap.usage
-      : null;
+      : null
   const shortDescription =
     typeof metadata?.short_description === "string"
       ? metadata.short_description
-      : null;
+      : null
 
   const htmlCandidates = [
     descriptionSection,
@@ -71,32 +74,32 @@ export const resolveDescription = (
     shortDescription,
   ].filter(
     (value): value is string =>
-      typeof value === "string" && value.trim().length > 0,
-  );
+      typeof value === "string" && value.trim().length > 0
+  )
 
   for (const candidate of htmlCandidates) {
-    const listItems = extractListItems(candidate);
+    const listItems = extractListItems(candidate)
     if (listItems.length === 0) {
-      continue;
+      continue
     }
 
-    const cardListItems = listItems.length > 1 ? listItems.slice(1) : listItems;
+    const cardListItems = listItems.length > 1 ? listItems.slice(1) : listItems
 
     return cardListItems
       .slice(0, 3)
       .map((item) => `• ${item}`)
-      .join("\n");
+      .join("\n")
   }
 
-  const textSource = htmlCandidates.find((candidate) => stripHtml(candidate));
+  const textSource = htmlCandidates.find((candidate) => stripHtml(candidate))
   if (!textSource) {
-    return null;
+    return null
   }
 
-  const text = stripHtml(textSource);
+  const text = stripHtml(textSource)
   if (!text) {
-    return null;
+    return null
   }
 
-  return toBulletLines(text) || text;
-};
+  return toBulletLines(text) || text
+}

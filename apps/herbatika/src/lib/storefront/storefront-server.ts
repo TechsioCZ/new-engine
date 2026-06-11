@@ -1,33 +1,26 @@
-import "server-only";
+import "server-only"
 
-import type { HttpTypes } from "@medusajs/types";
-import type { QueryClient } from "@tanstack/react-query";
-import type { MedusaCatalogListInput } from "@techsio/storefront-data/catalog/medusa-service";
-import type { CatalogFacets } from "@techsio/storefront-data/catalog/types";
+import type { HttpTypes } from "@medusajs/types"
+import type { QueryClient } from "@tanstack/react-query"
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import type {
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,
-} from "@techsio/storefront-data/categories/medusa-service";
-import {
-  createMedusaStorefrontServerReadPreset,
-} from "@techsio/storefront-data/medusa/server-read";
+} from "@techsio/storefront-data/categories/medusa-service"
+import { createMedusaStorefrontServerReadPreset } from "@techsio/storefront-data/medusa/server-read"
 import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
-} from "@techsio/storefront-data/products/medusa-service";
+} from "@techsio/storefront-data/products/medusa-service"
+import { storefrontSdk } from "./sdk"
 import type {
-  MedusaRegionDetailInput,
-  MedusaRegionListInput,
-} from "@techsio/storefront-data/regions/medusa-service";
-import { storefrontSdk } from "./sdk";
-import { storefrontCoreDefinition } from "./storefront-core-definition";
-import type {
-  CategoryListParams,
   CatalogListParams,
+  CategoryListParams,
   ProductDetailParams,
   ProductListParams,
   RegionListParams,
-} from "./ssr/types";
+} from "./ssr/types"
+import { storefrontCoreDefinition } from "./storefront-core-definition"
 
 const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   HttpTypes.StoreProduct,
@@ -42,14 +35,14 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   products: {
     serviceConfig: storefrontCoreDefinition.products.serviceConfig,
     hooks: {
-      buildListParams:
-        storefrontCoreDefinition.products.hooks.buildListParams as (
-          input: MedusaProductListInput,
-        ) => ProductListParams,
-      buildDetailParams:
-        storefrontCoreDefinition.products.hooks.buildDetailParams as (
-          input: MedusaProductDetailInput,
-        ) => ProductDetailParams,
+      buildListParams: storefrontCoreDefinition.products.hooks
+        .buildListParams as (
+        input: MedusaProductListInput
+      ) => ProductListParams,
+      buildDetailParams: storefrontCoreDefinition.products.hooks
+        .buildDetailParams as (
+        input: MedusaProductDetailInput
+      ) => ProductDetailParams,
     },
     queryKeys: storefrontCoreDefinition.queryKeys.products,
   },
@@ -67,14 +60,14 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   categories: {
     serviceConfig: storefrontCoreDefinition.categories.serviceConfig,
     hooks: {
-      buildListParams:
-        storefrontCoreDefinition.categories.hooks.buildListParams as (
-          input: MedusaCategoryListInput,
-        ) => CategoryListParams,
-      buildDetailParams:
-        storefrontCoreDefinition.categories.hooks.buildDetailParams as (
-          input: MedusaCategoryDetailInput,
-        ) => MedusaCategoryDetailInput,
+      buildListParams: storefrontCoreDefinition.categories.hooks
+        .buildListParams as (
+        input: MedusaCategoryListInput
+      ) => CategoryListParams,
+      buildDetailParams: storefrontCoreDefinition.categories.hooks
+        .buildDetailParams as (
+        input: MedusaCategoryDetailInput
+      ) => MedusaCategoryDetailInput,
     },
     queryKeys: storefrontCoreDefinition.queryKeys.categories,
   },
@@ -82,52 +75,52 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
     serviceConfig: storefrontCoreDefinition.catalog.serviceConfig,
     queryKeys: storefrontCoreDefinition.queryKeys.catalog,
   },
-});
+})
 
 export const fetchServerRegions = (
   queryClient: QueryClient,
-  listParams: RegionListParams,
+  listParams: RegionListParams
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.regions.getListQueryOptions(listParams),
-  );
+    storefrontServerRead.queries.regions.getListQueryOptions(listParams)
+  )
 
 export const prefetchServerProducts = (
   queryClient: QueryClient,
-  listParams: ProductListParams,
+  listParams: ProductListParams
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.products.getListQueryOptions(listParams),
-  );
+    storefrontServerRead.queries.products.getListQueryOptions(listParams)
+  )
 
 export const fetchServerProducts = (
   queryClient: QueryClient,
-  listParams: ProductListParams,
+  listParams: ProductListParams
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.products.getListQueryOptions(listParams),
-  );
+    storefrontServerRead.queries.products.getListQueryOptions(listParams)
+  )
 
 export const fetchServerProduct = (
   queryClient: QueryClient,
-  detailParams: ProductDetailParams,
+  detailParams: ProductDetailParams
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.products.getDetailQueryOptions(detailParams),
-  );
+    storefrontServerRead.queries.products.getDetailQueryOptions(detailParams)
+  )
 
 export const fetchServerCategories = (
   queryClient: QueryClient,
-  listParams: CategoryListParams,
+  listParams: CategoryListParams
 ) =>
   queryClient.fetchQuery(
-    storefrontServerRead.queries.categories.getListQueryOptions(listParams),
-  );
+    storefrontServerRead.queries.categories.getListQueryOptions(listParams)
+  )
 
 export const prefetchServerCatalogProducts = (
   queryClient: QueryClient,
-  listParams: CatalogListParams,
+  listParams: CatalogListParams
 ) =>
   queryClient.prefetchQuery(
-    storefrontServerRead.queries.catalog.getListQueryOptions(listParams),
-  );
+    storefrontServerRead.queries.catalog.getListQueryOptions(listParams)
+  )

@@ -1,13 +1,13 @@
-import { Badge } from "@techsio/ui-kit/atoms/badge";
+import { Badge } from "@techsio/ui-kit/atoms/badge"
 
 type CategoryHeaderProps = {
-  title: string;
-  categoryFound: boolean;
-  categorySubtitle: string;
-  totalProducts: number;
-  activeAsideFilterCount: number;
-  displayedProductsCount: number;
-};
+  title: string
+  categoryFound: boolean
+  categorySubtitle: string
+  totalProducts: number
+  activeAsideFilterCount: number
+  displayedProductsCount: number
+}
 
 export function CategoryHeader({
   title,
@@ -19,7 +19,7 @@ export function CategoryHeader({
 }: CategoryHeaderProps) {
   return (
     <header className="space-y-200">
-      <h1 className="text-2xl font-semibold">{title}</h1>
+      <h1 className="font-semibold text-2xl">{title}</h1>
       <div className="flex flex-wrap gap-200">
         <Badge variant={categoryFound ? "success" : "warning"}>
           {categoryFound ? "kategória nájdená" : "kategória nenájdená"}
@@ -31,5 +31,5 @@ export function CategoryHeader({
         )}
       </div>
     </header>
-  );
+  )
 }

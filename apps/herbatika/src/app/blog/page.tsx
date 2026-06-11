@@ -1,58 +1,58 @@
-import { connection } from "next/server";
-import { Suspense } from "react";
-import { BlogListingPage } from "@/components/blog/blog-listing-page";
+import { connection } from "next/server"
+import { Suspense } from "react"
+import { BlogListingPage } from "@/components/blog/blog-listing-page"
 import {
   type BlogTopicKey,
   resolveBlogListing,
-} from "@/lib/storefront/blog-content";
-import { fetchCmsBlogPosts } from "@/lib/storefront/cms";
+} from "@/lib/storefront/blog-content"
+import { fetchCmsBlogPosts } from "@/lib/storefront/cms"
 
 type BlogPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
 
 const parseTopic = (value: string | undefined): BlogTopicKey => {
   if (value === "fitness" || value === "krasa" || value === "zdravie") {
-    return value;
+    return value
   }
 
-  return "all";
-};
+  return "all"
+}
 
 const parsePage = (value: string | undefined) => {
   if (!value) {
-    return 1;
+    return 1
   }
 
-  const parsed = Number.parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return 1;
+    return 1
   }
 
-  return parsed;
-};
+  return parsed
+}
 
 function BlogPageFallback() {
-  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />;
+  return <main className="mx-auto min-h-dvh w-full max-w-max-w" />
 }
 
 async function BlogPageContent({ searchParams }: BlogPageProps) {
-  await connection();
-  const resolvedSearchParams = await searchParams;
-  const rawTopic = resolvedSearchParams.topic;
-  const rawPage = resolvedSearchParams.page;
+  await connection()
+  const resolvedSearchParams = await searchParams
+  const rawTopic = resolvedSearchParams.topic
+  const rawPage = resolvedSearchParams.page
 
-  const topic = parseTopic(Array.isArray(rawTopic) ? rawTopic[0] : rawTopic);
-  const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage);
-  const cmsPosts = await fetchCmsBlogPosts();
+  const topic = parseTopic(Array.isArray(rawTopic) ? rawTopic[0] : rawTopic)
+  const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage)
+  const cmsPosts = await fetchCmsBlogPosts()
 
   const listing = resolveBlogListing({
     page,
     posts: cmsPosts.length > 0 ? cmsPosts : undefined,
     topic,
-  });
+  })
 
-  return <BlogListingPage listing={listing} />;
+  return <BlogListingPage listing={listing} />
 }
 
 export default function BlogPageRoute(props: BlogPageProps) {
@@ -60,5 +60,5 @@ export default function BlogPageRoute(props: BlogPageProps) {
     <Suspense fallback={<BlogPageFallback />}>
       <BlogPageContent {...props} />
     </Suspense>
-  );
+  )
 }

@@ -86,7 +86,7 @@ function getOrderIdFromEventData(data: PaymentPaidEvent): string | undefined {
     return data.id
   }
 
-  return undefined
+  return
 }
 
 function getPaymentCollectionIdFromEventData(
@@ -109,7 +109,7 @@ function getPaymentCollectionIdFromEventData(
     return data.id
   }
 
-  return undefined
+  return
 }
 
 function getPaymentIdFromEventData(data: PaymentPaidEvent): string | undefined {
@@ -130,7 +130,7 @@ function getPaymentIdFromEventData(data: PaymentPaidEvent): string | undefined {
     return data.id
   }
 
-  return undefined
+  return
 }
 
 async function getOrderIdFromPaymentCollection(
@@ -142,8 +142,8 @@ async function getOrderIdFromPaymentCollection(
     fields: ["order.id", "order_id", "payment_collection_id"],
     filters: { payment_collection_id: paymentCollectionId },
   })
-  if (!Array.isArray(data) || !isOrderPaymentCollectionQueryResult(data[0])) {
-    return undefined
+  if (!(Array.isArray(data) && isOrderPaymentCollectionQueryResult(data[0]))) {
+    return
   }
 
   const link = data[0]
@@ -157,14 +157,14 @@ async function getOrderIdFromPayment(query: Query, paymentId: string) {
     fields: ["id", "payment_collection_id"],
     filters: { id: paymentId },
   })
-  if (!Array.isArray(data) || !isPaymentQueryResult(data[0])) {
-    return undefined
+  if (!(Array.isArray(data) && isPaymentQueryResult(data[0]))) {
+    return
   }
 
   const paymentCollectionId = data[0].payment_collection_id
 
   if (!paymentCollectionId) {
-    return undefined
+    return
   }
 
   return getOrderIdFromPaymentCollection(query, paymentCollectionId)
@@ -200,5 +200,5 @@ export async function resolveOrderIdFromPaymentEvent(
     return getOrderIdFromPayment(query, paymentId)
   }
 
-  return undefined
+  return
 }

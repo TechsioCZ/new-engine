@@ -10,8 +10,8 @@ import type {
 import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createSimpleListDetailHooks } from "../shared/simple-list-detail-hooks"
-import { createCategoryQueryOptionsFactory } from "./query-options"
 import { createCategoryQueryKeys } from "./query-keys"
+import { createCategoryQueryOptionsFactory } from "./query-options"
 import type {
   CategoryDetailInputBase,
   CategoryListInputBase,

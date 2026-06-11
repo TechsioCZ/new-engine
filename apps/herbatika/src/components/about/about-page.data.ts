@@ -1,50 +1,50 @@
-import type { StaticImageData } from "next/image";
-import aboutStoreImage from "@/assets/about/1.avif";
-import aboutTeamImage from "@/assets/about/2.avif";
-import aboutProductsImage from "@/assets/about/3.avif";
+import type { StaticImageData } from "next/image"
+import aboutStoreImage from "@/assets/about/1.avif"
+import aboutTeamImage from "@/assets/about/2.avif"
+import aboutProductsImage from "@/assets/about/3.avif"
 
 export type AboutTextLink = {
-  href: string;
-  label: string;
-};
+  href: string
+  label: string
+}
 
-export type AboutTextPart = AboutTextLink | string;
-export type AboutParagraph = readonly AboutTextPart[] | string;
+export type AboutTextPart = AboutTextLink | string
+export type AboutParagraph = readonly AboutTextPart[] | string
 
 export type AboutImage = {
-  alt: string;
-  caption?: string;
-  src: StaticImageData;
-};
+  alt: string
+  caption?: string
+  src: StaticImageData
+}
 
 type AboutArticleSection = {
-  image?: AboutImage;
-  paragraphs: readonly AboutParagraph[];
-  title: string;
-};
+  image?: AboutImage
+  paragraphs: readonly AboutParagraph[]
+  title: string
+}
 
 type AboutMilestone = {
-  description: AboutParagraph;
-  year: string;
-};
+  description: AboutParagraph
+  year: string
+}
 
 type AboutPrinciple = {
-  description: string;
-  title: string;
-};
+  description: string
+  title: string
+}
 
 type AboutSocialLink = AboutTextLink & {
-  icon: string;
-};
+  icon: string
+}
 
 type AboutTextBlock = {
-  paragraphs: readonly AboutParagraph[];
-};
+  paragraphs: readonly AboutParagraph[]
+}
 
 const link = (label: string, href: string): AboutTextLink => ({
   href,
   label,
-});
+})
 
 export const ABOUT_PAGE = {
   hero: {
@@ -110,7 +110,7 @@ export const ABOUT_PAGE = {
           "Kvalita je pre nás prvoradá. Máme vysoké nároky nielen na kvalitu, ale aj štandardy, v súlade s ktorými pracujeme na vývoji našich produktov. Pre udržanie najvyššej možnej odbornosti v Herbatica spolupracujeme so širokou sieťou ",
           link(
             "výrobcov, konzultantov, výživových poradcov, fyzioterapeutov a ďalších odborníkov",
-            "/odborne-poradenstvo-a-diagnostika/",
+            "/odborne-poradenstvo-a-diagnostika/"
           ),
           ". Spolu títo odborníci tvoria silnú základňu, na ktorú sa vieme vždy spoľahnúť, či už v otázkach zloženia produktov, kombinácie jednotlivých ",
           link("účinných látok", "/aktivnelatky/"),
@@ -163,7 +163,10 @@ export const ABOUT_PAGE = {
         ],
         [
           "Budúcnosť vidíme najmä v osobnom kontakte. So snahou byť k vám ešte bližšie a ponúknuť vám viac, plánujeme otvoriť ďalšie predajne, kde vám radi poskytneme ",
-          link("odborné poradenstvo a diagnostiku", "/odborne-poradenstvo-a-diagnostika/"),
+          link(
+            "odborné poradenstvo a diagnostiku",
+            "/odborne-poradenstvo-a-diagnostika/"
+          ),
           ". Tieto priestory chceme vybaviť modernými diagnostickými nástrojmi, ako je napríklad biorezonancia, ktoré umožňujú komplexné hodnotenie vášho zdravotného stavu.",
         ],
         [
@@ -203,15 +206,24 @@ export const ABOUT_PAGE = {
     },
     {
       year: "2018",
-      description: "Otvorenie samostatnej predajne v Piešťanoch s rozlohou 100 m².",
+      description:
+        "Otvorenie samostatnej predajne v Piešťanoch s rozlohou 100 m².",
     },
     {
       year: "2018",
-      description: ["Vstup na ", link("maďarský trh", "https://www.herbatica.hu"), "."],
+      description: [
+        "Vstup na ",
+        link("maďarský trh", "https://www.herbatica.hu"),
+        ".",
+      ],
     },
     {
       year: "2022",
-      description: ["Spustenie ", link("predaja v Rumunsku", "https://www.herbatica.ro"), "."],
+      description: [
+        "Spustenie ",
+        link("predaja v Rumunsku", "https://www.herbatica.ro"),
+        ".",
+      ],
     },
     {
       year: "2024",
@@ -320,4 +332,4 @@ export const ABOUT_PAGE = {
       "Sme platci DPH.",
     ],
   },
-} as const;
+} as const

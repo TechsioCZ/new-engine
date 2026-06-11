@@ -1,34 +1,35 @@
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import {
   resolvePaymentDescription,
   resolvePaymentHint,
   resolvePaymentIcon,
   resolveProviderLabel,
-} from "@/components/checkout/checkout-display.utils";
-import { SupportingText } from "@/components/text/supporting-text";
-import { CheckoutOptionRadioCard } from "./checkout-option-radio-card";
+} from "@/components/checkout/checkout-display.utils"
+import { SupportingText } from "@/components/text/supporting-text"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
 type PaymentProvider = {
-  id?: string | null;
-};
+  id?: string | null
+}
 
 type CheckoutPaymentSectionProps = {
-  canInitiatePayment: boolean;
-  isBusy: boolean;
-  isInitiatingPayment: boolean;
-  onSelectPaymentProvider: (providerId: string) => Promise<void>;
-  paymentProviders: PaymentProvider[];
-  selectedPaymentProviderId?: string | null;
-  selectionMessage?: string | null;
-};
+  canInitiatePayment: boolean
+  isBusy: boolean
+  isInitiatingPayment: boolean
+  onSelectPaymentProvider: (providerId: string) => Promise<void> | void
+  paymentProviders: PaymentProvider[]
+  selectedPaymentProviderId?: string | null
+  selectionMessage?: string | null
+}
 
 const resolveProviderId = (provider: PaymentProvider) => {
   if (typeof provider.id === "string") {
-    return provider.id;
+    return provider.id
   }
 
-  return "";
-};
+  return ""
+}
 
 export function CheckoutPaymentSection({
   canInitiatePayment,
@@ -42,21 +43,21 @@ export function CheckoutPaymentSection({
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header>
-        <h2 className="text-xl font-medium text-fg-primary">Platba</h2>
+        <h2 className="font-medium text-fg-primary text-xl">Platba</h2>
       </header>
       <div className="grid gap-150">
         {paymentProviders.length > 0 ? (
           <CheckoutOptionRadioCard
             label="Platba"
             onValueChange={(value) => {
-              void onSelectPaymentProvider(value);
+              runDetachedPromise(onSelectPaymentProvider(value))
             }}
             options={paymentProviders.map((provider, index) => {
-              const providerId = resolveProviderId(provider);
-              const providerLabel = resolveProviderLabel(providerId);
+              const providerId = resolveProviderId(provider)
+              const providerLabel = resolveProviderLabel(providerId)
               const isProviderSelectable = Boolean(
-                providerId && canInitiatePayment,
-              );
+                providerId && canInitiatePayment
+              )
 
               return {
                 disabled:
@@ -68,7 +69,7 @@ export function CheckoutPaymentSection({
                 priceTone: "success" as const,
                 title: providerLabel,
                 value: providerId || `${providerLabel}-${index}`,
-              };
+              }
             })}
             value={selectedPaymentProviderId ?? null}
           />
@@ -82,7 +83,7 @@ export function CheckoutPaymentSection({
         ) : null}
       </div>
     </section>
-  );
+  )
 }
 
 function PaymentSelectionMessage({ message }: { message: string }) {
@@ -96,5 +97,5 @@ function PaymentSelectionMessage({ message }: { message: string }) {
     >
       {message}
     </StatusText>
-  );
+  )
 }

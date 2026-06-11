@@ -1,17 +1,17 @@
-import NextLink from "next/link";
-import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb";
+import NextLink from "next/link"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import {
   createBrandHref,
   groupStorefrontBrands,
   type StorefrontBrand,
-} from "@/lib/storefront/brands";
+} from "@/lib/storefront/brands"
 
 type BrandIndexPageProps = {
-  brands: StorefrontBrand[];
-};
+  brands: StorefrontBrand[]
+}
 
 export function BrandIndexPage({ brands }: BrandIndexPageProps) {
-  const brandGroups = groupStorefrontBrands(brands);
+  const brandGroups = groupStorefrontBrands(brands)
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-index-page-gap p-brand-index-page font-rubik 2xl:p-brand-index-page-lg">
@@ -23,7 +23,7 @@ export function BrandIndexPage({ brands }: BrandIndexPageProps) {
       />
 
       <section>
-        <h1 className="text-4xl font-bold leading-snug text-fg-primary">
+        <h1 className="font-bold text-4xl text-fg-primary leading-snug">
           Všetky značky A-Z
         </h1>
       </section>
@@ -40,7 +40,7 @@ export function BrandIndexPage({ brands }: BrandIndexPageProps) {
               key={group.letter}
             >
               <h2
-                className="col-span-2 text-2xl font-bold leading-snug text-fg-primary sm:col-span-1"
+                className="col-span-2 font-bold text-2xl text-fg-primary leading-snug sm:col-span-1"
                 id={`brand-group-${group.letter}`}
               >
                 {group.letter}
@@ -50,7 +50,7 @@ export function BrandIndexPage({ brands }: BrandIndexPageProps) {
                 {group.brands.map((brand) => (
                   <li className="min-w-0" key={brand.id}>
                     <NextLink
-                      className="inline-flex max-w-full text-base font-medium uppercase leading-snug text-primary hover:text-primary-strong hover:underline"
+                      className="inline-flex max-w-full font-medium text-base text-primary uppercase leading-snug hover:text-primary-strong hover:underline"
                       href={createBrandHref(brand)}
                     >
                       <span className="break-words">{brand.title}</span>
@@ -63,5 +63,5 @@ export function BrandIndexPage({ brands }: BrandIndexPageProps) {
         </div>
       </section>
     </main>
-  );
+  )
 }

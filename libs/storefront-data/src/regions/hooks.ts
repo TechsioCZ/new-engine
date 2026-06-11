@@ -10,8 +10,8 @@ import type {
 import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createSimpleListDetailHooks } from "../shared/simple-list-detail-hooks"
-import { createRegionQueryOptionsFactory } from "./query-options"
 import { createRegionQueryKeys } from "./query-keys"
+import { createRegionQueryOptionsFactory } from "./query-options"
 import type {
   RegionDetailInputBase,
   RegionListInputBase,

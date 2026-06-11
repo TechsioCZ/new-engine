@@ -1,11 +1,11 @@
-"use client";
-import { Button } from "@techsio/ui-kit/atoms/button";
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Footer } from "@techsio/ui-kit/organisms/footer";
-import NextLink from "next/link";
-import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges";
-import { HerbatikaLogo } from "./herbatika-logo";
+"use client"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Footer } from "@techsio/ui-kit/organisms/footer"
+import NextLink from "next/link"
+import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import { HerbatikaLogo } from "./herbatika-logo"
 
 const FOOTER_COLUMNS = [
   {
@@ -41,7 +41,7 @@ const FOOTER_COLUMNS = [
       { href: "/#private-label", label: "Private label" },
     ],
   },
-] as const;
+] as const
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   {
@@ -69,14 +69,14 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
     icon: "token-icon-tiktok",
     label: "TikTok",
   },
-];
+]
 
 const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "SK", icon: "token-icon-sk", active: true },
   { code: "CZ", icon: "token-icon-cz" },
   { code: "HU", icon: "token-icon-hu" },
   { code: "RO", icon: "token-icon-ro" },
-];
+]
 export function HerbatikaFooter() {
   return (
     <Footer direction="vertical">
@@ -111,13 +111,13 @@ export function HerbatikaFooter() {
               icon="token-icon-email"
               size="lg"
             />
-            <span className="hover:underline font-bold">ahoj@herbatica.sk</span>
+            <span className="font-bold hover:underline">ahoj@herbatica.sk</span>
           </Footer.Link>
         </Footer.Section>
 
         {FOOTER_COLUMNS.map((column) => (
-          <Footer.Section key={column.title} className="px-500">
-            <Footer.Title className="leading-relaxed uppercase">
+          <Footer.Section className="px-500" key={column.title}>
+            <Footer.Title className="uppercase leading-relaxed">
               {column.title}
             </Footer.Title>
             <Footer.List>
@@ -175,6 +175,7 @@ export function HerbatikaFooter() {
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
           {FOOTER_LOCALES.map((locale) => (
             <Button
+              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
               icon={locale.icon}
               iconSize="md"
               key={locale.code}
@@ -182,7 +183,6 @@ export function HerbatikaFooter() {
               theme={locale.active ? "light" : "borderless"}
               type="button"
               variant={locale.active ? "primary" : "primary"}
-              className={`${!locale.active && "bg-base"} font-bold [&_span]:saturate-[1.7] [&_span]:brightness-100`}
             >
               {locale.code}
             </Button>
@@ -190,5 +190,5 @@ export function HerbatikaFooter() {
         </div>
       </Footer.Bottom>
     </Footer>
-  );
+  )
 }

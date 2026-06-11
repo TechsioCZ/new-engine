@@ -1,73 +1,72 @@
-import type { HttpTypes } from "@medusajs/types";
+import type { HttpTypes } from "@medusajs/types"
 
 export const collectDescendantCategoryIds = (
   categories: HttpTypes.StoreProductCategory[],
-  rootCategoryId: string,
+  rootCategoryId: string
 ): string[] => {
-  const childrenByParentId = new Map<string, string[]>();
+  const childrenByParentId = new Map<string, string[]>()
 
   for (const category of categories) {
     if (!category.parent_category_id) {
-      continue;
+      continue
     }
 
-    const siblings = childrenByParentId.get(category.parent_category_id) ?? [];
-    siblings.push(category.id);
-    childrenByParentId.set(category.parent_category_id, siblings);
+    const siblings = childrenByParentId.get(category.parent_category_id) ?? []
+    siblings.push(category.id)
+    childrenByParentId.set(category.parent_category_id, siblings)
   }
 
-  const stack: string[] = [rootCategoryId];
-  const visited = new Set<string>([rootCategoryId]);
-  const descendants: string[] = [];
+  const stack: string[] = [rootCategoryId]
+  const visited = new Set<string>([rootCategoryId])
+  const descendants: string[] = []
 
   while (stack.length > 0) {
-    const currentId = stack.pop();
+    const currentId = stack.pop()
     if (!currentId) {
-      continue;
+      continue
     }
 
-    const childIds = childrenByParentId.get(currentId) ?? [];
+    const childIds = childrenByParentId.get(currentId) ?? []
     for (const childId of childIds) {
       if (visited.has(childId)) {
-        continue;
+        continue
       }
 
-      visited.add(childId);
-      descendants.push(childId);
-      stack.push(childId);
+      visited.add(childId)
+      descendants.push(childId)
+      stack.push(childId)
     }
   }
 
-  return descendants;
-};
+  return descendants
+}
 
 export const resolveRelatedCategoryIds = (
-  product: HttpTypes.StoreProduct | null,
+  product: HttpTypes.StoreProduct | null
 ): string[] => {
-  const productCategories = product?.categories ?? [];
+  const productCategories = product?.categories ?? []
   if (productCategories.length === 0) {
-    return [];
+    return []
   }
 
-  const parentCategoryIds = new Set<string>();
-  const allCategoryIds = new Set<string>();
+  const parentCategoryIds = new Set<string>()
+  const allCategoryIds = new Set<string>()
 
   for (const category of productCategories) {
     if (category.id) {
-      allCategoryIds.add(category.id);
+      allCategoryIds.add(category.id)
     }
 
     if (category.parent_category_id) {
-      parentCategoryIds.add(category.parent_category_id);
+      parentCategoryIds.add(category.parent_category_id)
     }
   }
 
   const leafCategoryIds = Array.from(allCategoryIds).filter(
-    (categoryId) => !parentCategoryIds.has(categoryId),
-  );
+    (categoryId) => !parentCategoryIds.has(categoryId)
+  )
 
-  return (leafCategoryIds.length > 0 ? leafCategoryIds : Array.from(allCategoryIds)).slice(
-    0,
-    3,
-  );
-};
+  return (
+    leafCategoryIds.length > 0 ? leafCategoryIds : Array.from(allCategoryIds)
+  ).slice(0, 3)
+}

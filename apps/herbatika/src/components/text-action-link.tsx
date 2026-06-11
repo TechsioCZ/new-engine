@@ -1,9 +1,9 @@
-import NextLink from "next/link";
+import NextLink from "next/link"
 
 type TextActionLinkProps = {
-  href: string;
-  text?: string;
-};
+  href: string
+  text?: string
+}
 
 export function TextActionLink({
   href,
@@ -11,10 +11,10 @@ export function TextActionLink({
 }: TextActionLinkProps) {
   return (
     <NextLink
-      className="shrink-0 font-verdana text-support leading-snug text-fg-strong underline decoration-1 underline-offset-2 hover:text-primary"
+      className="shrink-0 font-verdana text-fg-strong text-support leading-snug underline decoration-1 underline-offset-2 hover:text-primary"
       href={href}
     >
       {text}
     </NextLink>
-  );
+  )
 }

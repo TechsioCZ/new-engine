@@ -1,6 +1,4 @@
-import type {
-  StorefrontCustomerAddressAdapter,
-} from "../shared/address"
+import type { StorefrontCustomerAddressAdapter } from "../shared/address"
 import type {
   QueryResult,
   ReadResultBase,

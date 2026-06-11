@@ -1,6 +1,7 @@
 import type { Query } from "@medusajs/framework"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 import { MEILISEARCH, PRODUCERS } from "../"
 
 export type SyncMeilisearchProducersStepInput = {
@@ -10,6 +11,12 @@ export type SyncMeilisearchProducersStepInput = {
 export const syncMeilisearchProducersStep = createStep(
   "sync-meilisearch-producers-step",
   async ({ filters }: SyncMeilisearchProducersStepInput, { container }) => {
+    if (!isMeilisearchEnabled()) {
+      return new StepResponse({
+        producers: [],
+      })
+    }
+
     const queryService = container.resolve<Query>("query")
     const meilisearchService: MeiliSearchService =
       container.resolve(MEILISEARCH)

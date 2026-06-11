@@ -1,20 +1,17 @@
-import NextImage from "next/image";
-import { StaticImageData } from "next/image";
+import NextImage, { type StaticImageData } from "next/image"
 
 type BenefitItem = {
-  id: number;
-  text: string;
-  description: string;
-  image: StaticImageData;
-};
+  id: number
+  text: string
+  description: string
+  image: StaticImageData
+}
 
 type BenefitsSectionProps = {
-  benefits: BenefitItem[];
-};
+  benefits: BenefitItem[]
+}
 
-export function BenefitsSection({
-  benefits,
-}: BenefitsSectionProps) {
+export function BenefitsSection({ benefits }: BenefitsSectionProps) {
   return (
     <section className="rounded-lg bg-highlight-secondary px-450 py-350 font-verdana">
       <div className="grid gap-350 md:grid-cols-2 xl:grid-cols-4">
@@ -24,15 +21,20 @@ export function BenefitsSection({
             key={benefit.id}
           >
             <span className="flex h-850 w-850 shrink-0 items-center justify-center rounded-full">
-              <NextImage src={benefit.image} alt={benefit.text} width={76} height={76} />
+              <NextImage
+                alt={benefit.text}
+                height={76}
+                src={benefit.image}
+                width={76}
+              />
             </span>
 
-            <p className="max-w-950 text-support leading-snug font-bold text-fg-primary">
+            <p className="max-w-950 font-bold text-fg-primary text-support leading-snug">
               {benefit.text}
             </p>
           </article>
         ))}
       </div>
     </section>
-  );
+  )
 }

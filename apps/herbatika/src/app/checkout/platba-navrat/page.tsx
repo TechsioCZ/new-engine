@@ -1,8 +1,8 @@
-import { Suspense } from "react";
-import { CheckoutPaymentReturnPanel } from "@/components/checkout/checkout-payment-return-panel";
+import { Suspense } from "react"
+import { CheckoutPaymentReturnPanel } from "@/components/checkout/checkout-payment-return-panel"
 
 function CheckoutPaymentReturnFallback() {
-  return <div className="mx-auto min-h-dvh w-full max-w-max-w" />;
+  return <div className="mx-auto min-h-dvh w-full max-w-max-w" />
 }
 
 export default function CheckoutPaymentReturnPage() {
@@ -12,5 +12,5 @@ export default function CheckoutPaymentReturnPage() {
         <CheckoutPaymentReturnPanel />
       </Suspense>
     </main>
-  );
+  )
 }

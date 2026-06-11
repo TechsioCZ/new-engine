@@ -3,7 +3,9 @@
 
   --color-accordion-bg: transparent;
   --color-accordion-title-bg: var(--color-primary);
-  --color-accordion-bg-hover: oklch(from var(--color-accordion-title-bg) calc(l - 0.05) c h);
+  --color-accordion-bg-hover: oklch(
+    from var(--color-accordion-title-bg) calc(l - 0.05) c h
+  );
   --color-accordion-title-bg-hover: var(--color-accordion-bg-hover);
   --color-accordion-title-fg: var(--color-fg-reverse);
   --color-accordion-content-bg: var(--color-accordion-bg-hover);
@@ -30,8 +32,7 @@
   display: grid;
   grid-template-rows: 1fr;
   overflow: hidden;
-  border-block-start: var(--border-width-sm) solid
-    var(--color-border-secondary);
+  border-block-start: var(--border-width-sm) solid var(--color-border-secondary);
   padding-block: 0;
   padding-inline: var(--spacing-450);
   transition:

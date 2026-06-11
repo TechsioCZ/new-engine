@@ -1,134 +1,133 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Slider } from "@techsio/ui-kit/molecules/slider";
-import { useEffect, useMemo, useState } from "react";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Slider } from "@techsio/ui-kit/molecules/slider"
+import { useEffect, useMemo, useState } from "react"
 import {
   type AsideFilterChipItem,
   AsideFilterChipSection,
-} from "@/components/aside-filter-chip-section";
-import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format";
+} from "@/components/aside-filter-chip-section"
+import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format"
 
 type AsideFilterPriceBounds = {
-  min: number;
-  max: number;
-};
+  min: number
+  max: number
+}
 
 type AsideFilterPriceRange = {
-  min?: number;
-  max?: number;
-};
+  min?: number
+  max?: number
+}
 
 const clampNumber = (value: number, min: number, max: number) => {
   if (!Number.isFinite(value)) {
-    return min;
+    return min
   }
 
-  return Math.max(min, Math.min(max, value));
-};
+  return Math.max(min, Math.min(max, value))
+}
 
 const toSafeBounds = (
-  bounds: AsideFilterPriceBounds | null,
+  bounds: AsideFilterPriceBounds | null
 ): AsideFilterPriceBounds | null => {
   if (!bounds) {
-    return null;
+    return null
   }
 
-  const min = Number.isFinite(bounds.min) ? bounds.min : 0;
-  const maxCandidate = Number.isFinite(bounds.max) ? bounds.max : min + 1;
-  const max = maxCandidate > min ? maxCandidate : min + 1;
+  const min = Number.isFinite(bounds.min) ? bounds.min : 0
+  const maxCandidate = Number.isFinite(bounds.max) ? bounds.max : min + 1
+  const max = maxCandidate > min ? maxCandidate : min + 1
 
   return {
     min: Math.floor(min),
     max: Math.ceil(max),
-  };
-};
+  }
+}
 
 const resolveRangeFromSelection = (
   selectedRange: AsideFilterPriceRange,
-  bounds: AsideFilterPriceBounds,
+  bounds: AsideFilterPriceBounds
 ): [number, number] => {
   const selectedMin =
     typeof selectedRange.min === "number"
       ? clampNumber(selectedRange.min, bounds.min, bounds.max)
-      : bounds.min;
+      : bounds.min
   const selectedMax =
     typeof selectedRange.max === "number"
       ? clampNumber(selectedRange.max, bounds.min, bounds.max)
-      : bounds.max;
+      : bounds.max
 
   if (selectedMin <= selectedMax) {
-    return [selectedMin, selectedMax];
+    return [selectedMin, selectedMax]
   }
 
-  return [selectedMax, selectedMin];
-};
+  return [selectedMax, selectedMin]
+}
 
 const resolveRangeWithinBounds = (
   range: [number, number],
-  bounds: AsideFilterPriceBounds,
-): [number, number] => {
-  return resolveRangeFromSelection(
+  bounds: AsideFilterPriceBounds
+): [number, number] =>
+  resolveRangeFromSelection(
     {
       min: range[0],
       max: range[1],
     },
-    bounds,
-  );
-};
+    bounds
+  )
 
 const resolveBoundsForRender = (
   currentBounds: AsideFilterPriceBounds,
   incomingBounds: AsideFilterPriceBounds | null,
-  hasActivePriceFilter: boolean,
+  hasActivePriceFilter: boolean
 ): AsideFilterPriceBounds => {
   if (!incomingBounds) {
-    return currentBounds;
+    return currentBounds
   }
 
   if (!hasActivePriceFilter) {
-    return incomingBounds;
+    return incomingBounds
   }
 
   return {
     min: Math.min(currentBounds.min, incomingBounds.min),
     max: Math.max(currentBounds.max, incomingBounds.max),
-  };
-};
+  }
+}
 
 const normalizeCommittedRange = (
   nextRange: [number, number],
-  bounds: AsideFilterPriceBounds,
+  bounds: AsideFilterPriceBounds
 ): AsideFilterPriceRange => {
-  const rangeMin = clampNumber(nextRange[0], bounds.min, bounds.max);
-  const rangeMax = clampNumber(nextRange[1], bounds.min, bounds.max);
-  const normalizedMin = rangeMin <= bounds.min ? undefined : rangeMin;
-  const normalizedMax = rangeMax >= bounds.max ? undefined : rangeMax;
+  const rangeMin = clampNumber(nextRange[0], bounds.min, bounds.max)
+  const rangeMax = clampNumber(nextRange[1], bounds.min, bounds.max)
+  const normalizedMin = rangeMin <= bounds.min ? undefined : rangeMin
+  const normalizedMax = rangeMax >= bounds.max ? undefined : rangeMax
 
   return {
     min: normalizedMin,
     max: normalizedMax,
-  };
-};
+  }
+}
 
 type AsideFilterProps = {
-  priceBounds: AsideFilterPriceBounds | null;
-  selectedPriceRange: AsideFilterPriceRange;
-  currencyCode: string;
-  statusItems: AsideFilterChipItem[];
-  formItems: AsideFilterChipItem[];
-  brandItems: AsideFilterChipItem[];
-  ingredientItems: AsideFilterChipItem[];
-  onStatusToggle: (itemId: string) => void;
-  onFormToggle: (itemId: string) => void;
-  onBrandToggle: (itemId: string) => void;
-  onIngredientToggle: (itemId: string) => void;
-  onPriceRangeCommit: (range: AsideFilterPriceRange) => void;
-  activeFilterCount: number;
-  isLoading?: boolean;
-  onReset: () => void;
-  showBrandFilter?: boolean;
-};
+  priceBounds: AsideFilterPriceBounds | null
+  selectedPriceRange: AsideFilterPriceRange
+  currencyCode: string
+  statusItems: AsideFilterChipItem[]
+  formItems: AsideFilterChipItem[]
+  brandItems: AsideFilterChipItem[]
+  ingredientItems: AsideFilterChipItem[]
+  onStatusToggle: (itemId: string) => void
+  onFormToggle: (itemId: string) => void
+  onBrandToggle: (itemId: string) => void
+  onIngredientToggle: (itemId: string) => void
+  onPriceRangeCommit: (range: AsideFilterPriceRange) => void
+  activeFilterCount: number
+  isLoading?: boolean
+  onReset: () => void
+  showBrandFilter?: boolean
+}
 
 export function AsideFilter({
   priceBounds,
@@ -150,51 +149,51 @@ export function AsideFilter({
 }: AsideFilterProps) {
   const incomingPriceBounds = useMemo(
     () => toSafeBounds(priceBounds),
-    [priceBounds],
-  );
+    [priceBounds]
+  )
   const hasActivePriceFilter =
     typeof selectedPriceRange.min === "number" ||
-    typeof selectedPriceRange.max === "number";
+    typeof selectedPriceRange.max === "number"
   const [priceBoundsForRender, setPriceBoundsForRender] =
     useState<AsideFilterPriceBounds>(
       incomingPriceBounds ?? {
         min: 0,
         max: 1,
-      },
-    );
+      }
+    )
 
   useEffect(() => {
     setPriceBoundsForRender((currentBounds) =>
       resolveBoundsForRender(
         currentBounds,
         incomingPriceBounds,
-        hasActivePriceFilter,
-      ),
-    );
-  }, [hasActivePriceFilter, incomingPriceBounds]);
+        hasActivePriceFilter
+      )
+    )
+  }, [hasActivePriceFilter, incomingPriceBounds])
 
   const selectedRange = useMemo(
     () => resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
-    [priceBoundsForRender, selectedPriceRange],
-  );
+    [priceBoundsForRender, selectedPriceRange]
+  )
 
   const [sliderRange, setSliderRange] =
-    useState<[number, number]>(selectedRange);
+    useState<[number, number]>(selectedRange)
   const sliderRangeForRender = useMemo(
     () => resolveRangeWithinBounds(sliderRange, priceBoundsForRender),
-    [priceBoundsForRender, sliderRange],
-  );
+    [priceBoundsForRender, sliderRange]
+  )
 
   useEffect(() => {
-    setSliderRange(selectedRange);
-  }, [selectedRange]);
+    setSliderRange(selectedRange)
+  }, [selectedRange])
 
   return (
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
-      <div className="scrollbar-primary space-y-400 p-400 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:overflow-y-auto xl:overscroll-contain xl:space-y-500 xl:p-500">
+      <div className="scrollbar-primary space-y-400 p-400 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:space-y-500 xl:overflow-y-auto xl:overscroll-contain xl:p-500">
         <section className="space-y-300">
-          <h2 className="text-2xl font-bold uppercase leading-none">Cena</h2>
-          <div className="flex items-center justify-between text-lg font-medium text-fg-secondary">
+          <h2 className="font-bold text-2xl uppercase leading-none">Cena</h2>
+          <div className="flex items-center justify-between font-medium text-fg-secondary text-lg">
             <span>
               {formatWholeCurrencyAmount(sliderRangeForRender[0], currencyCode)}
             </span>
@@ -209,28 +208,28 @@ export function AsideFilter({
             minStepsBetweenThumbs={0}
             onChange={(values) => {
               if (values[0] === undefined || values[1] === undefined) {
-                return;
+                return
               }
 
               setSliderRange(
                 resolveRangeWithinBounds(
                   [Math.round(values[0]), Math.round(values[1])],
-                  priceBoundsForRender,
-                ),
-              );
+                  priceBoundsForRender
+                )
+              )
             }}
             onChangeEnd={(values) => {
               if (values[0] === undefined || values[1] === undefined) {
-                return;
+                return
               }
 
               const nextRange = resolveRangeWithinBounds(
                 [Math.round(values[0]), Math.round(values[1])],
-                priceBoundsForRender,
-              );
+                priceBoundsForRender
+              )
               onPriceRangeCommit(
-                normalizeCommittedRange(nextRange, priceBoundsForRender),
-              );
+                normalizeCommittedRange(nextRange, priceBoundsForRender)
+              )
             }}
             size="sm"
             step={1}
@@ -293,8 +292,7 @@ export function AsideFilter({
         </div>
       </div>
     </aside>
-  );
+  )
 }
 
-export type { AsideFilterChipItem };
-export type { AsideFilterPriceBounds, AsideFilterPriceRange };
+export type { AsideFilterPriceBounds, AsideFilterPriceRange }

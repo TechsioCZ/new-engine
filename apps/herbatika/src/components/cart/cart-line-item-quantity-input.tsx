@@ -1,21 +1,21 @@
-"use client";
+"use client"
 
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 type CartLineItemQuantityInputProps = {
-  className?: string;
-  controlClassName?: string;
-  inputClassName?: string;
-  isPending: boolean;
-  itemName: string;
-  lineItemId: string;
-  maxQuantity: number;
-  onRemove: (lineItemId: string) => void;
-  onUpdateQuantity: (lineItemId: string, quantity: number) => void;
-  quantity: number;
-  size?: "sm" | "md" | "lg";
-};
+  className?: string
+  controlClassName?: string
+  inputClassName?: string
+  isPending: boolean
+  itemName: string
+  lineItemId: string
+  maxQuantity: number
+  onRemove: (lineItemId: string) => void
+  onUpdateQuantity: (lineItemId: string, quantity: number) => void
+  quantity: number
+  size?: "sm" | "md" | "lg"
+}
 
 export function CartLineItemQuantityInput({
   className,
@@ -30,55 +30,53 @@ export function CartLineItemQuantityInput({
   quantity,
   size = "md",
 }: CartLineItemQuantityInputProps) {
-  const [localQuantity, setLocalQuantity] = useState(quantity);
-  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [localQuantity, setLocalQuantity] = useState(quantity)
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clearPendingUpdate = useCallback(() => {
     if (updateTimeoutRef.current === null) {
-      return;
+      return
     }
 
-    clearTimeout(updateTimeoutRef.current);
-    updateTimeoutRef.current = null;
-  }, []);
+    clearTimeout(updateTimeoutRef.current)
+    updateTimeoutRef.current = null
+  }, [])
 
   useEffect(() => {
-    setLocalQuantity(quantity);
-    clearPendingUpdate();
-  }, [clearPendingUpdate, quantity]);
+    setLocalQuantity(quantity)
+    clearPendingUpdate()
+  }, [clearPendingUpdate, quantity])
 
-  useEffect(() => {
-    return clearPendingUpdate;
-  }, [clearPendingUpdate]);
+  useEffect(() => clearPendingUpdate, [clearPendingUpdate])
 
   const handleQuantityChange = (nextQuantity: number) => {
     if (!Number.isFinite(nextQuantity)) {
-      return;
+      return
     }
 
-    const roundedQuantity = Math.round(nextQuantity);
+    const roundedQuantity = Math.round(nextQuantity)
     if (roundedQuantity <= 0) {
-      clearPendingUpdate();
-      onRemove(lineItemId);
-      return;
+      clearPendingUpdate()
+      onRemove(lineItemId)
+      return
     }
 
     const normalizedQuantity = Math.max(
       1,
-      Math.min(roundedQuantity, maxQuantity),
-    );
-    setLocalQuantity(normalizedQuantity);
-    clearPendingUpdate();
+      Math.min(roundedQuantity, maxQuantity)
+    )
+    setLocalQuantity(normalizedQuantity)
+    clearPendingUpdate()
 
     if (normalizedQuantity === quantity) {
-      return;
+      return
     }
 
     updateTimeoutRef.current = setTimeout(() => {
-      onUpdateQuantity(lineItemId, normalizedQuantity);
-      updateTimeoutRef.current = null;
-    }, 250);
-  };
+      onUpdateQuantity(lineItemId, normalizedQuantity)
+      updateTimeoutRef.current = null
+    }, 250)
+  }
 
   return (
     <NumericInput
@@ -103,5 +101,5 @@ export function CartLineItemQuantityInput({
         />
       </NumericInput.Control>
     </NumericInput>
-  );
+  )
 }

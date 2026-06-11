@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Input } from "@techsio/ui-kit/atoms/input";
-import { Dialog } from "@techsio/ui-kit/molecules/dialog";
-import type { AccountProductListsController } from "./use-account-product-lists";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Input } from "@techsio/ui-kit/atoms/input"
+import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import type { AccountProductListsController } from "./use-account-product-lists"
 
 type AddListDialogProps = {
-  accountLists: AccountProductListsController;
-};
+  accountLists: AccountProductListsController
+}
 
 export function AddListDialog({ accountLists }: AddListDialogProps) {
   return (
@@ -35,16 +35,16 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
           </Button>
         </>
       }
-      className="shadow-md max-w-full w-sm"
+      className="w-sm max-w-full shadow-md"
       customTrigger
       hideCloseButton
       onOpenChange={({ open }) => {
         if (open) {
-          accountLists.openCreateListDialog();
-          return;
+          accountLists.openCreateListDialog()
+          return
         }
 
-        accountLists.closeCreateListDialog();
+        accountLists.closeCreateListDialog()
       }}
       open={accountLists.showCreateListDialog}
       size="sm"
@@ -69,7 +69,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
             id="account-product-lists-new-list-title"
             name="product-list-title"
             onChange={(event) => {
-              accountLists.setNewListTitle(event.target.value);
+              accountLists.setNewListTitle(event.target.value)
             }}
             placeholder="Názov zoznamu"
             size="sm"
@@ -78,5 +78,5 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
         </div>
       </form>
     </Dialog>
-  );
+  )
 }

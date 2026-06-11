@@ -1,34 +1,34 @@
-"use client";
+"use client"
 
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import {
   AccountSkeletonSurface,
   AccountSurface,
-} from "@/components/account/account-surface";
-import { useAuth } from "@/lib/storefront/auth";
-import { useOrders } from "@/lib/storefront/orders";
+} from "@/components/account/account-surface"
+import { useAuth } from "@/lib/storefront/auth"
+import { useOrders } from "@/lib/storefront/orders"
 
 export function AccountOverview() {
-  const authQuery = useAuth();
+  const authQuery = useAuth()
   const ordersQuery = useOrders({
     page: 1,
     limit: 1,
     enabled: authQuery.isAuthenticated,
-  });
+  })
 
   if (authQuery.isLoading) {
-    return <AccountSkeletonSurface lines={4} />;
+    return <AccountSkeletonSurface lines={4} />
   }
 
   if (!authQuery.customer) {
-    return null;
+    return null
   }
 
   return (
     <AccountSurface className="space-y-500">
       <header className="space-y-200">
-        <h2 className="text-xl font-semibold">Prehľad účtu</h2>
-        <p className="text-sm text-fg-secondary">
+        <h2 className="font-semibold text-xl">Prehľad účtu</h2>
+        <p className="text-fg-secondary text-sm">
           Správa objednávok a údajov zákazníka.
         </p>
       </header>
@@ -59,5 +59,5 @@ export function AccountOverview() {
         </StatusText>
       )}
     </AccountSurface>
-  );
+  )
 }

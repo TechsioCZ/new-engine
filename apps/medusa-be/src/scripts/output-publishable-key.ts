@@ -1,4 +1,8 @@
-import type { ExecArgs, IApiKeyModuleService, ILockingModule } from "@medusajs/framework/types"
+import type {
+  ExecArgs,
+  IApiKeyModuleService,
+  ILockingModule,
+} from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { provisionPublishableKey } from "../utils/publishable-key"
 

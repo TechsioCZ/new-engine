@@ -7,18 +7,18 @@ import {
   useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import {
-  type ActiveCartQueryKeyMatcher,
-  getCachedCartById,
-  patchCartCaches,
-  syncCartCaches,
-} from "../shared/cart-cache-sync"
 import type { CartQueryKeys } from "../cart/types"
 import {
   type CacheConfig,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import {
+  type ActiveCartQueryKeyMatcher,
+  getCachedCartById,
+  patchCartCaches,
+  syncCartCaches,
+} from "../shared/cart-cache-sync"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createCheckoutQueryKeys } from "./query-keys"
 import type {
@@ -32,6 +32,7 @@ import type {
   UseCheckoutPaymentResult,
   UseCheckoutShippingResult,
 } from "./types"
+
 export type { CheckoutMutationOptions } from "./types"
 
 export type CheckoutShippingHookInput<
@@ -82,7 +83,6 @@ export type CreateCheckoutHooksConfig<
   cacheConfig?: CacheConfig
   cartQueryKeys?: CartQueryKeys
   isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
-
 }
 
 export function createCheckoutHooks<
@@ -277,7 +277,12 @@ export function createCheckoutHooks<
     ]
     const readCachedCart = () =>
       canSubscribeToCart && cartId && cartQueryKeys
-        ? getCachedCartById<TCart>(queryClient, cartQueryKeys, cartId, cartCacheOptions)
+        ? getCachedCartById<TCart>(
+            queryClient,
+            cartQueryKeys,
+            cartId,
+            cartCacheOptions
+          )
         : null
     const initialCart = readCachedCart() ?? inputCart ?? null
 
@@ -432,7 +437,6 @@ export function createCheckoutHooks<
     const calculatePrices = input.calculatePrices ?? true
     const cacheKey = input.cacheKey
     const effectiveCart = useReactiveCart(input.cart, cartId)
-
 
     const { data: shippingOptions, isFetching } = useSuspenseQuery({
       queryKey: resolvedQueryKeys.shippingOptions(cartId, cacheKey),

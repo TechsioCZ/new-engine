@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import { ProductDetailSkeleton } from "@/components/product-detail/sections/product-detail-skeleton";
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { ProductDetailSkeleton } from "@/components/product-detail/sections/product-detail-skeleton"
 
 export default function Loading() {
   return (
@@ -9,5 +9,5 @@ export default function Loading() {
       <Skeleton.Rectangle className="h-4 w-full rounded-full" />
       <ProductDetailSkeleton />
     </main>
-  );
+  )
 }

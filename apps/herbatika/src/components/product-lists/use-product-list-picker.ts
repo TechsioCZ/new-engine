@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { usePathname } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
-import type { Product } from "@/components/product-detail/product-detail.types";
-import { useAppToast } from "@/hooks/use-app-toast";
-import { useAuth } from "@/lib/storefront/auth";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import { usePathname } from "next/navigation"
+import { type FormEvent, useEffect, useMemo, useState } from "react"
+import type { Product } from "@/components/product-detail/product-detail.types"
+import { useAppToast } from "@/hooks/use-app-toast"
+import { useAuth } from "@/lib/storefront/auth"
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   getProductListItemCount,
   getProductListTitle,
@@ -17,88 +17,87 @@ import {
   useCreateCustomProductList,
   useProductListDetails,
   useProductLists,
-} from "@/lib/storefront/product-lists";
+} from "@/lib/storefront/product-lists"
 
 export type ProductListPickerRow = {
-  key: string;
-  title: string;
-  count: number;
-  checked: boolean;
-  isFavorite: boolean;
-  list: StoreProductList | null;
-};
+  key: string
+  title: string
+  count: number
+  checked: boolean
+  isFavorite: boolean
+  list: StoreProductList | null
+}
 
 type UseProductListPickerInput = {
-  product: Product;
-  quantity: number;
-  selectedVariantId: string | null;
-};
+  product: Product
+  quantity: number
+  selectedVariantId: string | null
+}
 
-const normalizeQuantity = (quantity: number) => {
-  return Number.isFinite(quantity) && quantity >= 1 ? Math.floor(quantity) : 1;
-};
+const normalizeQuantity = (quantity: number) =>
+  Number.isFinite(quantity) && quantity >= 1 ? Math.floor(quantity) : 1
 
 const listById = (lists: Array<StoreProductList | null | undefined>) => {
-  const map = new Map<string, StoreProductList>();
+  const map = new Map<string, StoreProductList>()
 
   for (const list of lists) {
     if (list?.id) {
-      map.set(list.id, list);
+      map.set(list.id, list)
     }
   }
 
-  return map;
-};
+  return map
+}
 
 export function useProductListPicker({
   product,
   quantity,
   selectedVariantId,
 }: UseProductListPickerInput) {
-  const pathname = usePathname();
-  const authQuery = useAuth();
-  const toast = useAppToast();
-  const [isOpen, setIsOpen] = useState(false);
-  const [showNewListInput, setShowNewListInput] = useState(false);
-  const [newListTitle, setNewListTitle] = useState("");
-  const [activeListKey, setActiveListKey] = useState<string | null>(null);
+  const pathname = usePathname()
+  const authQuery = useAuth()
+  const toast = useAppToast()
+  const [isOpen, setIsOpen] = useState(false)
+  const [showNewListInput, setShowNewListInput] = useState(false)
+  const [newListTitle, setNewListTitle] = useState("")
+  const [activeListKey, setActiveListKey] = useState<string | null>(null)
 
-  const customerId = authQuery.customer?.id ?? null;
-  const shouldFetchLists = isOpen && authQuery.isAuthenticated;
+  const customerId = authQuery.customer?.id ?? null
+  const shouldFetchLists = isOpen && authQuery.isAuthenticated
   const listsQuery = useProductLists({
     customerId,
     limit: 100,
     enabled: shouldFetchLists,
-  });
+  })
   const listIds = useMemo(
     () => listsQuery.productLists.map((list) => list.id).filter(Boolean),
-    [listsQuery.productLists],
-  );
+    [listsQuery.productLists]
+  )
   const detailQueries = useProductListDetails(listIds, {
     customerId,
     enabled: shouldFetchLists && listIds.length > 0,
-  });
-  const createCustomMutation = useCreateCustomProductList();
-  const addItemMutation = useAddProductListItem();
-  const addFavoriteItemMutation = useAddFavoriteProductListItem();
-  const quantityToAdd = normalizeQuantity(quantity);
+  })
+  const createCustomMutation = useCreateCustomProductList()
+  const addItemMutation = useAddProductListItem()
+  const addFavoriteItemMutation = useAddFavoriteProductListItem()
+  const quantityToAdd = normalizeQuantity(quantity)
   const isMutating =
     createCustomMutation.isPending ||
     addItemMutation.isPending ||
-    addFavoriteItemMutation.isPending;
+    addFavoriteItemMutation.isPending
   const detailListsById = useMemo(
     () => listById(detailQueries.map((query) => query.data)),
-    [detailQueries],
-  );
+    [detailQueries]
+  )
   const rows = useMemo<ProductListPickerRow[]>(() => {
-    const hydratedLists = listsQuery.productLists.map((list) => {
-      return detailListsById.get(list.id) ?? list;
-    });
+    const hydratedLists = listsQuery.productLists.map(
+      (list) => detailListsById.get(list.id) ?? list
+    )
     const favoriteList =
-      hydratedLists.find((list) => isFavoriteProductList(list)) ?? null;
+      hydratedLists.find((list) => isFavoriteProductList(list)) ?? null
     const customLists = hydratedLists.filter(
-      (list) => !isFavoriteProductList(list),
-    );
+      (list) => !isFavoriteProductList(list)
+    )
 
     return [
       {
@@ -108,7 +107,7 @@ export function useProductListPicker({
         checked: isProductInProductList(
           favoriteList,
           product.id,
-          selectedVariantId,
+          selectedVariantId
         ),
         isFavorite: true,
         list: favoriteList,
@@ -121,29 +120,29 @@ export function useProductListPicker({
         isFavorite: false,
         list,
       })),
-    ];
-  }, [detailListsById, listsQuery.productLists, product.id, selectedVariantId]);
+    ]
+  }, [detailListsById, listsQuery.productLists, product.id, selectedVariantId])
 
   useEffect(() => {
     if (isOpen) {
-      return;
+      return
     }
 
-    setShowNewListInput(false);
-    setNewListTitle("");
-    setActiveListKey(null);
-  }, [isOpen]);
+    setShowNewListInput(false)
+    setNewListTitle("")
+    setActiveListKey(null)
+  }, [isOpen])
 
   const addProductToList = async (row: ProductListPickerRow) => {
     if (row.checked) {
-      return;
+      return
     }
 
-    if (!row.isFavorite && !row.list?.id) {
-      return;
+    if (!(row.isFavorite || row.list?.id)) {
+      return
     }
 
-    setActiveListKey(row.key);
+    setActiveListKey(row.key)
 
     try {
       if (row.isFavorite) {
@@ -151,46 +150,46 @@ export function useProductListPicker({
           productId: product.id,
           variantId: selectedVariantId,
           quantity: quantityToAdd,
-        });
+        })
       } else if (row.list?.id) {
         await addItemMutation.mutateAsync({
           listId: row.list.id,
           productId: product.id,
           variantId: selectedVariantId,
           quantity: quantityToAdd,
-        });
+        })
       }
     } catch (mutationError) {
       toast.error({
         title: resolveErrorMessage(
           mutationError,
-          "Produkt sa nepodarilo pridať.",
+          "Produkt sa nepodarilo pridať."
         ),
-      });
+      })
     } finally {
-      setActiveListKey(null);
+      setActiveListKey(null)
     }
-  };
+  }
 
   const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+    event.preventDefault()
 
-    const title = newListTitle.trim();
+    const title = newListTitle.trim()
     if (!title) {
-      toast.warning({ title: "Zadajte názov zoznamu." });
-      return;
+      toast.warning({ title: "Zadajte názov zoznamu." })
+      return
     }
 
-    setActiveListKey("new-list");
+    setActiveListKey("new-list")
 
     try {
       const createdList = await createCustomMutation.mutateAsync({
         title,
         access_type: "private",
-      });
+      })
 
       if (!createdList?.id) {
-        throw new Error("Backend nevrátil ID nového zoznamu.");
+        throw new Error("Backend nevrátil ID nového zoznamu.")
       }
 
       await addItemMutation.mutateAsync({
@@ -198,21 +197,21 @@ export function useProductListPicker({
         productId: product.id,
         variantId: selectedVariantId,
         quantity: quantityToAdd,
-      });
+      })
 
-      setNewListTitle("");
-      setShowNewListInput(false);
+      setNewListTitle("")
+      setShowNewListInput(false)
     } catch (mutationError) {
       toast.error({
         title: resolveErrorMessage(
           mutationError,
-          "Zoznam sa nepodarilo vytvoriť.",
+          "Zoznam sa nepodarilo vytvoriť."
         ),
-      });
+      })
     } finally {
-      setActiveListKey(null);
+      setActiveListKey(null)
     }
-  };
+  }
 
   return {
     activeListKey,
@@ -231,5 +230,5 @@ export function useProductListPicker({
     setNewListTitle,
     setShowNewListInput,
     showNewListInput,
-  };
+  }
 }

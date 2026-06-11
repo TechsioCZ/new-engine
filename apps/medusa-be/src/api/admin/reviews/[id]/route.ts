@@ -1,12 +1,12 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { PRODUCT_REVIEW_MODULE } from "../../../../modules/product-review"
+import type ProductReviewModuleService from "../../../../modules/product-review/service"
+import { updateReviewWorkflow } from "../../../../workflows/product-review/workflows/update-review"
 import {
   isReviewRecord,
   normalizeAdminReview,
 } from "../../../review-normalizers"
-import { PRODUCT_REVIEW_MODULE } from "../../../../modules/product-review"
-import type ProductReviewModuleService from "../../../../modules/product-review/service"
-import { updateReviewWorkflow } from "../../../../workflows/product-review/workflows/update-review"
 import { getProductsById } from "../helpers"
 import type { AdminUpdateReviewSchemaType } from "../validators"
 
@@ -31,7 +31,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const id = getReviewRouteId(req)
 
   if (!id) {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Review id is required")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Review id is required"
+    )
   }
 
   res.json({ review: await getNormalizedReview(req, id) })
@@ -44,7 +47,10 @@ export async function PATCH(
   const id = getReviewRouteId(req)
 
   if (!id) {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Review id is required")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Review id is required"
+    )
   }
 
   const { result: review } = await updateReviewWorkflow(req.scope).run({

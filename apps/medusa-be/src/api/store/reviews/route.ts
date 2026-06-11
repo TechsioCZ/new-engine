@@ -30,7 +30,9 @@ export async function POST(
     req,
   })
 
-  const customer = tokenRecord ? undefined : await retrieveCustomer(req, customerId)
+  const customer = tokenRecord
+    ? undefined
+    : await retrieveCustomer(req, customerId)
   const authorName = getReviewAuthorName({
     customer,
     reviewToken: tokenRecord,

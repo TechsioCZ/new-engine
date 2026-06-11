@@ -1,20 +1,20 @@
-import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format";
+import { formatWholeCurrencyAmount } from "@/lib/storefront/price-format"
 
 export type PriceBandDefinition = {
-  id: string;
-  min: number;
-  maxExclusive: number | null;
-};
+  id: string
+  min: number
+  maxExclusive: number | null
+}
 
 export const buildPriceBandDefinitions = (
-  amounts: number[],
+  amounts: number[]
 ): PriceBandDefinition[] => {
   if (amounts.length === 0) {
-    return [];
+    return []
   }
 
-  const minimum = Math.floor(Math.min(...amounts));
-  const maximum = Math.ceil(Math.max(...amounts));
+  const minimum = Math.floor(Math.min(...amounts))
+  const maximum = Math.ceil(Math.max(...amounts))
 
   if (minimum >= maximum) {
     return [
@@ -23,60 +23,60 @@ export const buildPriceBandDefinitions = (
         min: minimum,
         maxExclusive: null,
       },
-    ];
+    ]
   }
 
-  const bandCount = 4;
-  const span = maximum - minimum;
-  const step = Math.max(Math.ceil(span / bandCount), 1);
-  const definitions: PriceBandDefinition[] = [];
+  const bandCount = 4
+  const span = maximum - minimum
+  const step = Math.max(Math.ceil(span / bandCount), 1)
+  const definitions: PriceBandDefinition[] = []
 
   for (let index = 0; index < bandCount; index += 1) {
-    const start = minimum + index * step;
+    const start = minimum + index * step
     if (start > maximum) {
-      break;
+      break
     }
 
-    const nextBoundary = start + step;
-    const maxExclusive = nextBoundary > maximum ? null : nextBoundary;
+    const nextBoundary = start + step
+    const maxExclusive = nextBoundary > maximum ? null : nextBoundary
 
     definitions.push({
       id: `price-${start}-${maxExclusive ?? "plus"}`,
       min: start,
       maxExclusive,
-    });
+    })
 
     if (maxExclusive === null) {
-      break;
+      break
     }
   }
 
-  return definitions;
-};
+  return definitions
+}
 
 export const matchesPriceBand = (
   amount: number,
-  definition: PriceBandDefinition,
+  definition: PriceBandDefinition
 ) => {
   if (definition.maxExclusive === null) {
-    return amount >= definition.min;
+    return amount >= definition.min
   }
 
-  return amount >= definition.min && amount < definition.maxExclusive;
-};
+  return amount >= definition.min && amount < definition.maxExclusive
+}
 
-export const formatAmount = formatWholeCurrencyAmount;
+export const formatAmount = formatWholeCurrencyAmount
 
 export const formatPriceBandLabel = (
   definition: PriceBandDefinition,
-  currencyCode: string,
+  currencyCode: string
 ): string => {
   if (definition.maxExclusive === null) {
-    return `${formatAmount(definition.min, currencyCode)}+`;
+    return `${formatAmount(definition.min, currencyCode)}+`
   }
 
   return `${formatAmount(definition.min, currencyCode)} - ${formatAmount(
     definition.maxExclusive,
-    currencyCode,
-  )}`;
-};
+    currencyCode
+  )}`
+}

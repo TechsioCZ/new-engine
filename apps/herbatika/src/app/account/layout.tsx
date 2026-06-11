@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
-import { AccountShell } from "@/components/account-shell";
+import type { ReactNode } from "react"
+import { AccountShell } from "@/components/account-shell"
 
 type AccountLayoutProps = {
-  children: ReactNode;
-};
+  children: ReactNode
+}
 
 export default function AccountLayout({ children }: AccountLayoutProps) {
-  return <AccountShell>{children}</AccountShell>;
+  return <AccountShell>{children}</AccountShell>
 }

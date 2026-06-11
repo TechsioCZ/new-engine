@@ -1,6 +1,11 @@
-import type {ExecArgs, IProductModuleService, Logger, ProductCategoryDTO,} from "@medusajs/framework/types"
-import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
-import {deleteProductCategoriesWorkflow} from "@medusajs/medusa/core-flows"
+import type {
+  ExecArgs,
+  IProductModuleService,
+  Logger,
+  ProductCategoryDTO,
+} from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { deleteProductCategoriesWorkflow } from "@medusajs/medusa/core-flows"
 
 type ProductCategoryTreeNode = ProductCategoryDTO & {
   category_children?: ProductCategoryTreeNode[]
@@ -12,7 +17,9 @@ function collectCategoryTreePostOrder(
   node: ProductCategoryTreeNode
 ): ProductCategoryTreeNode[] {
   const children = node.category_children ?? []
-  const result = children.flatMap((child) => collectCategoryTreePostOrder(child))
+  const result = children.flatMap((child) =>
+    collectCategoryTreePostOrder(child)
+  )
   result.push(node)
   return result
 }
@@ -22,7 +29,9 @@ export default async function herbaticaCleanupLegacyCategories({
   args,
 }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const productService = container.resolve<IProductModuleService>(Modules.PRODUCT)
+  const productService = container.resolve<IProductModuleService>(
+    Modules.PRODUCT
+  )
   const dryRun = args?.includes("--dry-run") ?? false
 
   logger.info(

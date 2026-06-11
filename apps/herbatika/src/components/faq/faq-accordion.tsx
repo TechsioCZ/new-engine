@@ -1,31 +1,35 @@
-"use client";
+"use client"
 
-import { useCallback, useState } from "react";
-import NextLink from "next/link";
-import { Accordion } from "@techsio/ui-kit/molecules/accordion";
-import type { FaqAnswerBlock, FaqItem, FaqLink } from "./faq-page.data";
+import { Accordion } from "@techsio/ui-kit/molecules/accordion"
+import NextLink from "next/link"
+import { useCallback, useState } from "react"
+import type {
+  FaqAnswerBlock as FaqAnswerBlockData,
+  FaqItem,
+  FaqLink,
+} from "./faq-page.data"
 
 type FaqAccordionProps = {
-  defaultValue?: string[];
-  items: FaqItem[];
-};
+  defaultValue?: string[]
+  items: FaqItem[]
+}
 
 const answerTextClassName =
-  "font-verdana text-md leading-relaxed text-fg-secondary";
+  "font-verdana text-md leading-relaxed text-fg-secondary"
 
 const answerLinkClassName =
-  "font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:text-primary-hover";
+  "font-semibold text-primary underline decoration-primary/30 underline-offset-4 hover:text-primary-hover"
 
-const accordionContentClipClassName = "min-h-0 overflow-hidden";
+const accordionContentClipClassName = "min-h-0 overflow-hidden"
 
-const accordionContentBodyClassName = "space-y-300 py-450";
+const accordionContentBodyClassName = "space-y-300 py-450"
 
 function isExternalHref(href: string) {
   return (
     href.startsWith("http") ||
     href.startsWith("mailto:") ||
     href.startsWith("tel:")
-  );
+  )
 }
 
 function FaqLinkItem({ href, label }: FaqLink) {
@@ -39,27 +43,27 @@ function FaqLinkItem({ href, label }: FaqLink) {
       >
         {label}
       </a>
-    );
+    )
   }
 
   return (
     <NextLink className={answerLinkClassName} href={href}>
       {label}
     </NextLink>
-  );
+  )
 }
 
-function FaqAnswerBlock({ block }: { block: FaqAnswerBlock }) {
+function FaqAnswerBlockContent({ block }: { block: FaqAnswerBlockData }) {
   if (block.type === "heading") {
     return (
-      <h3 className="pt-100 text-lg leading-snug font-bold text-fg-primary">
+      <h3 className="pt-100 font-bold text-fg-primary text-lg leading-snug">
         {block.text}
       </h3>
-    );
+    )
   }
 
   if (block.type === "paragraph") {
-    return <p className={answerTextClassName}>{block.text}</p>;
+    return <p className={answerTextClassName}>{block.text}</p>
   }
 
   if (block.type === "links") {
@@ -73,13 +77,13 @@ function FaqAnswerBlock({ block }: { block: FaqAnswerBlock }) {
           />
         ))}
       </div>
-    );
+    )
   }
 
-  const ListTag = block.ordered ? "ol" : "ul";
+  const ListTag = block.ordered ? "ol" : "ul"
   const listClassName = block.ordered
     ? "ml-450 list-decimal space-y-150 font-verdana text-md leading-relaxed text-fg-secondary"
-    : "ml-450 list-disc space-y-150 font-verdana text-md leading-relaxed text-fg-secondary";
+    : "ml-450 list-disc space-y-150 font-verdana text-md leading-relaxed text-fg-secondary"
 
   return (
     <ListTag className={listClassName}>
@@ -87,27 +91,27 @@ function FaqAnswerBlock({ block }: { block: FaqAnswerBlock }) {
         <li key={item}>{item}</li>
       ))}
     </ListTag>
-  );
+  )
 }
 
 export function FaqAccordion({ defaultValue, items }: FaqAccordionProps) {
-  const [openValue, setOpenValue] = useState<string[]>(defaultValue ?? []);
+  const [openValue, setOpenValue] = useState<string[]>(defaultValue ?? [])
   const setAnimatedContentRef = useCallback((node: HTMLDivElement | null) => {
-    node?.style.setProperty("display", "grid", "important");
-  }, []);
+    node?.style.setProperty("display", "grid", "important")
+  }, [])
 
   return (
     <Accordion
       className="gap-300 rounded-none bg-transparent"
       data-herbatika-faq-accordion=""
+      multiple
       onChange={setOpenValue}
       size="md"
       value={openValue}
       variant="borderless"
-      multiple
     >
       {items.map((item) => {
-        const isExpanded = openValue.includes(item.id);
+        const isExpanded = openValue.includes(item.id)
 
         return (
           <Accordion.Item
@@ -116,7 +120,7 @@ export function FaqAccordion({ defaultValue, items }: FaqAccordionProps) {
             value={item.id}
           >
             <Accordion.Header>
-              <Accordion.Title className="py-450 px-450 font-verdana text-md leading-relaxed font-bold">
+              <Accordion.Title className="px-450 py-450 font-bold font-verdana text-md leading-relaxed">
                 {item.question}
               </Accordion.Title>
               <Accordion.Indicator iconSize="lg" />
@@ -129,7 +133,7 @@ export function FaqAccordion({ defaultValue, items }: FaqAccordionProps) {
               <div className={accordionContentClipClassName}>
                 <div className={accordionContentBodyClassName}>
                   {item.answer.map((block, index) => (
-                    <FaqAnswerBlock
+                    <FaqAnswerBlockContent
                       block={block}
                       key={`${item.id}-${block.type}-${index}`}
                     />
@@ -138,8 +142,8 @@ export function FaqAccordion({ defaultValue, items }: FaqAccordionProps) {
               </div>
             </Accordion.Content>
           </Accordion.Item>
-        );
+        )
       })}
     </Accordion>
-  );
+  )
 }

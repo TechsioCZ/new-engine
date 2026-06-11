@@ -44,9 +44,7 @@ export type MedusaCollectionServiceConfig<
   defaultDetailFields?: string
   normalizeListQuery?: (params: TListParams) => MedusaCollectionListQuery
   normalizeDetailQuery?: (params: TDetailParams) => MedusaCollectionDetailQuery
-  transformCollection?: (
-    collection: HttpTypes.StoreCollection
-  ) => TCollection
+  transformCollection?: (collection: HttpTypes.StoreCollection) => TCollection
   transformListCollection?: (
     collection: HttpTypes.StoreCollection,
     context: MedusaCollectionTransformListContext<TListParams>
@@ -75,7 +73,8 @@ const stripEnabled = <TQuery extends Record<string, unknown>>(
 export function createMedusaCollectionService<
   TCollection = HttpTypes.StoreCollection,
   TListParams extends MedusaCollectionListInput = MedusaCollectionListInput,
-  TDetailParams extends MedusaCollectionDetailInput = MedusaCollectionDetailInput,
+  TDetailParams extends
+    MedusaCollectionDetailInput = MedusaCollectionDetailInput,
 >(
   sdk: Medusa,
   config?: MedusaCollectionServiceConfig<
@@ -154,13 +153,14 @@ export function createMedusaCollectionService<
       signal?: AbortSignal
     ): Promise<CollectionListResponse<TCollection>> {
       const query = buildListQuery(params)
-      const response = await sdk.client.fetch<HttpTypes.StoreCollectionListResponse>(
-        listPath,
-        {
-          query,
-          signal,
-        }
-      )
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreCollectionListResponse>(
+          listPath,
+          {
+            query,
+            signal,
+          }
+        )
 
       const collections = (response.collections ?? []).map((collection) =>
         mapListCollection(collection, { params, query, response })
@@ -181,13 +181,14 @@ export function createMedusaCollectionService<
       }
 
       const query = buildDetailQuery(params)
-      const response = await sdk.client.fetch<HttpTypes.StoreCollectionResponse>(
-        `${listPath}/${params.id}`,
-        {
-          query,
-          signal,
-        }
-      )
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreCollectionResponse>(
+          `${listPath}/${params.id}`,
+          {
+            query,
+            signal,
+          }
+        )
 
       const collection = response.collection
       if (!collection) {

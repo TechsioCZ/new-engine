@@ -1,35 +1,35 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { Link } from "@techsio/ui-kit/atoms/link";
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input";
-import Image from "next/image";
-import NextLink from "next/link";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants";
-import { resolvePriceState } from "@/components/product-card/product-card.pricing";
-import type { StoreProductListItem } from "@/lib/storefront/product-lists";
+import type { HttpTypes } from "@medusajs/types"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Link } from "@techsio/ui-kit/atoms/link"
+import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import Image from "next/image"
+import NextLink from "next/link"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
+import { resolvePriceState } from "@/components/product-card/product-card.pricing"
+import type { StoreProductListItem } from "@/lib/storefront/product-lists"
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,
-} from "./account-product-lists.utils";
+} from "./account-product-lists.utils"
 
 type AccountProductListItemRowProps = {
-  canChangeQuantity: boolean;
-  isAddingToCart: boolean;
-  isDeleting: boolean;
-  isSettingQuantity: boolean;
-  item: StoreProductListItem;
+  canChangeQuantity: boolean
+  isAddingToCart: boolean
+  isDeleting: boolean
+  isSettingQuantity: boolean
+  item: StoreProductListItem
   onAddToCart: (
     item: StoreProductListItem,
-    product: HttpTypes.StoreProduct,
-  ) => void;
-  onDelete: (item: StoreProductListItem) => void;
-  onQuantitySet: (item: StoreProductListItem, quantity: number) => void;
-  product: HttpTypes.StoreProduct | null;
-};
+    product: HttpTypes.StoreProduct
+  ) => void
+  onDelete: (item: StoreProductListItem) => void
+  onQuantitySet: (item: StoreProductListItem, quantity: number) => void
+  product: HttpTypes.StoreProduct | null
+}
 
 export function AccountProductListItemRow({
   canChangeQuantity,
@@ -42,57 +42,55 @@ export function AccountProductListItemRow({
   onQuantitySet,
   product,
 }: AccountProductListItemRowProps) {
-  const itemProduct = product ?? item.product ?? null;
-  const productTitle = itemProduct?.title ?? item.product_id ?? "Produkt";
-  const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#";
-  const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE;
-  const price = itemProduct ? resolvePriceState(itemProduct) : null;
-  const quantity = resolveProductListItemQuantity(item);
-  const availability = resolveProductListItemAvailability(item, itemProduct);
-  const canAddToCart = availability.canAddToCart;
-  const availabilityBadgeId = useId();
-  const [localQuantity, setLocalQuantity] = useState(quantity);
-  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const itemProduct = product ?? item.product ?? null
+  const productTitle = itemProduct?.title ?? item.product_id ?? "Produkt"
+  const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
+  const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
+  const price = itemProduct ? resolvePriceState(itemProduct) : null
+  const quantity = resolveProductListItemQuantity(item)
+  const availability = resolveProductListItemAvailability(item, itemProduct)
+  const canAddToCart = availability.canAddToCart
+  const availabilityBadgeId = useId()
+  const [localQuantity, setLocalQuantity] = useState(quantity)
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clearPendingUpdate = useCallback(() => {
     if (updateTimeoutRef.current === null) {
-      return;
+      return
     }
 
-    clearTimeout(updateTimeoutRef.current);
-    updateTimeoutRef.current = null;
-  }, []);
+    clearTimeout(updateTimeoutRef.current)
+    updateTimeoutRef.current = null
+  }, [])
 
   useEffect(() => {
-    setLocalQuantity(quantity);
-    clearPendingUpdate();
-  }, [clearPendingUpdate, quantity]);
+    setLocalQuantity(quantity)
+    clearPendingUpdate()
+  }, [clearPendingUpdate, quantity])
 
-  useEffect(() => {
-    return clearPendingUpdate;
-  }, [clearPendingUpdate]);
+  useEffect(() => clearPendingUpdate, [clearPendingUpdate])
 
   const handleQuantityChange = (nextQuantity: number) => {
     if (!item.id || isSettingQuantity || !Number.isFinite(nextQuantity)) {
-      return;
+      return
     }
 
-    const normalizedQuantity = Math.max(1, Math.round(nextQuantity));
-    setLocalQuantity(normalizedQuantity);
-    clearPendingUpdate();
+    const normalizedQuantity = Math.max(1, Math.round(nextQuantity))
+    setLocalQuantity(normalizedQuantity)
+    clearPendingUpdate()
 
     if (normalizedQuantity === quantity) {
-      return;
+      return
     }
 
     updateTimeoutRef.current = setTimeout(() => {
-      onQuantitySet(item, normalizedQuantity);
-      updateTimeoutRef.current = null;
-    }, 250);
-  };
+      onQuantitySet(item, normalizedQuantity)
+      updateTimeoutRef.current = null
+    }, 250)
+  }
 
   return (
-    <article className="flex flex-col gap-300 border-b border-border-secondary bg-base p-300 md:flex-row md:items-center">
+    <article className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center">
       <NextLink className="shrink-0" href={productHref}>
         <Image
           alt={productTitle}
@@ -139,13 +137,13 @@ export function AccountProductListItemRow({
         {canChangeQuantity ? (
           <NumericInput
             allowOverflow={false}
+            className="w-20"
             disabled={!item.id || isSettingQuantity}
             min={1}
             onChange={handleQuantityChange}
             size="sm"
             step={1}
             value={localQuantity}
-            className="w-20"
           >
             <NumericInput.Control>
               <NumericInput.DecrementTrigger
@@ -165,7 +163,7 @@ export function AccountProductListItemRow({
           isLoading={isAddingToCart}
           onClick={() => {
             if (itemProduct) {
-              onAddToCart(item, itemProduct);
+              onAddToCart(item, itemProduct)
             }
           }}
           size="sm"
@@ -175,18 +173,18 @@ export function AccountProductListItemRow({
         </Button>
         <Button
           aria-label={`Odstrániť ${productTitle} zo zoznamu`}
+          className="text-danger"
           disabled={!item.id || isDeleting}
           icon="token-icon-trash"
+          iconSize="md"
           isLoading={isDeleting}
           loadingText="Odstraňujem"
           onClick={() => onDelete(item)}
           size="current"
-          iconSize="md"
           theme="unstyled"
           variant="danger"
-          className="text-danger"
         />
       </div>
     </article>
-  );
+  )
 }

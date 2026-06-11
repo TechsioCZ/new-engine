@@ -1,38 +1,38 @@
-"use client";
+"use client"
 
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { Popover } from "@techsio/ui-kit/molecules/popover";
-import NextLink from "next/link";
-import { useEffect, useState } from "react";
-import { LoginForm } from "@/components/auth/login-form";
-import { useAuthController } from "@/components/auth/use-auth-controller";
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { Popover } from "@techsio/ui-kit/molecules/popover"
+import NextLink from "next/link"
+import { useEffect, useState } from "react"
+import { LoginForm } from "@/components/auth/login-form"
+import { useAuthController } from "@/components/auth/use-auth-controller"
 
 export function HerbatikaAccountPopover() {
-  const controller = useAuthController({ mode: "login" });
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const controller = useAuthController({ mode: "login" })
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
 
   useEffect(() => {
     if (!controller.authQuery.isAuthenticated) {
-      return;
+      return
     }
 
-    setIsPopoverOpen(false);
-  }, [controller.authQuery.isAuthenticated]);
+    setIsPopoverOpen(false)
+  }, [controller.authQuery.isAuthenticated])
 
   if (controller.authQuery.isAuthenticated) {
     return (
       <LinkButton
         aria-label="Účet"
         as={NextLink}
-        className="px-0 py-0 text-icon-2xl text-fg-secondary hover:text-primary"
+        className="px-0 py-0 text-fg-secondary text-icon-2xl hover:text-primary"
         href="/account"
         icon="token-icon-user"
         size="current"
         theme="unstyled"
         variant="secondary"
       />
-    );
+    )
   }
 
   return (
@@ -58,13 +58,13 @@ export function HerbatikaAccountPopover() {
           <Popover.Title>Prihlásenie</Popover.Title>
           <LoginForm
             defaultValues={controller.loginDefaultValues}
+            forgotPasswordHref={controller.forgotPasswordHref}
             isBusy={controller.isBusy}
             onSubmit={controller.handleLoginSubmit}
             registerHref={controller.registerHref}
-            forgotPasswordHref={controller.forgotPasswordHref}
           />
         </Popover.Content>
       </Popover.Positioner>
     </Popover.Root>
-  );
+  )
 }

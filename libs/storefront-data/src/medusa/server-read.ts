@@ -1,49 +1,41 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import type {
-  CreateCatalogHooksConfig,
-} from "../catalog/hooks"
-import {
-  createCatalogQueryOptionsFactory,
-  type CatalogQueryOptionsFactory,
-} from "../catalog/query-options"
+import type { CreateCatalogHooksConfig } from "../catalog/hooks"
 import {
   createMedusaCatalogService,
   type MedusaCatalogListInput,
   type MedusaCatalogServiceConfig,
 } from "../catalog/medusa-service"
+import {
+  type CatalogQueryOptionsFactory,
+  createCatalogQueryOptionsFactory,
+} from "../catalog/query-options"
 import type { CatalogFacets, CatalogQueryKeys } from "../catalog/types"
 import type { CreateCategoryHooksConfig } from "../categories/hooks"
-import {
-  createCategoryQueryOptionsFactory,
-  type CategoryQueryOptionsFactory,
-} from "../categories/query-options"
 import {
   createMedusaCategoryService,
   type MedusaCategoryDetailInput,
   type MedusaCategoryListInput,
   type MedusaCategoryServiceConfig,
 } from "../categories/medusa-service"
+import {
+  type CategoryQueryOptionsFactory,
+  createCategoryQueryOptionsFactory,
+} from "../categories/query-options"
 import type { CategoryQueryKeys } from "../categories/types"
 import type { CreateCollectionHooksConfig } from "../collections/hooks"
-import {
-  createCollectionQueryOptionsFactory,
-  type CollectionQueryOptionsFactory,
-} from "../collections/query-options"
 import {
   createMedusaCollectionService,
   type MedusaCollectionDetailInput,
   type MedusaCollectionListInput,
   type MedusaCollectionServiceConfig,
 } from "../collections/medusa-service"
-import type { CollectionQueryKeys } from "../collections/types"
-import type {
-  CreateOrderHooksConfig,
-} from "../orders/hooks"
 import {
-  createOrderQueryOptionsFactory,
-  type OrderQueryOptionsFactory,
-} from "../orders/query-options"
+  type CollectionQueryOptionsFactory,
+  createCollectionQueryOptionsFactory,
+} from "../collections/query-options"
+import type { CollectionQueryKeys } from "../collections/types"
+import type { CreateOrderHooksConfig } from "../orders/hooks"
 import {
   createMedusaOrderService,
   type MedusaOrderDetailHookInput,
@@ -52,6 +44,10 @@ import {
   type MedusaOrderListInput,
   type MedusaOrderServiceConfig,
 } from "../orders/medusa-service"
+import {
+  createOrderQueryOptionsFactory,
+  type OrderQueryOptionsFactory,
+} from "../orders/query-options"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
 import {
   createMedusaProductListService,
@@ -74,30 +70,28 @@ import type {
   ProductListQueryKeys,
   ProductListService,
 } from "../product-lists/types"
-import type {
-  CreateProductHooksConfig,
-} from "../products/hooks"
-import {
-  createProductQueryOptionsFactory,
-  type ProductQueryOptionsFactory,
-} from "../products/query-options"
+import type { CreateProductHooksConfig } from "../products/hooks"
 import {
   createMedusaProductService,
   type MedusaProductDetailInput,
   type MedusaProductListInput,
   type MedusaProductServiceConfig,
 } from "../products/medusa-service"
+import {
+  createProductQueryOptionsFactory,
+  type ProductQueryOptionsFactory,
+} from "../products/query-options"
 import type { ProductQueryKeys } from "../products/types"
 import type { CreateRegionHooksConfig } from "../regions/hooks"
-import {
-  createRegionQueryOptionsFactory,
-  type RegionQueryOptionsFactory,
-} from "../regions/query-options"
 import {
   createMedusaRegionService,
   type MedusaRegionDetailInput,
   type MedusaRegionListInput,
 } from "../regions/medusa-service"
+import {
+  createRegionQueryOptionsFactory,
+  type RegionQueryOptionsFactory,
+} from "../regions/query-options"
 import type { RegionQueryKeys } from "../regions/types"
 import type { CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
@@ -440,12 +434,12 @@ export type MedusaStorefrontServerReadPresetResult<
 export const createMedusaStorefrontQueryKeys =
   createMedusaStorefrontQueryKeysFromFoundation
 
-export function createMedusaStorefrontServerReadPreset<
-  TProduct = HttpTypes.StoreProduct,
-  TCategory = HttpTypes.StoreProductCategory,
-  TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
-  TCatalogFacets = CatalogFacets,
+function createMedusaStorefrontServerReadQueryKeys<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
 >(
   config: CreateMedusaStorefrontServerReadPresetConfig<
     TProduct,
@@ -453,18 +447,10 @@ export function createMedusaStorefrontServerReadPreset<
     TCollection,
     TCatalogProduct,
     TCatalogFacets
-  >
-): MedusaStorefrontServerReadPresetResult<
-  TProduct,
-  TCategory,
-  TCollection,
-  TCatalogProduct,
-  TCatalogFacets
-> {
-  const { namespace, cacheConfig, defaultQueryKeys } =
-    resolveMedusaStorefrontFoundation(config)
-
-  const queryKeys: MedusaStorefrontReadQueryKeys = {
+  >,
+  defaultQueryKeys: MedusaStorefrontReadQueryKeys
+): MedusaStorefrontReadQueryKeys {
+  return {
     products: config.products?.queryKeys ?? defaultQueryKeys.products,
     productLists:
       config.productLists?.queryKeys ?? defaultQueryKeys.productLists,
@@ -474,14 +460,30 @@ export function createMedusaStorefrontServerReadPreset<
     collections: config.collections?.queryKeys ?? defaultQueryKeys.collections,
     catalog: config.catalog?.queryKeys ?? defaultQueryKeys.catalog,
   }
+}
 
-  const services: MedusaStorefrontReadServices<
+function createMedusaStorefrontServerReadServices<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+>(
+  config: CreateMedusaStorefrontServerReadPresetConfig<
     TProduct,
     TCategory,
     TCollection,
     TCatalogProduct,
     TCatalogFacets
-  > = {
+  >
+): MedusaStorefrontReadServices<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets
+> {
+  return {
     products: createMedusaProductService<
       TProduct,
       MedusaProductListInput,
@@ -513,6 +515,37 @@ export function createMedusaStorefrontServerReadPreset<
       TCatalogFacets
     >(config.sdk, config.catalog?.serviceConfig),
   }
+}
+
+export function createMedusaStorefrontServerReadPreset<
+  TProduct = HttpTypes.StoreProduct,
+  TCategory = HttpTypes.StoreProductCategory,
+  TCollection = HttpTypes.StoreCollection,
+  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogFacets = CatalogFacets,
+>(
+  config: CreateMedusaStorefrontServerReadPresetConfig<
+    TProduct,
+    TCategory,
+    TCollection,
+    TCatalogProduct,
+    TCatalogFacets
+  >
+): MedusaStorefrontServerReadPresetResult<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets
+> {
+  const { namespace, cacheConfig, defaultQueryKeys } =
+    resolveMedusaStorefrontFoundation(config)
+
+  const queryKeys = createMedusaStorefrontServerReadQueryKeys(
+    config,
+    defaultQueryKeys
+  )
+  const services = createMedusaStorefrontServerReadServices(config)
 
   const queries: MedusaStorefrontReadQueries<
     TProduct,

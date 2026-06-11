@@ -1,23 +1,23 @@
-"use client";
+"use client"
 
-import { useState, type ReactNode } from "react";
-import { FormInput } from "@techsio/ui-kit/molecules/form-input";
+import { FormInput } from "@techsio/ui-kit/molecules/form-input"
+import { type ReactNode, useState } from "react"
 import {
   resolveVisibleFieldFeedback,
   shouldTrackLiveFieldFeedback,
-} from "@/lib/forms/core/field-errors";
-import { useFieldContext } from "@/lib/forms/core/herbatika-form-context";
+} from "@/lib/forms/core/field-errors"
+import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
 type FormTextFieldProps = {
-  id: string;
-  label?: ReactNode;
-  type?: "text" | "email" | "password" | "tel";
-  autoComplete?: string;
-  required?: boolean;
-  validationMode?: "none" | "blur";
-  externalError?: string | null;
-  onValueChange?: (value: string) => void;
-};
+  id: string
+  label?: ReactNode
+  type?: "text" | "email" | "password" | "tel"
+  autoComplete?: string
+  required?: boolean
+  validationMode?: "none" | "blur"
+  externalError?: string | null
+  onValueChange?: (value: string) => void
+}
 
 export function FormTextField({
   id,
@@ -29,19 +29,17 @@ export function FormTextField({
   externalError,
   onValueChange,
 }: FormTextFieldProps) {
-  const field = useFieldContext<string>();
-  const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false);
-  const value = typeof field.state.value === "string" ? field.state.value : "";
+  const field = useFieldContext<string>()
+  const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
+  const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
     hasChangedSinceBlur,
     meta: field.state.meta,
     submissionAttempts: field.form.state.submissionAttempts,
     validationMode,
-  });
-  const errorText = externalError ?? fieldFeedback.errorText;
-  const validateStatus = externalError
-    ? "error"
-    : fieldFeedback.validateStatus;
+  })
+  const errorText = externalError ?? fieldFeedback.errorText
+  const validateStatus = externalError ? "error" : fieldFeedback.validateStatus
 
   return (
     <FormInput
@@ -51,26 +49,26 @@ export function FormTextField({
       label={label}
       name={field.name}
       onBlur={() => {
-        field.handleBlur();
-        setHasChangedSinceBlur(false);
+        field.handleBlur()
+        setHasChangedSinceBlur(false)
       }}
       onChange={(event) => {
-        const nextValue = event.target.value;
+        const nextValue = event.target.value
         if (
           shouldTrackLiveFieldFeedback({
             meta: field.state.meta,
             submissionAttempts: field.form.state.submissionAttempts,
           })
         ) {
-          setHasChangedSinceBlur(true);
+          setHasChangedSinceBlur(true)
         }
-        field.handleChange(nextValue);
-        onValueChange?.(nextValue);
+        field.handleChange(nextValue)
+        onValueChange?.(nextValue)
       }}
       required={required}
       type={type}
       validateStatus={validateStatus}
       value={value}
     />
-  );
+  )
 }

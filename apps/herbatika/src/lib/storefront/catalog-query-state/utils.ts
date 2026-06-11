@@ -1,44 +1,44 @@
-import type { CatalogQueryState } from "./parsers";
+import type { CatalogQueryState } from "./parsers"
 
-const MAX_MULTI_VALUE_ITEMS = 40;
+const MAX_MULTI_VALUE_ITEMS = 40
 
 export const normalizeMultiValueInput = (values: string[]): string[] => {
-  const normalizedValues: string[] = [];
-  const seenValues = new Set<string>();
+  const normalizedValues: string[] = []
+  const seenValues = new Set<string>()
 
   for (const value of values) {
-    const normalizedValue = value.trim();
+    const normalizedValue = value.trim()
     if (!normalizedValue || seenValues.has(normalizedValue)) {
-      continue;
+      continue
     }
 
-    seenValues.add(normalizedValue);
-    normalizedValues.push(normalizedValue);
+    seenValues.add(normalizedValue)
+    normalizedValues.push(normalizedValue)
 
     if (normalizedValues.length >= MAX_MULTI_VALUE_ITEMS) {
-      break;
+      break
     }
   }
 
-  return normalizedValues;
-};
+  return normalizedValues
+}
 
 export const areStringArraysEqual = (left: string[], right: string[]) => {
   if (left.length !== right.length) {
-    return false;
+    return false
   }
 
   for (let index = 0; index < left.length; index += 1) {
     if (left[index] !== right[index]) {
-      return false;
+      return false
     }
   }
 
-  return true;
-};
+  return true
+}
 
 const normalizeNonNegativeNumber = (
-  value: number | null,
+  value: number | null
 ): number | undefined => {
   if (
     typeof value !== "number" ||
@@ -46,62 +46,60 @@ const normalizeNonNegativeNumber = (
     !Number.isFinite(value) ||
     value < 0
   ) {
-    return undefined;
+    return
   }
 
-  return value;
-};
+  return value
+}
 
 export const normalizePriceRange = (
   minValue: number | null,
-  maxValue: number | null,
+  maxValue: number | null
 ): { min?: number; max?: number } => {
-  let normalizedMin = normalizeNonNegativeNumber(minValue);
-  let normalizedMax = normalizeNonNegativeNumber(maxValue);
+  let normalizedMin = normalizeNonNegativeNumber(minValue)
+  let normalizedMax = normalizeNonNegativeNumber(maxValue)
 
   if (
     normalizedMin !== undefined &&
     normalizedMax !== undefined &&
     normalizedMin > normalizedMax
   ) {
-    const originalMin = normalizedMin;
-    normalizedMin = normalizedMax;
-    normalizedMax = originalMin;
+    const originalMin = normalizedMin
+    normalizedMin = normalizedMax
+    normalizedMax = originalMin
   }
 
   return {
     min: normalizedMin,
     max: normalizedMax,
-  };
-};
+  }
+}
 
 export const toNonEmptyArray = (values: string[]): string[] | undefined => {
-  const normalizedValues = normalizeMultiValueInput(values);
+  const normalizedValues = normalizeMultiValueInput(values)
   if (normalizedValues.length === 0) {
-    return undefined;
+    return
   }
 
-  return normalizedValues;
-};
+  return normalizedValues
+}
 
 export const hasOwnKey = <T extends object>(
   value: T,
-  key: PropertyKey,
-): key is keyof T => {
-  return Object.prototype.hasOwnProperty.call(value, key);
-};
+  key: PropertyKey
+): key is keyof T => Object.hasOwn(value, key)
 
 export const areCatalogQueryValuesEqual = (
   left: CatalogQueryState[keyof CatalogQueryState],
-  right: CatalogQueryState[keyof CatalogQueryState],
+  right: CatalogQueryState[keyof CatalogQueryState]
 ) => {
   if (Array.isArray(left) && Array.isArray(right)) {
-    return areStringArraysEqual(left, right);
+    return areStringArraysEqual(left, right)
   }
 
   if (typeof left === "number" && typeof right === "number") {
-    return Number.isNaN(left) ? Number.isNaN(right) : left === right;
+    return Number.isNaN(left) ? Number.isNaN(right) : left === right
   }
 
-  return left === right;
-};
+  return left === right
+}

@@ -51,6 +51,10 @@ type RequestOptions = {
   allow404?: boolean
 }
 
+type RetryAttemptResult<T> =
+  | { retry: true; error: Error }
+  | { retry: false; value: T }
+
 /**
  * PPL CPL API Client - Pure HTTP layer
  *
@@ -675,36 +679,80 @@ export class PplClient {
     let lastError: Error | null = null
 
     for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        await this.sleep(this.INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1))
-      }
+      await this.waitBeforeRetry(attempt)
 
       try {
-        const response = await operation()
-
-        if (this.isRetryable(response.status) && attempt < this.MAX_RETRIES) {
-          lastError = new Error(`${response.status} - ${await response.text()}`)
+        const result = await this.runRetryAttempt(
+          operation,
+          handleResponse,
+          attempt
+        )
+        if (result.retry) {
+          lastError = result.error
           continue
         }
 
-        return await handleResponse(response)
+        return result.value
       } catch (error) {
-        if (error instanceof MedusaError) {
-          throw error
-        }
-        lastError = error instanceof Error ? error : new Error(String(error))
-        if (attempt === this.MAX_RETRIES) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `${errorContext} after ${this.MAX_RETRIES + 1} attempts: ${lastError.message}`
-          )
-        }
+        lastError = this.normalizeRetryError(error)
+        this.throwIfFinalAttempt(attempt, errorContext, lastError)
       }
     }
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       `${errorContext}: ${lastError?.message || "Unknown error"}`
+    )
+  }
+
+  private async waitBeforeRetry(attempt: number): Promise<void> {
+    if (attempt === 0) {
+      return
+    }
+
+    await this.sleep(this.INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1))
+  }
+
+  private async runRetryAttempt<T>(
+    operation: () => Promise<Response>,
+    handleResponse: (response: Response) => Promise<T>,
+    attempt: number
+  ): Promise<RetryAttemptResult<T>> {
+    const response = await operation()
+
+    if (this.isRetryable(response.status) && attempt < this.MAX_RETRIES) {
+      return {
+        retry: true,
+        error: new Error(`${response.status} - ${await response.text()}`),
+      }
+    }
+
+    return {
+      retry: false,
+      value: await handleResponse(response),
+    }
+  }
+
+  private normalizeRetryError(error: unknown): Error {
+    if (error instanceof MedusaError) {
+      throw error
+    }
+
+    return error instanceof Error ? error : new Error(String(error))
+  }
+
+  private throwIfFinalAttempt(
+    attempt: number,
+    errorContext: string,
+    lastError: Error
+  ): void {
+    if (attempt !== this.MAX_RETRIES) {
+      return
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${errorContext} after ${this.MAX_RETRIES + 1} attempts: ${lastError.message}`
     )
   }
 

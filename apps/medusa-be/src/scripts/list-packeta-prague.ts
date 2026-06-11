@@ -13,10 +13,7 @@ import {
  *
  * Default city is "praha" (case-insensitive substring match).
  */
-export default async function listPacketaPrague({
-  container,
-  args,
-}: ExecArgs) {
+export default async function listPacketaPrague({ container, args }: ExecArgs) {
   const cityFilter = (args[0] ?? "praha").toLowerCase()
 
   const packetaService = container.resolve<PacketaClientModuleService>(
