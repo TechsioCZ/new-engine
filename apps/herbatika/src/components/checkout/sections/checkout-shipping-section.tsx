@@ -5,6 +5,7 @@ import {
 } from "@/components/checkout/carrier-pickup.utils"
 import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
@@ -86,7 +87,7 @@ export function CheckoutShippingSection({
               }
 
               onPendingPickupOptionIdChange(null)
-              void onSelectShipping(value)
+              runDetachedPromise(onSelectShipping(value))
             }}
             options={shippingOptions.map((option) => {
               const optionPrice = shippingPrices[option.id] ?? 0
@@ -103,7 +104,7 @@ export function CheckoutShippingSection({
                     disabled={isBusy}
                     onConfirm={(data) => {
                       onPendingPickupOptionIdChange(null)
-                      void onSelectShipping(option.id, data)
+                      runDetachedPromise(onSelectShipping(option.id, data))
                     }}
                     requirement={pickupRequirement}
                   />

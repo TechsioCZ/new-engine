@@ -1,20 +1,26 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import type { StorefrontProductListInput } from "./product-query-config"
+import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
 import {
-  buildProductListParams,
-  PRODUCT_CARD_FIELDS,
-  PRODUCT_DETAIL_FIELDS,
-  RELATED_PRODUCT_FIELDS,
-  SEARCH_PRODUCT_CARD_FIELDS,
+  buildProductListParams as buildStorefrontProductListParams,
+  PRODUCT_CARD_FIELDS as STOREFRONT_PRODUCT_CARD_FIELDS,
+  PRODUCT_DETAIL_FIELDS as STOREFRONT_PRODUCT_DETAIL_FIELDS,
+  RELATED_PRODUCT_FIELDS as STOREFRONT_RELATED_PRODUCT_FIELDS,
+  SEARCH_PRODUCT_CARD_FIELDS as STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS,
 } from "./product-query-config"
 import { storefront } from "./storefront"
+
+export const buildProductListParams = buildStorefrontProductListParams
+export const PRODUCT_CARD_FIELDS = STOREFRONT_PRODUCT_CARD_FIELDS
+export const PRODUCT_DETAIL_FIELDS = STOREFRONT_PRODUCT_DETAIL_FIELDS
+export const RELATED_PRODUCT_FIELDS = STOREFRONT_RELATED_PRODUCT_FIELDS
+export const SEARCH_PRODUCT_CARD_FIELDS = STOREFRONT_SEARCH_PRODUCT_CARD_FIELDS
 
 type ProductHooks = typeof storefront.hooks.products
 type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1]
 
-export type ProductListInput = StorefrontProductListInput & {
+export type ProductListInput = BaseStorefrontProductListInput & {
   enabled?: boolean
 }
 
@@ -68,12 +74,4 @@ export const usePrefetchProducts = (
         : never
     ) => prefetch.delayedPrefetch(toProductListParams(input), ...prefetchArgs),
   }
-}
-
-export {
-  buildProductListParams,
-  RELATED_PRODUCT_FIELDS,
-  PRODUCT_CARD_FIELDS,
-  PRODUCT_DETAIL_FIELDS,
-  SEARCH_PRODUCT_CARD_FIELDS,
 }

@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { getProductListTitle } from "@/lib/storefront/product-lists"
 import type { AccountProductListsController } from "./use-account-product-lists"
 
@@ -28,7 +29,9 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
             disabled={accountLists.deleteListMutation.isPending}
             icon="token-icon-trash"
             isLoading={accountLists.deleteListMutation.isPending}
-            onClick={() => void accountLists.handleDeleteList()}
+            onClick={() => {
+              runDetachedPromise(accountLists.handleDeleteList())
+            }}
             size="sm"
             type="button"
             variant="danger"

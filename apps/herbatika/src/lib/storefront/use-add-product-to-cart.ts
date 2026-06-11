@@ -38,10 +38,11 @@ const DEFAULT_MESSAGES = {
   failed: "Pridanie do košíka zlyhalo.",
 } satisfies Required<AddToCartMessages>
 
+const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
+  /insufficient_inventory|required inventory|does not have the required inventory/i
+
 const isInsufficientInventoryError = (message: string) =>
-  /insufficient_inventory|required inventory|does not have the required inventory/i.test(
-    message
-  )
+  INSUFFICIENT_INVENTORY_ERROR_PATTERN.test(message)
 
 const resolveInsufficientQuantityMessage = (
   availableQuantity: number | null,
@@ -86,6 +87,46 @@ const resolveLineItemMetadata = (product: AddProductToCartInput["product"]) => {
   return topOffer ? { top_offer: topOffer } : undefined
 }
 
+const assertAddProductToCartVariant = ({
+  messages,
+  product,
+  quantity,
+  variantId,
+}: {
+  messages: Required<AddToCartMessages>
+  product: AddProductToCartInput["product"]
+  quantity: number
+  variantId?: string | null
+}) => {
+  const resolvedVariant = resolveProductVariant(product, variantId)
+  const resolvedVariantId = resolvedVariant?.id ?? null
+
+  if (!(resolvedVariantId && resolvedVariant)) {
+    throw new Error(messages.missingVariant)
+  }
+
+  if (typeof resolvedVariant.calculated_price?.calculated_amount !== "number") {
+    throw new Error(messages.unavailableInRegion)
+  }
+
+  const inventoryState = resolveVariantInventoryState(resolvedVariant, quantity)
+
+  if (!inventoryState.isInStock) {
+    throw new Error(messages.outOfStock)
+  }
+
+  if (!inventoryState.isPurchasable) {
+    throw new Error(
+      resolveInsufficientQuantityMessage(
+        inventoryState.availableQuantity,
+        messages.outOfStock
+      )
+    )
+  }
+
+  return resolvedVariantId
+}
+
 export function useAddProductToCart({
   regionId,
   countryCode,
@@ -108,37 +149,12 @@ export function useAddProductToCart({
       throw new Error(resolvedMessages.missingRegion)
     }
 
-    const resolvedVariant = resolveProductVariant(product, variantId)
-    const resolvedVariantId = resolvedVariant?.id ?? null
-
-    if (!(resolvedVariantId && resolvedVariant)) {
-      throw new Error(resolvedMessages.missingVariant)
-    }
-
-    const resolvedVariantAmount =
-      resolvedVariant.calculated_price?.calculated_amount
-
-    if (typeof resolvedVariantAmount !== "number") {
-      throw new Error(resolvedMessages.unavailableInRegion)
-    }
-
-    const inventoryState = resolveVariantInventoryState(
-      resolvedVariant,
-      quantity
-    )
-
-    if (!inventoryState.isInStock) {
-      throw new Error(resolvedMessages.outOfStock)
-    }
-
-    if (!inventoryState.isPurchasable) {
-      throw new Error(
-        resolveInsufficientQuantityMessage(
-          inventoryState.availableQuantity,
-          resolvedMessages.outOfStock
-        )
-      )
-    }
+    const resolvedVariantId = assertAddProductToCartVariant({
+      messages: resolvedMessages,
+      product,
+      quantity,
+      variantId,
+    })
 
     setActiveProductId(product.id)
 

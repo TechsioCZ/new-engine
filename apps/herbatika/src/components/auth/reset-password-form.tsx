@@ -11,6 +11,7 @@ import {
   resetPasswordValidators,
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 type ResetPasswordFormProps = {
   isBusy: boolean
@@ -92,7 +93,7 @@ export const ResetPasswordForm = ({
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
-        void form.handleSubmit()
+        runDetachedPromise(form.handleSubmit())
       }}
     >
       {submitError && (

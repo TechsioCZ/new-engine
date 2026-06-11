@@ -15,6 +15,7 @@ import { ProductDetailSkeleton } from "@/components/product-detail/sections/prod
 import { ProductDetailTabs } from "@/components/product-detail/sections/product-detail-tabs"
 import { useProductDetailController } from "@/components/product-detail/use-product-detail-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 export function ProductDetail({ handle }: ProductDetailProps) {
   const controller = useProductDetailController({ handle })
@@ -42,7 +43,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
           </StatusText>
           <Button
             onClick={() => {
-              void controller.productQuery.query.refetch()
+              runDetachedPromise(controller.productQuery.query.refetch())
             }}
             variant="secondary"
           >

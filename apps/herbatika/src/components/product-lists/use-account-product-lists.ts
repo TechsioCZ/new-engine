@@ -35,17 +35,44 @@ import {
   uniqueProductIds,
 } from "./account-product-lists.utils"
 
+const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/i
+
 const resolveListCartErrorMessage = (error: unknown) => {
   const errorMessage = resolveErrorMessage(
     error,
     "Zoznam sa nepodarilo pridať do košíka."
   )
 
-  if (/has no variant selected|no variant/i.test(errorMessage)) {
+  if (MISSING_VARIANT_ERROR_PATTERN.test(errorMessage)) {
     return "Niektoré produkty v zozname nemajú vybranú variantu."
   }
 
   return errorMessage
+}
+
+const showPartialListCartResult = ({
+  failedCount,
+  toast,
+  totalCount,
+}: {
+  failedCount: number
+  toast: ReturnType<typeof useAppToast>
+  totalCount: number
+}) => {
+  if (failedCount === 0) {
+    return
+  }
+
+  if (failedCount === totalCount) {
+    toast.error({
+      title: "Dostupné položky sa nepodarilo pridať do košíka.",
+    })
+    return
+  }
+
+  toast.warning({
+    title: "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
+  })
 }
 
 export function useAccountProductLists() {
@@ -161,12 +188,12 @@ export function useAccountProductLists() {
     const activeListExists = sortedLists.some(
       (list) => list.id === activeListId
     )
-    const nextActiveListId =
-      requestedListId && requestedListExists
-        ? requestedListId
-        : activeListExists
-          ? activeListId
-          : sortedLists[0].id
+    let nextActiveListId = sortedLists[0].id
+    if (requestedListId && requestedListExists) {
+      nextActiveListId = requestedListId
+    } else if (activeListExists && activeListId) {
+      nextActiveListId = activeListId
+    }
 
     if (nextActiveListId !== activeListId) {
       setActiveListId(nextActiveListId)
@@ -256,6 +283,32 @@ export function useAccountProductLists() {
     }
   }
 
+  const addPurchasableItemsToCart = async () => {
+    const { purchasableItems } = activeListAvailabilitySummary
+    let failedCount = 0
+
+    for (const purchasableItem of purchasableItems) {
+      const { item, product } = purchasableItem
+
+      setActiveProductId(product.id)
+
+      try {
+        await addToCart.addProductToCart({
+          product,
+          quantity: resolveProductListItemQuantity(item),
+          variantId: item.variant_id,
+        })
+      } catch {
+        failedCount += 1
+      }
+    }
+
+    return {
+      failedCount,
+      totalCount: purchasableItems.length,
+    }
+  }
+
   const handleAddListToCart = async () => {
     if (!(activeList?.id && activeListAvailabilitySummary.canAddAnyToCart)) {
       return
@@ -268,56 +321,28 @@ export function useAccountProductLists() {
       return
     }
 
-    if (activeListAvailabilitySummary.canAddWholeList) {
-      try {
+    setIsAddingListToCart(true)
+
+    try {
+      if (activeListAvailabilitySummary.canAddWholeList) {
         await createListCartMutation.mutateAsync({
           listId: activeList.id,
           regionId: region.region_id,
           countryCode: region.country_code,
           email: authQuery.customer?.email,
         })
-      } catch (error) {
-        toast.error({ title: resolveListCartErrorMessage(error) })
-      }
-      return
-    }
-
-    const { purchasableItems } = activeListAvailabilitySummary
-
-    setIsAddingListToCart(true)
-
-    try {
-      let failedCount = 0
-
-      for (const purchasableItem of purchasableItems) {
-        const { item, product } = purchasableItem
-
-        setActiveProductId(product.id)
-
-        try {
-          await addToCart.addProductToCart({
-            product,
-            quantity: resolveProductListItemQuantity(item),
-            variantId: item.variant_id,
-          })
-        } catch {
-          failedCount += 1
-        }
-      }
-
-      if (failedCount === 0) {
         return
       }
 
-      if (failedCount === purchasableItems.length) {
-        toast.error({
-          title: "Dostupné položky sa nepodarilo pridať do košíka.",
-        })
-      } else {
-        toast.warning({
-          title: "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
-        })
-      }
+      const addResult = await addPurchasableItemsToCart()
+
+      showPartialListCartResult({
+        failedCount: addResult.failedCount,
+        toast,
+        totalCount: addResult.totalCount,
+      })
+    } catch (error) {
+      toast.error({ title: resolveListCartErrorMessage(error) })
     } finally {
       setActiveProductId(null)
       setIsAddingListToCart(false)

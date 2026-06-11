@@ -10,6 +10,7 @@ import {
   resolveCatalogActiveFilterCount,
   resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   PLP_PAGE_SIZE,
@@ -53,7 +54,7 @@ export function useBrandListingController({
       return
     }
 
-    void setQueryState({ brand: [] })
+    runDetachedPromise(setQueryState({ brand: [] }))
   }, [queryBrandSignature, setQueryState])
 
   const catalogProductsInput = useMemo(

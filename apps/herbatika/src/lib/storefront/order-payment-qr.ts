@@ -1,9 +1,10 @@
 import {
-  ORDER_QR_PAYMENT_PROVIDER_ID,
-  type StorefrontOrderPaymentQrStatus,
+  type StorefrontOrderPaymentQrStatus as BaseStorefrontOrderPaymentQrStatus,
+  ORDER_QR_PAYMENT_PROVIDER_ID as ORDER_QR_PAYMENT_PROVIDER_ID_VALUE,
 } from "./order-payment-qr.constants"
-export { ORDER_QR_PAYMENT_PROVIDER_ID }
-export type { StorefrontOrderPaymentQrStatus }
+
+export const ORDER_QR_PAYMENT_PROVIDER_ID = ORDER_QR_PAYMENT_PROVIDER_ID_VALUE
+export type StorefrontOrderPaymentQrStatus = BaseStorefrontOrderPaymentQrStatus
 
 export type StorefrontOrderPaymentQr = {
   amount: number | null

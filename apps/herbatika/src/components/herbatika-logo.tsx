@@ -16,12 +16,12 @@ export function HerbatikaLogo({
   imageClassName,
   size = "md",
 }: HerbatikaLogoProps) {
-  const sizeClass =
-    size === "sm"
-      ? "h-11 w-auto"
-      : size === "lg"
-        ? "h-header-logo w-auto"
-        : "h-13 w-auto"
+  let sizeClass = "h-13 w-auto"
+  if (size === "sm") {
+    sizeClass = "h-11 w-auto"
+  } else if (size === "lg") {
+    sizeClass = "h-header-logo w-auto"
+  }
   const imageClasses = imageClassName
     ? `${sizeClass} ${imageClassName}`
     : sizeClass

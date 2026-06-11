@@ -18,6 +18,10 @@ import {
 } from "@/components/product-detail/utils/value-utils"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 
+const SECTION_KEY_WHITESPACE_PATTERN = /\s+/g
+const SECTION_KEY_UNSUPPORTED_CHARS_PATTERN = /[^a-z0-9_-]/g
+const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/
+
 const normalizeSectionKey = (value: unknown): string | null => {
   const parsed = asString(value)
   if (!parsed) {
@@ -26,8 +30,8 @@ const normalizeSectionKey = (value: unknown): string | null => {
 
   const normalized = parsed
     .toLowerCase()
-    .replace(/\s+/g, "_")
-    .replace(/[^a-z0-9_-]/g, "")
+    .replace(SECTION_KEY_WHITESPACE_PATTERN, "_")
+    .replace(SECTION_KEY_UNSUPPORTED_CHARS_PATTERN, "")
 
   return normalized.length > 0 ? normalized : null
 }
@@ -68,7 +72,7 @@ export const normalizeCategoryName = (value?: string | null) => {
     return "Kategória"
   }
 
-  return value.replace(/^>\s*/, "").trim()
+  return value.replace(CATEGORY_NAME_PREFIX_PATTERN, "").trim()
 }
 
 export const resolveProductImages = (product: Product | null): string[] => {

@@ -11,13 +11,15 @@ import type {
 
 type CartPayloadInput = Record<string, unknown> & { salesChannelId?: string }
 
+const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/
+
 const normalizeCountryCode = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
     return
   }
 
   const normalized = value.trim().toLowerCase()
-  if (!/^[a-z]{2}$/.test(normalized)) {
+  if (!COUNTRY_CODE_PATTERN.test(normalized)) {
     return
   }
 

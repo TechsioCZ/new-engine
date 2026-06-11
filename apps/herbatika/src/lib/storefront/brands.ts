@@ -19,6 +19,8 @@ type RawStorefrontBrandInput = {
 
 const BRAND_FACET_PREFIX = "brand-"
 const NUMERIC_BRAND_GROUP = "0-9"
+const DIGIT_CHARACTER_PATTERN = /^\d$/
+const LATIN_UPPERCASE_CHARACTER_PATTERN = /^[A-Z]$/
 const BRAND_GROUP_ORDER = [
   "A",
   "B",
@@ -112,11 +114,11 @@ export const resolveBrandBySlug = (brands: StorefrontBrand[], slug: string) => {
 const resolveBrandGroupLetter = (brand: StorefrontBrand) => {
   const firstCharacter = createBrandSlug(brand.title).charAt(0).toUpperCase()
 
-  if (/^\d$/.test(firstCharacter)) {
+  if (DIGIT_CHARACTER_PATTERN.test(firstCharacter)) {
     return NUMERIC_BRAND_GROUP
   }
 
-  if (/^[A-Z]$/.test(firstCharacter)) {
+  if (LATIN_UPPERCASE_CHARACTER_PATTERN.test(firstCharacter)) {
     return firstCharacter
   }
 

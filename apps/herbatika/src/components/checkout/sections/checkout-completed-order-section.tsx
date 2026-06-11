@@ -135,6 +135,7 @@ function CheckoutPaymentQrPanel({
           <div
             aria-label={`QR kód pre platbu objednávky ${qrPayment.orderDisplayId}`}
             className="aspect-square w-950 max-w-full overflow-hidden rounded-sm border border-border-primary bg-surface p-200 [&_svg]:h-full [&_svg]:w-full"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: QR SVG is generated server-side with the qrcode library from the SPAYD payment payload.
             dangerouslySetInnerHTML={{ __html: qrPayment.qrSvg }}
             role="img"
           />

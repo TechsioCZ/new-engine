@@ -5,7 +5,7 @@ type LogoutResponse = {
   ok: true
 }
 
-export async function POST() {
+export function POST() {
   const response = NextResponse.json<LogoutResponse>(
     { ok: true },
     { status: 200 }

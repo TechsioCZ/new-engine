@@ -10,6 +10,7 @@ import {
   resolveShippingIcon,
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
 type CheckoutCompleteSectionProps = {
@@ -160,7 +161,7 @@ export function CheckoutCompleteSection({
             iconPosition="right"
             isLoading={isCompletingOrder}
             onClick={() => {
-              void onCompleteOrder()
+              runDetachedPromise(onCompleteOrder())
             }}
             size="lg"
             type="button"

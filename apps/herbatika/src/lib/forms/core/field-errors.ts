@@ -74,6 +74,17 @@ const resolveErrorFromValidationSources = (
 const resolveFallbackFieldError = (meta: FieldErrorMeta) =>
   toFieldErrorText(meta.errors[0])
 
+const LIVE_VALIDATION_SOURCES = ["onDynamic", "onChange"] as const
+const BLURRED_SUBMITTED_VALIDATION_SOURCES = [
+  "onServer",
+  "onSubmit",
+  "onDynamic",
+  "onChange",
+  "onBlur",
+] as const
+const SUBMITTED_VALIDATION_SOURCES = ["onServer", "onSubmit", "onBlur"] as const
+const BLURRED_VALIDATION_SOURCES = ["onDynamic", "onChange", "onBlur"] as const
+
 export const shouldTrackLiveFieldFeedback = ({
   meta,
   submissionAttempts,
@@ -92,6 +103,66 @@ export const shouldTrackLiveFieldFeedback = ({
   )
 }
 
+const resolveChangedFieldError = (meta: FieldErrorMeta) => {
+  const liveResult = resolveErrorFromValidationSources(
+    meta,
+    LIVE_VALIDATION_SOURCES
+  )
+
+  return liveResult.matchedSource ? liveResult.errorText : undefined
+}
+
+const resolveSubmittedFieldError = (
+  meta: FieldErrorMeta,
+  hasChangedSinceBlur: boolean
+) => {
+  if (hasChangedSinceBlur) {
+    return resolveChangedFieldError(meta)
+  }
+
+  if (meta.isBlurred) {
+    const blurredResult = resolveErrorFromValidationSources(
+      meta,
+      BLURRED_SUBMITTED_VALIDATION_SOURCES
+    )
+
+    return blurredResult.matchedSource
+      ? blurredResult.errorText
+      : resolveFallbackFieldError(meta)
+  }
+
+  const submittedResult = resolveErrorFromValidationSources(
+    meta,
+    SUBMITTED_VALIDATION_SOURCES
+  )
+
+  if (submittedResult.matchedSource) {
+    return submittedResult.errorText
+  }
+
+  return hasValidationResultFromSources(meta, LIVE_VALIDATION_SOURCES)
+    ? undefined
+    : resolveFallbackFieldError(meta)
+}
+
+const resolveBlurredFieldError = (
+  meta: FieldErrorMeta,
+  hasChangedSinceBlur: boolean
+) => {
+  if (hasChangedSinceBlur) {
+    return resolveChangedFieldError(meta)
+  }
+
+  const blurredResult = resolveErrorFromValidationSources(
+    meta,
+    BLURRED_VALIDATION_SOURCES
+  )
+
+  return blurredResult.matchedSource
+    ? blurredResult.errorText
+    : resolveFallbackFieldError(meta)
+}
+
 export const resolveVisibleFieldError = ({
   hasChangedSinceBlur = false,
   meta,
@@ -103,78 +174,14 @@ export const resolveVisibleFieldError = ({
   }
 
   if (submissionAttempts > 0) {
-    if (hasChangedSinceBlur) {
-      const liveResult = resolveErrorFromValidationSources(meta, [
-        "onDynamic",
-        "onChange",
-      ])
-
-      if (liveResult.matchedSource) {
-        return liveResult.errorText
-      }
-
-      return
-    }
-
-    if (meta.isBlurred) {
-      const blurredResult = resolveErrorFromValidationSources(meta, [
-        "onServer",
-        "onSubmit",
-        "onDynamic",
-        "onChange",
-        "onBlur",
-      ])
-
-      if (blurredResult.matchedSource) {
-        return blurredResult.errorText
-      }
-
-      return resolveFallbackFieldError(meta)
-    }
-
-    const submittedResult = resolveErrorFromValidationSources(meta, [
-      "onServer",
-      "onSubmit",
-      "onBlur",
-    ])
-
-    if (submittedResult.matchedSource) {
-      return submittedResult.errorText
-    }
-
-    return hasValidationResultFromSources(meta, ["onDynamic", "onChange"])
-      ? undefined
-      : resolveFallbackFieldError(meta)
+    return resolveSubmittedFieldError(meta, hasChangedSinceBlur)
   }
 
   if (!meta.isBlurred) {
     return
   }
 
-  if (hasChangedSinceBlur) {
-    const liveResult = resolveErrorFromValidationSources(meta, [
-      "onDynamic",
-      "onChange",
-    ])
-
-    if (liveResult.matchedSource) {
-      return liveResult.errorText
-    }
-
-    return
-  }
-
-  const blurredResult = resolveErrorFromValidationSources(meta, [
-    "onDynamic",
-    "onChange",
-    "onBlur",
-  ])
-
-  if (blurredResult.matchedSource) {
-    return blurredResult.errorText
-  }
-
-  return resolveFallbackFieldError(meta)
+  return resolveBlurredFieldError(meta, hasChangedSinceBlur)
 }
 
 export const resolveVisibleFieldFeedback = (

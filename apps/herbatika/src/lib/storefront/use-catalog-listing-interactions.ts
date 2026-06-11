@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type { SetValues } from "nuqs"
 import { useEffect, useState } from "react"
 import { toggleSelection } from "@/components/category/category-selection-utils"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   type NuqsPlpQueryState,
   type ProductSortValue,
@@ -70,7 +71,7 @@ export function useCatalogListingPageBounds({
       return
     }
 
-    void setQueryState({ page: safeLastPage })
+    runDetachedPromise(setQueryState({ page: safeLastPage }))
   }, [isLoading, isQueryEnabled, page, setQueryState, totalPages])
 }
 
@@ -107,10 +108,12 @@ export function useCatalogListingInteractions({
   }
 
   const patchMultiSelect = (key: CatalogMultiSelectKey, itemId: string) => {
-    void setQueryState(
-      resolveCatalogQueryStatePatch(
-        queryState,
-        resolveNextMultiSelectValues(key, queryState, itemId)
+    runDetachedPromise(
+      setQueryState(
+        resolveCatalogQueryStatePatch(
+          queryState,
+          resolveNextMultiSelectValues(key, queryState, itemId)
+        )
       )
     )
   }
@@ -125,11 +128,13 @@ export function useCatalogListingInteractions({
     onIngredientToggle: (itemId: string) =>
       patchMultiSelect("ingredient", itemId),
     onPriceRangeCommit: (range: { min?: number; max?: number }) => {
-      void setQueryState(
-        resolveCatalogQueryStatePatch(queryState, {
-          price_min: range.min ?? null,
-          price_max: range.max ?? null,
-        })
+      runDetachedPromise(
+        setQueryState(
+          resolveCatalogQueryStatePatch(queryState, {
+            price_min: range.min ?? null,
+            price_max: range.max ?? null,
+          })
+        )
       )
     },
     onProductHoverEnd: (product: HttpTypes.StoreProduct) => {
@@ -149,24 +154,28 @@ export function useCatalogListingInteractions({
       )
     },
     onResetFilters: () => {
-      void setQueryState(
-        resolveCatalogQueryStatePatch(
-          queryState,
-          {
-            status: [],
-            form: [],
-            brand: [],
-            ingredient: [],
-            price_min: null,
-            price_max: null,
-          },
-          { resetPage: "always" }
+      runDetachedPromise(
+        setQueryState(
+          resolveCatalogQueryStatePatch(
+            queryState,
+            {
+              status: [],
+              form: [],
+              brand: [],
+              ingredient: [],
+              price_min: null,
+              price_max: null,
+            },
+            { resetPage: "always" }
+          )
         )
       )
     },
     onSortChange: (value: ProductSortValue) => {
-      void setQueryState(
-        resolveCatalogQueryStatePatch(queryState, { sort: value })
+      runDetachedPromise(
+        setQueryState(
+          resolveCatalogQueryStatePatch(queryState, { sort: value })
+        )
       )
     },
     onStatusToggle: (itemId: string) => patchMultiSelect("status", itemId),

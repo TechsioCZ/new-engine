@@ -11,9 +11,8 @@ import {
 import { resolveDescription } from "@/components/product-card/product-card.description"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
-
-export { getProductPriceLabel } from "@/components/product-card/product-card.pricing"
 
 export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
   isAdding: boolean
@@ -123,7 +122,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               iconSize="2xl"
               isLoading={isAdding}
               onClick={() => {
-                void onAddToCart(product)
+                runDetachedPromise(onAddToCart(product))
               }}
               size="sm"
               type="button"

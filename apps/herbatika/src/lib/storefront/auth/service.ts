@@ -127,9 +127,11 @@ export const authService = {
     await authServiceBase.logout()
     clearToken()
   },
-  async updateCustomer(input: AuthUpdateInput) {
+  updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {
-      throw new Error("updateCustomer service is not configured")
+      return Promise.reject(
+        new Error("updateCustomer service is not configured")
+      )
     }
 
     return authServiceBase.updateCustomer(input)

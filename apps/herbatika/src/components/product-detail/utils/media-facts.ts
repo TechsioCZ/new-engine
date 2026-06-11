@@ -90,6 +90,20 @@ const resolveCapsuleCount = (texts: string[]): number | null => {
   return Math.max(...candidates)
 }
 
+const resolveDailyCapsuleMatchDose = (
+  match: RegExpExecArray
+): number | null => {
+  if (match[2]) {
+    const timesPerDay = parsePositiveInt(match[1])
+    const capsulesPerIntake = parsePositiveInt(match[2])
+    return timesPerDay && capsulesPerIntake
+      ? timesPerDay * capsulesPerIntake
+      : null
+  }
+
+  return parsePositiveInt(match[1])
+}
+
 const resolveDailyCapsuleDose = (texts: string[]): number | null => {
   for (const text of texts) {
     for (const pattern of DAILY_CAPSULE_PATTERNS) {
@@ -98,17 +112,9 @@ const resolveDailyCapsuleDose = (texts: string[]): number | null => {
         continue
       }
 
-      if (match[2]) {
-        const timesPerDay = parsePositiveInt(match[1])
-        const capsulesPerIntake = parsePositiveInt(match[2])
-        if (timesPerDay && capsulesPerIntake) {
-          return timesPerDay * capsulesPerIntake
-        }
-      }
-
-      const directDose = parsePositiveInt(match[1])
-      if (directDose) {
-        return directDose
+      const dose = resolveDailyCapsuleMatchDose(match)
+      if (dose) {
+        return dose
       }
     }
   }

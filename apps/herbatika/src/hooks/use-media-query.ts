@@ -17,6 +17,8 @@ type UseMediaQueryOptions = {
   defaultMatches?: boolean
 }
 
+const noop = () => null
+
 function resolveMediaQuery(query: MediaQueryBreakpoint | string) {
   return Object.hasOwn(mediaQueryBreakpoints, query)
     ? mediaQueryBreakpoints[query as MediaQueryBreakpoint]
@@ -32,7 +34,7 @@ export function useMediaQuery(
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
       if (typeof window === "undefined") {
-        return () => {}
+        return noop
       }
 
       const mediaQueryList = window.matchMedia(mediaQuery)

@@ -9,6 +9,8 @@ type ProductDetailDeliveryInfoProps = {
   offerState: ProductOfferState
 }
 
+const DELIVERY_DATE_LABEL_PATTERN = /^u vás do\s+(.+)$/i
+
 export function ProductDetailDeliveryInfo({
   freeShippingThresholdLabel,
   offerState,
@@ -16,7 +18,9 @@ export function ProductDetailDeliveryInfo({
   const availabilityToneClass = offerState.isInStock
     ? "text-primary"
     : "text-warning"
-  const deliveryDateMatch = /^u vás do\s+(.+)$/i.exec(offerState.deliveryLabel)
+  const deliveryDateMatch = DELIVERY_DATE_LABEL_PATTERN.exec(
+    offerState.deliveryLabel
+  )
 
   return (
     <div className="rounded-lg bg-surface p-550">

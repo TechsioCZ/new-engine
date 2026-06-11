@@ -1,11 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
 
+const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/
+
 export const normalizeCategoryName = (value?: string | null) => {
   if (!value) {
     return "Kategória"
   }
 
-  return value.replace(/^>\s*/, "").trim()
+  return value.replace(CATEGORY_NAME_PREFIX_PATTERN, "").trim()
 }
 
 export const resolveCategoryRank = (

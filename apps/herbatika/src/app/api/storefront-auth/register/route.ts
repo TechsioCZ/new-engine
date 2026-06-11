@@ -31,25 +31,68 @@ const asStringOrUndefined = (value: unknown) => {
 
 const isConflictStatus = (status: number) => status === 409
 
-export async function POST(request: Request) {
-  let body: RegisterBody
+const createRegisterResponse = (token: string) => {
+  const response = NextResponse.json<RegisterResponse>(
+    {
+      token,
+    },
+    { status: 200 }
+  )
 
-  try {
-    body = (await request.json()) as RegisterBody
-  } catch {
-    return badRequest("Telo požiadavky musí byť platné JSON.")
-  }
+  setSessionTokenCookie(response, token)
+  return response
+}
 
+const parseRegisterBody = async (request: Request) => {
+  const body = (await request.json()) as RegisterBody
   const email = asStringOrUndefined(body.email)
   const password = asStringOrUndefined(body.password)
-  const firstName = asStringOrUndefined(body.first_name)
-  const lastName = asStringOrUndefined(body.last_name)
 
   if (!(email && password)) {
-    return badRequest("E-mail aj heslo sú povinné.")
+    return {
+      error: badRequest("E-mail aj heslo sú povinné."),
+      value: null,
+    }
   }
 
+  return {
+    error: null,
+    value: {
+      email,
+      password,
+      firstName: asStringOrUndefined(body.first_name),
+      lastName: asStringOrUndefined(body.last_name),
+    },
+  }
+}
+
+const refreshCustomerToken = async (loginToken: string) => {
+  const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${loginToken}`,
+    },
+    cache: "no-store",
+  })
+
+  if (!refreshResponse.ok) {
+    return loginToken
+  }
+
+  const refreshPayload = await parseResponseJson(refreshResponse)
+  return refreshPayload && typeof refreshPayload.token === "string"
+    ? refreshPayload.token
+    : loginToken
+}
+
+export async function POST(request: Request) {
   try {
+    const parsedBody = await parseRegisterBody(request)
+    if (parsedBody.error) {
+      return parsedBody.error
+    }
+
+    const { email, firstName, lastName, password } = parsedBody.value
     const registerResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/register"),
       {
@@ -127,42 +170,12 @@ export async function POST(request: Request) {
       return buildErrorResponse(createCustomerResponse)
     }
 
-    const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${loginToken}`,
-      },
-      cache: "no-store",
-    })
-
-    if (!refreshResponse.ok) {
-      const fallbackResponse = NextResponse.json<RegisterResponse>(
-        {
-          token: loginToken,
-        },
-        { status: 200 }
-      )
-
-      setSessionTokenCookie(fallbackResponse, loginToken)
-      return fallbackResponse
+    return createRegisterResponse(await refreshCustomerToken(loginToken))
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return badRequest("Telo požiadavky musí byť platné JSON.")
     }
 
-    const refreshPayload = await parseResponseJson(refreshResponse)
-    const refreshedToken =
-      refreshPayload && typeof refreshPayload.token === "string"
-        ? refreshPayload.token
-        : loginToken
-
-    const response = NextResponse.json<RegisterResponse>(
-      {
-        token: refreshedToken,
-      },
-      { status: 200 }
-    )
-
-    setSessionTokenCookie(response, refreshedToken)
-    return response
-  } catch (error) {
     return serverError("Nepodarilo sa dokončiť registráciu zákazníka.", {
       error: error instanceof Error ? error.message : String(error),
     })

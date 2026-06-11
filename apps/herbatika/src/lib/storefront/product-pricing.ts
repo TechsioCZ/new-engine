@@ -1,9 +1,9 @@
 import {
-  type HerbatikaCurrencyCode,
+  type HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode,
   normalizeSupportedCurrencyCode,
 } from "./currency"
 
-export type { HerbatikaCurrencyCode }
+export type HerbatikaCurrencyCode = BaseHerbatikaCurrencyCode
 
 export const asStorefrontRecord = (
   value: unknown

@@ -7,10 +7,9 @@ import type {
   UseCatalogProductsResult,
 } from "@techsio/storefront-data/catalog/types"
 import { useMemo } from "react"
-import {
-  type CatalogProductsParams,
-  type CatalogQueryState,
-  PLP_PAGE_SIZE,
+import type {
+  CatalogProductsParams,
+  CatalogQueryState,
 } from "./catalog-query-state"
 import { resolveVariantInventoryState } from "./product-availability"
 import { PRODUCT_CARD_FIELDS } from "./product-query-config"
@@ -153,5 +152,3 @@ export const fetchCatalogProducts = (
   input: CatalogProductsInput,
   signal?: AbortSignal
 ) => catalogService.getCatalogProducts(input, signal)
-
-export { PLP_PAGE_SIZE }

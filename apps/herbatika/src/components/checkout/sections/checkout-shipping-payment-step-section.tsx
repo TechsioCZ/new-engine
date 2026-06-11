@@ -44,12 +44,12 @@ export function CheckoutShippingPaymentStepSection({
   const hasPendingPickupRequirement = Boolean(
     pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption)
   )
-  const paymentSelectionMessage = controller.checkoutPaymentQuery
-    .canInitiatePayment
-    ? null
-    : hasPendingPickupRequirement
+  let paymentSelectionMessage: string | null = null
+  if (!controller.checkoutPaymentQuery.canInitiatePayment) {
+    paymentSelectionMessage = hasPendingPickupRequirement
       ? "Pre voľbu platby najprv vyberte výdajné miesto."
       : "Pre voľbu platby najprv vyberte dopravu."
+  }
 
   return (
     <section className="space-y-400">

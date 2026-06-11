@@ -295,5 +295,4 @@ export function AsideFilter({
   )
 }
 
-export type { AsideFilterChipItem }
 export type { AsideFilterPriceBounds, AsideFilterPriceRange }

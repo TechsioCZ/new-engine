@@ -174,6 +174,90 @@ function isTagAllowedForFile(relativeFilePath, tagName, allowByFile) {
   )
 }
 
+function resolveBannedImportFinding(node, sourceFile, rulesConfig) {
+  if (
+    !(
+      rulesConfig.bannedImports.enabled &&
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    )
+  ) {
+    return null
+  }
+
+  const moduleName = node.moduleSpecifier.text
+  const isBannedModule = rulesConfig.bannedImports.modulePatterns.some(
+    (pattern) => pattern.test(moduleName)
+  )
+
+  if (!isBannedModule) {
+    return null
+  }
+
+  const { line, column } = getLineAndColumn(
+    sourceFile,
+    node.moduleSpecifier.getStart(sourceFile)
+  )
+
+  return {
+    rule: "no-banned-ui-imports",
+    line,
+    column,
+    detail: moduleName,
+    message: rulesConfig.bannedImports.message,
+  }
+}
+
+function resolveBannedJsxTagFinding(
+  node,
+  sourceFile,
+  relativeFilePath,
+  rulesConfig
+) {
+  if (
+    !(
+      rulesConfig.bannedJsxTags.enabled &&
+      (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
+    )
+  ) {
+    return null
+  }
+
+  const tagNode = node.tagName
+  if (!isIntrinsicTagName(tagNode)) {
+    return null
+  }
+
+  const tagName = normalizedTagName(tagNode, sourceFile)
+  const isBannedTag = rulesConfig.bannedJsxTags.tags.has(tagName)
+  const isAllowed = isTagAllowedForFile(
+    relativeFilePath,
+    tagName,
+    rulesConfig.bannedJsxTags.allowByFile
+  )
+
+  if (!(isBannedTag && !isAllowed)) {
+    return null
+  }
+
+  const { line, column } = getLineAndColumn(
+    sourceFile,
+    tagNode.getStart(sourceFile)
+  )
+  const suggestion = rulesConfig.bannedJsxTags.suggestions[tagName]
+  const message = suggestion
+    ? `Nepouzivej nativni <${tagName}>. ${suggestion}`
+    : `Nepouzivej nativni <${tagName}>. Pouzij komponentu z libs/ui.`
+
+  return {
+    rule: "no-native-jsx-primitives",
+    line,
+    column,
+    detail: `<${tagName}>`,
+    message,
+  }
+}
+
 function collectFileFindings(relativeFilePath, content, rulesConfig) {
   const sourceFile = ts.createSourceFile(
     relativeFilePath,
@@ -196,65 +280,23 @@ function collectFileFindings(relativeFilePath, content, rulesConfig) {
   }
 
   const visit = (node) => {
-    if (
-      rulesConfig.bannedImports.enabled &&
-      ts.isImportDeclaration(node) &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    ) {
-      const moduleName = node.moduleSpecifier.text
-      const isBannedModule = rulesConfig.bannedImports.modulePatterns.some(
-        (pattern) => pattern.test(moduleName)
-      )
-
-      if (isBannedModule) {
-        const { line, column } = getLineAndColumn(
-          sourceFile,
-          node.moduleSpecifier.getStart(sourceFile)
-        )
-        pushFinding({
-          rule: "no-banned-ui-imports",
-          line,
-          column,
-          detail: moduleName,
-          message: rulesConfig.bannedImports.message,
-        })
-      }
+    const importFinding = resolveBannedImportFinding(
+      node,
+      sourceFile,
+      rulesConfig
+    )
+    if (importFinding) {
+      pushFinding(importFinding)
     }
 
-    if (
-      rulesConfig.bannedJsxTags.enabled &&
-      (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
-    ) {
-      const tagNode = node.tagName
-      if (isIntrinsicTagName(tagNode)) {
-        const tagName = normalizedTagName(tagNode, sourceFile)
-
-        if (
-          rulesConfig.bannedJsxTags.tags.has(tagName) &&
-          !isTagAllowedForFile(
-            relativeFilePath,
-            tagName,
-            rulesConfig.bannedJsxTags.allowByFile
-          )
-        ) {
-          const { line, column } = getLineAndColumn(
-            sourceFile,
-            tagNode.getStart(sourceFile)
-          )
-          const suggestion = rulesConfig.bannedJsxTags.suggestions[tagName]
-          const message = suggestion
-            ? `Nepouzivej nativni <${tagName}>. ${suggestion}`
-            : `Nepouzivej nativni <${tagName}>. Pouzij komponentu z libs/ui.`
-
-          pushFinding({
-            rule: "no-native-jsx-primitives",
-            line,
-            column,
-            detail: `<${tagName}>`,
-            message,
-          })
-        }
-      }
+    const jsxTagFinding = resolveBannedJsxTagFinding(
+      node,
+      sourceFile,
+      relativeFilePath,
+      rulesConfig
+    )
+    if (jsxTagFinding) {
+      pushFinding(jsxTagFinding)
     }
 
     ts.forEachChild(node, visit)

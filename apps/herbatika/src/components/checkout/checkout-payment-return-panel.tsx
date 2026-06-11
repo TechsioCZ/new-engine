@@ -14,6 +14,7 @@ import { clearStoredPaymentProviderSelection } from "@/components/checkout/check
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { SupportingText } from "@/components/text/supporting-text"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { storefront } from "@/lib/storefront/storefront"
 
@@ -85,11 +86,11 @@ export function CheckoutPaymentReturnPanel() {
       }
 
       retryTimeout = window.setTimeout(() => {
-        void completeReturnedPayment()
+        runDetachedPromise(completeReturnedPayment())
       }, PAYMENT_RETURN_RETRY_DELAY_MS)
     }
 
-    void completeReturnedPayment()
+    runDetachedPromise(completeReturnedPayment())
 
     return () => {
       didCancel = true

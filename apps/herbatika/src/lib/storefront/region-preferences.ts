@@ -11,6 +11,20 @@ export const REGION_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 const REGION_ID_PATTERN = /^reg_[a-z0-9]+$/i
 const COUNTRY_CODE_PATTERN = /^[a-z]{2}$/i
 
+type BrowserCookieStore = {
+  set: (options: {
+    expires?: number
+    name: string
+    path?: string
+    sameSite?: "lax" | "strict" | "none"
+    value: string
+  }) => Promise<void>
+}
+
+type WindowWithCookieStore = Window & {
+  cookieStore?: BrowserCookieStore
+}
+
 const normalizeRegionId = (value: string | null | undefined): string | null => {
   if (typeof value !== "string") {
     return null
@@ -39,12 +53,31 @@ export const normalizeCountryCode = (
   return normalized
 }
 
+const writeDocumentCookie = (name: string, value: string) => {
+  // biome-ignore lint/suspicious/noDocumentCookie: Legacy fallback for browsers without Cookie Store API support.
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${REGION_COOKIE_MAX_AGE}; samesite=lax`
+}
+
 const writeCookie = (name: string, value: string) => {
-  if (typeof document === "undefined") {
+  if (typeof window === "undefined") {
     return
   }
 
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${REGION_COOKIE_MAX_AGE}; samesite=lax`
+  const cookieStore = (window as WindowWithCookieStore).cookieStore
+  if (cookieStore) {
+    cookieStore
+      .set({
+        expires: Date.now() + REGION_COOKIE_MAX_AGE * 1000,
+        name,
+        path: "/",
+        sameSite: "lax",
+        value,
+      })
+      .catch(() => writeDocumentCookie(name, value))
+    return
+  }
+
+  writeDocumentCookie(name, value)
 }
 
 export const persistRegionPreference = (region: RegionInfo) => {

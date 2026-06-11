@@ -1,6 +1,7 @@
 "use client"
 
 import { useQueryStates } from "nuqs"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { normalizePage, searchQueryParsers } from "./search-query-config"
 
 type SearchQueryStateHistoryMode = "replace" | "push"
@@ -14,13 +15,15 @@ export const useSearchQueryState = () => {
     nextPage: number,
     history: SearchQueryStateHistoryMode = "push"
   ) => {
-    void setQueryState(
-      {
-        page: nextPage,
-      },
-      {
-        history,
-      }
+    runDetachedPromise(
+      setQueryState(
+        {
+          page: nextPage,
+        },
+        {
+          history,
+        }
+      )
     )
   }
 

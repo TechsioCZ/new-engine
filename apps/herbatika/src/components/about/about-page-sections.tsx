@@ -1,6 +1,6 @@
 import NextLink from "next/link"
 import { Fragment } from "react"
-import { ABOUT_PAGE } from "./about-page.data"
+import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
   AboutParagraphText,
@@ -12,13 +12,25 @@ import { AboutReviewRating } from "./about-review-rating"
 const iconLinkClassName =
   "inline-flex h-800 w-800 items-center justify-center rounded-full border border-border-secondary bg-surface text-fg-primary transition-colors hover:border-primary hover:bg-primary-light"
 
+function getAboutParagraphKey(paragraph: AboutParagraph) {
+  if (typeof paragraph === "string") {
+    return paragraph
+  }
+
+  return paragraph
+    .map((part) =>
+      typeof part === "string" ? part : `${part.label}:${part.href}`
+    )
+    .join("|")
+}
+
 function AboutLogoMeaning() {
   return (
     <section className="border-border-secondary border-t pt-650">
       <div className="max-w-5xl border-primary border-l-4 pl-400">
-        {ABOUT_PAGE.logoMeaning.paragraphs.map((paragraph, index) => (
+        {ABOUT_PAGE.logoMeaning.paragraphs.map((paragraph) => (
           <AboutParagraphText
-            key={`logo-meaning-${index}`}
+            key={`logo-meaning-${getAboutParagraphKey(paragraph)}`}
             paragraph={paragraph}
           />
         ))}
@@ -45,9 +57,9 @@ export function AboutArticleSections({
             <div className="max-w-5xl space-y-300">
               <SectionHeader title={section.title} />
               <div className="space-y-300">
-                {section.paragraphs.map((paragraph, paragraphIndex) => (
+                {section.paragraphs.map((paragraph) => (
                   <AboutParagraphText
-                    key={`${section.title}-${paragraphIndex}`}
+                    key={`${section.title}-${getAboutParagraphKey(paragraph)}`}
                     paragraph={paragraph}
                   />
                 ))}
@@ -71,10 +83,10 @@ export function AboutMilestones() {
     <section className="space-y-400 border-border-secondary border-t pt-650">
       <SectionHeader title="Kľúčové míľniky našej histórie" />
       <ol className="space-y-250">
-        {ABOUT_PAGE.milestones.map((milestone, index) => (
+        {ABOUT_PAGE.milestones.map((milestone) => (
           <li
             className="grid gap-150 border-border-secondary border-t py-250 first:border-t-0 sm:grid-cols-[5rem_minmax(0,1fr)]"
-            key={`${milestone.year}-${index}`}
+            key={`${milestone.year}-${getAboutParagraphKey(milestone.description)}`}
           >
             <p className="font-bold text-primary text-xl leading-tight">
               {milestone.year}
@@ -139,16 +151,19 @@ export function AboutCommunityAndReviews() {
     <div className="space-y-650 border-border-secondary border-t pt-650">
       <div className="grid gap-500 lg:grid-cols-2">
         <div className="space-y-300">
-          {ABOUT_PAGE.follow.paragraphs.map((paragraph, index) => (
-            <AboutParagraphText key={`follow-${index}`} paragraph={paragraph} />
+          {ABOUT_PAGE.follow.paragraphs.map((paragraph) => (
+            <AboutParagraphText
+              key={`follow-${getAboutParagraphKey(paragraph)}`}
+              paragraph={paragraph}
+            />
           ))}
           <AboutSocialLinks />
         </div>
 
         <div className="space-y-300">
-          {ABOUT_PAGE.loyalty.paragraphs.map((paragraph, index) => (
+          {ABOUT_PAGE.loyalty.paragraphs.map((paragraph) => (
             <AboutParagraphText
-              key={`loyalty-${index}`}
+              key={`loyalty-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
             />
           ))}
@@ -157,8 +172,11 @@ export function AboutCommunityAndReviews() {
 
       <section className="space-y-300">
         <SectionHeader title={ABOUT_PAGE.reviews.title} />
-        {ABOUT_PAGE.reviews.paragraphs.map((paragraph, index) => (
-          <AboutParagraphText key={`reviews-${index}`} paragraph={paragraph} />
+        {ABOUT_PAGE.reviews.paragraphs.map((paragraph) => (
+          <AboutParagraphText
+            key={`reviews-${getAboutParagraphKey(paragraph)}`}
+            paragraph={paragraph}
+          />
         ))}
         <AboutReviewRating />
       </section>
@@ -172,9 +190,9 @@ export function AboutContact() {
       <div className="space-y-350">
         <SectionHeader title={ABOUT_PAGE.contact.title} />
         <div className="space-y-300">
-          {ABOUT_PAGE.contact.paragraphs.map((paragraph, index) => (
+          {ABOUT_PAGE.contact.paragraphs.map((paragraph) => (
             <AboutParagraphText
-              key={`contact-${index}`}
+              key={`contact-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
             />
           ))}

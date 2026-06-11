@@ -5,6 +5,7 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { Fragment } from "react"
 import { AccountProductListItemRow } from "@/components/product-lists/account-product-list-item-row"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   findProductListItem,
   getProductListItemCount,
@@ -99,7 +100,9 @@ function ProductListSummary({
           icon="token-icon-cart"
           isLoading={isAddingListToCart}
           loadingText="Pridávam"
-          onClick={() => void accountLists.handleAddListToCart()}
+          onClick={() => {
+            runDetachedPromise(accountLists.handleAddListToCart())
+          }}
           size="sm"
           type="button"
           variant="primary"

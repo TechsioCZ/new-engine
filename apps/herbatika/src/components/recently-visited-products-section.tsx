@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useMemo, useState } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -97,6 +97,34 @@ export function RecentlyVisitedProductsSection({
         : [...currentProductsWithImageError, product.id]
     )
   }
+  let content: ReactNode
+  if (shouldShowSkeleton) {
+    content = (
+      <div className={RECENT_PRODUCTS_GRID_CLASSNAME}>
+        {RECENT_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
+          <HerbatikaProductCardSkeleton key={skeletonKey} variant="compact" />
+        ))}
+      </div>
+    )
+  } else if (visibleProducts.length > 0) {
+    content = (
+      <div className={RECENT_PRODUCTS_GRID_CLASSNAME}>
+        {visibleProducts.map((product, index) => (
+          <HerbatikaProductCardCompact
+            key={`recent-product-${product.id}-${index}`}
+            onCompactImageError={handleCompactImageError}
+            product={product}
+          />
+        ))}
+      </div>
+    )
+  } else {
+    content = (
+      <SupportingText className="text-fg-secondary text-sm">
+        {emptyText}
+      </SupportingText>
+    )
+  }
 
   return (
     <section
@@ -107,27 +135,7 @@ export function RecentlyVisitedProductsSection({
         <h2 className="font-bold text-3xl text-fg-primary">{headingText}</h2>
       </header>
 
-      {shouldShowSkeleton ? (
-        <div className={RECENT_PRODUCTS_GRID_CLASSNAME}>
-          {RECENT_PRODUCT_SKELETON_KEYS.map((skeletonKey) => (
-            <HerbatikaProductCardSkeleton key={skeletonKey} variant="compact" />
-          ))}
-        </div>
-      ) : visibleProducts.length > 0 ? (
-        <div className={RECENT_PRODUCTS_GRID_CLASSNAME}>
-          {visibleProducts.map((product, index) => (
-            <HerbatikaProductCardCompact
-              key={`recent-product-${product.id}-${index}`}
-              onCompactImageError={handleCompactImageError}
-              product={product}
-            />
-          ))}
-        </div>
-      ) : (
-        <SupportingText className="text-fg-secondary text-sm">
-          {emptyText}
-        </SupportingText>
-      )}
+      {content}
     </section>
   )
 }

@@ -434,8 +434,20 @@ export type MedusaStorefrontServerReadPresetResult<
 export const createMedusaStorefrontQueryKeys =
   createMedusaStorefrontQueryKeysFromFoundation
 
-function createMedusaStorefrontServerReadQueryKeys(
-  config: CreateMedusaStorefrontServerReadPresetConfig,
+function createMedusaStorefrontServerReadQueryKeys<
+  TProduct,
+  TCategory,
+  TCollection,
+  TCatalogProduct,
+  TCatalogFacets,
+>(
+  config: CreateMedusaStorefrontServerReadPresetConfig<
+    TProduct,
+    TCategory,
+    TCollection,
+    TCatalogProduct,
+    TCatalogFacets
+  >,
   defaultQueryKeys: MedusaStorefrontReadQueryKeys
 ): MedusaStorefrontReadQueryKeys {
   return {

@@ -71,7 +71,11 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
       return null
     }
 
-    return regions.find((region) => region.id === selectedRegionId) ?? null
+    return (
+      regions.find(
+        (candidateRegion) => candidateRegion.id === selectedRegionId
+      ) ?? null
+    )
   }, [regions, selectedRegionId])
 
   const region = useMemo(() => {
@@ -83,7 +87,9 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
   }, [initialRegion, selectedRegion])
 
   const setRegionById = (regionId: string) => {
-    const nextRegion = regions.find((region) => region.id === regionId)
+    const nextRegion = regions.find(
+      (candidateRegion) => candidateRegion.id === regionId
+    )
     if (!nextRegion) {
       return
     }

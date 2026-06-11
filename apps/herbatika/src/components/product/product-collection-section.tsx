@@ -90,6 +90,40 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
   const skeletonLayout: HerbatikaProductGridLayout = isCarousel
     ? "collection"
     : props.layout
+  let productContent: ReactNode
+  if (shouldShowSkeleton) {
+    productContent = <HerbatikaProductGridSkeleton layout={skeletonLayout} />
+  } else if (products.length === 0) {
+    productContent = (
+      <SupportingText className="text-fg-secondary text-sm">
+        {emptyText}
+      </SupportingText>
+    )
+  } else if (isCarousel) {
+    productContent = (
+      <InlineProductsCarousel
+        keyPrefix={keyPrefix}
+        onProductHoverEnd={onProductHoverEnd}
+        onProductHoverStart={onProductHoverStart}
+        products={products}
+        slidesLg={props.slidesLg}
+        slidesMd={props.slidesMd}
+        slidesSm={props.slidesSm}
+      />
+    )
+  } else {
+    productContent = (
+      <HerbatikaProductGrid
+        isProductAdding={props.isProductAdding}
+        keyPrefix={keyPrefix}
+        layout={props.layout}
+        onAddToCart={props.onAddToCart}
+        onProductHoverEnd={onProductHoverEnd}
+        onProductHoverStart={onProductHoverStart}
+        products={products}
+      />
+    )
+  }
 
   return (
     <section className={sectionClassNames} id={id}>
@@ -101,35 +135,7 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
         {headerAction}
       </header>
 
-      {shouldShowSkeleton ? (
-        <HerbatikaProductGridSkeleton layout={skeletonLayout} />
-      ) : products.length > 0 ? (
-        isCarousel ? (
-          <InlineProductsCarousel
-            keyPrefix={keyPrefix}
-            onProductHoverEnd={onProductHoverEnd}
-            onProductHoverStart={onProductHoverStart}
-            products={products}
-            slidesLg={props.slidesLg}
-            slidesMd={props.slidesMd}
-            slidesSm={props.slidesSm}
-          />
-        ) : (
-          <HerbatikaProductGrid
-            isProductAdding={props.isProductAdding}
-            keyPrefix={keyPrefix}
-            layout={props.layout}
-            onAddToCart={props.onAddToCart}
-            onProductHoverEnd={onProductHoverEnd}
-            onProductHoverStart={onProductHoverStart}
-            products={products}
-          />
-        )
-      ) : (
-        <SupportingText className="text-fg-secondary text-sm">
-          {emptyText}
-        </SupportingText>
-      )}
+      {productContent}
     </section>
   )
 }

@@ -29,6 +29,37 @@ type UseCheckoutActionsProps = {
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
 }
 
+const resolveOrderCompletionBlocker = ({
+  cartId,
+  itemCount,
+  selectedPaymentProviderId,
+  selectedShippingMethodId,
+}: Pick<
+  UseCheckoutActionsProps,
+  | "cartId"
+  | "itemCount"
+  | "selectedPaymentProviderId"
+  | "selectedShippingMethodId"
+>) => {
+  if (!cartId) {
+    return "Košík nie je pripravený."
+  }
+
+  if (itemCount < 1) {
+    return "Košík je prázdny. Pridajte najprv produkty."
+  }
+
+  if (!selectedShippingMethodId) {
+    return "Vyberte dopravu pred dokončením objednávky."
+  }
+
+  if (!selectedPaymentProviderId) {
+    return "Vyberte platobnú metódu pred dokončením objednávky."
+  }
+
+  return null
+}
+
 export function useCheckoutActions({
   cartId,
   canInitiatePayment,
@@ -74,7 +105,7 @@ export function useCheckoutActions({
     }
   }
 
-  const handleSelectPaymentProvider = async (providerId: string) => {
+  const handleSelectPaymentProvider = (providerId: string) => {
     resetFeedback()
 
     if (!canInitiatePayment) {
@@ -94,18 +125,14 @@ export function useCheckoutActions({
   const handleCompleteOrder = async () => {
     resetFeedback()
 
-    if (!cartId) {
-      onCheckoutErrorChange("Košík nie je pripravený.")
-      return
-    }
-
-    if (itemCount < 1) {
-      onCheckoutErrorChange("Košík je prázdny. Pridajte najprv produkty.")
-      return
-    }
-
-    if (!selectedShippingMethodId) {
-      onCheckoutErrorChange("Vyberte dopravu pred dokončením objednávky.")
+    const blockerMessage = resolveOrderCompletionBlocker({
+      cartId,
+      itemCount,
+      selectedPaymentProviderId,
+      selectedShippingMethodId,
+    })
+    if (blockerMessage) {
+      onCheckoutErrorChange(blockerMessage)
       return
     }
 

@@ -6,6 +6,7 @@ import {
   resolveProviderLabel,
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
 type PaymentProvider = {
@@ -16,7 +17,7 @@ type CheckoutPaymentSectionProps = {
   canInitiatePayment: boolean
   isBusy: boolean
   isInitiatingPayment: boolean
-  onSelectPaymentProvider: (providerId: string) => Promise<void>
+  onSelectPaymentProvider: (providerId: string) => Promise<void> | void
   paymentProviders: PaymentProvider[]
   selectedPaymentProviderId?: string | null
   selectionMessage?: string | null
@@ -49,7 +50,7 @@ export function CheckoutPaymentSection({
           <CheckoutOptionRadioCard
             label="Platba"
             onValueChange={(value) => {
-              void onSelectPaymentProvider(value)
+              runDetachedPromise(onSelectPaymentProvider(value))
             }}
             options={paymentProviders.map((provider, index) => {
               const providerId = resolveProviderId(provider)

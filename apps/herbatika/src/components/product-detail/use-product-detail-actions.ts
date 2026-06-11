@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
@@ -61,20 +62,24 @@ export function useProductDetailActions({
         return
       }
 
-      void addProductToCart(product, quantity, selectedVariant.id)
+      runDetachedPromise(
+        addProductToCart(product, quantity, selectedVariant.id)
+      )
     },
     handleAddRelatedProductToCart: (productToAdd: Product) => {
-      void addProductToCart(productToAdd, 1)
+      runDetachedPromise(addProductToCart(productToAdd, 1))
     },
     handleAddVolumeDiscountToCart: () => {
       if (!(product && selectedVariant?.id && selectedVolumeDiscountOption)) {
         return
       }
 
-      void addProductToCart(
-        product,
-        selectedVolumeDiscountOption.quantity,
-        selectedVariant.id
+      runDetachedPromise(
+        addProductToCart(
+          product,
+          selectedVolumeDiscountOption.quantity,
+          selectedVariant.id
+        )
       )
     },
     handleRelatedProductHoverEnd: (

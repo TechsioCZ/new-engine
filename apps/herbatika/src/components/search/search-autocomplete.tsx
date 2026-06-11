@@ -30,6 +30,8 @@ export function SearchAutocomplete({
   })
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Blur on the combobox wrapper closes the suggestion panel when focus leaves the whole search control.
+    // biome-ignore lint/a11y/noStaticElementInteractions: This wrapper manages composite combobox focus rather than acting as an interactive control.
     <div className="relative w-full" onBlur={controller.handleBlur}>
       <SearchForm
         className="w-full"

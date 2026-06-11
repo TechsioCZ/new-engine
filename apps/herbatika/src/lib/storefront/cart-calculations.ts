@@ -4,12 +4,6 @@ import {
   resolveCartShippingTaxAmount,
 } from "./cart-tax-calculations"
 
-export {
-  resolveCartItemsTaxAmount,
-  resolveCartShippingSubtotalAmount,
-  resolveCartShippingTaxAmount,
-} from "./cart-tax-calculations"
-
 export const asFiniteNumber = (value: unknown): number | null => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return null

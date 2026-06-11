@@ -15,6 +15,7 @@ import {
 } from "@/lib/storefront/account-settings-validators"
 import { useAuth } from "@/lib/storefront/auth"
 import { useUpdateCustomer } from "@/lib/storefront/customers"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
 export function AccountSettings() {
@@ -103,7 +104,7 @@ export function AccountSettings() {
         noValidate
         onSubmit={(event) => {
           event.preventDefault()
-          void form.handleSubmit()
+          runDetachedPromise(form.handleSubmit())
         }}
       >
         {submitError && (

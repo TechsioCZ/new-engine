@@ -33,6 +33,21 @@ type UseCheckoutDetailsFormProps = {
   regionCountryCode?: string
 }
 
+type CarrierPickupSyncField =
+  | "billing.address2"
+  | "billing.firstName"
+  | "billing.lastName"
+  | "shipping.address1"
+  | "shipping.address2"
+  | "shipping.city"
+  | "shipping.countryCode"
+  | "shipping.postalCode"
+  | "useSameAddress"
+
+type CheckoutFormFieldSetter = {
+  setFieldValue(field: CarrierPickupSyncField, value: string | boolean): void
+}
+
 type CheckoutTogglePreferences = Pick<
   CheckoutDetailsValues,
   "isCompanyPurchase" | "useSameAddress"
@@ -50,6 +65,92 @@ type CheckoutLocalOnlyAddressValues = Record<LocalOnlyAddressField, string>
 type CheckoutStoredState = Partial<CheckoutTogglePreferences> & {
   billing?: CheckoutLocalOnlyAddressValues
   shipping?: CheckoutLocalOnlyAddressValues
+}
+
+const setCheckoutFieldIfChanged = (
+  form: CheckoutFormFieldSetter,
+  field: CarrierPickupSyncField,
+  currentValue: string | boolean,
+  nextValue: string | boolean
+) => {
+  if (currentValue !== nextValue) {
+    form.setFieldValue(field, nextValue)
+  }
+}
+
+const syncCarrierPickupShippingFields = ({
+  form,
+  pickupAddress,
+  values,
+}: {
+  form: CheckoutFormFieldSetter
+  pickupAddress: CarrierPickupAddress["address"] | undefined
+  values: CheckoutDetailsValues
+}) => {
+  if (!pickupAddress) {
+    return
+  }
+
+  setCheckoutFieldIfChanged(
+    form,
+    "shipping.address1",
+    values.shipping.address1,
+    pickupAddress.address1
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "shipping.address2",
+    values.shipping.address2,
+    pickupAddress.address2
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "shipping.city",
+    values.shipping.city,
+    pickupAddress.city
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "shipping.countryCode",
+    values.shipping.countryCode,
+    pickupAddress.countryCode
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "shipping.postalCode",
+    values.shipping.postalCode,
+    pickupAddress.postalCode
+  )
+}
+
+const syncCarrierPickupBillingFields = (
+  form: CheckoutFormFieldSetter,
+  values: CheckoutDetailsValues
+) => {
+  setCheckoutFieldIfChanged(
+    form,
+    "useSameAddress",
+    values.useSameAddress,
+    false
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "billing.address2",
+    values.billing.address2,
+    ""
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "billing.firstName",
+    values.billing.firstName,
+    values.shipping.firstName
+  )
+  setCheckoutFieldIfChanged(
+    form,
+    "billing.lastName",
+    values.billing.lastName,
+    values.shipping.lastName
+  )
 }
 
 const mergeCheckoutAddressValues = (
@@ -251,15 +352,20 @@ const resolveCheckoutHydratedValues = ({
     resolvedBillingAddressValues
   )
   const hasHydratedAddress = Boolean(shippingAddress || billingAddress)
+  let useSameAddress = true
+  if (hasCarrierPickupAddress) {
+    useSameAddress = false
+  } else if (hasHydratedAddress) {
+    useSameAddress = resolveAddressFormsMatch(
+      shippingAddressValues,
+      billingAddressValues
+    )
+  }
 
   return {
     shipping: shippingAddressValues,
     billing: billingAddressValues,
-    useSameAddress: hasCarrierPickupAddress
-      ? false
-      : hasHydratedAddress
-        ? resolveAddressFormsMatch(shippingAddressValues, billingAddressValues)
-        : true,
+    useSameAddress,
     isCompanyPurchase: Boolean(
       billingAddress?.company ??
         (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
@@ -483,61 +589,13 @@ export function useCheckoutDetailsForm({
       return
     }
 
-    const pickupAddress = carrierPickupAddress?.address
-
-    if (pickupAddress) {
-      if (values.shipping.address1 !== pickupAddress.address1) {
-        form.setFieldValue("shipping.address1", pickupAddress.address1)
-      }
-
-      if (values.shipping.address2 !== pickupAddress.address2) {
-        form.setFieldValue("shipping.address2", pickupAddress.address2)
-      }
-
-      if (values.shipping.city !== pickupAddress.city) {
-        form.setFieldValue("shipping.city", pickupAddress.city)
-      }
-
-      if (values.shipping.countryCode !== pickupAddress.countryCode) {
-        form.setFieldValue("shipping.countryCode", pickupAddress.countryCode)
-      }
-
-      if (values.shipping.postalCode !== pickupAddress.postalCode) {
-        form.setFieldValue("shipping.postalCode", pickupAddress.postalCode)
-      }
-    }
-
-    if (values.useSameAddress) {
-      form.setFieldValue("useSameAddress", false)
-    }
-
-    if (values.billing.address2) {
-      form.setFieldValue("billing.address2", "")
-    }
-
-    if (values.billing.firstName !== values.shipping.firstName) {
-      form.setFieldValue("billing.firstName", values.shipping.firstName)
-    }
-
-    if (values.billing.lastName !== values.shipping.lastName) {
-      form.setFieldValue("billing.lastName", values.shipping.lastName)
-    }
-  }, [
-    carrierPickupAddress,
-    form,
-    hasCarrierPickupShipping,
-    values.billing.address2,
-    values.billing.firstName,
-    values.billing.lastName,
-    values.shipping.address1,
-    values.shipping.address2,
-    values.shipping.city,
-    values.shipping.countryCode,
-    values.shipping.firstName,
-    values.shipping.lastName,
-    values.shipping.postalCode,
-    values.useSameAddress,
-  ])
+    syncCarrierPickupShippingFields({
+      form,
+      pickupAddress: carrierPickupAddress?.address,
+      values,
+    })
+    syncCarrierPickupBillingFields(form, values)
+  }, [carrierPickupAddress, form, hasCarrierPickupShipping, values])
 
   const resetToValues = (nextValues: CheckoutDetailsValues) => {
     const nextStoredState = resolveStoredCheckoutStateFromValues({

@@ -13,6 +13,11 @@ const BASE_EXCLUDE_PATTERNS = [
 const CLASS_TOKEN_SPLIT_REGEX = /\s+/
 const VARIANT_PREFIX_REGEX =
   /^(?:[a-z0-9@_-]+:|[a-z0-9@_-]+-\[[^\]]+\]:|data-\[[^\]]+\]:|aria-\[[^\]]+\]:|\[[^\]]+\]:|\*:|!)/i
+const PLAUSIBLE_CLASS_TOKEN_REGEX = /[a-z]/i
+const CSS_TOKEN_SHORTHAND_REGEX = /\(--[\w-]+\)/
+const CSS_VAR_TOKEN_REGEX = /var\(--[\w-]+\)/
+const OPACITY_SUFFIX_REGEX = /\/\d+$/
+const NUMERIC_SCALE_VALUE_REGEX = /^\d+(?:\.\d+)?$/
 
 function parseArgs(argv) {
   const args = { configPath: DEFAULT_CONFIG_PATH, json: false }
@@ -110,7 +115,7 @@ function isPlausibleClassToken(token) {
     return false
   }
 
-  return /[a-z]/i.test(token)
+  return PLAUSIBLE_CLASS_TOKEN_REGEX.test(token)
 }
 
 function extractClassEntries(content) {
@@ -229,8 +234,8 @@ function checkNoArbitraryValues(className, ruleConfig) {
   const hasArbitrarySyntax =
     baseClass.includes("[") ||
     baseClass.includes("]") ||
-    /\(--[\w-]+\)/.test(baseClass) ||
-    /var\(--[\w-]+\)/.test(baseClass)
+    CSS_TOKEN_SHORTHAND_REGEX.test(baseClass) ||
+    CSS_VAR_TOKEN_REGEX.test(baseClass)
 
   if (!hasArbitrarySyntax) {
     return null
@@ -248,7 +253,7 @@ function checkNoTailwindPalette(className, ruleConfig) {
     return null
   }
 
-  const baseClass = stripVariants(className).replace(/\/\d+$/, "")
+  const baseClass = stripVariants(className).replace(OPACITY_SUFFIX_REGEX, "")
   const match = resolvePrefixValue(
     baseClass,
     ruleConfig.colorUtilityPrefixes ?? []
@@ -296,7 +301,7 @@ function checkNoTailwindSpacingScale(className, ruleConfig) {
     return null
   }
 
-  if (!/^\d+(?:\.\d+)?$/.test(value)) {
+  if (!NUMERIC_SCALE_VALUE_REGEX.test(value)) {
     return null
   }
 
@@ -373,6 +378,49 @@ function resolveRuleConfigMap(config) {
   }
 }
 
+function shouldScanEntry(relativePath, excludeRegexes) {
+  return !excludeRegexes.some((regex) => regex.test(relativePath))
+}
+
+function collectSourceFilesFromDirectory({
+  absoluteDir,
+  excludeRegexes,
+  extensions,
+  files,
+  rootDir,
+}) {
+  if (!fs.existsSync(absoluteDir)) {
+    return
+  }
+
+  const entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
+  for (const entry of entries) {
+    const absolutePath = path.join(absoluteDir, entry.name)
+    const relativePath = normalizePath(path.relative(rootDir, absolutePath))
+
+    if (!shouldScanEntry(relativePath, excludeRegexes)) {
+      continue
+    }
+
+    if (entry.isDirectory()) {
+      collectSourceFilesFromDirectory({
+        absoluteDir: absolutePath,
+        excludeRegexes,
+        extensions,
+        files,
+        rootDir,
+      })
+      continue
+    }
+
+    if (!(entry.isFile() && extensions.has(path.extname(entry.name)))) {
+      continue
+    }
+
+    files.push(relativePath)
+  }
+}
+
 function listSourceFiles(rootDir, config) {
   const extensions = new Set(config.fileExtensions ?? [".ts", ".tsx"])
   const excludeRegexes = [
@@ -383,40 +431,14 @@ function listSourceFiles(rootDir, config) {
 
   const files = []
 
-  const walk = (absoluteDir) => {
-    if (!fs.existsSync(absoluteDir)) {
-      return
-    }
-
-    const entries = fs.readdirSync(absoluteDir, { withFileTypes: true })
-    for (const entry of entries) {
-      const absolutePath = path.join(absoluteDir, entry.name)
-      const relativePath = normalizePath(path.relative(rootDir, absolutePath))
-
-      if (excludeRegexes.some((regex) => regex.test(relativePath))) {
-        continue
-      }
-
-      if (entry.isDirectory()) {
-        walk(absolutePath)
-        continue
-      }
-
-      if (!entry.isFile()) {
-        continue
-      }
-
-      const extension = path.extname(entry.name)
-      if (!extensions.has(extension)) {
-        continue
-      }
-
-      files.push(relativePath)
-    }
-  }
-
   for (const relativeDir of scanDirectories) {
-    walk(path.resolve(rootDir, relativeDir))
+    collectSourceFilesFromDirectory({
+      absoluteDir: path.resolve(rootDir, relativeDir),
+      excludeRegexes,
+      extensions,
+      files,
+      rootDir,
+    })
   }
 
   return files.sort((left, right) => left.localeCompare(right))

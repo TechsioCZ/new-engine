@@ -13,6 +13,8 @@ type RecommendedProductCandidate = {
   product: HttpTypes.StoreProduct
 }
 
+const TOP_OFFER_SET_MULTIPLIER_PATTERN = /\/(\d+)$/
+
 const asString = (value: unknown): string | null => {
   if (typeof value === "string" && value.trim().length > 0) {
     return value.trim()
@@ -26,12 +28,12 @@ const asString = (value: unknown): string | null => {
 }
 
 const asPositiveInteger = (value: unknown): number | null => {
-  const parsed =
-    typeof value === "number" && Number.isFinite(value)
-      ? value
-      : typeof value === "string" && value.trim().length > 0
-        ? Number(value.trim())
-        : Number.NaN
+  let parsed = Number.NaN
+  if (typeof value === "number" && Number.isFinite(value)) {
+    parsed = value
+  } else if (typeof value === "string" && value.trim().length > 0) {
+    parsed = Number(value.trim())
+  }
 
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null
@@ -113,7 +115,9 @@ const resolveRecommendedProductPackageMultiplier = (
 
   const topOfferCode = resolveTopOfferCode(product)
   if (topOfferCode) {
-    const setMultiplier = topOfferCode.match(/\/(\d+)$/)?.[1]
+    const setMultiplier = topOfferCode.match(
+      TOP_OFFER_SET_MULTIPLIER_PATTERN
+    )?.[1]
     const parsedMultiplier = asPositiveInteger(setMultiplier)
     if (parsedMultiplier) {
       return parsedMultiplier

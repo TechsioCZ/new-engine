@@ -4,6 +4,8 @@ import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
 export type AddressFormState = CheckoutAddressValues
 
+const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
+
 export const COUNTRY_SELECT_ITEMS: SelectItem[] = [
   { value: "SK", label: "Slovensko" },
   { value: "CZ", label: "Česko" },
@@ -20,7 +22,7 @@ type CheckoutCountryRegionInput = {
 
 const normalizeCountryCode = (countryCode: string | null | undefined) => {
   const normalized = countryCode?.trim().toUpperCase()
-  return normalized && /^[A-Z]{2}$/.test(normalized) ? normalized : null
+  return normalized && COUNTRY_CODE_PATTERN.test(normalized) ? normalized : null
 }
 
 const findCheckoutRegion = ({

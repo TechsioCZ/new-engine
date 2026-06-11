@@ -6,6 +6,7 @@ import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import type { PropsWithChildren } from "react"
 import { useEffect } from "react"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useRegionBootstrap } from "@/lib/storefront/regions"
 
 type RegionBootstrapProviderProps = PropsWithChildren<{
@@ -31,11 +32,14 @@ function useDisableNextDevIndicator() {
       return
     }
 
-    void fetch("/__nextjs_disable_dev_indicator", {
-      method: "POST",
-    }).catch(() => {
-      // Ignore failures in environments where Next.js devtools endpoint is unavailable.
-    })
+    runDetachedPromise(
+      fetch("/__nextjs_disable_dev_indicator", {
+        method: "POST",
+      }),
+      () => {
+        // Ignore failures in environments where Next.js devtools endpoint is unavailable.
+      }
+    )
   }, [])
 }
 

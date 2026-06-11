@@ -9,6 +9,7 @@ import { AddListDialog } from "@/components/product-lists/add-list-dialog"
 import { ProductListTabs } from "@/components/product-lists/product-list-tabs"
 import { RemoveListDialog } from "@/components/product-lists/remove-list-dialog"
 import { useAccountProductLists } from "@/components/product-lists/use-account-product-lists"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 function ProductListsEmptyState({
   onCreateList,
@@ -55,7 +56,9 @@ export function AccountProductLists() {
     return (
       <AccountSurface className="space-y-400">
         <Button
-          onClick={() => void accountLists.listsQuery.query.refetch()}
+          onClick={() => {
+            runDetachedPromise(accountLists.listsQuery.query.refetch())
+          }}
           variant="secondary"
         >
           Skúsiť znova

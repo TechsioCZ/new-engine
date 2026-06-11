@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useImperativeHandle, useRef } from "react"
+import { type RefObject, useCallback, useImperativeHandle, useRef } from "react"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import type {
   PacketaPickupPoint,
   PacketaWidgetError,
@@ -51,40 +52,42 @@ export const PacketaPickupWidget = function PacketaPickupWidget({
   }, [])
 
   const openWidget = useCallback(() => {
-    void loadPacketaWidget()
-      .then((packeta) => {
-        try {
-          packeta.Widget.pick(
-            apiKey,
-            (point) => {
-              if (point) {
-                onSelectRef.current?.(point)
-                return
-              }
+    runDetachedPromise(
+      loadPacketaWidget()
+        .then((packeta) => {
+          try {
+            packeta.Widget.pick(
+              apiKey,
+              (point) => {
+                if (point) {
+                  onSelectRef.current?.(point)
+                  return
+                }
 
-              onCloseRef.current?.()
-            },
-            optionsRef.current
-          )
-        } catch (error) {
+                onCloseRef.current?.()
+              },
+              optionsRef.current
+            )
+          } catch (error) {
+            onErrorRef.current?.({
+              code: "open_failed",
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Packeta widget sa nepodarilo otvoriť.",
+            })
+          }
+        })
+        .catch((error) => {
           onErrorRef.current?.({
-            code: "open_failed",
+            code: "loader_failed",
             message:
               error instanceof Error
                 ? error.message
-                : "Packeta widget sa nepodarilo otvoriť.",
+                : "Packeta widget sa nepodarilo načítať.",
           })
-        }
-      })
-      .catch((error) => {
-        onErrorRef.current?.({
-          code: "loader_failed",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Packeta widget sa nepodarilo načítať.",
         })
-      })
+    )
   }, [apiKey])
 
   useImperativeHandle(

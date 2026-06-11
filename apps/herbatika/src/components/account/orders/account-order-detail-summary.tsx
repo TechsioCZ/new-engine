@@ -27,6 +27,15 @@ type AccountOrderDetailSummaryProps = {
   customerEmail?: string | null
 }
 
+type OrderAmountSummary = {
+  itemSubtotal: number
+  shippingSubtotal: number
+  taxTotal: number
+  total: number
+}
+
+type OrderAddress = ReturnType<typeof resolveOrderAddresses>["shipping"]
+
 const readOrderAmount = (
   order: HttpTypes.StoreOrder,
   key: string
@@ -35,10 +44,9 @@ const readOrderAmount = (
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
-export function AccountOrderDetailSummary({
-  order,
-  customerEmail,
-}: AccountOrderDetailSummaryProps) {
+const resolveOrderAmountSummary = (
+  order: HttpTypes.StoreOrder
+): OrderAmountSummary => {
   const orderItems = order.items ?? []
   const orderItemsTotal =
     readOrderAmount(order, "item_total") ??
@@ -59,7 +67,48 @@ export function AccountOrderDetailSummary({
   const orderTaxTotal =
     readOrderAmount(order, "tax_total") ??
     Math.max(orderItemTaxTotal + orderShippingTaxTotal, 0)
-  const orderTotal = resolveOrderTotalAmount(order)
+
+  return {
+    itemSubtotal: orderSubtotal,
+    shippingSubtotal: orderShippingSubtotal,
+    taxTotal: orderTaxTotal,
+    total: resolveOrderTotalAmount(order),
+  }
+}
+
+function OrderAddressBlock({
+  address,
+  title,
+}: {
+  address: OrderAddress
+  title: string
+}) {
+  return (
+    <article className="space-y-150">
+      <h3 className="font-semibold">{title}</h3>
+      {address ? (
+        <div className="space-y-50 text-fg-secondary text-sm">
+          {address.fullName && (
+            <p className="font-medium text-fg-primary">{address.fullName}</p>
+          )}
+          {address.company && <p>{address.company}</p>}
+          {address.lines.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-fg-secondary text-sm">Adresa nie je dostupná.</p>
+      )}
+    </article>
+  )
+}
+
+export function AccountOrderDetailSummary({
+  order,
+  customerEmail,
+}: AccountOrderDetailSummaryProps) {
+  const orderItems = order.items ?? []
+  const amountSummary = resolveOrderAmountSummary(order)
   const addresses = resolveOrderAddresses(order)
   const shippingMethod = resolveOrderShippingMethodLabel(order)
   const paymentMethod = resolveOrderPaymentMethodLabel(order)
@@ -104,16 +153,16 @@ export function AccountOrderDetailSummary({
         <article className="space-y-100">
           <h3 className="font-semibold">Zhrnutie platby</h3>
           <p className="text-fg-secondary text-sm">
-            {`Cena produktov bez DPH: ${formatOrderAmount(orderSubtotal, order.currency_code)}`}
+            {`Cena produktov bez DPH: ${formatOrderAmount(amountSummary.itemSubtotal, order.currency_code)}`}
           </p>
           <p className="text-fg-secondary text-sm">
-            {`Doprava bez DPH: ${formatOrderAmount(orderShippingSubtotal, order.currency_code)}`}
+            {`Doprava bez DPH: ${formatOrderAmount(amountSummary.shippingSubtotal, order.currency_code)}`}
           </p>
           <p className="text-fg-secondary text-sm">
-            {`DPH: ${formatOrderAmount(orderTaxTotal, order.currency_code)}`}
+            {`DPH: ${formatOrderAmount(amountSummary.taxTotal, order.currency_code)}`}
           </p>
           <p className="font-semibold text-fg-primary text-sm">
-            {`Celkom s DPH: ${formatOrderAmount(orderTotal, order.currency_code)}`}
+            {`Celkom s DPH: ${formatOrderAmount(amountSummary.total, order.currency_code)}`}
           </p>
         </article>
 
@@ -131,45 +180,14 @@ export function AccountOrderDetailSummary({
       </div>
 
       <div className="grid gap-300 rounded-md border border-border-secondary bg-base p-350 md:grid-cols-2">
-        <article className="space-y-150">
-          <h3 className="font-semibold">Doručovacia adresa</h3>
-          {addresses.shipping ? (
-            <div className="space-y-50 text-fg-secondary text-sm">
-              {addresses.shipping.fullName && (
-                <p className="font-medium text-fg-primary">
-                  {addresses.shipping.fullName}
-                </p>
-              )}
-              {addresses.shipping.company && (
-                <p>{addresses.shipping.company}</p>
-              )}
-              {addresses.shipping.lines.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </div>
-          ) : (
-            <p className="text-fg-secondary text-sm">Adresa nie je dostupná.</p>
-          )}
-        </article>
-
-        <article className="space-y-150">
-          <h3 className="font-semibold">Fakturačná adresa</h3>
-          {addresses.billing ? (
-            <div className="space-y-50 text-fg-secondary text-sm">
-              {addresses.billing.fullName && (
-                <p className="font-medium text-fg-primary">
-                  {addresses.billing.fullName}
-                </p>
-              )}
-              {addresses.billing.company && <p>{addresses.billing.company}</p>}
-              {addresses.billing.lines.map((line) => (
-                <p key={line}>{line}</p>
-              ))}
-            </div>
-          ) : (
-            <p className="text-fg-secondary text-sm">Adresa nie je dostupná.</p>
-          )}
-        </article>
+        <OrderAddressBlock
+          address={addresses.shipping}
+          title="Doručovacia adresa"
+        />
+        <OrderAddressBlock
+          address={addresses.billing}
+          title="Fakturačná adresa"
+        />
       </div>
 
       <div className="grid gap-300 rounded-md border border-border-secondary bg-base p-350 md:grid-cols-3">

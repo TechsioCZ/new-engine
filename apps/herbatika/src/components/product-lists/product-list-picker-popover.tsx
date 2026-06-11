@@ -7,7 +7,9 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
+import type { ReactNode } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   type ProductListPickerRow,
   useProductListPicker,
@@ -80,6 +82,105 @@ export function ProductListPickerPopover({
     quantity,
     selectedVariantId,
   })
+  let pickerContent: ReactNode
+
+  if (!picker.authQuery.isAuthenticated) {
+    pickerContent = (
+      <div className="space-y-300 px-350 py-350">
+        <p className="text-fg-secondary text-sm">
+          Na ukladanie produktov do zoznamov sa prosím prihláste.
+        </p>
+        <LinkButton
+          as={NextLink}
+          block
+          href={picker.loginHref}
+          size="sm"
+          variant="primary"
+        >
+          Prihlásiť sa
+        </LinkButton>
+      </div>
+    )
+  } else if (picker.listsQuery.isLoading || picker.detailsAreLoading) {
+    pickerContent = (
+      <div className="space-y-250 px-350 py-350">
+        <Skeleton>
+          <Skeleton.Text noOfLines={3} />
+        </Skeleton>
+      </div>
+    )
+  } else {
+    pickerContent = (
+      <>
+        <div className="divide-y divide-border-secondary">
+          {picker.rows.map((row) => (
+            <ProductListPickerListRow
+              isMutating={picker.isMutating}
+              isPending={picker.isMutating && picker.activeListKey === row.key}
+              key={row.key}
+              onAdd={(nextRow) => {
+                runDetachedPromise(picker.addProductToList(nextRow))
+              }}
+              row={row}
+            />
+          ))}
+        </div>
+
+        <div className="border-border-secondary border-t px-350 py-250">
+          {picker.showNewListInput ? (
+            <form
+              className="flex items-center gap-200"
+              onSubmit={picker.handleCreateList}
+            >
+              <label
+                className="sr-only"
+                htmlFor="product-list-picker-new-list-title"
+              >
+                Názov nového zoznamu
+              </label>
+              <Input
+                aria-label="Názov nového zoznamu"
+                autoFocus
+                disabled={picker.isMutating}
+                id="product-list-picker-new-list-title"
+                name="product-list-title"
+                onChange={(event) => {
+                  picker.setNewListTitle(event.target.value)
+                }}
+                placeholder="Názov zoznamu"
+                size="sm"
+                value={picker.newListTitle}
+              />
+              <Button
+                disabled={picker.isMutating}
+                isLoading={picker.activeListKey === "new-list"}
+                size="sm"
+                theme="borderless"
+                type="submit"
+                variant="primary"
+              >
+                OK
+              </Button>
+            </form>
+          ) : (
+            <Button
+              disabled={picker.isMutating}
+              icon="token-icon-plus"
+              iconSize="md"
+              onClick={() => {
+                picker.setShowNewListInput(true)
+              }}
+              size="sm"
+              theme="borderless"
+              variant="primary"
+            >
+              Nový zoznam
+            </Button>
+          )}
+        </div>
+      </>
+    )
+  }
 
   return (
     <Popover.Root
@@ -110,99 +211,7 @@ export function ProductListPickerPopover({
             </Popover.Title>
           </div>
 
-          {picker.authQuery.isAuthenticated ? (
-            picker.listsQuery.isLoading || picker.detailsAreLoading ? (
-              <div className="space-y-250 px-350 py-350">
-                <Skeleton>
-                  <Skeleton.Text noOfLines={3} />
-                </Skeleton>
-              </div>
-            ) : (
-              <>
-                <div className="divide-y divide-border-secondary">
-                  {picker.rows.map((row) => (
-                    <ProductListPickerListRow
-                      isMutating={picker.isMutating}
-                      isPending={
-                        picker.isMutating && picker.activeListKey === row.key
-                      }
-                      key={row.key}
-                      onAdd={(nextRow) => void picker.addProductToList(nextRow)}
-                      row={row}
-                    />
-                  ))}
-                </div>
-
-                <div className="border-border-secondary border-t px-350 py-250">
-                  {picker.showNewListInput ? (
-                    <form
-                      className="flex items-center gap-200"
-                      onSubmit={picker.handleCreateList}
-                    >
-                      <label
-                        className="sr-only"
-                        htmlFor="product-list-picker-new-list-title"
-                      >
-                        Názov nového zoznamu
-                      </label>
-                      <Input
-                        aria-label="Názov nového zoznamu"
-                        autoFocus
-                        disabled={picker.isMutating}
-                        id="product-list-picker-new-list-title"
-                        name="product-list-title"
-                        onChange={(event) => {
-                          picker.setNewListTitle(event.target.value)
-                        }}
-                        placeholder="Názov zoznamu"
-                        size="sm"
-                        value={picker.newListTitle}
-                      />
-                      <Button
-                        disabled={picker.isMutating}
-                        isLoading={picker.activeListKey === "new-list"}
-                        size="sm"
-                        theme="borderless"
-                        type="submit"
-                        variant="primary"
-                      >
-                        OK
-                      </Button>
-                    </form>
-                  ) : (
-                    <Button
-                      disabled={picker.isMutating}
-                      icon="token-icon-plus"
-                      iconSize="md"
-                      onClick={() => {
-                        picker.setShowNewListInput(true)
-                      }}
-                      size="sm"
-                      theme="borderless"
-                      variant="primary"
-                    >
-                      Nový zoznam
-                    </Button>
-                  )}
-                </div>
-              </>
-            )
-          ) : (
-            <div className="space-y-300 px-350 py-350">
-              <p className="text-fg-secondary text-sm">
-                Na ukladanie produktov do zoznamov sa prosím prihláste.
-              </p>
-              <LinkButton
-                as={NextLink}
-                block
-                href={picker.loginHref}
-                size="sm"
-                variant="primary"
-              >
-                Prihlásiť sa
-              </LinkButton>
-            </div>
-          )}
+          {pickerContent}
         </Popover.Content>
       </Popover.Positioner>
     </Popover.Root>

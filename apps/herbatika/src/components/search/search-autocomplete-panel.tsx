@@ -128,14 +128,15 @@ export function SearchAutocompletePanel({
 
   if (!hasItems) {
     return (
+      // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Mouse down keeps the combobox input focused while the suggestion panel handles status feedback.
+      // biome-ignore lint/a11y/noStaticElementInteractions: This handler does not activate panel content; it only preserves combobox focus behavior.
       <div className={PANEL_CLASS_NAME} onMouseDown={onMouseDown}>
-        <p
-          className={`px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}
+        <output
+          className={`block px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}
           id={id}
-          role="status"
         >
           {resolveStatusMessage(status, query)}
-        </p>
+        </output>
       </div>
     )
   }
@@ -157,7 +158,7 @@ export function SearchAutocompletePanel({
             <div className="px-300 py-100 font-semibold text-fg-secondary text-xs uppercase tracking-normal">
               {section.title}
             </div>
-            <ul aria-label={section.title} role="group">
+            <ul aria-label={section.title}>
               {section.items.map((item) => (
                 <SearchAutocompleteRow
                   activeItemId={activeItemId}

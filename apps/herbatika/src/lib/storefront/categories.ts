@@ -1,12 +1,16 @@
 "use client"
 
 import type { FindParams, HttpTypes } from "@medusajs/types"
-import type { CategoryListInput } from "./category-query-config"
+import type { CategoryListInput as StorefrontCategoryListInput } from "./category-query-config"
 import {
-  buildCategoryListParams,
-  DEFAULT_CATEGORY_PAGE_SIZE,
+  buildCategoryListParams as buildStorefrontCategoryListParams,
+  DEFAULT_CATEGORY_PAGE_SIZE as STOREFRONT_DEFAULT_CATEGORY_PAGE_SIZE,
 } from "./category-query-config"
 import { storefront } from "./storefront"
+
+export type CategoryListInput = StorefrontCategoryListInput
+export const DEFAULT_CATEGORY_PAGE_SIZE = STOREFRONT_DEFAULT_CATEGORY_PAGE_SIZE
+export const buildCategoryListParams = buildStorefrontCategoryListParams
 
 type CategoryHooks = typeof storefront.hooks.categories
 
@@ -61,7 +65,3 @@ export const usePrefetchCategories = (
       ),
   }
 }
-
-export type { CategoryListInput }
-
-export { buildCategoryListParams, DEFAULT_CATEGORY_PAGE_SIZE }

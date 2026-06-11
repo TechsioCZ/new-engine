@@ -39,6 +39,7 @@ export function CategoryRichText({ className, html }: CategoryRichTextProps) {
       className={[CATEGORY_RICH_TEXT_CLASS, className]
         .filter(Boolean)
         .join(" ")}
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: Category rich text is normalized through sanitizeHtml before rendering.
       dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
     />
   )

@@ -3,6 +3,8 @@ import type { HttpTypes } from "@medusajs/types"
 const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi
 const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
   /<p[^>]*>\s*(?:<span[^>]*>)?\s*#showmore#\s*(?:<\/span>)?\s*<\/p>/gi
+const URL_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i
+const LEADING_SLASHES_PATTERN = /^\/+/
 const HERBATICA_LEGACY_HOSTNAMES = new Set(["herbatica.sk", "www.herbatica.sk"])
 const HERBATICA_LEGACY_MEDIA_BASE_URL =
   "https://cdn.myshoptet.com/usr/www.herbatica.sk/"
@@ -33,7 +35,7 @@ const resolveLegacyCategoryHref = (
 
     pathname = url.pathname
   } catch {
-    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmedHref)) {
+    if (URL_SCHEME_PATTERN.test(trimmedHref)) {
       return href
     }
   }
@@ -75,7 +77,7 @@ const resolveLegacyMediaUrl = (value: string) => {
   }
 
   return new URL(
-    `${url.pathname.replace(/^\/+/, "")}${url.search}${url.hash}`,
+    `${url.pathname.replace(LEADING_SLASHES_PATTERN, "")}${url.search}${url.hash}`,
     HERBATICA_LEGACY_MEDIA_BASE_URL
   ).toString()
 }

@@ -1,6 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
 import { asRecord } from "./product-card.parsers"
 
+const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/
+const SENTENCE_TRAILING_PUNCTUATION_PATTERN = /[.!?]+$/
+
 const decodeHtmlEntities = (value: string): string =>
   value
     .replaceAll(/&nbsp;/gi, " ")
@@ -22,8 +25,10 @@ const stripHtml = (value: string): string =>
 
 const toBulletLines = (value: string): string | null => {
   const sentences = value
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim().replace(/[.!?]+$/, ""))
+    .split(SENTENCE_BOUNDARY_PATTERN)
+    .map((sentence) =>
+      sentence.trim().replace(SENTENCE_TRAILING_PUNCTUATION_PATTERN, "")
+    )
     .filter(Boolean)
 
   if (sentences.length < 2) {

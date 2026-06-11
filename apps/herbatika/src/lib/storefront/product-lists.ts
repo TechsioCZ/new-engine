@@ -3,27 +3,27 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { MedusaProductListListHookInput } from "@techsio/storefront-data/product-lists/medusa-service"
 import type {
-  AddFavoriteProductListItemInput,
-  AddProductListItemInput,
-  ChangeProductListItemQuantityInput,
-  CreateCustomProductListInput,
-  CreateFavoriteProductListInput,
-  CreateProductListCartInput,
-  DeleteProductListInput,
-  DeleteProductListItemInput,
-  IncrementProductListItemInput,
   ProductListAccessType,
   ProductListBase,
-  ProductListDeleteResponse,
   ProductListItemBase,
   ProductListType,
+  AddFavoriteProductListItemInput as SharedAddFavoriteProductListItemInput,
+  AddProductListItemInput as SharedAddProductListItemInput,
+  ChangeProductListItemQuantityInput as SharedChangeProductListItemQuantityInput,
+  CreateCustomProductListInput as SharedCreateCustomProductListInput,
+  CreateFavoriteProductListInput as SharedCreateFavoriteProductListInput,
+  CreateProductListCartInput as SharedCreateProductListCartInput,
+  DeleteProductListInput as SharedDeleteProductListInput,
+  DeleteProductListItemInput as SharedDeleteProductListItemInput,
+  IncrementProductListItemInput as SharedIncrementProductListItemInput,
   ProductListCartResponse as SharedProductListCartResponse,
+  ProductListDeleteResponse as SharedProductListDeleteResponse,
   ProductListItemResponse as SharedProductListItemResponse,
   ProductListListResponse as SharedProductListListResponse,
   ProductListListResult as SharedProductListListResult,
   ProductListResponse as SharedProductListResponse,
-  UpdateProductListInput,
-  UpdateProductListItemInput,
+  UpdateProductListInput as SharedUpdateProductListInput,
+  UpdateProductListItemInput as SharedUpdateProductListItemInput,
 } from "@techsio/storefront-data/product-lists/types"
 import {
   findProductListItem as findSharedProductListItem,
@@ -55,20 +55,21 @@ export type ProductListItemResponse = SharedProductListItemResponse<
 export type ProductListCartResponse =
   SharedProductListCartResponse<HttpTypes.StoreCart>
 
-export type {
-  AddFavoriteProductListItemInput,
-  AddProductListItemInput,
-  ChangeProductListItemQuantityInput,
-  CreateCustomProductListInput,
-  CreateFavoriteProductListInput,
-  CreateProductListCartInput,
-  DeleteProductListInput,
-  DeleteProductListItemInput,
-  IncrementProductListItemInput,
-  ProductListDeleteResponse,
-  UpdateProductListInput,
-  UpdateProductListItemInput,
-}
+export type AddFavoriteProductListItemInput =
+  SharedAddFavoriteProductListItemInput
+export type AddProductListItemInput = SharedAddProductListItemInput
+export type ChangeProductListItemQuantityInput =
+  SharedChangeProductListItemQuantityInput
+export type CreateCustomProductListInput = SharedCreateCustomProductListInput
+export type CreateFavoriteProductListInput =
+  SharedCreateFavoriteProductListInput
+export type CreateProductListCartInput = SharedCreateProductListCartInput
+export type DeleteProductListInput = SharedDeleteProductListInput
+export type DeleteProductListItemInput = SharedDeleteProductListItemInput
+export type IncrementProductListItemInput = SharedIncrementProductListItemInput
+export type ProductListDeleteResponse = SharedProductListDeleteResponse
+export type UpdateProductListInput = SharedUpdateProductListInput
+export type UpdateProductListItemInput = SharedUpdateProductListItemInput
 
 export const productListQueryKeys = storefront.queryKeys.productLists
 

@@ -17,17 +17,18 @@ import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/addres
 import {
   resolveCartItemsSubtotalAmount,
   resolveCartItemsTotalAmount,
-  resolveCartShippingSubtotalAmount,
   resolveCartShippingTotalAmount,
   resolveCartTaxAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
 } from "@/lib/storefront/cart-calculations"
+import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import {
   fetchPaymentProviders,
   resolveSelectedPaymentProviderId,
 } from "@/lib/storefront/checkout"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   REGION_LIST_FIELDS,
@@ -175,9 +176,12 @@ export function useCheckoutController() {
       return
     }
 
-    void fetchPaymentProviders(queryClient, activeRegionId).catch(() => {
-      // Best-effort prefetch only.
-    })
+    runDetachedPromise(
+      fetchPaymentProviders(queryClient, activeRegionId),
+      () => {
+        // Best-effort prefetch only.
+      }
+    )
   }, [activeRegionId, queryClient])
 
   const countryItems = useMemo(

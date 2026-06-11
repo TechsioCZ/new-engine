@@ -2,6 +2,7 @@
 
 import {
   createElement,
+  type RefObject,
   useEffect,
   useImperativeHandle,
   useMemo,

@@ -6,6 +6,7 @@ import NextLink from "next/link"
 import { useRouter } from "next/navigation"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
 
@@ -54,12 +55,14 @@ export function CheckoutDetailsStepSection({
         noValidate
         onSubmit={(event) => {
           event.preventDefault()
-          void (async () => {
-            const didSaveAddress = await controller.handleSaveAddress()
-            if (didSaveAddress) {
-              router.push(nextStepHref)
-            }
-          })()
+          runDetachedPromise(
+            (async () => {
+              const didSaveAddress = await controller.handleSaveAddress()
+              if (didSaveAddress) {
+                router.push(nextStepHref)
+              }
+            })()
+          )
         }}
       >
         {hasCarrierPickupShipping && carrierPickupAddress ? (

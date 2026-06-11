@@ -38,6 +38,38 @@ const resolveSelectedSession = (sessions: unknown[]) =>
       (session.is_selected === true || session.selected === true)
   ) ?? sessions[0]
 
+const resolvePaymentUrlFromSessions = (
+  paymentSessions: unknown
+): string | null => {
+  if (!(Array.isArray(paymentSessions) && paymentSessions.length > 0)) {
+    return null
+  }
+
+  const selectedSession = resolveSelectedSession(paymentSessions)
+  return isObject(selectedSession)
+    ? resolvePaymentUrlFromRecord(selectedSession)
+    : null
+}
+
+const resolvePaymentUrlFromPayments = (payments: unknown): string | null => {
+  if (!Array.isArray(payments)) {
+    return null
+  }
+
+  for (const payment of payments) {
+    if (!isObject(payment)) {
+      continue
+    }
+
+    const paymentUrl = resolvePaymentUrlFromRecord(payment)
+    if (paymentUrl) {
+      return paymentUrl
+    }
+  }
+
+  return null
+}
+
 export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
   if (!isObject(value)) {
     return null
@@ -48,32 +80,14 @@ export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
     return directPaymentUrl
   }
 
-  const paymentSessions = value.payment_sessions
-  if (Array.isArray(paymentSessions) && paymentSessions.length > 0) {
-    const selectedSession = resolveSelectedSession(paymentSessions)
-    if (isObject(selectedSession)) {
-      const sessionPaymentUrl = resolvePaymentUrlFromRecord(selectedSession)
-      if (sessionPaymentUrl) {
-        return sessionPaymentUrl
-      }
-    }
+  const sessionPaymentUrl = resolvePaymentUrlFromSessions(
+    value.payment_sessions
+  )
+  if (sessionPaymentUrl) {
+    return sessionPaymentUrl
   }
 
-  const payments = value.payments
-  if (Array.isArray(payments)) {
-    for (const payment of payments) {
-      if (!isObject(payment)) {
-        continue
-      }
-
-      const paymentUrl = resolvePaymentUrlFromRecord(payment)
-      if (paymentUrl) {
-        return paymentUrl
-      }
-    }
-  }
-
-  return null
+  return resolvePaymentUrlFromPayments(value.payments)
 }
 
 function isRedirectUrl(value: string) {

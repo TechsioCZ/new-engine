@@ -86,7 +86,8 @@ export type PacketaWidgetGlobal = {
 }
 
 declare global {
-  type Window = {
+  // biome-ignore lint/style/useConsistentTypeDefinitions: Window augmentation requires interface merging.
+  interface Window {
     Packeta?: PacketaWidgetGlobal
   }
 }

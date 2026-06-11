@@ -3,7 +3,11 @@
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import NextLink from "next/link"
 import { useCallback, useState } from "react"
-import type { FaqAnswerBlock, FaqItem, FaqLink } from "./faq-page.data"
+import type {
+  FaqAnswerBlock as FaqAnswerBlockData,
+  FaqItem,
+  FaqLink,
+} from "./faq-page.data"
 
 type FaqAccordionProps = {
   defaultValue?: string[]
@@ -49,7 +53,7 @@ function FaqLinkItem({ href, label }: FaqLink) {
   )
 }
 
-function FaqAnswerBlock({ block }: { block: FaqAnswerBlock }) {
+function FaqAnswerBlockContent({ block }: { block: FaqAnswerBlockData }) {
   if (block.type === "heading") {
     return (
       <h3 className="pt-100 font-bold text-fg-primary text-lg leading-snug">
@@ -129,7 +133,7 @@ export function FaqAccordion({ defaultValue, items }: FaqAccordionProps) {
               <div className={accordionContentClipClassName}>
                 <div className={accordionContentBodyClassName}>
                   {item.answer.map((block, index) => (
-                    <FaqAnswerBlock
+                    <FaqAnswerBlockContent
                       block={block}
                       key={`${item.id}-${block.type}-${index}`}
                     />

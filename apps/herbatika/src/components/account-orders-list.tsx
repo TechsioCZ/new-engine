@@ -13,6 +13,7 @@ import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderGroup } from "@/components/account/orders/account-order-group"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { getOrderDetailQueryOptions, useOrders } from "@/lib/storefront/orders"
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
 
@@ -41,9 +42,11 @@ export function AccountOrdersList() {
     (nextPage: number, replaceHistoryEntry = false) => {
       const normalizedPage = Math.max(1, nextPage)
       startTransition(() => {
-        void setCurrentPage(normalizedPage, {
-          history: replaceHistoryEntry ? "replace" : "push",
-        })
+        runDetachedPromise(
+          setCurrentPage(normalizedPage, {
+            history: replaceHistoryEntry ? "replace" : "push",
+          })
+        )
       })
     },
     [setCurrentPage]
@@ -63,8 +66,8 @@ export function AccountOrdersList() {
 
   const prefetchOrderDetail = useCallback(
     (orderId: string) => {
-      void queryClient.prefetchQuery(
-        getOrderDetailQueryOptions({ id: orderId })
+      runDetachedPromise(
+        queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }))
       )
     },
     [queryClient]
@@ -82,7 +85,7 @@ export function AccountOrdersList() {
         </StatusText>
         <Button
           onClick={() => {
-            void ordersQuery.query.refetch()
+            runDetachedPromise(ordersQuery.query.refetch())
           }}
           variant="secondary"
         >

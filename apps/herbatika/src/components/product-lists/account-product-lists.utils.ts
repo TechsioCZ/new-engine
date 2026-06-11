@@ -187,13 +187,15 @@ export const resolveProductListAvailabilitySummary = (params: {
   const purchasableCount = purchasableItems.length
   const canAddAnyToCart = purchasableCount > 0
   const canAddWholeList = totalCount > 0 && skippedCount === 0
+  let addToCartLabel = "Žiadne dostupné položky"
+  if (canAddWholeList) {
+    addToCartLabel = "Pridať všetko do košíka"
+  } else if (canAddAnyToCart) {
+    addToCartLabel = "Pridať dostupné do košíka"
+  }
 
   return {
-    addToCartLabel: canAddAnyToCart
-      ? canAddWholeList
-        ? "Pridať všetko do košíka"
-        : "Pridať dostupné do košíka"
-      : "Žiadne dostupné položky",
+    addToCartLabel,
     canAddAnyToCart,
     canAddWholeList,
     purchasableItems,

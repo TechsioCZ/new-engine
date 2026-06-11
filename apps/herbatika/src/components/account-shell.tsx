@@ -95,18 +95,14 @@ export function AccountShell({ children }: AccountShellProps) {
   }
 
   if (authQuery.isLoading) {
-    return (
-      <AccountLayoutSkeleton
-        surface={
-          isOrderDetailRoute ? (
-            <OrderSkeleton />
-          ) : isOrdersListRoute ? (
-            <AccountOrdersSkeleton />
-          ) : undefined
-        }
-        surfaceLines={4}
-      />
-    )
+    let skeletonSurface: ReactNode
+    if (isOrderDetailRoute) {
+      skeletonSurface = <OrderSkeleton />
+    } else if (isOrdersListRoute) {
+      skeletonSurface = <AccountOrdersSkeleton />
+    }
+
+    return <AccountLayoutSkeleton surface={skeletonSurface} surfaceLines={4} />
   }
 
   if (!authQuery.isAuthenticated) {

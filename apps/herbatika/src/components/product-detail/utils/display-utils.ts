@@ -3,6 +3,8 @@ import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants"
 import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
 
+const SENTENCE_SEPARATOR_PATTERN = /[.!?]/
+
 export const resolveGalleryItems = (
   imageUrls: string[],
   title: string | null | undefined
@@ -29,7 +31,7 @@ export const resolveProductHighlights = (
   categories: HttpTypes.StoreProductCategory[]
 ): string[] => {
   const sentenceCandidates = summaryText
-    .split(/[.!?]/)
+    .split(SENTENCE_SEPARATOR_PATTERN)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.length >= 24)
     .slice(0, 3)

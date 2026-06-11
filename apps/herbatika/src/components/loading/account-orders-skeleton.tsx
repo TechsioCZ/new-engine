@@ -13,10 +13,10 @@ export function AccountOrdersSkeleton() {
       </header>
 
       <div className="space-y-300">
-        {Array.from({ length: 2 }, (_, index) => (
+        {Array.from({ length: 2 }, (_orderItem, orderIndex) => (
           <article
             className="overflow-hidden rounded-order-group-lg border border-order-group-border bg-order-group-surface"
-            key={`account-orders-skeleton-${index + 1}`}
+            key={`account-orders-skeleton-${orderIndex + 1}`}
           >
             <header className="space-y-250 border-order-group-border border-b bg-order-group-overlay p-order-group-3xl">
               <div className="flex flex-wrap items-center gap-200">
@@ -50,10 +50,10 @@ export function AccountOrdersSkeleton() {
                 <Skeleton.Rectangle className="h-4 w-12 justify-self-end rounded-full" />
               </div>
 
-              {Array.from({ length: 2 }, (_, rowIndex) => (
+              {Array.from({ length: 2 }, (_desktopRow, desktopRowIndex) => (
                 <div
                   className="grid grid-cols-[minmax(0,1fr)_max-content_max-content] items-start gap-order-group-column border-order-group-border border-t px-order-group-3xl py-order-group-3xl"
-                  key={`account-orders-desktop-row-${index + 1}-${rowIndex + 1}`}
+                  key={`account-orders-desktop-row-${orderIndex + 1}-${desktopRowIndex + 1}`}
                 >
                   <div className="flex items-center gap-order-group-lg">
                     <Skeleton.Rectangle className="size-8 shrink-0 rounded-sm" />
@@ -74,10 +74,10 @@ export function AccountOrdersSkeleton() {
             </div>
 
             <div className="space-y-200 p-order-group-2xl lg:hidden">
-              {Array.from({ length: 2 }, (_, rowIndex) => (
+              {Array.from({ length: 2 }, (_mobileRow, mobileRowIndex) => (
                 <article
                   className="space-y-200 rounded-order-group-md border border-order-group-border bg-order-group-overlay p-order-group-xl"
-                  key={`account-orders-mobile-row-${index + 1}-${rowIndex + 1}`}
+                  key={`account-orders-mobile-row-${orderIndex + 1}-${mobileRowIndex + 1}`}
                 >
                   <div className="flex items-start gap-order-group-lg">
                     <Skeleton.Rectangle className="size-8 shrink-0 rounded-sm" />

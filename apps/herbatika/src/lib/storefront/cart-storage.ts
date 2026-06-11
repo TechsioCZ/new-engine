@@ -9,6 +9,8 @@ const baseCartStorage = createLocalStorageValueStore({
   key: CART_STORAGE_KEY,
 })
 
+const noop = () => null
+
 type HerbatikaCartStorage = StorageValueStore & {
   getCartId: () => string | null
   setCartId: (cartId: string) => void
@@ -26,7 +28,7 @@ export const cartStorage: HerbatikaCartStorage = {
     baseCartStorage.clear()
   },
   subscribe(listener) {
-    return baseCartStorage.subscribe?.(listener) ?? (() => {})
+    return baseCartStorage.subscribe?.(listener) ?? noop
   },
   getSnapshot() {
     return baseCartStorage.getSnapshot?.() ?? baseCartStorage.get()
