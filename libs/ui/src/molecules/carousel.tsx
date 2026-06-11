@@ -52,16 +52,16 @@ const carouselVariants = tv({
       "flex w-full items-center justify-center gap-carousel-indicator",
     ],
     indicator: [
-      "aspect-carousel-indicator w-carousel-indicator bg-carousel-indicator-bg",
+      "aspect-carousel-indicator w-carousel-indicator bg-carousel-indicator-bg-base",
       "data-current:bg-carousel-indicator-bg-active",
       "data-current:border-carousel-indicator-border-active",
-      "rounded-carousel-indicator border border-carousel-indicator-border",
+      "rounded-carousel-indicator border border-carousel-indicator-border-base",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     autoplayIcon: ["token-icon-carousel-play", "data-[pressed=true]:token-icon-carousel-pause"],
     autoplayTrigger: [
       "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
-      "bg-carousel-trigger-bg",
+      "bg-carousel-trigger-bg-base",
     ],
     spacer: ["flex-1"],
   },
@@ -70,7 +70,7 @@ const carouselVariants = tv({
       slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
       class: [
         "p-carousel-trigger",
-        "text-carousel-trigger-fg",
+        "text-carousel-trigger-fg-base",
         "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
         "focus-visible:outline-carousel-ring",
         "focus-visible:outline-offset-(length:--default-ring-offset)",
@@ -79,7 +79,7 @@ const carouselVariants = tv({
     {
       slots: ["prevTrigger", "nextTrigger"],
       class: [
-        'bg-carousel-trigger-bg hover:bg-carousel-trigger-bg-hover text-carousel-trigger-size',
+        'bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger',
         'hover:text-carousel-trigger-fg-hover',
         'transition-colors duration-200 motion-reduce:transition-none',
       ],
