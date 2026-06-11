@@ -1,60 +1,15 @@
-:root {
-  /* The red colour will be less noticeable. */
-  --opacity-switch-invalid: 80%;
-}
+/*
+ * Switch — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--spacing-switch-translate-track` — runtime calc() of Figma track
+ *     tokens (thumb travel distance); can't be a static Figma variable.
+ */
 
 @theme static {
-  /* === BASE TOKEN MAPPING === */
-  --color-switch-bg: var(--color-overlay);
-  --color-switch-success: var(--color-success);
-  --color-switch-invalid: --alpha(
-    var(--color-danger) /
-    var(--opacity-switch-invalid)
-  );
-  --color-switch-border: var(--color-border-primary);
-  --color-switch-thumb-bg: var(--color-base-light);
-  --color-switch-label-fg: var(--color-fg-primary);
-  --color-switch-label-fg-disabled: var(--color-fg-disabled);
-
-  /* Backgrounds colors */
-  --color-switch-bg-checked: var(--color-switch-success);
-
-  /* === STATE VARIATIONS === */
-  --color-switch-bg-hover: oklch(
-    from var(--color-switch-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-switch-bg-checked-hover: oklch(
-    from var(--color-switch-success) calc(l + var(--state-hover)) c h
-  );
-
-  /* === DISABLED STATES === */
-  /* Using unified disabled tokens for consistency across all components */
-  --color-switch-bg-disabled: var(--color-bg-disabled);
-  --color-switch-thumb-bg-disabled: var(--color-fg-disabled);
-  --color-switch-border-disabled: var(--color-border-disabled);
-
-  /* === INVALID STATES === */
-  --color-switch-bg-invalid: var(--color-switch-invalid);
-
-  /* === SPACING === */
-  --spacing-switch-root: var(--spacing-200);
-  --spacing-switch-control: var(--spacing-50);
-  --spacing-switch-track-width: var(--spacing-600);
-  --spacing-switch-track-height: var(--spacing-350);
-  --spacing-switch-thumb-height: calc(
-    var(--spacing-switch-track-height) -
-    (var(--spacing-switch-control) * 2)
-  );
   --spacing-switch-translate-track: calc(
     var(--spacing-switch-track-width) -
     var(--spacing-switch-track-height) -
     var(--spacing-switch-control)
   );
-
-  /* === BORDERS & RADIUS === */
-  --border-width-switch: var(--border-width-sm);
-  --radius-switch: var(--radius-full);
-
-  /* === FOCUS RINGS === */
-  --color-switch-ring: var(--color-ring);
 }
