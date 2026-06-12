@@ -28,7 +28,7 @@ const tabsVariants = tv({
     ],
     trigger: [
       "relative flex items-center justify-center",
-      "text-tabs-trigger-fg",
+      "text-tabs-trigger-fg-base",
       "rounded-tabs-trigger",
       "cursor-pointer",
       "hover:bg-tabs-trigger-bg-hover",
@@ -36,13 +36,13 @@ const tabsVariants = tv({
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected]:text-tabs-trigger-fg-selected",
-      "data-[disabled]:cursor-not-allowed data-[disabled]:text-tabs-fg-disabled",
+      "data-[disabled]:cursor-not-allowed data-[disabled]:text-tabs-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     indicator: [
       "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
       "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
-      "data-[orientation=horizontal]:h-tabs-indicator data-[orientation=vertical]:w-tabs-indicator",
+      "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
       "data-[orientation=vertical]:start-0 data-[orientation=horizontal]:bottom-0",
     ],
     content: [
@@ -59,13 +59,13 @@ const tabsVariants = tv({
         indicator: "hidden",
       },
       line: {
-        list: "border-b-(length:--border-width-tabs) border-tabs-border",
+        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
         indicator:
           "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
       },
       solid: {
         trigger:
-          "data-[selected]:bg-tabs-trigger-bg-selected data-[selected]:text-tabs-trigger-solid-fg",
+          "data-[selected]:bg-tabs-trigger-bg-selected data-[selected]:text-tabs-trigger-fg-solid-selected",
         indicator: "hidden",
       },
       outline: {
@@ -80,15 +80,15 @@ const tabsVariants = tv({
     size: {
       sm: {
         trigger: "p-tabs-trigger-sm text-tabs-trigger-sm",
-        content: "p-tabs-content-sm text-tabs-content-sm",
+        content: "p-tabs-content-padding-sm text-tabs-content-sm",
       },
       md: {
         trigger: "p-tabs-trigger-md text-tabs-trigger-md",
-        content: "p-tabs-content-md text-tabs-content-md",
+        content: "p-tabs-content-padding-md text-tabs-content-md",
       },
       lg: {
         trigger: "p-tabs-trigger-lg text-tabs-trigger-lg",
-        content: "p-tabs-content-lg text-tabs-content-lg",
+        content: "p-tabs-content-padding-lg text-tabs-content-lg",
       },
     },
     fitted: {

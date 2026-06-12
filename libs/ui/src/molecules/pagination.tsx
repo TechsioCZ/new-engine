@@ -22,14 +22,14 @@ export const paginationVariants = tv({
     list: ["inline-flex items-center gap-pagination-list"],
     item: [
       "grid cursor-pointer",
-      'has-[[data-part="ellipsis"]]:bg-pagination-neutral-bg',
-      'has-[[data-part="compact-text"]]:bg-pagination-neutral-bg',
+      'has-[[data-part="ellipsis"]]:bg-pagination-bg-neutral',
+      'has-[[data-part="compact-text"]]:bg-pagination-bg-neutral',
     ],
     link: [
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-pagination-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "border-(length:--border-pagination-width) rounded-pagination border-pagination-border",
+      "border-(length:--border-pagination-width) rounded-pagination border-pagination-border-base",
       "aspect-square",
       "data-disabled:text-pagination-fg-disabled data-disabled:hover:bg-pagination-bg-disabled",
       "data-disabled:bg-pagination-bg-disabled",
@@ -51,25 +51,25 @@ export const paginationVariants = tv({
   variants: {
     variant: {
       filled: {
-        item: "bg-pagination-bg",
+        item: "bg-pagination-bg-base",
         link: [
-          "data-selected:border-pagination-border-active data-selected:bg-pagination-bg-active data-selected:text-pagination-filled-fg-active",
+          "data-selected:border-pagination-border-active data-selected:bg-pagination-bg-active data-selected:text-pagination-fg-filled-active",
           "hover:border-pagination-border-hover hover:bg-pagination-bg-hover",
-          "hover:text-pagination-filled-fg-active",
+          "hover:text-pagination-fg-filled-active",
         ],
       },
       outlined: {
-        item: "bg-pagination-bg",
+        item: "bg-pagination-bg-base",
         link: [
-          "data-selected:border-pagination-border-active data-selected:text-pagination-outlined-fg-active",
-          "hover:border-pagination-border-hover hover:text-pagination-outlined-fg-active",
+          "data-selected:border-pagination-border-active data-selected:text-pagination-fg-outlined-active",
+          "hover:border-pagination-border-hover hover:text-pagination-fg-outlined-active",
         ],
       },
       minimal: {
         link: [
           "border-transparent",
-          "data-selected:text-pagination-minimal-fg-active",
-          "hover:text-pagination-minimal-fg-active",
+          "data-selected:text-pagination-fg-minimal-active",
+          "hover:text-pagination-fg-minimal-active",
         ],
       },
     },

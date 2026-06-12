@@ -32,24 +32,24 @@ const productCardVariants = tv({
       "data-[stock=limited-stock]:text-product-card-stock-fg-limited-stock",
       "data-[stock=out-of-stock]:text-product-card-stock-fg-out-of-stock",
     ],
-    badgesSlot: "flex flex-wrap gap-product-card-box",
+    badgesSlot: "flex flex-wrap gap-product-card-badges",
     ratingSlot: "flex items-center",
-    actionsSlot: "flex flex-wrap gap-product-card-buttons",
+    actionsSlot: "flex flex-wrap gap-product-card-actions",
     button: "",
   },
   variants: {
     buttonVariant: {
       cart: {
         button:
-          "w-max bg-product-card-button-cart-bg text-product-card-button-cart-fg hover:bg-product-card-button-cart-bg-hover",
+          "w-max bg-product-card-button-cart-bg-base text-product-card-button-cart-fg hover:bg-product-card-button-cart-bg-hover",
       },
       detail: {
         button:
-          "w-max bg-product-card-button-detail-bg text-product-card-button-detail-fg hover:bg-product-card-button-detail-bg-hover",
+          "w-max bg-product-card-button-detail-bg-base text-product-card-button-detail-fg hover:bg-product-card-button-detail-bg-hover",
       },
       wishlist: {
         button:
-          "w-max bg-product-card-button-wishlist-bg text-product-card-button-wishlist-fg hover:bg-product-card-button-wishlist-bg-hover",
+          "w-max bg-product-card-button-wishlist-bg-base text-product-card-button-wishlist-fg hover:bg-product-card-button-wishlist-bg-hover",
       },
       custom: {},
     },

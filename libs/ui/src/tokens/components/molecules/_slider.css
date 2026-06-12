@@ -1,72 +1,17 @@
+/*
+ * Slider — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here (namespace aliases — h-/w- utilities can't read --size-*):
+ *   - track sizes, marker size, vertical marker height.
+ *   - `--padding-marker-text` composite built from the Figma offset.
+ */
+
 @theme static {
-  --spacing-slider-slim: 2px;
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-slider-primary: var(--color-primary);
-  --color-slider-base: var(--color-surface);
-  --color-slider-error: var(--color-danger);
-  --color-slider-accent: oklch(
-    from var(--color-slider-base) calc(l - var(--surface-increment) * 2) c h
-  );
+  --spacing-slider-track-sm: var(--size-slider-track-sm);
+  --spacing-slider-track-md: var(--size-slider-track-md);
+  --spacing-slider-track-lg: var(--size-slider-track-lg);
 
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-slider-range-bg: var(--color-slider-primary);
-  --color-slider-track-bg: var(--color-slider-base);
-  --color-slider-marker-bg: var(--color-slider-accent);
-  --color-slider-thumb-bg: var(--color-base-light);
-
-  /* Border colors */
-  --color-slider-border: var(--color-border-primary);
-
-  /* === STATE VARIATIONS === */
-  /* Hover states */
-  --color-slider-track-bg-hover: oklch(
-    from var(--color-slider-track-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-slider-range-bg-hover: oklch(
-    from var(--color-slider-range-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-slider-thumb-bg-hover: oklch(
-    from var(--color-slider-thumb-bg) calc(l + var(--state-hover)) c h
-  );
-
-  /* === VALIDATION STATES === */
-  --color-slider-range-bg-error: var(--color-slider-error);
-  --color-slider-border-error: var(--color-slider-error);
-
-  /* === DISABLED STATES === */
-  --color-slider-bg-disabled: var(--color-bg-disabled);
-  --color-slider-thumb-bg-disabled: var(--color-fg-disabled);
-  --color-slider-range-bg-disabled: var(--color-fg-disabled);
-  --color-slider-border-disabled: var(--color-border-disabled);
-
-  /* === SPACING === */
-  --spacing-slider-root: var(--spacing-200);
-
-  --spacing-slider-thumb-sm: var(--spacing-200);
-  --spacing-slider-thumb-md: var(--spacing-250);
-  --spacing-slider-thumb-lg: var(--spacing-350);
-
-  --spacing-slider-track-sm: var(--spacing-100);
-  --spacing-slider-track-md: var(--spacing-150);
-  --spacing-slider-track-lg: var(--spacing-200);
-
-  --spacing-slider-marker: var(--spacing-slider-slim);
-  --padding-marker-text: 0 0 0 var(--spacing-150);
-
-  /* === TYPOGRAPHY === */
-  --text-slider-value-size: var(--text-sm);
-  --height-marker-vertical: var(--spacing-300);
-
-  /* === BORDERS & RADIUS === */
-  --border-width-slider: var(--border-width-sm);
-  --radius-slider-track: var(--radius-full);
-  --radius-slider-thumb: var(--radius-full);
-
-  /* === SHADOWS === */
-  --shadow-slider-thumb: var(--shadow-sm);
-
-  /* === FOCUS RINGS === */
-  --color-slider-ring: var(--color-ring);
+  --spacing-slider-marker: var(--size-slider-marker);
+  --height-marker-vertical: var(--size-slider-marker-vertical-height);
+  --padding-marker-text: 0 0 0 var(--spacing-slider-marker-text);
 }

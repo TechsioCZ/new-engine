@@ -1,71 +1,20 @@
-:root {
-  --opacity-backdrop: 10%;
-}
+/*
+ * Dialog — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--container-dialog-center-h-max` — 80svh runtime viewport unit
+ *     (Figma's -center-max-h is a fixed size; svh can't be modelled).
+ *   - `--container-dialog-center-w-max` — kept alongside for symmetry
+ *     with the h-max name the TSX consumes.
+ *   - `--z-dialog-*` — z-index layering, code-side concern.
+ */
 
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-dialog: var(--color-surface);
-
-  /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-dialog-bg: var(--color-dialog);
-  --color-dialog-fg: var(--color-fg-primary);
-  --color-dialog-backdrop-bg: --alpha(
-    var(--color-fg-primary) /
-    var(--opacity-backdrop)
-  );
-
-  /* Content colors */
-  --color-dialog-content-bg: var(--color-dialog-bg);
-  --color-dialog-content-fg: var(--color-dialog-fg);
-  --color-dialog-content-border: var(--color-border-primary);
-
-  /* Foreground colors */
-  --color-dialog-title-fg: var(--color-dialog-fg);
-  --color-dialog-description-fg: var(--color-dialog-fg);
-  --color-dialog-close-trigger-fg: var(--color-dialog-fg);
-
-  /* === SPACING === */
-  --padding-dialog-content: var(--spacing-450);
-  --gap-dialog-content: var(--spacing-250);
-  --padding-dialog-actions: var(--spacing-150);
-  --gap-dialog-actions: var(--spacing-100);
-  --spacing-dialog-close-trigger-padding: var(--spacing-150);
-  --spacing-dialog-close-trigger-offset: var(--spacing-250);
-
-  /* === TYPOGRAPHY === */
-  --text-dialog-title-size: var(--text-xl);
-  --text-dialog-description-size: var(--text-md);
-  --font-weight-dialog-title: var(--font-weight-semibold);
-
-  /* === SIZES === */
-  --container-dialog-xs: var(--container-xs);
-  --container-dialog-sm: var(--container-sm);
-  --container-dialog-md: var(--container-md);
-  --container-dialog-lg: var(--container-lg);
-  --container-dialog-xl: var(--container-xl);
   --container-dialog-center-h-max: 80svh;
-  --container-dialog-center-w-max: var(--container-2xl);
+  --container-dialog-center-w-max: var(--container-dialog-center-max-w);
 
-  /* === BORDERS & RADIUS === */
-  --border-width-dialog: var(--border-width-sm);
-  --radius-dialog-center: var(--radius-sm);
-  --radius-dialog-left: 0 0 0 0;
-  --radius-dialog-right: 0 0 0 0;
-  --radius-dialog-top: 0 0 0 0;
-  --radius-dialog-bottom: 0 0 0 0;
-  --radius-dialog-close-trigger: var(--radius-full);
-
-  /* === SHADOWS === */
-  --shadow-dialog-content: var(--shadow-primary);
-
-  /* === Z-INDEX === */
   --z-dialog-backdrop: 10;
   --z-dialog-positioner: 20;
-
-  /* === FOCUS RINGS === */
-  --color-dialog-ring: var(--color-ring);
 }
 
 /* Semantic tokens for dialog icons */

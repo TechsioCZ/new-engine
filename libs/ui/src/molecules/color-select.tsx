@@ -14,7 +14,7 @@ const colorSelectVariants = tv({
       "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
       "focus-visible:outline-color-select-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "data-[selected=true]:border-color-select-selected data-[selected=true]:shadow-none",
+      "data-[selected=true]:border-color-select-border-selected data-[selected=true]:shadow-none",
     ],
     color: [
       "absolute",
@@ -48,22 +48,22 @@ const colorSelectVariants = tv({
     },
     size: {
       sm: {
-        group: "gap-color-select-group-sm",
+        group: "gap-color-select-sm",
         atom: "h-color-select-sm",
         icon: "text-color-select-sm",
       },
       md: {
-        group: "gap-color-select-group-md",
+        group: "gap-color-select-md",
         atom: "h-color-select-md",
         icon: "text-color-select-md",
       },
       lg: {
-        group: "gap-color-select-group-lg",
+        group: "gap-color-select-lg",
         atom: "h-color-select-lg",
         icon: "text-color-select-lg",
       },
       full: {
-        group: "h-full w-full gap-color-select-group-md",
+        group: "h-full w-full gap-color-select-md",
         cell: "h-full w-full",
         atom: "h-full",
         icon: "size-color-select-icon",

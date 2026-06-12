@@ -19,7 +19,7 @@ const comboboxVariants = tv({
     label: ["block font-label text-label-md"],
     control: [
       "form-control-base relative flex w-full items-center overflow-hidden",
-      "bg-combobox-bg",
+      "bg-combobox-bg-base",
       "transition-colors duration-200 ease-in-out motion-reduce:transition-none",
       "hover:border-combobox-border-hover hover:bg-combobox-bg-hover",
       "data-focus:border-combobox-border-focus data-focus:bg-combobox-bg-focus",
@@ -28,17 +28,17 @@ const comboboxVariants = tv({
       "data-focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-disabled:border-combobox-border-disabled data-disabled:bg-combobox-bg-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
-      "data-[validation=error]:border-combobox-danger-fg",
+      "data-[validation=error]:border-combobox-border-error",
       "data-[validation=success]:border-(length:--border-width-validation)",
-      "data-[validation=success]:border-combobox-success-fg",
+      "data-[validation=success]:border-combobox-border-success",
       "data-[validation=warning]:border-(length:--border-width-validation)",
-      "data-[validation=warning]:border-combobox-warning-fg",
+      "data-[validation=warning]:border-combobox-border-warning",
     ],
     input: [
-      "relative h-full w-full border-none bg-combobox-input-bg",
+      "relative h-full w-full border-none bg-combobox-input-bg-base",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
-      "focus:bg-combobox-input-bg-focused",
-      "placeholder:text-combobox-placeholder",
+      "focus:bg-combobox-input-bg-focus",
+      "placeholder:text-combobox-fg-placeholder",
       "data-disabled:text-combobox-fg-disabled",
       "data-disabled:bg-combobox-bg-disabled",
     ],
@@ -57,7 +57,7 @@ const comboboxVariants = tv({
       "flex flex-col overflow-clip",
       "rounded-combobox shadow-md",
       "bg-combobox-content-bg",
-      "z-(--z-combobox-content) border border-combobox-border",
+      "z-(--z-combobox-content) border border-combobox-border-base",
       "duration-200 ease-out motion-safe:transition-[opacity,display,translate]",
       "transition-discrete",
       "starting:-translate-y-2 starting:opacity-0",
@@ -74,7 +74,12 @@ const comboboxVariants = tv({
       "data-[state=checked]:bg-combobox-item-bg-selected",
       "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
     ],
-    emptyState: ["text-combobox-placeholder"],
+    emptyState: ["text-combobox-fg-placeholder"],
+    triggerIndicator: [
+      "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
+      "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
+      "rotate-0 group-data-[state=open]:rotate-180",
+    ],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
       "data-[validation=warning]:text-combobox-warning-fg",
@@ -88,8 +93,8 @@ const comboboxVariants = tv({
         "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
         "focus-visible:outline-combobox-ring",
         "focus-visible:outline-offset-(length:--default-ring-offset)",
-        "text-combobox-trigger text-combobox-trigger-size",
-        "hover:text-combobox-trigger-hover",
+        "text-combobox-trigger-fg-base text-combobox-trigger",
+        "hover:text-combobox-trigger-fg-hover",
         "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
         "hover:bg-combobox-trigger-bg-hover",
         "active:bg-combobox-trigger-bg-active",
@@ -99,28 +104,28 @@ const comboboxVariants = tv({
   variants: {
     size: {
       sm: {
-        root: "gap-combobox-root-sm",
+        root: "gap-combobox-sm",
         control: "h-form-control-sm rounded-combobox-sm text-input-sm",
         item: "p-combobox-item-sm text-combobox-item-sm",
         emptyState: "p-combobox-item-sm text-combobox-item-sm",
         input: "p-combobox-input-sm",
-        content: "text-combobox-content-sm",
+        content: "text-combobox-sm",
       },
       md: {
-        root: "gap-combobox-root-md",
+        root: "gap-combobox-md",
         control: "h-form-control-md rounded-combobox-md text-input-md",
         item: "p-combobox-item-md text-combobox-item-md",
         emptyState: "p-combobox-item-md text-combobox-item-md",
         input: "p-combobox-input-md",
-        content: "text-combobox-content-md",
+        content: "text-combobox-md",
       },
       lg: {
-        root: "gap-combobox-root-lg",
+        root: "gap-combobox-lg",
         control: "rounded-combobox text-input-lg",
         item: "p-combobox-item-lg text-combobox-item-lg",
         emptyState: "p-combobox-item-lg text-combobox-item-lg",
         input: "p-combobox-input-lg",
-        content: "text-combobox-content-lg",
+        content: "text-combobox-lg",
       },
     },
   },
@@ -274,6 +279,7 @@ export function Combobox<T = unknown>({
     clearTrigger,
     item: itemSlot,
     emptyState,
+    triggerIndicator,
   } = comboboxVariants({ size })
 
   const hasOptions = api.collection.size > 0
@@ -323,9 +329,7 @@ export function Combobox<T = unknown>({
           theme="unstyled"
         >
           <Icon
-            className={`text-combobox-trigger group-hover:text-combobox-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
-              api.open ? "rotate-180" : "rotate-0"
-            }`}
+            className={triggerIndicator()}
             icon={triggerIcon}
             size={triggerIconSize ?? resolvedChevronIconSize}
           />

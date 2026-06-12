@@ -1,3 +1,16 @@
+/*
+ * ColorSelect — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--cols-num` responsive grid column count (runtime media queries).
+ *   - `--height-color-select-{sm,md,lg}` — Tailwind's h- utility doesn't
+ *     read the --size-* namespace; aliases keep `h-color-select-{size}`
+ *     bound to Figma's swatch sizes.
+ *   - `--padding-color-select-atom` (composite "0 0") and
+ *     `--size-color-select-icon` (50%) — runtime/percent values Figma
+ *     can't model.
+ */
+
 :root {
   --cols-num: 4;
   /*breakpoint md*/
@@ -11,41 +24,12 @@
 }
 
 @theme static {
-  /* === DERIVED COLORS === */
-  --color-color-select-accent: var(--color-fg-primary);
-  --color-color-select-border: var(--color-highlight);
-  --color-color-select-border-hover: var(--color-color-select-accent);
-  --color-color-select-selected: var(--color-color-select-accent);
-  --color-color-select-fg-check: var(--color-white);
-  --color-color-select-ring: var(--color-ring);
-  --color-color-select-label-fg: var(--color-fg-secondary);
+  --height-color-select-sm: var(--size-color-select-sm);
+  --height-color-select-md: var(--size-color-select-md);
+  --height-color-select-lg: var(--size-color-select-lg);
 
-  /* === SPACING === */
   --padding-color-select-atom: 0 0;
-  --spacing-color-select-group-sm: var(--spacing-100);
-  --spacing-color-select-group-md: var(--spacing-200);
-  --spacing-color-select-group-lg: var(--spacing-300);
-  
-  --spacing-color-select-sm: var(--spacing-250);
-  --spacing-color-select-md: var(--spacing-350);
-  --spacing-color-select-lg: var(--spacing-450);
-
-  /* === TYPOGRAPHY === */
-  --text-color-select-sm: var(--text-xs);
-  --text-color-select-md: var(--text-sm);
-  --text-color-select-lg: var(--text-md);
   --size-color-select-icon: 50%;
-
-  /* === BORDERS & RADIUS === */
-  --radius-color-select-full: var(--radius-full);
-  --radius-color-select-sm: var(--radius-sm);
-  --radius-color-select-md: var(--radius-md);
-  --radius-color-select-lg: var(--radius-2xl);
-
-  /* === SHADOWS === */
-  --shadow-color-select: var(--shadow-sm);
-
-  /* === LAYOUT === */
 }
 
 @utility token-icon-color-select {

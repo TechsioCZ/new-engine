@@ -9,7 +9,7 @@ import { slugify, tv } from "../utils"
 const sliderVariants = tv({
   slots: {
     root: [
-      "flex w-full flex-col gap-slider-root",
+      "flex w-full flex-col gap-slider",
       "data-[orientation=vertical]:h-full",
       "data-disabled:cursor-not-allowed",
     ],
@@ -24,7 +24,7 @@ const sliderVariants = tv({
       "flex-1 rounded-slider-track bg-slider-track-bg",
       "data-[orientation=horizontal]:w-full",
       "data-[orientation=vertical]:h-full",
-      "data-disabled:bg-slider-bg-disabled",
+      "data-disabled:bg-slider-track-bg-disabled",
       "border-(length:--border-width-slider) border-slider-border",
       "data-disabled:border-slider-border-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
