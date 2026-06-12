@@ -123,7 +123,7 @@ export NODE_ENV="${NODE_ENV:-production}"
 export MEDUSA_TELEMETRY_DISABLED="${MEDUSA_TELEMETRY_DISABLED:-1}"
 export NX_DAEMON=false
 export NX_SKIP_NX_CACHE=true
-export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-768}}"
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-2048}}"
 export CI="${CI:-true}"
 export ESBUILD_WORKER_THREADS="${ESBUILD_WORKER_THREADS:-0}"
 
