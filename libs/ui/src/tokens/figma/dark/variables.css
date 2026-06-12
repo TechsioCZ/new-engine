@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-06-12T05:40:36.714Z
+ * Exported at: 2026-06-12T12:05:45.086Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -1226,10 +1226,10 @@
   --padding-textarea-lg: var(--spacing-200);
   --padding-textarea-md: var(--spacing-150);
   --padding-textarea-sm: var(--spacing-100);
-  --padding-textarea-x-lg: 0.94rem;
+  --padding-textarea-x-lg: var(--dimension-16);
   --padding-textarea-x-md: var(--dimension-10);
   --padding-textarea-x-sm: var(--dimension-6);
-  --padding-textarea-y-lg: 0.94rem;
+  --padding-textarea-y-lg: var(--dimension-16);
   --padding-textarea-y-md: var(--dimension-10);
   --padding-textarea-y-sm: var(--dimension-6);
   --padding-toast-root: var(--dimension-20);
@@ -1488,9 +1488,9 @@
   --spacing-numeric-input-md: var(--dimension-0);
   --spacing-numeric-input-sm: var(--dimension-0);
   --spacing-pagination-list: var(--dimension-16);
+  --spacing-phone-input: var(--spacing-form-field);
   --spacing-phone-input-country-value: var(--dimension-8);
   --spacing-phone-input-item: var(--dimension-10);
-  --spacing-phone-input-root: var(--spacing-form-field);
   --spacing-popover-arrow-size: var(--dimension-10);
   --spacing-popover-title: var(--dimension-10);
   --spacing-product-card-actions: var(--dimension-10);
