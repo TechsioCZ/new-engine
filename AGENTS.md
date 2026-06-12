@@ -13,8 +13,16 @@ This is an Nx monorepo for an e-commerce platform built with Medusa.js. The proj
   - `medusa-be`: Medusa.js v2 backend
   - `medusa-demo`: Next.js demo frontend (reference implementation)
   - `medusa-fe`: Next.js frontend (reference implementation)
+  - `herbatika`: Next.js 16 storefront app
 - **libs/**: Shared libraries
   - `ui`: Component library built with Zag.js and Tailwind CSS
+  - `storefront-data`: TanStack Query + Medusa storefront data layer
+
+### Subtree Guidance
+- When touching `apps/herbatika`, read `apps/herbatika/AGENTS.md` before editing.
+  It overrides the root frontend-demo server assumption with Herbatika's
+  `http://localhost:3001` runtime and routes work through the `libs/ui/skills`
+  and `libs/storefront-data/skills` workflows.
 
 ### Key Technologies
 - **Monorepo**: Nx
@@ -83,6 +91,7 @@ This project includes MCP (Model Context Protocol) servers configuration to enha
 ### Important: Development Server Assumptions
 **NEVER ask to run `pnpm dev` or check if the dev server is running!**
 - Always assume the development server is already running on http://localhost:3000 (for frontend-demo)
+- Exception: `apps/herbatika` uses `http://localhost:3001`; follow `apps/herbatika/AGENTS.md` for Herbatika work.
 - This saves time and avoids unnecessary communication
 - If you need to interact with the running application, use MCP tools (especially puppeteer-mcp)
 
