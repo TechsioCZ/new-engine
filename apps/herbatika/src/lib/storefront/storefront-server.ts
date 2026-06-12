@@ -19,6 +19,7 @@ import type {
   MedusaRegionDetailInput,
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
+import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service";
 import { storefrontSdk } from "./sdk";
 import { storefrontCoreDefinition } from "./storefront-core-definition";
 import type {
@@ -55,6 +56,9 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   },
   productLists: {
     queryKeys: storefrontCoreDefinition.productLists.queryKeys,
+  },
+  reviews: {
+    queryKeys: storefrontCoreDefinition.reviews.queryKeys,
   },
   orders: {
     serviceConfig: storefrontCoreDefinition.orders.serviceConfig,
@@ -114,6 +118,16 @@ export const fetchServerProduct = (
 ) =>
   queryClient.fetchQuery(
     storefrontServerRead.queries.products.getDetailQueryOptions(detailParams),
+  );
+
+export const prefetchServerProductReviews = (
+  queryClient: QueryClient,
+  listParams: MedusaProductReviewListInput,
+) =>
+  queryClient.prefetchQuery(
+    storefrontServerRead.queries.reviews.getProductReviewsQueryOptions(
+      listParams,
+    ),
   );
 
 export const fetchServerCategories = (

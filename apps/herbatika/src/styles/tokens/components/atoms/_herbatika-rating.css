@@ -4,4 +4,10 @@
 
     --text-rating-md: var(--text-icon-sm);
     --text-rating-lg: var(--text-icon-md);
+
+    --color-rating-fg-base: var(--color-herbatika-slate)
+}
+
+@utility rating-star-fill {
+    inline-size: var(--star-fill);
 }

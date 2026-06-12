@@ -12,8 +12,10 @@ import {
   getRegionServerContext,
   prefetchProductDetail,
   prefetchProductList,
+  prefetchProductReviews,
 } from "./context";
 import type { ProductDetailParams } from "./types";
+import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config";
 
 export const prefetchProductDetailPageStorefrontData = async (
   handle: string,
@@ -30,6 +32,14 @@ export const prefetchProductDetailPageStorefrontData = async (
 
     const product = await prefetchProductDetail(queryClient, detailParams);
     const relatedCategoryIds = resolveRelatedCategoryIds(product);
+
+    if (product?.id) {
+      await prefetchProductReviews(queryClient, {
+        productId: product.id,
+        limit: PRODUCT_REVIEWS_PAGE_SIZE,
+        offset: 0,
+      });
+    }
 
     if (relatedCategoryIds.length > 0 && product?.id) {
       const relatedProductsListParams = buildProductListParams({

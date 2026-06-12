@@ -39,6 +39,8 @@ import type {
   MedusaRegionListInput,
 } from "@techsio/storefront-data/regions/medusa-service";
 import { createRegionQueryKeys } from "@techsio/storefront-data/regions/query-keys";
+import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service";
+import { createProductReviewQueryKeys } from "@techsio/storefront-data/reviews/query-keys";
 import { buildHerbatikaPaymentSessionData } from "./payment-session";
 import {
   PRODUCT_CARD_FIELDS,
@@ -168,6 +170,9 @@ export const storefrontQueryKeys = {
     MedusaProductListListKeyInput,
     MedusaProductListDetailKeyInput
   >(STOREFRONT_QUERY_KEY_NAMESPACE),
+  reviews: createProductReviewQueryKeys<MedusaProductReviewListInput>(
+    STOREFRONT_QUERY_KEY_NAMESPACE,
+  ),
   regions: createRegionQueryKeys<
     MedusaRegionListInput,
     MedusaRegionDetailInput

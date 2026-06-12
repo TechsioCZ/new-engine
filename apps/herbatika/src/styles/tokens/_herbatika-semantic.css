@@ -26,6 +26,7 @@
   --color-herbatika-fg-tertiary: oklch(0.5517 0.0138 285.94);
   --color-herbatika-tip: oklch(0.8056 0.0919 45.13);
   --color-herbatika-new: oklch(0.7978 0.0954 121.56);
+  --color-herbatika-slate: var(--color-slate-300);
 
   /* Brand semantics */
   --color-primary: var(--color-herbatika-primary);

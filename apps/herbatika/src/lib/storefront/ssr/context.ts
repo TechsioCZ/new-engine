@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import {
   fetchServerProduct,
   fetchServerRegions,
+  prefetchServerProductReviews,
   prefetchServerProducts,
 } from "../storefront-server";
 import {
@@ -18,6 +19,7 @@ import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config";
 import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection";
 import type {
   ProductDetailParams,
+  ProductReviewListParams,
   ProductListParams,
   RegionListParams,
 } from "./types";
@@ -68,4 +70,11 @@ export const prefetchProductDetail = async (
   detailParams: ProductDetailParams,
 ) => {
   return fetchServerProduct(queryClient, detailParams);
+};
+
+export const prefetchProductReviews = async (
+  queryClient: QueryClient,
+  listParams: ProductReviewListParams,
+) => {
+  await prefetchServerProductReviews(queryClient, listParams);
 };
