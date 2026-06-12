@@ -81,7 +81,7 @@ export const defaultPhoneInputCountries: PhoneInputCountry[] = [
 
 const phoneInputVariants = tv({
   slots: {
-    root: ["relative flex w-full flex-col gap-phone-input-root"],
+    root: ["relative flex w-full flex-col gap-phone-input"],
     control: [
       "form-control-base",
       "relative flex w-full items-center overflow-hidden",
