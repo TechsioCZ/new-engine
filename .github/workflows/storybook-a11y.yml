@@ -5,6 +5,9 @@ on:
     paths:
       - "libs/ui/**"
       - ".github/workflows/storybook-a11y.yml"
+      - ".github/workflows/storybook-a11y-baseline.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
   workflow_dispatch:
     inputs:
       failOnViolations:
@@ -19,7 +22,56 @@ permissions:
   checks: write
 
 jobs:
+  detect-a11y-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.changed-paths.outputs.should-run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed paths
+        id: changed-paths
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          should_run=false
+          while IFS= read -r file; do
+            case "$file" in
+              .github/workflows/storybook-a11y.yml|\
+              .github/workflows/storybook-a11y-baseline.yml|\
+              package.json|\
+              pnpm-lock.yaml|\
+              libs/ui/.storybook/*|\
+              libs/ui/assets/*|\
+              libs/ui/package.json|\
+              libs/ui/playwright.config.cts|\
+              libs/ui/postcss.config.mjs|\
+              libs/ui/project.json|\
+              libs/ui/rslib.config.ts|\
+              libs/ui/scripts/storybook-a11y*|\
+              libs/ui/src/*|\
+              libs/ui/stories/*|\
+              libs/ui/tsconfig.json)
+                should_run=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+
+          echo "should-run=$should_run" >> "$GITHUB_OUTPUT"
+          if [ "$should_run" = "false" ]; then
+            echo "No Storybook a11y-relevant paths changed; skipping Storybook build and scan." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   storybook-a11y:
+    needs: detect-a11y-changes
+    if: needs.detect-a11y-changes.outputs.should-run == 'true'
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
       node-version: "24"
