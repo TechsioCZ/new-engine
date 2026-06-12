@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ExecArgs } from "@medusajs/framework/types"
+import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 import { syncMeilisearchProducersWorkflow } from "../workflows/meilisearch/workflows/sync-producers"
 
 const resolveContainer = (
@@ -11,6 +12,11 @@ export default async function meilisearchProducersIndexJob(
 ) {
   const container = resolveContainer(input)
   const logger = container.resolve("logger")
+
+  if (!isMeilisearchEnabled()) {
+    logger.info("Skipping producer indexing because Meilisearch is disabled")
+    return
+  }
 
   logger.info("Starting producer indexing...")
 

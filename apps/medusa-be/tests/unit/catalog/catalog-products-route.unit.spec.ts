@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { GET } from "../../../src/api/store/catalog/products/route"
 
 type TestProduct = {
@@ -134,6 +134,7 @@ const productMatchesSearchFilters = (
 
 const createMockResponse = () =>
   ({
+    status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
   }) as any
 
@@ -323,6 +324,45 @@ const getJsonPayload = (res: ReturnType<typeof createMockResponse>) =>
   res.json.mock.calls[0][0]
 
 describe("GET /store/catalog/products", () => {
+  const originalMeilisearchEnabled = process.env.MEILISEARCH_ENABLED
+
+  beforeEach(() => {
+    process.env.MEILISEARCH_ENABLED = "1"
+  })
+
+  afterEach(() => {
+    if (originalMeilisearchEnabled === undefined) {
+      Reflect.deleteProperty(process.env, "MEILISEARCH_ENABLED")
+      return
+    }
+
+    process.env.MEILISEARCH_ENABLED = originalMeilisearchEnabled
+  })
+
+  it("returns unavailable without loading Meilisearch when search is disabled", async () => {
+    process.env.MEILISEARCH_ENABLED = "0"
+    const { req, res, meiliSearch, queryGraph } = createCatalogHarness({
+      products: [
+        {
+          id: "prod_visible",
+          title: "Visible product",
+          status: "published",
+          salesChannelIds: ["sc_visible"],
+        },
+      ],
+    })
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Catalog search is disabled",
+    })
+    expect(req.scope.resolve).not.toHaveBeenCalled()
+    expect(meiliSearch).not.toHaveBeenCalled()
+    expect(queryGraph).not.toHaveBeenCalled()
+  })
+
   it("excludes draft products from Meili hits", async () => {
     const { req, res } = createCatalogHarness({
       products: [

@@ -10,7 +10,7 @@ const tooltipVariants = tv({
       "[--arrow-size:var(--tooltip-arrow-size)]",
       "[--arrow-background:var(--tooltip-arrow-background)]",
       "bg-tooltip-bg",
-      "rounded-tooltip shadow-tooltip",
+      "rounded-tooltip",
     ],
     positioner: ["relative"],
     arrow: "",
@@ -19,8 +19,8 @@ const tooltipVariants = tv({
     variant: {
       default: {},
       outline: {
-        content: "border border-tooltip-border",
-        arrow: "border-tooltip-border border-s border-t",
+        content: "border border-tooltip-border-outline",
+        arrow: "border-tooltip-border-outline border-s border-t",
       },
     },
     size: {

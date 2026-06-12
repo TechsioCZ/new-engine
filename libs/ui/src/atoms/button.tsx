@@ -26,9 +26,9 @@ export const buttonVariants = tv({
       solid: "disabled:bg-button-bg-disabled",
       light: "disabled:bg-button-bg-disabled",
       borderless:
-        "bg-button-bg-borderless hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless",
+        "bg-button-bg-borderless-base hover:bg-button-bg-borderless-hover active:bg-button-bg-borderless-active disabled:hover:bg-button-bg-borderless-base",
       outlined:
-        "border bg-button-bg-outlined disabled:border-button-border-disabled disabled:hover:bg-button-bg-outlined",
+        "border bg-button-bg-outlined disabled:border-0 disabled:bg-button-bg-disabled disabled:hover:bg-button-bg-disabled",
       unstyled: "",
     },
     uppercase: {
@@ -49,7 +49,7 @@ export const buttonVariants = tv({
       variant: "primary",
       theme: "solid",
       className: [
-        "bg-button-bg-primary",
+        "bg-button-bg-primary-base",
         "hover:bg-button-bg-primary-hover",
         "active:bg-button-bg-primary-active",
         "text-button-fg-primary",
@@ -59,7 +59,7 @@ export const buttonVariants = tv({
       variant: "secondary",
       theme: "solid",
       className: [
-        "bg-button-bg-secondary",
+        "bg-button-bg-secondary-base",
         "hover:bg-button-bg-secondary-hover",
         "active:bg-button-bg-secondary-active",
         "text-button-fg-secondary",
@@ -69,7 +69,7 @@ export const buttonVariants = tv({
       variant: "tertiary",
       theme: "solid",
       className: [
-        "bg-button-bg-tertiary",
+        "bg-button-bg-tertiary-base",
         "hover:bg-button-bg-tertiary-hover",
         "active:bg-button-bg-tertiary-active",
         "text-button-fg-tertiary",
@@ -79,7 +79,7 @@ export const buttonVariants = tv({
       variant: "warning",
       theme: "solid",
       className: [
-        "bg-button-bg-warning",
+        "bg-button-bg-warning-base",
         "hover:bg-button-bg-warning-hover",
         "active:bg-button-bg-warning-active",
         "text-button-fg-warning",
@@ -89,7 +89,7 @@ export const buttonVariants = tv({
       variant: "danger",
       theme: "solid",
       className: [
-        "bg-button-bg-danger",
+        "bg-button-bg-danger-base",
         "hover:bg-button-bg-danger-hover",
         "active:bg-button-bg-danger-active",
         "text-button-fg-danger",
@@ -99,7 +99,7 @@ export const buttonVariants = tv({
       variant: "primary",
       theme: "light",
       className: [
-        "bg-button-bg-primary-light",
+        "bg-button-bg-primary-light-base",
         "hover:bg-button-bg-primary-light-hover",
         "active:bg-button-bg-primary-light-active",
         "text-button-fg-primary-light",
@@ -109,7 +109,7 @@ export const buttonVariants = tv({
       variant: "secondary",
       theme: "light",
       className: [
-        "bg-button-bg-secondary-light",
+        "bg-button-bg-secondary-light-base",
         "hover:bg-button-bg-secondary-light-hover",
         "active:bg-button-bg-secondary-light-active",
         "text-button-fg-secondary-light",
@@ -119,7 +119,7 @@ export const buttonVariants = tv({
       variant: "tertiary",
       theme: "light",
       className: [
-        "bg-button-bg-tertiary-light",
+        "bg-button-bg-tertiary-light-base",
         "hover:bg-button-bg-tertiary-light-hover",
         "active:bg-button-bg-tertiary-light-active",
         "text-button-fg-tertiary-light",
@@ -129,7 +129,7 @@ export const buttonVariants = tv({
       variant: "warning",
       theme: "light",
       className: [
-        "bg-button-bg-warning-light",
+        "bg-button-bg-warning-light-base",
         "hover:bg-button-bg-warning-light-hover",
         "active:bg-button-bg-warning-light-active",
         "text-button-fg-warning-light",
@@ -139,7 +139,7 @@ export const buttonVariants = tv({
       variant: "danger",
       theme: "light",
       className: [
-        "bg-button-bg-danger-light",
+        "bg-button-bg-danger-light-base",
         "hover:bg-button-bg-danger-light-hover",
         "active:bg-button-bg-danger-light-active",
         "text-button-fg-danger-light",
@@ -223,17 +223,17 @@ export const buttonVariants = tv({
     {
       theme: "outlined",
       size: "sm",
-      className: "border-(length:--border-button-width-sm)",
+      className: "border-(length:--border-width-button-sm)",
     },
     {
       theme: "outlined",
       size: "md",
-      className: "border-(length:--border-button-width-md)",
+      className: "border-(length:--border-width-button-md)",
     },
     {
       theme: "outlined",
       size: "lg",
-      className: "border-(length:--border-button-width-lg)",
+      className: "border-(length:--border-width-button-lg)",
     },
   ],
   defaultVariants: {
@@ -294,9 +294,13 @@ export function Button({
         </>
       ) : (
         <>
-          {icon && iconPosition === "left" && <Icon icon={icon} size={iconSize} />}
+          {icon && iconPosition === "left" && (
+            <Icon icon={icon} size={iconSize} />
+          )}
           {children}
-          {icon && iconPosition === "right" && <Icon icon={icon} size={iconSize} />}
+          {icon && iconPosition === "right" && (
+            <Icon icon={icon} size={iconSize} />
+          )}
         </>
       )}
     </button>

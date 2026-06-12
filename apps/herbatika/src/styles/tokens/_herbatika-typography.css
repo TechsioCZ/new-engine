@@ -1,0 +1,35 @@
+@theme static {
+  --font-verdana: Verdana, sans-serif;
+  --font-rubik: Rubik, sans-serif;
+  --font-open-sans: "Open Sans", var(--font-sans), sans-serif;
+  --font-inter: var(--font-inter-font), sans-serif;
+  --font-sans: "Rubik", "Open Sans", sans-serif;
+  --font-roboto: "Roboto", "Open Sans", sans-serif;
+
+  --text-2xs: 0.625rem; /*10px*/
+  --text-xs: 0.8125rem; /*13px*/
+  --text-sm: 0.875rem; /*14px*/
+  --text-md: 1rem; /*16px*/
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.75rem; /*28px*/
+  --text-4xl: 2rem;
+
+  --text-support: 15px;
+  --text-cart-badge: 11px;
+  --text-discount-size: 11px;
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-regular: var(--font-weight-normal);
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.3;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.5;
+  --line-height-loose: 1.75;
+}

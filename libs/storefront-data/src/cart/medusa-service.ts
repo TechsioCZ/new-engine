@@ -4,6 +4,7 @@ import { getErrorStatus } from "../shared/medusa-errors"
 import type { CartService } from "./types"
 
 export type MedusaCartServiceConfig = {
+  cartFields?: string
   isNotFoundError?: (error: unknown) => boolean
 }
 
@@ -23,6 +24,16 @@ export type MedusaCompleteCartResult =
 
 const defaultIsNotFoundError = (error: unknown): boolean =>
   getErrorStatus(error) === 404
+
+const buildCartSelectParams = (
+  fields?: string
+): HttpTypes.SelectParams | undefined => {
+  if (!fields) {
+    return
+  }
+
+  return { fields }
+}
 
 const sanitizeCartWriteParams = <TParams extends MedusaCartWriteParams>(
   params: TParams
@@ -65,6 +76,7 @@ export function createMedusaCartService(
   MedusaCartUpdateItemParams,
   MedusaCompleteCartResult
 > {
+  const cartQuery = buildCartSelectParams(config?.cartFields)
   const isNotFoundError = (error: unknown): boolean =>
     defaultIsNotFoundError(error) || Boolean(config?.isNotFoundError?.(error))
 
@@ -74,9 +86,12 @@ export function createMedusaCartService(
       signal?: AbortSignal
     ): Promise<HttpTypes.StoreCart | null> {
       try {
+        const fetchOptions = cartQuery
+          ? { query: cartQuery, signal }
+          : { signal }
         const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
           `/store/carts/${cartId}`,
-          { signal }
+          fetchOptions
         )
         return cart ?? null
       } catch (error: unknown) {
@@ -91,7 +106,9 @@ export function createMedusaCartService(
       params: MedusaCartCreateParams
     ): Promise<HttpTypes.StoreCart> {
       const sanitizedParams = sanitizeCartWriteParams(params)
-      const { cart } = await sdk.store.cart.create(sanitizedParams)
+      const { cart } = cartQuery
+        ? await sdk.store.cart.create(sanitizedParams, cartQuery)
+        : await sdk.store.cart.create(sanitizedParams)
       if (!cart) {
         throw new Error("Failed to create cart")
       }
@@ -103,7 +120,9 @@ export function createMedusaCartService(
       params: MedusaCartUpdateParams
     ): Promise<HttpTypes.StoreCart> {
       const sanitizedParams = sanitizeCartWriteParams(params)
-      const { cart } = await sdk.store.cart.update(cartId, sanitizedParams)
+      const { cart } = cartQuery
+        ? await sdk.store.cart.update(cartId, sanitizedParams, cartQuery)
+        : await sdk.store.cart.update(cartId, sanitizedParams)
       if (!cart) {
         throw new Error("Failed to update cart")
       }
@@ -114,7 +133,9 @@ export function createMedusaCartService(
       cartId: string,
       params: MedusaCartAddItemParams
     ): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.createLineItem(cartId, params)
+      const { cart } = cartQuery
+        ? await sdk.store.cart.createLineItem(cartId, params, cartQuery)
+        : await sdk.store.cart.createLineItem(cartId, params)
       if (!cart) {
         throw new Error("Failed to add item to cart")
       }
@@ -126,11 +147,14 @@ export function createMedusaCartService(
       lineItemId: string,
       params: MedusaCartUpdateItemParams
     ): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.updateLineItem(
-        cartId,
-        lineItemId,
-        params
-      )
+      const { cart } = cartQuery
+        ? await sdk.store.cart.updateLineItem(
+            cartId,
+            lineItemId,
+            params,
+            cartQuery
+          )
+        : await sdk.store.cart.updateLineItem(cartId, lineItemId, params)
       if (!cart) {
         throw new Error("Failed to update line item")
       }
@@ -141,7 +165,9 @@ export function createMedusaCartService(
       cartId: string,
       lineItemId: string
     ): Promise<HttpTypes.StoreCart> {
-      const { parent } = await sdk.store.cart.deleteLineItem(cartId, lineItemId)
+      const { parent } = cartQuery
+        ? await sdk.store.cart.deleteLineItem(cartId, lineItemId, cartQuery)
+        : await sdk.store.cart.deleteLineItem(cartId, lineItemId)
       if (!parent) {
         throw new Error("Failed to remove line item")
       }
@@ -149,7 +175,9 @@ export function createMedusaCartService(
     },
 
     async transferCart(cartId: string): Promise<HttpTypes.StoreCart> {
-      const { cart } = await sdk.store.cart.transferCart(cartId)
+      const { cart } = cartQuery
+        ? await sdk.store.cart.transferCart(cartId, cartQuery)
+        : await sdk.store.cart.transferCart(cartId)
       if (!cart) {
         throw new Error("Failed to transfer cart")
       }

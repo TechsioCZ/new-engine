@@ -3,6 +3,10 @@ import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
 import { type FormEvent, useState } from "react"
 
+export const handle = {
+  breadcrumb: () => "Payload import",
+}
+
 type ImportResult = {
   ok: boolean
   result: {
@@ -81,7 +85,8 @@ const PayloadImportPage = () => {
       })
 
       if (!response.ok) {
-        throw new Error(await parseErrorMessage(response))
+        setError(await parseErrorMessage(response))
+        return
       }
 
       const data = (await response.json()) as ImportResult

@@ -147,6 +147,15 @@ Create or update Figma variables strictly in tier order: core first, then semant
 
 Core variables hold **raw values only**. Names must be maximally short — strip all redundant words like "Primitive", "Space", "Default".
 
+> **Fluid responsive sizing.** If the codebase uses Utopia-style
+> `clamp(min, mid + vw, max)` for spacing/typography, see
+> [`../figma-token-binding/PRIMITIVES-STRATEGY.md`](../figma-token-binding/PRIMITIVES-STRATEGY.md).
+> Figma can store either a single value (Strategy B — code keeps the clamp
+> formula, atoms alias the primitive) or a min/max pair via an extra mode
+> axis (Strategy A — Figma is the full source of truth). Pick the strategy
+> *before* populating core sizing values, since Strategy A changes the
+> collection mode schema.
+
 **Naming pattern**: `type/value`
 
 Examples — sizing and spacing:
@@ -289,9 +298,17 @@ When it varies by size, keep `type/component/size`.
 - **Semantic**: `type/role` — e.g., `size/sm`, `color/primary/base`, `radius/md`
 - **Component color**: `color/component/cssProperty/variant/state` — depth varies per component
 - **Component non-color**: `type/component/size` — flat, no redundant segments (`root`, `gap`, `x`, `y` are forbidden), no state suffix because these values don't change between states
-- **State suffix rule — add a state segment only when the value varies by state:**
-  - Color tokens with multiple states: use **"base"** for the resting state, never "default" (e.g., `color/button/bg/primary/base`, `color/button/bg/primary/hover`)
-  - Tokens that are state-invariant (padding, radius, spacing, border-width, text size, font-weight): **no state suffix at all** — not "base", not "default". The name ends at the size or role segment (e.g., `radius/button/sm`, `padding/button/sm`, `spacing/button/sm`).
+- **State suffix rule — add a state segment only when the value varies by state. This applies to EVERY token, color and non-color alike:**
+  - **Multi-state tokens** (the value differs between states like base/hover/active/focus/disabled): use **"base"** for the resting state, never "default" (e.g., `color/button/bg/primary/base`, `color/button/bg/primary/hover`, `color/button/bg/primary/active`).
+  - **Single-state tokens** (the value is identical across all states the component supports): **no state suffix at all** — not "base", not "default". The name ends at the variant/size/role segment.
+  - This rule applies to **color tokens too**. A color token that does not vary by state must NOT carry a `-base` suffix. Examples:
+    - `color/button/fg/primary` — solid primary text is the same color in default, hover, and active. **No `/base`.**
+    - `color/button/fg/outlined/primary` — outlined primary text doesn't change on hover/active. **No `/base`.**
+    - `color/button/border/primary` — outlined border color doesn't change on hover. **No `/base`.**
+    - `color/button/bg/disabled` — only one disabled bg exists; there is no `disabled/hover`. **No `/base`.**
+    - `color/button/bg/outlined` — transparent across every outlined variant; no hover/active sibling. **No `/base`.**
+  - **State-invariant non-color tokens** (padding, radius, spacing, border-width, text size, font-weight): same rule. Name ends at the size or role segment (e.g., `radius/button/sm`, `padding/button/sm`, `spacing/button/sm`).
+  - **How to test:** if there is no `-hover`, `-active`, `-focus`, or `-disabled` sibling for the token, the `-base` suffix is wrong — drop it.
 - **Modes**: light and dark only, applied to color variables. No responsive modes.
 - **Inheritance is strict**: component => semantic => core. No skipping tiers except when no semantic equivalent exists.
 

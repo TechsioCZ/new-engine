@@ -1,210 +1,168 @@
+/*
+ * Icon — bound directly to Figma tokens.
+ * Source: tokens/figma/{light,dark}/variables.css.
+ *
+ * Color tokens are exported but not consumed by the TSX (icons inherit from
+ * surrounding text color). They're defined here so they're available when
+ * stories or call sites opt into colored icons.
+ */
+
 @plugin "@iconify/tailwind4";
 
-@theme static {
-  --text-icon-xs: var(--text-xs);
-  --text-icon-sm: var(--text-sm);
-  --text-icon-md: var(--text-md);
-  --text-icon-lg: var(--text-lg);
-  --text-icon-xl: var(--text-xl);
-  --text-icon-2xl: var(--text-2xl);
-}
+/*
+ * Icon — color + size tokens come from libs/ui/src/tokens/figma/variables.css
+ * (Figma now exports the full icon size scale including 2xl).
+ * Only the @plugin directive and the semantic glyph @utility aliases live here.
+ */
 
-/* Semantic tokens for icons */
+/* === Semantic glyph aliases (not part of Figma export) === */
+
 @utility token-icon-error {
   @apply icon-[mdi-light--alert-circle];
 }
-
 @utility token-icon-success {
   @apply icon-[mdi-light--check-circle];
 }
-
 @utility token-icon-warning {
   @apply icon-[mdi-light--alert];
 }
-
 @utility token-icon-info {
   @apply icon-[mdi-light--information];
 }
-
 @utility token-icon-close {
   @apply icon-[mdi--close];
 }
 
-/* Component tokens for icons */
 @utility token-icon-input-error {
   @apply token-icon-error;
 }
-
 @utility token-icon-input-success {
   @apply token-icon-success;
 }
-
 @utility token-icon-input-warning {
   @apply token-icon-warning;
 }
-
 @utility token-icon-input-info {
   @apply token-icon-info;
 }
 
-/* Navigation icons */
 @utility token-icon-chevron-down {
   @apply icon-[mdi--chevron-down];
 }
-
 @utility token-icon-chevron-right {
   @apply icon-[mdi--chevron-right];
 }
-
 @utility token-icon-chevron-left {
   @apply icon-[mdi--chevron-left];
 }
-
 @utility token-icon-chevron-up {
   @apply icon-[mdi--chevron-up];
 }
 
-/* Action icons */
 @utility token-icon-spinner {
   @apply icon-[svg-spinners--ring-resize];
 }
-
 @utility token-icon-play {
   @apply icon-[mdi--play];
 }
-
 @utility token-icon-pause {
   @apply icon-[mdi--pause];
 }
-
 @utility token-icon-menu {
   @apply icon-[mdi--menu];
 }
-
 @utility token-icon-plus {
   @apply icon-[mdi--plus];
 }
-
 @utility token-icon-minus {
   @apply icon-[mdi--minus];
 }
-
 @utility token-icon-folder {
   @apply icon-[mdi--folder];
 }
-
 @utility token-icon-folder-open {
   @apply icon-[mdi--folder-open];
 }
-
 @utility token-icon-file-document {
   @apply icon-[mdi--file-document];
 }
-
 @utility token-icon-home {
   @apply icon-[mdi--home];
 }
-
 @utility token-icon-shopping-bag {
   @apply icon-[mdi--shopping];
 }
-
 @utility token-icon-cpu {
   @apply icon-[mdi--cpu-64-bit];
 }
-
 @utility token-icon-smartphone {
   @apply icon-[mdi--smartphone];
 }
-
 @utility token-icon-save {
   @apply icon-[mdi--content-save];
 }
-
 @utility token-icon-trash {
   @apply icon-[mdi--delete];
 }
-
 @utility token-icon-copy {
   @apply icon-[mdi--content-copy];
 }
-
 @utility token-icon-clipboard {
   @apply icon-[mdi--clipboard];
 }
-
 @utility token-icon-undo {
   @apply icon-[mdi--undo];
 }
-
 @utility token-icon-redo {
   @apply icon-[mdi--redo];
 }
-
 @utility token-icon-check {
   @apply icon-[mdi--check];
 }
-
 @utility token-icon-check-bold {
   @apply icon-[mdi--check-bold];
 }
-
 @utility token-icon-check-circle {
   @apply icon-[mdi--check-circle];
 }
-
 @utility token-icon-alert {
   @apply icon-[mdi--alert];
 }
-
 @utility token-icon-alert-circle {
   @apply icon-[mdi--alert-circle];
 }
-
 @utility token-icon-information {
   @apply icon-[mdi--information];
 }
-
 @utility token-icon-ellipsis-horizontal {
   @apply icon-[mdi--ellipsis-horizontal];
 }
-
 @utility token-icon-circle {
   @apply icon-[mdi--circle];
 }
-
 @utility token-icon-star {
   @apply icon-[mdi--star];
 }
-
 @utility token-icon-star-half {
   @apply icon-[mdi--star-half];
 }
 
-/* product card icons */
-
 @utility token-icon-cart {
   @apply icon-[mdi-light--cart];
 }
-
 @utility token-icon-eye {
   @apply icon-[mdi--eye];
 }
-
 @utility token-icon-heart {
   @apply icon-[mdi--heart];
 }
-
 @utility token-icon-search {
   @apply icon-[mdi--magnify];
 }
 
-/* Semantic action aliases decoupled from concrete icon glyphs. */
-
 @utility token-icon-increment {
   @apply token-icon-chevron-up;
 }
-
 @utility token-icon-decrement {
   @apply token-icon-chevron-down;
 }

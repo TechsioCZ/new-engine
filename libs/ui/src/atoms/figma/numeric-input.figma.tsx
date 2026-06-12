@@ -35,9 +35,9 @@ figma.connect(
     },
     example: ({ disabled, invalid, readOnly, size }) => (
       <NumericInput
-        id="quantity"
         defaultValue={42}
         disabled={disabled}
+        id="quantity"
         invalid={invalid}
         readOnly={readOnly}
         size={size}

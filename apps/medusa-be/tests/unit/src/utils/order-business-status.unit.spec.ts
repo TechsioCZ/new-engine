@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   getOrderBusinessManualStatusUpdateBlockReason,
   isManualOrderBusinessStatusId,
+  isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
   ORDER_BUSINESS_STATUSES,
   type OrderBusinessStatusInput,
@@ -114,6 +115,60 @@ describe("order business status", () => {
         createOrder({ payment_status: "partially_captured" })
       ).id
     ).not.toBe("paid")
+  })
+
+  it.each([
+    {
+      name: "there are no payment collections",
+      overrides: { payment_collections: [] },
+    },
+    {
+      name: "payment requires action",
+      overrides: { payment_status: "requires_action" },
+    },
+    {
+      name: "payment is only authorized",
+      overrides: { payment_status: "authorized" },
+    },
+    {
+      name: "payment is awaiting",
+      overrides: { payment_status: "awaiting" },
+    },
+    {
+      name: "payment is partially authorized",
+      overrides: { payment_status: "partially_authorized" },
+    },
+  ] satisfies {
+    name: string
+    overrides: Partial<OrderBusinessStatusInput>
+  }[])("counts pending unpaid orders when $name", ({ overrides }) => {
+    expect(
+      isPendingUnpaidOrder(createOrder({ status: "pending", ...overrides }))
+    ).toBe(true)
+  })
+
+  it.each([
+    {
+      name: "the order is not pending",
+      overrides: { payment_status: "authorized", status: "completed" },
+    },
+    {
+      name: "payment is captured",
+      overrides: { payment_status: "captured", status: "pending" },
+    },
+    {
+      name: "payment is completed",
+      overrides: { payment_status: "completed", status: "pending" },
+    },
+    {
+      name: "payment is partially captured",
+      overrides: { payment_status: "partially_captured", status: "pending" },
+    },
+  ] satisfies {
+    name: string
+    overrides: Partial<OrderBusinessStatusInput>
+  }[])("does not count pending unpaid orders when $name", ({ overrides }) => {
+    expect(isPendingUnpaidOrder(createOrder(overrides))).toBe(false)
   })
 
   it("lets manual processing states override paid orders", () => {

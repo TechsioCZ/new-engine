@@ -9,12 +9,12 @@ import {
   getPrefetchCacheOptions,
 } from "./cache-config"
 import { toErrorMessage } from "./error-utils"
+import type { QueryResult, SuspenseQueryResult } from "./hook-result-types"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "./hook-types"
-import type { QueryResult, SuspenseQueryResult } from "./hook-result-types"
 import { resolvePagination } from "./pagination"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "./prefetch"
 import type { QueryKey } from "./query-keys"
@@ -111,10 +111,7 @@ export type CreateSimpleListDetailHooksConfig<
   buildList: (input: TListInput) => TListParams
   buildDetail: (input: TDetailInput) => TDetailParams
   getListItems: (data: TListResponse | undefined) => TItem[]
-  getList: (
-    params: TListParams,
-    signal?: AbortSignal
-  ) => Promise<TListResponse>
+  getList: (params: TListParams, signal?: AbortSignal) => Promise<TListResponse>
   getDetail: (
     params: TDetailParams,
     signal?: AbortSignal

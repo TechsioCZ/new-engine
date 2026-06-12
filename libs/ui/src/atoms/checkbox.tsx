@@ -5,8 +5,8 @@ const checkboxVariants = tv({
   base: [
     "relative shrink-0 cursor-pointer appearance-none",
     "size-checkbox",
-    "rounded-checkbox border border-checkbox-border",
-    "bg-checkbox-bg",
+    "rounded-checkbox border border-checkbox-border-base",
+    "bg-checkbox-bg-base",
     "after:-translate-x-1/2 after:-translate-y-1/2 after:absolute after:top-1/2 after:left-1/2",
     "checked:bg-checkbox-bg-checked",
     "checked:border-checkbox-border-checked",

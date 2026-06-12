@@ -15,11 +15,11 @@
 
   /* === BUTTON === */
   /* Solid focus ring colors */
-  --color-button-ring-primary: var(--color-button-primary);
-  --color-button-ring-secondary: var(--color-button-secondary);
-  --color-button-ring-tertiary: var(--color-button-tertiary);
-  --color-button-ring-warning: var(--color-button-warning);
-  --color-button-ring-danger: var(--color-button-danger);
+  --color-button-ring-primary: var(--color-primary);
+  --color-button-ring-secondary: var(--color-secondary);
+  --color-button-ring-tertiary: var(--color-tertiary);
+  --color-button-ring-warning: var(--color-warning);
+  --color-button-ring-danger: var(--color-danger);
   --color-button-text-secondary: var(--color-fg-dark);
 
   /* === INPUT === */

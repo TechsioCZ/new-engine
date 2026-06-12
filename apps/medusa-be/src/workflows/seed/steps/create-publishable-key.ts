@@ -1,4 +1,8 @@
-import type { IApiKeyModuleService, ILockingModule, Logger } from "@medusajs/framework/types"
+import type {
+  IApiKeyModuleService,
+  ILockingModule,
+  Logger,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { provisionPublishableKey } from "../../../utils/publishable-key"

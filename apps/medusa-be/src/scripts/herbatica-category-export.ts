@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs"
-
-type XmlElement = {
-  attributes: Record<string, string>
-  inner: string
-}
+import {
+  decodeXml,
+  extractElements,
+  extractFirstText,
+  normalizeInlineText,
+  normalizeText,
+  readXmlSource,
+} from "./herbatica-xml-utils"
 
 export type HerbaticaCategoryExport = {
   id: string
@@ -25,51 +28,6 @@ export type HerbaticaCategoryExport = {
   isSystem: boolean
 }
 
-const ENTITY_MAP: Record<string, string> = {
-  "&quot;": '"',
-  "&apos;": "'",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&amp;": "&",
-  "&nbsp;": " ",
-}
-const HTTP_XML_SOURCE_PATTERN = /^https?:\/\//i
-
-function decodeXml(value: string): string {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, "$1")
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
-      const parsed = Number.parseInt(hex, 16)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
-    })
-    .replace(/&#([0-9]+);/g, (match, num) => {
-      const parsed = Number.parseInt(num, 10)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
-    })
-    .replace(
-      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
-      (entity) => ENTITY_MAP[entity] ?? entity
-    )
-}
-
-function normalizeText(value?: string): string | undefined {
-  if (value === undefined) {
-    return
-  }
-
-  const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
-  return decoded === "" ? undefined : decoded
-}
-
-function normalizeInlineText(value?: string): string | undefined {
-  const normalized = normalizeText(value)
-  if (normalized === undefined) {
-    return
-  }
-
-  return normalized.replace(/\s+/g, " ").trim()
-}
-
 function trimHtmlFragment(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
@@ -78,51 +36,6 @@ function trimHtmlFragment(value?: string): string | undefined {
 
   const trimmed = normalized.replace(/^\s+|\s+$/g, "")
   return trimmed === "" ? undefined : trimmed
-}
-
-function parseAttributes(raw?: string): Record<string, string> {
-  if (!raw) {
-    return {}
-  }
-
-  const attributes: Record<string, string> = {}
-  const regex = /([:\w-]+)\s*=\s*"([^"]*)"/g
-  for (const match of raw.matchAll(regex)) {
-    const key = normalizeInlineText(match[1])
-    if (!key) {
-      continue
-    }
-    attributes[key] = normalizeText(match[2]) ?? ""
-  }
-
-  return attributes
-}
-
-function extractElements(source: string, tag: string): XmlElement[] {
-  const regex = new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "g")
-  const result: XmlElement[] = []
-
-  for (const match of source.matchAll(regex)) {
-    result.push({
-      attributes: parseAttributes(match[1]),
-      inner: match[2] ?? "",
-    })
-  }
-
-  return result
-}
-
-function extractFirstElementContent(
-  source: string,
-  tag: string
-): string | undefined {
-  const regex = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`)
-  const match = source.match(regex)
-  return match?.[1]
-}
-
-function extractFirstText(source: string, tag: string): string | undefined {
-  return normalizeText(extractFirstElementContent(source, tag))
 }
 
 function parseInteger(value?: string): number | undefined {
@@ -252,25 +165,6 @@ export function parseHerbaticaCategoriesXmlFile(
   path: string
 ): HerbaticaCategoryExport[] {
   return parseHerbaticaCategoriesXml(readFileSync(path, "utf8"))
-}
-
-export function isHttpXmlSource(source: string): boolean {
-  return HTTP_XML_SOURCE_PATTERN.test(source)
-}
-
-export async function readXmlSource(source: string): Promise<string> {
-  if (!isHttpXmlSource(source)) {
-    return readFileSync(source, "utf8")
-  }
-
-  const response = await fetch(source)
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`
-    )
-  }
-
-  return response.text()
 }
 
 export async function parseHerbaticaCategoriesXmlSource(

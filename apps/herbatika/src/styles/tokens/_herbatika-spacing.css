@@ -1,0 +1,103 @@
+@theme static {
+  --spacing-0: 0px;
+  --spacing-50: 0.125rem;
+  --spacing-100: 0.25rem;
+  --spacing-150: 0.375rem;
+  --spacing-200: 0.5rem; /* 8px */
+  --spacing-250: 0.625rem; /*10px*/
+  --spacing-300: 0.75rem; /*12px*/
+  --spacing-350: 0.875rem; /* 14px */
+  --spacing-400: 1rem; /* 16px */
+  --spacing-450: 1.125rem;
+  --spacing-500: 1.25rem; /* 20px */
+  --spacing-550: 1.5rem; /* 24px */
+  --spacing-600: 1.75rem; /* 28px */
+  --spacing-650: 1.875rem;
+  --spacing-700: 2rem; /* 32px */
+  --spacing-750: 2.5rem;
+  --spacing-800: 3.5rem;
+  --spacing-850: 4.75rem;
+  --spacing-900: 6.25rem;
+  --spacing-950: 15.625rem;
+
+  /* Unified page shell values mapped to the closest app spacing scale. */
+  --spacing-page-inline: var(--spacing-0);
+
+  --spacing-page-block: var(--spacing-500);
+
+  --spacing-page-section-gap: var(--spacing-750);
+  --spacing-page-section-gap-blog: var(--spacing-650);
+
+  /* readable spacing system */
+  --spacing-page-default: var(--spacing-550) var(--spacing-400);
+  --spacing-page: var(--spacing-page-block) var(--spacing-page-inline);
+  --spacing-page-gap: var(--spacing-page-section-gap);
+
+  --spacing-homepage: var(--spacing-page-default);
+  --spacing-homepage-lg: var(--spacing-page);
+  --spacing-homepage-gap: var(--spacing-page-gap);
+
+  --spacing-category-page: var(--spacing-page-default);
+  --spacing-category-page-lg: var(--spacing-page);
+  --spacing-category-page-gap: var(--spacing-page-gap);
+
+  --spacing-search-page: var(--spacing-category-page);
+  --spacing-search-page-lg: var(--spacing-category-page-lg);
+  --spacing-search-page-gap: var(--spacing-category-page-gap);
+
+  --spacing-brand-index-page: var(--spacing-category-page);
+  --spacing-brand-index-page-lg: var(--spacing-category-page-lg);
+  --spacing-brand-index-page-gap: var(--spacing-category-page-gap);
+
+  --spacing-brand-listing-page: var(--spacing-category-page);
+  --spacing-brand-listing-page-lg: var(--spacing-category-page-lg);
+  --spacing-brand-listing-page-gap: var(--spacing-category-page-gap);
+
+  --spacing-product-detail-page: var(--spacing-page-default);
+  --spacing-product-detail-page-lg: var(--spacing-page);
+  --spacing-product-detail-page-gap: var(--spacing-page-gap);
+
+  --spacing-about-page: var(--spacing-page-default);
+  --spacing-about-page-lg: var(--spacing-page);
+  --spacing-about-page-gap: var(--spacing-page-gap);
+
+  --spacing-faq-page: var(--spacing-about-page);
+  --spacing-faq-page-lg: var(--spacing-about-page-lg);
+  --spacing-faq-page-gap: var(--spacing-about-page-gap);
+
+  --spacing-blog-listing-page: var(--spacing-page-default);
+  --spacing-blog-listing-page-lg: var(--spacing-page);
+  --spacing-blog-listing-page-gap: var(--spacing-page-section-gap-blog);
+
+  --spacing-blog-detail-page: var(--spacing-page-default);
+  --spacing-blog-detail-page-lg: var(--spacing-page);
+  --spacing-blog-detail-page-gap: var(--spacing-250);
+  --spacing-blog-detail-columns-gap: var(--spacing-750);
+
+  --spacing-account-page: var(--spacing-page-default);
+  --spacing-account-page-lg: var(--spacing-page);
+  --spacing-account-page-gap: var(--spacing-550);
+
+  --spacing-auth-page: var(--spacing-page-default);
+  --spacing-auth-page-lg: var(--spacing-page);
+
+  --spacing-product-detail: 3.25rem;
+
+  /* OTHERS SPACING TOKENS */
+  --height-category-image: 5.375rem;
+  --width-submenu-image: var(--spacing-850);
+  --height-submenu-image: 3.75rem;
+  --size-checkout-image: 7.5rem;
+  --height-checkout-image: 7.5rem;
+  --height-purchase-panel-footer: 2.75rem;
+
+  --height-product-card-label: 2.5rem;
+  --height-product-card-image: 16rem;
+  --height-homepage-hero-carousel: 32.75rem;
+
+  --height-search-form: 2.875rem;
+
+  --height-header-logo: 3.75rem;
+  --height-third-parties-logo: var(--spacing-600);
+  --height-chat-button: 35px;
+}

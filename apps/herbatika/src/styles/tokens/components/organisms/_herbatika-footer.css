@@ -1,0 +1,21 @@
+@theme static {
+  --footer-cols: repeat(4, minmax(0, 1fr));
+
+  --color-footer-title-fg-hover: var(--color-fg-primary);
+  --color-footer-divider-bg: var(--color-border-secondary);
+
+  --text-footer-title-md: var(--text-md);
+  --text-footer-text-md: var(--text-md);
+
+  --font-weight-footer-title: var(--font-weight-bold);
+
+  --padding-footer-root-md: 0;
+  --spacing-footer-container-md: var(--spacing-700);
+  --spacing-footer-section-md: var(--spacing-250);
+  --spacing-footer-list-gap-md: var(--spacing-150);
+  --padding-footer-bottom-md: var(--spacing-500);
+  --margin-footer-divider-md: 0;
+
+  --border-width-footer: var(--border-width-sm);
+  --height-footer-divider: 1px;
+}

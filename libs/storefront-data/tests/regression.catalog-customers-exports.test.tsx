@@ -288,6 +288,10 @@ describe("phase 1 regressions", () => {
       types: "./dist/src/server/get-query-client.d.ts",
       import: "./dist/server/get-query-client.js",
     })
+    expect(packageJson.exports?.["./product-lists/query-options"]).toEqual({
+      types: "./dist/src/product-lists/query-options.d.ts",
+      import: "./dist/product-lists/query-options.js",
+    })
     expect(packageJson.exports?.["./get-query-client"]).toBeUndefined()
     expect(packageJson.exports?.["./medusa/cart-flow"]).toBeUndefined()
     expect(packageJson.exports?.["./*"]).toBeUndefined()

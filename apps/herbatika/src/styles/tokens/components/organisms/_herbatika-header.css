@@ -1,0 +1,49 @@
+@theme static {
+  --color-header-bg: var(--color-surface);
+  --color-header-nav-item-bg: transparent;
+  --color-header-nav-item-bg-hover: var(--color-surface);
+
+  --color-header-nav-fg: var(--color-fg-reverse);
+  --color-header-nav-fg-hover: var(--color-primary);
+  --color-header-nav-fg-active: var(--color-fg-reverse);
+
+  --color-header-actions-fg: var(--color-fg-primary);
+  --color-header-actions-fg-hover: var(--color-primary);
+
+  --font-weight-header-nav: var(--font-weight-bold);
+  --font-weight-header-nav-active: var(--font-weight-bold);
+
+  --text-header-item-sm: var(--text-xs);
+  --text-header-item-md: var(--text-sm);
+  --text-header-item-lg: var(--text-sm);
+
+  --padding-header-item-sm: var(--spacing-200) var(--spacing-100);
+  --padding-header-item-md: var(--spacing-200) var(--spacing-400);
+  --padding-header-item-lg: var(--spacing-250) var(--spacing-200);
+
+  --spacing-header-container: var(--spacing-0);
+  --spacing-header-nav-sm: 0;
+  --spacing-header-nav-md: var(--spacing-100);
+  --spacing-header-nav-lg: var(--spacing-150);
+  --spacing-header-actions-sm: var(--spacing-100);
+  --spacing-header-actions-md: var(--spacing-450);
+  --spacing-header-actions-lg: var(--spacing-250);
+
+  --height-header-nav: 2.625rem;
+  --height-header-mobile: 6rem;
+
+  --color-header-hamburger-fg: var(--color-fg-primary);
+  --color-header-hamburger-fg-hover: var(--color-primary);
+
+  --container-header-desktop: 77.5rem;
+  --breakpoint-header-desktop: 77.5rem;
+  --breakpoint-header-tablet: 84.5rem;
+
+  /* diferent viewport settings */
+  --text-header-item-desktop-lg: var(--text-xs);
+  --padding-header-item-desktop-lg: var(--spacing-200) var(--spacing-300);
+
+  --spacing-header-lg: var(--spacing-300);
+  --spacing-header-2xl: var(--spacing-0);
+  --spacing-header-container-y: var(--spacing-400);
+}

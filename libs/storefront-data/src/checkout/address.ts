@@ -1,12 +1,12 @@
 import type {
-  StorefrontCartAddressAdapter,
-  StorefrontCustomerAddressAdapter,
-  StorefrontAddressValidationIssue,
-} from "../shared/address"
-import type {
   MedusaCustomerAddressCreateInput,
   MedusaCustomerAddressUpdateInput,
 } from "../customers/medusa-service"
+import type {
+  StorefrontAddressValidationIssue,
+  StorefrontCartAddressAdapter,
+  StorefrontCustomerAddressAdapter,
+} from "../shared/address"
 import {
   hasTrimmedString,
   normalizePresentTrimmedString,
@@ -30,7 +30,9 @@ export type CheckoutAddressInput = {
 }
 
 type CheckoutAddressStringField = {
-  [K in keyof CheckoutAddressInput]-?: NonNullable<CheckoutAddressInput[K]> extends string
+  [K in keyof CheckoutAddressInput]-?: NonNullable<
+    CheckoutAddressInput[K]
+  > extends string
     ? K
     : never
 }[keyof CheckoutAddressInput]
@@ -126,14 +128,8 @@ export type CheckoutCustomerAddressAdapterOptions =
     requiredFields?: readonly CheckoutAddressStringField[]
   }
 
-export const defaultCheckoutAddressRequiredFields: readonly CheckoutAddressStringField[] = [
-  "firstName",
-  "lastName",
-  "street",
-  "city",
-  "postalCode",
-  "country",
-]
+export const defaultCheckoutAddressRequiredFields: readonly CheckoutAddressStringField[] =
+  ["firstName", "lastName", "street", "city", "postalCode", "country"]
 
 const createRequiredIssue = (
   scope: CheckoutAddressValidationScope,
@@ -238,8 +234,7 @@ const normalizeCheckoutAddressPatch = <
 
 const getMissingCheckoutAddressFields = (
   address: Partial<Record<CheckoutAddressStringField, unknown>>,
-  requiredFields: readonly CheckoutAddressStringField[] =
-    defaultCheckoutAddressRequiredFields
+  requiredFields: readonly CheckoutAddressStringField[] = defaultCheckoutAddressRequiredFields
 ): CheckoutAddressStringField[] =>
   requiredFields.filter((field) => !hasTrimmedString(address[field]))
 
@@ -255,10 +250,9 @@ const getCheckoutAddressFieldIssues = <TAddress extends CheckoutAddressInput>(
     options?.requiredFields ?? defaultCheckoutAddressRequiredFields
   const normalizedAddress = normalizeCheckoutAddressInput(address)
 
-  return getMissingCheckoutAddressFields(
-    normalizedAddress,
-    requiredFields
-  ).map((field) => createRequiredIssue(scope, field))
+  return getMissingCheckoutAddressFields(normalizedAddress, requiredFields).map(
+    (field) => createRequiredIssue(scope, field)
+  )
 }
 
 const getCheckoutAddressPatchFieldIssues = <
@@ -278,7 +272,8 @@ const getCheckoutAddressPatchFieldIssues = <
   return requiredFields
     .filter(
       (field) =>
-        Object.hasOwn(address, field) && !hasTrimmedString(normalizedAddress[field])
+        Object.hasOwn(address, field) &&
+        !hasTrimmedString(normalizedAddress[field])
     )
     .map((field) => createRequiredIssue(scope, field))
 }
@@ -395,7 +390,10 @@ const mapCheckoutAddressPatchToMedusaCustomerAddress = (
   }
 
   if (Object.hasOwn(normalized, "country")) {
-    payload.country_code = normalizePatchCountryCode(normalized.country, options)
+    payload.country_code = normalizePatchCountryCode(
+      normalized.country,
+      options
+    )
   }
   if (Object.hasOwn(normalized, "isDefaultShipping")) {
     payload.is_default_shipping = address.isDefaultShipping
@@ -414,27 +412,28 @@ export const mapMedusaAddressToCheckoutAddress = <
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
 >(
   address?: MedusaAddressLike | null
-): NormalizedCheckoutAddress<TAddress> => ({
-  firstName: normalizeTrimmedString(address?.first_name),
-  lastName: normalizeTrimmedString(address?.last_name),
-  street: normalizeTrimmedString(address?.address_1),
-  street2: normalizeTrimmedString(address?.address_2),
-  city: normalizeTrimmedString(address?.city),
-  postalCode: normalizeTrimmedString(address?.postal_code),
-  country: normalizeTrimmedString(address?.country_code),
-  province: normalizeTrimmedString(address?.province),
-  company: normalizeTrimmedString(address?.company),
-  phone: normalizeTrimmedString(address?.phone),
-  isDefaultShipping:
-    typeof address?.is_default_shipping === "boolean"
-      ? address.is_default_shipping
-      : undefined,
-  isDefaultBilling:
-    typeof address?.is_default_billing === "boolean"
-      ? address.is_default_billing
-      : undefined,
-  metadata: address?.metadata ?? undefined,
-}) as NormalizedCheckoutAddress<TAddress>
+): NormalizedCheckoutAddress<TAddress> =>
+  ({
+    firstName: normalizeTrimmedString(address?.first_name),
+    lastName: normalizeTrimmedString(address?.last_name),
+    street: normalizeTrimmedString(address?.address_1),
+    street2: normalizeTrimmedString(address?.address_2),
+    city: normalizeTrimmedString(address?.city),
+    postalCode: normalizeTrimmedString(address?.postal_code),
+    country: normalizeTrimmedString(address?.country_code),
+    province: normalizeTrimmedString(address?.province),
+    company: normalizeTrimmedString(address?.company),
+    phone: normalizeTrimmedString(address?.phone),
+    isDefaultShipping:
+      typeof address?.is_default_shipping === "boolean"
+        ? address.is_default_shipping
+        : undefined,
+    isDefaultBilling:
+      typeof address?.is_default_billing === "boolean"
+        ? address.is_default_billing
+        : undefined,
+    metadata: address?.metadata ?? undefined,
+  }) as NormalizedCheckoutAddress<TAddress>
 
 export const createCheckoutCartAddressAdapter = <
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
@@ -455,8 +454,8 @@ export const createCheckoutCartAddressAdapter = <
 
 export const createCheckoutCustomerAddressAdapter = <
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
-  TUpdateInput extends CheckoutCustomerAddressUpdateInput<TAddress> =
-    CheckoutCustomerAddressUpdateInput<TAddress>,
+  TUpdateInput extends
+    CheckoutCustomerAddressUpdateInput<TAddress> = CheckoutCustomerAddressUpdateInput<TAddress>,
 >(
   options?: CheckoutCustomerAddressAdapterOptions
 ): StorefrontCustomerAddressAdapter<

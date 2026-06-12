@@ -15,7 +15,7 @@ figma.connect(
       }),
     },
     example: ({ size }) => (
-      <Image src="/image.jpg" alt="Description" size={size} />
+      <Image alt="Description" size={size} src="/image.jpg" />
     ),
   }
 )

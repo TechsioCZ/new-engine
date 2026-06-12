@@ -14,6 +14,8 @@ export const BRAND_FACET_PREFIX = "brand-"
 export const INGREDIENT_FACET_PREFIX = "ingredient-"
 export const ACTIVE_INGREDIENT_ROOT = "Účinné zložky od A po Z"
 export const ACTIVE_INGREDIENT_HANDLE_PREFIX = "ucinne-zlozky-od-a-po-z-"
+const BIO_STATUS_REGEX = /\bbio\b/
+const VEGAN_STATUS_REGEX = /\bvegan\b/
 
 export const STATUS_FACET_DEFINITIONS: ProductFacetValue[] = [
   { id: IN_STOCK_FACET_ID, label: "Na sklade" },
@@ -192,10 +194,10 @@ const resolveStatusKeywordCodes = (document: UnknownRecord): string[] => {
   )
   const codes: string[] = []
 
-  if (/\bbio\b/.test(searchableText)) {
+  if (BIO_STATUS_REGEX.test(searchableText)) {
     codes.push("bio")
   }
-  if (/\bvegan\b/.test(searchableText)) {
+  if (VEGAN_STATUS_REGEX.test(searchableText)) {
     codes.push("vegan")
   }
 
@@ -353,28 +355,25 @@ const toMajorUnitAmount = (value: number): number => {
   return Number.isInteger(value) ? value / 100 : value
 }
 
-const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
-  const metadata = asRecord(document.metadata)
-  const topOffer = asRecord(metadata?.top_offer)
-  const topOfferPriceCandidates = [
-    topOffer?.current_price,
-    topOffer?.action_price,
-    topOffer?.price_vat,
-  ]
-
-  for (const candidate of topOfferPriceCandidates) {
-    const parsedTopOfferPrice = parseNumericValue(candidate)
-    if (parsedTopOfferPrice === undefined || parsedTopOfferPrice <= 0) {
-      continue
-    }
-
-    const normalizedTopOfferPrice = normalizeFacetPrice(parsedTopOfferPrice)
-    if (normalizedTopOfferPrice !== undefined) {
-      return normalizedTopOfferPrice
-    }
+const parsePositiveFacetPrice = (value: unknown): number | undefined => {
+  const parsedPrice = parseNumericValue(value)
+  if (parsedPrice === undefined || parsedPrice <= 0) {
+    return
   }
 
-  const variants = asArray(document.variants)
+  return normalizeFacetPrice(parsedPrice)
+}
+
+const resolveTopOfferFacetPrice = (
+  topOffer: UnknownRecord | null
+): number | undefined =>
+  [topOffer?.current_price, topOffer?.action_price, topOffer?.price_vat]
+    .map(parsePositiveFacetPrice)
+    .find((price) => price !== undefined)
+
+const resolveVariantMinFacetPrice = (
+  variants: unknown[]
+): number | undefined => {
   let minPrice: number | undefined
 
   for (const rawVariant of variants) {
@@ -400,6 +399,15 @@ const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
   }
 
   return minPrice
+}
+
+const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
+  const metadata = asRecord(document.metadata)
+  const topOfferPrice = resolveTopOfferFacetPrice(asRecord(metadata?.top_offer))
+
+  return (
+    topOfferPrice ?? resolveVariantMinFacetPrice(asArray(document.variants))
+  )
 }
 
 export const buildProductFacetDocument = (

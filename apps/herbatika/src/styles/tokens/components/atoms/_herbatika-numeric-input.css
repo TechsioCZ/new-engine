@@ -1,0 +1,18 @@
+@theme static {
+  --radius-numeric-input-sm: var(--radius-sm);
+  --radius-numeric-input-md: var(--radius-sm);
+  --color-numeric-input-bg: var(--color-surface);
+  --color-numeric-input-border: var(--color-border-primary);
+  --color-numeric-input-border-hover: var(--color-border-primary);
+  --color-numeric-input-border-focus: var(--color-primary);
+  --color-numeric-input-input-bg-hover: var(--color-surface);
+  --color-numeric-input-input-bg-focus: var(--color-surface);
+  --color-numeric-input-trigger-bg: var(--color-surface);
+  --color-numeric-input-trigger-bg-hover: var(--color-overlay);
+  --color-numeric-input-trigger-fg: var(--color-fg-primary);
+  --color-numeric-input-trigger-fg-hover: var(--color-fg-primary);
+  --padding-numeric-input-input-sm: var(--spacing-200);
+  --padding-numeric-input-input-md: 0;
+  --width-numeric-input-md: 7.375rem;
+  --padding-numeric-input-trigger-x: var(--spacing-150);
+}

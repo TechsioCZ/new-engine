@@ -1,0 +1,5 @@
+@theme static {
+  --color-gallery-trigger-border: transparent;
+  --spacing-gallery-md: var(--spacing-800);
+  --spacing-gallery-carousel: 4rem;
+}

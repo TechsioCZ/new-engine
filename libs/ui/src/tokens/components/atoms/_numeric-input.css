@@ -1,66 +1,7 @@
-@theme static {
-  /* === BASE TOKEN MAPPING === */
-  --color-numeric-input-bg: var(--color-form-control-bg);
-  --color-numeric-input-hover: oklch(
-    from var(--color-numeric-input-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-numeric-input-focus: oklch(
-    from var(--color-numeric-input-bg) calc(l + var(--state-active)) c h
-  );
-  --color-numeric-input-border: var(--color-form-control-border);
-  --color-numeric-input-border-hover: var(--color-form-control-border-hover);
-  --color-numeric-input-border-focus: var(--color-form-control-border-focus);
-  --color-numeric-input-fg: var(--color-input-fg);
-
-  --color-numeric-input-bg-disabled: var(--color-form-control-bg-disabled);
-  --color-numeric-input-fg-disabled: var(--color-form-control-fg-disabled);
-  --color-numeric-input-border-disabled: var(
-    --color-form-control-border-disabled
-  );
-
-  --color-numeric-input-invalid-border: var(--color-danger);
-  --color-numeric-input-invalid-bg: --alpha(var(--color-danger) / 10%);
-
-  /* ==== TYPOGRAPHY ==== */
-  --text-numeric-input-sm: var(--text-sm);
-  --text-numeric-input-md: var(--text-md);
-  --text-numeric-input-lg: var(--text-lg);
-
-  /* === INPUT === */
-  --color-numeric-input-input-bg: transparent;
-  --color-numeric-input-input-bg-hover: var(--color-numeric-input-hover);
-  --color-numeric-input-input-bg-focus: var(--color-numeric-input-focus);
-  --padding-numeric-input-input-sm: var(--spacing-100);
-  --padding-numeric-input-input-md: var(--spacing-150);
-  --padding-numeric-input-input-lg: var(--spacing-200);
-
-  /* === TRIGGER === */
-  --color-numeric-input-trigger-container-bg: var(--color-form-control-border);
-  --color-numeric-input-trigger-bg: var(--color-numeric-input-bg);
-  --color-numeric-input-trigger-bg-hover: oklch(
-    from var(--color-numeric-input-trigger-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-numeric-input-trigger-fg: var(--color-numeric-input-fg);
-  --color-numeric-input-trigger-fg-hover: var(--color-primary);
-  --padding-numeric-input-trigger-x: var(--spacing-150);
-  --padding-numeric-input-trigger-y: 0rem;
-
-  /* === ROOT GAP === */
-  --gap-numeric-input-root-sm: 0rem;
-  --gap-numeric-input-root-md: 0rem;
-  --gap-numeric-input-root-lg: 0rem;
-
-  /* === INCREMENT BUTTON === */
-
-  --radius-numeric-input: var(--radius-form-control);
-  --radius-numeric-input-sm: var(--radius-form-control-sm);
-  --radius-numeric-input-md: var(--radius-form-control-md);
-  --radius-numeric-input-lg: var(--radius-form-control-lg);
-  --border-width-numeric-input: var(--border-width-input);
-
-  /* === FOCUS RING === */
-  --color-numeric-input-ring: var(--color-ring);
-}
+/*
+ * NumericInput — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
+ * Only the semantic glyph aliases remain here.
+ */
 
 @utility token-icon-numeric-input-increment {
   @apply token-icon-increment;

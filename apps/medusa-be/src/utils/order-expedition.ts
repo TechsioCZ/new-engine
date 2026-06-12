@@ -85,6 +85,30 @@ export type OrderExpeditionPaymentCollection = {
   payments?: OrderExpeditionPayment[] | null
 }
 
+type OrderExpeditionRawAmount = {
+  value?: number | string | null
+}
+
+type OrderExpeditionAmountLike = {
+  valueOf(): unknown
+}
+
+type OrderExpeditionSummaryTotals = {
+  current_order_total?: number | string | null
+  original_order_total?: number | string | null
+  raw_current_order_total?: OrderExpeditionRawAmount | null
+  raw_original_order_total?: OrderExpeditionRawAmount | null
+}
+
+export type OrderExpeditionSummary = {
+  current_order_total?: number | string | null
+  original_order_total?: number | string | null
+  raw_current_order_total?: OrderExpeditionRawAmount | null
+  raw_original_order_total?: OrderExpeditionRawAmount | null
+  totals?: OrderExpeditionSummaryTotals | null
+  version?: number | string | null
+}
+
 export type OrderExpeditionFulfillment = {
   id?: string | null
   canceled_at?: string | null
@@ -112,7 +136,8 @@ export type OrderExpeditionRawOrder = {
   fulfillment_status?: string | null
   metadata?: Record<string, unknown> | null
   payment_status?: string | null
-  total?: number | string | null
+  summary?: OrderExpeditionSummary | OrderExpeditionSummary[] | null
+  total?: number | string | OrderExpeditionAmountLike | null
   customer_id?: string | null
   customer?: OrderExpeditionCustomer | null
   shipping_address?: OrderExpeditionAddress | null
@@ -188,6 +213,7 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "fulfillment_status",
   "metadata",
   "payment_status",
+  "summary.*",
   "total",
   "customer_id",
   "customer.id",
@@ -397,7 +423,7 @@ export function toOrderExpeditionDto(
     fulfillment_status: order.fulfillment_status,
     status: order.status,
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
-    total: order.total,
+    total: getOrderExpeditionTotal(order),
     has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
     items: (order.items ?? []).map(toOrderExpeditionItemDto),
   }
@@ -503,6 +529,120 @@ function getOrderExpeditionPaymentMethod(order: OrderExpeditionRawOrder) {
     .find((payment) => payment.provider_id)?.provider_id
 
   return providerId ?? order.payment_status ?? "Unknown"
+}
+
+function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {
+  const orderTotal = normalizeOrderExpeditionAmount(order.total)
+  const summaryTotal = getLatestOrderExpeditionSummaryTotal(order.summary)
+
+  if (isNonZeroAmount(orderTotal) || summaryTotal === undefined) {
+    return orderTotal ?? null
+  }
+
+  return summaryTotal
+}
+
+function getLatestOrderExpeditionSummaryTotal(
+  summary: OrderExpeditionRawOrder["summary"]
+) {
+  let summaryEntries: OrderExpeditionSummary[]
+
+  if (Array.isArray(summary)) {
+    summaryEntries = summary
+  } else if (summary) {
+    summaryEntries = [summary]
+  } else {
+    summaryEntries = []
+  }
+
+  const summaries = summaryEntries
+    .slice()
+    .sort(
+      (left, right) =>
+        getOrderExpeditionSummaryVersion(right) -
+        getOrderExpeditionSummaryVersion(left)
+    )
+
+  for (const entry of summaries) {
+    const amount =
+      getOrderExpeditionSummaryAmount(
+        entry.current_order_total,
+        entry.raw_current_order_total
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.totals?.current_order_total,
+        entry.totals?.raw_current_order_total
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.original_order_total,
+        entry.raw_original_order_total
+      ) ??
+      getOrderExpeditionSummaryAmount(
+        entry.totals?.original_order_total,
+        entry.totals?.raw_original_order_total
+      )
+
+    if (amount !== undefined) {
+      return amount
+    }
+  }
+
+  return
+}
+
+function getOrderExpeditionSummaryAmount(
+  amount: number | string | null | undefined,
+  rawAmount: OrderExpeditionRawAmount | null | undefined
+) {
+  const normalizedAmount = normalizeOrderExpeditionAmount(amount)
+  const normalizedRawAmount = normalizeOrderExpeditionAmount(rawAmount)
+
+  if (isNonZeroAmount(normalizedAmount) || normalizedRawAmount === undefined) {
+    return normalizedAmount
+  }
+
+  return normalizedRawAmount
+}
+
+function getOrderExpeditionSummaryVersion(summary: OrderExpeditionSummary) {
+  const version = Number(summary.version ?? 0)
+
+  return Number.isFinite(version) ? version : 0
+}
+
+function normalizeOrderExpeditionAmount(
+  value:
+    | OrderExpeditionAmountLike
+    | OrderExpeditionRawAmount
+    | OrderExpeditionRawOrder["total"]
+    | null
+    | undefined
+): number | string | undefined {
+  if (typeof value === "object" && value !== null) {
+    if ("value" in value) {
+      return normalizeOrderExpeditionAmount(value.value)
+    }
+
+    const primitive = value.valueOf()
+
+    if (typeof primitive === "number" || typeof primitive === "string") {
+      return normalizeOrderExpeditionAmount(primitive)
+    }
+
+    return
+  }
+
+  const amount = value
+
+  return amount === "" || amount === null || amount === undefined
+    ? undefined
+    : amount
+}
+
+function isNonZeroAmount(value: number | string | undefined) {
+  const amount = Number(value)
+
+  return Number.isFinite(amount) && amount !== 0
 }
 
 function toOrderExpeditionItemDto(

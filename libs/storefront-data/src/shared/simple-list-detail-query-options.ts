@@ -3,10 +3,7 @@ import {
   type CacheStrategy,
   createCacheConfig,
 } from "./cache-config"
-import type {
-  QueryFactoryOptions,
-  ReadQueryOptions,
-} from "./hook-types"
+import type { QueryFactoryOptions, ReadQueryOptions } from "./hook-types"
 import type { QueryKey } from "./query-keys"
 
 type EnabledInput = {
@@ -51,10 +48,7 @@ export type CreateSimpleListDetailQueryOptionsFactoryConfig<
   TDetailInput extends DetailInputBase,
   TDetailParams,
 > = {
-  getList: (
-    params: TListParams,
-    signal?: AbortSignal
-  ) => Promise<TListResponse>
+  getList: (params: TListParams, signal?: AbortSignal) => Promise<TListResponse>
   getDetail: (
     params: TDetailParams,
     signal?: AbortSignal

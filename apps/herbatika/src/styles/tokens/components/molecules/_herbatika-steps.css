@@ -1,0 +1,10 @@
+@theme static {
+  --color-steps-indicator-bg: var(--color-surface-secondary);
+  --color-steps-indicator-bg-hover: var(--color-steps-indicator-bg);
+  --color-steps-indicator-border: transparent;
+  --color-steps-indicator-border-hover: transparent;
+  --color-steps-progress-bg: var(--color-red-600);
+  --spacing-steps-indicator-sm: var(--spacing-700);
+
+  --color-steps-chevron: oklch(0.7668 0 0);
+}

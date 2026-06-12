@@ -22,6 +22,7 @@ export async function POST(
       metadata: req.validatedBody.metadata,
       note: req.validatedBody.note,
       product_id: req.validatedBody.product_id,
+      quantity: req.validatedBody.quantity,
       sort_order: req.validatedBody.sort_order,
       variant_id: req.validatedBody.variant_id,
     },

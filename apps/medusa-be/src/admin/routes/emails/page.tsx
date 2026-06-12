@@ -45,6 +45,10 @@ type EmailLogDetailResponse = {
 
 const PAGE_SIZE = 20
 
+export const handle = {
+  breadcrumb: () => "Emails",
+}
+
 const formatDate = (date: string | null) => {
   if (!date) {
     return "-"

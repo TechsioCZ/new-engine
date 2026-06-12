@@ -14,7 +14,13 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
@@ -70,10 +76,20 @@ type BulkBusinessStatusResponse = {
   skipped: OrderExpeditionBlockingOrder[]
 }
 
+type OrderExpeditionFilters = {
+  carrier: typeof ALL_CARRIERS | OrderExpeditionCarrierKey
+  businessStatus: typeof ALL_BUSINESS_STATUSES | OrderBusinessStatusId
+  offset: number
+}
+
 const PAGE_SIZE = 50
 const ALL_CARRIERS = "all"
 const ALL_BUSINESS_STATUSES = "all"
 const ORDER_EXPEDITION_QUERY_KEY = "order-expedition-orders"
+
+export const handle = {
+  breadcrumb: () => "Order Operations",
+}
 
 const TARGET_STATUSES: Array<{
   value: OrderExpeditionTargetStatus
@@ -138,6 +154,574 @@ function TruncatedTooltipText({
 
 function getBusinessStatus(order: OrderExpeditionOrderDto) {
   return order.business_status ?? ORDER_BUSINESS_STATUSES.new
+}
+
+function buildOrdersQueryPath(filters: OrderExpeditionFilters): string {
+  const search = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String(filters.offset),
+  })
+
+  if (filters.carrier !== ALL_CARRIERS) {
+    search.set("carrier", filters.carrier)
+  }
+
+  if (filters.businessStatus !== ALL_BUSINESS_STATUSES) {
+    search.set("business_status", filters.businessStatus)
+  }
+
+  return `/admin/order-expedition/orders?${search}`
+}
+
+function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
+  const carriersQuery = useQuery({
+    queryFn: () =>
+      sdk.client.fetch<CarriersResponse>("/admin/order-expedition/carriers"),
+    queryKey: ["order-expedition-carriers"],
+  })
+
+  const ordersQuery = useQuery({
+    queryFn: () =>
+      sdk.client.fetch<OrdersResponse>(buildOrdersQueryPath(filters)),
+    queryKey: [
+      ORDER_EXPEDITION_QUERY_KEY,
+      filters.carrier,
+      filters.businessStatus,
+      filters.offset,
+    ],
+  })
+
+  const rawOrders = useMemo(
+    () => ordersQuery.data?.orders ?? [],
+    [ordersQuery.data?.orders]
+  )
+  const rawOrderIds = useMemo(
+    () => rawOrders.map((order) => order.id),
+    [rawOrders]
+  )
+  const businessStatusesQuery = useQuery({
+    enabled: rawOrderIds.length > 0,
+    queryFn: () => {
+      const search = new URLSearchParams({
+        ids: rawOrderIds.join(","),
+      })
+
+      return sdk.client.fetch<BusinessStatusesResponse>(
+        `/admin/order-business-statuses/by-ids?${search}`
+      )
+    },
+    queryKey: ["order-business-statuses-by-ids", rawOrderIds],
+  })
+  const businessStatusesById = useMemo(
+    () =>
+      new Map(
+        (businessStatusesQuery.data?.orders ?? []).map((order) => [
+          order.id,
+          order,
+        ])
+      ),
+    [businessStatusesQuery.data?.orders]
+  )
+  const orders = useMemo(
+    () =>
+      rawOrders.map((order) =>
+        mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
+      ),
+    [businessStatusesById, rawOrders]
+  )
+
+  return {
+    businessStatusesQuery,
+    carriersQuery,
+    orders,
+    ordersQuery,
+  }
+}
+
+function useSelectedOrdersSync(
+  orders: OrderExpeditionOrderDto[],
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+): void {
+  useEffect(() => {
+    if (!orders.length) {
+      return
+    }
+
+    setSelectedOrdersById((prev) => {
+      let changed = false
+      const next = new Map(prev)
+
+      for (const order of orders) {
+        if (next.has(order.id)) {
+          next.set(order.id, order)
+          changed = true
+        }
+      }
+
+      return changed ? next : prev
+    })
+  }, [orders, setSelectedOrdersById])
+}
+
+function useClearBulkControlsWhenSelectionEmpty(params: {
+  bulkManualStatus: ManualStatusValue | ""
+  selectedCount: number
+  targetStatus: OrderExpeditionTargetStatus | ""
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+}): void {
+  useEffect(() => {
+    if (params.selectedCount > 0) {
+      return
+    }
+
+    if (params.targetStatus) {
+      params.setTargetStatus("")
+    }
+
+    if (params.bulkManualStatus) {
+      params.setBulkManualStatus("")
+    }
+
+    params.setBlockingOrders((prev) => (prev.length ? [] : prev))
+  }, [
+    params.bulkManualStatus,
+    params.selectedCount,
+    params.setBlockingOrders,
+    params.setBulkManualStatus,
+    params.setTargetStatus,
+    params.targetStatus,
+  ])
+}
+
+function useOrderExpeditionSelection(
+  selectedOrdersById: Map<string, OrderExpeditionOrderDto>,
+  orders: OrderExpeditionOrderDto[]
+) {
+  const selectedOrders = useMemo(
+    () => [...selectedOrdersById.values()],
+    [selectedOrdersById]
+  )
+  const selectedOrderIds = useMemo(
+    () => new Set(selectedOrdersById.keys()),
+    [selectedOrdersById]
+  )
+  const selectedOrderIdsList = useMemo(
+    () => [...selectedOrdersById.keys()],
+    [selectedOrdersById]
+  )
+  const allPageOrdersSelected =
+    orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
+  const somePageOrdersSelected =
+    orders.some((order) => selectedOrderIds.has(order.id)) &&
+    !allPageOrdersSelected
+  const selectedCount = selectedOrdersById.size
+
+  return {
+    allPageOrdersSelected,
+    isSelectionLimitReached: selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS,
+    selectedCount,
+    selectedOrderIds,
+    selectedOrderIdsList,
+    selectedOrders,
+    somePageOrdersSelected,
+  }
+}
+
+function resetOrderExpeditionControls(params: {
+  setOffset: Dispatch<SetStateAction<number>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+}): void {
+  params.setOffset(0)
+  params.setSelectedOrdersById(new Map())
+  params.setTargetStatus("")
+  params.setBulkManualStatus("")
+  params.setBlockingOrders([])
+}
+
+function useOrderExpeditionFilterHandlers(params: {
+  setCarrier: Dispatch<
+    SetStateAction<typeof ALL_CARRIERS | OrderExpeditionCarrierKey>
+  >
+  setBusinessStatus: Dispatch<
+    SetStateAction<typeof ALL_BUSINESS_STATUSES | OrderBusinessStatusId>
+  >
+  setOffset: Dispatch<SetStateAction<number>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+}) {
+  const resetControls = () => resetOrderExpeditionControls(params)
+
+  return {
+    handleCarrierChange: (value: string) => {
+      const nextCarrier = getCarrierSelectValue(value)
+
+      if (!nextCarrier) {
+        return
+      }
+
+      params.setCarrier(nextCarrier)
+      resetControls()
+    },
+    handleBusinessStatusChange: (value: string) => {
+      const nextBusinessStatus = getBusinessStatusSelectValue(value)
+
+      if (!nextBusinessStatus) {
+        return
+      }
+
+      params.setBusinessStatus(nextBusinessStatus)
+      resetControls()
+    },
+  }
+}
+
+function useOrderExpeditionSelectionHandlers(params: {
+  allPageOrdersSelected: boolean
+  orders: OrderExpeditionOrderDto[]
+  selectedCount: number
+  selectedOrderIds: Set<string>
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+}) {
+  return {
+    toggleOrder: (order: OrderExpeditionOrderDto) => {
+      if (
+        isOrderSelectionLimitBlocked(
+          order.id,
+          params.selectedOrderIds,
+          params.selectedCount
+        )
+      ) {
+        toast.error(
+          `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+        )
+        return
+      }
+
+      params.setBlockingOrders([])
+      params.setSelectedOrdersById((prev) => {
+        const next = new Map(prev)
+        if (next.has(order.id)) {
+          next.delete(order.id)
+        } else {
+          next.set(order.id, order)
+        }
+        return next
+      })
+    },
+    togglePage: () => {
+      if (
+        shouldWarnPageSelectionLimit(
+          params.allPageOrdersSelected,
+          params.orders,
+          params.selectedOrderIds,
+          params.selectedCount
+        )
+      ) {
+        toast.error(
+          `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
+        )
+      }
+
+      params.setBlockingOrders([])
+      params.setSelectedOrdersById((prev) =>
+        getNextPageSelection(prev, params.orders, params.allPageOrdersSelected)
+      )
+    },
+  }
+}
+
+function useOrderExpeditionStatusHandlers(params: {
+  selectedOrderIdsList: string[]
+  selectedCount: number
+  targetStatus: OrderExpeditionTargetStatus | ""
+  targetStatusOptions: TargetStatusOption[]
+  selectedTargetStatusBlockers: OrderExpeditionBlockingOrder[]
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setIsPrinting: Dispatch<SetStateAction<boolean>>
+  setIsUpdatingStatus: Dispatch<SetStateAction<boolean>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+  ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
+}) {
+  return {
+    handleTargetStatusChange: (value: string) => {
+      if (!isOrderExpeditionTargetStatus(value)) {
+        return
+      }
+
+      const option = params.targetStatusOptions.find(
+        (status) => status.value === value
+      )
+
+      if (option?.blockedOrders.length) {
+        return
+      }
+
+      params.setTargetStatus(value)
+      params.setBlockingOrders([])
+    },
+    handlePrint: async () => {
+      if (!params.selectedOrderIdsList.length) {
+        return
+      }
+
+      params.setIsPrinting(true)
+      params.setBlockingOrders([])
+      try {
+        await downloadPdf(params.selectedOrderIdsList)
+        toast.success("Order expedition PDF generated")
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to print PDF")
+      } finally {
+        params.setIsPrinting(false)
+      }
+    },
+    handleStatusUpdate: async () => {
+      if (!params.selectedOrderIdsList.length) {
+        return
+      }
+
+      if (!params.targetStatus) {
+        toast.error("Select a target status")
+        return
+      }
+
+      if (params.selectedTargetStatusBlockers.length) {
+        params.setBlockingOrders(params.selectedTargetStatusBlockers)
+        toast.error("Selected orders no longer support that status change")
+        return
+      }
+
+      params.setIsUpdatingStatus(true)
+      params.setBlockingOrders([])
+      try {
+        const result = await updateStatus(
+          params.selectedOrderIdsList,
+          params.targetStatus
+        )
+
+        if (!result.ok) {
+          params.setBlockingOrders(result.blockedOrders)
+          toast.error(result.message)
+          return
+        }
+
+        toast.success(`${params.selectedCount} order(s) updated`)
+        params.setSelectedOrdersById(new Map())
+        params.setTargetStatus("")
+        await params.ordersQuery.refetch()
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to update order status"
+        )
+      } finally {
+        params.setIsUpdatingStatus(false)
+      }
+    },
+  }
+}
+
+function useOrderExpeditionBusinessStatusHandlers(params: {
+  bulkBusinessStatusTarget: ManualOrderBusinessStatusId | null | undefined
+  bulkBusinessStatusPreview: {
+    skipped: OrderExpeditionBlockingOrder[]
+    updatable: OrderExpeditionOrderDto[]
+  }
+  selectedOrderIdsList: string[]
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setIsBulkBusinessStatusPromptOpen: Dispatch<SetStateAction<boolean>>
+  setIsUpdatingBusinessStatus: Dispatch<SetStateAction<boolean>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
+  businessStatusesQuery: ReturnType<
+    typeof useOrderExpeditionQueries
+  >["businessStatusesQuery"]
+}) {
+  return {
+    handleBulkManualStatusChange: (value: string) => {
+      if (value === "clear" || isManualOrderBusinessStatusId(value)) {
+        params.setBulkManualStatus(value)
+        params.setBlockingOrders([])
+      }
+    },
+    handleBusinessStatusUpdateRequest: () => {
+      if (!params.selectedOrderIdsList.length) {
+        return
+      }
+
+      if (params.bulkBusinessStatusTarget === undefined) {
+        toast.error("Select a manual status")
+        return
+      }
+
+      params.setBlockingOrders([])
+      params.setIsBulkBusinessStatusPromptOpen(true)
+    },
+    handleBusinessStatusUpdateConfirm: async () => {
+      if (params.bulkBusinessStatusTarget === undefined) {
+        return
+      }
+
+      const orderIdsToUpdate = params.bulkBusinessStatusPreview.updatable.map(
+        (order) => order.id
+      )
+
+      if (!orderIdsToUpdate.length) {
+        params.setBlockingOrders(params.bulkBusinessStatusPreview.skipped)
+        params.setIsBulkBusinessStatusPromptOpen(false)
+        toast.error("No selected orders can be updated")
+        return
+      }
+
+      params.setIsUpdatingBusinessStatus(true)
+      params.setBlockingOrders([])
+      try {
+        const result = await bulkUpdateOrderBusinessStatus({
+          orderIds: params.selectedOrderIdsList,
+          status: params.bulkBusinessStatusTarget,
+        })
+
+        params.setBlockingOrders(result.skipped)
+        toast.success(
+          `Manual status updated for ${result.count} order(s). ${result.skipped_count} skipped.`
+        )
+        params.setSelectedOrdersById(new Map())
+        params.setBulkManualStatus("")
+        params.setIsBulkBusinessStatusPromptOpen(false)
+        await Promise.all([
+          params.ordersQuery.refetch(),
+          params.businessStatusesQuery.refetch(),
+        ])
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : "Failed to update manual business status"
+        )
+      } finally {
+        params.setIsUpdatingBusinessStatus(false)
+      }
+    },
+  }
+}
+
+function throwOrderExpeditionQueryErrors(errors: unknown[]): void {
+  for (const error of errors) {
+    if (error) {
+      throw error
+    }
+  }
+}
+
+function BulkBusinessStatusPrompt({
+  bulkBusinessStatusLabel,
+  bulkBusinessStatusPreview,
+  isBulkBusinessStatusPromptOpen,
+  isUpdatingBusinessStatus,
+  onConfirm,
+  onOpenChange,
+}: {
+  bulkBusinessStatusLabel: string
+  bulkBusinessStatusPreview: {
+    skipped: OrderExpeditionBlockingOrder[]
+    updatable: OrderExpeditionOrderDto[]
+  }
+  isBulkBusinessStatusPromptOpen: boolean
+  isUpdatingBusinessStatus: boolean
+  onConfirm: () => void
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <Prompt
+      onOpenChange={onOpenChange}
+      open={isBulkBusinessStatusPromptOpen}
+      variant="confirmation"
+    >
+      <Prompt.Content>
+        <Prompt.Header>
+          <Prompt.Title>Apply manual status</Prompt.Title>
+          <Prompt.Description>
+            Only manually selected orders will be updated.
+          </Prompt.Description>
+        </Prompt.Header>
+        <div className="flex flex-col gap-3 px-6 py-4">
+          <Text size="small">
+            Target manual status:{" "}
+            <span className="font-medium">{bulkBusinessStatusLabel}</span>
+          </Text>
+          <Text size="small">
+            {bulkBusinessStatusPreview.updatable.length} order(s) will be
+            updated. {bulkBusinessStatusPreview.skipped.length} order(s) will be
+            skipped.
+          </Text>
+          {bulkBusinessStatusPreview.updatable.length ? (
+            <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
+              {bulkBusinessStatusPreview.updatable.slice(0, 10).map((order) => (
+                <Text key={order.id} size="small">
+                  {order.order_display_id}: set manual status to{" "}
+                  {bulkBusinessStatusLabel}
+                </Text>
+              ))}
+              {bulkBusinessStatusPreview.updatable.length > 10 ? (
+                <Text className="text-ui-fg-muted" size="small">
+                  {bulkBusinessStatusPreview.updatable.length - 10} more will be
+                  updated
+                </Text>
+              ) : null}
+            </div>
+          ) : null}
+          {bulkBusinessStatusPreview.skipped.length ? (
+            <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
+              {bulkBusinessStatusPreview.skipped.slice(0, 10).map((order) => (
+                <Text key={`${order.id}-${order.reason}`} size="small">
+                  {order.order_display_id}: skipped - {order.reason}
+                </Text>
+              ))}
+              {bulkBusinessStatusPreview.skipped.length > 10 ? (
+                <Text className="text-ui-fg-muted" size="small">
+                  {bulkBusinessStatusPreview.skipped.length - 10} more will be
+                  skipped
+                </Text>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <Prompt.Footer>
+          <Prompt.Cancel>Cancel</Prompt.Cancel>
+          <Prompt.Action
+            disabled={
+              !bulkBusinessStatusPreview.updatable.length ||
+              isUpdatingBusinessStatus
+            }
+            onClick={onConfirm}
+          >
+            Apply
+          </Prompt.Action>
+        </Prompt.Footer>
+      </Prompt.Content>
+    </Prompt>
+  )
 }
 
 function getManualStatusLabel(
@@ -918,129 +1502,26 @@ const OrderExpeditionPage = () => {
     [i18n.language, i18n.resolvedLanguage]
   )
 
-  const carriersQuery = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<CarriersResponse>("/admin/order-expedition/carriers"),
-    queryKey: ["order-expedition-carriers"],
+  const { businessStatusesQuery, carriersQuery, orders, ordersQuery } =
+    useOrderExpeditionQueries({ carrier, businessStatus, offset })
+  useSelectedOrdersSync(orders, setSelectedOrdersById)
+  const {
+    allPageOrdersSelected,
+    isSelectionLimitReached,
+    selectedCount,
+    selectedOrderIds,
+    selectedOrderIdsList,
+    selectedOrders,
+    somePageOrdersSelected,
+  } = useOrderExpeditionSelection(selectedOrdersById, orders)
+  useClearBulkControlsWhenSelectionEmpty({
+    bulkManualStatus,
+    selectedCount,
+    setBlockingOrders,
+    setBulkManualStatus,
+    setTargetStatus,
+    targetStatus,
   })
-
-  const ordersQuery = useQuery({
-    queryFn: () => {
-      const search = new URLSearchParams({
-        limit: String(PAGE_SIZE),
-        offset: String(offset),
-      })
-
-      if (carrier !== ALL_CARRIERS) {
-        search.set("carrier", carrier)
-      }
-
-      if (businessStatus !== ALL_BUSINESS_STATUSES) {
-        search.set("business_status", businessStatus)
-      }
-
-      return sdk.client.fetch<OrdersResponse>(
-        `/admin/order-expedition/orders?${search}`
-      )
-    },
-    queryKey: [ORDER_EXPEDITION_QUERY_KEY, carrier, businessStatus, offset],
-  })
-
-  const rawOrders = useMemo(
-    () => ordersQuery.data?.orders ?? [],
-    [ordersQuery.data?.orders]
-  )
-  const rawOrderIds = useMemo(
-    () => rawOrders.map((order) => order.id),
-    [rawOrders]
-  )
-  const businessStatusesQuery = useQuery({
-    enabled: rawOrderIds.length > 0,
-    queryFn: () => {
-      const search = new URLSearchParams({
-        ids: rawOrderIds.join(","),
-      })
-
-      return sdk.client.fetch<BusinessStatusesResponse>(
-        `/admin/order-business-statuses/by-ids?${search}`
-      )
-    },
-    queryKey: ["order-business-statuses-by-ids", rawOrderIds],
-  })
-  const businessStatusesById = useMemo(
-    () =>
-      new Map(
-        (businessStatusesQuery.data?.orders ?? []).map((order) => [
-          order.id,
-          order,
-        ])
-      ),
-    [businessStatusesQuery.data?.orders]
-  )
-  const orders = useMemo(
-    () =>
-      rawOrders.map((order) =>
-        mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
-      ),
-    [businessStatusesById, rawOrders]
-  )
-
-  useEffect(() => {
-    if (!orders.length) {
-      return
-    }
-
-    setSelectedOrdersById((prev) => {
-      let changed = false
-      const next = new Map(prev)
-
-      for (const order of orders) {
-        if (next.has(order.id)) {
-          next.set(order.id, order)
-          changed = true
-        }
-      }
-
-      return changed ? next : prev
-    })
-  }, [orders])
-
-  const selectedOrders = useMemo(
-    () => [...selectedOrdersById.values()],
-    [selectedOrdersById]
-  )
-  const selectedOrderIds = useMemo(
-    () => new Set(selectedOrdersById.keys()),
-    [selectedOrdersById]
-  )
-  const selectedOrderIdsList = useMemo(
-    () => [...selectedOrdersById.keys()],
-    [selectedOrdersById]
-  )
-  const allPageOrdersSelected =
-    orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
-  const somePageOrdersSelected =
-    orders.some((order) => selectedOrderIds.has(order.id)) &&
-    !allPageOrdersSelected
-  const selectedCount = selectedOrdersById.size
-  const isSelectionLimitReached =
-    selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
-
-  useEffect(() => {
-    if (selectedCount > 0) {
-      return
-    }
-
-    if (targetStatus) {
-      setTargetStatus("")
-    }
-
-    if (bulkManualStatus) {
-      setBulkManualStatus("")
-    }
-
-    setBlockingOrders((prev) => (prev.length ? [] : prev))
-  }, [bulkManualStatus, selectedCount, targetStatus])
 
   const targetStatusOptions = useMemo(
     () => getTargetStatusOptions(selectedOrders),
@@ -1072,303 +1553,71 @@ const OrderExpeditionPage = () => {
       ? ""
       : getManualStatusLabel(bulkBusinessStatusTarget, t)
   const pagination = getOrderExpeditionPaginationState(ordersQuery.data, offset)
-
-  const handleCarrierChange = (value: string) => {
-    const nextCarrier = getCarrierSelectValue(value)
-
-    if (!nextCarrier) {
-      return
-    }
-
-    setCarrier(nextCarrier)
-    setOffset(0)
-    setSelectedOrdersById(new Map())
-    setTargetStatus("")
-    setBulkManualStatus("")
-    setBlockingOrders([])
-  }
-
-  const handleBusinessStatusChange = (value: string) => {
-    const nextBusinessStatus = getBusinessStatusSelectValue(value)
-
-    if (!nextBusinessStatus) {
-      return
-    }
-
-    setBusinessStatus(nextBusinessStatus)
-    setOffset(0)
-    setSelectedOrdersById(new Map())
-    setTargetStatus("")
-    setBulkManualStatus("")
-    setBlockingOrders([])
-  }
-
-  const handleTargetStatusChange = (value: string) => {
-    if (!isOrderExpeditionTargetStatus(value)) {
-      return
-    }
-
-    const option = targetStatusOptions.find((status) => status.value === value)
-
-    if (option?.blockedOrders.length) {
-      return
-    }
-
-    setTargetStatus(value)
-    setBlockingOrders([])
-  }
-
-  const handleBulkManualStatusChange = (value: string) => {
-    if (value === "clear" || isManualOrderBusinessStatusId(value)) {
-      setBulkManualStatus(value)
-      setBlockingOrders([])
-    }
-  }
-
-  const toggleOrder = (order: OrderExpeditionOrderDto) => {
-    if (
-      isOrderSelectionLimitBlocked(order.id, selectedOrderIds, selectedCount)
-    ) {
-      toast.error(
-        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
-      )
-      return
-    }
-
-    setBlockingOrders([])
-    setSelectedOrdersById((prev) => {
-      const next = new Map(prev)
-      if (next.has(order.id)) {
-        next.delete(order.id)
-      } else {
-        next.set(order.id, order)
-      }
-      return next
+  const { handleBusinessStatusChange, handleCarrierChange } =
+    useOrderExpeditionFilterHandlers({
+      setBlockingOrders,
+      setBulkManualStatus,
+      setBusinessStatus,
+      setCarrier,
+      setOffset,
+      setSelectedOrdersById,
+      setTargetStatus,
     })
-  }
+  const { toggleOrder, togglePage } = useOrderExpeditionSelectionHandlers({
+    allPageOrdersSelected,
+    orders,
+    selectedCount,
+    selectedOrderIds,
+    setBlockingOrders,
+    setSelectedOrdersById,
+  })
+  const { handlePrint, handleStatusUpdate, handleTargetStatusChange } =
+    useOrderExpeditionStatusHandlers({
+      ordersQuery,
+      selectedCount,
+      selectedOrderIdsList,
+      selectedTargetStatusBlockers,
+      setBlockingOrders,
+      setIsPrinting,
+      setIsUpdatingStatus,
+      setSelectedOrdersById,
+      setTargetStatus,
+      targetStatus,
+      targetStatusOptions,
+    })
+  const {
+    handleBulkManualStatusChange,
+    handleBusinessStatusUpdateConfirm,
+    handleBusinessStatusUpdateRequest,
+  } = useOrderExpeditionBusinessStatusHandlers({
+    bulkBusinessStatusPreview,
+    bulkBusinessStatusTarget,
+    businessStatusesQuery,
+    ordersQuery,
+    selectedOrderIdsList,
+    setBlockingOrders,
+    setBulkManualStatus,
+    setIsBulkBusinessStatusPromptOpen,
+    setIsUpdatingBusinessStatus,
+    setSelectedOrdersById,
+  })
 
-  const togglePage = () => {
-    if (
-      shouldWarnPageSelectionLimit(
-        allPageOrdersSelected,
-        orders,
-        selectedOrderIds,
-        selectedCount
-      )
-    ) {
-      toast.error(
-        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
-      )
-    }
-
-    setBlockingOrders([])
-    setSelectedOrdersById((prev) =>
-      getNextPageSelection(prev, orders, allPageOrdersSelected)
-    )
-  }
-
-  const handlePrint = async () => {
-    if (!selectedOrderIdsList.length) {
-      return
-    }
-
-    setIsPrinting(true)
-    setBlockingOrders([])
-    try {
-      await downloadPdf(selectedOrderIdsList)
-      toast.success("Order expedition PDF generated")
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to print PDF")
-    } finally {
-      setIsPrinting(false)
-    }
-  }
-
-  const handleStatusUpdate = async () => {
-    if (!selectedOrderIdsList.length) {
-      return
-    }
-
-    if (!targetStatus) {
-      toast.error("Select a target status")
-      return
-    }
-
-    if (selectedTargetStatusBlockers.length) {
-      setBlockingOrders(selectedTargetStatusBlockers)
-      toast.error("Selected orders no longer support that status change")
-      return
-    }
-
-    const nextStatus = targetStatus
-    setIsUpdatingStatus(true)
-    setBlockingOrders([])
-    try {
-      const result = await updateStatus(selectedOrderIdsList, nextStatus)
-
-      if (!result.ok) {
-        setBlockingOrders(result.blockedOrders)
-        toast.error(result.message)
-        return
-      }
-
-      toast.success(`${selectedCount} order(s) updated`)
-      setSelectedOrdersById(new Map())
-      setTargetStatus("")
-      await ordersQuery.refetch()
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update order status"
-      )
-    } finally {
-      setIsUpdatingStatus(false)
-    }
-  }
-
-  const handleBusinessStatusUpdateRequest = () => {
-    if (!selectedOrderIdsList.length) {
-      return
-    }
-
-    if (bulkBusinessStatusTarget === undefined) {
-      toast.error("Select a manual status")
-      return
-    }
-
-    setBlockingOrders([])
-    setIsBulkBusinessStatusPromptOpen(true)
-  }
-
-  const handleBusinessStatusUpdateConfirm = async () => {
-    if (bulkBusinessStatusTarget === undefined) {
-      return
-    }
-
-    const orderIdsToUpdate = bulkBusinessStatusPreview.updatable.map(
-      (order) => order.id
-    )
-
-    if (!orderIdsToUpdate.length) {
-      setBlockingOrders(bulkBusinessStatusPreview.skipped)
-      setIsBulkBusinessStatusPromptOpen(false)
-      toast.error("No selected orders can be updated")
-      return
-    }
-
-    setIsUpdatingBusinessStatus(true)
-    setBlockingOrders([])
-    try {
-      const result = await bulkUpdateOrderBusinessStatus({
-        orderIds: selectedOrderIdsList,
-        status: bulkBusinessStatusTarget,
-      })
-
-      setBlockingOrders(result.skipped)
-      toast.success(
-        `Manual status updated for ${result.count} order(s). ${result.skipped_count} skipped.`
-      )
-      setSelectedOrdersById(new Map())
-      setBulkManualStatus("")
-      setIsBulkBusinessStatusPromptOpen(false)
-      await Promise.all([
-        ordersQuery.refetch(),
-        businessStatusesQuery.refetch(),
-      ])
-    } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Failed to update manual business status"
-      )
-    } finally {
-      setIsUpdatingBusinessStatus(false)
-    }
-  }
-
-  if (carriersQuery.error) {
-    throw carriersQuery.error
-  }
-
-  if (ordersQuery.error) {
-    throw ordersQuery.error
-  }
-
-  if (businessStatusesQuery.error) {
-    throw businessStatusesQuery.error
-  }
+  throwOrderExpeditionQueryErrors([
+    carriersQuery.error,
+    ordersQuery.error,
+    businessStatusesQuery.error,
+  ])
 
   return (
     <Container className="divide-y p-0">
-      <Prompt
+      <BulkBusinessStatusPrompt
+        bulkBusinessStatusLabel={bulkBusinessStatusLabel}
+        bulkBusinessStatusPreview={bulkBusinessStatusPreview}
+        isBulkBusinessStatusPromptOpen={isBulkBusinessStatusPromptOpen}
+        isUpdatingBusinessStatus={isUpdatingBusinessStatus}
+        onConfirm={handleBusinessStatusUpdateConfirm}
         onOpenChange={setIsBulkBusinessStatusPromptOpen}
-        open={isBulkBusinessStatusPromptOpen}
-        variant="confirmation"
-      >
-        <Prompt.Content>
-          <Prompt.Header>
-            <Prompt.Title>Apply manual status</Prompt.Title>
-            <Prompt.Description>
-              Only manually selected orders will be updated.
-            </Prompt.Description>
-          </Prompt.Header>
-          <div className="flex flex-col gap-3 px-6 py-4">
-            <Text size="small">
-              Target manual status:{" "}
-              <span className="font-medium">{bulkBusinessStatusLabel}</span>
-            </Text>
-            <Text size="small">
-              {bulkBusinessStatusPreview.updatable.length} order(s) will be
-              updated. {bulkBusinessStatusPreview.skipped.length} order(s) will
-              be skipped.
-            </Text>
-            {bulkBusinessStatusPreview.updatable.length ? (
-              <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
-                {bulkBusinessStatusPreview.updatable
-                  .slice(0, 10)
-                  .map((order) => (
-                    <Text key={order.id} size="small">
-                      {order.order_display_id}: set manual status to{" "}
-                      {bulkBusinessStatusLabel}
-                    </Text>
-                  ))}
-                {bulkBusinessStatusPreview.updatable.length > 10 ? (
-                  <Text className="text-ui-fg-muted" size="small">
-                    {bulkBusinessStatusPreview.updatable.length - 10} more will
-                    be updated
-                  </Text>
-                ) : null}
-              </div>
-            ) : null}
-            {bulkBusinessStatusPreview.skipped.length ? (
-              <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
-                {bulkBusinessStatusPreview.skipped.slice(0, 10).map((order) => (
-                  <Text key={`${order.id}-${order.reason}`} size="small">
-                    {order.order_display_id}: skipped - {order.reason}
-                  </Text>
-                ))}
-                {bulkBusinessStatusPreview.skipped.length > 10 ? (
-                  <Text className="text-ui-fg-muted" size="small">
-                    {bulkBusinessStatusPreview.skipped.length - 10} more will be
-                    skipped
-                  </Text>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-          <Prompt.Footer>
-            <Prompt.Cancel>Cancel</Prompt.Cancel>
-            <Prompt.Action
-              disabled={
-                !bulkBusinessStatusPreview.updatable.length ||
-                isUpdatingBusinessStatus
-              }
-              onClick={handleBusinessStatusUpdateConfirm}
-            >
-              Apply
-            </Prompt.Action>
-          </Prompt.Footer>
-        </Prompt.Content>
-      </Prompt>
+      />
 
       <div className="flex flex-col gap-3 px-6 py-4">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

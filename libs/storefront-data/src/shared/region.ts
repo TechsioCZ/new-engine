@@ -16,9 +16,7 @@ export const applyRegion = <T extends RegionInfo>(
 
   return {
     ...input,
-    ...(resolvedRegionId !== undefined
-      ? { region_id: resolvedRegionId }
-      : {}),
+    ...(resolvedRegionId !== undefined ? { region_id: resolvedRegionId } : {}),
     ...(resolvedCountryCode !== undefined
       ? { country_code: resolvedCountryCode }
       : {}),

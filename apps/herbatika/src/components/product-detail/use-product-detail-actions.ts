@@ -1,0 +1,117 @@
+"use client"
+
+import { useState } from "react"
+import type { Product } from "@/components/product-detail/product-detail.types"
+import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import {
+  PRODUCT_DETAIL_FIELDS,
+  usePrefetchProduct,
+} from "@/lib/storefront/products"
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+
+type UseProductDetailActionsProps = {
+  product: ProductDetailDataState["product"]
+  quantity: ProductDetailDataState["quantity"]
+  region: ProductDetailDataState["region"]
+  selectedVariant: ProductDetailDataState["selectedVariant"]
+  selectedVolumeDiscountOption: ProductDetailDataState["selectedVolumeDiscountOption"]
+}
+
+export function useProductDetailActions({
+  product,
+  quantity,
+  region,
+  selectedVariant,
+  selectedVolumeDiscountOption,
+}: UseProductDetailActionsProps) {
+  const [addToCartError, setAddToCartError] = useState<string | null>(null)
+  const addToCart = useAddProductToCart({
+    regionId: region?.region_id,
+    countryCode: region?.country_code,
+  })
+  const prefetchProduct = usePrefetchProduct({
+    defaultDelay: 220,
+    skipMode: "any",
+  })
+
+  const addProductToCart = async (
+    productToAdd: Product,
+    quantityToAdd: number,
+    variantIdOverride?: string | null
+  ) => {
+    setAddToCartError(null)
+
+    try {
+      await addToCart.addProductToCart({
+        product: productToAdd,
+        quantity: quantityToAdd,
+        variantId: variantIdOverride,
+      })
+    } catch (error) {
+      setAddToCartError(
+        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."
+      )
+    }
+  }
+
+  return {
+    addToCartError,
+    handleAddMainProductToCart: () => {
+      if (!(product && selectedVariant?.id)) {
+        return
+      }
+
+      runDetachedPromise(
+        addProductToCart(product, quantity, selectedVariant.id)
+      )
+    },
+    handleAddRelatedProductToCart: (productToAdd: Product) => {
+      runDetachedPromise(addProductToCart(productToAdd, 1))
+    },
+    handleAddVolumeDiscountToCart: () => {
+      if (!(product && selectedVariant?.id && selectedVolumeDiscountOption)) {
+        return
+      }
+
+      runDetachedPromise(
+        addProductToCart(
+          product,
+          selectedVolumeDiscountOption.quantity,
+          selectedVariant.id
+        )
+      )
+    },
+    handleRelatedProductHoverEnd: (
+      sectionId: string,
+      hoveredProduct: Product
+    ) => {
+      prefetchProduct.cancelPrefetch(
+        `${sectionId}-product-${hoveredProduct.id}`
+      )
+    },
+    handleRelatedProductHoverStart: (
+      sectionId: string,
+      hoveredProduct: Product
+    ) => {
+      if (!hoveredProduct.handle) {
+        return
+      }
+
+      prefetchProduct.delayedPrefetch(
+        {
+          handle: hoveredProduct.handle,
+          fields: PRODUCT_DETAIL_FIELDS,
+        },
+        220,
+        `${sectionId}-product-${hoveredProduct.id}`
+      )
+    },
+    isMainProductAdding:
+      addToCart.isAddPending &&
+      Boolean(product?.id) &&
+      addToCart.activeProductId === product?.id,
+    isProductAdding: (productId: string) =>
+      addToCart.isProductAdding(productId),
+  }
+}

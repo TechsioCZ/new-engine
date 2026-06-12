@@ -1,5 +1,5 @@
-import type {ExecArgs, Logger} from "@medusajs/framework/types"
-import {ContainerRegistrationKeys} from "@medusajs/framework/utils"
+import type { ExecArgs, Logger } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 type QueryService = {
   graph: (config: {
@@ -41,6 +41,15 @@ type PgConnection = {
     sql: string,
     bindings?: unknown[]
   ) => Promise<{ rows?: Record<string, unknown>[] }>
+}
+
+type SnapshotContext = {
+  label: string
+  logger: Logger
+  pg: PgConnection
+  query: QueryService
+  salesChannelIds: string[]
+  take: number
 }
 
 const toRows = (result: { rows?: Record<string, unknown>[] }) =>
@@ -218,14 +227,14 @@ async function getGraphCounts(
   }
 }
 
-async function logSnapshot(
-  label: string,
-  logger: Logger,
-  pg: PgConnection,
-  query: QueryService,
-  salesChannelIds: string[],
-  take: number
-) {
+async function logSnapshot({
+  label,
+  logger,
+  pg,
+  query,
+  salesChannelIds,
+  take,
+}: SnapshotContext) {
   const [exactCounts, indexCounts, graphCounts] = await Promise.all([
     getExactCounts(pg, salesChannelIds),
     getIndexCounts(query, salesChannelIds, take),
@@ -262,14 +271,30 @@ export default async function debugProductCount({ container }: ExecArgs) {
     `[Product count debug] sales channels: ${salesChannelIds.join(", ")}`
   )
 
-  await logSnapshot("before ANALYZE", logger, pg, query, salesChannelIds, take)
+  await logSnapshot({
+    label: "before ANALYZE",
+    logger,
+    pg,
+    query,
+    salesChannelIds,
+    take,
+  })
 
   if (!runAnalyze) {
-    logger.info("[Product count debug] RUN_ANALYZE is not set; skipping ANALYZE")
+    logger.info(
+      "[Product count debug] RUN_ANALYZE is not set; skipping ANALYZE"
+    )
     return
   }
 
   logger.info("[Product count debug] running ANALYZE")
   await pg.raw("ANALYZE")
-  await logSnapshot("after ANALYZE", logger, pg, query, salesChannelIds, take)
+  await logSnapshot({
+    label: "after ANALYZE",
+    logger,
+    pg,
+    query,
+    salesChannelIds,
+    take,
+  })
 }

@@ -173,13 +173,14 @@ export function createMedusaCategoryService<
       }
 
       const query = buildDetailQuery(params)
-      const response = await sdk.client.fetch<HttpTypes.StoreProductCategoryResponse>(
-        `${listPath}/${params.id}`,
-        {
-          query,
-          signal,
-        }
-      )
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreProductCategoryResponse>(
+          `${listPath}/${params.id}`,
+          {
+            query,
+            signal,
+          }
+        )
 
       const category = response.product_category
       if (!category) {

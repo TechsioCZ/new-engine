@@ -1,0 +1,115 @@
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import NextLink from "next/link"
+import { type ComponentProps, useState } from "react"
+import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
+import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { CheckoutPaymentSection } from "./checkout-payment-section"
+import { CheckoutShippingSection } from "./checkout-shipping-section"
+
+type CheckoutShippingPaymentStepController = Pick<
+  CheckoutController,
+  | "checkoutPaymentQuery"
+  | "checkoutShippingQuery"
+  | "currencyCode"
+  | "handleSelectPaymentProvider"
+  | "handleSelectShipping"
+  | "hasPayment"
+  | "hasShipping"
+  | "isBusy"
+>
+
+type CheckoutShippingPaymentStepSectionProps = {
+  backStepHref: string
+  controller: CheckoutShippingPaymentStepController
+  nextStepHref: string
+  selectedPaymentProviderId?: ComponentProps<
+    typeof CheckoutPaymentSection
+  >["selectedPaymentProviderId"]
+}
+
+export function CheckoutShippingPaymentStepSection({
+  backStepHref,
+  controller,
+  nextStepHref,
+  selectedPaymentProviderId,
+}: CheckoutShippingPaymentStepSectionProps) {
+  const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
+    string | null
+  >(null)
+  const pendingPickupOption =
+    controller.checkoutShippingQuery.shippingOptions.find(
+      (option) => option.id === pendingPickupOptionId
+    )
+  const hasPendingPickupRequirement = Boolean(
+    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption)
+  )
+  let paymentSelectionMessage: string | null = null
+  if (!controller.checkoutPaymentQuery.canInitiatePayment) {
+    paymentSelectionMessage = hasPendingPickupRequirement
+      ? "Pre voľbu platby najprv vyberte výdajné miesto."
+      : "Pre voľbu platby najprv vyberte dopravu."
+  }
+
+  return (
+    <section className="space-y-400">
+      <CheckoutShippingSection
+        currencyCode={controller.currencyCode}
+        isBusy={controller.isBusy}
+        onPendingPickupOptionIdChange={setPendingPickupOptionId}
+        onSelectShipping={controller.handleSelectShipping}
+        pendingPickupOptionId={pendingPickupOptionId}
+        selectedShippingMethodId={
+          controller.checkoutShippingQuery.selectedShippingMethodId
+        }
+        shippingOptions={controller.checkoutShippingQuery.shippingOptions}
+        shippingPrices={controller.checkoutShippingQuery.shippingPrices}
+      />
+      <CheckoutPaymentSection
+        canInitiatePayment={controller.checkoutPaymentQuery.canInitiatePayment}
+        isBusy={controller.isBusy}
+        isInitiatingPayment={
+          controller.checkoutPaymentQuery.isInitiatingPayment
+        }
+        onSelectPaymentProvider={controller.handleSelectPaymentProvider}
+        paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
+        selectedPaymentProviderId={selectedPaymentProviderId}
+        selectionMessage={paymentSelectionMessage}
+      />
+
+      <div className="flex flex-col gap-250 px-500 pt-150 sm:flex-row sm:items-center">
+        <LinkButton
+          as={NextLink}
+          className="hover:button-bg-outlined-tertiary-hover"
+          href={backStepHref}
+          icon="token-icon-chevron-left"
+          size="lg"
+          theme="outlined"
+          variant="tertiary"
+        >
+          <span className="font-normal">Späť na košík</span>
+        </LinkButton>
+        {controller.hasShipping && controller.hasPayment ? (
+          <LinkButton
+            as={NextLink}
+            className="w-full sm:ml-auto sm:w-auto"
+            href={nextStepHref}
+            icon="token-icon-chevron-right"
+            iconPosition="right"
+            size="lg"
+          >
+            <span className="font-normal uppercase">
+              Pokračovať na vaše údaje
+            </span>
+          </LinkButton>
+        ) : (
+          <Button className="w-full sm:ml-auto sm:w-auto" disabled size="lg">
+            <span className="font-normal uppercase">
+              Pokračovať na vaše údaje
+            </span>
+          </Button>
+        )}
+      </div>
+    </section>
+  )
+}

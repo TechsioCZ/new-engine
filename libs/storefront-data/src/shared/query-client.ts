@@ -1,7 +1,7 @@
 import {
-  QueryClient,
   defaultShouldDehydrateQuery,
   isServer,
+  QueryClient,
 } from "@tanstack/react-query"
 import { getErrorStatus } from "./medusa-errors"
 
@@ -21,8 +21,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
         }
         return failureCount < 3
       },
-      retryDelay: (attemptIndex) =>
-        Math.min(1000 * 2 ** attemptIndex, 30_000),
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
     },
     mutations: {
       retry: 1,

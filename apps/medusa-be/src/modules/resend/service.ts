@@ -34,7 +34,13 @@ type NotificationAttachment = {
 
 type Template = ResendEmailTemplate
 
-type TemplateVariableValue = string | number
+type TemplateVariableValue =
+  | boolean
+  | null
+  | number
+  | string
+  | TemplateVariableValue[]
+  | { [key: string]: TemplateVariableValue }
 
 type ResendTemplateEmailOptions = {
   attachments?: {
@@ -69,6 +75,29 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
   return isRecord(value) && typeof value.id === "string"
+}
+
+function isTemplateVariableValue(
+  value: unknown
+): value is TemplateVariableValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isTemplateVariableValue)
+  }
+
+  if (isRecord(value) && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.values(value).every(isTemplateVariableValue)
+  }
+
+  return false
 }
 
 function toErrorResponse(value: unknown): ResendApiErrorResponse {
@@ -150,7 +179,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     for (const variable of definition.requiredVariables) {
       const value = data?.[variable]
 
-      if (typeof value === "string" || typeof value === "number") {
+      if (isTemplateVariableValue(value)) {
         variables[variable] = value
       } else {
         missingVariables.push(variable)
@@ -159,8 +188,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
     for (const variable of definition.optionalVariables) {
       const value = data?.[variable]
-      variables[variable] =
-        typeof value === "string" || typeof value === "number" ? value : ""
+      variables[variable] = isTemplateVariableValue(value) ? value : ""
     }
 
     return {

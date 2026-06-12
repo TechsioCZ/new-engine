@@ -30,8 +30,8 @@ import {
   createProductListQueryDefinition,
   resolveProductQueryInput,
 } from "./query-definition"
-import { createProductQueryOptionsFactory } from "./query-options"
 import { createProductQueryKeys } from "./query-keys"
+import { createProductQueryOptionsFactory } from "./query-options"
 import type {
   ProductDetailInputBase,
   ProductInfiniteData,
@@ -81,7 +81,8 @@ const resolveInfiniteProductsPageParam = ({
   const offset = typeof pageParam === "number" ? pageParam : baseOffset
   const page =
     resolvedLimit > 0
-      ? basePage + Math.max(Math.floor((offset - baseOffset) / resolvedLimit), 0)
+      ? basePage +
+        Math.max(Math.floor((offset - baseOffset) / resolvedLimit), 0)
       : basePage
 
   return { offset, page }
@@ -529,7 +530,8 @@ export function createProductHooks<
           basePage,
           resolvedLimit,
         })
-        const limitForPage = page === basePage ? initialPageLimit : resolvedLimit
+        const limitForPage =
+          page === basePage ? initialPageLimit : resolvedLimit
         const pageInput = {
           ...resolvedInput,
           page,

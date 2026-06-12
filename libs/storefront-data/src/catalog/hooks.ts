@@ -20,8 +20,8 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
-import { createCatalogQueryOptionsFactory } from "./query-options"
 import { createCatalogQueryKeys } from "./query-keys"
+import { createCatalogQueryOptionsFactory } from "./query-options"
 import type {
   CatalogListInputBase,
   CatalogListResponse,

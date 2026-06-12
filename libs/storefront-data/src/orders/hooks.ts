@@ -6,8 +6,8 @@ import type {
 } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createSimpleListDetailHooks } from "../shared/simple-list-detail-hooks"
-import { createOrderQueryOptionsFactory } from "./query-options"
 import { createOrderQueryKeys } from "./query-keys"
+import { createOrderQueryOptionsFactory } from "./query-options"
 import type {
   OrderDetailInputBase,
   OrderListInputBase,

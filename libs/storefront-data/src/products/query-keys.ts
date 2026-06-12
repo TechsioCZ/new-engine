@@ -2,13 +2,9 @@ import type { QueryNamespace } from "../shared/query-keys"
 import { createQueryKey, normalizeQueryKeyPart } from "../shared/query-keys"
 import type { ProductQueryKeys } from "./types"
 
-export function createProductQueryKeys<
-  TListParams,
-  TDetailParams,
->(namespace: QueryNamespace): ProductQueryKeys<
-  TListParams,
-  TDetailParams
-> {
+export function createProductQueryKeys<TListParams, TDetailParams>(
+  namespace: QueryNamespace
+): ProductQueryKeys<TListParams, TDetailParams> {
   return {
     list: (params) =>
       createQueryKey(

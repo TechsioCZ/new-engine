@@ -1,32 +1,21 @@
-@theme {
-  /* Status colors */
-  --color-status-text-fg-error: var(--color-danger);
-  --color-status-text-fg-success: var(--color-success);
-  --color-status-text-fg-warning: var(--color-warning);
-  --color-status-text-fg-default: var(--color-fg-secondary);
-
-  /* Text sizes - inherit from input sizing */
-  --text-status-text-sm: var(--text-input-sm);
-  --text-status-text-md: var(--text-input-md);
-  --text-status-text-lg: var(--text-input-lg);
-
-  /* Icon gap - spacing between icon and text */
-  --spacing-status-text-icon-gap-sm: var(--spacing-50);
-  --spacing-status-text-icon-gap-md: var(--spacing-100);
-  --spacing-status-text-icon-gap-lg: var(--spacing-200);
-
-  --spacing-status-text-icon: var(--spacing-50);
-  --spacing-status-text-icon-long-text: var(--spacing-100);
-}
+/*
+ * StatusText — runtime tokens fully come from libs/ui/src/tokens/figma/variables.css.
+ * Only the semantic glyph aliases remain here.
+ *
+ * Note: Figma's `--color-status-text-fg` resolves to `--color-fg-secondary`
+ * (single value, same across modes), while the atom previously hand-picked
+ * a brighter dark-mode value. In light mode both resolve to the same
+ * oklch(0.494 …), so the storybook visual is byte-identical. If dark-mode
+ * status-text needs more contrast, add a `light-dark()` to the Figma
+ * `color/fg/secondary` semantic instead of overriding here.
+ */
 
 @utility token-icon-status-text-success {
   @apply token-icon-success;
 }
-
 @utility token-icon-status-text-warning {
   @apply token-icon-warning;
 }
-
 @utility token-icon-status-text-error {
   @apply token-icon-error;
 }

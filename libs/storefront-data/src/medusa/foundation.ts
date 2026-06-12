@@ -2,54 +2,62 @@ import { createAuthQueryKeys } from "../auth/query-keys"
 import type { AuthQueryKeys } from "../auth/types"
 import { createCartQueryKeys } from "../cart/query-keys"
 import type { CartQueryKeys } from "../cart/types"
+import type { MedusaCatalogListInput } from "../catalog/medusa-service"
 import { createCatalogQueryKeys } from "../catalog/query-keys"
 import type { CatalogQueryKeys } from "../catalog/types"
-import { createCategoryQueryKeys } from "../categories/query-keys"
-import type { CategoryQueryKeys } from "../categories/types"
-import { createCheckoutQueryKeys } from "../checkout/query-keys"
-import type { CheckoutQueryKeys } from "../checkout/types"
-import { createCollectionQueryKeys } from "../collections/query-keys"
-import type { CollectionQueryKeys } from "../collections/types"
-import { createCustomerQueryKeys } from "../customers/query-keys"
-import type { CustomerQueryKeys } from "../customers/types"
-import { createOrderQueryKeys } from "../orders/query-keys"
-import type { OrderQueryKeys } from "../orders/types"
-import { createProductQueryKeys } from "../products/query-keys"
-import type { ProductQueryKeys } from "../products/types"
-import { createRegionQueryKeys } from "../regions/query-keys"
-import type { RegionQueryKeys } from "../regions/types"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
-import type { QueryNamespace } from "../shared/query-keys"
-import type {
-  MedusaCatalogListInput,
-} from "../catalog/medusa-service"
 import type {
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,
 } from "../categories/medusa-service"
-import type { MedusaCustomerListInput } from "../customers/medusa-service"
-import type {
-  MedusaOrderDetailInput,
-  MedusaOrderListInput,
-} from "../orders/medusa-service"
-import type {
-  MedusaProductDetailInput,
-  MedusaProductListInput,
-} from "../products/medusa-service"
-import type {
-  MedusaRegionDetailInput,
-  MedusaRegionListInput,
-} from "../regions/medusa-service"
+import { createCategoryQueryKeys } from "../categories/query-keys"
+import type { CategoryQueryKeys } from "../categories/types"
+import { createCheckoutQueryKeys } from "../checkout/query-keys"
+import type { CheckoutQueryKeys } from "../checkout/types"
 import type {
   MedusaCollectionDetailInput,
   MedusaCollectionListInput,
 } from "../collections/medusa-service"
+import { createCollectionQueryKeys } from "../collections/query-keys"
+import type { CollectionQueryKeys } from "../collections/types"
+import type { MedusaCustomerListInput } from "../customers/medusa-service"
+import { createCustomerQueryKeys } from "../customers/query-keys"
+import type { CustomerQueryKeys } from "../customers/types"
+import type {
+  MedusaOrderDetailInput,
+  MedusaOrderListInput,
+} from "../orders/medusa-service"
+import { createOrderQueryKeys } from "../orders/query-keys"
+import type { OrderQueryKeys } from "../orders/types"
+import type {
+  MedusaProductListDetailKeyInput,
+  MedusaProductListListKeyInput,
+} from "../product-lists/medusa-service"
+import { createProductListQueryKeys } from "../product-lists/query-keys"
+import type { ProductListQueryKeys } from "../product-lists/types"
+import type {
+  MedusaProductDetailInput,
+  MedusaProductListInput,
+} from "../products/medusa-service"
+import { createProductQueryKeys } from "../products/query-keys"
+import type { ProductQueryKeys } from "../products/types"
+import type {
+  MedusaRegionDetailInput,
+  MedusaRegionListInput,
+} from "../regions/medusa-service"
+import { createRegionQueryKeys } from "../regions/query-keys"
+import type { RegionQueryKeys } from "../regions/types"
+import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import type { QueryNamespace } from "../shared/query-keys"
 
 export type MedusaStorefrontQueryKeys = {
   auth: AuthQueryKeys
   cart: CartQueryKeys
   checkout: CheckoutQueryKeys
   products: ProductQueryKeys<MedusaProductListInput, MedusaProductDetailInput>
+  productLists: ProductListQueryKeys<
+    MedusaProductListListKeyInput,
+    MedusaProductListDetailKeyInput
+  >
   orders: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   customers: CustomerQueryKeys<MedusaCustomerListInput>
   regions: RegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>
@@ -79,6 +87,10 @@ export function createMedusaStorefrontQueryKeys(
     products: createProductQueryKeys<
       MedusaProductListInput,
       MedusaProductDetailInput
+    >(namespace),
+    productLists: createProductListQueryKeys<
+      MedusaProductListListKeyInput,
+      MedusaProductListDetailKeyInput
     >(namespace),
     orders: createOrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>(
       namespace

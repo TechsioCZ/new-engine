@@ -123,9 +123,21 @@ export NODE_ENV="${NODE_ENV:-production}"
 export MEDUSA_TELEMETRY_DISABLED="${MEDUSA_TELEMETRY_DISABLED:-1}"
 export NX_DAEMON=false
 export NX_SKIP_NX_CACHE=true
-export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-768}}"
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-2048}}"
 export CI="${CI:-true}"
 export ESBUILD_WORKER_THREADS="${ESBUILD_WORKER_THREADS:-0}"
+
+# Build-time provider choices avoid requiring live Redis/Meilisearch/S3 during
+# config validation. Runtime provider envs are still supplied by deployment.
+export REDIS_SESSIONS_ENABLED="${REDIS_SESSIONS_ENABLED:-0}"
+export NOTIFICATION_PROVIDER="${NOTIFICATION_PROVIDER:-local}"
+export MEILISEARCH_ENABLED="${MEILISEARCH_ENABLED:-0}"
+export CACHE_PROVIDER="${CACHE_PROVIDER:-inmemory}"
+export EVENT_BUS_PROVIDER="${EVENT_BUS_PROVIDER:-local}"
+export WORKFLOW_ENGINE_PROVIDER="${WORKFLOW_ENGINE_PROVIDER:-inmemory}"
+export LOCKING_PROVIDER="${LOCKING_PROVIDER:-postgres}"
+export FILE_PROVIDER="${FILE_PROVIDER:-local}"
+export FILE_LOCAL_UPLOAD_DIR="${FILE_LOCAL_UPLOAD_DIR:-/tmp/medusa-be-build-files}"
 
 # FEATURE_PPL_ENABLED must come from the environment (no default - explicit opt-in)
 if [[ -n "${FEATURE_PPL_ENABLED:-}" ]]; then

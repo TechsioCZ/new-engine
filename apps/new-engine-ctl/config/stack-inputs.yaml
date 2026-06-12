@@ -683,6 +683,78 @@ bootstrap_zane_project:
         - service_id: medusa-meilisearch
           env_var: MEILI_MASTER_KEY
 
+    - key: MEDUSA_BE_REDIS_SESSIONS_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_REDIS_SESSIONS_ENABLED
+        default_value: "1"
+      service_targets:
+        - service_id: medusa-be
+          env_var: REDIS_SESSIONS_ENABLED
+
+    - key: MEDUSA_BE_MEILISEARCH_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_MEILISEARCH_ENABLED
+        default_value: "1"
+      service_targets:
+        - service_id: medusa-be
+          env_var: MEILISEARCH_ENABLED
+
+    - key: MEDUSA_BE_CACHE_PROVIDER
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_CACHE_PROVIDER
+        default_value: redis
+      service_targets:
+        - service_id: medusa-be
+          env_var: CACHE_PROVIDER
+
+    - key: MEDUSA_BE_EVENT_BUS_PROVIDER
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_EVENT_BUS_PROVIDER
+        default_value: redis
+      service_targets:
+        - service_id: medusa-be
+          env_var: EVENT_BUS_PROVIDER
+
+    - key: MEDUSA_BE_WORKFLOW_ENGINE_PROVIDER
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_WORKFLOW_ENGINE_PROVIDER
+        default_value: redis
+      service_targets:
+        - service_id: medusa-be
+          env_var: WORKFLOW_ENGINE_PROVIDER
+
+    - key: MEDUSA_BE_LOCKING_PROVIDER
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_LOCKING_PROVIDER
+        default_value: redis
+      service_targets:
+        - service_id: medusa-be
+          env_var: LOCKING_PROVIDER
+
+    - key: MEDUSA_BE_FILE_PROVIDER
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_FILE_PROVIDER
+        default_value: s3
+      service_targets:
+        - service_id: medusa-be
+          env_var: FILE_PROVIDER
+
+    - key: MEDUSA_BE_FILE_LOCAL_UPLOAD_DIR
+      source:
+        kind: local_env
+        env_var: DC_MEDUSA_BE_FILE_LOCAL_UPLOAD_DIR
+        default_value: /tmp/medusa-be-files
+      service_targets:
+        - service_id: medusa-be
+          env_var: FILE_LOCAL_UPLOAD_DIR
+
     - key: PAYLOAD_DB_USER
       source:
         kind: local_env

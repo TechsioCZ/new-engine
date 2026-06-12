@@ -209,9 +209,9 @@ export function createMedusaProductService<
   }
 
   const getProductsGlobal = createGlobalFetcher
-    // Global fetcher intentionally bypasses per-call cancellation.
-    // It is meant for shared deduped prefetch usage.
-    ? async (params: TListParams) => getProducts(params, undefined)
+    ? // Global fetcher intentionally bypasses per-call cancellation.
+      // It is meant for shared deduped prefetch usage.
+      async (params: TListParams) => getProducts(params, undefined)
     : undefined
 
   return {
@@ -222,10 +222,11 @@ export function createMedusaProductService<
       signal?: AbortSignal
     ): Promise<TProduct | null> {
       const query = buildDetailQuery(params)
-      const response = await sdk.client.fetch<HttpTypes.StoreProductListResponse>(
-        listPath,
-        { query, signal }
-      )
+      const response =
+        await sdk.client.fetch<HttpTypes.StoreProductListResponse>(listPath, {
+          query,
+          signal,
+        })
       const product = response.products?.[0]
       if (!product) {
         return null

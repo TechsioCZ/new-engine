@@ -92,16 +92,24 @@ export type CreateProductsStepInput = ProductInput[]
 
 const CreateProductsStepId = "create-products-seed-step"
 
-function ensureUniqueVariantSkus(
-  inputProducts: ProductInput[],
-  existingProducts: ProductDTO[],
-  logger: Logger
-) {
-  const existingProductsByHandle = new Map(
-    existingProducts.map((product) => [product.handle, product])
-  )
+type ExistingCategory = Awaited<
+  ReturnType<IProductModuleService["listProductCategories"]>
+>[number]
+type ExistingSalesChannel = Awaited<
+  ReturnType<ISalesChannelModuleService["listSalesChannels"]>
+>[number]
+type ExistingShippingProfile = Awaited<
+  ReturnType<IFulfillmentModuleService["listShippingProfiles"]>
+>[number]
+type ProducerRegistry = Map<
+  string,
+  { attributes: Map<string, string>; products: string[] }
+>
+type VariantImagesRegistry = Map<string, Map<string, ProductVariantImagesInput>>
+type WorkflowContainer = Parameters<typeof createProductsWorkflow>[0]
+
+function collectUsedVariantSkus(existingProducts: ProductDTO[]): Set<string> {
   const usedSkus = new Set<string>()
-  let renamedSkus = 0
 
   for (const product of existingProducts) {
     for (const variant of product.variants ?? []) {
@@ -111,18 +119,71 @@ function ensureUniqueVariantSkus(
     }
   }
 
+  return usedSkus
+}
+
+function getExistingVariantSkus(product?: ProductDTO): Set<string> {
+  return new Set(
+    (product?.variants ?? [])
+      .map((variant) => variant.sku)
+      .filter((sku): sku is string => typeof sku === "string" && sku.length > 0)
+  )
+}
+
+function buildUniqueVariantSku(params: {
+  originalSku: string | undefined
+  inputProduct: ProductInput
+  index: number
+  usedSkus: Set<string>
+}): string {
+  const baseSku =
+    params.originalSku ||
+    `${params.inputProduct.handle}-variant-${params.index + 1}`
+  let candidate = baseSku
+  let suffix = 2
+
+  while (params.usedSkus.has(candidate)) {
+    candidate = `${baseSku}-${suffix}`
+    suffix += 1
+  }
+
+  return candidate
+}
+
+function renameVariantSku(
+  variant: NonNullable<ProductInput["variants"]>[number],
+  candidate: string
+): boolean {
+  if (candidate === variant.sku) {
+    return false
+  }
+
+  variant.metadata = {
+    ...(variant.metadata ?? {}),
+    source_sku: variant.sku,
+  }
+  variant.sku = candidate
+
+  return true
+}
+
+function ensureUniqueVariantSkus(
+  inputProducts: ProductInput[],
+  existingProducts: ProductDTO[],
+  logger: Logger
+) {
+  const existingProductsByHandle = new Map(
+    existingProducts.map((product) => [product.handle, product])
+  )
+  const usedSkus = collectUsedVariantSkus(existingProducts)
+  let renamedSkus = 0
+
   for (const inputProduct of inputProducts) {
     const existingProduct = existingProductsByHandle.get(inputProduct.handle)
-    const existingSkusOnProduct = new Set(
-      (existingProduct?.variants ?? [])
-        .map((variant) => variant.sku)
-        .filter(Boolean)
-    )
+    const existingSkusOnProduct = getExistingVariantSkus(existingProduct)
 
     for (const [index, variant] of (inputProduct.variants ?? []).entries()) {
       const originalSku = variant.sku?.trim()
-      const baseSku =
-        originalSku || `${inputProduct.handle}-variant-${index + 1}`
       const isExistingVariant =
         !!originalSku && existingSkusOnProduct.has(originalSku)
 
@@ -130,20 +191,13 @@ function ensureUniqueVariantSkus(
         continue
       }
 
-      let candidate = baseSku
-      let suffix = 2
-
-      while (usedSkus.has(candidate)) {
-        candidate = `${baseSku}-${suffix}`
-        suffix += 1
-      }
-
-      if (candidate !== variant.sku) {
-        variant.metadata = {
-          ...(variant.metadata ?? {}),
-          source_sku: variant.sku,
-        }
-        variant.sku = candidate
+      const candidate = buildUniqueVariantSku({
+        originalSku,
+        inputProduct,
+        index,
+        usedSkus,
+      })
+      if (renameVariantSku(variant, candidate)) {
         renamedSkus += 1
       }
 
@@ -333,6 +387,306 @@ function prepareVariantImagesWorkflowInput(
   return result
 }
 
+function collectCategoryHandles(input: CreateProductsStepInput): string[] {
+  return [
+    ...new Set(
+      input.flatMap((product) => product.categories.map((cat) => cat.handle))
+    ),
+  ]
+}
+
+function collectSalesChannelNames(input: CreateProductsStepInput): string[] {
+  return [...new Set(input.flatMap((product) => product.salesChannelNames))]
+}
+
+function resolveCategory(
+  existingCategories: ExistingCategory[],
+  handle: string
+): ExistingCategory {
+  const existingCategory = existingCategories.find(
+    (cat) => cat.handle === handle
+  )
+  if (!existingCategory) {
+    throw new Error(`Category "${handle}" not found`)
+  }
+
+  return existingCategory
+}
+
+function resolveShippingProfileId(
+  existingShippingProfiles: ExistingShippingProfile[],
+  name: string
+): string {
+  const profile = existingShippingProfiles.find((sp) => sp.name === name)
+  if (!profile) {
+    throw new Error(`Shipping profile "${name}" not found`)
+  }
+
+  return profile.id
+}
+
+function resolveSalesChannel(
+  existingSalesChannels: ExistingSalesChannel[],
+  name: string
+): ExistingSalesChannel {
+  const channel = existingSalesChannels.find((sc) => sc.name === name)
+  if (!channel) {
+    throw new Error(`Sales channel "${name}" not found`)
+  }
+
+  return channel
+}
+
+function registerProductSideInputs(
+  inputProduct: ProductInput,
+  producers: ProducerRegistry,
+  productVariantImages: VariantImagesRegistry
+): void {
+  processProductProducerInput(inputProduct, producers)
+  processProductVariantImagesInput(inputProduct, productVariantImages)
+}
+
+function buildUpdateVariant(
+  existingProduct: ProductDTO,
+  inputVariant: NonNullable<ProductInput["variants"]>[number]
+) {
+  const existingVariant = findExistingVariant(existingProduct, inputVariant)
+
+  return existingVariant
+    ? {
+        title: inputVariant.title,
+        sku: inputVariant.sku,
+        ean: inputVariant.ean,
+        material: inputVariant.material,
+        options: inputVariant.options,
+        prices: inputVariant.prices?.map((p) => ({
+          amount: p.amount,
+          currency_code: p.currency_code,
+        })),
+        thumbnail: inputVariant.thumbnail,
+        metadata: inputVariant.metadata,
+        id: existingVariant.id,
+      }
+    : inputVariant
+}
+
+function buildUpdateProductPayload(params: {
+  existingProduct: ProductDTO
+  inputProduct: ProductInput
+  existingCategories: ExistingCategory[]
+  existingShippingProfiles: ExistingShippingProfile[]
+  existingSalesChannels: ExistingSalesChannel[]
+}) {
+  const {
+    existingProduct,
+    inputProduct,
+    existingCategories,
+    existingShippingProfiles,
+    existingSalesChannels,
+  } = params
+
+  return {
+    id: existingProduct.id,
+    title: inputProduct.title,
+    categories: inputProduct.categories?.map((inputCat) =>
+      resolveCategory(existingCategories, inputCat.handle)
+    ),
+    description: inputProduct.description,
+    weight: inputProduct.weight,
+    status: inputProduct.status || ProductStatus.PUBLISHED,
+    metadata: inputProduct.metadata,
+    shipping_profile_id: resolveShippingProfileId(
+      existingShippingProfiles,
+      inputProduct.shippingProfileName
+    ),
+    thumbnail: inputProduct.thumbnail || existingProduct.thumbnail,
+    images: inputProduct.images ?? [],
+    options: inputProduct.options,
+    variants: inputProduct.variants?.map((inputVariant) =>
+      buildUpdateVariant(existingProduct, inputVariant)
+    ),
+    sales_channels: inputProduct.salesChannelNames.map((name) =>
+      resolveSalesChannel(existingSalesChannels, name)
+    ),
+  }
+}
+
+function buildCreateVariant(
+  inputVariant: NonNullable<ProductInput["variants"]>[number]
+) {
+  return {
+    title: inputVariant.title,
+    sku: inputVariant.sku,
+    ean: inputVariant.ean,
+    material: inputVariant.material,
+    options: inputVariant.options,
+    thumbnail: inputVariant.thumbnail,
+    prices: inputVariant.prices?.map((price) => ({
+      amount: price.amount,
+      currency_code: price.currency_code,
+    })),
+    metadata: inputVariant.metadata,
+  }
+}
+
+function buildCreateProductPayload(params: {
+  inputProduct: ProductInput
+  existingCategories: ExistingCategory[]
+  existingShippingProfiles: ExistingShippingProfile[]
+  existingSalesChannels: ExistingSalesChannel[]
+}) {
+  const {
+    inputProduct,
+    existingCategories,
+    existingShippingProfiles,
+    existingSalesChannels,
+  } = params
+
+  return {
+    title: inputProduct.title,
+    category_ids: inputProduct.categories?.map(
+      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
+    ),
+    description: inputProduct.description,
+    handle: inputProduct.handle,
+    weight: inputProduct.weight,
+    status: inputProduct.status || ProductStatus.PUBLISHED,
+    metadata: inputProduct.metadata,
+    shipping_profile_id: resolveShippingProfileId(
+      existingShippingProfiles,
+      inputProduct.shippingProfileName
+    ),
+    thumbnail: inputProduct.thumbnail,
+    images: inputProduct.images ?? [],
+    options: inputProduct.options,
+    variants: inputProduct.variants?.map(buildCreateVariant),
+    sales_channels: inputProduct.salesChannelNames.map((name) =>
+      resolveSalesChannel(existingSalesChannels, name)
+    ),
+  }
+}
+
+function buildUpdateProductPayloads(params: {
+  input: CreateProductsStepInput
+  existingProducts: ProductDTO[]
+  existingCategories: ExistingCategory[]
+  existingShippingProfiles: ExistingShippingProfile[]
+  existingSalesChannels: ExistingSalesChannel[]
+  producers: ProducerRegistry
+  productVariantImages: VariantImagesRegistry
+}) {
+  return params.existingProducts.flatMap((existingProduct) => {
+    const inputProduct = params.input.find(
+      (product) => product.handle === existingProduct.handle
+    )
+
+    if (!inputProduct) {
+      return []
+    }
+
+    registerProductSideInputs(
+      inputProduct,
+      params.producers,
+      params.productVariantImages
+    )
+
+    return [
+      buildUpdateProductPayload({
+        existingProduct,
+        inputProduct,
+        existingCategories: params.existingCategories,
+        existingShippingProfiles: params.existingShippingProfiles,
+        existingSalesChannels: params.existingSalesChannels,
+      }),
+    ]
+  })
+}
+
+function buildCreateProductPayloads(params: {
+  missingProducts: ProductInput[]
+  existingCategories: ExistingCategory[]
+  existingShippingProfiles: ExistingShippingProfile[]
+  existingSalesChannels: ExistingSalesChannel[]
+  producers: ProducerRegistry
+  productVariantImages: VariantImagesRegistry
+}) {
+  return params.missingProducts.map((inputProduct) => {
+    registerProductSideInputs(
+      inputProduct,
+      params.producers,
+      params.productVariantImages
+    )
+
+    return buildCreateProductPayload({
+      inputProduct,
+      existingCategories: params.existingCategories,
+      existingShippingProfiles: params.existingShippingProfiles,
+      existingSalesChannels: params.existingSalesChannels,
+    })
+  })
+}
+
+async function applyVariantImageUpdates(params: {
+  container: WorkflowContainer
+  products: ProductDTO[]
+  productVariantImages: VariantImagesRegistry
+  result: string[]
+}): Promise<void> {
+  for (const product of params.products) {
+    const variantImageInputs = prepareVariantImagesWorkflowInput(
+      product,
+      params.productVariantImages
+    )
+
+    for (const variantImageInput of variantImageInputs ?? []) {
+      await batchVariantImagesWorkflow(params.container).run({
+        input: variantImageInput,
+      })
+    }
+
+    params.result.push(product.id)
+  }
+}
+
+async function linkProducers(params: {
+  link: Link
+  productService: IProductModuleService
+  producerService: ProducerModuleService
+  producers: ProducerRegistry
+}): Promise<void> {
+  for (const [key, producerData] of params.producers.entries()) {
+    const attributes = [...producerData.attributes.entries()].map(
+      ([name, attrValue]) => ({
+        name,
+        value: attrValue,
+      })
+    )
+
+    const producer = await params.producerService.upsertProducer({
+      name: key,
+      attributes,
+    })
+
+    const products = await params.productService.listProducts(
+      { handle: { $in: producerData.products } },
+      {
+        select: ["id"],
+      }
+    )
+
+    const links = products.map((product) => ({
+      [Modules.PRODUCT]: {
+        product_id: product.id,
+      },
+      [PRODUCER_MODULE]: {
+        producer_id: producer.id,
+      },
+    }))
+
+    await params.link.create(links)
+  }
+}
+
 export const createProductsStep = createStep(
   CreateProductsStepId,
   async (input: CreateProductsStepInput, { container }) => {
@@ -351,34 +705,19 @@ export const createProductsStep = createStep(
     const producerService =
       container.resolve<ProducerModuleService>(PRODUCER_MODULE)
 
-    const productVariantImages = new Map<
-      string,
-      Map<string, ProductVariantImagesInput>
-    >()
-    const producers = new Map<
-      string,
-      { attributes: Map<string, string>; products: string[] }
-    >()
+    const productVariantImages: VariantImagesRegistry = new Map()
+    const producers: ProducerRegistry = new Map()
 
     const existingCategories = await productService.listProductCategories(
       {
-        handle: input.reduce((acc: string[], i) => {
-          i.categories?.map((cat) => acc.push(cat.handle))
-          return acc
-        }, []),
+        handle: collectCategoryHandles(input),
       },
       {
         select: ["id", "handle"],
       }
     )
-    const allSalesChannelNames = new Set<string>()
-    for (const i of input) {
-      for (const name of i.salesChannelNames) {
-        allSalesChannelNames.add(name)
-      }
-    }
     const existingSalesChannels = await salesChannelService.listSalesChannels({
-      name: [...allSalesChannelNames],
+      name: collectSalesChannelNames(input),
     })
 
     const existingShippingProfiles =
@@ -401,140 +740,28 @@ export const createProductsStep = createStep(
     const missingProducts = input.filter(
       (i) => !existingProducts.find((j) => j.handle === i.handle)
     )
-    const updateProducts = existingProducts.flatMap((existingProduct) => {
-      const inputProduct = input.find(
-        (product) => product.handle === existingProduct.handle
-      )
-
-      if (!inputProduct) {
-        return []
-      }
-
-      processProductProducerInput(inputProduct, producers)
-      processProductVariantImagesInput(inputProduct, productVariantImages)
-
-      return [
-        {
-          id: existingProduct.id,
-          title: inputProduct.title,
-          categories: inputProduct.categories?.map((inputCat) => {
-            const existingCategory = existingCategories.find(
-              (cat) => cat.handle === inputCat.handle
-            )
-            if (!existingCategory) {
-              throw new Error(`Category "${inputCat.handle}" not found`)
-            }
-            return existingCategory
-          }),
-          description: inputProduct.description,
-          weight: inputProduct.weight,
-          status: inputProduct.status || ProductStatus.PUBLISHED,
-          metadata: inputProduct.metadata,
-          shipping_profile_id: (() => {
-            const profile = existingShippingProfiles.find(
-              (sp) => sp.name === inputProduct.shippingProfileName
-            )
-            if (!profile) {
-              throw new Error(
-                `Shipping profile "${inputProduct.shippingProfileName}" not found`
-              )
-            }
-            return profile.id
-          })(),
-          thumbnail: inputProduct.thumbnail || existingProduct.thumbnail,
-          images: inputProduct.images ?? [],
-          options: inputProduct.options,
-          variants: inputProduct.variants?.map((inputVariant) => {
-            const existingVariant = findExistingVariant(
-              existingProduct,
-              inputVariant
-            )
-            return existingVariant
-              ? {
-                  title: inputVariant.title,
-                  sku: inputVariant.sku,
-                  ean: inputVariant.ean,
-                  material: inputVariant.material,
-                  options: inputVariant.options,
-                  prices: inputVariant.prices?.map((p) => ({
-                    amount: p.amount,
-                    currency_code: p.currency_code,
-                  })),
-                  thumbnail: inputVariant.thumbnail,
-                  metadata: inputVariant.metadata,
-                  id: existingVariant.id,
-                }
-              : inputVariant
-          }),
-          sales_channels: inputProduct.salesChannelNames.map((name) => {
-            const channel = existingSalesChannels.find((sc) => sc.name === name)
-            if (!channel) {
-              throw new Error(`Sales channel "${name}" not found`)
-            }
-            return channel
-          }),
-        },
-      ]
-    })
+    const updateProducts = existingProducts.flatMap((existingProduct) =>
+      buildUpdateProductPayloads({
+        input,
+        existingProducts: [existingProduct],
+        existingCategories,
+        existingShippingProfiles,
+        existingSalesChannels,
+        producers,
+        productVariantImages,
+      })
+    )
 
     if (missingProducts.length !== 0) {
       logger.info("Creating missing products...")
 
-      const createProducts = missingProducts.map((p) => {
-        processProductProducerInput(p, producers)
-        processProductVariantImagesInput(p, productVariantImages)
-
-        return {
-          title: p.title,
-          category_ids: p.categories?.map((inputCat) => {
-            const existingCategory = existingCategories.find(
-              (cat) => cat.handle === inputCat.handle
-            )
-            if (!existingCategory) {
-              throw new Error(`Category "${inputCat.handle}" not found`)
-            }
-            return existingCategory.id
-          }),
-          description: p.description,
-          handle: p.handle,
-          weight: p.weight,
-          status: p.status || ProductStatus.PUBLISHED,
-          metadata: p.metadata,
-          shipping_profile_id: (() => {
-            const profile = existingShippingProfiles.find(
-              (sp) => sp.name === p.shippingProfileName
-            )
-            if (!profile) {
-              throw new Error(
-                `Shipping profile "${p.shippingProfileName}" not found`
-              )
-            }
-            return profile.id
-          })(),
-          thumbnail: p.thumbnail,
-          images: p.images ?? [],
-          options: p.options,
-          variants: p.variants?.map((v) => ({
-            title: v.title,
-            sku: v.sku,
-            ean: v.ean,
-            material: v.material,
-            options: v.options,
-            thumbnail: v.thumbnail,
-            prices: v.prices?.map((price) => ({
-              amount: price.amount,
-              currency_code: price.currency_code,
-            })),
-            metadata: v.metadata,
-          })),
-          sales_channels: p.salesChannelNames.map((name) => {
-            const channel = existingSalesChannels.find((sc) => sc.name === name)
-            if (!channel) {
-              throw new Error(`Sales channel "${name}" not found`)
-            }
-            return channel
-          }),
-        }
+      const createProducts = buildCreateProductPayloads({
+        missingProducts,
+        existingCategories,
+        existingShippingProfiles,
+        existingSalesChannels,
+        producers,
+        productVariantImages,
       })
 
       const createResult = await createProductsWorkflow(container).run({
@@ -562,21 +789,12 @@ export const createProductsStep = createStep(
 
       logger.info("Creating product variant images...")
 
-      for (const product of products) {
-        const variantImageInputs = prepareVariantImagesWorkflowInput(
-          product,
-          productVariantImages
-        )
-        if (variantImageInputs !== undefined) {
-          for (const variantImageInput of variantImageInputs) {
-            await batchVariantImagesWorkflow(container).run({
-              input: variantImageInput,
-            })
-          }
-        }
-
-        result.push(product.id)
-      }
+      await applyVariantImageUpdates({
+        container,
+        products,
+        productVariantImages,
+        result,
+      })
     }
 
     if (updateProducts.length !== 0) {
@@ -617,54 +835,20 @@ export const createProductsStep = createStep(
 
       logger.info("Updating product variant images...")
 
-      for (const product of products) {
-        const variantImageInputs = prepareVariantImagesWorkflowInput(
-          product,
-          productVariantImages
-        )
-        if (variantImageInputs !== undefined) {
-          for (const variantImageInput of variantImageInputs) {
-            await batchVariantImagesWorkflow(container).run({
-              input: variantImageInput,
-            })
-          }
-        }
-        result.push(product.id)
-      }
-    }
-
-    // add producer info
-    for (const [key, producerData] of producers.entries()) {
-      const attributes = [...producerData.attributes.entries()].map(
-        ([name, attrValue]) => ({
-          name,
-          value: attrValue,
-        })
-      )
-
-      const producer = await producerService.upsertProducer({
-        name: key,
-        attributes,
+      await applyVariantImageUpdates({
+        container,
+        products,
+        productVariantImages,
+        result,
       })
-
-      const products = await productService.listProducts(
-        { handle: { $in: producerData.products } },
-        {
-          select: ["id"],
-        }
-      )
-
-      const links = products.map((p) => ({
-        [Modules.PRODUCT]: {
-          product_id: p.id,
-        },
-        [PRODUCER_MODULE]: {
-          producer_id: producer.id,
-        },
-      }))
-
-      await link.create(links)
     }
+
+    await linkProducers({
+      link,
+      productService,
+      producerService,
+      producers,
+    })
 
     return new StepResponse({
       result,

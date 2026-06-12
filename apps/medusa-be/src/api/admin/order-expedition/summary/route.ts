@@ -2,11 +2,8 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { ICachingModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
-  ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-  parseOrderBusinessStatusOrders,
-} from "../../order-business-statuses/utils"
-import {
   ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS,
+  isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_IDS,
   type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
@@ -17,11 +14,16 @@ import {
   ORDER_EXPEDITION_SUMMARY_CACHE_TTL_SECONDS,
   resolveOrderExpeditionSummaryCacheService,
 } from "../../../../utils/order-expedition-summary-cache"
+import {
+  ORDER_BUSINESS_STATUS_ORDER_FIELDS,
+  parseOrderBusinessStatusOrders,
+} from "../../order-business-statuses/utils"
 
 const ORDER_EXPEDITION_SUMMARY_BATCH_SIZE = 500
 
 type OrderExpeditionSummaryResponse = {
   action_required_count: number
+  pending_unpaid_count: number
   scanned_count: number
   status_counts: Record<OrderBusinessStatusId, number>
   total_count: number
@@ -40,6 +42,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   let offset = 0
   let totalCount: number | null = null
+  let pendingUnpaidCount = 0
   let scannedCount = 0
   const statusCounts = createEmptyStatusCounts()
 
@@ -59,6 +62,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     for (const order of orders) {
       const statusId = resolveOrderBusinessStatus(order).id
       statusCounts[statusId] += 1
+      pendingUnpaidCount += isPendingUnpaidOrder(order) ? 1 : 0
     }
 
     offset += orders.length
@@ -70,6 +74,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const summary: OrderExpeditionSummaryResponse = {
     action_required_count: getActionRequiredCount(statusCounts),
+    pending_unpaid_count: pendingUnpaidCount,
     scanned_count: scannedCount,
     status_counts: statusCounts,
     total_count: totalCount ?? scannedCount,
@@ -130,6 +135,7 @@ function isOrderExpeditionSummaryResponse(
 
   return (
     typeof summary.action_required_count === "number" &&
+    typeof summary.pending_unpaid_count === "number" &&
     typeof summary.scanned_count === "number" &&
     typeof summary.total_count === "number" &&
     typeof summary.unhandled_count === "number" &&
@@ -161,11 +167,11 @@ function getActionRequiredCount(
 }
 
 function createEmptyStatusCounts() {
-  return ORDER_BUSINESS_STATUS_IDS.reduce(
-    (counts, statusId) => ({
-      ...counts,
-      [statusId]: 0,
-    }),
-    {} as Record<OrderBusinessStatusId, number>
-  )
+  const counts = {} as Record<OrderBusinessStatusId, number>
+
+  for (const statusId of ORDER_BUSINESS_STATUS_IDS) {
+    counts[statusId] = 0
+  }
+
+  return counts
 }

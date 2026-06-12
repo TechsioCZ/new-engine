@@ -1,7 +1,10 @@
 import { isPlainRecord } from "./object-utils"
 import type { QueryKey } from "./query-keys"
 
-export const areQueryKeySegmentsEqual = (left: unknown, right: unknown): boolean => {
+export const areQueryKeySegmentsEqual = (
+  left: unknown,
+  right: unknown
+): boolean => {
   if (Object.is(left, right)) {
     return true
   }
@@ -9,7 +12,9 @@ export const areQueryKeySegmentsEqual = (left: unknown, right: unknown): boolean
   if (Array.isArray(left) && Array.isArray(right)) {
     return (
       left.length === right.length &&
-      left.every((entry, index) => areQueryKeySegmentsEqual(entry, right[index]))
+      left.every((entry, index) =>
+        areQueryKeySegmentsEqual(entry, right[index])
+      )
     )
   }
 

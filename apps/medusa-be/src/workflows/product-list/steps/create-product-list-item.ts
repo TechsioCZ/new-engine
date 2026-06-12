@@ -1,4 +1,3 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
@@ -24,13 +23,6 @@ export const createProductListItemStep = createStep(
       container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
     const productList = await service.retrieveProductList(input.list_id)
     const listType = getProductListType(productList.type)
-
-    if (listType === "favorite" && input.quantity !== undefined) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Quantity cannot be set on a favorites list"
-      )
-    }
 
     await assertProductSelectionExists(
       container,

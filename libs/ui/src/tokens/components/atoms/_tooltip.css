@@ -1,21 +1,18 @@
+/*
+ * Tooltip — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here (Figma doesn't export these exact names):
+ *   - `--padding-tooltip-{sm,md,lg}` combined shorthands for the
+ *     `p-tooltip-{size}` utility (Figma has split x/y axes).
+ *   - `--tooltip-arrow-size` and `--tooltip-arrow-background` —
+ *     Zag.js requires these exact CSS variable names.
+ */
+
 @theme static {
-  /* === BASE TOKEN MAPPING === */
-  --color-tooltip-bg: var(--color-overlay);
-  --color-tooltip-border: var(--color-border-primary);
+  --padding-tooltip-sm: var(--padding-tooltip-y-sm) var(--padding-tooltip-x-sm);
+  --padding-tooltip-md: var(--padding-tooltip-y-md) var(--padding-tooltip-x-md);
+  --padding-tooltip-lg: var(--padding-tooltip-y-lg) var(--padding-tooltip-x-lg);
 
-  /* === SIZING & SPACING === */
-  --padding-tooltip-sm: var(--spacing-150) var(--spacing-200);
-  --padding-tooltip-md: var(--spacing-200) var(--spacing-250);
-  --padding-tooltip-lg: var(--spacing-250) var(--spacing-350);
-
-  --text-tooltip-sm: var(--text-xs);
-  --text-tooltip-md: var(--text-sm);
-  --text-tooltip-lg: var(--text-md);
-
-  --radius-tooltip: var(--radius-md);
-  --shadow-tooltip: var(--shadow-md);
-
-  /* Required for Zag.js */
-  --tooltip-arrow-size: var(--spacing-150);
-  --tooltip-arrow-background: var(--color-tooltip-bg);
+  --tooltip-arrow-size: var(--spacing-tooltip-arrow);
+  --tooltip-arrow-background: var(--color-tooltip-arrow);
 }

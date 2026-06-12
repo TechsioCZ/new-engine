@@ -1,7 +1,14 @@
-import type {IRegionModuleService, Logger, WorkflowTypes,} from "@medusajs/framework/types"
-import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
-import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
-import {createRegionsWorkflow, updateRegionsWorkflow,} from "@medusajs/medusa/core-flows"
+import type {
+  IRegionModuleService,
+  Logger,
+  WorkflowTypes,
+} from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import {
+  createRegionsWorkflow,
+  updateRegionsWorkflow,
+} from "@medusajs/medusa/core-flows"
 
 export type CreateRegionsStepInput = {
   name: string

@@ -1,0 +1,5 @@
+/*
+ * Link — runtime tokens come entirely from libs/ui/src/tokens/figma/variables.css.
+ * The TSX itself consumes no link-specific utility classes today; the
+ * tokens are exported for future styling work and direct CSS consumers.
+ */

@@ -1,77 +1,14 @@
+/*
+ * Input — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * This file only declares what Figma does not export:
+ *   - `--spacing-form-field-gap` — used by the FormField molecule to space
+ *     label, control, and helper text.
+ *
+ * Color, border-width, padding, radius, text, ring, validation, and the
+ * `--padding-input-with-button*` family are all owned by Figma.
+ */
+
 @theme static {
-  /* BASE TOKENS - direct mapping from semantic tokens */
-  /* Base input colors */
-  --color-input: var(--color-fill-base);
-  --color-input-border: var(--color-border-primary);
-  --color-input-fg: var(--color-fg-primary);
-  --color-input-bg-disabled: var(--color-bg-disabled);
-
-  /* Validation states - primary colors */
-  --color-input-danger: var(--color-danger);
-  --color-input-success: var(--color-success);
-  --color-input-warning: var(--color-warning);
-
-  /* DERIVED STATES - automatically calculated from base tokens */
-  /* Default state - hover/focus/disabled */
-  --color-input-hover: oklch(
-    from var(--color-input) calc(l + var(--state-hover)) c h
-  );
-  --color-input-focus: oklch(
-    from var(--color-input) calc(l + var(--state-active)) c h
-  );
-
-  --color-input-border-hover: oklch(
-    from var(--color-input-border) calc(l + var(--state-hover)) c h
-  );
-  --color-input-border-focus: var(--color-primary);
-  --color-input-border-disabled: var(--color-border-disabled);
-
-  /* Error state - hover/focus */
-  --color-input-border-danger: var(--color-input-danger);
-  --color-input-border-danger-hover: oklch(
-    from var(--color-input-danger) calc(l + var(--state-hover)) c h
-  );
-  --color-input-border-danger-focus: var(--color-input-danger);
-
-  /* Success state - hover/focus */
-  --color-input-border-success: var(--color-input-success);
-  --color-input-border-success-hover: oklch(
-    from var(--color-input-success) calc(l + var(--state-hover)) c h
-  );
-  --color-input-border-success-focus: var(--color-input-success);
-
-  /* Warning state - hover/focus */
-  --color-input-border-warning: var(--color-input-warning);
-  --color-input-border-warning-hover: oklch(
-    from var(--color-input-warning) calc(l + var(--state-hover)) c h
-  );
-  --color-input-border-warning-focus: var(--color-input-warning);
-
-  /* Text colors */
-  --color-input-fg-disabled: var(--color-fg-disabled);
-  --color-input-fg-placeholder: var(--color-fg-placeholder);
-
-  /* Focus ring colors - using consistent opacity */
-  --color-input-ring: var(--color-ring);
-
-  /* Spacing - keeping your existing values */
-  --padding-input-sm: var(--spacing-100) var(--spacing-100);
-  --padding-input-md: var(--spacing-150) var(--spacing-150);
-  --padding-input-lg: var(--spacing-200) var(--spacing-200);
-  --padding-with-button: var(--spacing-950);
-
-  /* Typography */
-  --text-input-sm: var(--text-sm);
-  --text-input-md: var(--text-md);
-  --text-input-lg: var(--text-lg);
-
-  /* Border */
-  --border-width-input: 2px;
-  --radius-input: var(--radius-form-control);
-  --radius-input-sm: var(--radius-form-control-sm);
-  --radius-input-md: var(--radius-form-control-md);
-  --radius-input-lg: var(--radius-form-control-lg);
-
-  /* Form field spacing */
-  --spacing-form-field-gap: var(--spacing-50);
+  --spacing-form-field-gap: var(--spacing-form-field);
 }
