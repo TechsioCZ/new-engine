@@ -14,6 +14,7 @@ import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils";
+import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog";
 import { FractionalRating } from "@/components/reviews/fractional-rating";
 import type { ReviewItem } from "@/components/reviews/reviews.types";
 import {
@@ -70,9 +71,11 @@ function ProductDetailReviewsSkeleton() {
 
 function ProductDetailReviewsHeader({
   averageRating,
+  productId,
   totalCount,
 }: {
   averageRating: number;
+  productId: string;
   totalCount: number;
 }) {
   return (
@@ -96,14 +99,7 @@ function ProductDetailReviewsHeader({
         </p>
       </div>
 
-      <Button
-        disabled
-        size="sm"
-        theme="solid"
-        variant="primary"
-      >
-        Napísať recenziu
-      </Button>
+      <ProductReviewCreateDialog productId={productId} />
     </header>
   );
 }
@@ -219,13 +215,19 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
 
   if (isEmpty) {
     return (
-      <div className="rounded-md border border-border-secondary bg-highlight p-500">
+      <div className="rounded-xs border border-border-secondary bg-highlight p-500">
         <p className="text-lg font-semibold text-fg-primary">
           Tento produkt zatiaľ nemá recenzie.
         </p>
         <p className="mt-150 text-md leading-relaxed text-fg-secondary">
           Po prvých overených hodnoteniach sa zobrazia priamo v tejto sekcii.
         </p>
+        <div className="mt-300">
+          <ProductReviewCreateDialog
+            productId={productId}
+            triggerLabel="Napísať prvú recenziu"
+          />
+        </div>
       </div>
     );
   }
@@ -234,6 +236,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     <div className="space-y-500">
       <ProductDetailReviewsHeader
         averageRating={averageRating}
+        productId={productId}
         totalCount={totalCount}
       />
 
