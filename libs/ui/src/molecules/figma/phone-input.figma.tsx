@@ -19,12 +19,32 @@ figma.connect(
         error: "error",
         success: "success",
         warning: "warning",
+        disabled: "default",
+        readonly: "default",
+      }),
+      disabled: figma.enum("state", {
+        default: false,
+        error: false,
+        success: false,
+        warning: false,
+        disabled: true,
+        readonly: false,
+      }),
+      readOnly: figma.enum("state", {
+        default: false,
+        error: false,
+        success: false,
+        warning: false,
+        disabled: false,
+        readonly: true,
       }),
       required: figma.boolean("required"),
     },
-    example: ({ size, validateStatus, required }) => (
+    example: ({ size, validateStatus, disabled, readOnly, required }) => (
       <PhoneInput
         defaultCountry="SK"
+        disabled={disabled}
+        readOnly={readOnly}
         required={required}
         size={size}
         validateStatus={validateStatus}
