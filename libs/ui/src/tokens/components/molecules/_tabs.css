@@ -4,11 +4,8 @@
  * Kept here:
  *   - `--padding-tabs-trigger-{sm,md,lg}` combined shorthands for the
  *     `p-tabs-trigger-{size}` utility (Figma has split x/y axes).
- *   - `--width-tabs-indicator` — vertical-orientation indicator width;
- *     aliases Figma's indicator height token (Figma has no width axis;
- *     queued for figma-additions).
- *   - `--radius-tabs-indicator` — not in Figma yet (queued for
- *     figma-additions).
+ *   - `--width-tabs-indicator` — alias for the Figma width axis (w-
+ *     utility can't read --size-*).
  */
 
 @theme static {

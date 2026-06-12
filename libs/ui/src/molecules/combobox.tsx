@@ -75,6 +75,11 @@ const comboboxVariants = tv({
       "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
     ],
     emptyState: ["text-combobox-fg-placeholder"],
+    triggerIndicator: [
+      "text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover",
+      "motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none",
+      "rotate-0 group-data-[state=open]:rotate-180",
+    ],
     helper: [
       "data-[validation=success]:text-combobox-success-fg",
       "data-[validation=warning]:text-combobox-warning-fg",
@@ -274,6 +279,7 @@ export function Combobox<T = unknown>({
     clearTrigger,
     item: itemSlot,
     emptyState,
+    triggerIndicator,
   } = comboboxVariants({ size })
 
   const hasOptions = api.collection.size > 0
@@ -323,9 +329,7 @@ export function Combobox<T = unknown>({
           theme="unstyled"
         >
           <Icon
-            className={`text-combobox-trigger-fg-base group-hover:text-combobox-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
-              api.open ? "rotate-180" : "rotate-0"
-            }`}
+            className={triggerIndicator()}
             icon={triggerIcon}
             size={triggerIconSize ?? resolvedChevronIconSize}
           />
