@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-06-12T12:05:45.079Z
+ * Exported at: 2026-06-12T13:18:24.704Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -545,10 +545,12 @@
   --color-radio-card-item-indicator-bg-solid-checked: var(--color-fg-light);
   --color-radio-card-item-indicator-border: var(--color-border-primary);
   --color-radio-card-item-indicator-border-disabled: var(--color-border-disabled);
+  --color-radio-card-item-indicator-border-outline-checked: var(--color-bg-primary-base);
   --color-radio-card-item-indicator-border-solid-checked: var(--color-fg-light);
   --color-radio-card-item-indicator-border-subtle-checked: var(--color-fg-light);
   --color-radio-card-item-indicator-content-fg: var(--color-fg-accent-primary);
   --color-radio-card-item-indicator-content-fg-disabled: var(--color-fg-disabled);
+  --color-radio-card-item-indicator-content-fg-outline-checked: var(--color-bg-primary-base);
   --color-radio-card-item-indicator-content-fg-solid-checked: var(--color-bg-primary-base);
   --color-radio-card-item-indicator-content-fg-subtle-checked: var(--color-fg-light);
   --color-radio-card-ring: var(--color-ring-default);
