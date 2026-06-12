@@ -74,6 +74,21 @@ import type {
   ProductListQueryKeys,
   ProductListService,
 } from "../product-lists/types"
+import {
+  createMedusaProductReviewService,
+  type MedusaProductReviewListInput,
+  type MedusaProductReviewServiceConfig,
+} from "../reviews/medusa-service"
+import {
+  type CreateProductReviewQueryOptionsFactoryConfig,
+  createProductReviewQueryOptionsFactory,
+  type ProductReviewQueryOptionsFactory,
+} from "../reviews/query-options"
+import type {
+  ProductReviewQueryKeys,
+  ProductReviewService,
+  ReviewBase,
+} from "../reviews/types"
 import type {
   CreateProductHooksConfig,
 } from "../products/hooks"
@@ -158,6 +173,17 @@ type MedusaProductListServerReadHooksConfig = Pick<
   | "defaultPageSize"
 >
 
+type MedusaProductReviewServerReadHooksConfig = Pick<
+  OmitFactoryConfig<
+    CreateProductReviewQueryOptionsFactoryConfig<
+      ReviewBase,
+      MedusaProductReviewListInput,
+      MedusaProductReviewListInput
+    >
+  >,
+  "buildListParams" | "defaultPageSize"
+>
+
 type MedusaRegionServerReadHooksConfig = Pick<
   OmitFactoryConfig<
     CreateRegionHooksConfig<
@@ -231,6 +257,7 @@ type MedusaStorefrontReadQueryKeys = {
     MedusaCollectionDetailInput
   >
   catalog: CatalogQueryKeys<MedusaCatalogListInput>
+  reviews: ProductReviewQueryKeys<MedusaProductReviewListInput>
 }
 
 type MedusaOrderReadService = OrderService<
@@ -245,6 +272,11 @@ type MedusaProductListReadService = ProductListService<
   HttpTypes.StoreCart,
   MedusaProductListListInput,
   MedusaProductListDetailInput
+>
+
+type MedusaProductReviewReadService = ProductReviewService<
+  ReviewBase,
+  MedusaProductReviewListInput
 >
 
 export type CreateMedusaStorefrontServerReadPresetConfig<
@@ -325,6 +357,12 @@ export type CreateMedusaStorefrontServerReadPresetConfig<
     hooks?: MedusaCatalogServerReadHooksConfig<TCatalogProduct, TCatalogFacets>
     queryKeys?: CatalogQueryKeys<MedusaCatalogListInput>
   }
+  reviews?: {
+    service?: MedusaProductReviewReadService
+    serviceConfig?: MedusaProductReviewServiceConfig<ReviewBase>
+    hooks?: MedusaProductReviewServerReadHooksConfig
+    queryKeys?: ProductReviewQueryKeys<MedusaProductReviewListInput>
+  }
 }
 
 type MedusaStorefrontReadServices<
@@ -365,6 +403,7 @@ type MedusaStorefrontReadServices<
       TCatalogFacets
     >
   >
+  reviews: MedusaProductReviewReadService
 }
 
 type MedusaStorefrontReadQueries<
@@ -408,6 +447,10 @@ type MedusaStorefrontReadQueries<
     TCatalogProduct,
     MedusaCatalogListInput,
     TCatalogFacets
+  >
+  reviews: ProductReviewQueryOptionsFactory<
+    ReviewBase,
+    MedusaProductReviewListInput
   >
 }
 
@@ -473,6 +516,7 @@ export function createMedusaStorefrontServerReadPreset<
     categories: config.categories?.queryKeys ?? defaultQueryKeys.categories,
     collections: config.collections?.queryKeys ?? defaultQueryKeys.collections,
     catalog: config.catalog?.queryKeys ?? defaultQueryKeys.catalog,
+    reviews: config.reviews?.queryKeys ?? defaultQueryKeys.reviews,
   }
 
   const services: MedusaStorefrontReadServices<
@@ -512,6 +556,9 @@ export function createMedusaStorefrontServerReadPreset<
       MedusaCatalogListInput,
       TCatalogFacets
     >(config.sdk, config.catalog?.serviceConfig),
+    reviews:
+      config.reviews?.service ??
+      createMedusaProductReviewService(config.sdk, config.reviews?.serviceConfig),
   }
 
   const queries: MedusaStorefrontReadQueries<
@@ -569,6 +616,13 @@ export function createMedusaStorefrontServerReadPreset<
       queryKeyNamespace: namespace,
       cacheConfig,
       ...(config.catalog?.hooks ?? {}),
+    }),
+    reviews: createProductReviewQueryOptionsFactory({
+      service: services.reviews,
+      queryKeys: queryKeys.reviews,
+      queryKeyNamespace: namespace,
+      cacheConfig,
+      ...(config.reviews?.hooks ?? {}),
     }),
   }
 

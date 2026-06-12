@@ -47,6 +47,11 @@ import type {
   MedusaRegionListInput,
 } from "../regions/medusa-service"
 import type {
+  MedusaProductReviewListInput,
+} from "../reviews/medusa-service"
+import { createProductReviewQueryKeys } from "../reviews/query-keys"
+import type { ProductReviewQueryKeys } from "../reviews/types"
+import type {
   MedusaCollectionDetailInput,
   MedusaCollectionListInput,
 } from "../collections/medusa-service"
@@ -72,6 +77,7 @@ export type MedusaStorefrontQueryKeys = {
     MedusaCollectionDetailInput
   >
   catalog: CatalogQueryKeys<MedusaCatalogListInput>
+  reviews: ProductReviewQueryKeys<MedusaProductReviewListInput>
 }
 
 export type MedusaStorefrontFoundationConfig = {
@@ -111,6 +117,9 @@ export function createMedusaStorefrontQueryKeys(
       MedusaCollectionDetailInput
     >(namespace),
     catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
+    reviews: createProductReviewQueryKeys<MedusaProductReviewListInput>(
+      namespace
+    ),
   }
 }
 

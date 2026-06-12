@@ -144,6 +144,20 @@ import type {
   ProductListService,
 } from "../product-lists/types"
 import {
+  type CreateProductReviewHooksConfig,
+  createProductReviewHooks,
+  type ProductReviewHooks,
+} from "../reviews/hooks"
+import type {
+  MedusaProductReviewListInput,
+  MedusaProductReviewServiceConfig,
+} from "../reviews/medusa-service"
+import type {
+  ProductReviewQueryKeys,
+  ProductReviewService,
+  ReviewBase,
+} from "../reviews/types"
+import {
   type CreateRegionHooksConfig,
   createRegionHooks,
   type RegionHooks,
@@ -261,6 +275,14 @@ type MedusaProductListHooksConfig = Omit<
   "cartQueryKeys" | "cartStorage" | "isActiveCartQueryKey"
 >
 
+type MedusaProductReviewHooksConfig = OmitFactoryConfig<
+  CreateProductReviewHooksConfig<
+    ReviewBase,
+    MedusaProductReviewListInput,
+    MedusaProductReviewListInput
+  >
+>
+
 type MedusaOrderHooksConfig = OmitFactoryConfig<
   CreateOrderHooksConfig<
     HttpTypes.StoreOrder,
@@ -283,6 +305,11 @@ type MedusaProductListService = ProductListService<
   HttpTypes.StoreCart,
   MedusaProductListListInput,
   MedusaProductListDetailInput
+>
+
+type MedusaProductReviewService = ProductReviewService<
+  ReviewBase,
+  MedusaProductReviewListInput
 >
 
 type MedusaCustomerAddressUpdateHookInput = MedusaCustomerAddressUpdateInput & {
@@ -445,6 +472,12 @@ type CreateMedusaStorefrontPresetConfigBase<
       MedusaProductListDetailKeyInput
     >
   }
+  reviews?: {
+    service?: MedusaProductReviewService
+    serviceConfig?: MedusaProductReviewServiceConfig<ReviewBase>
+    hooks?: MedusaProductReviewHooksConfig
+    queryKeys?: ProductReviewQueryKeys<MedusaProductReviewListInput>
+  }
   orders?: {
     service?: MedusaOrderService
     serviceConfig?: MedusaOrderServiceConfig
@@ -530,6 +563,7 @@ type MedusaStorefrontServices<
     >
   >
   productLists: MedusaProductListService
+  reviews: MedusaProductReviewService
   orders: MedusaOrderService
   customers: MedusaCustomerService
   regions: ReturnType<typeof createMedusaRegionService>
@@ -608,6 +642,11 @@ type MedusaStorefrontHooks<
     HttpTypes.StoreCart,
     MedusaProductListListHookInput,
     MedusaProductListDetailHookInput
+  >
+  reviews: ProductReviewHooks<
+    ReviewBase,
+    MedusaProductReviewListInput,
+    MedusaProductReviewListInput
   >
   orders: OrderHooks<
     HttpTypes.StoreOrder,
@@ -761,6 +800,7 @@ export function createMedusaStorefrontPreset<
     products: config.products?.queryKeys ?? defaultQueryKeys.products,
     productLists:
       config.productLists?.queryKeys ?? defaultQueryKeys.productLists,
+    reviews: config.reviews?.queryKeys ?? defaultQueryKeys.reviews,
     orders: config.orders?.queryKeys ?? defaultQueryKeys.orders,
     customers: config.customers?.queryKeys ?? defaultQueryKeys.customers,
     regions: config.regions?.queryKeys ?? defaultQueryKeys.regions,
@@ -790,6 +830,12 @@ export function createMedusaStorefrontPreset<
       serviceConfig: config.productLists?.serviceConfig,
       hooks: config.productLists?.hooks,
       queryKeys: queryKeys.productLists,
+    },
+    reviews: {
+      service: config.reviews?.service,
+      serviceConfig: config.reviews?.serviceConfig,
+      hooks: config.reviews?.hooks,
+      queryKeys: queryKeys.reviews,
     },
     orders: {
       service: config.orders?.service,
@@ -829,6 +875,7 @@ export function createMedusaStorefrontPreset<
     ),
     products: serverRead.services.products,
     productLists: serverRead.services.productLists,
+    reviews: serverRead.services.reviews,
     orders: serverRead.services.orders,
     customers:
       config.customers?.service ?? createMedusaCustomerService(config.sdk),
@@ -960,6 +1007,17 @@ export function createMedusaStorefrontPreset<
       cartQueryKeys: queryKeys.cart,
       cartStorage: cartHookOverrides?.cartStorage,
       isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+    }),
+    reviews: createProductReviewHooks<
+      ReviewBase,
+      MedusaProductReviewListInput,
+      MedusaProductReviewListInput
+    >({
+      ...(config.reviews?.hooks ?? {}),
+      service: services.reviews,
+      queryKeys: queryKeys.reviews,
+      queryKeyNamespace: namespace,
+      cacheConfig: resolvedCacheConfig,
     }),
     orders: createOrderHooks<
       HttpTypes.StoreOrder,
