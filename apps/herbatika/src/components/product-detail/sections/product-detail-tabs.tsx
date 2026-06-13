@@ -2,6 +2,7 @@
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion";
 import { Tabs } from "@techsio/ui-kit/molecules/tabs";
+import { Suspense } from "react";
 import { ProductDetailHtmlContent } from "@/components/product-detail/product-detail-html-content";
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types";
 import {
@@ -17,6 +18,18 @@ type ProductDetailTabsProps = {
   productId?: string | null;
   sections: ProductDetailContentSection[];
 };
+
+function ProductDetailReviewsSlot({
+  productId,
+}: {
+  productId?: string | null;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <ProductDetailReviews productId={productId} />
+    </Suspense>
+  );
+}
 
 export function ProductDetailTabs({
   activeSectionValue,
@@ -72,7 +85,7 @@ export function ProductDetailTabs({
               value={section.key}
             >
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                <ProductDetailReviews productId={productId} />
+                <ProductDetailReviewsSlot productId={productId} />
               ) : (
                 <ProductDetailHtmlContent
                   fallback="Obsah sekcie bude čoskoro doplnený."
@@ -104,7 +117,7 @@ export function ProductDetailTabs({
               </Accordion.Header>
               <Accordion.Content>
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                  <ProductDetailReviews productId={productId} />
+                  <ProductDetailReviewsSlot productId={productId} />
                 ) : (
                   <ProductDetailHtmlContent
                     fallback="Obsah sekcie bude čoskoro doplnený."

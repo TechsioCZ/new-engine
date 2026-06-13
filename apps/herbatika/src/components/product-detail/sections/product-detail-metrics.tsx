@@ -61,8 +61,12 @@ export function ProductDetailMetrics({
     <ReviewsSection
       linkHref={`#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`}
       onLinkClick={(event) => {
+        if (!onShowAllReviews) {
+          return;
+        }
+
         event.preventDefault();
-        onShowAllReviews?.();
+        onShowAllReviews();
       }}
       ratingValue={reviewsQuery.summary.average_rating}
       reviews={reviews}

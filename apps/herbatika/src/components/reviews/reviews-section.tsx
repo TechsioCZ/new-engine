@@ -159,7 +159,6 @@ export function ReviewsSection({
           </div>
           {isHomepage ? null : (
             <FractionalRating
-              className="pointer-events-none"
               label={`Priemerné hodnotenie produktu ${ratingAriaLabel} z 5`}
               value={ratingValue}
             />

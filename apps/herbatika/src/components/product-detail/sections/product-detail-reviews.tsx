@@ -7,7 +7,8 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text";
 import { Pagination } from "@techsio/ui-kit/molecules/pagination";
 import NextLink from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { createParser, createSerializer, useQueryState } from "nuqs";
+import { useCallback, useEffect } from "react";
 import {
   formatReviewCount,
   formatReviewScore,
@@ -31,10 +32,17 @@ const REVIEW_PAGE_PARAM = "reviews_page";
 const resolveReviewInitial = (author: string) =>
   author.trim().charAt(0).toUpperCase() || "A";
 
-const resolveReviewsPage = (value: string | null) => {
-  const page = Number(value);
-  return Number.isInteger(page) && page > 0 ? page : 1;
-};
+const reviewPageParser = createParser({
+  parse: (value) => {
+    const page = Number(value);
+    return Number.isInteger(page) && page > 0 ? page : null;
+  },
+  serialize: String,
+}).withDefault(1);
+
+const serializeReviewPage = createSerializer({
+  [REVIEW_PAGE_PARAM]: reviewPageParser,
+});
 
 function ProductDetailReviewsSkeleton() {
   return (
@@ -89,7 +97,6 @@ function ProductDetailReviewsHeader({
             </span>
           </h2>
           <FractionalRating
-            className="pointer-events-none"
             label={`Priemerné hodnotenie produktu ${formatReviewScore(averageRating)} z 5`}
             value={averageRating}
           />
@@ -149,20 +156,17 @@ function ProductReviewListItem({ review }: { review: ReviewItem }) {
 export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentPage = resolveReviewsPage(searchParams.get(REVIEW_PAGE_PARAM));
+  const [currentPage, setCurrentPage] = useQueryState(
+    REVIEW_PAGE_PARAM,
+    reviewPageParser,
+  );
   const getReviewPageUrl = useCallback(
     ({ page }: { page: number }) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (page <= 1) {
-        params.delete(REVIEW_PAGE_PARAM);
-      } else {
-        params.set(REVIEW_PAGE_PARAM, String(page));
-      }
-
-      const query = params.toString();
-      const href = query ? `${pathname}?${query}` : pathname;
-
+      const query = searchParams.toString();
+      const baseHref = query ? `${pathname}?${query}` : pathname;
+      const href = serializeReviewPage(baseHref, {
+        reviews_page: page <= 1 ? null : page,
+      });
       return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`;
     },
     [pathname, searchParams],
@@ -180,7 +184,19 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const reviewItems = reviews.map(toReviewItem);
   const isInitialLoading = reviewsQuery.isLoading && reviews.length === 0;
   const isEmpty = reviewsQuery.isSuccess && totalCount === 0;
+  const isPageOutOfRange =
+    reviewsQuery.isSuccess &&
+    reviewsQuery.totalPages > 0 &&
+    currentPage > reviewsQuery.totalPages;
   const shouldShowPagination = reviewsQuery.totalPages > 1;
+
+  useEffect(() => {
+    if (!isPageOutOfRange) {
+      return;
+    }
+
+    void setCurrentPage(reviewsQuery.totalPages, { history: "replace" });
+  }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage]);
 
   if (!productId) {
     return (
@@ -191,6 +207,10 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   }
 
   if (isInitialLoading) {
+    return <ProductDetailReviewsSkeleton />;
+  }
+
+  if (isPageOutOfRange) {
     return <ProductDetailReviewsSkeleton />;
   }
 

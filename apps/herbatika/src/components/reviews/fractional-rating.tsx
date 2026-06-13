@@ -2,7 +2,6 @@ import { Icon } from "@techsio/ui-kit/atoms/icon";
 import type { CSSProperties } from "react";
 
 type FractionalRatingProps = {
-  className?: string;
   label?: string;
   value: number;
 };
@@ -12,11 +11,7 @@ const STAR_COUNT = 5;
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
-const joinClassNames = (...classNames: Array<string | undefined>) =>
-  classNames.filter(Boolean).join(" ");
-
 export function FractionalRating({
-  className,
   label,
   value,
 }: FractionalRatingProps) {
@@ -27,10 +22,7 @@ export function FractionalRating({
   return (
     <span
       aria-label={label ?? `${normalizedValue.toFixed(1)} z ${STAR_COUNT}`}
-      className={joinClassNames(
-        "inline-flex items-center relative gap-rating-lg text-rating-lg",
-        className,
-      )}
+      className="inline-flex items-center relative gap-rating-lg text-rating-lg pointer-events-none"
       role="img"
     >
       {Array.from({ length: STAR_COUNT }, (_, index) => {
