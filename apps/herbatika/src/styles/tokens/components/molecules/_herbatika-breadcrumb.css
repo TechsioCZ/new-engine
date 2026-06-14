@@ -1,16 +1,15 @@
 @theme static {
   --color-breadcrumb-bg: var(--color-base);
-  --color-breadcrumb-item-fg: var(--color-fg-accent);
-  --color-breadcrumb-link-fg: var(--color-fg-accent);
-  --color-breadcrumb-list-fg: var(--color-fg-accent);
-  --color-breadcrumb-separator-fg: var(--color-fg-accent);
-  --color-breadcrumb-current-link-fg: var(--color-fg-accent);
+  --color-breadcrumb-item: var(--color-fg-accent);
+  --color-breadcrumb-item-current: var(--color-fg-accent);
+  --color-breadcrumb-item-hover: var(--color-fg-accent);
+  --color-breadcrumb-separator: var(--color-fg-accent);
 
   --text-breadcrumb-icon-md: var(--text-icon-sm);
   --text-breadcrumb-md: var(--text-xs);
   --text-breadcrumb-separator-icon-md: var(--text-icon-sm);
 
-  --gap-breadcrumb-link-md: var(--spacing-200);
-  --gap-breadcrumb-list-md: var(--spacing-200);
-  --gap-breadcrumb-separator-md: var(--spacing-250);
+  --spacing-breadcrumb-link-md: var(--spacing-200);
+  --spacing-breadcrumb-md: var(--spacing-200);
+  --spacing-breadcrumb-separator-md: var(--spacing-250);
 }
