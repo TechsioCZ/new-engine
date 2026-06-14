@@ -1,0 +1,73 @@
+const REVIEW_TITLE_MAX_LENGTH = 200;
+const GENERIC_REVIEW_SUBMIT_ERROR =
+  "Recenziu sa nepodarilo odoslať. Skúste to prosím znova.";
+
+const hasErrorShape = (
+  error: unknown,
+): error is { message?: unknown; status?: unknown; statusText?: unknown } =>
+  Boolean(error && typeof error === "object");
+
+export const buildProductReviewTitle = (content: string) =>
+  content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH);
+
+export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
+  const message =
+    typeof error === "string"
+      ? error
+      : hasErrorShape(error) && typeof error.message === "string"
+        ? error.message
+        : "";
+  const status =
+    hasErrorShape(error) && typeof error.status === "number"
+      ? error.status
+      : undefined;
+  const normalizedMessage = message.toLowerCase();
+
+  if (!message && status === undefined) {
+    return GENERIC_REVIEW_SUBMIT_ERROR;
+  }
+
+  if (normalizedMessage.includes("token has already been used")) {
+    return "Tento odkaz na hodnotenie už bol použitý.";
+  }
+
+  if (normalizedMessage.includes("token has expired")) {
+    return "Tento odkaz na hodnotenie už expiroval.";
+  }
+
+  if (normalizedMessage.includes("token does not match")) {
+    return "Tento odkaz nepatrí k vybranému produktu.";
+  }
+
+  if (normalizedMessage.includes("token was not found")) {
+    return "Tento odkaz na hodnotenie nie je platný.";
+  }
+
+  if (
+    status === 409 ||
+    normalizedMessage.includes("already") ||
+    normalizedMessage.includes("duplicate") ||
+    normalizedMessage.includes("exist") ||
+    normalizedMessage.includes("reviewed")
+  ) {
+    return "Tento produkt ste už hodnotili.";
+  }
+
+  if (status === 401) {
+    return "Pre odoslanie recenzie sa prosím prihláste.";
+  }
+
+  if (status === 403) {
+    return "Recenziu pre tento produkt momentálne nemôžete odoslať.";
+  }
+
+  if (status === 400 || status === 422) {
+    return message || "Skontrolujte prosím hodnotenie a text recenzie.";
+  }
+
+  if (status && status >= 500) {
+    return GENERIC_REVIEW_SUBMIT_ERROR;
+  }
+
+  return message || GENERIC_REVIEW_SUBMIT_ERROR;
+};
