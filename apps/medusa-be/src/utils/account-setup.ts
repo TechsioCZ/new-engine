@@ -52,6 +52,11 @@ export type AccountSetupResult = {
   skipped_reason?: "account_exists" | "missing_email" | "not_requested"
 }
 
+type EmailPassProviderIdentity = {
+  auth_identity_id?: string
+  id: string
+}
+
 export const ACCOUNT_SETUP_ORDER_FIELDS = [
   "id",
   "display_id",
@@ -135,6 +140,115 @@ function getCustomerCreateData(order: AccountSetupOrder, email: string) {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null
+}
+
+function isOptionalNullableString(value: unknown) {
+  return value === undefined || value === null || typeof value === "string"
+}
+
+function isOptionalNullableBoolean(value: unknown) {
+  return value === undefined || value === null || typeof value === "boolean"
+}
+
+function isOptionalNullableAddress(value: unknown) {
+  if (value === undefined || value === null) {
+    return true
+  }
+
+  return (
+    isRecord(value) &&
+    isOptionalNullableString(value.first_name) &&
+    isOptionalNullableString(value.last_name)
+  )
+}
+
+function isOptionalNullableOrderCustomer(value: unknown) {
+  if (value === undefined || value === null) {
+    return true
+  }
+
+  return (
+    isRecord(value) &&
+    isOptionalNullableString(value.id) &&
+    isOptionalNullableString(value.email) &&
+    isOptionalNullableString(value.first_name) &&
+    isOptionalNullableString(value.last_name) &&
+    isOptionalNullableBoolean(value.has_account)
+  )
+}
+
+export function isAccountSetupOrder(
+  value: unknown
+): value is AccountSetupOrder {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    (value.display_id === undefined ||
+      value.display_id === null ||
+      typeof value.display_id === "number") &&
+    isOptionalNullableString(value.email) &&
+    isOptionalNullableString(value.customer_id) &&
+    (value.metadata === undefined ||
+      value.metadata === null ||
+      isRecord(value.metadata)) &&
+    isOptionalNullableAddress(value.billing_address) &&
+    isOptionalNullableAddress(value.shipping_address) &&
+    isOptionalNullableOrderCustomer(value.customer)
+  )
+}
+
+export function assertAccountSetupOrder(
+  value: unknown,
+  source: string
+): asserts value is AccountSetupOrder {
+  if (!isAccountSetupOrder(value)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Invalid account setup order returned from ${source}`
+    )
+  }
+}
+
+export function isAccountSetupCustomer(
+  value: unknown
+): value is AccountSetupCustomer {
+  if (!isRecord(value) || typeof value.id !== "string") {
+    return false
+  }
+
+  return (
+    isOptionalNullableString(value.email) &&
+    isOptionalNullableString(value.first_name) &&
+    isOptionalNullableString(value.last_name) &&
+    isOptionalNullableBoolean(value.has_account)
+  )
+}
+
+export function assertAccountSetupCustomer(
+  value: unknown,
+  source: string
+): asserts value is AccountSetupCustomer {
+  if (!isAccountSetupCustomer(value)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Invalid account setup customer returned from ${source}`
+    )
+  }
+}
+
+function isEmailPassProviderIdentity(
+  value: unknown
+): value is EmailPassProviderIdentity {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    (value.auth_identity_id === undefined ||
+      typeof value.auth_identity_id === "string")
+  )
+}
+
 function generateTemporaryPassword() {
   return crypto.randomBytes(32).toString("base64url")
 }
@@ -149,27 +263,48 @@ export async function getCustomerForAccountSetup({
   order: AccountSetupOrder
 }): Promise<AccountSetupCustomer> {
   if (order.customer?.id) {
-    return order.customer as AccountSetupCustomer
+    const orderCustomer: unknown = order.customer
+    assertAccountSetupCustomer(orderCustomer, "order.customer")
+    return orderCustomer
   }
 
-  const [existingCustomer] = await customerModuleService.listCustomers(
+  const listedCustomers: unknown = await customerModuleService.listCustomers(
     { email },
     { take: 1 }
   )
 
-  if (existingCustomer) {
-    return existingCustomer as AccountSetupCustomer
+  if (!Array.isArray(listedCustomers)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid customer list response for account setup"
+    )
   }
 
-  return (await customerModuleService.createCustomers(
+  const [existingCustomer] = listedCustomers
+
+  if (existingCustomer) {
+    assertAccountSetupCustomer(
+      existingCustomer,
+      "customerModuleService.listCustomers"
+    )
+    return existingCustomer
+  }
+
+  const createdCustomer: unknown = await customerModuleService.createCustomers(
     getCustomerCreateData(order, email)
-  )) as AccountSetupCustomer
+  )
+  assertAccountSetupCustomer(
+    createdCustomer,
+    "customerModuleService.createCustomers"
+  )
+
+  return createdCustomer
 }
 
 async function getExistingEmailPassIdentity(
   query: Query,
   email: string
-): Promise<{ auth_identity_id?: string; id: string } | undefined> {
+): Promise<EmailPassProviderIdentity | undefined> {
   const {
     data: [providerIdentity],
   } = await query.graph({
@@ -181,9 +316,20 @@ async function getExistingEmailPassIdentity(
     },
   })
 
-  return providerIdentity as
-    | { auth_identity_id?: string; id: string }
-    | undefined
+  const providerIdentityResult: unknown = providerIdentity
+
+  if (!providerIdentityResult) {
+    return
+  }
+
+  if (!isEmailPassProviderIdentity(providerIdentityResult)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid emailpass provider identity returned from query.graph"
+    )
+  }
+
+  return providerIdentityResult
 }
 
 export async function ensureEmailPassAuthIdentity({
