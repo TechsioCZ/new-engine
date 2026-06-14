@@ -14,7 +14,7 @@
   --font-weight-accordion-title: var(--font-weight-header-nav);
   --text-accordion-title-md: var(--text-md);
   --padding-accordion-content-md: 0;
-  --padding-accordion-icon: var(--spacing-350);
+  --padding-accordion-icon-right: var(--spacing-350);
 }
 
 :where([data-herbatika-mobile-menu-accordion])

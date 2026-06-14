@@ -1,5 +1,5 @@
 @theme static {
-  --gap-select-root: var(--spacing-100);
+  --spacing-select: var(--spacing-100);
   --radius-select: var(--radius-xs);
   --radius-select-lg: var(--radius-xs);
   --radius-select-md: var(--radius-xs);
@@ -15,6 +15,6 @@
   --color-select-item-bg-selected: oklch(
     from var(--color-highlight) calc(l - 0.03) c h
   );
-  --color-select-item-selected-fg: var(--color-primary);
+  --color-select-item-fg-selected: var(--color-primary);
   --color-select-indicator: var(--color-primary);
 }

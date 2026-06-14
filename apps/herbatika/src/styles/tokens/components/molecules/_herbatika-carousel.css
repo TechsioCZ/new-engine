@@ -1,7 +1,7 @@
 @theme static {
-  --color-carousel-trigger-bg: white;
+  --color-carousel-trigger-bg-base: white;
   --color-carousel-trigger-bg-hover: var(--color-surface);
-  --color-carousel-trigger-fg: var(--color-primary);
+  --color-carousel-trigger-fg-base: var(--color-primary);
   --color-carousel-trigger-fg-hover: var(--color-primary);
   --color-carousel-trigger-fg-active: white;
   --color-carousel-control-bg: color-mix(
@@ -9,22 +9,22 @@
     var(--color-surface) 88%,
     transparent
   );
-  --color-carousel-indicator-bg: color-mix(
+  --color-carousel-indicator-bg-base: color-mix(
     in srgb,
     var(--color-border-primary) 100%,
     transparent
   );
   --color-carousel-indicator-bg-active: var(--color-primary);
-  --color-carousel-indicator-border: transparent;
+  --color-carousel-indicator-border-base: transparent;
   --color-carousel-indicator-border-active: transparent;
 
   --padding-carousel-control: var(--spacing-200);
-  --gap-carousel-control: var(--spacing-150);
+  --spacing-carousel-control: var(--spacing-150);
   --padding-carousel-trigger: 0 0;
-  --gap-carousel-indicator: var(--spacing-150);
+  --spacing-carousel-indicator: var(--spacing-150);
   --width-carousel-indicator: var(--spacing-200);
 
-  --text-carousel-trigger-size: var(--text-2xl);
+  --text-carousel-trigger: var(--text-2xl);
   --radius-carousel: var(--radius-md);
   --radius-carousel-indicator: 999px;
   --shadow-carousel-trigger: 0 2px 6px 0 rgba(0, 0, 0, 0.25);

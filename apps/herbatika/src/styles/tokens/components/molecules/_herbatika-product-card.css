@@ -1,11 +1,12 @@
 @theme static {
-  --color-product-card-button-cart-bg: var(--color-primary);
+  --color-product-card-button-cart-bg-base: var(--color-primary);
   --color-product-card-button-cart-bg-hover: var(--color-primary-hover);
   --color-product-card-button-cart-fg: var(--color-fg-reverse);
 
   --spacing-product-card-padding: var(--spacing-500);
   --spacing-product-card-col-layout: var(--spacing-450);
-  --spacing-product-card-box: var(--spacing-100);
+  --spacing-product-card-actions: var(--spacing-100);
+  --spacing-product-card-badges: var(--spacing-100);
 
   --text-product-card-name-size: var(--text-lg);
   --text-product-card-price-size: var(--text-xl);

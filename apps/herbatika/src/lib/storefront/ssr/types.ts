@@ -1,43 +1,44 @@
-import type { FindParams, HttpTypes } from "@medusajs/types"
-import type { buildCatalogProductsParams } from "../catalog-query-state"
+import type { FindParams, HttpTypes } from "@medusajs/types";
+import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service";
+import type { buildCatalogProductsParams } from "../catalog-query-state";
 
 export type RegionListParams = HttpTypes.StoreRegionFilters & {
-  fields?: string
-  limit?: number
-  offset?: number
-}
+  fields?: string;
+  limit?: number;
+  offset?: number;
+};
 
-export type CategoryListParams = FindParams &
-  HttpTypes.StoreProductCategoryListParams
-export type ProductListParams = HttpTypes.StoreProductListParams
-export type CatalogListParams = ReturnType<typeof buildCatalogProductsParams>
+export type CategoryListParams = FindParams & HttpTypes.StoreProductCategoryListParams;
+export type ProductListParams = HttpTypes.StoreProductListParams;
+export type CatalogListParams = ReturnType<typeof buildCatalogProductsParams>;
+export type ProductReviewListParams = MedusaProductReviewListInput;
 
 export type ProductDetailParams = {
-  handle: string
-  region_id?: string
-  country_code?: string
-  province?: string
-  cart_id?: string
-  locale?: string
-  fields?: string
-}
+  handle: string;
+  region_id?: string;
+  country_code?: string;
+  province?: string;
+  cart_id?: string;
+  locale?: string;
+  fields?: string;
+};
 
-type QueryParamPrimitive = string | number | boolean
+type QueryParamPrimitive = string | number | boolean;
 export type QueryParamValue =
   | QueryParamPrimitive
   | null
   | undefined
   | QueryParamPrimitive[]
   | null[]
-  | undefined[]
+  | undefined[];
 
-export type QueryInput = Record<string, QueryParamValue>
+export type QueryInput = Record<string, QueryParamValue>;
 
 export type CatalogStoreResponse = {
-  products?: HttpTypes.StoreProduct[]
-  count?: number
-  page?: number
-  limit?: number
-  totalPages?: number
-  facets?: unknown
-}
+  products?: HttpTypes.StoreProduct[];
+  count?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  facets?: unknown;
+};

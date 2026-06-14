@@ -4,7 +4,7 @@
   --color-steps-indicator-border: transparent;
   --color-steps-indicator-border-hover: transparent;
   --color-steps-progress-bg: var(--color-red-600);
-  --spacing-steps-indicator-sm: var(--spacing-700);
+  --size-steps-indicator-sm: var(--spacing-700);
 
   --color-steps-chevron: oklch(0.7668 0 0);
 }
