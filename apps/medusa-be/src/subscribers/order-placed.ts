@@ -1,4 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+import type { Logger } from "@medusajs/framework/types"
+import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
 import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
 
 type OrderPlacedEvent = {
@@ -15,6 +17,21 @@ export default async function orderPlacedHandler({
       store_name: process.env.STORE_NAME,
     },
   })
+
+  try {
+    await sendAccountSetupWorkflow(container).run({
+      input: {
+        order_id: data.id,
+      },
+    })
+  } catch (error) {
+    const logger = container.resolve<Logger>("logger")
+    logger.error(
+      `Failed to process account setup for order ${data.id}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    )
+  }
 }
 
 export const config: SubscriberConfig = {
