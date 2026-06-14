@@ -90,12 +90,6 @@ function ReviewCard({
       </header>
 
       <div className="flex flex-1 flex-col gap-250">
-        {review.title ? (
-          <p className="flex items-center gap-150 text-md leading-relaxed text-fg-secondary">
-            <Icon className="text-primary" icon="token-icon-plus" size="md" />
-            <span className="truncate">{review.title}</span>
-          </p>
-        ) : null}
 
         <p className="line-clamp-3 text-md leading-relaxed text-fg-secondary">
           {review.message}
