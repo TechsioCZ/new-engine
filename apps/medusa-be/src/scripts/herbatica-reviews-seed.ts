@@ -2,6 +2,7 @@ import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
+import { HERBATICA_REVIEWS_XML_ENV } from "./herbatica-seed-config"
 import {
   extractElements,
   extractFirstElementContent,
@@ -10,10 +11,10 @@ import {
   normalizeText,
   readXmlSource,
 } from "./herbatica-xml-utils"
-import { HERBATICA_REVIEWS_XML_ENV } from "./herbatica-seed-config"
 
 const REVIEW_SOURCE_PREFIX = "herbatica-review"
 const REVIEW_BATCH_SIZE = 100
+const VARIANT_ID_QUERY_REGEX = /[?&]variantId=([^&#]+)/
 
 type ParsedReviewProduct = {
   gtins: string[]
@@ -49,7 +50,9 @@ type ReviewRecord = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
-const isProductVariantRecord = (value: unknown): value is ProductVariantRecord =>
+const isProductVariantRecord = (
+  value: unknown
+): value is ProductVariantRecord =>
   isRecord(value) && typeof value.id === "string"
 
 const isReviewRecord = (value: unknown): value is ReviewRecord =>
@@ -83,7 +86,7 @@ const getUrlVariantId = (url?: string) => {
     const parsedUrl = new URL(url)
     return normalizeInlineText(parsedUrl.searchParams.get("variantId") ?? "")
   } catch {
-    return normalizeInlineText(url.match(/[?&]variantId=([^&#]+)/)?.[1])
+    return normalizeInlineText(url.match(VARIANT_ID_QUERY_REGEX)?.[1])
   }
 }
 
@@ -94,7 +97,9 @@ const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
   }
 
   return extractElements(productsSource, "product").map((product) => {
-    const url = normalizeInlineText(extractFirstText(product.inner, "product_url"))
+    const url = normalizeInlineText(
+      extractFirstText(product.inner, "product_url")
+    )
 
     return {
       gtins: extractElements(product.inner, "gtin")
@@ -126,7 +131,10 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
       products: parseReviewProducts(review.inner),
       rating,
       reviewerName: normalizeInlineText(
-        extractFirstText(extractFirstElementContent(review.inner, "reviewer") ?? "", "name")
+        extractFirstText(
+          extractFirstElementContent(review.inner, "reviewer") ?? "",
+          "name"
+        )
       ),
       timestamp: normalizeInlineText(
         extractFirstText(review.inner, "review_timestamp")
@@ -177,10 +185,18 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
     const productId = variant.product?.id
     addMapValue(bySku, variant.sku, productId)
     addMapValue(bySku, getMetadataString(variant.metadata, "code"), productId)
-    addMapValue(bySku, getMetadataString(variant.metadata, "source_sku"), productId)
+    addMapValue(
+      bySku,
+      getMetadataString(variant.metadata, "source_sku"),
+      productId
+    )
     addMapValue(byGtin, variant.ean, productId)
     addMapValue(byGtin, getMetadataString(variant.metadata, "ean"), productId)
-    addMapValue(byVariantId, getMetadataString(variant.metadata, "variant_id"), productId)
+    addMapValue(
+      byVariantId,
+      getMetadataString(variant.metadata, "variant_id"),
+      productId
+    )
     addMapValue(
       byVariantId,
       getMetadataString(variant.metadata, "source_variant_id"),
@@ -275,20 +291,24 @@ export const importHerbaticaReviews = async ({
   const reviewService = container.resolve<ProductReviewModuleService>(
     PRODUCT_REVIEW_MODULE
   )
-  const existingReviews = (await reviewService.listReviews(
-    {
-      customer_id: {
-        $like: `${REVIEW_SOURCE_PREFIX}:%`,
+  const existingReviews = (
+    await reviewService.listReviews(
+      {
+        customer_id: {
+          $like: `${REVIEW_SOURCE_PREFIX}:%`,
+        },
       },
-    },
-    {
-      select: ["id", "customer_id", "product_id"],
-    }
-  )).filter(isReviewRecord)
+      {
+        select: ["id", "customer_id", "product_id"],
+      }
+    )
+  ).filter(isReviewRecord)
   const existingKeys = new Set(
-    existingReviews.map((review) => `${review.customer_id}:${review.product_id}`)
+    existingReviews.map(
+      (review) => `${review.customer_id}:${review.product_id}`
+    )
   )
-  const pendingReviews: Array<Record<string, unknown>> = []
+  const pendingReviews: Record<string, unknown>[] = []
   let matchedReviews = 0
   let skippedExisting = 0
   let unmatchedReviews = 0

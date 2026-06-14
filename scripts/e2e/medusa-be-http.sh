@@ -9,7 +9,7 @@ PROJECT_NAME="${MEDUSA_E2E_PROJECT_NAME:-new-engine-e2e}"
 WAIT_TIMEOUT_SECONDS="${MEDUSA_E2E_WAIT_TIMEOUT_SECONDS:-300}"
 KEEP_STACK="${MEDUSA_E2E_KEEP_STACK:-0}"
 TEST_TARGET="${MEDUSA_E2E_TEST_TARGET:-}"
-TEST_TYPE_VALUE="${MEDUSA_E2E_TEST_TYPE:-integration:http}"
+TEST_TYPE_VALUE="${MEDUSA_E2E_TEST_TYPE:-e2e:http}"
 DOWN_VOLUMES="${MEDUSA_E2E_DOWN_VOLUMES:-1}"
 COMPOSE_BUILD="${MEDUSA_E2E_COMPOSE_BUILD:-1}"
 
@@ -103,11 +103,15 @@ wait_for_backend() {
 run_tests() {
   local app_dir
   local -a vitest_args
+  local -a test_targets
+  local normalized_test_targets
   app_dir="${ROOT_DIR}/apps/medusa-be"
   vitest_args=(run --config vitest.config.ts --no-file-parallelism)
 
   if [[ -n "$TEST_TARGET" ]]; then
-    vitest_args+=("$TEST_TARGET")
+    normalized_test_targets="${TEST_TARGET//$'\n'/ }"
+    read -r -a test_targets <<<"$normalized_test_targets"
+    vitest_args+=("${test_targets[@]}")
   fi
 
   echo "Running Medusa BE e2e tests: ${TEST_TARGET:-all HTTP specs}"
@@ -159,7 +163,7 @@ Environment:
   MEDUSA_E2E_COMPOSE_OVERRIDE_FILE Optional docker compose override file
   MEDUSA_E2E_COMPOSE_BUILD    Set to 0 to skip docker compose --build on up (default: 1)
   MEDUSA_E2E_DOWN_VOLUMES     Set to 0 to keep volumes on down (default: 1)
-  MEDUSA_E2E_TEST_TARGET      Optional Vitest target or file filter (default: all HTTP specs from vitest.config.ts)
+  MEDUSA_E2E_TEST_TARGET      Optional space-separated Vitest targets or file filters (default: all Docker-backed HTTP e2e specs from vitest.config.ts)
 USAGE
 }
 

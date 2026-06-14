@@ -1,8 +1,23 @@
 import { drizzle } from "drizzle-orm/neon-http"
 import type { SQL } from "drizzle-orm/sql/sql"
 
-// Import the schema from our local file
-import * as schema from "./schema"
+import {
+  categories,
+  collections,
+  products,
+  subcategories,
+  subcollections,
+  users,
+} from "./schema"
+
+const schema = {
+  categories,
+  collections,
+  products,
+  subcategories,
+  subcollections,
+  users,
+}
 
 // Create a simplified drizzle client
 /*export const db = drizzle(

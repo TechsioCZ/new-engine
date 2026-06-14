@@ -1,18 +1,18 @@
 import type {
-  IApiKeyModuleService,
-  ILockingModule,
-} from "@medusajs/framework/types"
-import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import type {
+  IApiKeyModuleService,
+  ILockingModule,
+} from "@medusajs/framework/types"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import {
   getActivePublishableKey,
+  type PublishableKeyResult,
   provisionPublishableKey,
   resolvePublishableKeyTitle,
-  type PublishableKeyResult,
 } from "../../../../utils/publishable-key"
 
 export const AdminPublishableKeyBodySchema = z.object({

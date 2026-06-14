@@ -154,6 +154,32 @@ The merger is idempotent. Re-running it without a Figma change is a no-op.
 
 The optional housekeeping step (6) is the "strip" pattern: if a per-component CSS file declares a token that the latest Figma export also exports, the per-component declaration is dead (Figma wins the cascade) and should be deleted. Verify with Storybook byte-comparison per component before deleting.
 
+## Token value rules (8-point grid, locked 2026-06-12)
+
+All dimension values in Figma (spacing, padding, gap, size, height, width,
+radius) follow a clean even-number grid so the system stays easy to reason
+about and compute with:
+
+| Rule | Values |
+|---|---|
+| Preferred (8-pt steps) | `2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72…` (+ 4-pt half-steps `12, 20`) |
+| Allowed fallback | any even number (`6, 10, 14, 18, 22, 28, 34…`) |
+| Forbidden | odd numbers and decimals — round to nearest even (15 → 16, 25 → 24, 35 → 36, 45 → 44) |
+| Exceptions | border widths (1/2/3px valid), `radius/full` (9999), containers (320–672), typography, durations, opacities |
+
+**Consistency rule:** components in one family share input tokens. The form
+family (input, select, combobox, numeric-input, textarea, search-form,
+phone-input) inherits `border-width 2`, `radius sm/md/lg = 4/8/12`, heights
+`32/44/72` from the shared `form-control` collection — never fork these
+per component.
+
+**Primitive names are pixel-true** (`dimension/16` = 16px). To change a
+value, re-alias consumers to the correct primitive and delete the wrong
+one; never make a primitive's value disagree with its name.
+
+The same rules are enforced for new components by
+`.agents/skills/component-to-figma/SKILL.md` (rule 11).
+
 ## File reference
 
 | Layer | Path |

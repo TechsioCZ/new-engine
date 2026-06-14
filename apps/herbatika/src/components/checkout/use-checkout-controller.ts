@@ -1,89 +1,90 @@
-"use client";
+"use client"
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@/lib/storefront/auth";
+import { useQueryClient } from "@tanstack/react-query"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  type CheckoutDetailsValues,
+  resolveEffectiveCheckoutAddressDetails,
+} from "@/lib/forms/checkout/address.form"
+import { useAuth } from "@/lib/storefront/auth"
 import {
   useCart,
   useUpdateCart,
   useUpdateCartAddress,
-} from "@/lib/storefront/cart";
-import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter";
+} from "@/lib/storefront/cart"
+import { buildHerbatikaCheckoutAddressInput } from "@/lib/storefront/cart/address-adapter"
 import {
+  resolveCartItemsSubtotalAmount,
   resolveCartItemsTotalAmount,
-  resolveCartTaxAmount,
-  resolveCartShippingSubtotalAmount,
   resolveCartShippingTotalAmount,
+  resolveCartTaxAmount,
   resolveCartTotalAmount,
   resolveCartTotalWithoutTaxAmount,
-  resolveCartItemsSubtotalAmount,
-} from "@/lib/storefront/cart-calculations";
+} from "@/lib/storefront/cart-calculations"
+import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import {
   fetchPaymentProviders,
   resolveSelectedPaymentProviderId,
-} from "@/lib/storefront/checkout";
-import {
-  type CheckoutDetailsValues,
-  resolveEffectiveCheckoutAddressDetails,
-} from "@/lib/forms/checkout/address.form";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
-import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency";
+} from "@/lib/storefront/checkout"
+import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   REGION_LIST_FIELDS,
   REGION_LIST_LIMIT,
-} from "@/lib/storefront/region-query-config";
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
-import { useRegions } from "@/lib/storefront/regions";
-import { storefront } from "@/lib/storefront/storefront";
+} from "@/lib/storefront/region-query-config"
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { useRegions } from "@/lib/storefront/regions"
+import { storefront } from "@/lib/storefront/storefront"
 import {
   isCheckoutCountryAvailableForRegion,
   resolveCheckoutCountryItemsForRegion,
-} from "./checkout.constants";
-import { resolveHasStoredAddress } from "./checkout-address.utils";
+} from "./checkout.constants"
+import { resolveHasStoredAddress } from "./checkout-address.utils"
 import {
   clearStoredPaymentProviderSelection,
   readStoredPaymentProviderSelection,
   writeStoredPaymentProviderSelection,
-} from "./checkout-payment-selection-storage";
-import { useCheckoutActions } from "./use-checkout-actions";
-import { useCheckoutDetailsForm } from "./use-checkout-details-form";
+} from "./checkout-payment-selection-storage"
+import { useCheckoutActions } from "./use-checkout-actions"
+import { useCheckoutDetailsForm } from "./use-checkout-details-form"
 
 export function useCheckoutController() {
-  const queryClient = useQueryClient();
-  const region = useRegionContext();
-  const regionCurrencyCode = resolveRegionCurrency(region);
-  const authQuery = useAuth();
-  const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true);
-  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
-  const [marketingConsent, setMarketingConsent] = useState(false);
-  const [heurekaConsent, setHeurekaConsent] = useState(false);
+  const queryClient = useQueryClient()
+  const region = useRegionContext()
+  const regionCurrencyCode = resolveRegionCurrency(region)
+  const authQuery = useAuth()
+  const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true)
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
+  const [marketingConsent, setMarketingConsent] = useState(false)
+  const [heurekaConsent, setHeurekaConsent] = useState(false)
   const [selectedPaymentProviderState, setSelectedPaymentProviderState] =
     useState<{ cartId?: string | null; providerId: string | null }>({
       cartId: null,
       providerId: null,
-    });
-  const saveAddressSucceededRef = useRef(false);
+    })
+  const saveAddressSucceededRef = useRef(false)
 
   const cartQuery = useCart({
     autoCreate: allowCartAutoCreate && !completedOrderId,
     region_id: region?.region_id,
     country_code: region?.country_code,
     enabled: Boolean(region?.region_id),
-  });
-  const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id;
+  })
+  const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id
   const regionsQuery = useRegions({
     fields: REGION_LIST_FIELDS,
     limit: REGION_LIST_LIMIT,
-  });
+  })
 
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const updateCartAddressMutation = useUpdateCartAddress();
-  const updateCartMutation = useUpdateCart();
-  const completeCheckoutMutation = storefront.flows.cart.useCompleteCart();
-  const isUpdatingCartAddress = updateCartAddressMutation.isPending;
-  const isBackfillingCartCountry = updateCartMutation.isPending;
-  const mutateCart = updateCartMutation.mutate;
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const updateCartAddressMutation = useUpdateCartAddress()
+  const updateCartMutation = useUpdateCart()
+  const completeCheckoutMutation = storefront.flows.cart.useCompleteCart()
+  const isUpdatingCartAddress = updateCartAddressMutation.isPending
+  const isBackfillingCartCountry = updateCartMutation.isPending
+  const mutateCart = updateCartMutation.mutate
 
   const checkoutShippingQuery = storefront.flows.checkout.useCheckoutShipping(
     cartQuery.cart?.id,
@@ -92,11 +93,11 @@ export function useCheckoutController() {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
         setCheckoutError(
-          resolveErrorMessage(error, "Nastavenie dopravy zlyhalo."),
-        );
+          resolveErrorMessage(error, "Nastavenie dopravy zlyhalo.")
+        )
       },
-    },
-  );
+    }
+  )
 
   const checkoutPaymentQuery = storefront.flows.checkout.useCheckoutPayment(
     cartQuery.cart?.id,
@@ -104,62 +105,63 @@ export function useCheckoutController() {
     cartQuery.cart,
     {
       enabled: Boolean(activeRegionId),
-    },
-  );
+    }
+  )
   const cartSelectedPaymentProviderId = resolveSelectedPaymentProviderId(
-    cartQuery.cart,
-  );
+    cartQuery.cart
+  )
   const storedPaymentProviderId = readStoredPaymentProviderSelection(
-    cartQuery.cart?.id,
-  );
+    cartQuery.cart?.id
+  )
   const selectedPaymentProviderId =
     selectedPaymentProviderState.cartId === cartQuery.cart?.id
       ? selectedPaymentProviderState.providerId
-      : null;
+      : null
   const effectiveSelectedPaymentProviderId =
     selectedPaymentProviderId ??
     cartSelectedPaymentProviderId ??
-    storedPaymentProviderId;
+    storedPaymentProviderId
 
   useEffect(() => {
-    const cartId = cartQuery.cart?.id;
+    const cartId = cartQuery.cart?.id
     if (!cartId) {
-      return;
+      return
     }
 
     const providerId =
-      cartSelectedPaymentProviderId ?? readStoredPaymentProviderSelection(cartId);
+      cartSelectedPaymentProviderId ??
+      readStoredPaymentProviderSelection(cartId)
 
     setSelectedPaymentProviderState((current) => {
       if (current.cartId === cartId && current.providerId) {
-        return current;
+        return current
       }
 
       return {
         cartId,
         providerId,
-      };
-    });
-  }, [cartQuery.cart?.id, cartSelectedPaymentProviderId]);
+      }
+    })
+  }, [cartQuery.cart?.id, cartSelectedPaymentProviderId])
 
   useEffect(() => {
-    const cartId = cartQuery.cart?.id;
-    const regionCountryCode = region?.country_code?.toLowerCase();
+    const cartId = cartQuery.cart?.id
+    const regionCountryCode = region?.country_code?.toLowerCase()
     const cartCountryCode =
-      cartQuery.cart?.shipping_address?.country_code?.toLowerCase() ?? null;
+      cartQuery.cart?.shipping_address?.country_code?.toLowerCase() ?? null
 
-    if (!cartId || !regionCountryCode) {
-      return;
+    if (!(cartId && regionCountryCode)) {
+      return
     }
 
     if (cartCountryCode || isUpdatingCartAddress || isBackfillingCartCountry) {
-      return;
+      return
     }
 
     mutateCart({
       cartId,
       country_code: regionCountryCode,
-    });
+    })
   }, [
     cartQuery.cart?.id,
     cartQuery.cart?.shipping_address?.country_code,
@@ -167,25 +169,30 @@ export function useCheckoutController() {
     isBackfillingCartCountry,
     isUpdatingCartAddress,
     mutateCart,
-  ]);
+  ])
 
   useEffect(() => {
     if (!activeRegionId) {
-      return;
+      return
     }
 
-    void fetchPaymentProviders(queryClient, activeRegionId).catch(() => {
-      // Best-effort prefetch only.
-    });
-  }, [activeRegionId, queryClient]);
+    runDetachedPromise(
+      fetchPaymentProviders(queryClient, activeRegionId),
+      () => {
+        // Best-effort prefetch only.
+      }
+    )
+  }, [activeRegionId, queryClient])
 
-  const countryItems = useMemo(() => {
-    return resolveCheckoutCountryItemsForRegion({
-      activeCountryCode: region?.country_code,
-      regionId: activeRegionId,
-      regions: regionsQuery.regions,
-    });
-  }, [activeRegionId, region?.country_code, regionsQuery.regions]);
+  const countryItems = useMemo(
+    () =>
+      resolveCheckoutCountryItemsForRegion({
+        activeCountryCode: region?.country_code,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      }),
+    [activeRegionId, region?.country_code, regionsQuery.regions]
+  )
 
   const actions = useCheckoutActions({
     cartId: cartQuery.cart?.id,
@@ -197,34 +204,34 @@ export function useCheckoutController() {
     itemCount: cartQuery.itemCount,
     onCompletedOrderIdChange: (orderId) => {
       if (orderId) {
-        clearStoredPaymentProviderSelection(cartQuery.cart?.id);
+        clearStoredPaymentProviderSelection(cartQuery.cart?.id)
       }
-      setCompletedOrderId(orderId);
+      setCompletedOrderId(orderId)
     },
     onOrderCompletionAbort: () => {
-      setAllowCartAutoCreate(true);
+      setAllowCartAutoCreate(true)
     },
     onOrderCompletionStart: () => {
-      setAllowCartAutoCreate(false);
+      setAllowCartAutoCreate(false)
     },
     onCheckoutErrorChange: setCheckoutError,
     onPaymentProviderSelect: (providerId) => {
       setSelectedPaymentProviderState({
         cartId: cartQuery.cart?.id,
         providerId,
-      });
+      })
       writeStoredPaymentProviderSelection({
         cartId: cartQuery.cart?.id,
         providerId,
-      });
+      })
     },
     onPaymentRedirect: (url) => {
-      window.location.assign(url);
+      window.location.assign(url)
     },
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
-  });
+  })
 
   const checkoutDetailsForm = useCheckoutDetailsForm({
     cart: cartQuery.cart,
@@ -233,30 +240,30 @@ export function useCheckoutController() {
     isCustomerLoading: authQuery.isLoading,
     onSubmit: async (values) => {
       if (!cartQuery.cart?.id) {
-        setCheckoutError("Košík nie je pripravený.");
-        return;
+        setCheckoutError("Košík nie je pripravený.")
+        return
       }
 
       const effectiveCheckoutDetails =
-        resolveEffectiveCheckoutAddressDetails(values);
+        resolveEffectiveCheckoutAddressDetails(values)
       const hasSupportedShippingCountry = isCheckoutCountryAvailableForRegion({
         activeCountryCode: region?.country_code,
         countryCode: effectiveCheckoutDetails.shipping.countryCode,
         regionId: activeRegionId,
         regions: regionsQuery.regions,
-      });
+      })
       const hasSupportedBillingCountry = isCheckoutCountryAvailableForRegion({
         activeCountryCode: region?.country_code,
         countryCode: effectiveCheckoutDetails.billing.countryCode,
         regionId: activeRegionId,
         regions: regionsQuery.regions,
-      });
+      })
 
-      if (!hasSupportedShippingCountry || !hasSupportedBillingCountry) {
+      if (!(hasSupportedShippingCountry && hasSupportedBillingCountry)) {
         setCheckoutError(
-          "Zvolena krajina nie je dostupna pre aktualny kosik. Zvolte krajinu z ponuky.",
-        );
-        return;
+          "Zvolena krajina nie je dostupna pre aktualny kosik. Zvolte krajinu z ponuky."
+        )
+        return
       }
 
       try {
@@ -264,98 +271,101 @@ export function useCheckoutController() {
           cartId: cartQuery.cart.id,
           email: values.shipping.email.trim(),
           shippingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.shipping,
+            effectiveCheckoutDetails.shipping
           ),
           billingAddress: buildHerbatikaCheckoutAddressInput(
-            effectiveCheckoutDetails.billing,
+            effectiveCheckoutDetails.billing
           ),
           useSameAddress: effectiveCheckoutDetails.useSameAddress,
-        });
-        saveAddressSucceededRef.current = true;
+        })
+        saveAddressSucceededRef.current = true
       } catch (error) {
-        setCheckoutError(
-          resolveErrorMessage(error, "Uloženie adresy zlyhalo."),
-        );
+        setCheckoutError(resolveErrorMessage(error, "Uloženie adresy zlyhalo."))
       }
     },
     regionCountryCode: region?.country_code,
-  });
+  })
 
   const handleSaveAddress = async () => {
-    actions.resetFeedback();
-    saveAddressSucceededRef.current = false;
-    await checkoutDetailsForm.form.handleSubmit();
+    actions.resetFeedback()
+    saveAddressSucceededRef.current = false
+    await checkoutDetailsForm.form.handleSubmit()
 
     if (saveAddressSucceededRef.current) {
       checkoutDetailsForm.resetToValues(
-        checkoutDetailsForm.form.state.values as CheckoutDetailsValues,
-      );
+        checkoutDetailsForm.form.state.values as CheckoutDetailsValues
+      )
     }
 
-    return saveAddressSucceededRef.current;
-  };
+    return saveAddressSucceededRef.current
+  }
 
   const currencyCode = resolveSupportedCurrencyCode(
     cartQuery.cart?.currency_code,
-    regionCurrencyCode,
-  );
+    regionCurrencyCode
+  )
 
-  const cartItems = cartQuery.cart?.items ?? [];
-  const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0;
-  const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart);
-  const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId);
-  const hasPayment = Boolean(effectiveSelectedPaymentProviderId);
+  const cartItems = cartQuery.cart?.items ?? []
+  const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0
+  const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart)
+  const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId)
+  const hasPayment = Boolean(effectiveSelectedPaymentProviderId)
 
   const selectedShippingOptionPrice = useMemo(() => {
     if (!checkoutShippingQuery.selectedShippingMethodId) {
-      return 0;
+      return 0
     }
 
     return (
       checkoutShippingQuery.shippingPrices[
         checkoutShippingQuery.selectedShippingMethodId
       ] ?? 0
-    );
+    )
   }, [
     checkoutShippingQuery.selectedShippingMethodId,
     checkoutShippingQuery.shippingPrices,
-  ]);
+  ])
 
-  const cartItemsTotalAmount = useMemo(() => {
-    return resolveCartItemsTotalAmount(cartQuery.cart);
-  }, [cartQuery.cart]);
+  const cartItemsTotalAmount = useMemo(
+    () => resolveCartItemsTotalAmount(cartQuery.cart),
+    [cartQuery.cart]
+  )
 
   const cartShippingTotalAmount = useMemo(() => {
     if (cartQuery.cart?.shipping_methods?.length) {
-      return resolveCartShippingTotalAmount(cartQuery.cart);
+      return resolveCartShippingTotalAmount(cartQuery.cart)
     }
 
-    return selectedShippingOptionPrice;
-  }, [cartQuery.cart, selectedShippingOptionPrice]);
+    return selectedShippingOptionPrice
+  }, [cartQuery.cart, selectedShippingOptionPrice])
 
   const cartShippingSubtotalAmount = useMemo(() => {
     if (cartQuery.cart?.shipping_methods?.length) {
-      return resolveCartShippingSubtotalAmount(cartQuery.cart);
+      return resolveCartShippingSubtotalAmount(cartQuery.cart)
     }
 
-    return selectedShippingOptionPrice;
-  }, [cartQuery.cart, selectedShippingOptionPrice]);
+    return selectedShippingOptionPrice
+  }, [cartQuery.cart, selectedShippingOptionPrice])
 
-  const cartTaxAmount = useMemo(() => {
-    return resolveCartTaxAmount(cartQuery.cart);
-  }, [cartQuery.cart]);
+  const cartTaxAmount = useMemo(
+    () => resolveCartTaxAmount(cartQuery.cart),
+    [cartQuery.cart]
+  )
 
-  const cartTotalAmount = useMemo(() => {
-    return resolveCartTotalAmount(cartQuery.cart);
-  }, [cartQuery.cart]);
+  const cartTotalAmount = useMemo(
+    () => resolveCartTotalAmount(cartQuery.cart),
+    [cartQuery.cart]
+  )
 
-  const cartTotalWithoutTaxAmount = useMemo(() => {
-    return resolveCartTotalWithoutTaxAmount(cartQuery.cart);
-  }, [cartQuery.cart]);
+  const cartTotalWithoutTaxAmount = useMemo(
+    () => resolveCartTotalWithoutTaxAmount(cartQuery.cart),
+    [cartQuery.cart]
+  )
 
-  const cartItemsSubtotalAmount = useMemo(() => {
-    return resolveCartItemsSubtotalAmount(cartQuery.cart);
-  }, [cartQuery.cart]);
+  const cartItemsSubtotalAmount = useMemo(
+    () => resolveCartItemsSubtotalAmount(cartQuery.cart),
+    [cartQuery.cart]
+  )
 
   const isBusy =
     cartQuery.isFetching ||
@@ -364,7 +374,7 @@ export function useCheckoutController() {
     updateCartAddressMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
-    completeCheckoutMutation.isPending;
+    completeCheckoutMutation.isPending
 
   return {
     ...actions,
@@ -406,7 +416,7 @@ export function useCheckoutController() {
       !isBusy &&
       Boolean(checkoutShippingQuery.selectedShippingMethodId) &&
       Boolean(effectiveSelectedPaymentProviderId),
-  };
+  }
 }
 
-export type CheckoutController = ReturnType<typeof useCheckoutController>;
+export type CheckoutController = ReturnType<typeof useCheckoutController>

@@ -2,6 +2,10 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import type { CSSProperties, ReactNode } from "react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
+export const handle = {
+  breadcrumb: () => "Payload",
+}
+
 /** Runtime config returned by the Payload admin config endpoint. */
 type PayloadRuntimeConfig = {
   iframeUrl?: string

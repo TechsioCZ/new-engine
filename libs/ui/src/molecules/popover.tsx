@@ -35,9 +35,9 @@ const popoverVariants = tv({
     ],
     arrow: "",
     arrowTip: "",
-    title: ["font-popover-title", "leading-none", "mb-popover-title-mb"],
+    title: ["font-popover-title", "leading-none", "mb-popover-title"],
     description: [
-      "text-popover-description-fg text-popover-description-size",
+      "text-popover-description-fg text-popover-description",
       "leading-normal",
     ],
     closeTrigger: ["absolute top-2 right-2", "text-popover-close-trigger-fg"],

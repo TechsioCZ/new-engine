@@ -36,11 +36,7 @@ const createSimplePrefetchPagesPlan = (
 ): PrefetchPagesPlan => {
   const pagesToPrefetch: number[] = []
 
-  pushPageIfValid(
-    pagesToPrefetch,
-    input.currentPage !== 1 ? 1 : null,
-    input
-  )
+  pushPageIfValid(pagesToPrefetch, input.currentPage !== 1 ? 1 : null, input)
   pushPageIfValid(
     pagesToPrefetch,
     input.hasPrevPage ? input.currentPage - 1 : null,

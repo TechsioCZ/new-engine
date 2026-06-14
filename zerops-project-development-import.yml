@@ -46,6 +46,14 @@ services:
       SUPERADMIN_PASSWORD: s4lt_<@generateRandomString(<16>)>
       SETTINGS_ENCRYPTION_KEY: <@generateRandomString(<64>)>
       PAYLOAD_WEBHOOK_SECRET: ${PAYLOAD_WEBHOOK_SECRET}
+      REDIS_SESSIONS_ENABLED: "1"
+      CACHE_PROVIDER: redis
+      EVENT_BUS_PROVIDER: redis
+      WORKFLOW_ENGINE_PROVIDER: redis
+      LOCKING_PROVIDER: redis
+      MEILISEARCH_ENABLED: "1"
+      FILE_PROVIDER: s3
+      FILE_LOCAL_UPLOAD_DIR: /tmp/medusa-be-files
       # Feature flags - set to "1" to enable, "0" or empty to disable
       FEATURE_PPL_ENABLED: "0"
       PPL_ENVIRONMENT: testing

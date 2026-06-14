@@ -1,47 +1,49 @@
 "use client"
 
-import type { IconType } from "@techsio/ui-kit/atoms/icon";
-import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb";
-import NextLink from "next/link";
-import { Fragment, type ComponentPropsWithoutRef } from "react";
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
+import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
+import NextLink from "next/link"
+import { type ComponentPropsWithoutRef, Fragment } from "react"
 
-type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>;
+type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
 
 export type HerbatikaBreadcrumbItem = {
-  label: string;
-  href?: NextLinkProps["href"];
-  icon?: IconType;
-  isCurrent?: boolean;
-  ariaLabel?: string;
-  linkProps?: Omit<NextLinkProps, "as" | "children" | "className" | "href">;
-};
+  label: string
+  href?: NextLinkProps["href"]
+  icon?: IconType
+  isCurrent?: boolean
+  ariaLabel?: string
+  linkProps?: Omit<NextLinkProps, "as" | "children" | "className" | "href">
+}
 
 export type HerbatikaBreadcrumbProps = Omit<
   ComponentPropsWithoutRef<"nav">,
   "children" | "className"
 > & {
-  items: HerbatikaBreadcrumbItem[];
-};
+  items: HerbatikaBreadcrumbItem[]
+}
 
 function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
-  return `${item.href?.toString() ?? "current"}-${item.label}-${index}`;
+  return `${item.href?.toString() ?? "current"}-${item.label}-${index}`
 }
 
 function getIconOnlyLabel(item: HerbatikaBreadcrumbItem) {
   if (item.ariaLabel || item.label || !item.icon) {
-    return item.ariaLabel;
+    return item.ariaLabel
   }
 
-  return "Domov";
+  return "Domov"
 }
 
 function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {
   return (
     <>
-      {item.icon ? <Breadcrumb.Icon icon={item.icon} className="mb-50 mr-50 font-bold"/> : null}
+      {item.icon ? (
+        <Breadcrumb.Icon className="mr-50 mb-50 font-bold" icon={item.icon} />
+      ) : null}
       {item.label && <span>{item.label}</span>}
     </>
-  );
+  )
 }
 
 export function HerbatikaBreadcrumb({
@@ -49,25 +51,28 @@ export function HerbatikaBreadcrumb({
   ...breadcrumbProps
 }: HerbatikaBreadcrumbProps) {
   if (items.length === 0) {
-    return null;
+    return null
   }
 
-  const hasExplicitCurrent = items.some((item) => item.isCurrent);
+  const hasExplicitCurrent = items.some((item) => item.isCurrent)
 
   return (
     <Breadcrumb {...breadcrumbProps} className="font-inter">
       <Breadcrumb.List>
         {items.map((item, index) => {
-          const isLastItem = index === items.length - 1;
+          const isLastItem = index === items.length - 1
           const isCurrentPage = hasExplicitCurrent
             ? item.isCurrent === true
-            : isLastItem;
+            : isLastItem
 
           return (
             <Fragment key={getBreadcrumbItemKey(item, index)}>
               <Breadcrumb.Item>
                 {isCurrentPage ? (
-                  <Breadcrumb.CurrentLink aria-label={getIconOnlyLabel(item)} className="font-bold">
+                  <Breadcrumb.CurrentLink
+                    aria-label={getIconOnlyLabel(item)}
+                    className="font-bold"
+                  >
                     <BreadcrumbItemContent item={item} />
                   </Breadcrumb.CurrentLink>
                 ) : (
@@ -77,16 +82,16 @@ export function HerbatikaBreadcrumb({
                     href={item.href ?? "#"}
                     {...item.linkProps}
                   >
-                    <BreadcrumbItemContent item={item}/>
+                    <BreadcrumbItemContent item={item} />
                   </Breadcrumb.Link>
                 )}
               </Breadcrumb.Item>
 
-              {!isLastItem ? <Breadcrumb.Separator /> : null}
+              {isLastItem ? null : <Breadcrumb.Separator />}
             </Fragment>
-          );
+          )
         })}
       </Breadcrumb.List>
     </Breadcrumb>
-  );
+  )
 }

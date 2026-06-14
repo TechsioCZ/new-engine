@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { compactRecord } from "../shared/object-utils"
 import type {
   AddFavoriteProductListItemInput,
   AddProductListItemInput,
@@ -23,7 +24,6 @@ import type {
   UpdateProductListInput,
   UpdateProductListItemInput,
 } from "./types"
-import { compactRecord } from "../shared/object-utils"
 
 const DEFAULT_PRODUCT_LISTS_PATH = "/store/product-lists"
 
@@ -31,7 +31,7 @@ type PlainQuery = Record<string, unknown>
 
 const normalizeQuantity = (quantity?: number | null) => {
   if (typeof quantity !== "number" || !Number.isFinite(quantity)) {
-    return undefined
+    return
   }
 
   return Math.max(1, Math.floor(quantity))
@@ -91,7 +91,9 @@ export type MedusaProductListServiceConfig<
   defaultLimit?: number
   defaultOffset?: number
   normalizeListQuery?: (input: TListInput) => PlainQuery
-  transformProductList?: (list: ProductListBase<TProductListItem>) => TProductList
+  transformProductList?: (
+    list: ProductListBase<TProductListItem>
+  ) => TProductList
   transformProductListItem?: (item: ProductListItemBase) => TProductListItem
   transformCart?: (cart: HttpTypes.StoreCart) => TCart
 }
@@ -123,7 +125,10 @@ export const resolveProductListItemFromResponse = <
 >(
   response: ProductListItemResponse<TProductList, TProductListItem>
 ): TProductListItem | null =>
-  response.product_list_item ?? response.productListItem ?? response.item ?? null
+  response.product_list_item ??
+  response.productListItem ??
+  response.item ??
+  null
 
 export const resolveProductListCartFromResponse = <
   TCart extends ProductListCartLike,
@@ -170,7 +175,11 @@ export function createMedusaProductListService<
 
   const resolveListQuery = (params: TListInput): PlainQuery => {
     const normalized = config?.normalizeListQuery?.(params) ?? params
-    const { limit = defaultLimit, offset = defaultOffset, ...query } = normalized
+    const {
+      limit = defaultLimit,
+      offset = defaultOffset,
+      ...query
+    } = normalized
 
     return compactRecord({
       ...query,

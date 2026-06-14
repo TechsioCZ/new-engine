@@ -1,38 +1,38 @@
 import {
-  defaultCheckoutAddressRequiredFields,
   type CheckoutAddressInput,
-} from "@techsio/storefront-data/checkout/address";
+  defaultCheckoutAddressRequiredFields,
+} from "@techsio/storefront-data/checkout/address"
 
 export type CheckoutAddressValues = {
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  company: string;
-  companyId: string;
-  taxId: string;
-  vatId: string;
-  address1: string;
-  address2: string;
-  city: string;
-  postalCode: string;
-  countryCode: string;
-  customerNote: string;
-};
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  company: string
+  companyId: string
+  taxId: string
+  vatId: string
+  address1: string
+  address2: string
+  city: string
+  postalCode: string
+  countryCode: string
+  customerNote: string
+}
 
 export type CheckoutDetailsValues = {
-  shipping: CheckoutAddressValues;
-  billing: CheckoutAddressValues;
-  useSameAddress: boolean;
-  isCompanyPurchase: boolean;
-  marketingConsent: boolean;
-  heurekaConsent: boolean;
-};
+  shipping: CheckoutAddressValues
+  billing: CheckoutAddressValues
+  useSameAddress: boolean
+  isCompanyPurchase: boolean
+  marketingConsent: boolean
+  heurekaConsent: boolean
+}
 
 export type CheckoutAddressDetailsValues = Pick<
   CheckoutDetailsValues,
   "billing" | "isCompanyPurchase" | "shipping" | "useSameAddress"
->;
+>
 
 export const CHECKOUT_ADDRESS_FIELDS = [
   "email",
@@ -49,7 +49,7 @@ export const CHECKOUT_ADDRESS_FIELDS = [
   "postalCode",
   "countryCode",
   "customerNote",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>;
+] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
 
 export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
   email: "",
@@ -66,56 +66,55 @@ export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
   postalCode: "",
   countryCode: "SK",
   customerNote: "",
-};
+}
 
 export const CHECKOUT_BILLING_REQUIRED_FIELDS =
-  defaultCheckoutAddressRequiredFields;
+  defaultCheckoutAddressRequiredFields
 
 export const CHECKOUT_SHIPPING_REQUIRED_FIELDS = [
   ...defaultCheckoutAddressRequiredFields,
   "phone",
-] as const satisfies readonly (keyof CheckoutAddressInput)[];
+] as const satisfies readonly (keyof CheckoutAddressInput)[]
 
 export const CHECKOUT_COMPANY_REQUIRED_FIELDS = [
   "company",
   "companyId",
   "taxId",
-] as const satisfies readonly (keyof CheckoutAddressValues)[];
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
-export const createDefaultCheckoutAddressValues = (): CheckoutAddressValues => ({
-  ...DEFAULT_CHECKOUT_ADDRESS_VALUES,
-});
+export const createDefaultCheckoutAddressValues =
+  (): CheckoutAddressValues => ({
+    ...DEFAULT_CHECKOUT_ADDRESS_VALUES,
+  })
 
 const clearCheckoutCompanyFields = (
-  address: CheckoutAddressValues,
-): CheckoutAddressValues => {
-  return {
-    ...address,
-    company: "",
-    companyId: "",
-    taxId: "",
-    vatId: "",
-  };
-};
+  address: CheckoutAddressValues
+): CheckoutAddressValues => ({
+  ...address,
+  company: "",
+  companyId: "",
+  taxId: "",
+  vatId: "",
+})
 
 export const resolveEffectiveCheckoutAddressDetails = (
-  values: CheckoutAddressDetailsValues,
+  values: CheckoutAddressDetailsValues
 ): CheckoutAddressDetailsValues => {
   const shouldKeepShippingCompanyFields =
-    values.useSameAddress && values.isCompanyPurchase;
-  const shouldKeepBillingCompanyFields = values.isCompanyPurchase;
+    values.useSameAddress && values.isCompanyPurchase
+  const shouldKeepBillingCompanyFields = values.isCompanyPurchase
   const shipping = shouldKeepShippingCompanyFields
     ? values.shipping
-    : clearCheckoutCompanyFields(values.shipping);
-  const billingSource = values.useSameAddress ? shipping : values.billing;
+    : clearCheckoutCompanyFields(values.shipping)
+  const billingSource = values.useSameAddress ? shipping : values.billing
   const billing = shouldKeepBillingCompanyFields
     ? billingSource
-    : clearCheckoutCompanyFields(billingSource);
+    : clearCheckoutCompanyFields(billingSource)
 
   return {
     billing,
     isCompanyPurchase: values.isCompanyPurchase,
     shipping,
     useSameAddress: values.useSameAddress,
-  };
-};
+  }
+}

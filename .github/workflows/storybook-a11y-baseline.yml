@@ -5,9 +5,21 @@ on:
     branches:
       - master
     paths:
-      - "libs/ui/**"
+      - "libs/ui/.storybook/**"
+      - "libs/ui/assets/**"
+      - "libs/ui/package.json"
+      - "libs/ui/playwright.config.cts"
+      - "libs/ui/postcss.config.mjs"
+      - "libs/ui/project.json"
+      - "libs/ui/rslib.config.ts"
+      - "libs/ui/scripts/storybook-a11y*"
+      - "libs/ui/src/**"
+      - "libs/ui/stories/**"
+      - "libs/ui/tsconfig.json"
       - ".github/workflows/storybook-a11y.yml"
       - ".github/workflows/storybook-a11y-baseline.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
   workflow_dispatch:
 
 permissions:

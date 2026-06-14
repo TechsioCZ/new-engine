@@ -37,7 +37,9 @@ export const AdminUpdateReviewSchema = z
   })
 
 export type AdminGetReviewsSchemaType = z.infer<typeof AdminGetReviewsSchema>
-export type AdminUpdateReviewSchemaType = z.infer<typeof AdminUpdateReviewSchema>
+export type AdminUpdateReviewSchemaType = z.infer<
+  typeof AdminUpdateReviewSchema
+>
 export type AdminUpdateReviewStatusSchemaType = z.infer<
   typeof AdminUpdateReviewStatusSchema
 >

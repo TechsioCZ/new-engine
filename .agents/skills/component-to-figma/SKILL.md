@@ -32,14 +32,38 @@ Use this for component-library work, not for product screens. For canvas writes,
    - **Component color tokens** use up to 5 levels: `type/component/cssProperty/variant/state` — only for components with color-variant props AND interactive states (button, badge). Components without color variants drop the variant level. Components without states drop the state level.
    - **Component non-color tokens** use simplified flat naming: `type/component/size` — no redundant variant/state segments.
    - **Never use "default"** for the initial state. Use **"base"** (shorter, clearer). Example: `color/button/bg/primary/base`, not `…/default`.
-11. Figma pages must follow the established library shell:
+11. **Value grid rules (8-point system, locked 2026-06-12).** Every FLOAT
+    dimension value (spacing, padding, gap, size, height, width, radius)
+    must be a clean even number:
+    - **Preferred:** 8-point steps — `2, 4, 8, 16, 24, 32, 40, 48, 56, 64, 72…`
+      (plus 4-pt half-steps `12, 20` where finer rhythm is needed).
+    - **Allowed fallback:** any even number (`6, 10, 14, 18, 20, 22, 28, 34…`)
+      when snapping to the 8-grid would distort the design.
+    - **Forbidden:** odd numbers (`3, 5, 7, 9, 15, 25, 33, 35, 45…`) and
+      decimal values. When rounding, go to the nearest even number
+      (15 → 16, 25 → 24, 35 → 36, 45 → 44, 9.5 → 10, 2.5 → 2).
+    - **Documented exceptions:** border widths (1px hairline, 2px, 3px are
+      all valid — borders are exempt from the grid), `radius/full` (9999),
+      container primitives (320/384/448/512/576/672 — Tailwind standard),
+      typography scale, durations, opacities.
+    - **Cross-component consistency is mandatory.** Components in the same
+      family must share the same input tokens — e.g. the whole form family
+      (input, select, combobox, numeric-input, textarea, search-form,
+      phone-input) shares `border-width 2`, `radius sm/md/lg = 4/8/12`,
+      and heights `32/44/72` via the `form-control` collection. Never give
+      one form component radius 4 and another radius 6. When adding a new
+      component, alias the shared family tokens instead of minting new ones.
+    - Primitive names are pixel-true (`dimension/16` = 16px). Never change
+      a primitive's value to an off-name number — re-alias consumers to the
+      correct primitive and delete the bad one instead.
+12. Figma pages must follow the established library shell:
     - black canvas background
     - white section cards
     - `24px` radius on section cards
     - `36px` internal padding
     - consistent vertical gaps between sections
-12. Validation is mandatory. Do not declare migration done until Storybook and Figma visually match.
-13. `use_figma` calls must be sequential and incremental. Never batch the whole migration into one large write.
+13. Validation is mandatory. Do not declare migration done until Storybook and Figma visually match.
+14. `use_figma` calls must be sequential and incremental. Never batch the whole migration into one large write.
  
 ## What Counts As A Visual Prop
  

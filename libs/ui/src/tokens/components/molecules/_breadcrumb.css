@@ -1,61 +1,7 @@
-@theme static {
-  /* === BASE COLOR MAPPING === */
-  --color-breadcrumb-base: var(--color-surface);
-  --color-breadcrumb-accent: var(--color-primary);
-  --color-breadcrumb-muted: var(--color-fg-secondary);
-
-  /* === DERIVED COLORS === */
-  --color-breadcrumb-bg: var(--color-breadcrumb-base);
-  --color-breadcrumb-list-fg: var(--color-fg-primary);
-  --color-breadcrumb-item-fg: var(--color-fg-primary);
-  --color-breadcrumb-link-fg: var(--color-fg-primary);
-  --color-breadcrumb-current-link-fg: var(--color-breadcrumb-accent);
-  --color-breadcrumb-separator-fg: var(--color-breadcrumb-muted);
-  --color-breadcrumb-ellipsis-fg: var(--color-breadcrumb-muted);
-
-  /* === STATE VARIATIONS === */
-  --color-breadcrumb-link-fg-hover: var(--color-breadcrumb-accent);
-
-  /* === SPACING === */
-  --padding-breadcrumb-root-sm: var(--spacing-100);
-  --padding-breadcrumb-root-md: var(--spacing-150);
-  --padding-breadcrumb-root-lg: var(--spacing-200);
-
-  --gap-breadcrumb-list-sm: var(--spacing-100);
-  --gap-breadcrumb-list-md: var(--spacing-150);
-  --gap-breadcrumb-list-lg: var(--spacing-200);
-
-  --gap-breadcrumb-link-sm: var(--spacing-100);
-  --gap-breadcrumb-link-md: var(--spacing-150);
-  --gap-breadcrumb-link-lg: var(--spacing-200);
-
-  --gap-breadcrumb-separator-sm: var(--spacing-100);
-  --gap-breadcrumb-separator-md: var(--spacing-150);
-  --gap-breadcrumb-separator-lg: var(--spacing-200);
-
-  /* === TYPOGRAPHY === */
-  --text-breadcrumb-sm: var(--text-xs);
-  --text-breadcrumb-md: var(--text-sm);
-  --text-breadcrumb-lg: var(--text-md);
-
-  --text-breadcrumb-icon-sm: var(--text-breadcrumb-sm);
-  --text-breadcrumb-icon-md: var(--text-breadcrumb-md);
-  --text-breadcrumb-icon-lg: var(--text-breadcrumb-lg);
-
-  --text-breadcrumb-separator-icon-sm: var(--text-breadcrumb-sm);
-  --text-breadcrumb-separator-icon-md: var(--text-breadcrumb-md);
-  --text-breadcrumb-separator-icon-lg: var(--text-breadcrumb-lg);
-
-  --text-breadcrumb-ellipsis-icon-sm: var(--text-breadcrumb-sm);
-  --text-breadcrumb-ellipsis-icon-md: var(--text-breadcrumb-md);
-  --text-breadcrumb-ellipsis-icon-lg: var(--text-breadcrumb-lg);
-
-  /* === BORDERS & RADIUS === */
-  --radius-breadcrumb-link: var(--radius-sm);
-
-  /* === FOCUS RINGS === */
-  --color-breadcrumb-ring: var(--color-ring);
-}
+/*
+ * Breadcrumb — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css. Only glyph aliases live here.
+ */
 
 @utility token-icon-breadcrumb-separator {
   @apply token-icon-chevron-right;

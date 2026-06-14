@@ -1,59 +1,26 @@
+/*
+ * Pagination — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--color-pagination-border-hover` — runtime --alpha() of the Figma
+ *     active border (can't be a static Figma variable).
+ *   - `--border-pagination-width` — consumed via border-(length:--…) in
+ *     the TSX; aliases Figma's --border-width-pagination.
+ */
+
 :root {
   --opacity-pagination-hover: 30%;
 }
 
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-pagination: var(--color-surface);
-  --color-pagination-accent: var(--color-primary);
-
-  /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-pagination-bg: var(--color-pagination);
-  --color-pagination-bg-active: var(--color-pagination-accent);
-  --color-pagination-bg-hover: oklch(
-    from var(--color-pagination-accent) calc(l + var(--state-hover)) c h
-  );
-  --color-pagination-neutral-bg: transparent;
-
-  /* Foreground colors */
-  --color-pagination-fg: var(--color-fg-primary);
-  --color-pagination-filled-fg-active: var(--color-fg-dark);
-  --color-pagination-outlined-fg-active: var(--color-pagination-accent);
-  --color-pagination-minimal-fg-active: var(--color-pagination-accent);
-
-  /* Border colors */
-  --color-pagination-border: var(--color-border-primary);
-  --color-pagination-border-active: var(--color-pagination-accent);
+  /* stylelint-disable scss/operator-no-newline-after -- biome wraps long lines */
   --color-pagination-border-hover: --alpha(
     var(--color-pagination-border-active) /
     var(--opacity-pagination-hover)
   );
+  /* stylelint-enable scss/operator-no-newline-after */
 
-  /* === DISABLED STATES === */
-  --color-pagination-bg-disabled: var(--color-bg-disabled);
-  --color-pagination-fg-disabled: var(--color-fg-disabled);
-  --color-pagination-border-disabled: var(--color-border-disabled);
-
-  /* === SPACING === */
-  --spacing-pagination: var(--spacing-200);
-  --spacing-pagination-list: var(--spacing-pagination);
-  --height-pagination-sm: 2em;
-  --height-pagination-md: 2.5em;
-  --height-pagination-lg: 3em;
-
-  /* === TYPOGRAPHY === */
-  --text-pagination-sm: var(--text-xs);
-  --text-pagination-md: var(--text-sm);
-  --text-pagination-lg: var(--text-md);
-
-  /* === BORDERS & RADIUS === */
-  --radius-pagination: var(--radius-sm);
-  --border-pagination-width: var(--border-width-sm);
-
-  /* === FOCUS RINGS === */
-  --color-pagination-ring: var(--color-ring);
+  --border-pagination-width: var(--border-width-pagination);
 }
 
 @utility token-icon-pagination-prev {

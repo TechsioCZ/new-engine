@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
-import type { ReactNode } from "react";
-import { AccountSkeletonSurface } from "@/components/account/account-surface";
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import type { ReactNode } from "react"
+import { AccountSkeletonSurface } from "@/components/account/account-surface"
 
 type AccountLayoutSkeletonProps = {
-  surface?: ReactNode;
-  surfaceLines?: number;
-};
+  surface?: ReactNode
+  surfaceLines?: number
+}
 
 export function AccountLayoutSkeleton({
   surface,
@@ -38,5 +38,5 @@ export function AccountLayoutSkeleton({
         {surface ?? <AccountSkeletonSurface lines={surfaceLines} />}
       </div>
     </main>
-  );
+  )
 }

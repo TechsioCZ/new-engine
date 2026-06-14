@@ -1,32 +1,30 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
+import type { HttpTypes } from "@medusajs/types"
+import type { MedusaProductListListHookInput } from "@techsio/storefront-data/product-lists/medusa-service"
 import type {
-  MedusaProductListListHookInput,
-} from "@techsio/storefront-data/product-lists/medusa-service";
-import type {
-  AddFavoriteProductListItemInput,
-  AddProductListItemInput,
-  ChangeProductListItemQuantityInput,
-  CreateCustomProductListInput,
-  CreateFavoriteProductListInput,
-  CreateProductListCartInput,
-  DeleteProductListInput,
-  DeleteProductListItemInput,
-  IncrementProductListItemInput,
   ProductListAccessType,
   ProductListBase,
-  ProductListCartResponse as SharedProductListCartResponse,
-  ProductListDeleteResponse,
   ProductListItemBase,
+  ProductListType,
+  AddFavoriteProductListItemInput as SharedAddFavoriteProductListItemInput,
+  AddProductListItemInput as SharedAddProductListItemInput,
+  ChangeProductListItemQuantityInput as SharedChangeProductListItemQuantityInput,
+  CreateCustomProductListInput as SharedCreateCustomProductListInput,
+  CreateFavoriteProductListInput as SharedCreateFavoriteProductListInput,
+  CreateProductListCartInput as SharedCreateProductListCartInput,
+  DeleteProductListInput as SharedDeleteProductListInput,
+  DeleteProductListItemInput as SharedDeleteProductListItemInput,
+  IncrementProductListItemInput as SharedIncrementProductListItemInput,
+  ProductListCartResponse as SharedProductListCartResponse,
+  ProductListDeleteResponse as SharedProductListDeleteResponse,
   ProductListItemResponse as SharedProductListItemResponse,
   ProductListListResponse as SharedProductListListResponse,
   ProductListListResult as SharedProductListListResult,
   ProductListResponse as SharedProductListResponse,
-  ProductListType,
-  UpdateProductListInput,
-  UpdateProductListItemInput,
-} from "@techsio/storefront-data/product-lists/types";
+  UpdateProductListInput as SharedUpdateProductListInput,
+  UpdateProductListItemInput as SharedUpdateProductListItemInput,
+} from "@techsio/storefront-data/product-lists/types"
 import {
   findProductListItem as findSharedProductListItem,
   getProductListItemCount as getSharedProductListItemCount,
@@ -34,123 +32,124 @@ import {
   isFavoriteProductList as isSharedFavoriteProductList,
   isProductInProductList as isSharedProductInProductList,
   resolveProductListItemQuantity as resolveSharedProductListItemQuantity,
-} from "@techsio/storefront-data/product-lists/utils";
-import { resolveErrorMessage } from "./error-utils";
-import { storefront } from "./storefront";
+} from "@techsio/storefront-data/product-lists/utils"
+import { resolveErrorMessage } from "./error-utils"
+import { storefront } from "./storefront"
 
-const productListHooks = storefront.hooks.productLists;
+const productListHooks = storefront.hooks.productLists
 
-export type StoreProductListType = ProductListType;
-export type StoreProductListAccessType = ProductListAccessType;
-export type StoreProductListItem = ProductListItemBase;
-export type StoreProductList = ProductListBase<StoreProductListItem>;
-export type ProductListListInput = MedusaProductListListHookInput;
+export type StoreProductListType = ProductListType
+export type StoreProductListAccessType = ProductListAccessType
+export type StoreProductListItem = ProductListItemBase
+export type StoreProductList = ProductListBase<StoreProductListItem>
+export type ProductListListInput = MedusaProductListListHookInput
 export type ProductListListResult =
-  SharedProductListListResult<StoreProductList>;
+  SharedProductListListResult<StoreProductList>
 export type ProductListListResponse =
-  SharedProductListListResponse<StoreProductList>;
-export type ProductListResponse = SharedProductListResponse<StoreProductList>;
+  SharedProductListListResponse<StoreProductList>
+export type ProductListResponse = SharedProductListResponse<StoreProductList>
 export type ProductListItemResponse = SharedProductListItemResponse<
   StoreProductList,
   StoreProductListItem
->;
+>
 export type ProductListCartResponse =
-  SharedProductListCartResponse<HttpTypes.StoreCart>;
+  SharedProductListCartResponse<HttpTypes.StoreCart>
 
-export type {
-  AddFavoriteProductListItemInput,
-  AddProductListItemInput,
-  ChangeProductListItemQuantityInput,
-  CreateCustomProductListInput,
-  CreateFavoriteProductListInput,
-  CreateProductListCartInput,
-  DeleteProductListInput,
-  DeleteProductListItemInput,
-  IncrementProductListItemInput,
-  ProductListDeleteResponse,
-  UpdateProductListInput,
-  UpdateProductListItemInput,
-};
+export type AddFavoriteProductListItemInput =
+  SharedAddFavoriteProductListItemInput
+export type AddProductListItemInput = SharedAddProductListItemInput
+export type ChangeProductListItemQuantityInput =
+  SharedChangeProductListItemQuantityInput
+export type CreateCustomProductListInput = SharedCreateCustomProductListInput
+export type CreateFavoriteProductListInput =
+  SharedCreateFavoriteProductListInput
+export type CreateProductListCartInput = SharedCreateProductListCartInput
+export type DeleteProductListInput = SharedDeleteProductListInput
+export type DeleteProductListItemInput = SharedDeleteProductListItemInput
+export type IncrementProductListItemInput = SharedIncrementProductListItemInput
+export type ProductListDeleteResponse = SharedProductListDeleteResponse
+export type UpdateProductListInput = SharedUpdateProductListInput
+export type UpdateProductListItemInput = SharedUpdateProductListItemInput
 
-export const productListQueryKeys = storefront.queryKeys.productLists;
+export const productListQueryKeys = storefront.queryKeys.productLists
 
 export const getProductListItems = (
-  list?: StoreProductList | null,
-): StoreProductListItem[] => getSharedProductListItems(list);
+  list?: StoreProductList | null
+): StoreProductListItem[] => getSharedProductListItems(list)
 
 export const getProductListItemCount = (list?: StoreProductList | null) =>
-  getSharedProductListItemCount(list);
+  getSharedProductListItemCount(list)
 
 export const isFavoriteProductList = (list?: StoreProductList | null) =>
-  isSharedFavoriteProductList(list);
+  isSharedFavoriteProductList(list)
 
 export const isProductInProductList = (
   list: StoreProductList | null | undefined,
   productId: string,
-  variantId?: string | null,
-) => isSharedProductInProductList(list, productId, variantId);
+  variantId?: string | null
+) => isSharedProductInProductList(list, productId, variantId)
 
 export const findProductListItem = (
   list: StoreProductList | null | undefined,
   productId: string,
-  variantId?: string | null,
+  variantId?: string | null
 ): StoreProductListItem | undefined =>
-  findSharedProductListItem(list, productId, variantId);
+  findSharedProductListItem(list, productId, variantId)
 
 export const resolveProductListItemQuantity = (item: StoreProductListItem) =>
-  resolveSharedProductListItemQuantity(item);
+  resolveSharedProductListItemQuantity(item)
 
 export const getProductListTitle = (list?: StoreProductList | null) => {
   if (isFavoriteProductList(list)) {
-    return "Obľúbené";
+    return "Obľúbené"
   }
 
-  return list?.title?.trim() || "Zoznam";
-};
+  return list?.title?.trim() || "Zoznam"
+}
 
 type ProductListDetailOptions = {
-  customerId?: string | null;
-  enabled?: boolean;
-};
+  customerId?: string | null
+  enabled?: boolean
+}
 
 export function useProductLists(
   input: ProductListListInput = {},
-  options?: Parameters<typeof productListHooks.useProductLists>[1],
+  options?: Parameters<typeof productListHooks.useProductLists>[1]
 ) {
-  const result = productListHooks.useProductLists(input, options);
+  const result = productListHooks.useProductLists(input, options)
 
   return {
     ...result,
     error: result.query.error
       ? resolveErrorMessage(
           result.query.error,
-          "Zoznamy sa nepodarilo načítať.",
+          "Zoznamy sa nepodarilo načítať."
         )
       : null,
-  };
+  }
 }
 
 export function useProductList(
   id?: string | null,
-  options?: ProductListDetailOptions,
+  options?: ProductListDetailOptions
 ) {
   const result = productListHooks.useProductList({
     customerId: options?.customerId,
     enabled: options?.enabled,
     id,
-  });
+  })
 
   return {
     ...result,
     error: result.query.error
       ? resolveErrorMessage(result.query.error, "Zoznam sa nepodarilo načítať.")
       : null,
-  };
+  }
 }
 
 export function useProductListDetails(
   ids: string[],
-  options?: ProductListDetailOptions,
+  options?: ProductListDetailOptions
 ) {
   return productListHooks.useProductListDetails(
     ids.map((id) => ({
@@ -159,26 +158,26 @@ export function useProductListDetails(
     })),
     {
       enabled: options?.enabled,
-    },
-  );
+    }
+  )
 }
 
 export const useCreateFavoriteProductList =
-  productListHooks.useCreateFavoriteProductList;
+  productListHooks.useCreateFavoriteProductList
 export const useCreateCustomProductList =
-  productListHooks.useCreateCustomProductList;
+  productListHooks.useCreateCustomProductList
 export const useCreateProductListCart =
-  productListHooks.useCreateProductListCart;
-export const useUpdateProductList = productListHooks.useUpdateProductList;
-export const useDeleteProductList = productListHooks.useDeleteProductList;
-export const useAddProductListItem = productListHooks.useAddProductListItem;
+  productListHooks.useCreateProductListCart
+export const useUpdateProductList = productListHooks.useUpdateProductList
+export const useDeleteProductList = productListHooks.useDeleteProductList
+export const useAddProductListItem = productListHooks.useAddProductListItem
 export const useAddFavoriteProductListItem =
-  productListHooks.useAddFavoriteProductListItem;
+  productListHooks.useAddFavoriteProductListItem
 export const useChangeProductListItemQuantity =
-  productListHooks.useChangeProductListItemQuantity;
+  productListHooks.useChangeProductListItemQuantity
 export const useUpdateProductListItem =
-  productListHooks.useUpdateProductListItem;
+  productListHooks.useUpdateProductListItem
 export const useDeleteProductListItem =
-  productListHooks.useDeleteProductListItem;
+  productListHooks.useDeleteProductListItem
 export const useIncrementProductListItem =
-  productListHooks.useIncrementProductListItem;
+  productListHooks.useIncrementProductListItem

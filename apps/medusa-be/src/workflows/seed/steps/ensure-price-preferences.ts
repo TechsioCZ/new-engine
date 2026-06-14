@@ -10,6 +10,22 @@ type EnsurePricePreferencesStepOutput = {
   targetCount: number
 }
 
+type ExistingPreference = {
+  id: string
+  isTaxInclusive: boolean
+}
+
+type PricePreferencePayload = {
+  attribute: PricePreferenceAttribute
+  value: string
+  is_tax_inclusive: boolean
+}
+
+type PricePreferencePlan = {
+  createPayloads: PricePreferencePayload[]
+  updateIds: string[]
+}
+
 export type EnsurePricePreferencesStepInput = {
   regionIds?: string[]
   currencyCodes?: string[]
@@ -48,6 +64,109 @@ function buildKey(attribute: PricePreferenceAttribute, value: string): string {
   return `${attribute}:${value}`
 }
 
+function uniqueDefinedStrings(values: Array<string | undefined>): string[] {
+  return [...new Set(values.filter(isDefinedString))]
+}
+
+function normalizeRegionIds(regionIds: string[] | undefined): string[] {
+  return uniqueDefinedStrings((regionIds ?? []).map(normalizeId))
+}
+
+function normalizeCurrencyCodes(currencyCodes: string[] | undefined): string[] {
+  return uniqueDefinedStrings((currencyCodes ?? []).map(normalizeCurrencyCode))
+}
+
+function buildExistingPreferenceMap(
+  preferences: Array<{
+    attribute: unknown
+    value: unknown
+    id?: unknown
+    is_tax_inclusive: boolean
+  }>
+): Map<string, ExistingPreference> {
+  const existingByKey = new Map<string, ExistingPreference>()
+
+  for (const preference of preferences) {
+    const attribute = preference.attribute
+    const value = preference.value
+
+    if (
+      (attribute !== "region_id" && attribute !== "currency_code") ||
+      typeof value !== "string" ||
+      typeof preference.id !== "string"
+    ) {
+      continue
+    }
+
+    const normalizedValue =
+      attribute === "currency_code" ? value.toLowerCase() : value
+    existingByKey.set(buildKey(attribute, normalizedValue), {
+      id: preference.id,
+      isTaxInclusive: preference.is_tax_inclusive,
+    })
+  }
+
+  return existingByKey
+}
+
+function addPreferencePlanEntry(params: {
+  plan: PricePreferencePlan
+  existingByKey: Map<string, ExistingPreference>
+  attribute: PricePreferenceAttribute
+  value: string
+  isTaxInclusive: boolean
+}): void {
+  const { plan, existingByKey, attribute, value, isTaxInclusive } = params
+  const existingPreference = existingByKey.get(buildKey(attribute, value))
+
+  if (!existingPreference) {
+    plan.createPayloads.push({
+      attribute,
+      value,
+      is_tax_inclusive: isTaxInclusive,
+    })
+    return
+  }
+
+  if (existingPreference.isTaxInclusive !== isTaxInclusive) {
+    plan.updateIds.push(existingPreference.id)
+  }
+}
+
+function buildPricePreferencePlan(params: {
+  regionIds: string[]
+  currencyCodes: string[]
+  existingByKey: Map<string, ExistingPreference>
+  isTaxInclusive: boolean
+}): PricePreferencePlan {
+  const plan: PricePreferencePlan = {
+    createPayloads: [],
+    updateIds: [],
+  }
+
+  for (const regionId of params.regionIds) {
+    addPreferencePlanEntry({
+      plan,
+      existingByKey: params.existingByKey,
+      attribute: "region_id",
+      value: regionId,
+      isTaxInclusive: params.isTaxInclusive,
+    })
+  }
+
+  for (const currencyCode of params.currencyCodes) {
+    addPreferencePlanEntry({
+      plan,
+      existingByKey: params.existingByKey,
+      attribute: "currency_code",
+      value: currencyCode,
+      isTaxInclusive: params.isTaxInclusive,
+    })
+  }
+
+  return plan
+}
+
 export const ensurePricePreferencesStep = createStep(
   EnsurePricePreferencesStepId,
   async (input: EnsurePricePreferencesStepInput, { container }) => {
@@ -57,18 +176,8 @@ export const ensurePricePreferencesStep = createStep(
     )
 
     const isTaxInclusive = input.isTaxInclusive ?? true
-    const regionIds = [
-      ...new Set(
-        (input.regionIds ?? []).map(normalizeId).filter(isDefinedString)
-      ),
-    ]
-    const currencyCodes = [
-      ...new Set(
-        (input.currencyCodes ?? [])
-          .map(normalizeCurrencyCode)
-          .filter(isDefinedString)
-      ),
-    ]
+    const regionIds = normalizeRegionIds(input.regionIds)
+    const currencyCodes = normalizeCurrencyCodes(input.currencyCodes)
 
     if (regionIds.length === 0 && currencyCodes.length === 0) {
       const output: EnsurePricePreferencesStepOutput = {
@@ -96,76 +205,16 @@ export const ensurePricePreferencesStep = createStep(
           : Promise.resolve([]),
       ])
 
-    const existingByKey = new Map<
-      string,
-      { id: string; isTaxInclusive: boolean }
-    >()
-
-    for (const preference of [
+    const existingByKey = buildExistingPreferenceMap([
       ...existingRegionPreferences,
       ...existingCurrencyPreferences,
-    ]) {
-      const attribute = preference.attribute
-      const value = preference.value
-
-      if (
-        (attribute !== "region_id" && attribute !== "currency_code") ||
-        typeof value !== "string" ||
-        typeof preference.id !== "string"
-      ) {
-        continue
-      }
-
-      const normalizedValue =
-        attribute === "currency_code" ? value.toLowerCase() : value
-      existingByKey.set(buildKey(attribute, normalizedValue), {
-        id: preference.id,
-        isTaxInclusive: preference.is_tax_inclusive,
-      })
-    }
-
-    const createPayloads: Array<{
-      attribute: PricePreferenceAttribute
-      value: string
-      is_tax_inclusive: boolean
-    }> = []
-    const updateIds: string[] = []
-
-    for (const regionId of regionIds) {
-      const key = buildKey("region_id", regionId)
-      const existingPreference = existingByKey.get(key)
-
-      if (!existingPreference) {
-        createPayloads.push({
-          attribute: "region_id",
-          value: regionId,
-          is_tax_inclusive: isTaxInclusive,
-        })
-        continue
-      }
-
-      if (existingPreference.isTaxInclusive !== isTaxInclusive) {
-        updateIds.push(existingPreference.id)
-      }
-    }
-
-    for (const currencyCode of currencyCodes) {
-      const key = buildKey("currency_code", currencyCode)
-      const existingPreference = existingByKey.get(key)
-
-      if (!existingPreference) {
-        createPayloads.push({
-          attribute: "currency_code",
-          value: currencyCode,
-          is_tax_inclusive: isTaxInclusive,
-        })
-        continue
-      }
-
-      if (existingPreference.isTaxInclusive !== isTaxInclusive) {
-        updateIds.push(existingPreference.id)
-      }
-    }
+    ])
+    const { createPayloads, updateIds } = buildPricePreferencePlan({
+      regionIds,
+      currencyCodes,
+      existingByKey,
+      isTaxInclusive,
+    })
 
     if (createPayloads.length > 0) {
       await pricingService.createPricePreferences(createPayloads)

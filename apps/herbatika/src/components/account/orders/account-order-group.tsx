@@ -1,8 +1,8 @@
-import type { HttpTypes } from "@medusajs/types";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import NextImage from "next/image";
-import NextLink from "next/link";
+import type { HttpTypes } from "@medusajs/types"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import NextImage from "next/image"
+import NextLink from "next/link"
 import {
   formatOrderAmount,
   formatOrderDate,
@@ -12,29 +12,30 @@ import {
   resolveOrderItemTotalAmount,
   resolveOrderProgressState,
   resolveOrderTotalAmount,
-} from "@/lib/storefront/order-format";
+} from "@/lib/storefront/order-format"
 
 type AccountOrderGroupProps = {
-  order: HttpTypes.StoreOrder;
-  onPrefetchOrderDetail: (orderId: string) => void;
-};
+  order: HttpTypes.StoreOrder
+  onPrefetchOrderDetail: (orderId: string) => void
+}
 
 export function AccountOrderGroup({
   order,
   onPrefetchOrderDetail,
 }: AccountOrderGroupProps) {
-  const detailHref = `/account/orders/${order.id}`;
-  const invoiceUrl = resolveOrderInvoiceUrl(order);
-  const orderTotalAmount = resolveOrderTotalAmount(order);
-  const orderProgress = resolveOrderProgressState(order);
-  const orderItems = order.items ?? [];
-  const orderItemCount = orderItems.reduce((count, item) => {
-    return count + resolveOrderItemQuantity(item);
-  }, 0);
+  const detailHref = `/account/orders/${order.id}`
+  const invoiceUrl = resolveOrderInvoiceUrl(order)
+  const orderTotalAmount = resolveOrderTotalAmount(order)
+  const orderProgress = resolveOrderProgressState(order)
+  const orderItems = order.items ?? []
+  const orderItemCount = orderItems.reduce(
+    (count, item) => count + resolveOrderItemQuantity(item),
+    0
+  )
   const desktopGridColumns =
-    "lg:grid-cols-[minmax(0,1fr)_max-content_max-content]";
+    "lg:grid-cols-[minmax(0,1fr)_max-content_max-content]"
   const desktopSubgridColumns =
-    "lg:supports-[grid-template-columns:subgrid]:grid-cols-subgrid";
+    "lg:supports-[grid-template-columns:subgrid]:grid-cols-subgrid"
 
   return (
     <article
@@ -45,16 +46,16 @@ export function AccountOrderGroup({
       >
         <section className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-order-group-lg gap-y-order-group-sm">
-            <p className="text-order-group-fg-primary text-order-group-primary-size font-semibold">
+            <p className="font-semibold text-order-group-fg-primary text-order-group-primary-size">
               {resolveOrderDisplayId(order)}
             </p>
             <p className="text-order-group-fg-secondary text-order-group-secondary-size">
               {formatOrderDate(order.created_at)}
             </p>
             <Badge
-              variant={orderProgress.variant}
+              className="whitespace-nowrap px-150"
               size="sm"
-              className="px-150 whitespace-nowrap"
+              variant={orderProgress.variant}
             >
               {orderProgress.label}
             </Badge>
@@ -68,7 +69,7 @@ export function AccountOrderGroup({
         </section>
 
         <section className="leading-none lg:justify-self-end lg:text-start">
-          <p className="text-order-group-fg-tertiary text-order-group-tertiary-size font-medium uppercase">
+          <p className="font-medium text-order-group-fg-tertiary text-order-group-tertiary-size uppercase">
             Celková suma
           </p>
           <p className="font-semibold">
@@ -94,10 +95,10 @@ export function AccountOrderGroup({
             as={NextLink}
             href={detailHref}
             onFocus={() => {
-              onPrefetchOrderDetail(order.id);
+              onPrefetchOrderDetail(order.id)
             }}
             onMouseEnter={() => {
-              onPrefetchOrderDetail(order.id);
+              onPrefetchOrderDetail(order.id)
             }}
             size="sm"
             variant="secondary"
@@ -112,7 +113,7 @@ export function AccountOrderGroup({
       >
         <p>Produkt</p>
         <p className="text-start">Cena</p>
-        <p className="text-end pr-500">Info</p>
+        <p className="pr-500 text-end">Info</p>
       </div>
 
       {orderItems.length > 0 ? (
@@ -120,8 +121,8 @@ export function AccountOrderGroup({
           className={`hidden lg:col-span-3 lg:grid ${desktopGridColumns} ${desktopSubgridColumns}`}
         >
           {orderItems.map((item) => {
-            const itemQuantity = resolveOrderItemQuantity(item);
-            const lineTotal = resolveOrderItemTotalAmount(item);
+            const itemQuantity = resolveOrderItemQuantity(item)
+            const lineTotal = resolveOrderItemTotalAmount(item)
 
             return (
               <li
@@ -133,16 +134,16 @@ export function AccountOrderGroup({
                     {item.thumbnail ? (
                       <NextImage
                         alt={item.title ?? "Produkt"}
-                        width={32}
-                        height={32}
                         className="object-cover"
+                        height={32}
                         loading="lazy"
                         src={item.thumbnail}
+                        width={32}
                       />
                     ) : null}
 
                     <div className="min-w-0">
-                      <p className="line-clamp-2 text-order-group-fg-primary text-order-group-secondary-size font-medium">
+                      <p className="line-clamp-2 font-medium text-order-group-fg-primary text-order-group-secondary-size">
                         {item.title ?? "-"}
                       </p>
                       {item.variant_title ? (
@@ -155,7 +156,7 @@ export function AccountOrderGroup({
                 </div>
 
                 <div className="min-w-fit text-start lg:justify-self-start">
-                  <p className="text-order-group-fg-primary text-order-group-secondary-size font-medium">
+                  <p className="font-medium text-order-group-fg-primary text-order-group-secondary-size">
                     {formatOrderAmount(lineTotal, order.currency_code)}
                   </p>
                   <p className="text-order-group-fg-secondary text-order-group-secondary-size">{`Množstvo: ${itemQuantity}`}</p>
@@ -166,10 +167,10 @@ export function AccountOrderGroup({
                     as={NextLink}
                     href={`/p/${item.product_handle}`}
                     onFocus={() => {
-                      onPrefetchOrderDetail(order.id);
+                      onPrefetchOrderDetail(order.id)
                     }}
                     onMouseEnter={() => {
-                      onPrefetchOrderDetail(order.id);
+                      onPrefetchOrderDetail(order.id)
                     }}
                     size="sm"
                     theme="outlined"
@@ -179,7 +180,7 @@ export function AccountOrderGroup({
                   </LinkButton>
                 </div>
               </li>
-            );
+            )
           })}
         </ul>
       ) : (
@@ -191,8 +192,8 @@ export function AccountOrderGroup({
       <div className="p-order-group-order-group-2xl lg:hidden">
         {orderItems.length > 0 ? (
           orderItems.map((item) => {
-            const itemQuantity = resolveOrderItemQuantity(item);
-            const lineTotal = resolveOrderItemTotalAmount(item);
+            const itemQuantity = resolveOrderItemQuantity(item)
+            const lineTotal = resolveOrderItemTotalAmount(item)
 
             return (
               <article
@@ -203,18 +204,18 @@ export function AccountOrderGroup({
                   {item.thumbnail ? (
                     <NextImage
                       alt={item.title ?? "Produkt"}
-                      width={32}
-                      height={32}
                       className="shrink-0 object-cover"
+                      height={32}
                       loading="lazy"
                       src={item.thumbnail}
+                      width={32}
                     />
                   ) : null}
 
                   <div className="min-w-0 flex-1 space-y-order-group-md">
                     <div className="flex items-start justify-between gap-order-group-lg">
                       <div className="min-w-0">
-                        <p className="line-clamp-2 text-order-group-fg-primary text-order-group-secondary-size font-medium">
+                        <p className="line-clamp-2 font-medium text-order-group-fg-primary text-order-group-secondary-size">
                           {item.title ?? "-"}
                         </p>
                         {item.variant_title && (
@@ -224,7 +225,7 @@ export function AccountOrderGroup({
                         )}
                       </div>
 
-                      <p className="shrink-0 text-order-group-fg-primary text-order-group-secondary-size font-semibold">
+                      <p className="shrink-0 font-semibold text-order-group-fg-primary text-order-group-secondary-size">
                         {formatOrderAmount(lineTotal, order.currency_code)}
                       </p>
                     </div>
@@ -233,7 +234,7 @@ export function AccountOrderGroup({
                   </div>
                 </div>
               </article>
-            );
+            )
           })
         ) : (
           <p className="text-order-group-fg-secondary text-order-group-secondary-size">
@@ -242,5 +243,5 @@ export function AccountOrderGroup({
         )}
       </div>
     </article>
-  );
+  )
 }

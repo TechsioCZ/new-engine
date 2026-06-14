@@ -26,7 +26,7 @@ export type SelectItem = {
 
 const selectVariants = tv({
   slots: {
-    root: ["relative", "flex flex-col gap-select-root", "w-full"],
+    root: ["relative", "flex flex-col gap-select", "w-full"],
     control: ["relative flex items-center justify-between", "w-full"],
     positioner: ["w-(--reference-width)", "isolate z-(--z-index)"],
     trigger: [
@@ -47,15 +47,15 @@ const selectVariants = tv({
       "data-[disabled]:text-select-fg-disabled",
       "data-[disabled]:border-select-border-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
-      "data-[validation=error]:border-select-danger data-[validation=error]:outline-select-danger",
+      "data-[validation=error]:border-select-border-error data-[validation=error]:outline-select-border-error",
       "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
       "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=success]:border-(length:--border-width-validation)",
-      "data-[validation=success]:border-select-success data-[validation=success]:outline-select-success",
+      "data-[validation=success]:border-select-border-success data-[validation=success]:outline-select-border-success",
       "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
       "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=warning]:border-(length:--border-width-validation)",
-      "data-[validation=warning]:border-select-warning data-[validation=warning]:outline-select-warning",
+      "data-[validation=warning]:border-select-border-warning data-[validation=warning]:outline-select-border-warning",
       "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
@@ -85,20 +85,20 @@ const selectVariants = tv({
     ],
     item: [
       "flex items-center justify-between",
-      "cursor-pointer bg-select-item-bg",
+      "cursor-pointer bg-select-item-bg-base",
       "p-select-item",
-      "text-select-item-fg",
+      "text-select-item-fg-base",
       "hover:bg-select-item-bg-hover",
       "data-[highlighted]:bg-select-item-bg-hover",
       "data-[state=checked]:bg-select-item-bg-selected",
-      "data-[state=checked]:text-select-item-selected-fg",
+      "data-[state=checked]:text-select-item-fg-selected",
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-select-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
     itemIndicator: ["text-select-indicator"],
     itemText: ["flex-grow"],
     itemGroup: [""],
-    itemGroupLabel: ["px-select-item", "font-medium text-select-fg-disabled"],
+    itemGroupLabel: ["px-select-item-x", "font-medium text-select-fg-disabled"],
     valueText: [
       "flex-grow truncate font-normal",
       "data-[placeholder]:font-normal data-[placeholder]:text-select-placeholder",
@@ -338,7 +338,7 @@ Select.Trigger = function SelectTrigger({
     >
       {children}
       <Icon
-        className={`text-select-trigger group-hover:text-select-trigger-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+        className={`text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
           api.open ? "rotate-180" : "rotate-0"
         }`}
         icon="token-icon-select-indicator"

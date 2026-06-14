@@ -13,6 +13,10 @@ import type { FormEvent } from "react"
 import { useEffect, useState } from "react"
 import { sdk } from "../../../lib/sdk"
 
+export const handle = {
+  breadcrumb: () => "QR platby",
+}
+
 type QrPaymentConfigResponse = {
   id: string
   iban: string | null

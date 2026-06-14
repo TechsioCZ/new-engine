@@ -8,7 +8,9 @@ export const DEFAULT_PUBLISHABLE_KEY_TITLE = "Storefront Publishable Key"
 const PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS = 5
 const PUBLISHABLE_KEY_LOCK_PREFIX = "publishable-key:provision"
 
-type ListedApiKey = Awaited<ReturnType<IApiKeyModuleService["listApiKeys"]>>[number]
+type ListedApiKey = Awaited<
+  ReturnType<IApiKeyModuleService["listApiKeys"]>
+>[number]
 type CreatedApiKey = Awaited<ReturnType<IApiKeyModuleService["createApiKeys"]>>
 
 type PublishableApiKey = ListedApiKey | CreatedApiKey

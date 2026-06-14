@@ -1,11 +1,11 @@
 @theme inline {
-    --color-radio-group-item-control-bg-hover: var(--color-highlight);    --color-radio-group-item-control-border-hover: var(--color-border-primary);
-    --color-radio-group-item-control-border-subtle-checked: var(--color-primary);
-    --color-radio-group-item-control-border-hover: var(--color-border-primary);
+  --color-radio-group-item-control-bg-hover: var(--color-highlight);
+  --color-radio-group-item-control-border-hover: var(--color-border-primary);
+  --color-radio-group-item-control-border-subtle-checked: var(--color-primary);
+  --color-radio-group-item-control-border-hover: var(--color-border-primary);
 
-    --gap-radio-group-items-horizontal-sm: var(--spacing-500);
+  --gap-radio-group-items-horizontal-sm: var(--spacing-500);
 
-    --spacing-radio-group-control-sm: 0.875rem;
-    --spacing-radio-group-indicator-sm: 0.75rem;
+  --spacing-radio-group-control-sm: 0.875rem;
+  --spacing-radio-group-indicator-sm: 0.75rem;
 }
-

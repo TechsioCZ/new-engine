@@ -1,13 +1,13 @@
-"use client";
+"use client"
 
-import { Badge } from "@techsio/ui-kit/atoms/badge";
+import { Badge } from "@techsio/ui-kit/atoms/badge"
 
 type SearchToolbarProps = {
-  query: string;
-  estimatedTotalHits: number;
-  hitsCount: number;
-  pageBadgeLabel: string;
-};
+  query: string
+  estimatedTotalHits: number
+  hitsCount: number
+  pageBadgeLabel: string
+}
 
 export function SearchToolbar({
   query,
@@ -18,8 +18,8 @@ export function SearchToolbar({
   return (
     <>
       <div className="space-y-200">
-        <h1 className="text-2xl font-bold text-fg-primary">Vyhľadávanie</h1>
-        <p className="text-sm text-fg-secondary">
+        <h1 className="font-bold text-2xl text-fg-primary">Vyhľadávanie</h1>
+        <p className="text-fg-secondary text-sm">
           Vyhľadajte produkty v katalógu.
         </p>
       </div>
@@ -33,5 +33,5 @@ export function SearchToolbar({
         </div>
       ) : null}
     </>
-  );
+  )
 }

@@ -9,12 +9,12 @@ const normalizeComparableString = (
   lowercase = false
 ): string | undefined => {
   if (typeof value !== "string") {
-    return 
+    return
   }
 
   const normalized = value.trim()
   if (!normalized) {
-    return 
+    return
   }
 
   return lowercase ? normalized.toLowerCase() : normalized
@@ -24,7 +24,7 @@ const pickNewestAddress = <T extends HttpTypes.StoreCustomerAddress>(
   addresses: T[]
 ): T | undefined => {
   if (addresses.length === 0) {
-    return 
+    return
   }
 
   return [...addresses].sort((left, right) => {
@@ -88,10 +88,9 @@ const addressMatchesCreateInput = (
     }
   }
 
-  const booleanComparisons: Array<"is_default_shipping" | "is_default_billing"> = [
-    "is_default_shipping",
-    "is_default_billing",
-  ]
+  const booleanComparisons: Array<
+    "is_default_shipping" | "is_default_billing"
+  > = ["is_default_shipping", "is_default_billing"]
 
   for (const key of booleanComparisons) {
     const expected = input[key]

@@ -1,11 +1,9 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import {
-  createMedusaStorefrontPreset,
-} from "@techsio/storefront-data/medusa/preset";
-import { storefrontSdk } from "./sdk";
-import { storefrontDefinition } from "./storefront-definition";
+import type { HttpTypes } from "@medusajs/types"
+import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
+import { storefrontSdk } from "./sdk"
+import { storefrontDefinition } from "./storefront-definition"
 
 export const storefront = createMedusaStorefrontPreset<
   HttpTypes.StoreProduct,
@@ -60,4 +58,4 @@ export const storefront = createMedusaStorefrontPreset<
     serviceConfig: storefrontDefinition.catalog.serviceConfig,
     hooks: storefrontDefinition.catalog.hooks,
   },
-});
+})

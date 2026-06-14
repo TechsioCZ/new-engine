@@ -1,5 +1,5 @@
-"use client";
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton";
+"use client"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
 export function AuthPageSkeletonCard() {
   return (
@@ -8,10 +8,8 @@ export function AuthPageSkeletonCard() {
       <div className="space-y-250">
         {Array.from({ length: 2 }, (_, index) => (
           <div className="space-y-150" key={`auth-field-skeleton-${index + 1}`}>
-          <Skeleton.Text noOfLines={1} size="sm" containerClassName="w-24" />
-          <Skeleton.Rectangle
-            className="h-8 rounded-sm"
-          />
+            <Skeleton.Text containerClassName="w-24" noOfLines={1} size="sm" />
+            <Skeleton.Rectangle className="h-8 rounded-sm" />
           </div>
         ))}
       </div>
@@ -20,14 +18,13 @@ export function AuthPageSkeletonCard() {
         <Skeleton.Rectangle className="h-600 w-24 rounded-xs" />
       </div>
     </section>
-  );
+  )
 }
-
 
 export function AuthPageSkeleton() {
   return (
     <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
       <AuthPageSkeletonCard />
     </main>
-  );
+  )
 }

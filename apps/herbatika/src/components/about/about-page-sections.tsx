@@ -1,41 +1,53 @@
-import NextLink from "next/link";
-import { Fragment } from "react";
-import { ABOUT_PAGE } from "./about-page.data";
+import NextLink from "next/link"
+import { Fragment } from "react"
+import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
   AboutParagraphText,
-  SectionHeader,
   aboutParagraphClassName,
-} from "./about-page.shared";
-import { AboutReviewRating } from "./about-review-rating";
+  SectionHeader,
+} from "./about-page.shared"
+import { AboutReviewRating } from "./about-review-rating"
 
 const iconLinkClassName =
-  "inline-flex h-800 w-800 items-center justify-center rounded-full border border-border-secondary bg-surface text-fg-primary transition-colors hover:border-primary hover:bg-primary-light";
+  "inline-flex h-800 w-800 items-center justify-center rounded-full border border-border-secondary bg-surface text-fg-primary transition-colors hover:border-primary hover:bg-primary-light"
+
+function getAboutParagraphKey(paragraph: AboutParagraph) {
+  if (typeof paragraph === "string") {
+    return paragraph
+  }
+
+  return paragraph
+    .map((part) =>
+      typeof part === "string" ? part : `${part.label}:${part.href}`
+    )
+    .join("|")
+}
 
 function AboutLogoMeaning() {
   return (
     <section className="border-border-secondary border-t pt-650">
       <div className="max-w-5xl border-primary border-l-4 pl-400">
-        {ABOUT_PAGE.logoMeaning.paragraphs.map((paragraph, index) => (
+        {ABOUT_PAGE.logoMeaning.paragraphs.map((paragraph) => (
           <AboutParagraphText
-            key={`logo-meaning-${index}`}
+            key={`logo-meaning-${getAboutParagraphKey(paragraph)}`}
             paragraph={paragraph}
           />
         ))}
       </div>
     </section>
-  );
+  )
 }
 
 export function AboutArticleSections({
   group = "beforeMilestones",
 }: {
-  group?: "afterMilestones" | "beforeMilestones";
+  group?: "afterMilestones" | "beforeMilestones"
 }) {
   const sections =
     group === "beforeMilestones"
       ? ABOUT_PAGE.sections.slice(0, 3)
-      : ABOUT_PAGE.sections.slice(3);
+      : ABOUT_PAGE.sections.slice(3)
 
   return (
     <div className="space-y-650">
@@ -45,18 +57,16 @@ export function AboutArticleSections({
             <div className="max-w-5xl space-y-300">
               <SectionHeader title={section.title} />
               <div className="space-y-300">
-                {section.paragraphs.map((paragraph, paragraphIndex) => (
+                {section.paragraphs.map((paragraph) => (
                   <AboutParagraphText
-                    key={`${section.title}-${paragraphIndex}`}
+                    key={`${section.title}-${getAboutParagraphKey(paragraph)}`}
                     paragraph={paragraph}
                   />
                 ))}
               </div>
             </div>
 
-            {section.image ? (
-              <AboutImageFrame image={section.image} />
-            ) : null}
+            {section.image ? <AboutImageFrame image={section.image} /> : null}
           </section>
 
           {group === "beforeMilestones" && index === 0 ? (
@@ -65,7 +75,7 @@ export function AboutArticleSections({
         </Fragment>
       ))}
     </div>
-  );
+  )
 }
 
 export function AboutMilestones() {
@@ -73,12 +83,12 @@ export function AboutMilestones() {
     <section className="space-y-400 border-border-secondary border-t pt-650">
       <SectionHeader title="Kľúčové míľniky našej histórie" />
       <ol className="space-y-250">
-        {ABOUT_PAGE.milestones.map((milestone, index) => (
+        {ABOUT_PAGE.milestones.map((milestone) => (
           <li
             className="grid gap-150 border-border-secondary border-t py-250 first:border-t-0 sm:grid-cols-[5rem_minmax(0,1fr)]"
-            key={`${milestone.year}-${index}`}
+            key={`${milestone.year}-${getAboutParagraphKey(milestone.description)}`}
           >
-            <p className="text-xl leading-tight font-bold text-primary">
+            <p className="font-bold text-primary text-xl leading-tight">
               {milestone.year}
             </p>
             <AboutParagraphText paragraph={milestone.description} />
@@ -86,15 +96,15 @@ export function AboutMilestones() {
         ))}
       </ol>
     </section>
-  );
+  )
 }
 
 export function AboutClosingStatement() {
   return (
-    <p className="mx-auto max-w-5xl text-center text-2xl leading-snug font-bold text-primary">
+    <p className="mx-auto max-w-5xl text-center font-bold text-2xl text-primary leading-snug">
       {ABOUT_PAGE.closingStatement}
     </p>
-  );
+  )
 }
 
 export function AboutPrinciples() {
@@ -102,7 +112,7 @@ export function AboutPrinciples() {
     <section className="grid gap-500 border-border-secondary border-t pt-650 md:grid-cols-3">
       {ABOUT_PAGE.principles.map((principle) => (
         <article className="space-y-250" key={principle.title}>
-          <h2 className="flex items-center gap-200 text-2xl leading-tight font-bold text-fg-primary">
+          <h2 className="flex items-center gap-200 font-bold text-2xl text-fg-primary leading-tight">
             <span
               aria-hidden="true"
               className="token-icon-leaf text-icon-lg text-primary"
@@ -113,7 +123,7 @@ export function AboutPrinciples() {
         </article>
       ))}
     </section>
-  );
+  )
 }
 
 function AboutSocialLinks() {
@@ -128,15 +138,12 @@ function AboutSocialLinks() {
             rel="noreferrer noopener"
             target="_blank"
           >
-            <span
-              aria-hidden="true"
-              className={`${link.icon} text-icon-lg`}
-            />
+            <span aria-hidden="true" className={`${link.icon} text-icon-lg`} />
           </NextLink>
         </li>
       ))}
     </ul>
-  );
+  )
 }
 
 export function AboutCommunityAndReviews() {
@@ -144,9 +151,9 @@ export function AboutCommunityAndReviews() {
     <div className="space-y-650 border-border-secondary border-t pt-650">
       <div className="grid gap-500 lg:grid-cols-2">
         <div className="space-y-300">
-          {ABOUT_PAGE.follow.paragraphs.map((paragraph, index) => (
+          {ABOUT_PAGE.follow.paragraphs.map((paragraph) => (
             <AboutParagraphText
-              key={`follow-${index}`}
+              key={`follow-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
             />
           ))}
@@ -154,9 +161,9 @@ export function AboutCommunityAndReviews() {
         </div>
 
         <div className="space-y-300">
-          {ABOUT_PAGE.loyalty.paragraphs.map((paragraph, index) => (
+          {ABOUT_PAGE.loyalty.paragraphs.map((paragraph) => (
             <AboutParagraphText
-              key={`loyalty-${index}`}
+              key={`loyalty-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
             />
           ))}
@@ -165,16 +172,16 @@ export function AboutCommunityAndReviews() {
 
       <section className="space-y-300">
         <SectionHeader title={ABOUT_PAGE.reviews.title} />
-        {ABOUT_PAGE.reviews.paragraphs.map((paragraph, index) => (
+        {ABOUT_PAGE.reviews.paragraphs.map((paragraph) => (
           <AboutParagraphText
-            key={`reviews-${index}`}
+            key={`reviews-${getAboutParagraphKey(paragraph)}`}
             paragraph={paragraph}
           />
         ))}
         <AboutReviewRating />
       </section>
     </div>
-  );
+  )
 }
 
 export function AboutContact() {
@@ -183,9 +190,9 @@ export function AboutContact() {
       <div className="space-y-350">
         <SectionHeader title={ABOUT_PAGE.contact.title} />
         <div className="space-y-300">
-          {ABOUT_PAGE.contact.paragraphs.map((paragraph, index) => (
+          {ABOUT_PAGE.contact.paragraphs.map((paragraph) => (
             <AboutParagraphText
-              key={`contact-${index}`}
+              key={`contact-${getAboutParagraphKey(paragraph)}`}
               paragraph={paragraph}
             />
           ))}
@@ -193,15 +200,15 @@ export function AboutContact() {
       </div>
 
       <address className="not-italic">
-        <h3 className="mb-250 text-lg leading-tight font-bold text-fg-primary">
+        <h3 className="mb-250 font-bold text-fg-primary text-lg leading-tight">
           Prevádzkovateľ internetového obchodu
         </h3>
-        <ul className="space-y-100 font-verdana text-md leading-relaxed text-fg-secondary">
+        <ul className="space-y-100 font-verdana text-fg-secondary text-md leading-relaxed">
           {ABOUT_PAGE.contact.companyDetails.map((detail) => (
             <li key={detail}>{detail}</li>
           ))}
         </ul>
       </address>
     </section>
-  );
+  )
 }

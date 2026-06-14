@@ -1,42 +1,16 @@
+/*
+ * Popover — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--arrow-size` / `--arrow-background` — Zag.js requires these exact
+ *     CSS variable names; they alias the Figma popover tokens.
+ *   - `--padding-popover-trigger` — composite x/y shorthand (Figma has no
+ *     composite paddings; queued for figma-additions as split x/y).
+ */
+
 @theme static {
-  /* === ZAG.JS SPECIFIC TOKENS === */
-  /* These tokens are used directly by Zag.js library */
-  --arrow-size: var(--spacing-150);
-  --arrow-background: var(--color-popover-bg);
+  --arrow-size: var(--spacing-popover-arrow-size);
+  --arrow-background: var(--color-popover-arrow);
 
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-popover-bg: var(--color-overlay);
-
-  /* Foreground colors */
-  --color-popover-fg: var(--color-fg-primary);
-  --color-popover-description-fg: var(--color-fg-secondary);
-
-  /* Border colors */
-  --color-popover-border: var(--color-highlight);
-
-  /* Close trigger colors */
-  --color-popover-close-trigger-fg: var(--color-popover-fg);
-
-  /* === SPACING === */
-  --spacing-popover-sm: var(--spacing-200);
-  --spacing-popover-md: var(--spacing-250);
-  --spacing-popover-lg: var(--spacing-350);
-  --spacing-popover-title-mb: var(--spacing-150);
-
-  /* Composite spacing */
   --padding-popover-trigger: var(--spacing-100) var(--spacing-150);
-
-  /* === TYPOGRAPHY === */
-  --text-popover-title-sm: var(--text-md);
-  --text-popover-title-md: var(--text-lg);
-  --text-popover-title-lg: var(--text-xl);
-  --text-popover-description-size: var(--text-sm);
-  --font-weight-popover-title: var(--font-weight-semibold);
-
-  /* === BORDERS & RADIUS === */
-  --radius-popover: var(--radius-sm);
-
-  /* === SHADOWS === */
-  --shadow-popover: var(--shadow-primary);
 }

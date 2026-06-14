@@ -1,46 +1,46 @@
-import { PLP_PAGE_SIZE } from "../plp-config";
-import type { CatalogQueryState } from "./parsers";
-import { normalizePriceRange, toNonEmptyArray } from "./utils";
+import { PLP_PAGE_SIZE } from "../plp-config"
+import type { CatalogQueryState } from "./parsers"
+import { normalizePriceRange, toNonEmptyArray } from "./utils"
 
 type BuildCatalogProductsParamsInput = {
-  queryState: CatalogQueryState;
-  categoryIds?: string[];
-  limit?: number;
-  regionId?: string;
-  countryCode?: string;
-  currencyCode?: string;
-};
+  queryState: CatalogQueryState
+  categoryIds?: string[]
+  limit?: number
+  regionId?: string
+  countryCode?: string
+  currencyCode?: string
+}
 
 export type CatalogProductsParams = {
-  q?: string;
-  page: number;
-  limit: number;
-  sort: CatalogQueryState["sort"];
-  category_id?: string[];
-  status?: string[];
-  form?: string[];
-  brand?: string[];
-  ingredient?: string[];
-  price_min?: number;
-  price_max?: number;
-  region_id?: string;
-  country_code?: string;
-  currency_code?: string;
-};
+  q?: string
+  page: number
+  limit: number
+  sort: CatalogQueryState["sort"]
+  category_id?: string[]
+  status?: string[]
+  form?: string[]
+  brand?: string[]
+  ingredient?: string[]
+  price_min?: number
+  price_max?: number
+  region_id?: string
+  country_code?: string
+  currency_code?: string
+}
 
 export const resolveCatalogPriceBounds = (priceFacet: {
-  min: number | null;
-  max: number | null;
+  min: number | null
+  max: number | null
 }) => {
   if (priceFacet.min === null && priceFacet.max === null) {
-    return null;
+    return null
   }
 
   return {
     min: priceFacet.min ?? 0,
     max: priceFacet.max ?? priceFacet.min ?? 1,
-  };
-};
+  }
+}
 
 export const buildCatalogProductsParams = ({
   queryState,
@@ -50,11 +50,11 @@ export const buildCatalogProductsParams = ({
   countryCode,
   currencyCode,
 }: BuildCatalogProductsParamsInput): CatalogProductsParams => {
-  const normalizedSearchQuery = queryState.q.trim();
+  const normalizedSearchQuery = queryState.q.trim()
   const normalizedPriceRange = normalizePriceRange(
     queryState.price_min,
-    queryState.price_max,
-  );
+    queryState.price_max
+  )
 
   const params: CatalogProductsParams = {
     q: normalizedSearchQuery || undefined,
@@ -68,30 +68,30 @@ export const buildCatalogProductsParams = ({
     ingredient: toNonEmptyArray(queryState.ingredient),
     price_min: normalizedPriceRange.min,
     price_max: normalizedPriceRange.max,
-  };
+  }
 
   if (regionId) {
-    params.region_id = regionId;
+    params.region_id = regionId
   }
 
   if (countryCode) {
-    params.country_code = countryCode;
+    params.country_code = countryCode
   }
 
   if (currencyCode) {
-    params.currency_code = currencyCode;
+    params.currency_code = currencyCode
   }
 
-  return params;
-};
+  return params
+}
 
 export const resolveCatalogActiveFilterCount = (
-  queryState: CatalogQueryState,
+  queryState: CatalogQueryState
 ): number => {
   const normalizedPriceRange = normalizePriceRange(
     queryState.price_min,
-    queryState.price_max,
-  );
+    queryState.price_max
+  )
 
   return (
     (normalizedPriceRange.min !== undefined ||
@@ -102,5 +102,5 @@ export const resolveCatalogActiveFilterCount = (
     queryState.form.length +
     queryState.brand.length +
     queryState.ingredient.length
-  );
-};
+  )
+}

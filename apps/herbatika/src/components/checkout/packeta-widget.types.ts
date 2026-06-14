@@ -22,71 +22,72 @@ export type PacketaWidgetLanguage =
   | "sk"
   | "sl"
   | "sv"
-  | "uk";
+  | "uk"
 
 export type PacketaWidgetVendor = {
-  carrierId?: string;
-  country?: string;
-  currency?: string;
-  group?: "" | "alzabox" | "zbox";
-  price?: number;
-  selected?: boolean;
-};
+  carrierId?: string
+  country?: string
+  currency?: string
+  group?: "" | "alzabox" | "zbox"
+  price?: number
+  selected?: boolean
+}
 
 export type PacketaWidgetOptions = {
-  appIdentity?: string;
-  country?: string;
-  defaultCurrency?: string;
-  defaultPrice?: number;
-  language?: PacketaWidgetLanguage;
-  latitude?: number;
-  longitude?: number;
-  vendors?: PacketaWidgetVendor[];
-  webUrl?: string;
-  weight?: number;
-};
+  appIdentity?: string
+  country?: string
+  defaultCurrency?: string
+  defaultPrice?: number
+  language?: PacketaWidgetLanguage
+  latitude?: number
+  longitude?: number
+  vendors?: PacketaWidgetVendor[]
+  webUrl?: string
+  weight?: number
+}
 
 export type PacketaPickupPoint = {
-  carrierId?: string | null;
-  carrierPickupPointId?: string | null;
-  city?: string | null;
-  country?: string | null;
-  error?: string | null;
-  gps?: { lat?: number; lon?: number } | null;
-  group?: string | null;
-  id?: string | null;
-  name?: string | null;
-  pickupPointType?: string | null;
-  place?: string | null;
-  street?: string | null;
-  warning?: string | null;
-  zip?: string | null;
-};
+  carrierId?: string | null
+  carrierPickupPointId?: string | null
+  city?: string | null
+  country?: string | null
+  error?: string | null
+  gps?: { lat?: number; lon?: number } | null
+  group?: string | null
+  id?: string | null
+  name?: string | null
+  pickupPointType?: string | null
+  place?: string | null
+  street?: string | null
+  warning?: string | null
+  zip?: string | null
+}
 
 export type PacketaWidgetError = {
-  code: string;
-  message: string;
-};
+  code: string
+  message: string
+}
 
 export type PacketaWidgetHandle = {
-  close: () => void;
-  open: () => void;
-};
+  close: () => void
+  open: () => void
+}
 
 export type PacketaWidgetGlobal = {
   Widget: {
-    close: () => void;
+    close: () => void
     pick: (
       apiKey: string,
       callback: (point: PacketaPickupPoint | null) => void,
       options?: PacketaWidgetOptions,
-      inElement?: HTMLElement,
-    ) => void;
-  };
-};
+      inElement?: HTMLElement
+    ) => void
+  }
+}
 
 declare global {
+  // biome-ignore lint/style/useConsistentTypeDefinitions: Window augmentation requires interface merging.
   interface Window {
-    Packeta?: PacketaWidgetGlobal;
+    Packeta?: PacketaWidgetGlobal
   }
 }

@@ -1,48 +1,47 @@
-"use client";
-import NextImage from "next/image";
-import { Badge } from "@techsio/ui-kit/atoms/badge";
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { ProductCard } from "@techsio/ui-kit/molecules/product-card";
-import NextLink from "next/link";
+"use client"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
+import NextImage from "next/image"
+import NextLink from "next/link"
 import {
   type HerbatikaProductCardBaseProps,
   useHerbatikaProductCardState,
-} from "@/components/herbatika-product-card.shared";
-import { resolveDescription } from "@/components/product-card/product-card.description";
-import { resolveFlags } from "@/components/product-card/product-card.flags";
-import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing";
-import { resolveVariantInventoryState } from "@/lib/storefront/product-availability";
-
-export { getProductPriceLabel } from "@/components/product-card/product-card.pricing";
+} from "@/components/herbatika-product-card.shared"
+import { resolveDescription } from "@/components/product-card/product-card.description"
+import { resolveFlags } from "@/components/product-card/product-card.flags"
+import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 
 export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
-  isAdding: boolean;
+  isAdding: boolean
   onAddToCart: (
-    product: HerbatikaProductCardBaseProps["product"],
-  ) => Promise<void> | void;
-  descriptionOverride?: string | null;
-};
+    product: HerbatikaProductCardBaseProps["product"]
+  ) => Promise<void> | void
+  descriptionOverride?: string | null
+}
 
 export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
-  const { product, onProductHoverStart, onProductHoverEnd } = props;
-  const { descriptionOverride, isAdding, onAddToCart } = props;
+  const { product, onProductHoverStart, onProductHoverEnd } = props
+  const { descriptionOverride, isAdding, onAddToCart } = props
   const { handleImageError, imageSrc, price, productHref, title } =
-    useHerbatikaProductCardState(product);
-  const defaultVariant = product.variants?.[0] ?? null;
-  const defaultVariantInventory = resolveVariantInventoryState(defaultVariant);
+    useHerbatikaProductCardState(product)
+  const defaultVariant = product.variants?.[0] ?? null
+  const defaultVariantInventory = resolveVariantInventoryState(defaultVariant)
   const canAddToCart =
     defaultVariantInventory.isPurchasable &&
-    typeof price.currentAmount === "number";
-  const discountLabel = resolveDiscountLabel(price);
-  const flags = resolveFlags(product, Boolean(discountLabel));
+    typeof price.currentAmount === "number"
+  const discountLabel = resolveDiscountLabel(price)
+  const flags = resolveFlags(product, Boolean(discountLabel))
   const description =
     descriptionOverride && descriptionOverride.trim().length > 0
       ? descriptionOverride
-      : resolveDescription(product);
+      : resolveDescription(product)
 
   return (
     <ProductCard className="h-full min-w-0">
-      <div className="flex relative justify-center pb-250">
+      <div className="relative flex justify-center pb-250">
         <NextLink
           className="block w-full"
           href={productHref}
@@ -52,14 +51,14 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
           onMouseLeave={() => onProductHoverEnd?.(product)}
         >
           <ProductCard.Image
-            as={NextImage}
             alt={title}
+            as={NextImage}
+            className="h-product-card-image w-full object-contain"
+            height={320}
+            onError={handleImageError}
+            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
             src={imageSrc}
             width={320}
-            height={320}
-            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
-            className="h-product-card-image w-full object-contain"
-            onError={handleImageError}
           />
         </NextLink>
 
@@ -67,7 +66,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
           <ProductCard.Badges className="absolute top-0 left-0 flex-col items-start gap-100 font-verdana">
             {flags.map((flag) => (
               <Badge
-                className="leading-tight font-bold"
+                className="font-bold leading-tight"
                 key={`${product.id}-${flag.label}`}
                 variant={flag.variant}
               >
@@ -78,7 +77,13 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         ) : null}
 
         {discountLabel ? (
-          <Badge variant="discount" size="md" className="absolute py-200 bottom-250 text-discount-size font-verdana font-bold rounded-sm right-0">{discountLabel}</Badge>
+          <Badge
+            className="absolute right-0 bottom-250 rounded-sm py-200 font-bold font-verdana text-discount-size"
+            size="md"
+            variant="discount"
+          >
+            {discountLabel}
+          </Badge>
         ) : null}
       </div>
 
@@ -91,16 +96,16 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
           </ProductCard.Name>
 
           {description ? (
-            <p className="line-clamp-3 whitespace-pre-line text-xs font-verdana leading-normal text-fg-secondary sm:min-h-800">
+            <p className="line-clamp-3 whitespace-pre-line font-verdana text-fg-secondary text-xs leading-normal sm:min-h-800">
               {description}
             </p>
           ) : null}
         </div>
 
-        <div className="mt-auto flex min-h-product-card-label gap-200 items-end justify-between sm:gap-300">
-          <div className="flex h-full flex-col leading-none font-verdana justify-center">
+        <div className="mt-auto flex min-h-product-card-label items-end justify-between gap-200 sm:gap-300">
+          <div className="flex h-full flex-col justify-center font-verdana leading-none">
             {price.originalLabel ? (
-              <span className="text-xs text-fg-tertiary line-through">
+              <span className="text-fg-tertiary text-xs line-through">
                 {price.originalLabel}
               </span>
             ) : null}
@@ -117,7 +122,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               iconSize="2xl"
               isLoading={isAdding}
               onClick={() => {
-                void onAddToCart(product);
+                runDetachedPromise(onAddToCart(product))
               }}
               size="sm"
               type="button"
@@ -129,5 +134,5 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         </div>
       </div>
     </ProductCard>
-  );
+  )
 }

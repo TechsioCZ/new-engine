@@ -1,0 +1,781 @@
+status: reviewed
+library:
+  name: "@techsio/ui-kit"
+  version: "0.3.2"
+  package_root: "libs/ui"
+  repository: "git+https://github.com/TechsioCZ/new-engine.git"
+  repository_directory: "libs/ui"
+  homepage: null
+  summary: >
+    React 19, Tailwind v4, Zag.js, and tailwind-variants component library for
+    shared UI components, token architecture, Storybook documentation, Figma
+    Code Connect handoff, and controlled adoption inside apps/*.
+  stack:
+    - "React 19"
+    - "Tailwind CSS v4"
+    - "tailwind-variants"
+    - "Zag.js"
+    - "Storybook 10"
+    - "RSLib"
+    - "Nx"
+
+domains:
+  - id: "library-component-work"
+    label: "UI kit component work"
+    package: "libs/ui"
+    description: >
+      Creating, refactoring, and validating shared atoms, molecules, organisms,
+      and templates inside libs/ui. Work normally spans component TSX, component
+      token CSS, Storybook stories, exports, and follow-up handoff checks.
+    primary_sources:
+      - "libs/ui/AGENTS.md"
+      - "libs/ui/src/atoms"
+      - "libs/ui/src/molecules"
+      - "libs/ui/src/organisms"
+      - "libs/ui/src/tokens/components"
+      - "libs/ui/stories"
+    skills:
+      - "component-authoring"
+      - "component-consistency-validation"
+      - "tailwind-token-authoring"
+      - "zag-compound-components"
+      - "storybook-authoring"
+      - "figma-sync-handoff"
+      - "ui-kit-publish-readiness"
+
+  - id: "token-system"
+    label: "Token architecture"
+    package: "libs/ui"
+    description: >
+      Maintaining Tailwind v4 @theme static tokens, semantic aliases, spacing,
+      layout, typography, and component-specific token chains. Includes app-side
+      initialization and overrides where the UI kit is consumed.
+    primary_sources:
+      - "libs/ui/src/tokens"
+      - "libs/ui/token-contribution.md"
+      - "libs/ui/local/token-usage.md"
+      - "libs/ui/local/token-definitions.md"
+      - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
+      - "Maintainer interview 2026-06-02"
+    skills:
+      - "tailwind-token-authoring"
+      - "app-token-initialization"
+      - "app-token-overrides"
+      - "app-ui-kit-audit"
+
+  - id: "storybook-docs-and-qa"
+    label: "Storybook, docs, and QA"
+    package: "libs/ui"
+    description: >
+      Keeping component examples, docs pages, visual matrices, controls, a11y
+      checks, and component test commands aligned with local Storybook rules.
+    primary_sources:
+      - "libs/ui/stories"
+      - "libs/ui/.storybook"
+      - "libs/ui/local/storybook-practice.md"
+      - "libs/ui/local/storybook-migration.md"
+      - "libs/ui/scripts"
+    skills:
+      - "storybook-authoring"
+      - "component-consistency-validation"
+      - "ui-kit-publish-readiness"
+
+  - id: "interactive-components"
+    label: "Interactive Zag.js components"
+    package: "libs/ui"
+    description: >
+      Building stateful accessible UI primitives through Zag.js machines,
+      connect APIs, React context, data attributes, slots, and compound
+      subcomponents inspired by Chakra UI and Ark UI patterns.
+    primary_sources:
+      - "libs/ui/src/molecules"
+      - "libs/ui/src/organisms"
+      - "Zag.js official docs"
+      - "Chakra UI compound component patterns"
+      - "Ark UI component patterns"
+    skills:
+      - "zag-compound-components"
+      - "component-authoring"
+      - "component-consistency-validation"
+
+  - id: "consumer-app-adoption"
+    label: "Consuming @techsio/ui-kit in apps"
+    package: "libs/ui"
+    description: >
+      Using the UI kit correctly inside apps/*: initializing app token layers,
+      choosing correct components and variants from UX intent, avoiding native
+      HTML and duplicated className styling, and adapting framework components
+      such as NextLink and NextImage.
+    primary_sources:
+      - "libs/ui/local/libs-usage.md"
+      - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
+      - "Maintainer interview 2026-06-02"
+    skills:
+      - "app-token-initialization"
+      - "app-token-overrides"
+      - "component-usage-ux"
+      - "app-ui-kit-audit"
+      - "framework-consumer-integration"
+
+  - id: "workflow-and-skill-maintenance"
+    label: "Workflow orchestration and Intent skill upkeep"
+    package: "libs/ui"
+    description: >
+      Routing UI-kit and app-consumer tasks through the right skills, preserving
+      the boundary between libs/ui authoring and app usage, and updating Intent
+      skills when component APIs, token rules, app patterns, or Figma practices
+      change.
+    primary_sources:
+      - "libs/ui/skills/_artifacts/domain_map.yaml"
+      - "libs/ui/skills/_artifacts/skill_spec.md"
+      - "libs/ui/skills/_artifacts/skill_tree.yaml"
+      - "TanStack Intent meta skills"
+    skills:
+      - "ui-kit-workflow-orchestrator"
+      - "intent-skill-maintenance"
+
+skills:
+  - name: "component-authoring"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "library-component-work"
+    description: >
+      Use when creating or modifying shared React components in libs/ui,
+      including atoms, molecules, organisms, templates, tv() variants, React 19
+      ref props, component token CSS, Storybook stories, exports, and Figma
+      handoff reminders.
+    boundaries:
+      includes:
+        - "src/atoms/*.tsx, src/molecules/*.tsx, src/organisms/*.tsx"
+        - "matching token CSS under src/tokens/components"
+        - "matching stories under stories"
+        - "public subpath export checks"
+      excludes:
+        - "consumer app design overrides"
+        - "data fetching and business workflows"
+        - "automatic Figma modification"
+    failure_modes:
+      - id: "component-without-token-and-story"
+        wrong_pattern: "Create only src/atoms/foo.tsx."
+        correct_pattern: >
+          Add the component TSX, component token CSS, token import, Storybook
+          story, and validation coverage together.
+        evidence: "Button and carousel have code, tokens, and stories; AGENTS.md requires token and Storybook alignment."
+      - id: "semantic-or-raw-tailwind-in-component"
+        wrong_pattern: "className='bg-primary text-fg-primary p-4'"
+        correct_pattern: "tv() variants using component tokens such as bg-button-bg-primary and text-button-fg-primary."
+        evidence: "AGENTS.md forbids direct semantic tokens in component implementations."
+      - id: "react-19-ref-regression"
+        wrong_pattern: "forwardRef(function Button(...) { ... })"
+        correct_pattern: "type Props = ... & { ref?: Ref<HTMLButtonElement> }; export function Button({ ref, ...props }: Props) { ... }"
+        evidence: "AGENTS.md and React 19 docs require ref as prop for new components."
+      - id: "new-interface-type"
+        wrong_pattern: "export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> { ... }"
+        correct_pattern: "Use type aliases for new component props; treat existing interfaces as legacy unless the task is a targeted cleanup."
+        evidence: "AGENTS.md and maintainer interview 2026-06-02."
+      - id: "unnecessary-callback-memoization"
+        wrong_pattern: "Add useCallback around handlers by default."
+        correct_pattern: "Do not add useCallback by habit; only keep it for a proven identity/perf need. Consumer apps are Next 16+ with React Compiler."
+        evidence: "Maintainer interview 2026-06-02."
+
+  - name: "component-consistency-validation"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "library-component-work"
+    description: >
+      Use when checking a component for consistency across TSX props, tv()
+      variants, component tokens, Storybook stories, Figma Code Connect mapping,
+      token validators, a11y, visual tests, and package export behavior.
+    boundaries:
+      includes:
+        - "component API versus stories and token CSS"
+        - "variant/theme/size/state coverage"
+        - "token usage and token definition validators"
+        - "Storybook a11y and component screenshot tests"
+      excludes:
+        - "release publishing decisions"
+        - "consumer app token design"
+    failure_modes:
+      - id: "variant-drift-between-code-and-docs"
+        wrong_pattern: "Story documents a variant, theme, or size not present in component tv() variants."
+        correct_pattern: "Keep props, tv() variants, story argTypes, visual matrices, and Figma mapping in one inventory."
+        evidence: "Button story and button.figma.tsx both map variant/theme/size/state."
+      - id: "token-validation-ignored"
+        wrong_pattern: "Skip pnpm validate:tokens after adding token classes."
+        correct_pattern: "Run token usage and definition validators and resolve missing or redundant tokens."
+        evidence: "local/token-usage.md and local/token-definitions.md record existing validator failures."
+      - id: "compound-context-hole"
+        wrong_pattern: "Expose a subcomponent that can render without the matching Root/provider."
+        correct_pattern: "Use context guards like 'components must be used within Component.Root'."
+        evidence: "Accordion, Select, RadioCard, Carousel, and other components use guarded context helpers."
+
+  - name: "tailwind-token-authoring"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "token-system"
+    description: >
+      Use when adding or changing Tailwind v4 tokens in libs/ui, including
+      semantic aliases, spacing/layout/typography, component-specific tokens,
+      @theme static blocks, two-layer reference-to-derived chains, and token
+      validation scripts.
+    boundaries:
+      includes:
+        - "src/tokens/**/*.css"
+        - "two-layer reference and derived tokens"
+        - "component CSS imports"
+        - "token validators"
+      excludes:
+        - "one-off JSX className fixes in apps"
+    failure_modes:
+      - id: "raw-component-token-value"
+        wrong_pattern: "--color-button-bg-primary: #009869;"
+        correct_pattern: "--color-button-primary: var(--color-primary); --color-button-bg-primary: var(--color-button-primary);"
+        evidence: "AGENTS.md and token-contribution.md require reference then derived token layers."
+      - id: "abbreviated-or-unsuffixed-token"
+        wrong_pattern: "--color-btn-primary or --color-button-primary used as final bg class."
+        correct_pattern: "Use full component names and derived suffixes such as --color-button-bg-primary."
+        evidence: "AGENTS.md token naming rules prohibit abbreviations and require bg/fg/border on derived tokens."
+      - id: "missing-tailwind-token-class"
+        wrong_pattern: "Add class z-(--z-index) without a matching @theme token."
+        correct_pattern: "Define or remove the token class so validate:token-usage passes."
+        evidence: "local/token-usage.md shows missing-token validator failures."
+      - id: "legacy-border-token-shape"
+        wrong_pattern: "--border-button-width-md"
+        correct_pattern: "Use the target AGENTS.md shape for new work: --border-width-button-md or the applicable --border-width-<component> token."
+        evidence: "AGENTS.md and maintainer interview 2026-06-02; existing old shapes are legacy unless a migration is in scope."
+
+  - name: "zag-compound-components"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "interactive-components"
+    description: >
+      Use when creating or refactoring interactive or compound components in
+      libs/ui with Zag.js machines, connect APIs, data attributes, slots,
+      context providers, and Component.Subcomponent assignments.
+    boundaries:
+      includes:
+        - "Zag.js official machine/connect patterns"
+        - "context and slot composition"
+        - "Chakra UI and Ark UI compound pattern references"
+        - "data attribute styling"
+      excludes:
+        - "hand-rolled accessibility state machines"
+        - "consumer app business logic"
+    failure_modes:
+      - id: "manual-aria-instead-of-zag-props"
+        wrong_pattern: "Manually write aria-expanded, onKeyDown, and role behavior for a Zag-backed primitive."
+        correct_pattern: "Use useMachine(), connect(), normalizeProps, and spread api.get*Props()."
+        evidence: "Zag.js docs and libs/ui molecules use machine/connect patterns."
+      - id: "subcomponent-outside-root"
+        wrong_pattern: "<Carousel.Next /> rendered without <Carousel.Root>."
+        correct_pattern: "Guard context and document compound usage through Root and named subcomponents."
+        evidence: "Existing components throw explicit context errors."
+      - id: "state-styling-without-data-attributes"
+        wrong_pattern: "Toggle local classes manually for open/selected/disabled state."
+        correct_pattern: "Style boolean states with data-disabled: and enumerated states with data-[state=open]:."
+        evidence: "AGENTS.md defines Tailwind v4 data selector standards."
+
+  - name: "storybook-authoring"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "storybook-docs-and-qa"
+    description: >
+      Use when creating or modifying Storybook CSF3 stories for libs/ui
+      components using local story ordering, Playground controls, VariantGroup
+      matrices, token-based classes, ui-kit components instead of native HTML,
+      and fn() handlers.
+    boundaries:
+      includes:
+        - "stories/**/*.stories.tsx"
+        - "argTypes for visible behavior and appearance props"
+        - "Playground, Variants, Sizes, States, component-specific examples"
+        - "local token and component usage rules"
+      excludes:
+        - "general Storybook framework debugging beyond local rules"
+    failure_modes:
+      - id: "native-html-and-hardcoded-tailwind"
+        wrong_pattern: "<button className='rounded bg-blue-500 px-4 py-2 text-white'>"
+        correct_pattern: "Use Button/Input/etc. from src and semantic token classes such as bg-danger, p-100, gap-50 for story layout."
+        evidence: "AGENTS.md and user rules prefer ui-kit components and token classes in stories."
+      - id: "missing-playground-controls"
+        wrong_pattern: "Only a static Default story for a component with visible variants."
+        correct_pattern: "Add Playground with args and argTypes select/toggle/color controls for relevant visible props."
+        evidence: "Button story is the maintainer's reference for controls and visual variations."
+      - id: "unclear-story-names"
+        wrong_pattern: "Example or Demo."
+        correct_pattern: "Use names like Default, WithIcon, Disabled, Error, Variants, Sizes, States."
+        evidence: "Maintainer supplied naming convention and Storybook best practices."
+
+  - name: "figma-sync-handoff"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "library-component-work"
+    description: >
+      Use when component work should remind the maintainer that a Figma library
+      and Code Connect update may be needed. This skill should point to
+      .agents/skills/component-to-figma/SKILL.md but must not run Figma sync
+      automatically.
+    boundaries:
+      includes:
+        - "detecting new or changed public components"
+        - "checking src/**/figma/*.figma.tsx coverage"
+        - "summarizing Figma follow-up"
+      excludes:
+        - "automatic Figma MCP actions"
+        - "detaching Figma components"
+        - "requiring valid Figma token in normal component work"
+    failure_modes:
+      - id: "automatic-figma-side-effect"
+        wrong_pattern: "A component skill starts editing Figma after TSX changes."
+        correct_pattern: "Report a handoff to .agents/skills/component-to-figma/SKILL.md; that skill decides the Figma workflow when the maintainer requests it."
+        evidence: "Maintainer interview 2026-06-02: component-to-figma owns Figma authority, normal skills only remind."
+      - id: "figma-raw-values"
+        wrong_pattern: "Component-specific Figma variable stores a raw color even though code has a semantic alias."
+        correct_pattern: "Mirror code token hierarchy: primitive/core -> semantic aliases -> component aliases."
+        evidence: "AGENTS.md Figma Sync Rules."
+      - id: "code-connect-drift"
+        wrong_pattern: "Add a Button prop but leave button.figma.tsx props unchanged."
+        correct_pattern: "Flag Code Connect mapping review when public component props change."
+        evidence: "figma.config.json includes src/**/figma/*.figma.tsx and Button has Code Connect mapping."
+
+  - name: "ui-kit-publish-readiness"
+    type: "lifecycle"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "storybook-docs-and-qa"
+    description: >
+      Use when preparing @techsio/ui-kit for release or package validation,
+      including build, package export checks, publint, token validation,
+      Storybook build, a11y summaries, and semantic-release constraints.
+    boundaries:
+      includes:
+        - "bunx nx run ui:build"
+        - "pnpm validate:tokens"
+        - "storybook build and a11y checks when relevant"
+        - "package subpath export sanity"
+      excludes:
+        - "publishing outside CI"
+        - "app deployment readiness"
+    failure_modes:
+      - id: "expect-root-import"
+        wrong_pattern: "import { Button } from '@techsio/ui-kit'"
+        correct_pattern: "Use public subpaths such as @techsio/ui-kit/atoms/button."
+        evidence: "package.json has explicit subpath exports and root export is intentionally absent."
+      - id: "local-semantic-release"
+        wrong_pattern: "Run pnpm semantic-release locally and expect publish."
+        correct_pattern: "Treat semantic-release as CI-only; release.config.mjs throws outside GitHub Actions."
+        evidence: "release.config.mjs checks process.env.GITHUB_ACTIONS."
+      - id: "skip-build-before-export-change"
+        wrong_pattern: "Change package exports without running ui build/publint path."
+        correct_pattern: "Run build so RSLib and publint validate emitted package structure."
+        evidence: "rslib.config.ts includes pluginPublint and package.json build script runs rslib."
+
+  - name: "app-token-initialization"
+    type: "lifecycle"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "consumer-app-adoption"
+    description: >
+      Use when adopting @techsio/ui-kit in a new or existing apps/* project and
+      setting up app-specific semantic, typography, spacing, layout, and
+      component token files after interviewing for brand color scheme, spacing,
+      type scale, radius, and framework constraints.
+    boundaries:
+      includes:
+        - "app semantic/typography/spacing/layout token skeleton"
+        - "minimal component override files"
+        - "brand and UX token interview"
+        - "token import order"
+      excludes:
+        - "data fetching setup"
+        - "Medusa or backend workflows"
+    failure_modes:
+      - id: "component-overrides-before-semantic-layer"
+        wrong_pattern: "Create _app-button.css overrides for every Button color."
+        correct_pattern: "First map semantic, typography, spacing, and layout tokens; only add component overrides for true component-specific differences."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md token-first and app token initialization rules."
+      - id: "raw-figma-css-as-final-theme"
+        wrong_pattern: "Paste Figma button.css raw values as the app token implementation."
+        correct_pattern: "Translate Figma values into app token layers and alias component tokens only when the general layer is insufficient."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md says raw design input must be translated into token layers."
+      - id: "theme-without-interview"
+        wrong_pattern: "Guess palette, spacing, radius, and typography from screenshots."
+        correct_pattern: "First ask whether values need to change and where; gather compact inputs such as main colors, semantic roles, typography, spacing step, containers, radius, and states."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md app token initialization rules."
+
+  - name: "app-token-overrides"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "token-system"
+    description: >
+      Use when adjusting an app's @techsio/ui-kit appearance through semantic,
+      typography, spacing, layout, or component override tokens while avoiding
+      redundant token chains and JSX className styling.
+    boundaries:
+      includes:
+        - "_app-semantic.css and related app token layers"
+        - "component-specific app token override files"
+        - "detecting redundant overrides"
+        - "identifying UI kit API gaps"
+      excludes:
+        - "inline styling as the primary design mechanism"
+    failure_modes:
+      - id: "redundant-component-token"
+        wrong_pattern: "--color-button-fg-outlined-secondary: var(--color-fg-primary) when the default chain already resolves there."
+        correct_pattern: "Do not remap tokens whose current chain already produces the desired app value."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md redundant override rule."
+      - id: "jsx-classname-appearance-fix"
+        wrong_pattern: "<Button className='text-warning bg-white rounded-full' />"
+        correct_pattern: "Move color, background, radius, type, and spacing differences into app token files or add a ui-kit variant/token."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md token-first, className-last rule."
+      - id: "font-weight-token-bypassed"
+        wrong_pattern: "<Button className='font-bold' />"
+        correct_pattern: "Set the relevant app/component CSS token, for example --font-weight-button: 700, and let TSX use the existing font-* token class."
+        evidence: "Maintainer interview 2026-06-02: font weight changes belong in CSS token overrides, not JSX className."
+      - id: "container-token-misapplied"
+        wrong_pattern: "Use --container-xl as a spacing token or ignore it and hardcode max width classes."
+        correct_pattern: "Use container tokens only for width/max-width utilities such as w-xl or max-w-xl."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md Tailwind token class mapping rules."
+      - id: "permanent-api-gap-workaround"
+        wrong_pattern: "Keep long-term className hacks because the component lacks a variant."
+        correct_pattern: "Treat it as an API gap: add a temporary note, then propose a libs/ui variant/token/API."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md says token gaps should become UI kit API gaps."
+
+  - name: "component-usage-ux"
+    type: "composition"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "consumer-app-adoption"
+    description: >
+      Use as the orchestration skill for choosing which @techsio/ui-kit
+      component and component-specific usage skill should handle an app UX need.
+      It routes to per-component guidance for valid props, variants, themes,
+      sizes, states, adapters, slots, and token expectations.
+    boundaries:
+      includes:
+        - "component inventory and usage routing"
+        - "loading the matching per-component usage skill"
+        - "UX intent to component family mapping"
+        - "detecting props, variants, themes, and sizes that do not exist"
+        - "avoiding native or custom duplicate primitives"
+      excludes:
+        - "data fetching"
+        - "business rule design"
+        - "component API implementation unless an API gap is found"
+    reference_candidates:
+      - topic: "per-component usage skills"
+        reason: >
+          Maintainer wants detailed usage split by component, for example
+          button-usage, input-usage, link-button-usage, dialog-usage,
+          toast-usage, breadcrumb-usage, tree-view-usage, skeleton-usage, and
+          additional entries generated from libs/ui/src inventory.
+    failure_modes:
+      - id: "monolithic-usage-guidance"
+        wrong_pattern: "Pick Button/Dialog/Input props from a generic UI rule without loading the component-specific usage guidance."
+        correct_pattern: "Use component-usage-ux only to route, then load the relevant per-component usage skill before choosing props."
+        evidence: "Maintainer interview 2026-06-02: component-usage-ux should orchestrate component-specific usage skills."
+      - id: "native-or-custom-primitive"
+        wrong_pattern: "Build a custom dialog, toast, button, input, or skeleton in an app when ui-kit has the primitive."
+        correct_pattern: "Use the closest @techsio/ui-kit component and only compose layout around it."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md component usage orchestration rules."
+      - id: "wrong-ux-variant"
+        wrong_pattern: "Use a neutral primary action style for destructive deletion."
+        correct_pattern: "Map destructive, warning, success, secondary, link-like, and loading intents to the component's theme/variant/size/state props."
+        evidence: "Maintainer requested professional UX mapping for danger dialogs, CRUD toasts, variants, sizes, and props."
+      - id: "hallucinated-component-prop"
+        wrong_pattern: "<Button variant='ghost' />"
+        correct_pattern: "Read the component-specific usage skill and source props before using any variant/theme/size."
+        evidence: "Maintainer interview 2026-06-02: agents invent props such as Button variant ghost."
+      - id: "duplicate-prop-styling"
+        wrong_pattern: "<Button theme='solid' variant='danger' className='bg-danger text-fg-reverse' />"
+        correct_pattern: "Do not duplicate styling that Button props and tokens already provide."
+        evidence: "Maintainer requested checking className against default component styling."
+      - id: "wrapper-before-api-check"
+        wrong_pattern: "Create a local wrapper around LinkButton, Breadcrumb, Dialog, or TreeView before checking supported props and slots."
+        correct_pattern: "Check the component API, Zag.js-provided behavior, slots, adapter props, and token overrides first; only add a wrapper after proving the component cannot support the use case."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md and maintainer interview 2026-06-02."
+
+  - name: "app-ui-kit-audit"
+    type: "core"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "consumer-app-adoption"
+    description: >
+      Use when reviewing an apps/* UI for correct @techsio/ui-kit adoption:
+      native HTML replacement, token-first styling, duplicate className removal,
+      component API gaps, framework adapters, and consistency with app token
+      layers.
+    boundaries:
+      includes:
+        - "scan JSX and CSS for native primitives and one-off styles"
+        - "compare className styling to component default props/tokens"
+        - "flag custom interactive components that duplicate ui-kit"
+        - "suggest token or component API fixes"
+      excludes:
+        - "general app architecture review"
+        - "backend/data fetching review"
+    failure_modes:
+      - id: "missed-native-html"
+        wrong_pattern: "<button>, <input>, custom dialog, or custom skeleton remains where ui-kit has an equivalent."
+        correct_pattern: "Replace with ui-kit component or document the missing component/API gap."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md component usage orchestration rules."
+      - id: "missed-existing-component"
+        wrong_pattern: "Build custom expandable tree/navigation UI while @techsio/ui-kit has TreeView for the usage."
+        correct_pattern: "Inventory existing ui-kit components first, then use the component-specific usage skill before building a custom primitive."
+        evidence: "Maintainer interview 2026-06-02: repeated issue is not using existing components such as tree-view."
+      - id: "missed-duplicated-default-style"
+        wrong_pattern: "Audit accepts Button className colors/padding even though theme/variant/size already cover it."
+        correct_pattern: "Check component props and token CSS before allowing app className styles."
+        evidence: "Maintainer interview 2026-06-02."
+      - id: "loading-pattern-drift"
+        wrong_pattern: "Use blank loading UI or animate-pulse divs."
+        correct_pattern: "Use @techsio/ui-kit/atoms/skeleton with shape-matching loading states."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md and maintainer interview 2026-06-02."
+
+  - name: "framework-consumer-integration"
+    type: "framework"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "consumer-app-adoption"
+    description: >
+      Use when integrating @techsio/ui-kit into a specific app framework,
+      especially Next.js, where framework adapters such as NextLink and
+      NextImage should be preferred while ui-kit Link and Image remain
+      framework-agnostic building blocks.
+    boundaries:
+      includes:
+        - "Next.js Link and Image adapter usage"
+        - "framework-specific imports and providers"
+        - "tokens CSS import order"
+        - "passing link/image adapters into ui-kit molecules"
+      excludes:
+        - "framework routing architecture"
+        - "data fetching patterns"
+    failure_modes:
+      - id: "next-app-uses-agnostic-link-image"
+        wrong_pattern: "Use ui-kit Link/Image directly for normal Next.js page navigation and images."
+        correct_pattern: "Default to NextLink and NextImage in Next apps; use agnostic Link/Image mainly as adapter-friendly primitives."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md framework adapter rules."
+      - id: "missing-token-imports"
+        wrong_pattern: "Render ui-kit components before app imports ui-kit tokens and app token layers."
+        correct_pattern: "Import @techsio/ui-kit token CSS and app token overrides in the intended global order."
+        evidence: "libs/ui tokens/index.css and skills/_artifacts/consumer_app_usage_rules.md."
+      - id: "adapter-prop-mismatch"
+        wrong_pattern: "Pass framework link/image components in a way ui-kit molecules cannot forward props."
+        correct_pattern: "Use the component API's adapter/as/props pattern and verify href, ref, aria, and image props still flow."
+        evidence: "Maintainer interview 2026-06-02: ui-kit molecules should handle NextLink and NextImage adapter props."
+      - id: "adapter-wrapper-before-api-check"
+        wrong_pattern: "Create a custom wrapper or helper function for link/image props before checking LinkButton, Breadcrumb, Image, or the target molecule API."
+        correct_pattern: "Use existing adapter props, slots, and Zag.js-provided behavior first; wrapper is allowed only after proving the component cannot support the case."
+        evidence: "skills/_artifacts/consumer_app_usage_rules.md and maintainer interview 2026-06-02."
+
+  - name: "ui-kit-workflow-orchestrator"
+    type: "lifecycle"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "workflow-and-skill-maintenance"
+    description: >
+      Use when deciding which @techsio/ui-kit skill workflow to run for a task,
+      separating libs/ui authoring/refactor work from apps/* consumer usage work
+      and chaining validation, Storybook, token, Figma-handoff, and audit
+      follow-ups.
+    boundaries:
+      includes:
+        - "routing tasks to library or app-consumer skills"
+        - "sequencing create/refactor/validate/document/release workflows"
+        - "identifying when to hand off to Figma sync or skill maintenance"
+      excludes:
+        - "performing all downstream work automatically without maintainer intent"
+    failure_modes:
+      - id: "scope-crossing"
+        wrong_pattern: "A libs/ui component task starts rewriting app themes, or an app usage task rewrites library internals without identifying an API gap."
+        correct_pattern: "Keep libs/ui authoring and apps/* adoption separate; cross only through explicit API-gap or token-gap findings."
+        evidence: "Maintainer clarified libs/ui is for library work and apps/* is for correct UI-kit usage."
+      - id: "skipped-follow-up-skill"
+        wrong_pattern: "Add a component and stop before token validation, stories, and Figma handoff reminder."
+        correct_pattern: "Route through authoring, token, Storybook, validation, and Figma-handoff reminder as needed."
+        evidence: "Maintainer described .tsx, .css, .stories.tsx and validation as one component workflow."
+      - id: "business-logic-scope-creep"
+        wrong_pattern: "A UI usage skill solves app data fetching or checkout domain logic."
+        correct_pattern: "Stay focused on UI/UX, component selection, tokens, and presentation state."
+        evidence: "Maintainer stated main scope is correct UI/UX, not data fetching."
+
+  - name: "intent-skill-maintenance"
+    type: "lifecycle"
+    package: "libs/ui"
+    library: "@techsio/ui-kit"
+    domain: "workflow-and-skill-maintenance"
+    description: >
+      Use when @techsio/ui-kit components, tokens, Storybook rules, app usage
+      patterns, Figma practices, or validation commands change and the Intent
+      skills themselves may need to be reviewed, regenerated, or patched through
+      TanStack Intent meta-skill workflows.
+    boundaries:
+      includes:
+        - "detecting stale skills after component/API/token changes"
+        - "re-reading artifacts before edits"
+        - "using TanStack Intent meta skills in the required order when regenerating"
+        - "updating skill examples from real code"
+      excludes:
+        - "inventing generic UI guidance without local evidence"
+    failure_modes:
+      - id: "stale-skill-after-api-change"
+        wrong_pattern: "Add Button variant/theme/size but leave component-usage-ux and Storybook skill unchanged."
+        correct_pattern: "Flag affected skills and update examples, failure modes, and validation commands from the changed code."
+        evidence: "Maintainer requested a skill that proposes skill updates when libs/ui or app usage changes."
+      - id: "meta-skill-order-skipped"
+        wrong_pattern: "Generate or edit many skills without checking domain_map.yaml and skill_tree.yaml."
+        correct_pattern: "Use TanStack Intent domain-discovery, tree-generator, and generate-skill artifacts as source context."
+        evidence: "User required the three meta-skills in strict order."
+      - id: "generic-skill-drift"
+        wrong_pattern: "Write broad React or Storybook best practices unrelated to @techsio/ui-kit."
+        correct_pattern: "Base every skill on libs/ui code, local docs, scripts, stories, tokens, consumer_app_usage_rules.md, and maintainer interview evidence."
+        evidence: "User required generated skills to be based on actual code and rules."
+
+tensions:
+  - id: "token-first-vs-fast-classname"
+    description: >
+      Inline className fixes are fast in apps, but they duplicate or bypass the
+      token chain. The domain needs skills that push appearance into semantic,
+      typography, spacing, or component tokens and reserve className for
+      unavoidable layout/composition.
+    involved_skills:
+      - "app-token-overrides"
+      - "component-usage-ux"
+      - "app-ui-kit-audit"
+
+  - id: "library-api-gap-vs-app-one-off"
+    description: >
+      If an app cannot express a design through existing props/tokens, the right
+      outcome may be a temporary app workaround plus a library API/token gap,
+      not a permanent local style fork.
+    involved_skills:
+      - "component-authoring"
+      - "app-token-overrides"
+      - "component-usage-ux"
+
+  - id: "figma-sync-desired-vs-operationally-risky"
+    description: >
+      New or changed public components usually need Figma and Code Connect
+      follow-up, but sync should not run automatically because credentials,
+      active user, and Figma context may be unavailable or unsafe.
+    involved_skills:
+      - "figma-sync-handoff"
+      - "component-authoring"
+      - "ui-kit-workflow-orchestrator"
+
+  - id: "compound-flexibility-vs-zag-contract"
+    description: >
+      Compound components need flexible slots and nesting, while Zag.js owns
+      accessibility props and interaction state. Skills must preserve provider
+      boundaries and api.get*Props() even when refactoring composition.
+    involved_skills:
+      - "zag-compound-components"
+      - "component-authoring"
+      - "component-consistency-validation"
+
+  - id: "local-rules-vs-current-legacy-code"
+    description: >
+      Some existing source and stories violate current AGENTS.md rules
+      (interfaces, useCallback, native buttons in stories, hardcoded Tailwind).
+      Generated skills need to distinguish new-work rules from legacy cleanup.
+    involved_skills:
+      - "component-authoring"
+      - "storybook-authoring"
+      - "component-consistency-validation"
+
+cross_references:
+  - from: "component-authoring"
+    to:
+      - "tailwind-token-authoring"
+      - "storybook-authoring"
+      - "component-consistency-validation"
+      - "figma-sync-handoff"
+      - "zag-compound-components"
+    reason: "Component work normally touches code, tokens, stories, validation, optional interactive patterns, and Figma handoff reminders."
+
+  - from: "tailwind-token-authoring"
+    to:
+      - "component-consistency-validation"
+      - "app-token-overrides"
+    reason: "Token changes must validate inside the library and stay compatible with app override chains."
+
+  - from: "storybook-authoring"
+    to:
+      - "component-consistency-validation"
+      - "component-usage-ux"
+    reason: "Stories document both public props and intended consumer usage examples."
+
+  - from: "app-token-initialization"
+    to:
+      - "app-token-overrides"
+      - "component-usage-ux"
+      - "framework-consumer-integration"
+    reason: "A new app token skeleton needs follow-up usage rules and framework adapter setup."
+
+  - from: "component-usage-ux"
+    to:
+      - "app-ui-kit-audit"
+      - "framework-consumer-integration"
+      - "app-token-overrides"
+    reason: "Component choices must be audited for duplicates, framework adapter correctness, and token-first styling."
+
+  - from: "ui-kit-workflow-orchestrator"
+    to:
+      - "component-authoring"
+      - "component-consistency-validation"
+      - "app-token-initialization"
+      - "component-usage-ux"
+      - "app-ui-kit-audit"
+      - "intent-skill-maintenance"
+    reason: "The orchestrator routes library and app work through the appropriate focused skills."
+
+gaps: []
+
+resolved_interview_findings:
+  - id: "type-vs-interface-enforcement"
+    area: "component-authoring"
+    finding: "Use type aliases for new work. Existing interfaces are legacy and should not trigger broad refactors unless cleanup is in scope."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "border-token-naming-standard"
+    area: "tailwind-token-authoring"
+    finding: "Follow AGENTS.md target naming for new work: border-width-* / --border-width-<component>. Existing --border-button-width-* shapes are legacy."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "usecallback-exception"
+    area: "component-authoring"
+    finding: "Do not make no-useCallback absolute, but do not add it by habit. Current consumer apps are Next 16+ with React Compiler."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "component-ux-decision-table"
+    area: "component-usage-ux"
+    finding: "component-usage-ux should orchestrate and load component-specific usage skills such as button-usage, input-usage, and others generated from the component inventory."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "app-token-interview-template"
+    area: "app-token-initialization"
+    finding: "First determine whether token values need to change and where. Gather compact inputs for semantic colors, typography, spacing steps, layout containers, radius, shadows, and states."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "figma-handoff-trigger"
+    area: "figma-sync-handoff"
+    finding: "Normal skills only remind and point to component-to-figma. The component-to-figma skill owns the decision and workflow for Figma updates."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "mandatory-validation-set"
+    area: "component-consistency-validation"
+    finding: "For libs/ui changes, recommend relevant validation based on touched area and ask/allow maintainer confirmation before running broader validations."
+    source: "Maintainer interview 2026-06-02"
+
+  - id: "skill-maintenance-trigger"
+    area: "intent-skill-maintenance"
+    finding: "Skill maintenance should be proposed when libs/ui component APIs, token rules, Storybook rules, app usage patterns, or Figma practices change."
+    source: "Maintainer interview 2026-06-02"

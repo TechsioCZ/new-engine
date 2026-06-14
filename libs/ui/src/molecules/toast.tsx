@@ -27,21 +27,21 @@ const toastVariants = tv({
     group: "relative flex flex-col",
     header: "relative flex items-center gap-toast-content",
     icon: [
-      "flex-shrink-0 text-toast-icon-size",
+      "flex-shrink-0 text-toast-icon",
       "data-[type=error]:token-icon-toast-error data-[type=error]:text-toast-error-icon",
       "data-[type=success]:token-icon-toast-success data-[type=success]:text-toast-success-icon",
       "data-[type=info]:token-icon-toast-info data-[type=info]:text-toast-info-icon",
       "data-[type=warning]:token-icon-toast-warning data-[type=warning]:text-toast-warning-icon",
     ],
     title: [
-      "font-toast-title text-toast-fg text-toast-title-size",
+      "font-toast-title text-toast-fg text-toast-title",
       "data-[type=error]:text-toast-error-title",
       "data-[type=success]:text-toast-success-title",
       "data-[type=info]:text-toast-info-title",
       "data-[type=warning]:text-toast-warning-title",
     ],
     description: [
-      "mt-toast-description-gap text-toast-description-size text-toast-fg",
+      "mt-toast-description text-toast-description text-toast-fg",
     ],
     closeButton: [
       "ms-auto grid flex-shrink-0 place-items-center px-0 py-0",

@@ -7,7 +7,6 @@ import {
   normalizeText,
   readXmlSource,
 } from "./herbatica-xml-utils"
-export { isHttpXmlSource, readXmlSource } from "./herbatica-xml-utils"
 
 export type HerbaticaCategoryExport = {
   id: string

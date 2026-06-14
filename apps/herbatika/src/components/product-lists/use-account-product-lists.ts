@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import { useRegionContext } from "@techsio/storefront-data/shared/region-context";
-import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { useAppToast } from "@/hooks/use-app-toast";
-import { useAuth } from "@/lib/storefront/auth";
-import { resolveErrorMessage } from "@/lib/storefront/error-utils";
+import type { HttpTypes } from "@medusajs/types"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useRouter, useSearchParams } from "next/navigation"
+import { type FormEvent, useEffect, useMemo, useState } from "react"
+import { useAppToast } from "@/hooks/use-app-toast"
+import { useAuth } from "@/lib/storefront/auth"
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   getProductListItems,
   isFavoriteProductList,
@@ -18,14 +18,14 @@ import {
   useProductList,
   useProductLists,
   useUpdateProductListItem,
-} from "@/lib/storefront/product-lists";
+} from "@/lib/storefront/product-lists"
 import {
   PRODUCT_CARD_FIELDS,
   type ProductListInput,
   useProducts,
-} from "@/lib/storefront/products";
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection";
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart";
+} from "@/lib/storefront/products"
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -33,92 +33,116 @@ import {
   resolveProductListPriceSummary,
   sortProductLists,
   uniqueProductIds,
-} from "./account-product-lists.utils";
+} from "./account-product-lists.utils"
+
+const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/i
 
 const resolveListCartErrorMessage = (error: unknown) => {
   const errorMessage = resolveErrorMessage(
     error,
-    "Zoznam sa nepodarilo pridať do košíka.",
-  );
+    "Zoznam sa nepodarilo pridať do košíka."
+  )
 
-  if (/has no variant selected|no variant/i.test(errorMessage)) {
-    return "Niektoré produkty v zozname nemajú vybranú variantu.";
+  if (MISSING_VARIANT_ERROR_PATTERN.test(errorMessage)) {
+    return "Niektoré produkty v zozname nemajú vybranú variantu."
   }
 
-  return errorMessage;
-};
+  return errorMessage
+}
+
+const showPartialListCartResult = ({
+  failedCount,
+  toast,
+  totalCount,
+}: {
+  failedCount: number
+  toast: ReturnType<typeof useAppToast>
+  totalCount: number
+}) => {
+  if (failedCount === 0) {
+    return
+  }
+
+  if (failedCount === totalCount) {
+    toast.error({
+      title: "Dostupné položky sa nepodarilo pridať do košíka.",
+    })
+    return
+  }
+
+  toast.warning({
+    title: "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
+  })
+}
 
 export function useAccountProductLists() {
-  const authQuery = useAuth();
-  const region = useRegionContext();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const toast = useAppToast();
-  const [activeListId, setActiveListId] = useState<string | null>(null);
-  const [showCreateListDialog, setShowCreateListDialog] = useState(false);
-  const [newListTitle, setNewListTitle] = useState("");
-  const [activeProductId, setActiveProductId] = useState<string | null>(null);
-  const [isAddingListToCart, setIsAddingListToCart] = useState(false);
+  const authQuery = useAuth()
+  const region = useRegionContext()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const toast = useAppToast()
+  const [activeListId, setActiveListId] = useState<string | null>(null)
+  const [showCreateListDialog, setShowCreateListDialog] = useState(false)
+  const [newListTitle, setNewListTitle] = useState("")
+  const [activeProductId, setActiveProductId] = useState<string | null>(null)
+  const [isAddingListToCart, setIsAddingListToCart] = useState(false)
   const [activeQuantitySetItemId, setActiveQuantitySetItemId] = useState<
     string | null
-  >(null);
+  >(null)
   const [activeDeleteItemId, setActiveDeleteItemId] = useState<string | null>(
-    null,
-  );
-  const [deleteListId, setDeleteListId] = useState<string | null>(null);
+    null
+  )
+  const [deleteListId, setDeleteListId] = useState<string | null>(null)
 
-  const customerId = authQuery.customer?.id ?? null;
+  const customerId = authQuery.customer?.id ?? null
   const listsQuery = useProductLists({
     customerId,
     limit: 100,
     enabled: authQuery.isAuthenticated,
-  });
+  })
   const sortedLists = useMemo(
     () => sortProductLists(listsQuery.productLists),
-    [listsQuery.productLists],
-  );
+    [listsQuery.productLists]
+  )
   const activeListQuery = useProductList(activeListId, {
     customerId,
     enabled: authQuery.isAuthenticated && Boolean(activeListId),
-  });
+  })
   const activeList =
     activeListQuery.productList ??
     sortedLists.find((list) => list.id === activeListId) ??
-    null;
-  const activeListSupportsQuantity = Boolean(activeList);
+    null
+  const activeListSupportsQuantity = Boolean(activeList)
   const deleteList = useMemo(
     () =>
       sortedLists.find(
-        (list) => list.id === deleteListId && !isFavoriteProductList(list),
+        (list) => list.id === deleteListId && !isFavoriteProductList(list)
       ) ?? null,
-    [deleteListId, sortedLists],
-  );
+    [deleteListId, sortedLists]
+  )
   const activeItems = useMemo(
     () => getProductListItems(activeList),
-    [activeList],
-  );
-  const productIds = useMemo(
-    () => uniqueProductIds(activeItems),
-    [activeItems],
-  );
+    [activeList]
+  )
+  const productIds = useMemo(() => uniqueProductIds(activeItems), [activeItems])
   const productsQuery = useProducts({
     id: productIds.length > 0 ? productIds : undefined,
     page: 1,
     limit: Math.max(productIds.length, 1),
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && activeListId && productIds.length),
-  } as ProductListInput);
+  } as ProductListInput)
   const productsById = useMemo(
     () => buildProductMap(activeItems, productsQuery.products),
-    [activeItems, productsQuery.products],
-  );
-  const activeProductsAreLoading = useMemo(() => {
-    return (
+    [activeItems, productsQuery.products]
+  )
+  const activeProductsAreLoading = useMemo(
+    () =>
       productsQuery.isLoading &&
-      productIds.some((productId) => !productsById.has(productId))
-    );
-  }, [productIds, productsById, productsQuery.isLoading]);
-  const regionCurrencyCode = resolveRegionCurrency(region);
+      productIds.some((productId) => !productsById.has(productId)),
+    [productIds, productsById, productsQuery.isLoading]
+  )
+  const regionCurrencyCode = resolveRegionCurrency(region)
   const activeListPriceSummary = useMemo(
     () =>
       resolveProductListPriceSummary({
@@ -126,308 +150,300 @@ export function useAccountProductLists() {
         items: activeItems,
         productsById,
       }),
-    [activeItems, productsById, regionCurrencyCode],
-  );
+    [activeItems, productsById, regionCurrencyCode]
+  )
   const activeListAvailabilitySummary = useMemo(
     () =>
       resolveProductListAvailabilitySummary({
         items: activeItems,
         productsById,
       }),
-    [activeItems, productsById],
-  );
-  const createListMutation = useCreateCustomProductList();
-  const createListCartMutation = useCreateProductListCart();
-  const deleteListMutation = useDeleteProductList();
-  const updateItemMutation = useUpdateProductListItem();
-  const deleteItemMutation = useDeleteProductListItem();
+    [activeItems, productsById]
+  )
+  const createListMutation = useCreateCustomProductList()
+  const createListCartMutation = useCreateProductListCart()
+  const deleteListMutation = useDeleteProductList()
+  const updateItemMutation = useUpdateProductListItem()
+  const deleteItemMutation = useDeleteProductListItem()
   const addToCart = useAddProductToCart({
     regionId: region?.region_id,
     countryCode: region?.country_code,
-  });
+  })
   const activeListCanCreateCart = Boolean(
     activeList?.id &&
       activeListAvailabilitySummary.canAddAnyToCart &&
-      (region?.region_id || region?.country_code),
-  );
+      (region?.region_id || region?.country_code)
+  )
 
   useEffect(() => {
     if (sortedLists.length === 0) {
-      setActiveListId(null);
-      return;
+      setActiveListId(null)
+      return
     }
 
-    const requestedListId = searchParams.get("list");
+    const requestedListId = searchParams.get("list")
     const requestedListExists = sortedLists.some(
-      (list) => list.id === requestedListId,
-    );
+      (list) => list.id === requestedListId
+    )
     const activeListExists = sortedLists.some(
-      (list) => list.id === activeListId,
-    );
-    const nextActiveListId =
-      requestedListId && requestedListExists
-        ? requestedListId
-        : activeListExists
-          ? activeListId
-          : sortedLists[0].id;
+      (list) => list.id === activeListId
+    )
+    let nextActiveListId = sortedLists[0].id
+    if (requestedListId && requestedListExists) {
+      nextActiveListId = requestedListId
+    } else if (activeListExists && activeListId) {
+      nextActiveListId = activeListId
+    }
 
     if (nextActiveListId !== activeListId) {
-      setActiveListId(nextActiveListId);
+      setActiveListId(nextActiveListId)
     }
-  }, [activeListId, searchParams, sortedLists]);
+  }, [activeListId, searchParams, sortedLists])
 
   const selectList = (listId: string) => {
-    setActiveListId(listId);
+    setActiveListId(listId)
     router.replace(`/account/lists?list=${encodeURIComponent(listId)}`, {
       scroll: false,
-    });
-  };
+    })
+  }
 
   const openCreateListDialog = () => {
-    setShowCreateListDialog(true);
-  };
+    setShowCreateListDialog(true)
+  }
 
   const closeCreateListDialog = () => {
-    setShowCreateListDialog(false);
-    setNewListTitle("");
-  };
+    setShowCreateListDialog(false)
+    setNewListTitle("")
+  }
 
   const openDeleteListDialog = (listId: string) => {
-    const list = sortedLists.find((candidate) => candidate.id === listId);
+    const list = sortedLists.find((candidate) => candidate.id === listId)
     if (!list || isFavoriteProductList(list)) {
-      return;
+      return
     }
 
-    setDeleteListId(listId);
-  };
+    setDeleteListId(listId)
+  }
 
   const closeDeleteListDialog = () => {
-    setDeleteListId(null);
-  };
+    setDeleteListId(null)
+  }
 
   const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+    event.preventDefault()
 
-    const title = newListTitle.trim();
+    const title = newListTitle.trim()
     if (!title) {
-      toast.warning({ title: "Zadajte názov zoznamu." });
-      return;
+      toast.warning({ title: "Zadajte názov zoznamu." })
+      return
     }
 
     try {
       const createdList = await createListMutation.mutateAsync({
         title,
         access_type: "private",
-      });
+      })
 
       if (createdList?.id) {
-        selectList(createdList.id);
+        selectList(createdList.id)
       }
 
-      setNewListTitle("");
-      setShowCreateListDialog(false);
+      setNewListTitle("")
+      setShowCreateListDialog(false)
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(
-          error,
-          "Zoznam sa nepodarilo vytvoriť.",
-        ),
-      });
+        title: resolveErrorMessage(error, "Zoznam sa nepodarilo vytvoriť."),
+      })
     }
-  };
+  }
 
   const handleAddToCart = async (
     item: StoreProductListItem,
-    product: HttpTypes.StoreProduct,
+    product: HttpTypes.StoreProduct
   ) => {
     const quantity =
       typeof item.quantity === "number" && item.quantity > 0
         ? Math.floor(item.quantity)
-        : 1;
+        : 1
 
-    setActiveProductId(product.id);
+    setActiveProductId(product.id)
 
     try {
       await addToCart.addProductToCart({
         product,
         quantity,
         variantId: item.variant_id,
-      });
+      })
     } catch (error) {
       toast.error({
         title: resolveErrorMessage(error, "Pridanie do košíka zlyhalo."),
-      });
+      })
     } finally {
-      setActiveProductId(null);
+      setActiveProductId(null)
     }
-  };
+  }
+
+  const addPurchasableItemsToCart = async () => {
+    const { purchasableItems } = activeListAvailabilitySummary
+    let failedCount = 0
+
+    for (const purchasableItem of purchasableItems) {
+      const { item, product } = purchasableItem
+
+      setActiveProductId(product.id)
+
+      try {
+        await addToCart.addProductToCart({
+          product,
+          quantity: resolveProductListItemQuantity(item),
+          variantId: item.variant_id,
+        })
+      } catch {
+        failedCount += 1
+      }
+    }
+
+    return {
+      failedCount,
+      totalCount: purchasableItems.length,
+    }
+  }
 
   const handleAddListToCart = async () => {
-    if (!activeList?.id || !activeListAvailabilitySummary.canAddAnyToCart) {
-      return;
+    if (!(activeList?.id && activeListAvailabilitySummary.canAddAnyToCart)) {
+      return
     }
 
-    if (!region?.region_id && !region?.country_code) {
+    if (!(region?.region_id || region?.country_code)) {
       toast.warning({
         title: "Región sa ešte načítava. Skúste to prosím o chvíľu.",
-      });
-      return;
+      })
+      return
     }
 
-    if (activeListAvailabilitySummary.canAddWholeList) {
-      try {
+    setIsAddingListToCart(true)
+
+    try {
+      if (activeListAvailabilitySummary.canAddWholeList) {
         await createListCartMutation.mutateAsync({
           listId: activeList.id,
           regionId: region.region_id,
           countryCode: region.country_code,
           email: authQuery.customer?.email,
-        });
-      } catch (error) {
-        toast.error({ title: resolveListCartErrorMessage(error) });
-      }
-      return;
-    }
-
-    const { purchasableItems } = activeListAvailabilitySummary;
-
-    setIsAddingListToCart(true);
-
-    try {
-      let failedCount = 0;
-
-      for (const purchasableItem of purchasableItems) {
-        const { item, product } = purchasableItem;
-
-        setActiveProductId(product.id);
-
-        try {
-          await addToCart.addProductToCart({
-            product,
-            quantity: resolveProductListItemQuantity(item),
-            variantId: item.variant_id,
-          });
-        } catch {
-          failedCount += 1;
-        }
+        })
+        return
       }
 
-      if (failedCount === 0) {
-        return;
-      }
+      const addResult = await addPurchasableItemsToCart()
 
-      if (failedCount === purchasableItems.length) {
-        toast.error({
-          title: "Dostupné položky sa nepodarilo pridať do košíka.",
-        });
-      } else {
-        toast.warning({
-          title: "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
-        });
-      }
+      showPartialListCartResult({
+        failedCount: addResult.failedCount,
+        toast,
+        totalCount: addResult.totalCount,
+      })
+    } catch (error) {
+      toast.error({ title: resolveListCartErrorMessage(error) })
     } finally {
-      setActiveProductId(null);
-      setIsAddingListToCart(false);
+      setActiveProductId(null)
+      setIsAddingListToCart(false)
     }
-  };
+  }
 
   const handleQuantitySet = async (
     item: StoreProductListItem,
-    quantity: number,
+    quantity: number
   ) => {
-    if (!item.id || !activeListSupportsQuantity) {
-      return;
+    if (!(item.id && activeListSupportsQuantity)) {
+      return
     }
 
-    const nextQuantity = Math.floor(quantity);
+    const nextQuantity = Math.floor(quantity)
     const currentQuantity =
       typeof item.quantity === "number" && item.quantity > 0
         ? Math.floor(item.quantity)
-        : 1;
+        : 1
 
     if (!Number.isFinite(nextQuantity) || nextQuantity < 1) {
-      return;
+      return
     }
 
     if (nextQuantity === currentQuantity) {
-      return;
+      return
     }
 
-    setActiveQuantitySetItemId(item.id);
+    setActiveQuantitySetItemId(item.id)
 
     try {
       await updateItemMutation.mutateAsync({
         itemId: item.id,
         quantity: nextQuantity,
-      });
+      })
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(
-          error,
-          "Množstvo sa nepodarilo upraviť.",
-        ),
-      });
+        title: resolveErrorMessage(error, "Množstvo sa nepodarilo upraviť."),
+      })
     } finally {
-      setActiveQuantitySetItemId(null);
+      setActiveQuantitySetItemId(null)
     }
-  };
+  }
 
   const handleDeleteList = async () => {
     if (!deleteList?.id) {
-      return;
+      return
     }
 
-    const deletedListId = deleteList.id;
+    const deletedListId = deleteList.id
     const deletedListIndex = sortedLists.findIndex(
-      (list) => list.id === deletedListId,
-    );
+      (list) => list.id === deletedListId
+    )
     const nextList =
       sortedLists[deletedListIndex - 1] ??
       sortedLists.find((list) => list.id !== deletedListId) ??
-      null;
+      null
 
     try {
-      await deleteListMutation.mutateAsync({ listId: deletedListId });
+      await deleteListMutation.mutateAsync({ listId: deletedListId })
 
       if (activeListId === deletedListId) {
         if (nextList?.id) {
-          selectList(nextList.id);
+          selectList(nextList.id)
         } else {
-          setActiveListId(null);
-          router.replace("/account/lists", { scroll: false });
+          setActiveListId(null)
+          router.replace("/account/lists", { scroll: false })
         }
       }
 
-      setDeleteListId(null);
+      setDeleteListId(null)
     } catch (error) {
       toast.error({
         title: resolveErrorMessage(error, "Zoznam sa nepodarilo zmazať."),
-      });
+      })
     }
-  };
+  }
 
   const handleDeleteItem = async (item: StoreProductListItem) => {
-    if (!activeList?.id || !item.id) {
-      return;
+    if (!(activeList?.id && item.id)) {
+      return
     }
 
-    setActiveDeleteItemId(item.id);
+    setActiveDeleteItemId(item.id)
 
     try {
       await deleteItemMutation.mutateAsync({
         listId: activeList.id,
         itemId: item.id,
-      });
+      })
     } catch (error) {
       toast.error({
         title: resolveErrorMessage(
           error,
-          "Produkt sa nepodarilo odstrániť zo zoznamu.",
+          "Produkt sa nepodarilo odstrániť zo zoznamu."
         ),
-      });
+      })
     } finally {
-      setActiveDeleteItemId(null);
+      setActiveDeleteItemId(null)
     }
-  };
+  }
 
   return {
     activeDeleteItemId,
@@ -464,9 +480,9 @@ export function useAccountProductLists() {
     setNewListTitle,
     showCreateListDialog,
     sortedLists,
-  };
+  }
 }
 
 export type AccountProductListsController = ReturnType<
   typeof useAccountProductLists
->;
+>

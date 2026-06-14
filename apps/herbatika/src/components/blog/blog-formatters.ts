@@ -1,26 +1,26 @@
 export const formatBlogDate = (value: string) => {
-  const parsed = new Date(value);
+  const parsed = new Date(value)
 
   if (Number.isNaN(parsed.getTime())) {
-    return value;
+    return value
   }
 
   return new Intl.DateTimeFormat("sk-SK", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(parsed);
-};
+  }).format(parsed)
+}
 
 export const formatTopicFromKey = (topicKey: string) => {
   switch (topicKey) {
     case "fitness":
-      return "Fitness";
+      return "Fitness"
     case "krasa":
-      return "Krása";
+      return "Krása"
     case "zdravie":
-      return "Zdravie";
+      return "Zdravie"
     default:
-      return "Všetky";
+      return "Všetky"
   }
-};
+}

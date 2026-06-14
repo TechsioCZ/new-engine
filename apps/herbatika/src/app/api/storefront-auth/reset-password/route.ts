@@ -1,38 +1,38 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
 import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
   serverError,
-} from "../_lib";
+} from "../_lib"
 
 type ResetPasswordBody = {
-  password?: string;
-  token?: string;
-};
+  password?: string
+  token?: string
+}
 
 type ResetPasswordResponse = {
-  success: true;
-};
+  success: true
+}
 
 export async function POST(request: Request) {
-  let body: ResetPasswordBody;
+  let body: ResetPasswordBody
 
   try {
-    body = (await request.json()) as ResetPasswordBody;
+    body = (await request.json()) as ResetPasswordBody
   } catch {
-    return badRequest("Telo požiadavky musí byť platné JSON.");
+    return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const password = body.password;
-  const token = body.token?.trim();
+  const password = body.password
+  const token = body.token?.trim()
 
   if (!token) {
-    return badRequest("Token obnovy hesla je povinný.");
+    return badRequest("Token obnovy hesla je povinný.")
   }
 
   if (!password) {
-    return badRequest("Nové heslo je povinné.");
+    return badRequest("Nové heslo je povinné.")
   }
 
   try {
@@ -49,20 +49,20 @@ export async function POST(request: Request) {
           password,
         }),
         cache: "no-store",
-      },
-    );
+      }
+    )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse);
+      return buildErrorResponse(medusaResponse)
     }
 
     return NextResponse.json<ResetPasswordResponse>(
       { success: true },
-      { status: 200 },
-    );
+      { status: 200 }
+    )
   } catch (error) {
     return serverError("Nepodarilo sa obnoviť heslo.", {
       error: error instanceof Error ? error.message : String(error),
-    });
+    })
   }
 }

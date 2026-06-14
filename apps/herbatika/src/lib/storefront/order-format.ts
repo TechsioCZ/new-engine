@@ -1,4 +1,4 @@
-import { formatCurrencyAmount } from "./price-format";
+import { formatCurrencyAmount } from "./price-format"
 
 const ORDER_LIFECYCLE_STATUS_LABELS: Record<string, string> = {
   archived: "Uzavretá",
@@ -7,7 +7,7 @@ const ORDER_LIFECYCLE_STATUS_LABELS: Record<string, string> = {
   draft: "Rozpracovaná",
   pending: "Spracováva sa",
   requires_action: "Vyžaduje akciu",
-};
+}
 
 const ORDER_PAYMENT_STATUS_LABELS: Record<string, string> = {
   authorized: "Platba overená",
@@ -20,7 +20,7 @@ const ORDER_PAYMENT_STATUS_LABELS: Record<string, string> = {
   partially_refunded: "Čiastočne vrátená",
   refunded: "Vrátená",
   requires_action: "Platba vyžaduje akciu",
-};
+}
 
 const ORDER_FULFILLMENT_STATUS_LABELS: Record<string, string> = {
   canceled: "Doručenie zrušené",
@@ -31,47 +31,49 @@ const ORDER_FULFILLMENT_STATUS_LABELS: Record<string, string> = {
   partially_fulfilled: "Čiastočne pripravená",
   partially_shipped: "Čiastočne odoslaná",
   shipped: "Odoslaná",
-};
+}
 
-type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning";
+type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning"
 
 export type StorefrontOrderStatusInput = {
-  fulfillment_status?: string | null;
-  payment_status?: string | null;
-  status?: string | null;
-};
+  fulfillment_status?: string | null
+  payment_status?: string | null
+  status?: string | null
+}
 
 export const resolveOrderPaymentStatusLabel = (
-  order: StorefrontOrderStatusInput,
+  order: StorefrontOrderStatusInput
 ) => {
   if (!order.payment_status) {
-    return null;
+    return null
   }
 
-  return ORDER_PAYMENT_STATUS_LABELS[order.payment_status] ?? order.payment_status;
-};
+  return (
+    ORDER_PAYMENT_STATUS_LABELS[order.payment_status] ?? order.payment_status
+  )
+}
 
 export const resolveOrderFulfillmentStatusLabel = (
-  order: StorefrontOrderStatusInput,
+  order: StorefrontOrderStatusInput
 ) => {
   if (!order.fulfillment_status) {
-    return null;
+    return null
   }
 
   return (
     ORDER_FULFILLMENT_STATUS_LABELS[order.fulfillment_status] ??
     order.fulfillment_status
-  );
-};
+  )
+}
 
 export const resolveOrderProgressState = (
-  order: StorefrontOrderStatusInput,
+  order: StorefrontOrderStatusInput
 ): { label: string; variant: OrderStatusBadgeVariant } => {
   if (order.status === "canceled") {
     return {
       label: ORDER_LIFECYCLE_STATUS_LABELS.canceled,
       variant: "danger",
-    };
+    }
   }
 
   if (
@@ -81,56 +83,56 @@ export const resolveOrderProgressState = (
     return {
       label: ORDER_LIFECYCLE_STATUS_LABELS.requires_action,
       variant: "warning",
-    };
+    }
   }
 
   if (order.fulfillment_status === "delivered") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.delivered,
       variant: "success",
-    };
+    }
   }
 
   if (order.fulfillment_status === "partially_delivered") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.partially_delivered,
       variant: "info",
-    };
+    }
   }
 
   if (order.fulfillment_status === "shipped") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.shipped,
       variant: "info",
-    };
+    }
   }
 
   if (order.fulfillment_status === "partially_shipped") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.partially_shipped,
       variant: "info",
-    };
+    }
   }
 
   if (order.fulfillment_status === "fulfilled") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.fulfilled,
       variant: "info",
-    };
+    }
   }
 
   if (order.fulfillment_status === "partially_fulfilled") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.partially_fulfilled,
       variant: "info",
-    };
+    }
   }
 
   if (order.fulfillment_status === "canceled") {
     return {
       label: ORDER_FULFILLMENT_STATUS_LABELS.canceled,
       variant: "danger",
-    };
+    }
   }
 
   if (
@@ -140,137 +142,140 @@ export const resolveOrderProgressState = (
     return {
       label: ORDER_PAYMENT_STATUS_LABELS.awaiting,
       variant: "warning",
-    };
+    }
   }
 
   if (order.status === "completed") {
     return {
       label: ORDER_LIFECYCLE_STATUS_LABELS.completed,
       variant: "success",
-    };
+    }
   }
 
   if (order.status === "archived") {
     return {
       label: ORDER_LIFECYCLE_STATUS_LABELS.archived,
       variant: "info",
-    };
+    }
   }
 
   return {
     label: ORDER_LIFECYCLE_STATUS_LABELS.pending,
     variant: "info",
-  };
-};
+  }
+}
 
 export const resolveOrderDisplayId = (order: {
-  display_id?: number | null;
-  id: string;
+  display_id?: number | null
+  id: string
 }) => {
   if (order.display_id) {
-    return `#${order.display_id}`;
+    return `#${order.display_id}`
   }
 
-  return order.id;
-};
+  return order.id
+}
 
 export const formatOrderDate = (value?: Date | string | null) => {
   if (!value) {
-    return "-";
+    return "-"
   }
 
-  const date = value instanceof Date ? value : new Date(value);
+  const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return "-";
+    return "-"
   }
 
   return new Intl.DateTimeFormat("sk-SK", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(date);
-};
+  }).format(date)
+}
 
-export const formatOrderAmount = (amount: number, currencyCode?: string | null) => {
-  return formatCurrencyAmount(amount, currencyCode);
-};
+export const formatOrderAmount = (
+  amount: number,
+  currencyCode?: string | null
+) => formatCurrencyAmount(amount, currencyCode)
 
 export const resolveOrderTotalAmount = (order: {
-  item_total?: number | null;
-  total?: number | null;
+  item_total?: number | null
+  total?: number | null
 }) => {
   if (typeof order.total === "number") {
-    return order.total;
+    return order.total
   }
 
   if (typeof order.item_total === "number") {
-    return order.item_total;
+    return order.item_total
   }
 
-  return 0;
-};
+  return 0
+}
 
 export const resolveOrderItemTotalAmount = (item: {
-  quantity?: number | null;
-  total?: number | null;
-  unit_price?: number | null;
+  quantity?: number | null
+  total?: number | null
+  unit_price?: number | null
 }) => {
   if (typeof item.total === "number") {
-    return item.total;
+    return item.total
   }
 
-  const unitPrice = typeof item.unit_price === "number" ? item.unit_price : 0;
-  const quantity = typeof item.quantity === "number" ? item.quantity : 1;
+  const unitPrice = typeof item.unit_price === "number" ? item.unit_price : 0
+  const quantity = typeof item.quantity === "number" ? item.quantity : 1
 
-  return unitPrice * quantity;
-};
+  return unitPrice * quantity
+}
 
-export const resolveOrderItemQuantity = (item: { quantity?: number | null }) => {
+export const resolveOrderItemQuantity = (item: {
+  quantity?: number | null
+}) => {
   if (typeof item.quantity === "number" && item.quantity > 0) {
-    return item.quantity;
+    return item.quantity
   }
 
-  return 0;
-};
+  return 0
+}
 
 export const resolveOrderItemCount = (
-  items?: Array<{ quantity?: number | null }> | null,
+  items?: Array<{ quantity?: number | null }> | null
 ) => {
   if (!items?.length) {
-    return 0;
+    return 0
   }
 
   return items.reduce((count, item) => {
-    const quantity = resolveOrderItemQuantity(item);
-    return count + quantity;
-  }, 0);
-};
+    const quantity = resolveOrderItemQuantity(item)
+    return count + quantity
+  }, 0)
+}
 
 const resolveRecordValue = (
   source: Record<string, unknown>,
-  key: string,
+  key: string
 ): string | null => {
-  const value = source[key];
+  const value = source[key]
   if (typeof value !== "string") {
-    return null;
+    return null
   }
 
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-};
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
 
 export const resolveOrderInvoiceUrl = (
-  order: { metadata?: unknown } | null | undefined,
+  order: { metadata?: unknown } | null | undefined
 ) => {
-  if (!order || !(order.metadata && typeof order.metadata === "object")) {
-    return null;
+  if (!(order?.metadata && typeof order.metadata === "object")) {
+    return null
   }
 
-  const metadata = order.metadata as Record<string, unknown>;
+  const metadata = order.metadata as Record<string, unknown>
 
   return (
     resolveRecordValue(metadata, "invoice_url") ??
     resolveRecordValue(metadata, "invoiceUrl") ??
     resolveRecordValue(metadata, "invoice_href") ??
     resolveRecordValue(metadata, "invoiceHref")
-  );
-};
+  )
+}

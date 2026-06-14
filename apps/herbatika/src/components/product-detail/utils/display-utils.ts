@@ -1,11 +1,13 @@
-import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
-import type { HttpTypes } from "@medusajs/types";
-import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants";
-import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers";
+import type { HttpTypes } from "@medusajs/types"
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
+import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants"
+import { normalizeCategoryName } from "@/components/product-detail/utils/metadata-parsers"
+
+const SENTENCE_SEPARATOR_PATTERN = /[.!?]/
 
 export const resolveGalleryItems = (
   imageUrls: string[],
-  title: string | null | undefined,
+  title: string | null | undefined
 ): GalleryItem[] => {
   if (imageUrls.length === 0) {
     return [
@@ -14,52 +16,52 @@ export const resolveGalleryItems = (
         src: PRODUCT_FALLBACK_IMAGE,
         alt: title || "Produkt",
       },
-    ];
+    ]
   }
 
   return imageUrls.map((imageUrl, index) => ({
     id: `gallery-${index}`,
     src: imageUrl,
     alt: title ? `${title} (${index + 1})` : `Produkt (${index + 1})`,
-  }));
-};
+  }))
+}
 
 export const resolveProductHighlights = (
   summaryText: string,
-  categories: HttpTypes.StoreProductCategory[],
+  categories: HttpTypes.StoreProductCategory[]
 ): string[] => {
   const sentenceCandidates = summaryText
-    .split(/[\.\!\?]/)
+    .split(SENTENCE_SEPARATOR_PATTERN)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.length >= 24)
-    .slice(0, 3);
+    .slice(0, 3)
 
   if (sentenceCandidates.length >= 3) {
-    return sentenceCandidates;
+    return sentenceCandidates
   }
 
   const categoryHighlights = categories
     .map((category) => normalizeCategoryName(category.name))
     .filter((name) => name.length > 0)
     .slice(0, 3)
-    .map((name) => `Vhodné pre oblasť ${name.toLowerCase()}`);
+    .map((name) => `Vhodné pre oblasť ${name.toLowerCase()}`)
 
-  const merged = [...sentenceCandidates];
+  const merged = [...sentenceCandidates]
   for (const categoryHighlight of categoryHighlights) {
     if (merged.length >= 3) {
-      break;
+      break
     }
 
-    merged.push(categoryHighlight);
+    merged.push(categoryHighlight)
   }
 
   if (merged.length > 0) {
-    return merged;
+    return merged
   }
 
   return [
     "Obnovuje funkciu bunky.",
     "Posilnenie obranyschopnosti.",
     "Optimalizácia hladiny cholesterolu.",
-  ];
-};
+  ]
+}

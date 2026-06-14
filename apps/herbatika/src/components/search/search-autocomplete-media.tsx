@@ -1,11 +1,11 @@
-"use client";
+"use client"
 
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon";
-import { FallbackImage } from "@/components/fallback-image";
+import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { FallbackImage } from "@/components/fallback-image"
 import type {
   SearchAutocompleteSuggestion,
   SearchAutocompleteSuggestionType,
-} from "@/lib/search-autocomplete/search-autocomplete-types";
+} from "@/lib/search-autocomplete/search-autocomplete-types"
 
 const TYPE_ICON: Record<
   Exclude<SearchAutocompleteSuggestionType, "product">,
@@ -13,12 +13,12 @@ const TYPE_ICON: Record<
 > = {
   brand: "token-icon-label",
   category: "token-icon-box",
-};
+}
 
 export function SearchAutocompleteMedia({
   item,
 }: {
-  item: SearchAutocompleteSuggestion;
+  item: SearchAutocompleteSuggestion
 }) {
   if (item.type === "product") {
     return (
@@ -32,12 +32,12 @@ export function SearchAutocompleteMedia({
           width={56}
         />
       </span>
-    );
+    )
   }
 
   return (
     <span className="flex h-700 w-700 shrink-0 items-center justify-center rounded-md bg-fill-secondary text-primary">
       <Icon icon={TYPE_ICON[item.type]} size="lg" />
     </span>
-  );
+  )
 }

@@ -1,24 +1,24 @@
-"use client";
+"use client"
 
-import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton";
+import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 import {
   HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME,
   type HerbatikaProductGridLayout,
-} from "./herbatika-product-grid";
+} from "./herbatika-product-grid"
 
 const SKELETON_LAYOUT_COUNT: Record<HerbatikaProductGridLayout, number> = {
   catalog: 8,
   collection: 4,
-};
+}
 
 type HerbatikaProductGridSkeletonProps = {
-  layout: HerbatikaProductGridLayout;
-};
+  layout: HerbatikaProductGridLayout
+}
 
 export function HerbatikaProductGridSkeleton({
   layout,
 }: HerbatikaProductGridSkeletonProps) {
-  const skeletonCount = SKELETON_LAYOUT_COUNT[layout];
+  const skeletonCount = SKELETON_LAYOUT_COUNT[layout]
 
   return (
     <div className={HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME[layout]}>
@@ -28,5 +28,5 @@ export function HerbatikaProductGridSkeleton({
         />
       ))}
     </div>
-  );
+  )
 }

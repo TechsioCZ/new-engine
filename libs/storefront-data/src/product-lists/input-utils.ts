@@ -60,8 +60,7 @@ export const withCustomerScope = <
 >(
   params: TParams,
   input: TInput
-) =>
-  ({
-    ...(params as object),
-    customerId: input.customerId ?? null,
-  })
+) => ({
+  ...(params as object),
+  customerId: input.customerId ?? null,
+})

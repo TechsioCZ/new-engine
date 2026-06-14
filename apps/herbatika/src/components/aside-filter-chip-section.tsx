@@ -1,26 +1,26 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { useMemo, useState } from "react";
-import { AsideFilterButton } from "@/components/aside-filter-button";
-import { SupportingText } from "@/components/text/supporting-text";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { useMemo, useState } from "react"
+import { AsideFilterButton } from "@/components/aside-filter-button"
+import { SupportingText } from "@/components/text/supporting-text"
 
 export type AsideFilterChipItem = {
-  id: string;
-  label: string;
-  count: number;
-  checked: boolean;
-  disabled?: boolean;
-};
+  id: string
+  label: string
+  count: number
+  checked: boolean
+  disabled?: boolean
+}
 
 type AsideFilterChipSectionProps = {
-  title?: string;
-  items: AsideFilterChipItem[];
-  onToggle: (itemId: string) => void;
-  emptyMessage?: string;
-  collapseAfter?: number;
-  isLoading?: boolean;
-};
+  title?: string
+  items: AsideFilterChipItem[]
+  onToggle: (itemId: string) => void
+  emptyMessage?: string
+  collapseAfter?: number
+  isLoading?: boolean
+}
 
 export function AsideFilterChipSection({
   title,
@@ -30,21 +30,19 @@ export function AsideFilterChipSection({
   collapseAfter,
   isLoading = false,
 }: AsideFilterChipSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const visibleItems = useMemo(() => {
     if (!collapseAfter || collapseAfter <= 0 || isExpanded) {
-      return items;
+      return items
     }
 
-    return items.slice(0, collapseAfter);
-  }, [collapseAfter, isExpanded, items]);
+    return items.slice(0, collapseAfter)
+  }, [collapseAfter, isExpanded, items])
 
   return (
     <section className="space-y-250">
-      {title && (
-        <h3 className="text-xl font-semibold leading-none">{title}</h3>
-      )}
+      {title && <h3 className="font-semibold text-xl leading-none">{title}</h3>}
 
       {items.length === 0 && emptyMessage && (
         <SupportingText className="text-fg-secondary text-sm">
@@ -71,7 +69,7 @@ export function AsideFilterChipSection({
             collapseAfter > 0 &&
             items.length > collapseAfter && (
               <Button
-                className="min-h-750 text-sm font-semibold text-fg-secondary underline hover:text-primary"
+                className="min-h-750 font-semibold text-fg-secondary text-sm underline hover:text-primary"
                 onClick={() => setIsExpanded((currentState) => !currentState)}
                 size="current"
                 theme="unstyled"
@@ -84,5 +82,5 @@ export function AsideFilterChipSection({
         </>
       )}
     </section>
-  );
+  )
 }

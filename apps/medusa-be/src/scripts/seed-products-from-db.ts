@@ -1,6 +1,7 @@
 import type {
   CreateProductWorkflowInputDTO,
   ExecArgs,
+  Logger,
   MedusaContainer,
   ProductCategoryDTO,
 } from "@medusajs/framework/types"
@@ -21,6 +22,8 @@ import {
 import { sql } from "drizzle-orm"
 import { sqlRaw } from "../utils/db"
 
+const CHUNK_SIZE = 50
+
 // Product record shape from the database
 type ProductRecord = {
   product_slug: string
@@ -37,6 +40,11 @@ type ProductRecord = {
   category_image_url: string
   collection_slug: string
   collection_name: string
+}
+
+type ImportPageResult = {
+  createdCount: number
+  hasMore: boolean
 }
 
 /**
@@ -281,14 +289,11 @@ function extractCollections(products: ProductRecord[]): {
   return Object.values(collectionsMap)
 }
 
-export default async function seedProductsFromDb({ container }: ExecArgs) {
-  const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
+async function getDefaultSalesChannelId(
+  container: MedusaContainer,
+  logger: Logger
+): Promise<string> {
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL)
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
-
-  logger.info("Starting bulk product import from database...")
-
-  // 1. Get default sales channel
   const defaultSalesChannel = await salesChannelModuleService.listSalesChannels(
     {
       name: "Default Sales Channel",
@@ -304,8 +309,10 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
 
   const defaultSalesChannelId = defaultSalesChannel[0]?.id as string
   logger.info(`Found default sales channel with ID: ${defaultSalesChannelId}`)
+  return defaultSalesChannelId
+}
 
-  // 2. Import a small batch of products first to extract categories and collections
+async function loadSampleProducts(logger: Logger): Promise<ProductRecord[]> {
   logger.info("Fetching initial product data for category extraction...")
   const sampleProducts = await importProductPage(0, 10)
 
@@ -316,12 +323,31 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
     )
   }
 
-  // 3. Extract and create categories
+  return sampleProducts
+}
+
+function buildCategoryMap(
+  existingCategoryMap: Record<string, string>,
+  categoryResult: ProductCategoryDTO[]
+): Record<string, string> {
+  const categoryMap: Record<string, string> = { ...existingCategoryMap }
+  for (const category of categoryResult) {
+    if (category.handle) {
+      categoryMap[category.handle] = category.id
+    }
+  }
+  return categoryMap
+}
+
+async function ensureCategoryMap(
+  container: MedusaContainer,
+  logger: Logger,
+  sampleProducts: ProductRecord[]
+): Promise<Record<string, string>> {
   logger.info("Extracting categories from product data...")
   const categories = extractCategories(sampleProducts)
   logger.info(`Found ${categories.length} unique categories`)
 
-  // Check which categories already exist
   const categoryHandles = categories.map((category) => category.slug)
   logger.info("Checking for existing categories...")
   const existingCategoryMap = await checkExistingCategories(
@@ -329,7 +355,6 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
     categoryHandles
   )
 
-  // Filter out categories that already exist
   const newCategories = categories.filter(
     (category) => !existingCategoryMap[category.slug]
   )
@@ -337,7 +362,6 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
     `Found ${Object.keys(existingCategoryMap).length} existing categories, creating ${newCategories.length} new categories`
   )
 
-  // Map categories to the format required by Medusa
   const productCategories = newCategories.map((category) => ({
     name: category.name,
     handle: category.slug,
@@ -348,7 +372,6 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
       : undefined,
   }))
 
-  // Only run creation workflow if there are new categories to create
   let categoryResult: ProductCategoryDTO[] = []
   if (productCategories.length > 0) {
     logger.info("Creating product categories...")
@@ -363,20 +386,18 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
     logger.info("No new categories to create, using existing ones")
   }
 
-  // 5. Create a map of category slugs to category IDs for easy lookup
-  const categoryMap: Record<string, string> = { ...existingCategoryMap }
-  for (const category of categoryResult) {
-    if (category.handle) {
-      categoryMap[category.handle] = category.id
-    }
-  }
+  return buildCategoryMap(existingCategoryMap, categoryResult)
+}
 
-  // 4. Extract and create collections
+async function ensureCollections(
+  container: MedusaContainer,
+  logger: Logger,
+  sampleProducts: ProductRecord[]
+) {
   logger.info("Extracting collections from product data...")
   const collections = extractCollections(sampleProducts)
   logger.info(`Found ${collections.length} unique collections`)
 
-  // Check which collections already exist
   const collectionHandles = collections.map((collection) => collection.handle)
   logger.info("Checking for existing collections...")
   const existingCollectionMap = await checkExistingCollections(
@@ -384,7 +405,6 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
     collectionHandles
   )
 
-  // Filter out collections that already exist
   const newCollections = collections.filter(
     (collection) => !existingCollectionMap[collection.handle]
   )
@@ -392,7 +412,6 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
     `Found ${Object.keys(existingCollectionMap).length} existing collections, creating ${newCollections.length} new collections`
   )
 
-  // Only run creation workflow if there are new collections to create
   let collectionResult: { handle: string; id: string }[] = []
   if (newCollections.length > 0) {
     logger.info("Creating new collections...")
@@ -408,46 +427,195 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
   } else {
     logger.info("No new collections to create, using existing ones")
   }
+}
 
-  // 6. Create or get stock location (once, before the loop)
+async function ensureDefaultStockLocation(
+  container: MedusaContainer,
+  logger: Logger
+): Promise<string> {
   const stockLocationService = container.resolve(Modules.STOCK_LOCATION)
   const existingStockLocations = await stockLocationService.listStockLocations({
     name: "Default Warehouse",
   })
 
-  let stockLocationId: string
   if (existingStockLocations.length > 0 && existingStockLocations[0]) {
-    stockLocationId = existingStockLocations[0].id
+    const stockLocationId = existingStockLocations[0].id
     logger.info(`Using existing stock location: ${stockLocationId}`)
-  } else {
-    const { result: stockLocationResult } = await createStockLocationsWorkflow(
-      container
-    ).run({
-      input: {
-        locations: [
-          {
-            name: "Default Warehouse",
-            address: {
-              address_1: "123 Demo Street",
-              city: "Demo City",
-              country_code: "us",
-            },
-          },
-        ],
-      },
-    })
-    if (!stockLocationResult[0]) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Failed to create stock location"
-      )
-    }
-    stockLocationId = stockLocationResult[0].id
-    logger.info(`Created stock location: ${stockLocationId}`)
+    return stockLocationId
   }
 
-  // 7. Import products in chunks
-  const CHUNK_SIZE = 50
+  const { result: stockLocationResult } = await createStockLocationsWorkflow(
+    container
+  ).run({
+    input: {
+      locations: [
+        {
+          name: "Default Warehouse",
+          address: {
+            address_1: "123 Demo Street",
+            city: "Demo City",
+            country_code: "us",
+          },
+        },
+      ],
+    },
+  })
+  if (!stockLocationResult[0]) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Failed to create stock location"
+    )
+  }
+  const stockLocationId = stockLocationResult[0].id
+  logger.info(`Created stock location: ${stockLocationId}`)
+  return stockLocationId
+}
+
+function getProductHandles(
+  products: CreateProductWorkflowInputDTO[]
+): string[] {
+  return products.map((product) => product.handle as string)
+}
+
+async function selectNewProducts(
+  container: MedusaContainer,
+  logger: Logger,
+  products: CreateProductWorkflowInputDTO[]
+): Promise<CreateProductWorkflowInputDTO[]> {
+  const productHandles = getProductHandles(products)
+  logger.info(
+    `Checking for existing products with ${productHandles.length} handles...`
+  )
+  const existingProductMap = await checkExistingProducts(
+    container,
+    productHandles
+  )
+  const newProducts = products.filter(
+    (product) => !existingProductMap[product.handle as string]
+  )
+  logger.info(
+    `Found ${Object.keys(existingProductMap).length} existing products, creating ${newProducts.length} new products`
+  )
+  return newProducts
+}
+
+async function setInventoryLevelsForLocation(
+  container: MedusaContainer,
+  logger: Logger,
+  stockLocationId: string
+) {
+  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const { data: inventoryItems } = await query.graph({
+    entity: "inventory_item",
+    fields: ["id"],
+  })
+
+  const inventoryLevels: {
+    stocked_quantity: number
+    inventory_item_id: string
+    location_id: string
+  }[] = []
+  for (const inventoryItem of inventoryItems) {
+    inventoryLevels.push({
+      stocked_quantity: 100,
+      inventory_item_id: inventoryItem.id,
+      location_id: stockLocationId,
+    })
+  }
+
+  if (inventoryLevels.length === 0) {
+    return
+  }
+
+  await createInventoryLevelsWorkflow(container).run({
+    input: {
+      inventory_levels: inventoryLevels,
+    },
+  })
+  logger.info(`Set inventory levels for ${inventoryLevels.length} variants`)
+}
+
+async function importProductBatch({
+  categoryMap,
+  container,
+  defaultSalesChannelId,
+  logger,
+  page,
+  stockLocationId,
+}: {
+  categoryMap: Record<string, string>
+  container: MedusaContainer
+  defaultSalesChannelId: string
+  logger: Logger
+  page: number
+  stockLocationId: string
+}): Promise<ImportPageResult> {
+  logger.info(`Processing page ${page + 1}, offset: ${page * CHUNK_SIZE}`)
+  const productRecords = await importProductPage(page, CHUNK_SIZE)
+
+  if (!productRecords || productRecords.length === 0) {
+    logger.info("No more products to import")
+    return {
+      createdCount: 0,
+      hasMore: false,
+    }
+  }
+
+  const medusaProducts = convertToMedusaProducts(
+    productRecords,
+    defaultSalesChannelId,
+    categoryMap
+  )
+  const newProducts = await selectNewProducts(container, logger, medusaProducts)
+
+  if (newProducts.length === 0) {
+    logger.info("No new products to create in this batch, skipping...")
+    return {
+      createdCount: 0,
+      hasMore: productRecords.length >= CHUNK_SIZE,
+    }
+  }
+
+  logger.info(`Importing ${newProducts.length} products (batch ${page + 1})...`)
+  const { result: createdProducts } = await createProductsWorkflow(
+    container
+  ).run({
+    input: {
+      products: newProducts,
+    },
+  })
+  logger.info(`Successfully created ${createdProducts.length} products`)
+  await setInventoryLevelsForLocation(container, logger, stockLocationId)
+
+  return {
+    createdCount: createdProducts.length,
+    hasMore: productRecords.length >= CHUNK_SIZE,
+  }
+}
+
+function logImportError(error: unknown, logger: Logger, page: number): string {
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  const errorStack = error instanceof Error ? error.stack : undefined
+
+  logger.error(
+    `Error importing products at page ${page}: ${errorMessage}\n${errorStack || ""}`
+  )
+  return errorMessage
+}
+
+async function importProductPages({
+  categoryMap,
+  container,
+  defaultSalesChannelId,
+  logger,
+  stockLocationId,
+}: {
+  categoryMap: Record<string, string>
+  container: MedusaContainer
+  defaultSalesChannelId: string
+  logger: Logger
+  stockLocationId: string
+}): Promise<number> {
   let page = 0
   let totalImported = 0
   let hasMore = true
@@ -456,120 +624,23 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
 
   while (hasMore) {
     try {
-      hasMore = false
-      logger.info(`Processing page ${page + 1}, offset: ${page * CHUNK_SIZE}`)
-
-      // Get a page of products from the database
-      const productRecords = await importProductPage(page, CHUNK_SIZE)
-
-      if (!productRecords || productRecords.length === 0) {
-        logger.info("No more products to import")
-        hasMore = false
-        break
-      }
-
-      // Convert products to Medusa format
-      const medusaProducts = convertToMedusaProducts(
-        productRecords,
-        defaultSalesChannelId,
-        categoryMap
-      )
-
-      // Check which products already exist
-      const productHandles = medusaProducts.map(
-        (product) => product.handle as string
-      )
-      logger.info(
-        `Checking for existing products with ${productHandles.length} handles...`
-      )
-      const existingProductMap = await checkExistingProducts(
+      const result = await importProductBatch({
+        categoryMap,
         container,
-        productHandles
-      )
-
-      // Filter out products that already exist
-      const newProducts = medusaProducts.filter(
-        (product) => !existingProductMap[product.handle as string]
-      )
-      logger.info(
-        `Found ${Object.keys(existingProductMap).length} existing products, creating ${newProducts.length} new products`
-      )
-
-      if (newProducts.length === 0) {
-        logger.info("No new products to create in this batch, skipping...")
-        page += 1
-        // If we got fewer products than the chunk size, we've reached the end
-        hasMore = productRecords.length >= CHUNK_SIZE
-        continue
-      }
-
-      logger.info(
-        `Importing ${newProducts.length} products (batch ${page + 1})...`
-      )
-
-      // Create products in Medusa
-      const { result: createdProducts } = await createProductsWorkflow(
-        container
-      ).run({
-        input: {
-          products: newProducts,
-        },
+        defaultSalesChannelId,
+        logger,
+        page,
+        stockLocationId,
       })
-
-      logger.info(`Successfully created ${createdProducts.length} products`)
-
-      // Set inventory levels for all variants of the created products
-      const { data: inventoryItems } = await query.graph({
-        entity: "inventory_item",
-        fields: ["id"],
-      })
-
-      // Create inventory levels for each inventory item with the location ID
-      const inventoryLevels: {
-        stocked_quantity: number
-        inventory_item_id: string
-        location_id: string
-      }[] = []
-      for (const inventoryItem of inventoryItems) {
-        inventoryLevels.push({
-          stocked_quantity: 100, // Default stock quantity
-          inventory_item_id: inventoryItem.id,
-          location_id: stockLocationId,
-        })
-      }
-
-      if (inventoryLevels.length > 0) {
-        await createInventoryLevelsWorkflow(container).run({
-          input: {
-            inventory_levels: inventoryLevels,
-          },
-        })
-        logger.info(
-          `Set inventory levels for ${inventoryLevels.length} variants`
-        )
-      }
-
-      totalImported += createdProducts.length
+      totalImported += result.createdCount
       page += 1
-
       logger.info(`Total products imported so far: ${totalImported}`)
-
-      // If we got fewer products than the chunk size, we've reached the end
-      hasMore = productRecords.length >= CHUNK_SIZE
+      hasMore = result.hasMore
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
-      const errorStack = error instanceof Error ? error.stack : undefined
-
-      logger.error(
-        `Error importing products at page ${page}: ${errorMessage}\n${errorStack || ""}`
-      )
-
-      // Continue with the next chunk even if this one failed
+      const errorMessage = logImportError(error, logger, page)
       page += 1
       hasMore = true
 
-      // If we've had multiple consecutive errors without importing anything, stop
       if (page > 3 && totalImported === 0) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
@@ -578,6 +649,30 @@ export default async function seedProductsFromDb({ container }: ExecArgs) {
       }
     }
   }
+
+  return totalImported
+}
+
+export default async function seedProductsFromDb({ container }: ExecArgs) {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+  logger.info("Starting bulk product import from database...")
+
+  const defaultSalesChannelId = await getDefaultSalesChannelId(
+    container,
+    logger
+  )
+  const sampleProducts = await loadSampleProducts(logger)
+  const categoryMap = await ensureCategoryMap(container, logger, sampleProducts)
+  await ensureCollections(container, logger, sampleProducts)
+  const stockLocationId = await ensureDefaultStockLocation(container, logger)
+  const totalImported = await importProductPages({
+    categoryMap,
+    container,
+    defaultSalesChannelId,
+    logger,
+    stockLocationId,
+  })
 
   logger.info(
     `Product import completed. Total products imported: ${totalImported}`

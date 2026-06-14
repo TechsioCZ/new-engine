@@ -1,7 +1,14 @@
-import type {IProductModuleService, Logger, ProductCategoryDTO,} from "@medusajs/framework/types"
-import {ContainerRegistrationKeys, Modules} from "@medusajs/framework/utils"
-import {createStep, StepResponse} from "@medusajs/framework/workflows-sdk"
-import {createProductCategoriesWorkflow, updateProductCategoriesWorkflow,} from "@medusajs/medusa/core-flows"
+import type {
+  IProductModuleService,
+  Logger,
+  ProductCategoryDTO,
+} from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import {
+  createProductCategoriesWorkflow,
+  updateProductCategoriesWorkflow,
+} from "@medusajs/medusa/core-flows"
 
 export type CreateProductCategoriesStepInput = {
   name: string
@@ -17,7 +24,11 @@ export type CreateProductCategoriesStepInput = {
 const CreateProductCategoriesStepId = "create-product-categories-seed-step"
 
 function dedupeStringValues(values: Array<string | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value?.trim())))]
+  return [
+    ...new Set(
+      values.filter((value): value is string => Boolean(value?.trim()))
+    ),
+  ]
 }
 
 function matchesCategoryInput(
@@ -42,7 +53,9 @@ export const createProductCategoriesStep = createStep(
       Modules.PRODUCT
     )
 
-    const inputHandles = dedupeStringValues(input.map((category) => category.handle))
+    const inputHandles = dedupeStringValues(
+      input.map((category) => category.handle)
+    )
     const inputNamesWithoutHandle = dedupeStringValues(
       input
         .filter((category) => !category.handle)
@@ -90,9 +103,8 @@ export const createProductCategoriesStep = createStep(
     )
     const updateProductCategories = existingProductCategories.flatMap(
       (existingProductCategory) => {
-        const inputProductCategories = input.find(
-          (productCategory) =>
-            matchesCategoryInput(productCategory, existingProductCategory)
+        const inputProductCategories = input.find((productCategory) =>
+          matchesCategoryInput(productCategory, existingProductCategory)
         )
         if (!inputProductCategories) {
           return []

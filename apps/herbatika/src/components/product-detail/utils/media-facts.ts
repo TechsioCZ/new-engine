@@ -1,154 +1,160 @@
-"use client";
+"use client"
 
 import type {
   Product,
   ProductDetailContentSection,
   ProductMediaFact,
-} from "@/components/product-detail/product-detail.types";
-import { stripHtml } from "@/components/product-detail/utils/html-sanitizer";
+} from "@/components/product-detail/product-detail.types"
+import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
 import {
   asRecord,
   asString,
-} from "@/components/product-detail/utils/value-utils";
+} from "@/components/product-detail/utils/value-utils"
 
 const CAPSULE_COUNT_PATTERN =
-  /(\d{1,4})\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/gi;
+  /(\d{1,4})\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/gi
 
 const DAILY_CAPSULE_PATTERNS = [
   /(\d+)\s*x\s*denne[^0-9]{0,20}(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/i,
   /(\d+)\s*[-–]\s*(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\s*(?:denne|za deň|za den|daily)\b/i,
   /(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\s*(?:denne|za deň|za den|daily)\b/i,
   /(?:odporúčaná|odporucana|denná|denna)[^.]{0,60}?(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/i,
-];
+]
 
 const resolveDoseWord = (count: number) => {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
+  const mod10 = count % 10
+  const mod100 = count % 100
 
   if (mod10 === 1 && mod100 !== 11) {
-    return "dávka";
+    return "dávka"
   }
 
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return "dávky";
+    return "dávky"
   }
 
-  return "dávok";
-};
+  return "dávok"
+}
 
 const resolveCapsuleWord = (count: number) => {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
+  const mod10 = count % 10
+  const mod100 = count % 100
 
   if (mod10 === 1 && mod100 !== 11) {
-    return "kapsula";
+    return "kapsula"
   }
 
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return "kapsuly";
+    return "kapsuly"
   }
 
-  return "kapsúl";
-};
+  return "kapsúl"
+}
 
 const parsePositiveInt = (value: string | undefined): number | null => {
   if (!value) {
-    return null;
+    return null
   }
 
-  const parsed = Number.parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed) || parsed < 1) {
-    return null;
+    return null
   }
 
-  return parsed;
-};
+  return parsed
+}
 
 const collectCapsuleCounts = (text: string): number[] => {
-  const matches: number[] = [];
-  CAPSULE_COUNT_PATTERN.lastIndex = 0;
+  const matches: number[] = []
+  CAPSULE_COUNT_PATTERN.lastIndex = 0
 
-  let match = CAPSULE_COUNT_PATTERN.exec(text);
+  let match = CAPSULE_COUNT_PATTERN.exec(text)
   while (match) {
-    const parsed = parsePositiveInt(match[1]);
+    const parsed = parsePositiveInt(match[1])
     if (parsed) {
-      matches.push(parsed);
+      matches.push(parsed)
     }
 
-    match = CAPSULE_COUNT_PATTERN.exec(text);
+    match = CAPSULE_COUNT_PATTERN.exec(text)
   }
 
-  return matches;
-};
+  return matches
+}
 
 const resolveCapsuleCount = (texts: string[]): number | null => {
-  const candidates = texts.flatMap((text) => collectCapsuleCounts(text));
+  const candidates = texts.flatMap((text) => collectCapsuleCounts(text))
   if (candidates.length === 0) {
-    return null;
+    return null
   }
 
-  return Math.max(...candidates);
-};
+  return Math.max(...candidates)
+}
+
+const resolveDailyCapsuleMatchDose = (
+  match: RegExpExecArray
+): number | null => {
+  if (match[2]) {
+    const timesPerDay = parsePositiveInt(match[1])
+    const capsulesPerIntake = parsePositiveInt(match[2])
+    return timesPerDay && capsulesPerIntake
+      ? timesPerDay * capsulesPerIntake
+      : null
+  }
+
+  return parsePositiveInt(match[1])
+}
 
 const resolveDailyCapsuleDose = (texts: string[]): number | null => {
   for (const text of texts) {
     for (const pattern of DAILY_CAPSULE_PATTERNS) {
-      const match = pattern.exec(text);
+      const match = pattern.exec(text)
       if (!match) {
-        continue;
+        continue
       }
 
-      if (match[2]) {
-        const timesPerDay = parsePositiveInt(match[1]);
-        const capsulesPerIntake = parsePositiveInt(match[2]);
-        if (timesPerDay && capsulesPerIntake) {
-          return timesPerDay * capsulesPerIntake;
-        }
-      }
-
-      const directDose = parsePositiveInt(match[1]);
-      if (directDose) {
-        return directDose;
+      const dose = resolveDailyCapsuleMatchDose(match)
+      if (dose) {
+        return dose
       }
     }
   }
 
-  return null;
-};
+  return null
+}
 
 const collectParameterTexts = (product: Product | null): string[] => {
-  const metadata = asRecord(product?.metadata);
-  const topOffer = asRecord(metadata?.top_offer);
+  const metadata = asRecord(product?.metadata)
+  const topOffer = asRecord(metadata?.top_offer)
   const parameters = Array.isArray(topOffer?.parameters)
     ? topOffer.parameters
-    : [];
+    : []
 
   return parameters
     .map((parameter) => asRecord(parameter))
     .filter((parameter): parameter is Record<string, unknown> =>
-      Boolean(parameter),
+      Boolean(parameter)
     )
     .flatMap((parameter) => [
       asString(parameter.name),
       asString(parameter.value),
     ])
-    .filter((value): value is string => Boolean(value));
-};
+    .filter((value): value is string => Boolean(value))
+}
 
 const collectTexts = (
   product: Product | null,
-  sections: ProductDetailContentSection[],
+  sections: ProductDetailContentSection[]
 ): string[] => {
   if (!product) {
-    return [];
+    return []
   }
 
-  const metadata = asRecord(product.metadata);
-  const shortDescriptionText = stripHtml(asString(metadata?.short_description));
+  const metadata = asRecord(product.metadata)
+  const shortDescriptionText = stripHtml(asString(metadata?.short_description))
   const sectionTexts = sections
     .map((section) => stripHtml(section.html))
-    .filter(Boolean);
-  const parameterTexts = collectParameterTexts(product);
+    .filter(Boolean)
+  const parameterTexts = collectParameterTexts(product)
 
   return [
     product.title ?? "",
@@ -156,26 +162,26 @@ const collectTexts = (
     shortDescriptionText,
     ...sectionTexts,
     ...parameterTexts,
-  ].filter((value): value is string => Boolean(value));
-};
+  ].filter((value): value is string => Boolean(value))
+}
 
 export const resolveProductMediaFacts = (
   product: Product | null,
-  sections: ProductDetailContentSection[],
+  sections: ProductDetailContentSection[]
 ): ProductMediaFact[] => {
-  const texts = collectTexts(product, sections);
+  const texts = collectTexts(product, sections)
   if (texts.length === 0) {
-    return [];
+    return []
   }
 
-  const capsuleCount = resolveCapsuleCount(texts);
+  const capsuleCount = resolveCapsuleCount(texts)
   if (!capsuleCount) {
-    return [];
+    return []
   }
 
-  const dailyDose = resolveDailyCapsuleDose(texts) ?? 1;
-  const safeDailyDose = Math.max(1, dailyDose);
-  const doses = Math.max(1, Math.floor(capsuleCount / safeDailyDose));
+  const dailyDose = resolveDailyCapsuleDose(texts) ?? 1
+  const safeDailyDose = Math.max(1, dailyDose)
+  const doses = Math.max(1, Math.floor(capsuleCount / safeDailyDose))
 
   return [
     {
@@ -190,5 +196,5 @@ export const resolveProductMediaFacts = (
       value: `${safeDailyDose}`,
       label: `${resolveCapsuleWord(safeDailyDose)} denne`,
     },
-  ];
-};
+  ]
+}

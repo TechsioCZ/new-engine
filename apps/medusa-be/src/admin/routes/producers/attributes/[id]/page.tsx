@@ -14,9 +14,17 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import {
+  Link,
+  type LoaderFunctionArgs,
+  type UIMatch,
+  useNavigate,
+  useParams,
+} from "react-router-dom"
+import { translateBreadcrumb } from "../../../../lib/breadcrumb"
 import { formatLocaleCode } from "../../../../lib/format-locale-code"
 import {
+  type ProducerAttributeTypeDetailResponse,
   type ProducerAttributeTypeProducer,
   producerQueryKeys,
   restoreProducerAttributeType,
@@ -29,6 +37,28 @@ import {
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  const id = params.id
+
+  if (!id) {
+    return { attribute_type: undefined }
+  }
+
+  return retrieveProducerAttributeType(id, {
+    include_deleted: true,
+    limit: 1,
+    offset: 0,
+    order_by: "title",
+  })
+}
+
+export const handle = {
+  breadcrumb: (match: UIMatch<ProducerAttributeTypeDetailResponse>) =>
+    match.data?.attribute_type?.name ??
+    match.data?.attribute_type?.id ??
+    translateBreadcrumb("producers:fields.attribute", "Attribute"),
+}
 
 const ORDER_OPTIONS = [
   { labelKey: "orderOptions.producerAsc", value: "title" },

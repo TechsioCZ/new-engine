@@ -1,117 +1,111 @@
 import type {
   CheckoutAddressValues,
   CheckoutDetailsValues,
-} from "@/lib/forms/checkout/address.form";
-import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories";
+} from "@/lib/forms/checkout/address.form"
+import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories"
 import {
   validateCustomerName,
   validateEmailAddress,
   validateOptionalPhoneNumber,
-} from "@/lib/forms/validators/shared";
+} from "@/lib/forms/validators/shared"
 
-type CheckoutAddressField = keyof CheckoutAddressValues;
-type CheckoutAddressFieldValidator = (value: string) => string | undefined;
+type CheckoutAddressField = keyof CheckoutAddressValues
+type CheckoutAddressFieldValidator = (value: string) => string | undefined
 
-const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/;
+const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
 
-const validateBillingFields = (values: CheckoutDetailsValues) => {
-  return !values.useSameAddress;
-};
+const validateBillingFields = (values: CheckoutDetailsValues) =>
+  !values.useSameAddress
 
-const validateShippingCompanyFields = (values: CheckoutDetailsValues) => {
-  return values.useSameAddress && values.isCompanyPurchase;
-};
+const validateShippingCompanyFields = (values: CheckoutDetailsValues) =>
+  values.useSameAddress && values.isCompanyPurchase
 
-const validateBillingCompanyFields = (values: CheckoutDetailsValues) => {
-  return !values.useSameAddress && values.isCompanyPurchase;
-};
+const validateBillingCompanyFields = (values: CheckoutDetailsValues) =>
+  !values.useSameAddress && values.isCompanyPurchase
 
-const createRequiredTextValidator = (
-  emptyMessage: string,
-  invalidMessage: string,
-  minLength = 2,
-): CheckoutAddressFieldValidator => {
-  return (value) => {
-    const normalized = value.trim();
+const createRequiredTextValidator =
+  (
+    emptyMessage: string,
+    invalidMessage: string,
+    minLength = 2
+  ): CheckoutAddressFieldValidator =>
+  (value) => {
+    const normalized = value.trim()
 
     if (!normalized) {
-      return emptyMessage;
+      return emptyMessage
     }
 
     if (normalized.length < minLength) {
-      return invalidMessage;
+      return invalidMessage
     }
 
-    return undefined;
-  };
-};
+    return
+  }
 
 const validateRequiredPhoneNumber: CheckoutAddressFieldValidator = (value) => {
   if (!value.trim()) {
-    return "Zadajte telefón.";
+    return "Zadajte telefón."
   }
 
-  return validateOptionalPhoneNumber(value);
-};
+  return validateOptionalPhoneNumber(value)
+}
 
 const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
-  const normalized = value.trim();
+  const normalized = value.trim()
 
   if (!normalized) {
-    return "Zadajte PSČ.";
+    return "Zadajte PSČ."
   }
 
   if (!POSTAL_CODE_ALLOWED_REGEX.test(normalized)) {
-    return "Zadajte platné PSČ.";
+    return "Zadajte platné PSČ."
   }
 
-  const digitCount = normalized.replace(/\D/g, "").length;
+  const digitCount = normalized.replace(/\D/g, "").length
 
   if (digitCount < 4) {
-    return "PSČ musí obsahovať aspoň 4 číslice.";
+    return "PSČ musí obsahovať aspoň 4 číslice."
   }
 
-  return undefined;
-};
+  return
+}
 
 const validateCountryCode: CheckoutAddressFieldValidator = (value) => {
   if (!value.trim()) {
-    return "Vyberte krajinu.";
+    return "Vyberte krajinu."
   }
 
-  return undefined;
-};
+  return
+}
 
 const validateCompanyName = createRequiredTextValidator(
   "Zadajte názov firmy.",
-  "Názov firmy musí mať aspoň 2 znaky.",
-);
+  "Názov firmy musí mať aspoň 2 znaky."
+)
 
-const validateCompanyIdentifier = (
-  value: string,
-  label: "DIČ" | "IČO",
-) => {
-  const normalized = value.trim();
+const validateCompanyIdentifier = (value: string, label: "DIČ" | "IČO") => {
+  const normalized = value.trim()
 
   if (!normalized) {
-    return `Zadajte ${label}.`;
+    return `Zadajte ${label}.`
   }
 
   if (normalized.length < 4) {
-    return `${label} musí mať aspoň 4 znaky.`;
+    return `${label} musí mať aspoň 4 znaky.`
   }
 
-  return undefined;
-};
+  return
+}
 
 export const checkoutAddressFieldValidators = {
   address1: createRequiredTextValidator(
     "Zadajte ulicu a číslo domu.",
-    "Ulica a číslo domu musí mať aspoň 2 znaky.",
+    "Ulica a číslo domu musí mať aspoň 2 znaky."
   ),
   city: createRequiredTextValidator(
     "Zadajte mesto.",
-    "Mesto musí mať aspoň 2 znaky.",
+    "Mesto musí mať aspoň 2 znaky."
   ),
   company: validateCompanyName,
   companyId: (value: string) => validateCompanyIdentifier(value, "IČO"),
@@ -124,87 +118,87 @@ export const checkoutAddressFieldValidators = {
   taxId: (value: string) => validateCompanyIdentifier(value, "DIČ"),
 } as const satisfies Partial<
   Record<CheckoutAddressField, CheckoutAddressFieldValidator>
->;
+>
 
 const shippingFieldValidators = {
   address1: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.address1,
+    checkoutAddressFieldValidators.address1
   ),
   city: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.city,
+    checkoutAddressFieldValidators.city
   ),
   company: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.company,
-    validateShippingCompanyFields,
+    validateShippingCompanyFields
   ),
   companyId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.companyId,
-    validateShippingCompanyFields,
+    validateShippingCompanyFields
   ),
   countryCode: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.countryCode,
+    checkoutAddressFieldValidators.countryCode
   ),
   email: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.email,
+    checkoutAddressFieldValidators.email
   ),
   firstName: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.firstName,
+    checkoutAddressFieldValidators.firstName
   ),
   lastName: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.lastName,
+    checkoutAddressFieldValidators.lastName
   ),
   phone: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.phone,
+    checkoutAddressFieldValidators.phone
   ),
   postalCode: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.postalCode,
+    checkoutAddressFieldValidators.postalCode
   ),
   taxId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.taxId,
-    validateShippingCompanyFields,
+    validateShippingCompanyFields
   ),
-} as const;
+} as const
 
 const billingFieldValidators = {
   address1: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.address1,
-    validateBillingFields,
+    validateBillingFields
   ),
   city: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.city,
-    validateBillingFields,
+    validateBillingFields
   ),
   company: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.company,
-    validateBillingCompanyFields,
+    validateBillingCompanyFields
   ),
   companyId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.companyId,
-    validateBillingCompanyFields,
+    validateBillingCompanyFields
   ),
   countryCode: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.countryCode,
-    validateBillingFields,
+    validateBillingFields
   ),
   firstName: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.firstName,
-    validateBillingFields,
+    validateBillingFields
   ),
   lastName: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.lastName,
-    validateBillingFields,
+    validateBillingFields
   ),
   postalCode: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.postalCode,
-    validateBillingFields,
+    validateBillingFields
   ),
   taxId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.taxId,
-    validateBillingCompanyFields,
+    validateBillingCompanyFields
   ),
-} as const;
+} as const
 
 export const checkoutFieldValidators = {
   billing: billingFieldValidators,
   shipping: shippingFieldValidators,
-} as const;
+} as const

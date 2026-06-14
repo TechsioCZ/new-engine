@@ -1,15 +1,15 @@
-"use client";
+"use client"
 
-import { Pagination } from "@techsio/ui-kit/molecules/pagination";
-import NextLink from "next/link";
-import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder";
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import NextLink from "next/link"
+import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
 
 type SearchPaginationProps = {
-  isVisible: boolean;
-  count: number;
-  currentPage: number;
-  pageSize: number;
-};
+  isVisible: boolean
+  count: number
+  currentPage: number
+  pageSize: number
+}
 
 export function SearchPagination({
   isVisible,
@@ -17,10 +17,10 @@ export function SearchPagination({
   currentPage,
   pageSize,
 }: SearchPaginationProps) {
-  const getPageUrl = usePaginationUrlBuilder();
+  const getPageUrl = usePaginationUrlBuilder()
 
   if (!isVisible) {
-    return null;
+    return null
   }
 
   return (
@@ -33,5 +33,5 @@ export function SearchPagination({
       size="sm"
       variant="outlined"
     />
-  );
+  )
 }

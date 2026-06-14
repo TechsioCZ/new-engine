@@ -7,6 +7,7 @@ import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { adminMiddlewares } from "./admin/middlewares"
 import { adminOrderBusinessStatusesRoutesMiddlewares } from "./admin/order-business-statuses/middlewares"
 import { adminOrderExpeditionRoutesMiddlewares } from "./admin/order-expedition/middlewares"
 import { adminOrderBusinessStatusRoutesMiddlewares } from "./admin/orders/[id]/business-status/middlewares"
@@ -24,8 +25,9 @@ import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
-import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
+import { storeMiddlewares } from "./store/middlewares"
 import { storeProducersRoutesMiddlewares } from "./store/producers/middlewares"
+import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -53,6 +55,7 @@ export default defineMiddlewares({
       matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
     },
+    ...adminMiddlewares,
     ...adminOrderExpeditionRoutesMiddlewares,
     ...adminOrderBusinessStatusesRoutesMiddlewares,
     ...adminOrderCommercialValuesRoutesMiddlewares,
@@ -67,6 +70,7 @@ export default defineMiddlewares({
     ...adminPublishableKeyRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
+    ...storeMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,

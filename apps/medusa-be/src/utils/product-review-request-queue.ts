@@ -5,8 +5,8 @@ import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { WORKFLOW_QUEUE_MODULE } from "../modules/workflow-queue"
 import type WorkflowQueueModuleService from "../modules/workflow-queue/service"
+import { getOrderDisplayId } from "./order-payment-reminders"
 import {
-  getOrderDisplayId,
   getOrderPaidAt,
   getReviewRequestRunAt,
   isPaidOrder,
@@ -78,8 +78,8 @@ async function retrieveOrderForReviewRequest(
     filters: { id: orderId },
   })
 
-  if (!Array.isArray(data) || !isReviewRequestOrder(data[0])) {
-    return undefined
+  if (!(Array.isArray(data) && isReviewRequestOrder(data[0]))) {
+    return
   }
 
   return data[0]
@@ -136,7 +136,9 @@ export async function scheduleProductReviewRequestForOrder({
   const order = await retrieveOrderForReviewRequest(container, orderId)
 
   if (!order) {
-    logger.warn(`Skipping product review request queueing: order ${orderId} not found`)
+    logger.warn(
+      `Skipping product review request queueing: order ${orderId} not found`
+    )
     return null
   }
 
@@ -162,7 +164,7 @@ export async function scheduleProductReviewRequestForOrder({
   const paidAt = getOrderPaidAt(order)
   const runAt = getReviewRequestRunAt(order)
 
-  if (!paidAt || !runAt) {
+  if (!(paidAt && runAt)) {
     logger.warn(
       `Skipping product review request queueing for order ${getOrderDisplayId(order)}: paid date could not be resolved`
     )

@@ -1,60 +1,60 @@
-import type { HttpTypes } from "@medusajs/types";
-import type { MedusaPaymentSessionDataInput } from "@techsio/storefront-data/checkout/medusa-service";
+import type { HttpTypes } from "@medusajs/types"
+import type { MedusaPaymentSessionDataInput } from "@techsio/storefront-data/checkout/medusa-service"
 
-export const HERBATIKA_PAYMENT_RETURN_PATH = "/checkout/platba-navrat";
+export const HERBATIKA_PAYMENT_RETURN_PATH = "/checkout/platba-navrat"
 
 const resolveBrowserOrigin = () => {
   if (typeof window === "undefined") {
-    return null;
+    return null
   }
 
-  return window.location.origin;
-};
+  return window.location.origin
+}
 
 export const buildHerbatikaPaymentReturnUrl = ({
   cartId,
   providerId,
   paymentCancelled = false,
 }: {
-  cartId: string;
-  providerId: string;
-  paymentCancelled?: boolean;
+  cartId: string
+  providerId: string
+  paymentCancelled?: boolean
 }) => {
-  const origin = resolveBrowserOrigin();
+  const origin = resolveBrowserOrigin()
   if (!origin) {
-    return undefined;
+    return
   }
 
-  const url = new URL(HERBATIKA_PAYMENT_RETURN_PATH, origin);
-  url.searchParams.set("cart_id", cartId);
-  url.searchParams.set("provider_id", providerId);
+  const url = new URL(HERBATIKA_PAYMENT_RETURN_PATH, origin)
+  url.searchParams.set("cart_id", cartId)
+  url.searchParams.set("provider_id", providerId)
   if (paymentCancelled) {
-    url.searchParams.set("payment_cancelled", "true");
+    url.searchParams.set("payment_cancelled", "true")
   }
-  return url.toString();
-};
+  return url.toString()
+}
 
 const resolveCartEmail = (cart: HttpTypes.StoreCart) => {
-  const email = cart.email?.trim();
-  return email && email.length > 0 ? email : undefined;
-};
+  const email = cart.email?.trim()
+  return email && email.length > 0 ? email : undefined
+}
 
 export const buildHerbatikaPaymentSessionData = ({
   cart,
   cartId,
   providerId,
 }: MedusaPaymentSessionDataInput): Record<string, unknown> => {
-  const email = resolveCartEmail(cart);
-  const returnUrl = buildHerbatikaPaymentReturnUrl({ cartId, providerId });
+  const email = resolveCartEmail(cart)
+  const returnUrl = buildHerbatikaPaymentReturnUrl({ cartId, providerId })
   const cancelUrl = buildHerbatikaPaymentReturnUrl({
     cartId,
     paymentCancelled: true,
     providerId,
-  });
+  })
   const metadata = {
     cart_id: cartId,
     provider_id: providerId,
-  };
+  }
 
   return {
     cart_id: cartId,
@@ -80,5 +80,5 @@ export const buildHerbatikaPaymentSessionData = ({
           },
         }
       : {}),
-  };
-};
+  }
+}

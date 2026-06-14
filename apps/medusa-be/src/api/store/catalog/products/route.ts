@@ -7,6 +7,7 @@ import {
   QueryContext,
 } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
   extractBrandHandleFromFacetId,
   extractIngredientHandleFromFacetId,
@@ -304,10 +305,59 @@ const mapDynamicFacets = (
     }))
   )
 
+const resolveProductQueryPricing = async (
+  queryService: Query,
+  validatedQuery: StoreCatalogProductsSchemaType
+) => {
+  if (!validatedQuery.region_id) {
+    return {
+      productFields: STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+      pricingContext: undefined,
+    }
+  }
+
+  const { data: regions } = await queryService.graph({
+    entity: "region",
+    fields: ["id", "currency_code"],
+    filters: {
+      id: validatedQuery.region_id,
+    },
+  })
+
+  const region = ((regions as RegionPricingRecord[])[0] ??
+    null) as RegionPricingRecord | null
+
+  if (!(region?.id && region.currency_code)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Region with id ${validatedQuery.region_id} not found when populating pricing context`
+    )
+  }
+
+  return {
+    productFields: [
+      ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+      ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+    ],
+    pricingContext: QueryContext({
+      region_id: region.id,
+      currency_code: region.currency_code,
+      country_code: validatedQuery.country_code,
+    }),
+  }
+}
+
 export async function GET(
   req: MedusaRequest<unknown, StoreCatalogProductsSchemaType>,
   res: MedusaResponse
 ) {
+  if (!isMeilisearchEnabled()) {
+    res.status(503).json({
+      message: "Catalog search is disabled",
+    })
+    return
+  }
+
   const validatedQuery = req.validatedQuery
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
@@ -362,39 +412,10 @@ export async function GET(
         .map((hit) => getProductIdFromHit(hit))
         .filter((id): id is string => Boolean(id))
     : []
-
-  let pricingContext: ReturnType<typeof QueryContext> | undefined
-  let productFields = STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
-
-  if (validatedQuery.region_id) {
-    const { data: regions } = await queryService.graph({
-      entity: "region",
-      fields: ["id", "currency_code"],
-      filters: {
-        id: validatedQuery.region_id,
-      },
-    })
-
-    const region = ((regions as RegionPricingRecord[])[0] ??
-      null) as RegionPricingRecord | null
-
-    if (!(region?.id && region.currency_code)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `Region with id ${validatedQuery.region_id} not found when populating pricing context`
-      )
-    }
-
-    pricingContext = QueryContext({
-      region_id: region.id,
-      currency_code: region.currency_code,
-      country_code: validatedQuery.country_code,
-    })
-    productFields = [
-      ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-      ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-    ]
-  }
+  const { pricingContext, productFields } = await resolveProductQueryPricing(
+    queryService,
+    validatedQuery
+  )
 
   const { data: products } =
     productIds.length === 0

@@ -1,38 +1,38 @@
-import "server-only";
+import "server-only"
 
-import type { QueryClient } from "@tanstack/react-query";
-import { dehydrate } from "@tanstack/react-query";
-import type { RegionInfo } from "@techsio/storefront-data/shared/region";
+import type { QueryClient } from "@tanstack/react-query"
+import { dehydrate } from "@tanstack/react-query"
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import {
   buildCatalogProductsParams,
   type CatalogQueryState,
-} from "../catalog-query-state";
+} from "../catalog-query-state"
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
-} from "../category-query-config";
+} from "../category-query-config"
 import {
   HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   HOMEPAGE_PRODUCTS_PER_SECTION,
-} from "../homepage-catalog-config";
+} from "../homepage-catalog-config"
 import {
   fetchServerCategories,
   prefetchServerCatalogProducts,
-} from "../storefront-server";
-import { getRegionServerContext } from "./context";
+} from "../storefront-server"
+import { getRegionServerContext } from "./context"
 
 type HomepageCatalogPrefetchInput = {
-  categoryIds?: string[];
-  queryClient: QueryClient;
-  region: RegionInfo;
-  sort: CatalogQueryState["sort"];
-  status?: string[];
-};
+  categoryIds?: string[]
+  queryClient: QueryClient
+  region: RegionInfo
+  sort: CatalogQueryState["sort"]
+  status?: string[]
+}
 
 const buildHomepageCatalogQueryState = (
   sort: CatalogQueryState["sort"],
-  status: string[] = [],
+  status: string[] = []
 ): CatalogQueryState => ({
   page: 1,
   q: "",
@@ -43,7 +43,7 @@ const buildHomepageCatalogQueryState = (
   ingredient: [],
   price_min: null,
   price_max: null,
-});
+})
 
 const prefetchHomepageCatalogProducts = ({
   categoryIds,
@@ -60,25 +60,25 @@ const prefetchHomepageCatalogProducts = ({
       limit: HOMEPAGE_PRODUCTS_PER_SECTION,
       regionId: region.region_id,
       countryCode: region.country_code,
-    }),
-  );
+    })
+  )
 
 export const prefetchHomePageStorefrontData = async () => {
-  const { queryClient, region } = await getRegionServerContext();
+  const { queryClient, region } = await getRegionServerContext()
   const categoryListParams = buildCategoryListParams({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
-  });
+  })
   const categoryResponse = await fetchServerCategories(
     queryClient,
-    categoryListParams,
-  );
+    categoryListParams
+  )
 
   if (region) {
     const bestsellersCategory = categoryResponse.categories.find(
-      (category) => category.handle === HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
-    );
+      (category) => category.handle === HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE
+    )
     const prefetches = [
       prefetchHomepageCatalogProducts({
         queryClient,
@@ -92,7 +92,7 @@ export const prefetchHomePageStorefrontData = async () => {
         sort: "recommended",
         status: ["action"],
       }),
-    ];
+    ]
 
     if (bestsellersCategory?.id) {
       prefetches.push(
@@ -101,15 +101,15 @@ export const prefetchHomePageStorefrontData = async () => {
           queryClient,
           region,
           sort: "recommended",
-        }),
-      );
+        })
+      )
     }
 
-    await Promise.all(prefetches);
+    await Promise.all(prefetches)
   }
 
   return {
     region,
     dehydratedState: dehydrate(queryClient),
-  };
-};
+  }
+}

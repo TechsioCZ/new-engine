@@ -1,33 +1,33 @@
 export type FaqLink = {
-  href: string;
-  label: string;
-};
+  href: string
+  label: string
+}
 
 export type FaqAnswerBlock =
   | {
-      type: "heading";
-      text: string;
+      type: "heading"
+      text: string
     }
   | {
-      type: "paragraph";
-      text: string;
+      type: "paragraph"
+      text: string
     }
   | {
-      type: "list";
-      ordered?: boolean;
-      items: string[];
+      type: "list"
+      ordered?: boolean
+      items: string[]
     }
   | {
-      type: "links";
-      items: FaqLink[];
-    };
+      type: "links"
+      items: FaqLink[]
+    }
 
 export type FaqItem = {
-  id: string;
-  question: string;
-  updatedAt: string;
-  answer: FaqAnswerBlock[];
-};
+  id: string
+  question: string
+  updatedAt: string
+  answer: FaqAnswerBlock[]
+}
 
 export const faqItems = [
   {
@@ -335,6 +335,6 @@ export const faqItems = [
       },
     ],
   },
-] satisfies FaqItem[];
+] satisfies FaqItem[]
 
-export const faqItemCount = faqItems.length;
+export const faqItemCount = faqItems.length

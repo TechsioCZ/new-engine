@@ -25,7 +25,9 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
 }
 
 function getWorkflowQueueRunnerBatchSize() {
-  const configuredBatchSize = Number(process.env.WORKFLOW_QUEUE_RUNNER_BATCH_SIZE)
+  const configuredBatchSize = Number(
+    process.env.WORKFLOW_QUEUE_RUNNER_BATCH_SIZE
+  )
 
   if (Number.isInteger(configuredBatchSize) && configuredBatchSize > 0) {
     return configuredBatchSize
@@ -34,9 +36,7 @@ function getWorkflowQueueRunnerBatchSize() {
   return DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE
 }
 
-function withQueueItemId(
-  item: WorkflowQueueItemDTO
-): Record<string, unknown> {
+function withQueueItemId(item: WorkflowQueueItemDTO): Record<string, unknown> {
   return {
     ...(item.arguments ?? {}),
     queue_item_id: item.id,
@@ -98,7 +98,9 @@ async function executeWorkflowQueueRunner(
   )
 }
 
-export default async function workflowQueueRunnerJob(container: MedusaContainer) {
+export default async function workflowQueueRunnerJob(
+  container: MedusaContainer
+) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 

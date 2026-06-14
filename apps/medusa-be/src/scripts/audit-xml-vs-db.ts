@@ -4,7 +4,9 @@ import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sql } from "drizzle-orm"
 import { sqlRaw } from "../utils/db"
-import { isHttpXmlSource, readXmlSource } from "./herbatica-category-export"
+import { isHttpXmlSource, readXmlSource } from "./herbatica-xml-utils"
+
+const CANONICAL_URL_QUERY_REGEX = /\?.*$/
 
 type XmlElement = {
   attributes: Record<string, string>
@@ -85,6 +87,13 @@ type ScriptOptions = {
   sourceId?: string
 }
 
+type RawScriptOptions = {
+  outputDirArg?: string
+  sampleSize: number
+  sourceId?: string
+  xmlPathArg?: string
+}
+
 type MismatchType =
   | "duplicate_xml_source_id"
   | "duplicate_db_source_id"
@@ -129,6 +138,44 @@ type ProductMismatch = {
     categoryPathsOnlyInXml: string[]
     categoryPathsOnlyInDbMetadata: string[]
   }
+}
+
+type SourceIdIndex<T> = Map<string, T[]>
+
+type ProductComparison = {
+  dbOnlySourceIds: string[]
+  matchedSourceIdCount: number
+  mismatches: ProductMismatch[]
+  mismatchTypeCounts: Map<MismatchType, number>
+  xmlOnlySourceIds: string[]
+}
+
+type CategoryPathComparison = {
+  categoryPathsOnlyInDbMetadata: string[]
+  categoryPathsOnlyInXml: string[]
+  dbMetadataCategoryPaths: string[]
+  xmlCategoryPaths: string[]
+}
+
+type ImageComparison = {
+  dbImagesStrict: string[]
+  extraImagesByCanonical: string[]
+  missingImagesByCanonical: string[]
+  xmlImagesStrict: string[]
+}
+
+type XmlCategoryPathNormalizationIssue = {
+  seedPaths: string[]
+  sourceId: string
+  strictPaths: string[]
+}
+
+type CollectMismatchTypeInput = {
+  categoryComparison: CategoryPathComparison
+  dbEntries: DbProductRecord[]
+  dbEntry: DbProductRecord
+  sourceId: string
+  xmlEntries: XmlShopItem[]
 }
 
 const DEFAULT_XML_PATHS = [
@@ -328,6 +375,32 @@ function parseNumber(value: unknown, fallback = 0): number {
   return fallback
 }
 
+function parseJsonLikeString(value: string): string[] | undefined {
+  if (
+    !(
+      (value.startsWith("[") && value.endsWith("]")) ||
+      (value.startsWith("{") && value.endsWith("}"))
+    )
+  ) {
+    return
+  }
+
+  try {
+    return toStringArray(JSON.parse(value))
+  } catch {
+    return [value]
+  }
+}
+
+function parseSerializedStringArray(value: object): string[] {
+  try {
+    const parsed = JSON.parse(JSON.stringify(value))
+    return Array.isArray(parsed) ? toStringArray(parsed) : []
+  } catch {
+    return []
+  }
+}
+
 function toStringArray(value: unknown): string[] {
   if (value === null || value === undefined) {
     return []
@@ -347,31 +420,16 @@ function toStringArray(value: unknown): string[] {
       return []
     }
 
-    if (
-      (normalized.startsWith("[") && normalized.endsWith("]")) ||
-      (normalized.startsWith("{") && normalized.endsWith("}"))
-    ) {
-      try {
-        const parsed = JSON.parse(normalized)
-        return toStringArray(parsed)
-      } catch {
-        return [normalized]
-      }
+    const parsed = parseJsonLikeString(normalized)
+    if (parsed) {
+      return parsed
     }
 
     return [normalized]
   }
 
   if (typeof value === "object") {
-    try {
-      const parsed = JSON.parse(JSON.stringify(value))
-      if (Array.isArray(parsed)) {
-        return toStringArray(parsed)
-      }
-      return []
-    } catch {
-      return []
-    }
+    return parseSerializedStringArray(value)
   }
 
   return []
@@ -392,7 +450,7 @@ function normalizeUrlForStrictCompare(url: string): string {
 
 function normalizeUrlForCanonicalCompare(url: string): string {
   const normalized = normalizeInlineText(url) ?? ""
-  return normalized.replace(/\?.*$/, "")
+  return normalized.replace(CANONICAL_URL_QUERY_REGEX, "")
 }
 
 function diffSets(reference: string[], compared: string[]): string[] {
@@ -437,39 +495,38 @@ function buildCsv(rows: Record<string, string | number>[]): string {
   return `${lines.join("\n")}\n`
 }
 
-function parseOptions(args?: string[]): ScriptOptions {
-  let xmlPathArg: string | undefined
-  let outputDirArg: string | undefined
-  let sampleSize = DEFAULT_SAMPLE_SIZE
-  let sourceId: string | undefined
+function parseSampleSize(value: string, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.trunc(parsed) : fallback
+}
+
+function collectRawOptions(args?: string[]): RawScriptOptions {
+  const options: RawScriptOptions = {
+    sampleSize: DEFAULT_SAMPLE_SIZE,
+  }
 
   for (const arg of args ?? []) {
-    if (!(arg.startsWith("--") || xmlPathArg)) {
-      xmlPathArg = arg
-      continue
-    }
-
-    if (arg.startsWith("--xml=")) {
-      xmlPathArg = arg.slice("--xml=".length)
-      continue
-    }
-    if (arg.startsWith("--output=")) {
-      outputDirArg = arg.slice("--output=".length)
-      continue
-    }
-    if (arg.startsWith("--sample=")) {
-      const parsed = Number(arg.slice("--sample=".length))
-      if (Number.isFinite(parsed) && parsed > 0) {
-        sampleSize = Math.trunc(parsed)
-      }
-      continue
-    }
-    if (arg.startsWith("--source-id=")) {
+    if (!(arg.startsWith("--") || options.xmlPathArg)) {
+      options.xmlPathArg = arg
+    } else if (arg.startsWith("--xml=")) {
+      options.xmlPathArg = arg.slice("--xml=".length)
+    } else if (arg.startsWith("--output=")) {
+      options.outputDirArg = arg.slice("--output=".length)
+    } else if (arg.startsWith("--sample=")) {
+      options.sampleSize = parseSampleSize(
+        arg.slice("--sample=".length),
+        options.sampleSize
+      )
+    } else if (arg.startsWith("--source-id=")) {
       const parsedSource = normalizeInlineText(arg.slice("--source-id=".length))
-      sourceId = parsedSource || undefined
+      options.sourceId = parsedSource || undefined
     }
   }
 
+  return options
+}
+
+function resolveXmlPath(xmlPathArg?: string): string {
   const xmlPathCandidate = normalizeInlineText(xmlPathArg)
   let resolvedXmlPath = DEFAULT_XML_PATHS.find((path) => existsSync(path))
   if (xmlPathCandidate) {
@@ -488,19 +545,28 @@ function parseOptions(args?: string[]): ScriptOptions {
     throw new Error(`XML feed does not exist at path: ${resolvedXmlPath}`)
   }
 
+  return resolvedXmlPath
+}
+
+function resolveOutputDir(outputDirArg?: string): string {
   const outputCandidate = normalizeInlineText(outputDirArg)
-  let outputDir = DEFAULT_OUTPUT_DIR
-  if (outputCandidate) {
-    outputDir = isAbsolute(outputCandidate)
-      ? outputCandidate
-      : resolve(process.cwd(), outputCandidate)
+  if (!outputCandidate) {
+    return DEFAULT_OUTPUT_DIR
   }
 
+  return isAbsolute(outputCandidate)
+    ? outputCandidate
+    : resolve(process.cwd(), outputCandidate)
+}
+
+function parseOptions(args?: string[]): ScriptOptions {
+  const rawOptions = collectRawOptions(args)
+
   return {
-    xmlPath: resolvedXmlPath,
-    outputDir,
-    sampleSize,
-    sourceId,
+    xmlPath: resolveXmlPath(rawOptions.xmlPathArg),
+    outputDir: resolveOutputDir(rawOptions.outputDirArg),
+    sampleSize: rawOptions.sampleSize,
+    sourceId: rawOptions.sourceId,
   }
 }
 
@@ -671,25 +737,34 @@ function writeJson(filePath: string, value: unknown) {
   writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8")
 }
 
-export default async function auditXmlVsDb({ container, args }: ExecArgs) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const options = parseOptions(args)
+async function loadXmlItems(xmlPath: string): Promise<XmlShopItem[]> {
+  const xml = await readXmlSource(xmlPath)
+  return parseShopItems(xml).filter((item) => item.id !== "")
+}
 
-  logger.info("Starting XML vs DB audit...")
-  logger.info(`Using XML feed: ${options.xmlPath}`)
-  logger.info(`Output directory: ${options.outputDir}`)
+function addToSourceIdIndex<T>(
+  index: SourceIdIndex<T>,
+  sourceId: string,
+  value: T
+) {
+  if (!index.has(sourceId)) {
+    index.set(sourceId, [])
+  }
+  index.get(sourceId)?.push(value)
+}
 
-  const xml = await readXmlSource(options.xmlPath)
-  const xmlItems = parseShopItems(xml).filter((item) => item.id !== "")
+function indexXmlItems(xmlItems: XmlShopItem[]): SourceIdIndex<XmlShopItem> {
   const xmlBySourceId = new Map<string, XmlShopItem[]>()
   for (const item of xmlItems) {
-    if (!xmlBySourceId.has(item.id)) {
-      xmlBySourceId.set(item.id, [])
-    }
-    xmlBySourceId.get(item.id)?.push(item)
+    addToSourceIdIndex(xmlBySourceId, item.id, item)
   }
+  return xmlBySourceId
+}
 
-  const dbProducts = await loadDbProducts()
+function indexDbProducts(dbProducts: DbProductRecord[]): {
+  dbBySourceId: SourceIdIndex<DbProductRecord>
+  dbMissingSourceId: DbProductRecord[]
+} {
   const dbBySourceId = new Map<string, DbProductRecord[]>()
   const dbMissingSourceId = dbProducts.filter(
     (product) => !product.sourceShopitemId
@@ -698,28 +773,252 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
     if (!product.sourceShopitemId) {
       continue
     }
-    if (!dbBySourceId.has(product.sourceShopitemId)) {
-      dbBySourceId.set(product.sourceShopitemId, [])
-    }
-    dbBySourceId.get(product.sourceShopitemId)?.push(product)
+    addToSourceIdIndex(dbBySourceId, product.sourceShopitemId, product)
   }
+  return { dbBySourceId, dbMissingSourceId }
+}
 
-  const allSourceIds = sortStrings(
+function collectSourceIds(
+  xmlBySourceId: SourceIdIndex<XmlShopItem>,
+  dbBySourceId: SourceIdIndex<DbProductRecord>,
+  sourceIdFilter?: string
+): string[] {
+  return sortStrings(
     [...new Set([...xmlBySourceId.keys(), ...dbBySourceId.keys()])]
       .filter((sourceId) => sourceId !== "")
       .filter((sourceId) =>
-        options.sourceId ? sourceId === options.sourceId : true
+        sourceIdFilter ? sourceId === sourceIdFilter : true
       )
   )
+}
 
-  const xmlOnlySourceIds: string[] = []
-  const dbOnlySourceIds: string[] = []
-  const mismatches: ProductMismatch[] = []
-  const mismatchTypeCounts = new Map<MismatchType, number>()
-  let matchedSourceIdCount = 0
+function noteMismatchType(
+  mismatchTypeCounts: Map<MismatchType, number>,
+  type: MismatchType
+) {
+  mismatchTypeCounts.set(type, (mismatchTypeCounts.get(type) ?? 0) + 1)
+}
 
-  const noteMismatchType = (type: MismatchType) => {
-    mismatchTypeCounts.set(type, (mismatchTypeCounts.get(type) ?? 0) + 1)
+function compareCategoryPaths(
+  xmlEntry: XmlShopItem,
+  dbEntry: DbProductRecord
+): CategoryPathComparison {
+  const xmlCategoryPaths = sortStrings(
+    dedupeStrings(xmlEntry.categoryPathsSeed.map((path) => path))
+  )
+  const dbMetadataCategoryPaths = sortStrings(
+    dedupeStrings(dbEntry.metadataCategoryPaths.map((path) => path))
+  )
+
+  return {
+    categoryPathsOnlyInXml: diffSets(xmlCategoryPaths, dbMetadataCategoryPaths),
+    categoryPathsOnlyInDbMetadata: diffSets(
+      dbMetadataCategoryPaths,
+      xmlCategoryPaths
+    ),
+    dbMetadataCategoryPaths,
+    xmlCategoryPaths,
+  }
+}
+
+function compareImages(
+  xmlEntry: XmlShopItem,
+  dbEntry: DbProductRecord
+): ImageComparison {
+  const xmlImagesStrict = sortStrings(
+    dedupeStrings(
+      xmlEntry.images.map((url) => normalizeUrlForStrictCompare(url))
+    )
+  )
+  const xmlImagesCanonical = sortStrings(
+    dedupeStrings(
+      xmlEntry.images.map((url) => normalizeUrlForCanonicalCompare(url))
+    )
+  )
+  const dbGalleryImages = dedupeStrings([
+    dbEntry.thumbnail,
+    ...dbEntry.imageUrls,
+    ...dbEntry.variantThumbnails,
+    ...dbEntry.variantImageRefs,
+  ])
+  const dbImagesStrict = sortStrings(
+    dedupeStrings(
+      dbGalleryImages.map((url) => normalizeUrlForStrictCompare(url))
+    )
+  )
+  const dbImagesCanonical = sortStrings(
+    dedupeStrings(
+      dbGalleryImages.map((url) => normalizeUrlForCanonicalCompare(url))
+    )
+  )
+
+  return {
+    dbImagesStrict,
+    extraImagesByCanonical: diffSets(dbImagesCanonical, xmlImagesCanonical),
+    missingImagesByCanonical: diffSets(xmlImagesCanonical, dbImagesCanonical),
+    xmlImagesStrict,
+  }
+}
+
+function collectMismatchTypes({
+  categoryComparison,
+  dbEntries,
+  dbEntry,
+  sourceId,
+  xmlEntries,
+}: CollectMismatchTypeInput): MismatchType[] {
+  const mismatchTypes: MismatchType[] = []
+  const expectedHandle = `shopitem-${sourceId}`
+
+  if (xmlEntries.length > 1) {
+    mismatchTypes.push("duplicate_xml_source_id")
+  }
+  if (dbEntries.length > 1) {
+    mismatchTypes.push("duplicate_db_source_id")
+  }
+  if (dbEntry.handle !== expectedHandle) {
+    mismatchTypes.push("handle_mismatch")
+  }
+  if (
+    categoryComparison.xmlCategoryPaths.length > 0 &&
+    dbEntry.categoryHandles.length === 0
+  ) {
+    mismatchTypes.push("missing_db_category_links")
+  }
+
+  return mismatchTypes
+}
+
+function addTextAndMetadataMismatchTypes(
+  mismatchTypes: MismatchType[],
+  xmlEntry: XmlShopItem,
+  dbEntry: DbProductRecord,
+  categoryComparison: CategoryPathComparison
+) {
+  if (normalizeTitle(xmlEntry.name) !== normalizeTitle(dbEntry.title)) {
+    mismatchTypes.push("title_mismatch")
+  }
+  if (
+    xmlEntry.guid &&
+    dbEntry.sourceGuid &&
+    normalizeInlineText(xmlEntry.guid) !==
+      normalizeInlineText(dbEntry.sourceGuid)
+  ) {
+    mismatchTypes.push("guid_mismatch")
+  }
+  if (
+    categoryComparison.categoryPathsOnlyInXml.length > 0 ||
+    categoryComparison.categoryPathsOnlyInDbMetadata.length > 0
+  ) {
+    mismatchTypes.push("metadata_category_paths_mismatch")
+  }
+}
+
+function addImageMismatchTypes(
+  mismatchTypes: MismatchType[],
+  imageComparison: ImageComparison
+) {
+  if (
+    imageComparison.xmlImagesStrict.length !==
+    imageComparison.dbImagesStrict.length
+  ) {
+    mismatchTypes.push("image_count_mismatch")
+  }
+  if (imageComparison.missingImagesByCanonical.length > 0) {
+    mismatchTypes.push("image_urls_missing_in_db")
+  }
+  if (imageComparison.extraImagesByCanonical.length > 0) {
+    mismatchTypes.push("image_urls_extra_in_db")
+  }
+  if (
+    imageComparison.missingImagesByCanonical.length === 0 &&
+    imageComparison.extraImagesByCanonical.length === 0 &&
+    (diffSets(imageComparison.xmlImagesStrict, imageComparison.dbImagesStrict)
+      .length > 0 ||
+      diffSets(imageComparison.dbImagesStrict, imageComparison.xmlImagesStrict)
+        .length > 0)
+  ) {
+    mismatchTypes.push("image_query_only_mismatch")
+  }
+}
+
+function buildProductMismatch(
+  sourceId: string,
+  xmlEntries: XmlShopItem[],
+  dbEntries: DbProductRecord[],
+  dbEntry: DbProductRecord
+): ProductMismatch | undefined {
+  const xmlEntry = xmlEntries[0]
+  if (!xmlEntry) {
+    return
+  }
+
+  const categoryComparison = compareCategoryPaths(xmlEntry, dbEntry)
+  const imageComparison = compareImages(xmlEntry, dbEntry)
+  const mismatchTypes = collectMismatchTypes({
+    categoryComparison,
+    dbEntries,
+    dbEntry,
+    sourceId,
+    xmlEntries,
+  })
+  addTextAndMetadataMismatchTypes(
+    mismatchTypes,
+    xmlEntry,
+    dbEntry,
+    categoryComparison
+  )
+  addImageMismatchTypes(mismatchTypes, imageComparison)
+
+  if (mismatchTypes.length === 0) {
+    return
+  }
+
+  return {
+    sourceId,
+    productId: dbEntry.productId,
+    handle: dbEntry.handle,
+    types: mismatchTypes,
+    xml: {
+      name: xmlEntry.name,
+      guid: xmlEntry.guid,
+      categoryPathsSeed: xmlEntry.categoryPathsSeed,
+      categoryPathsStrict: xmlEntry.categoryPathsStrict,
+      imageCount: imageComparison.xmlImagesStrict.length,
+      images: imageComparison.xmlImagesStrict,
+    },
+    db: {
+      title: dbEntry.title,
+      status: dbEntry.status,
+      sourceGuid: dbEntry.sourceGuid,
+      categoryPathCount: categoryComparison.dbMetadataCategoryPaths.length,
+      categoryPaths: categoryComparison.dbMetadataCategoryPaths,
+      categoryLinkCount: dbEntry.categoryHandles.length,
+      categoryHandles: sortStrings(dbEntry.categoryHandles),
+      imageCount: imageComparison.dbImagesStrict.length,
+      images: imageComparison.dbImagesStrict,
+    },
+    deltas: {
+      missingImagesByCanonical: imageComparison.missingImagesByCanonical,
+      extraImagesByCanonical: imageComparison.extraImagesByCanonical,
+      categoryPathsOnlyInXml: categoryComparison.categoryPathsOnlyInXml,
+      categoryPathsOnlyInDbMetadata:
+        categoryComparison.categoryPathsOnlyInDbMetadata,
+    },
+  }
+}
+
+function compareProducts(
+  allSourceIds: string[],
+  xmlBySourceId: SourceIdIndex<XmlShopItem>,
+  dbBySourceId: SourceIdIndex<DbProductRecord>
+): ProductComparison {
+  const result: ProductComparison = {
+    dbOnlySourceIds: [],
+    matchedSourceIdCount: 0,
+    mismatches: [],
+    mismatchTypeCounts: new Map<MismatchType, number>(),
+    xmlOnlySourceIds: [],
   }
 
   for (const sourceId of allSourceIds) {
@@ -727,176 +1026,41 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
     const dbEntries = dbBySourceId.get(sourceId) ?? []
 
     if (xmlEntries.length === 0) {
-      dbOnlySourceIds.push(sourceId)
+      result.dbOnlySourceIds.push(sourceId)
       continue
     }
     if (dbEntries.length === 0) {
-      xmlOnlySourceIds.push(sourceId)
+      result.xmlOnlySourceIds.push(sourceId)
       continue
     }
 
-    matchedSourceIdCount += 1
-    const xmlEntry = xmlEntries[0]
-    if (!xmlEntry) {
-      continue
-    }
+    result.matchedSourceIdCount += 1
 
     for (const dbEntry of dbEntries) {
-      const mismatchTypes: MismatchType[] = []
-
-      if (xmlEntries.length > 1) {
-        mismatchTypes.push("duplicate_xml_source_id")
-      }
-      if (dbEntries.length > 1) {
-        mismatchTypes.push("duplicate_db_source_id")
-      }
-
-      const expectedHandle = `shopitem-${sourceId}`
-      if (dbEntry.handle !== expectedHandle) {
-        mismatchTypes.push("handle_mismatch")
-      }
-
-      if (normalizeTitle(xmlEntry.name) !== normalizeTitle(dbEntry.title)) {
-        mismatchTypes.push("title_mismatch")
-      }
-
-      if (
-        xmlEntry.guid &&
-        dbEntry.sourceGuid &&
-        normalizeInlineText(xmlEntry.guid) !==
-          normalizeInlineText(dbEntry.sourceGuid)
-      ) {
-        mismatchTypes.push("guid_mismatch")
-      }
-
-      const xmlCategoryPaths = sortStrings(
-        dedupeStrings(xmlEntry.categoryPathsSeed.map((path) => path))
+      const mismatch = buildProductMismatch(
+        sourceId,
+        xmlEntries,
+        dbEntries,
+        dbEntry
       )
-      const dbMetadataCategoryPaths = sortStrings(
-        dedupeStrings(dbEntry.metadataCategoryPaths.map((path) => path))
-      )
-      const categoryPathsOnlyInXml = diffSets(
-        xmlCategoryPaths,
-        dbMetadataCategoryPaths
-      )
-      const categoryPathsOnlyInDbMetadata = diffSets(
-        dbMetadataCategoryPaths,
-        xmlCategoryPaths
-      )
-      if (
-        categoryPathsOnlyInXml.length > 0 ||
-        categoryPathsOnlyInDbMetadata.length > 0
-      ) {
-        mismatchTypes.push("metadata_category_paths_mismatch")
-      }
-
-      if (xmlCategoryPaths.length > 0 && dbEntry.categoryHandles.length === 0) {
-        mismatchTypes.push("missing_db_category_links")
-      }
-
-      const xmlImagesStrict = sortStrings(
-        dedupeStrings(
-          xmlEntry.images.map((url) => normalizeUrlForStrictCompare(url))
-        )
-      )
-      const xmlImagesCanonical = sortStrings(
-        dedupeStrings(
-          xmlEntry.images.map((url) => normalizeUrlForCanonicalCompare(url))
-        )
-      )
-      const dbGalleryImages = dedupeStrings([
-        dbEntry.thumbnail,
-        ...dbEntry.imageUrls,
-        ...dbEntry.variantThumbnails,
-        ...dbEntry.variantImageRefs,
-      ])
-      const dbImagesStrict = sortStrings(
-        dedupeStrings(
-          dbGalleryImages.map((url) => normalizeUrlForStrictCompare(url))
-        )
-      )
-      const dbImagesCanonical = sortStrings(
-        dedupeStrings(
-          dbGalleryImages.map((url) => normalizeUrlForCanonicalCompare(url))
-        )
-      )
-
-      if (xmlImagesStrict.length !== dbImagesStrict.length) {
-        mismatchTypes.push("image_count_mismatch")
-      }
-
-      const missingImagesByCanonical = diffSets(
-        xmlImagesCanonical,
-        dbImagesCanonical
-      )
-      const extraImagesByCanonical = diffSets(
-        dbImagesCanonical,
-        xmlImagesCanonical
-      )
-
-      if (missingImagesByCanonical.length > 0) {
-        mismatchTypes.push("image_urls_missing_in_db")
-      }
-      if (extraImagesByCanonical.length > 0) {
-        mismatchTypes.push("image_urls_extra_in_db")
-      }
-
-      if (
-        missingImagesByCanonical.length === 0 &&
-        extraImagesByCanonical.length === 0 &&
-        (diffSets(xmlImagesStrict, dbImagesStrict).length > 0 ||
-          diffSets(dbImagesStrict, xmlImagesStrict).length > 0)
-      ) {
-        mismatchTypes.push("image_query_only_mismatch")
-      }
-
-      if (mismatchTypes.length === 0) {
+      if (!mismatch) {
         continue
       }
 
-      for (const mismatchType of mismatchTypes) {
-        noteMismatchType(mismatchType)
+      for (const mismatchType of mismatch.types) {
+        noteMismatchType(result.mismatchTypeCounts, mismatchType)
       }
-
-      mismatches.push({
-        sourceId,
-        productId: dbEntry.productId,
-        handle: dbEntry.handle,
-        types: mismatchTypes,
-        xml: {
-          name: xmlEntry.name,
-          guid: xmlEntry.guid,
-          categoryPathsSeed: xmlEntry.categoryPathsSeed,
-          categoryPathsStrict: xmlEntry.categoryPathsStrict,
-          imageCount: xmlImagesStrict.length,
-          images: xmlImagesStrict,
-        },
-        db: {
-          title: dbEntry.title,
-          status: dbEntry.status,
-          sourceGuid: dbEntry.sourceGuid,
-          categoryPathCount: dbMetadataCategoryPaths.length,
-          categoryPaths: dbMetadataCategoryPaths,
-          categoryLinkCount: dbEntry.categoryHandles.length,
-          categoryHandles: sortStrings(dbEntry.categoryHandles),
-          imageCount: dbImagesStrict.length,
-          images: dbImagesStrict,
-        },
-        deltas: {
-          missingImagesByCanonical,
-          extraImagesByCanonical,
-          categoryPathsOnlyInXml,
-          categoryPathsOnlyInDbMetadata,
-        },
-      })
+      result.mismatches.push(mismatch)
     }
   }
 
-  if (dbMissingSourceId.length > 0) {
-    noteMismatchType("missing_source_shopitem_id_on_db_product")
-  }
+  return result
+}
 
-  const xmlCategoryPathNormalizationIssues = xmlItems
+function findXmlCategoryPathNormalizationIssues(
+  xmlItems: XmlShopItem[]
+): XmlCategoryPathNormalizationIssue[] {
+  return xmlItems
     .filter((item) =>
       item.categoryPathsSeed.some((seedPath, index) => {
         const strictPath = item.categoryPathsStrict[index]
@@ -908,7 +1072,9 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
       seedPaths: item.categoryPathsSeed,
       strictPaths: item.categoryPathsStrict,
     }))
+}
 
+async function loadDuplicateReports() {
   const [
     categoryNameDuplicates,
     categoryHandleDuplicates,
@@ -921,81 +1087,16 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
     loadDuplicateImageRows(),
   ])
 
-  mkdirSync(options.outputDir, { recursive: true })
-
-  const summary = {
-    generatedAt: new Date().toISOString(),
-    xmlPath: options.xmlPath,
-    outputDir: options.outputDir,
-    filters: {
-      sourceId: options.sourceId ?? null,
-      sampleSize: options.sampleSize,
-    },
-    totals: {
-      xmlShopItems: xmlItems.length,
-      xmlUniqueSourceIds: xmlBySourceId.size,
-      dbProductsCompared: dbProducts.length,
-      dbProductsMissingSourceId: dbMissingSourceId.length,
-      dbUniqueSourceIds: dbBySourceId.size,
-      sourceIdsCompared: allSourceIds.length,
-      matchedSourceIds: matchedSourceIdCount,
-      xmlOnlySourceIds: xmlOnlySourceIds.length,
-      dbOnlySourceIds: dbOnlySourceIds.length,
-      mismatchRows: mismatches.length,
-      sourceIdsWithAnyMismatch: new Set(mismatches.map((m) => m.sourceId)).size,
-    },
-    mismatchTypeCounts: Object.fromEntries(
-      [...mismatchTypeCounts.entries()].sort(([a], [b]) => a.localeCompare(b))
-    ),
-    redundancy: {
-      duplicateXmlSourceIds: [...xmlBySourceId.entries()]
-        .filter(([, entries]) => entries.length > 1)
-        .map(([sourceId, entries]) => ({
-          sourceId,
-          count: entries.length,
-        })),
-      duplicateDbSourceIds: dbProductSourceDuplicates,
-      categoryNameDuplicates: categoryNameDuplicates.length,
-      categoryHandleSuffixDuplicates: categoryHandleDuplicates.length,
-      duplicateImageRows: duplicateImageRows.length,
-    },
-    potentialMappingRisks: {
-      xmlCategoryPathNormalizationIssues:
-        xmlCategoryPathNormalizationIssues.length,
-    },
-    sample: {
-      xmlOnlySourceIds: takeSample(xmlOnlySourceIds, options.sampleSize),
-      dbOnlySourceIds: takeSample(dbOnlySourceIds, options.sampleSize),
-      mismatches: takeSample(mismatches, options.sampleSize),
-      productsMissingSourceId: takeSample(
-        dbMissingSourceId.map((product) => ({
-          productId: product.productId,
-          handle: product.handle,
-          title: product.title,
-        })),
-        options.sampleSize
-      ),
-      xmlCategoryPathNormalizationIssues: takeSample(
-        xmlCategoryPathNormalizationIssues,
-        options.sampleSize
-      ),
-      duplicateDbSourceIds: takeSample(
-        dbProductSourceDuplicates,
-        options.sampleSize
-      ),
-      categoryNameDuplicates: takeSample(
-        categoryNameDuplicates,
-        options.sampleSize
-      ),
-      categoryHandleSuffixDuplicates: takeSample(
-        categoryHandleDuplicates,
-        options.sampleSize
-      ),
-      duplicateImageRows: takeSample(duplicateImageRows, options.sampleSize),
-    },
+  return {
+    categoryNameDuplicates,
+    categoryHandleDuplicates,
+    dbProductSourceDuplicates,
+    duplicateImageRows,
   }
+}
 
-  const mismatchCsvRows = mismatches.map((mismatch) => ({
+function buildMismatchCsvRows(mismatches: ProductMismatch[]) {
+  return mismatches.map((mismatch) => ({
     source_id: mismatch.sourceId,
     product_id: mismatch.productId,
     handle: mismatch.handle,
@@ -1010,16 +1111,146 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
     db_metadata_category_paths: mismatch.db.categoryPathCount,
     db_linked_categories: mismatch.db.categoryLinkCount,
   }))
+}
 
+function buildSummary({
+  allSourceIds,
+  comparison,
+  dbBySourceId,
+  dbMissingSourceId,
+  dbProducts,
+  duplicateReports,
+  options,
+  xmlBySourceId,
+  xmlCategoryPathNormalizationIssues,
+  xmlItems,
+}: {
+  allSourceIds: string[]
+  comparison: ProductComparison
+  dbBySourceId: SourceIdIndex<DbProductRecord>
+  dbMissingSourceId: DbProductRecord[]
+  dbProducts: DbProductRecord[]
+  duplicateReports: Awaited<ReturnType<typeof loadDuplicateReports>>
+  options: ScriptOptions
+  xmlBySourceId: SourceIdIndex<XmlShopItem>
+  xmlCategoryPathNormalizationIssues: XmlCategoryPathNormalizationIssue[]
+  xmlItems: XmlShopItem[]
+}) {
+  return {
+    generatedAt: new Date().toISOString(),
+    xmlPath: options.xmlPath,
+    outputDir: options.outputDir,
+    filters: {
+      sourceId: options.sourceId ?? null,
+      sampleSize: options.sampleSize,
+    },
+    totals: {
+      xmlShopItems: xmlItems.length,
+      xmlUniqueSourceIds: xmlBySourceId.size,
+      dbProductsCompared: dbProducts.length,
+      dbProductsMissingSourceId: dbMissingSourceId.length,
+      dbUniqueSourceIds: dbBySourceId.size,
+      sourceIdsCompared: allSourceIds.length,
+      matchedSourceIds: comparison.matchedSourceIdCount,
+      xmlOnlySourceIds: comparison.xmlOnlySourceIds.length,
+      dbOnlySourceIds: comparison.dbOnlySourceIds.length,
+      mismatchRows: comparison.mismatches.length,
+      sourceIdsWithAnyMismatch: new Set(
+        comparison.mismatches.map((m) => m.sourceId)
+      ).size,
+    },
+    mismatchTypeCounts: Object.fromEntries(
+      [...comparison.mismatchTypeCounts.entries()].sort(([a], [b]) =>
+        a.localeCompare(b)
+      )
+    ),
+    redundancy: {
+      duplicateXmlSourceIds: [...xmlBySourceId.entries()]
+        .filter(([, entries]) => entries.length > 1)
+        .map(([sourceId, entries]) => ({
+          sourceId,
+          count: entries.length,
+        })),
+      duplicateDbSourceIds: duplicateReports.dbProductSourceDuplicates,
+      categoryNameDuplicates: duplicateReports.categoryNameDuplicates.length,
+      categoryHandleSuffixDuplicates:
+        duplicateReports.categoryHandleDuplicates.length,
+      duplicateImageRows: duplicateReports.duplicateImageRows.length,
+    },
+    potentialMappingRisks: {
+      xmlCategoryPathNormalizationIssues:
+        xmlCategoryPathNormalizationIssues.length,
+    },
+    sample: {
+      xmlOnlySourceIds: takeSample(
+        comparison.xmlOnlySourceIds,
+        options.sampleSize
+      ),
+      dbOnlySourceIds: takeSample(
+        comparison.dbOnlySourceIds,
+        options.sampleSize
+      ),
+      mismatches: takeSample(comparison.mismatches, options.sampleSize),
+      productsMissingSourceId: takeSample(
+        dbMissingSourceId.map((product) => ({
+          productId: product.productId,
+          handle: product.handle,
+          title: product.title,
+        })),
+        options.sampleSize
+      ),
+      xmlCategoryPathNormalizationIssues: takeSample(
+        xmlCategoryPathNormalizationIssues,
+        options.sampleSize
+      ),
+      duplicateDbSourceIds: takeSample(
+        duplicateReports.dbProductSourceDuplicates,
+        options.sampleSize
+      ),
+      categoryNameDuplicates: takeSample(
+        duplicateReports.categoryNameDuplicates,
+        options.sampleSize
+      ),
+      categoryHandleSuffixDuplicates: takeSample(
+        duplicateReports.categoryHandleDuplicates,
+        options.sampleSize
+      ),
+      duplicateImageRows: takeSample(
+        duplicateReports.duplicateImageRows,
+        options.sampleSize
+      ),
+    },
+  }
+}
+
+function writeAuditReports({
+  comparison,
+  dbMissingSourceId,
+  duplicateReports,
+  options,
+  summary,
+  xmlCategoryPathNormalizationIssues,
+}: {
+  comparison: ProductComparison
+  dbMissingSourceId: DbProductRecord[]
+  duplicateReports: Awaited<ReturnType<typeof loadDuplicateReports>>
+  options: ScriptOptions
+  summary: ReturnType<typeof buildSummary>
+  xmlCategoryPathNormalizationIssues: XmlCategoryPathNormalizationIssue[]
+}) {
+  mkdirSync(options.outputDir, { recursive: true })
   writeJson(resolve(options.outputDir, "summary.json"), summary)
-  writeJson(resolve(options.outputDir, "mismatches.json"), mismatches)
+  writeJson(
+    resolve(options.outputDir, "mismatches.json"),
+    comparison.mismatches
+  )
   writeJson(
     resolve(options.outputDir, "xml-only-source-ids.json"),
-    xmlOnlySourceIds
+    comparison.xmlOnlySourceIds
   )
   writeJson(
     resolve(options.outputDir, "db-only-source-ids.json"),
-    dbOnlySourceIds
+    comparison.dbOnlySourceIds
   )
   writeJson(
     resolve(options.outputDir, "products-missing-source-id.json"),
@@ -1035,19 +1266,70 @@ export default async function auditXmlVsDb({ container, args }: ExecArgs) {
     xmlCategoryPathNormalizationIssues
   )
   writeJson(resolve(options.outputDir, "redundancy.json"), {
-    duplicateDbSourceIds: dbProductSourceDuplicates,
-    categoryNameDuplicates,
-    categoryHandleSuffixDuplicates: categoryHandleDuplicates,
-    duplicateImageRows,
+    duplicateDbSourceIds: duplicateReports.dbProductSourceDuplicates,
+    categoryNameDuplicates: duplicateReports.categoryNameDuplicates,
+    categoryHandleSuffixDuplicates: duplicateReports.categoryHandleDuplicates,
+    duplicateImageRows: duplicateReports.duplicateImageRows,
   })
   writeFileSync(
     resolve(options.outputDir, "mismatches.csv"),
-    buildCsv(mismatchCsvRows),
+    buildCsv(buildMismatchCsvRows(comparison.mismatches)),
     "utf8"
   )
+}
+
+export default async function auditXmlVsDb({ container, args }: ExecArgs) {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const options = parseOptions(args)
+
+  logger.info("Starting XML vs DB audit...")
+  logger.info(`Using XML feed: ${options.xmlPath}`)
+  logger.info(`Output directory: ${options.outputDir}`)
+
+  const xmlItems = await loadXmlItems(options.xmlPath)
+  const xmlBySourceId = indexXmlItems(xmlItems)
+  const dbProducts = await loadDbProducts()
+  const { dbBySourceId, dbMissingSourceId } = indexDbProducts(dbProducts)
+  const allSourceIds = collectSourceIds(
+    xmlBySourceId,
+    dbBySourceId,
+    options.sourceId
+  )
+  const comparison = compareProducts(allSourceIds, xmlBySourceId, dbBySourceId)
+
+  if (dbMissingSourceId.length > 0) {
+    noteMismatchType(
+      comparison.mismatchTypeCounts,
+      "missing_source_shopitem_id_on_db_product"
+    )
+  }
+
+  const xmlCategoryPathNormalizationIssues =
+    findXmlCategoryPathNormalizationIssues(xmlItems)
+  const duplicateReports = await loadDuplicateReports()
+  const summary = buildSummary({
+    allSourceIds,
+    comparison,
+    dbBySourceId,
+    dbMissingSourceId,
+    dbProducts,
+    duplicateReports,
+    options,
+    xmlBySourceId,
+    xmlCategoryPathNormalizationIssues,
+    xmlItems,
+  })
+  writeAuditReports({
+    comparison,
+    dbMissingSourceId,
+    duplicateReports,
+    options,
+    summary,
+    xmlCategoryPathNormalizationIssues,
+  })
 
   logger.info(
-    `Audit completed. Compared source IDs: ${allSourceIds.length}, mismatches: ${mismatches.length}`
+    `Audit completed. Compared source IDs: ${allSourceIds.length}, mismatches: ${comparison.mismatches.length}`
   )
   logger.info(`Reports written to: ${options.outputDir}`)
   logger.info(`Summary file: ${resolve(options.outputDir, "summary.json")}`)

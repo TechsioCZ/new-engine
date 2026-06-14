@@ -1,18 +1,18 @@
-"use client";
+"use client"
 
-import { storefront } from "./storefront";
 import type {
   HerbatikaOrderDetailInput,
   HerbatikaOrderListInput,
-} from "./order-query-config";
+} from "./order-query-config"
+import { storefront } from "./storefront"
 
-const orderHooks = storefront.hooks.orders;
+const orderHooks = storefront.hooks.orders
 
 export const {
   useOrders,
   useOrder,
   getDetailQueryOptions: getOrderDetailQueryOptions,
-} = orderHooks;
+} = orderHooks
 
-export type OrderListInput = HerbatikaOrderListInput;
-export type OrderDetailInput = HerbatikaOrderDetailInput;
+export type OrderListInput = HerbatikaOrderListInput
+export type OrderDetailInput = HerbatikaOrderDetailInput

@@ -1,24 +1,26 @@
 export type StorefrontBrand = {
-  id: string;
-  title: string;
-  handle: string;
-  slug: string;
-  facetId: string;
-};
+  id: string
+  title: string
+  handle: string
+  slug: string
+  facetId: string
+}
 
 export type StorefrontBrandGroup = {
-  letter: string;
-  brands: StorefrontBrand[];
-};
+  letter: string
+  brands: StorefrontBrand[]
+}
 
 type RawStorefrontBrandInput = {
-  id?: string | null;
-  title?: string | null;
-  handle?: string | null;
-};
+  id?: string | null
+  title?: string | null
+  handle?: string | null
+}
 
-const BRAND_FACET_PREFIX = "brand-";
-const NUMERIC_BRAND_GROUP = "0-9";
+const BRAND_FACET_PREFIX = "brand-"
+const NUMERIC_BRAND_GROUP = "0-9"
+const DIGIT_CHARACTER_PATTERN = /^\d$/
+const LATIN_UPPERCASE_CHARACTER_PATTERN = /^[A-Z]$/
 const BRAND_GROUP_ORDER = [
   "A",
   "B",
@@ -47,43 +49,42 @@ const BRAND_GROUP_ORDER = [
   "Y",
   "Z",
   NUMERIC_BRAND_GROUP,
-] as const;
+] as const
 
 const brandCollator = new Intl.Collator("sk", {
   numeric: true,
   sensitivity: "base",
-});
+})
 
-export const createBrandSlug = (value: string): string => {
-  return value
+export const createBrandSlug = (value: string): string =>
+  value
     .toLowerCase()
     .normalize("NFD")
     .replaceAll(/\p{Diacritic}/gu, "")
     .replaceAll(/[^a-z0-9]+/g, "-")
     .replaceAll(/-+/g, "-")
-    .replaceAll(/^-+|-+$/g, "");
-};
+    .replaceAll(/^-+|-+$/g, "")
 
 export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
-  `/znacka/${brand.slug}`;
+  `/znacka/${brand.slug}`
 
 export const createBrandFacetId = (value: string) =>
-  `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`;
+  `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`
 
 export const normalizeStorefrontBrand = (
-  input: RawStorefrontBrandInput,
+  input: RawStorefrontBrandInput
 ): StorefrontBrand | null => {
-  const title = input.title?.trim();
+  const title = input.title?.trim()
 
-  if (!input.id || !title) {
-    return null;
+  if (!(input.id && title)) {
+    return null
   }
 
-  const handle = input.handle?.trim() || title;
-  const slug = createBrandSlug(handle);
+  const handle = input.handle?.trim() || title
+  const slug = createBrandSlug(handle)
 
   if (!slug) {
-    return null;
+    return null
   }
 
   return {
@@ -92,65 +93,62 @@ export const normalizeStorefrontBrand = (
     handle,
     slug,
     facetId: createBrandFacetId(handle),
-  };
-};
+  }
+}
 
-export const resolveBrandBySlug = (
-  brands: StorefrontBrand[],
-  slug: string,
-) => {
-  const normalizedSlug = createBrandSlug(slug);
+export const resolveBrandBySlug = (brands: StorefrontBrand[], slug: string) => {
+  const normalizedSlug = createBrandSlug(slug)
   const canonicalBrand =
-    brands.find((brand) => brand.slug === normalizedSlug) ?? null;
+    brands.find((brand) => brand.slug === normalizedSlug) ?? null
 
   if (canonicalBrand) {
-    return canonicalBrand;
+    return canonicalBrand
   }
 
   return (
     brands.find((brand) => createBrandSlug(brand.title) === normalizedSlug) ??
     null
-  );
-};
+  )
+}
 
 const resolveBrandGroupLetter = (brand: StorefrontBrand) => {
-  const firstCharacter = createBrandSlug(brand.title).charAt(0).toUpperCase();
+  const firstCharacter = createBrandSlug(brand.title).charAt(0).toUpperCase()
 
-  if (/^\d$/.test(firstCharacter)) {
-    return NUMERIC_BRAND_GROUP;
+  if (DIGIT_CHARACTER_PATTERN.test(firstCharacter)) {
+    return NUMERIC_BRAND_GROUP
   }
 
-  if (/^[A-Z]$/.test(firstCharacter)) {
-    return firstCharacter;
+  if (LATIN_UPPERCASE_CHARACTER_PATTERN.test(firstCharacter)) {
+    return firstCharacter
   }
 
-  return NUMERIC_BRAND_GROUP;
-};
+  return NUMERIC_BRAND_GROUP
+}
 
 export const groupStorefrontBrands = (
-  brands: StorefrontBrand[],
+  brands: StorefrontBrand[]
 ): StorefrontBrandGroup[] => {
-  const groupsByLetter = new Map<string, StorefrontBrand[]>();
+  const groupsByLetter = new Map<string, StorefrontBrand[]>()
 
   for (const brand of brands) {
-    const letter = resolveBrandGroupLetter(brand);
-    groupsByLetter.set(letter, [...(groupsByLetter.get(letter) ?? []), brand]);
+    const letter = resolveBrandGroupLetter(brand)
+    groupsByLetter.set(letter, [...(groupsByLetter.get(letter) ?? []), brand])
   }
 
   return BRAND_GROUP_ORDER.flatMap((letter) => {
-    const groupBrands = groupsByLetter.get(letter);
+    const groupBrands = groupsByLetter.get(letter)
 
     if (!groupBrands || groupBrands.length === 0) {
-      return [];
+      return []
     }
 
     return [
       {
         letter,
         brands: [...groupBrands].sort((left, right) =>
-          brandCollator.compare(left.title, right.title),
+          brandCollator.compare(left.title, right.title)
         ),
       },
-    ];
-  });
-};
+    ]
+  })
+}

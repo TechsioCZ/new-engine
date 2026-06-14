@@ -1,42 +1,42 @@
-"use client";
+"use client"
 
-import type { HttpTypes } from "@medusajs/types";
-import type { SelectItem } from "@techsio/ui-kit/molecules/select";
-import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery";
-import type { ReactNode } from "react";
+import type { HttpTypes } from "@medusajs/types"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
+import type { ReactNode } from "react"
 import type {
   Product,
   ProductMediaFact,
   ProductOfferState,
-} from "@/components/product-detail/product-detail.types";
-import { ProductDetailDeliveryInfo } from "@/components/product-detail/sections/product-detail-delivery-info";
-import { ProductDetailMediaColumn } from "@/components/product-detail/sections/product-detail-media-column";
-import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel";
+} from "@/components/product-detail/product-detail.types"
+import { ProductDetailDeliveryInfo } from "@/components/product-detail/sections/product-detail-delivery-info"
+import { ProductDetailMediaColumn } from "@/components/product-detail/sections/product-detail-media-column"
+import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel"
 
 type ProductDetailHeroProps = {
-  children?: ReactNode;
-  canAddToCart: boolean;
-  currentAmountLabel: string;
-  discountPercent: number | null;
-  displayOriginalLabel: string | null;
-  freeShippingThresholdLabel: string | null;
-  galleryItems: GalleryItem[];
-  mediaFacts: ProductMediaFact[];
-  isAdding: boolean;
-  maxQuantity: number;
-  offerState: ProductOfferState;
-  onAddToCart: () => void;
-  onQuantityChange: (quantity: number) => void;
-  onVariantChange: (variantId: string | null) => void;
-  product: Product;
-  productCategories: HttpTypes.StoreProductCategory[];
-  productHighlights: string[];
-  quantity: number;
-  selectedVariantId: string | null;
-  unitPriceLabel: string | null;
-  variantItems: SelectItem[];
-  vipCreditLabel: string | null;
-};
+  children?: ReactNode
+  canAddToCart: boolean
+  currentAmountLabel: string
+  discountPercent: number | null
+  displayOriginalLabel: string | null
+  freeShippingThresholdLabel: string | null
+  galleryItems: GalleryItem[]
+  mediaFacts: ProductMediaFact[]
+  isAdding: boolean
+  maxQuantity: number
+  offerState: ProductOfferState
+  onAddToCart: () => void
+  onQuantityChange: (quantity: number) => void
+  onVariantChange: (variantId: string | null) => void
+  product: Product
+  productCategories: HttpTypes.StoreProductCategory[]
+  productHighlights: string[]
+  quantity: number
+  selectedVariantId: string | null
+  unitPriceLabel: string | null
+  variantItems: SelectItem[]
+  vipCreditLabel: string | null
+}
 
 export function ProductDetailHero({
   children,
@@ -99,5 +99,5 @@ export function ProductDetailHero({
         {children}
       </div>
     </section>
-  );
+  )
 }

@@ -1,65 +1,24 @@
+/*
+ * Carousel — runtime tokens come from libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept here:
+ *   - `--spacing-carousel-root-{sm,md,lg}` aliases — Figma renamed the
+ *     root size axis to --size-carousel-*, but max-w-/max-h- utilities
+ *     don't read the --size-* namespace.
+ *   - `--width-carousel-indicator` alias — same namespace limitation.
+ *   - `--padding-carousel-trigger` composite "0 0".
+ *   - `--aspect-carousel-indicator` (aspect-ratio namespace, code-side).
+ */
+
 @theme static {
-  /* === BASE COLOR MAPPING === */
-  /* Reference layer - single source of truth for theming */
-  --color-carousel: var(--color-surface);
-  --color-carousel-accent: var(--color-primary);
+  --spacing-carousel-root-sm: var(--size-carousel-sm);
+  --spacing-carousel-root-md: var(--size-carousel-md);
+  --spacing-carousel-root-lg: var(--size-carousel-lg);
 
-  /* === DERIVED COLORS === */
-  /* Background colors - using reference layer */
-  --color-carousel-trigger-bg: oklch(
-    from var(--color-carousel) calc(l - var(--surface-increment) * 4) c h
-  );
-  --color-carousel-trigger-bg-hover: oklch(
-    from var(--color-carousel) calc(l - var(--surface-increment) * 8) c h
-  );
-  --color-carousel-control-bg: oklch(
-    from var(--color-carousel) calc(l - var(--surface-increment) * 2) c h
-  );
+  --width-carousel-indicator: var(--size-carousel-indicator);
 
-  /* Foreground colors */
-  --color-carousel-trigger-fg: var(--color-fg-dark);
-  --color-carousel-trigger-fg-hover: var(--color-fg-dark);
-
-  /* Indicator colors */
-  --color-carousel-indicator-bg: oklch(
-    from var(--color-carousel) calc(l - var(--surface-increment) * 4) c h
-  );
-  --color-carousel-indicator-bg-active: var(--color-carousel-accent);
-  --color-carousel-indicator-border: transparent;
-  --color-carousel-indicator-border-active: transparent;
-
-  /* === SPACING === */
-  /* Root spacing */
-  --spacing-carousel-root-sm: var(--container-3xs);
-  --spacing-carousel-root-md: var(--container-sm);
-  --spacing-carousel-root-lg: var(--container-lg);
-
-  --spacing-carousel-trigger-top: var(--spacing-100);
-  --spacing-carousel-trigger-right: var(--spacing-100);
-
-  /* Control spacing */
-  --padding-carousel-control: var(--spacing-100);
-  --gap-carousel-control: var(--spacing-200);
-
-  /* Trigger spacing */
   --padding-carousel-trigger: 0 0;
 
-  /* Indicator spacing */
-  --gap-carousel-indicator: var(--spacing-100);
-  --width-carousel-indicator: var(--spacing-200);
-
-  /* === BORDERS & RADIUS === */
-  --radius-carousel: var(--radius-sm);
-  --radius-carousel-indicator: 50%;
-
-  /* === TYPOGRAPHY === */
-  --text-carousel-trigger-size: var(--text-md);
-
-  /* === FOCUS RINGS === */
-  --color-carousel-ring: var(--color-ring);
-
-  /* === ASPECT RATIO === */
-  /* Additional section for aspect ratios */
   --aspect-carousel-indicator: var(--aspect-square);
 }
 

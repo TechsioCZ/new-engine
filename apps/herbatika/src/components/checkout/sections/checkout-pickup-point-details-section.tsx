@@ -1,21 +1,21 @@
-import type { SelectItem } from "@techsio/ui-kit/molecules/select";
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import {
   type CarrierPickupAddress,
   formatCarrierPickupAddress,
-} from "@/components/checkout/carrier-pickup-address.utils";
-import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils";
-import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form";
-import { SupportingText } from "@/components/text/supporting-text";
-import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators";
-import { CheckoutLoginPrompt } from "./checkout-login-prompt";
-import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle";
+} from "@/components/checkout/carrier-pickup-address.utils"
+import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
+import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
+import { SupportingText } from "@/components/text/supporting-text"
+import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+import { CheckoutLoginPrompt } from "./checkout-login-prompt"
+import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
 type CheckoutPickupPointDetailsSectionProps = {
-  checkoutDetailsForm: CheckoutDetailsFormController;
-  countryItems: SelectItem[];
-  isAuthenticated: boolean;
-  pickupAddress: CarrierPickupAddress;
-};
+  checkoutDetailsForm: CheckoutDetailsFormController
+  countryItems: SelectItem[]
+  isAuthenticated: boolean
+  pickupAddress: CarrierPickupAddress
+}
 
 export function CheckoutPickupPointDetailsSection({
   checkoutDetailsForm,
@@ -23,18 +23,18 @@ export function CheckoutPickupPointDetailsSection({
   isAuthenticated,
   pickupAddress,
 }: CheckoutPickupPointDetailsSectionProps) {
-  const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase;
+  const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase
 
   return (
     <>
       <section className="space-y-150 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
         <header>
-          <h2 className="text-xl font-medium text-fg-primary">
+          <h2 className="font-medium text-fg-primary text-xl">
             Doručenie na výdajné miesto
           </h2>
         </header>
         <div className="space-y-50 rounded-sm bg-highlight p-300">
-          <p className="text-sm font-medium text-fg-primary">
+          <p className="font-medium text-fg-primary text-sm">
             {pickupAddress.label}
           </p>
           <SupportingText className="text-fg-secondary">
@@ -45,12 +45,12 @@ export function CheckoutPickupPointDetailsSection({
 
       <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
         <header>
-          <h2 className="text-xl font-medium text-fg-primary">
+          <h2 className="font-medium text-fg-primary text-xl">
             Kontaktné a fakturačné údaje
           </h2>
         </header>
 
-        {!isAuthenticated ? <CheckoutLoginPrompt /> : null}
+        {isAuthenticated ? null : <CheckoutLoginPrompt />}
 
         <div className="space-y-250 font-inter">
           <div className="grid gap-250 md:grid-cols-2">
@@ -144,7 +144,7 @@ export function CheckoutPickupPointDetailsSection({
                   <checkoutDetailsForm.form.AppField
                     name={resolveCheckoutAddressFieldName(
                       "billing",
-                      "companyId",
+                      "companyId"
                     )}
                     validators={checkoutFieldValidators.billing.companyId}
                   >
@@ -249,7 +249,7 @@ export function CheckoutPickupPointDetailsSection({
               <checkoutDetailsForm.form.AppField
                 name={resolveCheckoutAddressFieldName(
                   "shipping",
-                  "customerNote",
+                  "customerNote"
                 )}
               >
                 {(field) => (
@@ -269,5 +269,5 @@ export function CheckoutPickupPointDetailsSection({
         </div>
       </section>
     </>
-  );
+  )
 }

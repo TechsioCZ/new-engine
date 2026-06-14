@@ -1,14 +1,14 @@
-import { authService } from "./auth/service";
-import { herbatikaCheckoutCartAddressAdapter } from "./cart/address-adapter";
+import { authService } from "./auth/service"
+import { herbatikaCheckoutCartAddressAdapter } from "./cart/address-adapter"
 import {
   buildAddLineItemParams,
   buildCreateCartInputFromAddLineItemInput,
   buildCreateCartParams,
   buildUpdateCartParams,
-} from "./cart/params";
-import { cartStorage } from "./cart-storage";
-import { storefrontCartServiceConfig } from "./storefront-config";
-import { storefrontCoreDefinition } from "./storefront-core-definition";
+} from "./cart/params"
+import { cartStorage } from "./cart-storage"
+import { storefrontCartServiceConfig } from "./storefront-config"
+import { storefrontCoreDefinition } from "./storefront-core-definition"
 
 export const storefrontDefinition = {
   ...storefrontCoreDefinition,
@@ -34,4 +34,4 @@ export const storefrontDefinition = {
       buildAddParams: buildAddLineItemParams,
     },
   },
-} as const;
+} as const

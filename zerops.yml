@@ -36,7 +36,15 @@ zerops:
         MINIO_ENDPOINT: ${storage_apiUrl}
         MINIO_SECRET_KEY: ${storage_secretAccessKey}
         MINIO_ACCESS_KEY: ${storage_accessKeyId}
+        FILE_PROVIDER: s3
+        FILE_LOCAL_UPLOAD_DIR: /tmp/medusa-be-files
         REDIS_URL: redis://${redis_hostname}:6379
+        REDIS_SESSIONS_ENABLED: "1"
+        CACHE_PROVIDER: redis
+        EVENT_BUS_PROVIDER: redis
+        WORKFLOW_ENGINE_PROVIDER: redis
+        LOCKING_PROVIDER: redis
+        MEILISEARCH_ENABLED: "1"
         MEILISEARCH_HOST: http://${search_hostname}:${search_port}
         MEILISEARCH_API_KEY: ${search_masterKey}
         SENTRY_DSN: ${MEDUSA_SENTRY_DSN}

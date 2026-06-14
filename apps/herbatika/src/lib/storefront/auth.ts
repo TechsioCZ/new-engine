@@ -1,14 +1,15 @@
-"use client";
+"use client"
 
-import { storefront } from "./storefront";
+import type {
+  AuthLoginInput as AuthLoginInputValue,
+  AuthRegisterInput as AuthRegisterInputValue,
+  AuthUpdateInput as AuthUpdateInputValue,
+} from "./auth/types"
+import { storefront } from "./storefront"
 
-export { authService } from "./auth/service";
+export const { useAuth, useLogin, useRegister, useLogout } =
+  storefront.hooks.auth
 
-export const {
-  useAuth,
-  useLogin,
-  useRegister,
-  useLogout,
-} = storefront.hooks.auth;
-
-export type { AuthLoginInput, AuthRegisterInput, AuthUpdateInput } from "./auth/types";
+export type AuthLoginInput = AuthLoginInputValue
+export type AuthRegisterInput = AuthRegisterInputValue
+export type AuthUpdateInput = AuthUpdateInputValue
