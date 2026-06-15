@@ -30,7 +30,8 @@ function HeroBannerCard({
   onPointerDownCapture,
 }: HeroBannerCardProps) {
   const ctaLabel = banner.ctaLabel ?? HERO_CTA_LABEL
-  const label = banner.title ?? banner.badge ?? ctaLabel
+  const label =
+    banner.title ?? banner.imageAlt ?? banner.badge ?? "Herbatika banner"
 
   return (
     <NextLink

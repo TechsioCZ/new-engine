@@ -11,6 +11,44 @@ import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 const COLLECTION_SLUG = "hero-carousels"
 /** Hook to invalidate Medusa cache when hero carousels change. */
 const invalidateHeroCarouselsCache = createMedusaCacheHook(COLLECTION_SLUG)
+const DEFAULT_INTERNAL_TITLE = "Hero banner"
+
+const cleanString = (value: unknown) =>
+  typeof value === "string" ? value.trim() : ""
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const resolveLocalizedString = (
+  value: unknown,
+  locale: string | undefined
+) => {
+  if (typeof value === "string") {
+    return cleanString(value)
+  }
+
+  if (!isRecord(value)) {
+    return ""
+  }
+
+  return (
+    cleanString(locale ? value[locale] : undefined) ||
+    cleanString(value.en) ||
+    cleanString(value.sk) ||
+    cleanString(value.cs) ||
+    cleanString(Object.values(value).find((entry) => cleanString(entry)))
+  )
+}
+
+const resolveInternalTitle = (
+  data: Record<string, unknown>,
+  locale: string | undefined
+) =>
+  cleanString(data.internalTitle) ||
+  resolveLocalizedString(data.heading, locale) ||
+  resolveLocalizedString(data.button, locale) ||
+  cleanString(data.buttonHref) ||
+  DEFAULT_INTERNAL_TITLE
 
 /** Payload collection config for hero carousels. */
 export const HeroCarousels: CollectionConfig = {
@@ -23,11 +61,17 @@ export const HeroCarousels: CollectionConfig = {
   },
   labels: collectionLabels.heroCarousels,
   admin: {
-    useAsTitle: "heading",
-    defaultColumns: ["heading", "subheading", "image"],
+    useAsTitle: "internalTitle",
+    defaultColumns: ["internalTitle", "heading", "image"],
     group: adminGroups.content,
   },
   fields: [
+    {
+      name: "internalTitle",
+      label: fieldLabels.internalTitle,
+      type: "text",
+      required: true,
+    },
     {
       name: "image",
       label: fieldLabels.image,
@@ -39,7 +83,7 @@ export const HeroCarousels: CollectionConfig = {
       name: "heading",
       label: fieldLabels.heading,
       type: "text",
-      required: true,
+      required: false,
       localized: true,
     },
     {
@@ -64,6 +108,17 @@ export const HeroCarousels: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeValidate: [
+      ({ data, req }) => {
+        if (!data) {
+          return data
+        }
+
+        data.internalTitle = resolveInternalTitle(data, req?.locale)
+
+        return data
+      },
+    ],
     afterChange: [invalidateHeroCarouselsCache],
     afterDelete: [invalidateHeroCarouselsCache],
   },
