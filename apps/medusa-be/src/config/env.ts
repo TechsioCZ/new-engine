@@ -48,19 +48,23 @@ export type MedusaConfigEnv = {
   workflowEngineProvider: "inmemory" | "redis"
 }
 
-function isDbGenerateCommand(env: NodeJS.ProcessEnv): boolean {
+function isDbGenerateCommand(
+  env: NodeJS.ProcessEnv,
+  argv: string[] = process.argv
+): boolean {
   if (env.MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION === "1") {
     return true
   }
 
-  return process.argv.some((arg) => arg === "db:generate")
+  return argv.some((arg) => arg === "db:generate")
 }
 
 function configureSchemaAgnosticMigrationGeneration(
   env: NodeJS.ProcessEnv,
-  databaseSchema: string
+  databaseSchema: string,
+  argv: string[] = process.argv
 ): void {
-  if (!isDbGenerateCommand(env)) {
+  if (!isDbGenerateCommand(env, argv)) {
     return
   }
 
@@ -73,8 +77,8 @@ function configureSchemaAgnosticMigrationGeneration(
   // (and includeWildcardSchema only if entities use schema: "*").
   // Docs: https://mikro-orm.io/docs/migrations#runtime-schema-context
   // Added in: https://mikro-orm.io/changelog (v7.1.0, #7597).
-  process.env.MIKRO_ORM_SCHEMA ??= env.MIKRO_ORM_SCHEMA ?? "public"
-  process.env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??=
+  env.MIKRO_ORM_SCHEMA ??= "public"
+  env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??=
     env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??
     `${databaseSchema}.mikro_orm_migrations`
 }
@@ -166,12 +170,13 @@ export function requireRedisUrl(env: MedusaConfigEnv): string {
 }
 
 export function readMedusaConfigEnv(
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  argv: string[] = process.argv
 ): MedusaConfigEnv {
   const databaseSchema =
     env.MEDUSA_DATABASE_SCHEMA ?? env.DATABASE_SCHEMA ?? "public"
 
-  configureSchemaAgnosticMigrationGeneration(env, databaseSchema)
+  configureSchemaAgnosticMigrationGeneration(env, databaseSchema, argv)
 
   const redisSessionsEnabled = readBooleanFlagEnv(env, "REDIS_SESSIONS_ENABLED")
   const meilisearchEnabled = readBooleanFlagEnv(env, "MEILISEARCH_ENABLED")
