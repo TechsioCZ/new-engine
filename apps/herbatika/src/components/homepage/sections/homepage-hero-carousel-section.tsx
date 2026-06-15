@@ -18,14 +18,17 @@ const HERO_SLIDES_PER_PAGE = {
 } as const
 
 function HeroBannerCard({ banner }: { banner: HeroBannerItem }) {
+  const ctaLabel = banner.ctaLabel ?? HERO_CTA_LABEL
+  const label = banner.title ?? banner.badge ?? ctaLabel
+
   return (
     <NextLink
-      aria-label={`${banner.title} - ${HERO_CTA_LABEL}`}
+      aria-label={`${label} - ${ctaLabel}`}
       className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
       href={banner.href}
     >
       <Image
-        alt={banner.id}
+        alt={banner.imageAlt ?? label}
         className="object-cover transition-transform duration-500 group-hover:scale-105"
         fill
         src={banner.imageSrc}
@@ -42,7 +45,7 @@ function HeroBannerCard({ banner }: { banner: HeroBannerItem }) {
             </p>
           )}
           <Button className="mt-350 rounded-xl px-450 py-250 text-md" size="md">
-            {HERO_CTA_LABEL}
+            {ctaLabel}
           </Button>
         </div>
       )}

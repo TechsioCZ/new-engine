@@ -1,6 +1,7 @@
 "use client"
 import { BENEFITS } from "@/assets/benefits"
 import { BLOG_POSTS, HERO_BANNERS } from "@/components/homepage/homepage.data"
+import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 import { HomepageBlogSection } from "@/components/homepage/sections/homepage-blog-section"
 import { HomepageHeroCarouselSection } from "@/components/homepage/sections/homepage-hero-carousel-section"
 import { HomepageProductCollectionSection } from "@/components/homepage/sections/homepage-product-collection-section"
@@ -11,12 +12,17 @@ import { RecentlyVisitedProductsSection } from "@/components/recently-visited-pr
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 
-export function HerbatikaHomepage() {
+type HerbatikaHomepageProps = {
+  heroBanners?: HeroBannerItem[]
+}
+
+export function HerbatikaHomepage({ heroBanners }: HerbatikaHomepageProps) {
   const controller = useHomepageController()
+  const banners = heroBanners?.length ? heroBanners : HERO_BANNERS
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
-      <HomepageHeroCarouselSection banners={HERO_BANNERS} />
+      <HomepageHeroCarouselSection banners={banners} />
       <PurposeCarousel />
       <BenefitsSection benefits={BENEFITS} />
 
