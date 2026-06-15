@@ -109,8 +109,8 @@ export const collectionLabels = {
 export const fieldLabels = {
   internalTitle: {
     en: "Internal title",
-    cs: "Interni nazev",
-    sk: "Interny nazov",
+    cs: "Interní název",
+    sk: "Interný názov",
   },
   title: {
     en: "Title",
