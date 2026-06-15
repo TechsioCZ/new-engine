@@ -48,6 +48,37 @@ export type MedusaConfigEnv = {
   workflowEngineProvider: "inmemory" | "redis"
 }
 
+function isDbGenerateCommand(env: NodeJS.ProcessEnv): boolean {
+  if (env.MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION === "1") {
+    return true
+  }
+
+  return process.argv.some((arg) => arg === "db:generate")
+}
+
+function configureSchemaAgnosticMigrationGeneration(
+  env: NodeJS.ProcessEnv,
+  databaseSchema: string
+): void {
+  if (!isDbGenerateCommand(env)) {
+    return
+  }
+
+  // MikroORM v6 emits schema-agnostic migration SQL when the ORM schema is
+  // public, but the migration bookkeeping table must still live in the app
+  // schema because this project does not grant writes to public.
+  // TODO: When Medusa upgrades to MikroORM >=7.1.0 and exposes/passes the
+  // native migrator config, replace this env override with runtime schema
+  // context: generate with unqualified DDL, then apply via migrations.schema
+  // (and includeWildcardSchema only if entities use schema: "*").
+  // Docs: https://mikro-orm.io/docs/migrations#runtime-schema-context
+  // Added in: https://mikro-orm.io/changelog (v7.1.0, #7597).
+  process.env.MIKRO_ORM_SCHEMA ??= env.MIKRO_ORM_SCHEMA ?? "public"
+  process.env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??=
+    env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??
+    `${databaseSchema}.mikro_orm_migrations`
+}
+
 export function readRequiredEnv(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name]?.trim()
 
@@ -137,6 +168,11 @@ export function requireRedisUrl(env: MedusaConfigEnv): string {
 export function readMedusaConfigEnv(
   env: NodeJS.ProcessEnv = process.env
 ): MedusaConfigEnv {
+  const databaseSchema =
+    env.MEDUSA_DATABASE_SCHEMA ?? env.DATABASE_SCHEMA ?? "public"
+
+  configureSchemaAgnosticMigrationGeneration(env, databaseSchema)
+
   const redisSessionsEnabled = readBooleanFlagEnv(env, "REDIS_SESSIONS_ENABLED")
   const meilisearchEnabled = readBooleanFlagEnv(env, "MEILISEARCH_ENABLED")
   const cacheProvider = readEnumEnv(env, "CACHE_PROVIDER", [
@@ -176,8 +212,7 @@ export function readMedusaConfigEnv(
     cacheProvider,
     cookieOptions: readCookieOptions(env),
     cookieSecret: env.COOKIE_SECRET,
-    databaseSchema:
-      env.MEDUSA_DATABASE_SCHEMA ?? env.DATABASE_SCHEMA ?? "public",
+    databaseSchema,
     databaseUrl: env.DATABASE_URL,
     eventBusProvider,
     featurePacketaEnabled:
