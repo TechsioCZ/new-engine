@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "medusa"
+    "public"
   ],
-  "name": "medusa",
+  "name": "public",
   "tables": [
     {
       "columns": {
@@ -104,7 +104,7 @@
         }
       },
       "name": "producer",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_producer_deleted_at",
@@ -223,7 +223,7 @@
         }
       },
       "name": "producer_attribute_type",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_producer_attribute_type_deleted_at",
@@ -374,7 +374,7 @@
         }
       },
       "name": "producer_attribute",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_producer_attribute_attribute_type_id",
@@ -421,11 +421,11 @@
           "columnNames": [
             "attribute_type_id"
           ],
-          "localTableName": "medusa.producer_attribute",
+          "localTableName": "public.producer_attribute",
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "medusa.producer_attribute_type",
+          "referencedTableName": "public.producer_attribute_type",
           "updateRule": "cascade"
         },
         "producer_attribute_producer_id_foreign": {
@@ -433,11 +433,11 @@
           "columnNames": [
             "producer_id"
           ],
-          "localTableName": "medusa.producer_attribute",
+          "localTableName": "public.producer_attribute",
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "medusa.producer",
+          "referencedTableName": "public.producer",
           "updateRule": "cascade"
         }
       },
