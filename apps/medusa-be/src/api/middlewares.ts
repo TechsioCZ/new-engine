@@ -8,6 +8,7 @@ import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
+import { adminMeasurementUnitRoutesMiddlewares } from "./admin/measurement-units/middlewares"
 import { adminMiddlewares } from "./admin/middlewares"
 import { adminOrderBusinessStatusesRoutesMiddlewares } from "./admin/order-business-statuses/middlewares"
 import { adminOrderExpeditionRoutesMiddlewares } from "./admin/order-expedition/middlewares"
@@ -63,6 +64,7 @@ export default defineMiddlewares({
     ...adminOrderBusinessStatusRoutesMiddlewares,
     ...adminOrderEmailRoutesMiddlewares,
     ...adminPayloadSsoRoutesMiddlewares,
+    ...adminMeasurementUnitRoutesMiddlewares,
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
