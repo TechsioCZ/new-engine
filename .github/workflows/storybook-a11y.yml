@@ -77,14 +77,17 @@ jobs:
       node-version: "24"
       pnpm-version: ""
       working-directory: libs/ui
-      # Install the Chromium binary as part of the dependency step WITHOUT
-      # `--with-deps`. The reusable workflow's built-in "Install Playwright
-      # browsers" step runs `playwright install --with-deps chromium`, whose
-      # apt phase hangs on GitHub-hosted runners (job stuck after the browser
-      # download). ubuntu-latest already ships Chromium's system libs, so the
-      # plain `playwright install chromium` is sufficient. install-playwright
-      # is disabled below so that hanging step is skipped.
-      install-command: pnpm install --frozen-lockfile && pnpm -C {{workdir}} exec playwright install chromium
+      # Install the browser as part of the dependency step. The reusable
+      # workflow's built-in "Install Playwright browsers" step (disabled below)
+      # runs `playwright install --with-deps chromium`, which wedges on
+      # GitHub-hosted runners: the full "Chrome for Testing" zip downloads to
+      # 100% then never finishes extracting (jobs stuck 30+ min).
+      # `--only-shell` fetches just the chromium-headless-shell artifact, which
+      # is all the headless a11y test run needs, and avoids the stuck extract.
+      # `timeout` is a safety net so a future regression fails fast instead of
+      # hanging. ubuntu-latest already ships Chromium's system libs (no
+      # --with-deps needed).
+      install-command: pnpm install --frozen-lockfile && timeout 420 pnpm -C {{workdir}} exec playwright install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
