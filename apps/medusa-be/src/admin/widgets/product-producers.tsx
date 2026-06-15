@@ -28,6 +28,15 @@ import { useDebouncedValue } from "../lib/use-debounced-value"
 type ProductProducersWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
+const SUPPLIER_ATTRIBUTE_NAME = "supplier"
+
+const getProducerAttributeValue = (
+  producer: Producer | undefined,
+  attributeName: string
+) =>
+  producer?.attributes.find(
+    (attribute) => attribute.name.toLowerCase() === attributeName
+  )?.value
 
 const ProducerSelectionRows = ({
   currentProducerId,
@@ -375,6 +384,13 @@ const ProductProducersWidget = ({
   )
   const activeProducer = producers.find((producer) => !producer.deleted_at)
   const hasInactiveProducer = producers.some((producer) => producer.deleted_at)
+  const supplier =
+    getProducerAttributeValue(activeProducer, SUPPLIER_ATTRIBUTE_NAME) ??
+    producers
+      .map((producer) =>
+        getProducerAttributeValue(producer, SUPPLIER_ATTRIBUTE_NAME)
+      )
+      .find((value): value is string => !!value)
   let statusText = t("products.notLinked")
 
   if (hasInactiveProducer) {
@@ -411,6 +427,14 @@ const ProductProducersWidget = ({
             producers={producers}
           />
         </div>
+        <div className="flex items-center justify-between gap-3 px-6 py-4">
+          <Text size="small" weight="plus">
+            {t("fields.supplier")}
+          </Text>
+          <Text className="text-ui-fg-subtle" size="small">
+            {supplier ?? "-"}
+          </Text>
+        </div>
       </Container>
       <ProducerAssignmentDrawer
         currentProducer={activeProducer}
@@ -423,7 +447,7 @@ const ProductProducersWidget = ({
 }
 
 export const config = defineWidgetConfig({
-  zone: "product.details.side.after",
+  zone: "product.details.after",
 })
 
 export default ProductProducersWidget

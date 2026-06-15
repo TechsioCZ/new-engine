@@ -65,7 +65,10 @@ export type ProducerAdminI18nNamespace = {
     | "saveProductsFailed",
     string
   >
-  fields: Record<"attribute" | "handle" | "title" | "value", string>
+  fields: Record<
+    "attribute" | "handle" | "supplier" | "title" | "value",
+    string
+  >
   filters: Record<"activeOnly" | "allStatuses", string>
   form: Record<"createProducer" | "editProducer" | "handlePlaceholder", string>
   menuItem: string
@@ -211,6 +214,7 @@ export const producerAdminI18n = {
     fields: {
       attribute: "Atribut",
       handle: "Handle",
+      supplier: "Dodavatel",
       title: "Název",
       value: "Hodnota",
     },
@@ -380,6 +384,7 @@ export const producerAdminI18n = {
     fields: {
       attribute: "Attribute",
       handle: "Handle",
+      supplier: "Supplier",
       title: "Title",
       value: "Value",
     },
