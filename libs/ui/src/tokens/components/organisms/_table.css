@@ -1,63 +1,43 @@
-@theme static {
-  /* === BASE COLOR MAPPING === */
-  --color-table: var(--color-surface);
-  --color-table-border: var(--color-border-primary);
-  --color-table-accent: var(--color-primary);
+/*
+ * Table — runtime tokens come mostly from
+ * libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept:
+ * - Relative-color row/header derivations (oklch `from` + `--alpha`). These
+ *   cannot be expressed as Figma variables. Figma currently aliases all four
+ *   to a single flat token (`--color-bg-light-primary-base`), which collapses
+ *   the distinct header / hover / selected / striped states — so an unlayered
+ *   `:root` block (which beats Figma's `@theme static`) restores them.
+ * - `--padding-table-cell-{sm,md,lg}` composites: Figma exports the cell
+ *   padding split into `-x`/`-y`; the `p-table-cell-*` shorthand utilities are
+ *   rebuilt here (y x) from those Figma halves.
+ * - `--shadow-table-outline` is queued for figma-additions (aliases
+ *   `--shadow-sm`); kept here until the next export carries it.
+ */
 
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-table-bg: var(--color-table);
+@theme static {
+  /* Cell padding shorthand rebuilt from Figma's x/y halves (padding: y x) */
+  --padding-table-cell-sm: var(--padding-table-cell-sm-y)
+    var(--padding-table-cell-sm-x);
+  --padding-table-cell-md: var(--padding-table-cell-md-y)
+    var(--padding-table-cell-md-x);
+  --padding-table-cell-lg: var(--padding-table-cell-lg-y)
+    var(--padding-table-cell-lg-x);
+
+  /* Not yet in Figma */
+  --shadow-table-outline: var(--shadow-sm);
+}
+
+:root {
   --color-table-header-bg: oklch(
     from var(--color-table-bg) calc(l - var(--surface-increment)) c h
   );
   --color-table-footer-bg: var(--color-table-header-bg);
-  --color-table-row-bg: transparent;
   --color-table-row-bg-hover: oklch(
     from var(--color-table-bg) calc(l + var(--state-hover)) c h
   );
-  --color-table-row-bg-selected: --alpha(var(--color-table-accent) / 0.1);
-  --color-table-row-striped-bg-primary: oklch(
+  --color-table-row-bg-selected: --alpha(var(--color-primary) / 0.1);
+  --color-table-row-striped-primary: oklch(
     from var(--color-table-bg) calc(l - var(--surface-increment)) c h
   );
-  --color-table-row-striped-bg-secondary: var(--color-table-row-bg);
-
-  /* Foreground colors */
-  --color-table-fg: var(--color-fg-primary);
-  --color-table-header-fg: var(--color-fg-primary);
-  --color-table-footer-fg: var(--color-fg-secondary);
-  --color-table-caption-fg: var(--color-fg-secondary);
-
-  /* === SPACING === */
-  /* Cell padding */
-  --padding-table-cell-sm: var(--spacing-100) var(--spacing-150);
-  --padding-table-cell-md: var(--spacing-150) var(--spacing-200);
-  --padding-table-cell-lg: var(--spacing-200) var(--spacing-250);
-
-  /* Caption padding */
-  --padding-table-caption-sm: var(--spacing-100);
-  --padding-table-caption-md: var(--spacing-150);
-  --padding-table-caption-lg: var(--spacing-200);
-
-  /* === TYPOGRAPHY === */
-  /* Font weights */
-  --font-weight-table-header: var(--font-weight-semibold);
-  --font-weight-table-footer: var(--font-weight-medium);
-  --font-weight-table-caption: var(--font-weight-normal);
-
-  /* Text sizes for table content */
-  --text-table-sm: var(--text-sm);
-  --text-table-md: var(--text-md);
-  --text-table-lg: var(--text-lg);
-
-  /* Caption text sizes */
-  --text-table-caption-sm: var(--text-xs);
-  --text-table-caption-md: var(--text-sm);
-  --text-table-caption-lg: var(--text-md);
-
-  /* === BORDERS & RADIUS === */
-  --border-width-table: var(--border-width-sm);
-  --radius-table: var(--radius-sm);
-
-  /* === SHADOWS === */
-  --shadow-table-outline: var(--shadow-sm);
 }
