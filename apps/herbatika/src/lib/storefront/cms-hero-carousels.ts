@@ -3,7 +3,7 @@ import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
 import type { CmsHeroCarousel } from "./cms-types"
 
 const CMS_HERO_CAROUSEL_LIMIT = 8
-const DEFAULT_HERO_HREF = "/"
+const SAFE_ABSOLUTE_HREF_PROTOCOLS = new Set(["http:", "https:"])
 
 type CmsHeroCarouselsResponse = {
   heroCarousels?: CmsHeroCarousel[] | null
@@ -11,18 +11,39 @@ type CmsHeroCarouselsResponse = {
 
 const cleanString = (value: string | null | undefined) => value?.trim() ?? ""
 
+const resolveSafeHeroHref = (value: string | null | undefined) => {
+  const href = cleanString(value)
+
+  if (!href) {
+    return null
+  }
+
+  if (href.startsWith("/")) {
+    return href.startsWith("//") ? null : href
+  }
+
+  try {
+    const url = new URL(href)
+    return SAFE_ABSOLUTE_HREF_PROTOCOLS.has(url.protocol)
+      ? url.toString()
+      : null
+  } catch {
+    return null
+  }
+}
+
 export const mapCmsHeroCarouselToHeroBanner = (
   item: CmsHeroCarousel
 ): HeroBannerItem | null => {
   const imageSrc = resolveCmsMediaUrl(item.image)
+  const href = resolveSafeHeroHref(item.buttonHref)
   const title = cleanString(item.heading)
 
-  if (!(imageSrc && title)) {
+  if (!(imageSrc && href)) {
     return null
   }
 
   const ctaLabel = cleanString(item.button)
-  const href = cleanString(item.buttonHref)
   const imageAlt = cleanString(
     typeof item.image === "object" && item.image ? item.image.alt : null
   )
@@ -30,10 +51,10 @@ export const mapCmsHeroCarouselToHeroBanner = (
 
   return {
     id: `cms-hero-carousel-${item.id}`,
-    title,
+    ...(title ? { title } : {}),
     ...(subtitle ? { subtitle } : {}),
     ...(ctaLabel ? { ctaLabel } : {}),
-    href: href || DEFAULT_HERO_HREF,
+    href,
     ...(imageAlt ? { imageAlt } : {}),
     imageSrc,
   }
