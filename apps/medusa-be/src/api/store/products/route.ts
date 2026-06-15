@@ -7,6 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+import { decorateProductsWithMeasurements } from "../../../utils/measurement-units"
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 type ProductRecord = {
@@ -75,6 +76,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   await wrapProductsWithTaxPrices(
     req as Parameters<typeof wrapProductsWithTaxPrices>[0],
     products
+  )
+  await decorateProductsWithMeasurements(
+    req.scope,
+    products as Parameters<typeof decorateProductsWithMeasurements>[1]
   )
 
   res.json({

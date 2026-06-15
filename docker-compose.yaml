@@ -268,6 +268,7 @@ services:
       interval: 15s
       timeout: 10s
       retries: 8
+    #entrypoint: ['tail', '-f', '/dev/null']
   payload:
     restart: unless-stopped
     container_name: wr_payload

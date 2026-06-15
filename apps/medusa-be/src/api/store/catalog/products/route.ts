@@ -16,6 +16,7 @@ import {
   STATUS_FACET_DEFINITIONS,
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
+import { decorateProductsWithMeasurements } from "../../../../utils/measurement-units"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
@@ -486,6 +487,10 @@ export async function GET(
       ? searchResult.estimatedTotalHits
       : orderedProducts.length
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
+  await decorateProductsWithMeasurements(
+    req.scope,
+    orderedProducts as Parameters<typeof decorateProductsWithMeasurements>[1]
+  )
 
   res.json({
     products: orderedProducts,
