@@ -29,16 +29,19 @@ function HeroBannerCard({
   onClickCapture,
   onPointerDownCapture,
 }: HeroBannerCardProps) {
+  const ctaLabel = banner.ctaLabel ?? HERO_CTA_LABEL
+  const label = banner.title ?? banner.badge ?? ctaLabel
+
   return (
     <NextLink
-      aria-label={`${banner.title} - ${HERO_CTA_LABEL}`}
+      aria-label={`${label} - ${ctaLabel}`}
       className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
       href={banner.href}
       onClickCapture={onClickCapture}
       onPointerDownCapture={onPointerDownCapture}
     >
       <Image
-        alt={banner.id}
+        alt={banner.imageAlt ?? label}
         className="object-cover transition-transform duration-500 group-hover:scale-105"
         fill
         src={banner.imageSrc}
@@ -60,7 +63,7 @@ function HeroBannerCard({
               size: "md",
             })}
           >
-            {HERO_CTA_LABEL}
+            {ctaLabel}
           </span>
         </div>
       )}
