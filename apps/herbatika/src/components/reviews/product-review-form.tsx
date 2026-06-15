@@ -3,7 +3,7 @@
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
-import { type FormEvent, useState } from "react"
+import { type FormEvent, useEffect, useState } from "react"
 import { buildProductReviewTitle } from "@/components/reviews/product-review-errors"
 
 export type ProductReviewFormSubmitValues = {
@@ -63,14 +63,12 @@ export function ProductReviewForm({
 }: ProductReviewFormProps) {
   const [errors, setErrors] = useState<ProductReviewFormErrors>({})
   const [values, setValues] = useState<ProductReviewFormValues>(defaultValues)
-  const [previousResetKey, setPreviousResetKey] = useState(resetKey)
 
-  // Reset the form back to defaults when the parent bumps `resetKey`.
-  if (resetKey !== previousResetKey) {
-    setPreviousResetKey(resetKey)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `resetKey` is an intentional reset trigger — the parent bumps it to restore the form to defaults; the effect body doesn't read it.
+  useEffect(() => {
     setErrors({})
     setValues(defaultValues)
-  }
+  }, [resetKey])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

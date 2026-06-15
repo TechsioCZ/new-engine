@@ -46,10 +46,11 @@ const serializeReviewPage = createSerializer({
 
 function ProductDetailReviewsSkeleton() {
   return (
-    <output
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: existing loading skeleton announces itself via aria-busy + aria-label; markup kept unchanged.
+    <div
       aria-busy="true"
       aria-label="Načítavam recenzie"
-      className="block space-y-500"
+      className="space-y-500"
     >
       <section className="space-y-350">
         <div className="flex flex-col gap-250 md:flex-row md:items-center md:justify-between">
@@ -77,7 +78,7 @@ function ProductDetailReviewsSkeleton() {
           </article>
         ))}
       </div>
-    </output>
+    </div>
   )
 }
 

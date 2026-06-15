@@ -27,9 +27,10 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     controller.defaultInfoSectionValue
   )
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
   useEffect(() => {
     setActiveInfoSection(controller.defaultInfoSectionValue)
-  }, [controller.defaultInfoSectionValue])
+  }, [controller.defaultInfoSectionValue, controller.product?.id])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `handle` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the handle changes even though the body doesn't read it.
   useEffect(() => {
