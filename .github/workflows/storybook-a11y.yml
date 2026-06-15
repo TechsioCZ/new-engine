@@ -77,7 +77,14 @@ jobs:
       node-version: "24"
       pnpm-version: ""
       working-directory: libs/ui
-      install-command: pnpm install --frozen-lockfile
+      # Install the Chromium binary as part of the dependency step WITHOUT
+      # `--with-deps`. The reusable workflow's built-in "Install Playwright
+      # browsers" step runs `playwright install --with-deps chromium`, whose
+      # apt phase hangs on GitHub-hosted runners (job stuck after the browser
+      # download). ubuntu-latest already ships Chromium's system libs, so the
+      # plain `playwright install chromium` is sufficient. install-playwright
+      # is disabled below so that hanging step is skipped.
+      install-command: pnpm install --frozen-lockfile && pnpm -C {{workdir}} exec playwright install chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
@@ -89,7 +96,7 @@ jobs:
       wait-ms: 30000 # 30s based on observed Storybook startup time in CI
       test-workers: 2 # keep load stable on GitHub-hosted runners
       test-timeout: 60000 # 60s to avoid flakes in slower CI
-      install-playwright: true
+      install-playwright: false # browser installed via install-command (without --with-deps) to avoid the apt hang
       upload-artifacts: true
       post-pr-comment: true
       baseline-workflow-path: .github/workflows/storybook-a11y-baseline.yml
