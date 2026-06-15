@@ -14,6 +14,7 @@ const defineTemplate = <
 })
 
 export const resendEmailTemplates = {
+  ACCOUNT_SETUP: "account-setup",
   FORGOT_PASSWORD: "user-forgotpwd",
   ORDER_PLACED: "order-placed",
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
@@ -21,6 +22,13 @@ export const resendEmailTemplates = {
 } as const
 
 export const resendTemplateDefinitions = {
+  [resendEmailTemplates.ACCOUNT_SETUP]: defineTemplate({
+    id: "account-setup",
+    label: "Account setup",
+    optionalVariables: ["customer_id", "customer_name", "order_display_id"],
+    requiredVariables: ["reset_url"],
+    subject: "Dokončenie registrácie",
+  }),
   [resendEmailTemplates.FORGOT_PASSWORD]: defineTemplate({
     id: "user-forgotpwd",
     label: "Forgot password",
