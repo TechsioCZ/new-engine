@@ -17,7 +17,7 @@ const footerVariants = tv({
     section: "bg-footer-section-bg",
     list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "flex w-full items-center justify-between border-t-(--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
+      "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
     title:
       "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
     link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
