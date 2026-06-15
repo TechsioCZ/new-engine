@@ -1,43 +1,17 @@
 /*
- * Table — runtime tokens come mostly from
+ * Table — runtime tokens come entirely from
  * libs/ui/src/tokens/figma/variables.css.
  *
- * Kept:
- * - Relative-color row/header derivations (oklch `from` + `--alpha`). These
- *   cannot be expressed as Figma variables. Figma currently aliases all four
- *   to a single flat token (`--color-bg-light-primary-base`), which collapses
- *   the distinct header / hover / selected / striped states — so an unlayered
- *   `:root` block (which beats Figma's `@theme static`) restores them.
- * - `--padding-table-cell-{sm,md,lg}` composites: Figma exports the cell
- *   padding split into `-x`/`-y`; the `p-table-cell-*` shorthand utilities are
- *   rebuilt here (y x) from those Figma halves.
- * - `--shadow-table-outline` is queued for figma-additions (aliases
- *   `--shadow-sm`); kept here until the next export carries it.
+ * Kept: `--padding-table-cell-{sm,md,lg}` composites. Figma exports the cell
+ * padding split into `-x`/`-y`; the `p-table-cell-*` shorthand utilities are
+ * rebuilt here (padding: y x) from those Figma halves.
  */
 
 @theme static {
-  /* Cell padding shorthand rebuilt from Figma's x/y halves (padding: y x) */
   --padding-table-cell-sm: var(--padding-table-cell-sm-y)
     var(--padding-table-cell-sm-x);
   --padding-table-cell-md: var(--padding-table-cell-md-y)
     var(--padding-table-cell-md-x);
   --padding-table-cell-lg: var(--padding-table-cell-lg-y)
     var(--padding-table-cell-lg-x);
-
-  /* Not yet in Figma */
-  --shadow-table-outline: var(--shadow-sm);
-}
-
-:root {
-  --color-table-header-bg: oklch(
-    from var(--color-table-bg) calc(l - var(--surface-increment)) c h
-  );
-  --color-table-footer-bg: var(--color-table-header-bg);
-  --color-table-row-bg-hover: oklch(
-    from var(--color-table-bg) calc(l + var(--state-hover)) c h
-  );
-  --color-table-row-bg-selected: --alpha(var(--color-primary) / 0.1);
-  --color-table-row-striped-primary: oklch(
-    from var(--color-table-bg) calc(l - var(--surface-increment)) c h
-  );
 }

@@ -2,18 +2,11 @@
  * Gallery — runtime tokens come entirely from
  * libs/ui/src/tokens/figma/variables.css.
  *
- * Kept:
- * - `--height-gallery` responsive cap. Figma flattens it to a fixed
- *   dimension (576px); the `min(60svh, 36rem)` viewport behaviour can't be
- *   expressed as a Figma variable, so an unlayered `:root` override (which
- *   beats Figma's `@theme static`) restores it.
- * - `--shadow-gallery-trigger` is queued for figma-additions (aliases
- *   `--shadow-sm`); kept here until the next export carries it.
+ * Kept: `--height-gallery` responsive cap. Figma flattens it to a fixed
+ * dimension (576px); the `min(60svh, 36rem)` viewport behaviour can't be
+ * expressed as a Figma variable, so an unlayered `:root` override (which
+ * beats Figma's `@theme static`) restores it.
  */
-
-@theme static {
-  --shadow-gallery-trigger: var(--shadow-sm);
-}
 
 :root {
   --height-gallery: min(60svh, 36rem);
