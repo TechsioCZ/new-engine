@@ -31,21 +31,23 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     setActiveInfoSection(controller.defaultInfoSectionValue)
   }, [controller.defaultInfoSectionValue])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `handle` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the handle changes even though the body doesn't read it.
   useEffect(() => {
     if (window.location.hash) {
       return
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
-  }, [])
+  }, [handle])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-selects the reviews tab when navigating to a different product while the reviews hash is in the URL.
   useEffect(() => {
     if (window.location.hash !== `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`) {
       return
     }
 
     setActiveInfoSection(PRODUCT_DETAIL_REVIEWS_TAB_VALUE)
-  }, [])
+  }, [controller.product?.id])
 
   const handleShowAllReviews = useCallback(() => {
     setActiveInfoSection(PRODUCT_DETAIL_REVIEWS_TAB_VALUE)
