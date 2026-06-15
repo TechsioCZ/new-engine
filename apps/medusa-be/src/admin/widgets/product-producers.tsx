@@ -384,13 +384,20 @@ const ProductProducersWidget = ({
   )
   const activeProducer = producers.find((producer) => !producer.deleted_at)
   const hasInactiveProducer = producers.some((producer) => producer.deleted_at)
+  const activeProducerSupplier = getProducerAttributeValue(
+    activeProducer,
+    SUPPLIER_ATTRIBUTE_NAME
+  )
   const supplier =
-    getProducerAttributeValue(activeProducer, SUPPLIER_ATTRIBUTE_NAME) ??
-    producers
-      .map((producer) =>
-        getProducerAttributeValue(producer, SUPPLIER_ATTRIBUTE_NAME)
-      )
-      .find((value): value is string => !!value)
+    activeProducerSupplier && activeProducerSupplier.trim().length > 0
+      ? activeProducerSupplier.trim()
+      : producers
+          .filter((producer) => producer.id !== activeProducer?.id)
+          .map((producer) =>
+            getProducerAttributeValue(producer, SUPPLIER_ATTRIBUTE_NAME)
+          )
+          .map((value) => value?.trim())
+          .find((value): value is string => !!value)
   let statusText = t("products.notLinked")
 
   if (hasInactiveProducer) {
