@@ -13,7 +13,9 @@ import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 type ResetPasswordFormText = {
+  expiredHref: string
   expiredHelp: string
+  expiredLinkLabel: string
   expiredMessage: string
   submitLabel: string
   successMessage: string
@@ -61,11 +63,11 @@ export const ResetPasswordForm = ({
         <p className="text-fg-secondary text-sm">{text.expiredHelp}</p>
         <div className="flex flex-wrap gap-200">
           <LinkButton
-            href="/auth/forgot-password"
+            href={text.expiredHref}
             size="sm"
             variant="primary"
           >
-            Vyžiadať nový odkaz
+            {text.expiredLinkLabel}
           </LinkButton>
         </div>
       </div>

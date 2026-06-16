@@ -5,6 +5,7 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { requestPasswordUpdateProxy } from "@/lib/storefront/auth/proxy"
 
 const LOGIN_HREF = "/auth/login"
+const FORGOT_PASSWORD_HREF = "/auth/forgot-password"
 
 type ResetPasswordFlow = "account-setup" | "reset-password"
 
@@ -26,8 +27,10 @@ const getResetPasswordCopy = ({
       description: email
         ? `Dokončite registráciu účtu ${email} nastavením hesla.`
         : "Dokončite registráciu účtu nastavením hesla.",
+      expiredHref: FORGOT_PASSWORD_HREF,
       expiredHelp:
         "Na prihlasovacej stránke si môžete vyžiadať nový odkaz na nastavenie hesla.",
+      expiredLinkLabel: "Vyžiadať nový odkaz na nastavenie hesla",
       expiredMessage:
         "Tento odkaz na dokončenie registrácie je neplatný alebo už vypršal.",
       submitError: "Nepodarilo sa nastaviť heslo.",
@@ -42,7 +45,9 @@ const getResetPasswordCopy = ({
     description: email
       ? `Nastavte nové heslo pre účet ${email}.`
       : "Zadajte nové heslo pre váš účet.",
+    expiredHref: FORGOT_PASSWORD_HREF,
     expiredHelp: "Skúste si vyžiadať nový odkaz na obnovu hesla.",
+    expiredLinkLabel: "Vyžiadať nový odkaz",
     expiredMessage: "Tento odkaz je neplatný alebo už vypršal.",
     submitError: "Nepodarilo sa obnoviť heslo.",
     submitLabel: "Obnoviť heslo",
@@ -97,7 +102,9 @@ export const ResetPasswordPanel = ({
         loginHref={LOGIN_HREF}
         onSubmit={handleSubmit}
         text={{
+          expiredHref: copy.expiredHref,
           expiredHelp: copy.expiredHelp,
+          expiredLinkLabel: copy.expiredLinkLabel,
           expiredMessage: copy.expiredMessage,
           submitLabel: copy.submitLabel,
           successMessage: copy.successMessage,

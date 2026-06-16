@@ -1,6 +1,6 @@
 const ACCOUNT_SETUP_REQUESTED_METADATA_KEY = "account_setup_requested"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 export const readAccountSetupRequested = (metadata: unknown): boolean => {

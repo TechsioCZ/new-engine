@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import type { Route } from "next"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -10,9 +11,9 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "@/components/checkout/checkout-completion.utils"
+import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
   logCheckoutAccountSetupDebug,
-  readDebugAccountSetupRequested,
   useCheckoutAccountSetupDebugEnabled,
 } from "@/components/checkout/checkout-account-setup-debug"
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
@@ -54,7 +55,7 @@ export function CheckoutPaymentReturnPanel() {
 
     logCheckoutAccountSetupDebug("payment return cart snapshot", {
       cart_id: cartId,
-      cart_metadata_requested: readDebugAccountSetupRequested(
+      cart_metadata_requested: readAccountSetupRequested(
         debugCartQuery.cart?.metadata
       ),
       is_cart_fetching: debugCartQuery.isFetching,
@@ -84,7 +85,7 @@ export function CheckoutPaymentReturnPanel() {
         logCheckoutAccountSetupDebug("payment return complete attempt", {
           attempt_count: attemptCount,
           cart_id: cartId,
-          cart_metadata_requested: readDebugAccountSetupRequested(
+          cart_metadata_requested: readAccountSetupRequested(
             debugCartQuery.cart?.metadata
           ),
         })
@@ -150,8 +151,8 @@ export function CheckoutPaymentReturnPanel() {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
   }
 
-  const summaryHref = resolveCheckoutStepHref("suhrn")
-  const paymentHref = resolveCheckoutStepHref("doprava-platba")
+  const summaryHref = resolveCheckoutStepHref("suhrn") as Route
+  const paymentHref = resolveCheckoutStepHref("doprava-platba") as Route
 
   if (isCancelled) {
     return (

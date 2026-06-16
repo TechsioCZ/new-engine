@@ -43,6 +43,7 @@ import {
 } from "./checkout.constants"
 import {
   buildAccountSetupRequestedMetadata,
+  isRecord,
   readAccountSetupRequested,
 } from "./account-setup-metadata"
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
@@ -55,9 +56,6 @@ import {
 } from "./checkout-payment-selection-storage"
 import { useCheckoutActions } from "./use-checkout-actions"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const resolveCompleteResultOrderMetadata = (result: unknown) => {
   if (!(isRecord(result) && isRecord(result.order))) {

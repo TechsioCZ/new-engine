@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react"
-import { readAccountSetupRequested } from "./account-setup-metadata"
 
 export const CHECKOUT_ACCOUNT_SETUP_DEBUG_STORAGE_KEY =
   "herbatika_checkout_account_setup_debug"
@@ -39,6 +38,3 @@ export const logCheckoutAccountSetupDebug = (
 
   console.info(DEBUG_PREFIX, message, data)
 }
-
-export const readDebugAccountSetupRequested = (metadata: unknown) =>
-  readAccountSetupRequested(metadata)
