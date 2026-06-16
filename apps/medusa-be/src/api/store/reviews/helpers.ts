@@ -1,4 +1,5 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -200,6 +201,32 @@ export const ensureProductExists = async (
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Product "${productId}" was not found.`
+    )
+  }
+}
+
+export async function ensureCustomerPurchasedProduct(
+  req: MedusaRequest,
+  customerId: string,
+  productId: string
+) {
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ["id"],
+    filters: {
+      customer_id: customerId,
+      items: {
+        product_id: productId,
+      },
+      payment_status: ["captured", "completed"],
+    },
+  })
+
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "You can only review products you have purchased."
     )
   }
 }
