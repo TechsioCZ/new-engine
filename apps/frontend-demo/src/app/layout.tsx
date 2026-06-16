@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "../tokens/index.css"
+import { BrandThemeScript } from "@techsio/ui-kit/theme/theme-provider"
 import type * as React from "react"
 import { DisclaimerWrapper } from "@/components/disclaimer-wrapper"
 import { Footer } from "@/components/footer"
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex min-h-screen min-w-layout-min flex-col">
+        <BrandThemeScript />
         <Providers>
           <HeaderWrapper
             logo={{ text: "Demo Store", icon: "icon-[mdi--store]" }}
