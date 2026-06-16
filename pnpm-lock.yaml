@@ -1055,6 +1055,12 @@ importers:
       '@storybook/addon-a11y':
         specifier: ^10.4.4
         version: 10.4.4(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
+      '@storybook/addon-links':
+        specifier: ^10.4.4
+        version: 10.4.4(@types/react@19.2.3)(react@19.2.3)(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
+      '@storybook/addon-onboarding':
+        specifier: ^10.4.4
+        version: 10.4.4(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
       '@storybook/addon-themes':
         specifier: ^10.4.4
         version: 10.4.4(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))
@@ -8802,6 +8808,23 @@ packages:
 
   '@storybook/addon-a11y@10.4.4':
     resolution: {integrity: sha512-/eUCx/6Ozq5grauwm/NqKtlW0oJ26b6GNesXrMuFID8WLg/qLEKf79Awfz9XrmyWxe7loD40K952r7AA5Oc23A==}
+    peerDependencies:
+      storybook: ^10.4.4
+
+  '@storybook/addon-links@10.4.4':
+    resolution: {integrity: sha512-sWydPWLgduT24p/NJ/hXHcHsPlAyzQP+cOtCGliSI989K9yBP/TOL3A8sz7LIDfukI9DVAsylPhJ1jDSiAEI1w==}
+    peerDependencies:
+      '@types/react': 19.2.3
+      react: 19.2.3
+      storybook: ^10.4.4
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      react:
+        optional: true
+
+  '@storybook/addon-onboarding@10.4.4':
+    resolution: {integrity: sha512-ZTWGm8VXQUTepV4aEmIgHxdY7JMtn57H3uYnM3HD+qR8fmAcpLPoJ9ffXaMWUwsjK6SeferQyDTRN3q3Jd5+mg==}
     peerDependencies:
       storybook: ^10.4.4
 
@@ -29462,6 +29485,18 @@ snapshots:
     dependencies:
       '@storybook/global': 5.0.0
       axe-core: 4.11.1
+      storybook: 10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+
+  '@storybook/addon-links@10.4.4(@types/react@19.2.3)(react@19.2.3)(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))':
+    dependencies:
+      '@storybook/global': 5.0.0
+      storybook: 10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+    optionalDependencies:
+      '@types/react': 19.2.3
+      react: 19.2.3
+
+  '@storybook/addon-onboarding@10.4.4(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))':
+    dependencies:
       storybook: 10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
   '@storybook/addon-themes@10.4.4(storybook@10.4.4(@testing-library/dom@10.4.1)(@types/react@19.2.3)(prettier@3.5.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))':
