@@ -1,46 +1,56 @@
-const REVIEW_TITLE_MAX_LENGTH = 200;
+const REVIEW_TITLE_MAX_LENGTH = 200
 const GENERIC_REVIEW_SUBMIT_ERROR =
-  "Recenziu sa nepodarilo odoslať. Skúste to prosím znova.";
+  "Recenziu sa nepodarilo odoslať. Skúste to prosím znova."
 
 const hasErrorShape = (
-  error: unknown,
+  error: unknown
 ): error is { message?: unknown; status?: unknown; statusText?: unknown } =>
-  Boolean(error && typeof error === "object");
+  Boolean(error && typeof error === "object")
 
 export const buildProductReviewTitle = (content: string) =>
-  content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH);
+  content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH)
+
+const extractErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
+    return error
+  }
+  if (hasErrorShape(error) && typeof error.message === "string") {
+    return error.message
+  }
+  return ""
+}
+
+const resolveTokenMessage = (normalizedMessage: string): string | null => {
+  if (normalizedMessage.includes("token has already been used")) {
+    return "Tento odkaz na hodnotenie už bol použitý."
+  }
+  if (normalizedMessage.includes("token has expired")) {
+    return "Tento odkaz na hodnotenie už expiroval."
+  }
+  if (normalizedMessage.includes("token does not match")) {
+    return "Tento odkaz nepatrí k vybranému produktu."
+  }
+  if (normalizedMessage.includes("token was not found")) {
+    return "Tento odkaz na hodnotenie nie je platný."
+  }
+  return null
+}
 
 export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
-  const message =
-    typeof error === "string"
-      ? error
-      : hasErrorShape(error) && typeof error.message === "string"
-        ? error.message
-        : "";
+  const message = extractErrorMessage(error)
   const status =
     hasErrorShape(error) && typeof error.status === "number"
       ? error.status
-      : undefined;
-  const normalizedMessage = message.toLowerCase();
+      : undefined
+  const normalizedMessage = message.toLowerCase()
 
   if (!message && status === undefined) {
-    return GENERIC_REVIEW_SUBMIT_ERROR;
+    return GENERIC_REVIEW_SUBMIT_ERROR
   }
 
-  if (normalizedMessage.includes("token has already been used")) {
-    return "Tento odkaz na hodnotenie už bol použitý.";
-  }
-
-  if (normalizedMessage.includes("token has expired")) {
-    return "Tento odkaz na hodnotenie už expiroval.";
-  }
-
-  if (normalizedMessage.includes("token does not match")) {
-    return "Tento odkaz nepatrí k vybranému produktu.";
-  }
-
-  if (normalizedMessage.includes("token was not found")) {
-    return "Tento odkaz na hodnotenie nie je platný.";
+  const tokenMessage = resolveTokenMessage(normalizedMessage)
+  if (tokenMessage) {
+    return tokenMessage
   }
 
   if (
@@ -50,24 +60,24 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
     normalizedMessage.includes("exist") ||
     normalizedMessage.includes("reviewed")
   ) {
-    return "Tento produkt ste už hodnotili.";
+    return "Tento produkt ste už hodnotili."
   }
 
   if (status === 401) {
-    return "Pre odoslanie recenzie sa prosím prihláste.";
+    return "Pre odoslanie recenzie sa prosím prihláste."
   }
 
   if (status === 403) {
-    return "Recenziu pre tento produkt momentálne nemôžete odoslať.";
+    return "Recenziu pre tento produkt momentálne nemôžete odoslať."
   }
 
   if (status === 400 || status === 422) {
-    return message || "Skontrolujte prosím hodnotenie a text recenzie.";
+    return message || "Skontrolujte prosím hodnotenie a text recenzie."
   }
 
   if (status && status >= 500) {
-    return GENERIC_REVIEW_SUBMIT_ERROR;
+    return GENERIC_REVIEW_SUBMIT_ERROR
   }
 
-  return message || GENERIC_REVIEW_SUBMIT_ERROR;
-};
+  return message || GENERIC_REVIEW_SUBMIT_ERROR
+}

@@ -15,7 +15,7 @@ const tableVariants = tv({
     body: "",
     footer: ["bg-table-footer-bg", "font-table-footer text-table-footer-fg"],
     row: [
-      "border-b-(length:--border-width-table) border-table-border",
+      "border-b-(length:--border-table-width) border-table-border",
       "data-[selected=true]:bg-table-row-bg-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
@@ -29,13 +29,13 @@ const tableVariants = tv({
     variant: {
       line: {
         root: "",
-        row: "border-b-(length:--border-width-table) border-table-border",
+        row: "border-b-(length:--border-table-width) border-table-border",
       },
       outline: {
-        root: "border-(length:--border-width-table) rounded-table border-table-border shadow-table-outline",
+        root: "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
       },
       striped: {
-        row: "odd:bg-table-row-striped-bg-primary even:bg-table-row-striped-bg-secondary",
+        row: "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
       },
     },
     interactive: {
@@ -77,8 +77,8 @@ const tableVariants = tv({
     showColumnBorder: {
       true: {
         columnHeader:
-          "border-r-(length:--border-width-table) border-table-border",
-        cell: "border-r-(length:--border-width-table) border-table-border",
+          "border-r-(length:--border-table-width) border-table-border",
+        cell: "border-r-(length:--border-table-width) border-table-border",
       },
     },
     captionPlacement: {

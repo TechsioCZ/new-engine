@@ -21,6 +21,7 @@ import {
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
 import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
+import { readAccountSetupRequested } from "./account-setup-metadata"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { readStoredCarrierPickupSelection } from "./carrier-pickup-selection-storage"
 
@@ -370,6 +371,7 @@ const resolveCheckoutHydratedValues = ({
       billingAddress?.company ??
         (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
     ),
+    accountSetupRequested: readAccountSetupRequested(cart?.metadata),
     marketingConsent: false,
     heurekaConsent: false,
   }

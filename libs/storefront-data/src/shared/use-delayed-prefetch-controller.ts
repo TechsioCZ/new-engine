@@ -16,7 +16,7 @@ export const useDelayedPrefetchController = () => {
   }, [])
 
   const schedulePrefetch = (
-    execute: () => void | Promise<unknown>,
+    execute: () => unknown,
     prefetchId: string,
     delay: number
   ) => {
@@ -27,7 +27,11 @@ export const useDelayedPrefetchController = () => {
 
     const timeoutId = setTimeout(() => {
       timeoutsRef.current.delete(prefetchId)
-      void Promise.resolve().then(execute).catch(() => undefined)
+      Promise.resolve()
+        .then(execute)
+        .catch(() => {
+          // best-effort prefetch: ignore failures
+        })
     }, delay)
 
     timeoutsRef.current.set(prefetchId, timeoutId)

@@ -1,6 +1,6 @@
 import {
-  createContext,
   type ComponentPropsWithoutRef,
+  createContext,
   type ElementType,
   type HTMLAttributes,
   type ReactNode,
@@ -15,9 +15,9 @@ const footerVariants = tv({
     root: "flex w-full items-center justify-center rounded-footer bg-footer-bg",
     container: "w-full max-w-footer-max bg-footer-container-bg",
     section: "bg-footer-section-bg",
-    list: "flex list-none flex-col gap-footer-list-gap bg-footer-list-bg",
+    list: "flex list-none flex-col gap-footer-list bg-footer-list-bg",
     bottom:
-      "flex w-full items-center justify-between border-t-(--border-width-footer) bg-footer-bottom-bg pt-footer-bottom",
+      "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
     title:
       "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
     link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
@@ -51,35 +51,35 @@ const footerVariants = tv({
     },
     size: {
       sm: {
-        root: "p-footer-root-sm",
+        root: "p-footer-sm",
         container: "gap-footer-container-sm",
         section: "gap-footer-section-sm",
-        list: "gap-footer-list-gap-sm",
+        list: "gap-footer-sm",
         title: "text-footer-title-sm",
         link: "text-footer-link-sm",
-        text: "text-footer-text-sm",
+        text: "text-footer-sm",
         bottom: "p-footer-bottom-sm",
         divider: "my-footer-divider-sm",
       },
       md: {
-        root: "p-footer-root-md",
+        root: "p-footer-md",
         container: "gap-footer-container-md",
         section: "gap-footer-section-md",
-        list: "gap-footer-list-gap-md",
+        list: "gap-footer-md",
         title: "text-footer-title-md",
         link: "text-footer-link-md",
-        text: "text-footer-text-md",
+        text: "text-footer-md",
         bottom: "p-footer-bottom-md",
         divider: "my-footer-divider-md",
       },
       lg: {
-        root: "p-footer-root-lg",
+        root: "p-footer-lg",
         container: "gap-footer-container-lg",
         section: "gap-footer-section-lg",
-        list: "gap-footer-list-gap-lg",
+        list: "gap-footer-lg",
         title: "text-footer-title-lg",
         link: "text-footer-link-lg",
-        text: "text-footer-text-lg",
+        text: "text-footer-lg",
         bottom: "p-footer-bottom-lg",
         divider: "my-footer-divider-lg",
       },
@@ -202,7 +202,9 @@ Footer.Title = function FooterTitle({ children, className }: FooterTitleProps) {
 }
 
 function FooterLink(props: FooterNativeLinkProps): ReactNode
-function FooterLink<T extends ElementType>(props: FooterCustomLinkProps<T>): ReactNode
+function FooterLink<T extends ElementType>(
+  props: FooterCustomLinkProps<T>
+): ReactNode
 function FooterLink<T extends ElementType = "a">({
   children,
   className,
