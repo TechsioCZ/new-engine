@@ -207,6 +207,9 @@ export const Sizes: Story = {
         <Button size="sm">Small</Button>
         <Button size="md">Medium</Button>
         <Button size="lg">Large</Button>
+        <div className="w-3xs">
+          <Button size="content">Přineste AI engineering do týmu</Button>
+        </div>
       </VariantGroup>
 
       <VariantGroup title="Block buttons" fullWidth>

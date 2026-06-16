@@ -39,7 +39,7 @@ export const buttonVariants = tv({
       md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
       lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
       content:
-        "min-h-form-control-md gap-button-md whitespace-normal break-words rounded-button-md p-button-md text-center text-button-md leading-tight",
+        "min-h-form-control-md gap-button-md whitespace-normal break-words rounded-button-md p-button-md text-center text-button-md leading-button-content",
       current: "gap-button-md text-inherit",
     },
     block: {

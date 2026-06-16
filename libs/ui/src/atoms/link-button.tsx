@@ -61,7 +61,7 @@ export function LinkButton<T extends ElementType = "a">({
   const handleClick = onClick as
     | ((event: MouseEvent<Element>) => void)
     | undefined
-  const resolvedIconSize = iconSize ?? (size === "content" ? "md" : size)
+  const resolvedIconSize = iconSize ?? (size === "content" ? "current" : size)
 
   return (
     <Link
