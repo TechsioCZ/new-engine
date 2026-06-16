@@ -17,7 +17,7 @@ const MODE_LABELS: Record<ModeSetting, string> = {
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { brand, brands, setBrand, mode, setMode, availableModes } =
+  const { brand, brands, setBrand, mode, setMode, availableModes, mounted } =
     useAppTheme()
   const showModes = availableModes.length > 1
 
@@ -31,7 +31,7 @@ export function ThemeToggle({ className }: { className?: string }) {
               key={key}
               onClick={() => setBrand(key)}
               size="sm"
-              theme={key === brand ? "solid" : "outlined"}
+              theme={mounted && key === brand ? "solid" : "outlined"}
               variant="primary"
             >
               {getBrand(key).label}
@@ -49,7 +49,7 @@ export function ThemeToggle({ className }: { className?: string }) {
                 key={value}
                 onClick={() => setMode(value)}
                 size="sm"
-                theme={value === mode ? "solid" : "outlined"}
+                theme={mounted && value === mode ? "solid" : "outlined"}
                 variant="secondary"
               >
                 {MODE_LABELS[value]}

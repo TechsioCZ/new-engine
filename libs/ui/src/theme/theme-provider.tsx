@@ -68,6 +68,8 @@ function applyBrandAttr(brand: BrandKey): void {
 type BrandContextValue = {
   brand: BrandKey
   setBrand: (brand: BrandKey) => void
+  /** False during SSR and the first client render; gate brand-dependent UI on it. */
+  mounted: boolean
 }
 
 const BrandContext = createContext<BrandContextValue | null>(null)
@@ -77,14 +79,18 @@ function BrandProvider({
   children,
 }: PropsWithChildren<{ defaultBrand: BrandKey }>) {
   const { setTheme } = useTheme()
-  const [brand, setBrandState] = useState<BrandKey>(defaultBrand)
+  // Lazy-init from storage so the first client render already matches what the
+  // pre-hydration BrandThemeScript wrote to <html> — the apply effect below
+  // then re-applies the same value instead of clobbering it (no brand flash).
+  // On the server readStoredBrand() returns null, so SSR uses the default and
+  // the provider renders no brand-dependent markup (consumers gate on mounted).
+  const [brand, setBrandState] = useState<BrandKey>(
+    () => readStoredBrand() ?? defaultBrand
+  )
+  const [mounted, setMounted] = useState(false)
 
-  // Hydrate from storage after mount to avoid SSR/client markup mismatch.
   useEffect(() => {
-    const stored = readStoredBrand()
-    if (stored) {
-      setBrandState(stored)
-    }
+    setMounted(true)
   }, [])
 
   // Apply + persist whenever the brand changes; lock light-only brands to light.
@@ -97,7 +103,7 @@ function BrandProvider({
   }, [brand, setTheme])
 
   return (
-    <BrandContext.Provider value={{ brand, setBrand: setBrandState }}>
+    <BrandContext.Provider value={{ brand, setBrand: setBrandState, mounted }}>
       {children}
     </BrandContext.Provider>
   )
@@ -140,6 +146,8 @@ export type UseAppThemeResult = {
   setMode: (mode: ModeSetting) => void
   /** Mode settings allowed for the active brand (light-only brands get just light). */
   availableModes: ModeSetting[]
+  /** False during SSR and the first client render; gate brand-dependent UI on it. */
+  mounted: boolean
 }
 
 export function useAppTheme(): UseAppThemeResult {
@@ -148,7 +156,7 @@ export function useAppTheme(): UseAppThemeResult {
     throw new Error("useAppTheme must be used within AppThemeProvider")
   }
   const { theme, systemTheme, setTheme } = useTheme()
-  const { brand, setBrand } = brandCtx
+  const { brand, setBrand, mounted } = brandCtx
 
   const mode = (theme ?? DEFAULT_MODE) as ModeSetting
   const resolvedMode: ColorMode =
@@ -162,6 +170,7 @@ export function useAppTheme(): UseAppThemeResult {
     resolvedMode,
     setMode: (next: ModeSetting) => setTheme(next),
     availableModes: availableModeSettings(brand),
+    mounted,
   }
 }
 
