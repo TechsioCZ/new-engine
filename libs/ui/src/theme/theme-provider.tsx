@@ -37,8 +37,13 @@ function readStoredBrand(): BrandKey | null {
   if (typeof window === "undefined") {
     return null
   }
-  const value = window.localStorage.getItem(BRAND_STORAGE_KEY)
-  return value && isBrandKey(value) ? value : null
+  try {
+    const value = window.localStorage.getItem(BRAND_STORAGE_KEY)
+    return value && isBrandKey(value) ? value : null
+  } catch {
+    // Storage may be unavailable (private mode / blocked cookies); fall back to default.
+    return null
+  }
 }
 
 function persistBrand(brand: BrandKey): void {
@@ -168,7 +173,13 @@ export function useAppTheme(): UseAppThemeResult {
     setBrand,
     mode,
     resolvedMode,
-    setMode: (next: ModeSetting) => setTheme(next),
+    // Light-only brands reject dark/system so the hook contract stays consistent
+    // even if a caller bypasses availableModes.
+    setMode: (next: ModeSetting) => {
+      if (next === "light" || brandSupportsDark(brand)) {
+        setTheme(next)
+      }
+    },
     availableModes: availableModeSettings(brand),
     mounted,
   }
@@ -176,9 +187,11 @@ export function useAppTheme(): UseAppThemeResult {
 
 /**
  * Pre-hydration script that applies the persisted brand's `data-theme` before
- * React mounts, preventing a flash of the default brand. Render inside <head>
- * (e.g. in a Next.js root layout). better-themes injects its own equivalent
- * script for the mode axis.
+ * the page paints, preventing a flash of the default brand. Render it as early
+ * as possible: in `<head>`, or — for the Next.js App Router, which does not
+ * allow arbitrary `<head>` children in a layout — as the first child of
+ * `<body>`, where it still runs synchronously before any body content renders.
+ * better-themes injects its own equivalent script for the mode axis.
  */
 export function BrandThemeScript({
   defaultBrand = DEFAULT_BRAND,
@@ -189,11 +202,13 @@ export function BrandThemeScript({
   for (const key of brandKeys()) {
     attrByBrand[key] = brandAttr(key)
   }
-  const script = `(function(){try{var k=localStorage.getItem(${JSON.stringify(
+  // Validates the stored key against known brands before falling back to the
+  // default, so a stale/invalid value can't slip through as "no brand".
+  const script = `(function(){try{var d=${JSON.stringify(
+    defaultBrand
+  )};var m=${JSON.stringify(attrByBrand)};var k=localStorage.getItem(${JSON.stringify(
     BRAND_STORAGE_KEY
-  )})||${JSON.stringify(defaultBrand)};var m=${JSON.stringify(
-    attrByBrand
-  )};var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}}catch(e){}})();`
+  )});if(!k||!Object.prototype.hasOwnProperty.call(m,k)){k=d;}var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}}catch(e){}})();`
 
   return (
     <script
