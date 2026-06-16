@@ -1,85 +1,11 @@
+/*
+ * Footer — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept: `--footer-cols` runtime grid-template-columns value
+ * (repeat/minmax can't be expressed as a Figma variable).
+ */
+
 @theme static {
   --footer-cols: repeat(auto-fit, minmax(22%, 1fr));
-
-  /* === COLORS === */
-  --color-footer: var(--color-surface);
-
-  /* Background */
-  --color-footer-bg: var(--color-footer);
-  --color-footer-container-bg: var(--color-footer);
-  --color-footer-section-bg: var(--color-footer);
-  --color-footer-list-bg: var(--color-footer);
-  --color-footer-bottom-bg: var(--color-footer);
-
-  /* Foreground */
-  --color-footer-fg-primary: var(--color-fg-primary);
-  --color-footer-fg-secondary: var(--color-fg-secondary);
-
-  --color-footer-title-fg: var(--color-footer-fg-primary);
-  --color-footer-title-fg-hover: var(--color-primary);
-  --color-footer-link-fg: var(--color-footer-fg-secondary);
-  --color-footer-link-fg-hover: var(--color-primary);
-  --color-footer-text-fg: var(--color-footer-fg-secondary);
-
-  /* Divider & Bottom */
-  --color-footer-divider-bg: var(--color-fg-reverse);
-
-  /* === TYPOGRAPHY === */
-  --text-footer-title-sm: var(--text-md);
-  --text-footer-title-md: var(--text-lg);
-  --text-footer-title-lg: var(--text-xl);
-
-  --text-footer-link-sm: var(--text-sm);
-  --text-footer-link-md: var(--text-md);
-  --text-footer-link-lg: var(--text-lg);
-
-  --text-footer-text-sm: var(--text-xs);
-  --text-footer-text-md: var(--text-sm);
-  --text-footer-text-lg: var(--text-md);
-
-  --font-weight-footer-title: var(--font-weight-semibold);
-  --font-weight-footer-link: var(--font-weight-normal);
-
-  /* === SIZES === */
-  --container-footer-max: var(--container-max-w);
-
-  /* === SPACING === */
-  /* Root padding */
-  --padding-footer-root-sm: var(--spacing-100);
-  --padding-footer-root-md: var(--spacing-200);
-  --padding-footer-root-lg: var(--spacing-300);
-
-  /* Container spacing */
-  --spacing-footer-container-sm: var(--spacing-300);
-  --spacing-footer-container-md: var(--spacing-400);
-  --spacing-footer-container-lg: var(--spacing-500);
-
-  /* Section spacing */
-  --spacing-footer-section-sm: var(--spacing-50);
-  --spacing-footer-section-md: var(--spacing-100);
-  --spacing-footer-section-lg: var(--spacing-150);
-
-  /* List spacing */
-  --spacing-footer-list-gap: var(--spacing-100);
-  --spacing-footer-list-gap-sm: var(--spacing-50);
-  --spacing-footer-list-gap-md: var(--spacing-100);
-  --spacing-footer-list-gap-lg: var(--spacing-150);
-
-  /* Bottom padding */
-  --padding-footer-bottom: var(--spacing-300);
-  --padding-footer-bottom-sm: var(--spacing-200);
-  --padding-footer-bottom-md: var(--spacing-300);
-  --padding-footer-bottom-lg: var(--spacing-400);
-
-  /* Divider margins */
-  --margin-footer-divider-sm: var(--spacing-200);
-  --margin-footer-divider-md: var(--spacing-300);
-  --margin-footer-divider-lg: var(--spacing-400);
-
-  /* === BORDERS & EFFECTS === */
-  --border-width-footer: var(--border-width-md);
-  --color-footer-border: var(--color-border-primary);
-  --height-footer-divider: 2px;
-
-  --radius-footer: 0;
 }

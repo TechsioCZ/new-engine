@@ -1,42 +1,42 @@
-"use client";
+"use client"
 
-import { Icon } from "@techsio/ui-kit/atoms/icon";
-import { Rating } from "@techsio/ui-kit/atoms/rating";
-import type { StaticImageData } from "next/image";
-import NextImage from "next/image";
-import NextLink from "next/link";
-import type { MouseEvent } from "react";
-import { FractionalRating } from "@/components/reviews/fractional-rating";
-import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges";
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Rating } from "@techsio/ui-kit/atoms/rating"
+import type { StaticImageData } from "next/image"
+import NextImage from "next/image"
+import NextLink from "next/link"
+import type { MouseEvent } from "react"
+import { FractionalRating } from "@/components/reviews/fractional-rating"
+import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import {
   PRODUCT_REVIEWS,
   REVIEW_VERIFIED_CUSTOMER_BADGE,
-} from "@/components/reviews/reviews.data";
+} from "@/components/reviews/reviews.data"
 import type {
   ReviewItem,
   ReviewTrustSource,
-} from "@/components/reviews/reviews.types";
+} from "@/components/reviews/reviews.types"
 
-type ReviewsVariant = "product" | "homepage";
+type ReviewsVariant = "product" | "homepage"
 
 type ReviewsSectionProps = {
-  sectionClassName?: string;
-  variant?: ReviewsVariant;
-  linkHref?: string | null;
-  linkLabel?: string | null;
-  onLinkClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
-  headingText?: string;
-  scoreLabel?: string | null;
-  summaryText?: string | null;
-  ratingValue?: number;
-  reviews?: readonly ReviewItem[];
-  trustSources?: readonly ReviewTrustSource[];
-  sourceBadge?: StaticImageData;
-};
+  sectionClassName?: string
+  variant?: ReviewsVariant
+  linkHref?: string | null
+  linkLabel?: string | null
+  onLinkClick?: (event: MouseEvent<HTMLAnchorElement>) => void
+  headingText?: string
+  scoreLabel?: string | null
+  summaryText?: string | null
+  ratingValue?: number
+  reviews?: readonly ReviewItem[]
+  trustSources?: readonly ReviewTrustSource[]
+  sourceBadge?: StaticImageData
+}
 
 function resolveReviewInitial(author: string): string {
-  const trimmed = author.trim();
-  return trimmed.charAt(0).toUpperCase() || "A";
+  const trimmed = author.trim()
+  return trimmed.charAt(0).toUpperCase() || "A"
 }
 
 function ReviewCard({
@@ -44,12 +44,12 @@ function ReviewCard({
   sourceBadge,
   variant,
 }: {
-  review: ReviewItem;
-  sourceBadge: StaticImageData;
-  variant: ReviewsVariant;
+  review: ReviewItem
+  sourceBadge: StaticImageData
+  variant: ReviewsVariant
 }) {
-  const isHomepage = variant === "homepage";
-  const shouldShowVerifiedPurchase = !isHomepage && review.verifiedPurchase;
+  const isHomepage = variant === "homepage"
+  const shouldShowVerifiedPurchase = !isHomepage && review.verifiedPurchase
 
   return (
     <article className="flex h-full flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 font-roboto shadow-md">
@@ -64,7 +64,7 @@ function ReviewCard({
           </div>
         ) : (
           <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center rounded-full bg-surface">
-            <span className="text-3xl leading-none font-normal text-fg-secondary">
+            <span className="font-normal text-3xl text-fg-secondary leading-none">
               {resolveReviewInitial(review.author)}
             </span>
           </div>
@@ -78,20 +78,19 @@ function ReviewCard({
               size="md"
               value={review.rating}
             />
-            <p className="text-xs leading-tight text-fg-placeholder">
+            <p className="text-fg-placeholder text-xs leading-tight">
               {review.dateLabel}
             </p>
           </div>
 
-          <p className="truncate text-md leading-tight font-semibold text-fg-primary">
+          <p className="truncate font-semibold text-fg-primary text-md leading-tight">
             {review.author}
           </p>
         </div>
       </header>
 
       <div className="flex flex-1 flex-col gap-250">
-
-        <p className="line-clamp-3 text-md leading-relaxed text-fg-secondary">
+        <p className="line-clamp-3 text-fg-secondary text-md leading-relaxed">
           {review.message}
         </p>
       </div>
@@ -99,13 +98,13 @@ function ReviewCard({
       {shouldShowVerifiedPurchase ? (
         <div className="mt-auto flex items-center gap-150 text-primary">
           <Icon icon="token-icon-check" size="lg" />
-          <span className="text-sm leading-relaxed font-medium">
+          <span className="font-medium text-sm leading-relaxed">
             Overený nákup
           </span>
         </div>
       ) : null}
     </article>
-  );
+  )
 }
 
 export function ReviewsSection({
@@ -122,30 +121,29 @@ export function ReviewsSection({
   trustSources,
   sourceBadge = REVIEW_VERIFIED_CUSTOMER_BADGE,
 }: ReviewsSectionProps) {
-  const isHomepage = variant === "homepage";
+  const isHomepage = variant === "homepage"
   const resolvedHeadingText =
-    headingText ?? (isHomepage ? "Overené zákazníkmi" : "Hodnotenia produktu");
-  const defaultLinkHref = isHomepage ? null : "#reviews";
-  const defaultLinkLabel = isHomepage ? null : "Všetky hodnotenia";
-  const resolvedLinkHref =
-    linkHref === undefined ? defaultLinkHref : linkHref;
+    headingText ?? (isHomepage ? "Overené zákazníkmi" : "Hodnotenia produktu")
+  const defaultLinkHref = isHomepage ? null : "#reviews"
+  const defaultLinkLabel = isHomepage ? null : "Všetky hodnotenia"
+  const resolvedLinkHref = linkHref === undefined ? defaultLinkHref : linkHref
   const resolvedLinkLabel =
-    linkLabel === undefined ? defaultLinkLabel : linkLabel;
-  const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel);
+    linkLabel === undefined ? defaultLinkLabel : linkLabel
+  const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel)
   const formattedRatingLabel = ratingValue.toLocaleString("sk-SK", {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
-  });
+  })
   const resolvedScoreLabel =
-    scoreLabel === undefined ? formattedRatingLabel : scoreLabel;
-  const ratingAriaLabel = resolvedScoreLabel ?? formattedRatingLabel;
+    scoreLabel === undefined ? formattedRatingLabel : scoreLabel
+  const ratingAriaLabel = resolvedScoreLabel ?? formattedRatingLabel
 
   return (
     <section className={sectionClassName}>
       <header className="flex flex-col gap-350 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-300">
           <div>
-            <h2 className="text-3xl leading-tight font-semibold text-fg-primary">
+            <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
               {resolvedHeadingText}
               {resolvedScoreLabel ? (
                 <>
@@ -155,7 +153,7 @@ export function ReviewsSection({
               ) : null}
             </h2>
             {summaryText ? (
-              <p className="mt-100 text-sm leading-relaxed text-fg-secondary">
+              <p className="mt-100 text-fg-secondary text-sm leading-relaxed">
                 {summaryText}
               </p>
             ) : null}
@@ -174,7 +172,7 @@ export function ReviewsSection({
 
         {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (
           <NextLink
-            className="inline-flex items-center gap-50 font-verdana text-sm leading-relaxed text-fg-strong underline decoration-1 underline-offset-2 hover:text-fg-primary"
+            className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
             href={resolvedLinkHref}
             onClick={onLinkClick}
           >
@@ -195,5 +193,5 @@ export function ReviewsSection({
         ))}
       </div>
     </section>
-  );
+  )
 }

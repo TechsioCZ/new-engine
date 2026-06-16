@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "medusa"
+    "public"
   ],
-  "name": "medusa",
+  "name": "public",
   "tables": [
     {
       "columns": {
@@ -168,7 +168,7 @@
         }
       },
       "name": "product_list",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_product_list_deleted_at",
@@ -382,7 +382,7 @@
         }
       },
       "name": "product_list_item",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_product_list_item_list_id",
@@ -442,11 +442,11 @@
           "columnNames": [
             "list_id"
           ],
-          "localTableName": "medusa.product_list_item",
+          "localTableName": "public.product_list_item",
           "referencedColumnNames": [
             "id"
           ],
-          "referencedTableName": "medusa.product_list",
+          "referencedTableName": "public.product_list",
           "updateRule": "cascade"
         }
       },

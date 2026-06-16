@@ -22,45 +22,13 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "email_id": {
-          "name": "email_id",
+        "cart_id": {
+          "name": "cart_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "customer_id": {
-          "name": "customer_id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
           "unique": false,
           "length": null,
           "precision": null,
@@ -83,11 +51,34 @@
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "enumItems": [
+            "admin",
+            "sales_manager"
+          ],
+          "mappedType": "enum"
         },
-        "subject": {
-          "name": "subject",
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "pending",
+            "approved",
+            "rejected"
+          ],
+          "mappedType": "enum"
+        },
+        "created_by": {
+          "name": "created_by",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -102,53 +93,21 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "sent_to": {
-          "name": "sent_to",
+        "handled_by": {
+          "name": "handled_by",
           "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "checked_at": {
-          "name": "checked_at",
-          "type": "timestamptz",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 6,
+          "length": null,
           "precision": null,
           "scale": null,
           "default": null,
           "comment": null,
           "enumItems": [],
-          "mappedType": "datetime"
+          "mappedType": "text"
         },
         "created_at": {
           "name": "created_at",
@@ -199,56 +158,20 @@
           "mappedType": "datetime"
         }
       },
-      "name": "email_log",
+      "name": "approval",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_email_log_deleted_at",
+          "keyName": "IDX_approval_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_deleted_at\" ON \"email_log\" (\"deleted_at\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_approval_deleted_at\" ON \"approval\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_email_log_email_id",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_email_id\" ON \"email_log\" (\"email_id\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "IDX_email_log_customer_id",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_customer_id\" ON \"email_log\" (\"customer_id\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "IDX_email_log_order_id",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_order_id\" ON \"email_log\" (\"order_id\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "IDX_email_log_sent_to",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_sent_to\" ON \"email_log\" (\"sent_to\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "email_log_pkey",
+          "keyName": "approval_pkey",
           "columnNames": [
             "id"
           ],
@@ -280,8 +203,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "email_id": {
-          "name": "email_id",
+        "company_id": {
+          "name": "company_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -296,9 +219,9 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "type": {
-          "name": "type",
-          "type": "text",
+        "requires_admin_approval": {
+          "name": "requires_admin_approval",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
@@ -307,58 +230,26 @@
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "false",
           "comment": null,
           "enumItems": [],
-          "mappedType": "text"
+          "mappedType": "boolean"
         },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
-        "received_at": {
-          "name": "received_at",
-          "type": "timestamptz",
+        "requires_sales_manager_approval": {
+          "name": "requires_sales_manager_approval",
+          "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": false,
           "unique": false,
-          "length": 6,
+          "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "false",
           "comment": null,
           "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "processed_at": {
-          "name": "processed_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
+          "mappedType": "boolean"
         },
         "created_at": {
           "name": "created_at",
@@ -409,38 +300,150 @@
           "mappedType": "datetime"
         }
       },
-      "name": "email_webhook_event",
+      "name": "approval_settings",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_email_webhook_event_deleted_at",
+          "keyName": "IDX_approval_settings_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_deleted_at\" ON \"email_webhook_event\" (\"deleted_at\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_approval_settings_deleted_at\" ON \"approval_settings\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_email_webhook_event_email_id",
+          "keyName": "approval_settings_pkey",
+          "columnNames": [
+            "id"
+          ],
+          "composite": false,
+          "constraint": true,
+          "primary": true,
+          "unique": true
+        }
+      ],
+      "checks": [],
+      "foreignKeys": {},
+      "nativeEnums": {}
+    },
+    {
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": true,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "cart_id": {
+          "name": "cart_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [
+            "pending",
+            "approved",
+            "rejected"
+          ],
+          "mappedType": "enum"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": "now()",
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        }
+      },
+      "name": "approval_status",
+      "schema": "public",
+      "indexes": [
+        {
+          "keyName": "IDX_approval_status_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_email_id\" ON \"email_webhook_event\" (\"email_id\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_approval_status_deleted_at\" ON \"approval_status\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_email_webhook_event_processed_at",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_processed_at\" ON \"email_webhook_event\" (\"processed_at\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "email_webhook_event_pkey",
+          "keyName": "approval_status_pkey",
           "columnNames": [
             "id"
           ],

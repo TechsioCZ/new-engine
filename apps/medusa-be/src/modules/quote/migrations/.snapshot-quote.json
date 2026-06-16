@@ -22,8 +22,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "email_id": {
-          "name": "email_id",
+        "status": {
+          "name": "status",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -33,10 +33,16 @@
           "length": null,
           "precision": null,
           "scale": null,
-          "default": null,
+          "default": "'pending_merchant'",
           "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
+          "enumItems": [
+            "pending_merchant",
+            "pending_customer",
+            "accepted",
+            "customer_rejected",
+            "merchant_rejected"
+          ],
+          "mappedType": "enum"
         },
         "customer_id": {
           "name": "customer_id",
@@ -44,7 +50,7 @@
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
-          "nullable": true,
+          "nullable": false,
           "unique": false,
           "length": null,
           "precision": null,
@@ -54,24 +60,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
-        },
-        "type": {
-          "name": "type",
+        "draft_order_id": {
+          "name": "draft_order_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -86,8 +76,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "subject": {
-          "name": "subject",
+        "order_change_id": {
+          "name": "order_change_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -102,8 +92,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "sent_to": {
-          "name": "sent_to",
+        "cart_id": {
+          "name": "cart_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -117,38 +107,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "checked_at": {
-          "name": "checked_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
         },
         "created_at": {
           "name": "created_at",
@@ -199,56 +157,20 @@
           "mappedType": "datetime"
         }
       },
-      "name": "email_log",
+      "name": "quote",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_email_log_deleted_at",
+          "keyName": "IDX_quote_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_deleted_at\" ON \"email_log\" (\"deleted_at\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_quote_deleted_at\" ON \"quote\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_email_log_email_id",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_email_id\" ON \"email_log\" (\"email_id\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "IDX_email_log_customer_id",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_customer_id\" ON \"email_log\" (\"customer_id\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "IDX_email_log_order_id",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_order_id\" ON \"email_log\" (\"order_id\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "IDX_email_log_sent_to",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_log_sent_to\" ON \"email_log\" (\"sent_to\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "email_log_pkey",
+          "keyName": "quote_pkey",
           "columnNames": [
             "id"
           ],
@@ -280,8 +202,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "email_id": {
-          "name": "email_id",
+        "text": {
+          "name": "text",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -296,8 +218,56 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "type": {
-          "name": "type",
+        "item_id": {
+          "name": "item_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "admin_id": {
+          "name": "admin_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "quote_id": {
+          "name": "quote_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -311,54 +281,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "text"
-        },
-        "payload": {
-          "name": "payload",
-          "type": "jsonb",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "json"
-        },
-        "received_at": {
-          "name": "received_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": false,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
-        },
-        "processed_at": {
-          "name": "processed_at",
-          "type": "timestamptz",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": 6,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "datetime"
         },
         "created_at": {
           "name": "created_at",
@@ -409,38 +331,29 @@
           "mappedType": "datetime"
         }
       },
-      "name": "email_webhook_event",
+      "name": "message",
       "schema": "public",
       "indexes": [
         {
-          "keyName": "IDX_email_webhook_event_deleted_at",
+          "keyName": "IDX_message_quote_id",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_deleted_at\" ON \"email_webhook_event\" (\"deleted_at\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_message_quote_id\" ON \"message\" (\"quote_id\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_email_webhook_event_email_id",
+          "keyName": "IDX_message_deleted_at",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_email_id\" ON \"email_webhook_event\" (\"email_id\") WHERE deleted_at IS NULL"
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_message_deleted_at\" ON \"message\" (\"deleted_at\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_email_webhook_event_processed_at",
-          "columnNames": [],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_processed_at\" ON \"email_webhook_event\" (\"processed_at\") WHERE deleted_at IS NULL"
-        },
-        {
-          "keyName": "email_webhook_event_pkey",
+          "keyName": "message_pkey",
           "columnNames": [
             "id"
           ],
@@ -451,7 +364,20 @@
         }
       ],
       "checks": [],
-      "foreignKeys": {},
+      "foreignKeys": {
+        "message_quote_id_foreign": {
+          "constraintName": "message_quote_id_foreign",
+          "columnNames": [
+            "quote_id"
+          ],
+          "localTableName": "public.message",
+          "referencedColumnNames": [
+            "id"
+          ],
+          "referencedTableName": "public.quote",
+          "updateRule": "cascade"
+        }
+      },
       "nativeEnums": {}
     }
   ],
