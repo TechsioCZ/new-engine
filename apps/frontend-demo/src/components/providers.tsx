@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
-import { ThemeProvider } from "next-themes"
+import { AppThemeProvider } from "@techsio/ui-kit/theme/theme-provider"
 import type { PropsWithChildren } from "react"
 import { useState } from "react"
 import { CartPrefetch } from "./cart-prefetch"
@@ -49,16 +49,11 @@ export function Providers({ children }: PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        disableTransitionOnChange
-        enableSystem
-      >
+      <AppThemeProvider defaultMode="system">
         <CartPrefetch />
         {children}
         <Toaster />
-      </ThemeProvider>
+      </AppThemeProvider>
     </QueryClientProvider>
   )
 }
