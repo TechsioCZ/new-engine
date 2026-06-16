@@ -10,10 +10,16 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "@/components/checkout/checkout-completion.utils"
+import {
+  logCheckoutAccountSetupDebug,
+  readDebugAccountSetupRequested,
+  useCheckoutAccountSetupDebugEnabled,
+} from "@/components/checkout/checkout-account-setup-debug"
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useCart } from "@/lib/storefront/cart"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { storefront } from "@/lib/storefront/storefront"
@@ -28,12 +34,39 @@ export function CheckoutPaymentReturnPanel() {
   const _retryRequestKey = normalizeSearchParam(searchParams.get("retry"))
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [returnError, setReturnError] = useState<string | null>(null)
+  const isAccountSetupDebugEnabled = useCheckoutAccountSetupDebugEnabled()
+  const debugCartQuery = useCart({
+    autoCreate: false,
+    cartId: cartId ?? undefined,
+    enabled: Boolean(cartId && isAccountSetupDebugEnabled),
+  })
   const completeCartMutation = storefront.flows.cart.useCompleteCart()
   const completeCartRef = useRef(completeCartMutation.mutateAsync)
 
   useEffect(() => {
     completeCartRef.current = completeCartMutation.mutateAsync
   }, [completeCartMutation.mutateAsync])
+
+  useEffect(() => {
+    if (!isAccountSetupDebugEnabled || !cartId) {
+      return
+    }
+
+    logCheckoutAccountSetupDebug("payment return cart snapshot", {
+      cart_id: cartId,
+      cart_metadata_requested: readDebugAccountSetupRequested(
+        debugCartQuery.cart?.metadata
+      ),
+      is_cart_fetching: debugCartQuery.isFetching,
+      is_cart_loading: debugCartQuery.isLoading,
+    })
+  }, [
+    cartId,
+    debugCartQuery.cart?.metadata,
+    debugCartQuery.isFetching,
+    debugCartQuery.isLoading,
+    isAccountSetupDebugEnabled,
+  ])
 
   useEffect(() => {
     if (!cartId || isCancelled || completedOrderId || returnError) {
@@ -48,6 +81,14 @@ export function CheckoutPaymentReturnPanel() {
       attemptCount += 1
 
       try {
+        logCheckoutAccountSetupDebug("payment return complete attempt", {
+          attempt_count: attemptCount,
+          cart_id: cartId,
+          cart_metadata_requested: readDebugAccountSetupRequested(
+            debugCartQuery.cart?.metadata
+          ),
+        })
+
         const completeResult = await completeCartRef.current({
           cartId,
         })
@@ -57,6 +98,11 @@ export function CheckoutPaymentReturnPanel() {
 
         const orderId = resolveOrderId(completeResult)
         if (orderId) {
+          logCheckoutAccountSetupDebug("payment return complete succeeded", {
+            attempt_count: attemptCount,
+            cart_id: cartId,
+            order_id: orderId,
+          })
           clearStoredPaymentProviderSelection(cartId)
           setCompletedOrderId(orderId)
           return
