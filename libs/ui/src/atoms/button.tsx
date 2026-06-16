@@ -38,6 +38,8 @@ export const buttonVariants = tv({
       sm: "h-form-control-sm gap-button-sm rounded-button-sm p-button-sm text-button-sm",
       md: "h-form-control-md gap-button-md rounded-button-md p-button-md text-button-md",
       lg: "gap-button-lg rounded-button-lg p-button-lg text-button-lg",
+      content:
+        "min-h-form-control-md gap-button-md whitespace-normal break-words rounded-button-md p-button-md text-center text-button-md leading-tight",
       current: "gap-button-md text-inherit",
     },
     block: {
@@ -228,6 +230,11 @@ export const buttonVariants = tv({
     {
       theme: "outlined",
       size: "md",
+      className: "border-(length:--border-width-button-md)",
+    },
+    {
+      theme: "outlined",
+      size: "content",
       className: "border-(length:--border-width-button-md)",
     },
     {

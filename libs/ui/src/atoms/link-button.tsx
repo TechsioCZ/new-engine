@@ -61,6 +61,7 @@ export function LinkButton<T extends ElementType = "a">({
   const handleClick = onClick as
     | ((event: MouseEvent<Element>) => void)
     | undefined
+  const resolvedIconSize = iconSize ?? (size === "content" ? "md" : size)
 
   return (
     <Link
@@ -90,11 +91,11 @@ export function LinkButton<T extends ElementType = "a">({
       tabIndex={disabled ? -1 : tabIndex}
     >
       {icon && iconPosition === "left" && (
-        <Icon icon={icon} size={iconSize ?? size} />
+        <Icon icon={icon} size={resolvedIconSize} />
       )}
       {children}
       {icon && iconPosition === "right" && (
-        <Icon icon={icon} size={iconSize ?? size} />
+        <Icon icon={icon} size={resolvedIconSize} />
       )}
     </Link>
   )
