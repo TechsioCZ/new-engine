@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-06-16T08:00:16.913Z
+ * Exported at: 2026-06-16T08:00:16.924Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -55,9 +55,9 @@
   --color-bg-light-danger-active: oklch(0.962 0.019 25.602);
   --color-bg-light-danger-base: oklch(0.9 0.048 18.09);
   --color-bg-light-danger-hover: oklch(0.953 0.023 24.126);
-  --color-bg-light-primary-active: oklch(0.969 0.046 196.42);
-  --color-bg-light-primary-base: oklch(0.937 0.03 251.281);
-  --color-bg-light-primary-hover: oklch(0.969 0.046 196.42);
+  --color-bg-light-primary-active: var(--color-primary-300);
+  --color-bg-light-primary-base: var(--color-primary-100);
+  --color-bg-light-primary-hover: var(--color-primary-200);
   --color-bg-light-secondary-active: oklch(0.97 0.107 105.368);
   --color-bg-light-secondary-base: oklch(0.893 0.063 56.696);
   --color-bg-light-secondary-hover: oklch(0.97 0.107 105.368);
@@ -69,17 +69,17 @@
   --color-bg-light-warning-hover: oklch(0.975 0.117 107.339);
   --color-bg-outlined-danger-active: oklch(0.794 0.119 20.048 / 0.122);
   --color-bg-outlined-danger-hover: oklch(0.805 0.111 19.782 / 0.161);
-  --color-bg-outlined-primary-active: oklch(0.813 0.111 233.957 / 0.122);
-  --color-bg-outlined-primary-hover: oklch(0.823 0.112 229.19 / 0.161);
+  --color-bg-outlined-primary-active: var(--color-primary-300);
+  --color-bg-outlined-primary-hover: var(--color-primary-200);
   --color-bg-outlined-secondary-active: oklch(0.822 0.171 78.982 / 0.122);
   --color-bg-outlined-secondary-hover: oklch(0.833 0.172 82.058 / 0.161);
   --color-bg-outlined-tertiary-active: oklch(0.705 0.19 14.191 / 0.122);
   --color-bg-outlined-tertiary-hover: oklch(0.706 0.189 14.04 / 0.161);
   --color-bg-outlined-warning-active: oklch(0.844 0.172 90.132 / 0.122);
   --color-bg-outlined-warning-hover: oklch(0.856 0.175 88.008 / 0.161);
-  --color-bg-primary-active: oklch(0.932 0.092 198.233);
+  --color-bg-primary-active: var(--color-primary-500);
   --color-bg-primary-base: var(--color-primary-300);
-  --color-bg-primary-hover: oklch(0.898 0.094 209.143);
+  --color-bg-primary-hover: var(--color-primary-400);
   --color-bg-scrim: oklch(1 0 0 / 0.1);
   --color-bg-secondary-active: oklch(0.907 0.182 99.038);
   --color-bg-secondary-base: var(--color-secondary-500);
@@ -473,18 +473,18 @@
   --color-popover-description-fg: var(--color-fg-secondary);
   --color-popover-fg: var(--color-fg-primary);
   --color-primary: var(--color-primary-300);
-  --color-primary-100: oklch(0.951 0.026 235.347);
-  --color-primary-200: oklch(0.9 0.058 230.911);
-  --color-primary-300: oklch(0.827 0.109 229.198);
-  --color-primary-400: oklch(0.748 0.155 233.252);
-  --color-primary-500: oklch(0.692 0.16 240.379);
-  --color-primary-600: oklch(0.593 0.151 245.368);
-  --color-primary-700: oklch(0.504 0.128 245.46);
-  --color-primary-800: oklch(0.445 0.107 242.792);
-  --color-primary-900: oklch(0.391 0.089 240.611);
+  --color-primary-100: oklch(0.936 0.032 17.738);
+  --color-primary-200: oklch(0.883 0.062 18.386);
+  --color-primary-300: oklch(0.805 0.111 19.782);
+  --color-primary-400: oklch(0.745 0.155 20.548);
+  --color-primary-500: oklch(0.702 0.189 22.228);
+  --color-primary-600: oklch(0.638 0.237 25.436);
+  --color-primary-700: oklch(0.583 0.239 28.476);
+  --color-primary-800: oklch(0.509 0.209 28.513);
+  --color-primary-900: oklch(0.445 0.177 26.787);
   --color-primary-accent-fg: var(--color-fg-accent-primary);
   --color-primary-active: var(--color-bg-primary-active);
-  --color-primary-alpha-10: oklch(0.807 0.101 250.446 / 0.1);
+  --color-primary-alpha-10: oklch(0.805 0.111 19.782 / 0.1);
   --color-primary-disabled: var(--color-bg-disabled);
   --color-primary-hover: var(--color-bg-primary-hover);
   --color-primary-light: var(--color-bg-light-primary-base);
