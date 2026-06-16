@@ -118,8 +118,6 @@
     "@semantic-release/npm": "^13.1.2",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@storybook/addon-a11y": "^10.4.4",
-    "@storybook/addon-links": "^10.4.4",
-    "@storybook/addon-onboarding": "^10.4.4",
     "@storybook/addon-themes": "^10.4.4",
     "@storybook/react": "^10.4.4",
     "@storybook/test-runner": "^0.24.4",
