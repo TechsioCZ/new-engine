@@ -5,6 +5,7 @@ Method: computed styles + `:root` CSS variables + color tallies, scraped in-brow
 `/`, `/ecommerce`, `/integrace`, `/portfolio` (all uniform).
 
 ## Aesthetic in one line
+
 Dark-first, high-contrast site with **one vivid red brand accent (`#e60000`)**, bold geometric
 **uppercase Unbounded** display type, gray body text on near-black surfaces, **8px** rounded
 corners (pills for tags), and an occasional neon-lime highlight.
