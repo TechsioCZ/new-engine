@@ -44,6 +44,10 @@
       "types": "./dist/src/templates/*.d.ts",
       "import": "./dist/templates/*.js"
     },
+    "./theme/*": {
+      "types": "./dist/src/theme/*.d.ts",
+      "import": "./dist/theme/*.js"
+    },
     "./utils": {
       "types": "./dist/src/utils.d.ts",
       "import": "./dist/utils.js"
@@ -99,6 +103,7 @@
     "@zag-js/toast": "^1.41.2",
     "@zag-js/tooltip": "^1.41.2",
     "@zag-js/tree-view": "^1.41.2",
+    "better-themes": "^1.1.0",
     "libphonenumber-js": "^1.13.2",
     "tailwind-merge": "^3.4.0",
     "tailwind-variants": "^3.1.1",
