@@ -1,6 +1,10 @@
 const REVIEW_TITLE_MAX_LENGTH = 200
 const GENERIC_REVIEW_SUBMIT_ERROR =
   "Recenziu sa nepodarilo odoslať. Skúste to prosím znova."
+const PURCHASE_REQUIRED_REVIEW_ERROR =
+  "Na napísanie recenzie musíte mať tento produkt zakúpený."
+const PURCHASE_VERIFICATION_REVIEW_ERROR =
+  "Na napísanie recenzie musíte mať tento produkt zakúpený. Ak ste ho už zakúpili, skúste to prosím neskôr."
 
 const hasErrorShape = (
   error: unknown
@@ -36,6 +40,21 @@ const resolveTokenMessage = (normalizedMessage: string): string | null => {
   return null
 }
 
+const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
+  if (
+    normalizedMessage.includes("only review products") &&
+    normalizedMessage.includes("purchased")
+  ) {
+    return true
+  }
+
+  return (
+    normalizedMessage.includes("order.payment_status") ||
+    (normalizedMessage.includes("payment_status") &&
+      normalizedMessage.includes("not existing property"))
+  )
+}
+
 export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
   const message = extractErrorMessage(error)
   const status =
@@ -67,6 +86,10 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
     return "Pre odoslanie recenzie sa prosím prihláste."
   }
 
+  if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
+    return PURCHASE_REQUIRED_REVIEW_ERROR
+  }
+
   if (status === 403) {
     return "Recenziu pre tento produkt momentálne nemôžete odoslať."
   }
@@ -76,7 +99,7 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
   }
 
   if (status && status >= 500) {
-    return GENERIC_REVIEW_SUBMIT_ERROR
+    return PURCHASE_VERIFICATION_REVIEW_ERROR
   }
 
   return message || GENERIC_REVIEW_SUBMIT_ERROR
