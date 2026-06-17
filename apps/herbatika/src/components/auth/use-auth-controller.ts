@@ -7,13 +7,17 @@ import {
   buildAuthRouteHref,
   buildLoginDefaults,
   buildRegisterDefaults,
+  buildRegisterSuccessNotice,
   resolveSafeRedirectHref,
 } from "@/components/auth/auth-helpers"
+import { useRegisterCountryItems } from "@/components/auth/use-register-country-items"
 import {
   type LoginFormValues,
   type RegisterFormValues,
+  isWholesaleRegistration,
   resolveLoginSubmitError,
 } from "@/lib/auth/auth-form-validators"
+import { buildAuthRegisterInput } from "@/lib/auth/register-payload"
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth"
 import {
   cartReadQueryOptions,
@@ -21,6 +25,7 @@ import {
   useTransferCart,
 } from "@/lib/storefront/cart"
 import { cartStorage } from "@/lib/storefront/cart-storage"
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
 
@@ -41,6 +46,7 @@ export const useAuthController = ({
   const loginMutation = useLogin()
   const registerMutation = useRegister()
   const transferCartMutation = useTransferCart()
+  const registerCountryItems = useRegisterCountryItems(region)
   const [authError, setAuthError] = useState<string | null>(null)
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [authNotice, setAuthNotice] = useState<string | null>(null)
@@ -63,7 +69,10 @@ export const useAuthController = ({
     [afterAuthHref]
   )
   const loginDefaultValues = useMemo(() => buildLoginDefaults(), [])
-  const registerDefaultValues = useMemo(() => buildRegisterDefaults(), [])
+  const registerDefaultValues = useMemo(
+    () => buildRegisterDefaults({ countryCode: region?.country_code }),
+    [region?.country_code]
+  )
 
   const clearFeedback = useCallback(() => {
     setAuthError(null)
@@ -144,12 +153,11 @@ export const useAuthController = ({
       clearFeedback()
 
       try {
-        await registerMutation.mutateAsync({
-          email: values.email,
-          password: values.password,
-          first_name: values.first_name,
-          last_name: values.last_name,
-        })
+        await registerMutation.mutateAsync(
+          buildAuthRegisterInput(values, {
+            currencyCode: resolveRegionCurrency(region),
+          })
+        )
         const transferNotice = await runPostAuthCartTransfer()
 
         if (safeRedirectHref) {
@@ -158,7 +166,12 @@ export const useAuthController = ({
         }
 
         setAuthMessage("Registrácia prebehla úspešne.")
-        setAuthNotice(transferNotice)
+        setAuthNotice(
+          buildRegisterSuccessNotice({
+            isWholesale: isWholesaleRegistration(values),
+            transferNotice,
+          })
+        )
         return null
       } catch (error) {
         return resolveErrorMessage(error)
@@ -167,6 +180,7 @@ export const useAuthController = ({
     [
       clearFeedback,
       registerMutation,
+      region,
       router,
       runPostAuthCartTransfer,
       safeRedirectHref,
@@ -232,6 +246,7 @@ export const useAuthController = ({
     loginDefaultValues,
     loginHref,
     logoutMutation,
+    registerCountryItems,
     registerDefaultValues,
     registerHref,
     forgotPasswordHref,

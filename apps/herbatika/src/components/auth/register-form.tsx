@@ -2,8 +2,12 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+import { useStore } from "@tanstack/react-form"
 import { useState } from "react"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
+import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
+import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
 import {
   type RegisterFormValues,
   registerValidators,
@@ -14,6 +18,7 @@ import { AuthFooter } from "./auth-footer"
 
 type RegisterFormProps = {
   isBusy: boolean
+  countryItems: SelectItem[]
   defaultValues: RegisterFormValues
   loginHref: string
   onSubmit: (values: RegisterFormValues) => Promise<string | null>
@@ -21,6 +26,7 @@ type RegisterFormProps = {
 
 export const RegisterForm = ({
   isBusy,
+  countryItems,
   defaultValues,
   loginHref,
   onSubmit,
@@ -38,11 +44,16 @@ export const RegisterForm = ({
       }
     },
   })
+  const accountType = useStore(
+    form.store,
+    (state) => state.values.account_type
+  )
+  const isWholesaleAccount = accountType === "wholesale"
 
   return (
     <form
       autoComplete="off"
-      className="grid gap-300 md:grid-cols-2"
+      className="grid gap-300"
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
@@ -50,12 +61,19 @@ export const RegisterForm = ({
       }}
     >
       {submitError && (
-        <div className="md:col-span-2">
+        <div className="col-span-2">
           <StatusText showIcon status="error">
             {submitError}
           </StatusText>
         </div>
       )}
+
+      <div className="flex flex-nowrap col-span-2">
+        <RegisterAccountTypeField
+          form={form}
+          onValueChange={() => setSubmitError(null)}
+        />
+      </div>
 
       <form.AppField
         name="first_name"
@@ -101,6 +119,14 @@ export const RegisterForm = ({
           )}
         </form.AppField>
       </div>
+
+      {isWholesaleAccount ? (
+        <RegisterWholesaleFields
+          countryItems={countryItems}
+          form={form}
+          onValueChange={() => setSubmitError(null)}
+        />
+      ) : null}
 
       <form.AppField name="password" validators={registerValidators.password}>
         {(field) => (

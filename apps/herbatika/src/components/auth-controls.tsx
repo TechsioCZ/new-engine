@@ -38,6 +38,7 @@ export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
 
       {mode === "register" && (
         <RegisterForm
+          countryItems={controller.registerCountryItems}
           defaultValues={controller.registerDefaultValues}
           isBusy={controller.isBusy}
           loginHref={controller.loginHref}
