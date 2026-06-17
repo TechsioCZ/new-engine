@@ -54,6 +54,22 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "dedupe_key": {
+          "name": "dedupe_key",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "arguments": {
           "name": "arguments",
           "type": "jsonb",
@@ -69,22 +85,6 @@
           "comment": null,
           "enumItems": [],
           "mappedType": "json"
-        },
-        "order_id": {
-          "name": "order_id",
-          "type": "text",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "enumItems": [],
-          "mappedType": "text"
         },
         "created_at": {
           "name": "created_at",
@@ -166,13 +166,13 @@
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_workflow_queue_item_workflow\" ON \"workflow_queue_item\" (\"workflow\") WHERE deleted_at IS NULL"
         },
         {
-          "keyName": "IDX_workflow_queue_item_workflow_order_id",
+          "keyName": "IDX_workflow_queue_item_workflow_dedupe_key_unique",
           "columnNames": [],
           "composite": false,
           "constraint": false,
           "primary": false,
           "unique": false,
-          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_workflow_queue_item_workflow_order_id\" ON \"workflow_queue_item\" (\"workflow\", \"order_id\") WHERE deleted_at IS NULL"
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_workflow_queue_item_workflow_dedupe_key_unique\" ON \"workflow_queue_item\" (\"workflow\", \"dedupe_key\") WHERE deleted_at IS NULL AND dedupe_key IS NOT NULL"
         },
         {
           "keyName": "workflow_queue_item_pkey",

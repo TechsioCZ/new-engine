@@ -102,8 +102,11 @@ describe("order expedition helpers", () => {
         id: "item_1",
         quantity: 2,
         sku: undefined,
+        thumbnail: undefined,
         title: "Tea",
+        unit_price: null,
         variant: undefined,
+        variant_id: undefined,
       },
     ])
   })

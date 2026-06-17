@@ -38,10 +38,17 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
 import {
+  buildAccountSetupRequestedMetadata,
+  isRecord,
+  readAccountSetupRequested,
+} from "./account-setup-metadata"
+import {
   isCheckoutCountryAvailableForRegion,
   resolveCheckoutCountryItemsForRegion,
 } from "./checkout.constants"
+import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
+import { resolveOrderId } from "./checkout-completion.utils"
 import {
   clearStoredPaymentProviderSelection,
   readStoredPaymentProviderSelection,
@@ -49,6 +56,14 @@ import {
 } from "./checkout-payment-selection-storage"
 import { useCheckoutActions } from "./use-checkout-actions"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
+
+const resolveCompleteResultOrderMetadata = (result: unknown) => {
+  if (!(isRecord(result) && isRecord(result.order))) {
+    return null
+  }
+
+  return result.order.metadata
+}
 
 export function useCheckoutController() {
   const queryClient = useQueryClient()
@@ -83,7 +98,7 @@ export function useCheckoutController() {
   const updateCartMutation = useUpdateCart()
   const completeCheckoutMutation = storefront.flows.cart.useCompleteCart()
   const isUpdatingCartAddress = updateCartAddressMutation.isPending
-  const isBackfillingCartCountry = updateCartMutation.isPending
+  const isUpdatingCart = updateCartMutation.isPending
   const mutateCart = updateCartMutation.mutate
 
   const checkoutShippingQuery = storefront.flows.checkout.useCheckoutShipping(
@@ -154,7 +169,7 @@ export function useCheckoutController() {
       return
     }
 
-    if (cartCountryCode || isUpdatingCartAddress || isBackfillingCartCountry) {
+    if (cartCountryCode || isUpdatingCartAddress || isUpdatingCart) {
       return
     }
 
@@ -166,7 +181,7 @@ export function useCheckoutController() {
     cartQuery.cart?.id,
     cartQuery.cart?.shipping_address?.country_code,
     region?.country_code,
-    isBackfillingCartCountry,
+    isUpdatingCart,
     isUpdatingCartAddress,
     mutateCart,
   ])
@@ -198,8 +213,30 @@ export function useCheckoutController() {
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completedOrderId,
-    completeCart: () =>
-      completeCheckoutMutation.mutateAsync({ cartId: cartQuery.cart?.id }),
+    completeCart: async () => {
+      logCheckoutAccountSetupDebug("complete cart invoked", {
+        cart_id: cartQuery.cart?.id ?? null,
+        cart_metadata_requested: readAccountSetupRequested(
+          cartQuery.cart?.metadata
+        ),
+      })
+
+      const completeResult = await completeCheckoutMutation.mutateAsync({
+        cartId: cartQuery.cart?.id,
+      })
+
+      logCheckoutAccountSetupDebug("complete cart returned", {
+        has_result: Boolean(completeResult),
+        has_order_metadata:
+          resolveCompleteResultOrderMetadata(completeResult) !== null,
+        order_id: resolveOrderId(completeResult),
+        order_metadata_requested: readAccountSetupRequested(
+          resolveCompleteResultOrderMetadata(completeResult)
+        ),
+      })
+
+      return completeResult
+    },
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     itemCount: cartQuery.itemCount,
     onCompletedOrderIdChange: (orderId) => {
@@ -267,9 +304,26 @@ export function useCheckoutController() {
       }
 
       try {
-        await updateCartAddressMutation.mutateAsync({
+        const accountSetupMetadata = buildAccountSetupRequestedMetadata(
+          cartQuery.cart.metadata,
+          !authQuery.isAuthenticated && values.accountSetupRequested
+        )
+
+        logCheckoutAccountSetupDebug("address submit update cart request", {
+          cart_id: cartQuery.cart.id,
+          current_metadata_requested: readAccountSetupRequested(
+            cartQuery.cart.metadata
+          ),
+          form_requested: values.accountSetupRequested,
+          is_authenticated: authQuery.isAuthenticated,
+          payload_metadata_requested:
+            readAccountSetupRequested(accountSetupMetadata),
+        })
+
+        const updatedCart = await updateCartAddressMutation.mutateAsync({
           cartId: cartQuery.cart.id,
           email: values.shipping.email.trim(),
+          metadata: accountSetupMetadata,
           shippingAddress: buildHerbatikaCheckoutAddressInput(
             effectiveCheckoutDetails.shipping
           ),
@@ -278,6 +332,14 @@ export function useCheckoutController() {
           ),
           useSameAddress: effectiveCheckoutDetails.useSameAddress,
         })
+
+        logCheckoutAccountSetupDebug("address submit update cart response", {
+          cart_id: updatedCart.id,
+          response_metadata_requested: readAccountSetupRequested(
+            updatedCart.metadata
+          ),
+        })
+
         saveAddressSucceededRef.current = true
       } catch (error) {
         setCheckoutError(resolveErrorMessage(error, "Uloženie adresy zlyhalo."))
@@ -298,6 +360,70 @@ export function useCheckoutController() {
     }
 
     return saveAddressSucceededRef.current
+  }
+
+  const syncAccountSetupPreference = async () => {
+    const cart = cartQuery.cart
+
+    if (!cart?.id) {
+      setCheckoutError("Košík nie je pripravený.")
+      return false
+    }
+
+    const requested =
+      !authQuery.isAuthenticated &&
+      checkoutDetailsForm.values.accountSetupRequested
+
+    logCheckoutAccountSetupDebug("complete order metadata sync entered", {
+      cart_id: cart.id,
+      current_metadata_requested: readAccountSetupRequested(cart.metadata),
+      form_requested: checkoutDetailsForm.values.accountSetupRequested,
+      is_authenticated: authQuery.isAuthenticated,
+      requested,
+    })
+
+    if (readAccountSetupRequested(cart.metadata) === requested) {
+      logCheckoutAccountSetupDebug("complete order metadata already synced", {
+        cart_id: cart.id,
+        requested,
+      })
+      return true
+    }
+
+    try {
+      const updatedCart = await updateCartMutation.mutateAsync({
+        cartId: cart.id,
+        metadata: buildAccountSetupRequestedMetadata(cart.metadata, requested),
+      })
+
+      logCheckoutAccountSetupDebug("complete order metadata sync response", {
+        cart_id: updatedCart.id,
+        response_metadata_requested: readAccountSetupRequested(
+          updatedCart.metadata
+        ),
+      })
+
+      return true
+    } catch (error) {
+      setCheckoutError(
+        resolveErrorMessage(error, "Uloženie registrácie zlyhalo.")
+      )
+      return false
+    }
+  }
+
+  const handleCompleteOrder = async () => {
+    const didSyncAccountSetup = await syncAccountSetupPreference()
+
+    logCheckoutAccountSetupDebug("handle complete order sync verdict", {
+      did_sync_account_setup: didSyncAccountSetup,
+    })
+
+    if (!didSyncAccountSetup) {
+      return
+    }
+
+    await actions.handleCompleteOrder()
   }
 
   const currencyCode = resolveSupportedCurrencyCode(
@@ -372,6 +498,7 @@ export function useCheckoutController() {
     regionsQuery.isLoading ||
     regionsQuery.isFetching ||
     updateCartAddressMutation.isPending ||
+    updateCartMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
     completeCheckoutMutation.isPending
@@ -396,6 +523,7 @@ export function useCheckoutController() {
     completedOrderId,
     completeCheckoutMutation,
     currencyCode,
+    handleCompleteOrder,
     handleSaveAddress,
     hasItems,
     hasPayment,

@@ -1,4 +1,3 @@
-import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import {
   type CheckoutAddressScope,
@@ -276,19 +275,25 @@ export function CheckoutAddressSection({
           ) : null}
 
           {showRegistrationOptIn ? (
-            <FormCheckbox
-              className="md:col-span-2"
-              id={`${fieldPrefix}-registration-opt-in`}
-              label={
-                <>
-                  <span>Chcem sa registrovať</span>{" "}
-                  <span className="text-fg-secondary">
-                    (Informácie o registrácii Vám budú zaslané e-mailom)
-                  </span>
-                </>
-              }
-              size="sm"
-            />
+            <div className="md:col-span-2">
+              <checkoutDetailsForm.form.AppField name="accountSetupRequested">
+                {(field) => (
+                  <field.CheckboxField
+                    id={`${fieldPrefix}-registration-opt-in`}
+                    label={
+                      <>
+                        <span>Chcem sa registrovať</span>{" "}
+                        <span className="text-fg-secondary">
+                          (Informácie o registrácii Vám budú zaslané e-mailom)
+                        </span>
+                      </>
+                    }
+                    size="sm"
+                    validationMode="none"
+                  />
+                )}
+              </checkoutDetailsForm.form.AppField>
+            </div>
           ) : null}
         </div>
       </div>

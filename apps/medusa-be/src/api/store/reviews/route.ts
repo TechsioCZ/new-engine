@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
+  ensureCustomerPurchasedProduct,
   ensureProductExists,
   ensureReviewDoesNotExist,
   getCustomerId,
@@ -24,6 +25,11 @@ export async function POST(
     : getCustomerId(req)
 
   await ensureProductExists(req, product_id)
+
+  if (!tokenRecord) {
+    await ensureCustomerPurchasedProduct(req, customerId, product_id)
+  }
+
   await ensureReviewDoesNotExist({
     customerId,
     productId: product_id,

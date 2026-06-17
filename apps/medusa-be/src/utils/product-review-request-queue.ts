@@ -15,6 +15,7 @@ import {
 import { workflowQueueNames } from "./workflow-queue-registry"
 
 const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
+const PRODUCT_REVIEW_REQUEST_DEDUPE_KEY_PREFIX = "send-review-reminder"
 
 const ORDER_FIELDS = [
   "id",
@@ -43,18 +44,26 @@ type EmailLogService = EmailLogModuleService & {
 
 type WorkflowQueueItemDTO = {
   arguments: Record<string, unknown> | null
+  dedupe_key: string | null
   id: string
-  order_id?: null | string
   workflow: string
 }
 
 type WorkflowQueueService = WorkflowQueueModuleService & {
   createWorkflowQueueItems: (data: {
     arguments: Record<string, unknown>
-    order_id?: string
+    dedupe_key?: string
     run_at: Date
     workflow: string
   }) => Promise<WorkflowQueueItemDTO>
+  listWorkflowQueueItems: (
+    filters?: Record<string, unknown>,
+    config?: Record<string, unknown>
+  ) => Promise<WorkflowQueueItemDTO[]>
+}
+
+function getProductReviewRequestDedupeKey(orderId: string) {
+  return `${PRODUCT_REVIEW_REQUEST_DEDUPE_KEY_PREFIX}-${orderId}`
 }
 
 function isReviewRequestOrder(value: unknown): value is ReviewRequestOrder {
@@ -106,22 +115,23 @@ async function hasReviewRequestEmailLog(
 
 async function hasQueuedReviewRequest(
   container: MedusaContainer,
-  orderId: string
+  dedupeKey: string
 ) {
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: "workflow_queue_item",
-    fields: ["id"],
-    filters: {
-      order_id: orderId,
+  const workflowQueueService = container.resolve<WorkflowQueueService>(
+    WORKFLOW_QUEUE_MODULE
+  )
+  const items = await workflowQueueService.listWorkflowQueueItems(
+    {
+      dedupe_key: dedupeKey,
       workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
     },
-    pagination: {
+    {
+      select: ["id"],
       take: 1,
-    },
-  })
+    }
+  )
 
-  return Array.isArray(data) && data.length > 0
+  return items.length > 0
 }
 
 export async function scheduleProductReviewRequestForOrder({
@@ -149,9 +159,10 @@ export async function scheduleProductReviewRequestForOrder({
     return null
   }
 
+  const dedupeKey = getProductReviewRequestDedupeKey(order.id)
   const [alreadySent, alreadyQueued] = await Promise.all([
     hasReviewRequestEmailLog(container, order.id),
-    hasQueuedReviewRequest(container, order.id),
+    hasQueuedReviewRequest(container, dedupeKey),
   ])
 
   if (alreadySent || alreadyQueued) {
@@ -177,7 +188,7 @@ export async function scheduleProductReviewRequestForOrder({
 
   const queueItem = await workflowQueueService.createWorkflowQueueItems({
     workflow: workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST,
-    order_id: order.id,
+    dedupe_key: dedupeKey,
     run_at: runAt,
     arguments: {
       order_id: order.id,
