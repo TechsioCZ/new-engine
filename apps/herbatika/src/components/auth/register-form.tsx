@@ -1,8 +1,8 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
-import { useStore } from "@tanstack/react-form"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
@@ -44,10 +44,7 @@ export const RegisterForm = ({
       formApi.reset(defaultValues)
     },
   })
-  const accountType = useStore(
-    form.store,
-    (state) => state.values.account_type
-  )
+  const accountType = useStore(form.store, (state) => state.values.account_type)
   const isWholesaleAccount = accountType === "wholesale"
 
   return (
@@ -60,7 +57,7 @@ export const RegisterForm = ({
         runDetachedPromise(form.handleSubmit())
       }}
     >
-      <div className="flex flex-nowrap col-span-2">
+      <div className="col-span-2 flex flex-nowrap">
         <RegisterAccountTypeField form={form} />
       </div>
 

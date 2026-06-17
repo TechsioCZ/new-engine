@@ -19,7 +19,7 @@ export function RegisterWholesaleFields({
   onValueChange,
 }: RegisterWholesaleFieldsProps) {
   return (
-    <fieldset className="grid gap-250 rounded-sm col-span-2 md:grid-cols-2">
+    <fieldset className="col-span-2 grid gap-250 rounded-sm md:grid-cols-2">
       <legend className="sr-only">Firemné údaje</legend>
       <div className="md:col-span-2">
         <form.AppField

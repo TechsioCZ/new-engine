@@ -1,16 +1,12 @@
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
-import {
+
+export {
   COUNTRY_SELECT_ITEMS,
-  isCountryAvailableForRegion,
-  resolveCountryItemsForRegion,
+  isCountryAvailableForRegion as isCheckoutCountryAvailableForRegion,
+  resolveCountryItemsForRegion as resolveCheckoutCountryItemsForRegion,
 } from "@/lib/forms/country-options"
 
 export type AddressFormState = CheckoutAddressValues
-
-export { COUNTRY_SELECT_ITEMS }
-
-export const resolveCheckoutCountryItemsForRegion = resolveCountryItemsForRegion
-export const isCheckoutCountryAvailableForRegion = isCountryAvailableForRegion
 
 export const CHECKOUT_STEPS = [
   { id: "cart", slug: "kosik", title: "Košík" },

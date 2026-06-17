@@ -53,11 +53,11 @@ const resolveCountryCodes = ({
   )
   const normalizedActiveCountryCode = normalizeCountryCode(activeCountryCode)
 
-  if (
-    normalizedActiveCountryCode &&
-    (regionCountryCodes.size === 0 ||
-      regionCountryCodes.has(normalizedActiveCountryCode))
-  ) {
+  if (regionCountryCodes.size > 0) {
+    return regionCountryCodes
+  }
+
+  if (normalizedActiveCountryCode) {
     return new Set([normalizedActiveCountryCode])
   }
 

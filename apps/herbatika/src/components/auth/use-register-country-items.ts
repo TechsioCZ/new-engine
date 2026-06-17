@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo } from "react"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { useMemo } from "react"
 import { resolveCountryItemsForRegion } from "@/lib/forms/country-options"
 import {
   REGION_LIST_FIELDS,

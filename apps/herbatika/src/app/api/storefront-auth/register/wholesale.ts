@@ -1,9 +1,11 @@
 import type { NextResponse } from "next/server"
+import { normalizeCountryCode } from "@/lib/forms/country-options"
 import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
   getPublishableHeaders,
+  isConflictStatus,
 } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 
@@ -67,11 +69,19 @@ export const parseWholesaleRegistration = (
   const address1 = asStringOrUndefined(billingAddress.address_1)
   const city = asStringOrUndefined(billingAddress.city)
   const postalCode = asStringOrUndefined(billingAddress.postal_code)
-  const countryCode = asStringOrUndefined(billingAddress.country_code)
+  const rawCountryCode = asStringOrUndefined(billingAddress.country_code)
 
-  if (!(address1 && city && postalCode && countryCode)) {
+  if (!(address1 && city && postalCode && rawCountryCode)) {
     return {
       error: badRequest("Fakturačná adresa je povinná."),
+      value: null,
+    }
+  }
+
+  const countryCode = normalizeCountryCode(rawCountryCode)
+  if (!countryCode) {
+    return {
+      error: badRequest("Vyberte platnú krajinu fakturačnej adresy."),
       value: null,
     }
   }
@@ -119,14 +129,16 @@ export const createWholesaleCompanyRequest = async ({
     body: JSON.stringify({
       name: wholesale.companyName,
       email,
-      currency_code: wholesale.currencyCode,
+      currency_code: wholesale.currencyCode.toLowerCase(),
       address: createCompanyAddressLine(wholesale.billingAddress),
       city: wholesale.billingAddress.city,
       zip: wholesale.billingAddress.postalCode,
-      country: wholesale.billingAddress.countryCode,
+      country: wholesale.billingAddress.countryCode.toLowerCase(),
     }),
     cache: "no-store",
   })
 
-  return response.ok ? null : buildErrorResponse(response)
+  return response.ok || isConflictStatus(response.status)
+    ? null
+    : buildErrorResponse(response)
 }

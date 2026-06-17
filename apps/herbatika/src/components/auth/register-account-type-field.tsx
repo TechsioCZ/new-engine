@@ -20,7 +20,7 @@ const REGISTER_ACCOUNT_TYPE_ITEMS = [
   {
     value: "wholesale",
     label: "VO zákazník",
-    description: "Po registrácii bude žiadosť čakať na schválenie.",
+    description: "Po registrácii odošleme žiadosť na schválenie.",
   },
 ]
 

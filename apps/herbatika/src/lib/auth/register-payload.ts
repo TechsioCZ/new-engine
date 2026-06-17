@@ -27,11 +27,12 @@ export const buildAuthRegisterInput = (
           currency_code: currencyCode,
           billing_address: {
             address_1: trimValue(values.billing_address_1),
-            address_2: trimValue(values.billing_address_2),
+            address_2: trimValue(values.billing_address_2) || undefined,
             city: trimValue(values.billing_city),
             postal_code: trimValue(values.billing_postal_code),
             country_code:
-              normalizeCountryCode(values.billing_country_code) ?? "SK",
+              normalizeCountryCode(values.billing_country_code) ??
+              trimValue(values.billing_country_code),
           },
         },
       }

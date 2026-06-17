@@ -1,9 +1,12 @@
+import type { HttpTypes } from "@medusajs/types"
 import { NextResponse } from "next/server"
 import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  conflict,
   getPublishableHeaders,
+  isConflictStatus,
   parseResponseJson,
   serverError,
   setSessionTokenCookie,
@@ -25,8 +28,6 @@ type RegisterBody = {
 type RegisterResponse = {
   token: string
 }
-
-const isConflictStatus = (status: number) => status === 409
 
 const createRegisterResponse = (token: string) => {
   const response = NextResponse.json<RegisterResponse>(
@@ -125,8 +126,15 @@ export async function POST(request: Request) {
       }
     )
 
-    if (!registerResponse.ok && !isConflictStatus(registerResponse.status)) {
+    const registerConflict = isConflictStatus(registerResponse.status)
+    if (!(registerResponse.ok || registerConflict)) {
       return buildErrorResponse(registerResponse)
+    }
+
+    if (registerConflict && wholesale) {
+      return conflict(
+        "Účet s týmto e-mailom už existuje. Prihláste sa a požiadajte o VO účet cez podporu."
+      )
     }
 
     const loginResponse = await fetch(
@@ -160,6 +168,20 @@ export async function POST(request: Request) {
       )
     }
 
+    const customerProfile: HttpTypes.StoreCreateCustomer = {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      ...(wholesale
+        ? {
+            company_name: wholesale.companyName,
+            metadata: {
+              company_identifier: wholesale.companyIdentifier,
+            },
+          }
+        : {}),
+    }
+
     const createCustomerResponse = await fetch(
       buildMedusaUrl("/store/customers"),
       {
@@ -169,21 +191,13 @@ export async function POST(request: Request) {
           authorization: `Bearer ${loginToken}`,
           ...getPublishableHeaders(),
         },
-        body: JSON.stringify({
-          email,
-          first_name: firstName,
-          last_name: lastName,
-        }),
+        body: JSON.stringify(customerProfile),
         cache: "no-store",
       }
     )
 
-    if (
-      !(
-        createCustomerResponse.ok ||
-        isConflictStatus(createCustomerResponse.status)
-      )
-    ) {
+    const customerConflict = isConflictStatus(createCustomerResponse.status)
+    if (!(createCustomerResponse.ok || customerConflict)) {
       return buildErrorResponse(createCustomerResponse)
     }
 

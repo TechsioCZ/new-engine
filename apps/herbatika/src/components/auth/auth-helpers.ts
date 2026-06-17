@@ -72,7 +72,7 @@ export const buildRegisterSuccessNotice = ({
 }) =>
   [
     isWholesale
-      ? "Žiadosť o VO účet čaká na schválenie. Do rozhodnutia môžete nakupovať ako bežný zákazník."
+      ? "Žiadosť o VO účet bola odoslaná na schválenie. Do rozhodnutia môžete nakupovať ako bežný zákazník."
       : null,
     transferNotice,
   ]

@@ -39,6 +39,6 @@ export type RegisterFormController = AppFieldExtendedReactFormApi<
   RegisterFormAsyncValidate,
   unknown,
   HerbatikaFieldComponents,
-  {}
+  Record<never, never>
 >
 export type RegisterFieldChangeHandler = () => void
