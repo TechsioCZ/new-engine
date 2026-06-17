@@ -1,9 +1,8 @@
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { MedusaRequest } from "@medusajs/framework/http"
-import { MedusaError } from "@medusajs/framework/utils"
 import fontkit from "fontkit"
-import { PageSizes, PDFDocument } from "pdf-lib"
+import { PageSizes, PDFDocument, StandardFonts } from "pdf-lib"
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import type { DrawState } from "./types"
 
@@ -27,8 +26,12 @@ export async function createExpeditionPdfContext(
     readPdfFontBytes(FONT_SEARCH_PREFIXES.regular),
     readPdfFontBytes(FONT_SEARCH_PREFIXES.bold),
   ])
-  const regularFont = await document.embedFont(regularFontBytes)
-  const boldFont = await document.embedFont(boldFontBytes)
+  const regularFont = regularFontBytes
+    ? await document.embedFont(regularFontBytes)
+    : await document.embedFont(StandardFonts.Helvetica)
+  const boldFont = boldFontBytes
+    ? await document.embedFont(boldFontBytes)
+    : await document.embedFont(StandardFonts.HelveticaBold)
 
   return {
     document,
@@ -66,8 +69,5 @@ async function readPdfFontBytes(prefixes: readonly string[]) {
     }
   }
 
-  throw new MedusaError(
-    MedusaError.Types.NOT_FOUND,
-    `PDF font not found for prefixes: ${prefixes.join(", ")}`
-  )
+  return null
 }
