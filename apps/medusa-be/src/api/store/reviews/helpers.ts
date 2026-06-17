@@ -22,6 +22,21 @@ type ProductRecord = {
   id: string
 }
 
+type PaymentRecord = {
+  captured_at?: Date | string | null
+}
+
+type PaymentCollectionRecord = {
+  captured_amount?: number | string | null
+  payments?: PaymentRecord[] | null
+  status?: string | null
+}
+
+type OrderRecord = {
+  id: string
+  payment_collections?: PaymentCollectionRecord[] | null
+}
+
 export type ReviewTokenDTO = {
   customer_id: string | null
   email: string
@@ -41,6 +56,19 @@ const isCustomerRecord = (value: unknown): value is CustomerRecord =>
 
 const isProductRecord = (value: unknown): value is ProductRecord =>
   isRecord(value) && typeof value.id === "string"
+
+const isOrderRecord = (value: unknown): value is OrderRecord =>
+  isRecord(value) && typeof value.id === "string"
+
+const isPaymentCaptured = (payment: PaymentRecord) => Boolean(payment.captured_at)
+
+const isPaymentCollectionPaid = (collection: PaymentCollectionRecord) =>
+  collection.status === "completed" ||
+  Number(collection.captured_amount ?? 0) > 0 ||
+  collection.payments?.some(isPaymentCaptured) === true
+
+const isOrderPaid = (order: OrderRecord) =>
+  order.payment_collections?.some(isPaymentCollectionPaid) === true
 
 type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   listReviewTokens: (
@@ -213,17 +241,25 @@ export async function ensureCustomerPurchasedProduct(
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "order",
-    fields: ["id"],
+    fields: [
+      "id",
+      "payment_collections.status",
+      "payment_collections.captured_amount",
+      "payment_collections.payments.captured_at",
+    ],
     filters: {
       customer_id: customerId,
       items: {
         product_id: productId,
       },
-      payment_status: ["captured", "completed"],
     },
   })
 
-  if (!Array.isArray(data) || data.length === 0) {
+  const customerPurchasedProduct =
+    Array.isArray(data) &&
+    data.some((order) => (isOrderRecord(order) ? isOrderPaid(order) : false))
+
+  if (!customerPurchasedProduct) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
       "You can only review products you have purchased."
