@@ -103,12 +103,10 @@ export function CheckoutPickupPointDetailsSection({
               validators={checkoutFieldValidators.shipping.phone}
             >
               {(field) => (
-                <field.TextField
-                  autoComplete="tel"
+                <field.PhoneField
                   id="checkout-pickup-phone"
                   label="Telefón"
                   required
-                  type="tel"
                   validationMode="blur"
                 />
               )}
