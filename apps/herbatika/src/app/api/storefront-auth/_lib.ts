@@ -50,8 +50,13 @@ export const buildErrorResponse = async (response: Response) => {
   )
 }
 
+export const isConflictStatus = (status: number) => status === 409
+
 export const badRequest = (message: string) =>
   NextResponse.json<ErrorPayload>({ message }, { status: 400 })
+
+export const conflict = (message: string) =>
+  NextResponse.json<ErrorPayload>({ message }, { status: 409 })
 
 export const serverError = (message: string, details?: unknown) =>
   NextResponse.json<ErrorPayload>(

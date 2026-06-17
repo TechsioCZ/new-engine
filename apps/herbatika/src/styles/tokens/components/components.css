@@ -21,6 +21,7 @@
 @import "./molecules/_herbatika-slider.css";
 @import "./molecules/_herbatika-steps.css";
 @import "./molecules/_herbatika-tabs.css";
+@import "./molecules/_herbatika-toast.css";
 
 @import "./organisms/_herbatika-footer.css";
 @import "./organisms/_herbatika-header.css";

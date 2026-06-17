@@ -114,6 +114,7 @@ export const authService = {
       password: input.password,
       first_name: input.first_name,
       last_name: input.last_name,
+      wholesale: input.wholesale,
     })
 
     await storeToken(token)

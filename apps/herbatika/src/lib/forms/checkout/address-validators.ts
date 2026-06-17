@@ -2,6 +2,7 @@ import type {
   CheckoutAddressValues,
   CheckoutDetailsValues,
 } from "@/lib/forms/checkout/address.form"
+import { normalizeCountryCode } from "@/lib/forms/country-options"
 import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories"
 import {
   validateCustomerName,
@@ -74,6 +75,10 @@ const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
 const validateCountryCode: CheckoutAddressFieldValidator = (value) => {
   if (!value.trim()) {
     return "Vyberte krajinu."
+  }
+
+  if (!normalizeCountryCode(value)) {
+    return "Vyberte platnú krajinu."
   }
 
   return

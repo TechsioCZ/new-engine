@@ -1,35 +1,33 @@
+import type { HttpTypes } from "@medusajs/types"
 import { NextResponse } from "next/server"
 import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  conflict,
   getPublishableHeaders,
+  isConflictStatus,
   parseResponseJson,
   serverError,
   setSessionTokenCookie,
 } from "../_lib"
+import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
+import {
+  createWholesaleCompanyRequest,
+  parseWholesaleRegistration,
+} from "./wholesale"
 
 type RegisterBody = {
   email?: string
   password?: string
   first_name?: string
   last_name?: string
+  wholesale?: unknown
 }
 
 type RegisterResponse = {
   token: string
 }
-
-const asStringOrUndefined = (value: unknown) => {
-  if (typeof value !== "string") {
-    return
-  }
-
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
-
-const isConflictStatus = (status: number) => status === 409
 
 const createRegisterResponse = (token: string) => {
   const response = NextResponse.json<RegisterResponse>(
@@ -44,13 +42,31 @@ const createRegisterResponse = (token: string) => {
 }
 
 const parseRegisterBody = async (request: Request) => {
-  const body = (await request.json()) as RegisterBody
+  const body = asRecordOrUndefined(await request.json()) as
+    | RegisterBody
+    | undefined
+
+  if (!body) {
+    return {
+      error: badRequest("Telo požiadavky musí byť platný JSON objekt."),
+      value: null,
+    }
+  }
+
   const email = asStringOrUndefined(body.email)
   const password = asStringOrUndefined(body.password)
 
   if (!(email && password)) {
     return {
       error: badRequest("E-mail aj heslo sú povinné."),
+      value: null,
+    }
+  }
+
+  const wholesale = parseWholesaleRegistration(body.wholesale)
+  if (wholesale.error) {
+    return {
+      error: wholesale.error,
       value: null,
     }
   }
@@ -62,6 +78,7 @@ const parseRegisterBody = async (request: Request) => {
       password,
       firstName: asStringOrUndefined(body.first_name),
       lastName: asStringOrUndefined(body.last_name),
+      wholesale: wholesale.value,
     },
   }
 }
@@ -92,7 +109,8 @@ export async function POST(request: Request) {
       return parsedBody.error
     }
 
-    const { email, firstName, lastName, password } = parsedBody.value
+    const { email, firstName, lastName, password, wholesale } =
+      parsedBody.value
     const registerResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/register"),
       {
@@ -108,8 +126,15 @@ export async function POST(request: Request) {
       }
     )
 
-    if (!registerResponse.ok) {
+    const registerConflict = isConflictStatus(registerResponse.status)
+    if (!(registerResponse.ok || registerConflict)) {
       return buildErrorResponse(registerResponse)
+    }
+
+    if (registerConflict && wholesale) {
+      return conflict(
+        "Účet s týmto e-mailom už existuje. Prihláste sa a požiadajte o VO účet cez podporu."
+      )
     }
 
     const loginResponse = await fetch(
@@ -143,6 +168,20 @@ export async function POST(request: Request) {
       )
     }
 
+    const customerProfile: HttpTypes.StoreCreateCustomer = {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      ...(wholesale
+        ? {
+            company_name: wholesale.companyName,
+            metadata: {
+              company_identifier: wholesale.companyIdentifier,
+            },
+          }
+        : {}),
+    }
+
     const createCustomerResponse = await fetch(
       buildMedusaUrl("/store/customers"),
       {
@@ -152,25 +191,31 @@ export async function POST(request: Request) {
           authorization: `Bearer ${loginToken}`,
           ...getPublishableHeaders(),
         },
-        body: JSON.stringify({
-          email,
-          first_name: firstName,
-          last_name: lastName,
-        }),
+        body: JSON.stringify(customerProfile),
         cache: "no-store",
       }
     )
 
-    if (
-      !(
-        createCustomerResponse.ok ||
-        isConflictStatus(createCustomerResponse.status)
-      )
-    ) {
+    const customerConflict = isConflictStatus(createCustomerResponse.status)
+    if (!(createCustomerResponse.ok || customerConflict)) {
       return buildErrorResponse(createCustomerResponse)
     }
 
-    return createRegisterResponse(await refreshCustomerToken(loginToken))
+    const sessionToken = await refreshCustomerToken(loginToken)
+
+    if (wholesale) {
+      const companyError = await createWholesaleCompanyRequest({
+        email,
+        token: sessionToken,
+        wholesale,
+      })
+
+      if (companyError) {
+        return companyError
+      }
+    }
+
+    return createRegisterResponse(sessionToken)
   } catch (error) {
     if (error instanceof SyntaxError) {
       return badRequest("Telo požiadavky musí byť platné JSON.")
