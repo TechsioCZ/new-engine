@@ -58,6 +58,7 @@ export type OrderExpeditionAddress = {
   city?: string | null
   province?: string | null
   country_code?: string | null
+  phone?: string | null
 }
 
 export type OrderExpeditionShippingMethod = {
@@ -71,7 +72,16 @@ export type OrderExpeditionLineItem = {
   id?: string | null
   title?: string | null
   subtitle?: string | null
+  thumbnail?: string | null
   quantity?: number | string | { value?: number | string | null } | null
+  raw_quantity?: OrderExpeditionRawAmount | null
+  detail?: {
+    quantity?: number | string | null
+    raw_quantity?: OrderExpeditionRawAmount | null
+  } | null
+  unit_price?: number | string | OrderExpeditionAmountLike | null
+  raw_unit_price?: OrderExpeditionRawAmount | null
+  variant_id?: string | null
   variant_sku?: string | null
   variant_title?: string | null
 }
@@ -112,7 +122,9 @@ export type OrderExpeditionSummary = {
 export type OrderExpeditionFulfillment = {
   id?: string | null
   canceled_at?: string | null
+  data?: Record<string, unknown> | null
   delivered_at?: Date | string | null
+  provider_id?: string | null
   shipped_at?: Date | string | null
 }
 
@@ -158,7 +170,11 @@ export type OrderExpeditionItemDto = {
   title: string
   quantity: number
   sku?: string | null
+  stock_quantity?: number | null
+  thumbnail?: string | null
+  unit_price?: number | string | null
   variant?: string | null
+  variant_id?: string | null
 }
 
 export type OrderExpeditionOrderDto = {
@@ -177,9 +193,11 @@ export type OrderExpeditionOrderDto = {
   fulfillment_status?: string | null
   status?: string | null
   manual_status?: ManualOrderBusinessStatusId | null
+  packeta_barcode?: string | null
   total?: number | string | null
   has_active_fulfillment: boolean
   items: OrderExpeditionItemDto[]
+  note?: string | null
 }
 
 export type OrderExpeditionBlockingOrder = {
@@ -230,18 +248,28 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "shipping_address.city",
   "shipping_address.province",
   "shipping_address.country_code",
+  "shipping_address.phone",
   "shipping_methods.id",
   "shipping_methods.name",
   "shipping_methods.shipping_option_id",
   "shipping_methods.data",
   "fulfillments.id",
   "fulfillments.canceled_at",
+  "fulfillments.data",
+  "fulfillments.provider_id",
   "fulfillments.delivered_at",
   "fulfillments.shipped_at",
   "items.id",
   "items.title",
   "items.subtitle",
+  "items.thumbnail",
   "items.quantity",
+  "items.raw_quantity",
+  "items.detail.quantity",
+  "items.detail.raw_quantity",
+  "items.unit_price",
+  "items.raw_unit_price",
+  "items.variant_id",
   "items.variant_sku",
   "items.variant_title",
   "payment_collections.status",
@@ -423,9 +451,11 @@ export function toOrderExpeditionDto(
     fulfillment_status: order.fulfillment_status,
     status: order.status,
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
+    packeta_barcode: getOrderExpeditionPacketaBarcode(order.fulfillments),
     total: getOrderExpeditionTotal(order),
     has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
     items: (order.items ?? []).map(toOrderExpeditionItemDto),
+    note: getOrderExpeditionNote(order.metadata),
   }
 }
 
@@ -520,7 +550,35 @@ function formatOrderExpeditionAddress(address?: OrderExpeditionAddress | null) {
     joinNonEmpty([address.postal_code, address.city]),
     joinNonEmpty([address.province]),
     joinNonEmpty([address.country_code?.toUpperCase()]),
+    joinNonEmpty([address.phone]),
   ].filter(Boolean)
+}
+
+function getOrderExpeditionPacketaBarcode(
+  fulfillments?: OrderExpeditionFulfillment[] | null
+) {
+  const packetaFulfillment = fulfillments?.find(
+    (fulfillment) =>
+      fulfillment.provider_id?.toLowerCase().includes("packeta") &&
+      !fulfillment.canceled_at
+  )
+  const barcode = packetaFulfillment?.data?.barcode
+  const barcodeText = packetaFulfillment?.data?.barcodeText
+  const packetId = packetaFulfillment?.data?.packet_id
+
+  if (typeof barcode === "string" && barcode.trim()) {
+    return barcode.trim()
+  }
+
+  if (typeof barcodeText === "string" && barcodeText.trim()) {
+    return barcodeText.trim()
+  }
+
+  if (typeof packetId === "number" || typeof packetId === "string") {
+    return String(packetId)
+  }
+
+  return null
 }
 
 function getOrderExpeditionPaymentMethod(order: OrderExpeditionRawOrder) {
@@ -648,15 +706,41 @@ function isNonZeroAmount(value: number | string | undefined) {
 function toOrderExpeditionItemDto(
   item: OrderExpeditionLineItem
 ): OrderExpeditionItemDto {
-  const quantity = getOrderExpeditionItemQuantity(item.quantity)
+  const quantity = getOrderExpeditionItemQuantity(
+    item.detail?.quantity ??
+      item.detail?.raw_quantity ??
+      item.quantity ??
+      item.raw_quantity
+  )
 
   return {
     id: item.id,
     title: item.title || item.subtitle || item.id || "Untitled item",
     quantity,
     sku: item.variant_sku,
+    thumbnail: item.thumbnail,
+    unit_price:
+      normalizeOrderExpeditionAmount(item.unit_price) ??
+      normalizeOrderExpeditionAmount(item.raw_unit_price) ??
+      null,
     variant: item.variant_title,
+    variant_id: item.variant_id,
   }
+}
+
+function getOrderExpeditionNote(metadata?: Record<string, unknown> | null) {
+  if (!metadata) {
+    return null
+  }
+
+  for (const key of ["note", "notes", "customer_note", "comment"]) {
+    const value = metadata[key]
+    if (typeof value === "string" && value.trim()) {
+      return value.trim()
+    }
+  }
+
+  return null
 }
 
 function getOrderExpeditionItemQuantity(

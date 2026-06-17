@@ -14,7 +14,8 @@ export const isCheckoutAccountSetupDebugEnabled = () => {
 
   return (
     params.get("debugAccountSetup") === "1" ||
-    window.localStorage.getItem(CHECKOUT_ACCOUNT_SETUP_DEBUG_STORAGE_KEY) === "1"
+    window.localStorage.getItem(CHECKOUT_ACCOUNT_SETUP_DEBUG_STORAGE_KEY) ===
+      "1"
   )
 }
 

@@ -20,8 +20,8 @@ import {
 } from "@/lib/forms/checkout/address.form"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
-import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { readAccountSetupRequested } from "./account-setup-metadata"
+import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { readStoredCarrierPickupSelection } from "./carrier-pickup-selection-storage"
 

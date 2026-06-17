@@ -38,17 +38,17 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
 import {
-  isCheckoutCountryAvailableForRegion,
-  resolveCheckoutCountryItemsForRegion,
-} from "./checkout.constants"
-import {
   buildAccountSetupRequestedMetadata,
   isRecord,
   readAccountSetupRequested,
 } from "./account-setup-metadata"
+import {
+  isCheckoutCountryAvailableForRegion,
+  resolveCheckoutCountryItemsForRegion,
+} from "./checkout.constants"
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
-import { resolveOrderId } from "./checkout-completion.utils"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
+import { resolveOrderId } from "./checkout-completion.utils"
 import {
   clearStoredPaymentProviderSelection,
   readStoredPaymentProviderSelection,

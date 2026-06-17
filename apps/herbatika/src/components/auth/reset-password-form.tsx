@@ -62,11 +62,7 @@ export const ResetPasswordForm = ({
         </StatusText>
         <p className="text-fg-secondary text-sm">{text.expiredHelp}</p>
         <div className="flex flex-wrap gap-200">
-          <LinkButton
-            href={text.expiredHref}
-            size="sm"
-            variant="primary"
-          >
+          <LinkButton href={text.expiredHref} size="sm" variant="primary">
             {text.expiredLinkLabel}
           </LinkButton>
         </div>
@@ -81,11 +77,7 @@ export const ResetPasswordForm = ({
           {text.successMessage}
         </StatusText>
         <div className="flex flex-wrap gap-200">
-          <LinkButton
-            href={loginHref}
-            size="sm"
-            variant="primary"
-          >
+          <LinkButton href={loginHref} size="sm" variant="primary">
             Prejsť na prihlásenie
           </LinkButton>
         </div>
