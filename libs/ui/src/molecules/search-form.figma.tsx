@@ -12,11 +12,14 @@ figma.connect(
         md: "md",
         lg: "lg",
       }),
+      gapped: figma.boolean("gapped"),
     },
-    example: ({ size }) => (
-      <SearchForm size={size}>
-        <SearchForm.Input placeholder="Search..." />
-        <SearchForm.Button />
+    example: ({ size, gapped }) => (
+      <SearchForm gapped={gapped} size={size}>
+        <SearchForm.Control>
+          <SearchForm.Input placeholder="Search..." />
+          <SearchForm.Button />
+        </SearchForm.Control>
       </SearchForm>
     ),
   }

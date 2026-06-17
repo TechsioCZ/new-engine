@@ -16,50 +16,39 @@ import { tv } from "../utils"
 
 const searchFormVariants = tv({
   slots: {
+    // Layout-only wrapper. The input and button are composed side by side and
+    // each keep their own border, background, radius, and focus ring so they
+    // focus independently instead of sharing one ring around the whole group.
     root: ["relative grid"],
-    control: [
-      "relative flex items-center overflow-hidden",
-      "form-control-base",
-      "hover:border-input-border-hover",
-      "focus-within:border-input-border-focus",
-      "focus-within:outline-(style:--default-ring-style) focus-within:outline-(length:--default-ring-width)",
-      "focus-within:outline-input-ring",
-      "focus-within:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    input: [
-      "peer",
-      "min-w-0 flex-1",
-      "border-none bg-transparent",
-      "focus-visible:outline-none",
-    ],
-    button: [
-      "h-full shrink-0 items-center rounded-l-none",
-    ],
-    clearButton: [
-      "h-full shrink-0 rounded-none p-search-form-clear-button",
-      "peer-hover:bg-input-hover peer-focus:bg-input-focus",
-    ],
+    control: ["flex items-stretch"],
+    // The input keeps its own styling/focus ring from the Input atom.
+    input: ["peer", "min-w-0 flex-1"],
+    // The button keeps its own styling/focus ring from the Button atom.
+    button: ["shrink-0"],
+    clearButton: ["shrink-0 self-stretch rounded-none"],
   },
   variants: {
     size: {
-      sm: {
-        root: "gap-search-form-sm",
-        control:
-          "h-form-control-sm rounded-search-form-sm",
+      // Pin the button to the shared form-control height so it always matches
+      // the input height — including `lg`, which the Button atom sizes by
+      // padding alone.
+      sm: { root: "gap-search-form-sm", button: "h-form-control-sm" },
+      md: { root: "gap-search-form-md", button: "h-form-control-md" },
+      lg: { root: "gap-search-form-lg", button: "h-form-control-lg" },
+    },
+    gapped: {
+      // Joined: strip the touching corners so the two controls read as one.
+      false: {
+        input: "rounded-e-none",
+        button: "rounded-s-none",
       },
-      md: {
-        root: "gap-search-form-md",
-        control:
-          "h-form-control-md rounded-search-form-md",
-      },
-      lg: {
-        root: "gap-search-form-lg",
-      },
+      // Detached: 8px gap and the controls keep their full rounded corners.
+      true: { control: "gap-search-form-gapped" },
     },
   },
   defaultVariants: {
     size: "md",
+    gapped: false,
   },
 })
 
@@ -67,6 +56,7 @@ export type SearchFormSize = "sm" | "md" | "lg"
 
 type SearchFormContextValue = {
   size: SearchFormSize
+  gapped: boolean
   inputId: string
   inputValue: string
   setInputValue: (value: string) => void
@@ -96,6 +86,7 @@ export interface SearchFormProps
 
 export function SearchForm({
   size = "md",
+  gapped = false,
   children,
   defaultValue = "",
   value,
@@ -127,12 +118,13 @@ export function SearchForm({
     onSubmit?.(e)
   }
 
-  const styles = searchFormVariants({ size })
+  const styles = searchFormVariants({ size, gapped })
 
   return (
     <SearchFormContext.Provider
       value={{
         size,
+        gapped,
         inputId,
         inputValue,
         setInputValue,
@@ -180,8 +172,8 @@ SearchForm.Control = function SearchFormControl({
   ref,
   ...props
 }: SearchFormControlProps) {
-  const { size } = useSearchFormContext()
-  const styles = searchFormVariants({ size })
+  const { size, gapped } = useSearchFormContext()
+  const styles = searchFormVariants({ size, gapped })
 
   return (
     <div className={styles.control({ className })} ref={ref} {...props}>
@@ -199,8 +191,9 @@ SearchForm.Input = function SearchFormInput({
   ref,
   ...props
 }: SearchFormInputProps) {
-  const { inputId, inputValue, setInputValue, size } = useSearchFormContext()
-  const styles = searchFormVariants({ size })
+  const { inputId, inputValue, setInputValue, size, gapped } =
+    useSearchFormContext()
+  const styles = searchFormVariants({ size, gapped })
 
   return (
     <Input
@@ -230,8 +223,8 @@ SearchForm.Button = function SearchFormButton({
   iconPosition = "right",
   ...props
 }: SearchFormButtonProps) {
-  const { size } = useSearchFormContext()
-  const styles = searchFormVariants({ size })
+  const { size, gapped } = useSearchFormContext()
+  const styles = searchFormVariants({ size, gapped })
 
   // Use provided icon, or search icon if showSearchIcon is true
   const effectiveIcon =
@@ -260,8 +253,9 @@ SearchForm.ClearButton = function SearchFormClearButton({
   theme = "unstyled",
   ...props
 }: SearchFormClearButtonProps) {
-  const { size, clearInput, hasValue, inputValue } = useSearchFormContext()
-  const styles = searchFormVariants({ size })
+  const { size, gapped, clearInput, hasValue, inputValue } =
+    useSearchFormContext()
+  const styles = searchFormVariants({ size, gapped })
 
   if (!hasValue) {
     return null
