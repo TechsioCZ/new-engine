@@ -258,6 +258,26 @@
       "types": "./dist/src/product-lists/utils.d.ts",
       "import": "./dist/product-lists/utils.js"
     },
+    "./reviews/hooks": {
+      "types": "./dist/src/reviews/hooks.d.ts",
+      "import": "./dist/reviews/hooks.js"
+    },
+    "./reviews/medusa-service": {
+      "types": "./dist/src/reviews/medusa-service.d.ts",
+      "import": "./dist/reviews/medusa-service.js"
+    },
+    "./reviews/query-keys": {
+      "types": "./dist/src/reviews/query-keys.d.ts",
+      "import": "./dist/reviews/query-keys.js"
+    },
+    "./reviews/query-options": {
+      "types": "./dist/src/reviews/query-options.d.ts",
+      "import": "./dist/reviews/query-options.js"
+    },
+    "./reviews/types": {
+      "types": "./dist/src/reviews/types.d.ts",
+      "import": "./dist/reviews/types.js"
+    },
     "./regions/hooks": {
       "types": "./dist/src/regions/hooks.d.ts",
       "import": "./dist/regions/hooks.js"

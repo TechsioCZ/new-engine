@@ -5,6 +5,8 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import type { MouseEvent } from "react"
+import { FractionalRating } from "@/components/reviews/fractional-rating"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import {
   PRODUCT_REVIEWS,
@@ -22,8 +24,10 @@ type ReviewsSectionProps = {
   variant?: ReviewsVariant
   linkHref?: string | null
   linkLabel?: string | null
+  onLinkClick?: (event: MouseEvent<HTMLAnchorElement>) => void
   headingText?: string
   scoreLabel?: string | null
+  summaryText?: string | null
   ratingValue?: number
   reviews?: readonly ReviewItem[]
   trustSources?: readonly ReviewTrustSource[]
@@ -45,6 +49,7 @@ function ReviewCard({
   variant: ReviewsVariant
 }) {
   const isHomepage = variant === "homepage"
+  const shouldShowVerifiedPurchase = !isHomepage && review.verifiedPurchase
 
   return (
     <article className="flex h-full flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 font-roboto shadow-md">
@@ -85,19 +90,12 @@ function ReviewCard({
       </header>
 
       <div className="flex flex-1 flex-col gap-250">
-        {review.title ? (
-          <p className="flex items-center gap-150 text-fg-secondary text-md leading-relaxed">
-            <Icon className="text-primary" icon="token-icon-plus" size="md" />
-            <span className="truncate">{review.title}</span>
-          </p>
-        ) : null}
-
         <p className="line-clamp-3 text-fg-secondary text-md leading-relaxed">
           {review.message}
         </p>
       </div>
 
-      {review.verifiedPurchase ? (
+      {shouldShowVerifiedPurchase ? (
         <div className="mt-auto flex items-center gap-150 text-primary">
           <Icon icon="token-icon-check" size="lg" />
           <span className="font-medium text-sm leading-relaxed">
@@ -114,8 +112,10 @@ export function ReviewsSection({
   variant = "product",
   linkHref,
   linkLabel,
+  onLinkClick,
   headingText,
-  scoreLabel = "5,0",
+  scoreLabel,
+  summaryText,
   ratingValue = 5,
   reviews = PRODUCT_REVIEWS,
   trustSources,
@@ -124,29 +124,43 @@ export function ReviewsSection({
   const isHomepage = variant === "homepage"
   const resolvedHeadingText =
     headingText ?? (isHomepage ? "Overené zákazníkmi" : "Hodnotenia produktu")
-  const resolvedLinkHref = linkHref ?? (isHomepage ? null : "#reviews")
+  const defaultLinkHref = isHomepage ? null : "#reviews"
+  const defaultLinkLabel = isHomepage ? null : "Všetky hodnotenia"
+  const resolvedLinkHref = linkHref === undefined ? defaultLinkHref : linkHref
   const resolvedLinkLabel =
-    linkLabel ?? (isHomepage ? null : "Všetky hodnotenia")
+    linkLabel === undefined ? defaultLinkLabel : linkLabel
   const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel)
+  const formattedRatingLabel = ratingValue.toLocaleString("sk-SK", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  })
+  const resolvedScoreLabel =
+    scoreLabel === undefined ? formattedRatingLabel : scoreLabel
+  const ratingAriaLabel = resolvedScoreLabel ?? formattedRatingLabel
 
   return (
     <section className={sectionClassName}>
       <header className="flex flex-col gap-350 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-300">
-          <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
-            {resolvedHeadingText}
-            {scoreLabel ? (
-              <>
-                {" "}
-                - <span className="text-primary">{scoreLabel}</span>
-              </>
+          <div>
+            <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
+              {resolvedHeadingText}
+              {resolvedScoreLabel ? (
+                <>
+                  {" "}
+                  - <span className="text-primary">{resolvedScoreLabel}</span>
+                </>
+              ) : null}
+            </h2>
+            {summaryText ? (
+              <p className="mt-100 text-fg-secondary text-sm leading-relaxed">
+                {summaryText}
+              </p>
             ) : null}
-          </h2>
+          </div>
           {isHomepage ? null : (
-            <Rating
-              className="pointer-events-none"
-              readOnly
-              size="lg"
+            <FractionalRating
+              label={`Priemerné hodnotenie produktu ${ratingAriaLabel} z 5`}
               value={ratingValue}
             />
           )}
@@ -160,6 +174,7 @@ export function ReviewsSection({
           <NextLink
             className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
             href={resolvedLinkHref}
+            onClick={onLinkClick}
           >
             {resolvedLinkLabel}
             <Icon icon="token-icon-chevron-right" size="md" />

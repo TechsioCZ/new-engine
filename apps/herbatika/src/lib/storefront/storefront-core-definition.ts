@@ -38,6 +38,9 @@ export const storefrontCoreDefinition = {
   productLists: {
     queryKeys: storefrontQueryKeys.productLists,
   },
+  reviews: {
+    queryKeys: storefrontQueryKeys.reviews,
+  },
   orders: {
     serviceConfig: storefrontOrderServiceConfig,
     hooks: {

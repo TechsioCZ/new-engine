@@ -7,11 +7,13 @@ import {
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
 } from "../product-query-config"
+import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
 import { PDP_RELATED_PRODUCTS_LIMIT } from "./constants"
 import {
   getRegionServerContext,
   prefetchProductDetail,
   prefetchProductList,
+  prefetchProductReviews,
 } from "./context"
 import type { ProductDetailParams } from "./types"
 
@@ -30,6 +32,14 @@ export const prefetchProductDetailPageStorefrontData = async (
 
     const product = await prefetchProductDetail(queryClient, detailParams)
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
+
+    if (product?.id) {
+      await prefetchProductReviews(queryClient, {
+        productId: product.id,
+        limit: PRODUCT_REVIEWS_PAGE_SIZE,
+        offset: 0,
+      })
+    }
 
     if (relatedCategoryIds.length > 0 && product?.id) {
       const relatedProductsListParams = buildProductListParams({

@@ -1,6 +1,6 @@
 /*
  * Design tokens exported from Figma
- * Exported at: 2026-06-12T13:18:24.704Z
+ * Exported at: 2026-06-16T10:13:13.198Z
  * Format: Raw CSS variables grouped by kind
  */
 :root {
@@ -291,6 +291,7 @@
   --color-fill-highlight: var(--color-neutral-300);
   --color-fill-hover: var(--color-neutral-020617-10);
   --color-fill-overlay: var(--color-neutral-200);
+  --color-fill-selected: var(--color-primary-alpha-10);
   --color-fill-surface: var(--color-neutral-100);
   --color-float: var(--color-fill-highlight);
   --color-footer-bg: var(--color-fill-surface);
@@ -483,6 +484,7 @@
   --color-primary-900: oklch(0.38 0.145 265.465);
   --color-primary-accent-fg: var(--color-fg-accent-primary);
   --color-primary-active: var(--color-bg-primary-active);
+  --color-primary-alpha-10: oklch(0.807 0.101 250.446 / 0.1);
   --color-primary-disabled: var(--color-bg-disabled);
   --color-primary-hover: var(--color-bg-primary-hover);
   --color-primary-light: var(--color-bg-light-primary-base);
@@ -741,14 +743,14 @@
   --color-table-border: var(--color-border-primary);
   --color-table-caption-fg: var(--color-fg-secondary);
   --color-table-fg: var(--color-fg-primary);
-  --color-table-footer-bg: var(--color-bg-light-primary-base);
+  --color-table-footer-bg: var(--color-fill-base);
   --color-table-footer-fg: var(--color-fg-secondary);
-  --color-table-header-bg: var(--color-bg-light-primary-base);
+  --color-table-header-bg: var(--color-fill-base);
   --color-table-header-fg: var(--color-fg-primary);
   --color-table-row-bg: var(--color-bg-transparent);
-  --color-table-row-bg-hover: var(--color-bg-light-primary-base);
-  --color-table-row-bg-selected: var(--color-bg-light-primary-base);
-  --color-table-row-striped-primary: var(--color-bg-light-primary-base);
+  --color-table-row-bg-hover: var(--color-fill-hover);
+  --color-table-row-bg-selected: var(--color-fill-selected);
+  --color-table-row-striped-primary: var(--color-fill-base);
   --color-table-row-striped-secondary: var(--color-bg-transparent);
   --color-tabs-bg: var(--color-fill-surface);
   --color-tabs-border-base: var(--color-border-primary);
@@ -1329,6 +1331,7 @@
   --shadow-accordion-root-md: var(--shadow-xl);
   --shadow-accordion-root-sm: var(--shadow-primary);
   --shadow-dialog-content: var(--shadow-primary);
+  --shadow-gallery-trigger: var(--shadow-sm);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-menu-content: var(--shadow-lg);
@@ -1338,6 +1341,7 @@
   --shadow-select-content: var(--shadow-md);
   --shadow-slider-thumb: var(--shadow-sm);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-table-outline: var(--shadow-sm);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
   --size-1: 0.06rem;
   --size-12: 0.75rem;

@@ -1,8 +1,8 @@
 @theme static {
   --color-tabs-bg: var(--color-base);
   --color-tabs-trigger-bg: var(--color-surface);
-  --color-tabs-border: var(--color-surface);
-  --color-tabs-trigger-fg: oklch(0.5213 0.0343 223.45);
+  --color-tabs-border-base: var(--color-surface);
+  --color-tabs-trigger-fg-base: oklch(0.5213 0.0343 223.45);
   --text-tabs-trigger-md: var(--text-lg);
   --padding-tabs-trigger-md: var(--spacing-500) var(--spacing-200);
   --color-product-list-tabs-border: var(--color-base);

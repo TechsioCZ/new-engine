@@ -1,10 +1,10 @@
 :where([data-herbatika-mobile-menu-dialog-root]) {
   --herbatika-mobile-menu-top: var(--height-header-mobile);
-  --color-dialog-backdrop-bg: transparent;
+  --color-dialog-backdrop-bg-modal: transparent;
   --color-dialog-content-bg: var(--color-primary);
   --color-dialog-content-border: transparent;
   --padding-dialog-content: 0;
-  --gap-dialog-content: 0;
+  --spacing-dialog-content: 0;
   --border-width-dialog: 0;
   --shadow-dialog-content: none;
 }

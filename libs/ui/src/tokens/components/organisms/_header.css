@@ -1,88 +1,19 @@
+/*
+ * Header — runtime tokens come entirely from
+ * libs/ui/src/tokens/figma/variables.css.
+ *
+ * Kept:
+ * - `:root @media (width < 48rem)` nav-spacing override (responsive,
+ *   conditional value — can't be expressed as a Figma variable).
+ * - glyph utilities mapping the menu/close icons.
+ */
+
 :root {
   @media (width < 48rem) {
     --spacing-header-nav-sm: var(--spacing-50);
     --spacing-header-nav-md: var(--spacing-100);
     --spacing-header-nav-lg: var(--spacing-150);
   }
-}
-
-@theme static {
-  /* === REFERENCE LAYER === */
-  /* These tokens reference semantic tokens from _semantic.css */
-  --color-header: var(--color-surface);
-  --color-header-accent: var(--color-primary);
-
-  /* Reference typhography */
-  --text-header-sm: var(--text-sm);
-  --text-header-md: var(--text-md);
-  --text-header-lg: var(--text-lg);
-
-  /* === DERIVED COLORS === */
-  /* Background colors */
-  --color-header-bg: var(--color-header);
-
-  /* === ITEMS === */
-  --color-header-nav-item-bg: transparent;
-  --color-header-nav-item-bg-hover: transparent;
-
-  --text-header-item-sm: var(--text-header-sm);
-  --text-header-item-md: var(--text-header-md);
-  --text-header-item-lg: var(--text-header-lg);
-
-  /* === ACTIONS === */
-
-  /* Foreground colors */
-  --color-header-fg: var(--color-fg-primary);
-  --color-header-nav-fg: var(--color-fg-secondary);
-  --color-header-nav-fg-hover: var(--color-header-fg);
-  --color-header-nav-fg-active: var(--color-header-accent);
-  --color-header-actions-fg: var(--color-primary);
-  --color-header-actions-fg-hover: var(--color-header-fg);
-
-  /* Border colors */
-
-  /* === SIZE === */
-  /* Width constraints */
-  --width-header-max: 100%;
-
-  /* === SPACING === */
-  /* Section spacing */
-  --spacing-header-container: var(--spacing-100);
-
-  --padding-header-item-sm: var(--spacing-100);
-  --padding-header-item-md: var(--spacing-150);
-  --padding-header-item-lg: var(--spacing-200);
-
-  --spacing-header-nav-sm: var(--spacing-200);
-  --spacing-header-nav-md: var(--spacing-300);
-  --spacing-header-nav-lg: var(--spacing-400);
-
-  --spacing-header-actions-sm: var(--spacing-200);
-  --spacing-header-actions-md: var(--spacing-300);
-  --spacing-header-actions-lg: var(--spacing-400);
-
-  /* === TYPOGRAPHY === */
-  --font-weight-header-nav: var(--font-weight-medium);
-  --font-weight-header-nav-active: var(--font-weight-semibold);
-
-  /* === Z-INDEX === */
-  /* Mobile menu hamburger colors */
-  --color-header-hamburger-fg: var(--color-fg-primary);
-  --color-header-hamburger-fg-hover: var(--color-fg-secondary);
-
-  /* hamburger button */
-  --text-header-hamburger-sm: var(--text-header-sm);
-  --text-header-hamburger-md: var(--text-header-md);
-  --text-header-hamburger-lg: var(--text-header-lg);
-
-  --padding-header-hamburger-sm: var(--spacing-100);
-  --padding-header-hamburger-md: var(--spacing-150);
-  --padding-header-hamburger-lg: var(--spacing-200);
-
-  /* breakpoint */
-  --container-header-desktop: 48rem;
-
-  --duration-header: 300ms;
 }
 
 @utility token-icon-header-menu {

@@ -4,13 +4,17 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
-import { useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import type { ProductDetailProps } from "@/components/product-detail/product-detail.types"
 import { ProductDetailHero } from "@/components/product-detail/sections/product-detail-hero"
 import { ProductDetailMetrics } from "@/components/product-detail/sections/product-detail-metrics"
 import { ProductDetailOffers } from "@/components/product-detail/sections/product-detail-offers"
 import { ProductDetailRelated } from "@/components/product-detail/sections/product-detail-related"
+import {
+  PRODUCT_DETAIL_REVIEWS_SECTION_ID,
+  PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
+} from "@/components/product-detail/sections/product-detail-review-utils"
 import { ProductDetailSkeleton } from "@/components/product-detail/sections/product-detail-skeleton"
 import { ProductDetailTabs } from "@/components/product-detail/sections/product-detail-tabs"
 import { useProductDetailController } from "@/components/product-detail/use-product-detail-controller"
@@ -19,13 +23,45 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 export function ProductDetail({ handle }: ProductDetailProps) {
   const controller = useProductDetailController({ handle })
+  const [activeInfoSection, setActiveInfoSection] = useState(
+    controller.defaultInfoSectionValue
+  )
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
+  useEffect(() => {
+    setActiveInfoSection(controller.defaultInfoSectionValue)
+  }, [controller.defaultInfoSectionValue, controller.product?.id])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `handle` is an intentional trigger — App Router reuses this client component across product navigations, so scroll-to-top must re-run when the handle changes even though the body doesn't read it.
   useEffect(() => {
     if (window.location.hash) {
       return
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  }, [handle])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-selects the reviews tab when navigating to a different product while the reviews hash is in the URL.
+  useEffect(() => {
+    if (window.location.hash !== `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`) {
+      return
+    }
+
+    setActiveInfoSection(PRODUCT_DETAIL_REVIEWS_TAB_VALUE)
+  }, [controller.product?.id])
+
+  const handleShowAllReviews = useCallback(() => {
+    setActiveInfoSection(PRODUCT_DETAIL_REVIEWS_TAB_VALUE)
+    window.history.replaceState(
+      null,
+      "",
+      `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+    )
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(PRODUCT_DETAIL_REVIEWS_SECTION_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
   }, [])
 
   return (
@@ -110,10 +146,16 @@ export function ProductDetail({ handle }: ProductDetailProps) {
             ) : null}
           </ProductDetailHero>
 
-          <ProductDetailMetrics />
+          <ProductDetailMetrics
+            onShowAllReviews={handleShowAllReviews}
+            productId={controller.product.id}
+          />
 
           <ProductDetailTabs
+            activeSectionValue={activeInfoSection}
             defaultSectionValue={controller.defaultInfoSectionValue}
+            onSectionValueChange={setActiveInfoSection}
+            productId={controller.product.id}
             sections={controller.productContentSections}
           />
         </>

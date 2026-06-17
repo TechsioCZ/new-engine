@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "medusa"
+    "public"
   ],
-  "name": "medusa",
+  "name": "public",
   "tables": [
     {
       "columns": {
@@ -200,7 +200,7 @@
         }
       },
       "name": "email_log",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_email_log_deleted_at",
@@ -410,7 +410,7 @@
         }
       },
       "name": "email_webhook_event",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_email_webhook_event_deleted_at",

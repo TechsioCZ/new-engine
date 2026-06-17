@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import {
   readMedusaConfigEnv,
   requireRedisUrl,
@@ -24,6 +24,25 @@ const baseEnv = {
   FILE_PROVIDER: "local",
   FILE_LOCAL_UPLOAD_DIR: "/tmp/medusa-uploads",
 } satisfies NodeJS.ProcessEnv
+
+const originalMikroOrmSchema = process.env.MIKRO_ORM_SCHEMA
+const originalMikroOrmMigrationsTableName =
+  process.env.MIKRO_ORM_MIGRATIONS_TABLE_NAME
+
+afterEach(() => {
+  if (originalMikroOrmSchema === undefined) {
+    Reflect.deleteProperty(process.env, "MIKRO_ORM_SCHEMA")
+  } else {
+    process.env.MIKRO_ORM_SCHEMA = originalMikroOrmSchema
+  }
+
+  if (originalMikroOrmMigrationsTableName === undefined) {
+    Reflect.deleteProperty(process.env, "MIKRO_ORM_MIGRATIONS_TABLE_NAME")
+  } else {
+    process.env.MIKRO_ORM_MIGRATIONS_TABLE_NAME =
+      originalMikroOrmMigrationsTableName
+  }
+})
 
 describe("readMedusaConfigEnv", () => {
   it("parses local provider defaults without requiring Redis", () => {
@@ -115,6 +134,58 @@ describe("readMedusaConfigEnv", () => {
         ],
       },
     })
+  })
+
+  it("configures schema-agnostic migration generation from injected argv", () => {
+    const env: NodeJS.ProcessEnv = {
+      ...baseEnv,
+      MEDUSA_DATABASE_SCHEMA: "medusa",
+    }
+
+    const config = readMedusaConfigEnv(env, [
+      "node",
+      "medusa",
+      "db:generate",
+      "producer",
+    ])
+
+    expect(config.databaseSchema).toBe("medusa")
+    expect(env.MIKRO_ORM_SCHEMA).toBe("public")
+    expect(env.MIKRO_ORM_MIGRATIONS_TABLE_NAME).toBe(
+      "medusa.mikro_orm_migrations"
+    )
+  })
+
+  it("does not use global argv when argv is injected", () => {
+    const env: NodeJS.ProcessEnv = {
+      ...baseEnv,
+      MEDUSA_DATABASE_SCHEMA: "medusa",
+    }
+
+    readMedusaConfigEnv(env, ["node", "vitest"])
+
+    expect(env.MIKRO_ORM_SCHEMA).toBeUndefined()
+    expect(env.MIKRO_ORM_MIGRATIONS_TABLE_NAME).toBeUndefined()
+  })
+
+  it("does not pollute process.env when a custom env is injected", () => {
+    Reflect.deleteProperty(process.env, "MIKRO_ORM_SCHEMA")
+    Reflect.deleteProperty(process.env, "MIKRO_ORM_MIGRATIONS_TABLE_NAME")
+
+    const env: NodeJS.ProcessEnv = {
+      ...baseEnv,
+      MEDUSA_DATABASE_SCHEMA: "medusa",
+      MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION: "1",
+    }
+
+    readMedusaConfigEnv(env, ["node", "vitest"])
+
+    expect(env.MIKRO_ORM_SCHEMA).toBe("public")
+    expect(env.MIKRO_ORM_MIGRATIONS_TABLE_NAME).toBe(
+      "medusa.mikro_orm_migrations"
+    )
+    expect(process.env.MIKRO_ORM_SCHEMA).toBeUndefined()
+    expect(process.env.MIKRO_ORM_MIGRATIONS_TABLE_NAME).toBeUndefined()
   })
 
   it("keeps feed notifications local when Resend handles email", () => {

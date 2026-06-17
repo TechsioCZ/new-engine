@@ -3,7 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useState } from "react"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import {
@@ -13,12 +12,22 @@ import {
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
+type ResetPasswordFormText = {
+  expiredHref: string
+  expiredHelp: string
+  expiredLinkLabel: string
+  expiredMessage: string
+  submitLabel: string
+  successMessage: string
+}
+
 type ResetPasswordFormProps = {
   isBusy: boolean
   defaultValues: ResetPasswordFormValues
   loginHref: string
   hasToken: boolean
   onSubmit: (values: ResetPasswordFormValues) => Promise<string | null>
+  text: ResetPasswordFormText
 }
 
 export const ResetPasswordForm = ({
@@ -27,6 +36,7 @@ export const ResetPasswordForm = ({
   loginHref,
   hasToken,
   onSubmit,
+  text,
 }: ResetPasswordFormProps) => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -48,19 +58,16 @@ export const ResetPasswordForm = ({
     return (
       <div className="flex flex-col gap-300">
         <StatusText showIcon status="error">
-          Tento odkaz je neplatný alebo už vypršal.
+          {text.expiredMessage}
         </StatusText>
-        <p className="text-fg-secondary text-sm">
-          Skúste si vyžiadať nový odkaz na obnovu hesla.
-        </p>
+        <p className="text-fg-secondary text-sm">{text.expiredHelp}</p>
         <div className="flex flex-wrap gap-200">
           <LinkButton
-            as={NextLink}
-            href="/auth/forgot-password"
+            href={text.expiredHref}
             size="sm"
             variant="primary"
           >
-            Vyžiadať nový odkaz
+            {text.expiredLinkLabel}
           </LinkButton>
         </div>
       </div>
@@ -71,11 +78,10 @@ export const ResetPasswordForm = ({
     return (
       <div className="flex flex-col gap-300">
         <StatusText showIcon status="success">
-          Heslo bolo úspešne zmenené. Môžete sa prihlásiť pomocou nového hesla.
+          {text.successMessage}
         </StatusText>
         <div className="flex flex-wrap gap-200">
           <LinkButton
-            as={NextLink}
             href={loginHref}
             size="sm"
             variant="primary"
@@ -141,7 +147,7 @@ export const ResetPasswordForm = ({
 
       <div className="flex flex-wrap gap-200">
         <Button isLoading={isBusy} size="sm" type="submit">
-          Obnoviť heslo
+          {text.submitLabel}
         </Button>
       </div>
     </form>

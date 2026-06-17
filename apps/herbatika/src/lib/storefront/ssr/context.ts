@@ -14,11 +14,13 @@ import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection"
 import {
   fetchServerProduct,
   fetchServerRegions,
+  prefetchServerProductReviews,
   prefetchServerProducts,
 } from "../storefront-server"
 import type {
   ProductDetailParams,
   ProductListParams,
+  ProductReviewListParams,
   RegionListParams,
 } from "./types"
 
@@ -67,3 +69,10 @@ export const prefetchProductDetail = async (
   queryClient: QueryClient,
   detailParams: ProductDetailParams
 ) => fetchServerProduct(queryClient, detailParams)
+
+export const prefetchProductReviews = async (
+  queryClient: QueryClient,
+  listParams: ProductReviewListParams
+) => {
+  await prefetchServerProductReviews(queryClient, listParams)
+}
