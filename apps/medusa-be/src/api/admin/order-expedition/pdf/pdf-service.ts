@@ -1251,10 +1251,38 @@ function buildFilename(orders: OrderExpeditionOrderDto[]) {
   return `expedition-orders-${new Date().toISOString().slice(0, 10)}.pdf`
 }
 
+const PDF_SAFE_CHAR_REPLACEMENTS: Record<string, string> = {
+  "\u00a0": " ",
+  "\u2010": "-",
+  "\u2011": "-",
+  "\u2012": "-",
+  "\u2013": "-",
+  "\u2014": "-",
+  "\u2015": "-",
+  "\u2212": "-",
+  "\u2018": "'",
+  "\u2019": "'",
+  "\u201c": '"',
+  "\u201d": '"',
+  "\u2026": "...",
+  "Ł": "L",
+  "ł": "l",
+}
+
 function toPdfSafeText(value: string) {
   return value
-    .normalize("NFC")
     .replaceAll("\t", " ")
     .replaceAll("\n", " ")
     .replaceAll("\r", " ")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split("")
+    .map((char) => {
+      if (char in PDF_SAFE_CHAR_REPLACEMENTS) {
+        return PDF_SAFE_CHAR_REPLACEMENTS[char] ?? ""
+      }
+
+      return /[\x20-\x7E]/.test(char) ? char : "?"
+    })
+    .join("")
 }

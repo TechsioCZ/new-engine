@@ -7,15 +7,15 @@ import type { Route } from "next"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
 import { type ReactNode, useEffect, useRef, useState } from "react"
-import {
-  resolveCompleteCartFailure,
-  resolveOrderId,
-} from "@/components/checkout/checkout-completion.utils"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
 import {
   logCheckoutAccountSetupDebug,
   useCheckoutAccountSetupDebugEnabled,
 } from "@/components/checkout/checkout-account-setup-debug"
+import {
+  resolveCompleteCartFailure,
+  resolveOrderId,
+} from "@/components/checkout/checkout-completion.utils"
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
@@ -41,6 +41,7 @@ export function CheckoutPaymentReturnPanel() {
     cartId: cartId ?? undefined,
     enabled: Boolean(cartId && isAccountSetupDebugEnabled),
   })
+  const debugCartMetadata = debugCartQuery.cart?.metadata
   const completeCartMutation = storefront.flows.cart.useCompleteCart()
   const completeCartRef = useRef(completeCartMutation.mutateAsync)
 
@@ -49,21 +50,19 @@ export function CheckoutPaymentReturnPanel() {
   }, [completeCartMutation.mutateAsync])
 
   useEffect(() => {
-    if (!isAccountSetupDebugEnabled || !cartId) {
+    if (!(isAccountSetupDebugEnabled && cartId)) {
       return
     }
 
     logCheckoutAccountSetupDebug("payment return cart snapshot", {
       cart_id: cartId,
-      cart_metadata_requested: readAccountSetupRequested(
-        debugCartQuery.cart?.metadata
-      ),
+      cart_metadata_requested: readAccountSetupRequested(debugCartMetadata),
       is_cart_fetching: debugCartQuery.isFetching,
       is_cart_loading: debugCartQuery.isLoading,
     })
   }, [
     cartId,
-    debugCartQuery.cart?.metadata,
+    debugCartMetadata,
     debugCartQuery.isFetching,
     debugCartQuery.isLoading,
     isAccountSetupDebugEnabled,
@@ -85,9 +84,7 @@ export function CheckoutPaymentReturnPanel() {
         logCheckoutAccountSetupDebug("payment return complete attempt", {
           attempt_count: attemptCount,
           cart_id: cartId,
-          cart_metadata_requested: readAccountSetupRequested(
-            debugCartQuery.cart?.metadata
-          ),
+          cart_metadata_requested: readAccountSetupRequested(debugCartMetadata),
         })
 
         const completeResult = await completeCartRef.current({
@@ -145,7 +142,7 @@ export function CheckoutPaymentReturnPanel() {
         window.clearTimeout(retryTimeout)
       }
     }
-  }, [cartId, completedOrderId, isCancelled, returnError])
+  }, [cartId, completedOrderId, debugCartMetadata, isCancelled, returnError])
 
   if (completedOrderId) {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />

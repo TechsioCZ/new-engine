@@ -35,8 +35,7 @@ const getResetPasswordCopy = ({
         "Tento odkaz na dokončenie registrácie je neplatný alebo už vypršal.",
       submitError: "Nepodarilo sa nastaviť heslo.",
       submitLabel: "Nastaviť heslo",
-      successMessage:
-        "Heslo bolo úspešne nastavené. Môžete sa prihlásiť.",
+      successMessage: "Heslo bolo úspešne nastavené. Môžete sa prihlásiť.",
       title: "Nastavenie hesla",
     }
   }

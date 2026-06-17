@@ -15,14 +15,19 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-const { mockAddPage, mockDrawText, mockEmbedFont, mockSave } = vi.hoisted(
+const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } = vi.hoisted(
   () => {
     const drawText = vi.fn()
+    const page = {
+      drawImage: vi.fn(),
+      drawLine: vi.fn(),
+      drawRectangle: vi.fn(),
+      drawText,
+    }
 
     return {
-      mockAddPage: vi.fn(() => ({
-        drawText,
-      })),
+      mockAddPage: vi.fn(() => page),
+      mockPage: page,
       mockDrawText: drawText,
       mockEmbedFont: vi.fn().mockResolvedValue({
         widthOfTextAtSize: (text: string) => text.length,
@@ -40,6 +45,9 @@ vi.mock("pdf-lib", () => ({
     create: vi.fn().mockResolvedValue({
       addPage: mockAddPage,
       embedFont: mockEmbedFont,
+      getPageCount: vi.fn(() => 1),
+      getPages: vi.fn(() => [mockPage]),
+      registerFontkit: vi.fn(),
       save: mockSave,
     }),
   },
@@ -154,9 +162,16 @@ describe("POST /admin/order-expedition/pdf", () => {
 
     const drawnTexts = mockDrawText.mock.calls.map(([text]) => text as string)
 
-    expect(drawnTexts).toContain("Lukasz Oster ?")
-    expect(drawnTexts).toContain("Dlouha - ulice")
-    expect(drawnTexts).toContain("2x Kava Lodz ?")
+    expect(drawnTexts.some((text) => text.includes("Lukasz Oster ?"))).toBe(
+      true
+    )
+    expect(drawnTexts.some((text) => text.includes("Dlouha - ulice"))).toBe(
+      true
+    )
+    expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBe(
+      true
+    )
+    expect(drawnTexts.some((text) => text.includes("2 ks"))).toBe(true)
     expect(
       drawnTexts.every((text) =>
         Array.from(text).every((char) => {

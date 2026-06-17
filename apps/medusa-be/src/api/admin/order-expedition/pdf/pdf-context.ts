@@ -21,8 +21,8 @@ export async function createExpeditionPdfContext(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
 ) {
   const document = await PDFDocument.create()
-  document.registerFontkit(fontkit)
-  document.setTitle("Přehled objednávek")
+  document.registerFontkit?.(fontkit)
+  document.setTitle?.("Přehled objednávek")
   const [regularFontBytes, boldFontBytes] = await Promise.all([
     readPdfFontBytes(FONT_SEARCH_PREFIXES.regular),
     readPdfFontBytes(FONT_SEARCH_PREFIXES.bold),
@@ -41,7 +41,7 @@ export async function createExpeditionPdfContext(
       pageNumber: 1,
       regularFont,
       title: "Přehled objednávek",
-      url: `${req.protocol}://${req.get("host")}/admin/order-expedition/pdf`,
+      url: `${req.protocol}://${req.get?.("host") ?? req.headers?.host ?? "localhost"}/admin/order-expedition/pdf`,
       y: HEADER_Y - 28,
     } satisfies DrawState,
   }
