@@ -3,8 +3,6 @@ const GENERIC_REVIEW_SUBMIT_ERROR =
   "Recenziu sa nepodarilo odoslať. Skúste to prosím znova."
 const PURCHASE_REQUIRED_REVIEW_ERROR =
   "Na napísanie recenzie musíte mať tento produkt zakúpený."
-const PURCHASE_VERIFICATION_REVIEW_ERROR =
-  "Na napísanie recenzie musíte mať tento produkt zakúpený. Ak ste ho už zakúpili, skúste to prosím neskôr."
 
 const hasErrorShape = (
   error: unknown
@@ -99,7 +97,7 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
   }
 
   if (status && status >= 500) {
-    return PURCHASE_VERIFICATION_REVIEW_ERROR
+    return GENERIC_REVIEW_SUBMIT_ERROR
   }
 
   return message || GENERIC_REVIEW_SUBMIT_ERROR
