@@ -230,11 +230,11 @@ export function CheckoutCompleteSection({
           <div className="grid grid-cols-2 gap-x-250 gap-y-150 sm:grid-cols-3">
             {shippingAddressRows.map((row) => (
               <div
-                className="space-y-50 px-150 py-100"
+                className="min-w-0 space-y-50 px-150 py-100"
                 key={`shipping-${row.label}`}
               >
                 <p className="text-fg-tertiary text-sm">{row.label}</p>
-                <p className="text-fg-primary text-sm leading-relaxed">
+                <p className="text-fg-primary text-sm leading-relaxed [overflow-wrap:anywhere]">
                   {resolveValue(row.value)}
                 </p>
               </div>
