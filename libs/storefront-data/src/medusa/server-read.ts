@@ -483,6 +483,7 @@ export type MedusaStorefrontServerReadPresetResult<
 export const createMedusaStorefrontQueryKeys =
   createMedusaStorefrontQueryKeysFromFoundation
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: flat declarative preset assembly — the score comes from per-section config `??` fallbacks, not branching logic.
 export function createMedusaStorefrontServerReadPreset<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,

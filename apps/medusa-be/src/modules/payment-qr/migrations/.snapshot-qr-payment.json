@@ -1,8 +1,8 @@
 {
   "namespaces": [
-    "medusa"
+    "public"
   ],
-  "name": "medusa",
+  "name": "public",
   "tables": [
     {
       "columns": {
@@ -88,7 +88,7 @@
         }
       },
       "name": "qr_payment_config",
-      "schema": "medusa",
+      "schema": "public",
       "indexes": [
         {
           "keyName": "IDX_qr_payment_config_deleted_at",

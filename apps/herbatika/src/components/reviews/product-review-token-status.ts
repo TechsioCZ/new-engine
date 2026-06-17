@@ -3,25 +3,25 @@ export type ProductReviewTokenProductStatus =
   | "loading"
   | "error"
   | "not-found"
-  | "ready";
+  | "ready"
 
 export const resolveProductStatusMessage = (
-  status: ProductReviewTokenProductStatus,
+  status: ProductReviewTokenProductStatus
 ) => {
   switch (status) {
     case "loading":
-      return { status: "default" as const, text: "Načítavam produkt." };
+      return { status: "default" as const, text: "Načítavam produkt." }
     case "error":
       return {
         status: "warning" as const,
         text: "Produkt sa nepodarilo načítať. Recenziu môžete odoslať aj tak.",
-      };
+      }
     case "not-found":
       return {
         status: "warning" as const,
         text: "Produkt sa nepodarilo nájsť. Skontrolujte prosím odkaz z emailu.",
-      };
+      }
     default:
-      return null;
+      return null
   }
-};
+}

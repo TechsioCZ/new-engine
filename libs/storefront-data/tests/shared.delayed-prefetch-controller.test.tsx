@@ -12,7 +12,7 @@ describe("useDelayedPrefetchController", () => {
     vi.useRealTimers()
   })
 
-  it("debounces scheduled callbacks with the same prefetch id", () => {
+  it("debounces scheduled callbacks with the same prefetch id", async () => {
     const first = vi.fn()
     const second = vi.fn()
 
@@ -26,7 +26,9 @@ describe("useDelayedPrefetchController", () => {
     expect(first).not.toHaveBeenCalled()
     expect(second).not.toHaveBeenCalled()
 
-    act(() => {
+    // `execute` is dispatched on a microtask (Promise.resolve().then), so the
+    // async act flushes it before asserting the call happened.
+    await act(async () => {
       vi.advanceTimersByTime(100)
     })
 

@@ -1,85 +1,80 @@
-"use client";
+"use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button";
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button";
-import { StatusText } from "@techsio/ui-kit/atoms/status-text";
-import NextLink from "next/link";
-import { useMemo, useState } from "react";
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import NextLink from "next/link"
+import { useMemo, useState } from "react"
+import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
 import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
-} from "@/components/reviews/product-review-form";
-import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors";
+} from "@/components/reviews/product-review-form"
 import {
   type ProductReviewTokenProductStatus,
   resolveProductStatusMessage,
-} from "@/components/reviews/product-review-token-status";
-import { useCreateProductReview } from "@/lib/storefront/reviews";
-import { useProducts } from "@/lib/storefront/products";
+} from "@/components/reviews/product-review-token-status"
+import { useProducts } from "@/lib/storefront/products"
+import { useCreateProductReview } from "@/lib/storefront/reviews"
 
 type ProductReviewTokenPageProps = {
-  productId?: string;
-  token: string;
-};
+  productId?: string
+  token: string
+}
 
-const REVIEW_TOKEN_FORM_ID = "product-review-token-form";
-const REVIEW_TOKEN_PRODUCT_FIELDS = "id,title,handle";
+const REVIEW_TOKEN_FORM_ID = "product-review-token-form"
+const REVIEW_TOKEN_PRODUCT_FIELDS = "id,title,handle"
 
 export function ProductReviewTokenPage({
   productId,
   token,
 }: ProductReviewTokenPageProps) {
-  const normalizedProductId = productId?.trim() ?? "";
-  const [formResetKey, setFormResetKey] = useState(0);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const normalizedProductId = productId?.trim() ?? ""
+  const [formResetKey, setFormResetKey] = useState(0)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const productQuery = useProducts({
     page: 1,
     limit: 1,
     id: normalizedProductId || undefined,
     fields: REVIEW_TOKEN_PRODUCT_FIELDS,
     enabled: Boolean(normalizedProductId),
-  });
-  const product = productQuery.products[0] ?? null;
-  const productHref = product?.handle ? `/p/${product.handle}` : null;
-  const backHref = productHref ?? "/";
-  const backLabel = productHref ? "Späť na produkt" : "Späť do obchodu";
+  })
+  const product = productQuery.products[0] ?? null
+  const productHref = product?.handle ? `/p/${product.handle}` : null
+  const backHref = productHref ?? "/"
+  const backLabel = productHref ? "Späť na produkt" : "Späť do obchodu"
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
-      setSubmitError(resolveProductReviewSubmitErrorMessage(error));
+      setSubmitError(resolveProductReviewSubmitErrorMessage(error))
     },
     onSuccess: () => {
-      setFormResetKey((current) => current + 1);
-      setIsSubmitted(true);
-      setSubmitError(null);
+      setFormResetKey((current) => current + 1)
+      setIsSubmitted(true)
+      setSubmitError(null)
     },
-  });
-  const isBusy = createReviewMutation.isPending;
+  })
+  const isBusy = createReviewMutation.isPending
   const productStatus = useMemo<ProductReviewTokenProductStatus>(() => {
     if (!normalizedProductId) {
-      return "missing-product-id";
+      return "missing-product-id"
     }
 
     if (productQuery.isLoading) {
-      return "loading";
+      return "loading"
     }
 
     if (productQuery.error) {
-      return "error";
+      return "error"
     }
 
     if (!product) {
-      return "not-found";
+      return "not-found"
     }
 
-    return "ready";
-  }, [
-    normalizedProductId,
-    product,
-    productQuery.error,
-    productQuery.isLoading,
-  ]);
-  const productStatusMessage = resolveProductStatusMessage(productStatus);
+    return "ready"
+  }, [normalizedProductId, product, productQuery.error, productQuery.isLoading])
+  const productStatusMessage = resolveProductStatusMessage(productStatus)
 
   const handleSubmit = ({
     content,
@@ -87,11 +82,11 @@ export function ProductReviewTokenPage({
     title,
   }: ProductReviewFormSubmitValues) => {
     if (!normalizedProductId) {
-      setSubmitError("Odkaz na hodnotenie neobsahuje produkt.");
-      return;
+      setSubmitError("Odkaz na hodnotenie neobsahuje produkt.")
+      return
     }
 
-    setSubmitError(null);
+    setSubmitError(null)
 
     createReviewMutation.mutate({
       content,
@@ -99,8 +94,8 @@ export function ProductReviewTokenPage({
       rating,
       review_token: token,
       title,
-    });
-  };
+    })
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-500 p-product-detail-page font-rubik 2xl:p-product-detail-page-lg">
@@ -150,7 +145,12 @@ export function ProductReviewTokenPage({
             <StatusText showIcon status="success">
               Ďakujeme za recenziu. Po schválení sa zobrazí pri produkte.
             </StatusText>
-            <LinkButton as={NextLink} href={backHref} variant="primary" size="md">
+            <LinkButton
+              as={NextLink}
+              href={backHref}
+              size="md"
+              variant="primary"
+            >
               {backLabel}
             </LinkButton>
           </div>
@@ -178,9 +178,9 @@ export function ProductReviewTokenPage({
               <LinkButton
                 as={NextLink}
                 href={backHref}
+                size="md"
                 theme="outlined"
                 variant="secondary"
-                size="md"
               >
                 {backLabel}
               </LinkButton>
@@ -189,5 +189,5 @@ export function ProductReviewTokenPage({
         ) : null}
       </section>
     </main>
-  );
+  )
 }

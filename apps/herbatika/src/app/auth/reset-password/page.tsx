@@ -18,10 +18,14 @@ export default async function ResetPasswordPage({
   const resolvedSearchParams = await searchParams
   const token = resolveStringParam(resolvedSearchParams.token)
   const email = resolveStringParam(resolvedSearchParams.email)
+  const flow =
+    resolveStringParam(resolvedSearchParams.flow) === "account-setup"
+      ? "account-setup"
+      : "reset-password"
 
   return (
     <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
-      <ResetPasswordPanel email={email} token={token} />
+      <ResetPasswordPanel email={email} flow={flow} token={token} />
     </main>
   )
 }
