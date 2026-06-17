@@ -443,6 +443,40 @@ function ComponentComparison() {
               <Button size={size}>Button</Button>
             </ComponentCard>
           ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`searchform-${size}`}
+              title={`SearchForm — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <div className="w-64">
+                <SearchForm size={size}>
+                  <SearchForm.Control>
+                    <SearchForm.Input placeholder="Search..." />
+                    <SearchForm.Button>Search</SearchForm.Button>
+                  </SearchForm.Control>
+                </SearchForm>
+              </div>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
+          {(['sm', 'md'] as const).map((size) => (
+            <ComponentCard
+              key={`searchform-gapped-${size}`}
+              title={`SearchForm (gapped) — ${size}`}
+              bodyClassName="flex flex-wrap items-center gap-50"
+            >
+              <div className="w-64">
+                <SearchForm gapped size={size}>
+                  <SearchForm.Control>
+                    <SearchForm.Input placeholder="Search..." />
+                    <SearchForm.Button>Search</SearchForm.Button>
+                  </SearchForm.Control>
+                </SearchForm>
+              </div>
+              <Button size={size}>Button</Button>
+            </ComponentCard>
+          ))}
         </Section>
 
         <Section

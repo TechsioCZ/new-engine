@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
+import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { SearchForm } from "../../src/molecules/search-form"
 
@@ -49,7 +50,7 @@ export const Default: Story = {
 export const Gapped: Story = {
 	render: () => (
 		<div className="w-sm">
-			<SearchForm gapped onSubmit={() => console.log("submit")}>
+			<SearchForm gapped onSubmit={fn()}>
 				<SearchForm.Control>
 					<SearchForm.Input placeholder="Search products..." />
 					<SearchForm.Button>Search</SearchForm.Button>

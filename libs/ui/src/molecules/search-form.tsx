@@ -25,7 +25,9 @@ const searchFormVariants = tv({
     input: ["peer", "min-w-0 flex-1"],
     // The button keeps its own styling/focus ring from the Button atom.
     button: ["shrink-0"],
-    clearButton: ["shrink-0 self-stretch rounded-none"],
+    // Radius is left to the gapped variant so it stays consistent with the
+    // input and button, which also manage their own corners per gapped state.
+    clearButton: ["shrink-0 self-stretch"],
   },
   variants: {
     size: {
@@ -38,11 +40,14 @@ const searchFormVariants = tv({
     },
     gapped: {
       // Joined: strip the touching corners so the two controls read as one.
+      // The clear button sits between them, so it stays square too.
       false: {
         input: "rounded-e-none",
         button: "rounded-s-none",
+        clearButton: "rounded-none",
       },
-      // Detached: 8px gap and the controls keep their full rounded corners.
+      // Detached: 8px gap and the controls keep their full rounded corners,
+      // including the clear button (radius managed by the Button atom).
       true: { control: "gap-search-form-gapped" },
     },
   },
