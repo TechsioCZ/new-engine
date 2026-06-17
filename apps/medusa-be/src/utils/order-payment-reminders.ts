@@ -10,6 +10,10 @@ export type PaymentReminderOrder = {
   payment_collections?: { status?: string | null }[] | null
   payment_status?: string | null
   status?: string | null
+  summary?: {
+    current_order_total?: number | string | null
+    original_order_total?: number | string | null
+  } | null
   total?: number | string | null
   currency_code?: string | null
 }
@@ -43,6 +47,7 @@ const ORDER_FIELDS = [
   "payment_status",
   "payment_collections.status",
   "status",
+  "summary.*",
   "total",
   "currency_code",
 ]
@@ -62,21 +67,26 @@ export function getPaymentUrl(order: PaymentReminderOrder) {
 }
 
 export function formatTotal(order: PaymentReminderOrder) {
-  if (order.total === null || order.total === undefined) {
+  const total =
+    order.summary?.current_order_total ??
+    order.summary?.original_order_total ??
+    order.total
+
+  if (total === null || total === undefined) {
     return
   }
 
-  const total =
-    typeof order.total === "string" ? Number(order.total) : order.total
+  const normalizedTotal =
+    typeof total === "string" ? Number(total) : total
 
-  if (!Number.isFinite(total)) {
+  if (!Number.isFinite(normalizedTotal)) {
     return
   }
 
   return new Intl.NumberFormat("cs-CZ", {
     currency: (order.currency_code ?? "CZK").toUpperCase(),
     style: "currency",
-  }).format(total)
+  }).format(normalizedTotal)
 }
 
 export function isUnpaidOrder(order: PaymentReminderOrder) {

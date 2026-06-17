@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { MedusaRequest } from "@medusajs/framework/http"
-import fontkit from "fontkit"
+const fontkit = require("fontkit") as never
 import { PageSizes, PDFDocument, StandardFonts } from "pdf-lib"
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import type { DrawState } from "./types"
@@ -20,7 +20,7 @@ export async function createExpeditionPdfContext(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
 ) {
   const document = await PDFDocument.create()
-  document.registerFontkit?.(fontkit)
+  document.registerFontkit?.(fontkit as never)
   document.setTitle?.("Přehled objednávek")
   const [regularFontBytes, boldFontBytes] = await Promise.all([
     readPdfFontBytes(FONT_SEARCH_PREFIXES.regular),

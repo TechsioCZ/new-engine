@@ -6,10 +6,12 @@ import {
   getAddressLines,
   getItemQuantity,
   getItemSubtotal,
+  getItemTaxLabel,
   getItemTitle,
   getItemUnitPrice,
   getOrderNumber,
   getOrderReceiptFilename,
+  getShippingSubtotalTotal,
   getSubtotal,
   getTaxTotal,
   getTotal,
@@ -64,7 +66,7 @@ function buildPdf(order: OrderReceiptOrder) {
   const subtotal = getSubtotal(order)
   const taxTotal = getTaxTotal(order)
   const discountTotal = toNumber(order.discount_total)
-  const shippingTotal = toNumber(order.shipping_total)
+  const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
   const supplierName = process.env.STORE_NAME || "N1 Shop"
   const paymentQrCommands = buildPaymentQrCommands(order)
@@ -116,9 +118,12 @@ function buildPdf(order: OrderReceiptOrder) {
   const tableTop = 436
   commands.push(pdfText("ks", LEFT, tableTop + 14, { size: 9 }))
   commands.push(pdfText("Položka", LEFT + 32, tableTop + 14, { size: 9 }))
-  commands.push(pdfText("DPH", 350, tableTop + 14, { align: "right", size: 9 }))
+  commands.push(pdfText("DPH", 335, tableTop + 14, { align: "right", size: 9 }))
   commands.push(
-    pdfText("Cena za MJ", 445, tableTop + 14, { align: "right", size: 9 })
+    pdfText("Cena za MJ bez DPH", 430, tableTop + 14, {
+      align: "right",
+      size: 8,
+    })
   )
   commands.push(
     pdfText("Celkem bez DPH", RIGHT, tableTop + 14, {
@@ -128,56 +133,45 @@ function buildPdf(order: OrderReceiptOrder) {
   )
   commands.push(pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop }))
 
-  const visibleItems = (order.items ?? []).slice(0, 12)
-  if (!visibleItems.length) {
+  const tableRows = (order.items ?? [])
+    .map((item) => ({
+      quantity: getItemQuantity(item),
+      taxLabel: getItemTaxLabel(item),
+      title: getItemTitle(item) || "Položka",
+      total: getItemSubtotal(item),
+      unitPriceNet: getItemUnitPrice(item),
+    }))
+    .slice(0, 12)
+
+  if (!tableRows.length) {
     commands.push(
       pdfText("Bez položek", LEFT + 32, tableTop - 24, { size: 10 })
     )
   }
 
-  visibleItems.forEach((item, index) => {
+  tableRows.forEach((row, index) => {
     const y = tableTop - 24 - index * 22
-    const quantity = getItemQuantity(item)
-    const lineSubtotal = getItemSubtotal(item)
-    const fallbackUnitPrice = getItemUnitPrice(item)
-    let unitPrice = fallbackUnitPrice
-    if (Number.isFinite(quantity) && quantity > 0) {
-      unitPrice = Number.isFinite(lineSubtotal)
-        ? lineSubtotal / quantity
-        : fallbackUnitPrice
-    } else if (Number.isFinite(lineSubtotal)) {
-      unitPrice = lineSubtotal
-    }
-    const lineTaxTotal = toNumber(item.tax_total)
-    const itemSubtotal = toNumber(item.subtotal)
-    const taxRate =
-      lineTaxTotal > 0 && itemSubtotal !== 0
-        ? Math.round((lineTaxTotal / itemSubtotal) * 100)
-        : 0
-    const taxLabel = Number.isFinite(taxRate) ? `${taxRate} %` : "0 %"
 
-    commands.push(pdfText(quantity, LEFT, y, { size: 9 }))
+    commands.push(pdfText(row.quantity, LEFT, y, { size: 9 }))
     commands.push(
-      pdfText(truncate(getItemTitle(item) || "Položka", 36), LEFT + 32, y, {
-        size: 9,
-      })
+      pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 })
     )
-    commands.push(pdfText(taxLabel, 350, y, { align: "right", size: 9 }))
+    commands.push(pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }))
     commands.push(
-      pdfText(formatMoney(unitPrice, currency), 445, y, {
+      pdfText(formatMoney(row.unitPriceNet, currency), 430, y, {
         align: "right",
-        size: 9,
+        size: 8,
       })
     )
     commands.push(
-      pdfText(formatMoney(lineSubtotal, currency), RIGHT, y, {
+      pdfText(formatMoney(row.total, currency), RIGHT, y, {
         align: "right",
         size: 9,
       })
     )
   })
 
-  const tableBottom = Math.max(238, tableTop - 34 - visibleItems.length * 22)
+  const tableBottom = Math.max(238, tableTop - 34 - tableRows.length * 22)
   commands.push(
     pdfLine({ x1: LEFT, x2: RIGHT, y1: tableBottom, y2: tableBottom })
   )
@@ -185,7 +179,7 @@ function buildPdf(order: OrderReceiptOrder) {
   const summaryY = tableBottom - 38
   const summaryLabelX = 336
   commands.push(
-    pdfText("Celkem bez DPH", summaryLabelX, summaryY, { size: 10 })
+    pdfText("Cena bez DPH (zboží)", summaryLabelX, summaryY, { size: 10 })
   )
   commands.push(
     pdfText(formatMoney(subtotal, currency), RIGHT, summaryY, {

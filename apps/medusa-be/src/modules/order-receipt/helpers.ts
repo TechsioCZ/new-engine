@@ -27,9 +27,13 @@ export type OrderReceiptLineItem = {
     title?: string | null
     unit_price?: OrderReceiptMoney
   } | null
+  is_tax_inclusive?: boolean | null
   raw_quantity?: OrderReceiptMoney
   raw_unit_price?: OrderReceiptMoney
   subtotal?: OrderReceiptMoney
+  tax_lines?: Array<{
+    rate?: OrderReceiptMoney
+  } | null> | null
   tax_total?: OrderReceiptMoney
   quantity?: OrderReceiptMoney
   title?: string | null
@@ -46,6 +50,25 @@ export type OrderReceiptPaymentCollection = {
   payments?: OrderReceiptPayment[] | null
 }
 
+type OrderReceiptSummary = {
+  accounting_total?: OrderReceiptMoney
+  current_order_total?: OrderReceiptMoney
+  original_order_total?: OrderReceiptMoney
+}
+
+export type OrderReceiptShippingMethod = {
+  amount?: OrderReceiptMoney
+  is_tax_inclusive?: boolean | null
+  name?: string | null
+  raw_amount?: OrderReceiptMoney
+  subtotal?: OrderReceiptMoney
+  tax_lines?: Array<{
+    rate?: OrderReceiptMoney
+  } | null> | null
+  tax_total?: OrderReceiptMoney
+  total?: OrderReceiptMoney
+}
+
 export type OrderReceiptOrder = {
   billing_address?: OrderReceiptAddress | null
   created_at?: Date | string | null
@@ -59,9 +82,11 @@ export type OrderReceiptOrder = {
   items?: OrderReceiptLineItem[] | null
   metadata?: Record<string, unknown> | null
   payment_collections?: OrderReceiptPaymentCollection[] | null
+  shipping_methods?: OrderReceiptShippingMethod[] | null
   shipping_total?: OrderReceiptMoney
   shipping_address?: OrderReceiptAddress | null
   subtotal?: OrderReceiptMoney
+  summary?: OrderReceiptSummary | null
   tax_total?: OrderReceiptMoney
   total?: OrderReceiptMoney
 }
@@ -257,13 +282,76 @@ export function getItemTitle(item: OrderReceiptLineItem) {
   return item.title ?? item.detail?.title
 }
 
-export function getItemUnitPrice(item: OrderReceiptLineItem) {
+function getTaxRate(item: { tax_lines?: Array<{ rate?: OrderReceiptMoney } | null> | null }) {
+  const rate = item.tax_lines?.find(
+    (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined
+  )?.rate
+
+  if (rate === null || rate === undefined) {
+    return 0
+  }
+
+  return toNumber(rate)
+}
+
+function getOrderTaxRate(order: OrderReceiptOrder) {
+  for (const item of order.items ?? []) {
+    const rate = getTaxRate(item)
+    if (rate > 0) {
+      return rate
+    }
+  }
+
+  for (const shippingMethod of order.shipping_methods ?? []) {
+    const rate = getTaxRate(shippingMethod)
+    if (rate > 0) {
+      return rate
+    }
+  }
+
+  return 0
+}
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100
+}
+
+function getNetFromGross(grossValue: number, rate: number) {
+  if (rate <= 0) {
+    return grossValue
+  }
+
+  return roundMoney(grossValue / (1 + rate / 100))
+}
+
+export function getItemGrossUnitPrice(item: OrderReceiptLineItem) {
   return toNumber(
     item.unit_price ??
       item.raw_unit_price ??
       item.detail?.unit_price ??
       item.detail?.raw_unit_price
   )
+}
+
+export function getItemUnitPrice(item: OrderReceiptLineItem) {
+  const grossUnitPrice = getItemGrossUnitPrice(item)
+  const rate = getTaxRate(item)
+
+  return getNetFromGross(grossUnitPrice, rate)
+}
+
+export function getItemTaxLabel(item: OrderReceiptLineItem) {
+  const rate = getTaxRate(item)
+
+  return `${rate} %`
+}
+
+export function getShippingTaxLabel(
+  shippingMethod: OrderReceiptShippingMethod
+) {
+  const rate = getTaxRate(shippingMethod)
+
+  return `${rate} %`
 }
 
 export function getItemQuantity(item: OrderReceiptLineItem) {
@@ -279,78 +367,147 @@ export function getItemQuantity(item: OrderReceiptLineItem) {
 
 export function getItemSubtotal(item: OrderReceiptLineItem) {
   const quantity = getItemQuantity(item)
-  const unitPrice = getItemUnitPrice(item)
-  const unitPriceSubtotal = quantity * unitPrice
-  const subtotal = toNumber(item.subtotal)
-  if (subtotal > 0) {
-    if (quantity > 1 && subtotal === unitPrice) {
-      return unitPriceSubtotal
-    }
+  const grossSubtotal = toNumber(
+    item.subtotal ??
+      item.total ??
+      (item.unit_price !== null && item.unit_price !== undefined
+        ? toNumber(item.unit_price) * quantity
+        : 0)
+  )
+  const rate = getTaxRate(item)
 
-    return subtotal
-  }
-
-  const total = toNumber(item.total)
-  const taxTotal = toNumber(item.tax_total)
-  if (total > 0) {
-    return Math.max(0, total - taxTotal)
-  }
-
-  return unitPriceSubtotal
+  return getNetFromGross(grossSubtotal, rate)
 }
 
 function getItemsSubtotal(items: OrderReceiptLineItem[]) {
   return items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
 }
 
+function getItemTaxTotal(item: OrderReceiptLineItem) {
+  const grossSubtotal = toNumber(
+    item.subtotal ??
+      item.total ??
+      (item.unit_price !== null && item.unit_price !== undefined
+        ? toNumber(item.unit_price) * getItemQuantity(item)
+        : 0)
+  )
+  const rate = getTaxRate(item)
+
+  if (rate <= 0) {
+    return toNumber(item.tax_total)
+  }
+
+  const netSubtotal = getNetFromGross(grossSubtotal, rate)
+  return roundMoney(grossSubtotal - netSubtotal)
+}
+
+export function getShippingSubtotal(shippingMethod?: OrderReceiptShippingMethod | null) {
+  if (!shippingMethod) {
+    return 0
+  }
+
+  const grossSubtotal = toNumber(
+    shippingMethod.subtotal ??
+      shippingMethod.total ??
+      shippingMethod.amount ??
+      shippingMethod.raw_amount
+  )
+  const rate = getTaxRate(shippingMethod)
+
+  return getNetFromGross(grossSubtotal, rate)
+}
+
+export function getShippingTaxTotal(shippingMethod?: OrderReceiptShippingMethod | null) {
+  if (!shippingMethod) {
+    return 0
+  }
+
+  const grossSubtotal = toNumber(
+    shippingMethod.subtotal ??
+      shippingMethod.total ??
+      shippingMethod.amount ??
+      shippingMethod.raw_amount
+  )
+  const rate = getTaxRate(shippingMethod)
+
+  if (rate <= 0) {
+    return toNumber(shippingMethod.tax_total)
+  }
+
+  return roundMoney(grossSubtotal - getNetFromGross(grossSubtotal, rate))
+}
+
 export function getSubtotal(order: OrderReceiptOrder) {
-  const itemsSubtotal = getItemsSubtotal(order.items ?? [])
-
-  if (itemsSubtotal > 0) {
-    return itemsSubtotal
-  }
-
-  if (order.item_subtotal !== null && order.item_subtotal !== undefined) {
-    return toNumber(order.item_subtotal)
-  }
-
-  if (order.subtotal !== null && order.subtotal !== undefined) {
-    return Math.max(
-      0,
-      toNumber(order.subtotal) - toNumber(order.shipping_total)
-    )
-  }
-
-  return itemsSubtotal
+  return getItemsSubtotal(order.items ?? [])
 }
 
 export function getTaxTotal(order: OrderReceiptOrder) {
-  if (order.tax_total !== null && order.tax_total !== undefined) {
-    return toNumber(order.tax_total)
+  if (
+    order.summary?.current_order_total !== null &&
+    order.summary?.current_order_total !== undefined
+  ) {
+    return roundMoney(
+      toNumber(order.summary.current_order_total) -
+        getSubtotal(order) -
+        getShippingSubtotalTotal(order)
+    )
   }
 
-  if (order.item_tax_total !== null && order.item_tax_total !== undefined) {
-    return toNumber(order.item_tax_total)
-  }
-
-  return (order.items ?? []).reduce(
-    (sum, item) => sum + toNumber(item.tax_total),
+  const itemTaxTotal = (order.items ?? []).reduce(
+    (sum, item) => sum + getItemTaxTotal(item),
     0
   )
+  const shippingTaxTotal = (order.shipping_methods ?? []).reduce(
+    (sum, shippingMethod) => sum + getShippingTaxTotal(shippingMethod),
+    0
+  )
+
+  return roundMoney(itemTaxTotal + shippingTaxTotal)
+}
+
+export function getShippingSubtotalTotal(order: OrderReceiptOrder) {
+  const shippingMethods = order.shipping_methods ?? []
+
+  if (shippingMethods.length > 0) {
+    return shippingMethods.reduce(
+      (sum, shippingMethod) => sum + getShippingSubtotal(shippingMethod),
+      0
+    )
+  }
+
+  const grossShippingTotal = toNumber(order.shipping_total)
+  const rate = getOrderTaxRate(order)
+
+  return getNetFromGross(grossShippingTotal, rate)
 }
 
 export function getTotal(order: OrderReceiptOrder) {
-  const fallbackTotal =
-    getSubtotal(order) +
-    toNumber(order.shipping_total) +
-    getTaxTotal(order) -
-    toNumber(order.discount_total)
-
-  if (order.total !== null && order.total !== undefined) {
-    return Math.max(toNumber(order.total), fallbackTotal)
+  if (
+    order.summary?.current_order_total !== null &&
+    order.summary?.current_order_total !== undefined
+  ) {
+    return toNumber(order.summary.current_order_total)
   }
 
-  return fallbackTotal
+  if (order.total !== null && order.total !== undefined) {
+    return toNumber(order.total)
+  }
+
+  if (
+    order.summary?.original_order_total !== null &&
+    order.summary?.original_order_total !== undefined
+  ) {
+    return toNumber(order.summary.original_order_total)
+  }
+
+  if (
+    order.summary?.accounting_total !== null &&
+    order.summary?.accounting_total !== undefined
+  ) {
+    return toNumber(order.summary.accounting_total)
+  }
+
+  return 0
 }
 
 export function truncate(value: unknown, maxLength: number) {
