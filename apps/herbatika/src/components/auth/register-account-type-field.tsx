@@ -39,10 +39,12 @@ export function RegisterAccountTypeField({
           items={REGISTER_ACCOUNT_TYPE_ITEMS}
           label="Typ účtu"
           onValueChange={onValueChange}
+          orientation="horizontal"
           required
           size="sm"
           validationMode="blur"
           variant="subtle"
+          className="gap-300"
         />
       )}
     </form.AppField>
