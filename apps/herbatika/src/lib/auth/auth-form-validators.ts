@@ -189,3 +189,17 @@ export const resolveLoginSubmitError = (error: unknown) => {
 
   return message || "Prihlásenie sa nepodarilo. Skúste to prosím znovu."
 }
+
+export const resolveRegisterSubmitError = (error: unknown) => {
+  const message = resolveErrorMessage(error, "")
+  const normalizedMessage = message.toLowerCase()
+
+  if (
+    normalizedMessage.includes("identity with email already exists") ||
+    normalizedMessage.includes("email already exists")
+  ) {
+    return "Účet s týmto e-mailom už existuje. Prihláste sa alebo použite obnovu hesla."
+  }
+
+  return message || "Registrácia sa nepodarila. Skúste to prosím znovu."
+}

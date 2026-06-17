@@ -8,7 +8,7 @@ import type {
 
 type RegisterAccountTypeFieldProps = {
   form: RegisterFormController
-  onValueChange: RegisterFieldChangeHandler
+  onValueChange?: RegisterFieldChangeHandler
 }
 
 const REGISTER_ACCOUNT_TYPE_ITEMS = [

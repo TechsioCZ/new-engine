@@ -16,6 +16,7 @@ import {
   type RegisterFormValues,
   isWholesaleRegistration,
   resolveLoginSubmitError,
+  resolveRegisterSubmitError,
 } from "@/lib/auth/auth-form-validators"
 import { buildAuthRegisterInput } from "@/lib/auth/register-payload"
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth"
@@ -174,7 +175,7 @@ export const useAuthController = ({
         )
         return null
       } catch (error) {
-        return resolveErrorMessage(error)
+        return resolveRegisterSubmitError(error)
       }
     },
     [
