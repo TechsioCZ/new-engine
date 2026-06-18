@@ -1,21 +1,14 @@
-import type { HttpTypes } from "@medusajs/types"
 import { NextResponse } from "next/server"
-import {
-  badRequest,
-  buildErrorResponse,
-  buildMedusaUrl,
-  conflict,
-  getPublishableHeaders,
-  isConflictStatus,
-  parseResponseJson,
-  serverError,
-  setSessionTokenCookie,
-} from "../_lib"
+import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
-  createWholesaleCompanyRequest,
-  parseWholesaleRegistration,
-} from "./wholesale"
+  createCustomerIdentity,
+  createCustomerProfile,
+  createWholesaleProfile,
+  loginCustomerIdentity,
+  refreshCustomerToken,
+} from "./register-flow"
+import { parseWholesaleRegistration } from "./wholesale"
 
 type RegisterBody = {
   email?: string
@@ -83,25 +76,6 @@ const parseRegisterBody = async (request: Request) => {
   }
 }
 
-const refreshCustomerToken = async (loginToken: string) => {
-  const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${loginToken}`,
-    },
-    cache: "no-store",
-  })
-
-  if (!refreshResponse.ok) {
-    return loginToken
-  }
-
-  const refreshPayload = await parseResponseJson(refreshResponse)
-  return refreshPayload && typeof refreshPayload.token === "string"
-    ? refreshPayload.token
-    : loginToken
-}
-
 export async function POST(request: Request) {
   try {
     const parsedBody = await parseRegisterBody(request)
@@ -109,110 +83,42 @@ export async function POST(request: Request) {
       return parsedBody.error
     }
 
-    const { email, firstName, lastName, password, wholesale } =
-      parsedBody.value
-    const registerResponse = await fetch(
-      buildMedusaUrl("/auth/customer/emailpass/register"),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-        cache: "no-store",
-      }
-    )
-
-    const registerConflict = isConflictStatus(registerResponse.status)
-    if (!(registerResponse.ok || registerConflict)) {
-      return buildErrorResponse(registerResponse)
-    }
-
-    if (registerConflict && wholesale) {
-      return conflict(
-        "Účet s týmto e-mailom už existuje. Prihláste sa a požiadajte o VO účet cez podporu."
-      )
-    }
-
-    const loginResponse = await fetch(
-      buildMedusaUrl("/auth/customer/emailpass"),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-        cache: "no-store",
-      }
-    )
-
-    if (!loginResponse.ok) {
-      return buildErrorResponse(loginResponse)
-    }
-
-    const loginPayload = await parseResponseJson(loginResponse)
-    const loginToken =
-      loginPayload && typeof loginPayload.token === "string"
-        ? loginPayload.token
-        : null
-
-    if (!loginToken) {
-      return serverError(
-        "Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený."
-      )
-    }
-
-    const customerProfile: HttpTypes.StoreCreateCustomer = {
+    const { email, firstName, lastName, password, wholesale } = parsedBody.value
+    const registerError = await createCustomerIdentity({
       email,
-      first_name: firstName,
-      last_name: lastName,
-      ...(wholesale
-        ? {
-            company_name: wholesale.companyName,
-            metadata: {
-              company_identifier: wholesale.companyIdentifier,
-            },
-          }
-        : {}),
+      password,
+      wholesale,
+    })
+    if (registerError) {
+      return registerError
     }
 
-    const createCustomerResponse = await fetch(
-      buildMedusaUrl("/store/customers"),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${loginToken}`,
-          ...getPublishableHeaders(),
-        },
-        body: JSON.stringify(customerProfile),
-        cache: "no-store",
-      }
-    )
-
-    const customerConflict = isConflictStatus(createCustomerResponse.status)
-    if (!(createCustomerResponse.ok || customerConflict)) {
-      return buildErrorResponse(createCustomerResponse)
+    const loginResult = await loginCustomerIdentity({ email, password })
+    if (loginResult.error) {
+      return loginResult.error
     }
 
-    const sessionToken = await refreshCustomerToken(loginToken)
-
-    if (wholesale) {
-      const companyError = await createWholesaleCompanyRequest({
+    const customerError = await createCustomerProfile({
+      loginToken: loginResult.token,
+      payload: {
         email,
-        token: sessionToken,
+        firstName,
+        lastName,
         wholesale,
-      })
+      },
+    })
+    if (customerError) {
+      return customerError
+    }
 
-      if (companyError) {
-        return companyError
-      }
+    const sessionToken = await refreshCustomerToken(loginResult.token)
+    const companyError = await createWholesaleProfile({
+      email,
+      sessionToken,
+      wholesale,
+    })
+    if (companyError) {
+      return companyError
     }
 
     return createRegisterResponse(sessionToken)

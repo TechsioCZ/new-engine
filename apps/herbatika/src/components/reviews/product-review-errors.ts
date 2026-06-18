@@ -3,6 +3,7 @@ const GENERIC_REVIEW_SUBMIT_ERROR =
   "Recenziu sa nepodarilo odoslať. Skúste to prosím znova."
 const PURCHASE_REQUIRED_REVIEW_ERROR =
   "Na napísanie recenzie musíte mať tento produkt zakúpený."
+const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
 
 const hasErrorShape = (
   error: unknown
@@ -53,30 +54,32 @@ const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
   )
 }
 
-export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
-  const message = extractErrorMessage(error)
-  const status =
-    hasErrorShape(error) && typeof error.status === "number"
-      ? error.status
-      : undefined
-  const normalizedMessage = message.toLowerCase()
+const isDuplicateReviewMessage = (normalizedMessage: string) =>
+  normalizedMessage.includes("already") ||
+  normalizedMessage.includes("duplicate") ||
+  normalizedMessage.includes("exist") ||
+  normalizedMessage.includes("reviewed")
 
-  if (!message && status === undefined) {
-    return GENERIC_REVIEW_SUBMIT_ERROR
-  }
+const isDuplicateReviewError = (
+  status: number | undefined,
+  normalizedMessage: string
+) => status === 409 || isDuplicateReviewMessage(normalizedMessage)
 
+const resolveKnownReviewErrorMessage = ({
+  message,
+  normalizedMessage,
+  status,
+}: {
+  message: string
+  normalizedMessage: string
+  status: number | undefined
+}) => {
   const tokenMessage = resolveTokenMessage(normalizedMessage)
   if (tokenMessage) {
     return tokenMessage
   }
 
-  if (
-    status === 409 ||
-    normalizedMessage.includes("already") ||
-    normalizedMessage.includes("duplicate") ||
-    normalizedMessage.includes("exist") ||
-    normalizedMessage.includes("reviewed")
-  ) {
+  if (isDuplicateReviewError(status, normalizedMessage)) {
     return "Tento produkt ste už hodnotili."
   }
 
@@ -92,7 +95,7 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
     return "Recenziu pre tento produkt momentálne nemôžete odoslať."
   }
 
-  if (status === 400 || status === 422) {
+  if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
     return message || "Skontrolujte prosím hodnotenie a text recenzie."
   }
 
@@ -100,5 +103,26 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
     return GENERIC_REVIEW_SUBMIT_ERROR
   }
 
-  return message || GENERIC_REVIEW_SUBMIT_ERROR
+  return null
+}
+
+export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
+  const message = extractErrorMessage(error)
+  const status =
+    hasErrorShape(error) && typeof error.status === "number"
+      ? error.status
+      : undefined
+  const normalizedMessage = message.toLowerCase()
+
+  if (!message && status === undefined) {
+    return GENERIC_REVIEW_SUBMIT_ERROR
+  }
+
+  const knownMessage = resolveKnownReviewErrorMessage({
+    message,
+    normalizedMessage,
+    status,
+  })
+
+  return knownMessage || message || GENERIC_REVIEW_SUBMIT_ERROR
 }
