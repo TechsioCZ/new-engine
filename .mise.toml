@@ -68,32 +68,32 @@ description = "Stop and remove the local Adminer helper"
 run = "bash ./scripts/dev/mise-dev-helpers.sh local-helper down adminer"
 
 [tasks."dev:corepack:update"]
-description = "Activate the pinned pnpm version through Corepack"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install"
+description = "Update Corepack inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} corepack up"
 
 [tasks."dev:install"]
-description = "Install workspace dependencies with pinned pnpm"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpm install --frozen-lockfile"
+description = "Install workspace dependencies inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --frozen-lockfile"
 
 [tasks."dev:install:fix-lock"]
-description = "Repair the pnpm lockfile with pinned pnpm"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpm install --fix-lockfile"
+description = "Repair the pnpm lockfile inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --fix-lockfile"
 
 [tasks."dev:install:no-lock"]
-description = "Install workspace dependencies with pinned pnpm without frozen lockfile"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpm install --no-frozen-lockfile"
+description = "Install workspace dependencies inside the repo pnpm toolchain container without lockfile"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm install --no-frozen-lockfile"
 
 [tasks."dev:deps:update"]
-description = "Update Medusa backend workspace dependencies with pinned pnpm"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpm --filter medusa-be update --latest"
+description = "Update Medusa backend workspace dependencies inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm --filter medusa-be update --latest"
 
 [tasks."dev:deps:update:medusa"]
 description = "Update @medusajs/* packages inside the Medusa backend workspace"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpm --filter medusa-be update '@medusajs/*' --latest"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm --filter medusa-be update '@medusajs/*' --latest"
 
 [tasks."dev:deps:npkill"]
-description = "Interactively clean node_modules trees with pinned pnpm"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpx npkill -x -D -y"
+description = "Interactively clean node_modules trees inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -it -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpx npkill -x -D -y"
 
 [tasks."dev:prod"]
 description = "Build and run the local production compose stack, including frontend category regeneration"
@@ -201,7 +201,7 @@ run = "bash ./scripts/dev/refresh-zane-template-db.sh"
 
 [tasks."dev:biome:medusa-be"]
 description = "Run Biome with writes against apps/medusa-be"
-run = "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install && pnpm exec biome check --write apps/medusa-be"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm exec biome check --write apps/medusa-be"
 
 [tasks."test:e2e:medusa-be:http"]
 description = "Start isolated Medusa BE e2e stack, run all HTTP e2e specs, then teardown"

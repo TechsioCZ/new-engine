@@ -21,6 +21,7 @@ export function createMeiliApiCredentialsCommand(): Command {
     .option("--output-json <path>")
     .option("--dry-run", "", false)
     .option("--wait-seconds <n>")
+    .option("--timeout-seconds <n>")
     .option("--retry-count <n>")
     .option("--retry-delay-seconds <n>")
     .option(
@@ -44,6 +45,7 @@ export function createMeiliApiCredentialsCommand(): Command {
         outputJson: options.outputJson,
         dryRun: Boolean(options.dryRun),
         waitSeconds: parseOptionalNumber(options.waitSeconds),
+        timeoutSeconds: parseOptionalNumber(options.timeoutSeconds),
         retryCount: parseOptionalNumber(options.retryCount),
         retryDelaySeconds: parseOptionalNumber(options.retryDelaySeconds),
         stackManifestPath: options.stackManifestPath,

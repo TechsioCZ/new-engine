@@ -7,6 +7,8 @@ PROJECT_NAME="${PROJECT_NAME:-new-engine}"
 HEALTH_TIMEOUT_SECONDS="${MISE_DEV_HEALTH_TIMEOUT_SECONDS:-180}"
 KEY_CONFLICT_POLICY="${MISE_DEV_MEILI_KEY_CONFLICT:-prompt}" # prompt|override|keep
 MISE_DEV_MEILI_URL="${MISE_DEV_MEILI_URL:-http://127.0.0.1:7700}"
+CTL_DIST="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
+CTL_ROOT="$ROOT_DIR/apps/new-engine-ctl"
 # shellcheck source=scripts/dev/lib/common.sh
 source "${ROOT_DIR}/scripts/dev/lib/common.sh"
 
@@ -14,6 +16,20 @@ require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "$1 is required" >&2
     exit 1
+  fi
+}
+
+ensure_ctl_built() {
+  require_cmd node
+
+  if [[ ! -f "$CTL_DIST" ]] ||
+    find "$CTL_ROOT/src" "$CTL_ROOT/config" "$CTL_ROOT/scripts" -type f -newer "$CTL_DIST" -print -quit | grep -q . ||
+    find "$CTL_ROOT/package.json" "$ROOT_DIR/pnpm-lock.yaml" "$ROOT_DIR/pnpm-workspace.yaml" "$ROOT_DIR/node_modules/.modules.yaml" -maxdepth 0 -type f -newer "$CTL_DIST" -print -quit 2>/dev/null | grep -q .; then
+    echo "Building new-engine-ctl..." >&2
+    (
+      cd "$CTL_ROOT"
+      node ./scripts/build.mjs >/dev/null
+    )
   fi
 }
 
@@ -63,24 +79,13 @@ wait_for_service_healthy() {
 services_for_phase() {
   local phase="$1"
   local default_only="${2:-true}"
-  local ctl_dist="$ROOT_DIR/apps/new-engine-ctl/dist/cli.js"
-  local ctl_root="$ROOT_DIR/apps/new-engine-ctl"
 
-  common::ensure_pnpm "$ROOT_DIR"
-
-  if [[ ! -f "$ctl_dist" ]] ||
-    find "$ctl_root/src" "$ctl_root/config" "$ctl_root/scripts" -type f -newer "$ctl_dist" -print -quit | grep -q . ||
-    find "$ctl_root/package.json" "$ROOT_DIR/pnpm-lock.yaml" "$ROOT_DIR/pnpm-workspace.yaml" "$ROOT_DIR/node_modules/.modules.yaml" -maxdepth 0 -type f -newer "$ctl_dist" -print -quit 2>/dev/null | grep -q .; then
-    (
-      cd "$ctl_root"
-      pnpm run build >/dev/null
-    )
-  fi
+  ensure_ctl_built
 
   if [[ "$default_only" == "true" ]]; then
-    node "$ctl_dist" manifest compose-services --phase "$phase" --default-only
+    node "$CTL_DIST" manifest compose-services --phase "$phase" --default-only
   else
-    node "$ctl_dist" manifest compose-services --phase "$phase"
+    node "$CTL_DIST" manifest compose-services --phase "$phase"
   fi
 }
 
@@ -203,29 +208,81 @@ sync_env_key() {
   fi
 }
 
-map_meili_runtime_env_to_local_compose_env() {
-  local runtime_env_var="$1"
+requested_frontend_services() {
+  if [[ "$#" -gt 0 ]]; then
+    printf '%s\n' "$@"
+    return 0
+  fi
 
-  case "$runtime_env_var" in
-    MEILISEARCH_API_KEY)
-      printf '%s' "DC_MEILISEARCH_BACKEND_API_KEY"
-      ;;
-    NEXT_PUBLIC_MEILISEARCH_API_KEY)
-      printf '%s' "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY"
-      ;;
-    *)
-      printf '%s' "$runtime_env_var"
-      ;;
-  esac
+  if [[ -n "${MISE_DEV_FRONTEND_SERVICES:-}" ]]; then
+    printf '%s\n' $MISE_DEV_FRONTEND_SERVICES
+    return 0
+  fi
+
+  if [[ -n "${MISE_DEV_MEILI_FRONTEND_SERVICES:-}" ]]; then
+    printf '%s\n' $MISE_DEV_MEILI_FRONTEND_SERVICES
+    return 0
+  fi
+
+  services_for_phase frontend
+}
+
+join_csv() {
+  local IFS=,
+  printf '%s' "$*"
+}
+
+local_env_aliases_for_runtime_provider_output() {
+  local provider_id="$1"
+  local output_id="$2"
+  local service_ids_csv="$3"
+
+  ensure_ctl_built
+
+  node "$CTL_DIST" local-env runtime-provider-output-targets \
+    --provider-id "$provider_id" \
+    --output-id "$output_id" \
+    --service-ids-csv "$service_ids_csv" \
+    --format local-env-vars
+}
+
+sync_runtime_provider_output_env() {
+  local provider_id="$1"
+  local output_id="$2"
+  local provisioned_value="$3"
+  local local_env_var
+  local local_env_vars=()
+  shift 3
+
+  while IFS= read -r local_env_var; do
+    [[ -n "$local_env_var" ]] || continue
+    local_env_vars+=("$local_env_var")
+  done < <(local_env_aliases_for_runtime_provider_output "$provider_id" "$output_id" "$(join_csv "$@")")
+
+  if [[ "${#local_env_vars[@]}" -eq 0 ]]; then
+    echo "No local env aliases resolved for ${provider_id}.${output_id}; skipping sync."
+    return 0
+  fi
+
+  for local_env_var in "${local_env_vars[@]}"; do
+    sync_env_key "$local_env_var" "$provisioned_value"
+  done
 }
 
 
 sync_meili_env() {
-  local output backend_key frontend_key backend_env_var frontend_env_var backend_target_env_var frontend_target_env_var backend_created backend_updated frontend_created frontend_updated
+  local frontend_services=()
+  local frontend_service
+  local output backend_key frontend_key backend_env_var frontend_env_var backend_created backend_updated frontend_created frontend_updated
 
   require_cmd bash
   require_cmd awk
   require_cmd sed
+
+  while IFS= read -r frontend_service; do
+    [[ -n "$frontend_service" ]] || continue
+    frontend_services+=("$frontend_service")
+  done < <(requested_frontend_services "$@")
 
   if [[ ! -f "$ENV_FILE" ]]; then
     echo "Missing ${ENV_FILE}. Create it from .env.docker first." >&2
@@ -245,9 +302,6 @@ sync_meili_env() {
     exit 1
   fi
 
-  backend_target_env_var="$(map_meili_runtime_env_to_local_compose_env "$backend_env_var")"
-  frontend_target_env_var="$(map_meili_runtime_env_to_local_compose_env "$frontend_env_var")"
-
   backend_created="$(printf '%s\n' "$output" | sed -n 's/^backend_created=//p' | tail -n1)"
   backend_updated="$(printf '%s\n' "$output" | sed -n 's/^backend_updated=//p' | tail -n1)"
   frontend_created="$(printf '%s\n' "$output" | sed -n 's/^frontend_created=//p' | tail -n1)"
@@ -255,8 +309,8 @@ sync_meili_env() {
 
   echo "Provision status: backend(created=${backend_created:-unknown},updated=${backend_updated:-unknown}), frontend(created=${frontend_created:-unknown},updated=${frontend_updated:-unknown})"
 
-  sync_env_key "$backend_target_env_var" "$backend_key"
-  sync_env_key "$frontend_target_env_var" "$frontend_key"
+  sync_runtime_provider_output_env meili_api_credentials backend_key "$backend_key" medusa-be
+  sync_runtime_provider_output_env meili_api_credentials frontend_key "$frontend_key" "${frontend_services[@]}"
 }
 
 ensure_operator_db_convergence() {
@@ -364,7 +418,11 @@ Usage: scripts/dev/mise-dev-helpers.sh <command> [args]
 Commands:
   wait-healthy <service...>   Wait until each docker compose service is healthy
   services-for-phase <phase>  Print compose services for a local-dev phase from stack manifest
-  sync-meili-env              Provision Meili keys and sync .env values
+  sync-meili-env [frontend-service...]
+                              Provision Meili keys and sync .env values.
+                              Defaults to manifest default frontend services.
+                              Pass n1 herbatika, or set MISE_DEV_FRONTEND_SERVICES,
+                              to sync the frontend key to multiple local targets.
   ensure-operator-db-convergence
                               Ensure medusa-db has converged zane-operator bootstrap state for current local envs
   local-helper <action> <service>
@@ -377,6 +435,7 @@ Environment options:
   MISE_DEV_HEALTH_TIMEOUT_SECONDS      health wait timeout per service (default: 180)
   MISE_DEV_MEILI_KEY_CONFLICT          prompt|override|keep (default: prompt)
   MISE_DEV_MEILI_URL                   Host-accessible Meilisearch URL for provisioning (default: http://127.0.0.1:7700)
+  MISE_DEV_FRONTEND_SERVICES           Space-separated frontend services for provisioned frontend env fan-out
 USAGE
 }
 
@@ -404,7 +463,7 @@ main() {
       services_for_phase "$1"
       ;;
     sync-meili-env)
-      sync_meili_env
+      sync_meili_env "$@"
       ;;
     ensure-operator-db-convergence)
       ensure_operator_db_convergence

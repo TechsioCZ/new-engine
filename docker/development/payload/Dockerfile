@@ -80,16 +80,31 @@ RUN --mount=type=cache,id=pnpm-store-payload,target=/pnpm/store \
     corepack install && \
     pnpm install --store-dir=/pnpm/store --frozen-lockfile --filter @nmit/payload...
 COPY apps/payload apps/payload
+RUN mkdir -p apps/payload/public
 RUN pnpm --filter @nmit/payload run generate:importmap && \
-    pnpm --filter @nmit/payload run build
+    pnpm --filter @nmit/payload run build && \
+    test -f apps/payload/.next/standalone/apps/payload/server.js
 
-FROM base AS prod
+FROM node:24-slim AS prod
+
+RUN apt-get update && apt-get install -y curl --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=8083
+ENV HOSTNAME=0.0.0.0
 
-COPY --from=build /var/www /var/www
+WORKDIR /app
+
+COPY --from=build --chown=node:node /var/www/apps/payload/.next/standalone ./
+COPY --from=build --chown=node:node /var/www/apps/payload/public ./apps/payload/public
+COPY --from=build --chown=node:node /var/www/apps/payload/.next/static ./apps/payload/.next/static
+
+USER node
 
 EXPOSE 8083
 
-CMD ["payload-runtime", "start"]
+WORKDIR /app/apps/payload
+
+CMD ["node", "server.js"]

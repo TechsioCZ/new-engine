@@ -75,7 +75,19 @@ wait_for_health() {
 
 cd "$REPO_ROOT"
 "${compose_prod[@]}" down || true
-docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-herbatika" || true
+docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-payload" "${PROJECT_NAME}-herbatika" || true
+
+"${compose_prod[@]}" up -d medusa-db
+wait_for_health medusa-db
+"${compose_prod[@]}" up -d medusa-valkey medusa-minio medusa-meilisearch
+wait_for_health medusa-valkey
+wait_for_health medusa-minio
+wait_for_health medusa-meilisearch
+
+"${compose_prod[@]}" build "${build_flags[@]}" payload
+"${compose_prod[@]}" up -d payload
+wait_for_health payload
+
 "${compose_prod[@]}" build "${build_flags[@]}" medusa-be
 "${compose_prod[@]}" up -d medusa-be
 wait_for_health medusa-be

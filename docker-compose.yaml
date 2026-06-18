@@ -441,6 +441,7 @@ services:
     build:
       context: .
       dockerfile: docker/development/zane-operator/Dockerfile
+      target: dev
     entrypoint:
       - /bin/sh
       - -ec
@@ -449,7 +450,7 @@ services:
         [ -n "$$PGUSER" ] || { echo "Missing required env: PGUSER. Set DC_ZANE_OPERATOR_PGUSER." >&2; exit 1; }
         [ -n "$$PGPASSWORD" ] || { echo "Missing required env: PGPASSWORD. Set DC_ZANE_OPERATOR_PGPASSWORD." >&2; exit 1; }
         [ -n "$$DB_PREVIEW_APP_PASSWORD_SECRET" ] || { echo "Missing required env: DB_PREVIEW_APP_PASSWORD_SECRET. Set DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET." >&2; exit 1; }
-        exec /app/zane-operator
+        exec sh -lc "$${ZANE_OPERATOR_RUNTIME_COMMAND:-pnpm --dir apps/zane-operator dev}"
     depends_on:
       medusa-db:
         condition: service_healthy
@@ -459,6 +460,8 @@ services:
       - internal
     environment:
       <<: *zane-operator-env
+    volumes:
+      - .:/var/www
   engine-db:
     image: mariadb:latest
     restart: no

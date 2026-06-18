@@ -62,4 +62,13 @@ services:
         S3_SECRET_ACCESS_KEY: ${DC_PAYLOAD_S3_SECRET_ACCESS_KEY:-payload}
     environment:
       NODE_ENV: production
+    working_dir: /app/apps/payload
+    command: ["node", "server.js"]
     volumes: !reset []  # Remove inherited dev bind mounts in prod
+  zane-operator:
+    build:
+      target: prod
+    environment:
+      NODE_ENV: production
+      ZANE_OPERATOR_RUNTIME_COMMAND: /app/zane-operator
+    volumes: !reset []
