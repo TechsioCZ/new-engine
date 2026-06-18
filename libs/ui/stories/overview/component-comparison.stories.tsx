@@ -447,7 +447,7 @@ function ComponentComparison() {
             <ComponentCard
               key={`searchform-${size}`}
               title={`SearchForm — ${size}`}
-              bodyClassName="w-64"
+              bodyClassName="w-full max-w-xs"
             >
               <SearchForm size={size}>
                 <SearchForm.Control>
@@ -461,7 +461,7 @@ function ComponentComparison() {
             <ComponentCard
               key={`searchform-gapped-${size}`}
               title={`SearchForm (gapped) — ${size}`}
-              bodyClassName="w-64"
+              bodyClassName="w-full max-w-xs"
             >
               <SearchForm gapped size={size}>
                 <SearchForm.Control>

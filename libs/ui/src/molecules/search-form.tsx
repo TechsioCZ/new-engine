@@ -34,9 +34,10 @@ const searchFormVariants = tv({
     // `focus-visible:z-10` mirrors the input so a focused button outline wins.
     button: ["relative shrink-0", "focus-visible:z-10"],
     // The clear button lives inside the input, pinned to the trailing edge at
-    // the input's inline padding (set per size below).
+    // the input's inline padding (set per size below). `inset-y-0` keeps the
+    // hit target the full height of the input rather than just the icon.
     clearButton: [
-      "-translate-y-1/2 absolute top-1/2",
+      "absolute inset-y-0",
       "inline-flex items-center justify-center",
     ],
   },
@@ -222,7 +223,10 @@ SearchForm.Control = function SearchFormControl({
 }
 
 interface SearchFormInputProps
-  extends Omit<InputProps, "size" | "value" | "onChange"> {}
+  extends Omit<
+    InputProps,
+    "size" | "value" | "onChange" | "withButtonInside"
+  > {}
 
 SearchForm.Input = function SearchFormInput({
   className,
