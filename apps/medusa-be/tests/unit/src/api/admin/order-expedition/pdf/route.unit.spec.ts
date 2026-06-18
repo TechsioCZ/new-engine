@@ -15,8 +15,8 @@ vi.mock("@medusajs/framework/utils", () => ({
   },
 }))
 
-const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } = vi.hoisted(
-  () => {
+const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } =
+  vi.hoisted(() => {
     const drawText = vi.fn()
     const page = {
       drawImage: vi.fn(),
@@ -34,8 +34,7 @@ const { mockAddPage, mockDrawText, mockEmbedFont, mockPage, mockSave } = vi.hois
       }),
       mockSave: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
     }
-  }
-)
+  })
 
 vi.mock("pdf-lib", () => ({
   PageSizes: {
@@ -168,9 +167,7 @@ describe("POST /admin/order-expedition/pdf", () => {
     expect(drawnTexts.some((text) => text.includes("Dlouha - ulice"))).toBe(
       true
     )
-    expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBe(
-      true
-    )
+    expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBe(true)
     expect(drawnTexts.some((text) => text.includes("2 ks"))).toBe(true)
     expect(
       drawnTexts.every((text) =>

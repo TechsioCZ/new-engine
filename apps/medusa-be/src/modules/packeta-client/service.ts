@@ -95,7 +95,7 @@ export class PacketaClientModuleService extends MedusaService({
     )
   }
 
-  getEnvironment(): PacketaEnvironment {
+  async getEnvironment(): Promise<PacketaEnvironment> {
     return this.environment_
   }
 

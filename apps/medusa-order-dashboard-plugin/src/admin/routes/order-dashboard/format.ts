@@ -25,6 +25,8 @@ const ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS = {
   OrderDashboardTargetStatus,
   readonly OrderDashboardTargetStatus[]
 >
+const PAYMENT_PROVIDER_PREFIX_PATTERN = /^pp_/u
+const PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN = /[_-]+/u
 
 export function formatLocaleCode(language?: string) {
   return language ? language.replace("_", "-") : undefined
@@ -178,8 +180,8 @@ export function isOrderDashboardTargetStatus(
 
 function formatPaymentProviderId(providerId: string) {
   const tokens = providerId
-    .replace(/^pp_/u, "")
-    .split(/[_-]+/u)
+    .replace(PAYMENT_PROVIDER_PREFIX_PATTERN, "")
+    .split(PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN)
     .filter(Boolean)
 
   if (!tokens.length) {
@@ -187,7 +189,7 @@ function formatPaymentProviderId(providerId: string) {
   }
 
   const meaningfulTokens = tokens[0] === "paykit" ? tokens.slice(1) : tokens
-  const lastToken = meaningfulTokens[meaningfulTokens.length - 1]
+  const lastToken = meaningfulTokens.at(-1)
   const labelTokens =
     meaningfulTokens[0] !== "system" &&
     meaningfulTokens.length > 1 &&

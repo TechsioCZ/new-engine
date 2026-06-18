@@ -31,7 +31,7 @@ export function startOrderDashboardSidebarBadge() {
       getOrderDashboardSidebarLink() &&
       canRefreshOrderDashboardSidebarBadge()
     ) {
-      void refreshOrderDashboardSidebarBadge()
+      queueOrderDashboardSidebarBadgeRefresh()
     }
 
     renderOrderDashboardSidebarBadge(currentCount)
@@ -46,13 +46,10 @@ export function startOrderDashboardSidebarBadge() {
   })
 
   window.setInterval(
-    () => void refreshOrderDashboardSidebarBadge(),
+    queueOrderDashboardSidebarBadgeRefresh,
     ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS
   )
-  window.addEventListener(
-    "focus",
-    () => void refreshOrderDashboardSidebarBadge()
-  )
+  window.addEventListener("focus", queueOrderDashboardSidebarBadgeRefresh)
 }
 
 export function setOrderDashboardSidebarBadgeCount(
@@ -83,10 +80,15 @@ async function refreshOrderDashboardSidebarBadge() {
   }
 }
 
+function queueOrderDashboardSidebarBadgeRefresh() {
+  refreshOrderDashboardSidebarBadge().catch(() => {
+    renderOrderDashboardSidebarBadge(currentCount)
+  })
+}
+
 function canRefreshOrderDashboardSidebarBadge() {
   return (
-    Date.now() - lastFetchAt >=
-    ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
+    Date.now() - lastFetchAt >= ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
   )
 }
 

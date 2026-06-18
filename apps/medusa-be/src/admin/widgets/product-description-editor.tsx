@@ -3,8 +3,8 @@ import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
-import { RichHtmlEditor } from "./rich-html-editor"
 
 type ProductDescriptionEditorProps = Partial<DetailWidgetProps<AdminProduct>>
 

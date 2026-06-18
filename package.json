@@ -27,7 +27,8 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
-    "@medusajs/deps": "2.15.2",
+    "@medusajs/deps": "2.16.0",
+    "@medusajs/eslint-plugin": "2.16.0",
     "@nx/esbuild": "22.4.2",
     "@nx/eslint-plugin": "22.4.2",
     "@nx/js": "22.4.2",
@@ -40,6 +41,7 @@
     "@typescript-eslint/parser": "^8.47.0",
     "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
+    "jiti": "^2.7.0",
     "jscpd": "^4.0.5",
     "knip": "^5.80.2",
     "nx": "22.4.2",
@@ -61,7 +63,7 @@
       "@medusajs/admin-bundler>@vitejs/plugin-react": "6.0.1",
       "vite": "8.0.11"
     },
-    "packageExtensionsComment": "@medusajs/utils@2.14.1 misses runtime dependencies on @medusajs/index and @medusajs/medusa in its published metadata. Remove this workaround after upstream declares them.",
+    "packageExtensionsComment": "Manual dependency metadata extensions for packages with incomplete published metadata.",
     "supportedArchitectures": {
       "os": [
         "current",
@@ -81,12 +83,6 @@
       ]
     },
     "packageExtensions": {
-      "@medusajs/utils@2.14.1": {
-        "dependencies": {
-          "@medusajs/index": "2.14.1",
-          "@medusajs/medusa": "2.14.1"
-        }
-      },
       "@payloadcms/ui@3.84.1": {
         "dependencies": {
           "@floating-ui/react": "0.27.19"
@@ -97,20 +93,20 @@
           "@payloadcms/ui": "3.84.1"
         }
       },
-      "@medusajs/caching@2.15.2": {
+      "@medusajs/caching@2.16.0": {
         "dependencies": {
           "graphql": "16.14.0"
         }
       },
-      "@medusajs/core-flows@2.15.2": {
+      "@medusajs/core-flows@2.16.0": {
         "dependencies": {
-          "@medusajs/utils": "2.15.2",
-          "@medusajs/workflows-sdk": "2.15.2"
+          "@medusajs/utils": "2.16.0",
+          "@medusajs/workflows-sdk": "2.16.0"
         }
       },
       "@rokmohar/medusa-plugin-meilisearch@*": {
         "dependencies": {
-          "@medusajs/js-sdk": "^2.15.2"
+          "@medusajs/js-sdk": "^2.16.0"
         }
       }
     },
@@ -121,8 +117,8 @@
     }
   },
   "dependencies": {
-    "@mikro-orm/core": "6.6.12",
-    "@mikro-orm/migrations": "6.6.12",
+    "@mikro-orm/core": "6.6.14",
+    "@mikro-orm/migrations": "6.6.14",
     "@rokmohar/medusa-plugin-meilisearch": "^1.3.8",
     "graphql": "^16.12.0",
     "medusa-plugin-content": "0.2.0"
