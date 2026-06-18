@@ -18,8 +18,6 @@ export const resolveMedusaBackendUrl = () =>
 export const resolvePayloadBaseUrl = (
   fallbackBaseUrl = resolveMedusaBackendUrl()
 ) =>
-  (isServerRuntime()
-    ? trimEnv(process.env.PAYLOAD_BASE_URL_INTERNAL)
-    : null) ??
+  (isServerRuntime() ? trimEnv(process.env.PAYLOAD_BASE_URL_INTERNAL) : null) ??
   trimEnv(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL) ??
   fallbackBaseUrl

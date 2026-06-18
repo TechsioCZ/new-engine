@@ -1,5 +1,5 @@
 {
-  "name": "herbatica",
+  "name": "herbatika",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -17,7 +17,11 @@
     "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size"
   },
   "nx": {
-    "tags": ["type:app", "platform:web", "framework:next"]
+    "tags": [
+      "type:app",
+      "platform:web",
+      "framework:next"
+    ]
   },
   "dependencies": {
     "@medusajs/js-sdk": "^2.12.5",

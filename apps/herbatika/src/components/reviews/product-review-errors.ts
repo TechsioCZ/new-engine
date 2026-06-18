@@ -53,6 +53,39 @@ const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
   )
 }
 
+const isDuplicateReviewError = (
+  status: number | undefined,
+  normalizedMessage: string
+) =>
+  status === 409 ||
+  normalizedMessage.includes("already") ||
+  normalizedMessage.includes("duplicate") ||
+  normalizedMessage.includes("exist") ||
+  normalizedMessage.includes("reviewed")
+
+const resolveStatusReviewMessage = (
+  status: number | undefined,
+  message: string
+) => {
+  if (status === 401) {
+    return "Pre odoslanie recenzie sa prosím prihláste."
+  }
+
+  if (status === 403) {
+    return "Recenziu pre tento produkt momentálne nemôžete odoslať."
+  }
+
+  if (status === 400 || status === 422) {
+    return message || "Skontrolujte prosím hodnotenie a text recenzie."
+  }
+
+  if (status && status >= 500) {
+    return GENERIC_REVIEW_SUBMIT_ERROR
+  }
+
+  return null
+}
+
 export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
   const message = extractErrorMessage(error)
   const status =
@@ -70,34 +103,17 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
     return tokenMessage
   }
 
-  if (
-    status === 409 ||
-    normalizedMessage.includes("already") ||
-    normalizedMessage.includes("duplicate") ||
-    normalizedMessage.includes("exist") ||
-    normalizedMessage.includes("reviewed")
-  ) {
+  if (isDuplicateReviewError(status, normalizedMessage)) {
     return "Tento produkt ste už hodnotili."
-  }
-
-  if (status === 401) {
-    return "Pre odoslanie recenzie sa prosím prihláste."
   }
 
   if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
     return PURCHASE_REQUIRED_REVIEW_ERROR
   }
 
-  if (status === 403) {
-    return "Recenziu pre tento produkt momentálne nemôžete odoslať."
-  }
-
-  if (status === 400 || status === 422) {
-    return message || "Skontrolujte prosím hodnotenie a text recenzie."
-  }
-
-  if (status && status >= 500) {
-    return GENERIC_REVIEW_SUBMIT_ERROR
+  const statusMessage = resolveStatusReviewMessage(status, message)
+  if (statusMessage) {
+    return statusMessage
   }
 
   return message || GENERIC_REVIEW_SUBMIT_ERROR

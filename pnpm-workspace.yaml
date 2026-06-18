@@ -11,6 +11,8 @@ strictPeerDependencies: true
 disallowWorkspaceCycles: true
 dedupeDirectDeps: true
 injectWorkspacePackages: true
+verifyDepsBeforeRun: false
+storeDir: .pnpm-store
 publicHoistPattern:
   - eslint
   - eslint-*

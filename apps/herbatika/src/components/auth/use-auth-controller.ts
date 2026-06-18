@@ -12,9 +12,9 @@ import {
 } from "@/components/auth/auth-helpers"
 import { useRegisterCountryItems } from "@/components/auth/use-register-country-items"
 import {
+  isWholesaleRegistration,
   type LoginFormValues,
   type RegisterFormValues,
-  isWholesaleRegistration,
   resolveLoginSubmitError,
   resolveRegisterSubmitError,
 } from "@/lib/auth/auth-form-validators"
@@ -26,8 +26,8 @@ import {
   useTransferCart,
 } from "@/lib/storefront/cart"
 import { cartStorage } from "@/lib/storefront/cart-storage"
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
 
 type AuthControlsMode = "login" | "register"

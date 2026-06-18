@@ -18,6 +18,7 @@
     "build:be": "cd apps/medusa-be && npm run build",
     "build:all:nx": "nx run-many --target=build --projects=medusa-*",
     "lint:nx": "NX_DAEMON=false pnpm exec nx show projects > /dev/null && eslint --config eslint.nx.config.cjs \"apps/**/*.{ts,tsx,js,jsx}\" \"libs/**/*.{ts,tsx,js,jsx}\"",
+    "nx:affected": "NX_DAEMON=false pnpm exec nx affected -t lint test",
     "knip": "knip",
     "knip:report": "knip --reporter markdown > reports/knip-report.md",
     "knip:fix": "knip --fix",

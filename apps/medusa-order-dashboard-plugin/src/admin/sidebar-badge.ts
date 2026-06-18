@@ -81,9 +81,7 @@ async function refreshOrderDashboardSidebarBadge() {
 }
 
 function queueOrderDashboardSidebarBadgeRefresh() {
-  refreshOrderDashboardSidebarBadge().catch(() => {
-    renderOrderDashboardSidebarBadge(currentCount)
-  })
+  refreshOrderDashboardSidebarBadge()
 }
 
 function canRefreshOrderDashboardSidebarBadge() {

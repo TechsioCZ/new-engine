@@ -6,8 +6,8 @@ import type {
   MedusaCatalogListInput,
   MedusaCatalogServiceConfig,
 } from "@techsio/storefront-data/catalog/medusa-service"
-import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import { createCatalogQueryKeys } from "@techsio/storefront-data/catalog/query-keys"
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import type {
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,

@@ -195,7 +195,7 @@ services:
     compose_service: "herbatika"
     kind: "frontend"
     nx_projects:
-      - "herbatica"
+      - "herbatika"
     local:
       phase: "frontend"
     ci:

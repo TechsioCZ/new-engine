@@ -15,10 +15,7 @@ const buildCmsUrl = (
   path: string,
   params?: Record<string, string | number>
 ) => {
-  const url = new URL(
-    `/store/cms/${trimSlashes(path)}`,
-    CMS_MEDUSA_BASE_URL
-  )
+  const url = new URL(`/store/cms/${trimSlashes(path)}`, CMS_MEDUSA_BASE_URL)
 
   url.searchParams.set("locale", CMS_LOCALE)
 

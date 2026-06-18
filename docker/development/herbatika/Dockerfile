@@ -18,10 +18,10 @@ COPY package.json /tmp/corepack/package.json
 RUN corepack install && rm -rf /tmp/corepack
 WORKDIR /var/www
 CMD ["sh", "-lc", "\
-    [ -x apps/herbatika/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatica...; \
+    [ -x apps/herbatika/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatika...; \
     pnpm --filter=@techsio/storefront-data build; \
     pnpm --filter=@techsio/ui-kit build; \
-    pnpm --filter=herbatica exec next dev --hostname 0.0.0.0 --port 3000 \
+    pnpm --filter=herbatika exec next dev --hostname 0.0.0.0 --port 3000 \
 "]
 
 FROM base AS build
@@ -35,7 +35,7 @@ COPY libs/storefront-data/package.json libs/storefront-data/package.json
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     corepack install && \
-    pnpm --filter=herbatica... fetch --store-dir=/pnpm/store --frozen-lockfile
+    pnpm --filter=herbatika... fetch --store-dir=/pnpm/store --frozen-lockfile
 
 COPY tsconfig.base.json tsconfig.json nx.json ./
 COPY apps/herbatika ./apps/herbatika
@@ -57,13 +57,13 @@ ENV NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES=${NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES}
 ENV NEXT_PUBLIC_PAYLOAD_BASE_URL=${NEXT_PUBLIC_PAYLOAD_BASE_URL}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatica...
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatika...
 
 RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 
 RUN --mount=type=cache,id=next-cache-herbatika,target=/var/www/apps/herbatika/.next/cache \
-    pnpm --filter=herbatica exec next build --webpack && \
+    pnpm --filter=herbatika exec next build --webpack && \
     test -f apps/herbatika/.next/BUILD_ID
 
 FROM node:24-slim AS prod
