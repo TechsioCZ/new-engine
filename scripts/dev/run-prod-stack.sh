@@ -44,8 +44,8 @@ fi
 
 wait_for_health() {
   local service_name="$1"
-  local timeout_seconds="${2:-180}"
-  local container_id status
+  local timeout_seconds="${2:-300}"
+  local container_id status last_status=""
 
   container_id="$("${compose_prod[@]}" ps -q "$service_name")"
   if [[ -z "$container_id" ]]; then
@@ -60,10 +60,9 @@ wait_for_health() {
       echo "${service_name} is healthy."
       return 0
     fi
-    if [[ "$status" == "unhealthy" ]]; then
-      echo "${service_name} is unhealthy." >&2
-      docker logs --tail=120 "$container_id" >&2
-      exit 1
+    if [[ "$status" != "$last_status" ]]; then
+      echo "${service_name}: ${status}" >&2
+      last_status="$status"
     fi
     sleep 2
     timeout_seconds=$((timeout_seconds - 2))

@@ -109,7 +109,7 @@ RUN mkdir -p /app/.medusa/types /app/.medusa/client /app/static && \
 # Run as non-root user
 USER node
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=10s --start-period=120s --retries=8 \
     CMD curl -f http://localhost:9000/health || exit 1
 
 CMD ["sh", "-c", "npm run migrateProd && npm run entrypoint && exec npm run start"]

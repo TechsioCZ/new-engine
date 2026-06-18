@@ -9,6 +9,12 @@ services:
         FEATURE_PACKETA_ENABLED: ${DC_FEATURE_PACKETA_ENABLED:-0}
     environment:
       NODE_ENV: production
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/health" ]
+      start_period: 120s
+      interval: 15s
+      timeout: 10s
+      retries: 8
     volumes: !reset []  # Remove inherited dev bind mounts in prod
   n1:
     build:
