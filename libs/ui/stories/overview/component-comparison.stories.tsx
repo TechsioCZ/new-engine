@@ -447,34 +447,28 @@ function ComponentComparison() {
             <ComponentCard
               key={`searchform-${size}`}
               title={`SearchForm — ${size}`}
-              bodyClassName="flex flex-wrap items-center gap-50"
+              bodyClassName="w-64"
             >
-              <div className="w-64">
-                <SearchForm size={size}>
-                  <SearchForm.Control>
-                    <SearchForm.Input placeholder="Search..." />
-                    <SearchForm.Button>Search</SearchForm.Button>
-                  </SearchForm.Control>
-                </SearchForm>
-              </div>
-              <Button size={size}>Button</Button>
+              <SearchForm size={size}>
+                <SearchForm.Control>
+                  <SearchForm.Input placeholder="Search..." />
+                  <SearchForm.Button>Search</SearchForm.Button>
+                </SearchForm.Control>
+              </SearchForm>
             </ComponentCard>
           ))}
           {(['sm', 'md'] as const).map((size) => (
             <ComponentCard
               key={`searchform-gapped-${size}`}
               title={`SearchForm (gapped) — ${size}`}
-              bodyClassName="flex flex-wrap items-center gap-50"
+              bodyClassName="w-64"
             >
-              <div className="w-64">
-                <SearchForm gapped size={size}>
-                  <SearchForm.Control>
-                    <SearchForm.Input placeholder="Search..." />
-                    <SearchForm.Button>Search</SearchForm.Button>
-                  </SearchForm.Control>
-                </SearchForm>
-              </div>
-              <Button size={size}>Button</Button>
+              <SearchForm gapped size={size}>
+                <SearchForm.Control>
+                  <SearchForm.Input placeholder="Search..." />
+                  <SearchForm.Button>Search</SearchForm.Button>
+                </SearchForm.Control>
+              </SearchForm>
             </ComponentCard>
           ))}
         </Section>

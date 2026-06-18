@@ -5,9 +5,11 @@ import {
   type ReactNode,
   type Ref,
   useContext,
+  useEffect,
   useId,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
 import { Button, type ButtonProps } from "../atoms/button"
 import { Input, type InputProps } from "../atoms/input"
@@ -21,33 +23,51 @@ const searchFormVariants = tv({
     // focus independently instead of sharing one ring around the whole group.
     root: ["relative grid"],
     control: ["flex items-stretch"],
+    // Positioning context for the absolutely-placed clear button, and the
+    // flex item that holds the input. `focus-within:z-10` lifts the focused
+    // input (and its outline) above the adjacent button so the focus ring is
+    // never painted underneath it.
+    inputWrapper: ["relative min-w-0 flex-1", "focus-within:z-10"],
     // The input keeps its own styling/focus ring from the Input atom.
-    input: ["peer", "min-w-0 flex-1"],
+    input: ["w-full"],
     // The button keeps its own styling/focus ring from the Button atom.
-    button: ["shrink-0"],
-    // Radius is left to the gapped variant so it stays consistent with the
-    // input and button, which also manage their own corners per gapped state.
-    clearButton: ["shrink-0 self-stretch"],
+    // `focus-visible:z-10` mirrors the input so a focused button outline wins.
+    button: ["relative shrink-0", "focus-visible:z-10"],
+    // The clear button lives inside the input, pinned to the trailing edge at
+    // the input's inline padding (set per size below).
+    clearButton: [
+      "-translate-y-1/2 absolute top-1/2",
+      "inline-flex items-center justify-center",
+    ],
   },
   variants: {
     size: {
       // Pin the button to the shared form-control height so it always matches
       // the input height — including `lg`, which the Button atom sizes by
-      // padding alone.
-      sm: { root: "gap-search-form-sm", button: "h-form-control-sm" },
-      md: { root: "gap-search-form-md", button: "h-form-control-md" },
-      lg: { root: "gap-search-form-lg", button: "h-form-control-lg" },
+      // padding alone. The clear button trails the input by its inline padding.
+      sm: {
+        root: "gap-search-form-sm",
+        button: "h-form-control-sm",
+        clearButton: "end-(length:--padding-input-sm)",
+      },
+      md: {
+        root: "gap-search-form-md",
+        button: "h-form-control-md",
+        clearButton: "end-(length:--padding-input-md)",
+      },
+      lg: {
+        root: "gap-search-form-lg",
+        button: "h-form-control-lg",
+        clearButton: "end-(length:--padding-input-lg)",
+      },
     },
     gapped: {
       // Joined: strip the touching corners so the two controls read as one.
-      // The clear button sits between them, so it stays square too.
       false: {
         input: "rounded-e-none",
         button: "rounded-s-none",
-        clearButton: "rounded-none",
       },
-      // Detached: 8px gap and the controls keep their full rounded corners,
-      // including the clear button (radius managed by the Button atom).
+      // Detached: 8px gap and the controls keep their full rounded corners.
       true: { control: "gap-search-form-gapped" },
     },
   },
@@ -67,6 +87,14 @@ type SearchFormContextValue = {
   setInputValue: (value: string) => void
   clearInput: () => void
   hasValue: boolean
+  // The input wrapper element the clear button portals into so it renders
+  // inside the input regardless of where it is composed in the JSX.
+  clearSlot: HTMLDivElement | null
+  setClearSlot: (element: HTMLDivElement | null) => void
+  // Whether a clear button is composed, so the input can reserve trailing
+  // padding for it only when one is present.
+  hasClearButton: boolean
+  setHasClearButton: (present: boolean) => void
 }
 
 const SearchFormContext = createContext<SearchFormContextValue | null>(null)
@@ -104,6 +132,8 @@ export function SearchForm({
   const generatedId = useId()
   const inputId = `search-input-${generatedId}`
   const [internalValue, setInternalValue] = useState(defaultValue)
+  const [clearSlot, setClearSlot] = useState<HTMLDivElement | null>(null)
+  const [hasClearButton, setHasClearButton] = useState(false)
   const isControlled = value !== undefined
   const inputValue = isControlled ? value : internalValue
 
@@ -135,6 +165,10 @@ export function SearchForm({
         setInputValue,
         clearInput,
         hasValue: inputValue.length > 0,
+        clearSlot,
+        setClearSlot,
+        hasClearButton,
+        setHasClearButton,
       }}
     >
       <search>
@@ -196,23 +230,34 @@ SearchForm.Input = function SearchFormInput({
   ref,
   ...props
 }: SearchFormInputProps) {
-  const { inputId, inputValue, setInputValue, size, gapped } =
-    useSearchFormContext()
+  const {
+    inputId,
+    inputValue,
+    setInputValue,
+    size,
+    gapped,
+    hasValue,
+    hasClearButton,
+    setClearSlot,
+  } = useSearchFormContext()
   const styles = searchFormVariants({ size, gapped })
 
   return (
-    <Input
-      aria-label={props["aria-label"] || "Search"}
-      className={styles.input({ className })}
-      id={inputId}
-      onChange={(e) => setInputValue(e.target.value)}
-      placeholder={placeholder}
-      ref={ref}
-      size={size}
-      type="search"
-      value={inputValue}
-      {...props}
-    />
+    <div className={styles.inputWrapper()} ref={setClearSlot}>
+      <Input
+        aria-label={props["aria-label"] || "Search"}
+        className={styles.input({ className })}
+        id={inputId}
+        onChange={(e) => setInputValue(e.target.value)}
+        placeholder={placeholder}
+        ref={ref}
+        size={size}
+        type="search"
+        value={inputValue}
+        withButtonInside={hasValue && hasClearButton ? "right" : undefined}
+        {...props}
+      />
+    </div>
   )
 }
 
@@ -258,15 +303,30 @@ SearchForm.ClearButton = function SearchFormClearButton({
   theme = "unstyled",
   ...props
 }: SearchFormClearButtonProps) {
-  const { size, gapped, clearInput, hasValue, inputValue } =
-    useSearchFormContext()
+  const {
+    size,
+    gapped,
+    clearInput,
+    hasValue,
+    inputValue,
+    clearSlot,
+    setHasClearButton,
+  } = useSearchFormContext()
   const styles = searchFormVariants({ size, gapped })
 
-  if (!hasValue) {
+  // Tell the input a clear button is composed so it reserves trailing padding.
+  useEffect(() => {
+    setHasClearButton(true)
+    return () => setHasClearButton(false)
+  }, [setHasClearButton])
+
+  if (!(hasValue && clearSlot)) {
     return null
   }
 
-  return (
+  // Render inside the input wrapper so the clear button sits inside the input,
+  // pinned to its trailing edge, instead of between the input and the button.
+  return createPortal(
     <Button
       aria-label={`Clear search: ${inputValue}`}
       className={styles.clearButton({ className })}
@@ -276,7 +336,8 @@ SearchForm.ClearButton = function SearchFormClearButton({
       theme={theme}
       type="button"
       {...props}
-    />
+    />,
+    clearSlot
   )
 }
 
