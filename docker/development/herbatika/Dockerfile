@@ -14,7 +14,7 @@ WORKDIR /var/www
 FROM base AS build
 ENV CI=true
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/herbatika/package.json apps/herbatika/package.json
 COPY libs/ui/package.json libs/ui/package.json

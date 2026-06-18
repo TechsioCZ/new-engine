@@ -31,7 +31,7 @@ FROM base AS ci-dev
 ENV NODE_ENV=development
 ENV CI=true
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
 RUN --mount=type=cache,id=pnpm-store-payload-ci-dev,target=/pnpm/store \
@@ -73,7 +73,7 @@ ENV S3_BUCKET=${S3_BUCKET}
 ENV S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
 ENV S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
 RUN --mount=type=cache,id=pnpm-store-payload,target=/pnpm/store \

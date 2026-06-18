@@ -15,7 +15,7 @@ WORKDIR /var/www
 
 ENV NODE_ENV=production
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/zane-operator/package.json apps/zane-operator/package.json
 RUN --mount=type=cache,id=pnpm-store-zane-operator,target=/pnpm/store \
