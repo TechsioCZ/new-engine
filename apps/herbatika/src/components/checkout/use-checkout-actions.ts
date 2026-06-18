@@ -10,18 +10,19 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils"
+import { resolveReusablePaymentCollection } from "./checkout-payment-collection-reuse"
 import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
 
 type UseCheckoutActionsProps = {
+  cart?: HttpTypes.StoreCart | null
   cartId?: string
-  cartPaymentProviderId?: string | null
   completedOrderId: string | null
   onCompletedOrderIdChange: (orderId: string | null) => void
   onOrderCompletionAbort: () => void
   onOrderCompletionStart: () => void
   onPaymentRedirect: (url: string) => void
   itemCount: number
-  paymentCollection?: HttpTypes.StorePaymentCollection | null
+  refreshCart?: () => Promise<HttpTypes.StoreCart | null>
   canInitiatePayment: boolean
   selectedPaymentProviderId?: string | null
   selectedShippingMethodId?: string | null
@@ -63,28 +64,9 @@ const resolveOrderCompletionBlocker = ({
   return null
 }
 
-const resolveReusablePaymentCollection = ({
-  cartPaymentProviderId,
-  paymentCollection,
-  selectedPaymentProviderId,
-}: Pick<
-  UseCheckoutActionsProps,
-  "cartPaymentProviderId" | "paymentCollection" | "selectedPaymentProviderId"
->) => {
-  if (
-    !paymentCollection ||
-    !selectedPaymentProviderId ||
-    cartPaymentProviderId !== selectedPaymentProviderId
-  ) {
-    return null
-  }
-
-  return paymentCollection
-}
-
 export function useCheckoutActions({
+  cart,
   cartId,
-  cartPaymentProviderId,
   canInitiatePayment,
   completedOrderId,
   completeCart,
@@ -96,7 +78,7 @@ export function useCheckoutActions({
   onOrderCompletionStart,
   onPaymentProviderSelect,
   onPaymentRedirect,
-  paymentCollection,
+  refreshCart,
   selectedPaymentProviderId,
   selectedShippingMethodId,
   setShippingMethod,
@@ -170,12 +152,15 @@ export function useCheckoutActions({
     onOrderCompletionStart()
 
     try {
+      const latestCart = (await refreshCart?.()) ?? cart
+      const reusablePaymentCollection = resolveReusablePaymentCollection({
+        cart: latestCart,
+        selectedPaymentProviderId,
+      })
+
       const resolvedPaymentCollection =
-        resolveReusablePaymentCollection({
-          cartPaymentProviderId,
-          paymentCollection,
-          selectedPaymentProviderId,
-        }) ?? (await initiatePayment(selectedPaymentProviderId))
+        reusablePaymentCollection ??
+        (await initiatePayment(selectedPaymentProviderId))
       const paymentRedirectUrl = resolvePaymentRedirectUrl(
         resolvedPaymentCollection
       )
