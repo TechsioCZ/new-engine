@@ -93,6 +93,7 @@ export const CART_FIELDS = [
   "region.*",
   "promotions.*",
   "payment_collection.*",
+  "payment_collection.payment_sessions.*",
   "*items",
   "items.tax_lines.*",
   "items.adjustments.*",

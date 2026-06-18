@@ -1,6 +1,15 @@
 "use client"
 
+import { useSyncExternalStore } from "react"
+
 const STORAGE_PREFIX = "herbatika.payment-provider"
+const listeners = new Set<() => void>()
+
+const emitPaymentProviderSelectionChange = () => {
+  for (const listener of listeners) {
+    listener()
+  }
+}
 
 export function readStoredPaymentProviderSelection(cartId?: string | null) {
   if (!cartId || typeof window === "undefined") {
@@ -33,6 +42,7 @@ export function writeStoredPaymentProviderSelection({
   }
 
   window.sessionStorage.setItem(createStorageKey(cartId), normalizedProviderId)
+  emitPaymentProviderSelectionChange()
 }
 
 export function clearStoredPaymentProviderSelection(cartId?: string | null) {
@@ -41,6 +51,38 @@ export function clearStoredPaymentProviderSelection(cartId?: string | null) {
   }
 
   window.sessionStorage.removeItem(createStorageKey(cartId))
+  emitPaymentProviderSelectionChange()
+}
+
+export function useStoredPaymentProviderSelection(cartId?: string | null) {
+  return useSyncExternalStore(
+    subscribeStoredPaymentProviderSelection,
+    () => readStoredPaymentProviderSelection(cartId),
+    () => null
+  )
+}
+
+function subscribeStoredPaymentProviderSelection(listener: () => void) {
+  listeners.add(listener)
+
+  if (typeof window === "undefined") {
+    return () => {
+      listeners.delete(listener)
+    }
+  }
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key?.startsWith(STORAGE_PREFIX)) {
+      listener()
+    }
+  }
+
+  window.addEventListener("storage", handleStorage)
+
+  return () => {
+    listeners.delete(listener)
+    window.removeEventListener("storage", handleStorage)
+  }
 }
 
 function createStorageKey(cartId: string) {
