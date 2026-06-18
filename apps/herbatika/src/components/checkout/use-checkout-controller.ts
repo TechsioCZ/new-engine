@@ -134,8 +134,8 @@ export function useCheckoutController() {
       : null
   const effectiveSelectedPaymentProviderId =
     selectedPaymentProviderId ??
-    cartSelectedPaymentProviderId ??
-    storedPaymentProviderId
+    storedPaymentProviderId ??
+    cartSelectedPaymentProviderId
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id
@@ -144,8 +144,8 @@ export function useCheckoutController() {
     }
 
     const providerId =
-      cartSelectedPaymentProviderId ??
-      readStoredPaymentProviderSelection(cartId)
+      readStoredPaymentProviderSelection(cartId) ??
+      cartSelectedPaymentProviderId
 
     setSelectedPaymentProviderState((current) => {
       if (current.cartId === cartId && current.providerId) {
@@ -154,7 +154,7 @@ export function useCheckoutController() {
 
       return {
         cartId,
-        providerId,
+        providerId: providerId ?? null,
       }
     })
   }, [cartQuery.cart?.id, cartSelectedPaymentProviderId])
@@ -211,6 +211,7 @@ export function useCheckoutController() {
 
   const actions = useCheckoutActions({
     cartId: cartQuery.cart?.id,
+    cartPaymentProviderId: cartSelectedPaymentProviderId,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completedOrderId,
     completeCart: async () => {
@@ -265,6 +266,7 @@ export function useCheckoutController() {
     onPaymentRedirect: (url) => {
       window.location.assign(url)
     },
+    paymentCollection: cartQuery.cart?.payment_collection,
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
