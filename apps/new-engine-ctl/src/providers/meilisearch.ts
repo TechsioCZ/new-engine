@@ -60,9 +60,26 @@ async function fetchWithTimeout(
   init: RequestInit,
   timeoutSeconds: number
 ): Promise<Response> {
+  const timeoutController = new AbortController()
   const controller = new AbortController()
-  const timeout = setTimeout(() => {
+  const requestSignal = init.signal
+  const abortFromRequestSignal = () => controller.abort()
+  const abortFromTimeout = () => controller.abort()
+
+  if (requestSignal?.aborted) {
     controller.abort()
+  } else {
+    requestSignal?.addEventListener("abort", abortFromRequestSignal, {
+      once: true,
+    })
+  }
+
+  timeoutController.signal.addEventListener("abort", abortFromTimeout, {
+    once: true,
+  })
+
+  const timeout = setTimeout(() => {
+    timeoutController.abort()
   }, timeoutSeconds * 1000)
 
   try {
@@ -71,7 +88,11 @@ async function fetchWithTimeout(
       signal: controller.signal,
     })
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
+    if (
+      error instanceof Error &&
+      error.name === "AbortError" &&
+      timeoutController.signal.aborted
+    ) {
       throw new Error(
         `Meilisearch request timed out after ${timeoutSeconds}s: ${url}`
       )
@@ -80,6 +101,8 @@ async function fetchWithTimeout(
     throw error
   } finally {
     clearTimeout(timeout)
+    requestSignal?.removeEventListener("abort", abortFromRequestSignal)
+    timeoutController.signal.removeEventListener("abort", abortFromTimeout)
   }
 }
 
