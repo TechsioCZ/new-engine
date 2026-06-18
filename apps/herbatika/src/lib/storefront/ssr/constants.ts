@@ -1,3 +1,5 @@
+import { resolveMedusaBackendUrl } from "../runtime-env"
+
 export const PDP_RELATED_PRODUCTS_LIMIT = 13
 
 const SSR_STATIC_REVALIDATE_SECONDS = 60 * 60
@@ -28,8 +30,7 @@ export const SSR_FETCH_OPTIONS: Record<
   },
 }
 
-export const MEDUSA_BACKEND_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+export const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 
 export const MEDUSA_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""

@@ -32,6 +32,19 @@ services:
     environment:
       NODE_ENV: production
     volumes: !reset []  # Remove inherited dev bind mounts in prod
+  herbatika:
+    build:
+      target: prod
+      args:
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL:-http://localhost:9000}
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
+        NEXT_PUBLIC_STOREFRONT_AUTH_MODE: ${DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE:-session_proxy}
+        NEXT_PUBLIC_PACKETA_WIDGET_API_KEY: ${DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY:-}
+        NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES: ${DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES:-sk}
+        NEXT_PUBLIC_PAYLOAD_BASE_URL: ${DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL:-http://localhost:8083}
+    environment:
+      NODE_ENV: production
+    volumes: !reset []  # Remove inherited dev bind mounts in prod
   payload:
     build:
       target: prod

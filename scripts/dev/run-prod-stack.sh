@@ -75,16 +75,18 @@ wait_for_health() {
 
 cd "$REPO_ROOT"
 "${compose_prod[@]}" down || true
-docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-n1" || true
+docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-herbatika" || true
 "${compose_prod[@]}" build "${build_flags[@]}" medusa-be
 "${compose_prod[@]}" up -d medusa-be
 wait_for_health medusa-be
 
-"${compose_dev[@]}" run --rm --no-deps \
-  -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-  -e CI=1 \
-  -e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
-  n1 sh -lc '[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; pnpm --filter n1 run generate:categories'
+# N1 production build is disabled while the local prod flow is pointed at Herbatika.
+# "${compose_dev[@]}" run --rm --no-deps \
+#   -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+#   -e CI=1 \
+#   -e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
+#   n1 sh -lc '[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; pnpm --filter n1 run generate:categories'
+# "${compose_prod[@]}" build "${build_flags[@]}" n1
 
-"${compose_prod[@]}" build "${build_flags[@]}" n1
-"${compose_prod[@]}" up -d
+"${compose_prod[@]}" build "${build_flags[@]}" herbatika
+"${compose_prod[@]}" up -d herbatika
