@@ -311,6 +311,7 @@
     "test:runtime": "vitest run --config vitest.config.ts"
   },
   "nx": {
+    "tags": ["type:lib", "platform:web", "framework:react"],
     "targets": {
       "test": {
         "executor": "nx:run-commands",

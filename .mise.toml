@@ -203,6 +203,10 @@ run = "bash ./scripts/dev/refresh-zane-template-db.sh"
 description = "Run Biome with writes against apps/medusa-be"
 run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm exec biome check --write apps/medusa-be"
 
+[tasks."lint:nx"]
+description = "Run the root lint:nx script inside the repo pnpm toolchain container"
+run = "docker build -f docker/development/pnpm/Dockerfile -t ${PNPM_ENV_IMAGE_TAG:-pnpm-env} . && docker run --rm -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 -e CI=true -v \"$PWD:/var/www\" -w /var/www ${PNPM_ENV_IMAGE_TAG:-pnpm-env} pnpm lint:nx"
+
 [tasks."test:e2e:medusa-be:http"]
 description = "Start isolated Medusa BE e2e stack, run all HTTP e2e specs, then teardown"
 run = "bash ./scripts/e2e/medusa-be-http.sh run"
