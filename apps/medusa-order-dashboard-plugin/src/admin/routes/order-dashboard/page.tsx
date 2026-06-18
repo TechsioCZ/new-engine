@@ -69,6 +69,7 @@ import {
 
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
+const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
 const CARRIER_FILTER_ID = "carrier.value"
 const BUSINESS_STATUS_GROUP_FILTER_ID = "business_status.group"
 const BUSINESS_STATUS_FILTER_ID = "business_status.id"
@@ -139,6 +140,8 @@ const OrderDashboardPage = () => {
   const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false)
   const [labelFormat, setLabelFormat] =
     useState<OrderDashboardLabelFormat>("A6")
+  const [isPreparingPacketaLabels, setIsPreparingPacketaLabels] =
+    useState(false)
   const [blockingOrders, setBlockingOrders] = useState<
     OrderDashboardBlockingOrder[]
   >([])
@@ -193,10 +196,7 @@ const OrderDashboardPage = () => {
     enabled: selectedPacketaCarrierOrderIds.length > 0,
     queryFn: () =>
       listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
-    queryKey: [
-      "order-dashboard-packeta-eligibility",
-      selectedPacketaCarrierOrderIds,
-    ],
+    queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
   })
   const packetaLabelPreview = useMemo(
     () =>
@@ -494,6 +494,14 @@ const OrderDashboardPage = () => {
     })
   }
 
+  const refreshFulfillmentData = () => {
+    refreshOrders()
+    queryClient.invalidateQueries({
+      queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY],
+      refetchType: "active",
+    })
+  }
+
   const invalidateOrders = () => {
     refreshOrders()
     clearSelection()
@@ -616,49 +624,73 @@ const OrderDashboardPage = () => {
     expeditionPdfMutation.mutate(selectedOrderIds)
   }
 
-  const handlePacketaLabels = () => {
+  const handlePacketaLabels = async () => {
     if (!selectedOrderIds.length) {
       toast.error(t("toast.noSelection"))
       return
     }
 
-    if (packetaEligibilityQuery.isLoading) {
-      toast.error(t("toast.packetaEligibilityLoading"))
-      return
-    }
-
-    if (packetaEligibilityQuery.error) {
-      toast.error(
-        getErrorMessage(packetaEligibilityQuery.error, t("toast.requestFailed"))
-      )
-      return
-    }
-
-    if (packetaLabelPreview.skipped.length) {
-      setBlockingOrders(packetaLabelPreview.skipped)
-    }
-
-    if (!packetaLabelPreview.printableOrders.length) {
+    if (!selectedPacketaCarrierOrderIds.length) {
       toast.error(t("toast.noPacketaSelection"))
       return
     }
 
-    if (
-      packetaLabelPreview.printableOrders.length >
-      ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS
-    ) {
-      toast.error(
-        t("toast.packetaLabelLimit", {
-          count: ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
-        })
-      )
+    if (isPreparingPacketaLabels || packetaLabelsMutation.isPending) {
       return
     }
 
-    packetaLabelsMutation.mutate({
-      labelFormat,
-      orderIds: packetaLabelPreview.printableOrders.map((order) => order.id),
-    })
+    setIsPreparingPacketaLabels(true)
+
+    try {
+      const eligibilityOrders = await listOrderDashboardPacketaEligibility(
+        selectedPacketaCarrierOrderIds
+      )
+      queryClient.setQueryData(
+        [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
+        eligibilityOrders
+      )
+      const freshPacketaLabelPreview = getPacketaLabelPreview(
+        selectedOrders,
+        eligibilityOrders,
+        t
+      )
+
+      if (freshPacketaLabelPreview.skipped.length) {
+        setBlockingOrders(freshPacketaLabelPreview.skipped)
+      } else {
+        setBlockingOrders([])
+      }
+
+      if (!freshPacketaLabelPreview.printableOrders.length) {
+        toast.error(t("toast.noPacketaSelection"))
+        return
+      }
+
+      if (
+        freshPacketaLabelPreview.printableOrders.length >
+        ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS
+      ) {
+        toast.error(
+          t("toast.packetaLabelLimit", {
+            count: ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
+          })
+        )
+        return
+      }
+
+      packetaLabelsMutation.mutate({
+        labelFormat,
+        orderIds: freshPacketaLabelPreview.printableOrders.map(
+          (order) => order.id
+        ),
+      })
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error, t("toast.requestFailed"))
+      )
+    } finally {
+      setIsPreparingPacketaLabels(false)
+    }
   }
 
   const handleFulfillmentOpen = () => {
@@ -744,6 +776,32 @@ const OrderDashboardPage = () => {
         : visibleSelection
     )
   }, [orders, selectedOrdersById])
+
+  useEffect(() => {
+    if (!orders.length || !selectedOrdersById.size) {
+      return
+    }
+
+    setSelectedOrdersById((currentSelection) => {
+      let hasChanged = false
+      const nextSelection = new Map(currentSelection)
+
+      for (const order of orders) {
+        if (!nextSelection.has(order.id)) {
+          continue
+        }
+
+        if (nextSelection.get(order.id) === order) {
+          continue
+        }
+
+        nextSelection.set(order.id, order)
+        hasChanged = true
+      }
+
+      return hasChanged ? nextSelection : currentSelection
+    })
+  }, [orders, selectedOrdersById.size])
 
   return (
     <Container className="divide-y p-0">
@@ -837,9 +895,9 @@ const OrderDashboardPage = () => {
       </Prompt>
 
       <OrderFulfillmentModal
-        onCompleted={invalidateOrders}
+        onCompleted={refreshFulfillmentData}
         onOpenChange={setIsFulfillmentModalOpen}
-        onOrdersChanged={refreshOrders}
+        onOrdersChanged={refreshFulfillmentData}
         open={isFulfillmentModalOpen}
         selectedOrderIds={selectedOrderIds}
         selectedOrders={selectedOrders}
@@ -918,12 +976,11 @@ const OrderDashboardPage = () => {
             <Button
               disabled={
                 !selectedCount ||
-                packetaEligibilityQuery.isLoading ||
-                packetaEligibilityQuery.isError ||
+                isPreparingPacketaLabels ||
                 packetaLabelsMutation.isPending
               }
               isLoading={
-                packetaEligibilityQuery.isLoading ||
+                isPreparingPacketaLabels ||
                 packetaLabelsMutation.isPending
               }
               onClick={handlePacketaLabels}
