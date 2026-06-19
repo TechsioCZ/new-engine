@@ -167,7 +167,7 @@ export const createCustomerProfile = async ({
     : buildErrorResponse(createCustomerResponse)
 }
 
-export const createWholesaleProfile = ({
+export const createWholesaleProfile = async ({
   email,
   sessionToken,
   wholesale,

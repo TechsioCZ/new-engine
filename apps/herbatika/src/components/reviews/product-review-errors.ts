@@ -3,7 +3,35 @@ const GENERIC_REVIEW_SUBMIT_ERROR =
   "Recenziu sa nepodarilo odoslať. Skúste to prosím znova."
 const PURCHASE_REQUIRED_REVIEW_ERROR =
   "Na napísanie recenzie musíte mať tento produkt zakúpený."
+const REVIEW_VALIDATION_ERROR =
+  "Skontrolujte prosím hodnotenie a text recenzie."
 const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
+const DUPLICATE_REVIEW_MESSAGE_PATTERNS = [
+  "already reviewed",
+  "already submitted",
+  "already exists",
+  "duplicate review",
+  "review already exists",
+  "reviewed this product",
+] as const
+const REVIEW_VALIDATION_MESSAGE_RULES = [
+  {
+    patterns: ["rating"],
+    message: "Vyberte prosím hodnotenie.",
+  },
+  {
+    patterns: ["content"],
+    message: "Napíšte prosím text recenzie.",
+  },
+  {
+    patterns: ["text"],
+    message: "Napíšte prosím text recenzie.",
+  },
+  {
+    patterns: ["title"],
+    message: "Skontrolujte prosím nadpis recenzie.",
+  },
+] as const
 
 const hasErrorShape = (
   error: unknown
@@ -55,22 +83,24 @@ const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
 }
 
 const isDuplicateReviewMessage = (normalizedMessage: string) =>
-  normalizedMessage.includes("already") ||
-  normalizedMessage.includes("duplicate") ||
-  normalizedMessage.includes("exist") ||
-  normalizedMessage.includes("reviewed")
+  DUPLICATE_REVIEW_MESSAGE_PATTERNS.some((pattern) =>
+    normalizedMessage.includes(pattern)
+  )
 
 const isDuplicateReviewError = (
   status: number | undefined,
   normalizedMessage: string
 ) => status === 409 || isDuplicateReviewMessage(normalizedMessage)
 
+const resolveReviewValidationMessage = (normalizedMessage: string) =>
+  REVIEW_VALIDATION_MESSAGE_RULES.find(({ patterns }) =>
+    patterns.every((pattern) => normalizedMessage.includes(pattern))
+  )?.message ?? REVIEW_VALIDATION_ERROR
+
 const resolveKnownReviewErrorMessage = ({
-  message,
   normalizedMessage,
   status,
 }: {
-  message: string
   normalizedMessage: string
   status: number | undefined
 }) => {
@@ -96,7 +126,7 @@ const resolveKnownReviewErrorMessage = ({
   }
 
   if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
-    return message || "Skontrolujte prosím hodnotenie a text recenzie."
+    return resolveReviewValidationMessage(normalizedMessage)
   }
 
   if (status && status >= 500) {
@@ -119,7 +149,6 @@ export const resolveProductReviewSubmitErrorMessage = (error: unknown) => {
   }
 
   const knownMessage = resolveKnownReviewErrorMessage({
-    message,
     normalizedMessage,
     status,
   })
