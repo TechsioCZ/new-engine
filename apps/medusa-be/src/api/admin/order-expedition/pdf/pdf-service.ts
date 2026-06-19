@@ -27,6 +27,8 @@ const HEADING_SIZE = 10
 const LINE_HEIGHT = 11
 const SECTION_GAP = 10
 const FILENAME_SAFE_CHARS_REGEX = /[^a-z0-9-]+/gi
+const PDF_ASCII_PRINTABLE_REGEX = /[\x20-\x7E]/
+const PDF_COMBINING_MARKS_REGEX = /[\u0300-\u036f]/g
 const ORDER_DISPLAY_PREFIX_REGEX = /^#/
 const WHITESPACE_REGEX = /\s+/
 const TABLE_RIGHT = PageSizes.A4[0] - PAGE_MARGIN
@@ -1265,8 +1267,8 @@ const PDF_SAFE_CHAR_REPLACEMENTS: Record<string, string> = {
   "\u201c": '"',
   "\u201d": '"',
   "\u2026": "...",
-  "Ł": "L",
-  "ł": "l",
+  Ł: "L",
+  ł: "l",
 }
 
 function toPdfSafeText(value: string) {
@@ -1275,14 +1277,14 @@ function toPdfSafeText(value: string) {
     .replaceAll("\n", " ")
     .replaceAll("\r", " ")
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(PDF_COMBINING_MARKS_REGEX, "")
     .split("")
     .map((char) => {
       if (char in PDF_SAFE_CHAR_REPLACEMENTS) {
         return PDF_SAFE_CHAR_REPLACEMENTS[char] ?? ""
       }
 
-      return /[\x20-\x7E]/.test(char) ? char : "?"
+      return PDF_ASCII_PRINTABLE_REGEX.test(char) ? char : "?"
     })
     .join("")
 }

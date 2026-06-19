@@ -34,6 +34,7 @@ export const createPublishableKeyStep = createStep(
     )
 
     return new StepResponse({
+      publishableApiKey: result.apiKey,
       result: [result.apiKey],
     })
   }

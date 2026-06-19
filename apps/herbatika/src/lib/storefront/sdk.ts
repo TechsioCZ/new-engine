@@ -7,14 +7,14 @@ import {
   createMedusaSdk,
   type MedusaClientConfig,
 } from "@techsio/storefront-data/shared/medusa-client"
+import { resolveMedusaBackendUrl } from "./runtime-env"
 
 export const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token"
 export type StorefrontAuthMode = "jwt_localstorage" | "session_proxy"
 
 const DEFAULT_AUTH_MODE: StorefrontAuthMode = "session_proxy"
 
-const MEDUSA_BACKEND_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const MEDUSA_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 

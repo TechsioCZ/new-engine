@@ -17,6 +17,7 @@ const trailingSlashesPattern = /\/+$/
 type RequestOptions = {
   meiliUrl: string
   waitSeconds: number
+  timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
 }
@@ -39,6 +40,7 @@ type RequestJsonOptions<T> = {
   url: string
   init: RequestInit
   parse: (value: unknown) => T
+  timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
 }
@@ -51,6 +53,57 @@ function sleep(seconds: number): Promise<void> {
 
 function normalizeBaseUrl(url: string): string {
   return url.replace(trailingSlashesPattern, "")
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutSeconds: number
+): Promise<Response> {
+  const timeoutController = new AbortController()
+  const controller = new AbortController()
+  const requestSignal = init.signal
+  const abortFromRequestSignal = () => controller.abort()
+  const abortFromTimeout = () => controller.abort()
+
+  if (requestSignal?.aborted) {
+    controller.abort()
+  } else {
+    requestSignal?.addEventListener("abort", abortFromRequestSignal, {
+      once: true,
+    })
+  }
+
+  timeoutController.signal.addEventListener("abort", abortFromTimeout, {
+    once: true,
+  })
+
+  const timeout = setTimeout(() => {
+    timeoutController.abort()
+  }, timeoutSeconds * 1000)
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.name === "AbortError" &&
+      timeoutController.signal.aborted
+    ) {
+      throw new Error(
+        `Meilisearch request timed out after ${timeoutSeconds}s: ${url}`
+      )
+    }
+
+    throw error
+  } finally {
+    clearTimeout(timeout)
+    requestSignal?.removeEventListener("abort", abortFromRequestSignal)
+    timeoutController.signal.removeEventListener("abort", abortFromTimeout)
+  }
 }
 
 function resolveMeiliApiCredentialPolicies(
@@ -119,7 +172,11 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
 
   while (true) {
     try {
-      const response = await fetch(options.url, options.init)
+      const response = await fetchWithTimeout(
+        options.url,
+        options.init,
+        options.timeoutSeconds
+      )
       const text = await response.text()
       const body = parseResponseBody(text, response.status)
 
@@ -154,7 +211,11 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
 
   while (true) {
     try {
-      const response = await fetch(`${baseUrl}/health`, { method: "GET" })
+      const response = await fetchWithTimeout(
+        `${baseUrl}/health`,
+        { method: "GET" },
+        input.timeoutSeconds
+      )
       if (response.ok) {
         return
       }
@@ -224,6 +285,7 @@ async function getKeyByUid(
 
       return value as Record<string, unknown>
     },
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -238,6 +300,7 @@ async function createOrUpdateKey(input: {
   description: string
   actions: string[]
   indexes: string[]
+  timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
 }): Promise<{
@@ -257,6 +320,7 @@ async function createOrUpdateKey(input: {
     masterKey: input.masterKey,
     uid: input.uid,
     waitSeconds: 0,
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -285,6 +349,7 @@ async function createOrUpdateKey(input: {
 
         return value as Record<string, unknown>
       },
+      timeoutSeconds: input.timeoutSeconds,
       retryCount: input.retryCount,
       retryDelaySeconds: input.retryDelaySeconds,
     })
@@ -326,6 +391,7 @@ async function createOrUpdateKey(input: {
 
       return value as Record<string, unknown>
     },
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -341,6 +407,7 @@ export async function provisionMeiliKeys(input: {
   meiliUrl: string
   masterKey: string
   waitSeconds: number
+  timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
   stackInputs: StackInputs
@@ -352,6 +419,7 @@ export async function provisionMeiliKeys(input: {
   await waitForHealth({
     meiliUrl: input.meiliUrl,
     waitSeconds: input.waitSeconds,
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -364,6 +432,7 @@ export async function provisionMeiliKeys(input: {
     actions: backendPolicy.actions,
     indexes: backendPolicy.indexes,
     retryCount: input.retryCount,
+    timeoutSeconds: input.timeoutSeconds,
     retryDelaySeconds: input.retryDelaySeconds,
   })
   const frontend = await createOrUpdateKey({
@@ -374,6 +443,7 @@ export async function provisionMeiliKeys(input: {
     actions: frontendPolicy.actions,
     indexes: frontendPolicy.indexes,
     retryCount: input.retryCount,
+    timeoutSeconds: input.timeoutSeconds,
     retryDelaySeconds: input.retryDelaySeconds,
   })
 
@@ -398,6 +468,7 @@ export async function verifyMeiliKeys(input: {
   backendKey: string
   frontendKey: string
   waitSeconds: number
+  timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
   stackInputs: StackInputs
@@ -429,6 +500,7 @@ export async function verifyMeiliKeys(input: {
   await waitForHealth({
     meiliUrl: input.meiliUrl,
     waitSeconds: input.waitSeconds,
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -438,6 +510,7 @@ export async function verifyMeiliKeys(input: {
     masterKey: input.masterKey,
     uid: backendPolicy.uid,
     waitSeconds: input.waitSeconds,
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })
@@ -446,6 +519,7 @@ export async function verifyMeiliKeys(input: {
     masterKey: input.masterKey,
     uid: frontendPolicy.uid,
     waitSeconds: input.waitSeconds,
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
   })

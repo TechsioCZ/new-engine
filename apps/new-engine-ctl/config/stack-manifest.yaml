@@ -178,6 +178,9 @@ services:
       - "n1"
     local:
       phase: "frontend"
+      # Temporarily keep N1 out of the default local dev stack while Herbatika
+      # is the active storefront target.
+      enabled_by_default: false
     ci:
       deployable: true
       affected_path_globs:
@@ -187,6 +190,16 @@ services:
         deploy_lanes: ["preview", "main"]
         deploy_stage: 25
         service_dependencies: ["medusa-be"]
+
+  - id: "herbatika"
+    compose_service: "herbatika"
+    kind: "frontend"
+    nx_projects:
+      - "herbatika"
+    local:
+      phase: "frontend"
+    ci:
+      deployable: false
 
   - id: "zane-operator"
     compose_service: "zane-operator"

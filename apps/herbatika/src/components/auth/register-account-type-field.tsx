@@ -35,6 +35,7 @@ export function RegisterAccountTypeField({
     >
       {(field) => (
         <field.RadioGroupField
+          className="gap-300"
           id="auth-register-account-type"
           items={REGISTER_ACCOUNT_TYPE_ITEMS}
           label="Typ účtu"
@@ -44,7 +45,6 @@ export function RegisterAccountTypeField({
           size="sm"
           validationMode="blur"
           variant="subtle"
-          className="gap-300"
         />
       )}
     </form.AppField>

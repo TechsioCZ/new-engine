@@ -7,6 +7,7 @@ import type {
   MedusaCatalogServiceConfig,
 } from "@techsio/storefront-data/catalog/medusa-service"
 import { createCatalogQueryKeys } from "@techsio/storefront-data/catalog/query-keys"
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import type {
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,
@@ -208,7 +209,7 @@ export const storefrontCategoryServiceConfig: MedusaCategoryServiceConfig<
 export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
   HttpTypes.StoreProduct,
   MedusaCatalogListInput,
-  import("@techsio/storefront-data/catalog/types").CatalogFacets
+  CatalogFacets
 > = {
   defaultLimit: CATALOG_DEFAULT_LIMIT,
   defaultSort: CATALOG_DEFAULT_SORT,

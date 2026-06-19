@@ -44,8 +44,8 @@ fi
 
 wait_for_health() {
   local service_name="$1"
-  local timeout_seconds="${2:-180}"
-  local container_id status
+  local timeout_seconds="${2:-300}"
+  local container_id status last_status=""
 
   container_id="$("${compose_prod[@]}" ps -q "$service_name")"
   if [[ -z "$container_id" ]]; then
@@ -60,10 +60,9 @@ wait_for_health() {
       echo "${service_name} is healthy."
       return 0
     fi
-    if [[ "$status" == "unhealthy" ]]; then
-      echo "${service_name} is unhealthy." >&2
-      docker logs --tail=120 "$container_id" >&2
-      exit 1
+    if [[ "$status" != "$last_status" ]]; then
+      echo "${service_name}: ${status}" >&2
+      last_status="$status"
     fi
     sleep 2
     timeout_seconds=$((timeout_seconds - 2))
@@ -76,16 +75,30 @@ wait_for_health() {
 
 cd "$REPO_ROOT"
 "${compose_prod[@]}" down || true
-docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-n1" || true
+docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-payload" "${PROJECT_NAME}-herbatika" || true
+
+"${compose_prod[@]}" up -d medusa-db
+wait_for_health medusa-db
+"${compose_prod[@]}" up -d medusa-valkey medusa-minio medusa-meilisearch
+wait_for_health medusa-valkey
+wait_for_health medusa-minio
+wait_for_health medusa-meilisearch
+
+"${compose_prod[@]}" build "${build_flags[@]}" payload
+"${compose_prod[@]}" up -d payload
+wait_for_health payload
+
 "${compose_prod[@]}" build "${build_flags[@]}" medusa-be
 "${compose_prod[@]}" up -d medusa-be
 wait_for_health medusa-be
 
-"${compose_dev[@]}" run --rm --no-deps \
-  -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
-  -e CI=1 \
-  -e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
-  n1 sh -lc '[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; pnpm --filter n1 run generate:categories'
+# N1 production build is disabled while the local prod flow is pointed at Herbatika.
+# "${compose_dev[@]}" run --rm --no-deps \
+#   -e COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+#   -e CI=1 \
+#   -e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
+#   n1 sh -lc '[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; pnpm --filter n1 run generate:categories'
+# "${compose_prod[@]}" build "${build_flags[@]}" n1
 
-"${compose_prod[@]}" build "${build_flags[@]}" n1
-"${compose_prod[@]}" up -d
+"${compose_prod[@]}" build "${build_flags[@]}" herbatika
+"${compose_prod[@]}" up -d herbatika
