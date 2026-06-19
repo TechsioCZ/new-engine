@@ -428,6 +428,10 @@ const OrderDashboardPage = () => {
           currentSelection: DataTableRowSelectionState
         ) => DataTableRowSelectionState)
   ) => {
+    if (isPreparingPacketaLabels) {
+      return
+    }
+
     const resolvedSelection =
       typeof nextSelection === "function"
         ? nextSelection(rowSelection)
@@ -502,6 +506,11 @@ const OrderDashboardPage = () => {
     })
   }
 
+  const handleFulfillmentCompleted = () => {
+    refreshFulfillmentData()
+    setDetailOrderId(null)
+  }
+
   const invalidateOrders = () => {
     refreshOrders()
     clearSelection()
@@ -558,9 +567,6 @@ const OrderDashboardPage = () => {
 
   const packetaLabelsMutation = useMutation({
     mutationFn: downloadOrderDashboardPacketaLabels,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
-    },
     onSuccess: () => {
       toast.success(t("toast.packetaLabelsReady"))
     },
@@ -625,12 +631,17 @@ const OrderDashboardPage = () => {
   }
 
   const handlePacketaLabels = async () => {
-    if (!selectedOrderIds.length) {
+    const selectedOrdersSnapshot = selectedOrders
+    const selectedPacketaCarrierOrderIdsSnapshot = selectedOrdersSnapshot
+      .filter((order) => order.carrier.value === "packeta")
+      .map((order) => order.id)
+
+    if (!selectedOrdersSnapshot.length) {
       toast.error(t("toast.noSelection"))
       return
     }
 
-    if (!selectedPacketaCarrierOrderIds.length) {
+    if (!selectedPacketaCarrierOrderIdsSnapshot.length) {
       toast.error(t("toast.noPacketaSelection"))
       return
     }
@@ -643,14 +654,17 @@ const OrderDashboardPage = () => {
 
     try {
       const eligibilityOrders = await listOrderDashboardPacketaEligibility(
-        selectedPacketaCarrierOrderIds
+        selectedPacketaCarrierOrderIdsSnapshot
       )
       queryClient.setQueryData(
-        [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
+        [
+          PACKETA_ELIGIBILITY_QUERY_KEY,
+          selectedPacketaCarrierOrderIdsSnapshot,
+        ],
         eligibilityOrders
       )
       const freshPacketaLabelPreview = getPacketaLabelPreview(
-        selectedOrders,
+        selectedOrdersSnapshot,
         eligibilityOrders,
         t
       )
@@ -678,16 +692,14 @@ const OrderDashboardPage = () => {
         return
       }
 
-      packetaLabelsMutation.mutate({
+      await packetaLabelsMutation.mutateAsync({
         labelFormat,
         orderIds: freshPacketaLabelPreview.printableOrders.map(
           (order) => order.id
         ),
       })
     } catch (error) {
-      toast.error(
-        getErrorMessage(error, t("toast.requestFailed"))
-      )
+      toast.error(getErrorMessage(error, t("toast.requestFailed")))
     } finally {
       setIsPreparingPacketaLabels(false)
     }
@@ -801,7 +813,7 @@ const OrderDashboardPage = () => {
 
       return hasChanged ? nextSelection : currentSelection
     })
-  }, [orders, selectedOrdersById.size])
+  }, [orders, selectedOrdersById])
 
   return (
     <Container className="divide-y p-0">
@@ -895,7 +907,7 @@ const OrderDashboardPage = () => {
       </Prompt>
 
       <OrderFulfillmentModal
-        onCompleted={refreshFulfillmentData}
+        onCompleted={handleFulfillmentCompleted}
         onOpenChange={setIsFulfillmentModalOpen}
         onOrdersChanged={refreshFulfillmentData}
         open={isFulfillmentModalOpen}
