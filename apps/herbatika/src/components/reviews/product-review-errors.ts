@@ -133,7 +133,7 @@ const resolveKnownReviewErrorMessage = ({
     return tokenMessage
   }
 
-  if (isDuplicateReviewError(status, normalizedMessage)) {
+  if (status === 409) {
     return "Tento produkt ste už hodnotili."
   }
 
@@ -141,12 +141,16 @@ const resolveKnownReviewErrorMessage = ({
     return "Pre odoslanie recenzie sa prosím prihláste."
   }
 
+  if (status === 403) {
+    return "Recenziu pre tento produkt momentálne nemôžete odoslať."
+  }
+
   if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
     return PURCHASE_REQUIRED_REVIEW_ERROR
   }
 
-  if (status === 403) {
-    return "Recenziu pre tento produkt momentálne nemôžete odoslať."
+  if (isDuplicateReviewError(status, normalizedMessage)) {
+    return "Tento produkt ste už hodnotili."
   }
 
   if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
