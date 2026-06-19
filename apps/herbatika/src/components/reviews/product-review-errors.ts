@@ -6,6 +6,13 @@ const PURCHASE_REQUIRED_REVIEW_ERROR =
 const REVIEW_VALIDATION_ERROR =
   "Skontrolujte prosím hodnotenie a text recenzie."
 const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
+// Broad duplicate keywords are skipped for validation statuses below.
+const BROAD_DUPLICATE_REVIEW_MESSAGE_PATTERNS = [
+  "already",
+  "duplicate",
+  "exist",
+  "reviewed",
+] as const
 const DUPLICATE_REVIEW_MESSAGE_RULES = [
   ["already", "review"],
   ["already", "rated"],
@@ -83,15 +90,30 @@ const isPurchaseRequiredReviewMessage = (normalizedMessage: string) => {
   )
 }
 
-const isDuplicateReviewMessage = (normalizedMessage: string) =>
+const isSpecificDuplicateReviewMessage = (normalizedMessage: string) =>
   DUPLICATE_REVIEW_MESSAGE_RULES.some((patterns) =>
     patterns.every((pattern) => normalizedMessage.includes(pattern))
+  )
+
+const isBroadDuplicateReviewMessage = (normalizedMessage: string) =>
+  BROAD_DUPLICATE_REVIEW_MESSAGE_PATTERNS.some((pattern) =>
+    normalizedMessage.includes(pattern)
   )
 
 const isDuplicateReviewError = (
   status: number | undefined,
   normalizedMessage: string
-) => status === 409 || isDuplicateReviewMessage(normalizedMessage)
+) => {
+  if (status === 409 || isSpecificDuplicateReviewMessage(normalizedMessage)) {
+    return true
+  }
+
+  if (status && BAD_REQUEST_REVIEW_STATUSES.has(status)) {
+    return false
+  }
+
+  return isBroadDuplicateReviewMessage(normalizedMessage)
+}
 
 // Multi-pattern validation rules intentionally use AND semantics.
 const resolveReviewValidationMessage = (normalizedMessage: string) =>
@@ -115,13 +137,12 @@ const resolveKnownReviewErrorMessage = ({
     return "Tento produkt ste už hodnotili."
   }
 
-  // Preserve the original resolver precedence for backend purchase-required copy.
-  if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
-    return PURCHASE_REQUIRED_REVIEW_ERROR
-  }
-
   if (status === 401) {
     return "Pre odoslanie recenzie sa prosím prihláste."
+  }
+
+  if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
+    return PURCHASE_REQUIRED_REVIEW_ERROR
   }
 
   if (status === 403) {
