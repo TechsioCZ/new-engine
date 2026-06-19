@@ -8,6 +8,7 @@ export const meiliApiCredentialsCommandInputSchema = z
     dryRun: z.boolean().default(false),
     providerId: z.string().min(1).default("meili_api_credentials"),
     waitSeconds: z.number().int().positive().default(60),
+    timeoutSeconds: z.number().int().positive().default(20),
     retryCount: z.number().int().nonnegative().default(3),
     retryDelaySeconds: z.number().int().nonnegative().default(2),
     stackManifestPath: z.string().min(1),

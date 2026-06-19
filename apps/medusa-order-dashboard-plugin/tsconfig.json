@@ -17,5 +17,11 @@
     "emitDecoratorMetadata": true
   },
   "include": ["src", "package.json"],
-  "exclude": ["node_modules", ".medusa", "dist", "**/*.spec.ts"]
+  "exclude": [
+    "node_modules",
+    ".medusa",
+    "dist",
+    "**/*.spec.ts",
+    "eslint.config.*"
+  ]
 }

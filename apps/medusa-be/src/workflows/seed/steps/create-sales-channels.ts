@@ -73,6 +73,7 @@ export const createSalesChannelsStep = createStep(
     }
 
     return new StepResponse({
+      defaultSalesChannel,
       result,
     })
   }

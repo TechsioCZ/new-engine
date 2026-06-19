@@ -104,10 +104,7 @@ export const RegisterForm = ({
       </div>
 
       {isWholesaleAccount ? (
-        <RegisterWholesaleFields
-          countryItems={countryItems}
-          form={form}
-        />
+        <RegisterWholesaleFields countryItems={countryItems} form={form} />
       ) : null}
 
       <form.AppField name="password" validators={registerValidators.password}>

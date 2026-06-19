@@ -32,19 +32,19 @@ ENV NODE_ENV=development
 ENV DATABASE_TYPE=postgres
 ENV CI=true
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
     corepack install && \
     pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
 
-COPY tsconfig.base.json ./
+COPY tsconfig.base.json eslint.config.ts ./
 COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
 
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
-    npm_config_store_dir=/pnpm/store \
+    pnpm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=medusa-be...
 
 WORKDIR /var/www/apps/medusa-be
@@ -58,7 +58,7 @@ FROM base AS build
 ENV CI=true
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     corepack install && \
@@ -66,7 +66,7 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
 
 # Copy only the files needed for the Medusa production build so unrelated repo changes
 # don't invalidate the expensive install/build layers.
-COPY nx.json tsconfig.base.json ./
+COPY nx.json tsconfig.base.json eslint.config.ts ./
 COPY scripts/build-medusa.sh ./scripts/build-medusa.sh
 COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
@@ -77,7 +77,7 @@ ARG FEATURE_PPL_ENABLED=0
 ARG FEATURE_PAYLOAD_ENABLED=0
 ARG FEATURE_PACKETA_ENABLED=0
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
-    npm_config_store_dir=/pnpm/store \
+    pnpm_config_store_dir=/pnpm/store \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} \
     FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED} \
@@ -109,7 +109,7 @@ RUN mkdir -p /app/.medusa/types /app/.medusa/client /app/static && \
 # Run as non-root user
 USER node
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=15s --timeout=10s --start-period=120s --retries=8 \
     CMD curl -f http://localhost:9000/health || exit 1
 
 CMD ["sh", "-c", "npm run migrateProd && npm run entrypoint && exec npm run start"]

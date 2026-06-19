@@ -121,8 +121,21 @@ export const createFulfillmentSetStep = createStep(
       }
     }
 
+    const fulfillmentSet = result[0]
+    const serviceZone = fulfillmentSet?.service_zones?.[0]
+
+    if (!fulfillmentSet) {
+      throw new Error("Could not find fulfillment set")
+    }
+
+    if (!serviceZone?.id) {
+      throw new Error("Could not find service zone in fulfillment set")
+    }
+
     return new StepResponse({
+      fulfillmentSet,
       result,
+      serviceZone,
     })
   }
 )

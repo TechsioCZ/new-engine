@@ -18,6 +18,7 @@
     "build:be": "cd apps/medusa-be && npm run build",
     "build:all:nx": "nx run-many --target=build --projects=medusa-*",
     "lint:nx": "NX_DAEMON=false pnpm exec nx show projects > /dev/null && eslint --config eslint.nx.config.cjs \"apps/**/*.{ts,tsx,js,jsx}\" \"libs/**/*.{ts,tsx,js,jsx}\"",
+    "nx:affected": "NX_DAEMON=false pnpm exec nx affected -t lint test",
     "knip": "knip",
     "knip:report": "knip --reporter markdown > reports/knip-report.md",
     "knip:fix": "knip --fix",
@@ -27,7 +28,8 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
-    "@medusajs/deps": "2.15.2",
+    "@medusajs/deps": "2.16.0",
+    "@medusajs/eslint-plugin": "2.16.0",
     "@nx/esbuild": "22.4.2",
     "@nx/eslint-plugin": "22.4.2",
     "@nx/js": "22.4.2",
@@ -40,6 +42,7 @@
     "@typescript-eslint/parser": "^8.47.0",
     "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
+    "jiti": "^2.7.0",
     "jscpd": "^4.0.5",
     "knip": "^5.80.2",
     "nx": "22.4.2",
@@ -48,83 +51,5 @@
     "ultracite": "6.3.6",
     "yaml": "^2.7.1"
   },
-  "packageManager": "pnpm@10.30.0",
-  "pnpm": {
-    "overrides": {
-      "csstype": "3.1.3",
-      "react": "19.2.3",
-      "react-dom": "19.2.3",
-      "@types/react": "19.2.3",
-      "@types/react-dom": "19.2.3",
-      "@medusajs/admin-bundler>vite": "8.0.11",
-      "@medusajs/admin-vite-plugin>vite": "8.0.11",
-      "@medusajs/admin-bundler>@vitejs/plugin-react": "6.0.1",
-      "vite": "8.0.11"
-    },
-    "packageExtensionsComment": "@medusajs/utils@2.14.1 misses runtime dependencies on @medusajs/index and @medusajs/medusa in its published metadata. Remove this workaround after upstream declares them.",
-    "supportedArchitectures": {
-      "os": [
-        "current",
-        "darwin",
-        "linux",
-        "win32"
-      ],
-      "cpu": [
-        "current",
-        "x64",
-        "arm64"
-      ],
-      "libc": [
-        "current",
-        "glibc",
-        "musl"
-      ]
-    },
-    "packageExtensions": {
-      "@medusajs/utils@2.14.1": {
-        "dependencies": {
-          "@medusajs/index": "2.14.1",
-          "@medusajs/medusa": "2.14.1"
-        }
-      },
-      "@payloadcms/ui@3.84.1": {
-        "dependencies": {
-          "@floating-ui/react": "0.27.19"
-        }
-      },
-      "@pigment/auto-translate@1.3.4": {
-        "dependencies": {
-          "@payloadcms/ui": "3.84.1"
-        }
-      },
-      "@medusajs/caching@2.15.2": {
-        "dependencies": {
-          "graphql": "16.14.0"
-        }
-      },
-      "@medusajs/core-flows@2.15.2": {
-        "dependencies": {
-          "@medusajs/utils": "2.15.2",
-          "@medusajs/workflows-sdk": "2.15.2"
-        }
-      },
-      "@rokmohar/medusa-plugin-meilisearch@*": {
-        "dependencies": {
-          "@medusajs/js-sdk": "^2.15.2"
-        }
-      }
-    },
-    "patchedDependencies": {
-      "medusa-plugin-content@0.2.0": "patches/medusa-plugin-content@0.2.0.patch",
-      "@lexical/code@0.35.0": "patches/@lexical__code@0.35.0.patch",
-      "object-inspect@1.13.4": "patches/object-inspect@1.13.4.patch"
-    }
-  },
-  "dependencies": {
-    "@mikro-orm/core": "6.6.12",
-    "@mikro-orm/migrations": "6.6.12",
-    "@rokmohar/medusa-plugin-meilisearch": "^1.3.8",
-    "graphql": "^16.12.0",
-    "medusa-plugin-content": "0.2.0"
-  }
+  "packageManager": "pnpm@11.8.0"
 }

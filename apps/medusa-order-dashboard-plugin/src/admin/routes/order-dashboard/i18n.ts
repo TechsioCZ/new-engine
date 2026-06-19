@@ -612,8 +612,7 @@ const czechOrderDashboardAdminI18n = {
     noPacketaSelection:
       "Žádné vybrané objednávky nemají tisknutelné štítky Packeta.",
     noSelection: "Vyberte alespoň jednu objednávku.",
-    packetaEligibilityLoading:
-      "Způsobilost štítků Packeta se ještě načítá.",
+    packetaEligibilityLoading: "Způsobilost štítků Packeta se ještě načítá.",
     packetaLabelLimit: "Vyberte nejvýše {{count}} objednávek.",
     packetaLabelsReady: "Štítky Packeta jsou připravené",
     pdfReady: "Expediční PDF je připravené",

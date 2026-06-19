@@ -1,5 +1,6 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   clearStoredCarrierPickupSelection,
@@ -9,9 +10,11 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils"
+import { resolveReusablePaymentCollection } from "./checkout-payment-collection-reuse"
 import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
 
 type UseCheckoutActionsProps = {
+  cart?: HttpTypes.StoreCart | null
   cartId?: string
   completedOrderId: string | null
   onCompletedOrderIdChange: (orderId: string | null) => void
@@ -19,6 +22,7 @@ type UseCheckoutActionsProps = {
   onOrderCompletionStart: () => void
   onPaymentRedirect: (url: string) => void
   itemCount: number
+  refreshCart?: () => Promise<HttpTypes.StoreCart | null>
   canInitiatePayment: boolean
   selectedPaymentProviderId?: string | null
   selectedShippingMethodId?: string | null
@@ -61,6 +65,7 @@ const resolveOrderCompletionBlocker = ({
 }
 
 export function useCheckoutActions({
+  cart,
   cartId,
   canInitiatePayment,
   completedOrderId,
@@ -73,6 +78,7 @@ export function useCheckoutActions({
   onOrderCompletionStart,
   onPaymentProviderSelect,
   onPaymentRedirect,
+  refreshCart,
   selectedPaymentProviderId,
   selectedShippingMethodId,
   setShippingMethod,
@@ -146,8 +152,18 @@ export function useCheckoutActions({
     onOrderCompletionStart()
 
     try {
-      const paymentCollection = await initiatePayment(selectedPaymentProviderId)
-      const paymentRedirectUrl = resolvePaymentRedirectUrl(paymentCollection)
+      const latestCart = (await refreshCart?.()) ?? cart
+      const reusablePaymentCollection = resolveReusablePaymentCollection({
+        cart: latestCart,
+        selectedPaymentProviderId,
+      })
+
+      const resolvedPaymentCollection =
+        reusablePaymentCollection ??
+        (await initiatePayment(selectedPaymentProviderId))
+      const paymentRedirectUrl = resolvePaymentRedirectUrl(
+        resolvedPaymentCollection
+      )
 
       if (paymentRedirectUrl) {
         onPaymentRedirect(paymentRedirectUrl)

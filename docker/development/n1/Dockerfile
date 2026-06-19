@@ -38,7 +38,7 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV CI=true
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
     corepack install && \
@@ -51,7 +51,7 @@ COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
-    npm_config_store_dir=/pnpm/store \
+    pnpm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build && \
@@ -68,7 +68,7 @@ FROM base AS build
 ENV CI=true
 
 # Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     corepack install && \
@@ -106,7 +106,7 @@ ENV NEXT_PUBLIC_GOOGLE_ADS_ID=${NEXT_PUBLIC_GOOGLE_ADS_ID}
 ENV NEXT_PUBLIC_LEADHUB_TRACKING_ID=${NEXT_PUBLIC_LEADHUB_TRACKING_ID}
 ENV NEXT_PUBLIC_HEUREKA_API_KEY=${NEXT_PUBLIC_HEUREKA_API_KEY}
 
-# Keep this second install: with inject-workspace-packages=true, N1 needs a relink
+# Keep this second install: with injectWorkspacePackages enabled, N1 needs a relink
 # after building @techsio/* dist outputs or Next build can resolve stale package state.
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
