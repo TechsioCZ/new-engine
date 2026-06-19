@@ -1,11 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import {
-  deleteProductMeasurementWorkflow,
-  setProductMeasurementWorkflow,
-} from "../../../../../workflows/measurement-unit"
+import { deleteProductMeasurementWorkflow } from "../../../../../workflows/measurement-unit/workflows/delete-product-measurement"
+import { setProductMeasurementWorkflow } from "../../../../../workflows/measurement-unit/workflows/set-product-measurement"
 import {
   retrieveProductMeasurement,
   retrieveProductOrThrow,
+  retrieveProductVariants,
   toProductMeasurementDetailResponse,
 } from "../../../measurement-units/utils"
 import type { AdminSetProductMeasurementSchemaType } from "../../../measurement-units/validators"
@@ -16,8 +15,11 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   await retrieveProductOrThrow(req.scope, productId)
 
   const measurement = await retrieveProductMeasurement(req.scope, productId)
+  const variants = await retrieveProductVariants(req.scope, productId)
 
-  res.status(200).json(toProductMeasurementDetailResponse(measurement))
+  res
+    .status(200)
+    .json(toProductMeasurementDetailResponse({ measurement, variants }))
 }
 
 export async function POST(
@@ -30,13 +32,15 @@ export async function POST(
     input: {
       measurement_unit_id: req.validatedBody.measurement_unit_id,
       product_id: productId,
-      product_unit_quantity: req.validatedBody.product_unit_quantity,
     },
   })
 
   const measurement = await retrieveProductMeasurement(req.scope, productId)
+  const variants = await retrieveProductVariants(req.scope, productId)
 
-  res.status(200).json(toProductMeasurementDetailResponse(measurement))
+  res
+    .status(200)
+    .json(toProductMeasurementDetailResponse({ measurement, variants }))
 }
 
 export async function DELETE(req: MedusaRequest, res: MedusaResponse) {

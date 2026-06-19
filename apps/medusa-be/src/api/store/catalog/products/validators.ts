@@ -29,6 +29,9 @@ const additionalAllowedFields = [
   ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
   "categories.parent_category_id",
+  "measurement",
+  "variants.measurement",
+  "variants.calculated_price.price_per_unit",
 ]
 
 export const STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS = Array.from(
@@ -37,6 +40,7 @@ export const STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS = Array.from(
 
 export const StoreCatalogProductsSchema = z
   .object({
+    fields: z.string().optional(),
     q: z.string().optional().default(""),
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(48).optional().default(12),

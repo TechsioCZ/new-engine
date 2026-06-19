@@ -1,11 +1,8 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { CreateMeasurementUnitsWorkflowInput } from "../types"
-import {
-  ensureUnitCodeAvailable,
-  getMeasurementUnitService,
-  normalizeUnitCode,
-} from "./helpers"
+import { ensureUnitCodeAvailable, normalizeUnitCode } from "./helpers"
 
 export const createMeasurementUnitsStep = createStep(
   "create-measurement-units",
@@ -13,9 +10,19 @@ export const createMeasurementUnitsStep = createStep(
     const normalizedCodes = input.units.map((unit) =>
       normalizeUnitCode(unit.code)
     )
+    const invalidBaseQuantityUnit = input.units.find(
+      (unit) => !(Number.isFinite(unit.base_quantity) && unit.base_quantity > 0)
+    )
     const duplicateCodes = normalizedCodes.filter(
       (code, index) => normalizedCodes.indexOf(code) !== index
     )
+
+    if (invalidBaseQuantityUnit) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Measurement unit base quantity must be greater than zero."
+      )
+    }
 
     if (duplicateCodes.length) {
       throw new MedusaError(
@@ -34,6 +41,7 @@ export const createMeasurementUnitsStep = createStep(
     const service = getMeasurementUnitService(container)
     const units = await service.createMeasurementUnits(
       input.units.map((unit) => ({
+        base_quantity: unit.base_quantity,
         code: normalizeUnitCode(unit.code),
         description: unit.description ?? null,
         name: unit.name.trim(),

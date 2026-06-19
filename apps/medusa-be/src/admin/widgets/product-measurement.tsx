@@ -8,14 +8,17 @@ import {
   Heading,
   Input,
   Label,
+  StatusBadge,
   Table,
   Text,
+  Textarea,
   toast,
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
 import {
   createMeasurementUnit,
   deleteProductMeasurement,
@@ -33,6 +36,22 @@ type ProductMeasurementWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
 
+type MissingUnitForm = {
+  base_quantity: string
+  code: string
+  description: string
+  name: string
+  symbol: string
+}
+
+const createEmptyMissingUnitForm = (name = ""): MissingUnitForm => ({
+  base_quantity: "1",
+  code: name ? toUnitCode(name) : "",
+  description: "",
+  name,
+  symbol: "",
+})
+
 const toUnitCode = (value: string) => {
   const code = value
     .trim()
@@ -42,6 +61,35 @@ const toUnitCode = (value: string) => {
 
   return code || "unit"
 }
+
+const getSelectedUnit = ({
+  createdUnit,
+  currentMeasurement,
+  selectedId,
+  units,
+}: {
+  createdUnit?: MeasurementUnit
+  currentMeasurement?: ProductMeasurement | null
+  selectedId?: string
+  units: MeasurementUnit[]
+}) => {
+  if (!selectedId) {
+    return
+  }
+
+  return (
+    units.find((unit) => unit.id === selectedId) ??
+    (createdUnit?.id === selectedId ? createdUnit : undefined) ??
+    (currentMeasurement?.unit.id === selectedId
+      ? currentMeasurement.unit
+      : undefined)
+  )
+}
+
+const getSaveToastKey = (selectedId: string | undefined) =>
+  selectedId
+    ? "toasts.productMeasurementUpdated"
+    : "toasts.productMeasurementCleared"
 
 const MeasurementSelectionRows = ({
   currentUnitId,
@@ -63,6 +111,7 @@ const MeasurementSelectionRows = ({
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
+        <Table.Cell />
       </Table.Row>
     )
   }
@@ -71,6 +120,7 @@ const MeasurementSelectionRows = ({
     return (
       <Table.Row>
         <Table.Cell>{t("units.empty")}</Table.Cell>
+        <Table.Cell />
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -94,6 +144,7 @@ const MeasurementSelectionRows = ({
         <Table.Cell>{unit.name}</Table.Cell>
         <Table.Cell className="text-ui-fg-subtle">{unit.code}</Table.Cell>
         <Table.Cell>{unit.symbol}</Table.Cell>
+        <Table.Cell>{unit.base_quantity}</Table.Cell>
         <Table.Cell>
           <div className="flex justify-end">
             {isSelected ? (
@@ -149,17 +200,23 @@ const ProductMeasurementContent = ({
     )
   }
 
+  const unitIsDeleted = Boolean(measurement.unit.deleted_at)
+
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-start justify-between gap-3">
       <div>
-        <Text size="small" weight="plus">
-          {measurement.unit.name}
-        </Text>
+        <div className="flex items-center gap-2">
+          <Text size="small" weight="plus">
+            {measurement.unit.name}
+          </Text>
+          {unitIsDeleted ? (
+            <StatusBadge color="red">{t("status.deleted")}</StatusBadge>
+          ) : null}
+        </div>
         <Text className="text-ui-fg-subtle" size="small">
-          {measurement.product_unit_quantity} {measurement.unit.symbol}
+          {measurement.unit.code} · {measurement.unit.symbol}
         </Text>
       </div>
-      <Badge size="2xsmall">{measurement.unit.code}</Badge>
     </div>
   )
 }
@@ -176,6 +233,7 @@ const ProductMeasurementDrawer = ({
   productId: string
 }) => {
   const { t } = useTranslation("measurementUnits")
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const prompt = usePrompt()
   const [pageIndex, setPageIndex] = useState(0)
@@ -184,8 +242,10 @@ const ProductMeasurementDrawer = ({
   const [selectedId, setSelectedId] = useState<string | undefined>(
     () => currentMeasurement?.unit.id
   )
-  const [quantity, setQuantity] = useState(
-    () => currentMeasurement?.product_unit_quantity.toString() ?? ""
+  const [createdUnit, setCreatedUnit] = useState<MeasurementUnit | undefined>()
+  const [createMissingOpen, setCreateMissingOpen] = useState(false)
+  const [missingUnitForm, setMissingUnitForm] = useState<MissingUnitForm>(() =>
+    createEmptyMissingUnitForm()
   )
 
   useEffect(() => {
@@ -193,7 +253,9 @@ const ProductMeasurementDrawer = ({
       setPageIndex(0)
       setQ("")
       setSelectedId(currentMeasurement?.unit.id)
-      setQuantity(currentMeasurement?.product_unit_quantity.toString() ?? "")
+      setCreatedUnit(undefined)
+      setCreateMissingOpen(false)
+      setMissingUnitForm(createEmptyMissingUnitForm())
     }
   }, [currentMeasurement, open])
 
@@ -214,14 +276,26 @@ const ProductMeasurementDrawer = ({
   })
 
   const units = data?.measurement_units ?? []
-  const selectedUnit =
-    units.find((unit) => unit.id === selectedId) ??
-    (currentMeasurement && currentMeasurement.unit.id === selectedId
-      ? currentMeasurement.unit
-      : undefined)
+  const selectedUnit = getSelectedUnit({
+    createdUnit,
+    currentMeasurement,
+    selectedId,
+    units,
+  })
+  const selectedUnitIsDeleted = Boolean(selectedUnit?.deleted_at)
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
-  const quantityNumber = Number(quantity)
+  const searchTerm = q.trim()
+  const missingUnitBaseQuantity = Number(missingUnitForm.base_quantity)
+  const missingUnitIsValid =
+    missingUnitForm.name.trim().length > 0 &&
+    missingUnitForm.code.trim().length > 0 &&
+    missingUnitForm.symbol.trim().length > 0 &&
+    Number.isFinite(missingUnitBaseQuantity) &&
+    missingUnitBaseQuantity > 0
+  const canCreateMissing = !!searchTerm && !isLoading
+  const shouldShowMissingForm =
+    canCreateMissing && (!units.length || createMissingOpen)
 
   const saveMutation = useMutation({
     mutationFn: () => {
@@ -231,7 +305,6 @@ const ProductMeasurementDrawer = ({
 
       return setProductMeasurement(productId, {
         measurement_unit_id: selectedId,
-        product_unit_quantity: quantityNumber,
       })
     },
     onError: (error) => {
@@ -244,25 +317,27 @@ const ProductMeasurementDrawer = ({
         queryKey: measurementUnitQueryKeys.productMeasurement(productId),
       })
       await queryClient.invalidateQueries({
+        queryKey:
+          measurementUnitQueryKeys.productVariantMeasurements(productId),
+      })
+      await queryClient.invalidateQueries({
         queryKey: measurementUnitQueryKeys.lists(),
       })
       await queryClient.invalidateQueries({ queryKey: ["product", productId] })
       await queryClient.invalidateQueries({ queryKey: ["products"] })
-      toast.success(
-        selectedId
-          ? t("toasts.productMeasurementUpdated")
-          : t("toasts.productMeasurementCleared")
-      )
+      toast.success(t(getSaveToastKey(selectedId)))
       onOpenChange(false)
     },
   })
 
   const createMutation = useMutation({
-    mutationFn: async (name: string) =>
+    mutationFn: async (input: MissingUnitForm) =>
       createMeasurementUnit({
-        code: toUnitCode(name),
-        name,
-        symbol: toUnitCode(name),
+        base_quantity: Number(input.base_quantity),
+        code: input.code.trim(),
+        description: input.description.trim() || null,
+        name: input.name.trim(),
+        symbol: input.symbol.trim(),
       }),
     onError: (error) => {
       toast.error(
@@ -273,14 +348,45 @@ const ProductMeasurementDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: measurementUnitQueryKeys.lists(),
       })
+      setCreatedUnit(response.measurement_unit)
       setSelectedId(response.measurement_unit.id)
+      setCreateMissingOpen(false)
       toast.success(t("toasts.created"))
     },
   })
 
   const handleCreateMissing = async () => {
-    const name = q.trim()
-    if (!name) {
+    if (!missingUnitIsValid) {
+      return
+    }
+
+    const normalizedCode = toUnitCode(missingUnitForm.code)
+    const existing = await listMeasurementUnits({
+      code: normalizedCode,
+      limit: 1,
+      offset: 0,
+      order_by: "name",
+      status: "all",
+    })
+    const deletedUnit = existing.measurement_units.find(
+      (unit) => unit.code === normalizedCode && unit.deleted_at
+    )
+
+    if (deletedUnit) {
+      const viewDeletedUnit = await prompt({
+        cancelText: t("actions.cancel"),
+        confirmText: t("actions.view"),
+        description: t("createMissing.deletedDescription", {
+          code: normalizedCode,
+        }),
+        title: t("createMissing.deletedTitle"),
+      })
+
+      if (viewDeletedUnit) {
+        onOpenChange(false)
+        navigate(`/settings/measurement-units/${deletedUnit.id}`)
+      }
+
       return
     }
 
@@ -292,7 +398,10 @@ const ProductMeasurementDrawer = ({
     })
 
     if (confirmed) {
-      createMutation.mutate(name)
+      createMutation.mutate({
+        ...missingUnitForm,
+        code: normalizedCode,
+      })
     }
   }
 
@@ -313,6 +422,14 @@ const ProductMeasurementDrawer = ({
                   ? `${selectedUnit.name} (${selectedUnit.symbol})`
                   : t("units.none")}
               </Text>
+              {selectedUnit?.deleted_at ? (
+                <div className="mt-1 flex flex-col gap-1">
+                  <StatusBadge color="red">{t("status.deleted")}</StatusBadge>
+                  <Text className="text-ui-fg-error" size="small">
+                    {t("widget.deletedUnit")}
+                  </Text>
+                </div>
+              ) : null}
             </div>
             <Button
               disabled={!selectedId}
@@ -324,34 +441,144 @@ const ProductMeasurementDrawer = ({
               {t("actions.clear")}
             </Button>
           </Container>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="product-measurement-quantity">
-              {t("fields.quantity")}
-            </Label>
-            <Input
-              id="product-measurement-quantity"
-              min="0"
-              onChange={(event) => setQuantity(event.target.value)}
-              placeholder={t("placeholders.quantity")}
-              step="any"
-              type="number"
-              value={quantity}
-            />
-          </div>
           <Input
             onChange={(event) => {
+              const value = event.target.value
               setPageIndex(0)
-              setQ(event.target.value)
+              setQ(value)
+              setCreateMissingOpen(false)
+              setMissingUnitForm(createEmptyMissingUnitForm(value.trim()))
             }}
             placeholder={t("placeholders.search")}
             value={q}
           />
+          {canCreateMissing && units.length && !createMissingOpen ? (
+            <Container className="flex items-center justify-between gap-3 px-4 py-3">
+              <Text size="small" weight="plus">
+                {t("createMissing.title")}
+              </Text>
+              <Button
+                onClick={() => setCreateMissingOpen(true)}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.create")}
+              </Button>
+            </Container>
+          ) : null}
+          {shouldShowMissingForm ? (
+            <Container className="flex flex-col gap-3 px-4 py-3">
+              <Text size="small" weight="plus">
+                {t("createMissing.title")}
+              </Text>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="missing-measurement-unit-name">
+                  {t("fields.name")}
+                </Label>
+                <Input
+                  id="missing-measurement-unit-name"
+                  onChange={(event) =>
+                    setMissingUnitForm((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                  placeholder={t("placeholders.name")}
+                  required
+                  value={missingUnitForm.name}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="missing-measurement-unit-code">
+                    {t("fields.code")}
+                  </Label>
+                  <Input
+                    id="missing-measurement-unit-code"
+                    onChange={(event) =>
+                      setMissingUnitForm((current) => ({
+                        ...current,
+                        code: event.target.value,
+                      }))
+                    }
+                    placeholder={t("placeholders.code")}
+                    required
+                    value={missingUnitForm.code}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="missing-measurement-unit-symbol">
+                    {t("fields.symbol")}
+                  </Label>
+                  <Input
+                    id="missing-measurement-unit-symbol"
+                    onChange={(event) =>
+                      setMissingUnitForm((current) => ({
+                        ...current,
+                        symbol: event.target.value,
+                      }))
+                    }
+                    placeholder={t("placeholders.symbol")}
+                    required
+                    value={missingUnitForm.symbol}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="missing-measurement-unit-base-quantity">
+                  {t("fields.baseQuantity")}
+                </Label>
+                <Input
+                  id="missing-measurement-unit-base-quantity"
+                  onChange={(event) =>
+                    setMissingUnitForm((current) => ({
+                      ...current,
+                      base_quantity: event.target.value,
+                    }))
+                  }
+                  placeholder={t("placeholders.baseQuantity")}
+                  required
+                  step="any"
+                  type="number"
+                  value={missingUnitForm.base_quantity}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="missing-measurement-unit-description">
+                  {t("fields.description")}
+                </Label>
+                <Textarea
+                  id="missing-measurement-unit-description"
+                  onChange={(event) =>
+                    setMissingUnitForm((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  placeholder={t("placeholders.description")}
+                  value={missingUnitForm.description}
+                />
+              </div>
+              <Button
+                disabled={!missingUnitIsValid}
+                isLoading={createMutation.isPending}
+                onClick={handleCreateMissing}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.create")}
+              </Button>
+            </Container>
+          ) : null}
           <Table>
             <Table.Header>
               <Table.Row>
                 <Table.HeaderCell>{t("columns.name")}</Table.HeaderCell>
                 <Table.HeaderCell>{t("columns.code")}</Table.HeaderCell>
                 <Table.HeaderCell>{t("columns.symbol")}</Table.HeaderCell>
+                <Table.HeaderCell>{t("columns.baseQuantity")}</Table.HeaderCell>
                 <Table.HeaderCell className="w-[1%] text-right">
                   {t("columns.actions")}
                 </Table.HeaderCell>
@@ -361,7 +588,10 @@ const ProductMeasurementDrawer = ({
               <MeasurementSelectionRows
                 currentUnitId={selectedId}
                 isLoading={isLoading}
-                onSelect={setSelectedId}
+                onSelect={(unitId) => {
+                  setSelectedId(unitId)
+                  setCreateMissingOpen(false)
+                }}
                 units={units}
               />
             </Table.Body>
@@ -379,16 +609,6 @@ const ProductMeasurementDrawer = ({
             }
             translations={getPaginationTranslations(t)}
           />
-          {q.trim() && !isLoading && !units.length ? (
-            <Button
-              isLoading={createMutation.isPending}
-              onClick={handleCreateMissing}
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.create")}
-            </Button>
-          ) : null}
         </Drawer.Body>
         <Drawer.Footer>
           <div className="flex justify-end gap-2">
@@ -401,10 +621,7 @@ const ProductMeasurementDrawer = ({
               {t("actions.cancel")}
             </Button>
             <Button
-              disabled={
-                !!selectedId &&
-                !(Number.isFinite(quantityNumber) && quantityNumber > 0)
-              }
+              disabled={selectedUnitIsDeleted}
               isLoading={saveMutation.isPending}
               onClick={() => saveMutation.mutate()}
               size="small"
@@ -448,11 +665,6 @@ const ProductMeasurementWidget = ({
         <div className="flex items-center justify-between px-6 py-4">
           <div>
             <Heading level="h2">{t("widget.title")}</Heading>
-            <Text className="text-ui-fg-subtle" size="small">
-              {measurement
-                ? `${measurement.product_unit_quantity} ${measurement.unit.symbol}`
-                : t("units.none")}
-            </Text>
           </div>
           <Button
             onClick={() => setOpen(true)}

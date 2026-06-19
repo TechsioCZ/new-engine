@@ -4,6 +4,7 @@ import {
   Button,
   Container,
   Drawer,
+  FocusModal,
   Heading,
   IconButton,
   Input,
@@ -17,9 +18,10 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { FormEvent } from "react"
+import type { Dispatch, FormEvent, SetStateAction } from "react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 import {
   createMeasurementUnit,
   deleteMeasurementUnit,
@@ -36,6 +38,7 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 const toFormState = (unit?: MeasurementUnit): MeasurementUnitInput => ({
+  base_quantity: unit?.base_quantity ?? 1,
   code: unit?.code ?? "",
   description: unit?.description ?? "",
   name: unit?.name ?? "",
@@ -43,32 +46,136 @@ const toFormState = (unit?: MeasurementUnit): MeasurementUnitInput => ({
 })
 
 const normalizeInput = (input: MeasurementUnitInput): MeasurementUnitInput => ({
+  base_quantity: Number(input.base_quantity),
   code: input.code.trim(),
   description: input.description?.trim() || null,
   name: input.name.trim(),
   symbol: input.symbol.trim(),
 })
 
-const MeasurementUnitFormDrawer = ({
+const getFormIsValid = (form: MeasurementUnitInput) => {
+  const baseQuantity = Number(form.base_quantity)
+
+  return (
+    form.name.trim().length > 0 &&
+    form.code.trim().length > 0 &&
+    form.symbol.trim().length > 0 &&
+    Number.isFinite(baseQuantity) &&
+    baseQuantity > 0
+  )
+}
+
+const MeasurementUnitFormFields = ({
+  form,
+  setForm,
+}: {
+  form: MeasurementUnitInput
+  setForm: Dispatch<SetStateAction<MeasurementUnitInput>>
+}) => {
+  const { t } = useTranslation("measurementUnits")
+
+  return (
+    <>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="measurement-unit-name">{t("fields.name")}</Label>
+        <Input
+          id="measurement-unit-name"
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              name: event.target.value,
+            }))
+          }
+          placeholder={t("placeholders.name")}
+          required
+          value={form.name}
+        />
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="measurement-unit-code">{t("fields.code")}</Label>
+          <Input
+            id="measurement-unit-code"
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                code: event.target.value,
+              }))
+            }
+            placeholder={t("placeholders.code")}
+            required
+            value={form.code}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="measurement-unit-symbol">{t("fields.symbol")}</Label>
+          <Input
+            id="measurement-unit-symbol"
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                symbol: event.target.value,
+              }))
+            }
+            placeholder={t("placeholders.symbol")}
+            required
+            value={form.symbol}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="measurement-unit-base-quantity">
+          {t("fields.baseQuantity")}
+        </Label>
+        <Input
+          id="measurement-unit-base-quantity"
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              base_quantity: Number(event.target.value),
+            }))
+          }
+          placeholder={t("placeholders.baseQuantity")}
+          required
+          step="any"
+          type="number"
+          value={form.base_quantity}
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="measurement-unit-description">
+          {t("fields.description")}
+        </Label>
+        <Textarea
+          id="measurement-unit-description"
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              description: event.target.value,
+            }))
+          }
+          placeholder={t("placeholders.description")}
+          value={form.description ?? ""}
+        />
+      </div>
+    </>
+  )
+}
+
+const MeasurementUnitCreateModal = ({
   onOpenChange,
   open,
-  unit,
 }: {
   onOpenChange: (open: boolean) => void
   open: boolean
-  unit?: MeasurementUnit
 }) => {
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
-  const [form, setForm] = useState<MeasurementUnitInput>(() =>
-    toFormState(unit)
-  )
+  const [form, setForm] = useState<MeasurementUnitInput>(() => toFormState())
+  const formIsValid = getFormIsValid(form)
 
   const mutation = useMutation({
-    mutationFn: (input: MeasurementUnitInput) =>
-      unit
-        ? updateMeasurementUnit(unit.id, input)
-        : createMeasurementUnit(input),
+    mutationFn: createMeasurementUnit,
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.saveFailed")
@@ -81,7 +188,89 @@ const MeasurementUnitFormDrawer = ({
       await queryClient.invalidateQueries({
         queryKey: measurementUnitQueryKeys.details(),
       })
-      toast.success(unit ? t("toasts.updated") : t("toasts.created"))
+      toast.success(t("toasts.created"))
+      onOpenChange(false)
+    },
+  })
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    mutation.mutate(normalizeInput(form))
+  }
+
+  return (
+    <FocusModal onOpenChange={onOpenChange} open={open}>
+      <FocusModal.Content>
+        <form
+          className="flex h-full flex-col overflow-hidden"
+          onSubmit={handleSubmit}
+        >
+          <FocusModal.Header>
+            <FocusModal.Title>{t("actions.create")}</FocusModal.Title>
+          </FocusModal.Header>
+          <FocusModal.Body className="flex flex-1 justify-center overflow-y-auto">
+            <div className="flex w-full max-w-[720px] flex-col gap-4 px-6 py-8">
+              <MeasurementUnitFormFields form={form} setForm={setForm} />
+            </div>
+          </FocusModal.Body>
+          <FocusModal.Footer>
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => onOpenChange(false)}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.cancel")}
+              </Button>
+              <Button
+                disabled={!formIsValid}
+                isLoading={mutation.isPending}
+                size="small"
+                type="submit"
+              >
+                {t("actions.save")}
+              </Button>
+            </div>
+          </FocusModal.Footer>
+        </form>
+      </FocusModal.Content>
+    </FocusModal>
+  )
+}
+
+const MeasurementUnitFormDrawer = ({
+  onOpenChange,
+  open,
+  unit,
+}: {
+  onOpenChange: (open: boolean) => void
+  open: boolean
+  unit: MeasurementUnit
+}) => {
+  const { t } = useTranslation("measurementUnits")
+  const queryClient = useQueryClient()
+  const [form, setForm] = useState<MeasurementUnitInput>(() =>
+    toFormState(unit)
+  )
+  const formIsValid = getFormIsValid(form)
+
+  const mutation = useMutation({
+    mutationFn: (input: MeasurementUnitInput) =>
+      updateMeasurementUnit(unit.id, input),
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : t("errors.saveFailed")
+      )
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: measurementUnitQueryKeys.lists(),
+      })
+      await queryClient.invalidateQueries({
+        queryKey: measurementUnitQueryKeys.details(),
+      })
+      toast.success(t("toasts.updated"))
       onOpenChange(false)
     },
   })
@@ -96,89 +285,27 @@ const MeasurementUnitFormDrawer = ({
       <Drawer.Content>
         <form onSubmit={handleSubmit}>
           <Drawer.Header>
-            <Drawer.Title>
-              {unit ? t("actions.edit") : t("actions.create")}
-            </Drawer.Title>
+            <Drawer.Title>{t("actions.edit")}</Drawer.Title>
           </Drawer.Header>
           <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="measurement-unit-name">{t("fields.name")}</Label>
-              <Input
-                id="measurement-unit-name"
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    name: event.target.value,
-                  }))
-                }
-                placeholder={t("placeholders.name")}
-                required
-                value={form.name}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="measurement-unit-code">
-                  {t("fields.code")}
-                </Label>
-                <Input
-                  id="measurement-unit-code"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      code: event.target.value,
-                    }))
-                  }
-                  placeholder={t("placeholders.code")}
-                  required
-                  value={form.code}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="measurement-unit-symbol">
-                  {t("fields.symbol")}
-                </Label>
-                <Input
-                  id="measurement-unit-symbol"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      symbol: event.target.value,
-                    }))
-                  }
-                  placeholder={t("placeholders.symbol")}
-                  required
-                  value={form.symbol}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="measurement-unit-description">
-                {t("fields.description")}
-              </Label>
-              <Textarea
-                id="measurement-unit-description"
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                placeholder={t("placeholders.description")}
-                value={form.description ?? ""}
-              />
-            </div>
+            <MeasurementUnitFormFields form={form} setForm={setForm} />
           </Drawer.Body>
           <Drawer.Footer>
             <div className="flex justify-end gap-2">
               <Button
                 onClick={() => onOpenChange(false)}
+                size="small"
                 type="button"
                 variant="secondary"
               >
                 {t("actions.cancel")}
               </Button>
-              <Button isLoading={mutation.isPending} type="submit">
+              <Button
+                disabled={!formIsValid}
+                isLoading={mutation.isPending}
+                size="small"
+                type="submit"
+              >
                 {t("actions.save")}
               </Button>
             </div>
@@ -202,11 +329,11 @@ const MeasurementUnitsSettingsPage = () => {
 
   const params = useMemo(
     () => ({
-      include_deleted: status === "all",
       limit: PAGE_SIZE,
       offset: pageIndex * PAGE_SIZE,
       order_by: "name",
       q: debouncedQ,
+      status: status as "active" | "all" | "deleted",
     }),
     [debouncedQ, pageIndex, status]
   )
@@ -258,7 +385,11 @@ const MeasurementUnitsSettingsPage = () => {
     const confirmed = await prompt({
       cancelText: t("actions.cancel"),
       confirmText: t("actions.delete"),
-      description: `${unit.name} (${unit.code})`,
+      description: unit.active_product_count
+        ? t("deletePrompt.assignedDescription", {
+            count: unit.active_product_count,
+          })
+        : t("deletePrompt.description"),
       title: t("actions.delete"),
     })
 
@@ -272,6 +403,7 @@ const MeasurementUnitsSettingsPage = () => {
       return (
         <Table.Row>
           <Table.Cell>{t("status.loading")}</Table.Cell>
+          <Table.Cell />
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
@@ -292,6 +424,7 @@ const MeasurementUnitsSettingsPage = () => {
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
+          <Table.Cell />
         </Table.Row>
       )
     }
@@ -300,6 +433,7 @@ const MeasurementUnitsSettingsPage = () => {
       return (
         <Table.Row>
           <Table.Cell>{t("units.empty")}</Table.Cell>
+          <Table.Cell />
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
@@ -314,6 +448,7 @@ const MeasurementUnitsSettingsPage = () => {
         <Table.Cell>{unit.name}</Table.Cell>
         <Table.Cell className="text-ui-fg-subtle">{unit.code}</Table.Cell>
         <Table.Cell>{unit.symbol}</Table.Cell>
+        <Table.Cell>{unit.base_quantity}</Table.Cell>
         <Table.Cell>{unit.active_product_count ?? 0}</Table.Cell>
         <Table.Cell>
           <StatusBadge color={unit.deleted_at ? "red" : "green"}>
@@ -323,16 +458,28 @@ const MeasurementUnitsSettingsPage = () => {
         <Table.Cell>
           <div className="flex justify-end gap-1">
             {unit.deleted_at ? (
-              <Button
-                onClick={() => restoreMutation.mutate(unit.id)}
-                size="small"
-                type="button"
-                variant="secondary"
-              >
-                {t("actions.restore")}
-              </Button>
+              <>
+                <Button asChild size="small" variant="secondary">
+                  <Link to={`/settings/measurement-units/${unit.id}`}>
+                    {t("actions.view")}
+                  </Link>
+                </Button>
+                <Button
+                  onClick={() => restoreMutation.mutate(unit.id)}
+                  size="small"
+                  type="button"
+                  variant="secondary"
+                >
+                  {t("actions.restore")}
+                </Button>
+              </>
             ) : (
               <>
+                <Button asChild size="small" variant="secondary">
+                  <Link to={`/settings/measurement-units/${unit.id}`}>
+                    {t("actions.view")}
+                  </Link>
+                </Button>
                 <IconButton
                   aria-label={t("actions.edit")}
                   onClick={() => setEditingUnit(unit)}
@@ -400,6 +547,9 @@ const MeasurementUnitsSettingsPage = () => {
               <Select.Item value="active">
                 {t("filters.activeOnly")}
               </Select.Item>
+              <Select.Item value="deleted">
+                {t("filters.deletedOnly")}
+              </Select.Item>
               <Select.Item value="all">{t("filters.allStatuses")}</Select.Item>
             </Select.Content>
           </Select>
@@ -410,6 +560,7 @@ const MeasurementUnitsSettingsPage = () => {
               <Table.HeaderCell>{t("columns.name")}</Table.HeaderCell>
               <Table.HeaderCell>{t("columns.code")}</Table.HeaderCell>
               <Table.HeaderCell>{t("columns.symbol")}</Table.HeaderCell>
+              <Table.HeaderCell>{t("columns.baseQuantity")}</Table.HeaderCell>
               <Table.HeaderCell>{t("columns.usedBy")}</Table.HeaderCell>
               <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
               <Table.HeaderCell className="w-[1%] text-right">
@@ -434,7 +585,7 @@ const MeasurementUnitsSettingsPage = () => {
         />
       </Container>
       {createOpen ? (
-        <MeasurementUnitFormDrawer
+        <MeasurementUnitCreateModal
           onOpenChange={setCreateOpen}
           open={createOpen}
         />

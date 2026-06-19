@@ -5,10 +5,8 @@ import {
   getMeasurementUnitService,
   toMeasurementUnitResponse,
 } from "../../../utils/measurement-units"
-import {
-  createMeasurementUnitsWorkflow,
-  type MeasurementUnitInput,
-} from "../../../workflows/measurement-unit"
+import type { MeasurementUnitInput } from "../../../workflows/measurement-unit/types"
+import { createMeasurementUnitsWorkflow } from "../../../workflows/measurement-unit/workflows/create-measurement-units"
 import { escapeLikePattern } from "./utils"
 import type {
   AdminCreateMeasurementUnitSchemaType,
@@ -43,10 +41,11 @@ export async function GET(
   res: MedusaResponse
 ) {
   const service = getMeasurementUnitService(req.scope)
-  const { code, include_deleted, limit, offset, q } = req.validatedQuery
+  const { code, include_deleted, limit, offset, q, status } = req.validatedQuery
   const order = parseOrder(
     req.validatedQuery.order_by ?? req.validatedQuery.order
   )
+  const resolvedStatus = status ?? (include_deleted ? "all" : "active")
   const escapedQuery = q ? escapeLikePattern(q) : undefined
   let filters = {}
 
@@ -62,11 +61,18 @@ export async function GET(
     }
   }
 
+  if (resolvedStatus === "deleted") {
+    filters = {
+      ...filters,
+      deleted_at: { $ne: null },
+    }
+  }
+
   const [units, count] = await service.listAndCountMeasurementUnits(filters, {
     order,
     skip: offset,
     take: limit,
-    withDeleted: include_deleted,
+    withDeleted: resolvedStatus !== "active",
   })
   const activeProductCounts = await getMeasurementUnitActiveProductCounts(
     req.scope,
@@ -88,6 +94,7 @@ export async function POST(
   res: MedusaResponse
 ) {
   const input: MeasurementUnitInput = {
+    base_quantity: req.validatedBody.base_quantity,
     code: req.validatedBody.code,
     description: req.validatedBody.description,
     name: req.validatedBody.name,

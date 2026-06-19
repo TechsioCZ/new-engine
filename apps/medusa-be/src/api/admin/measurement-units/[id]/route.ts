@@ -1,8 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import {
-  deleteMeasurementUnitsWorkflow,
-  updateMeasurementUnitWorkflow,
-} from "../../../../workflows/measurement-unit"
+import { deleteMeasurementUnitsWorkflow } from "../../../../workflows/measurement-unit/workflows/delete-measurement-units"
+import { updateMeasurementUnitWorkflow } from "../../../../workflows/measurement-unit/workflows/update-measurement-unit"
 import {
   retrieveMeasurementUnitOrThrow,
   toMeasurementUnitDetailResponse,

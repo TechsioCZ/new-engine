@@ -1,11 +1,15 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import type { ProductMeasurementRecord } from "../../../utils/measurement-units"
+import {
+  getMeasurementUnitService,
+  type ProductMeasurementRecord,
+} from "../../../utils/measurement-units"
 import type { DeleteProductMeasurementWorkflowInput } from "../types"
 import {
-  createProductMeasurementLink,
   dismissProductMeasurementLink,
+  dismissProductVariantMeasurementLinks,
   getCurrentProductMeasurement,
-  getMeasurementUnitService,
+  restoreOrCreateProductMeasurementLink,
+  restoreOrCreateProductVariantMeasurementLinks,
 } from "./helpers"
 
 export const deleteProductMeasurementStep = createStep(
@@ -20,7 +24,17 @@ export const deleteProductMeasurementStep = createStep(
       return new StepResponse(null, null)
     }
 
+    const variantMeasurements = current.variant_measurements ?? []
+
+    await dismissProductVariantMeasurementLinks(container, variantMeasurements)
     await dismissProductMeasurementLink(container, input.product_id, current.id)
+    if (variantMeasurements.length) {
+      await getMeasurementUnitService(
+        container
+      ).softDeleteProductVariantMeasurements(
+        variantMeasurements.map((measurement) => measurement.id)
+      )
+    }
     await getMeasurementUnitService(container).softDeleteProductMeasurements([
       current.id,
     ])
@@ -35,13 +49,26 @@ export const deleteProductMeasurementStep = createStep(
       return
     }
 
+    const variantMeasurements = previous.variant_measurements ?? []
+
     await getMeasurementUnitService(container).restoreProductMeasurements([
       previous.id,
     ])
-    await createProductMeasurementLink(
+    if (variantMeasurements.length) {
+      await getMeasurementUnitService(
+        container
+      ).restoreProductVariantMeasurements(
+        variantMeasurements.map((measurement) => measurement.id)
+      )
+    }
+    await restoreOrCreateProductMeasurementLink(
       container,
       previous.product_id,
       previous.id
+    )
+    await restoreOrCreateProductVariantMeasurementLinks(
+      container,
+      variantMeasurements
     )
   }
 )
