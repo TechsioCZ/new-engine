@@ -8,10 +8,14 @@ const REVIEW_VALIDATION_ERROR =
 const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
 const DUPLICATE_REVIEW_MESSAGE_PATTERNS = [
   "already reviewed",
+  "already rated",
   "already submitted",
   "already exists",
+  "duplicate entry",
   "duplicate review",
   "review already exists",
+  "review already submitted",
+  "review exists",
   "reviewed this product",
 ] as const
 const REVIEW_VALIDATION_MESSAGE_RULES = [
@@ -113,12 +117,12 @@ const resolveKnownReviewErrorMessage = ({
     return "Tento produkt ste už hodnotili."
   }
 
-  if (status === 401) {
-    return "Pre odoslanie recenzie sa prosím prihláste."
-  }
-
   if (isPurchaseRequiredReviewMessage(normalizedMessage)) {
     return PURCHASE_REQUIRED_REVIEW_ERROR
+  }
+
+  if (status === 401) {
+    return "Pre odoslanie recenzie sa prosím prihláste."
   }
 
   if (status === 403) {
