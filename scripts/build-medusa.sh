@@ -224,8 +224,8 @@ log_info "Step 5/5: Creating production node_modules deployment..."
 
 pnpm --filter=medusa-be --prod deploy medusa-be-prod
 rm -rf node_modules apps/medusa-be/node_modules
-if [[ "${PNPM_CLEAN_STORE_AFTER_DEPLOY:-false}" == "true" && -n "${npm_config_store_dir:-}" ]]; then
-  store_dir="$(node -e 'console.log(require("node:path").resolve(process.argv[1]))' "$npm_config_store_dir")"
+if [[ "${PNPM_CLEAN_STORE_AFTER_DEPLOY:-false}" == "true" && -n "${pnpm_config_store_dir:-}" ]]; then
+  store_dir="$(node -e 'console.log(require("node:path").resolve(process.argv[1]))' "$pnpm_config_store_dir")"
   case "$store_dir" in
     "$PROJECT_ROOT"/.pnpm-store|"$PROJECT_ROOT"/.pnpm-store/*|/tmp/pnpm-store|/tmp/pnpm-store/*)
       rm -rf "$store_dir"

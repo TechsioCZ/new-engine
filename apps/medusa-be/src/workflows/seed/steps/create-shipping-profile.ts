@@ -64,12 +64,13 @@ export const createDefaultShippingProfileStep = createStep(
       ? finalShippingProfiles[0]
       : null
 
-    if (finalShippingProfile === null) {
+    if (!finalShippingProfile) {
       throw new Error("Could not find default shipping profile")
     }
 
     return new StepResponse({
       result: [finalShippingProfile],
+      shippingProfile: finalShippingProfile,
     })
   }
 )

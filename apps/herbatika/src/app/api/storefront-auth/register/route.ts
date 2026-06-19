@@ -6,6 +6,7 @@ import {
   createCustomerProfile,
   createWholesaleProfile,
   loginCustomerIdentity,
+  type ParsedRegisterPayload,
   refreshCustomerToken,
 } from "./register-flow"
 import { parseWholesaleRegistration } from "./wholesale"
@@ -22,6 +23,16 @@ type RegisterResponse = {
   token: string
 }
 
+type ParseRegisterBodyResult =
+  | {
+      error: NextResponse
+      value: null
+    }
+  | {
+      error: null
+      value: ParsedRegisterPayload
+    }
+
 const createRegisterResponse = (token: string) => {
   const response = NextResponse.json<RegisterResponse>(
     {
@@ -34,7 +45,9 @@ const createRegisterResponse = (token: string) => {
   return response
 }
 
-const parseRegisterBody = async (request: Request) => {
+const parseRegisterBody = async (
+  request: Request
+): Promise<ParseRegisterBodyResult> => {
   const body = asRecordOrUndefined(await request.json()) as
     | RegisterBody
     | undefined
@@ -72,7 +85,7 @@ const parseRegisterBody = async (request: Request) => {
       firstName: asStringOrUndefined(body.first_name),
       lastName: asStringOrUndefined(body.last_name),
       wholesale: wholesale.value,
-    },
+    } satisfies ParsedRegisterPayload,
   }
 }
 
@@ -98,7 +111,7 @@ export async function POST(request: Request) {
       return loginResult.error
     }
 
-    const customerError = await createCustomerProfile({
+    const createCustomerError = await createCustomerProfile({
       loginToken: loginResult.token,
       payload: {
         email,
@@ -107,8 +120,8 @@ export async function POST(request: Request) {
         wholesale,
       },
     })
-    if (customerError) {
-      return customerError
+    if (createCustomerError) {
+      return createCustomerError
     }
 
     const sessionToken = await refreshCustomerToken(loginResult.token)

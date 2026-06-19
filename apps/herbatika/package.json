@@ -16,6 +16,13 @@
     "validate:file-size:json": "node scripts/validate-file-size-guardrail.mjs --json",
     "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size"
   },
+  "nx": {
+    "tags": [
+      "type:app",
+      "platform:web",
+      "framework:next"
+    ]
+  },
   "dependencies": {
     "@medusajs/js-sdk": "^2.12.5",
     "@medusajs/types": "^2.12.5",

@@ -55,6 +55,11 @@ type OrderDashboardFulfillmentBulkResult = {
   }>
 }
 
+type OrderDashboardFulfillmentPreview = {
+  fulfillable: OrderDashboardFulfillmentPreviewOrder[]
+  skipped: OrderDashboardBlockingOrder[]
+}
+
 export function OrderFulfillmentModal({
   onCompleted,
   onOpenChange,
@@ -327,87 +332,116 @@ export function OrderFulfillmentModal({
                 </div>
               </div>
 
-              {previewError ? (
-                <Text
-                  className="text-ui-fg-error"
-                  leading="compact"
-                  size="small"
-                >
-                  {getErrorMessage(previewError, t("toast.requestFailed"))}
-                </Text>
-              ) : isPreviewLoading ? (
-                <Text
-                  className="text-ui-fg-subtle"
-                  leading="compact"
-                  size="small"
-                >
-                  {t("fulfillmentModal.loading")}
-                </Text>
-              ) : stockLocations.length ? (
-                locationId ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <FulfillmentMetric
-                        label={t("fulfillmentModal.selected", {
-                          count: selectedOrders.length,
-                        })}
-                      />
-                      <FulfillmentMetric
-                        label={t("fulfillmentModal.eligible", {
-                          count: preview.fulfillable.length,
-                        })}
-                      />
-                      <FulfillmentMetric
-                        label={t("fulfillmentModal.skippedCount", {
-                          count: preview.skipped.length,
-                        })}
-                      />
-                    </div>
-
-                    <FulfillmentPreviewSection
-                      emptyMessage={t("fulfillmentModal.noEligible")}
-                      orders={preview.fulfillable}
-                      title={t("fulfillmentModal.eligible", {
-                        count: preview.fulfillable.length,
-                      })}
-                    />
-
-                    {preview.skipped.length ? (
-                      <BlockingOrderPreviewSection
-                        blockedOrders={preview.skipped}
-                        hiddenLabelKey="fulfillmentModal.skippedMore"
-                        rowLabelKey="fulfillmentModal.skipped"
-                        title={t("fulfillmentModal.skippedCount", {
-                          count: preview.skipped.length,
-                        })}
-                      />
-                    ) : null}
-
-                    {result ? <FulfillmentResultPanel result={result} /> : null}
-                  </div>
-                ) : (
-                  <Text
-                    className="text-ui-fg-subtle"
-                    leading="compact"
-                    size="small"
-                  >
-                    {t("fulfillmentModal.previewUnavailable")}
-                  </Text>
-                )
-              ) : (
-                <Text
-                  className="text-ui-fg-error"
-                  leading="compact"
-                  size="small"
-                >
-                  {t("fulfillmentModal.stockLocationsUnavailable")}
-                </Text>
-              )}
+              <FulfillmentPreviewContent
+                isPreviewLoading={isPreviewLoading}
+                locationId={locationId}
+                preview={preview}
+                previewError={previewError}
+                result={result}
+                selectedOrderCount={selectedOrders.length}
+                stockLocationCount={stockLocations.length}
+                t={t}
+              />
             </div>
           </FocusModal.Body>
         </div>
       </FocusModal.Content>
     </FocusModal>
+  )
+}
+
+function FulfillmentPreviewContent({
+  isPreviewLoading,
+  locationId,
+  preview,
+  previewError,
+  result,
+  selectedOrderCount,
+  stockLocationCount,
+  t,
+}: {
+  isPreviewLoading: boolean
+  locationId: string
+  preview: OrderDashboardFulfillmentPreview
+  previewError: Error | null
+  result: OrderDashboardFulfillmentBulkResult | null
+  selectedOrderCount: number
+  stockLocationCount: number
+  t: TranslationFunction
+}) {
+  if (previewError) {
+    return (
+      <Text className="text-ui-fg-error" leading="compact" size="small">
+        {getErrorMessage(previewError, t("toast.requestFailed"))}
+      </Text>
+    )
+  }
+
+  if (isPreviewLoading) {
+    return (
+      <Text className="text-ui-fg-subtle" leading="compact" size="small">
+        {t("fulfillmentModal.loading")}
+      </Text>
+    )
+  }
+
+  if (!stockLocationCount) {
+    return (
+      <Text className="text-ui-fg-error" leading="compact" size="small">
+        {t("fulfillmentModal.stockLocationsUnavailable")}
+      </Text>
+    )
+  }
+
+  if (!locationId) {
+    return (
+      <Text className="text-ui-fg-subtle" leading="compact" size="small">
+        {t("fulfillmentModal.previewUnavailable")}
+      </Text>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <FulfillmentMetric
+          label={t("fulfillmentModal.selected", {
+            count: selectedOrderCount,
+          })}
+        />
+        <FulfillmentMetric
+          label={t("fulfillmentModal.eligible", {
+            count: preview.fulfillable.length,
+          })}
+        />
+        <FulfillmentMetric
+          label={t("fulfillmentModal.skippedCount", {
+            count: preview.skipped.length,
+          })}
+        />
+      </div>
+
+      <FulfillmentPreviewSection
+        emptyMessage={t("fulfillmentModal.noEligible")}
+        orders={preview.fulfillable}
+        title={t("fulfillmentModal.eligible", {
+          count: preview.fulfillable.length,
+        })}
+      />
+
+      {preview.skipped.length ? (
+        <BlockingOrderPreviewSection
+          blockedOrders={preview.skipped}
+          hiddenLabelKey="fulfillmentModal.skippedMore"
+          rowLabelKey="fulfillmentModal.skipped"
+          title={t("fulfillmentModal.skippedCount", {
+            count: preview.skipped.length,
+          })}
+        />
+      ) : null}
+
+      {result ? <FulfillmentResultPanel result={result} /> : null}
+    </div>
   )
 }
 

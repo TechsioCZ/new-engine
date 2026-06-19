@@ -23,6 +23,7 @@ export async function reconcileMainMeiliApiCredentials(input: {
   meiliUrl: string
   masterKey: string
   waitSeconds: number
+  timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
   stackInputs: StackInputs
@@ -69,6 +70,7 @@ export async function reconcileMainMeiliApiCredentials(input: {
         meiliUrl: input.meiliUrl,
         masterKey: input.masterKey,
         waitSeconds: input.waitSeconds,
+        timeoutSeconds: input.timeoutSeconds,
         retryCount: input.retryCount,
         retryDelaySeconds: input.retryDelaySeconds,
         stackInputs: input.stackInputs,
@@ -83,6 +85,7 @@ export async function reconcileMainMeiliApiCredentials(input: {
         backendKey: provisioned.backend_key,
         frontendKey: provisioned.frontend_key,
         waitSeconds: input.waitSeconds,
+        timeoutSeconds: input.timeoutSeconds,
         retryCount: input.retryCount,
         retryDelaySeconds: input.retryDelaySeconds,
         stackInputs: input.stackInputs,

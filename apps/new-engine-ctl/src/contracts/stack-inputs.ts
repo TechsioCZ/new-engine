@@ -75,6 +75,14 @@ const runtimeProviderSchema = z.looseObject({
   outputs: z.array(providerOutputSchema).default([]),
 })
 
+const localRuntimeProviderOutputAliasSchema = z.looseObject({
+  provider_id: z.string().min(1),
+  output_id: z.string().min(1),
+  service_id: z.string().min(1),
+  env_var: z.string().min(1),
+  local_env_var: z.string().min(1),
+})
+
 const previewRuntimeSourceSchema = z.looseObject({
   kind: z.string().min(1),
   service_id: z.string().min(1).optional(),
@@ -211,6 +219,13 @@ export const stackInputsSchema = z.object({
       providers: z.array(runtimeProviderSchema).default([]),
     })
     .default({ providers: [] }),
+  local_env_aliases: z
+    .object({
+      runtime_provider_outputs: z
+        .array(localRuntimeProviderOutputAliasSchema)
+        .default([]),
+    })
+    .default({ runtime_provider_outputs: [] }),
   preview_runtime_reconciliation: z
     .object({
       shared_env: z.array(previewSharedEnvDefinitionSchema).default([]),
@@ -261,6 +276,9 @@ export type ServiceReconciliationDefinition = z.infer<
 export type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
 export type RuntimeProviderOutputTarget = z.infer<
   typeof providerOutputTargetSchema
+>
+export type LocalRuntimeProviderOutputAlias = z.infer<
+  typeof localRuntimeProviderOutputAliasSchema
 >
 export type RuntimeProviderPolicy = NonNullable<RuntimeProviderOutput["policy"]>
 export type RuntimeProviderLaneBehavior = z.infer<
@@ -459,6 +477,49 @@ export function listRuntimeProviderOutputTargets(
   }
 
   return output.target_envs
+}
+
+export function listLocalRuntimeProviderOutputAliases(
+  inputs: StackInputs,
+  providerId: string,
+  outputId: string,
+  serviceIds: string[] = []
+): LocalRuntimeProviderOutputAlias[] {
+  const serviceIdSet = serviceIds.length > 0 ? new Set(serviceIds) : null
+  const aliases = inputs.local_env_aliases.runtime_provider_outputs.filter(
+    (alias) =>
+      alias.provider_id === providerId &&
+      alias.output_id === outputId &&
+      (!serviceIdSet || serviceIdSet.has(alias.service_id))
+  )
+
+  for (const alias of aliases) {
+    const runtimeEnvVar = getRuntimeProviderTargetEnvVar(
+      inputs,
+      providerId,
+      outputId,
+      alias.service_id
+    )
+    if (runtimeEnvVar !== alias.env_var) {
+      throw new Error(
+        `Local env alias mismatch for ${providerId}.${outputId}.${alias.service_id}: target_envs uses ${runtimeEnvVar}, local alias references ${alias.env_var}.`
+      )
+    }
+  }
+
+  if (serviceIds.length > 0) {
+    const matchedServiceIds = new Set(aliases.map((alias) => alias.service_id))
+    const missingServiceIds = serviceIds.filter(
+      (serviceId) => !matchedServiceIds.has(serviceId)
+    )
+    if (missingServiceIds.length > 0) {
+      throw new Error(
+        `Missing local env alias for ${providerId}.${outputId} service(s): ${missingServiceIds.join(",")}.`
+      )
+    }
+  }
+
+  return aliases
 }
 
 export function listRuntimeProviderOutputIds(

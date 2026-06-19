@@ -1,13 +1,13 @@
 import "server-only"
 
 import type { CmsMedia } from "./cms-types"
+import { resolveMedusaBackendUrl, resolvePayloadBaseUrl } from "./runtime-env"
 import { storefrontConfig } from "./sdk"
 
 const CMS_LOCALE = "sk"
 const CMS_REVALIDATE_SECONDS = 600
-const CMS_MEDIA_BASE_URL =
-  process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL?.trim() ||
-  storefrontConfig.backendUrl
+const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
+const CMS_MEDIA_BASE_URL = resolvePayloadBaseUrl(CMS_MEDUSA_BASE_URL)
 
 const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
 
@@ -15,10 +15,7 @@ const buildCmsUrl = (
   path: string,
   params?: Record<string, string | number>
 ) => {
-  const url = new URL(
-    `/store/cms/${trimSlashes(path)}`,
-    storefrontConfig.backendUrl
-  )
+  const url = new URL(`/store/cms/${trimSlashes(path)}`, CMS_MEDUSA_BASE_URL)
 
   url.searchParams.set("locale", CMS_LOCALE)
 
