@@ -164,11 +164,21 @@ describe("order expedition helpers", () => {
     expect(dto.total).toBe(0)
   })
 
-  it("keeps a non-zero order total before falling back to summary totals", () => {
+  it("prefers the latest summary total over a non-zero order total", () => {
     const dto = toOrderExpeditionDto({
       id: "order_1",
       display_id: 1001,
       summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
+      total: 12.34,
+    })
+
+    expect(dto.total).toBe(47.39)
+  })
+
+  it("falls back to a non-zero order total when summary data is missing", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
       total: 12.34,
     })
 
