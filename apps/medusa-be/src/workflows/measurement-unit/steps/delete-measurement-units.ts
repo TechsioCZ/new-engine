@@ -1,13 +1,13 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { DeleteMeasurementUnitsWorkflowInput } from "../types"
-import { getMeasurementUnitService } from "./helpers"
 
 export const deleteMeasurementUnitsStep = createStep(
   "delete-measurement-units",
   async (input: DeleteMeasurementUnitsWorkflowInput, { container }) => {
-    await getMeasurementUnitService(container).softDeleteMeasurementUnits(
-      input.ids
-    )
+    const service = getMeasurementUnitService(container)
+
+    await service.softDeleteMeasurementUnits(input.ids)
 
     return new StepResponse(undefined, input.ids)
   },

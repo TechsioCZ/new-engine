@@ -1,12 +1,11 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import type { MeasurementUnitRecord } from "../../../utils/measurement-units"
-import type { UpdateMeasurementUnitWorkflowInput } from "../types"
 import {
-  ensureUnitCodeAvailable,
   getMeasurementUnitService,
-  normalizeUnitCode,
-} from "./helpers"
+  type MeasurementUnitRecord,
+} from "../../../utils/measurement-units"
+import type { UpdateMeasurementUnitWorkflowInput } from "../types"
+import { ensureUnitCodeAvailable, normalizeUnitCode } from "./helpers"
 
 export const updateMeasurementUnitStep = createStep(
   "update-measurement-unit",
@@ -38,9 +37,20 @@ export const updateMeasurementUnitStep = createStep(
       })
     }
 
+    if (
+      update.base_quantity !== undefined &&
+      !(Number.isFinite(update.base_quantity) && update.base_quantity > 0)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Measurement unit base quantity must be greater than zero."
+      )
+    }
+
     const updated = await service.updateMeasurementUnits({
       id: input.id,
       ...update,
+      base_quantity: update.base_quantity,
       code: update.code ? normalizeUnitCode(update.code) : undefined,
       description:
         update.description === undefined ? undefined : update.description,
@@ -53,6 +63,7 @@ export const updateMeasurementUnitStep = createStep(
   async (previous, { container }) => {
     if (previous?.id) {
       await getMeasurementUnitService(container).updateMeasurementUnits({
+        base_quantity: previous.base_quantity,
         code: previous.code,
         description: previous.description ?? null,
         id: previous.id,

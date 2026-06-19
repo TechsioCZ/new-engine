@@ -2,7 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { createMeasurementUnitsStep } from "../steps"
+import { createMeasurementUnitsStep } from "../steps/create-measurement-units"
 import type { CreateMeasurementUnitsWorkflowInput } from "../types"
 
 export const createMeasurementUnitsWorkflow = createWorkflow(

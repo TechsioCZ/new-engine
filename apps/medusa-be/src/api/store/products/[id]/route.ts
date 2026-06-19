@@ -11,12 +11,19 @@ import {
   wrapProductsWithTaxPrices,
 } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
-import { decorateProductsWithMeasurements } from "../../../../utils/measurement-units"
+import {
+  decorateProductsWithMeasurements,
+  getMeasurementDecorationOptions,
+  getMeasurementDecorationQueryFields,
+} from "../../../../utils/measurement-units"
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
   res: MedusaResponse<HttpTypes.StoreProductResponse>
 ) => {
+  const measurementDecorationOptions = getMeasurementDecorationOptions(
+    req.queryConfig.fields
+  )
   const withInventoryQuantity = req.queryConfig.fields.some((field) =>
     field.includes("variants.inventory_quantity")
   )
@@ -47,13 +54,18 @@ export const GET = async (
     req.queryConfig.fields.push("categories.is_internal")
   }
 
+  const productFields = getMeasurementDecorationQueryFields(
+    req.queryConfig.fields,
+    measurementDecorationOptions
+  )
+
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { data: products } = await query.graph(
     {
       context,
       entity: "product",
-      fields: req.queryConfig.fields,
+      fields: productFields,
       filters,
     },
     {
@@ -81,7 +93,11 @@ export const GET = async (
   }
 
   await wrapProductsWithTaxPrices(req, [product])
-  await decorateProductsWithMeasurements(req.scope, [product])
+  await decorateProductsWithMeasurements(
+    req.scope,
+    [product],
+    measurementDecorationOptions
+  )
 
   res.json({ product })
 }

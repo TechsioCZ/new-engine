@@ -2,7 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { deleteProductMeasurementStep } from "../steps"
+import { deleteProductMeasurementStep } from "../steps/delete-product-measurement"
 import type { DeleteProductMeasurementWorkflowInput } from "../types"
 
 export const deleteProductMeasurementWorkflow = createWorkflow(

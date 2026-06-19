@@ -2,6 +2,7 @@ import { sdk } from "./sdk"
 
 export type MeasurementUnit = {
   active_product_count?: number
+  base_quantity: number
   code: string
   created_at?: string
   deleted_at?: string | null
@@ -13,6 +14,7 @@ export type MeasurementUnit = {
 }
 
 export type MeasurementUnitInput = {
+  base_quantity: number
   code: string
   description?: string | null
   name: string
@@ -23,8 +25,32 @@ export type ProductMeasurement = {
   created_at?: string
   id: string
   product_id: string
-  product_unit_quantity: number
   unit: MeasurementUnit
+  updated_at?: string
+  variant_measurements: ProductVariantMeasurement[]
+}
+
+export type MeasurementUnitAssignedProduct = {
+  deleted_at?: string | null
+  handle?: null | string
+  id: string
+  product_id: string
+  status?: null | string
+  title?: null | string
+  updated_at?: string
+}
+
+export type ProductMeasurementVariant = {
+  id: string
+  sku?: null | string
+  title?: null | string
+}
+
+export type ProductVariantMeasurement = {
+  created_at?: string
+  id: string
+  product_unit_quantity: number
+  product_variant_id: string
   updated_at?: string
 }
 
@@ -39,8 +65,21 @@ export type MeasurementUnitResponse = {
   measurement_unit: MeasurementUnit
 }
 
+export type MeasurementUnitAssignedProductsResponse = {
+  products: MeasurementUnitAssignedProduct[]
+  count: number
+  limit: number
+  offset: number
+}
+
 export type ProductMeasurementResponse = {
   measurement: ProductMeasurement | null
+  variants: ProductMeasurementVariant[]
+}
+
+export type ProductVariantMeasurementResponse = {
+  measurement: ProductMeasurement | null
+  variant_measurement: ProductVariantMeasurement | null
 }
 
 const toSearch = (
@@ -63,8 +102,18 @@ export const measurementUnitQueryKeys = {
   list: (params: Record<string, unknown>) =>
     ["measurement-units", params] as const,
   lists: () => ["measurement-units"] as const,
+  products: (id: string | undefined, params: Record<string, unknown>) =>
+    ["measurement-unit-products", id, params] as const,
+  productsPrefix: (id: string | undefined) =>
+    ["measurement-unit-products", id] as const,
   productMeasurement: (productId: string | undefined) =>
     ["product-measurement", productId] as const,
+  productVariantMeasurements: (productId: string | undefined) =>
+    ["product-variant-measurement", productId] as const,
+  productVariantMeasurement: (
+    productId: string | undefined,
+    productVariantId: string | undefined
+  ) => ["product-variant-measurement", productId, productVariantId] as const,
 }
 
 export const listMeasurementUnits = (params: {
@@ -74,6 +123,7 @@ export const listMeasurementUnits = (params: {
   offset: number
   order_by?: string
   q?: string
+  status?: "active" | "all" | "deleted"
 }) =>
   sdk.client.fetch<MeasurementUnitsResponse>(
     `/admin/measurement-units?${toSearch(params)}`
@@ -81,6 +131,20 @@ export const listMeasurementUnits = (params: {
 
 export const retrieveMeasurementUnit = (id: string) =>
   sdk.client.fetch<MeasurementUnitResponse>(`/admin/measurement-units/${id}`)
+
+export const listMeasurementUnitAssignedProducts = (
+  id: string,
+  params: {
+    limit: number
+    offset: number
+    order_by?: string
+    q?: string
+    status?: "active" | "all" | "deleted"
+  }
+) =>
+  sdk.client.fetch<MeasurementUnitAssignedProductsResponse>(
+    `/admin/measurement-units/${id}/products?${toSearch(params)}`
+  )
 
 export const createMeasurementUnit = (input: MeasurementUnitInput) =>
   sdk.client.fetch<MeasurementUnitResponse>("/admin/measurement-units", {
@@ -119,7 +183,6 @@ export const setProductMeasurement = (
   productId: string,
   input: {
     measurement_unit_id: string
-    product_unit_quantity: number
   }
 ) =>
   sdk.client.fetch<ProductMeasurementResponse>(
@@ -134,3 +197,37 @@ export const deleteProductMeasurement = (productId: string) =>
   sdk.client.fetch(`/admin/products/${productId}/measurement`, {
     method: "DELETE",
   })
+
+export const retrieveProductVariantMeasurement = (
+  productId: string,
+  productVariantId: string
+) =>
+  sdk.client.fetch<ProductVariantMeasurementResponse>(
+    `/admin/products/${productId}/variants/${productVariantId}/measurement`
+  )
+
+export const setProductVariantMeasurement = (
+  productId: string,
+  productVariantId: string,
+  input: {
+    product_unit_quantity: number
+  }
+) =>
+  sdk.client.fetch<ProductVariantMeasurementResponse>(
+    `/admin/products/${productId}/variants/${productVariantId}/measurement`,
+    {
+      body: input,
+      method: "POST",
+    }
+  )
+
+export const deleteProductVariantMeasurement = (
+  productId: string,
+  productVariantId: string
+) =>
+  sdk.client.fetch(
+    `/admin/products/${productId}/variants/${productVariantId}/measurement`,
+    {
+      method: "DELETE",
+    }
+  )
