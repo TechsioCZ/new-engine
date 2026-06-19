@@ -124,8 +124,7 @@ export function useCheckoutController() {
     cartQuery.cart?.id
   )
   const effectiveSelectedPaymentProviderId =
-    storedPaymentProviderId ??
-    cartSelectedPaymentProviderId
+    storedPaymentProviderId ?? cartSelectedPaymentProviderId
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id

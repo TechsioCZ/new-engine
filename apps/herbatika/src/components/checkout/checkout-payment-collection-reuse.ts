@@ -1,7 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import {
-  resolveExistingPaymentCollection,
-} from "@techsio/storefront-data/shared/checkout-flow-utils"
+import { resolveExistingPaymentCollection } from "@techsio/storefront-data/shared/checkout-flow-utils"
 import {
   asFiniteNumber,
   resolveCartTotalAmount,
