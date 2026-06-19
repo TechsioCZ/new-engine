@@ -508,6 +508,7 @@ const OrderDashboardPage = () => {
 
   const handleFulfillmentCompleted = () => {
     refreshFulfillmentData()
+    setBlockingOrders([])
     setDetailOrderId(null)
   }
 
@@ -635,6 +636,7 @@ const OrderDashboardPage = () => {
     const selectedPacketaCarrierOrderIdsSnapshot = selectedOrdersSnapshot
       .filter((order) => order.carrier.value === "packeta")
       .map((order) => order.id)
+    const labelFormatSnapshot = labelFormat
 
     if (!selectedOrdersSnapshot.length) {
       toast.error(t("toast.noSelection"))
@@ -693,7 +695,7 @@ const OrderDashboardPage = () => {
       }
 
       await packetaLabelsMutation.mutateAsync({
-        labelFormat,
+        labelFormat: labelFormatSnapshot,
         orderIds: freshPacketaLabelPreview.printableOrders.map(
           (order) => order.id
         ),
@@ -974,7 +976,12 @@ const OrderDashboardPage = () => {
               }
               value={labelFormat}
             >
-              <Select.Trigger className="w-[84px]">
+              <Select.Trigger
+                className="w-[84px]"
+                disabled={
+                  isPreparingPacketaLabels || packetaLabelsMutation.isPending
+                }
+              >
                 <Select.Value />
               </Select.Trigger>
               <Select.Content>
