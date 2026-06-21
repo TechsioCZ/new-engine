@@ -59,7 +59,7 @@ const numericInputVariants = tv({
       "flex flex-1 place-items-center",
       "px-numeric-input-trigger-x py-numeric-input-trigger-y",
       "bg-transparent hover:bg-icon-control-bg-hover active:bg-icon-control-bg-active",
-      "text-icon-control-fg hover:text-icon-control-fg-hover",
+      "text-icon-control-fg",
       "cursor-pointer",
       "transition-colors duration-200 motion-reduce:transition-none",
       "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
