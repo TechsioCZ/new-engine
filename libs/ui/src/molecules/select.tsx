@@ -412,13 +412,13 @@ Select.ClearTrigger = function SelectClearTrigger({
 
   return (
     <ActionIcon
-      aria-label="Clear selection"
       className={styles.clearTrigger({ className })}
       icon="token-icon-select-clear"
       ref={ref}
       size={toControlSize(size)}
       tone="neutral"
       {...api.getClearTriggerProps()}
+      aria-label="Clear selection"
       {...props}
     />
   )
