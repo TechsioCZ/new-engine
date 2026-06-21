@@ -36,14 +36,15 @@
   --color-icon-control-ring: var(--color-ring);
   --color-icon-control-fg-disabled: var(--color-fg-disabled);
 
-  /* Neutral tone — resting + hover pill (fill-* already encode light/dark). */
+  /* Neutral tone — the glyph stays full-contrast; the bg pill is the hover/active
+   * affordance (fill-* already encode light/dark). */
   --color-icon-control-fg: var(--color-fg-primary);
-  --color-icon-control-fg-hover: var(--color-fg-primary);
   --color-icon-control-bg-hover: var(--color-fill-hover);
   --color-icon-control-bg-active: var(--color-fill-active);
 
-  /* Danger tone — clear (✕) trigger. */
+  /* Danger tone — reserved for destructive actions. */
   --color-icon-control-fg-danger: var(--color-fg-primary);
   --color-icon-control-fg-danger-hover: var(--color-danger-fg);
   --color-icon-control-bg-danger-hover: var(--color-danger-light);
+  --color-icon-control-bg-danger-active: var(--color-danger-light-active);
 }

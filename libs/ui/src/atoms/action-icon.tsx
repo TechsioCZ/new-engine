@@ -30,13 +30,13 @@ const actionIconVariants = tv({
     },
     tone: {
       neutral: [
-        "hover:bg-icon-control-bg-hover hover:text-icon-control-fg-hover",
+        "hover:bg-icon-control-bg-hover",
         "active:bg-icon-control-bg-active",
       ],
       danger: [
         "text-icon-control-fg-danger",
         "hover:bg-icon-control-bg-danger-hover hover:text-icon-control-fg-danger-hover",
-        "active:bg-icon-control-bg-danger-hover",
+        "active:bg-icon-control-bg-danger-active",
       ],
     },
   },

@@ -85,9 +85,8 @@ As shipped in `tokens/components/_icon-button.css`:
   --color-icon-control-ring:        var(--color-ring);
   --color-icon-control-fg-disabled: var(--color-fg-disabled);
 
-  /* Neutral tone — reuse existing light/dark-aware fill surfaces */
+  /* Neutral tone — glyph stays full-contrast; bg pill is the hover/active affordance */
   --color-icon-control-fg:        var(--color-fg-primary);
-  --color-icon-control-fg-hover:  var(--color-fg-primary);
   --color-icon-control-bg-hover:  var(--color-fill-hover);
   --color-icon-control-bg-active: var(--color-fill-active);
 
@@ -95,6 +94,7 @@ As shipped in `tokens/components/_icon-button.css`:
   --color-icon-control-fg-danger:        var(--color-fg-primary);
   --color-icon-control-fg-danger-hover:  var(--color-danger-fg);
   --color-icon-control-bg-danger-hover:  var(--color-danger-light);
+  --color-icon-control-bg-danger-active: var(--color-danger-light-active);
 }
 ```
 The interactive button (hit-area, glyph, hover/active pill) lives in the
