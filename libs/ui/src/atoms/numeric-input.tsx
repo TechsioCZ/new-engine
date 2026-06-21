@@ -46,17 +46,23 @@ const numericInputVariants = tv({
       "focus-visible:outline-none",
       "duration-0 data-invalid:focus:border-input-border-danger-focus",
     ],
+    // Subtle divider from the input instead of a gray fill block; the gap-px
+    // shows the field behind it as a hairline between the two arrows.
     triggerContainer: [
-      "flex flex-col gap-px self-stretch bg-numeric-input-trigger-container-bg",
+      "flex flex-col gap-px self-stretch",
+      "border-numeric-input-border border-s",
     ],
+    // Unified neutral icon-control treatment: transparent base (matches the
+    // field, no "disabled" gray), neutral arrows, subtle neutral hover pill —
+    // no blue arrow-on-gray. Glyph size is kept per NumericInput's own scale.
     trigger: [
       "flex flex-1 place-items-center",
       "px-numeric-input-trigger-x py-numeric-input-trigger-y",
-      "bg-numeric-input-trigger-bg hover:bg-numeric-input-trigger-bg-hover",
-      "text-numeric-input-trigger-fg hover:text-numeric-input-trigger-fg-hover",
+      "bg-transparent hover:bg-icon-control-bg-hover active:bg-icon-control-bg-active",
+      "text-icon-control-fg hover:text-icon-control-fg-hover",
       "cursor-pointer",
       "transition-colors duration-200 motion-reduce:transition-none",
-      "disabled:cursor-not-allowed",
+      "disabled:cursor-not-allowed disabled:text-icon-control-fg-disabled",
     ],
     scrubber: "absolute inset-0 cursor-ew-resize",
   },

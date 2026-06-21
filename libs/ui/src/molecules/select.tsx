@@ -9,12 +9,22 @@ import {
   useId,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
+import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconProps } from "../atoms/icon"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 
 export type SelectSize = "xs" | "sm" | "md" | "lg"
+
+// The icon-control scale only has sm/md/lg; the Select `xs` size shares `sm`.
+const toControlSize = (size: SelectSize): "sm" | "md" | "lg" =>
+  size === "xs" ? "sm" : size
+const controlGlyphClass: Record<"sm" | "md" | "lg", string> = {
+  sm: "text-icon-control-sm",
+  md: "text-icon-control-md",
+  lg: "text-icon-control-lg",
+}
 
 export type SelectItem = {
   label: ReactNode
@@ -60,17 +70,9 @@ const selectVariants = tv({
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    clearTrigger: [
-      "absolute right-select-right h-full",
-      "p-select-clear-trigger",
-      "hover:bg-select-clear-trigger-bg",
-      "text-select-clear-trigger-fg hover:text-select-danger",
-      "focus:text-select-danger",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
+    // Clear (an ActionIcon) sits just left of the chevron with no gap; it owns
+    // its own size, glyph and neutral hover pill.
+    clearTrigger: ["-translate-y-1/2 absolute top-1/2 right-select-right"],
     content: [
       "border border-select-content-border bg-select-content-bg",
       "max-h-fit rounded-select shadow-select-content",
@@ -320,7 +322,6 @@ Select.Trigger = function SelectTrigger({
   const { api, size: contextSize, validateStatus } = useSelectContext()
   const effectiveSize = sizeProp ?? contextSize
   const styles = selectVariants({ size: effectiveSize })
-  const chevronIconSize = effectiveSize === "sm" ? "sm" : "md"
 
   // Map validateStatus to unified data-validation attribute
   const validationDataAttrs =
@@ -338,11 +339,11 @@ Select.Trigger = function SelectTrigger({
     >
       {children}
       <Icon
-        className={`text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
+        className={`${controlGlyphClass[toControlSize(effectiveSize)]} text-select-trigger-fg-base group-hover:text-select-trigger-fg-hover motion-safe:transition-[transform,color] motion-safe:duration-200 motion-reduce:transition-none ${
           api.open ? "rotate-180" : "rotate-0"
         }`}
         icon="token-icon-select-indicator"
-        size={iconSize ?? chevronIconSize}
+        size={iconSize ?? "current"}
       />
     </Button>
   )
@@ -398,13 +399,11 @@ Select.ValueText = function SelectValueText({
 }
 
 type SelectClearTriggerProps = ComponentPropsWithoutRef<"button"> & {
-  iconSize?: IconProps["size"]
   ref?: Ref<HTMLButtonElement>
 }
 
 Select.ClearTrigger = function SelectClearTrigger({
   className,
-  iconSize,
   ref,
   ...props
 }: SelectClearTriggerProps) {
@@ -412,15 +411,14 @@ Select.ClearTrigger = function SelectClearTrigger({
   const styles = selectVariants({ size })
 
   return (
-    <Button
-      className={styles.clearTrigger({ className })}
-      ref={ref}
-      size="current"
-      theme="unstyled"
-      {...api.getClearTriggerProps()}
+    <ActionIcon
       aria-label="Clear selection"
+      className={styles.clearTrigger({ className })}
       icon="token-icon-select-clear"
-      iconSize={iconSize}
+      ref={ref}
+      size={toControlSize(size)}
+      tone="neutral"
+      {...api.getClearTriggerProps()}
       {...props}
     />
   )

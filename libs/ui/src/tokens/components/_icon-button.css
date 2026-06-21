@@ -1,0 +1,49 @@
+/*
+ * Shared icon-control foundation tokens.
+ *
+ * Single source of truth for every small icon "sub-button" embedded in a
+ * larger control: clear (✕), increment/decrement, close (✕), prev/next,
+ * search — rendered via the ActionIcon atom — plus decorative dropdown/expand
+ * chevrons, which read the same glyph-size tokens directly as a bare <Icon>
+ * (a chevron lives inside a trigger <button> and cannot itself be a button).
+ *
+ * Three sizes (sm/md/lg) map 1:1 to the form-control sizes. To resize every
+ * icon button at once, edit these tokens. To diverge a single component, pass
+ * an explicit size/iconSize prop on that component only.
+ */
+@theme static {
+  /* Glyph size — fixed control-icon scale, decoupled from fluid body text. */
+  --text-icon-control-sm: 1rem; /* 16px */
+  --text-icon-control-md: var(--text-icon-md); /* 20px */
+  --text-icon-control-lg: var(--text-icon-lg); /* 24px */
+
+  /* Hit area (compact square) — glyph + even padding, vertically centered.
+   * Smaller than the control height so the hover pill reads as an inset
+   * rounded square rather than an edge-to-edge block. (8-pt grid: 24/32/40.) */
+  --size-icon-control-sm: var(--dimension-24); /* 16px glyph + 4px inset */
+  --size-icon-control-md: var(--dimension-32); /* 20px glyph + 6px inset */
+  --size-icon-control-lg: var(--dimension-40); /* 24px glyph + 8px inset */
+
+  /* Glyph inset within the hit area. */
+  --padding-icon-control-sm: var(--spacing-50);
+  --padding-icon-control-md: var(--spacing-100);
+  --padding-icon-control-lg: var(--spacing-150);
+
+  /* Shape. */
+  --radius-icon-control: var(--radius-button-sm);
+
+  /* Shared focus ring + disabled foreground. */
+  --color-icon-control-ring: var(--color-ring);
+  --color-icon-control-fg-disabled: var(--color-fg-disabled);
+
+  /* Neutral tone — resting + hover pill (fill-* already encode light/dark). */
+  --color-icon-control-fg: var(--color-fg-primary);
+  --color-icon-control-fg-hover: var(--color-fg-primary);
+  --color-icon-control-bg-hover: var(--color-fill-hover);
+  --color-icon-control-bg-active: var(--color-fill-active);
+
+  /* Danger tone — clear (✕) trigger. */
+  --color-icon-control-fg-danger: var(--color-fg-primary);
+  --color-icon-control-fg-danger-hover: var(--color-danger-fg);
+  --color-icon-control-bg-danger-hover: var(--color-danger-light);
+}
