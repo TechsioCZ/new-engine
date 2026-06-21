@@ -37,13 +37,13 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
-      - uses: nrwl/nx-set-shas@v4
+      - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
       - name: Determine affected projects
         id: determine_affected
         run: |
           base="${NX_BASE:-origin/master}"
           head="${NX_HEAD:-HEAD}"
-          projects_json="$(pnpm exec nx show projects --affected --json --base="$base" --head="$head")"
+          projects_json="$(./node_modules/.bin/nubx --node nx show projects --affected --json --base="$base" --head="$head")"
           projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
@@ -57,6 +57,6 @@ jobs:
       - name: Lint Nx module boundaries
         run: pnpm lint:nx
       - name: Test new-engine-ctl CI wiring
-        run: pnpm exec nx run new-engine-ctl:test
+        run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
-      - run: pnpm exec nx affected -t lint test
+      - run: ./node_modules/.bin/nubx --node nx affected -t lint test

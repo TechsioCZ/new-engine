@@ -52,7 +52,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build new-engine-ctl
-        run: pnpm exec nx run new-engine-ctl:build
+        run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:build
 
       - name: Resolve PR number
         id: pr

@@ -135,7 +135,9 @@ require_tools() {
   common::require_command git
   common::require_command jq
   common::ensure_pnpm "$ROOT_DIR"
+  export PATH="${ROOT_DIR}/node_modules/.bin:${PATH}"
   common::require_command node
+  common::require_command nubx
   common::require_command sed
 }
 
