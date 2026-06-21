@@ -24,9 +24,9 @@ const actionIconVariants = tv({
   ],
   variants: {
     size: {
-      sm: "size-icon-control-sm p-icon-control-sm text-icon-control-sm",
-      md: "size-icon-control-md p-icon-control-md text-icon-control-md",
-      lg: "size-icon-control-lg p-icon-control-lg text-icon-control-lg",
+      sm: "size-icon-control-sm text-icon-control-sm",
+      md: "size-icon-control-md text-icon-control-md",
+      lg: "size-icon-control-lg text-icon-control-lg",
     },
     tone: {
       neutral: [
@@ -34,7 +34,6 @@ const actionIconVariants = tv({
         "active:bg-icon-control-bg-active",
       ],
       danger: [
-        "text-icon-control-fg-danger",
         "hover:bg-icon-control-bg-danger-hover hover:text-icon-control-fg-danger-hover",
         "active:bg-icon-control-bg-danger-active",
       ],
