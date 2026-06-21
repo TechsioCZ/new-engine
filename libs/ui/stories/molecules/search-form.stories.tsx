@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
+import { fn } from "storybook/test"
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { SearchForm } from "../../src/molecules/search-form"
 
@@ -22,6 +23,11 @@ const meta: Meta<typeof SearchForm> = {
 			options: ["sm", "md", "lg"],
 			description: "Controls the size of all search form elements",
 		},
+		gapped: {
+			control: "boolean",
+			description:
+				"When true, adds an 8px gap between the input and button and restores their rounded corners",
+		},
 	},
 }
 
@@ -39,6 +45,27 @@ export const Default: Story = {
 			</SearchForm>
 		</div>
 	),
+}
+
+export const Gapped: Story = {
+	render: () => (
+		<div className="w-sm">
+			<SearchForm gapped onSubmit={fn()}>
+				<SearchForm.Control>
+					<SearchForm.Input placeholder="Search products..." />
+					<SearchForm.Button>Search</SearchForm.Button>
+				</SearchForm.Control>
+			</SearchForm>
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"With `gapped`, the input and button are detached by an 8px gap and each keep their own rounded corners. Focusing the input or the button shows that control's focus ring independently.",
+			},
+		},
+	},
 }
 
 export const WithLabel: Story = {
