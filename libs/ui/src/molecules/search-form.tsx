@@ -297,8 +297,10 @@ SearchForm.Button = function SearchFormButton({
   )
 }
 
-interface SearchFormClearButtonProps
-  extends Omit<ActionIconProps, "size" | "onClick" | "type" | "icon"> {
+type SearchFormClearButtonProps = Omit<
+  ActionIconProps,
+  "size" | "onClick" | "type" | "icon"
+> & {
   icon?: IconType
 }
 

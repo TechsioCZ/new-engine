@@ -1,6 +1,7 @@
 # Icon sub-button unification — research & plan
 
-> Status: research complete, awaiting implementation on fresh `master`.
+> Status: implemented & shipped (PR #467). Code complete; Figma `ActionIcon`
+> component + frame migration is the remaining follow-up.
 > Decisions locked: glyph scale **16 / 20 / 24**; hover **shared bg-pill**
 > (light+dark via `--color-fill-hover`/`--color-fill-active`). Clear ✕ uses the
 > **neutral** tone (subtle gray pill) — NOT red. `danger` tone is reserved for
@@ -62,30 +63,43 @@ nested **helper atom** owns this so it is defined **once** (Figma + code), with
 per-component override still allowed.
 
 ### Token layer — `tokens/components/_icon-button.css`
+As shipped in `tokens/components/_icon-button.css`:
 ```css
 @theme static {
+  /* Glyph scale — fixed, decoupled from fluid body text */
   --text-icon-control-sm: 1rem;                /* 16px (new) */
   --text-icon-control-md: var(--text-icon-md); /* 20px */
   --text-icon-control-lg: var(--text-icon-lg); /* 24px */
 
-  --size-icon-control-sm: var(--height-form-control-sm);
-  --size-icon-control-md: var(--height-form-control-md);
-  --size-icon-control-lg: var(--height-form-control-lg);
+  /* Compact inset hit area (8-pt grid) — not full control height */
+  --size-icon-control-sm: var(--dimension-24);
+  --size-icon-control-md: var(--dimension-32);
+  --size-icon-control-lg: var(--dimension-40);
 
   --padding-icon-control-sm: var(--spacing-50);
   --padding-icon-control-md: var(--spacing-100);
   --padding-icon-control-lg: var(--spacing-150);
   --radius-icon-control: var(--radius-button-sm);
 
-  --color-icon-control-fg:        var(--color-fg-muted);
-  --color-icon-control-fg-hover:  var(--color-fg);
-  --color-icon-control-bg-hover:  oklch(from var(--color-fill-base) calc(l + var(--state-hover)) c h);
-  --color-icon-control-bg-active: oklch(from var(--color-fill-base) calc(l + var(--state-active)) c h);
-  --color-icon-control-bg-hover-danger: oklch(from var(--color-danger) calc(l + var(--state-hover)) c h);
-  --color-icon-control-fg-hover-danger: var(--color-danger-fg);
+  /* Focus ring + disabled fg */
+  --color-icon-control-ring:        var(--color-ring);
+  --color-icon-control-fg-disabled: var(--color-fg-disabled);
+
+  /* Neutral tone — reuse existing light/dark-aware fill surfaces */
+  --color-icon-control-fg:        var(--color-fg-primary);
+  --color-icon-control-fg-hover:  var(--color-fg-primary);
+  --color-icon-control-bg-hover:  var(--color-fill-hover);
+  --color-icon-control-bg-active: var(--color-fill-active);
+
+  /* Danger tone — reserved for destructive actions */
+  --color-icon-control-fg-danger:        var(--color-fg-primary);
+  --color-icon-control-fg-danger-hover:  var(--color-danger-fg);
+  --color-icon-control-bg-danger-hover:  var(--color-danger-light);
 }
-@utility icon-control-base { /* inline-flex center, radius, fg, transitions */ }
 ```
+The interactive button (hit-area, glyph, hover/active pill) lives in the
+`ActionIcon` atom (`src/atoms/action-icon.tsx`); chevrons read the
+`--text-icon-control-*` glyph tokens directly.
 
 ### Migration (per component)
 NumericInput, Combobox, Select, SearchForm, Accordion, Dialog, Toast, Popover,

@@ -81,6 +81,7 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
           size="sm"
           tone="neutral"
           {...api.getCloseTriggerProps()}
+          aria-label="Close notification"
         />
       </div>
       <div

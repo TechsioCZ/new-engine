@@ -255,6 +255,7 @@ export function Dialog({
               size="md"
               tone="neutral"
               {...api.getCloseTriggerProps()}
+              aria-label="Close dialog"
             />
           )}
           {title && (
