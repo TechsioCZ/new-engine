@@ -79,7 +79,7 @@ type RawProductRecord = {
   variants: string
   options: string
   categories: string
-  producer: string
+  brand: string
 }
 
 export type SeedN1WorkflowInput = {

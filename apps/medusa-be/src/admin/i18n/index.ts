@@ -7,9 +7,9 @@ import {
   companyAdminI18n,
 } from "../../modules/company/admin/i18n"
 import {
-  type ProducerAdminI18nNamespace,
-  producerAdminI18n,
-} from "../../modules/producer/admin/i18n"
+  type BrandAdminI18nNamespace,
+  brandAdminI18n,
+} from "../../modules/brand/admin/i18n"
 import {
   type QuoteAdminI18nNamespace,
   quoteAdminI18n,
@@ -108,7 +108,7 @@ type AdminI18nResources = Record<
     approvals: ApprovalAdminI18nNamespace
     companies: CompanyAdminI18nNamespace
     orderBusinessStatuses: OrderBusinessStatusesNamespace
-    producers: ProducerAdminI18nNamespace
+    brands: BrandAdminI18nNamespace
     quotes: QuoteAdminI18nNamespace
     translation: AdminDefaultTranslationNamespace
   }
@@ -396,7 +396,7 @@ const resources = {
     approvals: approvalAdminI18n.cs,
     companies: companyAdminI18n.cs,
     orderBusinessStatuses: orderBusinessStatuses.cs,
-    producers: producerAdminI18n.cs,
+    brands: brandAdminI18n.cs,
     quotes: quoteAdminI18n.cs,
     translation: defaultTranslation.cs,
   },
@@ -404,7 +404,7 @@ const resources = {
     approvals: approvalAdminI18n.en,
     companies: companyAdminI18n.en,
     orderBusinessStatuses: orderBusinessStatuses.en,
-    producers: producerAdminI18n.en,
+    brands: brandAdminI18n.en,
     quotes: quoteAdminI18n.en,
     translation: defaultTranslation.en,
   },

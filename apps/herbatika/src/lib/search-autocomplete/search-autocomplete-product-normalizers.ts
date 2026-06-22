@@ -43,7 +43,7 @@ const createProductSuggestion = (
     return null
   }
 
-  const producerTitle = normalizeString(hit.producer?.title)
+  const brandTitle = normalizeString(hit.brand?.title)
   const firstCategory = hit.categories?.find((category) =>
     Boolean(normalizeString(category.name))
   )
@@ -55,7 +55,7 @@ const createProductSuggestion = (
     type: "product",
     title,
     href: `/p/${handle}`,
-    subtitle: [producerTitle, categoryName].filter(Boolean).join(" | "),
+    subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
     priceLabel: price
       ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
