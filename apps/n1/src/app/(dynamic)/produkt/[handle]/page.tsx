@@ -106,7 +106,7 @@ export default function ProductPage() {
     },
     {
       key: "distributor",
-      value: detail.producer?.title,
+      value: detail.brand?.title,
     },
     {
       key: "velikost",
@@ -125,7 +125,7 @@ export default function ProductPage() {
       value: "tab2",
       label: "tabulka velikostí",
       headline: "tabulka velikostí",
-      content: <ProductSizes attributes={detail.producer?.attributes} />,
+      content: <ProductSizes attributes={detail.brand?.attributes} />,
     },
   ]
 

@@ -20,10 +20,10 @@ const numericOperators = [
   operator(RuleOperator.LTE, "Less than or equal"),
 ]
 
-export const producerRuleAttribute = {
-  id: "producer",
-  value: "items.producer_ids",
-  label: "Producer",
+export const brandRuleAttribute = {
+  id: "brand",
+  value: "items.brand_ids",
+  label: "Brand",
   required: false,
   field_type: "multiselect",
   operators: multiselectOperators,
@@ -71,12 +71,12 @@ export const customRuleAttributes = {
     productVariantRuleAttribute,
     itemPriceRuleAttribute,
     itemQuantityRuleAttribute,
-    producerRuleAttribute,
+    brandRuleAttribute,
   ],
   "buy-rules": [
     productVariantRuleAttribute,
     itemPriceRuleAttribute,
     itemQuantityRuleAttribute,
-    producerRuleAttribute,
+    brandRuleAttribute,
   ],
 } as const

@@ -3,12 +3,12 @@ import {
   createHandleLabel,
   normalizeComparable,
   normalizeString,
-  resolveProducerSlug,
+  resolveBrandSlug,
 } from "./search-autocomplete-normalizers"
 import type {
   RawSearchAutocompleteCategoryRef,
   RawSearchAutocompleteFacetItem,
-  RawSearchAutocompleteProducerRef,
+  RawSearchAutocompleteBrandRef,
   RawSearchAutocompleteProductHit,
   SearchAutocompleteSuggestion,
 } from "./search-autocomplete-types"
@@ -77,18 +77,18 @@ export const createCategorySuggestions = ({
   return suggestions.slice(0, limit)
 }
 
-const producerMatchesQuery = (
-  producer: RawSearchAutocompleteProducerRef,
+const brandMatchesQuery = (
+  brand: RawSearchAutocompleteBrandRef,
   query: string
-) => matchesQuery([producer.title, producer.handle], query)
+) => matchesQuery([brand.title, brand.handle], query)
 
 const createBrandSuggestion = (
-  producer: RawSearchAutocompleteProducerRef
+  brand: RawSearchAutocompleteBrandRef
 ): SearchAutocompleteSuggestion | null => {
-  const title = normalizeString(producer.title)
-  const handle = normalizeString(producer.handle)
-  const slug = resolveProducerSlug(handle, title)
-  const id = normalizeString(producer.id) || slug
+  const title = normalizeString(brand.title)
+  const handle = normalizeString(brand.handle)
+  const slug = resolveBrandSlug(handle, title)
+  const id = normalizeString(brand.id) || slug
 
   if (!(id && title && slug)) {
     return null
@@ -110,7 +110,7 @@ const createBrandSuggestionFromFacet = (
   const title = normalizeString(facet.label)
   const slug = id.startsWith("brand-")
     ? id.slice("brand-".length)
-    : resolveProducerSlug(id, title)
+    : resolveBrandSlug(id, title)
 
   if (!(id && title && slug)) {
     return null
@@ -165,12 +165,12 @@ export const createBrandSuggestions = ({
   }
 
   for (const product of productHits) {
-    const producer = product.producer
-    if (!(producer && producerMatchesQuery(producer, query))) {
+    const brand = product.brand
+    if (!(brand && brandMatchesQuery(brand, query))) {
       continue
     }
 
-    pushUniqueSuggestion(suggestions, seen, createBrandSuggestion(producer))
+    pushUniqueSuggestion(suggestions, seen, createBrandSuggestion(brand))
   }
 
   return suggestions.slice(0, limit)

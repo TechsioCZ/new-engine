@@ -246,25 +246,25 @@ const sanitizeHandle = (value: string): string | undefined => {
 }
 
 const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
-  const producerCandidates = asArray(document.producer)
-  const producer =
-    producerCandidates.length > 0
-      ? asRecord(producerCandidates[0])
-      : asRecord(document.producer)
+  const brandCandidates = asArray(document.brand)
+  const brand =
+    brandCandidates.length > 0
+      ? asRecord(brandCandidates[0])
+      : asRecord(document.brand)
 
-  if (!producer) {
+  if (!brand) {
     return []
   }
 
-  const producerHandle =
-    typeof producer.handle === "string"
-      ? sanitizeHandle(producer.handle)
+  const brandHandle =
+    typeof brand.handle === "string"
+      ? sanitizeHandle(brand.handle)
       : undefined
-  const producerTitle =
-    typeof producer.title === "string"
-      ? sanitizeHandle(producer.title)
+  const brandTitle =
+    typeof brand.title === "string"
+      ? sanitizeHandle(brand.title)
       : undefined
-  const handle = producerHandle ?? producerTitle
+  const handle = brandHandle ?? brandTitle
 
   if (!handle) {
     return []

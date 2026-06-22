@@ -280,7 +280,7 @@ const createCatalogHarness = ({
             metadata: {},
             variants: [],
             categories: [],
-            producer: null,
+            brand: null,
           })),
       }
     }

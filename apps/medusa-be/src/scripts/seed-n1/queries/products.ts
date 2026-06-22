@@ -11,7 +11,7 @@ export type ProductRaw = {
   variants: string
   options: string
   categories: string
-  producer: string
+  brand: string
 }
 
 /** SQL query to fetch products from legacy database */
@@ -124,7 +124,7 @@ export const productsSql: SQL<ProductRaw> = sql`
     WHERE cpab.attribute NOT IN ('Materiál')
     GROUP BY id
   ),
-  cte_product_producer AS (
+  cte_product_brand AS (
     SELECT
       p.id AS productId,
       pr.title,
@@ -133,10 +133,10 @@ export const productsSql: SQL<ProductRaw> = sql`
         'attributes', JSON_ARRAY(
           JSON_OBJECT('name', 'sizing_info', 'value', pl.sizing_info)
         )
-      ) AS producer
+      ) AS brand
     FROM cte_products p
-    JOIN producer pr ON p.id_producer = pr.id
-    JOIN producer_lang pl ON pl.id_producer = pr.id
+    JOIN brand pr ON p.id_brand = pr.id
+    JOIN brand_lang pl ON pl.id_brand = pr.id
       AND pl.id_lang IN (SELECT id FROM lang WHERE abbreviation = 'cz')
   ),
   cte_product_prices AS (
@@ -316,7 +316,7 @@ export const productsSql: SQL<ProductRaw> = sql`
       cv.variants,
       JSON_ARRAY(JSON_OBJECT('title', 'Variant', 'option_values', voa.option_values)) AS options,
       vc.categories,
-      cppr.producer
+      cppr.brand
     FROM cte_products bp
     JOIN product_lang pl
       ON pl.id_product = bp.id
@@ -331,7 +331,7 @@ export const productsSql: SQL<ProductRaw> = sql`
     LEFT JOIN cte_product_images_grouped cpig ON cpig.id_product_group = bp.id_product_group
     LEFT JOIN cte_product_images cbppi ON cbppi.id_product = bp.id AND cbppi.image_num = 1
     LEFT JOIN cte_variants_grouped cv ON cv.id = bp.id
-    LEFT JOIN cte_product_producer cppr ON cppr.productId = bp.id
+    LEFT JOIN cte_product_brand cppr ON cppr.productId = bp.id
     WHERE cpig.images IS NOT NULL
     GROUP BY bp.id, pl.title, pl.rewrite_title, pl.description, voa.option_values
   )

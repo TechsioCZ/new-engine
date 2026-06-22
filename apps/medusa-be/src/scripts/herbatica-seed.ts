@@ -2296,7 +2296,7 @@ function buildCategoriesFromExport(
   }
 }
 
-function buildProducer(item: ParsedShopItem): ProductSeedInput["producer"] {
+function buildBrand(item: ParsedShopItem): ProductSeedInput["brand"] {
   const title = item.manufacturer ?? item.supplier
   if (!title) {
     return
@@ -2901,7 +2901,7 @@ function buildProducts(
       thumbnail,
       images: imageUrls.map((url) => ({ url })),
       options,
-      producer: buildProducer(item),
+      brand: buildBrand(item),
       variants,
       salesChannelNames: ["Default Sales Channel"],
     }

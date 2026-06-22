@@ -25,7 +25,7 @@ describe("product facet document builder", () => {
           },
         },
       },
-      producer: {
+      brand: {
         handle: "natura-balance",
         title: "Natura Balance",
       },

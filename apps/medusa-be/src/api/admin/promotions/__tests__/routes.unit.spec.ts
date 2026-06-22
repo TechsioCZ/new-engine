@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { describe, expect, it, vi } from "vitest"
 import { GET as getRuleAttributes } from "../rule-attribute-options/[rule_type]/route"
-import { GET as getProducerValues } from "../rule-value-options/[rule_type]/producer/route"
+import { GET as getBrandValues } from "../rule-value-options/[rule_type]/brand/route"
 import { GET as getVariantValues } from "../rule-value-options/[rule_type]/product_variant/route"
 import type { RuleValueOptionsQuerySchemaType } from "../schema"
 
@@ -57,11 +57,11 @@ describe("promotion rule attribute route", () => {
     }>
 
     expect(attributes.map((attribute) => attribute.id)).toEqual(
-      expect.arrayContaining(["product", "producer", "product_variant"])
+      expect.arrayContaining(["product", "brand", "product_variant"])
     )
-    expect(attributes.find((attribute) => attribute.id === "producer")).toEqual(
+    expect(attributes.find((attribute) => attribute.id === "brand")).toEqual(
       expect.objectContaining({
-        value: "items.producer_ids",
+        value: "items.brand_ids",
         operators: expect.arrayContaining([
           expect.objectContaining({ value: "ne", label: "Not In" }),
         ]),
@@ -80,18 +80,18 @@ describe("promotion rule attribute route", () => {
 })
 
 describe("promotion custom rule value routes", () => {
-  it("returns producer values with pagination and escaped search filters", async () => {
+  it("returns brand values with pagination and escaped search filters", async () => {
     const graph = vi.fn().mockResolvedValue({
-      data: [{ id: "producer_1", title: "ACME 50%_Sale" }],
+      data: [{ id: "brand_1", title: "ACME 50%_Sale" }],
       metadata: { count: 1, skip: 5, take: 10 },
     })
     const res = createResponse()
 
-    await getProducerValues(
+    await getBrandValues(
       createRequest({
         validatedQuery: {
           q: "50%_Sale",
-          value: "producer_1",
+          value: "brand_1",
           limit: 10,
           offset: 5,
         },
@@ -101,16 +101,16 @@ describe("promotion custom rule value routes", () => {
     )
 
     expect(graph).toHaveBeenCalledWith({
-      entity: "producer",
+      entity: "brand",
       fields: ["id", "title"],
       filters: {
-        id: ["producer_1"],
+        id: ["brand_1"],
         title: { $ilike: "%50\\%\\_Sale%" },
       },
       pagination: { skip: 5, take: 10 },
     })
     expect(res.json).toHaveBeenCalledWith({
-      values: [{ label: "ACME 50%_Sale", value: "producer_1" }],
+      values: [{ label: "ACME 50%_Sale", value: "brand_1" }],
       count: 1,
       offset: 5,
       limit: 10,

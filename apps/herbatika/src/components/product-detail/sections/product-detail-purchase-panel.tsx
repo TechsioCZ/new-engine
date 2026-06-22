@@ -30,18 +30,18 @@ const resolveProductInfoLink = (
   product: Product,
   primaryCategory?: HttpTypes.StoreProductCategory
 ): ProductInfoLink | null => {
-  const producer = asRecord(
-    (product as Product & { producer?: unknown }).producer
+  const brand = asRecord(
+    (product as Product & { brand?: unknown }).brand
   )
-  const producerTitle = asString(producer?.title)
+  const brandTitle = asString(brand?.title)
 
-  if (producerTitle) {
-    const producerHandle = asString(producer?.handle)
-    const producerSlug = createBrandSlug(producerHandle || producerTitle)
+  if (brandTitle) {
+    const brandHandle = asString(brand?.handle)
+    const brandSlug = createBrandSlug(brandHandle || brandTitle)
 
     return {
-      href: producerSlug ? `/znacka/${producerSlug}` : null,
-      label: producerTitle,
+      href: brandSlug ? `/znacka/${brandSlug}` : null,
+      label: brandTitle,
     }
   }
 
