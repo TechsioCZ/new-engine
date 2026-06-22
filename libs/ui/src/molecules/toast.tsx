@@ -2,7 +2,7 @@ import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as toast from "@zag-js/toast"
 import { type ReactNode, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Button } from "../atoms/button"
+import { ActionIcon } from "../atoms/action-icon"
 import { tv } from "../utils"
 
 // Toast Item Variants
@@ -40,14 +40,9 @@ const toastVariants = tv({
       "data-[type=info]:text-toast-info-title",
       "data-[type=warning]:text-toast-warning-title",
     ],
-    description: [
-      "mt-toast-description text-toast-description text-toast-fg",
-    ],
-    closeButton: [
-      "ms-auto grid flex-shrink-0 place-items-center px-0 py-0",
-      "cursor-pointer",
-      "text-toast-close-fg hover:text-toast-close-fg-hover",
-    ],
+    description: ["mt-toast-description text-toast-description text-toast-fg"],
+    // Positioning only — ActionIcon owns size, glyph and neutral hover pill.
+    closeButton: ["ms-auto"],
   },
 })
 
@@ -80,11 +75,13 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
         <div className={title()} data-type={api.type}>
           {api.type === "loading" ? "loading..." : api.title}
         </div>
-        <Button
+        <ActionIcon
           className={closeButton()}
-          theme="borderless"
-          {...api.getCloseTriggerProps()}
           icon="token-icon-toast-close"
+          size="sm"
+          tone="neutral"
+          {...api.getCloseTriggerProps()}
+          aria-label="Close notification"
         />
       </div>
       <div

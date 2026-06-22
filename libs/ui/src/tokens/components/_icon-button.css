@@ -1,0 +1,39 @@
+/*
+ * icon-control tokens — TEMPORARY BRIDGE.
+ *
+ * These mirror the Figma `icon-control` variable collection (file
+ * 12xb1pqXKwE2vbOByN3ntg), which is the intended source of truth. They live
+ * here only until the next Figma re-export: `merge-figma-themes.mjs` will emit
+ * them into `tokens/figma/variables.css` alongside the other component tokens,
+ * at which point this whole block (and its import in components.css) should be
+ * deleted. Names + alias targets below are kept identical to the Figma vars so
+ * the swap is a no-op.
+ *
+ * Consumed by the ActionIcon atom (clear/close/inc-dec/prev-next/search) and by
+ * decorative chevrons which read the `--text-icon-control-*` glyph tokens.
+ */
+@theme static {
+  /* Glyph size (sm/md/lg) */
+  --text-icon-control-sm: var(--dimension-16); /* 16px */
+  --text-icon-control-md: var(--text-icon-md); /* 20px */
+  --text-icon-control-lg: var(--text-icon-lg); /* 24px */
+
+  /* Hit area — compact inset square (8-pt grid 24/32/40) */
+  --size-icon-control-sm: var(--dimension-24);
+  --size-icon-control-md: var(--dimension-32);
+  --size-icon-control-lg: var(--dimension-40);
+
+  --radius-icon-control: var(--radius-button-sm);
+
+  /* Neutral tone — full-contrast glyph; bg pill is the hover/active affordance */
+  --color-icon-control-fg: var(--color-fg-primary);
+  --color-icon-control-bg-hover: var(--color-fill-hover);
+  --color-icon-control-bg-active: var(--color-fill-active);
+  --color-icon-control-fg-disabled: var(--color-fg-disabled);
+  --color-icon-control-ring: var(--color-ring);
+
+  /* Danger tone — destructive actions only */
+  --color-icon-control-fg-danger-hover: var(--color-danger-fg);
+  --color-icon-control-bg-danger-hover: var(--color-danger-light);
+  --color-icon-control-bg-danger-active: var(--color-danger-light-active);
+}

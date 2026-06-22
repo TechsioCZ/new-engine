@@ -116,6 +116,10 @@ const phoneInputVariants = tv({
       "focus-visible:outline-none",
       "w-phone-input-trigger",
       "focus-visible:bg-phone-input-trigger-bg-hover",
+      // Sits flush against the input: round only the leading (left) corners to
+      // match the control; keep the trailing (right) edge square so the hover
+      // fill meets the input with no rounded notch.
+      "rounded-e-none",
     ],
     countryValue: ["flex items-center gap-phone-input-country-value"],
     countryFlag: [
@@ -123,7 +127,9 @@ const phoneInputVariants = tv({
       "rounded-phone-input-country-flag",
       "font-medium text-phone-input-country-flag uppercase",
     ],
-    countryCallingCode: ["font-medium text-phone-input-country-calling-code-fg"],
+    countryCallingCode: [
+      "font-medium text-phone-input-country-calling-code-fg",
+    ],
     input: [
       "min-w-0 flex-1 border-0",
       "bg-phone-input-input-bg-base",

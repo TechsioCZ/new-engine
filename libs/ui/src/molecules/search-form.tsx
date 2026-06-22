@@ -11,7 +11,9 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
+import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
+import type { IconType } from "../atoms/icon"
 import { Input, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
 import { tv } from "../utils"
@@ -33,13 +35,10 @@ const searchFormVariants = tv({
     // The button keeps its own styling/focus ring from the Button atom.
     // `focus-visible:z-10` mirrors the input so a focused button outline wins.
     button: ["relative shrink-0", "focus-visible:z-10"],
-    // The clear button lives inside the input, pinned to the trailing edge at
-    // the input's inline padding (set per size below). `inset-y-0` keeps the
-    // hit target the full height of the input rather than just the icon.
-    clearButton: [
-      "absolute inset-y-0",
-      "inline-flex items-center justify-center",
-    ],
+    // The clear button (an ActionIcon) lives inside the input, pinned to the
+    // trailing edge at the input's inline padding (set per size below) and
+    // vertically centered. ActionIcon owns its size, glyph and hover pill.
+    clearButton: ["-translate-y-1/2 absolute top-1/2"],
   },
   variants: {
     size: {
@@ -298,13 +297,17 @@ SearchForm.Button = function SearchFormButton({
   )
 }
 
-interface SearchFormClearButtonProps
-  extends Omit<ButtonProps, "size" | "onClick" | "type"> {}
+type SearchFormClearButtonProps = Omit<
+  ActionIconProps,
+  "size" | "onClick" | "type" | "icon"
+> & {
+  icon?: IconType
+}
 
 SearchForm.ClearButton = function SearchFormClearButton({
   className,
   icon = "token-icon-close",
-  theme = "unstyled",
+  tone = "neutral",
   ...props
 }: SearchFormClearButtonProps) {
   const {
@@ -330,15 +333,15 @@ SearchForm.ClearButton = function SearchFormClearButton({
 
   // Render inside the input wrapper so the clear button sits inside the input,
   // pinned to its trailing edge, instead of between the input and the button.
+  // ActionIcon supplies the shared size, glyph and hover pill.
   return createPortal(
-    <Button
+    <ActionIcon
       aria-label={`Clear search: ${inputValue}`}
       className={styles.clearButton({ className })}
       icon={icon}
       onClick={clearInput}
-      size="current"
-      theme={theme}
-      type="button"
+      size={size}
+      tone={tone}
       {...props}
     />,
     clearSlot

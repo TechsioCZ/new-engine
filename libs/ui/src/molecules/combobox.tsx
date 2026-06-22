@@ -6,6 +6,7 @@ import {
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
@@ -35,16 +36,14 @@ const comboboxVariants = tv({
       "data-[validation=warning]:border-combobox-border-warning",
     ],
     input: [
-      "relative h-full w-full border-none bg-combobox-input-bg-base",
+      "relative h-full min-w-0 flex-1 border-none bg-combobox-input-bg-base",
       "hover:bg-combobox-input-bg-hover focus-visible:outline-none",
       "focus:bg-combobox-input-bg-focus",
       "placeholder:text-combobox-fg-placeholder",
       "data-disabled:text-combobox-fg-disabled",
       "data-disabled:bg-combobox-bg-disabled",
     ],
-    clearTrigger: [
-      "absolute right-combobox-clear-right h-full p-combobox-trigger",
-    ],
+    // Trailing actions (clear + chevron) sit side by side with NO gap.
     trigger: [
       "group flex h-full shrink-0 items-center justify-center",
       "font-normal",
@@ -88,12 +87,12 @@ const comboboxVariants = tv({
   },
   compoundSlots: [
     {
-      slots: ["clearTrigger", "trigger"],
+      slots: ["trigger"],
       class: [
         "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
         "focus-visible:outline-combobox-ring",
         "focus-visible:outline-offset-(length:--default-ring-offset)",
-        "text-combobox-trigger-fg-base text-combobox-trigger",
+        "text-combobox-trigger text-combobox-trigger-fg-base",
         "hover:text-combobox-trigger-fg-hover",
         "motion-safe:transition-colors motion-safe:duration-200 motion-reduce:transition-none",
         "hover:bg-combobox-trigger-bg-hover",
@@ -110,6 +109,7 @@ const comboboxVariants = tv({
         emptyState: "p-combobox-item-sm text-combobox-item-sm",
         input: "p-combobox-input-sm",
         content: "text-combobox-sm",
+        triggerIndicator: "text-icon-control-sm",
       },
       md: {
         root: "gap-combobox-md",
@@ -118,6 +118,7 @@ const comboboxVariants = tv({
         emptyState: "p-combobox-item-md text-combobox-item-md",
         input: "p-combobox-input-md",
         content: "text-combobox-md",
+        triggerIndicator: "text-icon-control-md",
       },
       lg: {
         root: "gap-combobox-lg",
@@ -126,6 +127,7 @@ const comboboxVariants = tv({
         emptyState: "p-combobox-item-lg text-combobox-item-lg",
         input: "p-combobox-input-lg",
         content: "text-combobox-lg",
+        triggerIndicator: "text-icon-control-lg",
       },
     },
   },
@@ -169,7 +171,6 @@ export interface ComboboxProps<T = unknown>
   triggerIcon?: IconType
   triggerIconSize?: IconProps["size"]
   clearIcon?: IconType
-  clearIconSize?: IconProps["size"]
   onChange?: (value: string | string[]) => void
   onInputValueChange?: (value: string) => void
   onOpenChange?: (open: boolean) => void
@@ -203,14 +204,11 @@ export function Combobox<T = unknown>({
   triggerIcon = "token-icon-combobox-chevron",
   triggerIconSize,
   clearIcon = "token-icon-combobox-clear",
-  clearIconSize,
   inputBehavior = "autocomplete",
   onChange,
   onInputValueChange,
   onOpenChange,
 }: ComboboxProps<T>) {
-  const resolvedChevronIconSize = size === "sm" ? "sm" : "md"
-
   const generatedId = useId()
   const uniqueId = id || generatedId
 
@@ -276,7 +274,6 @@ export function Combobox<T = unknown>({
     positioner,
     content,
     list,
-    clearTrigger,
     item: itemSlot,
     emptyState,
     triggerIndicator,
@@ -312,14 +309,12 @@ export function Combobox<T = unknown>({
         />
 
         {clearable && api.value.length > 0 && (
-          <Button
-            className={clearTrigger()}
-            size="current"
-            theme="unstyled"
+          <ActionIcon
+            icon={clearIcon}
+            size={size ?? "md"}
+            tone="neutral"
             {...api.getClearTriggerProps()}
-          >
-            <Icon icon={clearIcon} size={clearIconSize ?? "current"} />
-          </Button>
+          />
         )}
 
         <Button
@@ -331,7 +326,7 @@ export function Combobox<T = unknown>({
           <Icon
             className={triggerIndicator()}
             icon={triggerIcon}
-            size={triggerIconSize ?? resolvedChevronIconSize}
+            size={triggerIconSize ?? "current"}
           />
         </Button>
       </div>
