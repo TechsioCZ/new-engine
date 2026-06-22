@@ -1,4 +1,3 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
@@ -40,21 +39,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       input,
       salesChannelsResult,
     },
-    (data) => {
-      const defaultSalesChannel = data.salesChannelsResult.result.find(
-        (i) => i.isDefault
-      )
-      if (!defaultSalesChannel) {
-        throw new MedusaError(
-          MedusaError.Types.NOT_FOUND,
-          "No default sales channel found"
-        )
-      }
-      return {
-        currencies: data.input.currencies,
-        defaultSalesChannelId: defaultSalesChannel.id,
-      }
-    }
+    (data) => ({
+      currencies: data.input.currencies,
+      defaultSalesChannelId: data.salesChannelsResult.defaultSalesChannel.id,
+    })
   )
   const updateStoreCurrenciesResult = Steps.updateStoreCurrenciesStep(
     updateStoreCurrenciesStepInput
@@ -125,21 +113,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         input,
         createFulfillmentSetsResult,
       },
-      (data) => {
-        const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
-
-        if (!fulfillmentSet) {
-          throw new MedusaError(
-            MedusaError.Types.NOT_FOUND,
-            "No fulfillment set found"
-          )
-        }
-
-        return {
-          stockLocations: data.createStockLocationResult.result,
-          fulfillmentSet,
-        }
-      }
+      (data) => ({
+        stockLocations: data.createStockLocationResult.result,
+        fulfillmentSet: data.createFulfillmentSetsResult.fulfillmentSet,
+      })
     )
 
   const linkStockLocationsFulfillmentSetResult =
@@ -155,33 +132,15 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         createDefaultShippingProfileResult,
         createRegionsResult,
       },
-      (data) => {
-        const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
-        const shippingProfile =
-          data.createDefaultShippingProfileResult.result[0]
-        const serviceZone = fulfillmentSet?.service_zones?.[0]
-
-        if (!serviceZone?.id) {
-          throw new MedusaError(
-            MedusaError.Types.NOT_FOUND,
-            "No service zone found in fulfillment set"
-          )
-        }
-
-        if (!shippingProfile?.id) {
-          throw new MedusaError(
-            MedusaError.Types.NOT_FOUND,
-            "No shipping profile found"
-          )
-        }
-
-        return data.input.shippingOptions.map((option) => ({
+      (data) =>
+        data.input.shippingOptions.map((option) => ({
           name: option.name,
           providerId:
             option.providerId ??
             data.input.workflowDefaults.fulfillmentProviderId,
-          serviceZoneId: serviceZone.id,
-          shippingProfileId: shippingProfile.id,
+          serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
+          shippingProfileId:
+            data.createDefaultShippingProfileResult.shippingProfile.id,
           regions: data.createRegionsResult.result.map((region) => ({
             ...region,
             amount:
@@ -197,7 +156,6 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
           rules: option.rules,
           data: option.data,
         }))
-      }
     )
 
   const createShippingOptionsResult = Steps.createShippingOptionsStep(
@@ -232,21 +190,10 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         createPublishableKeyResult,
         salesChannelsResult,
       },
-      (data) => {
-        const publishableApiKey = data.createPublishableKeyResult.result[0]
-
-        if (!publishableApiKey) {
-          throw new MedusaError(
-            MedusaError.Types.NOT_FOUND,
-            "No publishable API key found"
-          )
-        }
-
-        return {
-          salesChannels: data.salesChannelsResult.result,
-          publishableApiKey,
-        }
-      }
+      (data) => ({
+        salesChannels: data.salesChannelsResult.result,
+        publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
+      })
     )
 
   const linkSalesChannelsApiKeyStepInputResult =

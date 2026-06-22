@@ -317,13 +317,34 @@ export class PacketaClient {
     init: RequestInit,
     timeoutMs: number = this.REQUEST_TIMEOUT_MS
   ): Promise<Response> {
+    const timeoutController = new AbortController()
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+    const requestSignal = init.signal
+    const abortFromRequestSignal = () => controller.abort()
+    const abortFromTimeout = () => controller.abort()
+
+    if (requestSignal?.aborted) {
+      controller.abort()
+    } else {
+      requestSignal?.addEventListener("abort", abortFromRequestSignal, {
+        once: true,
+      })
+    }
+
+    timeoutController.signal.addEventListener("abort", abortFromTimeout, {
+      once: true,
+    })
+
+    const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs)
 
     try {
       return await fetch(url, { ...init, signal: controller.signal })
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
+      if (
+        error instanceof Error &&
+        error.name === "AbortError" &&
+        timeoutController.signal.aborted
+      ) {
         const abortError = new Error(
           `Packeta request timed out after ${timeoutMs}ms: ${url}`
         )
@@ -333,6 +354,8 @@ export class PacketaClient {
       throw error
     } finally {
       clearTimeout(timeoutId)
+      requestSignal?.removeEventListener("abort", abortFromRequestSignal)
+      timeoutController.signal.removeEventListener("abort", abortFromTimeout)
     }
   }
 

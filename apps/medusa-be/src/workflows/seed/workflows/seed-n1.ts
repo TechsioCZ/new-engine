@@ -1,4 +1,3 @@
-import { MedusaError } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
@@ -111,18 +110,10 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
       input,
       salesChannelsResult,
     },
-    (data) => {
-      const defaultSalesChannel = data.salesChannelsResult.result.find(
-        (i) => i.isDefault
-      )
-      if (!defaultSalesChannel) {
-        throw new Error("No default sales channel found")
-      }
-      return {
-        currencies: data.input.currencies,
-        defaultSalesChannelId: defaultSalesChannel.id,
-      }
-    }
+    (data) => ({
+      currencies: data.input.currencies,
+      defaultSalesChannelId: data.salesChannelsResult.defaultSalesChannel.id,
+    })
   )
   updateStoreCurrenciesStep(updateStoreCurrenciesStepInput)
 
@@ -180,18 +171,10 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         input,
         createFulfillmentSetsResult,
       },
-      (data) => {
-        const fulfillmentSet = data.createFulfillmentSetsResult.result[0]
-        if (!fulfillmentSet) {
-          throw new Error(
-            "No fulfillment sets created - cannot link stock locations"
-          )
-        }
-        return {
-          stockLocations: data.createStockLocationResult.result,
-          fulfillmentSet,
-        }
-      }
+      (data) => ({
+        stockLocations: data.createStockLocationResult.result,
+        fulfillmentSet: data.createFulfillmentSetsResult.fulfillmentSet,
+      })
     )
 
   linkStockLocationFulfillmentSetStep(linkStockLocationsFulfillmentSetInput)
@@ -205,30 +188,15 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
       createDefaultShippingProfileResult,
       createRegionsResult,
     },
-    (data) => {
-      const serviceZoneId =
-        data.createFulfillmentSetsResult.result[0]?.service_zones[0]?.id
-      if (!serviceZoneId) {
-        throw new Error(
-          "No service zone found - cannot create shipping options"
-        )
-      }
-
-      const shippingProfileId =
-        data.createDefaultShippingProfileResult.result[0]?.id
-      if (!shippingProfileId) {
-        throw new Error(
-          "No shipping profile found - cannot create shipping options"
-        )
-      }
-
-      return data.input.shippingOptions.map((option) => ({
+    (data) =>
+      data.input.shippingOptions.map((option) => ({
         name: option.name,
         providerId:
           option.providerId ??
           data.input.workflowDefaults.fulfillmentProviderId,
-        serviceZoneId,
-        shippingProfileId,
+        serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
+        shippingProfileId:
+          data.createDefaultShippingProfileResult.shippingProfile.id,
         regions: data.createRegionsResult.result.map((region) => ({
           ...region,
           amount:
@@ -243,7 +211,6 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         rules: option.rules,
         data: option.data,
       }))
-    }
   )
 
   createShippingOptionsStep(createShippingOptionsInput)
@@ -277,20 +244,10 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
         createPublishableKeyResult,
         salesChannelsResult,
       },
-      (data) => {
-        const publishableApiKey = data.createPublishableKeyResult.result[0]
-        if (!publishableApiKey) {
-          throw new MedusaError(
-            MedusaError.Types.NOT_FOUND,
-            "No publishable API key found"
-          )
-        }
-
-        return {
-          salesChannels: data.salesChannelsResult.result,
-          publishableApiKey,
-        }
-      }
+      (data) => ({
+        salesChannels: data.salesChannelsResult.result,
+        publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
+      })
     )
 
   linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)

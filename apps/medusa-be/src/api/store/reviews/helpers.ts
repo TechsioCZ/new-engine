@@ -60,7 +60,8 @@ const isProductRecord = (value: unknown): value is ProductRecord =>
 const isOrderRecord = (value: unknown): value is OrderRecord =>
   isRecord(value) && typeof value.id === "string"
 
-const isPaymentCaptured = (payment: PaymentRecord) => Boolean(payment.captured_at)
+const isPaymentCaptured = (payment: PaymentRecord) =>
+  Boolean(payment.captured_at)
 
 const isPaymentCollectionPaid = (collection: PaymentCollectionRecord) =>
   collection.status === "completed" ||

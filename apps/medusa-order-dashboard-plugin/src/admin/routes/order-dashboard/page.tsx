@@ -110,6 +110,7 @@ const fulfillmentStatusColors = {
   shipped: "green",
 } as const satisfies Record<string, StatusBadgeColor>
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This admin route coordinates table state, batch actions, modals, and detail panels.
 const OrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()

@@ -1,6 +1,4 @@
-import {
-  checkoutAddressFieldValidators,
-} from "@/lib/forms/checkout/address-validators"
+import { checkoutAddressFieldValidators } from "@/lib/forms/checkout/address-validators"
 import {
   createChangeBlurContextualFieldValidators,
   createChangeBlurFieldValidators,
@@ -60,9 +58,7 @@ export const isWholesaleRegistration = (values: RegisterFormValues) =>
   values.account_type === "wholesale"
 
 const validateRegisterAccountType = (value: string) =>
-  value === "retail" || value === "wholesale"
-    ? undefined
-    : "Vyberte typ účtu."
+  value === "retail" || value === "wholesale" ? undefined : "Vyberte typ účtu."
 
 const createWholesaleFieldValidators = (
   validator: (value: string) => string | undefined

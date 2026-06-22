@@ -25,6 +25,7 @@
     "**/__tests__/**",
     "**/*.spec.ts",
     "**/*.test.ts",
+    "eslint.config.*",
     "playwright.*.config.ts",
     "tests/**",
     "integration-tests/**"

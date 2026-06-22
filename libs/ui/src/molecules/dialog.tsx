@@ -2,6 +2,7 @@ import * as dialog from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
+import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 
 const dialogVariants = tv({
@@ -18,17 +19,13 @@ const dialogVariants = tv({
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    title: ["font-dialog-title text-dialog-title-fg text-dialog-title"],
-    description: ["text-dialog-description-fg text-dialog-description"],
+    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
+    description: ["text-dialog-description text-dialog-description-fg"],
     trigger: [],
+    // Positioning only — the close button is an ActionIcon that owns its size,
+    // glyph and neutral hover pill.
     closeTrigger: [
       "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
-      "flex items-center justify-center",
-      "rounded-dialog-close-trigger p-dialog-close-trigger",
-      "text-dialog-close-trigger-fg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-dialog-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
     actions:
       "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
@@ -252,11 +249,13 @@ export function Dialog({
       <div className={positioner()} {...api.getPositionerProps()}>
         <div className={content({ className })} {...api.getContentProps()}>
           {!hideCloseButton && (
-            <Button
+            <ActionIcon
               className={closeTrigger()}
-              theme="borderless"
-              {...api.getCloseTriggerProps()}
               icon="token-icon-dialog-close"
+              size="md"
+              tone="neutral"
+              {...api.getCloseTriggerProps()}
+              aria-label="Close dialog"
             />
           )}
           {title && (

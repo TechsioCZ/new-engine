@@ -98,14 +98,18 @@ export function loadManifest(
   )
 }
 
+export function loadStackInputs(stackInputsPath: string): Promise<StackInputs> {
+  return loadYamlContract(stackInputsPath, (value) =>
+    stackInputsSchema.parse(value)
+  )
+}
+
 export async function loadDeployContracts(
   stackManifestPath: string,
   stackInputsPath: string
 ): Promise<DeployContracts> {
   const manifest = await loadManifest(stackManifestPath)
-  const stackInputs = await loadYamlContract(stackInputsPath, (value) =>
-    stackInputsSchema.parse(value)
-  )
+  const stackInputs = await loadStackInputs(stackInputsPath)
 
   return {
     manifest,

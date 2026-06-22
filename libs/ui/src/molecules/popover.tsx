@@ -11,12 +11,14 @@ import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
+  type MouseEvent,
   type ReactNode,
   type Ref,
   useContext,
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+import { ActionIcon } from "../atoms/action-icon"
 import { Button, type ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
@@ -37,10 +39,10 @@ const popoverVariants = tv({
     arrowTip: "",
     title: ["font-popover-title", "leading-none", "mb-popover-title"],
     description: [
-      "text-popover-description-fg text-popover-description",
+      "text-popover-description text-popover-description-fg",
       "leading-normal",
     ],
-    closeTrigger: ["absolute top-2 right-2", "text-popover-close-trigger-fg"],
+    closeTrigger: ["absolute top-2 right-2"],
   },
   variants: {
     shadow: {
@@ -432,21 +434,36 @@ Popover.CloseTrigger = function PopoverCloseTrigger({
   const { onClick: onMachineClick, ...machineCloseTriggerProps } =
     api.getCloseTriggerProps() as ComponentPropsWithoutRef<"button">
   const buttonProps = mergeProps(props, machineCloseTriggerProps)
-  const closeIcon = icon ?? (children ? undefined : "token-icon-close")
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    onClick?.(event)
+    if (!event.defaultPrevented) {
+      onMachineClick?.(event)
+    }
+  }
+
+  // Icon-only close → shared ActionIcon (neutral pill). Labeled close keeps Button.
+  if (!children) {
+    return (
+      <ActionIcon
+        {...buttonProps}
+        aria-label="Close popover"
+        className={styles.closeTrigger({ className })}
+        icon={icon ?? "token-icon-close"}
+        onClick={handleClick}
+        ref={ref}
+        size="md"
+        tone="neutral"
+        type={type}
+      />
+    )
+  }
 
   return (
     <Button
       {...buttonProps}
-      aria-label={children ? undefined : "Close popover"}
       className={styles.closeTrigger({ className })}
-      icon={closeIcon}
-      onClick={(event) => {
-        onClick?.(event)
-
-        if (!event.defaultPrevented) {
-          onMachineClick?.(event)
-        }
-      }}
+      icon={icon}
+      onClick={handleClick}
       ref={ref}
       size={size}
       theme={theme}
