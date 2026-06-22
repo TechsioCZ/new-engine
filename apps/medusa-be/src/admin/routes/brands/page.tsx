@@ -2,6 +2,7 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { Buildings, PencilSquare, Trash } from "@medusajs/icons"
 import {
   Button,
+  Checkbox,
   Container,
   Drawer,
   Heading,
@@ -21,27 +22,28 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import { translateBreadcrumb } from "../../lib/breadcrumb"
-import { formatLocaleCode } from "../../lib/format-locale-code"
 import {
+  type Brand,
+  type BrandAttribute,
+  type BrandAttributeType,
+  type BrandInput,
+  brandQueryKeys,
   createBrand,
   createBrandAttributeType,
   deleteBrand,
   deleteBrandAttributeType,
   listBrandAttributeTypes,
   listBrands,
-  type Brand,
-  type BrandAttribute,
-  type BrandAttributeType,
-  type BrandInput,
-  brandQueryKeys,
   restoreBrand,
   restoreBrandAttributeType,
+  retrieveBrand,
   updateBrand,
 } from "../../lib/brands"
+import { translateBreadcrumb } from "../../lib/breadcrumb"
+import { formatLocaleCode } from "../../lib/format-locale-code"
 import {
   getPaginationTranslations,
   onRowKeyboardActivate,
@@ -80,6 +82,16 @@ const toFormState = (brand?: Brand): BrandInput => ({
         (attribute) => !attribute.attribute_type_deleted_at
       )
     : [],
+  gpsrContactEmail: brand?.gpsrContactEmail ?? "",
+  gpsrEuropeanResellerContactEmail:
+    brand?.gpsrEuropeanResellerContactEmail ?? "",
+  gpsrEuropeanResellerManufacturingCompanyName:
+    brand?.gpsrEuropeanResellerManufacturingCompanyName ?? "",
+  gpsrEuropeanResellerPostalAddress:
+    brand?.gpsrEuropeanResellerPostalAddress ?? "",
+  gpsrManufacturedOutsideEu: brand?.gpsrManufacturedOutsideEu ?? false,
+  gpsrManufacturingCompanyName: brand?.gpsrManufacturingCompanyName ?? "",
+  gpsrPostalAddress: brand?.gpsrPostalAddress ?? "",
   handle: brand?.handle ?? "",
   title: brand?.title ?? "",
 })
@@ -244,6 +256,12 @@ const BrandFormDrawer = ({
   const prompt = usePrompt()
   const [form, setForm] = useState<BrandInput>(() => toFormState(brand))
 
+  useEffect(() => {
+    if (open) {
+      setForm(toFormState(brand))
+    }
+  }, [brand, open])
+
   const mutation = useMutation({
     mutationFn: async (input: BrandInput) => {
       if (brand) {
@@ -380,6 +398,21 @@ const BrandFormDrawer = ({
 
     mutation.mutate({
       attributes,
+      gpsrContactEmail: optionalTrimmed(form.gpsrContactEmail),
+      gpsrEuropeanResellerContactEmail: optionalTrimmed(
+        form.gpsrEuropeanResellerContactEmail
+      ),
+      gpsrEuropeanResellerManufacturingCompanyName: optionalTrimmed(
+        form.gpsrEuropeanResellerManufacturingCompanyName
+      ),
+      gpsrEuropeanResellerPostalAddress: optionalTrimmed(
+        form.gpsrEuropeanResellerPostalAddress
+      ),
+      gpsrManufacturedOutsideEu: form.gpsrManufacturedOutsideEu,
+      gpsrManufacturingCompanyName: optionalTrimmed(
+        form.gpsrManufacturingCompanyName
+      ),
+      gpsrPostalAddress: optionalTrimmed(form.gpsrPostalAddress),
       handle: optionalTrimmed(form.handle),
       title: form.title.trim(),
     })
@@ -421,6 +454,120 @@ const BrandFormDrawer = ({
               value={form.handle}
             />
           </div>
+          <div className="flex flex-col gap-3">
+            <Heading level="h2">GPSR</Heading>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="brand-gpsr-manufacturing-company-name">
+                  {t("fields.gpsrManufacturingCompanyName")}
+                </Label>
+                <Input
+                  id="brand-gpsr-manufacturing-company-name"
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrManufacturingCompanyName: event.target.value,
+                    }))
+                  }
+                  value={form.gpsrManufacturingCompanyName}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="brand-gpsr-postal-address">
+                  {t("fields.gpsrPostalAddress")}
+                </Label>
+                <Input
+                  id="brand-gpsr-postal-address"
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrPostalAddress: event.target.value,
+                    }))
+                  }
+                  value={form.gpsrPostalAddress}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="brand-gpsr-contact-email">
+                  {t("fields.gpsrContactEmail")}
+                </Label>
+                <Input
+                  id="brand-gpsr-contact-email"
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrContactEmail: event.target.value,
+                    }))
+                  }
+                  type="email"
+                  value={form.gpsrContactEmail}
+                />
+              </div>
+              <div className="flex items-center gap-3 rounded-md border border-ui-border-base px-3 py-2">
+                <Checkbox
+                  checked={form.gpsrManufacturedOutsideEu}
+                  id="brand-gpsr-manufactured-outside-eu"
+                  onCheckedChange={(checked) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrManufacturedOutsideEu: checked === true,
+                    }))
+                  }
+                />
+                <Label htmlFor="brand-gpsr-manufactured-outside-eu">
+                  {t("fields.gpsrManufacturedOutsideEu")}
+                </Label>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="brand-gpsr-eu-company-name">
+                  {t("fields.gpsrEuropeanResellerManufacturingCompanyName")}
+                </Label>
+                <Input
+                  id="brand-gpsr-eu-company-name"
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrEuropeanResellerManufacturingCompanyName:
+                        event.target.value,
+                    }))
+                  }
+                  value={form.gpsrEuropeanResellerManufacturingCompanyName}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="brand-gpsr-eu-address">
+                  {t("fields.gpsrEuropeanResellerPostalAddress")}
+                </Label>
+                <Input
+                  id="brand-gpsr-eu-address"
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrEuropeanResellerPostalAddress: event.target.value,
+                    }))
+                  }
+                  value={form.gpsrEuropeanResellerPostalAddress}
+                />
+              </div>
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <Label htmlFor="brand-gpsr-eu-email">
+                  {t("fields.gpsrEuropeanResellerContactEmail")}
+                </Label>
+                <Input
+                  id="brand-gpsr-eu-email"
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      gpsrEuropeanResellerContactEmail: event.target.value,
+                    }))
+                  }
+                  type="email"
+                  value={form.gpsrEuropeanResellerContactEmail}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <Heading level="h2">{t("attributes.title")}</Heading>
@@ -893,7 +1040,7 @@ const BrandsPage = () => {
   const queryClient = useQueryClient()
   const prompt = usePrompt()
   const [createOpen, setCreateOpen] = useState(false)
-  const [editingBrand, setEditingBrand] = useState<Brand | undefined>()
+  const [editingBrandId, setEditingBrandId] = useState<string | undefined>()
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
   const [orderBy, setOrderBy] = useState("title")
@@ -980,6 +1127,18 @@ const BrandsPage = () => {
     queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
+  const editingBrandQuery = useQuery({
+    enabled: !!editingBrandId,
+    queryFn: () => {
+      if (!editingBrandId) {
+        throw new Error(t("errors.brandIdRequired"))
+      }
+
+      return retrieveBrand(editingBrandId)
+    },
+    queryKey: brandQueryKeys.detail(editingBrandId),
+  })
+  const editingBrand = editingBrandQuery.data?.brand
 
   const handleDelete = async (brand: Brand) => {
     const activeProductText = brand.active_product_count
@@ -1102,13 +1261,13 @@ const BrandsPage = () => {
                 </Table.Header>
                 <Table.Body>
                   <BrandRows
+                    brands={brands}
                     deleteMutation={deleteMutation}
                     isLoading={isLoading}
                     onDelete={handleDelete}
-                    onEdit={setEditingBrand}
+                    onEdit={(brand) => setEditingBrandId(brand.id)}
                     onOpen={(brand) => navigate(`/brands/${brand.id}`)}
                     onRestore={handleRestore}
-                    brands={brands}
                   />
                 </Table.Body>
               </Table>
@@ -1138,16 +1297,16 @@ const BrandsPage = () => {
           open={createOpen}
         />
       ) : null}
-      {editingBrand ? (
+      {editingBrandId ? (
         <BrandFormDrawer
           attributeTypes={attributeTypes}
+          brand={editingBrand}
           onOpenChange={(open) => {
             if (!open) {
-              setEditingBrand(undefined)
+              setEditingBrandId(undefined)
             }
           }}
-          open={!!editingBrand}
-          brand={editingBrand}
+          open={!!editingBrandId}
         />
       ) : null}
     </>

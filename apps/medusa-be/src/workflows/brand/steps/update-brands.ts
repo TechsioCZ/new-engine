@@ -2,6 +2,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { UpdateBrandsWorkflowInput } from "../types"
 import {
   asArray,
+  buildBrandWriteInput,
   getBrandService,
   setBrandAttributes,
   snapshotBrand,
@@ -14,36 +15,28 @@ export const updateBrandsStep = createStep(
     const service = getBrandService(container)
     const previous = await snapshotBrand(service, input.selector.id)
 
-    const brands = await withBrandTransaction(
-      service,
-      async (context) => {
-        const updatedBrands = asArray(
-          (await service.updateBrands(
-            {
-              id: input.selector.id,
-              ...(input.update.title !== undefined
-                ? { title: input.update.title }
-                : {}),
-              ...(input.update.handle !== undefined
-                ? { handle: input.update.handle }
-                : {}),
-            },
-            context
-          )) as { id: string } | Array<{ id: string }>
+    const brands = await withBrandTransaction(service, async (context) => {
+      const updatedBrands = asArray(
+        (await service.updateBrands(
+          {
+            id: input.selector.id,
+            ...buildBrandWriteInput(input.update),
+          },
+          context
+        )) as { id: string } | Array<{ id: string }>
+      )
+
+      if (input.update.attributes !== undefined) {
+        await setBrandAttributes(
+          service,
+          input.selector.id,
+          input.update.attributes,
+          context
         )
-
-        if (input.update.attributes !== undefined) {
-          await setBrandAttributes(
-            service,
-            input.selector.id,
-            input.update.attributes,
-            context
-          )
-        }
-
-        return updatedBrands
       }
-    )
+
+      return updatedBrands
+    })
 
     return new StepResponse(brands, previous)
   },
@@ -57,9 +50,8 @@ export const updateBrandsStep = createStep(
     await withBrandTransaction(service, async (context) => {
       await service.updateBrands(
         {
-          handle: previous.handle,
+          ...buildBrandWriteInput(previous),
           id: previous.id,
-          title: previous.title,
         },
         context
       )

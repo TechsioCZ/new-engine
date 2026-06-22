@@ -27,6 +27,13 @@ export type Brand = {
   attributes: BrandAttribute[]
   created_at?: string
   deleted_at?: string | null
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
   updated_at?: string
 }
 
@@ -34,6 +41,13 @@ export type BrandInput = {
   title: string
   handle?: string
   attributes: BrandAttribute[]
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
 }
 
 export type ProductSummary = {
@@ -146,9 +160,7 @@ export const brandQueryKeys = {
   products: (id: string | undefined, params: Record<string, unknown>) =>
     ["brand-products", id, params] as const,
   productsLists: (id?: string) =>
-    id
-      ? (["brand-products", id] as const)
-      : (["brand-products"] as const),
+    id ? (["brand-products", id] as const) : (["brand-products"] as const),
 }
 
 export const productQueryKeys = {
@@ -162,8 +174,7 @@ export const listBrands = (params: {
   offset: number
   order_by?: string
   q?: string
-}) =>
-  sdk.client.fetch<BrandsResponse>(`/admin/brands?${toSearch(params)}`)
+}) => sdk.client.fetch<BrandsResponse>(`/admin/brands?${toSearch(params)}`)
 
 export const retrieveBrand = (id: string) =>
   sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`)
@@ -242,14 +253,9 @@ export const restoreBrandAttributeType = (id: string) =>
   )
 
 export const retrieveProductBrands = (productId: string) =>
-  sdk.client.fetch<ProductBrandsResponse>(
-    `/admin/products/${productId}/brands`
-  )
+  sdk.client.fetch<ProductBrandsResponse>(`/admin/products/${productId}/brands`)
 
-export const setProductBrands = (
-  productId: string,
-  brandId?: null | string
-) =>
+export const setProductBrands = (productId: string, brandId?: null | string) =>
   sdk.client.fetch<ProductBrandsResponse>(
     `/admin/products/${productId}/brands`,
     {
@@ -278,15 +284,12 @@ export const retrieveBrandProductOptions = (
   )
 
 export const setBrandProducts = (brandId: string, productIds: string[]) =>
-  sdk.client.fetch<BrandProductsResponse>(
-    `/admin/brands/${brandId}/products`,
-    {
-      body: {
-        product_ids: productIds,
-      },
-      method: "POST",
-    }
-  )
+  sdk.client.fetch<BrandProductsResponse>(`/admin/brands/${brandId}/products`, {
+    body: {
+      product_ids: productIds,
+    },
+    method: "POST",
+  })
 
 export const listProducts = (params: {
   fields?: string

@@ -10,6 +10,13 @@ export type BrandInput = {
   title: string
   handle: string
   attributes?: BrandAttributeInput[]
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
 }
 
 export type CreateBrandsWorkflowInput = {

@@ -66,7 +66,18 @@ export type BrandAdminI18nNamespace = {
     string
   >
   fields: Record<
-    "attribute" | "handle" | "supplier" | "title" | "value",
+    | "attribute"
+    | "gpsrContactEmail"
+    | "gpsrEuropeanResellerContactEmail"
+    | "gpsrEuropeanResellerManufacturingCompanyName"
+    | "gpsrEuropeanResellerPostalAddress"
+    | "gpsrManufacturedOutsideEu"
+    | "gpsrManufacturingCompanyName"
+    | "gpsrPostalAddress"
+    | "handle"
+    | "supplier"
+    | "title"
+    | "value",
     string
   >
   filters: Record<"activeOnly" | "allStatuses", string>
@@ -138,12 +149,7 @@ export type BrandAdminI18nNamespace = {
     string
   >
   widget: Record<
-    | "empty"
-    | "loadFailed"
-    | "manageTitle"
-    | "none"
-    | "selectedBrand"
-    | "title",
+    "empty" | "loadFailed" | "manageTitle" | "none" | "selectedBrand" | "title",
     string
   >
 }
@@ -213,6 +219,13 @@ export const brandAdminI18n = {
     },
     fields: {
       attribute: "Atribut",
+      gpsrContactEmail: "E-mail výrobce pro GPSR",
+      gpsrEuropeanResellerContactEmail: "E-mail zástupce v EU",
+      gpsrEuropeanResellerManufacturingCompanyName: "Zástupce výrobce v EU",
+      gpsrEuropeanResellerPostalAddress: "Adresa zástupce v EU",
+      gpsrManufacturedOutsideEu: "Vyrobeno mimo EU",
+      gpsrManufacturingCompanyName: "Výrobce pro GPSR",
+      gpsrPostalAddress: "Adresa výrobce pro GPSR",
       handle: "Handle",
       supplier: "Dodavatel",
       title: "Název",
@@ -383,6 +396,13 @@ export const brandAdminI18n = {
     },
     fields: {
       attribute: "Attribute",
+      gpsrContactEmail: "Manufacturer GPSR email",
+      gpsrEuropeanResellerContactEmail: "EU representative email",
+      gpsrEuropeanResellerManufacturingCompanyName: "EU representative company",
+      gpsrEuropeanResellerPostalAddress: "EU representative address",
+      gpsrManufacturedOutsideEu: "Manufactured outside the EU",
+      gpsrManufacturingCompanyName: "Manufacturer GPSR company",
+      gpsrPostalAddress: "Manufacturer GPSR address",
       handle: "Handle",
       supplier: "Supplier",
       title: "Title",
@@ -420,8 +440,7 @@ export const brandAdminI18n = {
       deleteAttributeDescription:
         'Soft-delete attribute "{{name}}"?{{usageText}}',
       deleteAttributeTitle: "Delete attribute",
-      deleteAttributeUsage:
-        " It is currently used by {{count}} active brands.",
+      deleteAttributeUsage: " It is currently used by {{count}} active brands.",
       deleteBrandDescription: 'Delete brand "{{title}}"?{{linkedText}}',
       deleteBrandProducts: " It is linked to {{count}} active products.",
       deleteBrandTitle: "Delete brand",
