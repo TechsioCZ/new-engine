@@ -25,6 +25,7 @@ import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
+import { storeExternalReviewRoutesMiddlewares } from "./store/external-reviews/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeProducersRoutesMiddlewares } from "./store/producers/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
@@ -73,6 +74,7 @@ export default defineMiddlewares({
     ...storeMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
+    ...storeExternalReviewRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
     ...storeProducersRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,

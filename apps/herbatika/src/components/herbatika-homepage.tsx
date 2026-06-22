@@ -8,10 +8,17 @@ import { HomepagePromoSection } from "@/components/homepage/sections/homepage-pr
 import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-reviews-section"
 import { useHomepageController } from "@/components/homepage/use-homepage-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import type { HomepageReviewsData } from "@/components/reviews/reviews.types"
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 
-export function HerbatikaHomepage() {
+type HerbatikaHomepageProps = {
+  homepageReviewsData?: HomepageReviewsData | null
+}
+
+export function HerbatikaHomepage({
+  homepageReviewsData,
+}: HerbatikaHomepageProps) {
   const controller = useHomepageController()
 
   return (
@@ -30,7 +37,7 @@ export function HerbatikaHomepage() {
         />
       ))}
 
-      <HomepageReviewsSection />
+      <HomepageReviewsSection reviewsData={homepageReviewsData} />
 
       {controller.trailingSections.map((section) => (
         <HomepageProductCollectionSection
