@@ -1,4 +1,3 @@
-import { HEUREKA_REVIEWS } from "@/components/reviews/reviews.data"
 import { ReviewsSection } from "@/components/reviews/reviews-section"
 import type { HomepageReviewsData } from "@/components/reviews/reviews.types"
 
@@ -9,18 +8,17 @@ type HomepageReviewsSectionProps = {
 export function HomepageReviewsSection({
   reviewsData,
 }: HomepageReviewsSectionProps) {
-  const reviews =
-    reviewsData && reviewsData.reviews.length > 0
-      ? reviewsData.reviews
-      : HEUREKA_REVIEWS
+  if (!reviewsData || reviewsData.reviews.length === 0) {
+    return null
+  }
 
   return (
     <ReviewsSection
       headingText="Overené zákazníkmi"
-      reviews={reviews}
+      reviews={reviewsData.reviews}
       scoreLabel={null}
       sectionClassName="space-y-500"
-      trustSources={reviewsData?.trustSources}
+      trustSources={reviewsData.trustSources}
       variant="homepage"
     />
   )

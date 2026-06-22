@@ -42,42 +42,6 @@ export const PRODUCT_REVIEWS: readonly ReviewItem[] = [
   },
 ]
 
-export const HEUREKA_REVIEWS: readonly ReviewItem[] = [
-  {
-    id: "heureka-review-denisa-delivery",
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
-    message:
-      "Veľmi som spokojná s Vilcacorou, účinky sú viditeľné už po týždni používania. Ďakujem!",
-    rating: 5,
-    title: "Rýchle doručenie",
-  },
-  {
-    id: "heureka-review-denisa-packaging",
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
-    message: "Funguje",
-    rating: 5,
-    title: "dobre zabalené",
-  },
-  {
-    id: "heureka-review-denisa-ok",
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
-    message: "Ok",
-    rating: 5,
-  },
-  {
-    id: "heureka-review-denisa-vilcacora",
-    author: "Denisa Sczyrzická",
-    dateLabel: "26.11.2025",
-    message:
-      "Veľmi som spokojná s Vilcacorou, účinky sú viditeľné už po týždni používania. Ďakujem vám Herbatica!",
-    rating: 5,
-    title: "Rýchle doručenie",
-  },
-]
-
 export const REVIEW_TRUST_SOURCES: readonly ReviewTrustSource[] = [
   {
     id: "heureka",

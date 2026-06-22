@@ -383,39 +383,11 @@ const hasReviewContent = (review: NormalizedExternalReview) =>
   )
 
 const getRecommendationSample = (
-  rawRecords: readonly XmlRecord[],
-  reviews: readonly NormalizedExternalReview[]
-) => {
-  const reviewByCreatedAt = new Map(
-    reviews.map((review) => [review.createdAt, review])
-  )
-  const latestAllowedTimestamp = Date.now() - 90 * 24 * 60 * 60 * 1000
-  const recommendations = rawRecords
-    .map((record) => {
-      const createdAt = normalizeCreatedAt(record)
-      const review = reviewByCreatedAt.get(createdAt)
-
-      if (!review) {
-        return null
-      }
-
-      return {
-        createdAt,
-        recommends: normalizeRecommendation(record),
-      }
-    })
-    .filter(
-      (item): item is { createdAt: string; recommends: boolean | null } =>
-        item !== null && item.recommends !== null
-    )
-  const recentRecommendations = recommendations.filter(
-    (item) => Date.parse(item.createdAt) >= latestAllowedTimestamp
-  )
-
-  return recentRecommendations.length > 0
-    ? recentRecommendations
-    : recommendations
-}
+  rawRecords: readonly XmlRecord[]
+) =>
+  rawRecords
+    .map((record) => normalizeRecommendation(record))
+    .filter((recommends): recommends is boolean => recommends !== null)
 
 const formatExportCountLabel = (count: number) => `(${count} z exportu)`
 
@@ -429,10 +401,8 @@ export const normalizeHeurekaExternalReviews = (
     .filter((review): review is NormalizedExternalReview => review !== null)
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   const textReviews = allReviews.filter(hasReviewContent)
-  const recommendationSample = getRecommendationSample(rawRecords, allReviews)
-  const recommendedCount = recommendationSample.filter(
-    (item) => item.recommends
-  ).length
+  const recommendationSample = getRecommendationSample(rawRecords)
+  const recommendedCount = recommendationSample.filter(Boolean).length
   const recommendationRate =
     recommendationSample.length > 0
       ? Math.round((recommendedCount / recommendationSample.length) * 100)
