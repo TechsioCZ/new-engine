@@ -31,6 +31,8 @@ import {
   HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES,
   HERBATICA_DEFAULT_STOCK_LOCATION,
   HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
+  HERBATICA_MANUFACTURERS_CSV_ENV,
+  HERBATICA_MANUFACTURERS_CSV_URL,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
   HERBATICA_PRODUCTS_XML_ENV,
   HERBATICA_PRODUCTS_XML_PATHS,
@@ -52,8 +54,16 @@ import {
   normalizeText,
   readXmlSource,
 } from "./herbatica-xml-utils"
+import {
+  buildManufacturersLookup,
+  findManufacturerCsvRow,
+  type ManufacturerCsvLookup,
+  parseManufacturersCsv,
+  readCsvSource,
+} from "./manufacturers-csv"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
+type BrandSeedInput = NonNullable<ProductSeedInput["brand"]>
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
 type ProductOptionSeedInput = NonNullable<ProductSeedInput["options"]>[number]
 type CategorySeedInput = SeedDatabaseWorkflowInput["productCategories"][number]
@@ -2296,11 +2306,19 @@ function buildCategoriesFromExport(
   }
 }
 
-function buildBrand(item: ParsedShopItem): ProductSeedInput["brand"] {
+function buildBrand(
+  item: ParsedShopItem,
+  manufacturersLookup: ManufacturerCsvLookup
+): BrandSeedInput | undefined {
   const title = item.manufacturer ?? item.supplier
   if (!title) {
     return
   }
+
+  const manufacturerRow =
+    findManufacturerCsvRow(manufacturersLookup, item.manufacturer) ??
+    findManufacturerCsvRow(manufacturersLookup, item.supplier) ??
+    findManufacturerCsvRow(manufacturersLookup, title)
 
   const attributes = dedupeParameters(
     [
@@ -2315,6 +2333,20 @@ function buildBrand(item: ParsedShopItem): ProductSeedInput["brand"] {
   return {
     title,
     attributes,
+    gpsrContactEmail: manufacturerRow?.contactEmail,
+    gpsrEuropeanResellerContactEmail:
+      manufacturerRow?.europeanResellerContactEmail,
+    gpsrEuropeanResellerManufacturingCompanyName:
+      manufacturerRow?.europeanResellerManufacturingCompanyName,
+    gpsrEuropeanResellerPostalAddress:
+      manufacturerRow?.europeanResellerPostalAddress,
+    gpsrManufacturedOutsideEu: !!(
+      manufacturerRow?.europeanResellerManufacturingCompanyName ||
+      manufacturerRow?.europeanResellerPostalAddress ||
+      manufacturerRow?.europeanResellerContactEmail
+    ),
+    gpsrManufacturingCompanyName: manufacturerRow?.manufacturingCompanyName,
+    gpsrPostalAddress: manufacturerRow?.postalAddress,
   }
 }
 
@@ -2803,12 +2835,20 @@ function buildVariantsForProduct({
   }
 }
 
-function buildProducts(
-  items: ParsedShopItem[],
-  pathToHandle: Map<string, string>,
-  categoryIdToHandle: Map<string, string>,
+function buildProducts(params: {
+  items: ParsedShopItem[]
+  pathToHandle: Map<string, string>
+  categoryIdToHandle: Map<string, string>
+  manufacturersLookup: ManufacturerCsvLookup
   buildOptions: ResolvedSeedBuildOptions
-): ProductSeedInput[] {
+}): ProductSeedInput[] {
+  const {
+    items,
+    pathToHandle,
+    categoryIdToHandle,
+    manufacturersLookup,
+    buildOptions,
+  } = params
   const usedHandles = new Set<string>()
   const usedSkus = new Set<string>()
   const usedEans = new Set<string>()
@@ -2901,7 +2941,7 @@ function buildProducts(
       thumbnail,
       images: imageUrls.map((url) => ({ url })),
       options,
-      brand: buildBrand(item),
+      brand: buildBrand(item, manufacturersLookup),
       variants,
       salesChannelNames: ["Default Sales Channel"],
     }
@@ -3334,19 +3374,21 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
 export function buildSeedInputFromXml(
   xml: string,
   categoryExports?: HerbaticaCategoryExport[],
-  options?: SeedBuildOptions
+  options?: SeedBuildOptions,
+  manufacturersLookup?: ManufacturerCsvLookup
 ): BuildResult {
   const buildOptions = resolveSeedBuildOptions(options)
   const items = applyPromoOverrides(parseShopItems(xml), buildOptions)
   const { categories, pathToHandle, categoryIdToHandle } = categoryExports
     ? buildCategoriesFromExport(categoryExports)
     : buildCategoriesFromProductPaths(items)
-  const products = buildProducts(
+  const products = buildProducts({
     items,
     pathToHandle,
     categoryIdToHandle,
-    buildOptions
-  )
+    manufacturersLookup: manufacturersLookup ?? new Map(),
+    buildOptions,
+  })
   enforceUniqueVariantSkus(products)
   const priceLists = buildPriceListsFromProducts(
     products,
@@ -3490,6 +3532,22 @@ function resolveReviewsXmlPath(args?: string[]): string | undefined {
   return
 }
 
+function resolveManufacturersCsvSource(args?: string[]): string {
+  const argPath = normalizeInlineText(args?.[3])
+  if (argPath) {
+    return argPath
+  }
+
+  const envPath = normalizeInlineText(
+    process.env[HERBATICA_MANUFACTURERS_CSV_ENV]
+  )
+  if (envPath) {
+    return envPath
+  }
+
+  return HERBATICA_MANUFACTURERS_CSV_URL
+}
+
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
   return {
     productsXmlPath: resolveProductsXmlPath(args),
@@ -3512,6 +3570,12 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
   const xml = await readXmlSource(feedPaths.productsXmlPath)
+  const manufacturersCsvSource = resolveManufacturersCsvSource(args)
+  logger.info(`Using manufacturers CSV feed: ${manufacturersCsvSource}`)
+  const manufacturersCsv = parseManufacturersCsv(
+    await readCsvSource(manufacturersCsvSource)
+  )
+  const manufacturersLookup = buildManufacturersLookup(manufacturersCsv)
   const categoryExports = feedPaths.categoriesXmlPath
     ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
     : undefined
@@ -3525,7 +3589,12 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
 
-  const parsed = buildSeedInputFromXml(xml, categoryExports, buildOptions)
+  const parsed = buildSeedInputFromXml(
+    xml,
+    categoryExports,
+    buildOptions,
+    manufacturersLookup
+  )
 
   logger.info(
     `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`

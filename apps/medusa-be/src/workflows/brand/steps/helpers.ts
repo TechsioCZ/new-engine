@@ -31,6 +31,13 @@ type BrandSnapshot = {
   title: string
   handle: string
   attributes: BrandAttributeInput[]
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
 }
 
 type BrandSnapshotRecord = {
@@ -45,6 +52,13 @@ type BrandSnapshotRecord = {
       }
     }
   >
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
 }
 
 type ProductBrandLinkRecord = {
@@ -89,7 +103,11 @@ const isBrandSnapshotRecord = (
     typeof brand.id !== "string" ||
     typeof brand.title !== "string" ||
     typeof brand.handle !== "string" ||
-    !Array.isArray(brand.attributes)
+    !Array.isArray(brand.attributes) ||
+    !(
+      brand.gpsrManufacturedOutsideEu === undefined ||
+      typeof brand.gpsrManufacturedOutsideEu === "boolean"
+    )
   ) {
     return false
   }
@@ -146,8 +164,63 @@ export const snapshotBrand = async (
       name: attribute.attributeType.name,
       value: attribute.value,
     })),
+    gpsrContactEmail: brand.gpsrContactEmail ?? null,
+    gpsrEuropeanResellerContactEmail:
+      brand.gpsrEuropeanResellerContactEmail ?? null,
+    gpsrEuropeanResellerManufacturingCompanyName:
+      brand.gpsrEuropeanResellerManufacturingCompanyName ?? null,
+    gpsrEuropeanResellerPostalAddress:
+      brand.gpsrEuropeanResellerPostalAddress ?? null,
+    gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? false,
+    gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName ?? null,
+    gpsrPostalAddress: brand.gpsrPostalAddress ?? null,
   }
 }
+
+const pickBrandWriteFields = (brand: {
+  handle?: string
+  title?: string
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
+}) => ({
+  ...(brand.handle !== undefined ? { handle: brand.handle } : {}),
+  ...(brand.title !== undefined ? { title: brand.title } : {}),
+  ...(brand.gpsrContactEmail !== undefined
+    ? { gpsrContactEmail: brand.gpsrContactEmail }
+    : {}),
+  ...(brand.gpsrEuropeanResellerContactEmail !== undefined
+    ? {
+        gpsrEuropeanResellerContactEmail:
+          brand.gpsrEuropeanResellerContactEmail,
+      }
+    : {}),
+  ...(brand.gpsrEuropeanResellerManufacturingCompanyName !== undefined
+    ? {
+        gpsrEuropeanResellerManufacturingCompanyName:
+          brand.gpsrEuropeanResellerManufacturingCompanyName,
+      }
+    : {}),
+  ...(brand.gpsrEuropeanResellerPostalAddress !== undefined
+    ? {
+        gpsrEuropeanResellerPostalAddress:
+          brand.gpsrEuropeanResellerPostalAddress,
+      }
+    : {}),
+  ...(brand.gpsrManufacturedOutsideEu !== undefined
+    ? { gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu }
+    : {}),
+  ...(brand.gpsrManufacturingCompanyName !== undefined
+    ? { gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName }
+    : {}),
+  ...(brand.gpsrPostalAddress !== undefined
+    ? { gpsrPostalAddress: brand.gpsrPostalAddress }
+    : {}),
+})
 
 export const setBrandAttributes = async (
   service: BrandModuleService,
@@ -155,6 +228,8 @@ export const setBrandAttributes = async (
   inputAttributes: BrandAttributeInput[] = [],
   sharedContext: Context = {}
 ) => service.setBrandAttributes(brandId, inputAttributes, sharedContext)
+
+export const buildBrandWriteInput = pickBrandWriteFields
 
 export const brandProductLink = (productId: string, brandId: string) => ({
   [Modules.PRODUCT]: {
@@ -173,10 +248,7 @@ export const getProductBrandLockKeys = (productIds: string[]) =>
 export const getBrandProductsLockKeys = (
   brandId: string,
   productIds: string[]
-) => [
-  `brand-products:${brandId}`,
-  ...getProductBrandLockKeys(productIds),
-]
+) => [`brand-products:${brandId}`, ...getProductBrandLockKeys(productIds)]
 
 export const replaceProductBrandLinks = async (
   container: MedusaContainer,
@@ -290,9 +362,7 @@ export const getActiveBrandIds = async (
     }
   )
 
-  return new Set(
-    (brands as BrandIdRecord[]).map((brand) => brand.id)
-  )
+  return new Set((brands as BrandIdRecord[]).map((brand) => brand.id))
 }
 
 export const getCurrentBrandProductIds = async (

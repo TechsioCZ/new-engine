@@ -22,6 +22,12 @@ const queryBoolean = z.preprocess((value) => {
   return value
 }, z.boolean().optional())
 
+const optionalText = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.trim().length === 0 ? undefined : value,
+  z.string().trim().optional()
+)
+
 export const BrandAttributeSchema = z
   .object({
     name: z.string().trim().min(1),
@@ -56,6 +62,13 @@ export const AdminGetBrandAttributeTypesSchema = z
 export const AdminCreateBrandSchema = z
   .object({
     attributes: z.array(BrandAttributeSchema).optional().default([]),
+    gpsrContactEmail: optionalText,
+    gpsrEuropeanResellerContactEmail: optionalText,
+    gpsrEuropeanResellerManufacturingCompanyName: optionalText,
+    gpsrEuropeanResellerPostalAddress: optionalText,
+    gpsrManufacturedOutsideEu: z.boolean().optional().default(false),
+    gpsrManufacturingCompanyName: optionalText,
+    gpsrPostalAddress: optionalText,
     handle: optionalHandle,
     title: z.string().trim().min(1),
   })
@@ -64,6 +77,13 @@ export const AdminCreateBrandSchema = z
 export const AdminUpdateBrandSchema = z
   .object({
     attributes: z.array(BrandAttributeSchema).optional(),
+    gpsrContactEmail: optionalText,
+    gpsrEuropeanResellerContactEmail: optionalText,
+    gpsrEuropeanResellerManufacturingCompanyName: optionalText,
+    gpsrEuropeanResellerPostalAddress: optionalText,
+    gpsrManufacturedOutsideEu: z.boolean().optional(),
+    gpsrManufacturingCompanyName: optionalText,
+    gpsrPostalAddress: optionalText,
     handle: optionalHandle,
     title: z.string().trim().min(1).optional(),
   })
@@ -95,21 +115,15 @@ export const AdminGetBrandProductOptionsSchema = z
   })
   .strict()
 
-export type AdminGetBrandsSchemaType = z.infer<
-  typeof AdminGetBrandsSchema
->
+export type AdminGetBrandsSchemaType = z.infer<typeof AdminGetBrandsSchema>
 export type AdminGetBrandAttributeTypesSchemaType = z.infer<
   typeof AdminGetBrandAttributeTypesSchema
 >
-export type AdminCreateBrandSchemaType = z.infer<
-  typeof AdminCreateBrandSchema
->
+export type AdminCreateBrandSchemaType = z.infer<typeof AdminCreateBrandSchema>
 export type AdminCreateBrandAttributeTypeSchemaType = z.infer<
   typeof AdminCreateBrandAttributeTypeSchema
 >
-export type AdminUpdateBrandSchemaType = z.infer<
-  typeof AdminUpdateBrandSchema
->
+export type AdminUpdateBrandSchemaType = z.infer<typeof AdminUpdateBrandSchema>
 export type AdminSetProductBrandsSchemaType = z.infer<
   typeof AdminSetProductBrandsSchema
 >

@@ -16,9 +16,9 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
-  listBrands,
   type Brand,
   brandQueryKeys,
+  listBrands,
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
@@ -258,6 +258,7 @@ const BrandAssignmentDrawer = ({
   const selectedBrand =
     brands.find((brand) => brand.id === selectedId) ??
     (currentBrand?.id === selectedId ? currentBrand : undefined)
+  const selectedBrandDetails = selectedBrand ?? currentBrand
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
 
@@ -287,6 +288,76 @@ const BrandAssignmentDrawer = ({
               {t("actions.clear")}
             </Button>
           </Container>
+          {selectedBrandDetails ? (
+            <Container className="px-4 py-3">
+              <Text size="small" weight="plus">
+                GPSR
+              </Text>
+              <div className="mt-2 grid gap-2 md:grid-cols-2">
+                <div>
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrManufacturingCompanyName")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrManufacturingCompanyName ?? "-"}
+                  </Text>
+                </div>
+                <div>
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrPostalAddress")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrPostalAddress ?? "-"}
+                  </Text>
+                </div>
+                <div>
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrContactEmail")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrContactEmail ?? "-"}
+                  </Text>
+                </div>
+                <div>
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrManufacturedOutsideEu")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrManufacturedOutsideEu
+                      ? t("status.selected")
+                      : "-"}
+                  </Text>
+                </div>
+                <div>
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrEuropeanResellerManufacturingCompanyName")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrEuropeanResellerManufacturingCompanyName ??
+                      "-"}
+                  </Text>
+                </div>
+                <div>
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrEuropeanResellerPostalAddress")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrEuropeanResellerPostalAddress ??
+                      "-"}
+                  </Text>
+                </div>
+                <div className="md:col-span-2">
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("fields.gpsrEuropeanResellerContactEmail")}
+                  </Text>
+                  <Text size="small">
+                    {selectedBrandDetails.gpsrEuropeanResellerContactEmail ??
+                      "-"}
+                  </Text>
+                </div>
+              </div>
+            </Container>
+          ) : null}
           <Input
             onChange={(event) => {
               setPageIndex(0)
@@ -308,11 +379,11 @@ const BrandAssignmentDrawer = ({
             </Table.Header>
             <Table.Body>
               <BrandSelectionRows
+                brands={brands}
                 currentBrandId={selectedId}
                 isLoading={isLoading}
                 onClear={() => setSelectedId(undefined)}
                 onSelect={setSelectedId}
-                brands={brands}
               />
             </Table.Body>
           </Table>
@@ -355,9 +426,7 @@ const BrandAssignmentDrawer = ({
   )
 }
 
-const ProductBrandsWidget = ({
-  data: product,
-}: ProductBrandsWidgetProps) => {
+const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   const { t } = useTranslation("brands")
   const [open, setOpen] = useState(false)
 
@@ -426,9 +495,9 @@ const ProductBrandsWidget = ({
         </div>
         <div className="flex flex-col gap-2 px-6 py-4">
           <BrandLinkContent
+            brands={brands}
             error={error}
             isLoading={isLoading}
-            brands={brands}
           />
         </div>
         <div className="flex items-center justify-between gap-3 px-6 py-4">

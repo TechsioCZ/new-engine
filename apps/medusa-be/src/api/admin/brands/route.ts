@@ -1,9 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { kebabCase, MedusaError } from "@medusajs/framework/utils"
-import {
-  createBrandsWorkflow,
-  type BrandInput,
-} from "../../../workflows/brand"
+import { type BrandInput, createBrandsWorkflow } from "../../../workflows/brand"
 import {
   escapeLikePattern,
   getBrandActiveProductCounts,
@@ -83,6 +80,17 @@ export async function POST(
 ) {
   const input: BrandInput = {
     attributes: req.validatedBody.attributes,
+    gpsrContactEmail: req.validatedBody.gpsrContactEmail,
+    gpsrEuropeanResellerContactEmail:
+      req.validatedBody.gpsrEuropeanResellerContactEmail,
+    gpsrEuropeanResellerManufacturingCompanyName:
+      req.validatedBody.gpsrEuropeanResellerManufacturingCompanyName,
+    gpsrEuropeanResellerPostalAddress:
+      req.validatedBody.gpsrEuropeanResellerPostalAddress,
+    gpsrManufacturedOutsideEu: req.validatedBody.gpsrManufacturedOutsideEu,
+    gpsrManufacturingCompanyName:
+      req.validatedBody.gpsrManufacturingCompanyName,
+    gpsrPostalAddress: req.validatedBody.gpsrPostalAddress,
     handle: req.validatedBody.handle ?? kebabCase(req.validatedBody.title),
     title: req.validatedBody.title,
   }
@@ -124,12 +132,9 @@ export async function POST(
     )
   }
 
-  const brand = await getBrandService(req.scope).retrieveBrand(
-    created.id,
-    {
-      relations: ["attributes", "attributes.attributeType"],
-    }
-  )
+  const brand = await getBrandService(req.scope).retrieveBrand(created.id, {
+    relations: ["attributes", "attributes.attributeType"],
+  })
 
   res.status(200).json({ brand: toBrandResponse(brand) })
 }

@@ -40,6 +40,13 @@ export type BrandResponse = {
   attributes: BrandAttributeResponse[]
   created_at?: string | Date
   deleted_at?: string | Date | null
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
   updated_at?: string | Date
 }
 
@@ -79,6 +86,13 @@ type BrandRecord = {
   attributes?: BrandAttributeRecord[]
   created_at?: string | Date
   deleted_at?: string | Date | null
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
   updated_at?: string | Date
 }
 
@@ -176,6 +190,16 @@ export const toBrandResponse = (
   }),
   created_at: brand.created_at,
   deleted_at: brand.deleted_at ?? null,
+  gpsrContactEmail: brand.gpsrContactEmail ?? null,
+  gpsrEuropeanResellerContactEmail:
+    brand.gpsrEuropeanResellerContactEmail ?? null,
+  gpsrEuropeanResellerManufacturingCompanyName:
+    brand.gpsrEuropeanResellerManufacturingCompanyName ?? null,
+  gpsrEuropeanResellerPostalAddress:
+    brand.gpsrEuropeanResellerPostalAddress ?? null,
+  gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? false,
+  gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName ?? null,
+  gpsrPostalAddress: brand.gpsrPostalAddress ?? null,
   handle: brand.handle,
   id: brand.id,
   title: brand.title,
@@ -307,9 +331,10 @@ export const getBrandActiveProductCounts = async (
   }
 
   return new Map(
-    [...activeProductIdsByBrandId.entries()].map(
-      ([brandId, activeIds]) => [brandId, activeIds.size]
-    )
+    [...activeProductIdsByBrandId.entries()].map(([brandId, activeIds]) => [
+      brandId,
+      activeIds.size,
+    ])
   )
 }
 
@@ -490,9 +515,7 @@ export const ensureProductsAssignableToBrand = async (
   productIds: string[]
 ) => {
   const links = await listProductBrandLinksByProductIds(scope, productIds)
-  const linksToOtherBrands = links.filter(
-    (link) => link.brand_id !== brandId
-  )
+  const linksToOtherBrands = links.filter((link) => link.brand_id !== brandId)
 
   const activeBrandIds = await getActiveBrandIds(
     scope,
@@ -510,9 +533,7 @@ export const ensureProductsAssignableToBrand = async (
     scope,
     uniqueIds(conflictingLinks.map((link) => link.brand_id))
   )
-  const brandNamesById = new Map(
-    brands.map((brand) => [brand.id, brand.title])
-  )
+  const brandNamesById = new Map(brands.map((brand) => [brand.id, brand.title]))
   const conflictText = conflictingLinks
     .map((link) => {
       const brandName = brandNamesById.get(link.brand_id)

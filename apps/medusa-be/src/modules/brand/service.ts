@@ -13,6 +13,13 @@ export type UpsertBrandDTO = {
   name: string
   handle?: string
   attributes: BrandAttributeInput[]
+  gpsrContactEmail?: string | null
+  gpsrEuropeanResellerContactEmail?: string | null
+  gpsrEuropeanResellerManufacturingCompanyName?: string | null
+  gpsrEuropeanResellerPostalAddress?: string | null
+  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturingCompanyName?: string | null
+  gpsrPostalAddress?: string | null
 }
 
 type BrandAttributeRecord = {
@@ -59,6 +66,43 @@ const normalizeAttributes = (attributes: BrandAttributeInput[] = []) => {
 
 const isDeleted = (record: { deleted_at?: string | Date | null }) =>
   !!record.deleted_at
+
+const pickBrandScalarFields = (
+  input: Partial<UpsertBrandDTO> & { name?: string }
+) => ({
+  ...(input.handle !== undefined ? { handle: input.handle } : {}),
+  ...(input.gpsrContactEmail !== undefined
+    ? { gpsrContactEmail: input.gpsrContactEmail }
+    : {}),
+  ...(input.gpsrEuropeanResellerContactEmail !== undefined
+    ? {
+        gpsrEuropeanResellerContactEmail:
+          input.gpsrEuropeanResellerContactEmail,
+      }
+    : {}),
+  ...(input.gpsrEuropeanResellerManufacturingCompanyName !== undefined
+    ? {
+        gpsrEuropeanResellerManufacturingCompanyName:
+          input.gpsrEuropeanResellerManufacturingCompanyName,
+      }
+    : {}),
+  ...(input.gpsrEuropeanResellerPostalAddress !== undefined
+    ? {
+        gpsrEuropeanResellerPostalAddress:
+          input.gpsrEuropeanResellerPostalAddress,
+      }
+    : {}),
+  ...(input.gpsrManufacturedOutsideEu !== undefined
+    ? { gpsrManufacturedOutsideEu: input.gpsrManufacturedOutsideEu }
+    : {}),
+  ...(input.gpsrManufacturingCompanyName !== undefined
+    ? { gpsrManufacturingCompanyName: input.gpsrManufacturingCompanyName }
+    : {}),
+  ...(input.gpsrPostalAddress !== undefined
+    ? { gpsrPostalAddress: input.gpsrPostalAddress }
+    : {}),
+  ...(input.name !== undefined ? { title: input.name } : {}),
+})
 
 class BrandModuleService extends MedusaService({
   Brand,
@@ -313,16 +357,43 @@ class BrandModuleService extends MedusaService({
           {
             handle,
             title: input.name,
+            gpsrContactEmail: input.gpsrContactEmail,
+            gpsrEuropeanResellerContactEmail:
+              input.gpsrEuropeanResellerContactEmail,
+            gpsrEuropeanResellerManufacturingCompanyName:
+              input.gpsrEuropeanResellerManufacturingCompanyName,
+            gpsrEuropeanResellerPostalAddress:
+              input.gpsrEuropeanResellerPostalAddress,
+            gpsrManufacturedOutsideEu: input.gpsrManufacturedOutsideEu,
+            gpsrManufacturingCompanyName: input.gpsrManufacturingCompanyName,
+            gpsrPostalAddress: input.gpsrPostalAddress,
           },
           context
         )
       }
 
-      if (brand.title !== input.name) {
+      const nextScalarFields = pickBrandScalarFields(input)
+      const currentScalarFields = pickBrandScalarFields({
+        handle: brand.handle,
+        gpsrContactEmail: brand.gpsrContactEmail,
+        gpsrEuropeanResellerContactEmail:
+          brand.gpsrEuropeanResellerContactEmail,
+        gpsrEuropeanResellerManufacturingCompanyName:
+          brand.gpsrEuropeanResellerManufacturingCompanyName,
+        gpsrEuropeanResellerPostalAddress:
+          brand.gpsrEuropeanResellerPostalAddress,
+        gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu,
+        gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName,
+        gpsrPostalAddress: brand.gpsrPostalAddress,
+        name: brand.title,
+      })
+
+      if (brand.title !== input.name || Object.keys(nextScalarFields).length) {
         brand = (await this.updateBrands(
           {
+            ...currentScalarFields,
+            ...nextScalarFields,
             id: brand.id,
-            title: input.name,
           },
           context
         )) as typeof brand

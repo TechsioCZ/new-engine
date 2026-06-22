@@ -6,6 +6,13 @@ const Brand = model
     id: model.id().primaryKey(),
     title: model.text().searchable(),
     handle: model.text().searchable(),
+    gpsrContactEmail: model.text().nullable(),
+    gpsrEuropeanResellerContactEmail: model.text().nullable(),
+    gpsrEuropeanResellerManufacturingCompanyName: model.text().nullable(),
+    gpsrEuropeanResellerPostalAddress: model.text().nullable(),
+    gpsrManufacturedOutsideEu: model.boolean().default(false),
+    gpsrManufacturingCompanyName: model.text().nullable(),
+    gpsrPostalAddress: model.text().nullable(),
     attributes: model.hasMany(() => BrandAttribute, {
       mappedBy: "brand",
     }),

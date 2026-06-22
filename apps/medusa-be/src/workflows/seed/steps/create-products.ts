@@ -47,6 +47,13 @@ type ProductInput = {
       name: string
       value: string
     }[]
+    gpsrContactEmail?: string | null
+    gpsrEuropeanResellerContactEmail?: string | null
+    gpsrEuropeanResellerManufacturingCompanyName?: string | null
+    gpsrEuropeanResellerPostalAddress?: string | null
+    gpsrManufacturedOutsideEu?: boolean
+    gpsrManufacturingCompanyName?: string | null
+    gpsrPostalAddress?: string | null
   } | null
   variants?: {
     title: string
@@ -103,7 +110,17 @@ type ExistingShippingProfile = Awaited<
 >[number]
 type BrandRegistry = Map<
   string,
-  { attributes: Map<string, string>; products: string[] }
+  {
+    attributes: Map<string, string>
+    gpsrContactEmail?: string | null
+    gpsrEuropeanResellerContactEmail?: string | null
+    gpsrEuropeanResellerManufacturingCompanyName?: string | null
+    gpsrEuropeanResellerPostalAddress?: string | null
+    gpsrManufacturedOutsideEu?: boolean
+    gpsrManufacturingCompanyName?: string | null
+    gpsrPostalAddress?: string | null
+    products: string[]
+  }
 >
 type VariantImagesRegistry = Map<string, Map<string, ProductVariantImagesInput>>
 type WorkflowContainer = Parameters<typeof createProductsWorkflow>[0]
@@ -261,10 +278,7 @@ function findExistingVariant(
 
 function processProductBrandInput(
   inputProduct: ProductInput,
-  brands: Map<
-    string,
-    { attributes: Map<string, string>; products: string[] }
-  >
+  brands: BrandRegistry
 ) {
   if (!inputProduct.brand?.title) {
     return
@@ -289,6 +303,40 @@ function processProductBrandInput(
     if (!brand.attributes.has(attribute.name)) {
       brand.attributes.set(attribute.name, attribute.value)
     }
+  }
+
+  const scalarFields = [
+    ["gpsrContactEmail", inputProduct.brand.gpsrContactEmail],
+    [
+      "gpsrEuropeanResellerContactEmail",
+      inputProduct.brand.gpsrEuropeanResellerContactEmail,
+    ],
+    [
+      "gpsrEuropeanResellerManufacturingCompanyName",
+      inputProduct.brand.gpsrEuropeanResellerManufacturingCompanyName,
+    ],
+    [
+      "gpsrEuropeanResellerPostalAddress",
+      inputProduct.brand.gpsrEuropeanResellerPostalAddress,
+    ],
+    [
+      "gpsrManufacturingCompanyName",
+      inputProduct.brand.gpsrManufacturingCompanyName,
+    ],
+    ["gpsrPostalAddress", inputProduct.brand.gpsrPostalAddress],
+  ] as const
+
+  for (const [key, value] of scalarFields) {
+    if (value !== undefined && brand[key] === undefined) {
+      brand[key] = value
+    }
+  }
+
+  if (inputProduct.brand.gpsrManufacturedOutsideEu === true) {
+    brand.gpsrManufacturedOutsideEu = true
+  } else if (brand.gpsrManufacturedOutsideEu === undefined) {
+    brand.gpsrManufacturedOutsideEu =
+      inputProduct.brand.gpsrManufacturedOutsideEu
   }
 }
 
@@ -665,6 +713,16 @@ async function linkBrands(params: {
     const brand = await params.brandService.upsertBrand({
       name: key,
       attributes,
+      gpsrContactEmail: brandData.gpsrContactEmail,
+      gpsrEuropeanResellerContactEmail:
+        brandData.gpsrEuropeanResellerContactEmail,
+      gpsrEuropeanResellerManufacturingCompanyName:
+        brandData.gpsrEuropeanResellerManufacturingCompanyName,
+      gpsrEuropeanResellerPostalAddress:
+        brandData.gpsrEuropeanResellerPostalAddress,
+      gpsrManufacturedOutsideEu: brandData.gpsrManufacturedOutsideEu,
+      gpsrManufacturingCompanyName: brandData.gpsrManufacturingCompanyName,
+      gpsrPostalAddress: brandData.gpsrPostalAddress,
     })
 
     const products = await params.productService.listProducts(
@@ -702,8 +760,7 @@ export const createProductsStep = createStep(
     const salesChannelService = container.resolve<ISalesChannelModuleService>(
       Modules.SALES_CHANNEL
     )
-    const brandService =
-      container.resolve<BrandModuleService>(BRAND_MODULE)
+    const brandService = container.resolve<BrandModuleService>(BRAND_MODULE)
 
     const productVariantImages: VariantImagesRegistry = new Map()
     const brands: BrandRegistry = new Map()
