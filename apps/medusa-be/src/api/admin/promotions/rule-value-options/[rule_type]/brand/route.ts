@@ -72,8 +72,8 @@ function isBrandRuleValue(value: unknown): value is BrandRuleValue {
     return false
   }
 
-  const id = Reflect.get(value, "id")
-  const title = Reflect.get(value, "title")
+  const id: unknown = Reflect.get(value, "id")
+  const title: unknown = Reflect.get(value, "title")
 
   return typeof id === "string" && typeof title === "string"
 }

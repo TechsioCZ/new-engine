@@ -296,12 +296,18 @@ const BrandFormDrawer = ({
         }
 
         await restoreBrand(existing.id)
-        const response = await updateBrand(existing.id, {
-          ...input,
-          handle: resolvedHandle,
-        })
 
-        return { ...response, action: "restored" as const }
+        try {
+          const response = await updateBrand(existing.id, {
+            ...input,
+            handle: resolvedHandle,
+          })
+
+          return { ...response, action: "restored" as const }
+        } catch (error) {
+          await deleteBrand(existing.id)
+          throw error
+        }
       }
 
       if (existing) {

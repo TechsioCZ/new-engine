@@ -130,9 +130,17 @@ export async function GET(
             deleted_at: null,
           },
         })
-        const activeBrandIds = (activeBrands as Array<{ id?: string }>)
-          .map((brand) => brand.id)
-          .filter((activeBrandId): activeBrandId is string => !!activeBrandId)
+        const activeBrandIds = Array.isArray(activeBrands)
+          ? activeBrands.flatMap((brand) => {
+              if (!(brand && typeof brand === "object" && "id" in brand)) {
+                return []
+              }
+
+              const activeBrandId: unknown = brand.id
+
+              return typeof activeBrandId === "string" ? [activeBrandId] : []
+            })
+          : []
 
         const { data: linkedProducts } = await query.graph({
           entity: ProductBrandLink.entryPoint,
@@ -143,12 +151,25 @@ export async function GET(
           },
         })
         const linkedProductIds = uniqueIds(
-          (linkedProducts as Array<{ product_id?: string }>)
-            .map((link) => link.product_id)
-            .filter((productId): productId is string => !!productId)
+          Array.isArray(linkedProducts)
+            ? linkedProducts.flatMap((link) => {
+                if (
+                  !(link && typeof link === "object" && "product_id" in link)
+                ) {
+                  return []
+                }
+
+                const productId: unknown = link.product_id
+
+                return typeof productId === "string" ? [productId] : []
+              })
+            : []
         )
 
-        return [currentProductIds, { $nin: linkedProductIds }]
+        return [
+          currentProductIds,
+          { $nin: uniqueIds([...currentProductIds, ...linkedProductIds]) },
+        ]
       })()
   const { count, page: products } = await listRankedProductPage(
     req.scope,
