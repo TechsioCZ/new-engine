@@ -16,6 +16,27 @@ export const setProductBrandsStep = createStep(
       container,
       input.product_id
     )
+
+    if (!input.brand_ids.length) {
+      const { add: added, remove: removed } = await replaceProductBrandLinks(
+        container,
+        currentIds,
+        [],
+        (brandId) => brandProductLink(input.product_id, brandId)
+      )
+
+      return new StepResponse(
+        {
+          added,
+          removed,
+        },
+        {
+          product_id: input.product_id,
+          brand_ids: currentIds,
+        }
+      )
+    }
+
     const activeBrandIds = await getActiveBrandIds(container, input.brand_ids)
     const nextActiveBrandIds = input.brand_ids.filter((brandId) =>
       activeBrandIds.has(brandId)
