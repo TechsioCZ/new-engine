@@ -1306,7 +1306,7 @@ const BrandsPage = () => {
               setEditingBrandId(undefined)
             }
           }}
-          open={!!editingBrandId && !!editingBrand}
+          open={!!editingBrand}
         />
       ) : null}
     </>
