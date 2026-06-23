@@ -17,13 +17,13 @@ export const updateBrandsStep = createStep(
 
     const brands = await withBrandTransaction(service, async (context) => {
       const updatedBrands = asArray(
-        (await service.updateBrands(
+        await service.updateBrands(
           {
             id: input.selector.id,
             ...buildBrandWriteInput(input.update),
           },
           context
-        )) as { id: string } | Array<{ id: string }>
+        )
       )
 
       if (input.update.attributes !== undefined) {

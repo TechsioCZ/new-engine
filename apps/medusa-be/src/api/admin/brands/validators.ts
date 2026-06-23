@@ -47,6 +47,16 @@ export const AdminGetBrandsSchema = z
   })
   .strict()
 
+export const AdminGetBrandProductsSchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    offset: z.coerce.number().int().min(0).optional().default(0),
+    order: z.string().optional(),
+    order_by: z.string().optional(),
+    q: z.string().trim().optional(),
+  })
+  .strict()
+
 export const AdminGetBrandAttributeTypesSchema = z
   .object({
     include_deleted: queryBoolean.optional().default(false),
@@ -101,9 +111,14 @@ export const AdminSetProductBrandsSchema = z
   })
   .strict()
 
+const BRAND_PRODUCTS_CHUNK_SIZE = 500
+
 export const AdminSetBrandProductsSchema = z
   .object({
-    product_ids: z.array(z.string().trim().min(1)).default([]),
+    product_ids: z
+      .array(z.string().trim().min(1))
+      .max(BRAND_PRODUCTS_CHUNK_SIZE)
+      .default([]),
   })
   .strict()
 
@@ -116,6 +131,9 @@ export const AdminGetBrandProductOptionsSchema = z
   .strict()
 
 export type AdminGetBrandsSchemaType = z.infer<typeof AdminGetBrandsSchema>
+export type AdminGetBrandProductsSchemaType = z.infer<
+  typeof AdminGetBrandProductsSchema
+>
 export type AdminGetBrandAttributeTypesSchemaType = z.infer<
   typeof AdminGetBrandAttributeTypesSchema
 >

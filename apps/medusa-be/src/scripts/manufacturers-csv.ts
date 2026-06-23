@@ -216,12 +216,21 @@ export async function readCsvSource(source: string): Promise<string> {
     return readFileSync(source, "utf8")
   }
 
-  const response = await fetch(source)
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch CSV source ${source}: ${response.status} ${response.statusText}`
-    )
-  }
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
 
-  return response.text()
+  try {
+    const response = await fetch(source, {
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch CSV source ${source}: ${response.status} ${response.statusText}`
+      )
+    }
+
+    return response.text()
+  } finally {
+    clearTimeout(timeout)
+  }
 }

@@ -1,5 +1,9 @@
 import type { Context } from "@medusajs/framework/types"
-import { kebabCase, MedusaService } from "@medusajs/framework/utils"
+import {
+  kebabCase,
+  MedusaError,
+  MedusaService,
+} from "@medusajs/framework/utils"
 import Brand from "./models/brand"
 import BrandAttribute from "./models/brand-attribute"
 import BrandAttributeType from "./models/brand-attribute-type"
@@ -44,6 +48,14 @@ type ServiceWithTransaction = {
       task: (transactionManager: unknown) => Promise<T>
     ) => Promise<T>
   }
+}
+
+const hasTransaction = (
+  service: BrandModuleService
+): service is BrandModuleService & ServiceWithTransaction => {
+  const candidate = service as Partial<ServiceWithTransaction>
+
+  return typeof candidate.baseRepository_?.transaction === "function"
 }
 
 const normalizeAttributes = (attributes: BrandAttributeInput[] = []) => {
@@ -113,13 +125,22 @@ class BrandModuleService extends MedusaService({
     sharedContext: Context,
     task: (context: Context) => Promise<T>
   ) {
-    return await (
-      this as unknown as ServiceWithTransaction
-    ).baseRepository_.transaction(async (transactionManager) =>
-      task({
-        ...sharedContext,
-        transactionManager,
-      })
+    if (!hasTransaction(this)) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Brand service is missing transaction support"
+      )
+    }
+
+    const transactionalService = this as BrandModuleService &
+      ServiceWithTransaction
+
+    return await transactionalService.baseRepository_.transaction(
+      async (transactionManager) =>
+        task({
+          ...sharedContext,
+          transactionManager,
+        })
     )
   }
 
@@ -388,15 +409,20 @@ class BrandModuleService extends MedusaService({
         name: brand.title,
       })
 
-      if (brand.title !== input.name || Object.keys(nextScalarFields).length) {
-        brand = (await this.updateBrands(
+      const hasScalarFieldChanges = Object.entries(nextScalarFields).some(
+        ([key, value]) =>
+          currentScalarFields[key as keyof typeof currentScalarFields] !== value
+      )
+
+      if (brand.title !== input.name || hasScalarFieldChanges) {
+        brand = await this.updateBrands(
           {
             ...currentScalarFields,
             ...nextScalarFields,
             id: brand.id,
           },
           context
-        )) as typeof brand
+        )
       }
 
       await this.setBrandAttributes(brand.id, input.attributes, context)

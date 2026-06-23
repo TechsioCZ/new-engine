@@ -1,14 +1,14 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, Query } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ProductBrandLink } from "../../../../../links/product-brand"
 import {
-  getActiveBrandIds,
   getBrandActiveProductCounts,
   listAndCountProducts,
   listAndCountProductsByIds,
   listBrandsByIds,
-  listProductIdsForBrand,
-  listProductBrandLinks,
   listProductBrandLinksByProductIds,
+  listProductIdsForBrand,
   retrieveBrandOrThrow,
   toBrandResponse,
   toProductResponse,
@@ -118,21 +118,35 @@ export async function GET(
   await retrieveBrandOrThrow(req.scope, brandId)
 
   const { limit, offset, q } = req.validatedQuery
-  const currentProductIds = await listProductIdsForBrand(
-    req.scope,
-    brandId
-  )
+  const currentProductIds = await listProductIdsForBrand(req.scope, brandId)
   const groups = q
     ? [currentProductIds, { $nin: currentProductIds }]
     : await (async () => {
-        const allLinks = await listProductBrandLinks(req.scope)
-        const activeBrandIds = await getActiveBrandIds(
-          req.scope,
-          allLinks.map((link) => link.brand_id)
+        const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+        const { data: activeBrands } = await query.graph({
+          entity: "brand",
+          fields: ["id"],
+          filters: {
+            deleted_at: null,
+          },
+        })
+        const activeBrandIds = (activeBrands as Array<{ id?: string }>)
+          .map((brand) => brand.id)
+          .filter((activeBrandId): activeBrandId is string => !!activeBrandId)
+
+        const { data: linkedProducts } = await query.graph({
+          entity: ProductBrandLink.entryPoint,
+          fields: ["product_id"],
+          filters: {
+            brand_id: { $in: activeBrandIds },
+            product_id: { $nin: currentProductIds },
+          },
+        })
+        const linkedProductIds = uniqueIds(
+          (linkedProducts as Array<{ product_id?: string }>)
+            .map((link) => link.product_id)
+            .filter((productId): productId is string => !!productId)
         )
-        const linkedProductIds = allLinks
-          .filter((link) => activeBrandIds.has(link.brand_id))
-          .map((link) => link.product_id)
 
         return [currentProductIds, { $nin: linkedProductIds }]
       })()
@@ -158,9 +172,7 @@ export async function GET(
     ])
   )
   const activeBrandIds = new Set(
-    linkedBrands
-      .filter((brand) => !brand.deleted_at)
-      .map((brand) => brand.id)
+    linkedBrands.filter((brand) => !brand.deleted_at).map((brand) => brand.id)
   )
   const activeBrandIdByProductId = new Map(
     links

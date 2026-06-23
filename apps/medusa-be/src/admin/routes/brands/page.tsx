@@ -1288,7 +1288,7 @@ const BrandsPage = () => {
           open={createOpen}
         />
       ) : null}
-      {editingBrandId ? (
+      {editingBrandId && editingBrand ? (
         <BrandFormDrawer
           attributeTypes={attributeTypes}
           brand={editingBrand}
@@ -1297,7 +1297,7 @@ const BrandsPage = () => {
               setEditingBrandId(undefined)
             }
           }}
-          open={!!editingBrandId}
+          open={!!editingBrandId && !!editingBrand}
         />
       ) : null}
     </>

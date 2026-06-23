@@ -31,17 +31,27 @@ export const createBrandsStep = createStep(
           })
         ),
         context
-      )) as Array<{ id: string }>
+      )) as Array<{ id: string; handle: string }>
+
+      const createdBrandsByHandle = new Map(
+        createdBrands.map((brand) => [brand.handle, brand])
+      )
 
       await Promise.all(
-        createdBrands.map((brand, index) =>
-          setBrandAttributes(
+        input.brands.map(async (brand) => {
+          const createdBrand = createdBrandsByHandle.get(brand.handle)
+
+          if (!createdBrand) {
+            throw new Error(`Created brand "${brand.handle}" was not found`)
+          }
+
+          await setBrandAttributes(
             service,
-            brand.id,
-            input.brands[index]?.attributes,
+            createdBrand.id,
+            brand.attributes,
             context
           )
-        )
+        })
       )
 
       return createdBrands

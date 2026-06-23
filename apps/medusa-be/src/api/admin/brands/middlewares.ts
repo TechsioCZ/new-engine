@@ -8,6 +8,7 @@ import {
   AdminCreateBrandSchema,
   AdminGetBrandAttributeTypesSchema,
   AdminGetBrandProductOptionsSchema,
+  AdminGetBrandProductsSchema,
   AdminGetBrandsSchema,
   AdminSetBrandProductsSchema,
   AdminSetProductBrandsSchema,
@@ -63,7 +64,7 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     methods: ["GET"],
     matcher: "/admin/brands/:id/products",
     middlewares: [
-      validateAndTransformQuery(AdminGetBrandsSchema, {
+      validateAndTransformQuery(AdminGetBrandProductsSchema, {
         isList: true,
       }),
     ],

@@ -3572,10 +3572,20 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const xml = await readXmlSource(feedPaths.productsXmlPath)
   const manufacturersCsvSource = resolveManufacturersCsvSource(args)
   logger.info(`Using manufacturers CSV feed: ${manufacturersCsvSource}`)
-  const manufacturersCsv = parseManufacturersCsv(
-    await readCsvSource(manufacturersCsvSource)
-  )
-  const manufacturersLookup = buildManufacturersLookup(manufacturersCsv)
+
+  let manufacturersLookup: ReturnType<typeof buildManufacturersLookup>
+  try {
+    const manufacturersCsv = parseManufacturersCsv(
+      await readCsvSource(manufacturersCsvSource)
+    )
+    manufacturersLookup = buildManufacturersLookup(manufacturersCsv)
+  } catch (error) {
+    logger.error(
+      `Failed to load manufacturers CSV from ${manufacturersCsvSource}`,
+      error instanceof Error ? (error.stack ?? error.message) : error
+    )
+    throw error
+  }
   const categoryExports = feedPaths.categoriesXmlPath
     ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
     : undefined

@@ -35,7 +35,7 @@ type BrandSnapshot = {
   gpsrEuropeanResellerContactEmail?: string | null
   gpsrEuropeanResellerManufacturingCompanyName?: string | null
   gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturedOutsideEu?: boolean | null
   gpsrManufacturingCompanyName?: string | null
   gpsrPostalAddress?: string | null
 }
@@ -56,7 +56,7 @@ type BrandSnapshotRecord = {
   gpsrEuropeanResellerContactEmail?: string | null
   gpsrEuropeanResellerManufacturingCompanyName?: string | null
   gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturedOutsideEu?: boolean | null
   gpsrManufacturingCompanyName?: string | null
   gpsrPostalAddress?: string | null
 }
@@ -78,16 +78,44 @@ type BrandServiceWithTransaction = BrandModuleService & {
   }
 }
 
+const CHUNK_SIZE = 500
+
+const chunkArray = <T>(items: T[], size: number): T[][] => {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+
+  return chunks
+}
+
+const hasBrandTransaction = (
+  service: BrandModuleService
+): service is BrandServiceWithTransaction => {
+  const candidate = service as Partial<BrandServiceWithTransaction>
+
+  return typeof candidate.baseRepository_?.transaction === "function"
+}
+
 export const getBrandService = (container: MedusaContainer) =>
   container.resolve<BrandModuleService>(BRAND_MODULE)
 
 export const withBrandTransaction = <T>(
   service: BrandModuleService,
   task: (sharedContext: Context) => Promise<T>
-) =>
-  (service as BrandServiceWithTransaction).baseRepository_.transaction(
-    (transactionManager) => task({ transactionManager } as Context)
+) => {
+  if (!hasBrandTransaction(service)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Brand service is missing transaction support"
+    )
+  }
+
+  return service.baseRepository_.transaction((transactionManager) =>
+    task({ transactionManager } as Context)
   )
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -106,6 +134,7 @@ const isBrandSnapshotRecord = (
     !Array.isArray(brand.attributes) ||
     !(
       brand.gpsrManufacturedOutsideEu === undefined ||
+      brand.gpsrManufacturedOutsideEu === null ||
       typeof brand.gpsrManufacturedOutsideEu === "boolean"
     )
   ) {
@@ -171,7 +200,7 @@ export const snapshotBrand = async (
       brand.gpsrEuropeanResellerManufacturingCompanyName ?? null,
     gpsrEuropeanResellerPostalAddress:
       brand.gpsrEuropeanResellerPostalAddress ?? null,
-    gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? false,
+    gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? null,
     gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName ?? null,
     gpsrPostalAddress: brand.gpsrPostalAddress ?? null,
   }
@@ -184,7 +213,7 @@ const pickBrandWriteFields = (brand: {
   gpsrEuropeanResellerContactEmail?: string | null
   gpsrEuropeanResellerManufacturingCompanyName?: string | null
   gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
+  gpsrManufacturedOutsideEu?: boolean | null
   gpsrManufacturingCompanyName?: string | null
   gpsrPostalAddress?: string | null
 }) => ({
@@ -328,15 +357,21 @@ export const getCurrentProductBrandLinks = async (
   }
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: ProductBrandLink.entryPoint,
-    fields: ["product_id", "brand_id"],
-    filters: {
-      product_id: { $in: ids },
-    },
-  })
+  const data: ProductBrandLinkRecord[] = []
 
-  return (data as ProductBrandLinkRecord[]).filter(
+  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
+    const response = await query.graph({
+      entity: ProductBrandLink.entryPoint,
+      fields: ["product_id", "brand_id"],
+      filters: {
+        product_id: { $in: idChunk },
+      },
+    })
+
+    data.push(...(response.data as ProductBrandLinkRecord[]))
+  }
+
+  return data.filter(
     (link): link is Required<ProductBrandLinkRecord> =>
       !!(link.product_id && link.brand_id)
   )
@@ -352,17 +387,22 @@ export const getActiveBrandIds = async (
     return new Set<string>()
   }
 
-  const brands = await getBrandService(container).listBrands(
-    {
-      id: { $in: ids },
-    },
-    {
-      select: ["id"],
-      withDeleted: false,
-    }
-  )
+  const brands: BrandIdRecord[] = []
 
-  return new Set((brands as BrandIdRecord[]).map((brand) => brand.id))
+  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
+    const chunkBrands = await getBrandService(container).listBrands(
+      {
+        id: { $in: idChunk },
+      },
+      {
+        select: ["id"],
+        withDeleted: false,
+      }
+    )
+    brands.push(...(chunkBrands as BrandIdRecord[]))
+  }
+
+  return new Set(brands.map((brand) => brand.id))
 }
 
 export const getCurrentBrandProductIds = async (
