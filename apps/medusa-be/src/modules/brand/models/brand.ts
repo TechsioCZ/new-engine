@@ -22,7 +22,7 @@ const Brand = model
       name: "IDX_brand_handle_unique",
       on: ["handle"],
       unique: true,
-      where: "deleted_at IS NULL",
+      where: { deleted_at: null },
     },
   ])
 

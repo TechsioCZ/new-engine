@@ -2,7 +2,7 @@ import type { Query } from "@medusajs/framework"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
-import { MEILISEARCH, BRANDS } from "../"
+import { BRANDS, MEILISEARCH } from "../"
 
 export type SyncMeilisearchBrandsStepInput = {
   filters?: Record<string, unknown>
@@ -76,7 +76,7 @@ export const syncMeilisearchBrandsStep = createStep(
       }
     }
 
-    const currentBrandIds = new Set(allBrands.map((p) => p.id))
+    const currentBrandIds = new Set(allBrands.map((brand) => brand.id))
     const brandsToDelete = Array.from(existingBrandIds).filter(
       (id) => !currentBrandIds.has(id)
     )
@@ -88,14 +88,9 @@ export const syncMeilisearchBrandsStep = createStep(
 
     await Promise.all(
       brandIndexes.map((index) =>
-        meilisearchService.addDocuments(
-          index,
-          transformedBrands,
-          BRANDS,
-          {
-            container,
-          }
-        )
+        meilisearchService.addDocuments(index, transformedBrands, BRANDS, {
+          container,
+        })
       )
     )
     await Promise.all(

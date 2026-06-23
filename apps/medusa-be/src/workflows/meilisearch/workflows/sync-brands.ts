@@ -6,8 +6,6 @@ import { syncMeilisearchBrandsStep } from "../steps/sync-brands"
 
 export type SyncMeilisearchBrandsWorkflowInput = {
   filters?: Record<string, unknown>
-  limit?: number
-  offset?: number
 }
 
 export const syncMeilisearchBrandsWorkflow = createWorkflow(

@@ -68,10 +68,12 @@ export async function GET(
 }
 
 function isBrandRuleValue(value: unknown): value is BrandRuleValue {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as BrandRuleValue).id === "string" &&
-    typeof (value as BrandRuleValue).title === "string"
-  )
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+
+  const id = Reflect.get(value, "id")
+  const title = Reflect.get(value, "title")
+
+  return typeof id === "string" && typeof title === "string"
 }

@@ -11,7 +11,7 @@ import {
   uniqueIds,
 } from "../../utils"
 import type {
-  AdminGetBrandsSchemaType,
+  AdminGetBrandProductsSchemaType,
   AdminSetBrandProductsSchemaType,
 } from "../../validators"
 
@@ -37,7 +37,7 @@ const getProductOrder = (field: string, direction: "ASC" | "DESC") => ({
 })
 
 export async function GET(
-  req: MedusaRequest<unknown, AdminGetBrandsSchemaType>,
+  req: MedusaRequest<unknown, AdminGetBrandProductsSchemaType>,
   res: MedusaResponse
 ) {
   const brandId = req.params.id ?? ""

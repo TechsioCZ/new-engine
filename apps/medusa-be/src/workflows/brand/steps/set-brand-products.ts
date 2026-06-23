@@ -1,13 +1,14 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { createLinksWorkflow } from "@medusajs/medusa/core-flows"
 import type { SetBrandProductsWorkflowInput } from "../types"
 import {
+  brandProductLink,
   diffIds,
   dismissProductBrandLinks,
   getActiveBrandIds,
   getCurrentBrandProductIds,
   getCurrentProductBrandLinks,
-  brandProductLink,
   replaceProductBrandLinks,
 } from "./helpers"
 
@@ -63,6 +64,7 @@ export const setBrandProductsStep = createStep(
       },
       {
         brand_id: input.brand_id,
+        dismissed_inactive_links: inactiveLinksToDismiss,
         product_ids: currentIds,
       }
     )
@@ -70,6 +72,14 @@ export const setBrandProductsStep = createStep(
   async (previous, { container }) => {
     if (!previous) {
       return
+    }
+
+    if (previous.dismissed_inactive_links?.length) {
+      await createLinksWorkflow(container).run({
+        input: previous.dismissed_inactive_links.map((link) =>
+          brandProductLink(link.product_id, link.brand_id)
+        ),
+      })
     }
 
     const currentIds = await getCurrentBrandProductIds(

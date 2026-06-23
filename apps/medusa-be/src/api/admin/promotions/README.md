@@ -55,7 +55,7 @@ Search and filter product variants for promotion rules.
 
 ### Brand Options
 
-```
+```http
 GET /admin/promotions/rule-value-options/:rule_type/brand
 ```
 

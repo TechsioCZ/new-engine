@@ -1274,12 +1274,14 @@ const BrandDetailPage = () => {
         onOpenChange={setEditOpen}
         open={!isDeleted && editOpen}
       />
-      <ProductAssignmentDrawer
-        brandId={id ?? ""}
-        currentProductIds={productIds}
-        onOpenChange={setProductsOpen}
-        open={!isDeleted && !!id && productsOpen}
-      />
+      {id ? (
+        <ProductAssignmentDrawer
+          brandId={id}
+          currentProductIds={productIds}
+          onOpenChange={setProductsOpen}
+          open={!isDeleted && !!id && productsOpen}
+        />
+      ) : null}
     </>
   )
 }

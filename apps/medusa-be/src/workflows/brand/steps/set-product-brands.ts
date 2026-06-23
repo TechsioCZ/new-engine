@@ -1,10 +1,11 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { SetProductBrandsWorkflowInput } from "../types"
 import {
+  brandProductLink,
   getActiveBrandIds,
   getCurrentProductBrandIds,
   getProductBrandIdsToReplace,
-  brandProductLink,
   replaceProductBrandLinks,
 } from "./helpers"
 
@@ -15,16 +16,31 @@ export const setProductBrandsStep = createStep(
       container,
       input.product_id
     )
-    const activeBrandIds = await getActiveBrandIds(container, currentIds)
+    const activeBrandIds = await getActiveBrandIds(container, input.brand_ids)
+    const nextActiveBrandIds = input.brand_ids.filter((brandId) =>
+      activeBrandIds.has(brandId)
+    )
+
+    if (nextActiveBrandIds.length !== input.brand_ids.length) {
+      const inactiveBrandIds = input.brand_ids.filter(
+        (brandId) => !activeBrandIds.has(brandId)
+      )
+
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Brands are inactive or deleted: ${inactiveBrandIds.join(", ")}`
+      )
+    }
+
     const currentIdsToReplace = getProductBrandIdsToReplace(
       currentIds,
       activeBrandIds,
-      input.brand_ids
+      nextActiveBrandIds
     )
     const { add, remove } = await replaceProductBrandLinks(
       container,
       currentIdsToReplace,
-      input.brand_ids,
+      nextActiveBrandIds,
       (brandId) => brandProductLink(input.product_id, brandId)
     )
 

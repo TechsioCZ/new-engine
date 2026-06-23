@@ -5,9 +5,17 @@ import { getBrandService } from "./helpers"
 export const restoreBrandAttributeTypesStep = createStep(
   "restore-brand-attribute-types",
   async (input: RestoreBrandAttributeTypesWorkflowInput, { container }) => {
-    await getBrandService(container).restoreBrandAttributeTypes(input.ids)
+    const restoredBrandAttributeTypes = (await getBrandService(
+      container
+    ).restoreBrandAttributeTypes(input.ids)) as
+      | Array<{ id: string }>
+      | undefined
+    const restoredIds =
+      restoredBrandAttributeTypes?.map(
+        (brandAttributeType) => brandAttributeType.id
+      ) ?? input.ids
 
-    return new StepResponse(input.ids, input.ids)
+    return new StepResponse(restoredIds, restoredIds)
   },
   async (restoredIds, { container }) => {
     if (restoredIds?.length) {

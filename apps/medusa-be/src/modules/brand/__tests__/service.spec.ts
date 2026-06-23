@@ -6,6 +6,8 @@ import BrandAttribute from "../models/brand-attribute"
 import BrandAttributeType from "../models/brand-attribute-type"
 import type BrandModuleService from "../service"
 
+vi.setConfig({ testTimeout: 60_000 })
+
 moduleIntegrationTestRunner<BrandModuleService>({
   moduleName: BRAND_MODULE,
   moduleModels: [Brand, BrandAttribute, BrandAttributeType],
@@ -31,6 +33,41 @@ moduleIntegrationTestRunner<BrandModuleService>({
         })
 
         expect(result.handle).toBe("custom-handle")
+      })
+
+      it("persists GPSR fields on upsert", async () => {
+        const result = await service.upsertBrand({
+          name: "GPSR Brand",
+          handle: "gpsr-brand",
+          attributes: [],
+          gpsrContactEmail: "contact@example.com",
+          gpsrEuropeanResellerContactEmail: "reseller@example.com",
+          gpsrEuropeanResellerManufacturingCompanyName: "Reseller Co",
+          gpsrEuropeanResellerPostalAddress: "Reseller Street 1",
+          gpsrManufacturedOutsideEu: true,
+          gpsrManufacturingCompanyName: "Manufacturer Co",
+          gpsrPostalAddress: "Main Street 1",
+        })
+
+        const [brand] = await service.listBrands(
+          { id: result.id },
+          { relations: ["attributes.attributeType"] }
+        )
+
+        expect(brand).toBeDefined()
+        expect(brand?.gpsrContactEmail).toBe("contact@example.com")
+        expect(brand?.gpsrEuropeanResellerContactEmail).toBe(
+          "reseller@example.com"
+        )
+        expect(brand?.gpsrEuropeanResellerManufacturingCompanyName).toBe(
+          "Reseller Co"
+        )
+        expect(brand?.gpsrEuropeanResellerPostalAddress).toBe(
+          "Reseller Street 1"
+        )
+        expect(brand?.gpsrManufacturedOutsideEu).toBe(true)
+        expect(brand?.gpsrManufacturingCompanyName).toBe("Manufacturer Co")
+        expect(brand?.gpsrPostalAddress).toBe("Main Street 1")
       })
 
       it("returns existing brand when handle matches", async () => {
@@ -150,5 +187,3 @@ moduleIntegrationTestRunner<BrandModuleService>({
     })
   },
 })
-
-vi.setConfig({ testTimeout: 60_000 })
