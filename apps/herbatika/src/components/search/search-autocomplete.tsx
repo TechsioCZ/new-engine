@@ -39,14 +39,14 @@ export function SearchAutocomplete({
         onValueChange={controller.handleValueChange}
         value={controller.value}
       >
-        <SearchForm.Control className="h-search-form border border-border-search bg-fill-secondary">
+        <SearchForm.Control className="h-search-form rounded-base bg-fill-secondary">
           <SearchForm.Input
             aria-activedescendant={controller.activeItemId}
             aria-autocomplete="list"
             aria-controls={controller.hasItems ? controller.panelId : undefined}
             aria-expanded={controller.shouldShowPanel}
             aria-haspopup="listbox"
-            className={`${isMobile ? "px-350 text-sm" : "px-400"} h-full font-verdana`}
+            className={`${isMobile ? "px-350 text-sm" : "px-400"} border-none h-full font-verdana -outline-offset-1 outline outline-border-search focus-visible:outline-offset-0 focus-visible:outline-search-form-border-focused`}
             maxLength={SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH}
             name="q"
             onFocus={controller.handleFocus}
@@ -54,15 +54,15 @@ export function SearchAutocomplete({
             placeholder="Napíšte, čo hľadáte..."
             role="combobox"
           />
-          <SearchForm.ClearButton
-            aria-label="Vymazať vyhľadávanie"
-            className="text-fg-secondary hover:text-fg-primary"
-          />
           <SearchForm.Button
             aria-label="Hľadať"
-            className="rounded-none"
+            className="rounded-none rounded-r-base h-full focus-visible:bg-search-form-bg-focused focus-visible:outline-offset-0 focus-visible:outline-search-form-border-focused"
             iconSize={isMobile ? "lg" : "xl"}
             showSearchIcon
+          />
+          <SearchForm.ClearButton
+            aria-label="Vymazať vyhľadávanie"
+            className="text-fg-secondary hover:text-fg-primary right-0"
           />
         </SearchForm.Control>
 
