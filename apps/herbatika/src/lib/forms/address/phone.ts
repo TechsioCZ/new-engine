@@ -160,14 +160,6 @@ export const validateRequiredPhoneNumberForSupportedCountries = (
   )
 }
 
-export const normalizePhoneNumberToE164 = (
-  value: string,
-  countryCode: string | null | undefined
-) => {
-  const result = validateOptionalPhoneNumberForCountry(value, countryCode)
-  return result?.valid ? result.e164 : null
-}
-
 export const normalizePhoneNumberToSupportedE164 = (
   value: string,
   preferredCountryCode?: string | null
