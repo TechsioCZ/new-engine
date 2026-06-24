@@ -1,4 +1,5 @@
 import { checkoutAddressFieldValidators } from "@/lib/forms/checkout/address-validators"
+import { createCountryAwarePostalCodeFieldValidators } from "@/lib/forms/address/tanstack-validators"
 import {
   createChangeBlurContextualFieldValidators,
   createChangeBlurFieldValidators,
@@ -53,6 +54,8 @@ type ConfirmPasswordFieldApi = {
     getFieldValue: (name: "password") => unknown
   }
 }
+
+const BILLING_COUNTRY_FIELD_NAME = "billing_country_code"
 
 export const isWholesaleRegistration = (values: RegisterFormValues) =>
   values.account_type === "wholesale"
@@ -131,9 +134,12 @@ export const registerValidators = {
   billing_city: createWholesaleFieldValidators(
     checkoutAddressFieldValidators.city
   ),
-  billing_postal_code: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.postalCode
-  ),
+  billing_postal_code: createCountryAwarePostalCodeFieldValidators({
+    countryFieldName: BILLING_COUNTRY_FIELD_NAME,
+    getCountryCode: (values: RegisterFormValues) =>
+      values.billing_country_code,
+    shouldValidate: isWholesaleRegistration,
+  }),
   billing_country_code: createWholesaleFieldValidators(
     checkoutAddressFieldValidators.countryCode
   ),

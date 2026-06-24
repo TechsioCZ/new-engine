@@ -6,6 +6,8 @@ import {
   mapMedusaAddressToCheckoutAddress,
 } from "@techsio/storefront-data/checkout/address"
 import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shared/address"
+import { formatPostalCodeForCountry } from "@/lib/forms/address/postal-code"
+import { normalizePhoneNumberToSupportedE164 } from "@/lib/forms/address/phone"
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
 const HERBATIKA_ADDRESS_METADATA_FIELDS = [
@@ -70,12 +72,23 @@ const readMetadataString = (
   key: string
 ) => normalizeOptionalString(metadata?.[key])
 
+const normalizeAddressPhone = (addressForm: CheckoutAddressValues) =>
+  normalizePhoneNumberToSupportedE164(
+    addressForm.phone,
+    addressForm.countryCode
+  ) ??
+  addressForm.phone
+
+const normalizeAddressPostalCode = (addressForm: CheckoutAddressValues) =>
+  formatPostalCodeForCountry(addressForm.postalCode, addressForm.countryCode) ??
+  addressForm.postalCode
+
 export const buildHerbatikaCheckoutAddressInput = (
   addressForm: CheckoutAddressValues
 ): HerbatikaCheckoutAddressInput => ({
   firstName: addressForm.firstName,
   lastName: addressForm.lastName,
-  phone: addressForm.phone,
+  phone: normalizeAddressPhone(addressForm),
   company: addressForm.company,
   companyId: addressForm.companyId,
   taxId: addressForm.taxId,
@@ -83,7 +96,7 @@ export const buildHerbatikaCheckoutAddressInput = (
   street: addressForm.address1,
   street2: addressForm.address2,
   city: addressForm.city,
-  postalCode: addressForm.postalCode,
+  postalCode: normalizeAddressPostalCode(addressForm),
   country: addressForm.countryCode,
   customerNote: addressForm.customerNote,
 })

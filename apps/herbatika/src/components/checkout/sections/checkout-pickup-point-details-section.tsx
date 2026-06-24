@@ -6,6 +6,7 @@ import {
 import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
+import { normalizeHerbatikaAddressCountryCode } from "@/lib/forms/address/address-country-rules"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
@@ -24,6 +25,10 @@ export function CheckoutPickupPointDetailsSection({
   pickupAddress,
 }: CheckoutPickupPointDetailsSectionProps) {
   const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase
+  const phoneDefaultCountry =
+    normalizeHerbatikaAddressCountryCode(
+      checkoutDetailsForm.values.shipping.countryCode
+    ) ?? "SK"
 
   return (
     <>
@@ -104,10 +109,12 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.PhoneField
+                  defaultCountry={phoneDefaultCountry}
                   id="checkout-pickup-phone"
                   label="Telefón"
                   required
                   validationMode="blur"
+                  valueMode="e164WhenValid"
                 />
               )}
             </checkoutDetailsForm.form.AppField>
