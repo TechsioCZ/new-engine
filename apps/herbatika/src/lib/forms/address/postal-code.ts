@@ -93,7 +93,7 @@ export const validatePostalCodeForCountry = (
   }
 
   return {
-    formattedValue: formatPostalCodeForCountry(trimmedValue, rule.code) ?? "",
+    formattedValue: formatPostalCodeForCountry(trimmedValue, rule.code)!,
     normalizedDigits,
     valid: true,
   }

@@ -130,7 +130,7 @@ export const validateOptionalPhoneNumberForSupportedCountries = (
   return (
     fallbackResult ?? {
       issue: "invalid_country",
-      message: "Vyberte predvoÄ¾bu telefÃ³nu.",
+      message: "Vyberte predvoľbu telefónu.",
       valid: false,
     }
   )
@@ -143,7 +143,7 @@ export const validateRequiredPhoneNumberForSupportedCountries = (
   if (!value.trim()) {
     return {
       issue: "required",
-      message: "Zadajte telefÃ³n.",
+      message: "Zadajte telefón.",
       valid: false,
     }
   }
@@ -154,7 +154,7 @@ export const validateRequiredPhoneNumberForSupportedCountries = (
       preferredCountryCode
     ) ?? {
       issue: "required",
-      message: "Zadajte telefÃ³n.",
+      message: "Zadajte telefón.",
       valid: false,
     }
   )
