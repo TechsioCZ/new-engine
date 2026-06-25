@@ -5,7 +5,6 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { SignJWT } from "jose"
 import type { PostSymmyAuthUserEmailPassSchemaType } from "./validators"
 
 const JWT_TTL_SECONDS = 24 * 60 * 60
@@ -52,6 +51,7 @@ export async function POST(
     user_metadata?: Record<string, unknown>
   }
 
+  const { SignJWT } = await import("jose")
   const token = await new SignJWT({
     actor_id: userId,
     actor_type: "user",

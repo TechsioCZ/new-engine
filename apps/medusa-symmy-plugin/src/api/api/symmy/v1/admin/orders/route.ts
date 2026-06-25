@@ -1,5 +1,6 @@
 import { getOrdersListWorkflow } from "@medusajs/core-flows"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const variables = {
@@ -18,13 +19,19 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     },
   })
 
-  const orders = result.rows
-  const { count, skip, take } = result.metadata
+  if (Array.isArray(result)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Unexpected orders workflow result"
+    )
+  }
+
+  const { rows: orders, metadata } = result
 
   res.json({
     orders,
-    count,
-    offset: skip,
-    limit: take,
+    count: metadata.count,
+    offset: metadata.skip,
+    limit: metadata.take,
   })
 }
