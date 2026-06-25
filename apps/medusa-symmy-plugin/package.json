@@ -48,6 +48,9 @@
     "publish:local": "medusa plugin:publish",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "jose": "^6.2.3"
+  },
   "devDependencies": {
     "@medusajs/admin-sdk": "^2.16.0",
     "@medusajs/admin-shared": "^2.16.0",
