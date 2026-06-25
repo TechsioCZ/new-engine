@@ -157,12 +157,8 @@ describe("Custom promotion rule routes HTTP E2E", () => {
         `/admin/promotions/rule-value-options/target-rules/product_variant?value=${variant.id}`
       )
 
-    expect(targetBrandValues).toEqual([
-      { label: brand.title, value: brand.id },
-    ])
-    expect(buyBrandValues).toEqual([
-      { label: brand.title, value: brand.id },
-    ])
+    expect(targetBrandValues).toEqual([{ label: brand.title, value: brand.id }])
+    expect(buyBrandValues).toEqual([{ label: brand.title, value: brand.id }])
     expect(variantValues).toEqual([
       {
         label: `${product.title} - ${variant.title} (${variant.sku})`,

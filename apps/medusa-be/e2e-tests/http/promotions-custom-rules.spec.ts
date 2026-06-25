@@ -3,11 +3,11 @@ import { resolveRequiredEnv } from "./helpers/client"
 import type { DraftOrderPreview } from "./helpers/promotions"
 import {
   applyPromotion,
+  createBrand,
   createBuyGetPromotion,
   createCart,
   createCartAndApplyPromotion,
   createDraftOrderWithItem,
-  createBrand,
   createProduct,
   createPromotion,
   createTestContext,
