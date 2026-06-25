@@ -949,6 +949,251 @@ const BrandProductsSection = ({
   )
 }
 
+type BrandDetailContentProps = {
+  attributeTypes: BrandAttributeType[]
+  brand: Brand
+  count: number
+  editOpen: boolean
+  isDeleted: boolean
+  onEditOpenChange: Dispatch<SetStateAction<boolean>>
+  brandId?: string
+  onManageProducts: () => void
+  onOpenProduct: (productId: string) => void
+  onPageIndexChange: Dispatch<SetStateAction<number>>
+  onProductOrderByChange: (value: string) => void
+  onProductQueryChange: (value: string) => void
+  onProductsOpenChange: Dispatch<SetStateAction<boolean>>
+  onRemove: (product: ProductSummary) => void
+  onRestore: () => void
+  pageCount: number
+  pageIndex: number
+  productOrderBy: string
+  productQ: string
+  products: ProductSummary[]
+  productIds: string[]
+  productsLoading: boolean
+  productsOpen: boolean
+  removingProductId?: string
+  restorePending: boolean
+}
+
+const BrandDetailContent = ({
+  attributeTypes,
+  brand,
+  count,
+  editOpen,
+  isDeleted,
+  onEditOpenChange,
+  brandId,
+  onManageProducts,
+  onOpenProduct,
+  onPageIndexChange,
+  onProductOrderByChange,
+  onProductQueryChange,
+  onProductsOpenChange,
+  onRemove,
+  onRestore,
+  pageCount,
+  pageIndex,
+  productOrderBy,
+  productQ,
+  products,
+  productIds,
+  productsLoading,
+  productsOpen,
+  removingProductId,
+  restorePending,
+}: BrandDetailContentProps) => {
+  const { t } = useTranslation("brands")
+
+  return (
+    <>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-2">
+          <IconButton asChild type="button" variant="transparent">
+            <Link aria-label={t("detail.backToBrands")} to="/brands">
+              <ArrowLeft />
+            </Link>
+          </IconButton>
+          <Heading level="h1">{brand.title}</Heading>
+          <StatusBadge color={brand.deleted_at ? "red" : "green"}>
+            {brand.deleted_at ? t("status.deleted") : t("status.active")}
+          </StatusBadge>
+        </div>
+
+        <Container className="divide-y p-0">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <Heading level="h2">{t("detail.details")}</Heading>
+              <Text className="text-ui-fg-subtle" size="small">
+                {brand.handle}
+              </Text>
+            </div>
+            {brand.deleted_at ? (
+              <Button
+                isLoading={restorePending}
+                onClick={onRestore}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.restore")}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => onEditOpenChange(true)}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                <PencilSquare />
+                {t("actions.edit")}
+              </Button>
+            )}
+          </div>
+          <div className="grid gap-3 px-6 py-4 md:grid-cols-2">
+            <div>
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("detail.id")}
+              </Text>
+              <Text size="small">{brand.id}</Text>
+            </div>
+            <div>
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("fields.handle")}
+              </Text>
+              <Text size="small">{brand.handle}</Text>
+            </div>
+            <div>
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("detail.activeProducts")}
+              </Text>
+              <Text size="small">{brand.active_product_count}</Text>
+            </div>
+          </div>
+          <div className="px-6 py-4">
+            <Heading level="h2">GPSR</Heading>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrManufacturingCompanyName")}
+                </Text>
+                <Text size="small">
+                  {brand.gpsrManufacturingCompanyName ?? "-"}
+                </Text>
+              </div>
+              <div>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrPostalAddress")}
+                </Text>
+                <Text size="small">{brand.gpsrPostalAddress ?? "-"}</Text>
+              </div>
+              <div>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrContactEmail")}
+                </Text>
+                <Text size="small">{brand.gpsrContactEmail ?? "-"}</Text>
+              </div>
+              <div>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrManufacturedOutsideEu")}
+                </Text>
+                <Text size="small">
+                  {brand.gpsrManufacturedOutsideEu ? t("status.selected") : "-"}
+                </Text>
+              </div>
+              <div>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrEuropeanResellerManufacturingCompanyName")}
+                </Text>
+                <Text size="small">
+                  {brand.gpsrEuropeanResellerManufacturingCompanyName ?? "-"}
+                </Text>
+              </div>
+              <div>
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrEuropeanResellerPostalAddress")}
+                </Text>
+                <Text size="small">
+                  {brand.gpsrEuropeanResellerPostalAddress ?? "-"}
+                </Text>
+              </div>
+              <div className="md:col-span-2">
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("fields.gpsrEuropeanResellerContactEmail")}
+                </Text>
+                <Text size="small">
+                  {brand.gpsrEuropeanResellerContactEmail ?? "-"}
+                </Text>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 py-4">
+            <Heading level="h2">{t("attributes.title")}</Heading>
+            <div className="mt-3 grid gap-2">
+              {brand.attributes.length ? (
+                brand.attributes.map((attribute) => (
+                  <div
+                    className="grid grid-cols-[160px_1fr_auto] gap-3"
+                    key={`${attribute.name}-${attribute.value}`}
+                  >
+                    <Text className="text-ui-fg-subtle" size="small">
+                      {attribute.name}
+                    </Text>
+                    <Text size="small">{attribute.value}</Text>
+                    {attribute.attribute_type_deleted_at ? (
+                      <StatusBadge color="red">
+                        {t("status.deleted")}
+                      </StatusBadge>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <Text className="text-ui-fg-subtle" size="small">
+                  {t("attributes.empty")}
+                </Text>
+              )}
+            </div>
+          </div>
+        </Container>
+
+        <BrandProductsSection
+          canManage={!isDeleted}
+          count={count}
+          isLoading={productsLoading}
+          onManage={onManageProducts}
+          onOpenProduct={onOpenProduct}
+          onRemove={onRemove}
+          pageCount={pageCount}
+          pageIndex={pageIndex}
+          productOrderBy={productOrderBy}
+          productQ={productQ}
+          products={products}
+          removingProductId={removingProductId}
+          setPageIndex={onPageIndexChange}
+          setProductOrderBy={onProductOrderByChange}
+          setProductQ={onProductQueryChange}
+        />
+      </div>
+
+      <BrandEditDrawer
+        attributeTypes={attributeTypes}
+        brand={brand}
+        onOpenChange={onEditOpenChange}
+        open={!isDeleted && editOpen}
+      />
+      {brandId ? (
+        <ProductAssignmentDrawer
+          brandId={brandId}
+          currentProductIds={productIds}
+          onOpenChange={onProductsOpenChange}
+          open={!isDeleted && productsOpen}
+        />
+      ) : null}
+    </>
+  )
+}
+
 const BrandDetailPage = () => {
   const { t } = useTranslation("brands")
   const { id } = useParams()
@@ -1099,190 +1344,33 @@ const BrandDetailPage = () => {
   }
 
   return (
-    <>
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center gap-2">
-          <IconButton asChild type="button" variant="transparent">
-            <Link aria-label={t("detail.backToBrands")} to="/brands">
-              <ArrowLeft />
-            </Link>
-          </IconButton>
-          <Heading level="h1">{brand.title}</Heading>
-          <StatusBadge color={brand.deleted_at ? "red" : "green"}>
-            {brand.deleted_at ? t("status.deleted") : t("status.active")}
-          </StatusBadge>
-        </div>
-
-        <Container className="divide-y p-0">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div>
-              <Heading level="h2">{t("detail.details")}</Heading>
-              <Text className="text-ui-fg-subtle" size="small">
-                {brand.handle}
-              </Text>
-            </div>
-            {brand.deleted_at ? (
-              <Button
-                isLoading={restoreMutation.isPending}
-                onClick={() => restoreMutation.mutate(brand.id)}
-                size="small"
-                type="button"
-                variant="secondary"
-              >
-                {t("actions.restore")}
-              </Button>
-            ) : (
-              <Button
-                onClick={() => setEditOpen(true)}
-                size="small"
-                type="button"
-                variant="secondary"
-              >
-                <PencilSquare />
-                {t("actions.edit")}
-              </Button>
-            )}
-          </div>
-          <div className="grid gap-3 px-6 py-4 md:grid-cols-2">
-            <div>
-              <Text className="text-ui-fg-subtle" size="small">
-                {t("detail.id")}
-              </Text>
-              <Text size="small">{brand.id}</Text>
-            </div>
-            <div>
-              <Text className="text-ui-fg-subtle" size="small">
-                {t("fields.handle")}
-              </Text>
-              <Text size="small">{brand.handle}</Text>
-            </div>
-            <div>
-              <Text className="text-ui-fg-subtle" size="small">
-                {t("detail.activeProducts")}
-              </Text>
-              <Text size="small">{brand.active_product_count}</Text>
-            </div>
-          </div>
-          <div className="px-6 py-4">
-            <Heading level="h2">GPSR</Heading>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrManufacturingCompanyName")}
-                </Text>
-                <Text size="small">
-                  {brand.gpsrManufacturingCompanyName ?? "-"}
-                </Text>
-              </div>
-              <div>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrPostalAddress")}
-                </Text>
-                <Text size="small">{brand.gpsrPostalAddress ?? "-"}</Text>
-              </div>
-              <div>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrContactEmail")}
-                </Text>
-                <Text size="small">{brand.gpsrContactEmail ?? "-"}</Text>
-              </div>
-              <div>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrManufacturedOutsideEu")}
-                </Text>
-                <Text size="small">
-                  {brand.gpsrManufacturedOutsideEu ? t("status.selected") : "-"}
-                </Text>
-              </div>
-              <div>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrEuropeanResellerManufacturingCompanyName")}
-                </Text>
-                <Text size="small">
-                  {brand.gpsrEuropeanResellerManufacturingCompanyName ?? "-"}
-                </Text>
-              </div>
-              <div>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrEuropeanResellerPostalAddress")}
-                </Text>
-                <Text size="small">
-                  {brand.gpsrEuropeanResellerPostalAddress ?? "-"}
-                </Text>
-              </div>
-              <div className="md:col-span-2">
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("fields.gpsrEuropeanResellerContactEmail")}
-                </Text>
-                <Text size="small">
-                  {brand.gpsrEuropeanResellerContactEmail ?? "-"}
-                </Text>
-              </div>
-            </div>
-          </div>
-          <div className="px-6 py-4">
-            <Heading level="h2">{t("attributes.title")}</Heading>
-            <div className="mt-3 grid gap-2">
-              {brand.attributes.length ? (
-                brand.attributes.map((attribute) => (
-                  <div
-                    className="grid grid-cols-[160px_1fr_auto] gap-3"
-                    key={`${attribute.name}-${attribute.value}`}
-                  >
-                    <Text className="text-ui-fg-subtle" size="small">
-                      {attribute.name}
-                    </Text>
-                    <Text size="small">{attribute.value}</Text>
-                    {attribute.attribute_type_deleted_at ? (
-                      <StatusBadge color="red">
-                        {t("status.deleted")}
-                      </StatusBadge>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("attributes.empty")}
-                </Text>
-              )}
-            </div>
-          </div>
-        </Container>
-
-        <BrandProductsSection
-          canManage={!isDeleted}
-          count={count}
-          isLoading={productsQuery.isLoading}
-          onManage={() => setProductsOpen(true)}
-          onOpenProduct={(productId) => navigate(`/products/${productId}`)}
-          onRemove={handleRemoveProduct}
-          pageCount={pageCount}
-          pageIndex={pageIndex}
-          productOrderBy={productOrderBy}
-          productQ={productQ}
-          products={products}
-          removingProductId={removeProductMutation.variables}
-          setPageIndex={setPageIndex}
-          setProductOrderBy={setProductOrderBy}
-          setProductQ={setProductQ}
-        />
-      </div>
-
-      <BrandEditDrawer
-        attributeTypes={attributeTypes}
-        brand={brand}
-        onOpenChange={setEditOpen}
-        open={!isDeleted && editOpen}
-      />
-      {id ? (
-        <ProductAssignmentDrawer
-          brandId={id}
-          currentProductIds={productIds}
-          onOpenChange={setProductsOpen}
-          open={!isDeleted && !!id && productsOpen}
-        />
-      ) : null}
-    </>
+    <BrandDetailContent
+      attributeTypes={attributeTypes}
+      brand={brand}
+      brandId={id}
+      count={count}
+      editOpen={editOpen}
+      isDeleted={isDeleted}
+      onEditOpenChange={setEditOpen}
+      onManageProducts={() => setProductsOpen(true)}
+      onOpenProduct={(productId) => navigate(`/products/${productId}`)}
+      onPageIndexChange={setPageIndex}
+      onProductOrderByChange={setProductOrderBy}
+      onProductQueryChange={setProductQ}
+      onProductsOpenChange={setProductsOpen}
+      onRemove={handleRemoveProduct}
+      onRestore={() => restoreMutation.mutate(brand.id)}
+      pageCount={pageCount}
+      pageIndex={pageIndex}
+      productIds={productIds}
+      productOrderBy={productOrderBy}
+      productQ={productQ}
+      products={products}
+      productsLoading={productsQuery.isLoading}
+      productsOpen={productsOpen}
+      removingProductId={removeProductMutation.variables}
+      restorePending={restoreMutation.isPending}
+    />
   )
 }
 

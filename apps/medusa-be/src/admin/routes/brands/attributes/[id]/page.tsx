@@ -21,15 +21,15 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
-import { translateBreadcrumb } from "../../../../lib/breadcrumb"
-import { formatLocaleCode } from "../../../../lib/format-locale-code"
 import {
-  type BrandAttributeTypeDetailResponse,
   type BrandAttributeTypeBrand,
+  type BrandAttributeTypeDetailResponse,
   brandQueryKeys,
   restoreBrandAttributeType,
   retrieveBrandAttributeType,
 } from "../../../../lib/brands"
+import { translateBreadcrumb } from "../../../../lib/breadcrumb"
+import { formatLocaleCode } from "../../../../lib/format-locale-code"
 import {
   getPaginationTranslations,
   onRowKeyboardActivate,
@@ -350,9 +350,9 @@ const BrandAttributeDetailPage = () => {
           </Table.Header>
           <Table.Body>
             <BrandRows
+              brands={brands}
               isLoading={isLoading}
               onOpen={(brandId) => navigate(`/brands/${brandId}`)}
-              brands={brands}
             />
           </Table.Body>
         </Table>

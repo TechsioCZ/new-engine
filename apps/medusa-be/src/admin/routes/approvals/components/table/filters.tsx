@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { ApprovalStatusType } from "../../../../../types"
-import type { Filter } from "../../../../components/common/table/data-table/data-table-filter"
+import type { Filter } from "../../../../components/common/table/data-table/data-table-filter/data-table-filter"
 
 export const useApprovalsTableFilters = () => {
   const { t } = useTranslation("approvals")

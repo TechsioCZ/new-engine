@@ -173,13 +173,10 @@ export async function createBrand(
   title = `Brand ${suffix()}`
 ) {
   const handle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-  const { brand } = await admin.post<{ brand: Brand }>(
-    "/admin/brands",
-    {
-      handle,
-      title,
-    }
-  )
+  const { brand } = await admin.post<{ brand: Brand }>("/admin/brands", {
+    handle,
+    title,
+  })
 
   return brand
 }

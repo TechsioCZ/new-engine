@@ -3,13 +3,13 @@ import {
   approvalAdminI18n,
 } from "../../modules/approval/admin/i18n"
 import {
-  type CompanyAdminI18nNamespace,
-  companyAdminI18n,
-} from "../../modules/company/admin/i18n"
-import {
   type BrandAdminI18nNamespace,
   brandAdminI18n,
 } from "../../modules/brand/admin/i18n"
+import {
+  type CompanyAdminI18nNamespace,
+  companyAdminI18n,
+} from "../../modules/company/admin/i18n"
 import {
   type QuoteAdminI18nNamespace,
   quoteAdminI18n,
