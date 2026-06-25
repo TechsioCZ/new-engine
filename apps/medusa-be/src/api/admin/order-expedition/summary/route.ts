@@ -1,6 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { ICachingModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
+import type OrderNoteModuleService from "../../../../modules/order-note/service"
 import {
   ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS,
   isPendingUnpaidOrder,
@@ -8,6 +10,10 @@ import {
   type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
+import {
+  fetchOrderExpeditionOrderNotesByOrderIds,
+  resolveOrderExpeditionCustomerSignals,
+} from "../../../../utils/order-expedition-customer-signals"
 import {
   ORDER_EXPEDITION_SUMMARY_CACHE_KEY,
   ORDER_EXPEDITION_SUMMARY_CACHE_TAG,
@@ -25,6 +31,11 @@ type OrderExpeditionSummaryResponse = {
   action_required_count: number
   pending_unpaid_count: number
   scanned_count: number
+  signal_counts: {
+    note: number
+    returning_customer: number
+    storn_orders: number
+  }
   status_counts: Record<OrderBusinessStatusId, number>
   total_count: number
   unhandled_count: number
@@ -40,11 +51,19 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const orderNoteService =
+    req.scope.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
   let offset = 0
   let totalCount: number | null = null
   let pendingUnpaidCount = 0
   let scannedCount = 0
   const statusCounts = createEmptyStatusCounts()
+  const scannedOrders = [] as Array<{
+    customer_id?: string | null
+    id: string
+    metadata?: Record<string, unknown> | null
+    status?: string | null
+  }>
 
   while (true) {
     const { data, metadata } = await query.graph({
@@ -59,6 +78,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     totalCount = totalCount ?? metadata?.count ?? null
     scannedCount += orders.length
+    scannedOrders.push(...orders)
     for (const order of orders) {
       const statusId = resolveOrderBusinessStatus(order).id
       statusCounts[statusId] += 1
@@ -72,10 +92,21 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     }
   }
 
+  const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
+    orderNoteService,
+    scannedOrders.map((order) => order.id)
+  )
+  const { counts: signalCounts } = await resolveOrderExpeditionCustomerSignals(
+    query,
+    scannedOrders,
+    notesByOrderId
+  )
+
   const summary: OrderExpeditionSummaryResponse = {
     action_required_count: getActionRequiredCount(statusCounts),
     pending_unpaid_count: pendingUnpaidCount,
     scanned_count: scannedCount,
+    signal_counts: signalCounts,
     status_counts: statusCounts,
     total_count: totalCount ?? scannedCount,
     unhandled_count: statusCounts.new,
@@ -139,7 +170,8 @@ function isOrderExpeditionSummaryResponse(
     typeof summary.scanned_count === "number" &&
     typeof summary.total_count === "number" &&
     typeof summary.unhandled_count === "number" &&
-    isOrderBusinessStatusCounts(summary.status_counts)
+    isOrderBusinessStatusCounts(summary.status_counts) &&
+    isOrderExpeditionSignalCounts(summary.signal_counts)
   )
 }
 
@@ -163,6 +195,24 @@ function getActionRequiredCount(
   return ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS.reduce(
     (count, statusId) => count + statusCounts[statusId],
     0
+  )
+}
+
+function isOrderExpeditionSignalCounts(
+  value: unknown
+): value is OrderExpeditionSummaryResponse["signal_counts"] {
+  if (!(typeof value === "object" && value !== null)) {
+    return false
+  }
+
+  const counts = value as Partial<
+    OrderExpeditionSummaryResponse["signal_counts"]
+  >
+
+  return (
+    typeof counts.note === "number" &&
+    typeof counts.returning_customer === "number" &&
+    typeof counts.storn_orders === "number"
   )
 }
 

@@ -177,6 +177,12 @@ export type OrderExpeditionItemDto = {
   variant_id?: string | null
 }
 
+export type OrderExpeditionCustomerSignals = {
+  note: boolean
+  returning_customer: boolean
+  storn_orders: boolean
+}
+
 export type OrderExpeditionOrderDto = {
   id: string
   business_status: OrderBusinessStatus
@@ -198,6 +204,7 @@ export type OrderExpeditionOrderDto = {
   has_active_fulfillment: boolean
   items: OrderExpeditionItemDto[]
   note?: string | null
+  signals: OrderExpeditionCustomerSignals
 }
 
 export type OrderExpeditionBlockingOrder = {
@@ -431,7 +438,13 @@ export function getOrderExpeditionTransitionBlockReason(
 }
 
 export function toOrderExpeditionDto(
-  order: OrderExpeditionRawOrder
+  order: OrderExpeditionRawOrder,
+  signals: OrderExpeditionCustomerSignals = {
+    note: false,
+    returning_customer: false,
+    storn_orders: false,
+  },
+  noteOverride?: string | null
 ): OrderExpeditionOrderDto {
   return {
     id: order.id,
@@ -455,7 +468,8 @@ export function toOrderExpeditionDto(
     total: getOrderExpeditionTotal(order),
     has_active_fulfillment: hasOrderExpeditionActiveFulfillment(order),
     items: (order.items ?? []).map(toOrderExpeditionItemDto),
-    note: getOrderExpeditionNote(order.metadata),
+    note: noteOverride ?? getOrderExpeditionNote(order.metadata),
+    signals,
   }
 }
 
@@ -728,7 +742,9 @@ function toOrderExpeditionItemDto(
   }
 }
 
-function getOrderExpeditionNote(metadata?: Record<string, unknown> | null) {
+export function getOrderExpeditionNote(
+  metadata?: Record<string, unknown> | null
+) {
   if (!metadata) {
     return null
   }
