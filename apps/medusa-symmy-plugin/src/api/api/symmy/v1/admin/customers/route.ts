@@ -1,24 +1,18 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import {
-  ContainerRegistrationKeys,
-  remoteQueryObjectFromString,
-} from "@medusajs/framework/utils"
+import type { Query } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const query = remoteQueryObjectFromString({
-    entryPoint: "customers",
-    variables: {
-      filters: req.filterableFields,
-      ...req.queryConfig.pagination,
-    },
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const { data, metadata } = await query.graph({
+    entity: "customer",
     fields: req.queryConfig.fields,
+    filters: req.filterableFields,
+    pagination: req.queryConfig.pagination,
   })
 
-  const { rows: customers, metadata } = await remoteQuery(query)
-
   res.json({
-    customers,
+    customers: data,
     count: metadata.count,
     offset: metadata.skip,
     limit: metadata.take,

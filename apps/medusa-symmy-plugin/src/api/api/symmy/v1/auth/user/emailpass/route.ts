@@ -57,8 +57,6 @@ export async function POST(
     actor_type: "user",
     auth_identity_id: authIdentity.id,
     auth_provider: "emailpass",
-    app_metadata: authIdentity.app_metadata ?? {},
-    user_metadata: authIdentity.user_metadata ?? {},
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
