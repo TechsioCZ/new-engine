@@ -28,7 +28,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build new-engine-ctl
-        run: NX_ISOLATE_PLUGINS=false pnpm exec nx run new-engine-ctl:build
+        # Teardown only needs the checked-out CLI build artifact; keep Nx plugin
+        # execution in-process here to avoid worker-startup issues in cleanup runs.
+        run: NX_ISOLATE_PLUGINS=false ./node_modules/.bin/nubx --node nx run new-engine-ctl:build
 
       - name: Upload new-engine-ctl artifact
         uses: actions/upload-artifact@v4

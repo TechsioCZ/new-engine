@@ -1,9 +1,9 @@
-import { dirname, join, resolve } from "node:path"
+import { delimiter, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { expect, test } from "vitest"
 import { executePlan } from "../orchestration/plan.js"
-import { executeScope } from "../orchestration/scope.js"
+import { executeScope, withWorkspaceBinPath } from "../orchestration/scope.js"
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
 const stackManifestPath = join(
@@ -17,6 +17,30 @@ const stackInputsPath = join(
 const explicitPreviewRejectPattern =
   /Explicit services are not deployable on lane preview: medusa-db/
 const cloneToPreviewRejectPattern = /clone_to_preview is false/
+const workspaceBinPath = join(process.cwd(), "node_modules", ".bin")
+
+test("scope preserves existing Path casing when prefixing workspace bin", () => {
+  const env = withWorkspaceBinPath({
+    Path: "C:\\Windows\\System32",
+    OTHER_VALUE: "kept",
+  })
+
+  expect(env.Path).toBe(
+    [workspaceBinPath, "C:\\Windows\\System32"].join(delimiter)
+  )
+  expect(Object.hasOwn(env, "PATH")).toBe(false)
+  expect(env.OTHER_VALUE).toBe("kept")
+})
+
+test("scope removes duplicate path casing when prefixing workspace bin", () => {
+  const env = withWorkspaceBinPath({
+    PATH: "/usr/bin",
+    Path: "C:\\Windows\\System32",
+  })
+
+  expect(env.PATH).toBe([workspaceBinPath, "/usr/bin"].join(delimiter))
+  expect(Object.hasOwn(env, "Path")).toBe(false)
+})
 
 test("preview scope prepares DB credentials for first baseline replay", async () => {
   const result = await executeScope({

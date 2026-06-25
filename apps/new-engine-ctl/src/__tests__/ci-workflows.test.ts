@@ -21,7 +21,7 @@ const previewBaselineCompleteEnvPattern = /PREVIEW_BASELINE_COMPLETE:/
 const previewBaselineCompleteFlagPattern =
   /--preview-baseline-complete "\$PREVIEW_BASELINE_COMPLETE"/
 const node24Pattern = /node-version: 24/
-const ciCtlTestPattern = /pnpm exec nx run new-engine-ctl:test/
+const ciCtlTestPattern = /nubx --node nx run new-engine-ctl:test/
 const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
 const mainVerifySummaryEnvironmentFallbackPattern =

@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("@medusajs/framework/utils", () => ({
-  ContainerRegistrationKeys: {
-    QUERY: "query",
-  },
-}))
+vi.mock("@medusajs/framework/utils", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@medusajs/framework/utils")>()
+
+  return {
+    ...actual,
+    ContainerRegistrationKeys: {
+      ...actual.ContainerRegistrationKeys,
+      QUERY: "query",
+    },
+  }
+})
 
 const createMockResponse = () => ({
   json: vi.fn().mockReturnThis(),
@@ -13,12 +20,20 @@ const createMockResponse = () => ({
 const createMockRequest = (
   validatedQuery: Record<string, unknown>,
   graph: ReturnType<typeof vi.fn>
-) => ({
-  scope: {
-    resolve: vi.fn(() => ({ graph })),
-  },
-  validatedQuery,
-})
+) => {
+  const orderNoteService = {
+    listOrderNotes: vi.fn().mockResolvedValue([]),
+  }
+
+  return {
+    scope: {
+      resolve: vi.fn((token: string) =>
+        token === "query" ? { graph } : orderNoteService
+      ),
+    },
+    validatedQuery,
+  }
+}
 
 describe("GET /admin/order-expedition/orders", () => {
   beforeEach(() => {
