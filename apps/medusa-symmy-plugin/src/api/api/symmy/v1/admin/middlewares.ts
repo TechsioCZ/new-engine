@@ -39,7 +39,7 @@ import { AdminGetUserParams } from "@medusajs/medusa/api/admin/users/validators"
 
 export const symmyAdminRoutes: MiddlewareRoute[] = [
   {
-    method: ["GET"],
+    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/orders",
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
@@ -56,7 +56,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
+    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/customers",
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
@@ -73,7 +73,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
+    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/products",
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
@@ -102,7 +102,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
+    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/regions",
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
@@ -119,7 +119,7 @@ export const symmyAdminRoutes: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["GET"],
+    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/users/me",
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),

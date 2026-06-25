@@ -18,19 +18,13 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     },
   })
 
-  const orders = Array.isArray(result) ? result : result.rows
-  const metadata = Array.isArray(result)
-    ? {
-        count: result.length,
-        skip: req.queryConfig.pagination?.skip ?? 0,
-        take: req.queryConfig.pagination?.take ?? result.length,
-      }
-    : result.metadata
+  const orders = result.rows
+  const { count, skip, take } = result.metadata
 
   res.json({
     orders,
-    count: metadata.count,
-    offset: metadata.skip,
-    limit: metadata.take,
+    count,
+    offset: skip,
+    limit: take,
   })
 }
