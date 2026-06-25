@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/src/index.d.ts",
       "import": "./dist/index.js"
     },
     "./package.json": "./package.json"
@@ -14,12 +14,13 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "rslib build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "pnpm run typecheck",
     "lint": "pnpm -w exec biome lint libs/smart-suggest/validation/src --diagnostic-level=error"
   },
   "devDependencies": {
+    "@rslib/core": "^0.18.0",
     "typescript": "^5.9.3"
   }
 }

@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/src/index.d.ts",
       "import": "./dist/index.js"
     },
     "./package.json": "./package.json"
@@ -14,12 +14,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "rslib build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "pnpm run typecheck",
     "lint": "pnpm -w exec biome lint libs/smart-suggest/react/src --diagnostic-level=error"
   },
   "devDependencies": {
+    "@rsbuild/plugin-react": "^1.4.2",
+    "@rslib/core": "^0.18.0",
     "@types/react": "^19.2.3",
     "typescript": "^5.9.3"
   },

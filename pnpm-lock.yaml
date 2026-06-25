@@ -871,30 +871,45 @@ importers:
 
   libs/smart-suggest/client:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   libs/smart-suggest/core:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   libs/smart-suggest/datasets:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   libs/smart-suggest/indexing:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   libs/smart-suggest/integrations:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -905,6 +920,12 @@ importers:
         specifier: 19.2.3
         version: 19.2.3
     devDependencies:
+      '@rsbuild/plugin-react':
+        specifier: ^1.4.2
+        version: 1.4.2(@rsbuild/core@1.6.7)
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
@@ -914,6 +935,9 @@ importers:
 
   libs/smart-suggest/storage:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -924,6 +948,12 @@ importers:
         specifier: 19.2.3
         version: 19.2.3
     devDependencies:
+      '@rsbuild/plugin-react':
+        specifier: ^1.4.2
+        version: 1.4.2(@rsbuild/core@1.6.7)
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       '@types/react':
         specifier: 19.2.3
         version: 19.2.3
@@ -933,12 +963,18 @@ importers:
 
   libs/smart-suggest/validation:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
 
   libs/smart-suggest/vanilla:
     devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.0
+        version: 0.18.0(typescript@5.9.3)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
