@@ -34,8 +34,8 @@ export async function POST(
   const userId = await resolveUserId(query, result.authIdentity)
   if (!userId) {
     throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      "User linked to the auth identity was not found"
+      MedusaError.Types.UNAUTHORIZED,
+      "Invalid email or password"
     )
   }
 
