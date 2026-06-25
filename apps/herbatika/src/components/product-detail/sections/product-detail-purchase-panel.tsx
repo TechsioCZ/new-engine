@@ -30,9 +30,7 @@ const resolveProductInfoLink = (
   product: Product,
   primaryCategory?: HttpTypes.StoreProductCategory
 ): ProductInfoLink | null => {
-  const brand = asRecord(
-    (product as Product & { brand?: unknown }).brand
-  )
+  const brand = asRecord((product as Product & { brand?: unknown }).brand)
   const brandTitle = asString(brand?.title)
 
   if (brandTitle) {

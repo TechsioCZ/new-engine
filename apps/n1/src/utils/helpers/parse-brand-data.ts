@@ -1,5 +1,5 @@
 import type { Brand } from "@/types/product"
-import type { ParsedBrandInfo, BrandEntity } from "@/types/product-page"
+import type { BrandEntity, ParsedBrandInfo } from "@/types/product-page"
 
 const TAX_ID_REGEX = /TAX ID:\s*/i
 const PHONE_PREFIX_REGEX = /Tel:\s*/i
