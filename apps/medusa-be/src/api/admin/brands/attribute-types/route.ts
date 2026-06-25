@@ -49,15 +49,17 @@ export async function GET(
     }
   }
 
-  const [attributeTypes, count] =
-    await service.listAndCountBrandAttributeTypes(filters, {
+  const [attributeTypes, count] = await service.listAndCountBrandAttributeTypes(
+    filters,
+    {
       order: parseOrder(
         req.validatedQuery.order_by ?? req.validatedQuery.order
       ),
       skip: offset,
       take: limit,
       withDeleted: include_deleted,
-    })
+    }
+  )
   const usageCounts = await getBrandAttributeTypeUsageCounts(
     req.scope,
     attributeTypes.map((attributeType) => attributeType.id)

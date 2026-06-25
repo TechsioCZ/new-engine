@@ -80,7 +80,7 @@ export const DataTable = <TData,>({
         navigateTo={navigateTo}
         noHeader={noHeader}
         noResults={noResults}
-        pagination
+        pagination={pagination}
         table={table}
       />
     </div>
