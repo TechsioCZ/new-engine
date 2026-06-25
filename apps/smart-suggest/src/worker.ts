@@ -2,6 +2,7 @@ import type { SmartSuggestWorkerHandler } from "./cloudflare-runtime"
 import {
   loadSmartSuggestConfig,
   type SmartSuggestConfig,
+  type SmartSuggestConfigResult,
   type SmartSuggestEnv,
 } from "./config"
 import { createHealthPayload } from "./health"
@@ -9,6 +10,10 @@ import { emptyCorsResponse, jsonResponse } from "./http"
 
 const healthPath = "/api/v1/health"
 const sdkPathPrefix = "/sdk/"
+const configResultsByEnv = new WeakMap<
+  SmartSuggestEnv,
+  SmartSuggestConfigResult
+>()
 
 const worker = {
   fetch(request: Request, env: SmartSuggestEnv): Response {
@@ -22,7 +27,7 @@ export function handleRequest(
   request: Request,
   env: SmartSuggestEnv
 ): Response {
-  const configResult = loadSmartSuggestConfig(env)
+  const configResult = loadConfigResult(env)
 
   if (!configResult.ok) {
     return new Response(
@@ -104,4 +109,17 @@ function handleHealth(request: Request, config: SmartSuggestConfig): Response {
   }
 
   return jsonResponse(request, config, createHealthPayload(config))
+}
+
+function loadConfigResult(env: SmartSuggestEnv): SmartSuggestConfigResult {
+  const cachedConfigResult = configResultsByEnv.get(env)
+
+  if (cachedConfigResult) {
+    return cachedConfigResult
+  }
+
+  const configResult = loadSmartSuggestConfig(env)
+  configResultsByEnv.set(env, configResult)
+
+  return configResult
 }

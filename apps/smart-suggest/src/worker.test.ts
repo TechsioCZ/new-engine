@@ -62,6 +62,23 @@ describe("smart-suggest worker", () => {
     expect(response.headers.get("access-control-allow-origin")).toBeNull()
   })
 
+  it("allows the configured tenant header in CORS preflight", () => {
+    const response = handleRequest(
+      new Request("https://smart-suggest.example/api/v1/health", {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://shop.example",
+        },
+      }),
+      validEnv
+    )
+
+    expect(response.status).toBe(204)
+    expect(response.headers.get("access-control-allow-headers")).toBe(
+      "content-type, x-smart-suggest-tenant"
+    )
+  })
+
   it("keeps the old-core SDK path reserved but unimplemented", async () => {
     const response = handleRequest(
       new Request("https://smart-suggest.example/sdk/smart-suggest.global.js"),
@@ -85,6 +102,20 @@ describe("smart-suggest worker", () => {
     expect(response.status).toBe(500)
     expect(isRecord(body)).toBe(true)
   })
+
+  it("reports invalid origins once with offending values", async () => {
+    const response = handleRequest(
+      new Request("https://smart-suggest.example/api/v1/health"),
+      {
+        ...validEnv,
+        SMART_SUGGEST_ALLOWED_ORIGINS: "not-a-url,also-bad",
+      } satisfies SmartSuggestEnv
+    )
+    const body: unknown = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(hasInvalidOriginIssue(body)).toBe(true)
+  })
 })
 
 function isHealthBody(value: unknown): value is HealthBody {
@@ -103,4 +134,28 @@ function isHealthBody(value: unknown): value is HealthBody {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
+}
+
+function hasInvalidOriginIssue(value: unknown): boolean {
+  if (!(isRecord(value) && isRecord(value.error))) {
+    return false
+  }
+
+  const issues = value.error.issues
+
+  if (!Array.isArray(issues)) {
+    return false
+  }
+
+  return issues.some((issue) => {
+    if (!isRecord(issue)) {
+      return false
+    }
+
+    return (
+      issue.code === "invalid_origin" &&
+      issue.message ===
+        "SMART_SUGGEST_ALLOWED_ORIGINS must contain HTTP(S) origins or *. Invalid: not-a-url, also-bad"
+    )
+  })
 }

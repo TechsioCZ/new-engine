@@ -40,7 +40,10 @@ function applyCorsHeaders(
 
   headers.set("vary", "Origin")
   headers.set("access-control-allow-methods", "GET, OPTIONS")
-  headers.set("access-control-allow-headers", "content-type")
+  headers.set(
+    "access-control-allow-headers",
+    `content-type, ${config.tenant.tenantHeader}`
+  )
   headers.set("access-control-max-age", "600")
 
   if (allowedOrigin) {

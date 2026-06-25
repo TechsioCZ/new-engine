@@ -12,7 +12,8 @@
     "dev": "wrangler dev --port 8787",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "lint": "pnpm -w exec biome check --write apps/smart-suggest --diagnostic-level=error"
+    "lint": "pnpm -w exec biome check apps/smart-suggest --diagnostic-level=error",
+    "lint:fix": "pnpm -w exec biome check --write apps/smart-suggest --diagnostic-level=error"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -168,14 +168,15 @@ function parseAllowedOrigins(
     return defaultAllowedOrigins
   }
 
-  for (const origin of origins) {
-    if (origin !== "*" && !isValidHttpOrigin(origin)) {
-      issues.push({
-        code: "invalid_origin",
-        message:
-          "SMART_SUGGEST_ALLOWED_ORIGINS must contain HTTP(S) origins or *.",
-      })
-    }
+  const invalidOrigins = origins.filter(
+    (origin) => origin !== "*" && !isValidHttpOrigin(origin)
+  )
+
+  if (invalidOrigins.length > 0) {
+    issues.push({
+      code: "invalid_origin",
+      message: `SMART_SUGGEST_ALLOWED_ORIGINS must contain HTTP(S) origins or *. Invalid: ${invalidOrigins.join(", ")}`,
+    })
   }
 
   return origins
