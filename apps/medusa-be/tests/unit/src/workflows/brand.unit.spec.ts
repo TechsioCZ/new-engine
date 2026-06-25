@@ -3,7 +3,7 @@ import {
   getBrandProductsLockKeys,
   getProductBrandIdsToReplace,
   getProductBrandLockKeys,
-} from "medusa-be/src/workflows/brand/steps/helpers"
+} from "src/workflows/brand/steps/helpers"
 import { describe, expect, it } from "vitest"
 import { createScope } from "../../helpers/mocks"
 
