@@ -43,7 +43,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set Nx SHAs
-        uses: nrwl/nx-set-shas@v4
+        uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
         with:
           main-branch-name: master
 
@@ -58,7 +58,7 @@ jobs:
             exit 0
           fi
 
-          AFFECTED=$(pnpm exec nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD")
+          AFFECTED=$(./node_modules/.bin/nubx --node nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD")
           echo "$AFFECTED"
           if echo "$AFFECTED" | grep -q "^ui-kit$"; then
             echo "is_affected=true" >> "$GITHUB_OUTPUT"
