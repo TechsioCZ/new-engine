@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest"
 import {
   ensureProductsAssignableToBrand,
   getBrandProductsLockKeys,
   getProductBrandIdsToReplace,
   getProductBrandLockKeys,
-} from "../../../../../src/workflows/brand/steps/helpers"
+} from "medusa-be/src/workflows/brand/steps/helpers"
+import { describe, expect, it } from "vitest"
 import { createScope } from "../../helpers/mocks"
 
 describe("brand workflow helpers", () => {
