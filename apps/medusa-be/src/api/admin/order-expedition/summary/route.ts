@@ -41,6 +41,13 @@ type OrderExpeditionSummaryResponse = {
   unhandled_count: number
 }
 
+type OrderCustomerCounters = {
+  canceledCount: number
+  totalCount: number
+}
+
+type OrderCustomerSignalCounts = OrderExpeditionSummaryResponse["signal_counts"]
+
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const cacheService = resolveOrderExpeditionSummaryCacheService(req.scope)
   const cachedSummary = await getCachedSummary(cacheService)
@@ -58,12 +65,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   let pendingUnpaidCount = 0
   let scannedCount = 0
   const statusCounts = createEmptyStatusCounts()
-  const scannedOrders = [] as Array<{
-    customer_id?: string | null
-    id: string
-    metadata?: Record<string, unknown> | null
-    status?: string | null
-  }>
+  const customerCounters = new Map<string, OrderCustomerCounters>()
 
   while (true) {
     const { data, metadata } = await query.graph({
@@ -78,12 +80,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     totalCount = totalCount ?? metadata?.count ?? null
     scannedCount += orders.length
-    scannedOrders.push(...orders)
-    for (const order of orders) {
-      const statusId = resolveOrderBusinessStatus(order).id
-      statusCounts[statusId] += 1
-      pendingUnpaidCount += isPendingUnpaidOrder(order) ? 1 : 0
-    }
+    accumulateStatusAndCustomerCounters(statusCounts, customerCounters, orders)
+    pendingUnpaidCount += accumulatePendingUnpaidCount(orders)
 
     offset += orders.length
 
@@ -92,15 +90,44 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     }
   }
 
-  const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
-    orderNoteService,
-    scannedOrders.map((order) => order.id)
-  )
-  const { counts: signalCounts } = await resolveOrderExpeditionCustomerSignals(
-    query,
-    scannedOrders,
-    notesByOrderId
-  )
+  const signalCounts = createEmptySignalCounts()
+  offset = 0
+
+  while (true) {
+    const { data } = await query.graph({
+      entity: "order",
+      fields: ORDER_BUSINESS_STATUS_ORDER_FIELDS,
+      pagination: {
+        skip: offset,
+        take: ORDER_EXPEDITION_SUMMARY_BATCH_SIZE,
+      },
+    })
+    const orders = parseOrderBusinessStatusOrders(data)
+
+    if (!orders.length) {
+      break
+    }
+
+    const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
+      orderNoteService,
+      orders.map((order) => order.id)
+    )
+    const { counts: pageSignalCounts } =
+      await resolveOrderExpeditionCustomerSignals(
+        query,
+        orders,
+        notesByOrderId,
+        customerCounters
+      )
+
+    accumulateSignalCounts(signalCounts, pageSignalCounts)
+
+    offset += orders.length
+
+    if (totalCount !== null && offset >= totalCount) {
+      break
+    }
+  }
 
   const summary: OrderExpeditionSummaryResponse = {
     action_required_count: getActionRequiredCount(statusCounts),
@@ -153,6 +180,54 @@ async function setCachedSummary(
   } catch {
     // Summary remains usable even without a cache write.
   }
+}
+
+function accumulateStatusAndCustomerCounters(
+  statusCounts: Record<OrderBusinessStatusId, number>,
+  customerCounters: Map<string, OrderCustomerCounters>,
+  orders: ReturnType<typeof parseOrderBusinessStatusOrders>
+) {
+  for (const order of orders) {
+    const statusId = resolveOrderBusinessStatus(order).id
+    statusCounts[statusId] += 1
+
+    const customerId =
+      typeof order.customer_id === "string" ? order.customer_id : undefined
+
+    if (!customerId) {
+      continue
+    }
+
+    const counter = customerCounters.get(customerId) ?? {
+      canceledCount: 0,
+      totalCount: 0,
+    }
+
+    counter.totalCount += 1
+    counter.canceledCount += order.status === "canceled" ? 1 : 0
+    customerCounters.set(customerId, counter)
+  }
+}
+
+function accumulatePendingUnpaidCount(
+  orders: ReturnType<typeof parseOrderBusinessStatusOrders>
+) {
+  let count = 0
+
+  for (const order of orders) {
+    count += isPendingUnpaidOrder(order) ? 1 : 0
+  }
+
+  return count
+}
+
+function accumulateSignalCounts(
+  target: OrderCustomerSignalCounts,
+  source: OrderCustomerSignalCounts
+) {
+  target.note += source.note
+  target.returning_customer += source.returning_customer
+  target.storn_orders += source.storn_orders
 }
 
 function isOrderExpeditionSummaryResponse(
@@ -214,6 +289,14 @@ function isOrderExpeditionSignalCounts(
     typeof counts.returning_customer === "number" &&
     typeof counts.storn_orders === "number"
   )
+}
+
+function createEmptySignalCounts(): OrderCustomerSignalCounts {
+  return {
+    note: 0,
+    returning_customer: 0,
+    storn_orders: 0,
+  }
 }
 
 function createEmptyStatusCounts() {

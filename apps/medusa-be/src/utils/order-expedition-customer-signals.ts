@@ -31,7 +31,8 @@ const CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE = 1000
 export async function resolveOrderExpeditionCustomerSignals(
   query: Query,
   orders: OrderSignalSource[],
-  notesByOrderId?: Map<string, string>
+  notesByOrderId?: Map<string, string>,
+  customerCountersOverride?: Map<string, CustomerOrderCounters>
 ): Promise<{
   counts: OrderExpeditionCustomerSignalCounts
   signalsByOrderId: Map<string, SharedOrderExpeditionCustomerSignals>
@@ -40,7 +41,9 @@ export async function resolveOrderExpeditionCustomerSignals(
     new Set(orders.map((order) => order.customer_id).filter(isString))
   )
 
-  const customerCounters = await fetchCustomerOrderCounters(query, customerIds)
+  const customerCounters =
+    customerCountersOverride ??
+    (await fetchCustomerOrderCounters(query, customerIds))
   const counts: OrderExpeditionCustomerSignalCounts = {
     note: 0,
     returning_customer: 0,
