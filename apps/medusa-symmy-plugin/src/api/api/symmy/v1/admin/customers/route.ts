@@ -10,11 +10,16 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     filters: req.filterableFields,
     pagination: req.queryConfig.pagination,
   })
+  const paginationMetadata = metadata ?? {
+    count: Array.isArray(data) ? data.length : 0,
+    skip: 0,
+    take: Array.isArray(data) ? data.length : 0,
+  }
 
   res.json({
     customers: data,
-    count: metadata.count,
-    offset: metadata.skip,
-    limit: metadata.take,
+    count: paginationMetadata.count,
+    offset: paginationMetadata.skip,
+    limit: paginationMetadata.take,
   })
 }
