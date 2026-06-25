@@ -567,6 +567,10 @@ importers:
         version: 5.9.3
 
   apps/medusa-symmy-plugin:
+    dependencies:
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
     devDependencies:
       '@medusajs/admin-sdk':
         specifier: ^2.16.0
