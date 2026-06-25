@@ -1,3 +1,4 @@
+// biome-ignore lint/performance/noBarrelFile: Brand workflow exports are intentionally grouped for workflow imports.
 export * from "./create-brand-attribute-types"
 export * from "./create-brands"
 export * from "./delete-brand-attribute-types"
