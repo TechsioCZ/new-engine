@@ -1,4 +1,3 @@
-// biome-ignore lint/performance/noBarrelFile: Admin API hooks expose a local extension API for route components.
 export * from "./approvals"
 export * from "./companies"
 export * from "./customers"

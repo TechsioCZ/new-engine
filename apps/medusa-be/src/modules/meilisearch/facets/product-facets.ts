@@ -257,13 +257,9 @@ const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
   }
 
   const brandHandle =
-    typeof brand.handle === "string"
-      ? sanitizeHandle(brand.handle)
-      : undefined
+    typeof brand.handle === "string" ? sanitizeHandle(brand.handle) : undefined
   const brandTitle =
-    typeof brand.title === "string"
-      ? sanitizeHandle(brand.title)
-      : undefined
+    typeof brand.title === "string" ? sanitizeHandle(brand.title) : undefined
   const handle = brandHandle ?? brandTitle
 
   if (!handle) {

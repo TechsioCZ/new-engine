@@ -16,9 +16,7 @@ export const createBrandAttributeTypesStep = createStep(
   },
   async (createdIds, { container }) => {
     if (createdIds?.length) {
-      await getBrandService(container).deleteBrandAttributeTypes(
-        createdIds
-      )
+      await getBrandService(container).deleteBrandAttributeTypes(createdIds)
     }
   }
 )

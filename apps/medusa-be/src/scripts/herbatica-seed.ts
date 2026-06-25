@@ -3556,6 +3556,7 @@ function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This seed script is intentionally linear and only runs in dev/seed flows.
 export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 

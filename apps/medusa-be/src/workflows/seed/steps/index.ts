@@ -1,4 +1,3 @@
-// biome-ignore lint/performance/noBarrelFile: Seed step exports are intentionally grouped for workflow imports.
 export * from "./create-fulfillment-set"
 export * from "./create-inventory-levels"
 export * from "./create-product-categories"
