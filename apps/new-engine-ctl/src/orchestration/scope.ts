@@ -26,10 +26,24 @@ type ExecResult = {
   stderr: string
 }
 
-function withWorkspaceBinPath(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+export function withWorkspaceBinPath(
+  env: NodeJS.ProcessEnv
+): NodeJS.ProcessEnv {
+  const pathKey =
+    Object.keys(env).find((key) => key === "PATH") ??
+    Object.keys(env).find((key) => key.toUpperCase() === "PATH") ??
+    "PATH"
+  const nextEnv = { ...env }
+
+  for (const key of Object.keys(nextEnv)) {
+    if (key !== pathKey && key.toUpperCase() === "PATH") {
+      delete nextEnv[key]
+    }
+  }
+
   return {
-    ...env,
-    PATH: [join(process.cwd(), "node_modules", ".bin"), env.PATH]
+    ...nextEnv,
+    [pathKey]: [join(process.cwd(), "node_modules", ".bin"), env[pathKey]]
       .filter(Boolean)
       .join(delimiter),
   }
