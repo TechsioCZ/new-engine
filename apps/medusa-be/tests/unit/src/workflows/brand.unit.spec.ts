@@ -5,7 +5,7 @@ import {
   getBrandProductsLockKeys,
   getProductBrandIdsToReplace,
   getProductBrandLockKeys,
-} from "../../helpers/mocks"
+} from "../helpers/mocks"
 
 describe("brand workflow helpers", () => {
   describe("product brand lock keys", () => {
