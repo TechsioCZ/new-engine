@@ -206,6 +206,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/quote",
     },
     {
+      resolve: "./src/modules/order-note",
+    },
+    {
       resolve: "./src/modules/approval",
     },
     {

@@ -17,3 +17,12 @@ export const StoreAddLineItemsBulk = z
     ),
   })
   .strict()
+
+export type StoreSetCartCustomerNoteType = z.infer<
+  typeof StoreSetCartCustomerNote
+>
+export const StoreSetCartCustomerNote = z
+  .object({
+    note: z.string(),
+  })
+  .strict()

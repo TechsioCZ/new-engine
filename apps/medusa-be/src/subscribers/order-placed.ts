@@ -1,11 +1,29 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import type { Logger } from "@medusajs/framework/types"
+import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
 import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
+import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 
 type OrderPlacedEvent = {
   id: string
+}
+
+type OrderWithMetadata = {
+  id: string
+  metadata?: Record<string, unknown> | null
+}
+
+function getOrderNote(order: OrderWithMetadata) {
+  const note = order.metadata?.order_note
+
+  if (typeof note !== "string") {
+    return
+  }
+
+  const trimmedNote = note.trim()
+
+  return trimmedNote.length ? trimmedNote : undefined
 }
 
 export default async function orderPlacedHandler({
@@ -18,6 +36,25 @@ export default async function orderPlacedHandler({
       store_name: process.env.STORE_NAME,
     },
   })
+
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const {
+    data: [order],
+  } = await query.graph({
+    entity: "order",
+    fields: ["id", "metadata"],
+    filters: { id: data.id },
+  })
+  const note = order ? getOrderNote(order as OrderWithMetadata) : undefined
+
+  if (note) {
+    await syncOrderNoteWorkflow(container).run({
+      input: {
+        note,
+        order_id: data.id,
+      },
+    })
+  }
 
   try {
     await sendAccountSetupWorkflow(container).run({
