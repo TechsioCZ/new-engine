@@ -6,9 +6,9 @@ import {
   resolveBrandSlug,
 } from "./search-autocomplete-normalizers"
 import type {
+  RawSearchAutocompleteBrandRef,
   RawSearchAutocompleteCategoryRef,
   RawSearchAutocompleteFacetItem,
-  RawSearchAutocompleteBrandRef,
   RawSearchAutocompleteProductHit,
   SearchAutocompleteSuggestion,
 } from "./search-autocomplete-types"
