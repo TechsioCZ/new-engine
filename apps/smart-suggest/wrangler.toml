@@ -1,0 +1,31 @@
+name = "smart-suggest"
+main = "src/worker.ts"
+compatibility_date = "2026-06-18"
+workers_dev = true
+
+[vars]
+SMART_SUGGEST_ENV = "local"
+SMART_SUGGEST_VERSION = "0.0.0"
+SMART_SUGGEST_BUILD_ID = "local"
+SMART_SUGGEST_ALLOWED_ORIGINS = "http://localhost:3000,http://localhost:3001"
+SMART_SUGGEST_DEFAULT_TENANT_ID = "default"
+SMART_SUGGEST_TENANT_HEADER = "x-smart-suggest-tenant"
+SMART_SUGGEST_PROVIDER_PRIORITY = ""
+
+# Future SS-02 bindings:
+# [[d1_databases]]
+# binding = "SMART_SUGGEST_DB"
+# database_name = "smart-suggest-local"
+# database_id = "00000000-0000-0000-0000-000000000000"
+#
+# [[kv_namespaces]]
+# binding = "SMART_SUGGEST_CONFIG"
+# id = "00000000000000000000000000000000"
+#
+# [[kv_namespaces]]
+# binding = "SMART_SUGGEST_CACHE"
+# id = "00000000000000000000000000000000"
+#
+# [[kv_namespaces]]
+# binding = "SMART_SUGGEST_PROVIDER_CACHE"
+# id = "00000000000000000000000000000000"

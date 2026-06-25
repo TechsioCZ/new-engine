@@ -27,6 +27,7 @@ publicHoistPattern:
   - '@iconify/tailwind4'
   - vite
   - vitest
+  - wrangler
   - '@vitejs/*'
   - storybook
   - storybook-*
@@ -113,3 +114,4 @@ allowBuilds:
   puppeteer: false
   sharp: true
   unrs-resolver: true
+  workerd: true

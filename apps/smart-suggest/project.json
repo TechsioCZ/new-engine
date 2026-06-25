@@ -14,6 +14,13 @@
         "command": "pnpm run build"
       }
     },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/smart-suggest",
+        "command": "pnpm run dev"
+      }
+    },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
@@ -26,6 +33,13 @@
       "options": {
         "cwd": "apps/smart-suggest",
         "command": "pnpm run test"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/smart-suggest",
+        "command": "pnpm run lint"
       }
     }
   }
