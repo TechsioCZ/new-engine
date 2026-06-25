@@ -14,8 +14,6 @@ interface DataTableProps<TData>
   noRecords?: Pick<NoResultsProps, "title" | "message">
 }
 
-// Maybe we should use the memoized version of DataTableRoot
-// const MemoizedDataTableRoot = memo(DataTableRoot) as typeof DataTableRoot
 const MemoizedDataTableQuery = memo(DataTableQuery)
 
 export const DataTable = <TData,>({
@@ -85,7 +83,7 @@ export const DataTable = <TData,>({
         navigateTo={navigateTo}
         noHeader={noHeader}
         noResults={noResults}
-        pagination
+        pagination={pagination}
         table={table}
       />
     </div>

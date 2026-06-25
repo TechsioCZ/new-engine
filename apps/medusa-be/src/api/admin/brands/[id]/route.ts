@@ -21,10 +21,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   ])
 
   res.status(200).json({
-    brand: toBrandResponse(
-      brand,
-      activeProductCounts.get(brand.id) ?? 0
-    ),
+    brand: toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
   })
 }
 
@@ -46,19 +43,13 @@ export async function POST(
   })
 
   const updated = result[0]
-  const brand = await retrieveBrandOrThrow(
-    req.scope,
-    updated?.id ?? brandId
-  )
+  const brand = await retrieveBrandOrThrow(req.scope, updated?.id ?? brandId)
   const activeProductCounts = await getBrandActiveProductCounts(req.scope, [
     brand.id,
   ])
 
   res.status(200).json({
-    brand: toBrandResponse(
-      brand,
-      activeProductCounts.get(brand.id) ?? 0
-    ),
+    brand: toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
   })
 }
 
@@ -95,9 +86,6 @@ export async function PUT(req: MedusaRequest, res: MedusaResponse) {
   ])
 
   res.status(200).json({
-    brand: toBrandResponse(
-      brand,
-      activeProductCounts.get(brand.id) ?? 0
-    ),
+    brand: toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
   })
 }
