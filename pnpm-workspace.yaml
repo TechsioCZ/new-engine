@@ -89,6 +89,7 @@ packages:
   - packages/**
   - apps/**
   - libs/**
+  - libs/smart-suggest/**
   - '!apps/demo/**'
   - '!apps/e2e/**'
   - '!apps/typesense-demo/**'

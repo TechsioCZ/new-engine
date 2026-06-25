@@ -1,0 +1,25 @@
+{
+  "name": "@techsio/smart-suggest-validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "pnpm run typecheck",
+    "lint": "pnpm -w exec biome lint libs/smart-suggest/validation/src --diagnostic-level=error"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

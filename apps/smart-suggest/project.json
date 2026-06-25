@@ -1,0 +1,32 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest",
+  "projectType": "application",
+  "sourceRoot": "apps/smart-suggest/src",
+  "tags": ["type:app", "scope:smart-suggest", "platform:edge"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "apps/smart-suggest",
+        "command": "pnpm run build"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/smart-suggest",
+        "command": "pnpm run typecheck"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "apps/smart-suggest",
+        "command": "pnpm run test"
+      }
+    }
+  }
+}

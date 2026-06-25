@@ -1,0 +1,32 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-storage",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/storage/src",
+  "tags": ["type:lib", "scope:smart-suggest", "platform:agnostic"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "libs/smart-suggest/storage",
+        "command": "pnpm run build"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/smart-suggest/storage",
+        "command": "pnpm run typecheck"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/smart-suggest/storage",
+        "command": "pnpm run test"
+      }
+    }
+  }
+}

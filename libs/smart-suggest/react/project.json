@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-react",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/react/src",
+  "tags": [
+    "type:lib",
+    "scope:smart-suggest",
+    "platform:web",
+    "framework:react"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "cwd": "libs/smart-suggest/react",
+        "command": "pnpm run build"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/smart-suggest/react",
+        "command": "pnpm run typecheck"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/smart-suggest/react",
+        "command": "pnpm run test"
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "smart-suggest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "pnpm run typecheck",
+    "lint": "pnpm -w exec biome lint apps/smart-suggest/src --diagnostic-level=error"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
