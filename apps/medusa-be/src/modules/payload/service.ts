@@ -43,6 +43,7 @@ const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
   "apiKeyIndex",
   "enableAPIKey",
   "hash",
+  "internalTitle",
   "loginAttempts",
   "lockUntil",
   "password",

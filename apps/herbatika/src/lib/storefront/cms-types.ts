@@ -52,4 +52,13 @@ export type CmsPage = {
   title?: string | null
 }
 
+export type CmsHeroCarousel = {
+  button?: string | null
+  buttonHref?: string | null
+  heading?: string | null
+  id: number | string
+  image?: CmsMedia | string | null
+  subheading?: string | null
+}
+
 export type CmsBlogTopic = Exclude<BlogTopicKey, "all">
