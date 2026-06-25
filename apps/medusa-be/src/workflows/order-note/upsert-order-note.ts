@@ -1,7 +1,8 @@
-import type { Logger, Query } from "@medusajs/framework/types"
+import type { IOrderModuleService, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
+  Modules,
 } from "@medusajs/framework/utils"
 import {
   createStep,
@@ -22,17 +23,26 @@ type OrderRecord = {
   metadata?: Record<string, unknown> | null
 }
 
-const syncOrderNoteStep = createStep(
-  "sync-order-note",
+type RestorableOrderNote = {
+  note: string
+  order_id: string
+}
+
+type RestoreOrderNoteCompensation = {
+  order_id: string
+  previousNote?: RestorableOrderNote
+}
+
+type RestoreOrderMetadataCompensation = {
+  order_id: string
+  previousMetadata: Record<string, unknown>
+}
+
+const upsertOrderNoteStep = createStep(
+  "upsert-order-note",
   async (input: UpsertOrderNoteWorkflowInput, { container }) => {
-    const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const pgConnection = container.resolve<any>(
-      ContainerRegistrationKeys.PG_CONNECTION
-    )
     const orderNoteService =
       container.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
-
     const trimmedNote = input.note.trim()
 
     if (!trimmedNote) {
@@ -41,6 +51,57 @@ const syncOrderNoteStep = createStep(
         "Order note cannot be empty"
       )
     }
+
+    const existingNoteRecord = await orderNoteService.getOrderNoteByOrderId(
+      input.order_id
+    )
+
+    await orderNoteService.upsertOrderNote({
+      note: trimmedNote,
+      order_id: input.order_id,
+    })
+
+    return new StepResponse<{ order_id: string }, RestoreOrderNoteCompensation>(
+      {
+        order_id: input.order_id,
+      },
+      {
+        order_id: input.order_id,
+        previousNote:
+          existingNoteRecord && typeof existingNoteRecord.note === "string"
+            ? {
+                note: existingNoteRecord.note,
+                order_id: existingNoteRecord.order_id ?? input.order_id,
+              }
+            : undefined,
+      }
+    )
+  },
+  async (input, { container }) => {
+    if (!input) {
+      return
+    }
+
+    const orderNoteService =
+      container.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
+
+    if (input.previousNote?.note.trim()) {
+      await orderNoteService.upsertOrderNote({
+        note: input.previousNote.note,
+        order_id: input.previousNote.order_id,
+      })
+      return
+    }
+
+    await orderNoteService.deleteOrderNotes({ order_id: input.order_id })
+  }
+)
+
+const clearOrderNoteMetadataStep = createStep(
+  "clear-order-note-metadata",
+  async (input: { order_id: string }, { container }) => {
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
 
     const {
       data: [order],
@@ -60,72 +121,43 @@ const syncOrderNoteStep = createStep(
 
     const orderRecord = order as OrderRecord
     const previousMetadata = { ...(orderRecord.metadata ?? {}) }
-    const existingNoteRecord = await orderNoteService.getOrderNoteByOrderId(
-      input.order_id
-    )
+    const { order_note: _orderNote, ...nextMetadata } = previousMetadata
 
-    try {
-      await orderNoteService.upsertOrderNote({
-        note: trimmedNote,
+    await orderService.updateOrders(input.order_id, {
+      metadata: nextMetadata,
+    })
+
+    return new StepResponse<
+      { order_id: string },
+      RestoreOrderMetadataCompensation
+    >(
+      {
         order_id: input.order_id,
-      })
-
-      await pgConnection.raw(
-        `update "order"
-          set "metadata" = coalesce("metadata", '{}'::jsonb) - 'order_note',
-              "updated_at" = now()
-          where "id" = ?`,
-        [input.order_id]
-      )
-
-      return new StepResponse({ order_id: input.order_id })
-    } catch (error) {
-      try {
-        if (existingNoteRecord) {
-          await orderNoteService.upsertOrderNote({
-            note: existingNoteRecord.note,
-            order_id: input.order_id,
-          })
-        } else {
-          await orderNoteService.deleteOrderNotes({ order_id: input.order_id })
-        }
-      } catch (rollbackError) {
-        logger.error(
-          `Failed to roll back order note sync for order ${input.order_id}: ${
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : String(rollbackError)
-          }`
-        )
+      },
+      {
+        order_id: input.order_id,
+        previousMetadata,
       }
-
-      try {
-        await pgConnection.raw(
-          `update "order"
-            set "metadata" = ?::jsonb,
-                "updated_at" = now()
-            where "id" = ?`,
-          [JSON.stringify(previousMetadata), input.order_id]
-        )
-      } catch (rollbackError) {
-        logger.error(
-          `Failed to restore order metadata for order ${input.order_id}: ${
-            rollbackError instanceof Error
-              ? rollbackError.message
-              : String(rollbackError)
-          }`
-        )
-      }
-
-      throw error
+    )
+  },
+  async (input, { container }) => {
+    if (!input) {
+      return
     }
+
+    const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
+
+    await orderService.updateOrders(input.order_id, {
+      metadata: input.previousMetadata,
+    })
   }
 )
 
 export const syncOrderNoteWorkflow = createWorkflow(
   "sync-order-note",
   (input: UpsertOrderNoteWorkflowInput) => {
-    const result = syncOrderNoteStep(input)
+    const note = upsertOrderNoteStep(input)
+    const result = clearOrderNoteMetadataStep(note)
 
     return new WorkflowResponse(result)
   }

@@ -11,7 +11,7 @@ const OrderNote = model
       name: "IDX_order_note_order_id_unique",
       on: ["order_id"],
       unique: true,
-      where: "deleted_at IS NULL",
+      where: { deleted_at: null },
     },
   ])
 

@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { DATABASE_MODULE } from "../modules/database"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
   QR_PAYMENT_MODULE,
@@ -206,7 +207,11 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/quote",
     },
     {
+      resolve: "./src/modules/database",
+    },
+    {
       resolve: "./src/modules/order-note",
+      dependencies: [DATABASE_MODULE],
     },
     {
       resolve: "./src/modules/approval",
@@ -227,9 +232,6 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     buildFileModule(env),
     {
       resolve: "@medusajs/index",
-    },
-    {
-      resolve: "./src/modules/database",
     },
     buildPaymentModule(env),
     ...buildFulfillmentClientModules(env),

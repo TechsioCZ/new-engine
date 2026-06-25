@@ -28,12 +28,35 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
       )
     }
 
-    const existing = await this.getOrderNoteByOrderId(
-      input.order_id,
-      sharedContext
-    )
+    try {
+      return await this.createOrderNotes(
+        {
+          note,
+          order_id: input.order_id,
+        },
+        sharedContext
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
 
-    if (existing) {
+      if (
+        !(
+          message.toLowerCase().includes("duplicate") ||
+          message.toLowerCase().includes("unique")
+        )
+      ) {
+        throw error
+      }
+
+      const existing = await this.getOrderNoteByOrderId(
+        input.order_id,
+        sharedContext
+      )
+
+      if (!existing) {
+        throw error
+      }
+
       return await this.updateOrderNotes(
         {
           id: existing.id,
@@ -43,14 +66,6 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
         sharedContext
       )
     }
-
-    return await this.createOrderNotes(
-      {
-        note,
-        order_id: input.order_id,
-      },
-      sharedContext
-    )
   }
 }
 

@@ -23,6 +23,6 @@ export type StoreSetCartCustomerNoteType = z.infer<
 >
 export const StoreSetCartCustomerNote = z
   .object({
-    note: z.string(),
+    note: z.string().trim().max(1000),
   })
   .strict()

@@ -5,11 +5,7 @@ import {
   type OrderExpeditionRawOrder,
 } from "./order-expedition"
 
-export type OrderExpeditionCustomerSignals = {
-  note: boolean
-  returning_customer: boolean
-  storn_orders: boolean
-}
+export type { OrderExpeditionCustomerSignals } from "./order-expedition"
 
 export type OrderExpeditionCustomerSignalCounts = {
   note: number
@@ -27,13 +23,18 @@ type CustomerOrderCounters = {
   totalCount: number
 }
 
+type SharedOrderExpeditionCustomerSignals =
+  import("./order-expedition").OrderExpeditionCustomerSignals
+
+const CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE = 1000
+
 export async function resolveOrderExpeditionCustomerSignals(
   query: Query,
   orders: OrderSignalSource[],
   notesByOrderId?: Map<string, string>
 ): Promise<{
   counts: OrderExpeditionCustomerSignalCounts
-  signalsByOrderId: Map<string, OrderExpeditionCustomerSignals>
+  signalsByOrderId: Map<string, SharedOrderExpeditionCustomerSignals>
 }> {
   const customerIds = Array.from(
     new Set(orders.map((order) => order.customer_id).filter(isString))
@@ -45,7 +46,10 @@ export async function resolveOrderExpeditionCustomerSignals(
     returning_customer: 0,
     storn_orders: 0,
   }
-  const signalsByOrderId = new Map<string, OrderExpeditionCustomerSignals>()
+  const signalsByOrderId = new Map<
+    string,
+    SharedOrderExpeditionCustomerSignals
+  >()
 
   for (const order of orders) {
     const signals = buildOrderExpeditionCustomerSignals(
@@ -68,7 +72,7 @@ function buildOrderExpeditionCustomerSignals(
   order: OrderSignalSource,
   customerCounters: Map<string, CustomerOrderCounters>,
   notesByOrderId?: Map<string, string>
-): OrderExpeditionCustomerSignals {
+): SharedOrderExpeditionCustomerSignals {
   const note = resolveOrderExpeditionCustomerNote(order, notesByOrderId)
   const customerCounter =
     order.customer_id && isString(order.customer_id)
@@ -87,7 +91,7 @@ function buildOrderExpeditionCustomerSignals(
 
 function accumulateOrderExpeditionCustomerSignalCounts(
   counts: OrderExpeditionCustomerSignalCounts,
-  signals: OrderExpeditionCustomerSignals
+  signals: SharedOrderExpeditionCustomerSignals
 ) {
   counts.note += signals.note ? 1 : 0
   counts.returning_customer += signals.returning_customer ? 1 : 0
@@ -113,16 +117,28 @@ async function fetchCustomerOrderCounters(
     return new Map()
   }
 
+  return fetchCustomerOrderCountersPage(query, customerIds, new Map(), 0)
+}
+
+async function fetchCustomerOrderCountersPage(
+  query: Query,
+  customerIds: string[],
+  counters: Map<string, CustomerOrderCounters>,
+  skip: number
+): Promise<Map<string, CustomerOrderCounters>> {
   const { data } = await query.graph({
     entity: "order",
     fields: ["customer_id", "status"],
     filters: { customer_id: customerIds },
-    pagination: { skip: 0, take: 100_000 },
+    pagination: {
+      skip,
+      take: CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE,
+    },
   })
 
-  const counters = new Map<string, CustomerOrderCounters>()
+  const orders = Array.isArray(data) ? data : []
 
-  for (const order of Array.isArray(data) ? data : []) {
+  for (const order of orders) {
     const customerId =
       typeof order?.customer_id === "string" ? order.customer_id : undefined
 
@@ -140,7 +156,16 @@ async function fetchCustomerOrderCounters(
     counters.set(customerId, counter)
   }
 
-  return counters
+  if (orders.length < CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE) {
+    return counters
+  }
+
+  return fetchCustomerOrderCountersPage(
+    query,
+    customerIds,
+    counters,
+    skip + CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE
+  )
 }
 
 export async function fetchOrderExpeditionOrderNotesByOrderIds(

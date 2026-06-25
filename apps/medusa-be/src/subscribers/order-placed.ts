@@ -1,9 +1,9 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
 import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
-import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 
 type OrderPlacedEvent = {
   id: string
@@ -38,6 +38,7 @@ export default async function orderPlacedHandler({
   })
 
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const {
     data: [order],
   } = await query.graph({
@@ -48,12 +49,20 @@ export default async function orderPlacedHandler({
   const note = order ? getOrderNote(order as OrderWithMetadata) : undefined
 
   if (note) {
-    await syncOrderNoteWorkflow(container).run({
-      input: {
-        note,
-        order_id: data.id,
-      },
-    })
+    try {
+      await syncOrderNoteWorkflow(container).run({
+        input: {
+          note,
+          order_id: data.id,
+        },
+      })
+    } catch (error) {
+      logger.error(
+        `Failed to sync order note for order ${data.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      )
+    }
   }
 
   try {
@@ -63,7 +72,6 @@ export default async function orderPlacedHandler({
       },
     })
   } catch (error) {
-    const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     logger.error(
       `Failed to process account setup for order ${data.id}: ${
         error instanceof Error ? error.message : String(error)

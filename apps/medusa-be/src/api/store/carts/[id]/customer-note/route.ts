@@ -33,10 +33,22 @@ export async function POST(
   req: AuthenticatedMedusaRequest<StoreSetCartCustomerNoteType>,
   res: MedusaResponse
 ) {
-  const { id: cartId } = req.params as { id: string }
-  const customerId = req.auth_context.actor_id as string
-  const note = req.validatedBody.note.trim()
+  const cartId = typeof req.params.id === "string" ? req.params.id : ""
 
+  if (!cartId) {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, "Cart id is missing")
+  }
+
+  const customerId =
+    typeof req.auth_context.actor_id === "string"
+      ? req.auth_context.actor_id
+      : ""
+
+  if (!customerId) {
+    throw new MedusaError(MedusaError.Types.UNAUTHORIZED, "Unauthorized")
+  }
+
+  const note = req.validatedBody.note.trim()
   const cart = await retrieveCart(req.scope, cartId)
 
   if (!cart) {
