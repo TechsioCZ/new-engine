@@ -25,17 +25,18 @@ type FooterColumn = {
   links: readonly FooterNavigationLink[]
 }
 
-const footerRoute = (href: string) => href as Route
+const giftVoucherHref = "/c/darceky" as Route
+const brandListingHref = "/znacka" as Route
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Informácie pre vás",
     links: [
-      { href: footerRoute("/blog"), label: "Blog" },
-      { href: footerRoute("/o-nas"), label: "O nás" },
-      { href: footerRoute("/faq"), label: "Časté otázky" },
-      { href: footerRoute("/c/darceky"), label: "Darčeková poukážka" },
-      { href: footerRoute("/znacka"), label: "Výrobcovia a značky" },
+      { href: "/blog", label: "Blog" },
+      { href: "/o-nas", label: "O nás" },
+      { href: "/faq", label: "Časté otázky" },
+      { href: giftVoucherHref, label: "Darčeková poukážka" },
+      { href: brandListingHref, label: "Výrobcovia a značky" },
       {
         href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
         label: "Recenzie",
@@ -46,29 +47,29 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Dôležité informácie",
     links: [
-      { href: footerRoute("/#doprava-a-platby"), label: "Doprava a platby" },
+      { href: "/#doprava-a-platby", label: "Doprava a platby" },
       {
-        href: footerRoute("/#reklamacia-a-vratenie"),
+        href: "/#reklamacia-a-vratenie",
         label: "Reklamácia a vrátenie",
       },
       {
-        href: footerRoute("/#obchodne-podmienky"),
+        href: "/#obchodne-podmienky",
         label: "Obchodné podmienky",
       },
       {
-        href: footerRoute("/#ochrana-osobnych-udajov"),
+        href: "/#ochrana-osobnych-udajov",
         label: "Ochrana osobných údajov",
       },
-      { href: footerRoute("/#cookies"), label: "Cookies" },
+      { href: "/#cookies", label: "Cookies" },
     ],
   },
   {
     title: "Pre partnerov",
     links: [
-      { href: footerRoute("/#affiliate"), label: "Affiliate program" },
-      { href: footerRoute("/#velkoobchod"), label: "Veľkoobchod" },
-      { href: footerRoute("/#dropshipping"), label: "Dropshipping" },
-      { href: footerRoute("/#private-label"), label: "Private label" },
+      { href: "/#affiliate", label: "Affiliate program" },
+      { href: "/#velkoobchod", label: "Veľkoobchod" },
+      { href: "/#dropshipping", label: "Dropshipping" },
+      { href: "/#private-label", label: "Private label" },
     ],
   },
 ]
@@ -155,7 +156,7 @@ export function HerbatikaFooter() {
             </Footer.Title>
             <Footer.List>
               {column.links.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   {link.external ? (
                     <Footer.Link external href={link.href}>
                       {link.label}

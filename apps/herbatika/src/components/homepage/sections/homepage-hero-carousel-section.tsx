@@ -131,6 +131,11 @@ function HeroCarousel({
   const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
     event
   ) => {
+    if (event.detail === 0) {
+      didDragRef.current = false
+      return
+    }
+
     if (!didDragRef.current) {
       return
     }
