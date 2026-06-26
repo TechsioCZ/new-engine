@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "preset": "presetUltramodern",
+  "owners": [
+    {
+      "id": "shell-super-app",
+      "package": "@smart-suggest/shell-super-app",
+      "path": "apps/shell-super-app",
+      "ownership": {
+        "team": "super-app-platform",
+        "slack": "#super-app-platform",
+        "pagerDuty": "pd-super-app-platform",
+        "runbookRef": "runbooks/wave2/shell-super-app.md",
+        "adrRef": "docs/super-app-rfc-adr/wave2/reference-topology.md#shell-super-app",
+        "blastRadius": {
+          "tier": "tier-0-shell",
+          "references": [
+            "docs/super-app-rfc-adr/wave2/blast-radius.md#shell",
+            "docs/super-app-rfc-adr/wave2/rollback.md#shell-lkg"
+          ]
+        }
+      }
+    },
+    {
+      "id": "shared-contracts",
+      "package": "@smart-suggest/shared-contracts",
+      "path": "packages/shared-contracts",
+      "ownership": {
+        "team": "super-app-platform",
+        "slack": "#super-app-platform",
+        "pagerDuty": "pd-super-app-platform",
+        "runbookRef": "runbooks/wave2/shared-contracts.md",
+        "adrRef": "docs/super-app-rfc-adr/wave2/reference-topology.md#shared-packages",
+        "blastRadius": {
+          "tier": "tier-1-shared-contract",
+          "references": [
+            "docs/super-app-rfc-adr/wave2/blast-radius.md#shared-packages"
+          ]
+        }
+      }
+    },
+    {
+      "id": "shared-design-tokens",
+      "package": "@smart-suggest/shared-design-tokens",
+      "path": "packages/shared-design-tokens",
+      "ownership": {
+        "team": "super-app-platform",
+        "slack": "#super-app-platform",
+        "pagerDuty": "pd-super-app-platform",
+        "runbookRef": "runbooks/wave2/shared-design-tokens.md",
+        "adrRef": "docs/super-app-rfc-adr/wave2/reference-topology.md#shared-packages",
+        "blastRadius": {
+          "tier": "tier-1-shared-contract",
+          "references": [
+            "docs/super-app-rfc-adr/wave2/blast-radius.md#shared-packages"
+          ]
+        }
+      }
+    }
+  ]
+}

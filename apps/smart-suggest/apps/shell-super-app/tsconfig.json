@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": [
+    "locales/**/*.json",
+    "package.json",
+    "src",
+    "modern.config.ts",
+    "module-federation.config.ts"
+  ]
+}

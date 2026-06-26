@@ -1,0 +1,688 @@
+{
+  "schemaVersion": 1,
+  "profile": "cloudflare-ssr-mf-effect-v1",
+  "packageManager": {
+    "source": "package.json",
+    "manager": "pnpm",
+    "version": "11.9.0",
+    "toolchain": "mise"
+  },
+  "node": {
+    "source": "package.json engines.node and .mise.toml",
+    "version": "26.3.0",
+    "engineRange": ">=26",
+    "toolchain": "mise"
+  },
+  "versions": {
+    "typescript": "7.0.0-dev.20260624.1",
+    "typescriptCompatibility": "6.0.3",
+    "typescriptNativePreview": "7.0.0-dev.20260624.1",
+    "moduleFederation": "2.6.0",
+    "tanstackRouter": "1.170.16",
+    "i18next": "26.3.1",
+    "zephyrRspackPlugin": "1.1.1",
+    "zephyrAgent": "1.1.1",
+    "wrangler": "4.102.0"
+  },
+  "performanceReadiness": {
+    "schemaVersion": 1,
+    "default": "enabled",
+    "mode": "diagnostic",
+    "scope": "ultramodern-generated-and-framework-owned",
+    "report": {
+      "script": "scripts/ultramodern-performance-readiness.mjs",
+      "config": "scripts/ultramodern-performance-readiness.config.mjs",
+      "defaultPath": ".codex/reports/performance-readiness/ultramodern-performance-readiness.json",
+      "deterministic": true
+    },
+    "optOut": {
+      "env": "ULTRAMODERN_PERFORMANCE_READINESS_DIAGNOSTICS=false",
+      "config": {
+        "path": "scripts/ultramodern-performance-readiness.config.mjs",
+        "field": "enabled",
+        "value": false
+      }
+    },
+    "failurePolicy": {
+      "defaultFailOn": "framework-invariant",
+      "allowedValues": [
+        "framework-invariant",
+        "never"
+      ],
+      "rejects": [
+        "accessibility-certification",
+        "product-ui-scoring",
+        "marketing-copy-scoring",
+        "broad-compliance-engine",
+        "rsdoctor-artifact-revival"
+      ]
+    },
+    "signals": [
+      {
+        "id": "bfcache",
+        "title": "BFCache diagnostics",
+        "ownedCheck": "generated-runtime-static-analysis",
+        "invariant": "Generated UltraModern files must not install beforeunload or unload handlers."
+      },
+      {
+        "id": "core-web-vitals-rum",
+        "title": "Core Web Vitals/RUM readiness",
+        "ownedCheck": "preset-telemetry-contract",
+        "invariant": "UltraModern preset telemetry must remain enabled by default without requiring local collectors."
+      },
+      {
+        "id": "duplicate-prefetch-warmup",
+        "title": "Duplicate prefetch/warmup waste",
+        "ownedCheck": "topology-and-route-contract",
+        "invariant": "Generated route URLs, remote refs, and manifest URLs must stay deterministic and duplicate-free."
+      },
+      {
+        "id": "cache-policy-sanity",
+        "title": "Cache policy sanity",
+        "ownedCheck": "generated-cloudflare-contract",
+        "invariant": "Generated Cloudflare contracts must retain CSS cache-control and public-surface cache expectations."
+      },
+      {
+        "id": "save-data-behavior",
+        "title": "Save-Data behavior",
+        "ownedCheck": "framework-router-contract",
+        "invariant": "Automatic framework warmup must remain skippable by browser Save-Data policy."
+      },
+      {
+        "id": "cloudflare-ssr-cache-hints",
+        "title": "Cloudflare SSR response and caching hints",
+        "ownedCheck": "generated-cloudflare-proof-contract",
+        "invariant": "Generated Cloudflare SSR proof routes and response/cache hint contracts must be present."
+      }
+    ]
+  },
+  "cssFederation": {
+    "schemaVersion": 1,
+    "sharedDesignTokens": {
+      "owner": {
+        "id": "shared-design-tokens",
+        "package": "@smart-suggest/shared-design-tokens",
+        "team": "super-app-platform"
+      },
+      "role": "shared-design-tokens",
+      "rootSelector": ":root",
+      "classPrefix": "--um-",
+      "layers": {
+        "owned": [
+          "ultramodern-shared-tokens"
+        ]
+      },
+      "entrypoints": {
+        "css": [
+          "packages/shared-design-tokens/src/tokens.css"
+        ],
+        "typescript": [
+          "packages/shared-design-tokens/src/index.ts"
+        ]
+      },
+      "assets": {
+        "exports": [
+          "./tokens.css"
+        ],
+        "css": [
+          "packages/shared-design-tokens/src/tokens.css"
+        ]
+      },
+      "dedupe": {
+        "strategy": "shared-token-package-plus-css-content-hash",
+        "sharedPackage": "@smart-suggest/shared-design-tokens",
+        "sharedLayers": [
+          "ultramodern-shared-tokens"
+        ],
+        "runtimeLoad": "once-per-content-hash",
+        "duplicateBaseStylesAllowed": false
+      },
+      "ssr": {
+        "cloudflare": true,
+        "firstPaintRequired": true,
+        "importedByApps": true
+      }
+    },
+    "ownershipRules": {
+      "shell": [
+        "base",
+        "overlay"
+      ],
+      "verticals": [
+        "vertical-css"
+      ],
+      "forbiddenVerticalLayers": [
+        "ultramodern-shell-base",
+        "ultramodern-shell-overlay"
+      ]
+    }
+  },
+  "apps": [
+    {
+      "id": "shell-super-app",
+      "package": "@smart-suggest/shell-super-app",
+      "path": "apps/shell-super-app",
+      "kind": "shell",
+      "config": {
+        "preset": "presetUltramodern",
+        "plugins": [
+          "appTools",
+          "tanstackRouterPlugin",
+          "i18nPlugin",
+          "moduleFederationPlugin",
+          "zephyrRspackPlugin"
+        ],
+        "dev": {
+          "assetPrefix": "/"
+        },
+        "output": {
+          "assetPrefix": {
+            "envFallbackOrder": [
+              "MODERN_ASSET_PREFIX",
+              "ULTRAMODERN_ASSET_PREFIX"
+            ],
+            "default": "/"
+          },
+          "disableTsChecker": false,
+          "distPath": {
+            "html": "./"
+          },
+          "polyfill": "off",
+          "splitRouteChunks": true
+        },
+        "performance": {
+          "readinessDiagnostics": {
+            "default": "enabled",
+            "optOut": {
+              "env": "ULTRAMODERN_PERFORMANCE_READINESS_DIAGNOSTICS=false",
+              "config": "scripts/ultramodern-performance-readiness.config.mjs"
+            },
+            "report": ".codex/reports/performance-readiness/ultramodern-performance-readiness.json",
+            "failOn": "framework-invariant"
+          },
+          "rsdoctor": {
+            "enabledByEnv": "ULTRAMODERN_RSDOCTOR=true",
+            "disableClientServer": true
+          }
+        },
+        "rspack": {
+          "output": {
+            "uniqueName": "shellSuperApp",
+            "chunkLoadingGlobal": "__ULTRAMODERN_SHELL_SUPER_APP_LOADED_CHUNKS__"
+          }
+        },
+        "html": {
+          "outputStructure": "flat"
+        },
+        "source": {
+          "mainEntryName": "index",
+          "siteUrl": {
+            "envFallbackOrder": [
+              "MODERN_PUBLIC_SITE_URL",
+              "ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP",
+              "ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN",
+              "SHELL_SUPER_APP_PORT"
+            ],
+            "defaultLocalhostPort": 3020
+          },
+          "siteUrlGlobal": "ULTRAMODERN_SITE_URL"
+        }
+      },
+      "styling": {
+        "tailwind": true,
+        "postcssPlugins": [
+          "@tailwindcss/postcss"
+        ],
+        "prefix": "shell",
+        "source": "..",
+        "sourceMode": "source(none)",
+        "federation": {
+          "owner": {
+            "id": "shell-super-app",
+            "package": "@smart-suggest/shell-super-app",
+            "team": "super-app-platform"
+          },
+          "role": "shell-base-overlay",
+          "rootSelector": "[data-app-id=\"shell-super-app\"]",
+          "classPrefix": "shell:",
+          "layers": {
+            "shared": [
+              "ultramodern-shared-tokens"
+            ],
+            "owned": [
+              "ultramodern-shell-base",
+              "ultramodern-shell-overlay"
+            ],
+            "imports": [
+              "ultramodern-shared-tokens"
+            ]
+          },
+          "entrypoints": {
+            "layoutImport": "src/routes/layout.tsx",
+            "css": [
+              "src/routes/index.css"
+            ]
+          },
+          "assets": {
+            "shared": [
+              "@smart-suggest/shared-design-tokens/tokens.css"
+            ],
+            "owned": [
+              "src/routes/index.css"
+            ],
+            "emittedBy": "modern-rspack-css-extraction",
+            "contentHash": true
+          },
+          "dedupe": {
+            "strategy": "shared-token-package-plus-css-content-hash",
+            "sharedPackage": "@smart-suggest/shared-design-tokens",
+            "sharedLayers": [
+              "ultramodern-shared-tokens"
+            ],
+            "runtimeLoad": "once-per-content-hash",
+            "duplicateBaseStylesAllowed": false
+          },
+          "ssr": {
+            "cloudflare": true,
+            "firstPaintRequired": true,
+            "linkEmission": "modern-ssr-css-assets",
+            "verticalCss": "host-preloads-shell-and-shared-css"
+          }
+        }
+      },
+      "deploy": {
+        "target": "cloudflare",
+        "cloudflare": {
+          "target": "cloudflare",
+          "workerName": "smart-suggest-shell-super-app",
+          "publicUrlEnv": "ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP",
+          "compatibilityDate": "2026-06-02",
+          "compatibilityFlags": [
+            "nodejs_compat",
+            "global_fetch_strictly_public"
+          ],
+          "assetsBinding": "ASSETS",
+          "routes": {
+            "ssr": "/en",
+            "mfManifest": "/mf-manifest.json",
+            "locale": "/locales/en/shell.json"
+          },
+          "security": {
+            "enabled": true,
+            "headers": {
+              "referrerPolicy": "strict-origin-when-cross-origin",
+              "contentTypeOptions": "nosniff",
+              "permissionsPolicy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+            },
+            "contentSecurityPolicy": {
+              "mode": "report-only",
+              "directives": {
+                "base-uri": [
+                  "'self'"
+                ],
+                "connect-src": [
+                  "'self'",
+                  "https:",
+                  "http:",
+                  "wss:",
+                  "ws:"
+                ],
+                "default-src": [
+                  "'self'"
+                ],
+                "font-src": [
+                  "'self'",
+                  "data:",
+                  "https:",
+                  "http:"
+                ],
+                "form-action": [
+                  "'self'"
+                ],
+                "frame-ancestors": [
+                  "'self'"
+                ],
+                "img-src": [
+                  "'self'",
+                  "data:",
+                  "blob:",
+                  "https:",
+                  "http:"
+                ],
+                "manifest-src": [
+                  "'self'",
+                  "https:",
+                  "http:"
+                ],
+                "object-src": [
+                  "'none'"
+                ],
+                "script-src": [
+                  "'self'",
+                  "'unsafe-inline'",
+                  "'unsafe-eval'",
+                  "https:",
+                  "http:",
+                  "blob:"
+                ],
+                "style-src": [
+                  "'self'",
+                  "'unsafe-inline'",
+                  "https:",
+                  "http:"
+                ],
+                "worker-src": [
+                  "'self'",
+                  "blob:"
+                ]
+              },
+              "reason": "Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement."
+            },
+            "noindex": {
+              "workersDev": true,
+              "localhost": true,
+              "previewHostnames": []
+            }
+          },
+          "qualityGates": {
+            "publicRoutes": {
+              "requireSitemapWhenPresent": true,
+              "requireRobotsSitemapConsistency": true,
+              "requireWebManifestWhenPresent": true
+            },
+            "statusCodes": {
+              "notFoundRoute": "/__ultramodern-smoke-missing",
+              "unknownRouteStatus": 404
+            },
+            "indexing": {
+              "previewNoindex": true,
+              "productionPublicRoutesIndexable": true
+            },
+            "assets": {
+              "cssPreloadRequired": true,
+              "cssResponseRequired": true,
+              "cacheControlRequiredForCss": true,
+              "sourcemapsPubliclyReferenced": false
+            },
+            "budgets": {
+              "ssrHtmlMaxBytes": 250000,
+              "mfManifestMaxBytes": 500000,
+              "localeJsonMaxBytes": 100000,
+              "sitemapXmlMaxBytes": 500000,
+              "cssAssetMaxBytes": 750000
+            },
+            "csp": {
+              "finalMode": "report-only-dogfood",
+              "decision": "Report-only remains the generated final mode until public smoke proof records MF SSR script/style/connect compatibility for the deployed surface."
+            }
+          },
+          "evidence": {
+            "proofScript": "scripts/proof-cloudflare-version.mjs",
+            "reportDefault": ".codex/reports/cloudflare-version-proof/public-url-proof.json"
+          }
+        },
+        "worker": {
+          "compatibilityDate": "2026-06-02",
+          "name": "smart-suggest-shell-super-app",
+          "security": {
+            "enabled": true,
+            "headers": {
+              "referrerPolicy": "strict-origin-when-cross-origin",
+              "contentTypeOptions": "nosniff",
+              "permissionsPolicy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+            },
+            "contentSecurityPolicy": {
+              "mode": "report-only",
+              "directives": {
+                "base-uri": [
+                  "'self'"
+                ],
+                "connect-src": [
+                  "'self'",
+                  "https:",
+                  "http:",
+                  "wss:",
+                  "ws:"
+                ],
+                "default-src": [
+                  "'self'"
+                ],
+                "font-src": [
+                  "'self'",
+                  "data:",
+                  "https:",
+                  "http:"
+                ],
+                "form-action": [
+                  "'self'"
+                ],
+                "frame-ancestors": [
+                  "'self'"
+                ],
+                "img-src": [
+                  "'self'",
+                  "data:",
+                  "blob:",
+                  "https:",
+                  "http:"
+                ],
+                "manifest-src": [
+                  "'self'",
+                  "https:",
+                  "http:"
+                ],
+                "object-src": [
+                  "'none'"
+                ],
+                "script-src": [
+                  "'self'",
+                  "'unsafe-inline'",
+                  "'unsafe-eval'",
+                  "https:",
+                  "http:",
+                  "blob:"
+                ],
+                "style-src": [
+                  "'self'",
+                  "'unsafe-inline'",
+                  "https:",
+                  "http:"
+                ],
+                "worker-src": [
+                  "'self'",
+                  "blob:"
+                ]
+              },
+              "reason": "Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement."
+            },
+            "noindex": {
+              "workersDev": true,
+              "localhost": true,
+              "previewHostnames": []
+            }
+          },
+          "ssr": true
+        },
+        "output": {
+          "flat": true,
+          "htmlDistPath": "./"
+        }
+      },
+      "ssr": {
+        "mode": "string",
+        "moduleFederationAppSSR": true
+      },
+      "i18n": {
+        "plugin": "@modern-js/plugin-i18n",
+        "backend": {
+          "enabled": true,
+          "loadPath": "/locales/{{lng}}/{{ns}}.json"
+        },
+        "reactI18next": false,
+        "languages": [
+          "en",
+          "cs"
+        ],
+        "fallbackLanguage": "en",
+        "namespace": "shell",
+        "namespaces": [
+          "shell",
+          "translation"
+        ],
+        "publicDir": [
+          "./locales",
+          "./assets"
+        ],
+        "localisedUrls": {},
+        "resourceOwnership": {
+          "ownerAppId": "shell-super-app",
+          "source": "route-owned",
+          "staticJson": "./locales/{lng}/shell.json"
+        }
+      },
+      "routes": {
+        "source": "route-owned",
+        "metadataAuthoring": "colocated-route-meta",
+        "generatedManifest": true,
+        "metadataExport": "./src/routes/ultramodern-route-metadata",
+        "localisedUrls": {},
+        "owned": [
+          {
+            "descriptionKey": "shell.seo.description",
+            "mfBoundaryId": "shellSuperApp",
+            "namespace": "shell",
+            "ownerAppId": "shell-super-app",
+            "indexable": false,
+            "public": false,
+            "publicSurface": "private-app-screen",
+            "canonicalPath": "/",
+            "id": "shell-home",
+            "localisedPaths": {
+              "cs": "/",
+              "en": "/"
+            },
+            "titleKey": "shell.title"
+          }
+        ],
+        "publicRoutes": [],
+        "privateByDefault": true,
+        "publicnessDefault": "private-app-screen",
+        "generatedRouteMap": true,
+        "manualOverrides": [],
+        "publicHead": {
+          "authoring": "colocated-route-meta",
+          "generator": "./src/routes/ultramodern-route-head",
+          "renderer": "@modern-js/runtime/head Helmet",
+          "ssr": true,
+          "title": {
+            "required": true,
+            "source": "route.titleKey"
+          },
+          "description": {
+            "required": true,
+            "source": "route.descriptionKey"
+          },
+          "canonical": {
+            "publicIndexableOnly": true,
+            "source": "localized canonical route URL"
+          },
+          "alternates": {
+            "hreflang": [
+              "en",
+              "cs"
+            ],
+            "xDefault": "en"
+          },
+          "openGraph": {
+            "publicIndexableOnly": true,
+            "required": [
+              "og:title",
+              "og:description",
+              "og:url",
+              "og:type"
+            ]
+          },
+          "twitter": {
+            "publicIndexableOnly": true,
+            "required": [
+              "twitter:card",
+              "twitter:title",
+              "twitter:description"
+            ]
+          },
+          "structuredData": {
+            "publicIndexableOnly": true,
+            "optional": true,
+            "source": "route.jsonLd",
+            "inference": false,
+            "helperModule": "./src/routes/ultramodern-jsonld",
+            "helperTypes": [
+              "WebPage",
+              "WebApplication",
+              "SoftwareApplication",
+              "BreadcrumbList",
+              "FAQPage",
+              "Organization"
+            ],
+            "sanitizesHtmlOpenBracket": true
+          },
+          "privateRouteRobots": "noindex, nofollow"
+        },
+        "publicSurface": {
+          "authoring": "colocated-route-meta",
+          "artifactLifecycle": "build-and-deploy-output",
+          "generatedManifest": "./src/routes/ultramodern-route-metadata",
+          "source": "route-owned-public-routes",
+          "metadataExport": "./src/routes/ultramodern-route-metadata",
+          "generator": "scripts/generate-public-surface-assets.mjs",
+          "outputRoot": "dist/public",
+          "cloudflareOutputRoot": ".output/public",
+          "privateRoutePolicy": "omit-from-generated-public-surface",
+          "files": [
+            "robots.txt"
+          ],
+          "omittedByDefault": [
+            "api-catalog.json",
+            "llms.txt",
+            "security.txt"
+          ],
+          "languages": [
+            "en",
+            "cs"
+          ],
+          "contentExpansion": {
+            "authoring": "route-owned-esm-provider",
+            "defaultProviderFile": "route.sitemap.mjs",
+            "entryExport": "default-or-entries",
+            "paramsSource": "params-or-localeParams",
+            "draftPolicy": "omit-draft-by-default",
+            "indexablePolicy": "omit-indexable-false",
+            "lifecycle": "executed-during-public-surface-generation"
+          },
+          "contentSources": [],
+          "publicRoutes": [],
+          "routeEntries": [],
+          "concreteUrlPaths": []
+        }
+      },
+      "moduleFederation": {
+        "name": "shellSuperApp",
+        "exposes": [],
+        "dts": {
+          "displayErrorInTerminal": true,
+          "compilerInstance": "tsgo"
+        },
+        "browserSafeExposesOnly": true,
+        "zephyrRspackPlugin": "1.1.1"
+      },
+      "marker": {
+        "appId": "shell-super-app",
+        "packageName": "@smart-suggest/shell-super-app",
+        "version": "0.1.0",
+        "build": "c0d035315dc76f9c",
+        "deployProfile": "cloudflare-ssr-mf-effect-v1",
+        "uiSurface": "ui"
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "environment": "development",
+  "preset": "presetUltramodern",
+  "ports": {
+    "shell-super-app": 3020
+  },
+  "manifests": {},
+  "apis": {}
+}

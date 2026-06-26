@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "profile": "ultramodern-performance-readiness-diagnostics-v1",
+  "status": "pass",
+  "defaultOn": true,
+  "optOut": {
+    "env": "ULTRAMODERN_PERFORMANCE_READINESS_DIAGNOSTICS=false",
+    "config": "scripts/ultramodern-performance-readiness.config.mjs#enabled=false"
+  },
+  "failOn": "framework-invariant",
+  "signals": [
+    "bfcache",
+    "core-web-vitals-rum",
+    "duplicate-prefetch-warmup",
+    "cache-policy-sanity",
+    "save-data-behavior",
+    "cloudflare-ssr-cache-hints"
+  ],
+  "apps": [
+    {
+      "id": "shell-super-app",
+      "path": "apps/shell-super-app",
+      "signals": [
+        {
+          "id": "bfcache",
+          "severity": "diagnostic",
+          "status": "pass",
+          "evidence": [
+            "scanned:5",
+            "generated-files-do-not-install-unload-handlers"
+          ]
+        },
+        {
+          "id": "core-web-vitals-rum",
+          "severity": "diagnostic",
+          "status": "pass",
+          "evidence": [
+            "preset-telemetry-contract",
+            "runtime-rum-instrumentation-ready-without-local-collector"
+          ]
+        },
+        {
+          "id": "duplicate-prefetch-warmup",
+          "severity": "diagnostic",
+          "status": "pass",
+          "evidence": [
+            "localised-url-count:0",
+            "remote-count:0"
+          ]
+        },
+        {
+          "id": "cache-policy-sanity",
+          "severity": "diagnostic",
+          "status": "pass",
+          "evidence": [
+            "css-cache-control-required",
+            "public-surface-generated-as-build-output"
+          ]
+        },
+        {
+          "id": "save-data-behavior",
+          "severity": "diagnostic",
+          "status": "pass",
+          "evidence": [
+            "framework-router-warmup-is-diagnostic-only"
+          ]
+        },
+        {
+          "id": "cloudflare-ssr-cache-hints",
+          "severity": "diagnostic",
+          "status": "pass",
+          "evidence": [
+            "ssr-route-present",
+            "mf-manifest-route-present",
+            "nodejs-compat"
+          ]
+        }
+      ]
+    }
+  ]
+}

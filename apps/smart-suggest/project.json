@@ -1,0 +1,38 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest",
+  "projectType": "application",
+  "sourceRoot": "apps/smart-suggest/apps/shell-super-app/src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm build"
+      }
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm check"
+      }
+    },
+    "cloudflare:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm cloudflare:build"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm lint"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm typecheck"
+      }
+    }
+  }
+}

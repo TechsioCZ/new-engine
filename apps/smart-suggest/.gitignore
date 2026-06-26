@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+.modernjs/cache/
+.modernjs/agent-reference-repos-tmp/
+apps/*/.output/
+apps/*/dist/
+apps/shell-super-app/src/modern-tanstack/

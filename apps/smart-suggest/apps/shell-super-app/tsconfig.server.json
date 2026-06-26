@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "declaration": false,
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "noEmit": false,
+    "noEmitOnError": true,
+    "sourceMap": true
+  },
+  "include": [
+    "api",
+    "shared",
+    "src/modern-app-env.d.ts"
+  ]
+}

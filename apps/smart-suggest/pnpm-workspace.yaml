@@ -1,0 +1,49 @@
+packages:
+  - apps/*
+  - verticals/*
+  - packages/*
+
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+minimumReleaseAgeIgnoreMissingTime: false
+minimumReleaseAgeExclude:
+  - '@bleedingdev/modern-js-*'
+  - '@rsbuild/core'
+  - '@rsbuild/plugin-type-check'
+  - '@rspack/*'
+  - '@tanstack/react-router'
+  - '@tanstack/router-core'
+  - 'ts-checker-rspack-plugin'
+  - 'typescript'
+  - '@typescript/native-preview'
+  - '@typescript/native-preview-*'
+  - '@types/react'
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 1440
+blockExoticSubdeps: true
+engineStrict: true
+pmOnFail: error
+verifyDepsBeforeRun: error
+strictDepBuilds: true
+
+peerDependencyRules:
+  allowedVersions:
+    react: '>=19.0.0'
+    '@module-federation/dts-plugin>typescript': '6.0.3'
+    '@module-federation/enhanced>typescript': '6.0.3'
+    '@module-federation/modern-js-v3>typescript': '6.0.3'
+    '@module-federation/rspack>typescript': '6.0.3'
+    'i18next>typescript': '6.0.3'
+
+overrides:
+  '@tanstack/react-router': 1.170.16
+  node-fetch: '^3.3.2'
+
+allowBuilds:
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  lefthook: true
+  msgpackr-extract: true
+  sharp: true
+  workerd: true

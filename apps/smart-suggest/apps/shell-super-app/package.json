@@ -1,0 +1,57 @@
+{
+  "private": true,
+  "name": "@smart-suggest/shell-super-app",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "modern dev",
+    "build": "ULTRAMODERN_ZEPHYR=false modern build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target dist",
+    "cloudflare:build": "ULTRAMODERN_ZEPHYR=false MODERNJS_DEPLOY=cloudflare modern build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target dist && ULTRAMODERN_ZEPHYR=false MODERNJS_DEPLOY=cloudflare modern deploy && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target cloudflare",
+    "cloudflare:deploy": "ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS=true pnpm run cloudflare:build && wrangler deploy --config .output/wrangler.json",
+    "cloudflare:preview": "pnpm run cloudflare:build && wrangler dev --config .output/wrangler.json",
+    "cloudflare:proof": "node ../../scripts/proof-cloudflare-version.mjs --app shell-super-app",
+    "serve": "modern serve",
+    "typecheck": "node ../../scripts/ultramodern-typecheck.mjs --project tsconfig.json"
+  },
+  "modernjs": {
+    "preset": "presetUltramodern",
+    "role": "shell",
+    "appId": "shell-super-app",
+    "topology": "../../topology/reference-topology.json"
+  },
+  "zephyr:dependencies": {},
+  "dependencies": {
+    "@modern-js/plugin-bff": "npm:@bleedingdev/modern-js-plugin-bff@3.4.0-ultramodern.2",
+    "@modern-js/plugin-i18n": "npm:@bleedingdev/modern-js-plugin-i18n@3.4.0-ultramodern.2",
+    "@modern-js/plugin-tanstack": "npm:@bleedingdev/modern-js-plugin-tanstack@3.4.0-ultramodern.2",
+    "@modern-js/runtime": "npm:@bleedingdev/modern-js-runtime@3.4.0-ultramodern.2",
+    "@module-federation/bridge-react": "2.6.0",
+    "@module-federation/modern-js-v3": "2.6.0",
+    "@module-federation/runtime": "2.6.0",
+    "@smart-suggest/shared-contracts": "workspace:*",
+    "@smart-suggest/shared-design-tokens": "workspace:*",
+    "@tanstack/react-router": "1.170.16",
+    "effect": "4.0.0-beta.89",
+    "i18next": "26.3.1",
+    "node-fetch": "^3.3.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "7.18.0"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.14.6",
+    "@modern-js/app-tools": "npm:@bleedingdev/modern-js-app-tools@3.4.0-ultramodern.2",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/node": "^20",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260624.1",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.1",
+    "typescript": "6.0.3",
+    "wrangler": "4.102.0",
+    "zephyr-rspack-plugin": "1.1.1"
+  },
+  "exports": {
+    "./effect/clients": "./src/effect/vertical-clients.ts"
+  }
+}

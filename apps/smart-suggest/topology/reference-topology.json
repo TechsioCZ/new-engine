@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "id": "ultramodern-superapp-workspace-reference-topology",
+  "description": "Generated UltraModern SuperApp shell that can grow by adding full-stack verticals.",
+  "preset": "presetUltramodern",
+  "shell": {
+    "id": "shell-super-app",
+    "kind": "shell",
+    "package": "@smart-suggest/shell-super-app",
+    "verticalRefs": [],
+    "moduleFederation": {
+      "role": "host",
+      "name": "shellSuperApp",
+      "remotes": [],
+      "ssr": true,
+      "sharedContractVersion": "mf-ssr-contract-v1"
+    },
+    "cloudflare": {
+      "target": "cloudflare",
+      "workerName": "smart-suggest-shell-super-app",
+      "publicUrlEnv": "ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP",
+      "compatibilityDate": "2026-06-02",
+      "compatibilityFlags": [
+        "nodejs_compat",
+        "global_fetch_strictly_public"
+      ],
+      "assetsBinding": "ASSETS",
+      "routes": {
+        "ssr": "/en",
+        "mfManifest": "/mf-manifest.json",
+        "locale": "/locales/en/shell.json"
+      },
+      "security": {
+        "enabled": true,
+        "headers": {
+          "referrerPolicy": "strict-origin-when-cross-origin",
+          "contentTypeOptions": "nosniff",
+          "permissionsPolicy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+        },
+        "contentSecurityPolicy": {
+          "mode": "report-only",
+          "directives": {
+            "base-uri": [
+              "'self'"
+            ],
+            "connect-src": [
+              "'self'",
+              "https:",
+              "http:",
+              "wss:",
+              "ws:"
+            ],
+            "default-src": [
+              "'self'"
+            ],
+            "font-src": [
+              "'self'",
+              "data:",
+              "https:",
+              "http:"
+            ],
+            "form-action": [
+              "'self'"
+            ],
+            "frame-ancestors": [
+              "'self'"
+            ],
+            "img-src": [
+              "'self'",
+              "data:",
+              "blob:",
+              "https:",
+              "http:"
+            ],
+            "manifest-src": [
+              "'self'",
+              "https:",
+              "http:"
+            ],
+            "object-src": [
+              "'none'"
+            ],
+            "script-src": [
+              "'self'",
+              "'unsafe-inline'",
+              "'unsafe-eval'",
+              "https:",
+              "http:",
+              "blob:"
+            ],
+            "style-src": [
+              "'self'",
+              "'unsafe-inline'",
+              "https:",
+              "http:"
+            ],
+            "worker-src": [
+              "'self'",
+              "blob:"
+            ]
+          },
+          "reason": "Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement."
+        },
+        "noindex": {
+          "workersDev": true,
+          "localhost": true,
+          "previewHostnames": []
+        }
+      },
+      "qualityGates": {
+        "publicRoutes": {
+          "requireSitemapWhenPresent": true,
+          "requireRobotsSitemapConsistency": true,
+          "requireWebManifestWhenPresent": true
+        },
+        "statusCodes": {
+          "notFoundRoute": "/__ultramodern-smoke-missing",
+          "unknownRouteStatus": 404
+        },
+        "indexing": {
+          "previewNoindex": true,
+          "productionPublicRoutesIndexable": true
+        },
+        "assets": {
+          "cssPreloadRequired": true,
+          "cssResponseRequired": true,
+          "cacheControlRequiredForCss": true,
+          "sourcemapsPubliclyReferenced": false
+        },
+        "budgets": {
+          "ssrHtmlMaxBytes": 250000,
+          "mfManifestMaxBytes": 500000,
+          "localeJsonMaxBytes": 100000,
+          "sitemapXmlMaxBytes": 500000,
+          "cssAssetMaxBytes": 750000
+        },
+        "csp": {
+          "finalMode": "report-only-dogfood",
+          "decision": "Report-only remains the generated final mode until public smoke proof records MF SSR script/style/connect compatibility for the deployed surface."
+        }
+      },
+      "evidence": {
+        "proofScript": "scripts/proof-cloudflare-version.mjs",
+        "reportDefault": ".codex/reports/cloudflare-version-proof/public-url-proof.json"
+      }
+    },
+    "ownership": {
+      "team": "super-app-platform",
+      "slack": "#super-app-platform",
+      "pagerDuty": "pd-super-app-platform",
+      "runbookRef": "runbooks/wave2/shell-super-app.md",
+      "adrRef": "docs/super-app-rfc-adr/wave2/reference-topology.md#shell-super-app",
+      "blastRadius": {
+        "tier": "tier-0-shell",
+        "references": [
+          "docs/super-app-rfc-adr/wave2/blast-radius.md#shell",
+          "docs/super-app-rfc-adr/wave2/rollback.md#shell-lkg"
+        ]
+      }
+    }
+  },
+  "verticals": [],
+  "sharedPackages": [
+    {
+      "id": "shared-contracts",
+      "package": "@smart-suggest/shared-contracts",
+      "path": "packages/shared-contracts",
+      "description": "Route, ownership, and topology contract placeholders."
+    },
+    {
+      "id": "shared-design-tokens",
+      "package": "@smart-suggest/shared-design-tokens",
+      "path": "packages/shared-design-tokens",
+      "description": "Design token placeholders consumed by shell and verticals."
+    }
+  ],
+  "validation": {
+    "script": "scripts/validate-ultramodern-workspace.mjs",
+    "commands": [
+      "pnpm i18n:boundaries",
+      "pnpm contract:check"
+    ]
+  }
+}

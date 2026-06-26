@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "template": {
+    "id": "modernjs-ultramodern-superapp-workspace",
+    "version": "3.4.0-ultramodern.2",
+    "displayName": "Modern.js UltraModern SuperApp Workspace",
+    "description": "Growable SuperApp shell, shared packages, and topology skeleton.",
+    "compatibilityLane": "ultramodern-mv",
+    "minimumModernVersion": "3.4.0-ultramodern.2"
+  },
+  "source": {
+    "type": "builtin",
+    "name": "modernjs-ultramodern-superapp-workspace",
+    "repositoryPath": "packages/toolkit/create/template-workspace",
+    "generator": "packages/toolkit/create/src/ultramodern-workspace/"
+  },
+  "integrity": {
+    "checksums": [
+      {
+        "algorithm": "sha256",
+        "value": "8d6f3d61c10d51caa06882eee5d44233ee9a450aed7bf323fd934c82b80ac936",
+        "scope": "source-tree"
+      },
+      {
+        "algorithm": "sha256",
+        "value": "1e8a52cb2b2341b80ce8b4be4b307f049cc508275cb7a9972df3caa06e145958",
+        "scope": "file-templates-tree"
+      }
+    ],
+    "provenance": {
+      "kind": "repo-local",
+      "issuer": "@modern-js/create",
+      "subject": "packages/toolkit/create/template-workspace"
+    }
+  },
+  "materialization": {
+    "targetRoot": "generated-project-root",
+    "allowedPaths": [
+      ".agents/**",
+      ".codex/**",
+      ".github/**",
+      ".gitignore",
+      ".mise.toml",
+      ".modernjs/**",
+      "AGENTS.md",
+      "README.md",
+      "apps/**",
+      "packages/**",
+      "lefthook.yml",
+      "package.json",
+      "oxfmt.config.ts",
+      "oxlint.config.ts",
+      "pnpm-workspace.yaml",
+      "scripts/**",
+      "topology/**",
+      "tsconfig.base.json"
+    ],
+    "deniedPaths": [
+      ".git/**",
+      ".npmrc",
+      ".yarnrc",
+      ".env",
+      ".env.*",
+      "node_modules/**",
+      "dist/**"
+    ],
+    "overwritePolicy": "deny-existing"
+  },
+  "packageSource": {
+    "strategy": "install",
+    "config": ".modernjs/ultramodern-package-source.json",
+    "modernPackageSpecifier": "3.4.0-ultramodern.2",
+    "generatedWorkspacePackageSpecifier": "workspace:*"
+  },
+  "agentSkills": {
+    "installDir": ".agents/skills",
+    "source": {
+      "repository": "https://github.com/rstackjs/agent-skills",
+      "commit": "61c948b42512e223bad44b83af4080eba48b2677",
+      "license": "MIT",
+      "licensePath": ".agents/rstackjs-agent-skills-LICENSE"
+    },
+    "baseline": [
+      "rsbuild-best-practices",
+      "rspack-best-practices",
+      "rspack-tracing",
+      "rsdoctor-analysis",
+      "rslib-best-practices",
+      "rslib-modern-package",
+      "rstest-best-practices"
+    ],
+    "moduleFederationSource": {
+      "repository": "https://github.com/module-federation/agent-skills",
+      "commit": "07bb5b6c43ad457609e00c081b72d4c42508ec76",
+      "install": "clone",
+      "baseline": [
+        "mf"
+      ]
+    },
+    "privateSource": {
+      "repository": "https://github.com/TechsioCZ/skills",
+      "install": "clone-if-authorized",
+      "baseline": [
+        "plan-graph",
+        "dag",
+        "subagent-graph",
+        "helm",
+        "debugger-mode"
+      ]
+    },
+    "lockFile": ".agents/skills-lock.json"
+  },
+  "validation": {
+    "schemaValidation": true,
+    "sourceValidation": [
+      "source-type-supported",
+      "checksum-verified",
+      "provenance-present"
+    ],
+    "materializationValidation": [
+      "path-boundary-policy",
+      "path-boundary-denylist",
+      "no-path-traversal",
+      "no-absolute-paths",
+      "overwrite-policy-enforced"
+    ],
+    "postMaterializationValidation": [
+      "ultramodern-workspace-contract-check",
+      "github-workflow-security-enforced",
+      "pnpm-11-policy-enforced",
+      "template-manifest-retained"
+    ],
+    "expectedCommands": [
+      "mise install",
+      "pnpm install",
+      "pnpm run i18n:boundaries",
+      "pnpm run contract:check",
+      "pnpm run performance:readiness"
+    ]
+  }
+}

@@ -1,0 +1,157 @@
+# smart-suggest
+
+Generated UltraModern SuperApp workspace.
+
+This workspace keeps `presetUltramodern(...)` as the single public
+UltraModern.js 3.0 SuperApp surface and starts with an explicit shell:
+
+- `apps/shell-super-app` owns shell route assembly, Module Federation host
+  wiring, shared SSR/i18n runtime setup, and the boundary debugger.
+- `packages/shared-*` provide placeholders for cross-workspace contracts and
+  design tokens.
+- `verticals/*` is intentionally empty until a real business domain is added.
+
+Add a full-stack MicroVertical when the product needs one:
+
+```bash
+pnpm dlx @bleedingdev/modern-js-create transportation --vertical
+pnpm dlx @bleedingdev/modern-js-create payments --vertical
+```
+
+Each added vertical owns its UI/routes, browser-safe Module Federation exposes,
+private-first route metadata, localized URLs, public-route opt-ins, CSS prefix,
+Effect BFF handlers, local API contract, and typed client surface. Server
+handlers and Effect client/contract modules stay out of browser exposes.
+
+## Private-First Public Surfaces
+
+Generated app routes are private and non-indexable by default. Author route
+metadata in colocated `src/routes/**/route.meta.ts` files; the scaffold
+regenerates `src/routes/ultramodern-route-metadata.ts` as a compatibility
+manifest for config, i18n, public head, and public surface contracts. Private
+app, auth, tenant, dashboard, and internal routes publish no discovery output
+unless route metadata explicitly marks them `public && indexable`. The default
+scaffold therefore emits only a disallowing `robots.txt`; sitemap, web
+manifest, `llms.txt`, API catalog, security.txt, and JSON-LD output stay
+omitted until a safe public route or public docs/help/product surface exists.
+Structured data is never inferred automatically. Add `jsonLd` explicitly in
+route metadata for `public && indexable` routes and use
+`src/routes/ultramodern-jsonld.ts` when the route fits the generated `WebPage`,
+`WebApplication`, `SoftwareApplication`, `BreadcrumbList`, `FAQPage`, or
+`Organization` helpers. Private or non-indexable routes emit no JSON-LD even
+when they have localized paths, titles, descriptions, BFF APIs, or Module
+Federation boundaries.
+
+Public web artifacts are build/deploy outputs generated into `dist/public` and
+`.output/public`, not hand-authored source files under `config/public`. Dynamic
+public routes can expand sitemap entries through route-owned, Node-safe
+`route.sitemap.mjs` providers beside route metadata. The public-surface
+generator discovers those providers for dynamic public routes and still honors
+explicit `routes.publicSurface.contentSources` entries in the generated
+compatibility manifest.
+
+Run the scaffold validator before adding business code and after every
+`--vertical` mutation:
+
+```bash
+mise install
+pnpm install
+pnpm check
+pnpm build
+```
+
+The generated toolchain baseline is Node `>=26` with pnpm `11.9.0`.
+`packageManager`, `.mise.toml`, generated validation, and CI should all agree
+on that baseline; do not reintroduce Corepack or older pnpm aliases.
+
+Generated CI does not call the local aggregate. It runs format, lint,
+typecheck, skills, i18n boundary validation, contract validation, and build as
+separate matrix jobs so failures are isolated and parallelizable.
+
+Type checking is TS7-first. `pnpm typecheck` runs
+`scripts/ultramodern-typecheck.mjs` in TS-Go build mode over
+`tsconfig.json` project references, with native-preview `--checkers` and
+`--builders` enabled by default. `@typescript/native-preview` is the TS7 latest
+dev compiler lane. The classic `typescript` package is pinned to latest TS6
+only where compatibility peers or tooling still require it.
+
+Read-only agent reference repositories under `repos/` (Effect and
+UltraModern.js source lookup using squashed git subtrees) are an explicit
+opt-in step: run `pnpm agents:refs:install` when you want them. `pnpm install`
+never clones repositories.
+
+Vendored agent skills ship with the scaffold. Clone-installed skills (such as
+the Module Federation `mf` skill) are fetched only when you explicitly run
+`pnpm skills:install`, or when `ULTRAMODERN_AGENT_SKILLS=1` is set during
+`pnpm install`. `pnpm skills:check` warns about missing clone-installed skills
+without failing the gate.
+
+The topology and ownership metadata are generated under `topology/`. The
+workspace also ships `.github/workflows/ultramodern-workspace-gates.yml` and
+`.github/renovate.json` with read-only workflow permissions, commit-pinned
+actions, frozen installs, StepSecurity audit-mode runner hardening, dependency
+dashboard review, one-day release age, grouped updates, and manual approval for
+major upgrades.
+
+Package source metadata is generated at
+`.modernjs/ultramodern-package-source.json`. The default strategy keeps
+UltraModern.js runtime and tooling packages on `workspace:*` for monorepo
+development. To create a workspace that can install those packages outside the
+monorepo, generate with `--ultramodern-package-source install`; generated shared
+packages still use `workspace:*` because they are part of this workspace.
+
+## Public URL Environment Variables
+
+This workspace's apps must not bake absolute `http://localhost:<port>` URLs
+into asset configuration. Public URL and asset prefix environment variables
+have distinct roles, and stale aliases should not be carried forward when
+regenerating or updating the workspace.
+
+| Variable                          | Role                                             | Feeds                                                                |
+| --------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
+| `MODERN_PUBLIC_SITE_URL`          | Canonical site origin for public SEO output only | Canonical, hreflang, sitemap `<loc>`, robots `Sitemap:`              |
+| `MODERN_ASSET_PREFIX`             | Preferred JS/CSS/static asset prefix             | Modern/Rspack-emitted asset URLs                                     |
+| `ULTRAMODERN_ASSET_PREFIX`        | UltraModern compatibility asset prefix           | Modern/Rspack-emitted asset URLs when `MODERN_ASSET_PREFIX` is unset |
+| `ULTRAMODERN_PUBLIC_URL_<APP_ID>` | Per-app deployment/proof URL                     | Cloudflare proof inputs and Module Federation remote URLs            |
+
+Asset URLs use this precedence: `MODERN_ASSET_PREFIX` →
+`ULTRAMODERN_ASSET_PREFIX` → origin-relative `/`. `MODERN_PUBLIC_SITE_URL` is
+canonical/SEO-only and must not be used as an asset-prefix fallback.
+SEO output uses `MODERN_PUBLIC_SITE_URL`; if it is unset, generated local and
+preview outputs remain non-public until deployment proof provides explicit
+public URLs.
+
+Without public URLs configured, asset paths are origin-relative (`/`), and the
+dev server uses `dev.assetPrefix: '/'` — so apps work through tunnels and
+reverse proxies (ngrok, cloudflared) without triggering Chrome's Local Network
+Access prompt or mixed-content errors. Shell-only workspaces can set
+`MODERN_PUBLIC_SITE_URL` for SEO output without changing where assets load
+from.
+
+## Cloudflare Proof
+
+Deploy the generated apps, then pass each deployed app's generated public URL
+env key into the proof step. The proof script reads the generated contract and
+checks the live Worker surface, including public-route sitemap/robots
+consistency, preview noindex behavior, unknown-route status, asset headers,
+byte budgets, and public sourcemap exposure. A shell-only workspace only needs
+the shell URL; added verticals use the same `ULTRAMODERN_PUBLIC_URL_<APP_ID>`
+pattern with hyphens converted to underscores and uppercased.
+
+```bash
+pnpm cloudflare:deploy
+ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP=https://shell-super-app.example.workers.dev \
+pnpm cloudflare:proof -- --require-public-urls
+```
+
+## Troubleshooting
+
+| Symptom                     | Current check                                                                                                                                                     | Owner                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| Package cohort mismatch     | Regenerate with one package source strategy, run `mise install`, then rerun `pnpm install` from the activated shell.                                              | Generated workspace package source metadata |
+| Install failure             | Check the active Node/pnpm from `mise install`; rerun `pnpm install` after the shell sees the pinned versions.                                                    | Toolchain setup                             |
+| Build failure               | Run the matching primitive gate (`pnpm lint`, `pnpm typecheck`, `pnpm i18n:boundaries`, `pnpm contract:check`) before `pnpm build`; fix the owning failure first. | Owning package or generated contract        |
+| Missing public URL          | Set the env key from `.modernjs/ultramodern-generated-contract.json`, for example `ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP`.                                       | Deployment operator                         |
+| Cloudflare credentials      | Confirm Wrangler credentials before `pnpm cloudflare:deploy`; local checks do not prove live Worker access.                                                       | Deployment operator                         |
+| Asset or CSS 404            | Rebuild with `pnpm build` or `pnpm cloudflare:deploy` and inspect emitted Modern/Rspack asset paths instead of hardcoding CSS URLs.                               | Framework/runtime asset pipeline            |
+| Federation manifest failure | Run the shell and vertical build scripts, then check each deployed `/mf-manifest.json` URL used by the shell.                                                     | Module Federation owner                     |

@@ -1,0 +1,32 @@
+{
+  "shell": {
+    "boundaries": {
+      "toggle": "show team boundaries"
+    },
+    "hero": {
+      "cardOne": "Add the first business vertical with create <domain> --vertical when the product needs one.",
+      "cardOneKicker": "Verticals",
+      "cardTwo": "Full page markup, styles, and localized content render before hydration.",
+      "cardTwoKicker": "Rendering",
+      "empty": "No MicroVerticals are connected yet.",
+      "eyebrow": "Shell SuperApp starter",
+      "lede": "Start with a production-ready shell. Add MicroVerticals later for real business domains.",
+      "primary": "Shell ready",
+      "secondary": "Add a vertical when needed"
+    },
+    "language": {
+      "cs": "Czech",
+      "en": "English",
+      "switcher": "Language"
+    },
+    "remoteUnavailable": "Remote vertical unavailable",
+    "remotes": {},
+    "routes": {
+      "home": "Home"
+    },
+    "seo": {
+      "description": "UltraModern shell SuperApp with localized SSR, Module Federation, and framework-owned public metadata."
+    },
+    "title": "UltraModern Workspace"
+  }
+}

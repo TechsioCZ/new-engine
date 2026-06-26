@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "@smart-suggest/shared-design-tokens",
+  "version": "0.1.0",
+  "description": "Generated design tokens consumed by shell and verticals.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "scripts": {
+    "typecheck": "node ../../scripts/ultramodern-typecheck.mjs --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.14.6",
+    "@typescript/native-preview": "7.0.0-dev.20260624.1"
+  }
+}

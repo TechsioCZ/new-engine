@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "name": "@smart-suggest/shared-contracts",
+  "version": "0.1.0",
+  "description": "Generated route, ownership, and topology contracts.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "node ../../scripts/ultramodern-typecheck.mjs --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.14.6",
+    "@typescript/native-preview": "7.0.0-dev.20260624.1"
+  }
+}
