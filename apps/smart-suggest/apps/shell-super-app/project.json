@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@smart-suggest/shell-super-app",
+  "projectType": "application",
+  "sourceRoot": "apps/smart-suggest/apps/shell-super-app/src",
+  "tags": ["type:app", "platform:web", "framework:react"]
+}

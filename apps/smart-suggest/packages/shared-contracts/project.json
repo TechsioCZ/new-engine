@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@smart-suggest/shared-contracts",
+  "projectType": "library",
+  "sourceRoot": "apps/smart-suggest/packages/shared-contracts/src",
+  "tags": ["type:lib", "platform:shared", "framework:agnostic"]
+}

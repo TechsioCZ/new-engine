@@ -3,5 +3,5 @@
   "name": "smart-suggest-validation",
   "projectType": "library",
   "sourceRoot": "libs/smart-suggest/validation/src",
-  "tags": ["type:lib", "area:smart-suggest", "area:validation"]
+  "tags": ["type:lib", "area:smart-suggest", "area:validation", "platform:shared", "framework:agnostic"]
 }

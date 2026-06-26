@@ -3,5 +3,5 @@
   "name": "smart-suggest-vanilla",
   "projectType": "library",
   "sourceRoot": "libs/smart-suggest/vanilla/src",
-  "tags": ["type:lib", "area:smart-suggest", "platform:web"]
+  "tags": ["type:lib", "area:smart-suggest", "platform:web", "framework:agnostic"]
 }
