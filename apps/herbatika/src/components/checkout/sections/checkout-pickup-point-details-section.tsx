@@ -197,8 +197,8 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.SelectField
-                  id="checkout-pickup-billing-country"
                   autoComplete="country"
+                  id="checkout-pickup-billing-country"
                   items={countryItems}
                   label="Krajina"
                   placeholder="Vyberte krajinu"

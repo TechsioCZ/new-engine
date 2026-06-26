@@ -4,8 +4,8 @@ import {
   type CheckoutAddressScope,
   resolveCheckoutAddressFieldName,
 } from "@/components/checkout/checkout-address.utils"
-import { FormSmartSuggestAddressField } from "@/components/forms/form-smart-suggest-address-field"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
+import { FormSmartSuggestAddressField } from "@/components/forms/form-smart-suggest-address-field"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
@@ -246,8 +246,8 @@ export function CheckoutAddressSection({
           >
             {(field) => (
               <field.SelectField
-                id={`${fieldPrefix}-country`}
                 autoComplete="country"
+                id={`${fieldPrefix}-country`}
                 items={countryItems}
                 label="Krajina"
                 placeholder="Vyberte krajinu"

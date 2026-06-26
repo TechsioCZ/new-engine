@@ -44,8 +44,8 @@ export function FormSelectField({
 
   return (
     <Select
-      disabled={disabled}
       autoComplete={autoComplete}
+      disabled={disabled}
       id={id}
       items={items}
       name={field.name}

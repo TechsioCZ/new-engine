@@ -26,7 +26,9 @@ const checkoutAddressSection = readText(
 const smartSuggestAddressField = readText(
   "src/components/forms/form-smart-suggest-address-field.tsx"
 )
-const addressValidators = readText("src/lib/forms/checkout/address-validators.ts")
+const addressValidators = readText(
+  "src/lib/forms/checkout/address-validators.ts"
+)
 const phoneField = readText("src/components/forms/form-phone-field.tsx")
 const smartSuggestClient = readText("src/lib/smart-suggest/client.ts")
 const smartSuggestUiAddress = readText(
@@ -66,7 +68,7 @@ assertIncludes(
 )
 assertIncludes(
   smartSuggestAddressField,
-  '@techsio/smart-suggest-ui/address-suggest-field',
+  "@techsio/smart-suggest-ui/address-suggest-field",
   "Herbatika imports the direct Smart Suggest UI subpath"
 )
 assertIncludes(

@@ -7,5 +7,5 @@ const SMART_SUGGEST_API_BASE_URL =
 
 export const herbatikaSmartSuggestClient = createSmartSuggestClient({
   apiBaseUrl: SMART_SUGGEST_API_BASE_URL,
-  timeoutMs: 2_000,
+  timeoutMs: 2000,
 })
