@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "pnpm --parallel --filter @smart-suggest/shell-super-app dev",
     "dev:shell": "pnpm --filter @smart-suggest/shell-super-app dev",
+    "build:packages": "pnpm --workspace-concurrency=1 --filter '@techsio/smart-suggest-*' build",
     "build": "ULTRAMODERN_ZEPHYR=false pnpm --filter \"./apps/shell-super-app\" run build && pnpm mf:types && pnpm performance:readiness",
     "format": "oxfmt . '!repos/**'",
     "format:check": "oxfmt --check . '!repos/**'",
@@ -26,7 +27,7 @@
     "contract:check": "node ./scripts/validate-ultramodern-workspace.mjs",
     "i18n:boundaries": "node ./scripts/check-ultramodern-i18n-boundaries.mjs",
     "postinstall": "oxfmt . '!repos/**' && node ./scripts/bootstrap-agent-skills.mjs --postinstall",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm contract:check && pnpm test:smoke && pnpm performance:readiness"
+    "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm contract:check && pnpm test:smoke && pnpm performance:readiness"
   },
   "engines": {
     "node": ">=26",

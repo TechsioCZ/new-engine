@@ -6,7 +6,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     restoreMocks: true,
     typecheck: {
-      tsconfig: "./tsconfig.json",
+      tsconfig: "../tsconfig.vitest.json",
     },
   },
 })

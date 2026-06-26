@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.package.json",
+  "compilerOptions": {
+    "paths": {
+      "@techsio/smart-suggest-client": ["./client/src/index.ts"],
+      "@techsio/smart-suggest-core": ["./core/src/index.ts"],
+      "@techsio/smart-suggest-datasets": ["./datasets/src/index.ts"],
+      "@techsio/smart-suggest-indexing": ["./indexing/src/index.ts"],
+      "@techsio/smart-suggest-integrations": ["./integrations/src/index.ts"],
+      "@techsio/smart-suggest-react": ["./react/src/index.ts"],
+      "@techsio/smart-suggest-storage": ["./storage/src/index.ts"],
+      "@techsio/smart-suggest-ui": ["./ui/src/address-suggest-field.tsx"],
+      "@techsio/smart-suggest-ui/address-suggest-field": [
+        "./ui/src/address-suggest-field.tsx"
+      ],
+      "@techsio/smart-suggest-ui/phone-validation-field": [
+        "./ui/src/phone-validation-field.tsx"
+      ],
+      "@techsio/smart-suggest-ui/postal-validation-field": [
+        "./ui/src/postal-validation-field.tsx"
+      ],
+      "@techsio/smart-suggest-validation": ["./validation/src/index.ts"]
+    }
+  },
+  "include": ["*/src", "*/tests", "*/vitest.config.ts"]
+}
