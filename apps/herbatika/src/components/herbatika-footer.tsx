@@ -88,7 +88,10 @@ export function HerbatikaFooter() {
             Váš partner pre zdravý životný štýl a vitalitu.
           </Footer.Text>
 
-          <Footer.Text className="mt-250 flex items-start gap-300">
+          <Footer.Link
+            className="mt-250 flex items-start gap-300 text-footer-text-fg"
+            href="tel:+421232112345"
+          >
             <Icon
               className="mt-50 text-fg-secondary"
               icon="token-icon-phone-talk"
@@ -100,7 +103,7 @@ export function HerbatikaFooter() {
               </span>
               <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
             </span>
-          </Footer.Text>
+          </Footer.Link>
 
           <Footer.Link
             className="mt-500 inline-flex items-center gap-300 font-bold text-primary"
