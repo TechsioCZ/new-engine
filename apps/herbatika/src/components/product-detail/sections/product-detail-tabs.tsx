@@ -12,9 +12,9 @@ import {
 import { ProductDetailReviews } from "@/components/product-detail/sections/product-detail-reviews"
 
 type ProductDetailTabsProps = {
-  activeSectionValue: string
+  activeSectionValue?: string
   defaultSectionValue: string
-  onSectionValueChange: (value: string) => void
+  onSectionValueChange: (value: string | undefined) => void
   productId?: string | null
   sections: ProductDetailContentSection[]
 }
@@ -38,6 +38,7 @@ export function ProductDetailTabs({
   productId,
   sections,
 }: ProductDetailTabsProps) {
+  const selectedSectionValue = activeSectionValue ?? defaultSectionValue
   const tabSections = productId
     ? [
         ...sections,
@@ -62,7 +63,7 @@ export function ProductDetailTabs({
           justify="start"
           onValueChange={onSectionValueChange}
           size="md"
-          value={activeSectionValue}
+          value={selectedSectionValue}
           variant="line"
         >
           <Tabs.List className="mb-200">
@@ -99,14 +100,12 @@ export function ProductDetailTabs({
 
       <div className="lg:hidden">
         <Accordion
+          collapsible
           onChange={(value) => {
-            const nextValue = value[0]
-            if (nextValue) {
-              onSectionValueChange(nextValue)
-            }
+            onSectionValueChange(value[0])
           }}
           size="sm"
-          value={[activeSectionValue]}
+          value={activeSectionValue ? [activeSectionValue] : []}
           variant="default"
         >
           {tabSections.map((section) => (

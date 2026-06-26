@@ -23,7 +23,9 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 export function ProductDetail({ handle }: ProductDetailProps) {
   const controller = useProductDetailController({ handle })
-  const [activeInfoSection, setActiveInfoSection] = useState(
+  const [activeInfoSection, setActiveInfoSection] = useState<
+    string | undefined
+  >(
     controller.defaultInfoSectionValue
   )
 
