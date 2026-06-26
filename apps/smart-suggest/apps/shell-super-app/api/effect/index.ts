@@ -1,11 +1,8 @@
-import {
-  SAMPLE_DATA_SOURCES,
-  searchSampleAddressFixtures,
-  seedSampleAddressDatasets,
-} from '@techsio/smart-suggest-datasets';
+import { SAMPLE_DATA_SOURCES, seedSampleAddressDatasets } from '@techsio/smart-suggest-datasets';
 import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
 import type {
   ProviderEventSummary,
+  SmartSuggestCacheStatus,
   SmartSuggestAcceptEvent,
   SmartSuggestCountryCode,
   SmartSuggestError,
@@ -16,11 +13,18 @@ import type {
   SuggestionSource,
 } from '@techsio/smart-suggest-core';
 import {
+  createD1SmartSuggestRepositories,
   createInMemorySmartSuggestRepositories,
   createSuggestCacheKey,
   createSuggestQueryHash,
 } from '@techsio/smart-suggest-storage';
-import type { TenantRecord } from '@techsio/smart-suggest-storage';
+import type {
+  AddressRecord,
+  DataSourceRecord,
+  SmartSuggestD1Binding,
+  SmartSuggestRepositories,
+  TenantRecord,
+} from '@techsio/smart-suggest-storage';
 import { createSmartSuggestProviderRegistryFromConfig } from '@techsio/smart-suggest-integrations';
 import type {
   SmartSuggestProviderRegistry,
@@ -38,9 +42,154 @@ const plainTextHeaders = {
   'content-type': 'text/plain; charset=utf-8',
 } as const;
 
-const repositories = createInMemorySmartSuggestRepositories();
-const sampleSeed = seedSampleAddressDatasets(repositories);
+interface SmartSuggestWorkerEnv {
+  SMART_SUGGEST_D1?: SmartSuggestD1Binding;
+}
+
+const inMemoryRepositories = createInMemorySmartSuggestRepositories();
+const d1Repositories = new WeakMap<SmartSuggestD1Binding, SmartSuggestRepositories>();
+const repositorySeeds = new WeakMap<SmartSuggestRepositories, Promise<unknown>>();
+const runtimeMetricsByRepository = new WeakMap<
+  SmartSuggestRepositories,
+  SmartSuggestRuntimeMetrics
+>();
 const providerRegistries = new Map<string, SmartSuggestProviderRegistry>();
+
+type SuggestSourceKind = 'cache' | 'owned' | 'provider-fallback';
+
+interface SmartSuggestRuntimeMetrics {
+  accept: {
+    total: number;
+  };
+  providerEvents: Record<ProviderEventSummary['status'], number>;
+  suggest: {
+    cacheStatus: Record<SmartSuggestCacheStatus, number>;
+    errors: number;
+    latencyMsTotal: number;
+    ownedSuccess: number;
+    providerFallback: number;
+    total: number;
+  };
+}
+
+const createRuntimeMetrics = (): SmartSuggestRuntimeMetrics => ({
+  accept: { total: 0 },
+  providerEvents: {
+    error: 0,
+    skipped: 0,
+    success: 0,
+    timeout: 0,
+  },
+  suggest: {
+    cacheStatus: {
+      disabled: 0,
+      hit: 0,
+      miss: 0,
+      stale: 0,
+      written: 0,
+    },
+    errors: 0,
+    latencyMsTotal: 0,
+    ownedSuccess: 0,
+    providerFallback: 0,
+    total: 0,
+  },
+});
+
+const metricsForRepositories = (repositories: SmartSuggestRepositories) => {
+  const existingMetrics = runtimeMetricsByRepository.get(repositories);
+
+  if (existingMetrics !== undefined) {
+    return existingMetrics;
+  }
+
+  const metrics = createRuntimeMetrics();
+  runtimeMetricsByRepository.set(repositories, metrics);
+
+  return metrics;
+};
+
+const roundMetric = (value: number) => Math.round(value * 1000) / 1000;
+
+const summarizeMetrics = (metrics: SmartSuggestRuntimeMetrics) => {
+  const suggestTotal = metrics.suggest.total;
+
+  return {
+    accept: {
+      total: metrics.accept.total,
+    },
+    providerEvents: metrics.providerEvents,
+    suggest: {
+      averageLatencyMs:
+        suggestTotal === 0 ? 0 : roundMetric(metrics.suggest.latencyMsTotal / suggestTotal),
+      cacheHitRate:
+        suggestTotal === 0 ? 0 : roundMetric(metrics.suggest.cacheStatus.hit / suggestTotal),
+      cacheStatus: metrics.suggest.cacheStatus,
+      errors: metrics.suggest.errors,
+      ownedSuccess: metrics.suggest.ownedSuccess,
+      providerFallback: metrics.suggest.providerFallback,
+      total: suggestTotal,
+    },
+  };
+};
+
+const recordSuggestResponse = (
+  repositories: SmartSuggestRepositories,
+  response: SmartSuggestResponse,
+  startedAt: number,
+  sourceKind: SuggestSourceKind,
+) => {
+  const metrics = metricsForRepositories(repositories);
+  metrics.suggest.total += 1;
+  metrics.suggest.latencyMsTotal += performance.now() - startedAt;
+  metrics.suggest.cacheStatus[response.cacheStatus] += 1;
+
+  if (sourceKind === 'owned') {
+    metrics.suggest.ownedSuccess += 1;
+  }
+  if (sourceKind === 'provider-fallback') {
+    metrics.suggest.providerFallback += 1;
+  }
+};
+
+const recordSuggestError = (repositories: SmartSuggestRepositories, startedAt: number) => {
+  const metrics = metricsForRepositories(repositories);
+  metrics.suggest.total += 1;
+  metrics.suggest.errors += 1;
+  metrics.suggest.latencyMsTotal += performance.now() - startedAt;
+};
+
+const resolveRepositories = (env?: SmartSuggestWorkerEnv) => {
+  const binding = env?.SMART_SUGGEST_D1;
+
+  if (binding === undefined) {
+    return inMemoryRepositories;
+  }
+
+  const existing = d1Repositories.get(binding);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const repositories = createD1SmartSuggestRepositories(binding);
+  d1Repositories.set(binding, repositories);
+
+  return repositories;
+};
+
+const seedRepositories = (repositories: SmartSuggestRepositories) => {
+  const existing = repositorySeeds.get(repositories);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const seed = seedSampleAddressDatasets(repositories);
+  repositorySeeds.set(repositories, seed);
+
+  return seed;
+};
 
 const notFound = () =>
   new Response('Not found', {
@@ -108,13 +257,44 @@ const readJsonRecord = async (request: Request) => {
 
 const readOptionalRecord = (value: unknown) => (isRecord(value) ? value : undefined);
 
-const health = async () => {
+const health = async (repositories: SmartSuggestRepositories) => {
   try {
     const storage = await repositories.health.check();
     return jsonResponse(getHealthPayload(storage));
   } catch {
     return jsonResponse(getHealthPayload());
   }
+};
+
+const toSafeImportRunSummary = (
+  run: Awaited<ReturnType<SmartSuggestRepositories['importRuns']['listRecentImportRuns']>>[number],
+) => ({
+  completedAt: run.completedAt,
+  failedRows: run.failedRows,
+  id: run.id,
+  insertedRows: run.insertedRows,
+  shardCountryCode: run.shardCountryCode,
+  sourceId: run.sourceId,
+  startedAt: run.startedAt,
+  status: run.status,
+  totalRows: run.totalRows,
+});
+
+const status = async (repositories: SmartSuggestRepositories) => {
+  const [storage, importRuns] = await Promise.all([
+    repositories.health.check().catch(() => null),
+    repositories.importRuns.listRecentImportRuns(5).catch(() => []),
+  ]);
+
+  return jsonResponse({
+    db: storage,
+    imports: {
+      recentRuns: importRuns.map(toSafeImportRunSummary),
+    },
+    metrics: summarizeMetrics(metricsForRepositories(repositories)),
+    service: 'smart-suggest',
+    timestamp: nowIso(),
+  });
 };
 
 const parsePhoneValidationRequest = (
@@ -266,13 +446,25 @@ const parseSuggestRequest = (url: URL): SmartSuggestRequest | undefined => {
   return request;
 };
 
-const toSuggestionSource = (source: (typeof SAMPLE_DATA_SOURCES)[number]): SuggestionSource => ({
-  attribution: source.attribution,
-  datasetVersion: source.datasetVersion,
-  id: source.id,
-  kind: source.sourceKind,
-  name: source.name,
-});
+type SuggestionSourceRecord = Pick<
+  DataSourceRecord,
+  'attribution' | 'datasetVersion' | 'id' | 'name' | 'sourceKind'
+>;
+
+const toSuggestionSource = (source: SuggestionSourceRecord): SuggestionSource => {
+  const suggestionSource: SuggestionSource = {
+    attribution: source.attribution,
+    id: source.id,
+    kind: source.sourceKind,
+    name: source.name,
+  };
+
+  if (source.datasetVersion !== undefined) {
+    suggestionSource.datasetVersion = source.datasetVersion;
+  }
+
+  return suggestionSource;
+};
 
 const defaultSampleDataSource = () => {
   const [source] = SAMPLE_DATA_SOURCES;
@@ -288,6 +480,15 @@ const sourceForSourceId = (sourceId: string): SuggestionSource => {
   const source = SAMPLE_DATA_SOURCES.find((entry) => entry.id === sourceId);
 
   return toSuggestionSource(source ?? defaultSampleDataSource());
+};
+
+const sourceForAddressRecord = async (
+  repositories: SmartSuggestRepositories,
+  record: AddressRecord,
+) => {
+  const source = await repositories.dataSources.getDataSource(record.sourceId);
+
+  return source === undefined ? sourceForSourceId(record.sourceId) : toSuggestionSource(source);
 };
 
 const sourceForCountry = (countryCode: SmartSuggestCountryCode | undefined): SuggestionSource => {
@@ -320,10 +521,11 @@ const parseSuggestionSource = (value: unknown): SuggestionSource | undefined => 
   };
 };
 
-const toSuggestion = (
-  record: ReturnType<typeof searchSampleAddressFixtures>[number],
-): SmartSuggestSuggestion => {
-  const source = sourceForSourceId(record.sourceId);
+const toSuggestion = async (
+  repositories: SmartSuggestRepositories,
+  record: AddressRecord,
+): Promise<SmartSuggestSuggestion> => {
+  const source = await sourceForAddressRecord(repositories, record);
   const suggestion: SmartSuggestSuggestion = {
     address: record.parts,
     cacheStatus: 'miss',
@@ -332,8 +534,8 @@ const toSuggestion = (
     id: record.id,
     kind: 'address',
     metadata: {
-      rankingReasons: record.ranking.reasons.join(','),
-      rankingScore: record.ranking.score,
+      rankingReasons: 'storage:quality',
+      rankingScore: record.quality,
     },
     searchLabel: record.searchLabel,
     source,
@@ -346,34 +548,40 @@ const toSuggestion = (
   return suggestion;
 };
 
-const suggestFromSampleData = (
+const suggestFromOwnedData = async (
   request: SmartSuggestRequest,
   queryHash: string,
-): SmartSuggestResponse => {
+  repositories: SmartSuggestRepositories,
+): Promise<SmartSuggestResponse> => {
   if (request.kind !== 'address') {
     return {
       cacheStatus: 'disabled',
-      requestId: `sample-${queryHash.slice(0, 16)}`,
+      requestId: `owned-${queryHash.slice(0, 16)}`,
       suggestions: [],
     };
   }
 
-  const searchOptions: Parameters<typeof searchSampleAddressFixtures>[1] = {};
+  const searchInput: Parameters<
+    SmartSuggestRepositories['addressRecords']['searchAddressRecords']
+  >[0] = {
+    query: request.query,
+  };
 
   if (request.countryCode !== undefined) {
-    searchOptions.countryCode = request.countryCode;
+    searchInput.countryCode = request.countryCode;
   }
   if (request.limit !== undefined) {
-    searchOptions.limit = request.limit;
+    searchInput.limit = request.limit;
   }
 
-  const suggestions = searchSampleAddressFixtures(request.query, searchOptions)
-    .filter((record) => record.ranking.score > 0)
-    .map(toSuggestion);
+  const records = await repositories.addressRecords.searchAddressRecords(searchInput);
+  const suggestions = await Promise.all(
+    records.map((record) => toSuggestion(repositories, record)),
+  );
 
   return {
     cacheStatus: 'miss',
-    requestId: `sample-${queryHash.slice(0, 16)}`,
+    requestId: `owned-${queryHash.slice(0, 16)}`,
     suggestions,
   };
 };
@@ -483,16 +691,19 @@ const recordProviderEvents = async (
   request: SmartSuggestRequest,
   requestId: string,
   queryHash: string,
+  repositories: SmartSuggestRepositories,
 ) => {
+  const metrics = metricsForRepositories(repositories);
+
   await Promise.all(
     events.map((event, index) => {
-      const { providerId, status } = event;
+      const { providerId, status: providerStatus } = event;
       const record: Parameters<typeof repositories.providerEvents.recordProviderEvent>[0] = {
         id: `${requestId}:${providerId}:${index}`,
         providerId,
         queryHash,
         requestId,
-        status,
+        status: providerStatus,
       };
 
       if (event.errorCode !== undefined) {
@@ -505,6 +716,7 @@ const recordProviderEvents = async (
         record.tenantId = request.tenant.tenantId;
       }
 
+      metrics.providerEvents[providerStatus] += 1;
       return repositories.providerEvents.recordProviderEvent(record);
     }),
   );
@@ -514,6 +726,7 @@ const suggestFromProviderFallback = async (
   request: SmartSuggestRequest,
   queryHash: string,
   ownedResponse: SmartSuggestResponse,
+  repositories: SmartSuggestRepositories,
 ) => {
   try {
     const tenantId = request.tenant?.tenantId;
@@ -528,6 +741,7 @@ const suggestFromProviderFallback = async (
       request,
       result.response.requestId,
       queryHash,
+      repositories,
     );
 
     return result.response.suggestions.length > 0 ? result.response : ownedResponse;
@@ -541,6 +755,7 @@ const writeOwnedCache = (
   queryHash: string,
   request: SmartSuggestRequest,
   response: SmartSuggestResponse,
+  repositories: SmartSuggestRepositories,
 ) => {
   const cacheWrite: Parameters<typeof repositories.suggestCache.writeSuggestCache>[0] = {
     cacheKey,
@@ -563,7 +778,8 @@ const writeOwnedCache = (
   return repositories.suggestCache.writeSuggestCache(cacheWrite);
 };
 
-const suggest = async (request: Request) => {
+const suggest = async (request: Request, repositories: SmartSuggestRepositories) => {
+  const startedAt = performance.now();
   const url = new URL(request.url);
   const suggestRequest = parseSuggestRequest(url);
 
@@ -572,7 +788,7 @@ const suggest = async (request: Request) => {
   }
 
   try {
-    await sampleSeed;
+    await seedRepositories(repositories);
 
     const queryHash = await createSuggestQueryHash(suggestRequest);
     const cacheKeyInput: Parameters<typeof createSuggestCacheKey>[0] = {
@@ -594,30 +810,46 @@ const suggest = async (request: Request) => {
     const cached = await repositories.suggestCache.readSuggestCache(cacheKey);
 
     if (cached !== undefined && cached.status === 'hit') {
-      return jsonResponse({
+      const response = {
         cacheStatus: 'hit',
         requestId: `cache-${queryHash.slice(0, 16)}`,
         suggestions: cached.payload.map((suggestion) => ({
           ...suggestion,
           cacheStatus: 'hit',
         })),
-      } satisfies SmartSuggestResponse);
-    }
+      } satisfies SmartSuggestResponse;
 
-    const response = suggestFromSampleData(suggestRequest, queryHash);
+      recordSuggestResponse(repositories, response, startedAt, 'cache');
 
-    if (response.suggestions.length === 0) {
-      return jsonResponse(await suggestFromProviderFallback(suggestRequest, queryHash, response));
-    }
-
-    try {
-      await writeOwnedCache(cacheKey, queryHash, suggestRequest, response);
-    } catch {
       return jsonResponse(response);
     }
 
+    const response = await suggestFromOwnedData(suggestRequest, queryHash, repositories);
+
+    if (response.suggestions.length === 0) {
+      const fallbackResponse = await suggestFromProviderFallback(
+        suggestRequest,
+        queryHash,
+        response,
+        repositories,
+      );
+      recordSuggestResponse(repositories, fallbackResponse, startedAt, 'provider-fallback');
+
+      return jsonResponse(fallbackResponse);
+    }
+
+    try {
+      await writeOwnedCache(cacheKey, queryHash, suggestRequest, response, repositories);
+    } catch {
+      recordSuggestResponse(repositories, response, startedAt, 'owned');
+      return jsonResponse(response);
+    }
+
+    recordSuggestResponse(repositories, response, startedAt, 'owned');
+
     return jsonResponse(response);
   } catch {
+    recordSuggestError(repositories, startedAt);
     return serverError();
   }
 };
@@ -640,7 +872,7 @@ const parseAcceptEvent = (body: Record<string, unknown>): SmartSuggestAcceptEven
   };
 };
 
-const accept = async (request: Request) => {
+const accept = async (request: Request, repositories: SmartSuggestRepositories) => {
   try {
     const body = await readJsonRecord(request);
 
@@ -661,6 +893,7 @@ const accept = async (request: Request) => {
       sourceId: event.source.id,
       suggestionId: event.suggestionId,
     });
+    metricsForRepositories(repositories).accept.total += 1;
 
     return jsonResponse({ accepted: true });
   } catch {
@@ -668,19 +901,22 @@ const accept = async (request: Request) => {
   }
 };
 
-const route = (request: Request) => {
+const route = (request: Request, repositories: SmartSuggestRepositories) => {
   const url = new URL(request.url);
   const routeKey = `${request.method} ${url.pathname}`;
 
   switch (routeKey) {
     case 'GET /v1/health': {
-      return health();
+      return health(repositories);
+    }
+    case 'GET /v1/status': {
+      return status(repositories);
     }
     case 'GET /v1/suggest': {
-      return suggest(request);
+      return suggest(request, repositories);
     }
     case 'POST /v1/accept': {
-      return accept(request);
+      return accept(request, repositories);
     }
     case 'POST /v1/validate/phone': {
       return validatePhone(request);
@@ -694,4 +930,5 @@ const route = (request: Request) => {
   }
 };
 
-export const handler = (request: Request) => route(request);
+export const handler = (request: Request, env?: SmartSuggestWorkerEnv) =>
+  route(request, resolveRepositories(env));

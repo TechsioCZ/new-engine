@@ -1024,6 +1024,9 @@ importers:
       '@techsio/smart-suggest-react':
         specifier: workspace:^
         version: link:../react
+      '@techsio/smart-suggest-validation':
+        specifier: workspace:^
+        version: link:../validation
     devDependencies:
       '@rsbuild/plugin-react':
         specifier: ^1.4.2

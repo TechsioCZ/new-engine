@@ -10,6 +10,7 @@ import type {
   SuggestionAttribution,
   SuggestionSourceKind,
 } from "@techsio/smart-suggest-core"
+import { and, desc, eq, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import {
   index,
@@ -179,6 +180,9 @@ export type SmartSuggestRepositories = {
       >
     ) => Promise<ImportRunRecord>
     getImportRun: (runId: string) => Promise<ImportRunRecord | undefined>
+    listRecentImportRuns: (
+      limit?: number
+    ) => Promise<readonly ImportRunRecord[]>
   }
   addressRecords: {
     upsertAddressRecords: (
@@ -492,6 +496,680 @@ const assertCachePolicyAllowsWrite = (policy: ProviderCachePolicy) => {
 const isCacheExpired = (record: SuggestCacheRecord) =>
   record.expiresAt !== undefined && Date.parse(record.expiresAt) <= Date.now()
 
+const parseJsonValue = <T>(
+  value: string | null | undefined,
+  fallback: T
+): T => {
+  if (value === undefined || value === null || value.trim().length === 0) {
+    return fallback
+  }
+
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    return fallback
+  }
+}
+
+const parseJsonRecord = (
+  value: string | null | undefined
+): Record<string, JsonValue> => {
+  const parsed = parseJsonValue<JsonValue>(value, {})
+
+  return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, JsonValue>)
+    : {}
+}
+
+const parseJsonStringArray = (value: string | null | undefined) => {
+  const parsed = parseJsonValue<JsonValue>(value, [])
+
+  return Array.isArray(parsed) &&
+    parsed.every((entry) => typeof entry === "string")
+    ? parsed
+    : []
+}
+
+const nullableNumber = (value: number | undefined) => value ?? null
+
+const toAttribution = (row: {
+  attributionLabel: string
+  attributionLicense: string | null
+  attributionUrl: string | null
+}): SuggestionAttribution => {
+  const attribution: SuggestionAttribution = { label: row.attributionLabel }
+
+  if (row.attributionLicense !== null) {
+    attribution.license = row.attributionLicense
+  }
+  if (row.attributionUrl !== null) {
+    attribution.url = row.attributionUrl
+  }
+
+  return attribution
+}
+
+const toDataSourceRecord = (
+  row: typeof smartSuggestDataSources.$inferSelect
+): DataSourceRecord => {
+  const record: DataSourceRecord = {
+    attribution: toAttribution(row),
+    cachePolicy: parseJsonValue<ProviderCachePolicy>(row.cachePolicyJson, {
+      kind: "none",
+    }),
+    countryCode: row.countryCode as SmartSuggestCountryCode,
+    createdAt: row.createdAt,
+    id: row.id,
+    name: row.name,
+    sourceKind: row.sourceKind as SuggestionSourceKind,
+    updatedAt: row.updatedAt,
+  }
+
+  if (row.datasetVersion !== null) {
+    record.datasetVersion = row.datasetVersion
+  }
+  if (row.region !== null) {
+    record.region = row.region
+  }
+
+  return record
+}
+
+const toTenantRecord = (
+  row: typeof smartSuggestTenants.$inferSelect
+): TenantRecord => ({
+  allowedOrigins: parseJsonStringArray(row.allowedOriginsJson),
+  countryConfig: parseJsonRecord(row.countryConfigJson),
+  createdAt: row.createdAt,
+  id: row.id,
+  name: row.name,
+  providerPriority: parseJsonStringArray(row.providerPriorityJson),
+  status: row.status === "disabled" ? "disabled" : "active",
+  updatedAt: row.updatedAt,
+})
+
+const toImportRunRecord = (
+  row: typeof smartSuggestImportRuns.$inferSelect
+): ImportRunRecord => {
+  const record: ImportRunRecord = {
+    failedRows: row.failedRows,
+    id: row.id,
+    insertedRows: row.insertedRows,
+    shardCountryCode: row.shardCountryCode as SmartSuggestCountryCode,
+    sourceId: row.sourceId,
+    startedAt: row.startedAt,
+    status: row.status as ImportRunStatus,
+    totalRows: row.totalRows,
+  }
+
+  if (row.completedAt !== null) {
+    record.completedAt = row.completedAt
+  }
+  if (row.errorSummary !== null) {
+    record.errorSummary = row.errorSummary
+  }
+
+  return record
+}
+
+const toAddressParts = (
+  row: typeof smartSuggestAddressRecords.$inferSelect
+): AddressParts => {
+  const parts: AddressParts = {
+    countryCode: row.countryCode as SmartSuggestCountryCode,
+  }
+
+  if (row.city !== null) {
+    parts.city = row.city
+  }
+  if (row.district !== null) {
+    parts.district = row.district
+  }
+  if (row.houseNumber !== null) {
+    parts.houseNumber = row.houseNumber
+  }
+  if (row.line1 !== null) {
+    parts.line1 = row.line1
+  }
+  if (row.line2 !== null) {
+    parts.line2 = row.line2
+  }
+  if (row.orientationNumber !== null) {
+    parts.orientationNumber = row.orientationNumber
+  }
+  if (row.postalCode !== null) {
+    parts.postalCode = row.postalCode
+  }
+  if (row.region !== null) {
+    parts.region = row.region
+  }
+  if (row.street !== null) {
+    parts.street = row.street
+  }
+
+  return parts
+}
+
+const toAddressRecord = (
+  row: typeof smartSuggestAddressRecords.$inferSelect
+): AddressRecord => {
+  const record: AddressRecord = {
+    countryCode: row.countryCode as SmartSuggestCountryCode,
+    createdAt: row.createdAt,
+    displayLabel: row.displayLabel,
+    id: row.id,
+    parts: toAddressParts(row),
+    quality: row.quality,
+    searchLabel: row.searchLabel,
+    sourceId: row.sourceId,
+    updatedAt: row.updatedAt,
+  }
+
+  if (row.attributionJson !== null) {
+    record.attribution = parseJsonValue<SuggestionAttribution | undefined>(
+      row.attributionJson,
+      undefined
+    )
+  }
+  if (row.latitude !== null) {
+    record.latitude = row.latitude
+  }
+  if (row.longitude !== null) {
+    record.longitude = row.longitude
+  }
+
+  return record
+}
+
+const toSuggestCacheRecord = (
+  row: typeof smartSuggestCacheEntries.$inferSelect
+): SuggestCacheRecord => {
+  const record: SuggestCacheRecord = {
+    cacheKey: row.cacheKey,
+    cachePolicy: parseJsonValue<ProviderCachePolicy>(row.cachePolicyJson, {
+      kind: "none",
+    }),
+    createdAt: row.createdAt,
+    kind: row.kind as SmartSuggestKind,
+    payload: parseJsonValue<SmartSuggestSuggestion[]>(row.payloadJson, []),
+    queryHash: row.queryHash,
+    status: row.status as SmartSuggestCacheStatus,
+    updatedAt: row.updatedAt,
+  }
+
+  if (row.countryCode !== null) {
+    record.countryCode = row.countryCode as SmartSuggestCountryCode
+  }
+  if (row.expiresAt !== null) {
+    record.expiresAt = row.expiresAt
+  }
+  if (row.language !== null) {
+    record.language = row.language
+  }
+  if (row.tenantId !== null) {
+    record.tenantId = row.tenantId
+  }
+
+  return record
+}
+
+const toProviderEventRecord = (
+  row: typeof smartSuggestProviderEvents.$inferSelect
+): ProviderEventRecord => {
+  const record: ProviderEventRecord = {
+    createdAt: row.createdAt,
+    id: row.id,
+    providerId: row.providerId,
+    requestId: row.requestId,
+    status: row.status as ProviderEventRecord["status"],
+  }
+
+  if (row.errorCode !== null) {
+    record.errorCode = row.errorCode as SmartSuggestErrorCode
+  }
+  if (row.latencyMs !== null) {
+    record.latencyMs = row.latencyMs
+  }
+  if (row.queryHash !== null) {
+    record.queryHash = row.queryHash
+  }
+  if (row.tenantId !== null) {
+    record.tenantId = row.tenantId
+  }
+
+  return record
+}
+
+const toAcceptEventRecord = (
+  row: typeof smartSuggestAcceptEvents.$inferSelect
+): AcceptEventRecord => {
+  const record: AcceptEventRecord = {
+    acceptedAt: row.acceptedAt,
+    id: row.id,
+    requestId: row.requestId,
+    sourceId: row.sourceId,
+    suggestionId: row.suggestionId,
+  }
+
+  if (row.tenantJson !== null) {
+    record.tenant = parseJsonValue<SmartSuggestTenantContext | undefined>(
+      row.tenantJson,
+      undefined
+    )
+  }
+
+  return record
+}
+
+export const createD1SmartSuggestRepositories = (
+  binding: SmartSuggestD1Binding
+): SmartSuggestRepositories => {
+  const db = createSmartSuggestD1Database(binding)
+
+  return {
+    health: {
+      check: async () => {
+        try {
+          await db.run(sql`select 1`)
+          return { checkedAt: nowIso(), ok: true }
+        } catch (error) {
+          return {
+            checkedAt: nowIso(),
+            error: error instanceof Error ? error.message : "D1 check failed.",
+            ok: false,
+          }
+        }
+      },
+    },
+    tenants: {
+      upsertTenant: async (input) => {
+        const timestamp = nowIso()
+        const row = {
+          allowedOriginsJson: JSON.stringify(input.allowedOrigins),
+          countryConfigJson: JSON.stringify(input.countryConfig),
+          createdAt: timestamp,
+          id: input.id,
+          name: input.name,
+          providerPriorityJson: JSON.stringify(input.providerPriority),
+          status: input.status,
+          updatedAt: timestamp,
+        } satisfies typeof smartSuggestTenants.$inferInsert
+        const [stored] = await db
+          .insert(smartSuggestTenants)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              allowedOriginsJson: row.allowedOriginsJson,
+              countryConfigJson: row.countryConfigJson,
+              name: row.name,
+              providerPriorityJson: row.providerPriorityJson,
+              status: row.status,
+              updatedAt: row.updatedAt,
+            },
+            target: smartSuggestTenants.id,
+          })
+          .returning()
+
+        return toTenantRecord(stored ?? row)
+      },
+      getTenant: async (tenantId) => {
+        const row = await db
+          .select()
+          .from(smartSuggestTenants)
+          .where(eq(smartSuggestTenants.id, tenantId))
+          .get()
+
+        return row === undefined ? undefined : toTenantRecord(row)
+      },
+    },
+    dataSources: {
+      registerDataSource: async (input) => {
+        const timestamp = nowIso()
+        const row = {
+          attributionLabel: input.attribution.label,
+          attributionLicense: input.attribution.license ?? null,
+          attributionUrl: input.attribution.url ?? null,
+          cachePolicyJson: JSON.stringify(input.cachePolicy),
+          countryCode: input.countryCode,
+          createdAt: timestamp,
+          datasetVersion: input.datasetVersion ?? null,
+          id: input.id,
+          name: input.name,
+          region: input.region ?? null,
+          sourceKind: input.sourceKind,
+          updatedAt: timestamp,
+        } satisfies typeof smartSuggestDataSources.$inferInsert
+        const [stored] = await db
+          .insert(smartSuggestDataSources)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              attributionLabel: row.attributionLabel,
+              attributionLicense: row.attributionLicense,
+              attributionUrl: row.attributionUrl,
+              cachePolicyJson: row.cachePolicyJson,
+              countryCode: row.countryCode,
+              datasetVersion: row.datasetVersion,
+              name: row.name,
+              region: row.region,
+              sourceKind: row.sourceKind,
+              updatedAt: row.updatedAt,
+            },
+            target: smartSuggestDataSources.id,
+          })
+          .returning()
+
+        return toDataSourceRecord(stored ?? row)
+      },
+      getDataSource: async (sourceId) => {
+        const row = await db
+          .select()
+          .from(smartSuggestDataSources)
+          .where(eq(smartSuggestDataSources.id, sourceId))
+          .get()
+
+        return row === undefined ? undefined : toDataSourceRecord(row)
+      },
+    },
+    importRuns: {
+      startImportRun: async (input) => {
+        const row = {
+          completedAt: null,
+          errorSummary: null,
+          failedRows: 0,
+          id: input.id,
+          insertedRows: 0,
+          shardCountryCode: input.shardCountryCode,
+          sourceId: input.sourceId,
+          startedAt: nowIso(),
+          status: "running",
+          totalRows: 0,
+        } satisfies typeof smartSuggestImportRuns.$inferInsert
+        const [stored] = await db
+          .insert(smartSuggestImportRuns)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              completedAt: row.completedAt,
+              errorSummary: row.errorSummary,
+              failedRows: row.failedRows,
+              insertedRows: row.insertedRows,
+              shardCountryCode: row.shardCountryCode,
+              sourceId: row.sourceId,
+              startedAt: row.startedAt,
+              status: row.status,
+              totalRows: row.totalRows,
+            },
+            target: smartSuggestImportRuns.id,
+          })
+          .returning()
+
+        return toImportRunRecord(stored ?? row)
+      },
+      finishImportRun: async (input) => {
+        const [stored] = await db
+          .update(smartSuggestImportRuns)
+          .set({
+            completedAt: input.completedAt,
+            errorSummary: input.errorSummary ?? null,
+            failedRows: input.failedRows,
+            insertedRows: input.insertedRows,
+            status: input.status,
+            totalRows: input.totalRows,
+          })
+          .where(eq(smartSuggestImportRuns.id, input.id))
+          .returning()
+
+        if (stored === undefined) {
+          throw new SmartSuggestStorageError(
+            "import-run-not-found",
+            `Import run ${input.id} does not exist.`
+          )
+        }
+
+        return toImportRunRecord(stored)
+      },
+      getImportRun: async (runId) => {
+        const row = await db
+          .select()
+          .from(smartSuggestImportRuns)
+          .where(eq(smartSuggestImportRuns.id, runId))
+          .get()
+
+        return row === undefined ? undefined : toImportRunRecord(row)
+      },
+      listRecentImportRuns: async (limit = 10) => {
+        const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+        const rows = await db
+          .select()
+          .from(smartSuggestImportRuns)
+          .orderBy(desc(smartSuggestImportRuns.startedAt))
+          .limit(normalizedLimit)
+
+        return rows.map(toImportRunRecord)
+      },
+    },
+    addressRecords: {
+      upsertAddressRecords: async (records) =>
+        Promise.all(
+          records.map(async (input) => {
+            const timestamp = nowIso()
+            const row = {
+              attributionJson:
+                input.attribution === undefined
+                  ? null
+                  : JSON.stringify(input.attribution),
+              city: input.parts.city ?? null,
+              countryCode: input.countryCode,
+              createdAt: timestamp,
+              displayLabel: input.displayLabel,
+              district: input.parts.district ?? null,
+              houseNumber: input.parts.houseNumber ?? null,
+              id: input.id,
+              latitude: nullableNumber(input.latitude),
+              line1: input.parts.line1 ?? null,
+              line2: input.parts.line2 ?? null,
+              longitude: nullableNumber(input.longitude),
+              orientationNumber: input.parts.orientationNumber ?? null,
+              postalCode: input.parts.postalCode ?? null,
+              quality: input.quality,
+              region: input.parts.region ?? null,
+              searchLabel: input.searchLabel,
+              sourceId: input.sourceId,
+              street: input.parts.street ?? null,
+              updatedAt: timestamp,
+            } satisfies typeof smartSuggestAddressRecords.$inferInsert
+            const [stored] = await db
+              .insert(smartSuggestAddressRecords)
+              .values(row)
+              .onConflictDoUpdate({
+                set: {
+                  attributionJson: row.attributionJson,
+                  city: row.city,
+                  countryCode: row.countryCode,
+                  displayLabel: row.displayLabel,
+                  district: row.district,
+                  houseNumber: row.houseNumber,
+                  latitude: row.latitude,
+                  line1: row.line1,
+                  line2: row.line2,
+                  longitude: row.longitude,
+                  orientationNumber: row.orientationNumber,
+                  postalCode: row.postalCode,
+                  quality: row.quality,
+                  region: row.region,
+                  searchLabel: row.searchLabel,
+                  sourceId: row.sourceId,
+                  street: row.street,
+                  updatedAt: row.updatedAt,
+                },
+                target: smartSuggestAddressRecords.id,
+              })
+              .returning()
+
+            return toAddressRecord(stored ?? row)
+          })
+        ),
+      searchAddressRecords: async ({ countryCode, limit = 10, query }) => {
+        const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+        const filters = [
+          like(
+            smartSuggestAddressRecords.searchLabel,
+            `%${normalizeSearchText(query)}%`
+          ),
+        ]
+
+        if (countryCode !== undefined) {
+          filters.push(eq(smartSuggestAddressRecords.countryCode, countryCode))
+        }
+
+        const rows = await db
+          .select()
+          .from(smartSuggestAddressRecords)
+          .where(and(...filters))
+          .orderBy(desc(smartSuggestAddressRecords.quality))
+          .limit(normalizedLimit)
+
+        return rows.map(toAddressRecord)
+      },
+      getAddressRecord: async (recordId) => {
+        const row = await db
+          .select()
+          .from(smartSuggestAddressRecords)
+          .where(eq(smartSuggestAddressRecords.id, recordId))
+          .get()
+
+        return row === undefined ? undefined : toAddressRecord(row)
+      },
+    },
+    suggestCache: {
+      readSuggestCache: async (cacheKey) => {
+        const row = await db
+          .select()
+          .from(smartSuggestCacheEntries)
+          .where(eq(smartSuggestCacheEntries.cacheKey, cacheKey))
+          .get()
+
+        if (row === undefined) {
+          return
+        }
+
+        const record = toSuggestCacheRecord(row)
+
+        return isCacheExpired(record)
+          ? { ...record, status: "stale" }
+          : { ...record, status: "hit" }
+      },
+      writeSuggestCache: async (input) => {
+        assertCachePolicyAllowsWrite(input.cachePolicy)
+
+        const timestamp = nowIso()
+        const row = {
+          cacheKey: input.cacheKey,
+          cachePolicyJson: JSON.stringify(input.cachePolicy),
+          countryCode: input.countryCode ?? null,
+          createdAt: timestamp,
+          expiresAt: input.expiresAt ?? null,
+          kind: input.kind,
+          language: input.language ?? null,
+          payloadJson: JSON.stringify(input.payload),
+          queryHash: input.queryHash,
+          status: input.status ?? "written",
+          tenantId: input.tenantId ?? null,
+          updatedAt: timestamp,
+        } satisfies typeof smartSuggestCacheEntries.$inferInsert
+        const [stored] = await db
+          .insert(smartSuggestCacheEntries)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              cachePolicyJson: row.cachePolicyJson,
+              countryCode: row.countryCode,
+              expiresAt: row.expiresAt,
+              kind: row.kind,
+              language: row.language,
+              payloadJson: row.payloadJson,
+              queryHash: row.queryHash,
+              status: row.status,
+              tenantId: row.tenantId,
+              updatedAt: row.updatedAt,
+            },
+            target: smartSuggestCacheEntries.cacheKey,
+          })
+          .returning()
+
+        return toSuggestCacheRecord(stored ?? row)
+      },
+    },
+    providerEvents: {
+      recordProviderEvent: async (input) => {
+        const row = {
+          createdAt: nowIso(),
+          errorCode: input.errorCode ?? null,
+          id: input.id,
+          latencyMs: input.latencyMs ?? null,
+          providerId: input.providerId,
+          queryHash: input.queryHash ?? null,
+          requestId: input.requestId,
+          status: input.status,
+          tenantId: input.tenantId ?? null,
+        } satisfies typeof smartSuggestProviderEvents.$inferInsert
+        const [stored] = await db
+          .insert(smartSuggestProviderEvents)
+          .values(row)
+          .returning()
+
+        return toProviderEventRecord(stored ?? row)
+      },
+      listProviderEvents: async (requestId) => {
+        const rows = await db
+          .select()
+          .from(smartSuggestProviderEvents)
+          .where(eq(smartSuggestProviderEvents.requestId, requestId))
+
+        return rows.map(toProviderEventRecord)
+      },
+    },
+    acceptEvents: {
+      recordAcceptEvent: async (input) => {
+        const row = {
+          acceptedAt: input.acceptedAt,
+          id: input.id,
+          requestId: input.requestId,
+          sourceId: input.sourceId,
+          suggestionId: input.suggestionId,
+          tenantJson:
+            input.tenant === undefined ? null : JSON.stringify(input.tenant),
+        } satisfies typeof smartSuggestAcceptEvents.$inferInsert
+        const [stored] = await db
+          .insert(smartSuggestAcceptEvents)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              acceptedAt: row.acceptedAt,
+              requestId: row.requestId,
+              sourceId: row.sourceId,
+              suggestionId: row.suggestionId,
+              tenantJson: row.tenantJson,
+            },
+            target: smartSuggestAcceptEvents.id,
+          })
+          .returning()
+
+        return toAcceptEventRecord(stored ?? row)
+      },
+      listAcceptEvents: async (requestId) => {
+        const rows = await db
+          .select()
+          .from(smartSuggestAcceptEvents)
+          .where(eq(smartSuggestAcceptEvents.requestId, requestId))
+
+        return rows.map(toAcceptEventRecord)
+      },
+    },
+  }
+}
+
 const resolveSync = <T>(compute: () => T): Promise<T> =>
   new Promise((resolve, reject) => {
     try {
@@ -563,6 +1241,16 @@ export const createInMemorySmartSuggestRepositories =
             return record
           }),
         getImportRun: (runId) => Promise.resolve(importRuns.get(runId)),
+        listRecentImportRuns: (limit = 10) =>
+          resolveSync(() => {
+            const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+
+            return [...importRuns.values()]
+              .toSorted((left, right) =>
+                right.startedAt.localeCompare(left.startedAt)
+              )
+              .slice(0, normalizedLimit)
+          }),
       },
       addressRecords: {
         upsertAddressRecords: (records) =>

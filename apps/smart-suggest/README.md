@@ -144,6 +144,30 @@ ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP=https://shell-super-app.example.workers.d
 pnpm cloudflare:proof -- --require-public-urls
 ```
 
+## Smart Suggest Runtime Config
+
+The shell app exposes Smart Suggest through `/api/v1/*` and uses Cloudflare D1
+when the Worker provides the `SMART_SUGGEST_D1` binding. Local builds and
+previews keep an in-memory fallback so API smoke tests can run without live
+Cloudflare resources.
+
+| Variable                               | Role                                                    |
+| -------------------------------------- | ------------------------------------------------------- |
+| `SMART_SUGGEST_D1_BINDING`             | Wrangler binding name; defaults to `SMART_SUGGEST_D1`   |
+| `SMART_SUGGEST_D1_DATABASE_NAME`       | D1 database name; defaults to `smart-suggest`           |
+| `SMART_SUGGEST_D1_DATABASE_ID`         | D1 database id; required by `pnpm cloudflare:deploy`    |
+| `SMART_SUGGEST_D1_PREVIEW_DATABASE_ID` | Optional preview D1 id; falls back to the production id |
+| `SMART_SUGGEST_ALLOWED_ORIGINS`        | Deployment-owned CORS origin allowlist contract         |
+| `SMART_SUGGEST_PROVIDER_PRIORITY`      | Deployment-owned provider priority contract             |
+| `MAPY_CZ_API_KEY`                      | Provider secret contract; server/Worker only            |
+
+`pnpm cloudflare:build` post-processes the generated `.output/wrangler.json`
+with the D1 binding shape and removes server-only API/shared files from the
+public asset directory. `pnpm cloudflare:deploy` reruns that post-process in
+strict mode and fails if `SMART_SUGGEST_D1_DATABASE_ID` is missing. Provider
+secrets and tenant/provider priority are intentionally deployment/runtime
+configuration, not browser configuration.
+
 ## Troubleshooting
 
 | Symptom                     | Current check                                                                                                                                                     | Owner                                       |

@@ -12,6 +12,14 @@
       "types": "./dist/src/address-suggest-field.d.ts",
       "import": "./dist/address-suggest-field.js"
     },
+    "./phone-validation-field": {
+      "types": "./dist/src/phone-validation-field.d.ts",
+      "import": "./dist/phone-validation-field.js"
+    },
+    "./postal-validation-field": {
+      "types": "./dist/src/postal-validation-field.d.ts",
+      "import": "./dist/postal-validation-field.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -43,6 +51,7 @@
   "dependencies": {
     "@techsio/smart-suggest-client": "workspace:^",
     "@techsio/smart-suggest-core": "workspace:^",
-    "@techsio/smart-suggest-react": "workspace:^"
+    "@techsio/smart-suggest-react": "workspace:^",
+    "@techsio/smart-suggest-validation": "workspace:^"
   }
 }

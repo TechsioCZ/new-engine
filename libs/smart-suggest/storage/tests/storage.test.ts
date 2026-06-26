@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  createD1SmartSuggestRepositories,
   createInMemorySmartSuggestRepositories,
   createSuggestCacheKey,
   createSuggestQueryHash,
@@ -21,6 +22,10 @@ describe("smart suggest storage", () => {
       "smartSuggestProviderEvents",
       "smartSuggestTenants",
     ])
+  })
+
+  it("exposes a D1 repository factory for Worker runtime bindings", () => {
+    expect(createD1SmartSuggestRepositories).toBeTypeOf("function")
   })
 
   it("stores repository data without raw user query fields", async () => {
@@ -92,8 +97,36 @@ describe("smart suggest storage", () => {
     ).not.toContain("Václavské")
   })
 
-  it("enforces provider cache policy before writing payloads", async () => {
+  it("reports cache miss, hit, stale, and policy violation states", async () => {
     const repositories = createInMemorySmartSuggestRepositories()
+
+    await expect(
+      repositories.suggestCache.readSuggestCache("missing")
+    ).resolves.toBeUndefined()
+
+    await repositories.suggestCache.writeSuggestCache({
+      cacheKey: "owned-hit",
+      cachePolicy: { kind: "permanent" },
+      expiresAt: "2999-01-01T00:00:00.000Z",
+      kind: "address",
+      payload: [],
+      queryHash: "derived-hash",
+    })
+    await expect(
+      repositories.suggestCache.readSuggestCache("owned-hit")
+    ).resolves.toMatchObject({ status: "hit" })
+
+    await repositories.suggestCache.writeSuggestCache({
+      cacheKey: "owned-stale",
+      cachePolicy: { kind: "ttl", ttlSeconds: 60 },
+      expiresAt: "2000-01-01T00:00:00.000Z",
+      kind: "address",
+      payload: [],
+      queryHash: "derived-hash",
+    })
+    await expect(
+      repositories.suggestCache.readSuggestCache("owned-stale")
+    ).resolves.toMatchObject({ status: "stale" })
 
     await expect(
       repositories.suggestCache.writeSuggestCache({
@@ -104,6 +137,34 @@ describe("smart suggest storage", () => {
         queryHash: "hash",
       })
     ).rejects.toBeInstanceOf(SmartSuggestStorageError)
+  })
+
+  it("lists recent import runs for operational status without raw query data", async () => {
+    const repositories = createInMemorySmartSuggestRepositories()
+
+    await repositories.importRuns.startImportRun({
+      id: "import-a",
+      shardCountryCode: "CZ",
+      sourceId: "source-a",
+    })
+    await repositories.importRuns.finishImportRun({
+      completedAt: "2026-06-26T12:00:00.000Z",
+      failedRows: 0,
+      id: "import-a",
+      insertedRows: 1,
+      status: "completed",
+      totalRows: 1,
+    })
+
+    await expect(
+      repositories.importRuns.listRecentImportRuns(1)
+    ).resolves.toEqual([
+      expect.objectContaining({
+        id: "import-a",
+        shardCountryCode: "CZ",
+        status: "completed",
+      }),
+    ])
   })
 
   it("records provider and accept events without raw query storage", async () => {

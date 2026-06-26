@@ -14,7 +14,8 @@
     "validate:ui-primitives:json": "node scripts/validate-ui-primitives.mjs --json",
     "validate:file-size": "node scripts/validate-file-size-guardrail.mjs",
     "validate:file-size:json": "node scripts/validate-file-size-guardrail.mjs --json",
-    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size"
+    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size",
+    "test:smart-suggest-checkout": "node scripts/validate-smart-suggest-checkout.mjs"
   },
   "nx": {
     "tags": [
