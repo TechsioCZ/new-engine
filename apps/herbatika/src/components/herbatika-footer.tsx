@@ -3,45 +3,75 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
+import type { Route } from "next"
 import NextLink from "next/link"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-const FOOTER_COLUMNS = [
+type FooterNavigationLink =
+  | {
+      href: Route
+      label: string
+      external?: false
+    }
+  | {
+      href: `https://${string}`
+      label: string
+      external: true
+    }
+
+type FooterColumn = {
+  title: string
+  links: readonly FooterNavigationLink[]
+}
+
+const footerRoute = (href: string) => href as Route
+
+const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     title: "Informácie pre vás",
     links: [
-      { href: "/blog", label: "Blog" },
-      { href: "/o-nas", label: "O nás" },
-      { href: "/faq", label: "Časté otázky" },
-      { href: "/c/darceky", label: "Darčeková poukážka" },
-      { href: "/znacka", label: "Výrobcovia a značky" },
+      { href: footerRoute("/blog"), label: "Blog" },
+      { href: footerRoute("/o-nas"), label: "O nás" },
+      { href: footerRoute("/faq"), label: "Časté otázky" },
+      { href: footerRoute("/c/darceky"), label: "Darčeková poukážka" },
+      { href: footerRoute("/znacka"), label: "Výrobcovia a značky" },
       {
         href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
         label: "Recenzie",
+        external: true,
       },
     ],
   },
   {
     title: "Dôležité informácie",
     links: [
-      { href: "/#doprava-a-platby", label: "Doprava a platby" },
-      { href: "/#reklamacia-a-vratenie", label: "Reklamácia a vrátenie" },
-      { href: "/#obchodne-podmienky", label: "Obchodné podmienky" },
-      { href: "/#ochrana-osobnych-udajov", label: "Ochrana osobných údajov" },
-      { href: "/#cookies", label: "Cookies" },
+      { href: footerRoute("/#doprava-a-platby"), label: "Doprava a platby" },
+      {
+        href: footerRoute("/#reklamacia-a-vratenie"),
+        label: "Reklamácia a vrátenie",
+      },
+      {
+        href: footerRoute("/#obchodne-podmienky"),
+        label: "Obchodné podmienky",
+      },
+      {
+        href: footerRoute("/#ochrana-osobnych-udajov"),
+        label: "Ochrana osobných údajov",
+      },
+      { href: footerRoute("/#cookies"), label: "Cookies" },
     ],
   },
   {
     title: "Pre partnerov",
     links: [
-      { href: "/#affiliate", label: "Affiliate program" },
-      { href: "/#velkoobchod", label: "Veľkoobchod" },
-      { href: "/#dropshipping", label: "Dropshipping" },
-      { href: "/#private-label", label: "Private label" },
+      { href: footerRoute("/#affiliate"), label: "Affiliate program" },
+      { href: footerRoute("/#velkoobchod"), label: "Veľkoobchod" },
+      { href: footerRoute("/#dropshipping"), label: "Dropshipping" },
+      { href: footerRoute("/#private-label"), label: "Private label" },
     ],
   },
-] as const
+]
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   {
@@ -126,9 +156,15 @@ export function HerbatikaFooter() {
             <Footer.List>
               {column.links.map((link) => (
                 <li key={link.href}>
-                  <Footer.Link as={NextLink} href={link.href}>
-                    {link.label}
-                  </Footer.Link>
+                  {link.external ? (
+                    <Footer.Link external href={link.href}>
+                      {link.label}
+                    </Footer.Link>
+                  ) : (
+                    <Footer.Link as={NextLink} href={link.href}>
+                      {link.label}
+                    </Footer.Link>
+                  )}
                 </li>
               ))}
             </Footer.List>
