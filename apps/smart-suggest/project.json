@@ -8,31 +8,31 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm build"
+        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm build"
       }
     },
     "check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm check"
+        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm check"
       }
     },
     "cloudflare:build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm cloudflare:build"
+        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm cloudflare:build"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm lint"
+        "command": "cd apps/smart-suggest && mise exec -- pnpm lint"
       }
     },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && mise exec -- pnpm install --frozen-lockfile && mise exec -- pnpm typecheck"
+        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm typecheck"
       }
     }
   }
