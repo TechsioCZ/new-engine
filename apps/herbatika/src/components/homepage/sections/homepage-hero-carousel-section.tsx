@@ -5,7 +5,8 @@ import {
 } from "@techsio/ui-kit/molecules/carousel"
 import Image from "next/image"
 import NextLink from "next/link"
-import { useMemo } from "react"
+import type { MouseEventHandler } from "react"
+import { useRef } from "react"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
 const HERO_CTA_LABEL = "Zistiť viac"
@@ -17,12 +18,24 @@ const HERO_SLIDES_PER_PAGE = {
   lg: 4.1,
 } as const
 
-function HeroBannerCard({ banner }: { banner: HeroBannerItem }) {
+type HeroBannerCardProps = {
+  banner: HeroBannerItem
+  onClickCapture: MouseEventHandler<HTMLAnchorElement>
+  onMouseDownCapture: MouseEventHandler<HTMLAnchorElement>
+}
+
+function HeroBannerCard({
+  banner,
+  onClickCapture,
+  onMouseDownCapture,
+}: HeroBannerCardProps) {
   return (
     <NextLink
       aria-label={`${banner.title} - ${HERO_CTA_LABEL}`}
       className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
       href={banner.href}
+      onClickCapture={onClickCapture}
+      onMouseDownCapture={onMouseDownCapture}
     >
       <Image
         alt={banner.id}
@@ -50,10 +63,20 @@ function HeroBannerCard({ banner }: { banner: HeroBannerItem }) {
   )
 }
 
-const buildHeroSlides = (banners: HeroBannerItem[]): CarouselSlide[] =>
+const buildHeroSlides = (
+  banners: HeroBannerItem[],
+  onClickCapture: MouseEventHandler<HTMLAnchorElement>,
+  onMouseDownCapture: MouseEventHandler<HTMLAnchorElement>
+): CarouselSlide[] =>
   banners.map((banner) => ({
     id: banner.id,
-    content: <HeroBannerCard banner={banner} />,
+    content: (
+      <HeroBannerCard
+        banner={banner}
+        onClickCapture={onClickCapture}
+        onMouseDownCapture={onMouseDownCapture}
+      />
+    ),
   }))
 
 type HomepageHeroCarouselSectionProps = {
@@ -61,18 +84,39 @@ type HomepageHeroCarouselSectionProps = {
 }
 
 type HeroCarouselProps = {
-  slides: CarouselSlide[]
+  banners: HeroBannerItem[]
   slidesClassName?: string
   slidesPerPage?: number
   spacing?: string
 }
 
 function HeroCarousel({
-  slides,
+  banners,
   slidesClassName = "h-homepage-hero-carousel",
   slidesPerPage = 1,
   spacing = HERO_SLIDE_SPACING,
 }: HeroCarouselProps) {
+  const didMouseDragRef = useRef(false)
+  const handleSlideMouseDownCapture: MouseEventHandler<HTMLAnchorElement> =
+    () => {
+      didMouseDragRef.current = false
+    }
+  const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
+    event
+  ) => {
+    if (!didMouseDragRef.current) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    didMouseDragRef.current = false
+  }
+  const slides = buildHeroSlides(
+    banners,
+    handleSlideClickCapture,
+    handleSlideMouseDownCapture
+  )
   const hasOverflow = slides.length > slidesPerPage
 
   return (
@@ -85,6 +129,11 @@ function HeroCarousel({
       slidesPerMove={1}
       slidesPerPage={slidesPerPage}
       spacing={spacing}
+      onDragStatusChange={(details) => {
+        if (details.type === "dragging") {
+          didMouseDragRef.current = true
+        }
+      }}
     >
       <Carousel.Slides className={slidesClassName} slides={slides} />
       {hasOverflow ? (
@@ -100,21 +149,31 @@ function HeroCarousel({
 export function HomepageHeroCarouselSection({
   banners,
 }: HomepageHeroCarouselSectionProps) {
-  const slides = useMemo(() => buildHeroSlides(banners), [banners])
-
   return (
     <section>
       <div className="xs:hidden">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.xs} />
+        <HeroCarousel
+          banners={banners}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.xs}
+        />
       </div>
       <div className="xs:block hidden md:hidden">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.sm} />
+        <HeroCarousel
+          banners={banners}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.sm}
+        />
       </div>
       <div className="hidden md:block lg:hidden">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.md} />
+        <HeroCarousel
+          banners={banners}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.md}
+        />
       </div>
       <div className="hidden lg:block">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.lg} />
+        <HeroCarousel
+          banners={banners}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.lg}
+        />
       </div>
     </section>
   )
