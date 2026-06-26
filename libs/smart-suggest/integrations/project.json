@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-integrations",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/integrations/src",
+  "tags": ["type:lib", "area:smart-suggest"]
+}

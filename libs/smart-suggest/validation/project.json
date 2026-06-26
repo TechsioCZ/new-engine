@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-validation",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/validation/src",
+  "tags": ["type:lib", "area:smart-suggest", "area:validation"]
+}

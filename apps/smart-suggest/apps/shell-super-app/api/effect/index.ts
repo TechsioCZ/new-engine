@@ -1,8 +1,46 @@
+import {
+  SAMPLE_DATA_SOURCES,
+  searchSampleAddressFixtures,
+  seedSampleAddressDatasets,
+} from '@techsio/smart-suggest-datasets';
+import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
+import type {
+  ProviderEventSummary,
+  SmartSuggestAcceptEvent,
+  SmartSuggestCountryCode,
+  SmartSuggestError,
+  SmartSuggestKind,
+  SmartSuggestRequest,
+  SmartSuggestResponse,
+  SmartSuggestSuggestion,
+  SuggestionSource,
+} from '@techsio/smart-suggest-core';
+import {
+  createInMemorySmartSuggestRepositories,
+  createSuggestCacheKey,
+  createSuggestQueryHash,
+} from '@techsio/smart-suggest-storage';
+import type { TenantRecord } from '@techsio/smart-suggest-storage';
+import { createSmartSuggestProviderRegistryFromConfig } from '@techsio/smart-suggest-integrations';
+import type {
+  SmartSuggestProviderRegistry,
+  SmartSuggestProviderRuntimeConfig,
+} from '@techsio/smart-suggest-integrations';
+import { validatePhoneNumber, validatePostalCode } from '@techsio/smart-suggest-validation';
+import type {
+  PhoneValidationRequest,
+  PostalValidationRequest,
+} from '@techsio/smart-suggest-validation';
+import { DateTime } from 'effect';
 import { getHealthPayload } from '../../shared/health';
 
 const plainTextHeaders = {
   'content-type': 'text/plain; charset=utf-8',
 } as const;
+
+const repositories = createInMemorySmartSuggestRepositories();
+const sampleSeed = seedSampleAddressDatasets(repositories);
+const providerRegistries = new Map<string, SmartSuggestProviderRegistry>();
 
 const notFound = () =>
   new Response('Not found', {
@@ -10,10 +48,650 @@ const notFound = () =>
     status: 404,
   });
 
-const isHealthRequest = (request: Request) => {
-  const url = new URL(request.url);
-  return request.method === 'GET' && url.pathname === '/v1/health';
+const jsonResponse = (body: unknown, init?: ResponseInit) => Response.json(body, init);
+
+const validationError = (message: string, field?: string) => {
+  const error: SmartSuggestError = {
+    code: 'bad-request',
+    message,
+  };
+
+  if (field !== undefined) {
+    error.field = field;
+  }
+
+  return jsonResponse(
+    {
+      errors: [error],
+      message,
+    },
+    { status: 400 },
+  );
 };
 
-export const handler = (request: Request) =>
-  isHealthRequest(request) ? Response.json(getHealthPayload()) : notFound();
+const serverError = () =>
+  jsonResponse(
+    {
+      errors: [
+        {
+          code: 'internal-error',
+          message: 'Smart Suggest request failed.',
+          retryable: true,
+        } satisfies SmartSuggestError,
+      ],
+      message: 'Smart Suggest request failed.',
+    },
+    { status: 500 },
+  );
+
+const nowIso = () => DateTime.formatIso(DateTime.nowUnsafe());
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const optionalString = (value: unknown) => (typeof value === 'string' ? value : undefined);
+
+const optionalBoolean = (value: unknown) => (typeof value === 'boolean' ? value : undefined);
+
+const optionalNumber = (value: unknown) => (typeof value === 'number' ? value : undefined);
+
+const optionalStringArray = (value: unknown) =>
+  Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? value : undefined;
+
+const toCountryCode = (value: string | undefined) =>
+  value?.trim().toUpperCase() as SmartSuggestCountryCode | undefined;
+
+const readJsonRecord = async (request: Request) => {
+  const body = (await request.json()) as unknown;
+  return isRecord(body) ? body : undefined;
+};
+
+const readOptionalRecord = (value: unknown) => (isRecord(value) ? value : undefined);
+
+const health = async () => {
+  try {
+    const storage = await repositories.health.check();
+    return jsonResponse(getHealthPayload(storage));
+  } catch {
+    return jsonResponse(getHealthPayload());
+  }
+};
+
+const parsePhoneValidationRequest = (
+  body: Record<string, unknown>,
+): PhoneValidationRequest | undefined => {
+  const rawInput = optionalString(body['rawInput']);
+
+  if (rawInput === undefined) {
+    return undefined;
+  }
+
+  const request: PhoneValidationRequest = { rawInput };
+  const defaultCountry = toCountryCode(optionalString(body['defaultCountry']));
+  const allowedCountries = optionalStringArray(body['allowedCountries'])?.map(
+    (country) => country.trim().toUpperCase() as SmartSuggestCountryCode,
+  );
+  const requireMobile = optionalBoolean(body['requireMobile']);
+  const requireCountryMatch = optionalBoolean(body['requireCountryMatch']);
+
+  if (defaultCountry !== undefined) {
+    request.defaultCountry = defaultCountry;
+  }
+  if (allowedCountries !== undefined) {
+    request.allowedCountries = allowedCountries;
+  }
+  if (requireMobile !== undefined) {
+    request.requireMobile = requireMobile;
+  }
+  if (requireCountryMatch !== undefined) {
+    request.requireCountryMatch = requireCountryMatch;
+  }
+
+  return request;
+};
+
+const parsePostalValidationRequest = (
+  body: Record<string, unknown>,
+): PostalValidationRequest | undefined => {
+  const rawInput = optionalString(body['rawInput']);
+  const countryCode = toCountryCode(optionalString(body['countryCode']));
+
+  if (rawInput === undefined || countryCode === undefined) {
+    return undefined;
+  }
+
+  return { countryCode, rawInput };
+};
+
+const validatePhone = async (request: Request) => {
+  try {
+    const body = await readJsonRecord(request);
+
+    if (body === undefined) {
+      return validationError('Expected a JSON object body.');
+    }
+
+    const validationRequest = parsePhoneValidationRequest(body);
+
+    return validationRequest === undefined
+      ? validationError('Missing rawInput.', 'rawInput')
+      : jsonResponse(validatePhoneNumber(validationRequest));
+  } catch {
+    return validationError('Invalid JSON body.');
+  }
+};
+
+const validatePostal = async (request: Request) => {
+  try {
+    const body = await readJsonRecord(request);
+
+    if (body === undefined) {
+      return validationError('Expected a JSON object body.');
+    }
+
+    const validationRequest = parsePostalValidationRequest(body);
+
+    return validationRequest === undefined
+      ? validationError('Missing rawInput or countryCode.')
+      : jsonResponse(validatePostalCode(validationRequest));
+  } catch {
+    return validationError('Invalid JSON body.');
+  }
+};
+
+const readTenantContext = (url: URL) => {
+  const tenantId = url.searchParams.get('tenantId') ?? undefined;
+  const salesChannelId = url.searchParams.get('salesChannelId') ?? undefined;
+  const cartId = url.searchParams.get('cartId') ?? undefined;
+  const sessionId = url.searchParams.get('sessionId') ?? undefined;
+
+  if (
+    tenantId === undefined &&
+    salesChannelId === undefined &&
+    cartId === undefined &&
+    sessionId === undefined
+  ) {
+    return;
+  }
+
+  const tenantContext: NonNullable<SmartSuggestRequest['tenant']> = {};
+
+  if (cartId !== undefined) {
+    tenantContext.cartId = cartId;
+  }
+  if (salesChannelId !== undefined) {
+    tenantContext.salesChannelId = salesChannelId;
+  }
+  if (sessionId !== undefined) {
+    tenantContext.sessionId = sessionId;
+  }
+  if (tenantId !== undefined) {
+    tenantContext.tenantId = tenantId;
+  }
+
+  return tenantContext;
+};
+
+const parseSuggestRequest = (url: URL): SmartSuggestRequest | undefined => {
+  const query = url.searchParams.get('q') ?? url.searchParams.get('query');
+  const kind = url.searchParams.get('kind') as SmartSuggestKind | null;
+
+  if (query === null || query.trim().length === 0 || kind === null) {
+    return undefined;
+  }
+
+  if (!['address', 'place', 'postal'].includes(kind)) {
+    return undefined;
+  }
+
+  const request: SmartSuggestRequest = {
+    kind,
+    limit: normalizeSuggestLimit(Number(url.searchParams.get('limit') ?? 10)),
+    query,
+  };
+  const countryCode = toCountryCode(url.searchParams.get('countryCode') ?? undefined);
+  const language = url.searchParams.get('language') ?? undefined;
+  const tenant = readTenantContext(url);
+
+  if (countryCode !== undefined) {
+    request.countryCode = countryCode;
+  }
+  if (language !== undefined) {
+    request.language = language;
+  }
+  if (tenant !== undefined) {
+    request.tenant = tenant;
+  }
+
+  return request;
+};
+
+const toSuggestionSource = (source: (typeof SAMPLE_DATA_SOURCES)[number]): SuggestionSource => ({
+  attribution: source.attribution,
+  datasetVersion: source.datasetVersion,
+  id: source.id,
+  kind: source.sourceKind,
+  name: source.name,
+});
+
+const defaultSampleDataSource = () => {
+  const [source] = SAMPLE_DATA_SOURCES;
+
+  if (source === undefined) {
+    throw new Error('Smart Suggest sample data sources are empty.');
+  }
+
+  return source;
+};
+
+const sourceForSourceId = (sourceId: string): SuggestionSource => {
+  const source = SAMPLE_DATA_SOURCES.find((entry) => entry.id === sourceId);
+
+  return toSuggestionSource(source ?? defaultSampleDataSource());
+};
+
+const sourceForCountry = (countryCode: SmartSuggestCountryCode | undefined): SuggestionSource => {
+  const source = SAMPLE_DATA_SOURCES.find((entry) => entry.countryCode === countryCode);
+
+  return toSuggestionSource(source ?? defaultSampleDataSource());
+};
+
+const parseSuggestionSource = (value: unknown): SuggestionSource | undefined => {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const id = optionalString(value['id']);
+  const kind = optionalString(value['kind']);
+  const name = optionalString(value['name']);
+
+  if (
+    id === undefined ||
+    name === undefined ||
+    !['cache', 'live-provider', 'owned-dataset'].includes(kind ?? '')
+  ) {
+    return undefined;
+  }
+
+  return {
+    id,
+    kind: kind as SuggestionSource['kind'],
+    name,
+  };
+};
+
+const toSuggestion = (
+  record: ReturnType<typeof searchSampleAddressFixtures>[number],
+): SmartSuggestSuggestion => {
+  const source = sourceForSourceId(record.sourceId);
+  const suggestion: SmartSuggestSuggestion = {
+    address: record.parts,
+    cacheStatus: 'miss',
+    confidence: record.quality,
+    displayLabel: record.displayLabel,
+    id: record.id,
+    kind: 'address',
+    metadata: {
+      rankingReasons: record.ranking.reasons.join(','),
+      rankingScore: record.ranking.score,
+    },
+    searchLabel: record.searchLabel,
+    source,
+  };
+
+  if (record.attribution !== undefined) {
+    suggestion.attribution = record.attribution;
+  }
+
+  return suggestion;
+};
+
+const suggestFromSampleData = (
+  request: SmartSuggestRequest,
+  queryHash: string,
+): SmartSuggestResponse => {
+  if (request.kind !== 'address') {
+    return {
+      cacheStatus: 'disabled',
+      requestId: `sample-${queryHash.slice(0, 16)}`,
+      suggestions: [],
+    };
+  }
+
+  const searchOptions: Parameters<typeof searchSampleAddressFixtures>[1] = {};
+
+  if (request.countryCode !== undefined) {
+    searchOptions.countryCode = request.countryCode;
+  }
+  if (request.limit !== undefined) {
+    searchOptions.limit = request.limit;
+  }
+
+  const suggestions = searchSampleAddressFixtures(request.query, searchOptions)
+    .filter((record) => record.ranking.score > 0)
+    .map(toSuggestion);
+
+  return {
+    cacheStatus: 'miss',
+    requestId: `sample-${queryHash.slice(0, 16)}`,
+    suggestions,
+  };
+};
+
+const readScopedProviderConfig = (
+  tenant: TenantRecord | undefined,
+  request: SmartSuggestRequest,
+) => {
+  const rootConfig = tenant?.countryConfig;
+  const countryConfigs = readOptionalRecord(rootConfig?.['countries']);
+  const countryConfig =
+    request.countryCode === undefined
+      ? undefined
+      : readOptionalRecord(countryConfigs?.[request.countryCode]);
+
+  return {
+    priority:
+      optionalStringArray(countryConfig?.['providerPriority']) ??
+      optionalStringArray(rootConfig?.['providerPriority']) ??
+      tenant?.providerPriority,
+    rootConfig,
+    scopeConfig: countryConfig ?? rootConfig,
+  };
+};
+
+const readMapyProviderConfig = (
+  providerScope: Record<string, unknown> | undefined,
+  request: SmartSuggestRequest,
+): SmartSuggestProviderRuntimeConfig['mapyCz'] => {
+  const providers = readOptionalRecord(providerScope?.['providers']);
+  const mapyConfig =
+    readOptionalRecord(providers?.['mapy-cz']) ?? readOptionalRecord(providers?.['mapyCz']);
+  const apiKey = optionalString(mapyConfig?.['apiKey']);
+
+  if (apiKey === undefined) {
+    return undefined;
+  }
+
+  const config: NonNullable<SmartSuggestProviderRuntimeConfig['mapyCz']> = {
+    apiKey,
+  };
+  const endpointUrl = optionalString(mapyConfig?.['endpointUrl']);
+  const language = optionalString(mapyConfig?.['language']) ?? request.language;
+  const limit = optionalNumber(mapyConfig?.['limit']);
+
+  if (endpointUrl !== undefined) {
+    config.endpointUrl = endpointUrl;
+  }
+  if (language !== undefined) {
+    config.language = language;
+  }
+  if (limit !== undefined) {
+    config.limit = limit;
+  }
+
+  return config;
+};
+
+const readProviderRuntimeConfig = (
+  tenant: TenantRecord | undefined,
+  request: SmartSuggestRequest,
+): SmartSuggestProviderRuntimeConfig => {
+  const scopedConfig = readScopedProviderConfig(tenant, request);
+  const config: SmartSuggestProviderRuntimeConfig = {};
+  const { priority } = scopedConfig;
+  const mapyCz = readMapyProviderConfig(scopedConfig.scopeConfig, request);
+  const timeoutMs = optionalNumber(scopedConfig.scopeConfig?.['providerTimeoutMs']);
+
+  if (priority !== undefined) {
+    config.priority = priority;
+  }
+  if (mapyCz !== undefined) {
+    config.mapyCz = mapyCz;
+  }
+  if (timeoutMs !== undefined) {
+    config.timeoutMs = timeoutMs;
+  }
+
+  return config;
+};
+
+const providerRegistryKey = (tenant: TenantRecord | undefined, request: SmartSuggestRequest) =>
+  [
+    tenant?.id ?? 'anonymous',
+    request.countryCode ?? 'global',
+    request.kind,
+    tenant?.providerPriority.join(',') ?? '',
+  ].join(':');
+
+const getProviderRegistry = (tenant: TenantRecord | undefined, request: SmartSuggestRequest) => {
+  const key = providerRegistryKey(tenant, request);
+  const existingRegistry = providerRegistries.get(key);
+
+  if (existingRegistry !== undefined) {
+    return existingRegistry;
+  }
+
+  const registry = createSmartSuggestProviderRegistryFromConfig(
+    readProviderRuntimeConfig(tenant, request),
+  );
+  providerRegistries.set(key, registry);
+  return registry;
+};
+
+const recordProviderEvents = async (
+  events: readonly ProviderEventSummary[],
+  request: SmartSuggestRequest,
+  requestId: string,
+  queryHash: string,
+) => {
+  await Promise.all(
+    events.map((event, index) => {
+      const { providerId, status } = event;
+      const record: Parameters<typeof repositories.providerEvents.recordProviderEvent>[0] = {
+        id: `${requestId}:${providerId}:${index}`,
+        providerId,
+        queryHash,
+        requestId,
+        status,
+      };
+
+      if (event.errorCode !== undefined) {
+        record.errorCode = event.errorCode;
+      }
+      if (event.latencyMs !== undefined) {
+        record.latencyMs = event.latencyMs;
+      }
+      if (request.tenant?.tenantId !== undefined) {
+        record.tenantId = request.tenant.tenantId;
+      }
+
+      return repositories.providerEvents.recordProviderEvent(record);
+    }),
+  );
+};
+
+const suggestFromProviderFallback = async (
+  request: SmartSuggestRequest,
+  queryHash: string,
+  ownedResponse: SmartSuggestResponse,
+) => {
+  try {
+    const tenantId = request.tenant?.tenantId;
+    const tenant =
+      tenantId === undefined ? undefined : await repositories.tenants.getTenant(tenantId);
+    const result = await getProviderRegistry(tenant, request).suggest(request, {
+      requestId: `provider-${queryHash.slice(0, 16)}`,
+    });
+
+    await recordProviderEvents(
+      result.providerEvents,
+      request,
+      result.response.requestId,
+      queryHash,
+    );
+
+    return result.response.suggestions.length > 0 ? result.response : ownedResponse;
+  } catch {
+    return ownedResponse;
+  }
+};
+
+const writeOwnedCache = (
+  cacheKey: string,
+  queryHash: string,
+  request: SmartSuggestRequest,
+  response: SmartSuggestResponse,
+) => {
+  const cacheWrite: Parameters<typeof repositories.suggestCache.writeSuggestCache>[0] = {
+    cacheKey,
+    cachePolicy: { kind: 'permanent' },
+    kind: request.kind,
+    payload: response.suggestions,
+    queryHash,
+  };
+
+  if (request.countryCode !== undefined) {
+    cacheWrite.countryCode = request.countryCode;
+  }
+  if (request.language !== undefined) {
+    cacheWrite.language = request.language;
+  }
+  if (request.tenant?.tenantId !== undefined) {
+    cacheWrite.tenantId = request.tenant.tenantId;
+  }
+
+  return repositories.suggestCache.writeSuggestCache(cacheWrite);
+};
+
+const suggest = async (request: Request) => {
+  const url = new URL(request.url);
+  const suggestRequest = parseSuggestRequest(url);
+
+  if (suggestRequest === undefined) {
+    return validationError('Missing or invalid suggest query parameters.');
+  }
+
+  try {
+    await sampleSeed;
+
+    const queryHash = await createSuggestQueryHash(suggestRequest);
+    const cacheKeyInput: Parameters<typeof createSuggestCacheKey>[0] = {
+      kind: suggestRequest.kind,
+      queryHash,
+    };
+
+    if (suggestRequest.countryCode !== undefined) {
+      cacheKeyInput.countryCode = suggestRequest.countryCode;
+    }
+    if (suggestRequest.language !== undefined) {
+      cacheKeyInput.language = suggestRequest.language;
+    }
+    if (suggestRequest.tenant?.tenantId !== undefined) {
+      cacheKeyInput.tenantId = suggestRequest.tenant.tenantId;
+    }
+
+    const cacheKey = createSuggestCacheKey(cacheKeyInput);
+    const cached = await repositories.suggestCache.readSuggestCache(cacheKey);
+
+    if (cached !== undefined && cached.status === 'hit') {
+      return jsonResponse({
+        cacheStatus: 'hit',
+        requestId: `cache-${queryHash.slice(0, 16)}`,
+        suggestions: cached.payload.map((suggestion) => ({
+          ...suggestion,
+          cacheStatus: 'hit',
+        })),
+      } satisfies SmartSuggestResponse);
+    }
+
+    const response = suggestFromSampleData(suggestRequest, queryHash);
+
+    if (response.suggestions.length === 0) {
+      return jsonResponse(await suggestFromProviderFallback(suggestRequest, queryHash, response));
+    }
+
+    try {
+      await writeOwnedCache(cacheKey, queryHash, suggestRequest, response);
+    } catch {
+      return jsonResponse(response);
+    }
+
+    return jsonResponse(response);
+  } catch {
+    return serverError();
+  }
+};
+
+const parseAcceptEvent = (body: Record<string, unknown>): SmartSuggestAcceptEvent | undefined => {
+  const requestId = optionalString(body['requestId']);
+  const suggestionId = optionalString(body['suggestionId']);
+
+  if (requestId === undefined || suggestionId === undefined) {
+    return undefined;
+  }
+
+  return {
+    acceptedAt: optionalString(body['acceptedAt']) ?? nowIso(),
+    requestId,
+    source:
+      parseSuggestionSource(body['source']) ??
+      sourceForCountry(toCountryCode(optionalString(body['countryCode']))),
+    suggestionId,
+  };
+};
+
+const accept = async (request: Request) => {
+  try {
+    const body = await readJsonRecord(request);
+
+    if (body === undefined) {
+      return validationError('Expected a JSON object body.');
+    }
+
+    const event = parseAcceptEvent(body);
+
+    if (event === undefined) {
+      return validationError('Missing requestId or suggestionId.');
+    }
+
+    await repositories.acceptEvents.recordAcceptEvent({
+      acceptedAt: event.acceptedAt,
+      id: `${event.requestId}:${event.suggestionId}`,
+      requestId: event.requestId,
+      sourceId: event.source.id,
+      suggestionId: event.suggestionId,
+    });
+
+    return jsonResponse({ accepted: true });
+  } catch {
+    return validationError('Invalid JSON body.');
+  }
+};
+
+const route = (request: Request) => {
+  const url = new URL(request.url);
+  const routeKey = `${request.method} ${url.pathname}`;
+
+  switch (routeKey) {
+    case 'GET /v1/health': {
+      return health();
+    }
+    case 'GET /v1/suggest': {
+      return suggest(request);
+    }
+    case 'POST /v1/accept': {
+      return accept(request);
+    }
+    case 'POST /v1/validate/phone': {
+      return validatePhone(request);
+    }
+    case 'POST /v1/validate/postal': {
+      return validatePostal(request);
+    }
+    default: {
+      return notFound();
+    }
+  }
+};
+
+export const handler = (request: Request) => route(request);

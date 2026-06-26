@@ -1,3 +1,7 @@
+import {
+  validatePhoneNumber,
+  validatePostalCode as validateSmartSuggestPostalCode,
+} from "@techsio/smart-suggest-validation"
 import type {
   CheckoutAddressValues,
   CheckoutDetailsValues,
@@ -7,13 +11,12 @@ import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validat
 import {
   validateCustomerName,
   validateEmailAddress,
-  validateOptionalPhoneNumber,
 } from "@/lib/forms/validators/shared"
 
 type CheckoutAddressField = keyof CheckoutAddressValues
 type CheckoutAddressFieldValidator = (value: string) => string | undefined
 
-const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
+const CHECKOUT_COUNTRIES = ["SK", "CZ", "AT", "HU"] as const
 
 const validateBillingFields = (values: CheckoutDetailsValues) =>
   !values.useSameAddress
@@ -49,7 +52,13 @@ const validateRequiredPhoneNumber: CheckoutAddressFieldValidator = (value) => {
     return "Zadajte telefón."
   }
 
-  return validateOptionalPhoneNumber(value)
+  const validation = validatePhoneNumber({
+    allowedCountries: CHECKOUT_COUNTRIES,
+    defaultCountry: "SK",
+    rawInput: value,
+  })
+
+  return validation.isValid ? undefined : "Zadajte platné telefónne číslo."
 }
 
 const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
@@ -59,17 +68,19 @@ const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
     return "Zadajte PSČ."
   }
 
-  if (!POSTAL_CODE_ALLOWED_REGEX.test(normalized)) {
-    return "Zadajte platné PSČ."
+  const supportedCountryResults = CHECKOUT_COUNTRIES.map((countryCode) =>
+    validateSmartSuggestPostalCode({ countryCode, rawInput: normalized })
+  )
+
+  if (
+    supportedCountryResults.some(
+      (result) => result.isValid === true || result.isValid === "unknown"
+    )
+  ) {
+    return
   }
 
-  const digitCount = normalized.replace(/\D/g, "").length
-
-  if (digitCount < 4) {
-    return "PSČ musí obsahovať aspoň 4 číslice."
-  }
-
-  return
+  return "Zadajte platné PSČ."
 }
 
 const validateCountryCode: CheckoutAddressFieldValidator = (value) => {

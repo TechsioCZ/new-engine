@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart Suggest old-core SDK fixture</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f6f7f9;
+        color: #171b22;
+      }
+
+      main {
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 32px 16px;
+      }
+
+      form {
+        display: grid;
+        gap: 14px;
+        padding: 20px;
+        border: 1px solid #d8dde6;
+        background: #fff;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      input,
+      select,
+      button {
+        min-height: 42px;
+        border: 1px solid #aeb7c4;
+        border-radius: 4px;
+        background: #fff;
+        color: inherit;
+        font: inherit;
+      }
+
+      input,
+      select {
+        padding: 0 10px;
+      }
+
+      button {
+        cursor: pointer;
+        background: #1f2937;
+        color: #fff;
+        font-weight: 700;
+      }
+
+      [data-smart-suggest-list] {
+        z-index: 1;
+        display: grid;
+        gap: 2px;
+        margin: -8px 0 0;
+        padding: 4px;
+        border: 1px solid #aeb7c4;
+        background: #fff;
+        list-style: none;
+      }
+
+      [data-smart-suggest-list][hidden] {
+        display: none;
+      }
+
+      [data-smart-suggest-list] button {
+        width: 100%;
+        min-height: 38px;
+        border: 0;
+        background: transparent;
+        color: #171b22;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <form method="post" action="/checkout">
+        <label>
+          Address line
+          <input id="address-line" name="address_line" autocomplete="address-line1" />
+        </label>
+        <label>
+          City
+          <input id="city" name="city" autocomplete="address-level2" />
+        </label>
+        <label>
+          Postal code
+          <input id="postal-code" name="postal_code" autocomplete="postal-code" />
+        </label>
+        <label>
+          Country
+          <select id="country" name="country" autocomplete="country">
+            <option value="CZ">Czechia</option>
+            <option value="SK">Slovakia</option>
+          </select>
+        </label>
+        <label>
+          Phone
+          <input id="phone" name="phone" autocomplete="tel" />
+        </label>
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+    <script type="module" src="/sdk/techsio-smart-suggest.js"></script>
+    <script type="module">
+      window.TechsioSmartSuggest?.attach({
+        addressLine: '#address-line',
+        city: '#city',
+        country: '#country',
+        phone: '#phone',
+        postalCode: '#postal-code',
+      });
+    </script>
+  </body>
+</html>

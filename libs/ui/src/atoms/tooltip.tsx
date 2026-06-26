@@ -1,5 +1,11 @@
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as tooltip from "@zag-js/tooltip"
+import {
+  connect as connectTooltip,
+  type Props as TooltipMachineProps,
+  type PositioningOptions as TooltipPositioningOptions,
+  type Service as TooltipService,
+  machine as tooltipMachine,
+} from "@zag-js/tooltip"
 import { type ReactNode, type Ref, useId } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 
@@ -43,8 +49,8 @@ const tooltipVariants = tv({
 
 export interface TooltipProps
   extends VariantProps<typeof tooltipVariants>,
-    Partial<tooltip.Props>,
-    Partial<tooltip.PositioningOptions> {
+    Partial<TooltipMachineProps>,
+    Partial<TooltipPositioningOptions> {
   ref?: Ref<HTMLSpanElement>
   content: ReactNode
   children: ReactNode
@@ -85,7 +91,7 @@ export function Tooltip({
   const generatedId = useId()
   const id = MRAId || generatedId
 
-  const service = useMachine(tooltip.machine, {
+  const service = useMachine(tooltipMachine, {
     id,
     dir,
     open,
@@ -114,7 +120,7 @@ export function Tooltip({
     },
   })
 
-  const api = tooltip.connect(service as tooltip.Service, normalizeProps)
+  const api = connectTooltip(service as TooltipService, normalizeProps)
   const {
     trigger,
     positioner,
@@ -126,8 +132,18 @@ export function Tooltip({
   })
 
   const triggerProps = api.getTriggerProps()
-  // Exclude onBeforeInput: incompatible with span elements in React 19.2+
-  const { onBeforeInput, ...spanCompatibleProps } = triggerProps
+  // Exclude button-only handlers that are incompatible with span elements in React 19.2+.
+  const {
+    onBeforeInput: _onBeforeInput,
+    onBeforeInputCapture: _onBeforeInputCapture,
+    onChange: _onChange,
+    onChangeCapture: _onChangeCapture,
+    onInput: _onInput,
+    onInputCapture: _onInputCapture,
+    onSubmit: _onSubmit,
+    onSubmitCapture: _onSubmitCapture,
+    ...spanCompatibleProps
+  } = triggerProps
 
   return (
     <>

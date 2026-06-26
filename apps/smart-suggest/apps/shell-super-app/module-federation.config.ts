@@ -29,6 +29,9 @@ const moduleFederationConfig: ModuleFederationConfigExport = createModuleFederat
       compilerInstance: 'tsgo',
     },
   },
+  exposes: {
+    './SmartSuggestAddressField': './src/federation/smart-suggest-address-field.tsx',
+  },
   filename: 'remoteEntry.js',
   name: 'shellSuperApp',
   shared: {

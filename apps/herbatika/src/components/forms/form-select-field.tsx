@@ -13,6 +13,7 @@ type FormSelectFieldProps = {
   id: string
   items: SelectItem[]
   label: ReactNode
+  autoComplete?: string
   placeholder?: string
   required?: boolean
   disabled?: boolean
@@ -26,6 +27,7 @@ export function FormSelectField({
   id,
   items,
   label,
+  autoComplete,
   onValueChange,
   placeholder,
   required = false,
@@ -43,6 +45,7 @@ export function FormSelectField({
   return (
     <Select
       disabled={disabled}
+      autoComplete={autoComplete}
       id={id}
       items={items}
       name={field.name}

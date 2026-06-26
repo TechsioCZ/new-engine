@@ -1,5 +1,7 @@
 packages:
   - apps/*
+  - ../../libs/ui
+  - ../../libs/smart-suggest/*
   - verticals/*
   - packages/*
 

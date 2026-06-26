@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-react",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/react/src",
+  "tags": ["type:lib", "area:smart-suggest", "platform:web", "framework:react"]
+}

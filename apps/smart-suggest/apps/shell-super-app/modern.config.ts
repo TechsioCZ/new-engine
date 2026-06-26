@@ -212,7 +212,7 @@ export default defineConfig(
       ],
       server: {
         port,
-        publicDir: ['./locales', './assets'],
+        publicDir: ['./locales', './assets', './sdk'],
         ssr: {
           mode: 'string',
           moduleFederationAppSSR: true,
