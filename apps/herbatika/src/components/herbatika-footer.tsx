@@ -156,7 +156,7 @@ export function HerbatikaFooter() {
             </Footer.Title>
             <Footer.List>
               {column.links.map((link) => (
-                <li key={link.label}>
+                <li key={link.href}>
                   {link.external ? (
                     <Footer.Link external href={link.href}>
                       {link.label}
