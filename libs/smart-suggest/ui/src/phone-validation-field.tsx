@@ -28,7 +28,9 @@ export type PhoneValidationFieldProps = Omit<
   }
 
 const toSmartSuggestCountryCode = (countryCode: string | undefined) =>
-  countryCode?.trim().toUpperCase() as Uppercase<string> | undefined
+  countryCode?.trim()
+    ? (countryCode.trim().toUpperCase() as Uppercase<string>)
+    : undefined
 
 const getValidationStatus = (
   result: PhoneValidationResult | undefined

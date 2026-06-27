@@ -196,6 +196,48 @@ describe("attachSmartSuggest", () => {
     expect(document.querySelector("button")?.textContent).toBe("Brno, Czechia");
   });
 
+  it("clears stale suggestions when the latest lookup fails", async () => {
+    const address = addInput("address");
+    const onError = vi.fn();
+    let shouldFail = false;
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() => {
+      if (shouldFail) {
+        return Promise.reject(new Error("network offline"));
+      }
+
+      return Promise.resolve(
+        jsonResponse({
+          cacheStatus: "miss",
+          requestId: "request-first",
+          suggestions: [
+            {
+              confidence: 0.9,
+              displayLabel: "Praha, Czechia",
+              id: "praha",
+              kind: "address",
+              source: { id: "ruian-cz", kind: "owned-dataset", name: "RUIAN" },
+            },
+          ],
+        }),
+      );
+    });
+    const instance = attachSmartSuggest({
+      addressLine: address,
+      fetch: fetchMock,
+      minQueryLength: 1,
+      onError,
+    });
+
+    await instance.suggest("Praha");
+    expect(document.querySelector("button")?.textContent).toBe("Praha, Czechia");
+
+    shouldFail = true;
+    await instance.suggest("Brno");
+
+    expect(document.querySelector("button")).toBeNull();
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+  });
+
   it("normalizes phone and postal fields on blur without blocking the form", async () => {
     const phone = addInput("phone", "+420777123456");
     const postalCode = addInput("postal-code", "12345");

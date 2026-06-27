@@ -6,9 +6,9 @@ export type SmartSuggestAddressFieldRemoteProps = AddressSuggestFieldProps;
 
 export const SmartSuggestAddressFieldRemote = (props: SmartSuggestAddressFieldRemoteProps) =>
   createElement(AddressSuggestField, {
+    ...props,
     autoComplete: 'address-line1',
     minQueryLength: 3,
-    ...props,
   });
 
 export default SmartSuggestAddressFieldRemote;

@@ -62,7 +62,6 @@ export function FormSmartSuggestAddressField({
 
   return (
     <AddressSuggestField
-      allowCustomValue
       autoComplete="address-line1"
       client={herbatikaSmartSuggestClient}
       countryCode={toCountryCode(countryCode)}

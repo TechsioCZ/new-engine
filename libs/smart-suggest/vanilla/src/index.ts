@@ -393,6 +393,8 @@ export const attachSmartSuggest = (
       suggestionList?.render(response.suggestions, selectSuggestion);
     } catch (error) {
       if (!isAbortError(error) && requestSequence === suggestSequence) {
+        currentRequestId = undefined;
+        suggestionList?.render([], selectSuggestion);
         reportError(config.onError, error);
       }
     } finally {

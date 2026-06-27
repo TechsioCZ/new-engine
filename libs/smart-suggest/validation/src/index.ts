@@ -92,7 +92,9 @@ const TEXT_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
 ])
 
 const normalizeCountryCode = (countryCode: string | undefined) =>
-  countryCode?.trim().toUpperCase() as SmartSuggestCountryCode | undefined
+  countryCode?.trim()
+    ? (countryCode.trim().toUpperCase() as SmartSuggestCountryCode)
+    : undefined
 
 const toSupportedPhoneCountry = (
   countryCode: SmartSuggestCountryCode | undefined
@@ -166,10 +168,15 @@ const uniqueIssues = (issues: readonly ValidationIssue[]) => {
 
 const normalizeAllowedCountries = (
   allowedCountries: readonly SmartSuggestCountryCode[] | undefined
-) =>
-  allowedCountries?.map((countryCode) => countryCode.trim().toUpperCase()) as
-    | SmartSuggestCountryCode[]
-    | undefined
+) => {
+  const normalizedCountries = allowedCountries
+    ?.map(normalizeCountryCode)
+    .filter((countryCode) => countryCode !== undefined)
+
+  return normalizedCountries === undefined || normalizedCountries.length === 0
+    ? undefined
+    : normalizedCountries
+}
 
 export const validatePhoneNumber = (
   request: PhoneValidationRequest

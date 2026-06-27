@@ -42,6 +42,16 @@ export type TenantRecord = {
   updatedAt: string;
 };
 
+export type ApiKeyRecord = {
+  id: string;
+  tenantId: string;
+  keyHash: string;
+  label: string;
+  status: "active" | "revoked";
+  createdAt: string;
+  revokedAt?: string;
+};
+
 export type DataSourceRecord = {
   id: string;
   sourceKind: SuggestionSourceKind;
@@ -147,6 +157,11 @@ export type SmartSuggestRepositories = {
   tenants: {
     upsertTenant: (input: Omit<TenantRecord, "createdAt" | "updatedAt">) => Promise<TenantRecord>;
     getTenant: (tenantId: string) => Promise<TenantRecord | undefined>;
+  };
+  apiKeys: {
+    upsertApiKey: (input: Omit<ApiKeyRecord, "createdAt">) => Promise<ApiKeyRecord>;
+    getApiKeyByHash: (keyHash: string) => Promise<ApiKeyRecord | undefined>;
+    listApiKeysForTenant: (tenantId: string) => Promise<readonly ApiKeyRecord[]>;
   };
   dataSources: {
     registerDataSource: (
@@ -601,6 +616,23 @@ const toTenantRecord = (row: typeof smartSuggestTenants.$inferSelect): TenantRec
   updatedAt: row.updatedAt,
 });
 
+const toApiKeyRecord = (row: typeof smartSuggestApiKeys.$inferSelect): ApiKeyRecord => {
+  const record: ApiKeyRecord = {
+    createdAt: row.createdAt,
+    id: row.id,
+    keyHash: row.keyHash,
+    label: row.label,
+    status: row.status === "revoked" ? "revoked" : "active",
+    tenantId: row.tenantId,
+  };
+
+  if (row.revokedAt !== null) {
+    record.revokedAt = row.revokedAt;
+  }
+
+  return record;
+};
+
 const toImportRunRecord = (row: typeof smartSuggestImportRuns.$inferSelect): ImportRunRecord => {
   const record: ImportRunRecord = {
     failedRows: row.failedRows,
@@ -845,6 +877,52 @@ export const createD1SmartSuggestRepositories = (
           .get();
 
         return row === undefined ? undefined : toTenantRecord(row);
+      },
+    },
+    apiKeys: {
+      upsertApiKey: async (input) => {
+        const row = {
+          createdAt: nowIso(),
+          id: input.id,
+          keyHash: input.keyHash,
+          label: input.label,
+          revokedAt: input.revokedAt ?? null,
+          status: input.status,
+          tenantId: input.tenantId,
+        } satisfies typeof smartSuggestApiKeys.$inferInsert;
+        const [stored] = await db
+          .insert(smartSuggestApiKeys)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              keyHash: row.keyHash,
+              label: row.label,
+              revokedAt: row.revokedAt,
+              status: row.status,
+              tenantId: row.tenantId,
+            },
+            target: smartSuggestApiKeys.id,
+          })
+          .returning();
+
+        return toApiKeyRecord(stored ?? row);
+      },
+      getApiKeyByHash: async (keyHash) => {
+        const row = await db
+          .select()
+          .from(smartSuggestApiKeys)
+          .where(eq(smartSuggestApiKeys.keyHash, keyHash))
+          .get();
+
+        return row === undefined ? undefined : toApiKeyRecord(row);
+      },
+      listApiKeysForTenant: async (tenantId) => {
+        const rows = await db
+          .select()
+          .from(smartSuggestApiKeys)
+          .where(eq(smartSuggestApiKeys.tenantId, tenantId));
+
+        return rows.map(toApiKeyRecord);
       },
     },
     dataSources: {
@@ -1234,6 +1312,7 @@ const resolveSync = <T>(compute: () => T): Promise<T> =>
 
 export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositories => {
   const tenants = new Map<string, TenantRecord>();
+  const apiKeys = new Map<string, ApiKeyRecord>();
   const dataSources = new Map<string, DataSourceRecord>();
   const importRuns = new Map<string, ImportRunRecord>();
   const addressRecords = new Map<string, AddressRecord>();
@@ -1283,6 +1362,23 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
           return record;
         }),
       getTenant: (tenantId) => Promise.resolve(tenants.get(tenantId)),
+    },
+    apiKeys: {
+      upsertApiKey: (input) =>
+        resolveSync(() => {
+          const timestamp = nowIso();
+          const existing = apiKeys.get(input.id);
+          const record: ApiKeyRecord = {
+            ...input,
+            createdAt: existing?.createdAt ?? timestamp,
+          };
+          apiKeys.set(record.id, record);
+          return record;
+        }),
+      getApiKeyByHash: (keyHash) =>
+        resolveSync(() => [...apiKeys.values()].find((record) => record.keyHash === keyHash)),
+      listApiKeysForTenant: (tenantId) =>
+        resolveSync(() => [...apiKeys.values()].filter((record) => record.tenantId === tenantId)),
     },
     dataSources: {
       registerDataSource: (input) =>

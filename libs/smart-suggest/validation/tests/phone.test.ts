@@ -63,6 +63,21 @@ describe("validatePhoneNumber", () => {
     })
   })
 
+  it("omits blank country hints instead of treating them as countries", () => {
+    expect(
+      validatePhoneNumber({
+        allowedCountries: ["", "CZ"],
+        defaultCountry: "",
+        rawInput: "+420 777 123 456",
+      })
+    ).toMatchObject({
+      detectedCountry: "CZ",
+      e164: "+420777123456",
+      errors: [],
+      isValid: true,
+    })
+  })
+
   it("rejects fixed-line numbers when mobile is required", () => {
     const result = validatePhoneNumber({
       rawInput: "+420 222 111 222",

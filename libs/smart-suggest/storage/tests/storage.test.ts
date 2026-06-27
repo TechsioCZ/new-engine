@@ -83,6 +83,56 @@ describe("smart suggest storage", () => {
     expect(JSON.stringify(results)).not.toContain("query:");
   });
 
+  it("stores tenant API key metadata by hash without exposing raw keys", async () => {
+    const repositories = createInMemorySmartSuggestRepositories();
+
+    await repositories.tenants.upsertTenant({
+      allowedOrigins: ["https://shop.example"],
+      countryConfig: {},
+      id: "tenant-api-key-test",
+      name: "Tenant API Key Test",
+      providerPriority: [],
+      status: "active",
+    });
+
+    const activeKey = await repositories.apiKeys.upsertApiKey({
+      id: "key-1",
+      keyHash: "sha256:active-key-hash",
+      label: "Checkout client",
+      status: "active",
+      tenantId: "tenant-api-key-test",
+    });
+
+    expect(activeKey).toMatchObject({
+      keyHash: "sha256:active-key-hash",
+      status: "active",
+      tenantId: "tenant-api-key-test",
+    });
+    await expect(
+      repositories.apiKeys.getApiKeyByHash("sha256:active-key-hash"),
+    ).resolves.toMatchObject({
+      id: "key-1",
+      label: "Checkout client",
+    });
+
+    const revokedKey = await repositories.apiKeys.upsertApiKey({
+      id: "key-1",
+      keyHash: "sha256:active-key-hash",
+      label: "Checkout client",
+      revokedAt: "2026-06-27T12:00:00.000Z",
+      status: "revoked",
+      tenantId: "tenant-api-key-test",
+    });
+    const tenantKeys = await repositories.apiKeys.listApiKeysForTenant("tenant-api-key-test");
+
+    expect(revokedKey).toMatchObject({
+      revokedAt: "2026-06-27T12:00:00.000Z",
+      status: "revoked",
+    });
+    expect(tenantKeys).toHaveLength(1);
+    expect(JSON.stringify(tenantKeys)).not.toContain("sk_live_raw_secret");
+  });
+
   it("hashes normalized queries and builds cache keys from derived data only", async () => {
     const firstHash = await createSuggestQueryHash({
       countryCode: "CZ",

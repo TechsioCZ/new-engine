@@ -29,4 +29,17 @@ describe('SmartSuggestAddressFieldRemote', () => {
 
     expect(html).toContain('Address');
   });
+
+  it('enforces remote defaults over consumer overrides', () => {
+    const element = SmartSuggestAddressFieldRemote({
+      autoComplete: 'off',
+      client: mockClient,
+      minQueryLength: 1,
+    });
+
+    expect(element.props).toMatchObject({
+      autoComplete: 'address-line1',
+      minQueryLength: 3,
+    });
+  });
 });

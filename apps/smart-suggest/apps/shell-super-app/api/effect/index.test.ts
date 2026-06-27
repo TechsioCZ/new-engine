@@ -159,6 +159,31 @@ describe('Smart Suggest effect API', () => {
     });
   });
 
+  it('serves OpenAddresses US sample suggestions through the public suggest API', async () => {
+    const repositories = createInMemorySmartSuggestRepositories();
+    const testHandler = createSmartSuggestHandler(repositories);
+    const response = await testHandler(
+      requestFor('/v1/suggest?kind=address&countryCode=US&q=mission%20san%20francisco&limit=1'),
+    );
+    const body = await readJson<SmartSuggestResponse>(response);
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      cacheStatus: 'miss',
+      suggestions: [
+        {
+          address: { city: 'San Francisco', countryCode: 'US', region: 'CA' },
+          id: 'us-openaddresses-ca-mission-1',
+          source: {
+            attribution: { label: 'OpenAddresses sample' },
+            id: 'openaddresses-us-ca-sample',
+            kind: 'owned-dataset',
+          },
+        },
+      ],
+    });
+  });
+
   it('keeps unsupported suggest kinds fail-open with disabled cache status', async () => {
     const response = await handler(requestFor('/v1/suggest?kind=postal&q=12345'));
     const body = await readJson<SmartSuggestResponse>(response);
@@ -315,10 +340,14 @@ describe('Smart Suggest effect API', () => {
               label: 'Národní 1, 110 00 Praha, Česko',
               name: 'Národní 1',
               position: { lat: 50.081, lon: 14.428 },
+              rawProviderOnly: 'do-not-leak-provider-raw-field',
               regionalStructure: [
                 { isoCode: 'CZ', name: 'Česko', type: 'country' },
                 { name: 'Praha', type: 'municipality' },
               ],
+              secretRawPayload: {
+                value: 'do-not-leak-provider-secret',
+              },
               type: 'regional.address',
               zip: '110 00',
             },
@@ -368,6 +397,8 @@ describe('Smart Suggest effect API', () => {
     });
 
     await expect(repositories.suggestCache.readSuggestCache(cacheKey)).resolves.toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain('do-not-leak-provider-raw-field');
+    expect(JSON.stringify(body)).not.toContain('do-not-leak-provider-secret');
 
     const statusResponse = await testHandler(requestFor('/v1/status'));
     const statusBody = await readJson<StatusPayload>(statusResponse);

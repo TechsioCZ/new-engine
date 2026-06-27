@@ -171,6 +171,29 @@ migrations with Wrangler, and fails if `SMART_SUGGEST_D1_DATABASE_ID` is
 missing. Provider secrets, provider priority, timeout, and CORS origins are
 intentionally deployment/runtime configuration, not browser configuration.
 
+## Smart Suggest Consumption Policy
+
+New-core monorepo consumers, including Herbatika, use direct workspace imports
+from the nested Smart Suggest packages first:
+
+```ts
+import { AddressSuggestField } from '@techsio/smart-suggest-ui/address-suggest-field';
+```
+
+There is intentionally no top-level `@techsio/smart-suggest` facade package in
+this phase. Package subpath exports are the review boundary and keep UI wrappers,
+validation, storage, provider integrations, and the old-core SDK separate.
+
+Old PHP core integrations use only `/api/v1/*` and the optional tiny vanilla SDK
+surface. They must not consume React, Module Federation, storage, or provider
+packages.
+
+Module Federation exists as a later/new-core rollout path only. The current shell
+exposes `./SmartSuggestAddressField` as an always-latest remote backed by
+`@techsio/smart-suggest-ui/address-suggest-field`; it is not the source of truth
+for Herbatika. Keep `pnpm mf:types` green after shell builds and verify public
+artifacts do not contain provider SDK strings or server-only source directories.
+
 ## Troubleshooting
 
 | Symptom                     | Current check                                                                                                                                                     | Owner                                       |

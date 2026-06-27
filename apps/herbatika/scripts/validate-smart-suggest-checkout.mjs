@@ -127,6 +127,16 @@ assertIncludes(
   "checkout postal validation uses Smart Suggest validation"
 )
 assertIncludes(
+  addressValidators,
+  'createCheckoutPostalCodeValidators("shipping")',
+  "shipping postal validation uses the selected shipping country"
+)
+assertIncludes(
+  addressValidators,
+  'createCheckoutPostalCodeValidators("billing", validateBillingFields)',
+  "billing postal validation uses the selected billing country"
+)
+assertIncludes(
   smartSuggestClient,
   "createSmartSuggestClient",
   "Herbatika creates a typed Smart Suggest API client"
