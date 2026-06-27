@@ -8,6 +8,30 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@techsio/smart-suggest-core',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/core/src/index.ts'),
+      },
+      {
+        find: '@techsio/smart-suggest-datasets',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/datasets/src/index.ts'),
+      },
+      {
+        find: '@techsio/smart-suggest-indexing',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/indexing/src/index.ts'),
+      },
+      {
+        find: '@techsio/smart-suggest-integrations',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/integrations/src/index.ts'),
+      },
+      {
+        find: '@techsio/smart-suggest-storage',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/storage/src/index.ts'),
+      },
+      {
+        find: '@techsio/smart-suggest-validation',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/validation/src/index.ts'),
+      },
+      {
         find: /^@techsio\/smart-suggest-ui\/(?<entry>.+)$/u,
         replacement: path.join(workspaceRoot, 'libs/smart-suggest/ui/dist/$<entry>.js'),
       },

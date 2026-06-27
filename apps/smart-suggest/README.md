@@ -159,14 +159,17 @@ Cloudflare resources.
 | `SMART_SUGGEST_D1_PREVIEW_DATABASE_ID` | Optional preview D1 id; falls back to the production id |
 | `SMART_SUGGEST_ALLOWED_ORIGINS`        | Deployment-owned CORS origin allowlist contract         |
 | `SMART_SUGGEST_PROVIDER_PRIORITY`      | Deployment-owned provider priority contract             |
+| `SMART_SUGGEST_PROVIDER_TIMEOUT_MS`    | Provider fallback timeout override                      |
 | `MAPY_CZ_API_KEY`                      | Provider secret contract; server/Worker only            |
+| `MAPY_CZ_ENDPOINT_URL`                 | Optional Mapy-compatible endpoint override for testing  |
 
 `pnpm cloudflare:build` post-processes the generated `.output/wrangler.json`
-with the D1 binding shape and removes server-only API/shared files from the
-public asset directory. `pnpm cloudflare:deploy` reruns that post-process in
-strict mode and fails if `SMART_SUGGEST_D1_DATABASE_ID` is missing. Provider
-secrets and tenant/provider priority are intentionally deployment/runtime
-configuration, not browser configuration.
+with the D1 binding shape, copies the generated D1 migrations into `.output`,
+and removes server-only API/shared files from the public asset directory.
+`pnpm cloudflare:deploy` reruns that post-process in strict mode, applies D1
+migrations with Wrangler, and fails if `SMART_SUGGEST_D1_DATABASE_ID` is
+missing. Provider secrets, provider priority, timeout, and CORS origins are
+intentionally deployment/runtime configuration, not browser configuration.
 
 ## Troubleshooting
 

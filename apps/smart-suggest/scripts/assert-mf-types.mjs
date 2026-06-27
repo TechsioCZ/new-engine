@@ -6,7 +6,12 @@ const generatedContractPath = path.join(root, '.modernjs/ultramodern-generated-c
 const generatedContract = fs.existsSync(generatedContractPath)
   ? JSON.parse(fs.readFileSync(generatedContractPath, 'utf-8'))
   : undefined;
-const defaultAppDirs = [];
+const defaultAppDirs = Array.isArray(generatedContract?.apps)
+  ? generatedContract.apps
+      .map((app) => (typeof app.path === 'string' ? app.path : undefined))
+      .filter((appPath) => appPath !== undefined)
+      .filter((appPath) => fs.existsSync(path.join(root, appPath, 'module-federation.config.ts')))
+  : [];
 
 const args = process.argv.slice(2);
 if (args.includes('--help') || args.includes('-h')) {
@@ -25,6 +30,14 @@ const appDirs = candidateDirs.length
     ? ['.']
     : defaultAppDirs;
 
+const configHasExposes = (configPath) => {
+  const config = fs.readFileSync(configPath, 'utf-8');
+  const exposesMatch = /exposes\s*:\s*\{(?<body>[\s\S]*?)\}/u.exec(config);
+  const exposesBody = exposesMatch?.groups?.body;
+
+  return exposesBody !== undefined && exposesBody.trim() !== '';
+};
+
 for (const appDir of appDirs) {
   const configPath = path.join(root, appDir, 'module-federation.config.ts');
   if (!fs.existsSync(configPath)) {
@@ -38,7 +51,10 @@ for (const appDir of appDirs) {
     throw new Error(`Module Federation DTS must use the workspace TypeScript compiler: ${appDir}`);
   }
 
-  if (contractEntry && contractEntry.moduleFederation?.exposes?.length === 0) {
+  const exposes = contractEntry?.moduleFederation?.exposes;
+  const hasExposes = Array.isArray(exposes) ? exposes.length > 0 : configHasExposes(configPath);
+
+  if (!hasExposes && !configHasExposes(configPath)) {
     continue;
   }
 

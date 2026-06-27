@@ -19,8 +19,12 @@ type FormSmartSuggestAddressFieldProps = {
   onAddressSelect?: (address: AddressParts) => void
 }
 
-const toCountryCode = (countryCode: string | undefined) =>
-  countryCode?.trim().toUpperCase() as Uppercase<string> | undefined
+const toCountryCode = (countryCode: string | undefined) => {
+  const normalizedCountryCode = countryCode?.trim().toUpperCase()
+  return normalizedCountryCode
+    ? (normalizedCountryCode as Uppercase<string>)
+    : undefined
+}
 
 const formatAddressLine = (address: AddressParts, fallback: string) => {
   if (address.line1?.trim()) {

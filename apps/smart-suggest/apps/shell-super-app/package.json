@@ -6,7 +6,7 @@
     "dev": "node ../../scripts/prepare-smart-suggest-sdk.mjs --app shell-super-app && modern dev",
     "build": "node ../../scripts/prepare-smart-suggest-sdk.mjs --app shell-super-app && ULTRAMODERN_ZEPHYR=false modern build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target dist",
     "cloudflare:build": "node ../../scripts/prepare-smart-suggest-sdk.mjs --app shell-super-app && ULTRAMODERN_ZEPHYR=false MODERNJS_DEPLOY=cloudflare modern build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target dist && ULTRAMODERN_ZEPHYR=false MODERNJS_DEPLOY=cloudflare modern deploy && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target cloudflare && node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app",
-    "cloudflare:deploy": "ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS=true pnpm run cloudflare:build && node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app --require-d1 && wrangler deploy --config .output/wrangler.json",
+    "cloudflare:deploy": "ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS=true pnpm run cloudflare:build && node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app --require-d1 --apply-migrations && wrangler deploy --config .output/wrangler.json",
     "cloudflare:preview": "pnpm run cloudflare:build && wrangler dev --config .output/wrangler.json",
     "cloudflare:proof": "node ../../scripts/proof-cloudflare-version.mjs --app shell-super-app",
     "serve": "modern serve",

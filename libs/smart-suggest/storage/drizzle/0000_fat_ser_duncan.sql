@@ -29,7 +29,8 @@ CREATE TABLE `smart_suggest_address_records` (
 	`quality` real DEFAULT 0 NOT NULL,
 	`attribution_json` text,
 	`created_at` text NOT NULL,
-	`updated_at` text NOT NULL
+	`updated_at` text NOT NULL,
+	FOREIGN KEY (`source_id`) REFERENCES `smart_suggest_data_sources`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `smart_suggest_address_country_postal_idx` ON `smart_suggest_address_records` (`country_code`,`postal_code`);--> statement-breakpoint
@@ -40,7 +41,8 @@ CREATE TABLE `smart_suggest_address_search_tokens` (
 	`country_code` text NOT NULL,
 	`token` text NOT NULL,
 	`prefix` text NOT NULL,
-	`weight` real DEFAULT 1 NOT NULL
+	`weight` real DEFAULT 1 NOT NULL,
+	FOREIGN KEY (`record_id`) REFERENCES `smart_suggest_address_records`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `smart_suggest_address_tokens_prefix_idx` ON `smart_suggest_address_search_tokens` (`country_code`,`prefix`);--> statement-breakpoint
@@ -52,7 +54,8 @@ CREATE TABLE `smart_suggest_api_keys` (
 	`label` text NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
 	`created_at` text NOT NULL,
-	`revoked_at` text
+	`revoked_at` text,
+	FOREIGN KEY (`tenant_id`) REFERENCES `smart_suggest_tenants`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `smart_suggest_api_keys_tenant_idx` ON `smart_suggest_api_keys` (`tenant_id`);--> statement-breakpoint
@@ -100,7 +103,8 @@ CREATE TABLE `smart_suggest_import_runs` (
 	`total_rows` integer DEFAULT 0 NOT NULL,
 	`inserted_rows` integer DEFAULT 0 NOT NULL,
 	`failed_rows` integer DEFAULT 0 NOT NULL,
-	`error_summary` text
+	`error_summary` text,
+	FOREIGN KEY (`source_id`) REFERENCES `smart_suggest_data_sources`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE INDEX `smart_suggest_import_runs_source_idx` ON `smart_suggest_import_runs` (`source_id`);--> statement-breakpoint

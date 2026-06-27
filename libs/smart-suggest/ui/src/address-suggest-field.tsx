@@ -1,19 +1,13 @@
-import type { SmartSuggestClient } from "@techsio/smart-suggest-client"
+import type { SmartSuggestClient } from "@techsio/smart-suggest-client";
 import type {
   AddressParts,
   SmartSuggestRequest,
   SmartSuggestSuggestion,
   SmartSuggestTenantContext,
-} from "@techsio/smart-suggest-core"
-import {
-  useAddressSuggest,
-  useSmartSuggestClient,
-} from "@techsio/smart-suggest-react"
-import {
-  Combobox,
-  type ComboboxProps,
-} from "@techsio/ui-kit/molecules/combobox"
-import { type ReactNode, useMemo, useState } from "react"
+} from "@techsio/smart-suggest-core";
+import { useAddressSuggest, useSmartSuggestClient } from "@techsio/smart-suggest-react";
+import { Combobox, type ComboboxProps } from "@techsio/ui-kit/molecules/combobox";
+import { type ReactNode, useMemo, useState } from "react";
 
 export type AddressSuggestFieldProps = Omit<
   ComboboxProps<SmartSuggestSuggestion>,
@@ -27,110 +21,107 @@ export type AddressSuggestFieldProps = Omit<
   | "onChange"
   | "onInputValueChange"
   | "renderItem"
+  | "allowCustomValue"
+  | "closeOnSelect"
 > & {
-  client?: SmartSuggestClient
-  countryCode?: Uppercase<string>
-  language?: string
-  tenant?: SmartSuggestTenantContext
-  debounceMs?: number
-  minQueryLength?: number
-  autoComplete?: string
-  inputValue?: string
-  onInputValueChange?: (value: string) => void
-  onSuggestionSelect?: (suggestion: SmartSuggestSuggestion) => void
-  onAddressSelect?: (address: AddressParts) => void
-  acceptSelection?: boolean
-  error?: ReactNode
-  renderSuggestion?: (suggestion: SmartSuggestSuggestion) => ReactNode
-}
+  client?: SmartSuggestClient;
+  countryCode?: Uppercase<string>;
+  language?: string;
+  tenant?: SmartSuggestTenantContext;
+  debounceMs?: number;
+  minQueryLength?: number;
+  autoComplete?: string;
+  inputValue?: string;
+  onInputValueChange?: (value: string) => void;
+  onSuggestionSelect?: (suggestion: SmartSuggestSuggestion) => void;
+  onAddressSelect?: (address: AddressParts) => void;
+  acceptSelection?: boolean;
+  error?: ReactNode;
+  suggestUnavailableMessage?: ReactNode;
+  renderSuggestion?: (suggestion: SmartSuggestSuggestion) => ReactNode;
+};
 
-const itemToString = (suggestion: SmartSuggestSuggestion) =>
-  suggestion.displayLabel
+const itemToString = (suggestion: SmartSuggestSuggestion) => suggestion.displayLabel;
 
-const itemToValue = (suggestion: SmartSuggestSuggestion) => suggestion.id
+const itemToValue = (suggestion: SmartSuggestSuggestion) => suggestion.id;
 
-export const defaultRenderAddressSuggestion = (
-  suggestion: SmartSuggestSuggestion
-) => (
+export const defaultRenderAddressSuggestion = (suggestion: SmartSuggestSuggestion) => (
   <span className="flex min-w-0 flex-col gap-1">
-    <span className="truncate font-medium text-sm">
-      {suggestion.displayLabel}
-    </span>
+    <span className="truncate font-medium text-sm">{suggestion.displayLabel}</span>
     {suggestion.source.attribution?.label ? (
       <span className="truncate text-combobox-muted-fg text-xs">
         {suggestion.source.attribution.label}
       </span>
     ) : null}
   </span>
-)
+);
 
 export function AddressSuggestField({
   acceptSelection = true,
   client,
   countryCode,
   debounceMs,
+  error,
   inputValue,
   language,
   minQueryLength,
+  noResultsMessage = "No matching address",
   onAddressSelect,
   onInputValueChange,
   onSuggestionSelect,
   renderSuggestion = defaultRenderAddressSuggestion,
+  suggestUnavailableMessage = "Address suggestions are unavailable",
   tenant,
   ...props
 }: AddressSuggestFieldProps) {
-  const resolvedClient = useSmartSuggestClient(client)
-  const [internalInputValue, setInternalInputValue] = useState("")
-  const currentInputValue = inputValue ?? internalInputValue
+  const resolvedClient = useSmartSuggestClient(client);
+  const [internalInputValue, setInternalInputValue] = useState("");
+  const currentInputValue = inputValue ?? internalInputValue;
   const request = useMemo(() => {
     const nextRequest: SmartSuggestRequest = {
       kind: "address",
       query: currentInputValue,
-    }
+    };
 
     if (countryCode !== undefined) {
-      nextRequest.countryCode = countryCode
+      nextRequest.countryCode = countryCode;
     }
 
     if (language !== undefined) {
-      nextRequest.language = language
+      nextRequest.language = language;
     }
 
     if (tenant !== undefined) {
-      nextRequest.tenant = tenant
+      nextRequest.tenant = tenant;
     }
 
-    return nextRequest
-  }, [countryCode, currentInputValue, language, tenant])
+    return nextRequest;
+  }, [countryCode, currentInputValue, language, tenant]);
   const suggestOptions: Parameters<typeof useAddressSuggest>[0] = {
     client: resolvedClient,
     request,
-  }
+  };
 
   if (debounceMs !== undefined) {
-    suggestOptions.debounceMs = debounceMs
+    suggestOptions.debounceMs = debounceMs;
   }
 
   if (minQueryLength !== undefined) {
-    suggestOptions.minQueryLength = minQueryLength
+    suggestOptions.minQueryLength = minQueryLength;
   }
 
-  const suggestState = useAddressSuggest(suggestOptions)
-  const suggestions =
-    suggestState.status === "success" ? suggestState.data.suggestions : []
+  const suggestState = useAddressSuggest(suggestOptions);
+  const suggestions = suggestState.status === "success" ? suggestState.data.suggestions : [];
   const selectedById = useMemo(
     () => new Map(suggestions.map((suggestion) => [suggestion.id, suggestion])),
-    [suggestions]
-  )
+    [suggestions],
+  );
   const acceptSuggestion = (suggestion: SmartSuggestSuggestion) => {
     if (!acceptSelection) {
-      return
+      return;
     }
 
-    const requestId =
-      suggestState.status === "success"
-        ? suggestState.data.requestId
-        : "unknown"
+    const requestId = suggestState.status === "success" ? suggestState.data.requestId : "unknown";
 
     resolvedClient
       .accept({
@@ -142,54 +133,47 @@ export function AddressSuggestField({
       })
       .catch(() => {
         // Accept telemetry must never block manual checkout completion.
-      })
-  }
-  const handleChange: NonNullable<
-    ComboboxProps<SmartSuggestSuggestion>["onChange"]
-  > = (value) => {
-    const selectedId = Array.isArray(value) ? value[0] : value
-    const suggestion =
-      selectedId === undefined ? undefined : selectedById.get(selectedId)
+      });
+  };
+  const handleChange: NonNullable<ComboboxProps<SmartSuggestSuggestion>["onChange"]> = (value) => {
+    const selectedId = Array.isArray(value) ? value[0] : value;
+    const suggestion = selectedId === undefined ? undefined : selectedById.get(selectedId);
 
     if (suggestion === undefined) {
-      return
+      return;
     }
 
-    onSuggestionSelect?.(suggestion)
+    onSuggestionSelect?.(suggestion);
 
     if (suggestion.address !== undefined) {
-      onAddressSelect?.(suggestion.address)
+      onAddressSelect?.(suggestion.address);
     }
 
-    acceptSuggestion(suggestion)
-  }
+    acceptSuggestion(suggestion);
+  };
 
   return (
     <Combobox
+      {...props}
       allowCustomValue
       closeOnSelect
+      error={suggestState.status === "error" ? suggestUnavailableMessage : error}
       filterMode="remote"
       inputValue={currentInputValue}
       items={suggestions}
       itemToString={itemToString}
       itemToValue={itemToValue}
       loading={suggestState.status === "loading"}
-      noResultsMessage="No matching address"
+      noResultsMessage={noResultsMessage}
       onChange={handleChange}
       onInputValueChange={(value) => {
         if (inputValue === undefined) {
-          setInternalInputValue(value)
+          setInternalInputValue(value);
         }
 
-        onInputValueChange?.(value)
+        onInputValueChange?.(value);
       }}
       renderItem={({ item }) => renderSuggestion(item)}
-      {...props}
-      error={
-        suggestState.status === "error"
-          ? "Address suggestions are unavailable"
-          : props.error
-      }
     />
-  )
+  );
 }

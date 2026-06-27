@@ -48,6 +48,11 @@ assertMatches(
 )
 assertIncludes(
   checkoutAddressSection,
+  "formatSelectedAddressLine(address)",
+  "checkout address selection falls back when line1 is blank"
+)
+assertIncludes(
+  checkoutAddressSection,
   'autoComplete="country"',
   "checkout country field preserves browser autocomplete"
 )
@@ -75,6 +80,16 @@ assertIncludes(
   smartSuggestAddressField,
   'autoComplete="address-line1"',
   "Smart Suggest wrapper preserves address-line1 autocomplete"
+)
+assertIncludes(
+  smartSuggestAddressField,
+  "normalizedCountryCode",
+  "Smart Suggest wrapper normalizes blank country codes to undefined"
+)
+assertIncludes(
+  smartSuggestAddressField,
+  ": undefined",
+  "Smart Suggest wrapper omits blank country codes"
 )
 assertIncludes(
   smartSuggestAddressField,

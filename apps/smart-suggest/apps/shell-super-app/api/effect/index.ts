@@ -43,12 +43,18 @@ const plainTextHeaders = {
 } as const;
 
 interface SmartSuggestWorkerEnv {
+  MAPY_CZ_API_KEY?: string;
+  MAPY_CZ_ENDPOINT_URL?: string;
+  SMART_SUGGEST_ALLOWED_ORIGINS?: string;
   SMART_SUGGEST_D1?: SmartSuggestD1Binding;
+  SMART_SUGGEST_PROVIDER_PRIORITY?: string;
+  SMART_SUGGEST_PROVIDER_TIMEOUT_MS?: string;
 }
 
 const inMemoryRepositories = createInMemorySmartSuggestRepositories();
 const d1Repositories = new WeakMap<SmartSuggestD1Binding, SmartSuggestRepositories>();
 const repositorySeeds = new WeakMap<SmartSuggestRepositories, Promise<unknown>>();
+const repositoryTelemetrySequences = new WeakMap<SmartSuggestRepositories, number>();
 const runtimeMetricsByRepository = new WeakMap<
   SmartSuggestRepositories,
   SmartSuggestRuntimeMetrics
@@ -185,10 +191,24 @@ const seedRepositories = (repositories: SmartSuggestRepositories) => {
     return existing;
   }
 
-  const seed = seedSampleAddressDatasets(repositories);
+  const seed = (async () => {
+    try {
+      await seedSampleAddressDatasets(repositories);
+    } catch (error) {
+      repositorySeeds.delete(repositories);
+      throw error;
+    }
+  })();
   repositorySeeds.set(repositories, seed);
 
   return seed;
+};
+
+const createTelemetryId = (repositories: SmartSuggestRepositories, ...parts: readonly string[]) => {
+  const sequence = (repositoryTelemetrySequences.get(repositories) ?? 0) + 1;
+  repositoryTelemetrySequences.set(repositories, sequence);
+
+  return [...parts, String(sequence)].join(':');
 };
 
 const notFound = () =>
@@ -247,8 +267,96 @@ const optionalNumber = (value: unknown) => (typeof value === 'number' ? value : 
 const optionalStringArray = (value: unknown) =>
   Array.isArray(value) && value.every((entry) => typeof entry === 'string') ? value : undefined;
 
-const toCountryCode = (value: string | undefined) =>
-  value?.trim().toUpperCase() as SmartSuggestCountryCode | undefined;
+const envString = (value: string | undefined) => {
+  const normalized = value?.trim();
+  return normalized === undefined || normalized === '' ? undefined : normalized;
+};
+
+const envStringArray = (value: string | undefined) =>
+  envString(value)
+    ?.split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== '');
+
+const envNumber = (value: string | undefined) => {
+  const normalized = envString(value);
+
+  if (normalized === undefined) {
+    return;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const configuredCorsOrigins = (env?: SmartSuggestWorkerEnv) =>
+  envStringArray(env?.SMART_SUGGEST_ALLOWED_ORIGINS) ?? [];
+
+const corsOriginForRequest = (request: Request, env?: SmartSuggestWorkerEnv) => {
+  const origin = request.headers.get('origin')?.trim();
+
+  if (origin === undefined || origin === '') {
+    return;
+  }
+
+  const allowedOrigins = configuredCorsOrigins(env);
+
+  if (allowedOrigins.includes('*')) {
+    return '*';
+  }
+
+  return allowedOrigins.includes(origin) ? origin : undefined;
+};
+
+const applyCorsHeaders = (headers: Headers, request: Request, env?: SmartSuggestWorkerEnv) => {
+  const allowedOrigin = corsOriginForRequest(request, env);
+
+  if (allowedOrigin === undefined) {
+    return;
+  }
+
+  headers.set('access-control-allow-origin', allowedOrigin);
+  headers.set('access-control-allow-methods', 'GET, POST, OPTIONS');
+  headers.set(
+    'access-control-allow-headers',
+    request.headers.get('access-control-request-headers') ?? 'authorization, content-type',
+  );
+  headers.set('access-control-max-age', '600');
+  headers.append('vary', 'Origin');
+};
+
+const withCors = (response: Response, request: Request, env?: SmartSuggestWorkerEnv) => {
+  const headers = new Headers(response.headers);
+  applyCorsHeaders(headers, request, env);
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  });
+};
+
+const preflight = (request: Request, env?: SmartSuggestWorkerEnv) => {
+  const headers = new Headers();
+  applyCorsHeaders(headers, request, env);
+
+  if (
+    request.headers.has('origin') &&
+    headers.get('access-control-allow-origin') === null &&
+    configuredCorsOrigins(env).length > 0
+  ) {
+    return new Response(null, { status: 403 });
+  }
+
+  return new Response(null, { headers, status: 204 });
+};
+
+const toCountryCode = (value: string | undefined) => {
+  const normalizedCountryCode = value?.trim().toUpperCase();
+  return normalizedCountryCode === undefined || normalizedCountryCode === ''
+    ? undefined
+    : (normalizedCountryCode as SmartSuggestCountryCode);
+};
 
 const readJsonRecord = async (request: Request) => {
   const body = (await request.json()) as unknown;
@@ -491,12 +599,6 @@ const sourceForAddressRecord = async (
   return source === undefined ? sourceForSourceId(record.sourceId) : toSuggestionSource(source);
 };
 
-const sourceForCountry = (countryCode: SmartSuggestCountryCode | undefined): SuggestionSource => {
-  const source = SAMPLE_DATA_SOURCES.find((entry) => entry.countryCode === countryCode);
-
-  return toSuggestionSource(source ?? defaultSampleDataSource());
-};
-
 const parseSuggestionSource = (value: unknown): SuggestionSource | undefined => {
   if (!isRecord(value)) {
     return undefined;
@@ -591,6 +693,7 @@ const suggestFromOwnedData = async (
 const readScopedProviderConfig = (
   tenant: TenantRecord | undefined,
   request: SmartSuggestRequest,
+  env?: SmartSuggestWorkerEnv,
 ) => {
   const rootConfig = tenant?.countryConfig;
   const countryConfigs = readOptionalRecord(rootConfig?.['countries']);
@@ -606,7 +709,9 @@ const readScopedProviderConfig = (
   const priority =
     scopeConfigs
       .map((config) => optionalStringArray(config['providerPriority']))
-      .find((value) => value !== undefined) ?? tenant?.providerPriority;
+      .find((value) => value !== undefined) ??
+    tenant?.providerPriority ??
+    envStringArray(env?.SMART_SUGGEST_PROVIDER_PRIORITY);
 
   return {
     priority,
@@ -617,6 +722,7 @@ const readScopedProviderConfig = (
 const readMapyProviderConfig = (
   providerScopes: readonly Record<string, unknown>[],
   request: SmartSuggestRequest,
+  env?: SmartSuggestWorkerEnv,
 ): SmartSuggestProviderRuntimeConfig['mapyCz'] => {
   const mapyConfig = providerScopes
     .map((providerScope) => {
@@ -626,7 +732,7 @@ const readMapyProviderConfig = (
       );
     })
     .find((value) => value !== undefined);
-  const apiKey = optionalString(mapyConfig?.['apiKey']);
+  const apiKey = optionalString(mapyConfig?.['apiKey']) ?? envString(env?.MAPY_CZ_API_KEY);
 
   if (apiKey === undefined) {
     return undefined;
@@ -635,7 +741,8 @@ const readMapyProviderConfig = (
   const config: NonNullable<SmartSuggestProviderRuntimeConfig['mapyCz']> = {
     apiKey,
   };
-  const endpointUrl = optionalString(mapyConfig?.['endpointUrl']);
+  const endpointUrl =
+    optionalString(mapyConfig?.['endpointUrl']) ?? envString(env?.MAPY_CZ_ENDPOINT_URL);
   const language = optionalString(mapyConfig?.['language']) ?? request.language;
   const limit = optionalNumber(mapyConfig?.['limit']);
 
@@ -660,12 +767,15 @@ const readProviderTimeoutMs = (providerScopes: readonly Record<string, unknown>[
 const readProviderRuntimeConfig = (
   tenant: TenantRecord | undefined,
   request: SmartSuggestRequest,
+  env?: SmartSuggestWorkerEnv,
 ): SmartSuggestProviderRuntimeConfig => {
-  const scopedConfig = readScopedProviderConfig(tenant, request);
+  const scopedConfig = readScopedProviderConfig(tenant, request, env);
   const config: SmartSuggestProviderRuntimeConfig = {};
   const { priority } = scopedConfig;
-  const mapyCz = readMapyProviderConfig(scopedConfig.scopeConfigs, request);
-  const timeoutMs = readProviderTimeoutMs(scopedConfig.scopeConfigs);
+  const mapyCz = readMapyProviderConfig(scopedConfig.scopeConfigs, request, env);
+  const timeoutMs =
+    readProviderTimeoutMs(scopedConfig.scopeConfigs) ??
+    envNumber(env?.SMART_SUGGEST_PROVIDER_TIMEOUT_MS);
 
   if (priority !== undefined) {
     config.priority = priority;
@@ -692,8 +802,12 @@ const providerRegistryKey = (
     JSON.stringify(config),
   ].join(':');
 
-const getProviderRegistry = (tenant: TenantRecord | undefined, request: SmartSuggestRequest) => {
-  const config = readProviderRuntimeConfig(tenant, request);
+const getProviderRegistry = (
+  tenant: TenantRecord | undefined,
+  request: SmartSuggestRequest,
+  env?: SmartSuggestWorkerEnv,
+) => {
+  const config = readProviderRuntimeConfig(tenant, request, env);
   const key = providerRegistryKey(tenant, request, config);
   const existingRegistry = providerRegistries.get(key);
 
@@ -719,7 +833,7 @@ const recordProviderEvents = async (
     events.map((event, index) => {
       const { providerId, status: providerStatus } = event;
       const record: Parameters<typeof repositories.providerEvents.recordProviderEvent>[0] = {
-        id: `${requestId}:${providerId}:${index}`,
+        id: createTelemetryId(repositories, 'provider', requestId, providerId, String(index)),
         providerId,
         queryHash,
         requestId,
@@ -747,12 +861,13 @@ const suggestFromProviderFallback = async (
   queryHash: string,
   ownedResponse: SmartSuggestResponse,
   repositories: SmartSuggestRepositories,
+  env?: SmartSuggestWorkerEnv,
 ) => {
   try {
     const tenantId = request.tenant?.tenantId;
     const tenant =
       tenantId === undefined ? undefined : await repositories.tenants.getTenant(tenantId);
-    const result = await getProviderRegistry(tenant, request).suggest(request, {
+    const result = await getProviderRegistry(tenant, request, env).suggest(request, {
       requestId: `provider-${queryHash.slice(0, 16)}`,
     });
 
@@ -798,7 +913,11 @@ const writeOwnedCache = (
   return repositories.suggestCache.writeSuggestCache(cacheWrite);
 };
 
-const suggest = async (request: Request, repositories: SmartSuggestRepositories) => {
+const suggest = async (
+  request: Request,
+  repositories: SmartSuggestRepositories,
+  env?: SmartSuggestWorkerEnv,
+) => {
   const startedAt = performance.now();
   const url = new URL(request.url);
   const suggestRequest = parseSuggestRequest(url);
@@ -833,7 +952,7 @@ const suggest = async (request: Request, repositories: SmartSuggestRepositories)
       const response = {
         cacheStatus: 'hit',
         requestId: `cache-${queryHash.slice(0, 16)}`,
-        suggestions: cached.payload.map((suggestion) => ({
+        suggestions: cached.payload.slice(0, suggestRequest.limit).map((suggestion) => ({
           ...suggestion,
           cacheStatus: 'hit',
         })),
@@ -858,6 +977,7 @@ const suggest = async (request: Request, repositories: SmartSuggestRepositories)
         queryHash,
         response,
         repositories,
+        env,
       );
       recordSuggestResponse(repositories, fallbackResponse, startedAt, 'provider-fallback');
 
@@ -883,51 +1003,85 @@ const suggest = async (request: Request, repositories: SmartSuggestRepositories)
 const parseAcceptEvent = (body: Record<string, unknown>): SmartSuggestAcceptEvent | undefined => {
   const requestId = optionalString(body['requestId']);
   const suggestionId = optionalString(body['suggestionId']);
+  const source = parseSuggestionSource(body['source']);
 
-  if (requestId === undefined || suggestionId === undefined) {
+  if (requestId === undefined || suggestionId === undefined || source === undefined) {
     return undefined;
   }
 
-  return {
+  const event: SmartSuggestAcceptEvent = {
     acceptedAt: optionalString(body['acceptedAt']) ?? nowIso(),
     requestId,
-    source:
-      parseSuggestionSource(body['source']) ??
-      sourceForCountry(toCountryCode(optionalString(body['countryCode']))),
+    source,
     suggestionId,
   };
+  const tenant = readOptionalRecord(body['tenant']);
+  const tenantContext: NonNullable<SmartSuggestAcceptEvent['tenant']> = {};
+  const cartId = optionalString(tenant?.['cartId']);
+  const salesChannelId = optionalString(tenant?.['salesChannelId']);
+  const sessionId = optionalString(tenant?.['sessionId']);
+  const tenantId = optionalString(tenant?.['tenantId']);
+
+  if (cartId !== undefined) {
+    tenantContext.cartId = cartId;
+  }
+  if (salesChannelId !== undefined) {
+    tenantContext.salesChannelId = salesChannelId;
+  }
+  if (sessionId !== undefined) {
+    tenantContext.sessionId = sessionId;
+  }
+  if (tenantId !== undefined) {
+    tenantContext.tenantId = tenantId;
+  }
+  if (Object.keys(tenantContext).length > 0) {
+    event.tenant = tenantContext;
+  }
+
+  return event;
 };
 
 const accept = async (request: Request, repositories: SmartSuggestRepositories) => {
+  let body: Record<string, unknown> | undefined;
+
   try {
-    const body = await readJsonRecord(request);
+    body = await readJsonRecord(request);
+  } catch {
+    return validationError('Invalid JSON body.');
+  }
 
-    if (body === undefined) {
-      return validationError('Expected a JSON object body.');
-    }
+  if (body === undefined) {
+    return validationError('Expected a JSON object body.');
+  }
 
-    const event = parseAcceptEvent(body);
+  const event = parseAcceptEvent(body);
 
-    if (event === undefined) {
-      return validationError('Missing requestId or suggestionId.');
-    }
+  if (event === undefined) {
+    return validationError('Missing requestId, suggestionId, or source.');
+  }
 
+  try {
     await repositories.acceptEvents.recordAcceptEvent({
       acceptedAt: event.acceptedAt,
-      id: `${event.requestId}:${event.suggestionId}`,
+      id: createTelemetryId(repositories, 'accept', event.requestId, event.suggestionId),
       requestId: event.requestId,
       sourceId: event.source.id,
       suggestionId: event.suggestionId,
+      ...(event.tenant === undefined ? {} : { tenant: event.tenant }),
     });
     metricsForRepositories(repositories).accept.total += 1;
 
     return jsonResponse({ accepted: true });
   } catch {
-    return validationError('Invalid JSON body.');
+    return serverError();
   }
 };
 
-const route = (request: Request, repositories: SmartSuggestRepositories) => {
+const route = (
+  request: Request,
+  repositories: SmartSuggestRepositories,
+  env?: SmartSuggestWorkerEnv,
+) => {
   const url = new URL(request.url);
   const routeKey = `${request.method} ${url.pathname}`;
 
@@ -939,7 +1093,7 @@ const route = (request: Request, repositories: SmartSuggestRepositories) => {
       return status(repositories);
     }
     case 'GET /v1/suggest': {
-      return suggest(request, repositories);
+      return suggest(request, repositories, env);
     }
     case 'POST /v1/accept': {
       return accept(request, repositories);
@@ -956,9 +1110,21 @@ const route = (request: Request, repositories: SmartSuggestRepositories) => {
   }
 };
 
+const handleRequest = async (
+  request: Request,
+  repositories: SmartSuggestRepositories,
+  env?: SmartSuggestWorkerEnv,
+) => {
+  if (request.method === 'OPTIONS') {
+    return preflight(request, env);
+  }
+
+  return withCors(await route(request, repositories, env), request, env);
+};
+
 export const createSmartSuggestHandler =
-  (repositories: SmartSuggestRepositories) => (request: Request) =>
-    route(request, repositories);
+  (repositories: SmartSuggestRepositories, env?: SmartSuggestWorkerEnv) => (request: Request) =>
+    handleRequest(request, repositories, env);
 
 export const handler = (request: Request, env?: SmartSuggestWorkerEnv) =>
-  route(request, resolveRepositories(env));
+  handleRequest(request, resolveRepositories(env), env);

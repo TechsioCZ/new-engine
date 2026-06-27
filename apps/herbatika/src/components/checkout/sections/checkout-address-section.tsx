@@ -26,6 +26,16 @@ type CheckoutAddressSectionProps = {
   title?: string
 }
 
+const formatSelectedAddressLine = (address: AddressParts) =>
+  address.line1?.trim() ||
+  [
+    address.street,
+    [address.houseNumber, address.orientationNumber].filter(Boolean).join("/"),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+
 export function CheckoutAddressSection({
   checkoutDetailsForm,
   countryItems,
@@ -46,16 +56,7 @@ export function CheckoutAddressSection({
   const applySelectedAddress = (address: AddressParts) => {
     const field = (name: "address1" | "city" | "countryCode" | "postalCode") =>
       resolveCheckoutAddressFieldName(scope, name)
-    const addressLine =
-      address.line1 ??
-      [
-        address.street,
-        [address.houseNumber, address.orientationNumber]
-          .filter(Boolean)
-          .join("/"),
-      ]
-        .filter(Boolean)
-        .join(" ")
+    const addressLine = formatSelectedAddressLine(address)
     const normalizedCountryCode = address.countryCode?.trim().toUpperCase()
 
     if (addressLine) {
