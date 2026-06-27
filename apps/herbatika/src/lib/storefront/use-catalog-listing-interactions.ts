@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type { SetValues } from "nuqs"
 import { useEffect, useState } from "react"
 import { toggleSelection } from "@/components/category/category-selection-utils"
+import { useAppToast } from "@/hooks/use-app-toast"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   type NuqsPlpQueryState,
@@ -87,6 +88,7 @@ export function useCatalogListingInteractions({
     regionId,
     countryCode,
   })
+  const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 180,
     skipMode: "any",
@@ -100,6 +102,7 @@ export function useCatalogListingInteractions({
         product,
         quantity: 1,
       })
+      toast.success({ title: "Produkt bol pridaný do košíka." })
     } catch (error) {
       setAddToCartError(
         error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."

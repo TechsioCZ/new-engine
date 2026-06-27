@@ -1,4 +1,6 @@
 @theme static {
   --color-toast-fg: white;
   --color-toast-close-fg: white;
+  --color-icon-control-bg-hover: transparent;
+  --color-icon-control-fg: white;
 }
