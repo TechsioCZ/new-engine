@@ -1,12 +1,5 @@
-import { defineConfig } from "vitest/config"
+import { defineSmartSuggestVitestConfig } from "../vitest.config.shared"
 
-export default defineConfig({
-  test: {
-    environment: "node",
-    include: ["tests/**/*.test.ts"],
-    restoreMocks: true,
-    typecheck: {
-      tsconfig: "../tsconfig.vitest.json",
-    },
-  },
+export default defineSmartSuggestVitestConfig({
+  environment: "node",
 })

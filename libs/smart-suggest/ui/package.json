@@ -29,7 +29,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "rslib build",
+    "build": "rslib build --tsconfig tsconfig.build.json",
     "dev": "rslib build --watch",
     "test": "vitest run --config vitest.config.ts --typecheck",
     "test:runtime": "vitest run --config vitest.config.ts",

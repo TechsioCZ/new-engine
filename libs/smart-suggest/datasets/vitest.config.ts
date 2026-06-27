@@ -1,32 +1,6 @@
-import { defineConfig } from "vitest/config"
+import { defineSmartSuggestVitestConfig } from "../vitest.config.shared"
 
-const sourcePath = (relativePath: string) =>
-  new URL(relativePath, import.meta.url).pathname
-
-const smartSuggestSourceAliases = [
-  {
-    find: /^@techsio\/smart-suggest-core$/u,
-    replacement: sourcePath("../core/src/index.ts"),
-  },
-  {
-    find: /^@techsio\/smart-suggest-indexing$/u,
-    replacement: sourcePath("../indexing/src/index.ts"),
-  },
-  {
-    find: /^@techsio\/smart-suggest-storage$/u,
-    replacement: sourcePath("../storage/src/index.ts"),
-  },
-]
-
-export default defineConfig({
-  resolve: {
-    alias: smartSuggestSourceAliases,
-  },
-  test: {
-    environment: "node",
-    include: ["tests/**/*.test.ts"],
-    passWithNoTests: true,
-    restoreMocks: true,
-    typecheck: { tsconfig: "../tsconfig.vitest.json" },
-  },
+export default defineSmartSuggestVitestConfig({
+  environment: "node",
+  packages: ["core", "indexing", "storage"],
 })

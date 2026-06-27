@@ -17,7 +17,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "rslib build",
+    "build": "rslib build --tsconfig tsconfig.build.json",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "dev": "rslib build --watch",
     "test": "vitest run --config vitest.config.ts --typecheck",
