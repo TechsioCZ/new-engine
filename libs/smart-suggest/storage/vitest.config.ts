@@ -8,6 +8,10 @@ const smartSuggestSourceAliases = [
     find: /^@techsio\/smart-suggest-core$/u,
     replacement: sourcePath("../core/src/index.ts"),
   },
+  {
+    find: /^@techsio\/smart-suggest-indexing$/u,
+    replacement: sourcePath("../indexing/src/index.ts"),
+  },
 ]
 
 export default defineConfig({
