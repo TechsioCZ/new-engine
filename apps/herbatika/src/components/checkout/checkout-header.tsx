@@ -30,7 +30,6 @@ export function CheckoutHeader() {
             Spustiť chat
           </Link>
           <Link
-            as={NextLink}
             className="hidden items-center gap-100 text-fg-primary text-sm hover:text-primary lg:inline-flex"
             href="tel:+421232112345"
           >

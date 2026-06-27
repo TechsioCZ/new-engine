@@ -3,6 +3,7 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Header } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
@@ -113,7 +114,7 @@ export function HerbatikaHeader() {
         </div>
 
         <Header.Actions className="@max-header-desktop:hidden gap-450">
-          <NextLink
+          <Link
             className="inline-flex items-center gap-300 font-open-sans text-fg-secondary hover:text-fg-primary"
             href="tel:+421232112345"
           >
@@ -126,7 +127,7 @@ export function HerbatikaHeader() {
                 (Po-Pia: 09:00 - 16:00)
               </span>
             </span>
-          </NextLink>
+          </Link>
 
           <LinkButton
             aria-label="Obľúbené zoznamy"

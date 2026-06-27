@@ -152,7 +152,6 @@ export function ProductDetailMediaColumn({
             size="xl"
           />
           <Link
-            as={NextLink}
             className="whitespace-nowrap font-medium text-fg-strong text-sm leading-tight hover:text-fg-primary"
             href="tel:+421232112345"
           >

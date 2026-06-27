@@ -7,25 +7,25 @@ export const BENEFITS = [
   {
     id: 1,
     image: delivery,
-    text: "Rýchle dodanie a balenie.",
+    text: "Rýchle doručenie až k vám domov.",
     description: "Rychlé a spolehlivé doručení vašich objednávek.",
   },
   {
     id: 2,
     image: returns,
-    text: "Garantuje vrátenie peňazí.",
+    text: "Garancia spokojnosti alebo vrátenia peňazí.",
     description: "Jednoduché a rychlé vracení produktů.",
   },
   {
     id: 3,
     image: products,
-    text: "Viac ako 60 vylstných produktov skladom.",
+    text: "130+ vlastných produktov skladom.",
     description: "Vybrané a kvalitní produkty pro vaše potřeby.",
   },
   {
     id: 4,
     image: customers,
-    text: "Preverené tisíckami zákazníkov po celej Európe.",
+    text: "Dôverujú nám tisíce zákazníkov po celej Európe.",
     description: "Výborný zážitek z nákupu u nás.",
   },
 ]
