@@ -111,8 +111,7 @@ const validatePostalCodeForCountry = (
   const normalizedCountryCode = normalizeCountryCode(countryCodeValue)
 
   if (
-    !normalizedCountryCode ||
-    !isCheckoutCountryCode(normalizedCountryCode)
+    !(normalizedCountryCode && isCheckoutCountryCode(normalizedCountryCode))
   ) {
     return "Vyberte krajinu pre overenie PSČ."
   }
@@ -270,7 +269,10 @@ const billingFieldValidators = {
     checkoutAddressFieldValidators.lastName,
     validateBillingFields
   ),
-  postalCode: createCheckoutPostalCodeValidators("billing", validateBillingFields),
+  postalCode: createCheckoutPostalCodeValidators(
+    "billing",
+    validateBillingFields
+  ),
   taxId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.taxId,
     validateBillingCompanyFields

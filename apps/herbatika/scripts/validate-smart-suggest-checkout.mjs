@@ -131,9 +131,9 @@ assertIncludes(
   'createCheckoutPostalCodeValidators("shipping")',
   "shipping postal validation uses the selected shipping country"
 )
-assertIncludes(
+assertMatches(
   addressValidators,
-  'createCheckoutPostalCodeValidators("billing", validateBillingFields)',
+  /createCheckoutPostalCodeValidators\(\s*"billing",\s*validateBillingFields\s*\)/,
   "billing postal validation uses the selected billing country"
 )
 assertIncludes(
