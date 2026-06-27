@@ -12,8 +12,7 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "AGENTS.md"
+    "README.md"
   ],
   "sideEffects": false,
   "scripts": {

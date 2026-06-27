@@ -1,9 +1,7 @@
 import { pluginReact } from "@rsbuild/plugin-react"
-import { defineConfig } from "@rslib/core"
+import { defineSmartSuggestRslibConfig } from "../rslib.config.shared"
 
-export default defineConfig({
-  source: { entry: { index: "./src/index.ts" } },
-  lib: [{ bundle: false, dts: true, format: "esm" }],
-  output: { target: "web" },
+export default defineSmartSuggestRslibConfig({
+  configUrl: import.meta.url,
   plugins: [pluginReact()],
 })
