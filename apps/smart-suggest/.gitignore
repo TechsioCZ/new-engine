@@ -3,6 +3,7 @@ dist/
 build/
 .modernjs/cache/
 .modernjs/agent-reference-repos-tmp/
+.codex/reports/
 apps/*/.modern-js/
 apps/*/.output/
 apps/*/dist/
