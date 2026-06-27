@@ -28,6 +28,7 @@ const moduleFederationConfig: ModuleFederationConfigExport = createModuleFederat
     generateTypes: {
       compilerInstance: 'tsgo',
     },
+    tsConfigPath: './tsconfig.mf-types.json',
   },
   exposes: {
     './SmartSuggestAddressField': './src/federation/smart-suggest-address-field.tsx',

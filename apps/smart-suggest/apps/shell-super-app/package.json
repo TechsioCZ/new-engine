@@ -21,10 +21,10 @@
   },
   "zephyr:dependencies": {},
   "dependencies": {
-    "@modern-js/plugin-bff": "npm:@bleedingdev/modern-js-plugin-bff@3.4.0-ultramodern.2",
-    "@modern-js/plugin-i18n": "npm:@bleedingdev/modern-js-plugin-i18n@3.4.0-ultramodern.2",
-    "@modern-js/plugin-tanstack": "npm:@bleedingdev/modern-js-plugin-tanstack@3.4.0-ultramodern.2",
-    "@modern-js/runtime": "npm:@bleedingdev/modern-js-runtime@3.4.0-ultramodern.2",
+    "@modern-js/plugin-bff": "npm:@bleedingdev/modern-js-plugin-bff@3.4.0-ultramodern.12",
+    "@modern-js/plugin-i18n": "npm:@bleedingdev/modern-js-plugin-i18n@3.4.0-ultramodern.12",
+    "@modern-js/plugin-tanstack": "npm:@bleedingdev/modern-js-plugin-tanstack@3.4.0-ultramodern.12",
+    "@modern-js/runtime": "npm:@bleedingdev/modern-js-runtime@3.4.0-ultramodern.12",
     "@module-federation/bridge-react": "2.6.0",
     "@module-federation/modern-js-v3": "2.6.0",
     "@module-federation/runtime": "2.6.0",
@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@effect/tsgo": "0.14.6",
-    "@modern-js/app-tools": "npm:@bleedingdev/modern-js-app-tools@3.4.0-ultramodern.2",
+    "@modern-js/app-tools": "npm:@bleedingdev/modern-js-app-tools@3.4.0-ultramodern.12",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "^20",
     "@types/react": "^19.2.17",

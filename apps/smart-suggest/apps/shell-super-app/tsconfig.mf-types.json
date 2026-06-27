@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/modern-app-env.d.ts",
+    "src/federation/smart-suggest-address-field.tsx"
+  ]
+}

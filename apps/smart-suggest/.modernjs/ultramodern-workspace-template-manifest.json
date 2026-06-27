@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "template": {
     "id": "modernjs-ultramodern-superapp-workspace",
-    "version": "3.4.0-ultramodern.2",
+    "version": "3.4.0-ultramodern.12",
     "displayName": "Modern.js UltraModern SuperApp Workspace",
     "description": "Growable SuperApp shell, shared packages, and topology skeleton.",
     "compatibilityLane": "ultramodern-mv",
-    "minimumModernVersion": "3.4.0-ultramodern.2"
+    "minimumModernVersion": "3.4.0-ultramodern.12"
   },
   "source": {
     "type": "builtin",
@@ -18,12 +18,12 @@
     "checksums": [
       {
         "algorithm": "sha256",
-        "value": "8d6f3d61c10d51caa06882eee5d44233ee9a450aed7bf323fd934c82b80ac936",
+        "value": "a290a608c935b53097f03f07070bf579ed21e6cdfc3bca8571af9c24bd087068",
         "scope": "source-tree"
       },
       {
         "algorithm": "sha256",
-        "value": "1e8a52cb2b2341b80ce8b4be4b307f049cc508275cb7a9972df3caa06e145958",
+        "value": "52ecd9a0ad4b18da051c915fc134d155f69e53711cdfe0198f8f3e2046f668f7",
         "scope": "file-templates-tree"
       }
     ],
@@ -50,9 +50,11 @@
       "package.json",
       "oxfmt.config.ts",
       "oxlint.config.ts",
+      "patches/**",
       "pnpm-workspace.yaml",
       "scripts/**",
       "topology/**",
+      "tsconfig.json",
       "tsconfig.base.json"
     ],
     "deniedPaths": [
@@ -69,7 +71,7 @@
   "packageSource": {
     "strategy": "install",
     "config": ".modernjs/ultramodern-package-source.json",
-    "modernPackageSpecifier": "3.4.0-ultramodern.2",
+    "modernPackageSpecifier": "3.4.0-ultramodern.12",
     "generatedWorkspacePackageSpecifier": "workspace:*"
   },
   "agentSkills": {

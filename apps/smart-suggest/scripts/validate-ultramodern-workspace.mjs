@@ -793,6 +793,7 @@ const requiredPaths = [
   'scripts/ultramodern-typecheck.mjs',
   'apps/shell-super-app/package.json',
   'apps/shell-super-app/tsconfig.json',
+  'apps/shell-super-app/tsconfig.mf-types.json',
   'apps/shell-super-app/modern.config.ts',
   'apps/shell-super-app/module-federation.config.ts',
   'apps/shell-super-app/src/modern-app-env.d.ts',
@@ -1127,6 +1128,16 @@ assert(
 assert(
   generatedContract.cssFederation?.sharedDesignTokens?.ssr?.firstPaintRequired === true,
   'Shared design token CSS must be required for SSR first paint',
+);
+const shellModuleFederationConfig = readText('apps/shell-super-app/module-federation.config.ts');
+const shellContractForMfTypes = generatedContract.apps?.find((app) => app.id === 'shell-super-app');
+assert(
+  shellContractForMfTypes?.moduleFederation?.dts?.tsConfigPath === './tsconfig.mf-types.json',
+  'Shell must keep dedicated Module Federation DTS tsconfig',
+);
+assert(
+  shellModuleFederationConfig.includes("tsConfigPath: './tsconfig.mf-types.json'"),
+  'Shell Module Federation config must use the dedicated DTS tsconfig',
 );
 const expectedPerformanceReadinessSignals = [
   'bfcache',

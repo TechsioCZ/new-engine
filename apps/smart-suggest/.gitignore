@@ -3,6 +3,7 @@ dist/
 build/
 .modernjs/cache/
 .modernjs/agent-reference-repos-tmp/
+apps/*/.modern-js/
 apps/*/.output/
 apps/*/dist/
 apps/shell-super-app/src/modern-tanstack/

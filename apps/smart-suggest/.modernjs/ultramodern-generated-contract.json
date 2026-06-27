@@ -19,6 +19,7 @@
     "typescriptNativePreview": "7.0.0-dev.20260624.1",
     "moduleFederation": "2.6.0",
     "tanstackRouter": "1.170.16",
+    "tanstackRouterCore": "1.171.13",
     "i18next": "26.3.1",
     "zephyrRspackPlugin": "1.1.1",
     "zephyrAgent": "1.1.1",
@@ -670,7 +671,8 @@
         "exposes": [],
         "dts": {
           "displayErrorInTerminal": true,
-          "compilerInstance": "tsgo"
+          "compilerInstance": "tsgo",
+          "tsConfigPath": "./tsconfig.mf-types.json"
         },
         "browserSafeExposesOnly": true,
         "zephyrRspackPlugin": "1.1.1"

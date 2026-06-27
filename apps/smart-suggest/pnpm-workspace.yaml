@@ -39,7 +39,11 @@ peerDependencyRules:
 
 overrides:
   '@tanstack/react-router': 1.170.16
+  '@tanstack/router-core': 1.171.13
   node-fetch: '^3.3.2'
+
+patchedDependencies:
+  '@tanstack/router-core@1.171.13': patches/@tanstack__router-core@1.171.13.patch
 
 allowBuilds:
   '@parcel/watcher': false

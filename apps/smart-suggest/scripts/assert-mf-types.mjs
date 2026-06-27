@@ -50,6 +50,12 @@ for (const appDir of appDirs) {
   if (contractEntry && contractEntry.moduleFederation?.dts?.compilerInstance !== 'tsgo') {
     throw new Error(`Module Federation DTS must use the workspace TypeScript compiler: ${appDir}`);
   }
+  if (
+    contractEntry &&
+    contractEntry.moduleFederation?.dts?.tsConfigPath !== './tsconfig.mf-types.json'
+  ) {
+    throw new Error(`Module Federation DTS must use the dedicated type config: ${appDir}`);
+  }
 
   const exposes = contractEntry?.moduleFederation?.exposes;
   const hasExposes = Array.isArray(exposes) ? exposes.length > 0 : configHasExposes(configPath);
