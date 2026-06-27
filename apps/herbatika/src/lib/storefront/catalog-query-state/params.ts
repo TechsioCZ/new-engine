@@ -1,5 +1,6 @@
 import { PLP_PAGE_SIZE } from "../plp-config"
 import type { CatalogQueryState } from "./parsers"
+import { normalizeStatusFilterInput } from "./status-filters"
 import { normalizePriceRange, toNonEmptyArray } from "./utils"
 
 type BuildCatalogProductsParamsInput = {
@@ -62,7 +63,7 @@ export const buildCatalogProductsParams = ({
     limit,
     sort: queryState.sort,
     category_id: toNonEmptyArray(categoryIds ?? []),
-    status: toNonEmptyArray(queryState.status),
+    status: toNonEmptyArray(normalizeStatusFilterInput(queryState.status)),
     form: toNonEmptyArray(queryState.form),
     brand: toNonEmptyArray(queryState.brand),
     ingredient: toNonEmptyArray(queryState.ingredient),
@@ -98,7 +99,7 @@ export const resolveCatalogActiveFilterCount = (
     normalizedPriceRange.max !== undefined
       ? 1
       : 0) +
-    queryState.status.length +
+    normalizeStatusFilterInput(queryState.status).length +
     queryState.form.length +
     queryState.brand.length +
     queryState.ingredient.length

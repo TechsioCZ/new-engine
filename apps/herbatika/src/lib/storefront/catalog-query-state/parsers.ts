@@ -7,6 +7,7 @@ import {
   parseAsStringLiteral,
 } from "nuqs/server"
 import { PRODUCT_SORT_VALUES } from "../plp-config"
+import { normalizeStatusFilterInput } from "./status-filters"
 import { areStringArraysEqual, normalizeMultiValueInput } from "./utils"
 
 const parseAsCsvStringArray = createParser<string[]>({
@@ -14,12 +15,17 @@ const parseAsCsvStringArray = createParser<string[]>({
   serialize: (value) => normalizeMultiValueInput(value).join(","),
   eq: areStringArraysEqual,
 }).withDefault([])
+const parseAsStatusStringArray = createParser<string[]>({
+  parse: (value) => normalizeStatusFilterInput(value.split(",")),
+  serialize: (value) => normalizeStatusFilterInput(value).join(","),
+  eq: areStringArraysEqual,
+}).withDefault([])
 
 export const catalogQueryParsers = {
   page: parseAsInteger.withDefault(1),
   sort: parseAsStringLiteral(PRODUCT_SORT_VALUES).withDefault("recommended"),
   q: parseAsString.withDefault(""),
-  status: parseAsCsvStringArray,
+  status: parseAsStatusStringArray,
   form: parseAsCsvStringArray,
   brand: parseAsCsvStringArray,
   ingredient: parseAsCsvStringArray,
