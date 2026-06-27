@@ -268,18 +268,29 @@ export const validatePhoneNumber = (
 
   const isValid = isValidMetadata && errors.length === 0
 
-  return {
+  const result: PhoneValidationResult = {
     rawInput,
     displayValue: parsedPhone.formatInternational(),
-    e164: isValid ? parsedPhone.number : undefined,
-    detectedCountry,
     callingCode: parsedPhone.countryCallingCode,
     nationalNumber: parsedPhone.nationalNumber,
-    type,
     isPossible,
     isValid,
     errors: uniqueIssues(errors),
   }
+
+  if (isValid) {
+    result.e164 = parsedPhone.number
+  }
+
+  if (detectedCountry !== undefined) {
+    result.detectedCountry = detectedCountry
+  }
+
+  if (type !== undefined) {
+    result.type = type
+  }
+
+  return result
 }
 
 const digitsOnly = (value: string) => value.replaceAll(/\D/g, "")
@@ -418,15 +429,26 @@ const shouldRequireMobileForPacketa = (deliveryType: PacketaDeliveryType) =>
 export const validatePacketaContact = (
   request: PacketaContactValidationRequest
 ): PacketaContactValidationResult => {
-  const phone = validatePhoneNumber({
+  const phoneRequest: PhoneValidationRequest = {
     rawInput: request.phone ?? "",
-    defaultCountry: request.defaultCountry,
-    allowedCountries: request.allowedCountries,
-    requireCountryMatch: request.requireCountryMatch,
     requireMobile:
       request.requireMobile ??
       shouldRequireMobileForPacketa(request.deliveryType),
-  })
+  }
+
+  if (request.defaultCountry !== undefined) {
+    phoneRequest.defaultCountry = request.defaultCountry
+  }
+
+  if (request.allowedCountries !== undefined) {
+    phoneRequest.allowedCountries = request.allowedCountries
+  }
+
+  if (request.requireCountryMatch !== undefined) {
+    phoneRequest.requireCountryMatch = request.requireCountryMatch
+  }
+
+  const phone = validatePhoneNumber(phoneRequest)
 
   return {
     deliveryType: request.deliveryType,

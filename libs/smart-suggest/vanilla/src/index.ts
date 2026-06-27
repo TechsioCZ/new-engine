@@ -352,11 +352,14 @@ export const attachSmartSuggest = (
     try {
       const request: SmartSuggestRequest = {
         kind: "address",
-        language: config.language,
         limit,
         query: trimmedQuery,
       }
       const countryCode = readCountryCode()
+
+      if (config.language !== undefined) {
+        request.language = config.language
+      }
 
       if (countryCode !== undefined) {
         request.countryCode = countryCode

@@ -249,19 +249,26 @@ export const sampleAddressFixtureToRecordInput = (
   fixture: SampleAddressFixture
 ): AddressSearchRecordInput => {
   const indexDocument = createAddressIndexDocument(fixture.parts)
-
-  return {
+  const record: AddressSearchRecordInput = {
     attribution: sampleAttributionForSourceId(fixture.sourceId),
     countryCode: fixture.countryCode,
     displayLabel: indexDocument.displayLabel,
     id: fixture.id,
-    latitude: fixture.latitude,
-    longitude: fixture.longitude,
     parts: fixture.parts,
     quality: fixture.quality,
     searchLabel: indexDocument.searchLabel,
     sourceId: fixture.sourceId,
   }
+
+  if (fixture.latitude !== undefined) {
+    record.latitude = fixture.latitude
+  }
+
+  if (fixture.longitude !== undefined) {
+    record.longitude = fixture.longitude
+  }
+
+  return record
 }
 
 export const seedSampleAddressDatasets = async (
@@ -300,7 +307,10 @@ export const searchSampleAddressFixtures = (
     }
   })
 
-  return rankAddressCandidates(query, candidates, { limit: options.limit }).map(
+  const rankingOptions =
+    options.limit === undefined ? {} : { limit: options.limit }
+
+  return rankAddressCandidates(query, candidates, rankingOptions).map(
     ({ candidate, reasons, score }) => ({
       ...candidate,
       ranking: { reasons, score },
@@ -351,19 +361,26 @@ const normalizeSnapshotRow = (
   }
 
   const indexDocument = createAddressIndexDocument(row.parts)
-
-  return {
+  const record: AddressSearchRecordInput = {
     attribution: source.attribution,
     countryCode: row.parts.countryCode,
     displayLabel: indexDocument.displayLabel,
     id: row.id,
-    latitude: row.latitude,
-    longitude: row.longitude,
     parts: row.parts,
     quality: row.quality ?? 0.7,
     searchLabel: indexDocument.searchLabel,
     sourceId: source.id,
   }
+
+  if (row.latitude !== undefined) {
+    record.latitude = row.latitude
+  }
+
+  if (row.longitude !== undefined) {
+    record.longitude = row.longitude
+  }
+
+  return record
 }
 
 const chunkRecords = <TRecord>(
@@ -381,16 +398,26 @@ const chunkRecords = <TRecord>(
 
 const toDataSourceInput = (
   source: AddressImportSource
-): Omit<DataSourceRecord, "createdAt" | "updatedAt"> => ({
-  attribution: source.attribution,
-  cachePolicy: source.cachePolicy,
-  countryCode: source.countryCode,
-  datasetVersion: source.datasetVersion,
-  id: source.id,
-  name: source.name,
-  region: source.region,
-  sourceKind: source.sourceKind,
-})
+): Omit<DataSourceRecord, "createdAt" | "updatedAt"> => {
+  const input: Omit<DataSourceRecord, "createdAt" | "updatedAt"> = {
+    attribution: source.attribution,
+    cachePolicy: source.cachePolicy,
+    countryCode: source.countryCode,
+    id: source.id,
+    name: source.name,
+    sourceKind: source.sourceKind,
+  }
+
+  if (source.datasetVersion !== undefined) {
+    input.datasetVersion = source.datasetVersion
+  }
+
+  if (source.region !== undefined) {
+    input.region = source.region
+  }
+
+  return input
+}
 
 export const runAddressDatasetImport = async (
   options: AddressDatasetImportOptions
@@ -434,9 +461,18 @@ export const runAddressDatasetImport = async (
     }
   }
 
-  const completedRun = await options.repositories.importRuns.finishImportRun({
+  const errorSummary = toImportRunErrorSummary(errors)
+  const completedRunInput: Pick<
+    ImportRunRecord,
+    | "completedAt"
+    | "errorSummary"
+    | "failedRows"
+    | "id"
+    | "insertedRows"
+    | "status"
+    | "totalRows"
+  > = {
     completedAt: new Date().toISOString(),
-    errorSummary: toImportRunErrorSummary(errors),
     failedRows: errors.length,
     id: startedRun.id,
     insertedRows,
@@ -445,17 +481,29 @@ export const runAddressDatasetImport = async (
         ? "failed"
         : "completed",
     totalRows: options.rows.length,
-  })
+  }
 
-  return {
+  if (errorSummary !== undefined) {
+    completedRunInput.errorSummary = errorSummary
+  }
+
+  const completedRun =
+    await options.repositories.importRuns.finishImportRun(completedRunInput)
+
+  const result: AddressDatasetImportResult = {
     errors,
     importRun: completedRun,
     insertedRows,
     rawSnapshotStoredInD1: false,
     restartable: true,
     shardCountryCode: options.source.shardCountryCode,
-    snapshotUri: options.source.snapshotUri,
     source,
     totalRows: options.rows.length,
   }
+
+  if (options.source.snapshotUri !== undefined) {
+    result.snapshotUri = options.source.snapshotUri
+  }
+
+  return result
 }

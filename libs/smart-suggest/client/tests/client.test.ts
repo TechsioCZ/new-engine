@@ -6,12 +6,18 @@ import {
   type SmartSuggestFetch,
 } from "../src/index"
 
-const jsonResponse = (body: unknown, init?: ResponseInit) =>
-  new Response(JSON.stringify(body), {
+const jsonResponse = (body: unknown, init?: ResponseInit) => {
+  const responseInit: ResponseInit = {
     headers: { "content-type": "application/json" },
     status: init?.status ?? 200,
-    statusText: init?.statusText,
-  })
+  }
+
+  if (init?.statusText !== undefined) {
+    responseInit.statusText = init.statusText
+  }
+
+  return new Response(JSON.stringify(body), responseInit)
+}
 
 describe("createSmartSuggestClient", () => {
   it("calls suggest with query parameters and injectable fetch", async () => {

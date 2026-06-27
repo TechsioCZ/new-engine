@@ -96,12 +96,15 @@ export function PostalValidationField({
     validationResult,
     statusText
   )
+  const formInputDefaultValueProps =
+    defaultValue === undefined ? {} : { defaultValue }
+  const formInputHelpTextProps =
+    resolvedStatusText === undefined ? {} : { helpText: resolvedStatusText }
+  const formInputValueProps = value === undefined ? {} : { value }
 
   return (
     <FormInput
       autoComplete={inputHints.autoComplete}
-      defaultValue={defaultValue}
-      helpText={resolvedStatusText}
       inputMode={inputHints.inputMode}
       onChange={(event) => {
         const nextValue = event.target.value
@@ -119,8 +122,10 @@ export function PostalValidationField({
         onChange?.(event)
       }}
       validateStatus={validateStatus}
-      value={value}
       {...props}
+      {...formInputDefaultValueProps}
+      {...formInputHelpTextProps}
+      {...formInputValueProps}
     />
   )
 }

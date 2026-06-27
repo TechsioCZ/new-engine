@@ -10,7 +10,14 @@ import type {
   SuggestionAttribution,
   SuggestionSourceKind,
 } from "@techsio/smart-suggest-core"
-import { and, desc, eq, like, sql } from "drizzle-orm"
+import {
+  createPrefixTokens,
+  extractPostalCodeCandidates,
+  normalizeSearchText,
+  rankAddressCandidates,
+  tokenizeAddressText,
+} from "@techsio/smart-suggest-indexing"
+import { and, desc, eq, inArray, like, sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/d1"
 import {
   index,
@@ -463,13 +470,69 @@ export const createSuggestCacheKey = (input: SuggestCacheKeyInput) =>
     input.queryHash,
   ].join(":")
 
-const normalizeSearchText = (value: string) =>
-  value
-    .normalize("NFD")
-    .replaceAll(/\p{Diacritic}/gu, "")
-    .toLocaleLowerCase()
-    .replaceAll(/[^\p{Letter}\p{Number}]+/gu, " ")
-    .trim()
+const SEARCH_INDEX_PREFIX_OPTIONS = {
+  maxLength: 16,
+  minLength: 1,
+} as const
+
+type AddressSearchTokenInsert =
+  typeof smartSuggestAddressSearchTokens.$inferInsert
+
+const createAddressSearchTokenRows = (
+  record: Pick<AddressRecord, "countryCode" | "id" | "searchLabel">
+): AddressSearchTokenInsert[] => {
+  const rows: AddressSearchTokenInsert[] = []
+  const tokens = tokenizeAddressText(record.searchLabel)
+
+  for (const token of tokens) {
+    for (const prefix of createPrefixTokens(
+      [token],
+      SEARCH_INDEX_PREFIX_OPTIONS
+    )) {
+      rows.push({
+        countryCode: record.countryCode,
+        id: `${record.id}\u001f${token}\u001f${prefix}`,
+        prefix,
+        recordId: record.id,
+        token,
+        weight: prefix === token ? 2 : 1,
+      })
+    }
+  }
+
+  return rows
+}
+
+const createQuerySearchPrefixes = (query: string) => {
+  const queryTokens = new Set(tokenizeAddressText(query))
+
+  for (const postalCode of extractPostalCodeCandidates(query)) {
+    queryTokens.add(postalCode.value)
+
+    for (const token of tokenizeAddressText(postalCode.displayValue)) {
+      queryTokens.add(token)
+    }
+  }
+
+  return [...queryTokens].map((token) =>
+    token.slice(0, SEARCH_INDEX_PREFIX_OPTIONS.maxLength)
+  )
+}
+
+const rankAddressRecordResults = (
+  query: string,
+  records: readonly AddressRecord[],
+  limit: number
+) =>
+  rankAddressCandidates(
+    query,
+    records.map((record) => ({ ...record, confidence: record.quality })),
+    { limit }
+  ).map(({ candidate }) => {
+    const { confidence: _confidence, ...record } = candidate
+
+    return record
+  })
 
 const withTimestamps = <T extends { id: string }>(
   input: T,
@@ -666,10 +729,14 @@ const toAddressRecord = (
   }
 
   if (row.attributionJson !== null) {
-    record.attribution = parseJsonValue<SuggestionAttribution | undefined>(
+    const attribution = parseJsonValue<SuggestionAttribution | undefined>(
       row.attributionJson,
       undefined
     )
+
+    if (attribution !== undefined) {
+      record.attribution = attribution
+    }
   }
   if (row.latitude !== null) {
     record.latitude = row.latitude
@@ -752,10 +819,14 @@ const toAcceptEventRecord = (
   }
 
   if (row.tenantJson !== null) {
-    record.tenant = parseJsonValue<SmartSuggestTenantContext | undefined>(
+    const tenant = parseJsonValue<SmartSuggestTenantContext | undefined>(
       row.tenantJson,
       undefined
     )
+
+    if (tenant !== undefined) {
+      record.tenant = tenant
+    }
   }
 
   return record
@@ -765,6 +836,19 @@ export const createD1SmartSuggestRepositories = (
   binding: SmartSuggestD1Binding
 ): SmartSuggestRepositories => {
   const db = createSmartSuggestD1Database(binding)
+  const refreshAddressSearchTokens = async (
+    record: Pick<AddressRecord, "countryCode" | "id" | "searchLabel">
+  ) => {
+    await db
+      .delete(smartSuggestAddressSearchTokens)
+      .where(eq(smartSuggestAddressSearchTokens.recordId, record.id))
+
+    const tokenRows = createAddressSearchTokenRows(record)
+
+    if (tokenRows.length > 0) {
+      await db.insert(smartSuggestAddressSearchTokens).values(tokenRows)
+    }
+  }
 
   return {
     health: {
@@ -1006,12 +1090,59 @@ export const createD1SmartSuggestRepositories = (
                 target: smartSuggestAddressRecords.id,
               })
               .returning()
+            await refreshAddressSearchTokens(input)
 
             return toAddressRecord(stored ?? row)
           })
         ),
       searchAddressRecords: async ({ countryCode, limit = 10, query }) => {
         const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+        const prefixes = [...new Set(createQuerySearchPrefixes(query))]
+        const tokenFilters = [
+          inArray(smartSuggestAddressSearchTokens.prefix, prefixes),
+        ]
+
+        if (countryCode !== undefined) {
+          tokenFilters.push(
+            eq(smartSuggestAddressSearchTokens.countryCode, countryCode)
+          )
+        }
+
+        if (prefixes.length > 0) {
+          const tokenMatches = await db
+            .select({ recordId: smartSuggestAddressSearchTokens.recordId })
+            .from(smartSuggestAddressSearchTokens)
+            .where(and(...tokenFilters))
+            .limit(Math.max(normalizedLimit * 20, 50))
+          const recordIds = [
+            ...new Set(tokenMatches.map((match) => match.recordId)),
+          ]
+
+          if (recordIds.length > 0) {
+            const recordFilters = [
+              inArray(smartSuggestAddressRecords.id, recordIds),
+            ]
+
+            if (countryCode !== undefined) {
+              recordFilters.push(
+                eq(smartSuggestAddressRecords.countryCode, countryCode)
+              )
+            }
+
+            const indexedRows = await db
+              .select()
+              .from(smartSuggestAddressRecords)
+              .where(and(...recordFilters))
+              .limit(recordIds.length)
+
+            return rankAddressRecordResults(
+              query,
+              indexedRows.map(toAddressRecord),
+              normalizedLimit
+            )
+          }
+        }
+
         const filters = [
           like(
             smartSuggestAddressRecords.searchLabel,
@@ -1030,7 +1161,11 @@ export const createD1SmartSuggestRepositories = (
           .orderBy(desc(smartSuggestAddressRecords.quality))
           .limit(normalizedLimit)
 
-        return rows.map(toAddressRecord)
+        return rankAddressRecordResults(
+          query,
+          rows.map(toAddressRecord),
+          normalizedLimit
+        )
       },
       getAddressRecord: async (recordId) => {
         const row = await db
@@ -1185,9 +1320,45 @@ export const createInMemorySmartSuggestRepositories =
     const dataSources = new Map<string, DataSourceRecord>()
     const importRuns = new Map<string, ImportRunRecord>()
     const addressRecords = new Map<string, AddressRecord>()
+    const addressSearchTokensByRecordId = new Map<
+      string,
+      AddressSearchTokenInsert[]
+    >()
     const suggestCache = new Map<string, SuggestCacheRecord>()
     const providerEvents = new Map<string, ProviderEventRecord[]>()
     const acceptEvents = new Map<string, AcceptEventRecord[]>()
+    const indexAddressRecord = (record: AddressRecord) => {
+      addressSearchTokensByRecordId.set(
+        record.id,
+        createAddressSearchTokenRows(record)
+      )
+    }
+    const findIndexedAddressRecords = (
+      query: string,
+      countryCode: SmartSuggestCountryCode | undefined
+    ) => {
+      const prefixes = new Set(createQuerySearchPrefixes(query))
+      const recordIds = new Set<string>()
+
+      if (prefixes.size === 0) {
+        return []
+      }
+
+      for (const tokens of addressSearchTokensByRecordId.values()) {
+        for (const token of tokens) {
+          if (
+            prefixes.has(token.prefix) &&
+            (countryCode === undefined || token.countryCode === countryCode)
+          ) {
+            recordIds.add(token.recordId)
+          }
+        }
+      }
+
+      return [...recordIds]
+        .map((recordId) => addressRecords.get(recordId))
+        .filter((record): record is AddressRecord => record !== undefined)
+    }
 
     return {
       health: {
@@ -1258,6 +1429,7 @@ export const createInMemorySmartSuggestRepositories =
             records.map((input) => {
               const record = withTimestamps(input, addressRecords.get(input.id))
               addressRecords.set(record.id, record)
+              indexAddressRecord(record)
               return record
             })
           ),
@@ -1265,22 +1437,24 @@ export const createInMemorySmartSuggestRepositories =
           resolveSync(() => {
             const normalizedQuery = normalizeSearchText(query)
             const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+            const indexedRecords = findIndexedAddressRecords(query, countryCode)
+            const candidates =
+              indexedRecords.length > 0
+                ? indexedRecords
+                : [...addressRecords.values()].filter((record) => {
+                    if (
+                      countryCode !== undefined &&
+                      record.countryCode !== countryCode
+                    ) {
+                      return false
+                    }
 
-            return [...addressRecords.values()]
-              .filter((record) => {
-                if (
-                  countryCode !== undefined &&
-                  record.countryCode !== countryCode
-                ) {
-                  return false
-                }
+                    return normalizeSearchText(record.searchLabel).includes(
+                      normalizedQuery
+                    )
+                  })
 
-                return normalizeSearchText(record.searchLabel).includes(
-                  normalizedQuery
-                )
-              })
-              .sort((left, right) => right.quality - left.quality)
-              .slice(0, normalizedLimit)
+            return rankAddressRecordResults(query, candidates, normalizedLimit)
           }),
         getAddressRecord: (recordId) =>
           Promise.resolve(addressRecords.get(recordId)),

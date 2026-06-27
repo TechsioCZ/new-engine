@@ -52,11 +52,11 @@ describe("smart suggest storage", () => {
           city: "Praha",
           countryCode: "CZ",
           houseNumber: "1",
-          postalCode: "11000",
+          postalCode: "110 00",
           street: "Václavské náměstí",
         },
         quality: 0.95,
-        searchLabel: "vaclavske namesti 1 praha 11000",
+        searchLabel: "vaclavske namesti 1 110 00 praha",
         sourceId: source.id,
       },
     ])
@@ -67,6 +67,18 @@ describe("smart suggest storage", () => {
     })
 
     expect(results).toHaveLength(1)
+    await expect(
+      repositories.addressRecords.searchAddressRecords({
+        countryCode: "CZ",
+        query: "vaclavske nam",
+      })
+    ).resolves.toHaveLength(1)
+    await expect(
+      repositories.addressRecords.searchAddressRecords({
+        countryCode: "CZ",
+        query: "11000",
+      })
+    ).resolves.toHaveLength(1)
     expect(JSON.stringify(results)).not.toContain("rawQuery")
     expect(JSON.stringify(results)).not.toContain("query:")
   })

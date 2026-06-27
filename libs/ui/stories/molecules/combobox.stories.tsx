@@ -452,6 +452,20 @@ export const Focused: Story = {
   ),
 }
 
+export const Disabled: Story = {
+  render: () => (
+    <div className="w-80">
+      <Combobox
+        disabled
+        helpText="Search is disabled until the previous step is complete."
+        items={countries}
+        label="Disabled combobox"
+        placeholder="Unavailable"
+      />
+    </div>
+  ),
+}
+
 export const MobileWidth: Story = {
   parameters: {
     viewport: {

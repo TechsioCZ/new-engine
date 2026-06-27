@@ -91,10 +91,10 @@ type ProviderRunFailure = {
 type ProviderRunResult = ProviderRunFailure | ProviderRunSuccess
 
 type ProviderRunOptions = {
-  context: Required<
-    Pick<SmartSuggestProviderRegistrySuggestContext, "requestId">
-  > &
-    Pick<SmartSuggestProviderRegistrySuggestContext, "signal">
+  context: {
+    requestId: string
+    signal?: AbortSignal
+  }
   now: () => number
   provider: SmartSuggestProvider
   request: SmartSuggestRequest
@@ -350,8 +350,14 @@ export const createSmartSuggestProviderRegistry = (
           continue
         }
 
+        const providerContext: ProviderRunOptions["context"] = { requestId }
+
+        if (context.signal !== undefined) {
+          providerContext.signal = context.signal
+        }
+
         const providerResult = await runProvider({
-          context: { requestId, signal: context.signal },
+          context: providerContext,
           now,
           provider,
           request,
@@ -432,6 +438,9 @@ const mapyAttribution: SuggestionAttribution = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value)
 
+const readRecordValue = (record: Record<string, unknown>, key: string) =>
+  record[key]
+
 const optionalString = (value: unknown) =>
   typeof value === "string" && value.trim() !== "" ? value : undefined
 
@@ -447,7 +456,9 @@ const readMapyEntities = (body: unknown): readonly MapySuggestionEntity[] => {
     return []
   }
 
-  const candidates = [body.items, body.results, body.suggestions, body.data]
+  const candidates = ["items", "results", "suggestions", "data"].map((key) =>
+    readRecordValue(body, key)
+  )
   const firstArray = candidates.find(Array.isArray)
   return firstArray?.filter(isRecord) ?? []
 }
@@ -484,8 +495,10 @@ const readPositionMetadata = (position: unknown) => {
     return {}
   }
 
-  const latitude = optionalNumber(position.lat)
-  const longitude = optionalNumber(position.lon ?? position.lng)
+  const latitude = optionalNumber(readRecordValue(position, "lat"))
+  const longitude = optionalNumber(
+    readRecordValue(position, "lon") ?? readRecordValue(position, "lng")
+  )
 
   return {
     ...(latitude === undefined ? {} : { latitude }),
@@ -503,17 +516,32 @@ const toMapyAddressParts = (
     findRegionalName(regionalStructure, "municipality_part")
   const countryCode =
     findRegionalIsoCode(regionalStructure) ?? request.countryCode
-  const address: AddressParts = {
-    city,
-    countryCode,
-    line1: optionalString(entity.name) ?? optionalString(entity.label),
-    postalCode: optionalString(entity.zip),
-    region: findRegionalName(regionalStructure, "regional_region"),
+  const line1 = optionalString(entity.name) ?? optionalString(entity.label)
+  const postalCode = optionalString(entity.zip)
+  const region = findRegionalName(regionalStructure, "regional_region")
+  const address: AddressParts = {}
+
+  if (city !== undefined) {
+    address.city = city
   }
 
-  return Object.fromEntries(
-    Object.entries(address).filter(([, value]) => value !== undefined)
-  ) as AddressParts
+  if (countryCode !== undefined) {
+    address.countryCode = countryCode
+  }
+
+  if (line1 !== undefined) {
+    address.line1 = line1
+  }
+
+  if (postalCode !== undefined) {
+    address.postalCode = postalCode
+  }
+
+  if (region !== undefined) {
+    address.region = region
+  }
+
+  return address
 }
 
 const toDisplayLabel = (entity: MapySuggestionEntity, address: AddressParts) =>
@@ -598,13 +626,18 @@ export const createMapyCzProvider = (
     name: "Mapy.cz",
     supportedKinds: ["address", "place"],
     suggest: async (request, context) => {
+      const requestInit: RequestInit = {
+        headers: { accept: "application/json" },
+        method: "GET",
+      }
+
+      if (context.signal !== undefined) {
+        requestInit.signal = context.signal
+      }
+
       const response = await fetchImpl(
         toMapyUrl(endpointUrl, options.apiKey, request, options),
-        {
-          headers: { accept: "application/json" },
-          method: "GET",
-          signal: context.signal,
-        }
+        requestInit
       )
 
       if (!response.ok) {
@@ -636,12 +669,27 @@ export const createSmartSuggestProviderRegistryFromConfig = (
     providers.push(createMapyCzProvider(config.mapyCz))
   }
 
-  return createSmartSuggestProviderRegistry({
-    circuitBreaker: config.circuitBreaker,
-    now: config.now,
-    onProviderEvent: config.onProviderEvent,
-    priority: config.priority,
-    providers,
-    timeoutMs: config.timeoutMs,
-  })
+  const registryOptions: SmartSuggestProviderRegistryOptions = { providers }
+
+  if (config.circuitBreaker !== undefined) {
+    registryOptions.circuitBreaker = config.circuitBreaker
+  }
+
+  if (config.now !== undefined) {
+    registryOptions.now = config.now
+  }
+
+  if (config.onProviderEvent !== undefined) {
+    registryOptions.onProviderEvent = config.onProviderEvent
+  }
+
+  if (config.priority !== undefined) {
+    registryOptions.priority = config.priority
+  }
+
+  if (config.timeoutMs !== undefined) {
+    registryOptions.timeoutMs = config.timeoutMs
+  }
+
+  return createSmartSuggestProviderRegistry(registryOptions)
 }

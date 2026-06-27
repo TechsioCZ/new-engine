@@ -42,6 +42,7 @@ overrides:
   node-fetch: '^3.3.2'
 
 allowBuilds:
+  '@parcel/watcher': false
   '@swc/core': true
   core-js: true
   esbuild: true

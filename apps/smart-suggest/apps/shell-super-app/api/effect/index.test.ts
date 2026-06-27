@@ -1,6 +1,11 @@
 import type { SmartSuggestResponse } from '@techsio/smart-suggest-core';
-import { describe, expect, it } from 'vitest';
-import { handler } from './index';
+import {
+  createInMemorySmartSuggestRepositories,
+  createSuggestCacheKey,
+  createSuggestQueryHash,
+} from '@techsio/smart-suggest-storage';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createSmartSuggestHandler, handler } from './index';
 
 interface HealthPayload {
   db: {
@@ -17,13 +22,22 @@ interface StatusPayload {
     accept: {
       total: number;
     };
+    providerEvents: {
+      error: number;
+      skipped: number;
+      success: number;
+      timeout: number;
+    };
     suggest: {
       cacheHitRate: number;
       cacheStatus: {
         disabled: number;
         hit: number;
         miss: number;
+        stale: number;
+        written: number;
       };
+      providerFallback: number;
       total: number;
     };
   };
@@ -46,6 +60,11 @@ const requestFor = (path: string, init?: RequestInit) =>
 const readJson = async <TResponse>(response: Response) => (await response.json()) as TResponse;
 
 describe('Smart Suggest effect API', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('reports health with storage connectivity', async () => {
     const response = await handler(requestFor('/v1/health'));
     const body = await readJson<HealthPayload>(response);
@@ -110,6 +129,150 @@ describe('Smart Suggest effect API', () => {
       cacheStatus: 'disabled',
       suggestions: [],
     });
+  });
+
+  it('reports stale cache status while refreshing owned-data suggestions', async () => {
+    const repositories = createInMemorySmartSuggestRepositories();
+    const testHandler = createSmartSuggestHandler(repositories);
+    const queryHash = await createSuggestQueryHash({
+      countryCode: 'CZ',
+      kind: 'address',
+      query: 'vinohradska',
+    });
+    const cacheKey = createSuggestCacheKey({
+      countryCode: 'CZ',
+      kind: 'address',
+      queryHash,
+    });
+
+    await repositories.suggestCache.writeSuggestCache({
+      cacheKey,
+      cachePolicy: { kind: 'ttl', ttlSeconds: 1 },
+      countryCode: 'CZ',
+      expiresAt: '2000-01-01T00:00:00.000Z',
+      kind: 'address',
+      payload: [],
+      queryHash,
+    });
+
+    const response = await testHandler(
+      requestFor('/v1/suggest?kind=address&countryCode=CZ&q=vinohradska&limit=1'),
+    );
+    const body = await readJson<SmartSuggestResponse>(response);
+
+    expect(body).toMatchObject({
+      cacheStatus: 'stale',
+      suggestions: [
+        {
+          cacheStatus: 'stale',
+          id: 'cz-ruian-vinohradska-12-34',
+        },
+      ],
+    });
+
+    const statusResponse = await testHandler(requestFor('/v1/status'));
+    const statusBody = await readJson<StatusPayload>(statusResponse);
+
+    expect(statusBody.metrics.suggest.cacheStatus.stale).toBeGreaterThanOrEqual(1);
+  });
+
+  it('falls back to configured live providers without caching provider payloads', async () => {
+    const repositories = createInMemorySmartSuggestRepositories();
+    const testHandler = createSmartSuggestHandler(repositories);
+
+    await repositories.tenants.upsertTenant({
+      allowedOrigins: [],
+      countryConfig: {
+        countries: {
+          CZ: {
+            kinds: {
+              address: {
+                providerPriority: ['mapy-cz'],
+                providerTimeoutMs: 100,
+                providers: {
+                  'mapy-cz': {
+                    apiKey: 'test-mapy-key',
+                    endpointUrl: 'https://mapy.test/suggest',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      id: 'tenant-provider-test',
+      name: 'Tenant Provider Test',
+      providerPriority: ['mapy-cz'],
+      status: 'active',
+    });
+
+    const fetchMock = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        Response.json({
+          items: [
+            {
+              id: 'mapy-address-1',
+              label: 'Národní 1, 110 00 Praha, Česko',
+              name: 'Národní 1',
+              position: { lat: 50.081, lon: 14.428 },
+              regionalStructure: [
+                { isoCode: 'CZ', name: 'Česko', type: 'country' },
+                { name: 'Praha', type: 'municipality' },
+              ],
+              type: 'regional.address',
+              zip: '110 00',
+            },
+          ],
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await testHandler(
+      requestFor(
+        '/v1/suggest?kind=address&countryCode=CZ&q=provider-only&tenantId=tenant-provider-test&limit=1',
+      ),
+    );
+    const body = await readJson<SmartSuggestResponse>(response);
+
+    expect(body).toMatchObject({
+      cacheStatus: 'disabled',
+      providerEvents: [{ providerId: 'mapy-cz', status: 'success' }],
+      suggestions: [
+        {
+          cacheStatus: 'disabled',
+          id: 'mapy-address-1',
+          source: { id: 'mapy-cz', kind: 'live-provider' },
+        },
+      ],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://mapy.test/suggest?apikey=test-mapy-key&query=provider-only&lang=cs&limit=1&type=regional.address&locality=cz',
+      expect.objectContaining({
+        headers: { accept: 'application/json' },
+        method: 'GET',
+      }),
+    );
+
+    const queryHash = await createSuggestQueryHash({
+      countryCode: 'CZ',
+      kind: 'address',
+      query: 'provider-only',
+    });
+    const cacheKey = createSuggestCacheKey({
+      countryCode: 'CZ',
+      kind: 'address',
+      queryHash,
+      tenantId: 'tenant-provider-test',
+    });
+
+    await expect(repositories.suggestCache.readSuggestCache(cacheKey)).resolves.toBeUndefined();
+
+    const statusResponse = await testHandler(requestFor('/v1/status'));
+    const statusBody = await readJson<StatusPayload>(statusResponse);
+
+    expect(statusBody.metrics.providerEvents.success).toBeGreaterThanOrEqual(1);
+    expect(statusBody.metrics.suggest.providerFallback).toBeGreaterThanOrEqual(1);
   });
 
   it('validates phone and postal requests through API endpoints', async () => {

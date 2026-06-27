@@ -1,5 +1,6 @@
 import type {
   PhoneValidationPolicy,
+  PhoneValidationRequest,
   PhoneValidationResult,
 } from "@techsio/smart-suggest-validation"
 import { validatePhoneNumber } from "@techsio/smart-suggest-validation"
@@ -55,6 +56,36 @@ const getStatusText = (
   return result?.errors[0]?.message
 }
 
+const createPhoneValidationRequest = (
+  rawInput: string,
+  options: {
+    allowedCountries: PhoneValidationPolicy["allowedCountries"] | undefined
+    defaultCountry: Uppercase<string> | undefined
+    requireCountryMatch: boolean | undefined
+    requireMobile: boolean | undefined
+  }
+) => {
+  const request: PhoneValidationRequest = { rawInput }
+
+  if (options.allowedCountries !== undefined) {
+    request.allowedCountries = options.allowedCountries
+  }
+
+  if (options.defaultCountry !== undefined) {
+    request.defaultCountry = options.defaultCountry
+  }
+
+  if (options.requireCountryMatch !== undefined) {
+    request.requireCountryMatch = options.requireCountryMatch
+  }
+
+  if (options.requireMobile !== undefined) {
+    request.requireMobile = options.requireMobile
+  }
+
+  return request
+}
+
 export function PhoneValidationField({
   allowedCountries,
   country,
@@ -86,13 +117,14 @@ export function PhoneValidationField({
   const validationResult = useMemo(
     () =>
       shouldValidate
-        ? validatePhoneNumber({
-            allowedCountries,
-            defaultCountry: validationCountry,
-            rawInput,
-            requireCountryMatch,
-            requireMobile,
-          })
+        ? validatePhoneNumber(
+            createPhoneValidationRequest(rawInput, {
+              allowedCountries,
+              defaultCountry: validationCountry,
+              requireCountryMatch,
+              requireMobile,
+            })
+          )
         : undefined,
     [
       allowedCountries,
@@ -109,12 +141,15 @@ export function PhoneValidationField({
     validationResult,
     statusText
   )
+  const phoneInputValueProps = value === undefined ? {} : { value }
+  const phoneInputDefaultValueProps =
+    defaultValue === undefined ? {} : { defaultValue }
+  const phoneInputCountryProps = country === undefined ? {} : { country }
+  const phoneInputDefaultCountryProps =
+    defaultCountry === undefined ? {} : { defaultCountry }
 
   return (
     <PhoneInput
-      country={country}
-      defaultCountry={defaultCountry}
-      defaultValue={defaultValue}
       onCountryChange={(details) => {
         setInternalCountry(details.country)
         onCountryChange?.(details)
@@ -124,19 +159,23 @@ export function PhoneValidationField({
           setInternalRawInput(details.value)
         }
 
-        const nextResult = validatePhoneNumber({
-          allowedCountries,
-          defaultCountry: toSmartSuggestCountryCode(details.country),
-          rawInput: details.value,
-          requireCountryMatch,
-          requireMobile,
-        })
+        const nextResult = validatePhoneNumber(
+          createPhoneValidationRequest(details.value, {
+            allowedCountries,
+            defaultCountry: toSmartSuggestCountryCode(details.country),
+            requireCountryMatch,
+            requireMobile,
+          })
+        )
         onValidationChange?.(nextResult)
         onValueChange?.(details)
       }}
       validateStatus={validateStatus}
-      value={value}
       {...props}
+      {...phoneInputCountryProps}
+      {...phoneInputDefaultCountryProps}
+      {...phoneInputDefaultValueProps}
+      {...phoneInputValueProps}
     >
       <PhoneInput.Label>{label}</PhoneInput.Label>
       <PhoneInput.Control>

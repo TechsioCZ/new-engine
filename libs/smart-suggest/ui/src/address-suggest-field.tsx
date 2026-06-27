@@ -1,6 +1,7 @@
 import type { SmartSuggestClient } from "@techsio/smart-suggest-client"
 import type {
   AddressParts,
+  SmartSuggestRequest,
   SmartSuggestSuggestion,
   SmartSuggestTenantContext,
 } from "@techsio/smart-suggest-core"
@@ -81,28 +82,87 @@ export function AddressSuggestField({
   const resolvedClient = useSmartSuggestClient(client)
   const [internalInputValue, setInternalInputValue] = useState("")
   const currentInputValue = inputValue ?? internalInputValue
-  const request = useMemo(
-    () => ({
-      countryCode,
-      kind: "address" as const,
-      language,
+  const request = useMemo(() => {
+    const nextRequest: SmartSuggestRequest = {
+      kind: "address",
       query: currentInputValue,
-      tenant,
-    }),
-    [countryCode, currentInputValue, language, tenant]
-  )
-  const suggestState = useAddressSuggest({
+    }
+
+    if (countryCode !== undefined) {
+      nextRequest.countryCode = countryCode
+    }
+
+    if (language !== undefined) {
+      nextRequest.language = language
+    }
+
+    if (tenant !== undefined) {
+      nextRequest.tenant = tenant
+    }
+
+    return nextRequest
+  }, [countryCode, currentInputValue, language, tenant])
+  const suggestOptions: Parameters<typeof useAddressSuggest>[0] = {
     client: resolvedClient,
-    debounceMs,
-    minQueryLength,
     request,
-  })
+  }
+
+  if (debounceMs !== undefined) {
+    suggestOptions.debounceMs = debounceMs
+  }
+
+  if (minQueryLength !== undefined) {
+    suggestOptions.minQueryLength = minQueryLength
+  }
+
+  const suggestState = useAddressSuggest(suggestOptions)
   const suggestions =
     suggestState.status === "success" ? suggestState.data.suggestions : []
   const selectedById = useMemo(
     () => new Map(suggestions.map((suggestion) => [suggestion.id, suggestion])),
     [suggestions]
   )
+  const acceptSuggestion = (suggestion: SmartSuggestSuggestion) => {
+    if (!acceptSelection) {
+      return
+    }
+
+    const requestId =
+      suggestState.status === "success"
+        ? suggestState.data.requestId
+        : "unknown"
+
+    resolvedClient
+      .accept({
+        acceptedAt: new Date().toISOString(),
+        requestId,
+        source: suggestion.source,
+        suggestionId: suggestion.id,
+        ...(tenant === undefined ? {} : { tenant }),
+      })
+      .catch(() => {
+        // Accept telemetry must never block manual checkout completion.
+      })
+  }
+  const handleChange: NonNullable<
+    ComboboxProps<SmartSuggestSuggestion>["onChange"]
+  > = (value) => {
+    const selectedId = Array.isArray(value) ? value[0] : value
+    const suggestion =
+      selectedId === undefined ? undefined : selectedById.get(selectedId)
+
+    if (suggestion === undefined) {
+      return
+    }
+
+    onSuggestionSelect?.(suggestion)
+
+    if (suggestion.address !== undefined) {
+      onAddressSelect?.(suggestion.address)
+    }
+
+    acceptSuggestion(suggestion)
+  }
 
   return (
     <Combobox
@@ -115,38 +175,7 @@ export function AddressSuggestField({
       itemToValue={itemToValue}
       loading={suggestState.status === "loading"}
       noResultsMessage="No matching address"
-      onChange={(value) => {
-        const selectedId = Array.isArray(value) ? value[0] : value
-        const suggestion =
-          selectedId === undefined ? undefined : selectedById.get(selectedId)
-
-        if (suggestion === undefined) {
-          return
-        }
-
-        onSuggestionSelect?.(suggestion)
-
-        if (suggestion.address !== undefined) {
-          onAddressSelect?.(suggestion.address)
-        }
-
-        if (acceptSelection) {
-          resolvedClient
-            .accept({
-              acceptedAt: new Date().toISOString(),
-              requestId:
-                suggestState.status === "success"
-                  ? suggestState.data.requestId
-                  : "unknown",
-              source: suggestion.source,
-              suggestionId: suggestion.id,
-              tenant,
-            })
-            .catch(() => {
-              // Accept telemetry must never block manual checkout completion.
-            })
-        }
-      }}
+      onChange={handleChange}
       onInputValueChange={(value) => {
         if (inputValue === undefined) {
           setInternalInputValue(value)

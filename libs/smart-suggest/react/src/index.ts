@@ -54,6 +54,12 @@ export type AddressSuggestHookOptions =
     minQueryLength?: number
   }
 
+type SmartSuggestRequestRunner<TRequest, TResponse> = (
+  client: SmartSuggestClient,
+  request: TRequest,
+  requestOptions: SmartSuggestRequestOptions
+) => Promise<TResponse>
+
 const SmartSuggestClientContext = createContext<SmartSuggestClient | undefined>(
   undefined
 )
@@ -81,11 +87,7 @@ const idleState = <TData>(): SmartSuggestAsyncState<TData> => ({
 
 const useAbortableRequest = <TRequest, TResponse>(
   options: SmartSuggestHookOptions<TRequest>,
-  requestFn: (
-    client: SmartSuggestClient,
-    request: TRequest,
-    requestOptions: SmartSuggestRequestOptions
-  ) => Promise<TResponse>,
+  requestFn: SmartSuggestRequestRunner<TRequest, TResponse>,
   delayMs = 0
 ) => {
   const client = useSmartSuggestClient(options.client)
@@ -127,36 +129,54 @@ const useAbortableRequest = <TRequest, TResponse>(
   return state
 }
 
+const requestAddressSuggestions: SmartSuggestRequestRunner<
+  SmartSuggestRequest,
+  SmartSuggestResponse
+> = (client, request, requestOptions) => client.suggest(request, requestOptions)
+
+const requestPhoneValidation: SmartSuggestRequestRunner<
+  PhoneValidationRequest,
+  PhoneValidationResult
+> = (client, request, requestOptions) =>
+  client.validatePhone(request, requestOptions)
+
+const requestPostalValidation: SmartSuggestRequestRunner<
+  PostalValidationRequest,
+  PostalValidationResult
+> = (client, request, requestOptions) =>
+  client.validatePostal(request, requestOptions)
+
 export const useAddressSuggest = (options: AddressSuggestHookOptions) => {
   const request = options.request
   const hasMinimumQuery =
     request === undefined ||
     request.query.trim().length >= (options.minQueryLength ?? 2)
+  const hookOptions: SmartSuggestHookOptions<SmartSuggestRequest> = {
+    enabled: options.enabled !== false && hasMinimumQuery,
+  }
+
+  if (options.client !== undefined) {
+    hookOptions.client = options.client
+  }
+
+  if (request !== undefined) {
+    hookOptions.request = request
+  }
 
   return useAbortableRequest(
-    {
-      client: options.client,
-      enabled: options.enabled !== false && hasMinimumQuery,
-      request,
-    },
-    (client, input, requestOptions) => client.suggest(input, requestOptions),
+    hookOptions,
+    requestAddressSuggestions,
     options.debounceMs ?? 250
   )
 }
 
 export const usePhoneValidation = (
   options: SmartSuggestHookOptions<PhoneValidationRequest>
-) =>
-  useAbortableRequest(options, (client, request, requestOptions) =>
-    client.validatePhone(request, requestOptions)
-  )
+) => useAbortableRequest(options, requestPhoneValidation)
 
 export const usePostalValidation = (
   options: SmartSuggestHookOptions<PostalValidationRequest>
-) =>
-  useAbortableRequest(options, (client, request, requestOptions) =>
-    client.validatePostal(request, requestOptions)
-  )
+) => useAbortableRequest(options, requestPostalValidation)
 
 export const createMockSmartSuggestClient = (
   overrides: Partial<SmartSuggestClient> = {}
