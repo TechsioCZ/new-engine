@@ -1,4 +1,3 @@
-import { normalizeSuggestLimit } from "@techsio/smart-suggest-core";
 import type {
   AddressParts,
   ProviderCachePolicy,
@@ -10,17 +9,18 @@ import type {
   SmartSuggestTenantContext,
   SuggestionAttribution,
   SuggestionSourceKind,
-} from "@techsio/smart-suggest-core";
+} from '@techsio/smart-suggest-core';
+import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
 import {
   createPrefixTokens,
   extractPostalCodeCandidates,
   normalizeSearchText,
   rankAddressCandidates,
   tokenizeAddressText,
-} from "@techsio/smart-suggest-indexing";
-import { and, desc, eq, inArray, like, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+} from '@techsio/smart-suggest-indexing';
+import { and, desc, eq, inArray, like, or, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { readonly [key: string]: JsonValue };
@@ -34,7 +34,7 @@ export type StorageHealth = {
 export type TenantRecord = {
   id: string;
   name: string;
-  status: "active" | "disabled";
+  status: 'active' | 'disabled';
   allowedOrigins: readonly string[];
   providerPriority: readonly string[];
   countryConfig: Record<string, JsonValue>;
@@ -47,7 +47,7 @@ export type ApiKeyRecord = {
   tenantId: string;
   keyHash: string;
   label: string;
-  status: "active" | "revoked";
+  status: 'active' | 'revoked';
   createdAt: string;
   revokedAt?: string;
 };
@@ -61,23 +61,139 @@ export type DataSourceRecord = {
   datasetVersion?: string;
   attribution: SuggestionAttribution;
   cachePolicy: ProviderCachePolicy;
+  modificationNoteSha256?: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export type ImportRunStatus = "completed" | "failed" | "running";
+export type ImportRunStatus = 'completed' | 'failed' | 'running';
+
+export type AddressImportKind = 'baseline' | 'delta' | 'manual';
+
+export type AddressReplicationStatus = 'active' | 'invalid' | 'tombstoned';
+
+export type SmartSuggestShardState = 'active' | 'disabled' | 'standby';
+
+export type SmartSuggestShardRegionKind = 'country' | 'municipality' | 'postal-prefix' | 'vusc';
 
 export type ImportRunRecord = {
   id: string;
   sourceId: string;
   status: ImportRunStatus;
   shardCountryCode: SmartSuggestCountryCode;
+  atomEntryId?: string;
   startedAt: string;
   completedAt?: string;
+  checksumSha256?: string;
+  importKind?: AddressImportKind;
+  sourceFeedId?: string;
+  sourceGeneratedAt?: string;
+  sourceUri?: string;
+  sourceValidAt?: string;
+  sourceVersion?: string;
   totalRows: number;
   insertedRows: number;
+  skippedRows: number;
+  tombstonedRows: number;
+  upsertedRows: number;
   failedRows: number;
   errorSummary?: string;
+};
+
+export type SmartSuggestShardMetadataRecord = {
+  shardId: string;
+  countryCode: SmartSuggestCountryCode;
+  regionKind: SmartSuggestShardRegionKind;
+  regionCode: string;
+  regionName: string;
+  postalPrefixes: readonly string[];
+  municipalityCodes: readonly string[];
+  municipalityHints: readonly string[];
+  bindingName: string;
+  importVersion?: string;
+  state: SmartSuggestShardState;
+  rowCount: number;
+  estimatedSizeBytes?: number;
+  sourceFreshnessAt?: string;
+  lastImportCompletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SmartSuggestShardMetadataUpsertInput = {
+  shardId: string;
+  countryCode: SmartSuggestCountryCode;
+  regionKind: SmartSuggestShardRegionKind;
+  regionCode: string;
+  regionName: string;
+  postalPrefixes?: readonly string[];
+  municipalityCodes?: readonly string[];
+  municipalityHints?: readonly string[];
+  bindingName: string;
+  importVersion?: string;
+  state: SmartSuggestShardState;
+  rowCount?: number;
+  estimatedSizeBytes?: number;
+  sourceFreshnessAt?: string;
+  lastImportCompletedAt?: string;
+};
+
+export type SmartSuggestShardMetadataListInput = {
+  countryCode?: SmartSuggestCountryCode;
+  state?: SmartSuggestShardState;
+};
+
+export type SmartSuggestShardMetadataResolveInput = {
+  countryCode: SmartSuggestCountryCode;
+  regionCode?: string;
+  postalCode?: string;
+  municipalityCode?: string;
+  municipalityHint?: string;
+  states?: readonly SmartSuggestShardState[];
+};
+
+export type AddressRecordRuianIdentifiers = {
+  addressPlaceCode: string;
+  stableAddressId?: string;
+  buildingObjectCode?: string;
+  districtCode?: string;
+  municipalityCode?: string;
+  municipalityDistrictCode?: string;
+  municipalityPartCode?: string;
+  postalCode?: string;
+  regionCode?: string;
+  streetCode?: string;
+};
+
+export type AddressRecordSourceLineage = {
+  sourceId: string;
+  sourceRowId: string;
+  atomEntryId?: string;
+  checksumSha256?: string;
+  datasetVersion?: string;
+  fileKind?: string;
+  feedId?: string;
+  lastImportRunId?: string;
+  previousAtomEntryId?: string;
+  sourceGeneratedAt?: string;
+  sourceRecordId?: string;
+  sourceRecordType?: string;
+  sourceUri?: string;
+  sourceValidAt?: string;
+  sourceVersion?: string;
+  snapshotUri?: string;
+};
+
+export type AddressRecordVisibility = {
+  searchVisible: boolean;
+  replicationStatus: AddressReplicationStatus;
+  changeProposalGlobalId?: string;
+  invalid?: boolean;
+  reason?: string;
+  sourceStatus?: string;
+  transactionId?: string;
+  validFrom?: string;
+  validTo?: string;
 };
 
 export type AddressRecord = {
@@ -88,14 +204,45 @@ export type AddressRecord = {
   displayLabel: string;
   searchLabel: string;
   quality: number;
+  replicationStatus: AddressReplicationStatus;
+  searchVisible: boolean;
   latitude?: number;
   longitude?: number;
   attribution?: SuggestionAttribution;
+  ruian?: AddressRecordRuianIdentifiers;
+  sourceLineage?: AddressRecordSourceLineage;
+  visibility?: AddressRecordVisibility;
   createdAt: string;
   updatedAt: string;
 };
 
-export type AddressSearchRecordInput = Omit<AddressRecord, "createdAt" | "updatedAt">;
+export type AddressSearchRecordInput = Omit<
+  AddressRecord,
+  'createdAt' | 'replicationStatus' | 'searchVisible' | 'updatedAt'
+> & {
+  replicationStatus?: AddressReplicationStatus;
+  searchVisible?: boolean;
+};
+
+export type AddressTombstoneRecord = {
+  id: string;
+  sourceId: string;
+  countryCode: SmartSuggestCountryCode;
+  deletedAt?: string;
+  reason?: string;
+  ruian?: AddressRecordRuianIdentifiers;
+  sourceLineage?: AddressRecordSourceLineage;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AddressTombstoneRecordInput = Omit<AddressTombstoneRecord, 'createdAt' | 'updatedAt'>;
+
+export type AddressRecordFromSuggestionInput = {
+  countryCode: SmartSuggestCountryCode;
+  sourceId: string;
+  suggestion: SmartSuggestSuggestion;
+};
 
 export type SuggestCacheRecord = {
   cacheKey: string;
@@ -112,7 +259,7 @@ export type SuggestCacheRecord = {
   updatedAt: string;
 };
 
-export type SuggestCacheWrite = Omit<SuggestCacheRecord, "createdAt" | "status" | "updatedAt"> & {
+export type SuggestCacheWrite = Omit<SuggestCacheRecord, 'createdAt' | 'status' | 'updatedAt'> & {
   status?: SmartSuggestCacheStatus;
 };
 
@@ -121,7 +268,7 @@ export type ProviderEventRecord = {
   requestId: string;
   providerId: string;
   tenantId?: string;
-  status: "error" | "skipped" | "success" | "timeout";
+  status: 'error' | 'skipped' | 'success' | 'timeout';
   latencyMs?: number;
   errorCode?: SmartSuggestErrorCode;
   queryHash?: string;
@@ -146,7 +293,11 @@ export type SuggestQueryHashInput = {
   limit?: number;
 };
 
-export type SuggestCacheKeyInput = Omit<SuggestQueryHashInput, "query"> & {
+export type SuggestQueryHashOptions = {
+  secret?: string;
+};
+
+export type SuggestCacheKeyInput = Omit<SuggestQueryHashInput, 'query'> & {
   queryHash: string;
 };
 
@@ -155,38 +306,68 @@ export type SmartSuggestRepositories = {
     check: () => Promise<StorageHealth>;
   };
   tenants: {
-    upsertTenant: (input: Omit<TenantRecord, "createdAt" | "updatedAt">) => Promise<TenantRecord>;
+    upsertTenant: (input: Omit<TenantRecord, 'createdAt' | 'updatedAt'>) => Promise<TenantRecord>;
     getTenant: (tenantId: string) => Promise<TenantRecord | undefined>;
   };
   apiKeys: {
-    upsertApiKey: (input: Omit<ApiKeyRecord, "createdAt">) => Promise<ApiKeyRecord>;
+    upsertApiKey: (input: Omit<ApiKeyRecord, 'createdAt'>) => Promise<ApiKeyRecord>;
     getApiKeyByHash: (keyHash: string) => Promise<ApiKeyRecord | undefined>;
     listApiKeysForTenant: (tenantId: string) => Promise<readonly ApiKeyRecord[]>;
   };
   dataSources: {
     registerDataSource: (
-      input: Omit<DataSourceRecord, "createdAt" | "updatedAt">,
+      input: Omit<DataSourceRecord, 'createdAt' | 'updatedAt'>,
     ) => Promise<DataSourceRecord>;
     getDataSource: (sourceId: string) => Promise<DataSourceRecord | undefined>;
   };
   importRuns: {
     startImportRun: (
-      input: Pick<ImportRunRecord, "id" | "shardCountryCode" | "sourceId">,
+      input: Pick<ImportRunRecord, 'id' | 'shardCountryCode' | 'sourceId'> &
+        Partial<
+          Pick<
+            ImportRunRecord,
+            | 'atomEntryId'
+            | 'checksumSha256'
+            | 'importKind'
+            | 'sourceFeedId'
+            | 'sourceGeneratedAt'
+            | 'sourceUri'
+            | 'sourceValidAt'
+            | 'sourceVersion'
+          >
+        >,
     ) => Promise<ImportRunRecord>;
     finishImportRun: (
       input: Pick<
         ImportRunRecord,
-        | "completedAt"
-        | "errorSummary"
-        | "failedRows"
-        | "id"
-        | "insertedRows"
-        | "status"
-        | "totalRows"
-      >,
+        | 'completedAt'
+        | 'errorSummary'
+        | 'failedRows'
+        | 'id'
+        | 'insertedRows'
+        | 'status'
+        | 'totalRows'
+      > &
+        Partial<Pick<ImportRunRecord, 'skippedRows' | 'tombstonedRows' | 'upsertedRows'>>,
     ) => Promise<ImportRunRecord>;
     getImportRun: (runId: string) => Promise<ImportRunRecord | undefined>;
+    findLatestCompletedImportRun: (input: {
+      importKinds: readonly AddressImportKind[];
+      shardCountryCode: SmartSuggestCountryCode;
+      sourceId: string;
+    }) => Promise<ImportRunRecord | undefined>;
     listRecentImportRuns: (limit?: number) => Promise<readonly ImportRunRecord[]>;
+  };
+  shardRegistry: {
+    upsertShardMetadata: (
+      input: SmartSuggestShardMetadataUpsertInput,
+    ) => Promise<SmartSuggestShardMetadataRecord>;
+    listShardMetadata: (
+      input?: SmartSuggestShardMetadataListInput,
+    ) => Promise<readonly SmartSuggestShardMetadataRecord[]>;
+    resolveShardMetadata: (
+      input: SmartSuggestShardMetadataResolveInput,
+    ) => Promise<readonly SmartSuggestShardMetadataRecord[]>;
   };
   addressRecords: {
     upsertAddressRecords: (
@@ -199,13 +380,19 @@ export type SmartSuggestRepositories = {
     }) => Promise<readonly AddressRecord[]>;
     getAddressRecord: (recordId: string) => Promise<AddressRecord | undefined>;
   };
+  addressTombstones: {
+    upsertAddressTombstones: (
+      tombstones: readonly AddressTombstoneRecordInput[],
+    ) => Promise<readonly AddressTombstoneRecord[]>;
+    listAddressTombstones: (limit?: number) => Promise<readonly AddressTombstoneRecord[]>;
+  };
   suggestCache: {
     readSuggestCache: (cacheKey: string) => Promise<SuggestCacheRecord | undefined>;
     writeSuggestCache: (input: SuggestCacheWrite) => Promise<SuggestCacheRecord>;
   };
   providerEvents: {
     recordProviderEvent: (
-      input: Omit<ProviderEventRecord, "createdAt">,
+      input: Omit<ProviderEventRecord, 'createdAt'>,
     ) => Promise<ProviderEventRecord>;
     listProviderEvents: (requestId: string) => Promise<readonly ProviderEventRecord[]>;
   };
@@ -216,191 +403,413 @@ export type SmartSuggestRepositories = {
 };
 
 export class SmartSuggestStorageError extends Error {
-  readonly code: "cache-policy-violation" | "import-run-not-found" | "storage-unavailable";
+  readonly code:
+    | 'cache-policy-violation'
+    | 'import-run-conflict'
+    | 'import-run-not-found'
+    | 'storage-unavailable';
 
-  constructor(code: SmartSuggestStorageError["code"], message: string) {
+  constructor(code: SmartSuggestStorageError['code'], message: string) {
     super(message);
-    this.name = "SmartSuggestStorageError";
+    this.name = 'SmartSuggestStorageError';
     this.code = code;
   }
 }
 
-export const smartSuggestTenants = sqliteTable("smart_suggest_tenants", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  status: text("status").notNull().default("active"),
-  allowedOriginsJson: text("allowed_origins_json").notNull().default("[]"),
-  providerPriorityJson: text("provider_priority_json").notNull().default("[]"),
-  countryConfigJson: text("country_config_json").notNull().default("{}"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
+type StartImportRunInput = Parameters<SmartSuggestRepositories['importRuns']['startImportRun']>[0];
+
+type ImportRunRestartFingerprint = {
+  atomEntryId: string | undefined;
+  checksumSha256: string | undefined;
+  importKind: AddressImportKind;
+  shardCountryCode: SmartSuggestCountryCode;
+  sourceFeedId: string | undefined;
+  sourceGeneratedAt: string | undefined;
+  sourceId: string;
+  sourceUri: string | undefined;
+  sourceValidAt: string | undefined;
+  sourceVersion: string | undefined;
+};
+
+const importRunRestartFingerprintFields = [
+  'atomEntryId',
+  'checksumSha256',
+  'importKind',
+  'shardCountryCode',
+  'sourceFeedId',
+  'sourceGeneratedAt',
+  'sourceId',
+  'sourceUri',
+  'sourceValidAt',
+  'sourceVersion',
+] as const;
+
+const toImportRunRestartFingerprint = (
+  input: StartImportRunInput,
+): ImportRunRestartFingerprint => ({
+  atomEntryId: input.atomEntryId,
+  checksumSha256: input.checksumSha256,
+  importKind: input.importKind ?? 'manual',
+  shardCountryCode: input.shardCountryCode,
+  sourceFeedId: input.sourceFeedId,
+  sourceGeneratedAt: input.sourceGeneratedAt,
+  sourceId: input.sourceId,
+  sourceUri: input.sourceUri,
+  sourceValidAt: input.sourceValidAt,
+  sourceVersion: input.sourceVersion,
+});
+
+const sequencedImportKinds = ['baseline', 'delta'] as const satisfies readonly AddressImportKind[];
+
+const isSequencedImportKind = (
+  importKind: AddressImportKind | undefined,
+): importKind is (typeof sequencedImportKinds)[number] =>
+  importKind === 'baseline' || importKind === 'delta';
+
+const assertImportRunRestartCompatible = (
+  existing: ImportRunRecord,
+  input: StartImportRunInput,
+) => {
+  const next = toImportRunRestartFingerprint(input);
+  const mismatchedFields = importRunRestartFingerprintFields.filter(
+    (field) => (existing[field] ?? null) !== (next[field] ?? null),
+  );
+
+  if (mismatchedFields.length === 0) {
+    return;
+  }
+
+  throw new SmartSuggestStorageError(
+    'import-run-conflict',
+    `Import run ${existing.id} already exists with different source metadata: ${mismatchedFields.join(', ')}. Use the original snapshot metadata or a new run id.`,
+  );
+};
+
+const activeSequencedImportRunConflict = (
+  input: StartImportRunInput,
+  activeRun: ImportRunRecord | undefined,
+) =>
+  new SmartSuggestStorageError(
+    'import-run-conflict',
+    `Cannot start ${input.importKind ?? 'manual'} import run ${input.id} for source ${input.sourceId} shard ${input.shardCountryCode}: ${activeRun === undefined ? 'another baseline or delta import' : `import run ${activeRun.id}`} is already running. Finish or fail the active run before starting another sequenced import for the same source and shard.`,
+  );
+
+const assertNoActiveSequencedImportRun = (
+  input: StartImportRunInput,
+  activeRun: ImportRunRecord | undefined,
+) => {
+  if (activeRun === undefined) {
+    return;
+  }
+
+  throw activeSequencedImportRunConflict(input, activeRun);
+};
+
+const isImportRunUniqueConstraintError = (error: unknown) =>
+  error instanceof Error &&
+  /smart_suggest_import_runs_active_source_shard_idx|UNIQUE constraint failed/u.test(error.message);
+
+export const smartSuggestTenants = sqliteTable('smart_suggest_tenants', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  status: text('status').notNull().default('active'),
+  allowedOriginsJson: text('allowed_origins_json').notNull().default('[]'),
+  providerPriorityJson: text('provider_priority_json').notNull().default('[]'),
+  countryConfigJson: text('country_config_json').notNull().default('{}'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
 });
 
 export const smartSuggestApiKeys = sqliteTable(
-  "smart_suggest_api_keys",
+  'smart_suggest_api_keys',
   {
-    id: text("id").primaryKey(),
-    tenantId: text("tenant_id")
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
       .notNull()
-      .references(() => smartSuggestTenants.id, { onDelete: "cascade" }),
-    keyHash: text("key_hash").notNull(),
-    label: text("label").notNull(),
-    status: text("status").notNull().default("active"),
-    createdAt: text("created_at").notNull(),
-    revokedAt: text("revoked_at"),
+      .references(() => smartSuggestTenants.id, { onDelete: 'cascade' }),
+    keyHash: text('key_hash').notNull(),
+    label: text('label').notNull(),
+    status: text('status').notNull().default('active'),
+    createdAt: text('created_at').notNull(),
+    revokedAt: text('revoked_at'),
   },
   (table) => [
-    index("smart_suggest_api_keys_tenant_idx").on(table.tenantId),
-    uniqueIndex("smart_suggest_api_keys_hash_idx").on(table.keyHash),
+    index('smart_suggest_api_keys_tenant_idx').on(table.tenantId),
+    uniqueIndex('smart_suggest_api_keys_hash_idx').on(table.keyHash),
   ],
 );
 
 export const smartSuggestDataSources = sqliteTable(
-  "smart_suggest_data_sources",
+  'smart_suggest_data_sources',
   {
-    id: text("id").primaryKey(),
-    sourceKind: text("source_kind").notNull(),
-    name: text("name").notNull(),
-    countryCode: text("country_code").notNull(),
-    region: text("region"),
-    datasetVersion: text("dataset_version"),
-    attributionLabel: text("attribution_label").notNull(),
-    attributionUrl: text("attribution_url"),
-    attributionLicense: text("attribution_license"),
-    cachePolicyJson: text("cache_policy_json").notNull(),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+    id: text('id').primaryKey(),
+    sourceKind: text('source_kind').notNull(),
+    name: text('name').notNull(),
+    countryCode: text('country_code').notNull(),
+    region: text('region'),
+    datasetVersion: text('dataset_version'),
+    attributionLabel: text('attribution_label').notNull(),
+    attributionUrl: text('attribution_url'),
+    attributionLicense: text('attribution_license'),
+    cachePolicyJson: text('cache_policy_json').notNull(),
+    modificationNoteSha256: text('modification_note_sha256'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
   },
-  (table) => [index("smart_suggest_sources_country_idx").on(table.countryCode)],
+  (table) => [index('smart_suggest_sources_country_idx').on(table.countryCode)],
 );
 
 export const smartSuggestImportRuns = sqliteTable(
-  "smart_suggest_import_runs",
+  'smart_suggest_import_runs',
   {
-    id: text("id").primaryKey(),
-    sourceId: text("source_id")
+    id: text('id').primaryKey(),
+    sourceId: text('source_id')
       .notNull()
-      .references(() => smartSuggestDataSources.id, { onDelete: "cascade" }),
-    status: text("status").notNull(),
-    shardCountryCode: text("shard_country_code").notNull(),
-    startedAt: text("started_at").notNull(),
-    completedAt: text("completed_at"),
-    totalRows: integer("total_rows").notNull().default(0),
-    insertedRows: integer("inserted_rows").notNull().default(0),
-    failedRows: integer("failed_rows").notNull().default(0),
-    errorSummary: text("error_summary"),
+      .references(() => smartSuggestDataSources.id, { onDelete: 'cascade' }),
+    status: text('status').notNull(),
+    shardCountryCode: text('shard_country_code').notNull(),
+    importKind: text('import_kind'),
+    sourceFeedId: text('source_feed_id'),
+    sourceUri: text('source_uri'),
+    sourceChecksumSha256: text('source_checksum_sha256'),
+    sourceVersion: text('source_version'),
+    sourceGeneratedAt: text('source_generated_at'),
+    sourceValidAt: text('source_valid_at'),
+    sourceAtomEntryId: text('source_atom_entry_id'),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+    totalRows: integer('total_rows').notNull().default(0),
+    insertedRows: integer('inserted_rows').notNull().default(0),
+    upsertedRows: integer('upserted_rows').notNull().default(0),
+    tombstonedRows: integer('tombstoned_rows').notNull().default(0),
+    skippedRows: integer('skipped_rows').notNull().default(0),
+    failedRows: integer('failed_rows').notNull().default(0),
+    errorSummary: text('error_summary'),
   },
   (table) => [
-    index("smart_suggest_import_runs_source_idx").on(table.sourceId),
-    index("smart_suggest_import_runs_shard_idx").on(table.shardCountryCode),
+    index('smart_suggest_import_runs_source_idx').on(table.sourceId),
+    index('smart_suggest_import_runs_shard_idx').on(table.shardCountryCode),
+    uniqueIndex('smart_suggest_import_runs_active_source_shard_idx')
+      .on(table.sourceId, table.shardCountryCode)
+      .where(sql`${table.status} = 'running' AND ${table.importKind} IN ('baseline', 'delta')`),
+  ],
+);
+
+export const smartSuggestShardRegistry = sqliteTable(
+  'smart_suggest_shard_registry',
+  {
+    shardId: text('shard_id').primaryKey(),
+    countryCode: text('country_code').notNull(),
+    regionKind: text('region_kind').notNull(),
+    regionCode: text('region_code').notNull(),
+    regionName: text('region_name').notNull(),
+    postalPrefixesJson: text('postal_prefixes_json').notNull().default('[]'),
+    municipalityCodesJson: text('municipality_codes_json').notNull().default('[]'),
+    municipalityHintsJson: text('municipality_hints_json').notNull().default('[]'),
+    bindingName: text('binding_name').notNull(),
+    importVersion: text('import_version'),
+    state: text('state').notNull().default('standby'),
+    rowCount: integer('row_count').notNull().default(0),
+    estimatedSizeBytes: integer('estimated_size_bytes'),
+    sourceFreshnessAt: text('source_freshness_at'),
+    lastImportCompletedAt: text('last_import_completed_at'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('smart_suggest_shard_registry_binding_idx').on(table.bindingName),
+    index('smart_suggest_shard_registry_country_state_idx').on(table.countryCode, table.state),
+    index('smart_suggest_shard_registry_region_idx').on(
+      table.countryCode,
+      table.regionKind,
+      table.regionCode,
+    ),
   ],
 );
 
 export const smartSuggestProviderEvents = sqliteTable(
-  "smart_suggest_provider_events",
+  'smart_suggest_provider_events',
   {
-    id: text("id").primaryKey(),
-    requestId: text("request_id").notNull(),
-    providerId: text("provider_id").notNull(),
-    tenantId: text("tenant_id"),
-    status: text("status").notNull(),
-    latencyMs: integer("latency_ms"),
-    errorCode: text("error_code"),
-    queryHash: text("query_hash"),
-    createdAt: text("created_at").notNull(),
+    id: text('id').primaryKey(),
+    requestId: text('request_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    tenantId: text('tenant_id'),
+    status: text('status').notNull(),
+    latencyMs: integer('latency_ms'),
+    errorCode: text('error_code'),
+    queryHash: text('query_hash'),
+    createdAt: text('created_at').notNull(),
   },
   (table) => [
-    index("smart_suggest_provider_events_request_idx").on(table.requestId),
-    index("smart_suggest_provider_events_provider_idx").on(table.providerId),
-    index("smart_suggest_provider_events_query_hash_idx").on(table.queryHash),
+    index('smart_suggest_provider_events_request_idx').on(table.requestId),
+    index('smart_suggest_provider_events_provider_idx').on(table.providerId),
+    index('smart_suggest_provider_events_query_hash_idx').on(table.queryHash),
   ],
 );
 
 export const smartSuggestAcceptEvents = sqliteTable(
-  "smart_suggest_accept_events",
+  'smart_suggest_accept_events',
   {
-    id: text("id").primaryKey(),
-    requestId: text("request_id").notNull(),
-    suggestionId: text("suggestion_id").notNull(),
-    acceptedAt: text("accepted_at").notNull(),
-    tenantJson: text("tenant_json"),
-    sourceId: text("source_id").notNull(),
+    id: text('id').primaryKey(),
+    requestId: text('request_id').notNull(),
+    suggestionId: text('suggestion_id').notNull(),
+    acceptedAt: text('accepted_at').notNull(),
+    tenantJson: text('tenant_json'),
+    sourceId: text('source_id').notNull(),
   },
   (table) => [
-    index("smart_suggest_accept_events_request_idx").on(table.requestId),
-    index("smart_suggest_accept_events_source_idx").on(table.sourceId),
+    index('smart_suggest_accept_events_request_idx').on(table.requestId),
+    index('smart_suggest_accept_events_source_idx').on(table.sourceId),
   ],
 );
 
 export const smartSuggestCacheEntries = sqliteTable(
-  "smart_suggest_cache_entries",
+  'smart_suggest_cache_entries',
   {
-    cacheKey: text("cache_key").primaryKey(),
-    queryHash: text("query_hash").notNull(),
-    kind: text("kind").notNull(),
-    countryCode: text("country_code"),
-    tenantId: text("tenant_id"),
-    language: text("language"),
-    status: text("status").notNull(),
-    payloadJson: text("payload_json").notNull(),
-    cachePolicyJson: text("cache_policy_json").notNull(),
-    expiresAt: text("expires_at"),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+    cacheKey: text('cache_key').primaryKey(),
+    queryHash: text('query_hash').notNull(),
+    kind: text('kind').notNull(),
+    countryCode: text('country_code'),
+    tenantId: text('tenant_id'),
+    language: text('language'),
+    status: text('status').notNull(),
+    payloadJson: text('payload_json').notNull(),
+    cachePolicyJson: text('cache_policy_json').notNull(),
+    expiresAt: text('expires_at'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
   },
   (table) => [
-    index("smart_suggest_cache_query_hash_idx").on(table.queryHash),
-    index("smart_suggest_cache_tenant_country_idx").on(table.tenantId, table.countryCode),
+    index('smart_suggest_cache_query_hash_idx').on(table.queryHash),
+    index('smart_suggest_cache_tenant_country_idx').on(table.tenantId, table.countryCode),
   ],
 );
 
 export const smartSuggestAddressRecords = sqliteTable(
-  "smart_suggest_address_records",
+  'smart_suggest_address_records',
   {
-    id: text("id").primaryKey(),
-    sourceId: text("source_id")
+    id: text('id').primaryKey(),
+    sourceId: text('source_id')
       .notNull()
-      .references(() => smartSuggestDataSources.id, { onDelete: "cascade" }),
-    countryCode: text("country_code").notNull(),
-    region: text("region"),
-    city: text("city"),
-    district: text("district"),
-    street: text("street"),
-    houseNumber: text("house_number"),
-    orientationNumber: text("orientation_number"),
-    postalCode: text("postal_code"),
-    line1: text("line_1"),
-    line2: text("line_2"),
-    displayLabel: text("display_label").notNull(),
-    searchLabel: text("search_label").notNull(),
-    latitude: real("latitude"),
-    longitude: real("longitude"),
-    quality: real("quality").notNull().default(0),
-    attributionJson: text("attribution_json"),
-    createdAt: text("created_at").notNull(),
-    updatedAt: text("updated_at").notNull(),
+      .references(() => smartSuggestDataSources.id, { onDelete: 'cascade' }),
+    countryCode: text('country_code').notNull(),
+    region: text('region'),
+    city: text('city'),
+    district: text('district'),
+    street: text('street'),
+    houseNumber: text('house_number'),
+    orientationNumber: text('orientation_number'),
+    postalCode: text('postal_code'),
+    line1: text('line_1'),
+    line2: text('line_2'),
+    displayLabel: text('display_label').notNull(),
+    searchLabel: text('search_label').notNull(),
+    replicationStatus: text('replication_status').notNull().default('active'),
+    searchVisible: integer('search_visible', { mode: 'boolean' }).notNull().default(true),
+    ruianAddressPlaceCode: text('ruian_address_place_code'),
+    ruianBuildingObjectCode: text('ruian_building_object_code'),
+    ruianDistrictCode: text('ruian_district_code'),
+    ruianMunicipalityCode: text('ruian_municipality_code'),
+    ruianMunicipalityDistrictCode: text('ruian_municipality_district_code'),
+    ruianMunicipalityPartCode: text('ruian_municipality_part_code'),
+    ruianPostalCode: text('ruian_postal_code'),
+    ruianRegionCode: text('ruian_region_code'),
+    ruianStreetCode: text('ruian_street_code'),
+    sourceRecordType: text('source_record_type'),
+    sourceRecordId: text('source_record_id'),
+    sourceFeedId: text('source_feed_id'),
+    sourceUri: text('source_uri'),
+    sourceChecksumSha256: text('source_checksum_sha256'),
+    sourceVersion: text('source_version'),
+    sourceGeneratedAt: text('source_generated_at'),
+    sourceValidAt: text('source_valid_at'),
+    sourceAtomEntryId: text('source_atom_entry_id'),
+    sourceFileKind: text('source_file_kind'),
+    sourceValidFrom: text('source_valid_from'),
+    sourceValidTo: text('source_valid_to'),
+    sourceTransactionId: text('source_transaction_id'),
+    sourceChangeProposalGlobalId: text('source_change_proposal_global_id'),
+    sourceStatus: text('source_status'),
+    sourceInvalid: integer('source_invalid', { mode: 'boolean' }),
+    invalidReason: text('invalid_reason'),
+    lastImportRunId: text('last_import_run_id'),
+    tombstonedAt: text('tombstoned_at'),
+    tombstoneReason: text('tombstone_reason'),
+    latitude: real('latitude'),
+    longitude: real('longitude'),
+    quality: real('quality').notNull().default(0),
+    attributionJson: text('attribution_json'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
   },
   (table) => [
-    index("smart_suggest_address_country_postal_idx").on(table.countryCode, table.postalCode),
-    index("smart_suggest_address_source_idx").on(table.sourceId),
+    index('smart_suggest_address_country_postal_idx').on(table.countryCode, table.postalCode),
+    index('smart_suggest_address_country_visible_idx').on(table.countryCode, table.searchVisible),
+    uniqueIndex('smart_suggest_address_source_record_idx').on(
+      table.sourceId,
+      table.sourceRecordType,
+      table.sourceRecordId,
+    ),
+    index('smart_suggest_address_ruian_address_place_idx').on(table.ruianAddressPlaceCode),
+    index('smart_suggest_address_ruian_region_idx').on(table.ruianRegionCode),
+    index('smart_suggest_address_source_idx').on(table.sourceId),
+  ],
+);
+
+export const smartSuggestAddressTombstones = sqliteTable(
+  'smart_suggest_address_tombstones',
+  {
+    id: text('id').primaryKey(),
+    sourceId: text('source_id')
+      .notNull()
+      .references(() => smartSuggestDataSources.id, { onDelete: 'cascade' }),
+    countryCode: text('country_code').notNull(),
+    deletedAt: text('deleted_at'),
+    reason: text('reason'),
+    ruianAddressPlaceCode: text('ruian_address_place_code'),
+    ruianBuildingObjectCode: text('ruian_building_object_code'),
+    ruianDistrictCode: text('ruian_district_code'),
+    ruianMunicipalityCode: text('ruian_municipality_code'),
+    ruianMunicipalityDistrictCode: text('ruian_municipality_district_code'),
+    ruianMunicipalityPartCode: text('ruian_municipality_part_code'),
+    ruianPostalCode: text('ruian_postal_code'),
+    ruianRegionCode: text('ruian_region_code'),
+    ruianStreetCode: text('ruian_street_code'),
+    sourceRecordType: text('source_record_type'),
+    sourceRecordId: text('source_record_id'),
+    sourceFeedId: text('source_feed_id'),
+    sourceUri: text('source_uri'),
+    sourceChecksumSha256: text('source_checksum_sha256'),
+    sourceVersion: text('source_version'),
+    sourceGeneratedAt: text('source_generated_at'),
+    sourceValidAt: text('source_valid_at'),
+    sourceAtomEntryId: text('source_atom_entry_id'),
+    sourceFileKind: text('source_file_kind'),
+    lastImportRunId: text('last_import_run_id'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => [
+    index('smart_suggest_address_tombstones_source_idx').on(table.sourceId),
+    index('smart_suggest_address_tombstones_ruian_idx').on(table.ruianAddressPlaceCode),
   ],
 );
 
 export const smartSuggestAddressSearchTokens = sqliteTable(
-  "smart_suggest_address_search_tokens",
+  'smart_suggest_address_search_tokens',
   {
-    id: text("id").primaryKey(),
-    recordId: text("record_id")
+    id: text('id').primaryKey(),
+    recordId: text('record_id')
       .notNull()
-      .references(() => smartSuggestAddressRecords.id, { onDelete: "cascade" }),
-    countryCode: text("country_code").notNull(),
-    token: text("token").notNull(),
-    prefix: text("prefix").notNull(),
-    weight: real("weight").notNull().default(1),
+      .references(() => smartSuggestAddressRecords.id, { onDelete: 'cascade' }),
+    countryCode: text('country_code').notNull(),
+    token: text('token').notNull(),
+    prefix: text('prefix').notNull(),
+    weight: real('weight').notNull().default(1),
   },
   (table) => [
-    index("smart_suggest_address_tokens_prefix_idx").on(table.countryCode, table.prefix),
-    index("smart_suggest_address_tokens_record_idx").on(table.recordId),
+    index('smart_suggest_address_tokens_prefix_idx').on(table.countryCode, table.prefix),
+    index('smart_suggest_address_tokens_record_idx').on(table.recordId),
   ],
 );
 
@@ -408,11 +817,13 @@ export const smartSuggestSchema = {
   smartSuggestAcceptEvents,
   smartSuggestAddressRecords,
   smartSuggestAddressSearchTokens,
+  smartSuggestAddressTombstones,
   smartSuggestApiKeys,
   smartSuggestCacheEntries,
   smartSuggestDataSources,
   smartSuggestImportRuns,
   smartSuggestProviderEvents,
+  smartSuggestShardRegistry,
   smartSuggestTenants,
 };
 
@@ -426,45 +837,66 @@ const nowIso = () => new Date().toISOString();
 const normalizeQueryForHash = (input: SuggestQueryHashInput) =>
   [
     input.kind,
-    input.countryCode ?? "",
-    input.tenantId ?? "",
-    input.language ?? "",
-    input.limit === undefined ? "" : String(normalizeSuggestLimit(input.limit)),
-    input.query.trim().toLowerCase().replaceAll(/\s+/g, " "),
-  ].join("\u001f");
+    input.countryCode ?? '',
+    input.tenantId ?? '',
+    input.language ?? '',
+    input.limit === undefined ? '' : String(normalizeSuggestLimit(input.limit)),
+    input.query.trim().toLowerCase().replaceAll(/\s+/g, ' '),
+  ].join('\u001f');
 
 const toHex = (bytes: ArrayBuffer) =>
-  [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 
-export const createSuggestQueryHash = async (input: SuggestQueryHashInput) => {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(normalizeQueryForHash(input)),
-  );
+export const createSuggestQueryHash = async (
+  input: SuggestQueryHashInput,
+  options: SuggestQueryHashOptions = {},
+) => {
+  const encoder = new TextEncoder();
+  const normalizedQuery = encoder.encode(normalizeQueryForHash(input));
+  const secret = options.secret?.trim();
+
+  if (secret !== undefined && secret !== '') {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { hash: 'SHA-256', name: 'HMAC' },
+      false,
+      ['sign'],
+    );
+    const signature = await crypto.subtle.sign('HMAC', key, normalizedQuery);
+
+    return `hmac-sha256:${toHex(signature)}`;
+  }
+
+  const digest = await crypto.subtle.digest('SHA-256', normalizedQuery);
 
   return toHex(digest);
 };
 
 export const createSuggestCacheKey = (input: SuggestCacheKeyInput) =>
   [
-    "smart-suggest",
-    "v1",
+    'smart-suggest',
+    'v1',
     input.kind,
-    input.countryCode ?? "global",
-    input.tenantId ?? "public",
-    input.language ?? "default",
+    input.countryCode ?? 'global',
+    input.tenantId ?? 'public',
+    input.language ?? 'default',
     input.queryHash,
-  ].join(":");
+  ].join(':');
 
 const SEARCH_INDEX_PREFIX_OPTIONS = {
   maxLength: 16,
   minLength: 1,
 } as const;
+const ADDRESS_SEARCH_FTS_MIN_TEXT_TOKEN_LENGTH = 3;
+const numericTokenPattern = /^\d+$/u;
+const addressSearchFtsUnavailablePattern =
+  /smart_suggest_address_search_fts|no such table|no such module|no such tokenizer/iu;
 
 type AddressSearchTokenInsert = typeof smartSuggestAddressSearchTokens.$inferInsert;
 
 const createAddressSearchTokenRows = (
-  record: Pick<AddressRecord, "countryCode" | "id" | "searchLabel">,
+  record: Pick<AddressRecord, 'countryCode' | 'id' | 'searchLabel'>,
 ): AddressSearchTokenInsert[] => {
   const rows: AddressSearchTokenInsert[] = [];
   const tokens = tokenizeAddressText(record.searchLabel);
@@ -499,20 +931,55 @@ const createQuerySearchPrefixes = (query: string) => {
   return [...queryTokens].map((token) => token.slice(0, SEARCH_INDEX_PREFIX_OPTIONS.maxLength));
 };
 
+export const createAddressSearchFtsQuery = (query: string) => {
+  const postalCodes = extractPostalCodeCandidates(query);
+  const tokens = new Set(tokenizeAddressText(query));
+
+  for (const postalCode of postalCodes) {
+    tokens.add(postalCode.value);
+  }
+
+  const tokenList = [...tokens];
+  const hasStrongTextToken = tokenList.some(
+    (token) =>
+      !numericTokenPattern.test(token) && token.length >= ADDRESS_SEARCH_FTS_MIN_TEXT_TOKEN_LENGTH,
+  );
+  const hasPostalSignal = postalCodes.length > 0;
+  const ftsTokens = tokenList.filter((token) => {
+    if (numericTokenPattern.test(token)) {
+      return hasStrongTextToken || hasPostalSignal;
+    }
+
+    return token.length >= ADDRESS_SEARCH_FTS_MIN_TEXT_TOKEN_LENGTH;
+  });
+
+  return ftsTokens.length === 0 ? undefined : ftsTokens.map((token) => `${token}*`).join(' ');
+};
+
+const isWeakAddressSearchQuery = (query: string) =>
+  createAddressSearchFtsQuery(query) === undefined;
+
+type RankedAddressRecordCandidate = AddressRecord & {
+  confidence: number;
+};
+
 const rankAddressRecordResults = (
   query: string,
   records: readonly AddressRecord[],
   limit: number,
-) =>
-  rankAddressCandidates(
-    query,
-    records.map((record) => ({ ...record, confidence: record.quality })),
-    { limit },
-  ).map(({ candidate }) => {
+) => {
+  const candidates: RankedAddressRecordCandidate[] = records.map((record) => ({
+    ...record,
+    confidence: record.quality,
+  }));
+
+  return rankAddressCandidates(query, candidates, { limit }).map((result) => {
+    const { candidate } = result;
     const { confidence: _confidence, ...record } = candidate;
 
     return record;
   });
+};
 
 const withTimestamps = <T extends { id: string }>(input: T, previous?: { createdAt: string }) => {
   const timestamp = nowIso();
@@ -525,12 +992,76 @@ const withTimestamps = <T extends { id: string }>(input: T, previous?: { created
 };
 
 const assertCachePolicyAllowsWrite = (policy: ProviderCachePolicy) => {
-  if (policy.kind === "none") {
+  if (policy.kind === 'none') {
     throw new SmartSuggestStorageError(
-      "cache-policy-violation",
-      "Provider cache policy forbids persistent cache writes.",
+      'cache-policy-violation',
+      'Provider cache policy forbids persistent cache writes.',
     );
   }
+};
+
+const readSuggestionMetadataNumber = (
+  metadata: SmartSuggestSuggestion['metadata'],
+  keys: readonly string[],
+) => {
+  if (metadata === undefined) {
+    return;
+  }
+
+  for (const key of keys) {
+    const value = metadata[key];
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return;
+};
+
+const normalizeSuggestionId = (value: string) =>
+  normalizeSearchText(value).replaceAll(/\s+/g, '-').slice(0, 160);
+
+export const createAddressRecordFromSuggestion = ({
+  countryCode,
+  sourceId,
+  suggestion,
+}: AddressRecordFromSuggestionInput): AddressSearchRecordInput => {
+  const id = `live:${sourceId}:${normalizeSuggestionId(suggestion.id)}`;
+  const record: AddressSearchRecordInput = {
+    countryCode,
+    displayLabel: suggestion.displayLabel,
+    id,
+    parts: {
+      ...suggestion.address,
+      countryCode: suggestion.address?.countryCode ?? countryCode,
+    },
+    quality: Math.max(0, Math.min(1, suggestion.confidence)),
+    searchLabel: normalizeSearchText(suggestion.searchLabel ?? suggestion.displayLabel),
+    sourceId,
+  };
+  const latitude = readSuggestionMetadataNumber(suggestion.metadata, ['latitude', 'lat']);
+  const longitude = readSuggestionMetadataNumber(suggestion.metadata, ['longitude', 'lng', 'lon']);
+
+  if (latitude !== undefined) {
+    record.latitude = latitude;
+  }
+  if (longitude !== undefined) {
+    record.longitude = longitude;
+  }
+  if (suggestion.attribution !== undefined) {
+    record.attribution = suggestion.attribution;
+  }
+
+  return record;
 };
 
 const isCacheExpired = (record: SuggestCacheRecord) =>
@@ -551,7 +1082,7 @@ const parseJsonValue = <T>(value: string | null | undefined, fallback: T): T => 
 const parseJsonRecord = (value: string | null | undefined): Record<string, JsonValue> => {
   const parsed = parseJsonValue<JsonValue>(value, {});
 
-  return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+  return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
     ? (parsed as Record<string, JsonValue>)
     : {};
 };
@@ -559,10 +1090,430 @@ const parseJsonRecord = (value: string | null | undefined): Record<string, JsonV
 const parseJsonStringArray = (value: string | null | undefined) => {
   const parsed = parseJsonValue<JsonValue>(value, []);
 
-  return Array.isArray(parsed) && parsed.every((entry) => typeof entry === "string") ? parsed : [];
+  return Array.isArray(parsed) && parsed.every((entry) => typeof entry === 'string') ? parsed : [];
+};
+
+const normalizeOptionalShardText = (value: string | undefined) => {
+  const normalized = value?.trim();
+
+  return normalized === undefined || normalized.length === 0 ? undefined : normalized;
+};
+
+const normalizeShardPostalPrefix = (value: string) => value.replaceAll(/\D/gu, '');
+
+const uniqueSortedStrings = (values: Iterable<string>) =>
+  [...new Set(values)].toSorted((left, right) => left.localeCompare(right));
+
+const normalizeShardPostalPrefixes = (values: readonly string[] = []) =>
+  uniqueSortedStrings(
+    values.map(normalizeShardPostalPrefix).filter((value) => value.length > 0),
+  ).toSorted((left, right) => right.length - left.length);
+
+const normalizeShardMunicipalityCodes = (values: readonly string[] = []) =>
+  uniqueSortedStrings(values.map((value) => value.trim()).filter((value) => value.length > 0));
+
+const normalizeShardMunicipalityHints = (values: readonly string[] = []) =>
+  uniqueSortedStrings(
+    values.map((value) => normalizeSearchText(value).trim()).filter((value) => value.length > 0),
+  );
+
+const normalizeNonNegativeInteger = (value: number | undefined) =>
+  value === undefined ? undefined : Math.max(0, Math.trunc(value));
+
+const normalizeShardRegionKind = (value: string): SmartSuggestShardRegionKind => {
+  if (
+    value === 'country' ||
+    value === 'municipality' ||
+    value === 'postal-prefix' ||
+    value === 'vusc'
+  ) {
+    return value;
+  }
+
+  return 'vusc';
+};
+
+const normalizeShardState = (value: string): SmartSuggestShardState => {
+  if (value === 'disabled' || value === 'standby') {
+    return value;
+  }
+
+  return 'active';
+};
+
+const normalizeShardMetadataInput = (
+  input: SmartSuggestShardMetadataUpsertInput,
+  previous?: Pick<SmartSuggestShardMetadataRecord, 'createdAt'>,
+): SmartSuggestShardMetadataRecord => {
+  const timestamp = nowIso();
+  const record: SmartSuggestShardMetadataRecord = {
+    bindingName: input.bindingName.trim(),
+    countryCode: input.countryCode,
+    createdAt: previous?.createdAt ?? timestamp,
+    municipalityCodes: normalizeShardMunicipalityCodes(input.municipalityCodes),
+    municipalityHints: normalizeShardMunicipalityHints(input.municipalityHints),
+    postalPrefixes: normalizeShardPostalPrefixes(input.postalPrefixes),
+    regionCode: input.regionCode.trim(),
+    regionKind: input.regionKind,
+    regionName: input.regionName.trim(),
+    rowCount: normalizeNonNegativeInteger(input.rowCount) ?? 0,
+    shardId: input.shardId.trim(),
+    state: input.state,
+    updatedAt: timestamp,
+  };
+  const estimatedSizeBytes = normalizeNonNegativeInteger(input.estimatedSizeBytes);
+  const importVersion = normalizeOptionalShardText(input.importVersion);
+  const lastImportCompletedAt = normalizeOptionalShardText(input.lastImportCompletedAt);
+  const sourceFreshnessAt = normalizeOptionalShardText(input.sourceFreshnessAt);
+
+  if (estimatedSizeBytes !== undefined) {
+    record.estimatedSizeBytes = estimatedSizeBytes;
+  }
+  if (importVersion !== undefined) {
+    record.importVersion = importVersion;
+  }
+  if (lastImportCompletedAt !== undefined) {
+    record.lastImportCompletedAt = lastImportCompletedAt;
+  }
+  if (sourceFreshnessAt !== undefined) {
+    record.sourceFreshnessAt = sourceFreshnessAt;
+  }
+
+  return record;
+};
+
+const toShardMetadataInsert = (record: SmartSuggestShardMetadataRecord) =>
+  ({
+    bindingName: record.bindingName,
+    countryCode: record.countryCode,
+    createdAt: record.createdAt,
+    estimatedSizeBytes: record.estimatedSizeBytes ?? null,
+    importVersion: record.importVersion ?? null,
+    lastImportCompletedAt: record.lastImportCompletedAt ?? null,
+    municipalityCodesJson: JSON.stringify(record.municipalityCodes),
+    municipalityHintsJson: JSON.stringify(record.municipalityHints),
+    postalPrefixesJson: JSON.stringify(record.postalPrefixes),
+    regionCode: record.regionCode,
+    regionKind: record.regionKind,
+    regionName: record.regionName,
+    rowCount: record.rowCount,
+    shardId: record.shardId,
+    sourceFreshnessAt: record.sourceFreshnessAt ?? null,
+    state: record.state,
+    updatedAt: record.updatedAt,
+  }) satisfies typeof smartSuggestShardRegistry.$inferInsert;
+
+const toShardMetadataRecord = (
+  row: typeof smartSuggestShardRegistry.$inferSelect,
+): SmartSuggestShardMetadataRecord => {
+  const record: SmartSuggestShardMetadataRecord = {
+    bindingName: row.bindingName,
+    countryCode: row.countryCode as SmartSuggestCountryCode,
+    createdAt: row.createdAt,
+    municipalityCodes: normalizeShardMunicipalityCodes(
+      parseJsonStringArray(row.municipalityCodesJson),
+    ),
+    municipalityHints: normalizeShardMunicipalityHints(
+      parseJsonStringArray(row.municipalityHintsJson),
+    ),
+    postalPrefixes: normalizeShardPostalPrefixes(parseJsonStringArray(row.postalPrefixesJson)),
+    regionCode: row.regionCode,
+    regionKind: normalizeShardRegionKind(row.regionKind),
+    regionName: row.regionName,
+    rowCount: row.rowCount,
+    shardId: row.shardId,
+    state: normalizeShardState(row.state),
+    updatedAt: row.updatedAt,
+  };
+
+  if (row.estimatedSizeBytes !== null) {
+    record.estimatedSizeBytes = row.estimatedSizeBytes;
+  }
+  if (row.importVersion !== null) {
+    record.importVersion = row.importVersion;
+  }
+  if (row.lastImportCompletedAt !== null) {
+    record.lastImportCompletedAt = row.lastImportCompletedAt;
+  }
+  if (row.sourceFreshnessAt !== null) {
+    record.sourceFreshnessAt = row.sourceFreshnessAt;
+  }
+
+  return record;
+};
+
+const normalizeShardResolveStates = (states: readonly SmartSuggestShardState[] | undefined) => [
+  ...new Set(states ?? ['active']),
+];
+
+const scoreShardMetadataRoute = (
+  record: SmartSuggestShardMetadataRecord,
+  input: SmartSuggestShardMetadataResolveInput,
+) => {
+  const regionCode = input.regionCode?.trim();
+  const municipalityCode = input.municipalityCode?.trim();
+  const municipalityHint =
+    input.municipalityHint === undefined
+      ? undefined
+      : normalizeSearchText(input.municipalityHint).trim();
+  const postalCode =
+    input.postalCode === undefined ? undefined : normalizeShardPostalPrefix(input.postalCode);
+  let score = 0;
+
+  if (regionCode !== undefined && record.regionCode === regionCode) {
+    score = Math.max(score, 100);
+  }
+  if (municipalityCode !== undefined && record.municipalityCodes.includes(municipalityCode)) {
+    score = Math.max(score, 80);
+  }
+  if (postalCode !== undefined && postalCode.length > 0) {
+    const matchingPostalPrefix = record.postalPrefixes.find((prefix) =>
+      postalCode.startsWith(prefix),
+    );
+
+    if (matchingPostalPrefix !== undefined) {
+      score = Math.max(score, 60 + matchingPostalPrefix.length);
+    }
+  }
+  if (
+    municipalityHint !== undefined &&
+    municipalityHint.length > 0 &&
+    record.municipalityHints.includes(municipalityHint)
+  ) {
+    score = Math.max(score, 40);
+  }
+  if (
+    score === 0 &&
+    regionCode === undefined &&
+    municipalityCode === undefined &&
+    municipalityHint === undefined &&
+    postalCode === undefined &&
+    record.regionKind === 'country'
+  ) {
+    score = 10;
+  }
+
+  return score;
+};
+
+const resolveShardMetadataMatches = (
+  records: readonly SmartSuggestShardMetadataRecord[],
+  input: SmartSuggestShardMetadataResolveInput,
+) => {
+  const states = new Set(normalizeShardResolveStates(input.states));
+
+  return records
+    .filter((record) => record.countryCode === input.countryCode && states.has(record.state))
+    .map((record) => ({
+      record,
+      score: scoreShardMetadataRoute(record, input),
+    }))
+    .filter((match) => match.score > 0)
+    .toSorted(
+      (left, right) =>
+        right.score - left.score ||
+        left.record.regionCode.localeCompare(right.record.regionCode) ||
+        left.record.shardId.localeCompare(right.record.shardId),
+    )
+    .map((match) => match.record);
 };
 
 const nullableNumber = (value: number | undefined) => value ?? null;
+
+const nullableText = (value: string | undefined) => value ?? null;
+
+const nullableBoolean = (value: boolean | undefined) => value ?? null;
+
+const normalizeReplicationStatus = (input: AddressSearchRecordInput): AddressReplicationStatus => {
+  if (input.replicationStatus !== undefined) {
+    return input.replicationStatus;
+  }
+
+  if (input.visibility?.replicationStatus !== undefined) {
+    return input.visibility.replicationStatus;
+  }
+
+  if (input.visibility?.invalid === true) {
+    return 'invalid';
+  }
+
+  return 'active';
+};
+
+const normalizeSearchVisible = (input: AddressSearchRecordInput) =>
+  input.searchVisible ??
+  input.visibility?.searchVisible ??
+  normalizeReplicationStatus(input) === 'active';
+
+const sourceRecordTypeForLineage = (lineage: AddressRecordSourceLineage | undefined) =>
+  lineage?.sourceRecordType ?? 'address-place';
+
+const sourceRecordIdForRecord = (input: {
+  id: string;
+  ruian?: AddressRecordRuianIdentifiers;
+  sourceLineage?: AddressRecordSourceLineage;
+}) =>
+  input.sourceLineage?.sourceRecordId ??
+  input.ruian?.addressPlaceCode ??
+  input.sourceLineage?.sourceRowId ??
+  input.id;
+
+const toAddressRuianIdentifiers = (row: {
+  ruianAddressPlaceCode: string | null;
+  ruianBuildingObjectCode: string | null;
+  ruianDistrictCode: string | null;
+  ruianMunicipalityCode: string | null;
+  ruianMunicipalityDistrictCode: string | null;
+  ruianMunicipalityPartCode: string | null;
+  ruianPostalCode: string | null;
+  ruianRegionCode: string | null;
+  ruianStreetCode: string | null;
+}): AddressRecordRuianIdentifiers | undefined => {
+  if (row.ruianAddressPlaceCode === null) {
+    return;
+  }
+
+  const ruian: AddressRecordRuianIdentifiers = {
+    addressPlaceCode: row.ruianAddressPlaceCode,
+    stableAddressId: `ruian-cz:${row.ruianAddressPlaceCode}`,
+  };
+
+  if (row.ruianBuildingObjectCode !== null) {
+    ruian.buildingObjectCode = row.ruianBuildingObjectCode;
+  }
+  if (row.ruianDistrictCode !== null) {
+    ruian.districtCode = row.ruianDistrictCode;
+  }
+  if (row.ruianMunicipalityCode !== null) {
+    ruian.municipalityCode = row.ruianMunicipalityCode;
+  }
+  if (row.ruianMunicipalityDistrictCode !== null) {
+    ruian.municipalityDistrictCode = row.ruianMunicipalityDistrictCode;
+  }
+  if (row.ruianMunicipalityPartCode !== null) {
+    ruian.municipalityPartCode = row.ruianMunicipalityPartCode;
+  }
+  if (row.ruianPostalCode !== null) {
+    ruian.postalCode = row.ruianPostalCode;
+  }
+  if (row.ruianRegionCode !== null) {
+    ruian.regionCode = row.ruianRegionCode;
+  }
+  if (row.ruianStreetCode !== null) {
+    ruian.streetCode = row.ruianStreetCode;
+  }
+
+  return ruian;
+};
+
+const toAddressSourceLineage = (row: {
+  datasetVersion?: string | null;
+  id?: string;
+  lastImportRunId: string | null;
+  sourceAtomEntryId: string | null;
+  sourceChecksumSha256: string | null;
+  sourceFeedId: string | null;
+  sourceFileKind: string | null;
+  sourceId: string;
+  sourceRecordId: string | null;
+  sourceRecordType: string | null;
+  sourceGeneratedAt: string | null;
+  sourceUri: string | null;
+  sourceValidAt: string | null;
+  sourceVersion: string | null;
+}): AddressRecordSourceLineage | undefined => {
+  const sourceRowId = row.sourceRecordId ?? row.id;
+
+  if (sourceRowId === undefined) {
+    return;
+  }
+
+  const lineage: AddressRecordSourceLineage = {
+    sourceId: row.sourceId,
+    sourceRowId,
+  };
+
+  if (row.sourceAtomEntryId !== null) {
+    lineage.atomEntryId = row.sourceAtomEntryId;
+  }
+  if (row.sourceChecksumSha256 !== null) {
+    lineage.checksumSha256 = row.sourceChecksumSha256;
+  }
+  if (row.datasetVersion !== undefined && row.datasetVersion !== null) {
+    lineage.datasetVersion = row.datasetVersion;
+  }
+  if (row.sourceFileKind !== null) {
+    lineage.fileKind = row.sourceFileKind;
+  }
+  if (row.sourceFeedId !== null) {
+    lineage.feedId = row.sourceFeedId;
+  }
+  if (row.lastImportRunId !== null) {
+    lineage.lastImportRunId = row.lastImportRunId;
+  }
+  if (row.sourceGeneratedAt !== null) {
+    lineage.sourceGeneratedAt = row.sourceGeneratedAt;
+  }
+  if (row.sourceRecordId !== null) {
+    lineage.sourceRecordId = row.sourceRecordId;
+  }
+  if (row.sourceRecordType !== null) {
+    lineage.sourceRecordType = row.sourceRecordType;
+  }
+  if (row.sourceUri !== null) {
+    lineage.sourceUri = row.sourceUri;
+    lineage.snapshotUri = row.sourceUri;
+  }
+  if (row.sourceValidAt !== null) {
+    lineage.sourceValidAt = row.sourceValidAt;
+  }
+  if (row.sourceVersion !== null) {
+    lineage.sourceVersion = row.sourceVersion;
+  }
+
+  return lineage;
+};
+
+const toAddressVisibility = (row: {
+  invalidReason: string | null;
+  replicationStatus: string;
+  searchVisible: boolean;
+  sourceChangeProposalGlobalId: string | null;
+  sourceInvalid: boolean | null;
+  sourceStatus: string | null;
+  sourceTransactionId: string | null;
+  sourceValidFrom: string | null;
+  sourceValidTo: string | null;
+}): AddressRecordVisibility => {
+  const visibility: AddressRecordVisibility = {
+    replicationStatus: row.replicationStatus as AddressReplicationStatus,
+    searchVisible: row.searchVisible,
+  };
+
+  if (row.sourceChangeProposalGlobalId !== null) {
+    visibility.changeProposalGlobalId = row.sourceChangeProposalGlobalId;
+  }
+  if (row.sourceInvalid !== null) {
+    visibility.invalid = row.sourceInvalid;
+  }
+  if (row.invalidReason !== null) {
+    visibility.reason = row.invalidReason;
+  }
+  if (row.sourceStatus !== null) {
+    visibility.sourceStatus = row.sourceStatus;
+  }
+  if (row.sourceTransactionId !== null) {
+    visibility.transactionId = row.sourceTransactionId;
+  }
+  if (row.sourceValidFrom !== null) {
+    visibility.validFrom = row.sourceValidFrom;
+  }
+  if (row.sourceValidTo !== null) {
+    visibility.validTo = row.sourceValidTo;
+  }
+
+  return visibility;
+};
 
 const toAttribution = (row: {
   attributionLabel: string;
@@ -585,7 +1536,7 @@ const toDataSourceRecord = (row: typeof smartSuggestDataSources.$inferSelect): D
   const record: DataSourceRecord = {
     attribution: toAttribution(row),
     cachePolicy: parseJsonValue<ProviderCachePolicy>(row.cachePolicyJson, {
-      kind: "none",
+      kind: 'none',
     }),
     countryCode: row.countryCode as SmartSuggestCountryCode,
     createdAt: row.createdAt,
@@ -597,6 +1548,9 @@ const toDataSourceRecord = (row: typeof smartSuggestDataSources.$inferSelect): D
 
   if (row.datasetVersion !== null) {
     record.datasetVersion = row.datasetVersion;
+  }
+  if (row.modificationNoteSha256 !== null) {
+    record.modificationNoteSha256 = row.modificationNoteSha256;
   }
   if (row.region !== null) {
     record.region = row.region;
@@ -612,7 +1566,7 @@ const toTenantRecord = (row: typeof smartSuggestTenants.$inferSelect): TenantRec
   id: row.id,
   name: row.name,
   providerPriority: parseJsonStringArray(row.providerPriorityJson),
-  status: row.status === "disabled" ? "disabled" : "active",
+  status: row.status === 'disabled' ? 'disabled' : 'active',
   updatedAt: row.updatedAt,
 });
 
@@ -622,7 +1576,7 @@ const toApiKeyRecord = (row: typeof smartSuggestApiKeys.$inferSelect): ApiKeyRec
     id: row.id,
     keyHash: row.keyHash,
     label: row.label,
-    status: row.status === "revoked" ? "revoked" : "active",
+    status: row.status === 'revoked' ? 'revoked' : 'active',
     tenantId: row.tenantId,
   };
 
@@ -639,17 +1593,44 @@ const toImportRunRecord = (row: typeof smartSuggestImportRuns.$inferSelect): Imp
     id: row.id,
     insertedRows: row.insertedRows,
     shardCountryCode: row.shardCountryCode as SmartSuggestCountryCode,
+    skippedRows: row.skippedRows,
     sourceId: row.sourceId,
     startedAt: row.startedAt,
     status: row.status as ImportRunStatus,
+    tombstonedRows: row.tombstonedRows,
     totalRows: row.totalRows,
+    upsertedRows: row.upsertedRows,
   };
 
+  if (row.sourceAtomEntryId !== null) {
+    record.atomEntryId = row.sourceAtomEntryId;
+  }
+  if (row.sourceChecksumSha256 !== null) {
+    record.checksumSha256 = row.sourceChecksumSha256;
+  }
   if (row.completedAt !== null) {
     record.completedAt = row.completedAt;
   }
   if (row.errorSummary !== null) {
     record.errorSummary = row.errorSummary;
+  }
+  if (row.importKind !== null) {
+    record.importKind = row.importKind as AddressImportKind;
+  }
+  if (row.sourceFeedId !== null) {
+    record.sourceFeedId = row.sourceFeedId;
+  }
+  if (row.sourceGeneratedAt !== null) {
+    record.sourceGeneratedAt = row.sourceGeneratedAt;
+  }
+  if (row.sourceUri !== null) {
+    record.sourceUri = row.sourceUri;
+  }
+  if (row.sourceValidAt !== null) {
+    record.sourceValidAt = row.sourceValidAt;
+  }
+  if (row.sourceVersion !== null) {
+    record.sourceVersion = row.sourceVersion;
   }
 
   return record;
@@ -699,7 +1680,9 @@ const toAddressRecord = (row: typeof smartSuggestAddressRecords.$inferSelect): A
     id: row.id,
     parts: toAddressParts(row),
     quality: row.quality,
+    replicationStatus: row.replicationStatus as AddressReplicationStatus,
     searchLabel: row.searchLabel,
+    searchVisible: row.searchVisible,
     sourceId: row.sourceId,
     updatedAt: row.updatedAt,
   };
@@ -721,8 +1704,233 @@ const toAddressRecord = (row: typeof smartSuggestAddressRecords.$inferSelect): A
     record.longitude = row.longitude;
   }
 
+  const ruian = toAddressRuianIdentifiers(row);
+  const sourceLineage = toAddressSourceLineage(row);
+
+  if (ruian !== undefined) {
+    record.ruian = ruian;
+  }
+  if (sourceLineage !== undefined) {
+    record.sourceLineage = sourceLineage;
+  }
+  record.visibility = toAddressVisibility(row);
+
   return record;
 };
+
+const toAddressTombstoneRecord = (
+  row: typeof smartSuggestAddressTombstones.$inferSelect,
+): AddressTombstoneRecord => {
+  const record: AddressTombstoneRecord = {
+    countryCode: row.countryCode as SmartSuggestCountryCode,
+    createdAt: row.createdAt,
+    id: row.id,
+    sourceId: row.sourceId,
+    updatedAt: row.updatedAt,
+  };
+
+  if (row.deletedAt !== null) {
+    record.deletedAt = row.deletedAt;
+  }
+  if (row.reason !== null) {
+    record.reason = row.reason;
+  }
+
+  const ruian = toAddressRuianIdentifiers(row);
+  const sourceLineage = toAddressSourceLineage(row);
+
+  if (ruian !== undefined) {
+    record.ruian = ruian;
+  }
+  if (sourceLineage !== undefined) {
+    record.sourceLineage = sourceLineage;
+  }
+
+  return record;
+};
+
+type AddressRecordRow = typeof smartSuggestAddressRecords.$inferSelect;
+type AddressTombstoneRow = typeof smartSuggestAddressTombstones.$inferSelect;
+
+const nullableJson = (value: JsonValue | undefined) =>
+  value === undefined ? null : JSON.stringify(value);
+
+const toStoredAddressTombstoneMetadata = (
+  input: AddressSearchRecordInput,
+  replicationStatus: AddressReplicationStatus,
+) => ({
+  tombstoneReason:
+    replicationStatus === 'tombstoned' ? nullableText(input.visibility?.reason) : null,
+  tombstonedAt: replicationStatus === 'tombstoned' ? nullableText(input.visibility?.validTo) : null,
+});
+
+const toStoredRuianColumns = (ruian: AddressRecordRuianIdentifiers | undefined) => ({
+  ruianAddressPlaceCode: nullableText(ruian?.addressPlaceCode),
+  ruianBuildingObjectCode: nullableText(ruian?.buildingObjectCode),
+  ruianDistrictCode: nullableText(ruian?.districtCode),
+  ruianMunicipalityCode: nullableText(ruian?.municipalityCode),
+  ruianMunicipalityDistrictCode: nullableText(ruian?.municipalityDistrictCode),
+  ruianMunicipalityPartCode: nullableText(ruian?.municipalityPartCode),
+  ruianPostalCode: nullableText(ruian?.postalCode),
+  ruianRegionCode: nullableText(ruian?.regionCode),
+  ruianStreetCode: nullableText(ruian?.streetCode),
+});
+
+const toStoredSourceLineageColumns = (sourceLineage: AddressRecordSourceLineage | undefined) => ({
+  lastImportRunId: nullableText(sourceLineage?.lastImportRunId),
+  sourceAtomEntryId: nullableText(sourceLineage?.atomEntryId),
+  sourceChecksumSha256: nullableText(sourceLineage?.checksumSha256),
+  sourceFeedId: nullableText(sourceLineage?.feedId),
+  sourceFileKind: nullableText(sourceLineage?.fileKind),
+  sourceGeneratedAt: nullableText(sourceLineage?.sourceGeneratedAt),
+  sourceUri: nullableText(sourceLineage?.sourceUri ?? sourceLineage?.snapshotUri),
+  sourceValidAt: nullableText(sourceLineage?.sourceValidAt),
+  sourceVersion: nullableText(sourceLineage?.sourceVersion),
+});
+
+const toAddressRecordRow = (
+  input: AddressSearchRecordInput,
+  timestamp: string,
+): AddressRecordRow => {
+  const replicationStatus = normalizeReplicationStatus(input);
+  const sourceLineage = input.sourceLineage;
+
+  return {
+    attributionJson: nullableJson(input.attribution),
+    city: input.parts.city ?? null,
+    countryCode: input.countryCode,
+    createdAt: timestamp,
+    displayLabel: input.displayLabel,
+    district: input.parts.district ?? null,
+    houseNumber: input.parts.houseNumber ?? null,
+    id: input.id,
+    invalidReason: nullableText(input.visibility?.reason),
+    latitude: nullableNumber(input.latitude),
+    line1: input.parts.line1 ?? null,
+    line2: input.parts.line2 ?? null,
+    longitude: nullableNumber(input.longitude),
+    orientationNumber: input.parts.orientationNumber ?? null,
+    postalCode: input.parts.postalCode ?? null,
+    quality: input.quality,
+    region: input.parts.region ?? null,
+    replicationStatus,
+    ...toStoredRuianColumns(input.ruian),
+    searchLabel: input.searchLabel,
+    searchVisible: normalizeSearchVisible(input),
+    sourceChangeProposalGlobalId: nullableText(input.visibility?.changeProposalGlobalId),
+    sourceId: input.sourceId,
+    sourceInvalid: nullableBoolean(input.visibility?.invalid),
+    sourceRecordId: sourceRecordIdForRecord(input),
+    sourceRecordType: sourceRecordTypeForLineage(sourceLineage),
+    sourceStatus: nullableText(input.visibility?.sourceStatus),
+    sourceTransactionId: nullableText(input.visibility?.transactionId),
+    ...toStoredSourceLineageColumns(sourceLineage),
+    sourceValidFrom: nullableText(input.visibility?.validFrom),
+    sourceValidTo: nullableText(input.visibility?.validTo),
+    street: input.parts.street ?? null,
+    ...toStoredAddressTombstoneMetadata(input, replicationStatus),
+    updatedAt: timestamp,
+  };
+};
+
+const toAddressRecordUpdateSet = (row: AddressRecordRow) => ({
+  attributionJson: row.attributionJson,
+  city: row.city,
+  countryCode: row.countryCode,
+  displayLabel: row.displayLabel,
+  district: row.district,
+  houseNumber: row.houseNumber,
+  invalidReason: row.invalidReason,
+  lastImportRunId: row.lastImportRunId,
+  latitude: row.latitude,
+  line1: row.line1,
+  line2: row.line2,
+  longitude: row.longitude,
+  orientationNumber: row.orientationNumber,
+  postalCode: row.postalCode,
+  quality: row.quality,
+  region: row.region,
+  replicationStatus: row.replicationStatus,
+  ruianAddressPlaceCode: row.ruianAddressPlaceCode,
+  ruianBuildingObjectCode: row.ruianBuildingObjectCode,
+  ruianDistrictCode: row.ruianDistrictCode,
+  ruianMunicipalityCode: row.ruianMunicipalityCode,
+  ruianMunicipalityDistrictCode: row.ruianMunicipalityDistrictCode,
+  ruianMunicipalityPartCode: row.ruianMunicipalityPartCode,
+  ruianPostalCode: row.ruianPostalCode,
+  ruianRegionCode: row.ruianRegionCode,
+  ruianStreetCode: row.ruianStreetCode,
+  searchLabel: row.searchLabel,
+  searchVisible: row.searchVisible,
+  sourceAtomEntryId: row.sourceAtomEntryId,
+  sourceChangeProposalGlobalId: row.sourceChangeProposalGlobalId,
+  sourceChecksumSha256: row.sourceChecksumSha256,
+  sourceFeedId: row.sourceFeedId,
+  sourceFileKind: row.sourceFileKind,
+  sourceGeneratedAt: row.sourceGeneratedAt,
+  sourceId: row.sourceId,
+  sourceInvalid: row.sourceInvalid,
+  sourceRecordId: row.sourceRecordId,
+  sourceRecordType: row.sourceRecordType,
+  sourceStatus: row.sourceStatus,
+  sourceTransactionId: row.sourceTransactionId,
+  sourceUri: row.sourceUri,
+  sourceValidAt: row.sourceValidAt,
+  sourceValidFrom: row.sourceValidFrom,
+  sourceValidTo: row.sourceValidTo,
+  sourceVersion: row.sourceVersion,
+  street: row.street,
+  tombstoneReason: row.tombstoneReason,
+  tombstonedAt: row.tombstonedAt,
+  updatedAt: row.updatedAt,
+});
+
+const toAddressTombstoneRow = (
+  input: AddressTombstoneRecordInput,
+  timestamp: string,
+): AddressTombstoneRow => {
+  const sourceLineage = input.sourceLineage;
+
+  return {
+    countryCode: input.countryCode,
+    createdAt: timestamp,
+    deletedAt: input.deletedAt ?? null,
+    id: input.id,
+    reason: input.reason ?? null,
+    ...toStoredRuianColumns(input.ruian),
+    sourceId: input.sourceId,
+    sourceRecordId: sourceRecordIdForRecord(input),
+    sourceRecordType: sourceRecordTypeForLineage(sourceLineage),
+    ...toStoredSourceLineageColumns(sourceLineage),
+    updatedAt: timestamp,
+  };
+};
+
+const toAddressTombstoneUpdateSet = (row: AddressTombstoneRow) => ({
+  deletedAt: row.deletedAt,
+  lastImportRunId: row.lastImportRunId,
+  reason: row.reason,
+  ruianAddressPlaceCode: row.ruianAddressPlaceCode,
+  ruianBuildingObjectCode: row.ruianBuildingObjectCode,
+  ruianDistrictCode: row.ruianDistrictCode,
+  ruianMunicipalityCode: row.ruianMunicipalityCode,
+  ruianMunicipalityDistrictCode: row.ruianMunicipalityDistrictCode,
+  ruianMunicipalityPartCode: row.ruianMunicipalityPartCode,
+  ruianPostalCode: row.ruianPostalCode,
+  ruianRegionCode: row.ruianRegionCode,
+  ruianStreetCode: row.ruianStreetCode,
+  sourceAtomEntryId: row.sourceAtomEntryId,
+  sourceChecksumSha256: row.sourceChecksumSha256,
+  sourceFeedId: row.sourceFeedId,
+  sourceFileKind: row.sourceFileKind,
+  sourceGeneratedAt: row.sourceGeneratedAt,
+  sourceRecordId: row.sourceRecordId,
+  sourceRecordType: row.sourceRecordType,
+  sourceUri: row.sourceUri,
+  sourceValidAt: row.sourceValidAt,
+  sourceVersion: row.sourceVersion,
+  updatedAt: row.updatedAt,
+});
 
 const toSuggestCacheRecord = (
   row: typeof smartSuggestCacheEntries.$inferSelect,
@@ -730,7 +1938,7 @@ const toSuggestCacheRecord = (
   const record: SuggestCacheRecord = {
     cacheKey: row.cacheKey,
     cachePolicy: parseJsonValue<ProviderCachePolicy>(row.cachePolicyJson, {
-      kind: "none",
+      kind: 'none',
     }),
     createdAt: row.createdAt,
     kind: row.kind as SmartSuggestKind,
@@ -764,7 +1972,7 @@ const toProviderEventRecord = (
     id: row.id,
     providerId: row.providerId,
     requestId: row.requestId,
-    status: row.status as ProviderEventRecord["status"],
+    status: row.status as ProviderEventRecord['status'],
   };
 
   if (row.errorCode !== null) {
@@ -809,8 +2017,63 @@ export const createD1SmartSuggestRepositories = (
   binding: SmartSuggestD1Binding,
 ): SmartSuggestRepositories => {
   const db = createSmartSuggestD1Database(binding);
+  const isAddressSearchFtsUnavailable = (error: unknown) =>
+    error instanceof Error && addressSearchFtsUnavailablePattern.test(error.message);
+  const deleteAddressSearchFts = async (recordId: string) => {
+    try {
+      await db.run(sql`delete from smart_suggest_address_search_fts where record_id = ${recordId}`);
+    } catch (error) {
+      if (isAddressSearchFtsUnavailable(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  };
+  const refreshAddressSearchFts = async (record: AddressSearchRecordInput) => {
+    await deleteAddressSearchFts(record.id);
+
+    if (!normalizeSearchVisible(record) || normalizeReplicationStatus(record) !== 'active') {
+      return;
+    }
+
+    try {
+      await db.run(sql`
+        insert into smart_suggest_address_search_fts (
+          record_id,
+          country_code,
+          display_label,
+          search_label,
+          street,
+          city,
+          district,
+          postal_code,
+          house_number,
+          orientation_number
+        )
+        values (
+          ${record.id},
+          ${record.countryCode},
+          ${record.displayLabel},
+          ${record.searchLabel},
+          ${record.parts.street ?? ''},
+          ${record.parts.city ?? ''},
+          ${record.parts.district ?? ''},
+          ${record.parts.postalCode ?? ''},
+          ${record.parts.houseNumber ?? ''},
+          ${record.parts.orientationNumber ?? ''}
+        )
+      `);
+    } catch (error) {
+      if (isAddressSearchFtsUnavailable(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  };
   const refreshAddressSearchTokens = async (
-    record: Pick<AddressRecord, "countryCode" | "id" | "searchLabel">,
+    record: Pick<AddressRecord, 'countryCode' | 'id' | 'searchLabel'>,
   ) => {
     await db
       .delete(smartSuggestAddressSearchTokens)
@@ -822,6 +2085,286 @@ export const createD1SmartSuggestRepositories = (
       await db.insert(smartSuggestAddressSearchTokens).values(tokenRows);
     }
   };
+  const refreshAddressSearchIndexes = async (record: AddressSearchRecordInput) => {
+    await refreshAddressSearchFts(record);
+    if (normalizeSearchVisible(record) && normalizeReplicationStatus(record) === 'active') {
+      await refreshAddressSearchTokens(record);
+    } else {
+      await db
+        .delete(smartSuggestAddressSearchTokens)
+        .where(eq(smartSuggestAddressSearchTokens.recordId, record.id));
+    }
+  };
+  const searchAddressSearchFts = async ({
+    countryCode,
+    limit,
+    query,
+  }: {
+    countryCode: SmartSuggestCountryCode | undefined;
+    limit: number;
+    query: string;
+  }) => {
+    const ftsQuery = createAddressSearchFtsQuery(query);
+
+    if (ftsQuery === undefined) {
+      return;
+    }
+
+    try {
+      const rows =
+        countryCode === undefined
+          ? await db.all<{ recordId: string }>(sql`
+              select distinct record_id as recordId
+              from smart_suggest_address_search_fts
+              where smart_suggest_address_search_fts match ${ftsQuery}
+              limit ${limit}
+            `)
+          : await db.all<{ recordId: string }>(sql`
+              select distinct record_id as recordId
+              from smart_suggest_address_search_fts
+              where smart_suggest_address_search_fts match ${ftsQuery}
+                and country_code = ${countryCode}
+              limit ${limit}
+            `);
+
+      return rows.map((row) => row.recordId);
+    } catch (error) {
+      if (isAddressSearchFtsUnavailable(error)) {
+        return;
+      }
+
+      throw error;
+    }
+  };
+  const fetchAddressRecordsByIds = ({
+    countryCode,
+    recordIds,
+  }: {
+    countryCode: SmartSuggestCountryCode | undefined;
+    recordIds: readonly string[];
+  }) => {
+    const recordFilters = [
+      inArray(smartSuggestAddressRecords.id, recordIds),
+      eq(smartSuggestAddressRecords.searchVisible, true),
+      eq(smartSuggestAddressRecords.replicationStatus, 'active'),
+    ];
+
+    if (countryCode !== undefined) {
+      recordFilters.push(eq(smartSuggestAddressRecords.countryCode, countryCode));
+    }
+
+    return db
+      .select()
+      .from(smartSuggestAddressRecords)
+      .where(and(...recordFilters))
+      .limit(recordIds.length);
+  };
+  const searchAddressRecordsByFts = async ({
+    countryCode,
+    limit,
+    query,
+  }: {
+    countryCode: SmartSuggestCountryCode | undefined;
+    limit: number;
+    query: string;
+  }) => {
+    const indexedRecordLimit = Math.max(limit * 20, 50);
+    const recordIds = await searchAddressSearchFts({
+      countryCode,
+      limit: indexedRecordLimit,
+      query,
+    });
+
+    if (recordIds === undefined || recordIds.length === 0) {
+      return;
+    }
+
+    const indexedRows = await fetchAddressRecordsByIds({
+      countryCode,
+      recordIds,
+    });
+
+    return rankAddressRecordResults(query, indexedRows.map(toAddressRecord), limit);
+  };
+  const searchAddressRecordsByTokens = async ({
+    countryCode,
+    limit,
+    query,
+  }: {
+    countryCode: SmartSuggestCountryCode | undefined;
+    limit: number;
+    query: string;
+  }) => {
+    const prefixes = [...new Set(createQuerySearchPrefixes(query))];
+
+    if (prefixes.length === 0) {
+      return;
+    }
+
+    const indexedRecordLimit = Math.max(limit * 20, 50);
+    const tokenFilters = [inArray(smartSuggestAddressSearchTokens.prefix, prefixes)];
+
+    if (countryCode !== undefined) {
+      tokenFilters.push(eq(smartSuggestAddressSearchTokens.countryCode, countryCode));
+    }
+
+    const tokenMatches = await db
+      .select({ recordId: smartSuggestAddressSearchTokens.recordId })
+      .from(smartSuggestAddressSearchTokens)
+      .where(and(...tokenFilters))
+      .limit(indexedRecordLimit);
+    const recordIds = [...new Set(tokenMatches.map((match) => match.recordId))];
+
+    if (recordIds.length === 0) {
+      return;
+    }
+
+    const indexedRows = await fetchAddressRecordsByIds({
+      countryCode,
+      recordIds,
+    });
+
+    return rankAddressRecordResults(query, indexedRows.map(toAddressRecord), limit);
+  };
+  const searchAddressRecordsByLabel = async ({
+    countryCode,
+    limit,
+    query,
+  }: {
+    countryCode: SmartSuggestCountryCode | undefined;
+    limit: number;
+    query: string;
+  }) => {
+    const filters = [
+      like(smartSuggestAddressRecords.searchLabel, `%${normalizeSearchText(query)}%`),
+      eq(smartSuggestAddressRecords.searchVisible, true),
+      eq(smartSuggestAddressRecords.replicationStatus, 'active'),
+    ];
+
+    if (countryCode !== undefined) {
+      filters.push(eq(smartSuggestAddressRecords.countryCode, countryCode));
+    }
+
+    const rows = await db
+      .select()
+      .from(smartSuggestAddressRecords)
+      .where(and(...filters))
+      .orderBy(desc(smartSuggestAddressRecords.quality))
+      .limit(limit);
+
+    return rankAddressRecordResults(query, rows.map(toAddressRecord), limit);
+  };
+  const tombstoneRecordFilters = (tombstone: AddressTombstoneRecordInput) => {
+    const filters = [eq(smartSuggestAddressRecords.id, tombstone.id)];
+
+    if (tombstone.ruian?.addressPlaceCode !== undefined) {
+      filters.push(
+        eq(smartSuggestAddressRecords.ruianAddressPlaceCode, tombstone.ruian.addressPlaceCode),
+      );
+    }
+
+    return filters.length === 1 ? filters[0] : or(...filters);
+  };
+  const markAddressRecordTombstoned = async (tombstone: AddressTombstoneRecordInput) => {
+    const matchedRows = await db
+      .select({ id: smartSuggestAddressRecords.id })
+      .from(smartSuggestAddressRecords)
+      .where(tombstoneRecordFilters(tombstone));
+    const matchedRecordIds = matchedRows.map((row) => row.id);
+
+    if (matchedRecordIds.length === 0) {
+      return;
+    }
+
+    const timestamp = nowIso();
+    const updateSet = {
+      replicationStatus: 'tombstoned',
+      searchVisible: false,
+      tombstoneReason: tombstone.reason ?? null,
+      tombstonedAt: tombstone.deletedAt ?? timestamp,
+      updatedAt: timestamp,
+    };
+
+    if (tombstone.sourceLineage !== undefined) {
+      const recordIdentity: {
+        id: string;
+        ruian?: AddressRecordRuianIdentifiers;
+        sourceLineage?: AddressRecordSourceLineage;
+      } = {
+        id: tombstone.id,
+        sourceLineage: tombstone.sourceLineage,
+      };
+
+      if (tombstone.ruian !== undefined) {
+        recordIdentity.ruian = tombstone.ruian;
+      }
+
+      Object.assign(updateSet, {
+        sourceRecordId: sourceRecordIdForRecord(recordIdentity),
+        sourceRecordType: sourceRecordTypeForLineage(tombstone.sourceLineage),
+        ...toStoredSourceLineageColumns(tombstone.sourceLineage),
+      });
+    }
+
+    if (tombstone.ruian !== undefined) {
+      Object.assign(updateSet, toStoredRuianColumns(tombstone.ruian));
+    }
+
+    await db
+      .update(smartSuggestAddressRecords)
+      .set(updateSet)
+      .where(inArray(smartSuggestAddressRecords.id, matchedRecordIds));
+    await db
+      .delete(smartSuggestAddressSearchTokens)
+      .where(inArray(smartSuggestAddressSearchTokens.recordId, matchedRecordIds));
+
+    for (const recordId of matchedRecordIds) {
+      await deleteAddressSearchFts(recordId);
+    }
+  };
+  const listD1ShardMetadata = async (input: SmartSuggestShardMetadataListInput = {}) => {
+    if (input.countryCode !== undefined && input.state !== undefined) {
+      const rows = await db
+        .select()
+        .from(smartSuggestShardRegistry)
+        .where(
+          and(
+            eq(smartSuggestShardRegistry.countryCode, input.countryCode),
+            eq(smartSuggestShardRegistry.state, input.state),
+          ),
+        )
+        .orderBy(desc(smartSuggestShardRegistry.updatedAt));
+
+      return rows.map(toShardMetadataRecord);
+    }
+
+    if (input.countryCode !== undefined) {
+      const rows = await db
+        .select()
+        .from(smartSuggestShardRegistry)
+        .where(eq(smartSuggestShardRegistry.countryCode, input.countryCode))
+        .orderBy(desc(smartSuggestShardRegistry.updatedAt));
+
+      return rows.map(toShardMetadataRecord);
+    }
+
+    if (input.state !== undefined) {
+      const rows = await db
+        .select()
+        .from(smartSuggestShardRegistry)
+        .where(eq(smartSuggestShardRegistry.state, input.state))
+        .orderBy(desc(smartSuggestShardRegistry.updatedAt));
+
+      return rows.map(toShardMetadataRecord);
+    }
+
+    const rows = await db
+      .select()
+      .from(smartSuggestShardRegistry)
+      .orderBy(desc(smartSuggestShardRegistry.updatedAt));
+
+    return rows.map(toShardMetadataRecord);
+  };
 
   return {
     health: {
@@ -832,7 +2375,7 @@ export const createD1SmartSuggestRepositories = (
         } catch (error) {
           return {
             checkedAt: nowIso(),
-            error: error instanceof Error ? error.message : "D1 check failed.",
+            error: error instanceof Error ? error.message : 'D1 check failed.',
             ok: false,
           };
         }
@@ -937,6 +2480,7 @@ export const createD1SmartSuggestRepositories = (
           createdAt: timestamp,
           datasetVersion: input.datasetVersion ?? null,
           id: input.id,
+          modificationNoteSha256: input.modificationNoteSha256 ?? null,
           name: input.name,
           region: input.region ?? null,
           sourceKind: input.sourceKind,
@@ -953,6 +2497,7 @@ export const createD1SmartSuggestRepositories = (
               cachePolicyJson: row.cachePolicyJson,
               countryCode: row.countryCode,
               datasetVersion: row.datasetVersion,
+              modificationNoteSha256: row.modificationNoteSha256,
               name: row.name,
               region: row.region,
               sourceKind: row.sourceKind,
@@ -976,36 +2521,104 @@ export const createD1SmartSuggestRepositories = (
     },
     importRuns: {
       startImportRun: async (input) => {
+        const existing = await db
+          .select()
+          .from(smartSuggestImportRuns)
+          .where(eq(smartSuggestImportRuns.id, input.id))
+          .get();
+
+        if (existing !== undefined) {
+          assertImportRunRestartCompatible(toImportRunRecord(existing), input);
+        }
+
+        const importKind = input.importKind ?? 'manual';
+
+        if (existing === undefined && isSequencedImportKind(importKind)) {
+          const activeRun = await db
+            .select()
+            .from(smartSuggestImportRuns)
+            .where(
+              and(
+                eq(smartSuggestImportRuns.status, 'running'),
+                eq(smartSuggestImportRuns.sourceId, input.sourceId),
+                eq(smartSuggestImportRuns.shardCountryCode, input.shardCountryCode),
+                inArray(smartSuggestImportRuns.importKind, sequencedImportKinds),
+              ),
+            )
+            .get();
+
+          assertNoActiveSequencedImportRun(
+            input,
+            activeRun === undefined ? undefined : toImportRunRecord(activeRun),
+          );
+        }
+
         const row = {
+          sourceAtomEntryId: input.atomEntryId ?? null,
+          sourceChecksumSha256: input.checksumSha256 ?? null,
           completedAt: null,
           errorSummary: null,
           failedRows: 0,
           id: input.id,
+          importKind,
           insertedRows: 0,
+          skippedRows: 0,
           shardCountryCode: input.shardCountryCode,
+          sourceFeedId: input.sourceFeedId ?? null,
+          sourceGeneratedAt: input.sourceGeneratedAt ?? null,
           sourceId: input.sourceId,
+          sourceUri: input.sourceUri ?? null,
+          sourceValidAt: input.sourceValidAt ?? null,
+          sourceVersion: input.sourceVersion ?? null,
           startedAt: nowIso(),
-          status: "running",
+          status: 'running',
+          tombstonedRows: 0,
           totalRows: 0,
+          upsertedRows: 0,
         } satisfies typeof smartSuggestImportRuns.$inferInsert;
-        const [stored] = await db
-          .insert(smartSuggestImportRuns)
-          .values(row)
-          .onConflictDoUpdate({
-            set: {
-              completedAt: row.completedAt,
-              errorSummary: row.errorSummary,
-              failedRows: row.failedRows,
-              insertedRows: row.insertedRows,
-              shardCountryCode: row.shardCountryCode,
-              sourceId: row.sourceId,
-              startedAt: row.startedAt,
-              status: row.status,
-              totalRows: row.totalRows,
-            },
-            target: smartSuggestImportRuns.id,
-          })
-          .returning();
+
+        const insertImportRun = () =>
+          db
+            .insert(smartSuggestImportRuns)
+            .values(row)
+            .onConflictDoUpdate({
+              set: {
+                completedAt: row.completedAt,
+                errorSummary: row.errorSummary,
+                failedRows: row.failedRows,
+                importKind: row.importKind,
+                insertedRows: row.insertedRows,
+                skippedRows: row.skippedRows,
+                shardCountryCode: row.shardCountryCode,
+                sourceAtomEntryId: row.sourceAtomEntryId,
+                sourceChecksumSha256: row.sourceChecksumSha256,
+                sourceFeedId: row.sourceFeedId,
+                sourceGeneratedAt: row.sourceGeneratedAt,
+                sourceId: row.sourceId,
+                sourceUri: row.sourceUri,
+                sourceValidAt: row.sourceValidAt,
+                sourceVersion: row.sourceVersion,
+                startedAt: row.startedAt,
+                status: row.status,
+                tombstonedRows: row.tombstonedRows,
+                totalRows: row.totalRows,
+                upsertedRows: row.upsertedRows,
+              },
+              target: smartSuggestImportRuns.id,
+            })
+            .returning();
+
+        let stored: typeof smartSuggestImportRuns.$inferSelect | undefined;
+
+        try {
+          [stored] = await insertImportRun();
+        } catch (error) {
+          if (isSequencedImportKind(importKind) && isImportRunUniqueConstraintError(error)) {
+            throw activeSequencedImportRunConflict(input, undefined);
+          }
+
+          throw error;
+        }
 
         return toImportRunRecord(stored ?? row);
       },
@@ -1017,15 +2630,18 @@ export const createD1SmartSuggestRepositories = (
             errorSummary: input.errorSummary ?? null,
             failedRows: input.failedRows,
             insertedRows: input.insertedRows,
+            skippedRows: input.skippedRows ?? input.failedRows,
             status: input.status,
+            tombstonedRows: input.tombstonedRows ?? 0,
             totalRows: input.totalRows,
+            upsertedRows: input.upsertedRows ?? input.insertedRows,
           })
           .where(eq(smartSuggestImportRuns.id, input.id))
           .returning();
 
         if (stored === undefined) {
           throw new SmartSuggestStorageError(
-            "import-run-not-found",
+            'import-run-not-found',
             `Import run ${input.id} does not exist.`,
           );
         }
@@ -1041,6 +2657,27 @@ export const createD1SmartSuggestRepositories = (
 
         return row === undefined ? undefined : toImportRunRecord(row);
       },
+      findLatestCompletedImportRun: async (input) => {
+        if (input.importKinds.length === 0) {
+          return undefined;
+        }
+
+        const row = await db
+          .select()
+          .from(smartSuggestImportRuns)
+          .where(
+            and(
+              eq(smartSuggestImportRuns.status, 'completed'),
+              eq(smartSuggestImportRuns.sourceId, input.sourceId),
+              eq(smartSuggestImportRuns.shardCountryCode, input.shardCountryCode),
+              inArray(smartSuggestImportRuns.importKind, input.importKinds),
+            ),
+          )
+          .orderBy(desc(smartSuggestImportRuns.completedAt), desc(smartSuggestImportRuns.startedAt))
+          .get();
+
+        return row === undefined ? undefined : toImportRunRecord(row);
+      },
       listRecentImportRuns: async (limit = 10) => {
         const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
         const rows = await db
@@ -1052,120 +2689,126 @@ export const createD1SmartSuggestRepositories = (
         return rows.map(toImportRunRecord);
       },
     },
+    shardRegistry: {
+      upsertShardMetadata: async (input) => {
+        const shardId = input.shardId.trim();
+        const previous = await db
+          .select({ createdAt: smartSuggestShardRegistry.createdAt })
+          .from(smartSuggestShardRegistry)
+          .where(eq(smartSuggestShardRegistry.shardId, shardId))
+          .get();
+        const record = normalizeShardMetadataInput(input, previous);
+        const row = toShardMetadataInsert(record);
+        const [stored] = await db
+          .insert(smartSuggestShardRegistry)
+          .values(row)
+          .onConflictDoUpdate({
+            set: {
+              bindingName: row.bindingName,
+              countryCode: row.countryCode,
+              estimatedSizeBytes: row.estimatedSizeBytes,
+              importVersion: row.importVersion,
+              lastImportCompletedAt: row.lastImportCompletedAt,
+              municipalityCodesJson: row.municipalityCodesJson,
+              municipalityHintsJson: row.municipalityHintsJson,
+              postalPrefixesJson: row.postalPrefixesJson,
+              regionCode: row.regionCode,
+              regionKind: row.regionKind,
+              regionName: row.regionName,
+              rowCount: row.rowCount,
+              sourceFreshnessAt: row.sourceFreshnessAt,
+              state: row.state,
+              updatedAt: row.updatedAt,
+            },
+            target: smartSuggestShardRegistry.shardId,
+          })
+          .returning();
+
+        return toShardMetadataRecord(stored ?? row);
+      },
+      listShardMetadata: listD1ShardMetadata,
+      resolveShardMetadata: async (input) => {
+        const states = normalizeShardResolveStates(input.states);
+
+        if (states.length === 0) {
+          return [];
+        }
+
+        const [state] = states;
+        const rows =
+          states.length === 1 && state !== undefined
+            ? await db
+                .select()
+                .from(smartSuggestShardRegistry)
+                .where(
+                  and(
+                    eq(smartSuggestShardRegistry.countryCode, input.countryCode),
+                    eq(smartSuggestShardRegistry.state, state),
+                  ),
+                )
+            : await db
+                .select()
+                .from(smartSuggestShardRegistry)
+                .where(
+                  and(
+                    eq(smartSuggestShardRegistry.countryCode, input.countryCode),
+                    inArray(smartSuggestShardRegistry.state, states),
+                  ),
+                );
+
+        return resolveShardMetadataMatches(rows.map(toShardMetadataRecord), input);
+      },
+    },
     addressRecords: {
       upsertAddressRecords: async (records) =>
         Promise.all(
           records.map(async (input) => {
             const timestamp = nowIso();
-            const row = {
-              attributionJson:
-                input.attribution === undefined ? null : JSON.stringify(input.attribution),
-              city: input.parts.city ?? null,
-              countryCode: input.countryCode,
-              createdAt: timestamp,
-              displayLabel: input.displayLabel,
-              district: input.parts.district ?? null,
-              houseNumber: input.parts.houseNumber ?? null,
-              id: input.id,
-              latitude: nullableNumber(input.latitude),
-              line1: input.parts.line1 ?? null,
-              line2: input.parts.line2 ?? null,
-              longitude: nullableNumber(input.longitude),
-              orientationNumber: input.parts.orientationNumber ?? null,
-              postalCode: input.parts.postalCode ?? null,
-              quality: input.quality,
-              region: input.parts.region ?? null,
-              searchLabel: input.searchLabel,
-              sourceId: input.sourceId,
-              street: input.parts.street ?? null,
-              updatedAt: timestamp,
-            } satisfies typeof smartSuggestAddressRecords.$inferInsert;
+            const row = toAddressRecordRow(input, timestamp);
             const [stored] = await db
               .insert(smartSuggestAddressRecords)
               .values(row)
               .onConflictDoUpdate({
-                set: {
-                  attributionJson: row.attributionJson,
-                  city: row.city,
-                  countryCode: row.countryCode,
-                  displayLabel: row.displayLabel,
-                  district: row.district,
-                  houseNumber: row.houseNumber,
-                  latitude: row.latitude,
-                  line1: row.line1,
-                  line2: row.line2,
-                  longitude: row.longitude,
-                  orientationNumber: row.orientationNumber,
-                  postalCode: row.postalCode,
-                  quality: row.quality,
-                  region: row.region,
-                  searchLabel: row.searchLabel,
-                  sourceId: row.sourceId,
-                  street: row.street,
-                  updatedAt: row.updatedAt,
-                },
+                set: toAddressRecordUpdateSet(row),
                 target: smartSuggestAddressRecords.id,
               })
               .returning();
-            await refreshAddressSearchTokens(input);
+            await refreshAddressSearchIndexes(input);
 
             return toAddressRecord(stored ?? row);
           }),
         ),
       searchAddressRecords: async ({ countryCode, limit = 10, query }) => {
         const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
-        const prefixes = [...new Set(createQuerySearchPrefixes(query))];
-        const tokenFilters = [inArray(smartSuggestAddressSearchTokens.prefix, prefixes)];
 
-        if (countryCode !== undefined) {
-          tokenFilters.push(eq(smartSuggestAddressSearchTokens.countryCode, countryCode));
+        if (isWeakAddressSearchQuery(query)) {
+          return [];
         }
 
-        if (prefixes.length > 0) {
-          const tokenMatches = await db
-            .select({ recordId: smartSuggestAddressSearchTokens.recordId })
-            .from(smartSuggestAddressSearchTokens)
-            .where(and(...tokenFilters))
-            .limit(Math.max(normalizedLimit * 20, 50));
-          const recordIds = [...new Set(tokenMatches.map((match) => match.recordId))];
+        const indexedResults = await searchAddressRecordsByFts({
+          countryCode,
+          limit: normalizedLimit,
+          query,
+        });
 
-          if (recordIds.length > 0) {
-            const recordFilters = [inArray(smartSuggestAddressRecords.id, recordIds)];
-
-            if (countryCode !== undefined) {
-              recordFilters.push(eq(smartSuggestAddressRecords.countryCode, countryCode));
-            }
-
-            const indexedRows = await db
-              .select()
-              .from(smartSuggestAddressRecords)
-              .where(and(...recordFilters))
-              .limit(recordIds.length);
-
-            return rankAddressRecordResults(
-              query,
-              indexedRows.map(toAddressRecord),
-              normalizedLimit,
-            );
-          }
+        if (indexedResults !== undefined) {
+          return indexedResults;
         }
 
-        const filters = [
-          like(smartSuggestAddressRecords.searchLabel, `%${normalizeSearchText(query)}%`),
-        ];
+        const tokenResults = await searchAddressRecordsByTokens({
+          countryCode,
+          limit: normalizedLimit,
+          query,
+        });
 
-        if (countryCode !== undefined) {
-          filters.push(eq(smartSuggestAddressRecords.countryCode, countryCode));
-        }
-
-        const rows = await db
-          .select()
-          .from(smartSuggestAddressRecords)
-          .where(and(...filters))
-          .orderBy(desc(smartSuggestAddressRecords.quality))
-          .limit(normalizedLimit);
-
-        return rankAddressRecordResults(query, rows.map(toAddressRecord), normalizedLimit);
+        return (
+          tokenResults ??
+          searchAddressRecordsByLabel({
+            countryCode,
+            limit: normalizedLimit,
+            query,
+          })
+        );
       },
       getAddressRecord: async (recordId) => {
         const row = await db
@@ -1175,6 +2818,36 @@ export const createD1SmartSuggestRepositories = (
           .get();
 
         return row === undefined ? undefined : toAddressRecord(row);
+      },
+    },
+    addressTombstones: {
+      upsertAddressTombstones: async (tombstones) =>
+        Promise.all(
+          tombstones.map(async (input) => {
+            const timestamp = nowIso();
+            const row = toAddressTombstoneRow(input, timestamp);
+            const [stored] = await db
+              .insert(smartSuggestAddressTombstones)
+              .values(row)
+              .onConflictDoUpdate({
+                set: toAddressTombstoneUpdateSet(row),
+                target: smartSuggestAddressTombstones.id,
+              })
+              .returning();
+            await markAddressRecordTombstoned(input);
+
+            return toAddressTombstoneRecord(stored ?? row);
+          }),
+        ),
+      listAddressTombstones: async (limit = 10) => {
+        const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
+        const rows = await db
+          .select()
+          .from(smartSuggestAddressTombstones)
+          .orderBy(desc(smartSuggestAddressTombstones.updatedAt))
+          .limit(normalizedLimit);
+
+        return rows.map(toAddressTombstoneRecord);
       },
     },
     suggestCache: {
@@ -1192,8 +2865,8 @@ export const createD1SmartSuggestRepositories = (
         const record = toSuggestCacheRecord(row);
 
         return isCacheExpired(record)
-          ? { ...record, status: "stale" }
-          : { ...record, status: "hit" };
+          ? { ...record, status: 'stale' }
+          : { ...record, status: 'hit' };
       },
       writeSuggestCache: async (input) => {
         assertCachePolicyAllowsWrite(input.cachePolicy);
@@ -1209,7 +2882,7 @@ export const createD1SmartSuggestRepositories = (
           language: input.language ?? null,
           payloadJson: JSON.stringify(input.payload),
           queryHash: input.queryHash,
-          status: input.status ?? "written",
+          status: input.status ?? 'written',
           tenantId: input.tenantId ?? null,
           updatedAt: timestamp,
         } satisfies typeof smartSuggestCacheEntries.$inferInsert;
@@ -1315,12 +2988,19 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
   const apiKeys = new Map<string, ApiKeyRecord>();
   const dataSources = new Map<string, DataSourceRecord>();
   const importRuns = new Map<string, ImportRunRecord>();
+  const shardRegistry = new Map<string, SmartSuggestShardMetadataRecord>();
   const addressRecords = new Map<string, AddressRecord>();
+  const addressTombstones = new Map<string, AddressTombstoneRecord>();
   const addressSearchTokensByRecordId = new Map<string, AddressSearchTokenInsert[]>();
   const suggestCache = new Map<string, SuggestCacheRecord>();
   const providerEvents = new Map<string, ProviderEventRecord[]>();
   const acceptEvents = new Map<string, AcceptEventRecord[]>();
   const indexAddressRecord = (record: AddressRecord) => {
+    if (!record.searchVisible || record.replicationStatus !== 'active') {
+      addressSearchTokensByRecordId.delete(record.id);
+      return;
+    }
+
     addressSearchTokensByRecordId.set(record.id, createAddressSearchTokenRows(record));
   };
   const findIndexedAddressRecords = (
@@ -1347,8 +3027,67 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
 
     return [...recordIds]
       .map((recordId) => addressRecords.get(recordId))
-      .filter((record): record is AddressRecord => record !== undefined);
+      .filter(
+        (record): record is AddressRecord =>
+          record?.searchVisible === true && record.replicationStatus === 'active',
+      );
   };
+  const markInMemoryAddressRecordTombstoned = (tombstone: AddressTombstoneRecordInput) => {
+    const matchedRecords = [...addressRecords.values()].filter(
+      (record) =>
+        record.id === tombstone.id ||
+        (tombstone.ruian?.addressPlaceCode !== undefined &&
+          record.ruian?.addressPlaceCode === tombstone.ruian.addressPlaceCode),
+    );
+
+    for (const record of matchedRecords) {
+      const visibility: AddressRecordVisibility = {
+        ...(record.visibility ?? {
+          replicationStatus: 'tombstoned',
+          searchVisible: false,
+        }),
+        replicationStatus: 'tombstoned',
+        searchVisible: false,
+      };
+      const reason = tombstone.reason ?? record.visibility?.reason;
+      const validTo = tombstone.deletedAt ?? record.visibility?.validTo;
+
+      if (reason !== undefined) {
+        visibility.reason = reason;
+      }
+      if (validTo !== undefined) {
+        visibility.validTo = validTo;
+      }
+
+      const updated: AddressRecord = {
+        ...record,
+        replicationStatus: 'tombstoned',
+        searchVisible: false,
+        updatedAt: nowIso(),
+        visibility,
+      };
+
+      if (tombstone.sourceLineage !== undefined) {
+        updated.sourceLineage = tombstone.sourceLineage;
+      }
+      if (tombstone.ruian !== undefined) {
+        updated.ruian = tombstone.ruian;
+      }
+
+      addressRecords.set(updated.id, updated);
+      addressSearchTokensByRecordId.delete(updated.id);
+    }
+  };
+  const listInMemoryShardMetadata = (input: SmartSuggestShardMetadataListInput = {}) =>
+    [...shardRegistry.values()]
+      .filter((record) => {
+        if (input.countryCode !== undefined && record.countryCode !== input.countryCode) {
+          return false;
+        }
+
+        return input.state === undefined || record.state === input.state;
+      })
+      .toSorted((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 
   return {
     health: {
@@ -1392,13 +3131,37 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
     importRuns: {
       startImportRun: (input) =>
         resolveSync(() => {
+          const existing = importRuns.get(input.id);
+
+          if (existing !== undefined) {
+            assertImportRunRestartCompatible(existing, input);
+          }
+
+          const importKind = input.importKind ?? 'manual';
+
+          if (existing === undefined && isSequencedImportKind(importKind)) {
+            const activeRun = [...importRuns.values()].find(
+              (run) =>
+                run.status === 'running' &&
+                run.sourceId === input.sourceId &&
+                run.shardCountryCode === input.shardCountryCode &&
+                isSequencedImportKind(run.importKind),
+            );
+
+            assertNoActiveSequencedImportRun(input, activeRun);
+          }
+
           const record: ImportRunRecord = {
             ...input,
             failedRows: 0,
+            importKind,
             insertedRows: 0,
+            skippedRows: 0,
             startedAt: nowIso(),
-            status: "running",
+            status: 'running',
+            tombstonedRows: 0,
             totalRows: 0,
+            upsertedRows: 0,
           };
           importRuns.set(record.id, record);
           return record;
@@ -1409,16 +3172,47 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
 
           if (existing === undefined) {
             throw new SmartSuggestStorageError(
-              "import-run-not-found",
+              'import-run-not-found',
               `Import run ${input.id} does not exist.`,
             );
           }
 
-          const record: ImportRunRecord = { ...existing, ...input };
+          const record: ImportRunRecord = {
+            ...existing,
+            ...input,
+            skippedRows: input.skippedRows ?? input.failedRows,
+            tombstonedRows: input.tombstonedRows ?? 0,
+            upsertedRows: input.upsertedRows ?? input.insertedRows,
+          };
           importRuns.set(record.id, record);
           return record;
         }),
       getImportRun: (runId) => Promise.resolve(importRuns.get(runId)),
+      findLatestCompletedImportRun: (input) =>
+        resolveSync(() => {
+          if (input.importKinds.length === 0) {
+            return undefined;
+          }
+
+          const importKinds = new Set(input.importKinds);
+
+          return [...importRuns.values()]
+            .filter(
+              (run) =>
+                run.status === 'completed' &&
+                run.sourceId === input.sourceId &&
+                run.shardCountryCode === input.shardCountryCode &&
+                run.importKind !== undefined &&
+                importKinds.has(run.importKind),
+            )
+            .toSorted((left, right) => {
+              const byCompletedAt = (right.completedAt ?? '').localeCompare(left.completedAt ?? '');
+
+              return byCompletedAt === 0
+                ? right.startedAt.localeCompare(left.startedAt)
+                : byCompletedAt;
+            })[0];
+        }),
       listRecentImportRuns: (limit = 10) =>
         resolveSync(() => {
           const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
@@ -1428,11 +3222,47 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
             .slice(0, normalizedLimit);
         }),
     },
+    shardRegistry: {
+      upsertShardMetadata: (input) =>
+        resolveSync(() => {
+          const shardId = input.shardId.trim();
+          const record = normalizeShardMetadataInput(input, shardRegistry.get(shardId));
+          shardRegistry.set(record.shardId, record);
+          return record;
+        }),
+      listShardMetadata: (input) => resolveSync(() => listInMemoryShardMetadata(input)),
+      resolveShardMetadata: (input) =>
+        resolveSync(() =>
+          resolveShardMetadataMatches(
+            listInMemoryShardMetadata({ countryCode: input.countryCode }),
+            input,
+          ),
+        ),
+    },
     addressRecords: {
       upsertAddressRecords: (records) =>
         Promise.resolve(
           records.map((input) => {
-            const record = withTimestamps(input, addressRecords.get(input.id));
+            const previous = addressRecords.get(input.id);
+            const replicationStatus = normalizeReplicationStatus(input);
+            const searchVisible = normalizeSearchVisible(input);
+            const visibility: AddressRecordVisibility = {
+              ...(input.visibility ?? {
+                replicationStatus,
+                searchVisible,
+              }),
+              replicationStatus,
+              searchVisible,
+            };
+            const record = withTimestamps(
+              {
+                ...input,
+                replicationStatus,
+                searchVisible,
+                visibility,
+              },
+              previous,
+            );
             addressRecords.set(record.id, record);
             indexAddressRecord(record);
             return record;
@@ -1442,12 +3272,20 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
         resolveSync(() => {
           const normalizedQuery = normalizeSearchText(query);
           const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
+
+          if (isWeakAddressSearchQuery(query)) {
+            return [];
+          }
+
           const indexedRecords = findIndexedAddressRecords(query, countryCode);
           const candidates =
             indexedRecords.length > 0
               ? indexedRecords
               : [...addressRecords.values()].filter((record) => {
                   if (countryCode !== undefined && record.countryCode !== countryCode) {
+                    return false;
+                  }
+                  if (!record.searchVisible || record.replicationStatus !== 'active') {
                     return false;
                   }
 
@@ -1457,6 +3295,25 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
           return rankAddressRecordResults(query, candidates, normalizedLimit);
         }),
       getAddressRecord: (recordId) => Promise.resolve(addressRecords.get(recordId)),
+    },
+    addressTombstones: {
+      upsertAddressTombstones: (tombstones) =>
+        Promise.resolve(
+          tombstones.map((input) => {
+            const record = withTimestamps(input, addressTombstones.get(input.id));
+            addressTombstones.set(record.id, record);
+            markInMemoryAddressRecordTombstoned(input);
+            return record;
+          }),
+        ),
+      listAddressTombstones: (limit = 10) =>
+        resolveSync(() => {
+          const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
+
+          return [...addressTombstones.values()]
+            .toSorted((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+            .slice(0, normalizedLimit);
+        }),
     },
     suggestCache: {
       readSuggestCache: (cacheKey) =>
@@ -1468,8 +3325,8 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
           }
 
           return isCacheExpired(record)
-            ? { ...record, status: "stale" }
-            : { ...record, status: "hit" };
+            ? { ...record, status: 'stale' }
+            : { ...record, status: 'hit' };
         }),
       writeSuggestCache: (input) =>
         resolveSync(() => {
@@ -1480,7 +3337,7 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
           const record: SuggestCacheRecord = {
             ...input,
             createdAt: existing?.createdAt ?? timestamp,
-            status: input.status ?? "written",
+            status: input.status ?? 'written',
             updatedAt: timestamp,
           };
           suggestCache.set(record.cacheKey, record);

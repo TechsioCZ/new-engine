@@ -1,9 +1,8 @@
-import { SAMPLE_DATA_SOURCES, seedSampleAddressDatasets } from '@techsio/smart-suggest-datasets';
-import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
 import type {
   ProviderEventSummary,
-  SmartSuggestCacheStatus,
+  SmartSuggestCacheLevels,
   SmartSuggestAcceptEvent,
+  SmartSuggestCacheStatus,
   SmartSuggestCountryCode,
   SmartSuggestError,
   SmartSuggestKind,
@@ -11,30 +10,42 @@ import type {
   SmartSuggestResponse,
   SmartSuggestSuggestion,
   SuggestionSource,
+  SuggestionSourceKind,
 } from '@techsio/smart-suggest-core';
+import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
+import { SAMPLE_DATA_SOURCES, seedSampleAddressDatasets } from '@techsio/smart-suggest-datasets';
 import {
+  getSmartSuggestSourcePolicy,
+  SMART_SUGGEST_PROVIDER_SOURCE_ID_ALIASES,
+  smartSuggestSourceAllowsTtlCache,
+  smartSuggestSourceAllowsWrite,
+  smartSuggestSourceMaxTtlDays,
+} from '@techsio/smart-suggest-datasets/source-catalog';
+import type {
+  SmartSuggestProviderRegistry,
+  SmartSuggestProviderRuntimeConfig,
+} from '@techsio/smart-suggest-integrations';
+import { createSmartSuggestProviderRegistryFromConfig } from '@techsio/smart-suggest-integrations';
+import type {
+  AddressRecord,
+  AddressSearchRecordInput,
+  DataSourceRecord,
+  SmartSuggestD1Binding,
+  SmartSuggestRepositories,
+  TenantRecord,
+} from '@techsio/smart-suggest-storage';
+import {
+  createAddressRecordFromSuggestion,
   createD1SmartSuggestRepositories,
   createInMemorySmartSuggestRepositories,
   createSuggestCacheKey,
   createSuggestQueryHash,
 } from '@techsio/smart-suggest-storage';
 import type {
-  AddressRecord,
-  DataSourceRecord,
-  SmartSuggestD1Binding,
-  SmartSuggestRepositories,
-  TenantRecord,
-} from '@techsio/smart-suggest-storage';
-import { createSmartSuggestProviderRegistryFromConfig } from '@techsio/smart-suggest-integrations';
-import type {
-  SmartSuggestProviderRegistry,
-  SmartSuggestProviderRuntimeConfig,
-} from '@techsio/smart-suggest-integrations';
-import { validatePhoneNumber, validatePostalCode } from '@techsio/smart-suggest-validation';
-import type {
   PhoneValidationRequest,
   PostalValidationRequest,
 } from '@techsio/smart-suggest-validation';
+import { validatePhoneNumber, validatePostalCode } from '@techsio/smart-suggest-validation';
 import { DateTime } from 'effect';
 import { getHealthPayload } from '../../shared/health';
 
@@ -43,16 +54,44 @@ const plainTextHeaders = {
 } as const;
 
 interface SmartSuggestWorkerEnv {
+  HERE_API_KEY?: string;
+  HERE_DEFAULT_LAT?: string;
+  HERE_DEFAULT_LNG?: string;
+  HERE_DISCOVER_AT?: string;
+  HERE_DISCOVER_BASE_URL?: string;
+  HERE_DISCOVER_DEFAULT_LIMIT?: string;
+  HERE_DISCOVER_IN_AREA?: string;
+  HERE_DISCOVER_LANGUAGE?: string;
   MAPY_CZ_API_KEY?: string;
   MAPY_CZ_ENDPOINT_URL?: string;
+  NOMINATIM_BASE_URL?: string;
+  NOMINATIM_DEFAULT_LIMIT?: string;
+  NOMINATIM_EMAIL?: string;
+  NOMINATIM_REFERER?: string;
+  NOMINATIM_USER_AGENT?: string;
+  RADAR_API_KEY?: string;
+  RADAR_AUTOCOMPLETE_BASE_URL?: string;
+  RADAR_AUTOCOMPLETE_COUNTRY_CODE?: string;
+  RADAR_AUTOCOMPLETE_DEFAULT_LIMIT?: string;
+  RADAR_AUTOCOMPLETE_LAYERS?: string;
+  RADAR_AUTOCOMPLETE_NEAR?: string;
+  RUIAN_GEOCODE_BASE_URL?: string;
+  RUIAN_GEOCODE_DEFAULT_LIMIT?: string;
+  RUIAN_GEOCODE_DISABLED?: string;
   SMART_SUGGEST_ALLOWED_ORIGINS?: string;
   SMART_SUGGEST_D1?: SmartSuggestD1Binding;
+  SMART_SUGGEST_D1_ROUTER_BINDING?: string;
+  SMART_SUGGEST_D1_SHARD_BINDINGS?: string;
+  SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS?: string;
   SMART_SUGGEST_PROVIDER_PRIORITY?: string;
   SMART_SUGGEST_PROVIDER_TIMEOUT_MS?: string;
+  SMART_SUGGEST_QUERY_HASH_SECRET?: string;
+  SMART_SUGGEST_ROUTER_D1?: SmartSuggestD1Binding;
 }
 
 const inMemoryRepositories = createInMemorySmartSuggestRepositories();
 const d1Repositories = new WeakMap<SmartSuggestD1Binding, SmartSuggestRepositories>();
+const shardedRepositories = new Map<string, SmartSuggestRepositories>();
 const repositorySeeds = new WeakMap<SmartSuggestRepositories, Promise<unknown>>();
 const repositoryTelemetrySequences = new WeakMap<SmartSuggestRepositories, number>();
 const runtimeMetricsByRepository = new WeakMap<
@@ -60,6 +99,28 @@ const runtimeMetricsByRepository = new WeakMap<
   SmartSuggestRuntimeMetrics
 >();
 const providerRegistries = new Map<string, SmartSuggestProviderRegistry>();
+const workerSuggestCaches = new WeakMap<
+  SmartSuggestRepositories,
+  Map<string, SmartSuggestResponse>
+>();
+const maxWorkerSuggestCacheEntries = 500;
+
+interface SmartSuggestEdgeCache {
+  match: (request: Request) => Promise<Response | undefined>;
+  put: (request: Request, response: Response) => Promise<unknown>;
+}
+
+interface SmartSuggestCacheStorage {
+  default?: SmartSuggestEdgeCache;
+}
+
+const smartSuggestCacheStatuses = new Set<SmartSuggestCacheStatus>([
+  'disabled',
+  'hit',
+  'miss',
+  'stale',
+  'written',
+]);
 
 type SuggestSourceKind = 'cache' | 'owned' | 'provider-fallback';
 
@@ -115,6 +176,191 @@ const metricsForRepositories = (repositories: SmartSuggestRepositories) => {
   return metrics;
 };
 
+const cacheLevel = (
+  enabled: boolean,
+  status: SmartSuggestCacheStatus,
+): SmartSuggestCacheLevels[keyof SmartSuggestCacheLevels] => ({
+  enabled,
+  status,
+});
+
+const nowIso = () => DateTime.formatIso(DateTime.nowUnsafe());
+
+const createSuggestCacheLevels = (edgeCacheEnabled: boolean): SmartSuggestCacheLevels => ({
+  browserMemory: cacheLevel(false, 'disabled'),
+  d1ReadThrough: cacheLevel(true, 'miss'),
+  edgeCache: edgeCacheEnabled ? cacheLevel(true, 'miss') : cacheLevel(false, 'disabled'),
+  ownedDb: cacheLevel(true, 'miss'),
+  workerMemory: cacheLevel(true, 'miss'),
+});
+
+const createDisabledCacheLevels = (): SmartSuggestCacheLevels => ({
+  browserMemory: cacheLevel(false, 'disabled'),
+  d1ReadThrough: cacheLevel(false, 'disabled'),
+  edgeCache: cacheLevel(false, 'disabled'),
+  ownedDb: cacheLevel(false, 'disabled'),
+  workerMemory: cacheLevel(false, 'disabled'),
+});
+
+const cloneCacheLevels = (levels: SmartSuggestCacheLevels): SmartSuggestCacheLevels => ({
+  browserMemory: { ...levels.browserMemory },
+  d1ReadThrough: { ...levels.d1ReadThrough },
+  edgeCache: { ...levels.edgeCache },
+  ownedDb: { ...levels.ownedDb },
+  workerMemory: { ...levels.workerMemory },
+});
+
+const withCacheLevels = (
+  response: SmartSuggestResponse,
+  levels: SmartSuggestCacheLevels,
+): SmartSuggestResponse => ({
+  ...response,
+  cacheLevels: cloneCacheLevels(levels),
+});
+
+const hasOwnedDatasetSuggestions = (response: SmartSuggestResponse) =>
+  response.suggestions.some((suggestion) => suggestion.source.kind === 'owned-dataset');
+
+const ownedDbCacheStatusForResponse = (response: SmartSuggestResponse): SmartSuggestCacheStatus =>
+  hasOwnedDatasetSuggestions(response) ? 'hit' : 'miss';
+
+const workerSuggestCacheFor = (repositories: SmartSuggestRepositories) => {
+  const existingCache = workerSuggestCaches.get(repositories);
+
+  if (existingCache !== undefined) {
+    return existingCache;
+  }
+
+  const cache = new Map<string, SmartSuggestResponse>();
+  workerSuggestCaches.set(repositories, cache);
+
+  return cache;
+};
+
+const responseForLayerCache = (response: SmartSuggestResponse): SmartSuggestResponse => ({
+  cacheStatus: response.cacheStatus,
+  requestId: response.requestId,
+  suggestions: response.suggestions,
+});
+
+const rememberWorkerSuggestResponse = (
+  cache: Map<string, SmartSuggestResponse>,
+  cacheKey: string,
+  response: SmartSuggestResponse,
+) => {
+  if (cache.has(cacheKey)) {
+    cache.delete(cacheKey);
+  }
+
+  cache.set(cacheKey, responseForLayerCache(response));
+
+  while (cache.size > maxWorkerSuggestCacheEntries) {
+    const oldestKey = cache.keys().next().value;
+
+    if (typeof oldestKey !== 'string') {
+      return;
+    }
+
+    cache.delete(oldestKey);
+  }
+};
+
+const readEdgeCache = (): SmartSuggestEdgeCache | undefined => {
+  const cacheStorage = (globalThis as typeof globalThis & { caches?: SmartSuggestCacheStorage })
+    .caches;
+
+  return cacheStorage?.default;
+};
+
+const edgeCacheRequestFor = (cacheKey: string) =>
+  new Request(`https://smart-suggest.internal/cache/suggest/${encodeURIComponent(cacheKey)}`, {
+    method: 'GET',
+  });
+
+const isSmartSuggestCacheStatus = (value: unknown): value is SmartSuggestCacheStatus =>
+  typeof value === 'string' && smartSuggestCacheStatuses.has(value as SmartSuggestCacheStatus);
+
+const readEdgeSuggestResponse = async (
+  edgeCache: SmartSuggestEdgeCache,
+  cacheKey: string,
+): Promise<SmartSuggestResponse | undefined> => {
+  let response: SmartSuggestResponse | undefined;
+
+  try {
+    const cached = await edgeCache.match(edgeCacheRequestFor(cacheKey));
+
+    if (cached === undefined) {
+      return;
+    }
+
+    const body = (await cached.json()) as Partial<SmartSuggestResponse>;
+
+    if (
+      typeof body.requestId !== 'string' ||
+      !Array.isArray(body.suggestions) ||
+      !isSmartSuggestCacheStatus(body.cacheStatus)
+    ) {
+      return;
+    }
+
+    response = {
+      cacheStatus: body.cacheStatus,
+      requestId: body.requestId,
+      suggestions: body.suggestions,
+    };
+  } catch {
+    // Edge cache reads are best-effort; a bad cache entry must not block owned search.
+  }
+
+  return response;
+};
+
+const writeEdgeSuggestResponse = async (
+  edgeCache: SmartSuggestEdgeCache | undefined,
+  cacheKey: string,
+  response: SmartSuggestResponse,
+) => {
+  if (edgeCache === undefined || response.cacheStatus === 'disabled') {
+    return false;
+  }
+
+  try {
+    await edgeCache.put(
+      edgeCacheRequestFor(cacheKey),
+      Response.json(responseForLayerCache(response), {
+        headers: {
+          'cache-control': 'public, max-age=3600',
+        },
+      }),
+    );
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const rememberRuntimeSuggestCaches = async (
+  cacheKey: string,
+  response: SmartSuggestResponse,
+  levels: SmartSuggestCacheLevels,
+  workerCache: Map<string, SmartSuggestResponse>,
+  edgeCache: SmartSuggestEdgeCache | undefined,
+) => {
+  if (response.cacheStatus === 'disabled') {
+    return levels;
+  }
+
+  rememberWorkerSuggestResponse(workerCache, cacheKey, response);
+  levels.workerMemory = cacheLevel(true, 'written');
+
+  if (await writeEdgeSuggestResponse(edgeCache, cacheKey, response)) {
+    levels.edgeCache = cacheLevel(true, 'written');
+  }
+
+  return levels;
+};
+
 const roundMetric = (value: number) => Math.round(value * 1000) / 1000;
 
 const summarizeMetrics = (metrics: SmartSuggestRuntimeMetrics) => {
@@ -165,13 +411,7 @@ const recordSuggestError = (repositories: SmartSuggestRepositories, startedAt: n
   metrics.suggest.latencyMsTotal += performance.now() - startedAt;
 };
 
-const resolveRepositories = (env?: SmartSuggestWorkerEnv) => {
-  const binding = env?.SMART_SUGGEST_D1;
-
-  if (binding === undefined) {
-    return inMemoryRepositories;
-  }
-
+const repositoriesForD1Binding = (binding: SmartSuggestD1Binding) => {
   const existing = d1Repositories.get(binding);
 
   if (existing !== undefined) {
@@ -182,6 +422,228 @@ const resolveRepositories = (env?: SmartSuggestWorkerEnv) => {
   d1Repositories.set(binding, repositories);
 
   return repositories;
+};
+
+const parseRuntimeList = (value: string | undefined) =>
+  value
+    ?.split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0) ?? [];
+
+const isSmartSuggestD1Binding = (value: unknown): value is SmartSuggestD1Binding =>
+  value !== null &&
+  typeof value === 'object' &&
+  typeof (value as { prepare?: unknown }).prepare === 'function';
+
+const readNamedD1Binding = (env: SmartSuggestWorkerEnv | undefined, bindingName: string) => {
+  const value = (env as Record<string, unknown> | undefined)?.[bindingName];
+
+  return isSmartSuggestD1Binding(value) ? value : undefined;
+};
+
+const extractPostalRouteHint = (query: string) => {
+  const match = /\b\d{3}\s?\d{2}\b/u.exec(query);
+
+  return match?.[0];
+};
+
+const boundedShardCandidates = async (
+  router: SmartSuggestRepositories,
+  input: {
+    countryCode?: SmartSuggestCountryCode;
+    query: string;
+  },
+  shardBindingNames: readonly string[],
+) => {
+  if (input.countryCode === undefined) {
+    return [];
+  }
+
+  const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
+    countryCode: input.countryCode,
+    states: ['active'],
+  };
+  const postalCode = extractPostalRouteHint(input.query);
+
+  if (postalCode !== undefined) {
+    routeInput.postalCode = postalCode;
+  }
+
+  const routed = await router.shardRegistry.resolveShardMetadata(routeInput);
+
+  if (routed.length > 0) {
+    return routed.slice(0, 2);
+  }
+
+  if (shardBindingNames.length > 2) {
+    return [];
+  }
+
+  return router.shardRegistry.listShardMetadata({
+    countryCode: input.countryCode,
+    state: 'active',
+  });
+};
+
+export const createShardedRepositories = ({
+  router,
+  shardRepositories,
+}: {
+  router: SmartSuggestRepositories;
+  shardRepositories: ReadonlyMap<string, SmartSuggestRepositories>;
+}): SmartSuggestRepositories => ({
+  acceptEvents: router.acceptEvents,
+  addressRecords: {
+    getAddressRecord: async (recordId) => {
+      const routerRecord = await router.addressRecords.getAddressRecord(recordId);
+
+      if (routerRecord !== undefined) {
+        return routerRecord;
+      }
+
+      const records = await Promise.all(
+        [...shardRepositories.values()].map((repository) =>
+          repository.addressRecords.getAddressRecord(recordId),
+        ),
+      );
+
+      return records.find((record) => record !== undefined);
+    },
+    searchAddressRecords: async (input) => {
+      const candidates = await boundedShardCandidates(router, input, [...shardRepositories.keys()]);
+      const limit = normalizeSuggestLimit(input.limit);
+      const shardResults = await Promise.all(
+        candidates.map((candidate) => {
+          const repository = shardRepositories.get(candidate.bindingName);
+
+          if (repository === undefined) {
+            return [];
+          }
+
+          const searchInput: Parameters<typeof repository.addressRecords.searchAddressRecords>[0] =
+            {
+              limit,
+              query: input.query,
+            };
+
+          if (input.countryCode !== undefined) {
+            searchInput.countryCode = input.countryCode;
+          }
+
+          return repository.addressRecords.searchAddressRecords(searchInput);
+        }),
+      );
+
+      return shardResults
+        .flat()
+        .toSorted(
+          (left, right) =>
+            right.quality - left.quality || left.displayLabel.localeCompare(right.displayLabel),
+        )
+        .slice(0, limit);
+    },
+    upsertAddressRecords: router.addressRecords.upsertAddressRecords,
+  },
+  addressTombstones: router.addressTombstones,
+  apiKeys: router.apiKeys,
+  dataSources: {
+    getDataSource: async (sourceId) => {
+      const routerSource = await router.dataSources.getDataSource(sourceId);
+
+      if (routerSource !== undefined) {
+        return routerSource;
+      }
+
+      const sources = await Promise.all(
+        [...shardRepositories.values()].map((repository) =>
+          repository.dataSources.getDataSource(sourceId),
+        ),
+      );
+
+      return sources.find((source) => source !== undefined);
+    },
+    registerDataSource: router.dataSources.registerDataSource,
+  },
+  health: {
+    check: async () => {
+      const checks = await Promise.all([
+        router.health.check(),
+        ...[...shardRepositories.values()].map((repository) => repository.health.check()),
+      ]);
+      const failed = checks.find((check) => !check.ok);
+
+      return failed ?? checks[0] ?? { checkedAt: nowIso(), ok: false };
+    },
+  },
+  importRuns: router.importRuns,
+  providerEvents: router.providerEvents,
+  shardRegistry: router.shardRegistry,
+  suggestCache: router.suggestCache,
+  tenants: router.tenants,
+});
+
+const resolveShardedRepositories = (env?: SmartSuggestWorkerEnv) => {
+  const shardBindingNames = parseRuntimeList(env?.SMART_SUGGEST_D1_SHARD_BINDINGS);
+
+  if (shardBindingNames.length === 0) {
+    return;
+  }
+
+  const routerBindingName = env?.SMART_SUGGEST_D1_ROUTER_BINDING ?? 'SMART_SUGGEST_ROUTER_D1';
+  const routerBinding = readNamedD1Binding(env, routerBindingName);
+
+  if (routerBinding === undefined) {
+    return;
+  }
+
+  const shardBindings = shardBindingNames
+    .map((bindingName) => ({
+      binding: readNamedD1Binding(env, bindingName),
+      bindingName,
+    }))
+    .filter(
+      (entry): entry is { binding: SmartSuggestD1Binding; bindingName: string } =>
+        entry.binding !== undefined,
+    );
+
+  if (shardBindings.length === 0) {
+    return;
+  }
+
+  const cacheKey = [routerBindingName, ...shardBindings.map((entry) => entry.bindingName)].join(
+    '|',
+  );
+  const existing = shardedRepositories.get(cacheKey);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const repositories = createShardedRepositories({
+    router: repositoriesForD1Binding(routerBinding),
+    shardRepositories: new Map(
+      shardBindings.map((entry) => [entry.bindingName, repositoriesForD1Binding(entry.binding)]),
+    ),
+  });
+  shardedRepositories.set(cacheKey, repositories);
+
+  return repositories;
+};
+
+const resolveRepositories = (env?: SmartSuggestWorkerEnv) => {
+  const sharded = resolveShardedRepositories(env);
+
+  if (sharded !== undefined) {
+    return sharded;
+  }
+
+  const binding = env?.SMART_SUGGEST_D1;
+
+  if (binding === undefined) {
+    return inMemoryRepositories;
+  }
+
+  return repositoriesForD1Binding(binding);
 };
 
 const seedRepositories = (repositories: SmartSuggestRepositories) => {
@@ -253,8 +715,6 @@ const serverError = () =>
     { status: 500 },
   );
 
-const nowIso = () => DateTime.formatIso(DateTime.nowUnsafe());
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -289,8 +749,54 @@ const envNumber = (value: string | undefined) => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const booleanEnvValues = new Map<string, boolean>([
+  ['1', true],
+  ['true', true],
+  ['yes', true],
+  ['on', true],
+  ['0', false],
+  ['false', false],
+  ['no', false],
+  ['off', false],
+]);
+
+const envBoolean = (value: string | undefined) => {
+  const normalized = envString(value)?.toLowerCase();
+
+  if (normalized === undefined) {
+    return booleanEnvValues.get('');
+  }
+
+  return booleanEnvValues.get(normalized);
+};
+
+const runtimeEnvValue = (
+  env: SmartSuggestWorkerEnv | undefined,
+  key: keyof SmartSuggestWorkerEnv,
+) => env?.[key] ?? (typeof process === 'undefined' ? undefined : process.env[key]);
+
+const runtimeEnvString = (
+  env: SmartSuggestWorkerEnv | undefined,
+  key: keyof SmartSuggestWorkerEnv,
+) => envString(runtimeEnvValue(env, key));
+
+const runtimeEnvStringArray = (
+  env: SmartSuggestWorkerEnv | undefined,
+  key: keyof SmartSuggestWorkerEnv,
+) => envStringArray(runtimeEnvValue(env, key));
+
+const runtimeEnvNumber = (
+  env: SmartSuggestWorkerEnv | undefined,
+  key: keyof SmartSuggestWorkerEnv,
+) => envNumber(runtimeEnvValue(env, key));
+
+const runtimeEnvBoolean = (
+  env: SmartSuggestWorkerEnv | undefined,
+  key: keyof SmartSuggestWorkerEnv,
+) => envBoolean(runtimeEnvValue(env, key));
+
 const configuredCorsOrigins = (env?: SmartSuggestWorkerEnv) =>
-  envStringArray(env?.SMART_SUGGEST_ALLOWED_ORIGINS) ?? [];
+  runtimeEnvStringArray(env, 'SMART_SUGGEST_ALLOWED_ORIGINS') ?? [];
 
 const corsOriginForRequest = (request: Request, env?: SmartSuggestWorkerEnv) => {
   const origin = request.headers.get('origin')?.trim();
@@ -351,11 +857,28 @@ const preflight = (request: Request, env?: SmartSuggestWorkerEnv) => {
   return new Response(null, { headers, status: 204 });
 };
 
+const alpha2ByAlpha3: Record<string, string> = {
+  AUT: 'AT',
+  CZE: 'CZ',
+  DEU: 'DE',
+  ESP: 'ES',
+  FRA: 'FR',
+  GBR: 'GB',
+  HUN: 'HU',
+  ITA: 'IT',
+  POL: 'PL',
+  SVK: 'SK',
+  USA: 'US',
+};
+
 const toCountryCode = (value: string | undefined) => {
   const normalizedCountryCode = value?.trim().toUpperCase();
+  const alpha2 =
+    normalizedCountryCode === undefined ? undefined : alpha2ByAlpha3[normalizedCountryCode];
+
   return normalizedCountryCode === undefined || normalizedCountryCode === ''
     ? undefined
-    : (normalizedCountryCode as SmartSuggestCountryCode);
+    : ((alpha2 ?? normalizedCountryCode) as SmartSuggestCountryCode);
 };
 
 const readJsonRecord = async (request: Request) => {
@@ -380,28 +903,276 @@ const toSafeImportRunSummary = (
   completedAt: run.completedAt,
   failedRows: run.failedRows,
   id: run.id,
+  importKind: run.importKind,
   insertedRows: run.insertedRows,
   shardCountryCode: run.shardCountryCode,
+  skippedRows: run.skippedRows,
+  sourceFeedId: run.sourceFeedId,
   sourceId: run.sourceId,
+  sourceValidAt: run.sourceValidAt,
+  sourceVersion: run.sourceVersion,
   startedAt: run.startedAt,
   status: run.status,
+  tombstonedRows: run.tombstonedRows,
   totalRows: run.totalRows,
+  upsertedRows: run.upsertedRows,
 });
 
+const freshnessSlaMaxDeltaAgeHours = 48;
+const shardWarnSizeBytes = 5_000_000_000;
+const shardBlockSizeBytes = 6_000_000_000;
+
+type ImportRunSummary = ReturnType<typeof toSafeImportRunSummary>;
+type ShardMetadataRecord = Awaited<
+  ReturnType<SmartSuggestRepositories['shardRegistry']['listShardMetadata']>
+>[number];
+
+const compareOptionalIsoDesc = (left: string | undefined, right: string | undefined) =>
+  (right ?? '').localeCompare(left ?? '');
+
+const completedImportRuns = (runs: readonly ImportRunSummary[]) =>
+  runs.filter((run) => run.status === 'completed');
+
+const latestImportRunByKind = (
+  runs: readonly ImportRunSummary[],
+  importKind: ImportRunSummary['importKind'],
+) =>
+  runs
+    .filter((run) => run.importKind === importKind)
+    .toSorted((left, right) => compareOptionalIsoDesc(left.completedAt, right.completedAt))[0];
+
+const toFreshnessRun = (run: ImportRunSummary | undefined) => {
+  if (run === undefined) {
+    return;
+  }
+
+  return {
+    completedAt: run.completedAt,
+    failedRows: run.failedRows,
+    runId: run.id,
+    sourceFeedId: run.sourceFeedId,
+    sourceValidAt: run.sourceValidAt,
+    sourceVersion: run.sourceVersion,
+    status: run.status,
+    tombstonedRows: run.tombstonedRows,
+    totalRows: run.totalRows,
+    upsertedRows: run.upsertedRows,
+  };
+};
+
+const freshnessReferenceIso = (run: ImportRunSummary | undefined) =>
+  run?.sourceValidAt ?? run?.completedAt;
+
+const freshnessAgeHours = (measuredAt: string, referenceIso: string | undefined) => {
+  if (referenceIso === undefined) {
+    return;
+  }
+
+  const measured = Date.parse(measuredAt);
+  const reference = Date.parse(referenceIso);
+
+  if (!(Number.isFinite(measured) && Number.isFinite(reference))) {
+    return;
+  }
+
+  return roundMetric(Math.max(0, measured - reference) / 3_600_000);
+};
+
+const freshnessSlaStatus = (ageHours: number | undefined) => {
+  if (ageHours === undefined) {
+    return 'unknown';
+  }
+
+  return ageHours <= freshnessSlaMaxDeltaAgeHours ? 'fresh' : 'stale';
+};
+
+const summarizeImportFreshness = (runs: readonly ImportRunSummary[], measuredAt: string) => {
+  const completedRuns = completedImportRuns(runs);
+  const latestBaseline = latestImportRunByKind(completedRuns, 'baseline');
+  const latestDelta = latestImportRunByKind(completedRuns, 'delta');
+  const referenceRun = latestDelta ?? latestBaseline;
+  const ageHours = freshnessAgeHours(measuredAt, freshnessReferenceIso(referenceRun));
+  const rowCounts = {
+    failedRows: 0,
+    skippedRows: 0,
+    tombstonedRows: 0,
+    totalRows: 0,
+    upsertedRows: 0,
+  };
+
+  for (const run of completedRuns) {
+    rowCounts.failedRows += run.failedRows;
+    rowCounts.skippedRows += run.skippedRows;
+    rowCounts.tombstonedRows += run.tombstonedRows;
+    rowCounts.totalRows += run.totalRows;
+    rowCounts.upsertedRows += run.upsertedRows;
+  }
+
+  return {
+    latestBaseline: toFreshnessRun(latestBaseline),
+    latestDelta: toFreshnessRun(latestDelta),
+    rowCounts,
+    sla: {
+      ageHours,
+      maxDeltaAgeHours: freshnessSlaMaxDeltaAgeHours,
+      measuredAt,
+      status: freshnessSlaStatus(ageHours),
+    },
+  };
+};
+
+const toSafeShardSummary = (record: ShardMetadataRecord) => ({
+  bindingName: record.bindingName,
+  countryCode: record.countryCode,
+  estimatedSizeBytes: record.estimatedSizeBytes,
+  importVersion: record.importVersion,
+  lastImportCompletedAt: record.lastImportCompletedAt,
+  regionCode: record.regionCode,
+  regionKind: record.regionKind,
+  regionName: record.regionName,
+  rowCount: record.rowCount,
+  shardId: record.shardId,
+  sourceFreshnessAt: record.sourceFreshnessAt,
+  state: record.state,
+});
+
+const shardSizeStatus = (records: readonly ShardMetadataRecord[]) => {
+  if (records.some((record) => (record.estimatedSizeBytes ?? 0) >= shardBlockSizeBytes)) {
+    return 'blocked';
+  }
+  if (records.some((record) => (record.estimatedSizeBytes ?? 0) >= shardWarnSizeBytes)) {
+    return 'warning';
+  }
+
+  return 'ok';
+};
+
+const summarizeShardHealth = (records: readonly ShardMetadataRecord[]) => {
+  const activeRecords = records.filter((record) => record.state === 'active');
+  let maxEstimatedSizeBytes = 0;
+  let rowCount = 0;
+
+  for (const record of records) {
+    maxEstimatedSizeBytes = Math.max(maxEstimatedSizeBytes, record.estimatedSizeBytes ?? 0);
+    rowCount += record.rowCount;
+  }
+
+  return {
+    activeCount: activeRecords.length,
+    disabledCount: records.filter((record) => record.state === 'disabled').length,
+    maxEstimatedSizeBytes,
+    rowCount,
+    shards: records.map(toSafeShardSummary),
+    sizeGuard: {
+      blockBytes: shardBlockSizeBytes,
+      status: shardSizeStatus(records),
+      warnBytes: shardWarnSizeBytes,
+    },
+    standbyCount: records.filter((record) => record.state === 'standby').length,
+    totalCount: records.length,
+  };
+};
+
+const authoritativeSourceIds = ['ruian-cz'] as const;
+
+const hasSourceModificationNoteHash = (source: DataSourceRecord | undefined) =>
+  typeof source?.modificationNoteSha256 === 'string' &&
+  /^[a-f0-9]{64}$/u.test(source.modificationNoteSha256);
+
+const toSafeSourceProvenance = (
+  sourceId: (typeof authoritativeSourceIds)[number],
+  source: DataSourceRecord | undefined,
+) => ({
+  attribution: source?.attribution,
+  datasetVersion: source?.datasetVersion,
+  modificationNoteSha256Present: hasSourceModificationNoteHash(source),
+  present: source !== undefined,
+  sourceId,
+  sourceKind: source?.sourceKind ?? null,
+});
+
+const summarizeSourceProvenance = async (repositories: SmartSuggestRepositories) => ({
+  authoritativeSources: await Promise.all(
+    authoritativeSourceIds.map(async (sourceId) => {
+      let source: DataSourceRecord | undefined;
+
+      try {
+        source = await repositories.dataSources.getDataSource(sourceId);
+      } catch {
+        // Status provenance is read-only telemetry; missing data is reported below.
+      }
+
+      return toSafeSourceProvenance(sourceId, source);
+    }),
+  ),
+});
+
+const sourcePolicySourceIds = Object.values(SMART_SUGGEST_PROVIDER_SOURCE_ID_ALIASES);
+
+const uniqueSortedSourceIds = (sourceIds: readonly string[]) => [...new Set(sourceIds)].toSorted();
+
+const summarizeSourcePolicies = () => {
+  const providerSourceIds = uniqueSortedSourceIds(sourcePolicySourceIds);
+  const durableRetentionAllowed = providerSourceIds.filter((sourceId) =>
+    smartSuggestSourceAllowsWrite(sourceId, 'durable-retention'),
+  );
+  const permanentCacheAllowed = providerSourceIds.filter((sourceId) =>
+    smartSuggestSourceAllowsWrite(sourceId, 'permanent-cache'),
+  );
+  const ttlCacheOnly = providerSourceIds
+    .map((sourceId) => ({
+      maxTtlDays: smartSuggestSourceMaxTtlDays(sourceId),
+      sourceId,
+    }))
+    .filter(
+      (
+        policy,
+      ): policy is {
+        maxTtlDays: number;
+        sourceId: string;
+      } =>
+        policy.maxTtlDays !== undefined &&
+        !smartSuggestSourceAllowsWrite(policy.sourceId, 'durable-retention'),
+    );
+  const noDurableRetention = providerSourceIds.filter(
+    (sourceId) =>
+      getSmartSuggestSourcePolicy(sourceId)?.sourceKind === 'live-provider' &&
+      !smartSuggestSourceAllowsWrite(sourceId, 'durable-retention'),
+  );
+
+  return {
+    providerSources: {
+      durableRetentionAllowed,
+      noDurableRetention,
+      permanentCacheAllowed,
+      ttlCacheOnly,
+    },
+    rawQueryStorage: 'disabled',
+  };
+};
+
 const status = async (repositories: SmartSuggestRepositories) => {
-  const [storage, importRuns] = await Promise.all([
+  const timestamp = nowIso();
+  const [storage, importRuns, shardMetadata, sourceProvenance] = await Promise.all([
     repositories.health.check().catch(() => null),
-    repositories.importRuns.listRecentImportRuns(5).catch(() => []),
+    repositories.importRuns.listRecentImportRuns(50).catch(() => []),
+    repositories.shardRegistry.listShardMetadata().catch(() => []),
+    summarizeSourceProvenance(repositories),
   ]);
+  const safeImportRuns = importRuns.map(toSafeImportRunSummary);
 
   return jsonResponse({
     db: storage,
     imports: {
-      recentRuns: importRuns.map(toSafeImportRunSummary),
+      freshness: summarizeImportFreshness(safeImportRuns, timestamp),
+      recentRuns: safeImportRuns.slice(0, 5),
     },
     metrics: summarizeMetrics(metricsForRepositories(repositories)),
     service: 'smart-suggest',
-    timestamp: nowIso(),
+    shards: summarizeShardHealth(shardMetadata),
+    sourcePolicy: summarizeSourcePolicies(),
+    sourceProvenance,
+    timestamp,
   });
 };
 
@@ -411,7 +1182,7 @@ const parsePhoneValidationRequest = (
   const rawInput = optionalString(body['rawInput']);
 
   if (rawInput === undefined) {
-    return undefined;
+    return;
   }
 
   const request: PhoneValidationRequest = { rawInput };
@@ -445,7 +1216,7 @@ const parsePostalValidationRequest = (
   const countryCode = toCountryCode(optionalString(body['countryCode']));
 
   if (rawInput === undefined || countryCode === undefined) {
-    return undefined;
+    return;
   }
 
   return { countryCode, rawInput };
@@ -525,11 +1296,11 @@ const parseSuggestRequest = (url: URL): SmartSuggestRequest | undefined => {
   const kind = url.searchParams.get('kind') as SmartSuggestKind | null;
 
   if (query === null || query.trim().length === 0 || kind === null) {
-    return undefined;
+    return;
   }
 
   if (!['address', 'place', 'postal'].includes(kind)) {
-    return undefined;
+    return;
   }
 
   const request: SmartSuggestRequest = {
@@ -559,6 +1330,40 @@ type SuggestionSourceRecord = Pick<
   'attribution' | 'datasetVersion' | 'id' | 'name' | 'sourceKind'
 >;
 
+type SampleSuggestionSourceRecord = Omit<SuggestionSourceRecord, 'sourceKind'> & {
+  sourceKind: string;
+};
+
+const suggestionSourceKinds = new Set<SuggestionSourceKind>([
+  'cache',
+  'live-provider',
+  'owned-dataset',
+]);
+
+const isSuggestionSourceKind = (value: string): value is SuggestionSourceKind =>
+  suggestionSourceKinds.has(value as SuggestionSourceKind);
+
+const normalizeSampleSuggestionSource = (
+  source: SampleSuggestionSourceRecord,
+): SuggestionSourceRecord => {
+  if (!isSuggestionSourceKind(source.sourceKind)) {
+    throw new Error(`Unknown Smart Suggest sample source kind: ${source.sourceKind}`);
+  }
+
+  const normalizedSource: SuggestionSourceRecord = {
+    attribution: source.attribution,
+    id: source.id,
+    name: source.name,
+    sourceKind: source.sourceKind,
+  };
+
+  if (source.datasetVersion !== undefined) {
+    normalizedSource.datasetVersion = source.datasetVersion;
+  }
+
+  return normalizedSource;
+};
+
 const toSuggestionSource = (source: SuggestionSourceRecord): SuggestionSource => {
   const suggestionSource: SuggestionSource = {
     attribution: source.attribution,
@@ -574,20 +1379,22 @@ const toSuggestionSource = (source: SuggestionSourceRecord): SuggestionSource =>
   return suggestionSource;
 };
 
-const defaultSampleDataSource = () => {
+const defaultSampleDataSource = (): SuggestionSourceRecord => {
   const [source] = SAMPLE_DATA_SOURCES;
 
   if (source === undefined) {
     throw new Error('Smart Suggest sample data sources are empty.');
   }
 
-  return source;
+  return normalizeSampleSuggestionSource(source);
 };
 
 const sourceForSourceId = (sourceId: string): SuggestionSource => {
   const source = SAMPLE_DATA_SOURCES.find((entry) => entry.id === sourceId);
 
-  return toSuggestionSource(source ?? defaultSampleDataSource());
+  return toSuggestionSource(
+    source === undefined ? defaultSampleDataSource() : normalizeSampleSuggestionSource(source),
+  );
 };
 
 const sourceForAddressRecord = async (
@@ -601,7 +1408,7 @@ const sourceForAddressRecord = async (
 
 const parseSuggestionSource = (value: unknown): SuggestionSource | undefined => {
   if (!isRecord(value)) {
-    return undefined;
+    return;
   }
 
   const id = optionalString(value['id']);
@@ -613,7 +1420,7 @@ const parseSuggestionSource = (value: unknown): SuggestionSource | undefined => 
     name === undefined ||
     !['cache', 'live-provider', 'owned-dataset'].includes(kind ?? '')
   ) {
-    return undefined;
+    return;
   }
 
   return {
@@ -711,7 +1518,7 @@ const readScopedProviderConfig = (
       .map((config) => optionalStringArray(config['providerPriority']))
       .find((value) => value !== undefined) ??
     tenant?.providerPriority ??
-    envStringArray(env?.SMART_SUGGEST_PROVIDER_PRIORITY);
+    runtimeEnvStringArray(env, 'SMART_SUGGEST_PROVIDER_PRIORITY');
 
   return {
     priority,
@@ -719,42 +1526,220 @@ const readScopedProviderConfig = (
   };
 };
 
+const readProviderConfigRecord = (
+  providerScopes: readonly Record<string, unknown>[],
+  providerKeys: readonly string[],
+) =>
+  providerScopes
+    .map((providerScope) => {
+      const providers = readOptionalRecord(providerScope['providers']);
+
+      return providerKeys
+        .map((providerKey) => readOptionalRecord(providers?.[providerKey]))
+        .find((value) => value !== undefined);
+    })
+    .find((value) => value !== undefined);
+
+const assignDefined = <TTarget extends object, TKey extends keyof TTarget>(
+  target: TTarget,
+  key: TKey,
+  value: TTarget[TKey] | undefined,
+) => {
+  if (value !== undefined) {
+    target[key] = value;
+  }
+};
+
+const readProviderString = (
+  providerConfig: Record<string, unknown> | undefined,
+  key: string,
+  env: SmartSuggestWorkerEnv | undefined,
+  envKey: keyof SmartSuggestWorkerEnv,
+) => optionalString(providerConfig?.[key]) ?? runtimeEnvString(env, envKey);
+
+const readProviderNumber = (
+  providerConfig: Record<string, unknown> | undefined,
+  key: string,
+  env: SmartSuggestWorkerEnv | undefined,
+  envKey: keyof SmartSuggestWorkerEnv,
+) => optionalNumber(providerConfig?.[key]) ?? runtimeEnvNumber(env, envKey);
+
 const readMapyProviderConfig = (
   providerScopes: readonly Record<string, unknown>[],
   request: SmartSuggestRequest,
   env?: SmartSuggestWorkerEnv,
 ): SmartSuggestProviderRuntimeConfig['mapyCz'] => {
-  const mapyConfig = providerScopes
-    .map((providerScope) => {
-      const providers = readOptionalRecord(providerScope['providers']);
-      return (
-        readOptionalRecord(providers?.['mapy-cz']) ?? readOptionalRecord(providers?.['mapyCz'])
-      );
-    })
-    .find((value) => value !== undefined);
-  const apiKey = optionalString(mapyConfig?.['apiKey']) ?? envString(env?.MAPY_CZ_API_KEY);
+  const mapyConfig = readProviderConfigRecord(providerScopes, ['mapy-cz', 'mapyCz']);
+  const apiKey = optionalString(mapyConfig?.['apiKey']) ?? runtimeEnvString(env, 'MAPY_CZ_API_KEY');
 
   if (apiKey === undefined) {
-    return undefined;
+    return;
   }
 
   const config: NonNullable<SmartSuggestProviderRuntimeConfig['mapyCz']> = {
     apiKey,
   };
   const endpointUrl =
-    optionalString(mapyConfig?.['endpointUrl']) ?? envString(env?.MAPY_CZ_ENDPOINT_URL);
+    optionalString(mapyConfig?.['endpointUrl']) ?? runtimeEnvString(env, 'MAPY_CZ_ENDPOINT_URL');
   const language = optionalString(mapyConfig?.['language']) ?? request.language;
   const limit = optionalNumber(mapyConfig?.['limit']);
 
-  if (endpointUrl !== undefined) {
-    config.endpointUrl = endpointUrl;
+  assignDefined(config, 'endpointUrl', endpointUrl);
+  assignDefined(config, 'language', language);
+  assignDefined(config, 'limit', limit);
+
+  return config;
+};
+
+const readRuianGeocodeProviderConfig = (
+  providerScopes: readonly Record<string, unknown>[],
+  request: SmartSuggestRequest,
+  env?: SmartSuggestWorkerEnv,
+): SmartSuggestProviderRuntimeConfig['ruianGeocode'] => {
+  if (request.kind !== 'address') {
+    return;
   }
-  if (language !== undefined) {
-    config.language = language;
+
+  if (request.countryCode !== undefined && request.countryCode !== 'CZ') {
+    return;
   }
-  if (limit !== undefined) {
-    config.limit = limit;
+
+  const ruianConfig = readProviderConfigRecord(providerScopes, [
+    'ruian',
+    'ruian-geocode',
+    'ruianGeocode',
+  ]);
+  const enabled = optionalBoolean(ruianConfig?.['enabled']);
+  const disabled =
+    optionalBoolean(ruianConfig?.['disabled']) ?? runtimeEnvBoolean(env, 'RUIAN_GEOCODE_DISABLED');
+
+  if (enabled === false || disabled === true) {
+    return;
   }
+
+  const config: NonNullable<SmartSuggestProviderRuntimeConfig['ruianGeocode']> = {};
+  const baseUrl =
+    optionalString(ruianConfig?.['baseUrl']) ?? runtimeEnvString(env, 'RUIAN_GEOCODE_BASE_URL');
+  const limit =
+    optionalNumber(ruianConfig?.['limit']) ?? runtimeEnvNumber(env, 'RUIAN_GEOCODE_DEFAULT_LIMIT');
+
+  assignDefined(config, 'baseUrl', baseUrl);
+  assignDefined(config, 'limit', limit);
+
+  return config;
+};
+
+const readRadarAutocompleteProviderConfig = (
+  providerScopes: readonly Record<string, unknown>[],
+  env?: SmartSuggestWorkerEnv,
+): SmartSuggestProviderRuntimeConfig['radarAutocomplete'] => {
+  const radarConfig = readProviderConfigRecord(providerScopes, [
+    'radar-autocomplete',
+    'radarAutocomplete',
+  ]);
+  const apiKey = optionalString(radarConfig?.['apiKey']) ?? runtimeEnvString(env, 'RADAR_API_KEY');
+
+  if (apiKey === undefined) {
+    return;
+  }
+
+  const config: NonNullable<SmartSuggestProviderRuntimeConfig['radarAutocomplete']> = {
+    apiKey,
+  };
+  const baseUrl =
+    optionalString(radarConfig?.['baseUrl']) ??
+    runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_BASE_URL');
+  const countryCode =
+    toCountryCode(optionalString(radarConfig?.['countryCode'])) ??
+    toCountryCode(runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_COUNTRY_CODE'));
+  const layers =
+    optionalString(radarConfig?.['layers']) ?? runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_LAYERS');
+  const limit =
+    optionalNumber(radarConfig?.['limit']) ??
+    runtimeEnvNumber(env, 'RADAR_AUTOCOMPLETE_DEFAULT_LIMIT');
+  const near =
+    optionalString(radarConfig?.['near']) ?? runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_NEAR');
+
+  assignDefined(config, 'baseUrl', baseUrl);
+  assignDefined(config, 'countryCode', countryCode);
+  assignDefined(config, 'layers', layers);
+  assignDefined(config, 'limit', limit);
+  assignDefined(config, 'near', near);
+
+  return config;
+};
+
+const readHereFallbackAt = (
+  hereConfig: Record<string, unknown> | undefined,
+  env?: SmartSuggestWorkerEnv,
+) => {
+  const defaultLat = readProviderNumber(hereConfig, 'defaultLat', env, 'HERE_DEFAULT_LAT');
+  const defaultLng = readProviderNumber(hereConfig, 'defaultLng', env, 'HERE_DEFAULT_LNG');
+
+  return defaultLat === undefined || defaultLng === undefined
+    ? undefined
+    : `${defaultLat},${defaultLng}`;
+};
+
+const readHereDiscoverProviderConfig = (
+  providerScopes: readonly Record<string, unknown>[],
+  env?: SmartSuggestWorkerEnv,
+): SmartSuggestProviderRuntimeConfig['hereDiscover'] => {
+  const hereConfig = readProviderConfigRecord(providerScopes, ['here-discover', 'hereDiscover']);
+  const apiKey = optionalString(hereConfig?.['apiKey']) ?? runtimeEnvString(env, 'HERE_API_KEY');
+
+  if (apiKey === undefined) {
+    return;
+  }
+
+  const config: NonNullable<SmartSuggestProviderRuntimeConfig['hereDiscover']> = {
+    apiKey,
+  };
+  const baseUrl = readProviderString(hereConfig, 'baseUrl', env, 'HERE_DISCOVER_BASE_URL');
+  const at =
+    readProviderString(hereConfig, 'at', env, 'HERE_DISCOVER_AT') ??
+    readHereFallbackAt(hereConfig, env);
+  const inArea = readProviderString(hereConfig, 'inArea', env, 'HERE_DISCOVER_IN_AREA');
+  const language = readProviderString(hereConfig, 'language', env, 'HERE_DISCOVER_LANGUAGE');
+  const limit = readProviderNumber(hereConfig, 'limit', env, 'HERE_DISCOVER_DEFAULT_LIMIT');
+
+  assignDefined(config, 'at', at);
+  assignDefined(config, 'baseUrl', baseUrl);
+  assignDefined(config, 'inArea', inArea);
+  assignDefined(config, 'language', language);
+  assignDefined(config, 'limit', limit);
+
+  return config;
+};
+
+const readNominatimProviderConfig = (
+  providerScopes: readonly Record<string, unknown>[],
+  env?: SmartSuggestWorkerEnv,
+): SmartSuggestProviderRuntimeConfig['nominatim'] => {
+  const nominatimConfig = readProviderConfigRecord(providerScopes, ['nominatim']);
+  const userAgent =
+    optionalString(nominatimConfig?.['userAgent']) ?? runtimeEnvString(env, 'NOMINATIM_USER_AGENT');
+
+  if (userAgent === undefined) {
+    return;
+  }
+
+  const config: NonNullable<SmartSuggestProviderRuntimeConfig['nominatim']> = {
+    userAgent,
+  };
+  const baseUrl =
+    optionalString(nominatimConfig?.['baseUrl']) ?? runtimeEnvString(env, 'NOMINATIM_BASE_URL');
+  const email =
+    optionalString(nominatimConfig?.['email']) ?? runtimeEnvString(env, 'NOMINATIM_EMAIL');
+  const limit =
+    optionalNumber(nominatimConfig?.['limit']) ?? runtimeEnvNumber(env, 'NOMINATIM_DEFAULT_LIMIT');
+  const referer =
+    optionalString(nominatimConfig?.['referer']) ?? runtimeEnvString(env, 'NOMINATIM_REFERER');
+
+  assignDefined(config, 'baseUrl', baseUrl);
+  assignDefined(config, 'email', email);
+  assignDefined(config, 'limit', limit);
+  assignDefined(config, 'referer', referer);
 
   return config;
 };
@@ -764,6 +1749,20 @@ const readProviderTimeoutMs = (providerScopes: readonly Record<string, unknown>[
     .map((providerScope) => optionalNumber(providerScope['providerTimeoutMs']))
     .find((value) => value !== undefined);
 
+const readProviderCacheTtlSeconds = (
+  providerScopes: readonly Record<string, unknown>[],
+  env?: SmartSuggestWorkerEnv,
+) => {
+  const configured =
+    providerScopes
+      .map((providerScope) => optionalNumber(providerScope['providerCacheTtlSeconds']))
+      .find((value) => value !== undefined) ??
+    runtimeEnvNumber(env, 'SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS') ??
+    43_200;
+
+  return Math.max(60, Math.min(Math.trunc(configured), 604_800));
+};
+
 const readProviderRuntimeConfig = (
   tenant: TenantRecord | undefined,
   request: SmartSuggestRequest,
@@ -772,16 +1771,32 @@ const readProviderRuntimeConfig = (
   const scopedConfig = readScopedProviderConfig(tenant, request, env);
   const config: SmartSuggestProviderRuntimeConfig = {};
   const { priority } = scopedConfig;
+  const ruianGeocode = readRuianGeocodeProviderConfig(scopedConfig.scopeConfigs, request, env);
   const mapyCz = readMapyProviderConfig(scopedConfig.scopeConfigs, request, env);
+  const radarAutocomplete = readRadarAutocompleteProviderConfig(scopedConfig.scopeConfigs, env);
+  const hereDiscover = readHereDiscoverProviderConfig(scopedConfig.scopeConfigs, env);
+  const nominatim = readNominatimProviderConfig(scopedConfig.scopeConfigs, env);
   const timeoutMs =
     readProviderTimeoutMs(scopedConfig.scopeConfigs) ??
-    envNumber(env?.SMART_SUGGEST_PROVIDER_TIMEOUT_MS);
+    runtimeEnvNumber(env, 'SMART_SUGGEST_PROVIDER_TIMEOUT_MS');
 
   if (priority !== undefined) {
     config.priority = priority;
   }
+  if (ruianGeocode !== undefined) {
+    config.ruianGeocode = ruianGeocode;
+  }
   if (mapyCz !== undefined) {
     config.mapyCz = mapyCz;
+  }
+  if (radarAutocomplete !== undefined) {
+    config.radarAutocomplete = radarAutocomplete;
+  }
+  if (hereDiscover !== undefined) {
+    config.hereDiscover = hereDiscover;
+  }
+  if (nominatim !== undefined) {
+    config.nominatim = nominatim;
   }
   if (timeoutMs !== undefined) {
     config.timeoutMs = timeoutMs;
@@ -820,13 +1835,21 @@ const getProviderRegistry = (
   return registry;
 };
 
-const recordProviderEvents = async (
-  events: readonly ProviderEventSummary[],
-  request: SmartSuggestRequest,
-  requestId: string,
-  queryHash: string,
-  repositories: SmartSuggestRepositories,
-) => {
+interface RecordProviderEventsInput {
+  events: readonly ProviderEventSummary[];
+  queryHash: string;
+  repositories: SmartSuggestRepositories;
+  request: SmartSuggestRequest;
+  requestId: string;
+}
+
+const recordProviderEvents = async ({
+  events,
+  queryHash,
+  repositories,
+  request,
+  requestId,
+}: RecordProviderEventsInput) => {
   const metrics = metricsForRepositories(repositories);
 
   await Promise.all(
@@ -856,42 +1879,339 @@ const recordProviderEvents = async (
   );
 };
 
-const suggestFromProviderFallback = async (
+const liveProviderDataSourceId = (source: SuggestionSource, countryCode: SmartSuggestCountryCode) =>
+  `live-provider:${source.id}:${countryCode}`;
+
+const liveProviderSourceIdFromDataSourceId = (sourceId: string) => {
+  if (!sourceId.startsWith('live-provider:')) {
+    return sourceId;
+  }
+
+  return sourceId.slice('live-provider:'.length).split(':')[0] ?? sourceId;
+};
+
+const catalogSourceIdForSuggestionSource = (source: SuggestionSource) =>
+  liveProviderSourceIdFromDataSourceId(source.id);
+
+const sourceAllowsLiveProviderDurableRetention = (source: SuggestionSource) =>
+  smartSuggestSourceAllowsWrite(catalogSourceIdForSuggestionSource(source), 'durable-retention');
+
+const secondsPerDay = 86_400;
+
+const sourceAllowsProviderCache = (source: SuggestionSource, ttlSeconds: number) => {
+  const sourceId = catalogSourceIdForSuggestionSource(source);
+
+  return (
+    smartSuggestSourceAllowsWrite(sourceId, 'permanent-cache') ||
+    smartSuggestSourceAllowsTtlCache(sourceId, Math.ceil(ttlSeconds / secondsPerDay))
+  );
+};
+
+const attributionForLiveProviderSuggestion = (suggestion: SmartSuggestSuggestion) =>
+  suggestion.source.attribution ??
+  suggestion.attribution ?? {
+    label: suggestion.source.name,
+  };
+
+const cachePolicyForLiveProviderDataSource = (
+  source: SuggestionSource,
+  ttlSeconds: number,
+): Parameters<SmartSuggestRepositories['dataSources']['registerDataSource']>[0]['cachePolicy'] =>
+  smartSuggestSourceAllowsWrite(catalogSourceIdForSuggestionSource(source), 'permanent-cache')
+    ? { kind: 'permanent' }
+    : { kind: 'ttl', ttlSeconds };
+
+const countryCodeForSuggestion = (
   request: SmartSuggestRequest,
-  queryHash: string,
-  ownedResponse: SmartSuggestResponse,
+  suggestion: SmartSuggestSuggestion,
+) => toCountryCode(suggestion.address?.countryCode) ?? request.countryCode;
+
+const registerLiveProviderDataSource = (
   repositories: SmartSuggestRepositories,
-  env?: SmartSuggestWorkerEnv,
+  suggestion: SmartSuggestSuggestion,
+  countryCode: SmartSuggestCountryCode,
+  ttlSeconds: number,
 ) => {
+  const input: Parameters<typeof repositories.dataSources.registerDataSource>[0] = {
+    attribution: attributionForLiveProviderSuggestion(suggestion),
+    cachePolicy: cachePolicyForLiveProviderDataSource(suggestion.source, ttlSeconds),
+    countryCode,
+    id: liveProviderDataSourceId(suggestion.source, countryCode),
+    name: suggestion.source.name,
+    sourceKind: 'live-provider',
+  };
+
+  if (suggestion.source.datasetVersion !== undefined) {
+    input.datasetVersion = suggestion.source.datasetVersion;
+  }
+
+  return repositories.dataSources.registerDataSource(input);
+};
+
+const persistLiveProviderSuggestions = async (
+  request: SmartSuggestRequest,
+  response: SmartSuggestResponse,
+  repositories: SmartSuggestRepositories,
+  ttlSeconds: number,
+) => {
+  const recordResults = await Promise.all(
+    response.suggestions.map(async (suggestion): Promise<AddressSearchRecordInput | undefined> => {
+      const countryCode = countryCodeForSuggestion(request, suggestion);
+
+      if (
+        countryCode === undefined ||
+        !sourceAllowsLiveProviderDurableRetention(suggestion.source)
+      ) {
+        return;
+      }
+
+      const source = await registerLiveProviderDataSource(
+        repositories,
+        suggestion,
+        countryCode,
+        ttlSeconds,
+      );
+      return createAddressRecordFromSuggestion({
+        countryCode,
+        sourceId: source.id,
+        suggestion,
+      });
+    }),
+  );
+  const records = recordResults.filter(
+    (record): record is AddressSearchRecordInput => record !== undefined,
+  );
+
+  if (records.length === 0) {
+    return [];
+  }
+
+  return repositories.addressRecords.upsertAddressRecords(records);
+};
+
+const withCacheStatus = (
+  response: SmartSuggestResponse,
+  cacheStatus: SmartSuggestCacheStatus,
+): SmartSuggestResponse => ({
+  ...response,
+  cacheStatus,
+  suggestions: response.suggestions.map((suggestion) => ({
+    ...suggestion,
+    cacheStatus,
+  })),
+});
+
+const addressNumberPattern = /\d/u;
+
+const hasAddressNumberSignal = (address: NonNullable<SmartSuggestSuggestion['address']>) =>
+  address.houseNumber !== undefined || addressNumberPattern.test(address.line1 ?? '');
+
+const isCompleteAddressSuggestion = (suggestion: SmartSuggestSuggestion) =>
+  suggestion.address !== undefined &&
+  hasAddressNumberSignal(suggestion.address) &&
+  (suggestion.address.street !== undefined || suggestion.address.line1 !== undefined);
+
+const filterSuggestionsForRequest = (
+  request: SmartSuggestRequest,
+  response: SmartSuggestResponse,
+): SmartSuggestResponse =>
+  request.kind === 'address'
+    ? {
+        ...response,
+        suggestions: response.suggestions.filter(isCompleteAddressSuggestion),
+      }
+    : response;
+
+const normalizeSuggestionMergeText = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replaceAll(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('cs-CZ')
+    .replaceAll(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replaceAll(/\s+/gu, ' ');
+
+const normalizeSuggestionPostalCode = (value: string | undefined) =>
+  value?.replaceAll(/\D/gu, '') ?? '';
+
+const suggestionMergeKey = (suggestion: SmartSuggestSuggestion) => {
+  const { address } = suggestion;
+  const structuredKey = [
+    address?.countryCode,
+    normalizeSuggestionPostalCode(address?.postalCode),
+    address?.city,
+    address?.street ?? address?.line1,
+    address?.houseNumber,
+    address?.orientationNumber,
+  ]
+    .filter((value) => value !== undefined && value.trim() !== '')
+    .join('|');
+
+  return normalizeSuggestionMergeText(
+    structuredKey === '' ? `${suggestion.source.id}|${suggestion.displayLabel}` : structuredKey,
+  );
+};
+
+const mergeSuggestionResponses = (
+  ownedResponse: SmartSuggestResponse,
+  providerResponse: SmartSuggestResponse,
+  limit: number | undefined,
+): SmartSuggestResponse => {
+  const seen = new Set<string>();
+  const suggestions: SmartSuggestSuggestion[] = [];
+
+  for (const suggestion of [...ownedResponse.suggestions, ...providerResponse.suggestions]) {
+    const key = suggestionMergeKey(suggestion);
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    suggestions.push(suggestion);
+  }
+
+  return {
+    ...providerResponse,
+    suggestions: suggestions.slice(0, normalizeSuggestLimit(limit)),
+  };
+};
+
+interface WriteProviderCacheInput {
+  cacheKey: string;
+  queryHash: string;
+  repositories: SmartSuggestRepositories;
+  request: SmartSuggestRequest;
+  response: SmartSuggestResponse;
+  ttlSeconds: number;
+}
+
+const writeProviderCache = ({
+  cacheKey,
+  queryHash,
+  repositories,
+  request,
+  response,
+  ttlSeconds,
+}: WriteProviderCacheInput) => {
+  const cacheableSuggestions = response.suggestions.filter(
+    (suggestion) =>
+      suggestion.source.kind !== 'live-provider' ||
+      sourceAllowsProviderCache(suggestion.source, ttlSeconds),
+  );
+
+  if (cacheableSuggestions.length === 0) {
+    return Promise.resolve();
+  }
+
+  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+  const cacheWrite: Parameters<typeof repositories.suggestCache.writeSuggestCache>[0] = {
+    cacheKey,
+    cachePolicy: { kind: 'ttl', ttlSeconds },
+    expiresAt,
+    kind: request.kind,
+    payload: cacheableSuggestions,
+    queryHash,
+    status: 'written',
+  };
+
+  if (request.countryCode !== undefined) {
+    cacheWrite.countryCode = request.countryCode;
+  }
+  if (request.language !== undefined) {
+    cacheWrite.language = request.language;
+  }
+  if (request.tenant?.tenantId !== undefined) {
+    cacheWrite.tenantId = request.tenant.tenantId;
+  }
+
+  return repositories.suggestCache.writeSuggestCache(cacheWrite);
+};
+
+interface SuggestFromProviderFallbackInput {
+  cacheKey: string;
+  env?: SmartSuggestWorkerEnv | undefined;
+  ownedResponse: SmartSuggestResponse;
+  queryHash: string;
+  repositories: SmartSuggestRepositories;
+  request: SmartSuggestRequest;
+}
+
+const suggestFromProviderFallback = async ({
+  cacheKey,
+  env,
+  ownedResponse,
+  queryHash,
+  repositories,
+  request,
+}: SuggestFromProviderFallbackInput) => {
   try {
     const tenantId = request.tenant?.tenantId;
     const tenant =
       tenantId === undefined ? undefined : await repositories.tenants.getTenant(tenantId);
+    const scopedConfig = readScopedProviderConfig(tenant, request, env);
+    const providerCacheTtlSeconds = readProviderCacheTtlSeconds(scopedConfig.scopeConfigs, env);
     const result = await getProviderRegistry(tenant, request, env).suggest(request, {
       requestId: `provider-${queryHash.slice(0, 16)}`,
     });
 
-    await recordProviderEvents(
-      result.providerEvents,
-      request,
-      result.response.requestId,
+    await recordProviderEvents({
+      events: result.providerEvents,
       queryHash,
       repositories,
-    );
+      request,
+      requestId: result.response.requestId,
+    });
 
-    return result.response.suggestions.length > 0 ? result.response : ownedResponse;
+    if (result.response.suggestions.length === 0) {
+      return ownedResponse;
+    }
+
+    const providerResponse = withCacheStatus(result.response, 'written');
+    const mergedResponse = mergeSuggestionResponses(ownedResponse, providerResponse, request.limit);
+
+    try {
+      await Promise.all([
+        persistLiveProviderSuggestions(
+          request,
+          providerResponse,
+          repositories,
+          providerCacheTtlSeconds,
+        ),
+        writeProviderCache({
+          cacheKey,
+          queryHash,
+          repositories,
+          request,
+          response: mergedResponse,
+          ttlSeconds: providerCacheTtlSeconds,
+        }),
+      ]);
+    } catch {
+      return mergeSuggestionResponses(ownedResponse, result.response, request.limit);
+    }
+
+    return mergedResponse;
   } catch {
     return ownedResponse;
   }
 };
 
-const writeOwnedCache = (
-  cacheKey: string,
-  queryHash: string,
-  request: SmartSuggestRequest,
-  response: SmartSuggestResponse,
-  repositories: SmartSuggestRepositories,
-) => {
+interface WriteOwnedCacheInput {
+  cacheKey: string;
+  queryHash: string;
+  repositories: SmartSuggestRepositories;
+  request: SmartSuggestRequest;
+  response: SmartSuggestResponse;
+}
+
+const writeOwnedCache = ({
+  cacheKey,
+  queryHash,
+  repositories,
+  request,
+  response,
+}: WriteOwnedCacheInput) => {
   const cacheWrite: Parameters<typeof repositories.suggestCache.writeSuggestCache>[0] = {
     cacheKey,
     cachePolicy: { kind: 'permanent' },
@@ -913,6 +2233,125 @@ const writeOwnedCache = (
   return repositories.suggestCache.writeSuggestCache(cacheWrite);
 };
 
+const createSuggestCacheKeyForRequest = (request: SmartSuggestRequest, queryHash: string) => {
+  const cacheKeyInput: Parameters<typeof createSuggestCacheKey>[0] = {
+    kind: request.kind,
+    queryHash,
+  };
+
+  if (request.countryCode !== undefined) {
+    cacheKeyInput.countryCode = request.countryCode;
+  }
+  if (request.language !== undefined) {
+    cacheKeyInput.language = request.language;
+  }
+  if (request.tenant?.tenantId !== undefined) {
+    cacheKeyInput.tenantId = request.tenant.tenantId;
+  }
+
+  return createSuggestCacheKey(cacheKeyInput);
+};
+
+interface FinalizeSuggestResponseInput {
+  cacheKey: string;
+  cacheLevels: SmartSuggestCacheLevels;
+  edgeCache: SmartSuggestEdgeCache | undefined;
+  repositories: SmartSuggestRepositories;
+  response: SmartSuggestResponse;
+  sourceKind: SuggestSourceKind;
+  startedAt: number;
+  workerCache: Map<string, SmartSuggestResponse>;
+}
+
+const cacheLevelsForFinalResponse = (
+  response: SmartSuggestResponse,
+  cacheLevels: SmartSuggestCacheLevels,
+) => (response.cacheStatus === 'disabled' ? createDisabledCacheLevels() : cacheLevels);
+
+const finalizeSuggestResponse = async ({
+  cacheKey,
+  cacheLevels,
+  edgeCache,
+  repositories,
+  response,
+  sourceKind,
+  startedAt,
+  workerCache,
+}: FinalizeSuggestResponseInput) => {
+  await rememberRuntimeSuggestCaches(cacheKey, response, cacheLevels, workerCache, edgeCache);
+  const responseWithLevels = withCacheLevels(
+    response,
+    cacheLevelsForFinalResponse(response, cacheLevels),
+  );
+
+  recordSuggestResponse(repositories, responseWithLevels, startedAt, sourceKind);
+
+  return jsonResponse(responseWithLevels);
+};
+
+const writeOwnedCacheBestEffort = async (
+  input: WriteOwnedCacheInput,
+  cacheLevels: SmartSuggestCacheLevels,
+) => {
+  try {
+    await writeOwnedCache(input);
+
+    if (input.response.cacheStatus !== 'disabled') {
+      cacheLevels.d1ReadThrough = cacheLevel(true, 'written');
+    }
+  } catch {
+    // Durable cache write failures should not make a valid owned suggestion unavailable.
+  }
+};
+
+interface ProviderFallbackResponseInput {
+  cacheKey: string;
+  cacheLevels: SmartSuggestCacheLevels;
+  env?: SmartSuggestWorkerEnv | undefined;
+  ownedResponse: SmartSuggestResponse;
+  queryHash: string;
+  repositories: SmartSuggestRepositories;
+  request: SmartSuggestRequest;
+}
+
+const providerFallbackResponseFor = async ({
+  cacheKey,
+  cacheLevels,
+  env,
+  ownedResponse,
+  queryHash,
+  repositories,
+  request,
+}: ProviderFallbackResponseInput) => {
+  if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
+    return;
+  }
+
+  const fallbackResponse = filterSuggestionsForRequest(
+    request,
+    await suggestFromProviderFallback({
+      cacheKey,
+      env,
+      ownedResponse,
+      queryHash,
+      repositories,
+      request,
+    }),
+  );
+
+  if (fallbackResponse === ownedResponse) {
+    return;
+  }
+
+  cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(fallbackResponse));
+
+  if (fallbackResponse.cacheStatus === 'written') {
+    cacheLevels.d1ReadThrough = cacheLevel(true, 'written');
+  }
+
+  return fallbackResponse;
+};
+
 const suggest = async (
   request: Request,
   repositories: SmartSuggestRepositories,
@@ -929,34 +2368,78 @@ const suggest = async (
   try {
     await seedRepositories(repositories);
 
-    const queryHash = await createSuggestQueryHash(suggestRequest);
-    const cacheKeyInput: Parameters<typeof createSuggestCacheKey>[0] = {
-      kind: suggestRequest.kind,
-      queryHash,
-    };
+    const queryHashOptions: Parameters<typeof createSuggestQueryHash>[1] = {};
 
-    if (suggestRequest.countryCode !== undefined) {
-      cacheKeyInput.countryCode = suggestRequest.countryCode;
-    }
-    if (suggestRequest.language !== undefined) {
-      cacheKeyInput.language = suggestRequest.language;
-    }
-    if (suggestRequest.tenant?.tenantId !== undefined) {
-      cacheKeyInput.tenantId = suggestRequest.tenant.tenantId;
+    if (env?.SMART_SUGGEST_QUERY_HASH_SECRET !== undefined) {
+      queryHashOptions.secret = env.SMART_SUGGEST_QUERY_HASH_SECRET;
     }
 
-    const cacheKey = createSuggestCacheKey(cacheKeyInput);
+    const queryHash = await createSuggestQueryHash(suggestRequest, queryHashOptions);
+    const cacheKey = createSuggestCacheKeyForRequest(suggestRequest, queryHash);
+    const edgeCache = readEdgeCache();
+    const workerCache = workerSuggestCacheFor(repositories);
+    const cacheLevels = createSuggestCacheLevels(edgeCache !== undefined);
+    const edgeCached =
+      edgeCache === undefined ? undefined : await readEdgeSuggestResponse(edgeCache, cacheKey);
+
+    if (edgeCached !== undefined) {
+      cacheLevels.edgeCache = cacheLevel(true, 'hit');
+      cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(edgeCached));
+
+      const response = filterSuggestionsForRequest(
+        suggestRequest,
+        withCacheLevels(withCacheStatus(edgeCached, 'hit'), cacheLevels),
+      );
+
+      recordSuggestResponse(repositories, response, startedAt, 'cache');
+
+      return jsonResponse(response);
+    }
+
+    const workerCached = workerCache.get(cacheKey);
+
+    if (workerCached !== undefined) {
+      cacheLevels.workerMemory = cacheLevel(true, 'hit');
+      cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(workerCached));
+
+      let response = filterSuggestionsForRequest(
+        suggestRequest,
+        withCacheLevels(withCacheStatus(workerCached, 'hit'), cacheLevels),
+      );
+
+      if (await writeEdgeSuggestResponse(edgeCache, cacheKey, response)) {
+        cacheLevels.edgeCache = cacheLevel(true, 'written');
+        response = withCacheLevels(response, cacheLevels);
+      }
+
+      recordSuggestResponse(repositories, response, startedAt, 'cache');
+
+      return jsonResponse(response);
+    }
+
     const cached = await repositories.suggestCache.readSuggestCache(cacheKey);
 
     if (cached !== undefined && cached.status === 'hit') {
-      const response = {
-        cacheStatus: 'hit',
-        requestId: `cache-${queryHash.slice(0, 16)}`,
-        suggestions: cached.payload.slice(0, suggestRequest.limit).map((suggestion) => ({
-          ...suggestion,
-          cacheStatus: 'hit',
-        })),
-      } satisfies SmartSuggestResponse;
+      cacheLevels.d1ReadThrough = cacheLevel(true, 'hit');
+
+      let response = filterSuggestionsForRequest(
+        suggestRequest,
+        withCacheLevels(
+          {
+            cacheStatus: 'hit',
+            requestId: `cache-${queryHash.slice(0, 16)}`,
+            suggestions: cached.payload.slice(0, suggestRequest.limit).map((suggestion) => ({
+              ...suggestion,
+              cacheStatus: 'hit',
+            })),
+          } satisfies SmartSuggestResponse,
+          cacheLevels,
+        ),
+      );
+
+      cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(response));
+      await rememberRuntimeSuggestCaches(cacheKey, response, cacheLevels, workerCache, edgeCache);
+      response = withCacheLevels(response, cacheLevels);
 
       recordSuggestResponse(repositories, response, startedAt, 'cache');
 
@@ -964,36 +2447,60 @@ const suggest = async (
     }
 
     const ownedCacheStatus = cached?.status === 'stale' ? 'stale' : 'miss';
-    const response = await suggestFromOwnedData(
+    cacheLevels.d1ReadThrough = cacheLevel(true, ownedCacheStatus);
+    let response = await suggestFromOwnedData(
       suggestRequest,
       queryHash,
       repositories,
       ownedCacheStatus,
     );
+    response = filterSuggestionsForRequest(suggestRequest, response);
+    cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(response));
 
-    if (response.suggestions.length === 0) {
-      const fallbackResponse = await suggestFromProviderFallback(
-        suggestRequest,
-        queryHash,
-        response,
+    const fallbackResponse = await providerFallbackResponseFor({
+      cacheKey,
+      cacheLevels,
+      env,
+      ownedResponse: response,
+      queryHash,
+      repositories,
+      request: suggestRequest,
+    });
+
+    if (fallbackResponse !== undefined) {
+      return finalizeSuggestResponse({
+        cacheKey,
+        cacheLevels,
+        edgeCache,
         repositories,
-        env,
-      );
-      recordSuggestResponse(repositories, fallbackResponse, startedAt, 'provider-fallback');
-
-      return jsonResponse(fallbackResponse);
+        response: fallbackResponse,
+        sourceKind: 'provider-fallback',
+        startedAt,
+        workerCache,
+      });
     }
 
-    try {
-      await writeOwnedCache(cacheKey, queryHash, suggestRequest, response, repositories);
-    } catch {
-      recordSuggestResponse(repositories, response, startedAt, 'owned');
-      return jsonResponse(response);
-    }
+    await writeOwnedCacheBestEffort(
+      {
+        cacheKey,
+        queryHash,
+        repositories,
+        request: suggestRequest,
+        response,
+      },
+      cacheLevels,
+    );
 
-    recordSuggestResponse(repositories, response, startedAt, 'owned');
-
-    return jsonResponse(response);
+    return finalizeSuggestResponse({
+      cacheKey,
+      cacheLevels,
+      edgeCache,
+      repositories,
+      response,
+      sourceKind: 'owned',
+      startedAt,
+      workerCache,
+    });
   } catch {
     recordSuggestError(repositories, startedAt);
     return serverError();
@@ -1006,7 +2513,7 @@ const parseAcceptEvent = (body: Record<string, unknown>): SmartSuggestAcceptEven
   const source = parseSuggestionSource(body['source']);
 
   if (requestId === undefined || suggestionId === undefined || source === undefined) {
-    return undefined;
+    return;
   }
 
   const event: SmartSuggestAcceptEvent = {

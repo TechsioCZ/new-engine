@@ -50,7 +50,7 @@ const gitTopLevel = () => {
   try {
     return run('git', ['rev-parse', '--show-toplevel']).trim();
   } catch {
-    return undefined;
+    return;
   }
 };
 
@@ -101,10 +101,10 @@ const removeTree = (dir) =>
 
 const cloneSource = (source, targetDir) => {
   if (source.commit) {
-    run('git', ['init', targetDir], { timeout: 30000 });
+    run('git', ['init', targetDir], { timeout: 30_000 });
     run('git', ['remote', 'add', 'origin', source.repository], {
       cwd: targetDir,
-      timeout: 30000,
+      timeout: 30_000,
     });
     run('git', ['fetch', '--depth', '1', '--quiet', 'origin', source.commit], {
       cwd: targetDir,
@@ -113,7 +113,7 @@ const cloneSource = (source, targetDir) => {
     run(
       'git',
       ['-c', 'advice.detachedHead=false', 'checkout', '--detach', '--quiet', 'FETCH_HEAD'],
-      { cwd: targetDir, timeout: 30000 },
+      { cwd: targetDir, timeout: 30_000 },
     );
     return;
   }

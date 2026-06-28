@@ -22,6 +22,9 @@ interface ModernPluginApi {
 
 const zephyrEnabled = process.env['ULTRAMODERN_ZEPHYR'] !== 'false';
 const cloudflareDeployEnabled = process.env['MODERNJS_DEPLOY'] === 'cloudflare';
+const workspaceRoot = decodeURIComponent(
+  new URL('../../../..', import.meta.url).pathname.replace(/\/$/u, ''),
+);
 
 const forceServerTsgoEsmPlugin = () => ({
   name: 'ultramodern-server-tsgo-esm-plugin',
@@ -222,6 +225,10 @@ export default defineConfig(
       source: {
         alias: {
           '@modern-js/plugin-i18n/runtime': '@modern-js/plugin-i18n/runtime/no-react-i18next',
+          '@techsio/smart-suggest-react': `${workspaceRoot}/libs/smart-suggest/react/dist/index.js`,
+          '@techsio/smart-suggest-ui/address-suggest-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/address-suggest-field.js`,
+          '@techsio/smart-suggest-ui/phone-validation-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/phone-validation-field.js`,
+          '@techsio/smart-suggest-ui/postal-validation-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/postal-validation-field.js`,
         },
         globalVars: {
           ULTRAMODERN_SITE_URL: siteUrl,

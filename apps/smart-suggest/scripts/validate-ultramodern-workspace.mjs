@@ -661,7 +661,7 @@ const extractAssetPrefixExpression = (modernConfig) => {
   return match.groups.expression;
 };
 const stripYamlInlineComment = (value) => {
-  let quote = undefined;
+  let quote;
   for (let index = 0; index < value.length; index += 1) {
     const character = value[index];
     if (quote) {
@@ -1063,7 +1063,7 @@ assert(
   'Agent skills bootstrap must declare the no-system-install policy',
 );
 assert(
-  !agentSkillsBootstrap.includes("run('brew'") && !agentSkillsBootstrap.includes('runShell('),
+  !(agentSkillsBootstrap.includes("run('brew'") || agentSkillsBootstrap.includes('runShell(')),
   'Agent skills bootstrap must never invoke system package managers',
 );
 const agentReferenceRepoSetup = readText('scripts/setup-agent-reference-repos.mjs');
@@ -1288,18 +1288,24 @@ assert(
   'Shell asset prefix fallback order is incorrect',
 );
 assert(
-  !shellAssetPrefixExpression.includes('configuredSiteUrl') &&
-    !shellAssetPrefixExpression.includes('MODERN_PUBLIC_SITE_URL'),
+  !(
+    shellAssetPrefixExpression.includes('configuredSiteUrl') ||
+    shellAssetPrefixExpression.includes('MODERN_PUBLIC_SITE_URL')
+  ),
   'Shell asset prefix must not fall back to MODERN_PUBLIC_SITE_URL',
 );
 assert(
-  !shellAssetPrefixExpression.includes('configuredCloudflareUrl') &&
-    !shellAssetPrefixExpression.includes('ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP'),
+  !(
+    shellAssetPrefixExpression.includes('configuredCloudflareUrl') ||
+    shellAssetPrefixExpression.includes('ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP')
+  ),
   'Shell asset prefix must not fall back to the per-app public URL',
 );
 assert(
-  !shellAssetPrefixExpression.includes('inferredCloudflareUrl') &&
-    !shellAssetPrefixExpression.includes('ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN'),
+  !(
+    shellAssetPrefixExpression.includes('inferredCloudflareUrl') ||
+    shellAssetPrefixExpression.includes('ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN')
+  ),
   'Shell asset prefix must not infer workers.dev URLs',
 );
 assert(
@@ -1582,20 +1588,26 @@ for (const vertical of fullStackVerticals) {
     `${vertical.id} asset prefix fallback order is incorrect`,
   );
   assert(
-    !verticalAssetPrefixExpression.includes('configuredSiteUrl') &&
-      !verticalAssetPrefixExpression.includes('MODERN_PUBLIC_SITE_URL'),
+    !(
+      verticalAssetPrefixExpression.includes('configuredSiteUrl') ||
+      verticalAssetPrefixExpression.includes('MODERN_PUBLIC_SITE_URL')
+    ),
     `${vertical.id} asset prefix must not fall back to MODERN_PUBLIC_SITE_URL`,
   );
   assert(
-    !verticalAssetPrefixExpression.includes('configuredCloudflareUrl') &&
-      !verticalAssetPrefixExpression.includes(
+    !(
+      verticalAssetPrefixExpression.includes('configuredCloudflareUrl') ||
+      verticalAssetPrefixExpression.includes(
         `ULTRAMODERN_PUBLIC_URL_${vertical.id.replace(/-/g, '_').toUpperCase()}`,
-      ),
+      )
+    ),
     `${vertical.id} asset prefix must not fall back to the per-app public URL`,
   );
   assert(
-    !verticalAssetPrefixExpression.includes('inferredCloudflareUrl') &&
-      !verticalAssetPrefixExpression.includes('ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN'),
+    !(
+      verticalAssetPrefixExpression.includes('inferredCloudflareUrl') ||
+      verticalAssetPrefixExpression.includes('ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN')
+    ),
     `${vertical.id} asset prefix must not infer workers.dev URLs`,
   );
   assert(

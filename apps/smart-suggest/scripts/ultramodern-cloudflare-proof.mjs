@@ -30,13 +30,13 @@ function parseMaybeJson(body) {
   try {
     return JSON.parse(body);
   } catch {
-    return undefined;
+    return;
   }
 }
 
 function markerFromJson(value) {
   if (!value || typeof value !== 'object') {
-    return undefined;
+    return;
   }
   if (value.marker && typeof value.marker.build === 'string') {
     return value.marker.build;
@@ -59,7 +59,7 @@ function markerFromJson(value) {
       }
     }
   }
-  return undefined;
+  return;
 }
 
 function extractUiMarker(html) {

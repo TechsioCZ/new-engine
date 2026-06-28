@@ -1,0 +1,445 @@
+#!/usr/bin/env node
+import crypto from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const proofDir = path.join(appRoot, '.codex/reports/smart-suggest-production-seed-proof');
+const seedReportPath = '.codex/reports/smart-suggest-production-seed/proof-blocked.json';
+const missingGovernanceReportPath =
+  '.codex/reports/smart-suggest-production-seed/proof-missing-governance.json';
+const mismatchedAttributionReportPath =
+  '.codex/reports/smart-suggest-production-seed/proof-mismatched-attribution.json';
+const preflightReportPath =
+  '.codex/reports/smart-suggest-d1-operations/preflight-production-seed-proof.json';
+const optimizeReportPath =
+  '.codex/reports/smart-suggest-d1-operations/optimize-production-seed-proof.json';
+const statusReportPath =
+  '.codex/reports/smart-suggest-d1-operations/status-production-seed-proof.json';
+const expectedCzVuscCodes = [
+  '19',
+  '27',
+  '35',
+  '43',
+  '51',
+  '60',
+  '78',
+  '86',
+  '94',
+  '108',
+  '116',
+  '124',
+  '132',
+  '141',
+];
+const shardBindings = expectedCzVuscCodes.map((code) => `SMART_SUGGEST_CZ_VUSC_${code}`);
+const routerBinding = 'SMART_SUGGEST_ROUTER_D1';
+const unsafeReportPatternSources = [
+  'file:\\/\\/',
+  `/${'Users'}/`,
+  `/${'private'}/`,
+  `/${'var'}/folders/`,
+  `/${'tmp'}/`,
+  '[A-Z]:\\\\',
+];
+const unsafeReportPatterns = unsafeReportPatternSources.map((source) => new RegExp(source, 'u'));
+
+function localD1DatabaseIdForBinding(binding) {
+  const hash = crypto.createHash('sha1').update(binding).digest('hex');
+
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    hash.slice(12, 16),
+    hash.slice(16, 20),
+    hash.slice(20, 32),
+  ].join('-');
+}
+
+function appRelative(filePath) {
+  return path.relative(appRoot, filePath).split(path.sep).join('/');
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function assert(condition, message, details) {
+  if (!condition) {
+    const suffix = details === undefined ? '' : `\n${JSON.stringify(details, null, 2)}`;
+
+    throw new Error(`${message}${suffix}`);
+  }
+}
+
+function readJson(appRelativePath) {
+  return JSON.parse(fs.readFileSync(path.resolve(appRoot, appRelativePath), 'utf8'));
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function writeSyntheticSnapshot() {
+  const csv = [
+    'Kod adresniho mista;Nazev obce;Nazev casti obce;Nazev ulice;Cislo domovni;Cislo orientacni;PSC',
+    '1203603;Praha 10;Vrsovice;K Louzi;1258;12;10100',
+  ].join('\n');
+  const snapshotPath = path.join(proofDir, 'synthetic-ruian-proof.csv');
+
+  fs.mkdirSync(proofDir, { recursive: true });
+  fs.writeFileSync(snapshotPath, `${csv}\n`);
+
+  return {
+    checksumSha256: sha256(`${csv}\n`),
+    snapshotPath,
+  };
+}
+
+function writePlaceholderWranglerConfig() {
+  const configPath = path.join(proofDir, 'wrangler-placeholder-d1.json');
+  const migrationsDir = path.resolve(
+    appRoot,
+    'apps/shell-super-app/.output/migrations/smart-suggest',
+  );
+  const migrationsDirFromConfig = path
+    .relative(path.dirname(configPath), migrationsDir)
+    .split(path.sep)
+    .join('/');
+  const databaseEntry = (binding, databaseName) => ({
+    binding,
+    database_id: localD1DatabaseIdForBinding(binding),
+    database_name: databaseName,
+    migrations_dir: migrationsDirFromConfig,
+  });
+
+  writeJson(configPath, {
+    d1_databases: [
+      databaseEntry(routerBinding, 'smart-suggest-router-proof'),
+      ...expectedCzVuscCodes.map((code) =>
+        databaseEntry(`SMART_SUGGEST_CZ_VUSC_${code}`, `smart-suggest-cz-vusc-${code}-proof`),
+      ),
+    ],
+    vars: {
+      SMART_SUGGEST_D1_ROUTER_BINDING: routerBinding,
+      SMART_SUGGEST_D1_SHARD_BINDINGS: shardBindings.join(','),
+    },
+  });
+
+  return configPath;
+}
+
+function resetOperatorEnv() {
+  return {
+    SMART_SUGGEST_D1_ROUTER_BINDING: '',
+    SMART_SUGGEST_D1_SHARD_BINDINGS: '',
+    SMART_SUGGEST_ROUTER_D1_BINDING: '',
+    SMART_SUGGEST_RUIAN_ATOM_ENTRY_ID: '',
+    SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL: '',
+    SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE: '',
+    SMART_SUGGEST_RUIAN_ATTRIBUTION_URL: '',
+    SMART_SUGGEST_RUIAN_DATASET_VERSION: '',
+    SMART_SUGGEST_RUIAN_MODIFICATION_NOTE: '',
+    SMART_SUGGEST_RUIAN_SNAPSHOT_CHECKSUM_SHA256: '',
+    SMART_SUGGEST_RUIAN_SNAPSHOT_PATH: '',
+    SMART_SUGGEST_RUIAN_SNAPSHOT_URI: '',
+    SMART_SUGGEST_RUIAN_SOURCE_GENERATED_AT: '',
+    SMART_SUGGEST_RUIAN_SOURCE_URI: '',
+    SMART_SUGGEST_RUIAN_SOURCE_VALID_AT: '',
+    SMART_SUGGEST_RUIAN_SOURCE_VERSION: '',
+  };
+}
+
+function assertNoUnsafeReportPaths(label, value) {
+  const serialized = JSON.stringify(value);
+  const matchedPattern = unsafeReportPatterns.find((pattern) => pattern.test(serialized));
+
+  assert(matchedPattern === undefined, `${label} leaked an unsafe local path.`, {
+    matchedPattern: String(matchedPattern),
+  });
+}
+
+function baseProductionSeedCommand({
+  checksumSha256,
+  jsonOut = seedReportPath,
+  snapshotPath,
+  includeGovernance = true,
+  attributionLabel = 'CUZK RUIAN',
+  wranglerConfig,
+}) {
+  const command = [
+    process.execPath,
+    './scripts/smart-suggest-production-seed.mjs',
+    '--wrangler-config',
+    appRelative(wranglerConfig),
+    '--snapshot-path',
+    snapshotPath,
+    '--snapshot-checksum-sha256',
+    checksumSha256,
+    '--snapshot-uri',
+    'r2://example-smart-suggest-snapshots/ruian/cz-proof.csv',
+    '--source-uri',
+    'https://example.invalid/smart-suggest/ruian-cz-proof.csv',
+    '--dataset-version',
+    'proof-2026-06-28',
+    '--source-version',
+    'proof-20260628',
+    '--source-generated-at',
+    '2026-06-28T00:00:00Z',
+    '--source-valid-at',
+    '2026-06-28',
+    '--atom-entry-id',
+    'tag:example.invalid,2026:smart-suggest-production-seed-proof',
+    '--json-out',
+    jsonOut,
+    '--preflight-json-out',
+    preflightReportPath,
+    '--optimize-json-out',
+    optimizeReportPath,
+    '--status-json-out',
+    statusReportPath,
+  ];
+
+  if (includeGovernance) {
+    command.push(
+      '--attribution-label',
+      attributionLabel,
+      '--attribution-license',
+      'CC BY 4.0',
+      '--attribution-url',
+      'https://ruian.cuzk.cz/',
+      '--modification-note',
+      'Smart Suggest normalizes RUIAN source rows into runtime address suggestions.',
+    );
+  }
+
+  return command;
+}
+
+function runProductionSeedProof() {
+  const { checksumSha256, snapshotPath } = writeSyntheticSnapshot();
+  const wranglerConfig = writePlaceholderWranglerConfig();
+  const command = baseProductionSeedCommand({
+    checksumSha256,
+    snapshotPath,
+    wranglerConfig,
+  });
+  const result = spawnSync(command[0], command.slice(1), {
+    cwd: appRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...resetOperatorEnv(),
+    },
+  });
+
+  assert(result.status === 1, 'Production seed proof must stop at strict D1 preflight.', {
+    exitCode: result.status,
+    stderr: result.stderr,
+    stdout: result.stdout,
+  });
+
+  const seedReport = readJson(seedReportPath);
+  const preflightReport = readJson(preflightReportPath);
+
+  assert(seedReport.status === 'blocked', 'Seed report must be blocked.');
+  assert(seedReport.stage === 'd1-preflight-failed', 'Seed report must name D1 preflight failure.');
+  assert(
+    seedReport.operatorReadiness?.profile === 'smart-suggest-production-seed-readiness-v1',
+    'Seed report must include the operator readiness contract.',
+  );
+  assert(seedReport.operatorReadiness?.status === 'blocked', 'Readiness must be blocked.');
+  assert(
+    seedReport.operatorReadiness?.commandMatrix?.seedExecute ===
+      'pnpm smart-suggest:seed:production:execute',
+    'Readiness must include the production seed execute command.',
+  );
+  assert(
+    seedReport.operatorReadiness?.commandMatrix?.strictD1Preflight ===
+      'pnpm smart-suggest:d1:preflight:production',
+    'Readiness must include the strict production D1 preflight command.',
+  );
+  assert(
+    (seedReport.operatorReadiness?.blockingStages ?? []).some(
+      (stage) =>
+        stage.id === 'd1-preflight-failed' &&
+        stage.reportPath ===
+          '.codex/reports/smart-suggest-d1-operations/preflight-production-seed-proof.json',
+    ),
+    'Readiness must point operators at the failed D1 preflight report.',
+  );
+  assert(
+    (seedReport.operatorReadiness?.requiredEnvironment?.d1GeneratedConfig ?? []).some(
+      (entry) => entry.env === 'SMART_SUGGEST_CZ_VUSC_19_DATABASE_ID',
+    ),
+    'Readiness must list the CZ VUSC shard database id env vars.',
+  );
+  assert(seedReport.snapshot?.checksumVerified === true, 'Snapshot checksum must be verified.');
+  assert(seedReport.snapshot?.pathRedacted === true, 'Snapshot path must be redacted.');
+  assert(seedReport.source?.attribution?.label === 'CUZK RUIAN', 'Attribution label is recorded.');
+  assert(
+    seedReport.source?.attribution?.license === 'CC BY 4.0',
+    'Attribution license is recorded.',
+  );
+  assert(
+    seedReport.source?.modificationNote?.present === true,
+    'Modification note presence must be recorded.',
+  );
+  assert(
+    typeof seedReport.source?.modificationNote?.sha256 === 'string',
+    'Modification note hash must be recorded.',
+  );
+  assert(
+    seedReport.commands?.import?.includes('--modification-note-sha256'),
+    'Seed import command must pass the modification-note hash into the mutating importer.',
+  );
+  assert(seedReport.shardBindingCount === 14, 'Seed proof must resolve all 14 CZ VUSC shards.');
+  assert(
+    seedReport.shardBindingsSource === 'wrangler-config-var',
+    'Seed proof must use generated Wrangler shard binding resolution.',
+  );
+  assert(seedReport.execution?.preflight?.ok === false, 'Preflight execution must fail.');
+  assert(
+    seedReport.execution?.preflight?.reportPath === preflightReportPath,
+    'Seed report must point at the D1 preflight report.',
+  );
+  assert(preflightReport.status !== 'ok', 'D1 preflight report must fail.');
+  assert(
+    (preflightReport.checks ?? []).some(
+      (check) => check.reason === 'deterministic-local-placeholder-id',
+    ),
+    'D1 preflight must fail because placeholder local database ids are not production ids.',
+  );
+  assertNoUnsafeReportPaths('seed report', seedReport);
+  assertNoUnsafeReportPaths('D1 preflight report', preflightReport);
+
+  process.stdout.write(
+    [
+      'Smart Suggest production seed proof passed:',
+      `- seed report: ${seedReportPath}`,
+      `- D1 preflight report: ${preflightReportPath}`,
+      '- strict production mode rejects placeholder local D1 ids before import',
+    ].join('\n'),
+  );
+  process.stdout.write('\n');
+}
+
+function runMismatchedAttributionProof() {
+  const { checksumSha256, snapshotPath } = writeSyntheticSnapshot();
+  const wranglerConfig = writePlaceholderWranglerConfig();
+  const command = baseProductionSeedCommand({
+    attributionLabel: 'Wrong attribution',
+    checksumSha256,
+    jsonOut: mismatchedAttributionReportPath,
+    snapshotPath,
+    wranglerConfig,
+  });
+  const result = spawnSync(command[0], command.slice(1), {
+    cwd: appRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...resetOperatorEnv(),
+    },
+  });
+
+  assert(result.status === 1, 'Seed wrapper must reject mismatched source attribution.', {
+    exitCode: result.status,
+    stderr: result.stderr,
+    stdout: result.stdout,
+  });
+
+  const report = readJson(mismatchedAttributionReportPath);
+  const checkIds = new Set((report.checks ?? []).map((check) => check.id));
+
+  assert(report.status === 'blocked', 'Mismatched attribution report must be blocked.');
+  assert(report.stage === 'planned', 'Mismatched attribution must stop before D1 preflight.');
+  assert(
+    checkIds.has('source-attribution-catalog-mismatch'),
+    'Mismatched attribution must be detected against the source catalog contract.',
+  );
+  assert(
+    (report.operatorReadiness?.missingInputs ?? []).some(
+      (entry) =>
+        entry.id === 'source-attribution-catalog-mismatch' &&
+        entry.env === 'SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL',
+    ),
+    'Readiness must surface mismatched source attribution as operator input.',
+  );
+  assertNoUnsafeReportPaths('mismatched attribution report', report);
+}
+
+function runMissingGovernanceProof() {
+  const { checksumSha256, snapshotPath } = writeSyntheticSnapshot();
+  const wranglerConfig = writePlaceholderWranglerConfig();
+  const command = baseProductionSeedCommand({
+    checksumSha256,
+    includeGovernance: false,
+    jsonOut: missingGovernanceReportPath,
+    snapshotPath,
+    wranglerConfig,
+  });
+  const result = spawnSync(command[0], command.slice(1), {
+    cwd: appRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...resetOperatorEnv(),
+    },
+  });
+
+  assert(result.status === 1, 'Seed wrapper must reject missing source governance inputs.', {
+    exitCode: result.status,
+    stderr: result.stderr,
+    stdout: result.stdout,
+  });
+
+  const report = readJson(missingGovernanceReportPath);
+  const checkIds = new Set((report.checks ?? []).map((check) => check.id));
+
+  assert(report.status === 'blocked', 'Missing governance report must be blocked.');
+  assert(report.stage === 'planned', 'Missing governance failure must stop before D1 preflight.');
+  assert(checkIds.has('missing-attribution-label'), 'Attribution label must be required.');
+  assert(checkIds.has('missing-attribution-license'), 'Attribution license must be required.');
+  assert(checkIds.has('missing-attribution-url'), 'Attribution URL must be required.');
+  assert(checkIds.has('missing-modification-note'), 'Modification note must be required.');
+  const missingEnvVars = new Set(
+    (report.operatorReadiness?.missingInputs ?? []).map((entry) => entry.env),
+  );
+
+  assert(
+    missingEnvVars.has('SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL'),
+    'Readiness must name the missing attribution label env var.',
+  );
+  assert(
+    missingEnvVars.has('SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE'),
+    'Readiness must name the missing attribution license env var.',
+  );
+  assert(
+    missingEnvVars.has('SMART_SUGGEST_RUIAN_ATTRIBUTION_URL'),
+    'Readiness must name the missing attribution URL env var.',
+  );
+  assert(
+    missingEnvVars.has('SMART_SUGGEST_RUIAN_MODIFICATION_NOTE'),
+    'Readiness must name the missing modification-note env var.',
+  );
+  assert(
+    (report.operatorReadiness?.requiredEnvironment?.sourceGovernance ?? []).some(
+      (entry) => entry.env === 'SMART_SUGGEST_RUIAN_MODIFICATION_NOTE',
+    ),
+    'Readiness must document modification-note provenance requirements.',
+  );
+  assertNoUnsafeReportPaths('missing governance report', report);
+}
+
+try {
+  runMissingGovernanceProof();
+  runMismatchedAttributionProof();
+  runProductionSeedProof();
+} catch (error) {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+}

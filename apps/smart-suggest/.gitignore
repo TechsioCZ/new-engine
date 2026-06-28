@@ -8,4 +8,4 @@ apps/*/.modern-js/
 apps/*/.output/
 apps/*/dist/
 apps/shell-super-app/src/modern-tanstack/
-apps/shell-super-app/sdk/techsio-smart-suggest.js
+apps/shell-super-app/sdk/*.js

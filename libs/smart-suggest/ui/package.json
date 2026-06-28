@@ -10,19 +10,19 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/src/address-suggest-field.d.ts",
+      "types": "./dist/address-suggest-field.d.ts",
       "import": "./dist/address-suggest-field.js"
     },
     "./address-suggest-field": {
-      "types": "./dist/src/address-suggest-field.d.ts",
+      "types": "./dist/address-suggest-field.d.ts",
       "import": "./dist/address-suggest-field.js"
     },
     "./phone-validation-field": {
-      "types": "./dist/src/phone-validation-field.d.ts",
+      "types": "./dist/phone-validation-field.d.ts",
       "import": "./dist/phone-validation-field.js"
     },
     "./postal-validation-field": {
-      "types": "./dist/src/postal-validation-field.d.ts",
+      "types": "./dist/postal-validation-field.d.ts",
       "import": "./dist/postal-validation-field.js"
     },
     "./package.json": "./package.json"
@@ -43,6 +43,7 @@
   "devDependencies": {
     "@rsbuild/plugin-react": "^1.4.2",
     "@rslib/core": "^0.18.0",
+    "@techsio/smart-suggest-tooling": "workspace:^",
     "@techsio/ui-kit": "workspace:^",
     "@types/react": "19.2.3",
     "@types/react-dom": "19.2.3",

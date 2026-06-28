@@ -1,4 +1,4 @@
-import type { AddressParts } from "@techsio/smart-suggest-core";
+import type { AddressParts } from '@techsio/smart-suggest-core';
 
 export type AddressIndexParts = AddressParts;
 
@@ -22,7 +22,7 @@ export type HouseNumberCandidate = {
   sourceText: string;
   start: number;
   end: number;
-  reason: "explicit-house" | "explicit-orientation" | "slash" | "street-number";
+  reason: 'explicit-house' | 'explicit-orientation' | 'slash' | 'street-number';
 };
 
 export type AddressLabels = {
@@ -67,19 +67,20 @@ export type AddressRankingOptions = {
 
 const DEFAULT_MIN_PREFIX_LENGTH = 2;
 const DEFAULT_MAX_PREFIX_LENGTH = 16;
+const MIN_HOUSE_NUMBER_PREFIX_LENGTH = 3;
 
 const EXTRA_DIACRITIC_REPLACEMENTS: Record<string, string> = {
-  ß: "ss",
-  Đ: "D",
-  đ: "d",
-  Ħ: "H",
-  ħ: "h",
-  Ł: "L",
-  ł: "l",
-  Ø: "O",
-  ø: "o",
-  Þ: "Th",
-  þ: "th",
+  ß: 'ss',
+  Đ: 'D',
+  đ: 'd',
+  Ħ: 'H',
+  ħ: 'h',
+  Ł: 'L',
+  ł: 'l',
+  Ø: 'O',
+  ø: 'o',
+  Þ: 'Th',
+  þ: 'th',
 };
 
 const LETTER_OR_NUMBER = /[\p{L}\p{N}]/u;
@@ -94,7 +95,7 @@ const EXPLICIT_ORIENTATION_NUMBER_PATTERN =
 const STREET_NUMBER_PATTERN = /(?<![\p{L}\p{N}/])(\d{1,5}[a-zA-Z]?)(?![\p{L}\p{N}/])/gu;
 const CITY_DISTRICT_NUMBER_PATTERN = /\b(?:praha|bratislava|ostrava|brno|kosice|plzen)$/;
 
-const normalizeWhitespace = (value: string) => value.trim().replaceAll(/\s+/g, " ");
+const normalizeWhitespace = (value: string) => value.trim().replaceAll(/\s+/g, ' ');
 
 const replaceExtraDiacritics = (value: string) =>
   value.replaceAll(/[ßĐđĦħŁłØøÞþ]/g, (character) => {
@@ -105,27 +106,27 @@ const replaceExtraDiacritics = (value: string) =>
 
 export const stripDiacritics = (value: string) =>
   replaceExtraDiacritics(value)
-    .normalize("NFKD")
-    .replaceAll(/\p{Diacritic}/gu, "");
+    .normalize('NFKD')
+    .replaceAll(/\p{Diacritic}/gu, '');
 
 export const normalizeDisplayText = (value: string) =>
   normalizeWhitespace(
     value
-      .normalize("NFKC")
+      .normalize('NFKC')
       .replaceAll(/[“”„]/g, '"')
       .replaceAll(/[‘’]/g, "'")
-      .replaceAll(/[‐‑‒–—]/g, "-")
-      .replaceAll(/\s*,\s*/g, ", ")
-      .replaceAll(/\s*\/\s*/g, "/")
-      .replaceAll(/\s*-\s*/g, "-")
-      .replaceAll(/\s+/g, " "),
+      .replaceAll(/[‐‑‒–—]/g, '-')
+      .replaceAll(/\s*,\s*/g, ', ')
+      .replaceAll(/\s*\/\s*/g, '/')
+      .replaceAll(/\s*-\s*/g, '-')
+      .replaceAll(/\s+/g, ' '),
   );
 
 export const normalizeSearchText = (value: string) =>
   normalizeWhitespace(
     stripDiacritics(value)
-      .toLocaleLowerCase("cs-CZ")
-      .replaceAll(/[^\p{L}\p{N}]+/gu, " "),
+      .toLocaleLowerCase('cs-CZ')
+      .replaceAll(/[^\p{L}\p{N}]+/gu, ' '),
   );
 
 export const tokenizeAddressText = (value: string): string[] => {
@@ -245,13 +246,13 @@ const isLikelyCityDistrictNumber = (value: string, start: number) => {
   return CITY_DISTRICT_NUMBER_PATTERN.test(before);
 };
 
-const normalizeAddressNumber = (value: string) => stripDiacritics(value).toLocaleLowerCase("cs-CZ");
+const normalizeAddressNumber = (value: string) => stripDiacritics(value).toLocaleLowerCase('cs-CZ');
 
 const createHouseCandidateKey = (
   houseNumber: string,
   orientationNumber: string | undefined,
   start: number,
-) => `${houseNumber}/${orientationNumber ?? ""}:${start}`;
+) => `${houseNumber}/${orientationNumber ?? ''}:${start}`;
 
 export const extractHouseNumberCandidates = (value: string): HouseNumberCandidate[] => {
   const postalSpans = extractPostalCodeCandidates(value);
@@ -259,7 +260,7 @@ export const extractHouseNumberCandidates = (value: string): HouseNumberCandidat
   const seen = new Set<string>();
 
   const pushCandidate = (
-    candidate: Omit<HouseNumberCandidate, "houseNumber" | "orientationNumber"> & {
+    candidate: Omit<HouseNumberCandidate, 'houseNumber' | 'orientationNumber'> & {
       houseNumber: string;
       orientationNumber?: string;
     },
@@ -281,7 +282,7 @@ export const extractHouseNumberCandidates = (value: string): HouseNumberCandidat
 
     seen.add(key);
     const displayValue =
-      candidate.reason === "explicit-orientation" || orientationNumber === undefined
+      candidate.reason === 'explicit-orientation' || orientationNumber === undefined
         ? houseNumber
         : `${houseNumber}/${orientationNumber}`;
 
@@ -316,7 +317,7 @@ export const extractHouseNumberCandidates = (value: string): HouseNumberCandidat
       sourceText,
       start,
       end: start + sourceText.length,
-      reason: "slash",
+      reason: 'slash',
     });
   }
 
@@ -334,7 +335,7 @@ export const extractHouseNumberCandidates = (value: string): HouseNumberCandidat
       sourceText,
       start,
       end: start + sourceText.length,
-      reason: "explicit-house",
+      reason: 'explicit-house',
     });
   }
 
@@ -353,7 +354,7 @@ export const extractHouseNumberCandidates = (value: string): HouseNumberCandidat
       sourceText,
       start,
       end: start + sourceText.length,
-      reason: "explicit-orientation",
+      reason: 'explicit-orientation',
     });
   }
 
@@ -377,7 +378,7 @@ export const extractHouseNumberCandidates = (value: string): HouseNumberCandidat
       sourceText,
       start,
       end,
-      reason: "street-number",
+      reason: 'street-number',
     });
   }
 
@@ -400,29 +401,29 @@ const formatStreetLine = (parts: AddressIndexParts) => {
         : `${parts.houseNumber}/${parts.orientationNumber}`;
   }
 
-  return joinNonEmpty([parts.street, housePart], " ");
+  return joinNonEmpty([parts.street, housePart], ' ');
 };
 
 const formatPostalCityLine = (parts: AddressIndexParts) =>
-  joinNonEmpty([parts.postalCode, parts.city], " ");
+  joinNonEmpty([parts.postalCode, parts.city], ' ');
 
 export const createAddressLabels = (
   parts: AddressIndexParts,
   fallbackLabel?: string,
 ): AddressLabels => {
-  const line1 = normalizeDisplayText(parts.line1 ?? "");
+  const line1 = normalizeDisplayText(parts.line1 ?? '');
   const streetLine = formatStreetLine(parts);
   const primaryLine = line1.length > 0 ? line1 : streetLine;
-  const line2 = normalizeDisplayText(parts.line2 ?? "");
+  const line2 = normalizeDisplayText(parts.line2 ?? '');
   const postalCityLine = formatPostalCityLine(parts);
   const localityLine = joinNonEmpty(
     [line2.length > 0 ? line2 : undefined, postalCityLine, parts.district],
-    ", ",
+    ', ',
   );
-  const regionCountryLine = joinNonEmpty([parts.region, parts.countryCode?.toUpperCase()], ", ");
+  const regionCountryLine = joinNonEmpty([parts.region, parts.countryCode?.toUpperCase()], ', ');
   const displayLabel =
-    joinNonEmpty([primaryLine, localityLine, regionCountryLine], ", ") ||
-    normalizeDisplayText(fallbackLabel ?? "");
+    joinNonEmpty([primaryLine, localityLine, regionCountryLine], ', ') ||
+    normalizeDisplayText(fallbackLabel ?? '');
 
   return {
     displayLabel,
@@ -464,7 +465,7 @@ export const createAddressIndexDocument = (
   };
 };
 
-const normalizePostalCodeValue = (value: string | undefined) => value?.replaceAll(/\D/g, "") ?? "";
+const normalizePostalCodeValue = (value: string | undefined) => value?.replaceAll(/\D/g, '') ?? '';
 
 const collectCandidatePostalCodes = (candidate: AddressRankingCandidate) => {
   const values = new Set<string>();
@@ -486,6 +487,17 @@ type CandidateAddressNumbers = {
   houseNumbers: Set<string>;
   orientationNumbers: Set<string>;
   pairs: Set<string>;
+};
+
+type HouseNumberMatchKind = 'house-exact' | 'house-prefix' | 'orientation-exact' | 'pair-exact';
+
+type HouseNumberMatch = {
+  kind: HouseNumberMatchKind;
+  value: string;
+};
+
+type HouseNumberMatchOptions = {
+  allowOrientationOnly: boolean;
 };
 
 const createCandidateAddressNumbers = (): CandidateAddressNumbers => ({
@@ -525,7 +537,7 @@ const collectCandidateAddressNumbers = (
   }
 
   for (const houseNumber of extractHouseNumberCandidates(labelTextFromCandidate(candidate))) {
-    if (houseNumber.reason === "explicit-orientation") {
+    if (houseNumber.reason === 'explicit-orientation') {
       numbers.orientationNumbers.add(houseNumber.orientationNumber ?? houseNumber.houseNumber);
       continue;
     }
@@ -541,23 +553,61 @@ const collectCandidateAddressNumbers = (
   return numbers;
 };
 
-const isHouseNumberMatch = (
+const findMatchingHouseNumberPrefix = (queryNumber: string, houseNumbers: ReadonlySet<string>) => {
+  if (queryNumber.length < MIN_HOUSE_NUMBER_PREFIX_LENGTH) {
+    return;
+  }
+
+  for (const houseNumber of houseNumbers) {
+    if (houseNumber.startsWith(queryNumber)) {
+      return houseNumber;
+    }
+  }
+
+  return;
+};
+
+const findHouseNumberMatch = (
   queryCandidate: HouseNumberCandidate,
   candidateNumbers: CandidateAddressNumbers,
-) => {
-  if (queryCandidate.reason === "explicit-orientation") {
-    return candidateNumbers.orientationNumbers.has(
-      queryCandidate.orientationNumber ?? queryCandidate.houseNumber,
-    );
+  options: HouseNumberMatchOptions,
+): HouseNumberMatch | undefined => {
+  if (queryCandidate.reason === 'explicit-orientation') {
+    const orientationNumber = queryCandidate.orientationNumber ?? queryCandidate.houseNumber;
+
+    return options.allowOrientationOnly &&
+      candidateNumbers.orientationNumbers.has(orientationNumber)
+      ? { kind: 'orientation-exact', value: orientationNumber }
+      : undefined;
   }
 
   if (queryCandidate.orientationNumber !== undefined) {
-    return candidateNumbers.pairs.has(
-      `${queryCandidate.houseNumber}/${queryCandidate.orientationNumber}`,
-    );
+    const pair = `${queryCandidate.houseNumber}/${queryCandidate.orientationNumber}`;
+
+    return candidateNumbers.pairs.has(pair) ? { kind: 'pair-exact', value: pair } : undefined;
   }
 
-  return candidateNumbers.houseNumbers.has(queryCandidate.houseNumber);
+  if (candidateNumbers.houseNumbers.has(queryCandidate.houseNumber)) {
+    return { kind: 'house-exact', value: queryCandidate.houseNumber };
+  }
+
+  if (
+    options.allowOrientationOnly &&
+    candidateNumbers.orientationNumbers.has(queryCandidate.houseNumber)
+  ) {
+    return { kind: 'orientation-exact', value: queryCandidate.houseNumber };
+  }
+
+  const prefixHouseNumber = findMatchingHouseNumberPrefix(
+    queryCandidate.houseNumber,
+    candidateNumbers.houseNumbers,
+  );
+
+  if (prefixHouseNumber !== undefined) {
+    return { kind: 'house-prefix', value: prefixHouseNumber };
+  }
+
+  return;
 };
 
 const scoreConfidence = (confidence: number | undefined) => {
@@ -573,6 +623,93 @@ type ScoreState = {
   reasons: string[];
 };
 
+type CandidateTokenContext = {
+  candidatePrefixSet: ReadonlySet<string>;
+  candidateTokenSet: ReadonlySet<string>;
+  normalizedCandidateLabel: string;
+};
+
+const QUERY_MATCH_REASON_PREFIXES = ['label:', 'tokens:', 'postal:', 'house-number:'] as const;
+const TEXT_TOKEN_PATTERN = /\p{L}/u;
+const FUZZY_TEXT_TOKEN_MIN_LENGTH = 4;
+const MAX_TEXT_TOKEN_EDIT_DISTANCE = 1;
+
+const hasReasonPrefix = (reasons: readonly string[], prefixes: readonly string[]) =>
+  reasons.some((reason) => prefixes.some((prefix) => reason.startsWith(prefix)));
+
+const hasQueryMatchReason = (reasons: readonly string[]) =>
+  hasReasonPrefix(reasons, QUERY_MATCH_REASON_PREFIXES);
+
+const createCandidateTokenContext = (candidate: AddressRankingCandidate): CandidateTokenContext => {
+  const candidateLabel = labelTextFromCandidate(candidate);
+  const normalizedCandidateLabel = normalizeSearchText(candidateLabel);
+  const candidateTokens =
+    candidate.tokens === undefined || candidate.tokens.length === 0
+      ? tokenizeAddressText(normalizedCandidateLabel)
+      : [...candidate.tokens];
+  const candidatePrefixTokens =
+    candidate.prefixTokens === undefined || candidate.prefixTokens.length === 0
+      ? createPrefixTokens(candidateTokens)
+      : [...candidate.prefixTokens];
+
+  return {
+    candidatePrefixSet: new Set(candidatePrefixTokens),
+    candidateTokenSet: new Set(candidateTokens),
+    normalizedCandidateLabel,
+  };
+};
+
+const hasNonEmptyAddressPart = (value: string | undefined) =>
+  value !== undefined && normalizeDisplayText(value).length > 0;
+
+const hasAddressNumberInText = (value: string | undefined) =>
+  value !== undefined && extractHouseNumberCandidates(value).length > 0;
+
+const hasStreetAddressParts = (candidate: AddressRankingCandidate) => {
+  const parts = addressPartsFromCandidate(candidate);
+  const hasStreetText = hasNonEmptyAddressPart(parts.street) || hasNonEmptyAddressPart(parts.line1);
+  const hasStructuredAddressNumber =
+    hasNonEmptyAddressPart(parts.houseNumber) || hasNonEmptyAddressPart(parts.orientationNumber);
+
+  if (
+    hasStreetText &&
+    (hasStructuredAddressNumber ||
+      hasAddressNumberInText(parts.line1) ||
+      hasAddressNumberInText(labelTextFromCandidate(candidate)))
+  ) {
+    return true;
+  }
+
+  if (candidate.address !== undefined || candidate.parts !== undefined) {
+    return false;
+  }
+
+  return hasAddressNumberInText(labelTextFromCandidate(candidate));
+};
+
+const textAddressTokens = (value: string) =>
+  tokenizeAddressText(value).filter(
+    (token) => token.length >= DEFAULT_MIN_PREFIX_LENGTH && TEXT_TOKEN_PATTERN.test(token),
+  );
+
+const hasStrongStreetTextMatch = (query: string, candidate: AddressRankingCandidate) => {
+  const parts = addressPartsFromCandidate(candidate);
+  const candidateStreetText = joinNonEmpty([parts.street, parts.line1], ' ');
+  const candidateStreetTokens = textAddressTokens(candidateStreetText);
+
+  if (candidateStreetTokens.length === 0) {
+    return false;
+  }
+
+  const queryTextTokens = textAddressTokens(query);
+
+  return candidateStreetTokens.every((streetToken) =>
+    queryTextTokens.some(
+      (queryToken) => streetToken === queryToken || streetToken.startsWith(queryToken),
+    ),
+  );
+};
+
 const applyLabelScore = (
   state: ScoreState,
   normalizedQuery: string,
@@ -580,12 +717,12 @@ const applyLabelScore = (
 ) => {
   if (normalizedQuery.length > 0 && normalizedCandidateLabel === normalizedQuery) {
     state.score += 100;
-    state.reasons.push("label:exact");
+    state.reasons.push('label:exact');
   }
 
   if (normalizedQuery.length > 0 && normalizedCandidateLabel.startsWith(normalizedQuery)) {
     state.score += 20;
-    state.reasons.push("label:prefix");
+    state.reasons.push('label:prefix');
   }
 };
 
@@ -599,7 +736,7 @@ const applyTokenScore = (
 
   if (queryTokens.length > 0 && exactTokenMatches.length === queryTokens.length) {
     state.score += 30;
-    state.reasons.push("tokens:all-exact");
+    state.reasons.push('tokens:all-exact');
   }
 
   if (exactTokenMatches.length > 0) {
@@ -628,7 +765,22 @@ const applyPostalScore = (state: ScoreState, query: string, candidate: AddressRa
 
   if (matchedPostalCodes.length > 0) {
     state.score += 18;
-    state.reasons.push("postal:match");
+    state.reasons.push('postal:match');
+  }
+};
+
+const houseNumberMatchScore = (kind: HouseNumberMatchKind) => {
+  switch (kind) {
+    case 'pair-exact':
+      return 28;
+    case 'house-exact':
+      return 22;
+    case 'orientation-exact':
+      return 16;
+    case 'house-prefix':
+      return 14;
+    default:
+      return 0;
   }
 };
 
@@ -637,46 +789,194 @@ const applyHouseNumberScore = (
   query: string,
   candidate: AddressRankingCandidate,
 ) => {
+  if (textAddressTokens(query).length > 0 && !hasTextualQueryTokenMatch(query, candidate)) {
+    return;
+  }
+
   const candidateHouseNumbers = collectCandidateAddressNumbers(candidate);
-  const matchedHouseNumbers = extractHouseNumberCandidates(query).filter((houseNumber) =>
-    isHouseNumberMatch(houseNumber, candidateHouseNumbers),
-  );
+  const matchOptions = {
+    allowOrientationOnly: hasStrongStreetTextMatch(query, candidate),
+  };
+  const matchedHouseNumbers = extractHouseNumberCandidates(query)
+    .map((houseNumber) => findHouseNumberMatch(houseNumber, candidateHouseNumbers, matchOptions))
+    .filter((match): match is HouseNumberMatch => match !== undefined);
 
   if (matchedHouseNumbers.length > 0) {
-    state.score += 12;
-    state.reasons.push("house-number:match");
+    state.score += Math.max(
+      ...matchedHouseNumbers.map((match) => houseNumberMatchScore(match.kind)),
+    );
+    state.reasons.push('house-number:match');
+
+    for (const reason of new Set(
+      matchedHouseNumbers.map((match) => `house-number:${match.kind}:${match.value}`),
+    )) {
+      state.reasons.push(reason);
+    }
   }
+};
+
+const isTextQueryTokenCandidateMatch = (
+  token: string,
+  candidateTokenSet: ReadonlySet<string>,
+  candidatePrefixSet: ReadonlySet<string>,
+) =>
+  candidateTokenSet.has(token) ||
+  candidatePrefixSet.has(token) ||
+  isFuzzyTextQueryTokenCandidateMatch(token, candidateTokenSet);
+
+const hasBoundedEditDistance = (left: string, right: string, maxDistance: number) => {
+  const lengthDelta = Math.abs(left.length - right.length);
+
+  if (lengthDelta > maxDistance) {
+    return false;
+  }
+
+  let leftIndex = 0;
+  let rightIndex = 0;
+  let edits = 0;
+
+  while (leftIndex < left.length && rightIndex < right.length) {
+    if (left.charAt(leftIndex) === right.charAt(rightIndex)) {
+      leftIndex += 1;
+      rightIndex += 1;
+      continue;
+    }
+
+    edits += 1;
+
+    if (edits > maxDistance) {
+      return false;
+    }
+
+    if (left.length > right.length) {
+      leftIndex += 1;
+    } else if (right.length > left.length) {
+      rightIndex += 1;
+    } else {
+      leftIndex += 1;
+      rightIndex += 1;
+    }
+  }
+
+  if (leftIndex < left.length || rightIndex < right.length) {
+    edits += 1;
+  }
+
+  return edits <= maxDistance;
+};
+
+const isFuzzyTextQueryTokenCandidateMatch = (
+  queryToken: string,
+  candidateTokenSet: ReadonlySet<string>,
+) => {
+  if (queryToken.length < FUZZY_TEXT_TOKEN_MIN_LENGTH || !TEXT_TOKEN_PATTERN.test(queryToken)) {
+    return false;
+  }
+
+  for (const candidateToken of candidateTokenSet) {
+    if (
+      candidateToken.length >= FUZZY_TEXT_TOKEN_MIN_LENGTH &&
+      TEXT_TOKEN_PATTERN.test(candidateToken) &&
+      hasBoundedEditDistance(queryToken, candidateToken, MAX_TEXT_TOKEN_EDIT_DISTANCE)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const requiredTextQueryTokenMatches = (tokenCount: number) =>
+  tokenCount <= 1 ? 1 : Math.ceil(tokenCount * 0.6);
+
+const hasTextualQueryTokenMatch = (query: string, candidate: AddressRankingCandidate) => {
+  const textQueryTokens = tokenizeAddressText(query).filter(
+    (token) => token.length >= DEFAULT_MIN_PREFIX_LENGTH && TEXT_TOKEN_PATTERN.test(token),
+  );
+
+  if (textQueryTokens.length === 0) {
+    return true;
+  }
+
+  const { candidatePrefixSet, candidateTokenSet } = createCandidateTokenContext(candidate);
+  const matchedTextTokenCount = textQueryTokens.filter((token) =>
+    isTextQueryTokenCandidateMatch(token, candidateTokenSet, candidatePrefixSet),
+  ).length;
+
+  return matchedTextTokenCount >= requiredTextQueryTokenMatches(textQueryTokens.length);
+};
+
+const hasNumericQueryMatch = (query: string, candidate: AddressRankingCandidate) => {
+  const candidatePostalCodes = collectCandidatePostalCodes(candidate);
+  const candidateNumbers = collectCandidateAddressNumbers(candidate);
+  const queryPostalCodes = extractPostalCodeCandidates(query);
+  const queryHouseNumbers = extractHouseNumberCandidates(query);
+  const hasPostalMatch =
+    queryPostalCodes.length === 0 ||
+    queryPostalCodes.some((postalCode) => candidatePostalCodes.has(postalCode.value));
+  const matchOptions = {
+    allowOrientationOnly: hasStrongStreetTextMatch(query, candidate),
+  };
+  const hasHouseNumberMatch =
+    queryHouseNumbers.length === 0 ||
+    queryHouseNumbers.some(
+      (houseNumber) =>
+        findHouseNumberMatch(houseNumber, candidateNumbers, matchOptions) !== undefined,
+    );
+
+  return hasPostalMatch && hasHouseNumberMatch;
+};
+
+const isQueryRelevantCandidate = <TCandidate extends AddressRankingCandidate>(
+  query: string,
+  ranked: AddressRankedCandidate<TCandidate>,
+) => {
+  const normalizedQuery = normalizeSearchText(query);
+
+  if (normalizedQuery.length === 0) {
+    return true;
+  }
+
+  if (!hasQueryMatchReason(ranked.reasons)) {
+    return false;
+  }
+
+  return (
+    hasStreetAddressParts(ranked.candidate) &&
+    hasTextualQueryTokenMatch(query, ranked.candidate) &&
+    hasNumericQueryMatch(query, ranked.candidate)
+  );
 };
 
 const clampQualityScore = (score: number) => Number(Math.max(0, Math.min(1, score)).toFixed(3));
 
 export const scoreAddressRecordQuality = (parts: AddressIndexParts): AddressRecordQuality => {
   let score = 0.2;
-  const reasons: string[] = ["baseline"];
+  const reasons: string[] = ['baseline'];
 
   if (parts.countryCode !== undefined) {
     score += 0.1;
-    reasons.push("country");
+    reasons.push('country');
   }
   if (parts.city !== undefined || parts.region !== undefined) {
     score += 0.15;
-    reasons.push("locality");
+    reasons.push('locality');
   }
   if (parts.postalCode !== undefined) {
     score += 0.15;
-    reasons.push("postal-code");
+    reasons.push('postal-code');
   }
   if (parts.street !== undefined || parts.line1 !== undefined) {
     score += 0.2;
-    reasons.push("street-or-line1");
+    reasons.push('street-or-line1');
   }
   if (parts.houseNumber !== undefined) {
     score += 0.15;
-    reasons.push("house-number");
+    reasons.push('house-number');
   }
   if (parts.orientationNumber !== undefined) {
     score += 0.05;
-    reasons.push("orientation-number");
+    reasons.push('orientation-number');
   }
 
   return {
@@ -691,18 +991,8 @@ export const scoreAddressCandidate = <TCandidate extends AddressRankingCandidate
 ): AddressRankedCandidate<TCandidate> => {
   const normalizedQuery = normalizeSearchText(query);
   const queryTokens = tokenizeAddressText(normalizedQuery);
-  const candidateLabel = labelTextFromCandidate(candidate);
-  const normalizedCandidateLabel = normalizeSearchText(candidateLabel);
-  const candidateTokens =
-    candidate.tokens === undefined || candidate.tokens.length === 0
-      ? tokenizeAddressText(normalizedCandidateLabel)
-      : [...candidate.tokens];
-  const candidateTokenSet = new Set(candidateTokens);
-  const candidatePrefixTokens =
-    candidate.prefixTokens === undefined || candidate.prefixTokens.length === 0
-      ? createPrefixTokens(candidateTokens)
-      : [...candidate.prefixTokens];
-  const candidatePrefixSet = new Set(candidatePrefixTokens);
+  const { candidatePrefixSet, candidateTokenSet, normalizedCandidateLabel } =
+    createCandidateTokenContext(candidate);
   const state: ScoreState = {
     score: scoreConfidence(candidate.confidence),
     reasons: [],
@@ -717,8 +1007,8 @@ export const scoreAddressCandidate = <TCandidate extends AddressRankingCandidate
   applyPostalScore(state, query, candidate);
   applyHouseNumberScore(state, query, candidate);
 
-  if (state.score === 0 && normalizedQuery.length > 0) {
-    state.reasons.push("no-match");
+  if (!hasQueryMatchReason(state.reasons) && normalizedQuery.length > 0) {
+    state.reasons.push('no-query-match');
   }
 
   return {
@@ -733,7 +1023,9 @@ export const rankAddressCandidates = <TCandidate extends AddressRankingCandidate
   candidates: readonly TCandidate[],
   options: AddressRankingOptions = {},
 ): AddressRankedCandidate<TCandidate>[] => {
-  const ranked = candidates.map((candidate) => scoreAddressCandidate(query, candidate));
+  const ranked = candidates
+    .map((candidate) => scoreAddressCandidate(query, candidate))
+    .filter((candidate) => isQueryRelevantCandidate(query, candidate));
 
   ranked.sort((left, right) => {
     if (right.score !== left.score) {
@@ -742,13 +1034,13 @@ export const rankAddressCandidates = <TCandidate extends AddressRankingCandidate
 
     const leftLabel = labelTextFromCandidate(left.candidate);
     const rightLabel = labelTextFromCandidate(right.candidate);
-    const labelComparison = leftLabel.localeCompare(rightLabel, "cs-CZ");
+    const labelComparison = leftLabel.localeCompare(rightLabel, 'cs-CZ');
 
     if (labelComparison !== 0) {
       return labelComparison;
     }
 
-    return left.candidate.id.localeCompare(right.candidate.id, "cs-CZ");
+    return left.candidate.id.localeCompare(right.candidate.id, 'cs-CZ');
   });
 
   return options.limit === undefined ? ranked : ranked.slice(0, options.limit);

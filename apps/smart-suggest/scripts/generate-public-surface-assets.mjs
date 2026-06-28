@@ -34,7 +34,7 @@ function parseArgs(argv) {
     }
   }
 
-  if (!parsed.appId && !parsed.help) {
+  if (!(parsed.appId || parsed.help)) {
     throw new Error('Missing required --app argument');
   }
   if (!['dist', 'cloudflare'].includes(parsed.target)) {
@@ -61,7 +61,7 @@ UltramodernPublicSitemapEntry[].
 
 function normalizeOrigin(value) {
   if (typeof value !== 'string' || value.trim() === '') {
-    return undefined;
+    return;
   }
   const url = new URL(value);
   return url.origin;
@@ -90,7 +90,7 @@ function resolveOrigin(app, requirePublicOrigin) {
       `${app.id} has public routes but no production public URL. Set ${publicUrlEnv ?? 'ULTRAMODERN_PUBLIC_URL_<APP>'} or MODERN_PUBLIC_SITE_URL.`,
     );
   }
-  return undefined;
+  return;
 }
 
 function ensureOutputDir(app, target) {
@@ -154,7 +154,7 @@ function routePathParamName(segment) {
       .replace(/^\.\.\./u, '')
       .replace(/\$$/u, '');
   }
-  return undefined;
+  return;
 }
 
 function routeSegmentToDirectory(segment) {
@@ -209,7 +209,7 @@ function expandPublicPathPattern(routeId, language, pattern, params) {
       }
       return segment;
     }
-    if (!Object.prototype.hasOwnProperty.call(params, paramName)) {
+    if (!Object.hasOwn(params, paramName)) {
       throw new Error(routeId + ' ' + language + ' sitemap entry is missing param ' + paramName);
     }
     return assertParamValue(routeId, language, paramName, params[paramName]);

@@ -1,41 +1,31 @@
 import type { SmartSuggestCountryCode } from "@techsio/smart-suggest-core"
-import {
-  isSupportedCountry,
-  type PhoneNumberType,
-  parsePhoneNumberFromString,
-  validatePhoneNumberLength,
-} from "libphonenumber-js/max"
-import { validate as validatePostalCodeWithMetadata } from "postal-codes-js"
+import type {
+  PhoneValidationPolicy,
+  PhoneValidationRequest,
+  PhoneValidationResult,
+  ValidationIssue,
+} from "./phone-lite"
+import { validatePhoneNumber as validateStrictPhoneNumber } from "./phone-strict"
 
-export type ValidationIssue = {
-  code: string
-  field: string
-  message: string
-}
+export type {
+  PhoneInputHints,
+  PhoneLiteValidationRequest,
+  PhoneLiteValidationResult,
+  PhoneLiteValidationStatus,
+  PhoneNumberType,
+  PhoneServerValidationUsage,
+  PhoneStrictValidationLoad,
+  PhoneStrictValidationModule,
+  PhoneStrictValidator,
+  PhoneValidationMode,
+  PhoneValidationModeContract,
+  PhoneValidationPolicy,
+  PhoneValidationRequest,
+  PhoneValidationResult,
+  ValidationIssue,
+} from "./phone-lite"
 
-export type PhoneValidationPolicy = {
-  allowedCountries?: readonly SmartSuggestCountryCode[]
-  requireMobile?: boolean
-  requireCountryMatch?: boolean
-}
-
-export type PhoneValidationRequest = PhoneValidationPolicy & {
-  rawInput: string
-  defaultCountry?: SmartSuggestCountryCode
-}
-
-export type PhoneValidationResult = {
-  rawInput: string
-  displayValue: string
-  e164?: string
-  detectedCountry?: SmartSuggestCountryCode
-  callingCode?: string
-  nationalNumber?: string
-  type?: PhoneNumberType
-  isPossible: boolean
-  isValid: boolean
-  errors: ValidationIssue[]
-}
+export const validatePhoneNumber = validateStrictPhoneNumber
 
 export type PostalValidationStatus = boolean | "unknown"
 
@@ -77,11 +67,6 @@ export type PacketaContactValidationResult = {
   fieldErrors: Record<"phone", readonly ValidationIssue[]>
 }
 
-const MOBILE_PHONE_TYPES = new Set<PhoneNumberType>([
-  "MOBILE",
-  "FIXED_LINE_OR_MOBILE",
-])
-
 const TEXT_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
   "CA",
   "GB",
@@ -91,219 +76,46 @@ const TEXT_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
   "US",
 ])
 
-const normalizeCountryCode = (countryCode: string | undefined) =>
-  countryCode?.trim()
-    ? (countryCode.trim().toUpperCase() as SmartSuggestCountryCode)
-    : undefined
-
-const toSupportedPhoneCountry = (
-  countryCode: SmartSuggestCountryCode | undefined
-) => {
-  if (countryCode === undefined) {
-    return
-  }
-
-  return isSupportedCountry(countryCode) ? countryCode : undefined
+const POSTAL_CODE_PATTERNS: Partial<Record<SmartSuggestCountryCode, RegExp>> = {
+  AT: /^\d{4}$/,
+  CA: /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][\s-]?\d[ABCEGHJ-NPRSTV-Z]\d$/i,
+  CZ: /^\d{3}\s?\d{2}$/,
+  DE: /^\d{5}$/,
+  GB: /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$/i,
+  HU: /^\d{4}$/,
+  PL: /^\d{2}-?\d{3}$/,
+  RO: /^\d{6}$/,
+  SK: /^\d{3}\s?\d{2}$/,
+  US: /^\d{5}(?:-\d{4})?$/,
 }
 
 const createIssue = (
   code: string,
   field: string,
   message: string
-): ValidationIssue => ({ code, field, message })
-
-const mapPhoneLengthIssue = (
-  lengthIssue: ReturnType<typeof validatePhoneNumberLength>
-) => {
-  switch (lengthIssue) {
-    case "INVALID_COUNTRY":
-      return createIssue(
-        "phone.country_unsupported",
-        "phone",
-        "The phone country is not supported by the phone metadata."
-      )
-    case "NOT_A_NUMBER":
-      return createIssue("phone.not_a_number", "phone", "Enter a phone number.")
-    case "TOO_SHORT":
-      return createIssue(
-        "phone.too_short",
-        "phone",
-        "The phone number is too short."
-      )
-    case "TOO_LONG":
-      return createIssue(
-        "phone.too_long",
-        "phone",
-        "The phone number is too long."
-      )
-    case "INVALID_LENGTH":
-      return createIssue(
-        "phone.invalid_length",
-        "phone",
-        "The phone number has an invalid length."
-      )
-    default:
-      return createIssue(
-        "phone.invalid",
-        "phone",
-        "Enter a valid phone number."
-      )
-  }
-}
-
-const uniqueIssues = (issues: readonly ValidationIssue[]) => {
-  const seen = new Set<string>()
-
-  return issues.filter((issue) => {
-    const key = `${issue.field}:${issue.code}`
-
-    if (seen.has(key)) {
-      return false
-    }
-
-    seen.add(key)
-    return true
-  })
-}
-
-const normalizeAllowedCountries = (
-  allowedCountries: readonly SmartSuggestCountryCode[] | undefined
-) => {
-  const normalizedCountries = allowedCountries
-    ?.map(normalizeCountryCode)
-    .filter((countryCode) => countryCode !== undefined)
-
-  return normalizedCountries === undefined || normalizedCountries.length === 0
-    ? undefined
-    : normalizedCountries
-}
-
-export const validatePhoneNumber = (
-  request: PhoneValidationRequest
-): PhoneValidationResult => {
-  const rawInput = request.rawInput
-  const trimmedInput = rawInput.trim()
-  const defaultCountry = normalizeCountryCode(request.defaultCountry)
-  const supportedDefaultCountry = toSupportedPhoneCountry(defaultCountry)
-  const errors: ValidationIssue[] = []
-
-  if (trimmedInput.length === 0) {
-    return {
-      rawInput,
-      displayValue: rawInput,
-      isPossible: false,
-      isValid: false,
-      errors: [createIssue("phone.required", "phone", "Enter a phone number.")],
-    }
-  }
-
-  const parsedPhone = parsePhoneNumberFromString(
-    trimmedInput,
-    supportedDefaultCountry
-  )
-
-  if (parsedPhone === undefined) {
-    const lengthIssue = validatePhoneNumberLength(
-      trimmedInput,
-      supportedDefaultCountry
-    )
-
-    return {
-      rawInput,
-      displayValue: trimmedInput,
-      isPossible: false,
-      isValid: false,
-      errors: [mapPhoneLengthIssue(lengthIssue)],
-    }
-  }
-
-  const detectedCountry = normalizeCountryCode(parsedPhone.country)
-  const type = parsedPhone.getType()
-  const isPossible = parsedPhone.isPossible()
-  const isValidMetadata = parsedPhone.isValid()
-  const allowedCountries = normalizeAllowedCountries(request.allowedCountries)
-
-  if (!(isPossible && isValidMetadata)) {
-    const lengthIssue = validatePhoneNumberLength(
-      trimmedInput,
-      supportedDefaultCountry
-    )
-    errors.push(mapPhoneLengthIssue(lengthIssue))
-  }
-
-  if (
-    allowedCountries !== undefined &&
-    detectedCountry !== undefined &&
-    !allowedCountries.includes(detectedCountry)
-  ) {
-    errors.push(
-      createIssue(
-        "phone.country_not_allowed",
-        "phone",
-        "The phone number country is not allowed."
-      )
-    )
-  }
-
-  if (
-    request.requireCountryMatch === true &&
-    defaultCountry !== undefined &&
-    detectedCountry !== undefined &&
-    detectedCountry !== defaultCountry
-  ) {
-    errors.push(
-      createIssue(
-        "phone.country_mismatch",
-        "phone",
-        "The phone number country does not match the selected country."
-      )
-    )
-  }
-
-  if (
-    request.requireMobile === true &&
-    (type === undefined || !MOBILE_PHONE_TYPES.has(type))
-  ) {
-    errors.push(
-      createIssue(
-        "phone.mobile_required",
-        "phone",
-        "Enter a mobile phone number."
-      )
-    )
-  }
-
-  const isValid = isValidMetadata && errors.length === 0
-
-  const result: PhoneValidationResult = {
-    rawInput,
-    displayValue: parsedPhone.formatInternational(),
-    callingCode: parsedPhone.countryCallingCode,
-    nationalNumber: parsedPhone.nationalNumber,
-    isPossible,
-    isValid,
-    errors: uniqueIssues(errors),
-  }
-
-  if (isValid) {
-    result.e164 = parsedPhone.number
-  }
-
-  if (detectedCountry !== undefined) {
-    result.detectedCountry = detectedCountry
-  }
-
-  if (type !== undefined) {
-    result.type = type
-  }
-
-  return result
-}
+): ValidationIssue => ({
+  code,
+  field,
+  message,
+})
 
 const digitsOnly = (value: string) => value.replaceAll(/\D/g, "")
 
 const normalizePostalText = (value: string) =>
   value.trim().toUpperCase().replaceAll(/\s+/g, " ")
+
+const isPostalCodeValidForCountry = (
+  countryCode: SmartSuggestCountryCode,
+  displayValue: string
+): PostalValidationStatus => {
+  const pattern = POSTAL_CODE_PATTERNS[countryCode]
+
+  if (pattern === undefined) {
+    return "unknown"
+  }
+
+  return pattern.test(displayValue)
+}
 
 const formatPostalDisplayValue = (
   countryCode: SmartSuggestCountryCode,
@@ -375,10 +187,7 @@ export const validatePostalCode = (
     }
   }
 
-  const metadataResult = validatePostalCodeWithMetadata(
-    countryCode,
-    displayValue
-  )
+  const metadataResult = isPostalCodeValidForCountry(countryCode, displayValue)
 
   if (metadataResult === true) {
     return {
@@ -392,10 +201,7 @@ export const validatePostalCode = (
     }
   }
 
-  if (
-    typeof metadataResult === "string" &&
-    metadataResult.startsWith("Unknown alpha2/alpha3 country code")
-  ) {
+  if (metadataResult === "unknown") {
     return {
       rawInput,
       countryCode,

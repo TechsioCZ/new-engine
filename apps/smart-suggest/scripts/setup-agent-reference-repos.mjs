@@ -47,7 +47,7 @@ function run(command, commandArgs, options = {}) {
       ...(options.env ?? {}),
     },
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
-    timeout: options.timeout ?? 120000,
+    timeout: options.timeout ?? 120_000,
   });
 
   if (result.error) {
@@ -109,12 +109,12 @@ function hasCommits() {
 }
 
 function porcelainStatus() {
-  return run('git', ['status', '--porcelain'], { timeout: 30000 });
+  return run('git', ['status', '--porcelain'], { timeout: 30_000 });
 }
 
 function commitInstallerChanges(message) {
   run('git', ['commit', '--no-verify', '-m', message], {
-    timeout: 120000,
+    timeout: 120_000,
   });
 }
 
@@ -125,7 +125,7 @@ function ensureGitRepository() {
       return false;
     }
     log('initializing git repository for agent reference subtrees');
-    run('git', ['init'], { timeout: 30000 });
+    run('git', ['init'], { timeout: 30_000 });
   }
 
   if (!hasCommits()) {
@@ -134,7 +134,7 @@ function ensureGitRepository() {
       return false;
     }
     log('creating initial workspace commit before adding reference subtrees');
-    run('git', ['add', '-A'], { timeout: 30000 });
+    run('git', ['add', '-A'], { timeout: 30_000 });
     commitInstallerChanges('Initialize UltraModern workspace');
     return true;
   }
@@ -152,11 +152,11 @@ function ensureGitRepository() {
 
 function remoteCommit(repo) {
   let output = run('git', ['ls-remote', repo.url, `refs/heads/${repo.ref}`], {
-    timeout: 120000,
+    timeout: 120_000,
   });
   if (!output) {
     output = run('git', ['ls-remote', repo.url, repo.ref], {
-      timeout: 120000,
+      timeout: 120_000,
     });
   }
   const [commit] = output.split(/\s+/);
@@ -181,13 +181,13 @@ function subtreeCommitExists(repo) {
 
 function installedManifestEntry(repo) {
   if (!fs.existsSync(manifestPath)) {
-    return undefined;
+    return;
   }
   try {
     const manifest = readJson(manifestPath);
     return manifest.repositories?.find((entry) => entry.id === repo.id);
   } catch {
-    return undefined;
+    return;
   }
 }
 
@@ -196,11 +196,11 @@ function assertSubtreePresent(repo) {
   const targetPath = path.join(root, repo.path);
   if (!fs.existsSync(targetPath)) {
     fail(`${repo.path} is missing`);
-    return undefined;
+    return;
   }
   if (!subtreeCommitExists(repo)) {
     fail(`${repo.path} is present but has no git-subtree commit evidence`);
-    return undefined;
+    return;
   }
   return (
     installedManifestEntry(repo) ?? {
@@ -227,18 +227,18 @@ function addSubtree(repo) {
 
   if (existing && refresh) {
     fail(`${repo.path} already exists; refresh for subtree references is intentionally manual`);
-    return undefined;
+    return;
   }
 
   if (checkOnly) {
     fail(`${repo.path} is missing`);
-    return undefined;
+    return;
   }
 
   const commit = remoteCommit(repo);
   log(`adding ${repo.name} as git subtree at ${repo.path} (${commit})`);
   run('git', ['fetch', '--depth', '1', repo.url, repo.ref], {
-    timeout: 300000,
+    timeout: 300_000,
   });
   run(
     'git',
@@ -252,7 +252,7 @@ function addSubtree(repo) {
       '-m',
       `Add ${repo.name} agent reference repo`,
     ],
-    { timeout: 600000 },
+    { timeout: 600_000 },
   );
 
   return {
@@ -290,12 +290,12 @@ function writeManifest(entries) {
 
 function commitManifestIfChanged() {
   const status = run('git', ['status', '--porcelain', '--', manifestPath], {
-    timeout: 30000,
+    timeout: 30_000,
   });
   if (!status) {
     return;
   }
-  run('git', ['add', manifestPath], { timeout: 30000 });
+  run('git', ['add', manifestPath], { timeout: 30_000 });
   commitInstallerChanges('Record agent reference repo manifest');
 }
 

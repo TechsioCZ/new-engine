@@ -2,6 +2,13 @@ import type { SmartSuggestCountryCode } from "@techsio/smart-suggest-core"
 import { describe, expect, it } from "vitest"
 
 import { validatePhoneNumber } from "../src/index"
+import {
+  DEFAULT_PHONE_VALIDATION_MODE,
+  getPhoneInputHints,
+  getPhoneValidationModeContract,
+  isPhoneValidationMode,
+  validatePhoneNumberLite,
+} from "../src/phone-lite"
 
 type PhoneFixture = readonly [SmartSuggestCountryCode, string, string, string]
 
@@ -129,5 +136,83 @@ describe("validatePhoneNumber", () => {
       isValid: false,
       errors: [expect.objectContaining({ field: "phone" })],
     })
+  })
+
+  it("can load the strict validator through a dynamic strict entrypoint import", async () => {
+    const strictPhone = await import("../src/phone-strict")
+
+    expect(
+      strictPhone.validatePhoneNumber({
+        rawInput: "+420 777 123 456",
+        defaultCountry: "CZ",
+      })
+    ).toMatchObject({
+      e164: "+420777123456",
+      isValid: true,
+    })
+  })
+})
+
+describe("phone validation mode contract", () => {
+  it("defines server-only, lazy, and immediate mode behavior", () => {
+    expect(DEFAULT_PHONE_VALIDATION_MODE).toBe("server-only")
+    expect(isPhoneValidationMode("server-only")).toBe(true)
+    expect(isPhoneValidationMode("frontend-lazy")).toBe(true)
+    expect(isPhoneValidationMode("frontend-immediate")).toBe(true)
+    expect(isPhoneValidationMode("frontend-strict")).toBe(false)
+
+    expect(getPhoneValidationModeContract("server-only")).toMatchObject({
+      strictValidationLoad: "none",
+      serverValidation: "required",
+      usesLiteValidationFirst: true,
+    })
+    expect(getPhoneValidationModeContract("frontend-lazy")).toMatchObject({
+      strictValidationLoad: "lazy",
+      serverValidation: "fallback",
+      usesLiteValidationFirst: true,
+    })
+    expect(getPhoneValidationModeContract("frontend-immediate")).toMatchObject({
+      strictValidationLoad: "immediate",
+      serverValidation: "optional",
+      usesLiteValidationFirst: false,
+    })
+  })
+
+  it("exposes native phone input hints for server-only forms", () => {
+    expect(getPhoneInputHints()).toEqual({
+      type: "tel",
+      autoComplete: "tel",
+      inputMode: "tel",
+    })
+  })
+
+  it("keeps lite validation cheap and never claims strict validity", () => {
+    const result = validatePhoneNumberLite({
+      rawInput: "+420 777 123 456",
+      defaultCountry: "CZ",
+    })
+
+    expect(result).toMatchObject({
+      normalizedDigits: "420777123456",
+      status: "strict_validation_required",
+      canAttemptStrictValidation: true,
+      requiresStrictValidation: true,
+      errors: [],
+    })
+    expect("isValid" in result).toBe(false)
+    expect("e164" in result).toBe(false)
+  })
+
+  it("rejects malformed values before strict validation is attempted", () => {
+    const result = validatePhoneNumberLite({ rawInput: "not a phone" })
+
+    expect(result).toMatchObject({
+      status: "malformed",
+      canAttemptStrictValidation: false,
+      requiresStrictValidation: false,
+    })
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "phone.invalid_shape" })
+    )
   })
 })

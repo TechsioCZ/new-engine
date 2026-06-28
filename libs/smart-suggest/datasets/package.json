@@ -5,8 +5,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./source-catalog": {
+      "types": "./dist/source-catalog.d.ts",
+      "import": "./dist/source-catalog.js"
     },
     "./package.json": "./package.json"
   },
@@ -24,6 +28,7 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.0",
+    "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   },

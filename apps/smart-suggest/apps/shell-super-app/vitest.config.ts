@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@techsio/smart-suggest-datasets/source-catalog',
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/datasets/src/source-catalog.ts'),
+      },
+      {
         find: '@techsio/smart-suggest-core',
         replacement: path.join(workspaceRoot, 'libs/smart-suggest/core/src/index.ts'),
       },

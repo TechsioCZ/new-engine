@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,7 +29,7 @@ function parseArgs(argv) {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  if (!parsed.app && !parsed.help) {
+  if (!(parsed.app || parsed.help)) {
     throw new Error('Missing required --app argument.');
   }
 
@@ -51,6 +52,63 @@ function assertInside(parent, child) {
   }
 }
 
+function writeBundleConfig(configPath, entryPath) {
+  fs.writeFileSync(
+    configPath,
+    `import { defineConfig } from '@rslib/core';
+
+export default defineConfig({
+  source: { entry: { index: ${JSON.stringify(entryPath)} } },
+  lib: [{ bundle: true, autoExternal: false, dts: false, format: 'esm' }],
+  output: { target: 'web' },
+});
+`,
+  );
+}
+
+function copySdkBundle(bundleOutputDir, sdkOutputDir, sdkOutput) {
+  fs.rmSync(sdkOutput, { force: true });
+
+  for (const entry of fs.readdirSync(sdkOutputDir)) {
+    if (entry.endsWith('.js') && entry !== 'demo.html') {
+      fs.rmSync(path.join(sdkOutputDir, entry), { force: true });
+    }
+  }
+
+  for (const entry of fs.readdirSync(bundleOutputDir)) {
+    if (!entry.endsWith('.js')) {
+      continue;
+    }
+
+    const sourcePath = path.join(bundleOutputDir, entry);
+    const targetPath = path.join(
+      sdkOutputDir,
+      entry === 'index.js' ? 'techsio-smart-suggest.js' : entry,
+    );
+    fs.copyFileSync(sourcePath, targetPath);
+  }
+}
+
+function sdkJavaScriptFiles(sdkOutputDir) {
+  return fs
+    .readdirSync(sdkOutputDir)
+    .filter((entry) => entry.endsWith('.js') && entry !== 'demo.html')
+    .map((entry) => path.join(sdkOutputDir, entry));
+}
+
+function formatSdkBundle(sdkOutputDir) {
+  const files = sdkJavaScriptFiles(sdkOutputDir);
+
+  if (files.length === 0) {
+    throw new Error(`No JavaScript files were generated in ${sdkOutputDir}.`);
+  }
+
+  execFileSync('pnpm', ['exec', 'oxfmt', ...files], {
+    cwd: workspaceRoot,
+    stdio: 'inherit',
+  });
+}
+
 function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
 
@@ -62,27 +120,54 @@ function main(argv = process.argv.slice(2)) {
   const appRoot = path.resolve(workspaceRoot, 'apps', args.app);
   assertInside(path.resolve(workspaceRoot, 'apps'), appRoot);
 
-  execFileSync('pnpm', ['--filter', '@techsio/smart-suggest-vanilla', 'build'], {
-    cwd: workspaceRoot,
-    stdio: 'inherit',
-  });
-
-  const vanillaOutput = path.resolve(
-    workspaceRoot,
-    '../../libs/smart-suggest/vanilla/dist/index.js',
-  );
+  const vanillaEntry = path.resolve(workspaceRoot, '../../libs/smart-suggest/vanilla/src/index.ts');
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-suggest-sdk-'));
+  const bundleConfig = path.join(tempRoot, 'rslib.config.ts');
+  const bundleOutputDir = path.join(tempRoot, 'dist');
   const sdkOutputDir = path.join(appRoot, 'sdk');
   const sdkOutput = path.join(sdkOutputDir, 'techsio-smart-suggest.js');
-  const source = fs.readFileSync(vanillaOutput, 'utf-8');
-  const publicModule = `${source}
+
+  try {
+    writeBundleConfig(bundleConfig, vanillaEntry);
+
+    execFileSync(
+      'pnpm',
+      [
+        '--filter',
+        '@techsio/smart-suggest-vanilla',
+        'exec',
+        'rslib',
+        'build',
+        '--config',
+        bundleConfig,
+        '--dist-path',
+        bundleOutputDir,
+        '--clean',
+      ],
+      {
+        cwd: workspaceRoot,
+        stdio: 'inherit',
+      },
+    );
+
+    fs.mkdirSync(sdkOutputDir, { recursive: true });
+    copySdkBundle(bundleOutputDir, sdkOutputDir, sdkOutput);
+
+    const source = fs.readFileSync(sdkOutput, 'utf-8');
+    fs.writeFileSync(
+      sdkOutput,
+      `${source}
 
 if (typeof window !== 'undefined') {
   installSmartSuggestGlobal(window);
 }
-`;
+`,
+    );
+    formatSdkBundle(sdkOutputDir);
+  } finally {
+    fs.rmSync(tempRoot, { force: true, recursive: true });
+  }
 
-  fs.mkdirSync(sdkOutputDir, { recursive: true });
-  fs.writeFileSync(sdkOutput, publicModule);
   process.stdout.write(`Prepared Smart Suggest SDK: ${path.relative(workspaceRoot, sdkOutput)}\n`);
   return 0;
 }

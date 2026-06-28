@@ -21,14 +21,14 @@ const sourcePath = (relativePath: string) =>
   new URL(relativePath, import.meta.url).pathname
 
 const packageSources: Record<SmartSuggestPackage, string> = {
-  client: "./client/src/index.ts",
-  core: "./core/src/index.ts",
-  datasets: "./datasets/src/index.ts",
-  indexing: "./indexing/src/index.ts",
-  integrations: "./integrations/src/index.ts",
-  react: "./react/src/index.ts",
-  storage: "./storage/src/index.ts",
-  validation: "./validation/src/index.ts",
+  client: "../../client/src/index.ts",
+  core: "../../core/src/index.ts",
+  datasets: "../../datasets/src/index.ts",
+  indexing: "../../indexing/src/index.ts",
+  integrations: "../../integrations/src/index.ts",
+  react: "../../react/src/index.ts",
+  storage: "../../storage/src/index.ts",
+  validation: "../../validation/src/index.ts",
 }
 
 const REACT_IMPORT_PATTERN = /^react$/u
@@ -43,18 +43,20 @@ const packageAlias = (packageName: SmartSuggestPackage) => ({
 const reactSingletonAliases = (packageName: "ui") => [
   {
     find: REACT_IMPORT_PATTERN,
-    replacement: sourcePath(`./${packageName}/node_modules/react/index.js`),
+    replacement: sourcePath(
+      `../../${packageName}/node_modules/react/index.js`
+    ),
   },
   {
     find: REACT_JSX_DEV_RUNTIME_PATTERN,
     replacement: sourcePath(
-      `./${packageName}/node_modules/react/jsx-dev-runtime.js`
+      `../../${packageName}/node_modules/react/jsx-dev-runtime.js`
     ),
   },
   {
     find: REACT_JSX_RUNTIME_PATTERN,
     replacement: sourcePath(
-      `./${packageName}/node_modules/react/jsx-runtime.js`
+      `../../${packageName}/node_modules/react/jsx-runtime.js`
     ),
   },
 ]

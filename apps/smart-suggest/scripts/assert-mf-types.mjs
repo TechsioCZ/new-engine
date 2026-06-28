@@ -60,7 +60,7 @@ for (const appDir of appDirs) {
   const exposes = contractEntry?.moduleFederation?.exposes;
   const hasExposes = Array.isArray(exposes) ? exposes.length > 0 : configHasExposes(configPath);
 
-  if (!hasExposes && !configHasExposes(configPath)) {
+  if (!(hasExposes || configHasExposes(configPath))) {
     continue;
   }
 

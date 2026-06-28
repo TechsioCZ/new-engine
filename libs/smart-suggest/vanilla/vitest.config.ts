@@ -1,6 +1,27 @@
-import { defineSmartSuggestVitestConfig } from "../vitest.config.shared"
+import { mergeConfig } from "vitest/config"
 
-export default defineSmartSuggestVitestConfig({
-  environment: "jsdom",
-  packages: ["core"],
-})
+import { defineSmartSuggestVitestConfig } from "@techsio/smart-suggest-tooling/vitest-config"
+
+const sourcePath = (relativePath: string) =>
+  new URL(relativePath, import.meta.url).pathname
+
+export default mergeConfig(
+  defineSmartSuggestVitestConfig({
+    environment: "jsdom",
+    packages: ["core"],
+  }),
+  {
+    resolve: {
+      alias: [
+        {
+          find: /^@techsio\/smart-suggest-validation\/phone-lite$/u,
+          replacement: sourcePath("../validation/src/phone-lite.ts"),
+        },
+        {
+          find: /^@techsio\/smart-suggest-validation\/phone-strict$/u,
+          replacement: sourcePath("../validation/src/phone-strict.ts"),
+        },
+      ],
+    },
+  }
+)

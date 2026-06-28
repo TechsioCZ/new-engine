@@ -171,6 +171,114 @@ migrations with Wrangler, and fails if `SMART_SUGGEST_D1_DATABASE_ID` is
 missing. Provider secrets, provider priority, timeout, and CORS origins are
 intentionally deployment/runtime configuration, not browser configuration.
 
+## Smart Suggest Provider Runtime Configuration
+
+Live providers are fallback-only. CZ owned data must keep working when every
+provider is missing, disabled, timed out, rate-limited, or circuit-open. Do not
+commit provider secrets, raw query samples, or provider response payloads.
+
+Use Cloudflare secrets for credentials:
+
+```bash
+wrangler secret put MAPY_CZ_API_KEY --config apps/shell-super-app/.output/wrangler.json
+wrangler secret put RADAR_API_KEY --config apps/shell-super-app/.output/wrangler.json
+wrangler secret put HERE_API_KEY --config apps/shell-super-app/.output/wrangler.json
+```
+
+Use Cloudflare vars or environment-scoped deploy configuration for non-secret
+runtime switches:
+
+| Provider           | Required secret or var                                               | Optional vars                                                                                                                                                          |
+| ------------------ | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mapy.cz            | `MAPY_CZ_API_KEY`                                                    | `MAPY_CZ_ENDPOINT_URL`                                                                                                                                                 |
+| Radar Autocomplete | `RADAR_API_KEY`                                                      | `RADAR_AUTOCOMPLETE_BASE_URL`, `RADAR_AUTOCOMPLETE_COUNTRY_CODE`, `RADAR_AUTOCOMPLETE_DEFAULT_LIMIT`, `RADAR_AUTOCOMPLETE_LAYERS`, `RADAR_AUTOCOMPLETE_NEAR`           |
+| HERE Discover      | `HERE_API_KEY`                                                       | `HERE_DISCOVER_BASE_URL`, `HERE_DISCOVER_DEFAULT_LIMIT`, `HERE_DISCOVER_LANGUAGE`, `HERE_DISCOVER_IN_AREA`, `HERE_DISCOVER_AT`, `HERE_DEFAULT_LAT`, `HERE_DEFAULT_LNG` |
+| Managed Nominatim  | `NOMINATIM_USER_AGENT` plus an approved managed `NOMINATIM_BASE_URL` | `NOMINATIM_DEFAULT_LIMIT`, `NOMINATIM_EMAIL`, `NOMINATIM_REFERER`                                                                                                      |
+| RUIAN geocode      | none for the public endpoint                                         | `RUIAN_GEOCODE_BASE_URL`, `RUIAN_GEOCODE_DEFAULT_LIMIT`, `RUIAN_GEOCODE_DISABLED`                                                                                      |
+| Runtime policy     | `SMART_SUGGEST_QUERY_HASH_SECRET` should be a secret                 | `SMART_SUGGEST_PROVIDER_PRIORITY`, `SMART_SUGGEST_PROVIDER_TIMEOUT_MS`, `SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS`, `SMART_SUGGEST_ALLOWED_ORIGINS`                    |
+
+Provider priority is a comma-separated provider id list, for example
+`ruian-geocode,mapy-cz,radar-autocomplete,here-discover,nominatim`. Only
+configured providers are called. Missing provider credentials result in skipped
+configuration, not a hard checkout dependency.
+
+Deploy/config checks:
+
+```bash
+pnpm cloudflare:build
+wrangler secret list --config apps/shell-super-app/.output/wrangler.json
+grep -R "MAPY_CZ_API_KEY\\|RADAR_API_KEY\\|HERE_API_KEY" apps/shell-super-app/.output
+pnpm test:smoke
+```
+
+The `grep` command should find variable names only in generated configuration or
+code references, never credential values. `SMART_SUGGEST_QUERY_HASH_SECRET`
+keeps cache and telemetry keys keyed without storing raw user query text.
+Provider events persist provider ids, statuses, error codes, request ids, and
+query hashes only.
+
+## Smart Suggest Owned Import Proof
+
+Use the local import and proof commands for normalized owned-dataset fixtures.
+They read JSON or JSONL `AddressSnapshotRow` objects, import through the Smart
+Suggest dataset helpers into in-memory repositories, and do not call live
+providers.
+
+```bash
+pnpm smart-suggest:import:local
+pnpm smart-suggest:proof:offline
+node scripts/smart-suggest-owned-import.mjs import-d1 \
+  --d1-target local \
+  --apply-migrations \
+  --snapshot-uri fixture://synthetic/k-louzi-1258-12
+```
+
+The checked-in fixture is a single synthetic test row that covers the required
+`K Louži 1258/12` scenario; do not commit real or bulk production snapshots.
+For production imports, pass an external local snapshot path with
+`--snapshot-uri` pointing at the retained source, for example an R2 URI plus an
+operator-tracked checksum. Output reports contain only scenario ids, source ids,
+suggestion labels, provider-event counts, and import row totals. D1 import uses
+the generated `apps/shell-super-app/.output/wrangler.json` config and the
+`SMART_SUGGEST_D1` binding by default. `--apply-migrations` refreshes that
+config's `migrations_dir` from the Smart Suggest storage migrations before
+Wrangler applies migrations. Use `--d1-target remote` or `--d1-target preview`
+only for explicit operator runs. Production normalized `address_records`,
+`data_sources`, and `import_runs` belong in D1, not in git.
+
+## Smart Suggest Source Governance
+
+Source persistence is governed by
+[`docs/adr/0002-smart-suggest-source-governance.md`](../../docs/adr/0002-smart-suggest-source-governance.md).
+Provider priority and timeout settings only control live fallback order; they do
+not grant permission to cache, index, import, or durably store provider results.
+
+Current source decisions:
+
+| Source                                     | Runtime role                         | Persistence rule                                                                                                                                                                     |
+| ------------------------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| RUIAN CZ                                   | Owned CZ import                      | Persistent `address_records` are allowed with CUZK/RUIAN CC BY 4.0 attribution, modification notes, and monthly Atom discovery.                                                      |
+| Mapy.cz / Mapy.com                         | Deployment-approved live fallback    | Permanent cache and durable retention are controlled by deployment-owned source policy. Bulk import, offline harvesting, and training use remain blocked unless separately approved. |
+| Radar Autocomplete                         | Live fallback/enrichment             | TTL-only cache, max 30 days. Do not write to durable `address_records` or the offline index.                                                                                         |
+| HERE Discover / Autocomplete / Autosuggest | Deployment-approved live fallback    | Permanent cache and durable retention are controlled by deployment-owned source policy. Bulk import, offline harvesting, and training use remain blocked unless separately approved. |
+| Managed Nominatim endpoint/account         | Deployment-approved live fallback    | Permanent cache and durable retention are controlled by deployment-owned source policy. The configured `nominatim` provider alias resolves to this managed source policy.            |
+| Public Nominatim service                   | Not a production autocomplete source | Do not use for autocomplete, production fallback, bulk import, durable cache, or index building. OSM extracts/self-hosted services require a separate ODbL decision.                 |
+| Slovakia Register adries                   | Candidate owned SK import            | Pending license/attribution confirmation before production persistent import.                                                                                                        |
+| OpenAddresses                              | Candidate backfill/source discovery  | Per-source license only; never treat the whole project as one blanket durable source.                                                                                                |
+
+Raw user query text must never be stored. Live-provider suggestions must not be
+written to durable `address_records` unless the source catalog explicitly allows
+durable retention for that source. Mapy, HERE, and managed Nominatim use
+deployment-approved source policies; that does not grant bulk-import/backfill
+rights.
+
+`GET /v1/status` includes a compact `sourcePolicy` section for operational
+review. It reports catalog-derived provider source IDs allowed for durable
+retention/permanent cache, TTL-only live providers with their max TTL, live
+providers that must not durably retain results, and
+`rawQueryStorage: "disabled"`. The status response intentionally reports source IDs and counters
+only; it does not include raw user queries or provider payloads.
+
 ## Smart Suggest Consumption Policy
 
 New-core monorepo consumers, including Herbatika, use direct workspace imports

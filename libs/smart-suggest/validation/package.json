@@ -5,8 +5,16 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./phone-lite": {
+      "types": "./dist/phone-lite.d.ts",
+      "import": "./dist/phone-lite.js"
+    },
+    "./phone-strict": {
+      "types": "./dist/phone-strict.d.ts",
+      "import": "./dist/phone-strict.js"
     },
     "./package.json": "./package.json"
   },
@@ -24,12 +32,12 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.0",
+    "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   },
   "dependencies": {
     "@techsio/smart-suggest-core": "workspace:^",
-    "libphonenumber-js": "^1.13.2",
-    "postal-codes-js": "2.5.2"
+    "libphonenumber-js": "^1.13.2"
   }
 }

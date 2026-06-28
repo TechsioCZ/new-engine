@@ -1,0 +1,655 @@
+{
+  "schemaVersion": "smart-suggest-benchmark-corpus/v1",
+  "id": "smart-suggest-public-safe-cz-address-corpus-v1",
+  "name": "Smart Suggest public-safe CZ address benchmark corpus",
+  "publicSafety": {
+    "safeToCommit": true,
+    "containsRawCustomerQueries": false,
+    "containsPrivateProviderPayloads": false,
+    "dataPolicy": "Synthetic and RUIAN-like public-safe canonical cases only. Scenario queries are authored benchmark prompts, not captured customer traffic."
+  },
+  "sourceFixtures": [
+    {
+      "path": "apps/smart-suggest/scripts/fixtures/synthetic-k-louzi-1258-12.jsonl",
+      "role": "proof-fixture",
+      "notes": "Tiny K Louzi-style synthetic fixture used as the seed proof shape."
+    },
+    {
+      "path": "apps/smart-suggest/scripts/smart-suggest-index-prototype.mjs",
+      "role": "deterministic-canonical-row-source",
+      "notes": "The fixedRows array defines the stable RUIAN-like ids used by this corpus; corpus-local rows add focused decoys for offline quality gates."
+    }
+  ],
+  "sources": [
+    {
+      "id": "ruian-cz",
+      "kind": "owned-dataset",
+      "label": "CUZK RUIAN synthetic benchmark rows",
+      "countryCodes": ["CZ"],
+      "publicSafe": true
+    }
+  ],
+  "canonicalResults": [
+    {
+      "id": "ruian-cz:1203603",
+      "sourceId": "ruian-cz",
+      "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Praha 10",
+        "district": "Vršovice",
+        "street": "K Louži",
+        "houseNumber": "1258",
+        "orientationNumber": "12",
+        "postalCode": "101 00"
+      }
+    },
+    {
+      "id": "ruian-cz:1203604",
+      "sourceId": "ruian-cz",
+      "label": "K Louži 1258/7, 101 00 Praha 10, Vršovice, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Praha 10",
+        "district": "Vršovice",
+        "street": "K Louži",
+        "houseNumber": "1258",
+        "orientationNumber": "7",
+        "postalCode": "101 00"
+      }
+    },
+    {
+      "id": "ruian-cz:1203605",
+      "sourceId": "ruian-cz",
+      "label": "K Louži 784/3, 101 00 Praha 10, Vršovice, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Praha 10",
+        "district": "Vršovice",
+        "street": "K Louži",
+        "houseNumber": "784",
+        "orientationNumber": "3",
+        "postalCode": "101 00"
+      }
+    },
+    {
+      "id": "ruian-cz:1203606",
+      "sourceId": "ruian-cz",
+      "label": "K Louži 1312/1, 101 00 Praha 10, Vršovice, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Praha 10",
+        "district": "Vršovice",
+        "street": "K Louži",
+        "houseNumber": "1312",
+        "orientationNumber": "1",
+        "postalCode": "101 00"
+      }
+    },
+    {
+      "id": "ruian-cz:4401258",
+      "sourceId": "ruian-cz",
+      "label": "K Louži 1258/12, 602 00 Brno, Stránice, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Brno",
+        "district": "Stránice",
+        "street": "K Louži",
+        "houseNumber": "1258",
+        "orientationNumber": "12",
+        "postalCode": "602 00"
+      }
+    },
+    {
+      "id": "ruian-cz:2200012",
+      "sourceId": "ruian-cz",
+      "label": "Vinohradská 12/34, 120 00 Praha 2, Vinohrady, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Praha 2",
+        "district": "Vinohrady",
+        "street": "Vinohradská",
+        "houseNumber": "12",
+        "orientationNumber": "34",
+        "postalCode": "120 00"
+      }
+    },
+    {
+      "id": "ruian-cz:3300832",
+      "sourceId": "ruian-cz",
+      "label": "Václavské náměstí 832/19, 110 00 Praha 1, Nové Město, CZ",
+      "address": {
+        "countryCode": "CZ",
+        "city": "Praha 1",
+        "district": "Nové Město",
+        "street": "Václavské náměstí",
+        "houseNumber": "832",
+        "orientationNumber": "19",
+        "postalCode": "110 00"
+      }
+    }
+  ],
+  "defaultRequest": {
+    "kind": "address",
+    "countryCode": "CZ",
+    "language": "cs-CZ",
+    "limit": 5
+  },
+  "scenarios": [
+    {
+      "id": "addr-k-louzi-slash-diacritic-exact",
+      "description": "Complete K Louži slash-form address with Czech diacritics.",
+      "query": "K Louži 1258/12, Praha 10",
+      "tags": [
+        "complete-address",
+        "diacritic",
+        "house-orientation",
+        "k-louzi-house-orientation",
+        "slash-form"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-slash-no-diacritic",
+      "description": "Complete K Louzi slash-form address without diacritics.",
+      "query": "K Louzi 1258/12 Praha 10",
+      "tags": [
+        "complete-address",
+        "house-orientation",
+        "k-louzi-house-orientation",
+        "no-diacritic",
+        "slash-form"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-spaced-slash",
+      "description": "Slash address with extra spacing around the house/orientation separator.",
+      "query": "K Louži 1258 / 12",
+      "tags": [
+        "house-orientation",
+        "k-louzi-house-orientation",
+        "slash-form",
+        "spacing"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-house-only-volume",
+      "description": "Street plus house number should surface both known orientation variants.",
+      "query": "K Louži 1258",
+      "tags": [
+        "house-number",
+        "k-louzi-house-orientation",
+        "result-volume",
+        "street-house"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "top5ResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "requiredResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203604",
+            "label": "K Louži 1258/7, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 2,
+          "max": 5,
+          "bucket": "bounded-cluster"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-orientation-explicit",
+      "description": "Street plus explicit orientation-number wording should prefer the matching orientation.",
+      "query": "K Louži č.o. 12",
+      "tags": [
+        "diacritic",
+        "k-louzi-house-orientation",
+        "orientation-number",
+        "street-orientation"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-house-number-first",
+      "description": "House-number-first K Louži query should still surface the known 1258 orientation variants.",
+      "query": "1258 K Louži",
+      "tags": [
+        "house-number",
+        "k-louzi-house-orientation",
+        "number-first",
+        "street-house"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "top5ResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "requiredResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203604",
+            "label": "K Louži 1258/7, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 2,
+          "max": 5,
+          "bucket": "bounded-cluster"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-orientation-number-first",
+      "description": "Orientation-number-first K Louži query should prefer the matching 1258/12 address.",
+      "query": "12 K Louži",
+      "tags": [
+        "house-orientation",
+        "k-louzi-house-orientation",
+        "number-first",
+        "orientation-number",
+        "street-orientation"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-postal-street-volume",
+      "description": "Postal code plus street should return the known K Louži cluster, not the whole city.",
+      "query": "10100 K Louzi",
+      "tags": [
+        "k-louzi-house-orientation",
+        "no-diacritic",
+        "postal-code",
+        "result-volume"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "top5ResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "requiredResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203604",
+            "label": "K Louži 1258/7, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203605",
+            "label": "K Louži 784/3, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203606",
+            "label": "K Louži 1312/1, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 4,
+          "max": 8,
+          "bucket": "bounded-cluster"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-street-only-volume",
+      "description": "Street-only K Louži query should be bounded to the street cluster.",
+      "query": "K Louži",
+      "tags": [
+        "diacritic",
+        "k-louzi-house-orientation",
+        "result-volume",
+        "street-only"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "top5ResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "requiredResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203604",
+            "label": "K Louži 1258/7, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203605",
+            "label": "K Louži 784/3, 101 00 Praha 10, Vršovice, CZ"
+          },
+          {
+            "resultId": "ruian-cz:1203606",
+            "label": "K Louži 1312/1, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 4,
+          "max": 8,
+          "bucket": "bounded-cluster"
+        }
+      }
+    },
+    {
+      "id": "addr-vinohradska-postal-diacritic",
+      "description": "Postal code plus diacritic street and slash address outside the K Louži cluster.",
+      "query": "120 00 Vinohradská 12/34",
+      "tags": ["diacritic", "house-orientation", "postal-code", "slash-form"],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:2200012"],
+        "top5ResultIds": ["ruian-cz:2200012"],
+        "requiredResultIds": ["ruian-cz:2200012"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:2200012",
+            "label": "Vinohradská 12/34, 120 00 Praha 2, Vinohrady, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-vinohradska-ambiguous-city",
+      "description": "City-only Praha qualifier should still rank the more specific district row.",
+      "query": "Vinohradska 12 Praha",
+      "tags": ["ambiguous-city", "house-number", "no-diacritic"],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:2200012"],
+        "top5ResultIds": ["ruian-cz:2200012"],
+        "requiredResultIds": ["ruian-cz:2200012"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:2200012",
+            "label": "Vinohradská 12/34, 120 00 Praha 2, Vinohrady, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 8,
+          "bucket": "ambiguous-bounded"
+        }
+      }
+    },
+    {
+      "id": "addr-vaclavske-no-diacritic",
+      "description": "No-diacritic Vaclavske namesti query should match the diacritic canonical label.",
+      "query": "Vaclavske namesti 832/19 Praha",
+      "tags": ["house-orientation", "no-diacritic", "slash-form"],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:3300832"],
+        "top5ResultIds": ["ruian-cz:3300832"],
+        "requiredResultIds": ["ruian-cz:3300832"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:3300832",
+            "label": "Václavské náměstí 832/19, 110 00 Praha 1, Nové Město, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "single-target"
+        }
+      }
+    },
+    {
+      "id": "addr-k-louzi-typo-street",
+      "description": "Single-token street typo should still keep the exact house/orientation target in the top five.",
+      "query": "K Louzy 1258/12 Praha 10",
+      "tags": [
+        "house-orientation",
+        "k-louzi-house-orientation",
+        "slash-form",
+        "typo"
+      ],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:1203603",
+            "label": "K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "typo-recovery"
+        }
+      }
+    },
+    {
+      "id": "addr-weak-single-letter-k",
+      "description": "Single-character fragment should be gated instead of returning address records.",
+      "query": "K",
+      "tags": ["gated", "no-match", "weak-query"],
+      "expected": {
+        "expectedSourceIds": [],
+        "top1ResultIds": [],
+        "top5ResultIds": [],
+        "requiredResultIds": [],
+        "expectedLabels": [],
+        "resultCount": {
+          "min": 0,
+          "max": 0,
+          "bucket": "weak-query-gated"
+        }
+      }
+    },
+    {
+      "id": "addr-weak-k-l",
+      "description": "Two single-letter fragments should be gated instead of expanding into a K Louži street match.",
+      "query": "K L",
+      "tags": ["gated", "no-match", "weak-query"],
+      "expected": {
+        "expectedSourceIds": [],
+        "top1ResultIds": [],
+        "top5ResultIds": [],
+        "requiredResultIds": [],
+        "expectedLabels": [],
+        "resultCount": {
+          "min": 0,
+          "max": 0,
+          "bucket": "weak-query-gated"
+        }
+      }
+    },
+    {
+      "id": "addr-weak-two-char-lo",
+      "description": "Two-character fragment should be gated before owned rows or live providers are queried.",
+      "query": "Lo",
+      "tags": ["gated", "no-match", "weak-query"],
+      "expected": {
+        "expectedSourceIds": [],
+        "top1ResultIds": [],
+        "top5ResultIds": [],
+        "requiredResultIds": [],
+        "expectedLabels": [],
+        "resultCount": {
+          "min": 0,
+          "max": 0,
+          "bucket": "weak-query-gated"
+        }
+      }
+    },
+    {
+      "id": "addr-wrong-city-conflict",
+      "description": "Strong K Louži address with Brno city should prefer the Brno alternative over the matching Praha row.",
+      "query": "K Louži 1258/12 Brno",
+      "tags": ["conflict", "k-louzi-house-orientation", "wrong-city"],
+      "expected": {
+        "expectedSourceIds": ["ruian-cz"],
+        "top1ResultIds": ["ruian-cz:4401258"],
+        "top5ResultIds": ["ruian-cz:4401258"],
+        "requiredResultIds": ["ruian-cz:4401258"],
+        "forbiddenTop1ResultIds": ["ruian-cz:1203603"],
+        "expectedLabels": [
+          {
+            "resultId": "ruian-cz:4401258",
+            "label": "K Louži 1258/12, 602 00 Brno, Stránice, CZ"
+          }
+        ],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "bucket": "city-conflict-alternative"
+        }
+      }
+    },
+    {
+      "id": "addr-no-match-unreachable-number",
+      "description": "Valid-looking K Louži input with nonexistent house/orientation should fall through to no-match/manual entry.",
+      "query": "K Louzi 9999/99 Praha 10",
+      "tags": [
+        "k-louzi-house-orientation",
+        "no-diacritic",
+        "no-match",
+        "slash-form"
+      ],
+      "expected": {
+        "expectedSourceIds": [],
+        "top1ResultIds": [],
+        "top5ResultIds": [],
+        "requiredResultIds": [],
+        "expectedLabels": [],
+        "resultCount": {
+          "min": 0,
+          "max": 0,
+          "bucket": "manual-entry"
+        }
+      }
+    }
+  ]
+}

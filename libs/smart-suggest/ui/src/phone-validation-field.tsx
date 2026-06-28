@@ -1,9 +1,15 @@
 import type {
+  PhoneStrictValidator,
+  PhoneValidationMode,
   PhoneValidationPolicy,
   PhoneValidationRequest,
   PhoneValidationResult,
-} from "@techsio/smart-suggest-validation"
-import { validatePhoneNumber } from "@techsio/smart-suggest-validation"
+} from "@techsio/smart-suggest-validation/phone-lite"
+import {
+  DEFAULT_PHONE_VALIDATION_MODE,
+  getPhoneInputHints,
+  validatePhoneNumberLite,
+} from "@techsio/smart-suggest-validation/phone-lite"
 import {
   PhoneInput,
   type PhoneInputCountryChangeDetails,
@@ -11,7 +17,21 @@ import {
   type PhoneInputValidateStatus,
   type PhoneInputValueChangeDetails,
 } from "@techsio/ui-kit/molecules/phone-input"
-import { type ReactNode, useMemo, useState } from "react"
+import {
+  type FocusEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
+
+export type PhoneValidationFieldValidator = (
+  request: PhoneValidationRequest
+) =>
+  | PhoneValidationResult
+  | Promise<PhoneValidationResult | undefined>
+  | undefined
 
 export type PhoneValidationFieldProps = Omit<
   PhoneInputProps,
@@ -24,13 +44,45 @@ export type PhoneValidationFieldProps = Omit<
     onValidationChange?: (result: PhoneValidationResult) => void
     onValueChange?: (details: PhoneInputValueChangeDetails) => void
     statusText?: ReactNode
+    validatePhoneNumber?: PhoneValidationFieldValidator
     validateEmpty?: boolean
+    validationMode?: PhoneValidationMode
   }
+
+let strictPhoneValidatorPromise: Promise<PhoneStrictValidator> | undefined
+
+const loadStrictPhoneValidator = () => {
+  strictPhoneValidatorPromise ??= import(
+    "@techsio/smart-suggest-validation/phone-strict"
+  ).then((module) => module.validatePhoneNumber)
+
+  return strictPhoneValidatorPromise
+}
+
+const ignorePhoneValidationError = () => null
 
 const toSmartSuggestCountryCode = (countryCode: string | undefined) =>
   countryCode?.trim()
     ? (countryCode.trim().toUpperCase() as Uppercase<string>)
     : undefined
+
+const createLitePhoneValidationResult = (
+  request: PhoneValidationRequest
+): PhoneValidationResult | undefined => {
+  const liteResult = validatePhoneNumberLite(request)
+
+  if (liteResult.status === "strict_validation_required") {
+    return
+  }
+
+  return {
+    rawInput: liteResult.rawInput,
+    displayValue: liteResult.displayValue,
+    isPossible: false,
+    isValid: false,
+    errors: liteResult.errors,
+  }
+}
 
 const getValidationStatus = (
   result: PhoneValidationResult | undefined
@@ -95,13 +147,16 @@ export function PhoneValidationField({
   defaultValue,
   helpText,
   label,
+  onBlur,
   onCountryChange,
   onValidationChange,
   onValueChange,
   requireCountryMatch,
   requireMobile,
   statusText,
+  validatePhoneNumber: providedValidatePhoneNumber,
   validateEmpty = false,
+  validationMode = DEFAULT_PHONE_VALIDATION_MODE,
   value,
   ...props
 }: PhoneValidationFieldProps) {
@@ -115,28 +170,115 @@ export function PhoneValidationField({
   const validationCountry = toSmartSuggestCountryCode(
     String(country ?? internalCountry ?? defaultCountry ?? "")
   )
-  const shouldValidate = validateEmpty || rawInput.trim().length > 0
-  const validationResult = useMemo(
-    () =>
-      shouldValidate
-        ? validatePhoneNumber(
-            createPhoneValidationRequest(rawInput, {
-              allowedCountries,
-              defaultCountry: validationCountry,
-              requireCountryMatch,
-              requireMobile,
-            })
-          )
-        : undefined,
+  const [validationResult, setValidationResult] = useState<
+    PhoneValidationResult | undefined
+  >(undefined)
+  const validationRequestIdRef = useRef(0)
+
+  const resolveValidationResult = useCallback(
+    async (request: PhoneValidationRequest) => {
+      if (validationMode === "server-only") {
+        return providedValidatePhoneNumber === undefined
+          ? createLitePhoneValidationResult(request)
+          : providedValidatePhoneNumber(request)
+      }
+
+      try {
+        const strictValidator = await loadStrictPhoneValidator()
+        return strictValidator(request)
+      } catch {
+        return providedValidatePhoneNumber === undefined
+          ? createLitePhoneValidationResult(request)
+          : providedValidatePhoneNumber(request)
+      }
+    },
+    [providedValidatePhoneNumber, validationMode]
+  )
+
+  const clearValidationResult = useCallback(() => {
+    validationRequestIdRef.current += 1
+    setValidationResult(undefined)
+  }, [])
+
+  const validateCurrentValue = useCallback(
+    async (
+      nextRawInput = rawInput,
+      nextValidationCountry = validationCountry
+    ) => {
+      const shouldValidate = validateEmpty || nextRawInput.trim().length > 0
+      const validationRequestId = validationRequestIdRef.current + 1
+      validationRequestIdRef.current = validationRequestId
+
+      if (!shouldValidate) {
+        setValidationResult(undefined)
+        return
+      }
+
+      const request = createPhoneValidationRequest(nextRawInput, {
+        allowedCountries,
+        defaultCountry: nextValidationCountry,
+        requireCountryMatch,
+        requireMobile,
+      })
+      let nextResult: PhoneValidationResult | undefined
+
+      try {
+        nextResult = await resolveValidationResult(request)
+      } catch {
+        nextResult = createLitePhoneValidationResult(request)
+      }
+
+      if (validationRequestId !== validationRequestIdRef.current) {
+        return
+      }
+
+      setValidationResult(nextResult)
+
+      if (nextResult !== undefined) {
+        onValidationChange?.(nextResult)
+      }
+    },
     [
       allowedCountries,
+      onValidationChange,
       rawInput,
       requireCountryMatch,
       requireMobile,
-      shouldValidate,
+      resolveValidationResult,
+      validateEmpty,
       validationCountry,
     ]
   )
+  const validateCurrentValueRef = useRef(validateCurrentValue)
+
+  useEffect(() => {
+    validateCurrentValueRef.current = validateCurrentValue
+  }, [validateCurrentValue])
+
+  useEffect(() => {
+    if (validationMode !== "frontend-immediate") {
+      return
+    }
+
+    let isActive = true
+
+    loadStrictPhoneValidator()
+      .then(() => {
+        if (isActive) {
+          validateCurrentValueRef.current().catch(ignorePhoneValidationError)
+        }
+      })
+      .catch(() => {
+        if (isActive && providedValidatePhoneNumber !== undefined) {
+          validateCurrentValueRef.current().catch(ignorePhoneValidationError)
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [providedValidatePhoneNumber, validationMode])
+
   const validateStatus = getValidationStatus(validationResult)
   const resolvedStatusText = getStatusText(
     helpText,
@@ -149,11 +291,34 @@ export function PhoneValidationField({
   const phoneInputCountryProps = country === undefined ? {} : { country }
   const phoneInputDefaultCountryProps =
     defaultCountry === undefined ? {} : { defaultCountry }
+  const phoneInputHints = getPhoneInputHints()
+
+  const preloadLazyValidator = (nextRawInput: string) => {
+    if (validationMode === "frontend-lazy" && nextRawInput.trim().length > 0) {
+      loadStrictPhoneValidator().catch(ignorePhoneValidationError)
+    }
+  }
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    onBlur?.(event)
+
+    if (
+      event.relatedTarget instanceof Node &&
+      event.currentTarget.contains(event.relatedTarget)
+    ) {
+      return
+    }
+
+    validateCurrentValue().catch(ignorePhoneValidationError)
+  }
 
   return (
     <PhoneInput
+      onBlur={handleBlur}
       onCountryChange={(details) => {
         setInternalCountry(details.country)
+        clearValidationResult()
+        preloadLazyValidator(rawInput)
         onCountryChange?.(details)
       }}
       onValueChange={(details) => {
@@ -161,15 +326,8 @@ export function PhoneValidationField({
           setInternalRawInput(details.value)
         }
 
-        const nextResult = validatePhoneNumber(
-          createPhoneValidationRequest(details.value, {
-            allowedCountries,
-            defaultCountry: toSmartSuggestCountryCode(details.country),
-            requireCountryMatch,
-            requireMobile,
-          })
-        )
-        onValidationChange?.(nextResult)
+        clearValidationResult()
+        preloadLazyValidator(details.value)
         onValueChange?.(details)
       }}
       validateStatus={validateStatus}
@@ -182,7 +340,7 @@ export function PhoneValidationField({
       <PhoneInput.Label>{label}</PhoneInput.Label>
       <PhoneInput.Control>
         <PhoneInput.CountryPicker />
-        <PhoneInput.Input autoComplete="tel" />
+        <PhoneInput.Input autoComplete={phoneInputHints.autoComplete} />
       </PhoneInput.Control>
       {resolvedStatusText ? (
         <PhoneInput.StatusText>{resolvedStatusText}</PhoneInput.StatusText>

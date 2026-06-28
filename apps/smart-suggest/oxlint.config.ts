@@ -18,5 +18,6 @@ export default defineConfig({
     '.modernjs',
     '**/modern-tanstack/**',
     '**/routeTree.gen.*',
+    'apps/*/sdk/*.js',
   ],
 });

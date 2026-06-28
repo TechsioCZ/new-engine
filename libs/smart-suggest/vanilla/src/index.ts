@@ -5,7 +5,15 @@ import type {
   SmartSuggestRequest,
   SmartSuggestResponse,
   SmartSuggestSuggestion,
-} from "@techsio/smart-suggest-core";
+} from '@techsio/smart-suggest-core';
+import {
+  DEFAULT_PHONE_VALIDATION_MODE,
+  getPhoneInputHints,
+  PHONE_VALIDATION_MODES,
+  type PhoneValidationMode,
+  type PhoneValidationRequest,
+  validatePhoneNumberLite,
+} from '@techsio/smart-suggest-validation/phone-lite';
 
 export type SmartSuggestVanillaFetch = (
   input: RequestInfo | URL,
@@ -23,8 +31,21 @@ export type SmartSuggestVanillaValidationResult = {
     field?: string;
     message: string;
   }[];
-  isValid: boolean | "unknown";
+  isValid: boolean | 'unknown';
 };
+
+export type SmartSuggestVanillaPhoneValidationMode = PhoneValidationMode;
+
+export type SmartSuggestVanillaPhoneValidationRequest = PhoneValidationRequest;
+
+export type SmartSuggestVanillaPhoneValidatorModule = {
+  validatePhoneNumber: (
+    request: SmartSuggestVanillaPhoneValidationRequest,
+  ) => SmartSuggestVanillaValidationResult;
+};
+
+export type SmartSuggestVanillaPhoneValidatorLoader =
+  () => Promise<SmartSuggestVanillaPhoneValidatorModule>;
 
 export type SmartSuggestVanillaAddressSelection = {
   requestId: string;
@@ -46,6 +67,8 @@ export type SmartSuggestVanillaConfig = {
   onSuggestionSelect?: (selection: SmartSuggestVanillaAddressSelection) => void;
   optionClassName?: string;
   phone?: SmartSuggestVanillaField;
+  phoneValidationMode?: SmartSuggestVanillaPhoneValidationMode;
+  phoneValidatorLoader?: SmartSuggestVanillaPhoneValidatorLoader;
   postalCode?: SmartSuggestVanillaField;
   root?: Document | Element | string;
   timeoutMs?: number;
@@ -60,6 +83,7 @@ export type SmartSuggestVanillaInstance = {
 
 export type SmartSuggestVanillaGlobal = {
   attach: (config: SmartSuggestVanillaConfig) => SmartSuggestVanillaInstance;
+  phoneValidationModes: typeof PHONE_VALIDATION_MODES;
 };
 
 export type SmartSuggestVanillaWindow = Window & {
@@ -67,10 +91,24 @@ export type SmartSuggestVanillaWindow = Window & {
 };
 
 const defaultFetch: SmartSuggestVanillaFetch = (input, init) => fetch(input, init);
+const DEFAULT_SUGGEST_LIMIT = 20;
+
+export const SMART_SUGGEST_PHONE_VALIDATION_MODES = PHONE_VALIDATION_MODES;
+
+const defaultPhoneValidatorLoader: SmartSuggestVanillaPhoneValidatorLoader = async () => {
+  const validatorModule =
+    (await import('@techsio/smart-suggest-validation/phone-strict')) as SmartSuggestVanillaPhoneValidatorModule;
+
+  return validatorModule;
+};
+
+function missingPhoneValidator(): SmartSuggestVanillaPhoneValidatorModule | undefined {
+  return;
+}
 
 const normalizeBaseUrl = (apiBaseUrl: string | undefined) => {
-  const baseUrl = apiBaseUrl ?? "/api";
-  return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const baseUrl = apiBaseUrl ?? '/api';
+  return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 };
 
 const addOptionalParam = (
@@ -78,7 +116,7 @@ const addOptionalParam = (
   name: string,
   value: number | string | undefined,
 ) => {
-  if (value !== undefined && String(value).trim() !== "") {
+  if (value !== undefined && String(value).trim() !== '') {
     params.set(name, String(value));
   }
 };
@@ -88,8 +126,8 @@ const isTextControl = (element: Element | null): element is TextControl =>
   element instanceof HTMLSelectElement ||
   element instanceof HTMLTextAreaElement;
 
-const resolveRoot = (root: SmartSuggestVanillaConfig["root"]) => {
-  if (typeof root === "string") {
+const resolveRoot = (root: SmartSuggestVanillaConfig['root']) => {
+  if (typeof root === 'string') {
     return document.querySelector(root) ?? document;
   }
 
@@ -97,7 +135,7 @@ const resolveRoot = (root: SmartSuggestVanillaConfig["root"]) => {
 };
 
 const resolveField = (root: Document | Element, field: SmartSuggestVanillaField) => {
-  if (typeof field === "string") {
+  if (typeof field === 'string') {
     const element = root.querySelector(field);
     return isTextControl(element) ? element : undefined;
   }
@@ -111,15 +149,30 @@ const setControlValue = (control: TextControl | undefined, value?: string) => {
   }
 
   control.value = value;
-  control.dispatchEvent(new Event("input", { bubbles: true }));
-  control.dispatchEvent(new Event("change", { bubbles: true }));
+  control.dispatchEvent(new Event('input', { bubbles: true }));
+  control.dispatchEvent(new Event('change', { bubbles: true }));
 };
 
-const getControlValue = (control: TextControl | undefined) => control?.value.trim() ?? "";
+const getControlValue = (control: TextControl | undefined) => control?.value.trim() ?? '';
+
+const getSuggestQuerySignalLength = (value: string) => [...value.matchAll(/[\p{L}\p{N}]/gu)].length;
+
+const createPhoneValidationRequest = (
+  rawInput: string,
+  defaultCountry: SmartSuggestCountryCode | undefined,
+) => {
+  const request: SmartSuggestVanillaPhoneValidationRequest = { rawInput };
+
+  if (defaultCountry !== undefined) {
+    request.defaultCountry = defaultCountry;
+  }
+
+  return request;
+};
 
 const toCountryCode = (value: string | undefined) => {
   const normalized = value?.trim().toUpperCase();
-  return normalized === "" || normalized === undefined
+  return normalized === '' || normalized === undefined
     ? undefined
     : (normalized as SmartSuggestCountryCode);
 };
@@ -128,29 +181,29 @@ const buildAddressLine = (
   suggestion: SmartSuggestSuggestion,
   address: AddressParts | undefined,
 ) => {
-  if (address?.line1 !== undefined && address.line1.trim() !== "") {
+  if (address?.line1 !== undefined && address.line1.trim() !== '') {
     return address.line1;
   }
 
   const houseNumber = [address?.houseNumber, address?.orientationNumber]
-    .filter((value) => value !== undefined && value.trim() !== "")
-    .join("/");
+    .filter((value) => value !== undefined && value.trim() !== '')
+    .join('/');
   const streetLine = [address?.street, houseNumber]
-    .filter((value) => value !== undefined && value.trim() !== "")
-    .join(" ");
+    .filter((value) => value !== undefined && value.trim() !== '')
+    .join(' ');
 
-  return streetLine === "" ? suggestion.displayLabel : streetLine;
+  return streetLine === '' ? suggestion.displayLabel : streetLine;
 };
 
-const reportError = (onError: SmartSuggestVanillaConfig["onError"], error: unknown) => {
+const reportError = (onError: SmartSuggestVanillaConfig['onError'], error: unknown) => {
   onError?.(error);
 };
 
 const isAbortError = (error: unknown) =>
-  error instanceof DOMException && error.name === "AbortError";
+  error instanceof DOMException && error.name === 'AbortError';
 
 const createAbortReason = () =>
-  new DOMException("Smart Suggest request was superseded.", "AbortError");
+  new DOMException('Smart Suggest request was superseded.', 'AbortError');
 
 const requestJson = async <TResponse>(
   fetchImpl: SmartSuggestVanillaFetch,
@@ -164,13 +217,13 @@ const requestJson = async <TResponse>(
     controller.abort(externalSignal?.reason);
   };
   const timeout = setTimeout(() => {
-    controller.abort(new DOMException("Smart Suggest request timed out.", "TimeoutError"));
+    controller.abort(new DOMException('Smart Suggest request timed out.', 'TimeoutError'));
   }, timeoutMs);
 
   if (externalSignal?.aborted === true) {
     abortFromExternalSignal();
   } else {
-    externalSignal?.addEventListener("abort", abortFromExternalSignal, {
+    externalSignal?.addEventListener('abort', abortFromExternalSignal, {
       once: true,
     });
   }
@@ -179,8 +232,8 @@ const requestJson = async <TResponse>(
     const response = await fetchImpl(url, {
       ...init,
       headers: {
-        accept: "application/json",
-        "content-type": "application/json",
+        accept: 'application/json',
+        'content-type': 'application/json',
         ...init.headers,
       },
       signal: controller.signal,
@@ -193,17 +246,17 @@ const requestJson = async <TResponse>(
     return (await response.json()) as TResponse;
   } finally {
     clearTimeout(timeout);
-    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+    externalSignal?.removeEventListener('abort', abortFromExternalSignal);
   }
 };
 
 const toSuggestUrl = (apiBaseUrl: string, request: SmartSuggestRequest) => {
   const params = new URLSearchParams();
-  params.set("kind", request.kind);
-  params.set("q", request.query);
-  addOptionalParam(params, "countryCode", request.countryCode);
-  addOptionalParam(params, "language", request.language);
-  addOptionalParam(params, "limit", request.limit);
+  params.set('kind', request.kind);
+  params.set('q', request.query);
+  addOptionalParam(params, 'countryCode', request.countryCode);
+  addOptionalParam(params, 'language', request.language);
+  addOptionalParam(params, 'limit', request.limit);
   return `${apiBaseUrl}/v1/suggest?${params.toString()}`;
 };
 
@@ -219,39 +272,306 @@ const postJson = <TResponse>(options: SmartSuggestJsonPostOptions) =>
   requestJson<TResponse>(
     options.fetchImpl,
     `${options.apiBaseUrl}${options.path}`,
-    { body: JSON.stringify(options.body), method: "POST" },
+    { body: JSON.stringify(options.body), method: 'POST' },
     options.timeoutMs,
   );
 
+type PopoverListElement = HTMLUListElement & {
+  hidePopover?: () => void;
+  showPopover?: () => void;
+};
+
+type ToggleStateEvent = Event & {
+  newState?: 'closed' | 'open';
+};
+
+const restoreAttribute = (element: Element, name: string, value: string | null) => {
+  if (value === null) {
+    element.removeAttribute(name);
+    return;
+  }
+
+  element.setAttribute(name, value);
+};
+
+function noop() {
+  return;
+}
+
+const configurePhoneInputSemantics = (control: TextControl | undefined) => {
+  if (!(control instanceof HTMLInputElement)) {
+    return noop;
+  }
+  const inputHints = getPhoneInputHints();
+
+  const previousAttributes = new Map(
+    ['autocomplete', 'inputmode', 'type'].map(
+      (name) => [name, control.getAttribute(name)] as const,
+    ),
+  );
+
+  control.setAttribute('type', inputHints.type);
+  control.setAttribute('autocomplete', inputHints.autoComplete);
+  control.setAttribute('inputmode', inputHints.inputMode);
+
+  return () => {
+    for (const [name, value] of previousAttributes) {
+      restoreAttribute(control, name, value);
+    }
+  };
+};
+
+const clearControlValidation = (control: TextControl | undefined) => {
+  control?.setCustomValidity('');
+  control?.removeAttribute('aria-invalid');
+};
+
+const applyControlValidationResult = (
+  control: TextControl | undefined,
+  result: SmartSuggestVanillaValidationResult,
+) => {
+  if (control === undefined) {
+    return;
+  }
+
+  if (result.isValid === false) {
+    const message = result.errors?.[0]?.message ?? 'Enter a valid phone number.';
+    control.setCustomValidity(message);
+    control.setAttribute('aria-invalid', 'true');
+    return;
+  }
+
+  clearControlValidation(control);
+};
+
+const restoreStyleProperty = (
+  element: HTMLElement,
+  name: string,
+  value: string,
+  priority: string,
+) => {
+  if (value === '') {
+    element.style.removeProperty(name);
+    return;
+  }
+
+  element.style.setProperty(name, value, priority);
+};
+
+let suggestionListSequence = 0;
+
+const getNextSuggestionListSequence = () => {
+  suggestionListSequence += 1;
+  return suggestionListSequence;
+};
+
 const createSuggestionList = (input: TextControl, optionClassName: string | undefined) => {
-  const list = document.createElement("ul");
+  const list = document.createElement('ul') as PopoverListElement;
+  const listId =
+    input.id.trim() === ''
+      ? `smart-suggest-address-list-${getNextSuggestionListSequence()}`
+      : `${input.id}-smart-suggest-list`;
+  const anchorName = `--smart-suggest-address-${getNextSuggestionListSequence()}`;
+  const previousAnchorName = input.style.getPropertyValue('anchor-name');
+  const previousAnchorNamePriority = input.style.getPropertyPriority('anchor-name');
+  const previousInputAttributes = new Map(
+    ['aria-activedescendant', 'aria-autocomplete', 'aria-controls', 'aria-expanded', 'role'].map(
+      (name) => [name, input.getAttribute(name)] as const,
+    ),
+  );
+
+  let activeIndex = -1;
+  let currentSuggestions: readonly SmartSuggestSuggestion[] = [];
+  let currentSelect: ((suggestion: SmartSuggestSuggestion) => void) | undefined;
+  let open = false;
+
+  list.id = listId;
   list.hidden = true;
-  list.setAttribute("role", "listbox");
-  list.setAttribute("data-smart-suggest-list", "");
-  input.setAttribute("aria-autocomplete", "list");
-  input.setAttribute("aria-expanded", "false");
-  input.insertAdjacentElement("afterend", list);
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('popover', 'auto');
+  list.setAttribute('data-smart-suggest-list', '');
+  list.style.setProperty('position-anchor', anchorName);
+
+  input.style.setProperty('anchor-name', anchorName);
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-controls', list.id);
+  input.setAttribute('aria-expanded', 'false');
+  input.insertAdjacentElement('afterend', list);
+
+  const readOptions = () =>
+    Array.from(list.querySelectorAll<HTMLElement>('[data-smart-suggest-option]'));
+
+  const setOpenState = (nextOpen: boolean) => {
+    open = nextOpen;
+    input.setAttribute('aria-expanded', String(nextOpen));
+
+    if (!nextOpen) {
+      activeIndex = -1;
+      input.removeAttribute('aria-activedescendant');
+    }
+  };
+
+  const close = () => {
+    if (open && typeof list.hidePopover === 'function') {
+      list.hidePopover();
+    }
+
+    list.hidden = true;
+    setOpenState(false);
+  };
+
+  const openList = () => {
+    list.hidden = false;
+
+    if (!open && typeof list.showPopover === 'function') {
+      list.showPopover();
+    }
+
+    setOpenState(true);
+  };
+
+  const setActiveIndex = (nextIndex: number) => {
+    const options = readOptions();
+
+    if (options.length === 0) {
+      activeIndex = -1;
+      input.removeAttribute('aria-activedescendant');
+      return;
+    }
+
+    activeIndex = (nextIndex + options.length) % options.length;
+
+    for (const [index, option] of options.entries()) {
+      const selected = index === activeIndex;
+      option.setAttribute('aria-selected', String(selected));
+
+      if (selected) {
+        input.setAttribute('aria-activedescendant', option.id);
+
+        if (typeof option.scrollIntoView === 'function') {
+          option.scrollIntoView({ block: 'nearest' });
+        }
+      }
+    }
+  };
+
+  const selectActive = () => {
+    const suggestion = currentSuggestions[activeIndex];
+
+    if (suggestion === undefined || currentSelect === undefined) {
+      return false;
+    }
+
+    currentSelect(suggestion);
+    return true;
+  };
+
+  list.addEventListener('toggle', (event: Event) => {
+    const { newState } = event as ToggleStateEvent;
+
+    if (newState !== undefined) {
+      setOpenState(newState === 'open');
+    }
+  });
+
+  const moveActiveOption = (event: KeyboardEvent, nextIndex: number) => {
+    event.preventDefault();
+    openList();
+    setActiveIndex(nextIndex);
+    return true;
+  };
+
+  const selectActiveFromKeyboard = (event: KeyboardEvent) => {
+    if (!open) {
+      return false;
+    }
+
+    const selected = selectActive();
+
+    if (selected) {
+      event.preventDefault();
+    }
+
+    return selected;
+  };
+
+  const closeFromKeyboard = (event: KeyboardEvent) => {
+    if (!open) {
+      return false;
+    }
+
+    event.preventDefault();
+    close();
+    return true;
+  };
+
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (currentSuggestions.length === 0) {
+      return false;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        return moveActiveOption(event, activeIndex < 0 ? 0 : activeIndex + 1);
+      case 'ArrowUp':
+        return moveActiveOption(
+          event,
+          activeIndex < 0 ? currentSuggestions.length - 1 : activeIndex - 1,
+        );
+      case 'Enter':
+        return selectActiveFromKeyboard(event);
+      case 'Escape':
+        return closeFromKeyboard(event);
+      default:
+        return false;
+    }
+  };
 
   return {
+    close,
+    destroy: () => {
+      close();
+      list.remove();
+      restoreStyleProperty(input, 'anchor-name', previousAnchorName, previousAnchorNamePriority);
+
+      for (const [name, value] of previousInputAttributes) {
+        restoreAttribute(input, name, value);
+      }
+    },
+    handleKeyDown,
     list,
     render: (
       suggestions: readonly SmartSuggestSuggestion[],
       onSelect: (suggestion: SmartSuggestSuggestion) => void,
     ) => {
+      currentSuggestions = suggestions;
+      currentSelect = onSelect;
+      activeIndex = -1;
       list.replaceChildren();
-      list.hidden = suggestions.length === 0;
-      input.setAttribute("aria-expanded", String(suggestions.length > 0));
+      input.removeAttribute('aria-activedescendant');
 
-      for (const suggestion of suggestions) {
-        const item = document.createElement("li");
-        const button = document.createElement("button");
-        button.className = optionClassName ?? "";
-        button.textContent = suggestion.displayLabel;
-        button.type = "button";
-        button.addEventListener("click", () => onSelect(suggestion));
-        item.append(button);
+      if (suggestions.length === 0) {
+        close();
+        return;
+      }
+
+      for (const [index, suggestion] of suggestions.entries()) {
+        const item = document.createElement('li');
+        item.id = `${list.id}-option-${index}`;
+        item.className = optionClassName ?? '';
+        item.textContent = suggestion.displayLabel;
+        item.setAttribute('aria-selected', 'false');
+        item.setAttribute('data-smart-suggest-option', '');
+        item.setAttribute('role', 'option');
+        item.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+        });
+        item.addEventListener('click', () => onSelect(suggestion));
         list.append(item);
       }
+
+      openList();
     },
   };
 };
@@ -270,18 +590,27 @@ export const attachSmartSuggest = (
   const apiBaseUrl = normalizeBaseUrl(config.apiBaseUrl);
   const debounceMs = config.debounceMs ?? 180;
   const fetchImpl = config.fetch ?? defaultFetch;
-  const limit = config.limit ?? 5;
+  const limit = config.limit ?? DEFAULT_SUGGEST_LIMIT;
   const minQueryLength = config.minQueryLength ?? 3;
   const timeoutMs = config.timeoutMs ?? 3000;
+  const phoneValidationMode = config.phoneValidationMode ?? DEFAULT_PHONE_VALIDATION_MODE;
+  const phoneValidatorLoader = config.phoneValidatorLoader ?? defaultPhoneValidatorLoader;
   const suggestionList =
     controls.addressLine === undefined
       ? undefined
       : createSuggestionList(controls.addressLine, config.optionClassName);
+  const restorePhoneInputSemantics = configurePhoneInputSemantics(controls.phone);
+  const phoneForm = controls.phone instanceof HTMLInputElement ? controls.phone.form : undefined;
 
   let activeSuggestController: AbortController | undefined;
   let currentRequestId: string | undefined;
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let didPhoneValidatorLoadFail = false;
   let isApplyingSuggestion = false;
+  let isSubmittingAfterPhoneValidation = false;
+  let phoneValidatorPromise:
+    | Promise<SmartSuggestVanillaPhoneValidatorModule | undefined>
+    | undefined;
   let phoneValidationSequence = 0;
   let postalValidationSequence = 0;
   let suggestSequence = 0;
@@ -311,7 +640,7 @@ export const attachSmartSuggest = (
       apiBaseUrl,
       body: event,
       fetchImpl,
-      path: "/v1/accept",
+      path: '/v1/accept',
       timeoutMs,
     });
     accepted.catch((error: unknown) => reportError(config.onError, error));
@@ -339,19 +668,62 @@ export const attachSmartSuggest = (
     suggestionList?.render([], selectSuggestion);
   };
 
+  const abortActiveSuggestRequest = () => {
+    if (activeSuggestController === undefined) {
+      return;
+    }
+
+    activeSuggestController.abort(createAbortReason());
+    activeSuggestController = undefined;
+  };
+
+  const clearSuggestResults = () => {
+    currentRequestId = undefined;
+    suggestionList?.render([], selectSuggestion);
+  };
+
+  const createSuggestRequest = (query: string) => {
+    const request: SmartSuggestRequest = {
+      kind: 'address',
+      limit,
+      query,
+    };
+    const countryCode = readCountryCode();
+
+    if (config.language !== undefined) {
+      request.language = config.language;
+    }
+
+    if (countryCode !== undefined) {
+      request.countryCode = countryCode;
+    }
+
+    return request;
+  };
+
+  const shouldIgnoreSuggestResponse = (
+    requestController: AbortController,
+    requestSequence: number,
+  ) => requestController.signal.aborted || requestSequence !== suggestSequence;
+
+  const handleSuggestError = (error: unknown, requestSequence: number) => {
+    if (isAbortError(error) || requestSequence !== suggestSequence) {
+      return;
+    }
+
+    clearSuggestResults();
+    reportError(config.onError, error);
+  };
+
   const suggest = async (query = getControlValue(controls.addressLine)) => {
     const trimmedQuery = query.trim();
     const requestSequence = suggestSequence + 1;
     suggestSequence = requestSequence;
 
-    if (activeSuggestController !== undefined) {
-      activeSuggestController.abort(createAbortReason());
-      activeSuggestController = undefined;
-    }
+    abortActiveSuggestRequest();
 
-    if (trimmedQuery.length < minQueryLength) {
-      currentRequestId = undefined;
-      suggestionList?.render([], selectSuggestion);
+    if (getSuggestQuerySignalLength(trimmedQuery) < minQueryLength) {
+      clearSuggestResults();
       return;
     }
 
@@ -359,44 +731,25 @@ export const attachSmartSuggest = (
     activeSuggestController = requestController;
 
     try {
-      const request: SmartSuggestRequest = {
-        kind: "address",
-        limit,
-        query: trimmedQuery,
-      };
-      const countryCode = readCountryCode();
-
-      if (config.language !== undefined) {
-        request.language = config.language;
-      }
-
-      if (countryCode !== undefined) {
-        request.countryCode = countryCode;
-      }
-
       const response = await requestJson<SmartSuggestResponse>(
         fetchImpl,
-        toSuggestUrl(apiBaseUrl, request),
+        toSuggestUrl(apiBaseUrl, createSuggestRequest(trimmedQuery)),
         {
-          headers: { accept: "application/json" },
-          method: "GET",
+          headers: { accept: 'application/json' },
+          method: 'GET',
           signal: requestController.signal,
         },
         timeoutMs,
       );
 
-      if (requestController.signal.aborted || requestSequence !== suggestSequence) {
+      if (shouldIgnoreSuggestResponse(requestController, requestSequence)) {
         return;
       }
 
       currentRequestId = response.requestId;
       suggestionList?.render(response.suggestions, selectSuggestion);
     } catch (error) {
-      if (!isAbortError(error) && requestSequence === suggestSequence) {
-        currentRequestId = undefined;
-        suggestionList?.render([], selectSuggestion);
-        reportError(config.onError, error);
-      }
+      handleSuggestError(error, requestSequence);
     } finally {
       if (activeSuggestController === requestController) {
         activeSuggestController = undefined;
@@ -404,24 +757,73 @@ export const attachSmartSuggest = (
     }
   };
 
-  const validatePhone = async () => {
+  const beginPhoneValidatorLoad = () => {
+    if (phoneValidationMode === 'server-only' || didPhoneValidatorLoadFail) {
+      return;
+    }
+
+    phoneValidatorPromise ??= phoneValidatorLoader().catch(() => {
+      didPhoneValidatorLoadFail = true;
+      phoneValidatorPromise = undefined;
+      return missingPhoneValidator();
+    });
+
+    return phoneValidatorPromise;
+  };
+
+  if (phoneValidationMode === 'frontend-immediate') {
+    beginPhoneValidatorLoad();
+  }
+
+  const validatePhoneWithFrontend = async (request: SmartSuggestVanillaPhoneValidationRequest) => {
+    if (phoneValidationMode === 'server-only') {
+      return;
+    }
+
+    const validatorModule = await beginPhoneValidatorLoad();
+
+    return validatorModule?.validatePhoneNumber(request);
+  };
+
+  const validatePhoneInternal = async () => {
     const rawInput = getControlValue(controls.phone);
     const defaultCountry = readCountryCode();
     const validationSequence = phoneValidationSequence + 1;
     phoneValidationSequence = validationSequence;
 
-    if (rawInput === "") {
+    if (rawInput === '') {
+      clearControlValidation(controls.phone);
       return;
     }
 
     try {
-      const result = await postJson<SmartSuggestVanillaValidationResult>({
-        apiBaseUrl,
-        body: { defaultCountry, rawInput },
-        fetchImpl,
-        path: "/v1/validate/phone",
-        timeoutMs,
-      });
+      const request = createPhoneValidationRequest(rawInput, defaultCountry);
+      const liteResult = validatePhoneNumberLite(request);
+
+      if (!liteResult.canAttemptStrictValidation) {
+        applyControlValidationResult(controls.phone, {
+          displayValue: liteResult.displayValue,
+          errors: liteResult.errors,
+          isValid: false,
+        });
+        return {
+          displayValue: liteResult.displayValue,
+          errors: liteResult.errors,
+          isValid: false,
+        };
+      }
+
+      const result =
+        (phoneValidationMode === 'server-only'
+          ? undefined
+          : await validatePhoneWithFrontend(request)) ??
+        (await postJson<SmartSuggestVanillaValidationResult>({
+          apiBaseUrl,
+          body: request,
+          fetchImpl,
+          path: '/v1/validate/phone',
+          timeoutMs,
+        }));
 
       if (
         validationSequence !== phoneValidationSequence ||
@@ -432,9 +834,16 @@ export const attachSmartSuggest = (
       }
 
       setControlValue(controls.phone, result.displayValue);
+      applyControlValidationResult(controls.phone, result);
+      return result;
     } catch (error) {
       reportError(config.onError, error);
+      return;
     }
+  };
+
+  const validatePhone = async () => {
+    await validatePhoneInternal();
   };
 
   const validatePostal = async () => {
@@ -443,7 +852,7 @@ export const attachSmartSuggest = (
     const validationSequence = postalValidationSequence + 1;
     postalValidationSequence = validationSequence;
 
-    if (rawInput === "" || countryCode === undefined) {
+    if (rawInput === '' || countryCode === undefined) {
       return;
     }
 
@@ -452,7 +861,7 @@ export const attachSmartSuggest = (
         apiBaseUrl,
         body: { countryCode, rawInput },
         fetchImpl,
-        path: "/v1/validate/postal",
+        path: '/v1/validate/postal',
         timeoutMs,
       });
 
@@ -482,18 +891,82 @@ export const attachSmartSuggest = (
       pending.catch((error: unknown) => reportError(config.onError, error));
     }, debounceMs);
   };
+  const onAddressKeyDown = (event: Event) => {
+    if (event instanceof KeyboardEvent) {
+      suggestionList?.handleKeyDown(event);
+    }
+  };
+  const onAddressBlur = () => {
+    setTimeout(() => {
+      suggestionList?.close();
+    }, 0);
+  };
   const onPhoneBlur = () => {
-    const pending = validatePhone();
+    const pending = validatePhoneInternal();
     pending.catch((error: unknown) => reportError(config.onError, error));
+  };
+  const onPhoneFocus = () => {
+    beginPhoneValidatorLoad();
+  };
+  const onPhoneInput = () => {
+    phoneValidationSequence += 1;
+    clearControlValidation(controls.phone);
+    beginPhoneValidatorLoad();
+  };
+  const onPhoneFormSubmit = (event: Event) => {
+    if (isSubmittingAfterPhoneValidation) {
+      isSubmittingAfterPhoneValidation = false;
+      return;
+    }
+
+    if (controls.phone === undefined || getControlValue(controls.phone) === '') {
+      return;
+    }
+
+    event.preventDefault();
+
+    const submitter = 'submitter' in event ? event.submitter : undefined;
+    const pending = validatePhoneInternal();
+
+    pending
+      .then((result) => {
+        if (result?.isValid === false) {
+          controls.phone?.reportValidity();
+          return;
+        }
+
+        isSubmittingAfterPhoneValidation = true;
+
+        if (typeof phoneForm?.requestSubmit === 'function') {
+          if (
+            submitter instanceof HTMLElement &&
+            (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement)
+          ) {
+            phoneForm.requestSubmit(submitter);
+            return;
+          }
+
+          phoneForm.requestSubmit();
+          return;
+        }
+
+        phoneForm?.submit();
+      })
+      .catch((error: unknown) => reportError(config.onError, error));
   };
   const onPostalBlur = () => {
     const pending = validatePostal();
     pending.catch((error: unknown) => reportError(config.onError, error));
   };
 
-  controls.addressLine?.addEventListener("input", onAddressInput);
-  controls.phone?.addEventListener("blur", onPhoneBlur);
-  controls.postalCode?.addEventListener("blur", onPostalBlur);
+  controls.addressLine?.addEventListener('input', onAddressInput);
+  controls.addressLine?.addEventListener('keydown', onAddressKeyDown);
+  controls.addressLine?.addEventListener('blur', onAddressBlur);
+  controls.phone?.addEventListener('blur', onPhoneBlur);
+  controls.phone?.addEventListener('focus', onPhoneFocus);
+  controls.phone?.addEventListener('input', onPhoneInput);
+  phoneForm?.addEventListener('submit', onPhoneFormSubmit);
+  controls.postalCode?.addEventListener('blur', onPostalBlur);
 
   return {
     destroy: () => {
@@ -502,12 +975,16 @@ export const attachSmartSuggest = (
       postalValidationSequence += 1;
       suggestSequence += 1;
       activeSuggestController?.abort(createAbortReason());
-      controls.addressLine?.removeEventListener("input", onAddressInput);
-      controls.phone?.removeEventListener("blur", onPhoneBlur);
-      controls.postalCode?.removeEventListener("blur", onPostalBlur);
-      suggestionList?.list.remove();
-      controls.addressLine?.removeAttribute("aria-autocomplete");
-      controls.addressLine?.removeAttribute("aria-expanded");
+      controls.addressLine?.removeEventListener('input', onAddressInput);
+      controls.addressLine?.removeEventListener('keydown', onAddressKeyDown);
+      controls.addressLine?.removeEventListener('blur', onAddressBlur);
+      controls.phone?.removeEventListener('blur', onPhoneBlur);
+      controls.phone?.removeEventListener('focus', onPhoneFocus);
+      controls.phone?.removeEventListener('input', onPhoneInput);
+      phoneForm?.removeEventListener('submit', onPhoneFormSubmit);
+      controls.postalCode?.removeEventListener('blur', onPostalBlur);
+      restorePhoneInputSemantics();
+      suggestionList?.destroy();
     },
     suggest,
     validatePhone,
@@ -520,6 +997,7 @@ export const installSmartSuggestGlobal = (
 ): SmartSuggestVanillaGlobal => {
   const globalApi: SmartSuggestVanillaGlobal = {
     attach: attachSmartSuggest,
+    phoneValidationModes: SMART_SUGGEST_PHONE_VALIDATION_MODES,
   };
   target.TechsioSmartSuggest = globalApi;
   return globalApi;

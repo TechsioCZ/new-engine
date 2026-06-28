@@ -1,12 +1,10 @@
 import { fileURLToPath } from "node:url"
-import { defineConfig } from "@rslib/core"
-
-type RslibConfigInput = Parameters<typeof defineConfig>[0]
+import { defineConfig, type RslibConfig } from "@rslib/core"
 
 type SmartSuggestRslibOptions = {
   configUrl: string
   entry?: string
-  plugins?: RslibConfigInput["plugins"]
+  plugins?: RslibConfig["plugins"]
 }
 
 const packagePath = (configUrl: string, relativePath: string) =>
