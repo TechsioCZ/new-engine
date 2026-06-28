@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
     },
     "./package.json": "./package.json"
   },
@@ -27,5 +27,8 @@
     "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.89"
   }
 }

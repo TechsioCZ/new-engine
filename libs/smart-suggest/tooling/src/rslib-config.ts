@@ -3,7 +3,7 @@ import { defineConfig, type RslibConfig } from "@rslib/core"
 
 type SmartSuggestRslibOptions = {
   configUrl: string
-  entry?: string
+  entry?: string | Record<string, string>
   plugins?: RslibConfig["plugins"]
 }
 
@@ -16,7 +16,17 @@ export const defineSmartSuggestRslibConfig = ({
   plugins,
 }: SmartSuggestRslibOptions) =>
   defineConfig({
-    source: { entry: { index: packagePath(configUrl, entry) } },
+    source: {
+      entry:
+        typeof entry === "string"
+          ? { index: packagePath(configUrl, entry) }
+          : Object.fromEntries(
+              Object.entries(entry).map(([name, relativePath]) => [
+                name,
+                packagePath(configUrl, relativePath),
+              ])
+            ),
+    },
     lib: [{ bundle: false, dts: true, format: "esm" }],
     output: { target: "web" },
     ...(plugins ? { plugins } : {}),

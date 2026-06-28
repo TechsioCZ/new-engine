@@ -1,20 +1,22 @@
 import type { AddressSuggestFieldProps } from '@techsio/smart-suggest-ui/address-suggest-field';
-import { validatePhoneNumber, validatePostalCode } from '@techsio/smart-suggest-validation';
+import { validatePostalCode } from '@techsio/smart-suggest-validation';
+import { validatePhoneNumber } from '@techsio/smart-suggest-validation/phone-strict';
+import { Effect } from 'effect';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { SmartSuggestAddressFieldRemote } from './smart-suggest-address-field';
 
 const mockClient = {
-  accept: () => Promise.resolve({ accepted: true }),
+  accept: () => Effect.succeed({ accepted: true as const }),
   suggest: () =>
-    Promise.resolve({
+    Effect.succeed({
       cacheStatus: 'miss',
       requestId: 'remote-smoke',
       suggestions: [],
     }),
-  validatePhone: (request) => Promise.resolve(validatePhoneNumber(request)),
-  validatePostal: (request) => Promise.resolve(validatePostalCode(request)),
+  validatePhone: (request) => Effect.succeed(validatePhoneNumber(request)),
+  validatePostal: (request) => Effect.succeed(validatePostalCode(request)),
 } satisfies NonNullable<AddressSuggestFieldProps['client']>;
 
 describe('SmartSuggestAddressFieldRemote', () => {

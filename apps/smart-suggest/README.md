@@ -93,12 +93,10 @@ actions, frozen installs, StepSecurity audit-mode runner hardening, dependency
 dashboard review, one-day release age, grouped updates, and manual approval for
 major upgrades.
 
-Package source metadata is generated at
-`.modernjs/ultramodern-package-source.json`. The default strategy keeps
-UltraModern.js runtime and tooling packages on `workspace:*` for monorepo
-development. To create a workspace that can install those packages outside the
-monorepo, generate with `--ultramodern-package-source install`; generated shared
-packages still use `workspace:*` because they are part of this workspace.
+Package source metadata is generated in
+`.modernjs/ultramodern.json#packageSource`. This workspace uses the published
+UltraModern.js install cohort, while generated shared packages still use
+`workspace:*` because they are part of this workspace.
 
 ## Public URL Environment Variables
 

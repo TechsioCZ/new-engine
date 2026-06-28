@@ -10,6 +10,7 @@ import {
   applyWranglerD1Migrations,
   createWranglerD1Binding,
 } from './smart-suggest-wrangler-d1-binding.mjs';
+import { runCliEffectAsPromise } from './effect-runtime.mjs';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = path.resolve(workspaceRoot, '../..');
@@ -35,6 +36,11 @@ const shardStorageEstimateFloorBytes = 64 * 1024;
 const shardStorageEstimateMultiplier = 4;
 const shardStorageEstimateRowFloorBytes = 512;
 const csvZipEntryPattern = /\.(csv|txt)$/iu;
+const xmlZipEntryPattern = /\.xml$/iu;
+const vfrVuscRecordBlockPattern = /<vf:Vusc\b[^>]*gml:id="VC\.[^"]+"[\s\S]*?<\/vf:Vusc>/gu;
+const vfrOkresBlockPattern = /<vf:Okres\b[\s\S]*?<\/vf:Okres>/gu;
+const vfrObecBlockPattern = /<vf:Obec\b[\s\S]*?<\/vf:Obec>/gu;
+const xmlEntityPattern = /&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/giu;
 const addressPartKeys = new Set([
   'city',
   'countryCode',
@@ -62,6 +68,11 @@ const stringOptionFields = {
   '--feed-id': 'feedId',
   '--file-kind': 'fileKind',
   '--modification-note-sha256': 'modificationNoteSha256',
+  '--municipality-region-map-path': 'municipalityRegionMapPath',
+  '--municipality-region-map-snapshot-checksum-sha256':
+    'municipalityRegionMapSnapshotChecksumSha256',
+  '--municipality-region-map-snapshot-entry': 'municipalityRegionMapSnapshotEntry',
+  '--municipality-region-map-snapshot-path': 'municipalityRegionMapSnapshotPath',
   '--out': 'out',
   '--persist-to': 'persistTo',
   '--previous-atom-entry-id': 'previousAtomEntryId',
@@ -72,6 +83,7 @@ const stringOptionFields = {
   '--scenario-id': 'scenarioId',
   '--shard-binding-prefix': 'shardBindingPrefix',
   '--shard-bindings': 'shardBindings',
+  '--shard-region-map-json': 'shardRegionMapJson',
   '--snapshot-entry': 'snapshotEntry',
   '--snapshot-format': 'snapshotFormat',
   '--snapshot-path': 'snapshotPath',
@@ -127,6 +139,14 @@ Options:
   --source-valid-at value      Official source valid-at date metadata
   --modification-note-sha256 value
                                SHA-256 of the Smart Suggest normalization modification note
+  --municipality-region-map-snapshot-path path
+                               External official RUIAN ST_UZSZ XML/ZIP hierarchy snapshot path
+  --municipality-region-map-snapshot-checksum-sha256 value
+                               Optional expected SHA-256 for the hierarchy snapshot
+  --municipality-region-map-snapshot-entry name
+                               Optional XML ZIP entry name or suffix for the hierarchy snapshot
+  --municipality-region-map-path path
+                               External JSON map of municipality code to VUSC code
   --atom-entry-id value        Atom entry id for the discovered official source file
   --previous-atom-entry-id value
                                Expected previous Atom entry id for delta continuity
@@ -151,6 +171,7 @@ D1 options:
   --router-d1-binding value     Router D1 binding for shard metadata
   --shard-bindings value        Comma-separated shard binding allowlist
   --shard-binding-prefix value  Defaults to SMART_SUGGEST_CZ_VUSC_
+  --shard-region-map-json value JSON object mapping VUSC region codes to shard bindings
   --shard-max-rows value        Abort sharded import if one shard route exceeds this row count
 `);
 }
@@ -181,6 +202,12 @@ function defaultArgs(command) {
     limit: 5,
     maxRows: undefined,
     modificationNoteSha256: undefined,
+    municipalityRegionMapPath: envValue('SMART_SUGGEST_RUIAN_MUNICIPALITY_REGION_MAP_PATH'),
+    municipalityRegionMapSnapshotChecksumSha256: envValue(
+      'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
+    ),
+    municipalityRegionMapSnapshotEntry: undefined,
+    municipalityRegionMapSnapshotPath: envValue('SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH'),
     out: undefined,
     persistTo: undefined,
     previousAtomEntryId: undefined,
@@ -194,6 +221,7 @@ function defaultArgs(command) {
     scenarioId: defaultScenarioId,
     shardBindingPrefix: 'SMART_SUGGEST_CZ_VUSC_',
     shardBindings: envValue('SMART_SUGGEST_D1_SHARD_BINDINGS'),
+    shardRegionMapJson: envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON'),
     shardMaxRows: undefined,
     snapshotEntry: undefined,
     snapshotFormat: 'auto',
@@ -283,6 +311,26 @@ function assertOfficialSnapshotArgs(parsed) {
     normalizeSha256(parsed.modificationNoteSha256) === undefined
   ) {
     throw new Error('--modification-note-sha256 must be a SHA-256 hex value.');
+  }
+  if (
+    parsed.municipalityRegionMapPath !== undefined &&
+    parsed.municipalityRegionMapSnapshotPath !== undefined
+  ) {
+    throw new Error(
+      '--municipality-region-map-path and --municipality-region-map-snapshot-path are mutually exclusive.',
+    );
+  }
+  if (parsed.municipalityRegionMapSnapshotChecksumSha256 !== undefined) {
+    if (parsed.municipalityRegionMapSnapshotPath === undefined) {
+      throw new Error(
+        '--municipality-region-map-snapshot-checksum-sha256 requires --municipality-region-map-snapshot-path.',
+      );
+    }
+    if (normalizeSha256(parsed.municipalityRegionMapSnapshotChecksumSha256) === undefined) {
+      throw new Error(
+        '--municipality-region-map-snapshot-checksum-sha256 must be a SHA-256 hex value.',
+      );
+    }
   }
 }
 
@@ -482,33 +530,52 @@ function isCsvZipEntry(entry) {
   return !entry.name.endsWith('/') && csvZipEntryPattern.test(entry.name);
 }
 
-function selectZipEntry(entries, requestedEntry) {
+function isXmlZipEntry(entry) {
+  return !entry.name.endsWith('/') && xmlZipEntryPattern.test(entry.name);
+}
+
+function selectZipEntries(entries, requestedEntry, predicate, label) {
   if (requestedEntry !== undefined) {
-    const selected = entries.find(
+    const selected = entries.filter(
       (entry) => entry.name === requestedEntry || entry.name.endsWith(`/${requestedEntry}`),
     );
 
-    if (selected === undefined) {
+    if (selected.length === 0) {
       throw new Error(`ZIP entry "${requestedEntry}" was not found.`);
+    }
+    if (selected.length > 1) {
+      throw new Error(`ZIP entry "${requestedEntry}" matched more than one entry.`);
+    }
+    if (!predicate(selected[0])) {
+      throw new Error(`ZIP entry "${requestedEntry}" is not a ${label} entry.`);
     }
 
     return selected;
   }
 
-  const csvEntries = entries.filter(isCsvZipEntry);
+  const selectedEntries = entries
+    .filter(predicate)
+    .toSorted((left, right) => left.name.localeCompare(right.name));
 
-  if (csvEntries.length === 0) {
-    throw new Error('ZIP snapshot does not contain a CSV or TXT entry.');
+  if (selectedEntries.length === 0) {
+    throw new Error(`ZIP snapshot does not contain a ${label} entry.`);
   }
-  if (csvEntries.length > 1) {
+
+  return selectedEntries;
+}
+
+function selectSingleZipEntry(entries, requestedEntry, predicate, label) {
+  const selectedEntries = selectZipEntries(entries, requestedEntry, predicate, label);
+
+  if (selectedEntries.length > 1) {
     throw new Error(
-      `ZIP snapshot contains multiple CSV/TXT entries: ${csvEntries
+      `ZIP snapshot contains multiple ${label} entries: ${selectedEntries
         .map((entry) => entry.name)
         .join(', ')}. Pass --snapshot-entry.`,
     );
   }
 
-  return csvEntries[0];
+  return selectedEntries[0];
 }
 
 async function createZipEntryReadStream(filePath, entry) {
@@ -547,7 +614,7 @@ function inferSnapshotFormat(snapshotPath, requestedFormat) {
   return path.extname(snapshotPath).toLocaleLowerCase('en-US') === '.zip' ? 'zip' : 'csv';
 }
 
-async function openOfficialSnapshotStream(args) {
+async function openOfficialSnapshotEntries(args) {
   const snapshotPath = resolveInputPath(args.snapshotPath);
   const stat = await fs.promises.stat(snapshotPath);
 
@@ -559,20 +626,313 @@ async function openOfficialSnapshotStream(args) {
 
   if (snapshotFormat === 'csv') {
     return {
-      selectedEntryName: undefined,
+      entries: [
+        {
+          name: undefined,
+          openStream: () => fs.createReadStream(snapshotPath),
+        },
+      ],
       snapshotPath,
-      stream: fs.createReadStream(snapshotPath),
+      snapshotFormat,
     };
   }
 
   const entries = await listZipEntries(snapshotPath);
-  const selectedEntry = selectZipEntry(entries, args.snapshotEntry);
+  const selectedEntries = selectZipEntries(entries, args.snapshotEntry, isCsvZipEntry, 'CSV/TXT');
+
+  return {
+    entries: selectedEntries.map((entry) => ({
+      name: entry.name,
+      openStream: () => createZipEntryReadStream(snapshotPath, entry),
+    })),
+    snapshotPath,
+    snapshotFormat,
+  };
+}
+
+async function readStreamText(stream, encoding = 'utf-8') {
+  const decoder = new TextDecoder(encoding);
+  let text = '';
+
+  for await (const chunk of stream) {
+    text += decoder.decode(typeof chunk === 'string' ? Buffer.from(chunk) : chunk, {
+      stream: true,
+    });
+  }
+
+  text += decoder.decode();
+  return text;
+}
+
+async function readXmlSnapshotText(snapshotPathInput, requestedEntry) {
+  const snapshotPath = resolveInputPath(snapshotPathInput);
+  const stat = await fs.promises.stat(snapshotPath);
+
+  if (!stat.isFile()) {
+    throw new Error(`Hierarchy snapshot path must be a file: ${snapshotPathInput}`);
+  }
+  if (path.extname(snapshotPath).toLocaleLowerCase('en-US') !== '.zip') {
+    return {
+      selectedEntryName: undefined,
+      snapshotPath,
+      text: await fs.promises.readFile(snapshotPath, 'utf8'),
+    };
+  }
+
+  const entries = await listZipEntries(snapshotPath);
+  const selectedEntry = selectSingleZipEntry(entries, requestedEntry, isXmlZipEntry, 'XML');
   const stream = await createZipEntryReadStream(snapshotPath, selectedEntry);
 
   return {
     selectedEntryName: selectedEntry.name,
     snapshotPath,
-    stream,
+    text: await readStreamText(stream),
+  };
+}
+
+function decodeXmlText(value) {
+  return value.replaceAll(xmlEntityPattern, (_match, entity) => {
+    const normalized = String(entity).toLowerCase();
+
+    if (normalized === 'amp') {
+      return '&';
+    }
+    if (normalized === 'lt') {
+      return '<';
+    }
+    if (normalized === 'gt') {
+      return '>';
+    }
+    if (normalized === 'quot') {
+      return '"';
+    }
+    if (normalized === 'apos') {
+      return "'";
+    }
+    if (normalized.startsWith('#x')) {
+      return String.fromCodePoint(Number.parseInt(normalized.slice(2), 16));
+    }
+    if (normalized.startsWith('#')) {
+      return String.fromCodePoint(Number.parseInt(normalized.slice(1), 10));
+    }
+
+    return _match;
+  });
+}
+
+function readXmlElementText(block, qualifiedName) {
+  const [prefix, localName] = qualifiedName.split(':');
+
+  if (prefix === undefined || localName === undefined) {
+    throw new Error(`XML element name must be namespace-qualified: ${qualifiedName}`);
+  }
+
+  const pattern = new RegExp(
+    `<${prefix}:${localName}\\b[^>]*>([\\s\\S]*?)</${prefix}:${localName}>`,
+    'u',
+  );
+  const match = block.match(pattern);
+
+  if (match?.[1] === undefined) {
+    return undefined;
+  }
+
+  return decodeXmlText(match[1].replace(/<[^>]+>/gu, '').trim());
+}
+
+function readXmlCode(block, qualifiedName, label) {
+  const value = readXmlElementText(block, qualifiedName);
+
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!/^\d+$/u.test(value)) {
+    throw new Error(`RUIAN VFR hierarchy ${label} has non-numeric ${qualifiedName}: ${value}`);
+  }
+
+  return value;
+}
+
+function readRequiredXmlCode(block, qualifiedName, label) {
+  const value = readXmlCode(block, qualifiedName, label);
+
+  if (value === undefined || value.length === 0) {
+    throw new Error(`RUIAN VFR hierarchy ${label} is missing ${qualifiedName}.`);
+  }
+
+  return value;
+}
+
+function upsertCodeMap(map, key, value, label) {
+  const existing = map.get(key);
+
+  if (existing !== undefined && existing !== value) {
+    throw new Error(`RUIAN VFR hierarchy maps ${label} ${key} to both ${existing} and ${value}.`);
+  }
+
+  map.set(key, value);
+}
+
+function parseMunicipalityRegionMapFromRuianVfrXml(xml) {
+  const regionCodes = new Set();
+
+  for (const match of xml.matchAll(vfrVuscRecordBlockPattern)) {
+    regionCodes.add(readRequiredXmlCode(match[0], 'vci:Kod', 'region'));
+  }
+
+  const districtRegionCodes = new Map();
+
+  for (const match of xml.matchAll(vfrOkresBlockPattern)) {
+    const block = match[0];
+    const districtCode = readRequiredXmlCode(block, 'oki:Kod', 'district');
+    const regionCode = readRequiredXmlCode(block, 'vci:Kod', `district ${districtCode}`);
+
+    upsertCodeMap(districtRegionCodes, districtCode, regionCode, 'district');
+  }
+  if (districtRegionCodes.size === 0) {
+    throw new Error('RUIAN VFR hierarchy did not contain any district records.');
+  }
+
+  const municipalityRegionCodes = new Map();
+  const missingDistrictCodes = new Set();
+  const missingRegionMunicipalityCodes = new Set();
+  let directRegionMunicipalityCount = 0;
+
+  for (const match of xml.matchAll(vfrObecBlockPattern)) {
+    const block = match[0];
+    const municipalityCode = readRequiredXmlCode(block, 'obi:Kod', 'municipality');
+    const districtCode = readXmlCode(block, 'oki:Kod', `municipality ${municipalityCode}`);
+
+    if (districtCode === undefined) {
+      const directRegionCode = readXmlCode(block, 'vci:Kod', `municipality ${municipalityCode}`);
+      const pouCode = readXmlCode(block, 'pui:Kod', `municipality ${municipalityCode}`);
+      const regionCode =
+        directRegionCode !== undefined && regionCodes.has(directRegionCode)
+          ? directRegionCode
+          : pouCode !== undefined && regionCodes.has(pouCode)
+            ? pouCode
+            : undefined;
+
+      if (regionCode === undefined) {
+        missingRegionMunicipalityCodes.add(municipalityCode);
+        continue;
+      }
+
+      directRegionMunicipalityCount += 1;
+      upsertCodeMap(municipalityRegionCodes, municipalityCode, regionCode, 'municipality');
+      continue;
+    }
+
+    const regionCode = districtRegionCodes.get(districtCode);
+
+    if (regionCode === undefined) {
+      missingDistrictCodes.add(districtCode);
+      continue;
+    }
+
+    upsertCodeMap(municipalityRegionCodes, municipalityCode, regionCode, 'municipality');
+  }
+  if (municipalityRegionCodes.size === 0) {
+    throw new Error('RUIAN VFR hierarchy did not contain any municipality records.');
+  }
+  if (missingDistrictCodes.size > 0) {
+    throw new Error(
+      `RUIAN VFR hierarchy references municipality district(s) without VUSC mapping: ${[
+        ...missingDistrictCodes,
+      ].join(', ')}.`,
+    );
+  }
+  if (missingRegionMunicipalityCodes.size > 0) {
+    throw new Error(
+      `RUIAN VFR hierarchy contains municipality record(s) without district or direct VUSC mapping: ${[
+        ...missingRegionMunicipalityCodes,
+      ].join(', ')}.`,
+    );
+  }
+
+  return {
+    directRegionMunicipalityCount,
+    districtCount: districtRegionCodes.size,
+    map: municipalityRegionCodes,
+    municipalityCount: municipalityRegionCodes.size,
+    regionCount: regionCodes.size,
+  };
+}
+
+function normalizeMunicipalityRegionMapRecord(record, label) {
+  const map = new Map();
+
+  for (const [municipalityCode, regionCode] of Object.entries(record)) {
+    const normalizedMunicipalityCode = municipalityCode.trim();
+
+    if (!/^\d+$/u.test(normalizedMunicipalityCode)) {
+      throw new Error(`${label} key must be a numeric municipality code: ${municipalityCode}`);
+    }
+    if (typeof regionCode !== 'string' || !/^\d+$/u.test(regionCode.trim())) {
+      throw new Error(
+        `${label} value for municipality ${municipalityCode} must be a numeric VUSC code string.`,
+      );
+    }
+
+    map.set(normalizedMunicipalityCode, regionCode.trim());
+  }
+  if (map.size === 0) {
+    throw new Error(`${label} must contain at least one municipality mapping.`);
+  }
+
+  return map;
+}
+
+async function loadMunicipalityRegionMap(args) {
+  if (args.municipalityRegionMapPath !== undefined) {
+    const mapPath = resolveInputPath(args.municipalityRegionMapPath);
+    const map = normalizeMunicipalityRegionMapRecord(
+      readJson(mapPath),
+      '--municipality-region-map-path',
+    );
+
+    return {
+      map,
+      report: {
+        municipalityCount: map.size,
+        source: 'json-map',
+        sourceFileName: path.basename(mapPath),
+      },
+    };
+  }
+  if (args.municipalityRegionMapSnapshotPath === undefined) {
+    return undefined;
+  }
+
+  const checksumSha256 = await hashFileSha256(
+    resolveInputPath(args.municipalityRegionMapSnapshotPath),
+  );
+  const expectedChecksumSha256 = normalizeSha256(args.municipalityRegionMapSnapshotChecksumSha256);
+
+  if (expectedChecksumSha256 !== undefined && expectedChecksumSha256 !== checksumSha256) {
+    throw new Error(
+      `Hierarchy snapshot checksum mismatch: expected ${expectedChecksumSha256}, got ${checksumSha256}.`,
+    );
+  }
+
+  const snapshot = await readXmlSnapshotText(
+    args.municipalityRegionMapSnapshotPath,
+    args.municipalityRegionMapSnapshotEntry,
+  );
+  const parsed = parseMunicipalityRegionMapFromRuianVfrXml(snapshot.text);
+
+  return {
+    map: parsed.map,
+    report: {
+      checksumSha256,
+      directRegionMunicipalityCount: parsed.directRegionMunicipalityCount,
+      districtCount: parsed.districtCount,
+      municipalityCount: parsed.municipalityCount,
+      regionCount: parsed.regionCount,
+      selectedEntryName: snapshot.selectedEntryName,
+      source: 'ruian-st-uzsz-vfr',
+      sourceFileName: path.basename(snapshot.snapshotPath),
+    },
   };
 }
 
@@ -686,8 +1046,8 @@ function normalizeFixtureRows(value) {
 }
 
 async function loadSmartSuggestModules() {
-  const datasetsPath = path.resolve(repositoryRoot, 'libs/smart-suggest/datasets/dist/index.js');
-  const storagePath = path.resolve(repositoryRoot, 'libs/smart-suggest/storage/dist/index.js');
+  const datasetsPath = path.resolve(repositoryRoot, 'libs/smart-suggest/datasets/dist/datasets.js');
+  const storagePath = path.resolve(repositoryRoot, 'libs/smart-suggest/storage/dist/storage.js');
 
   if (!(fs.existsSync(datasetsPath) && fs.existsSync(storagePath))) {
     throw new Error(
@@ -707,7 +1067,8 @@ async function loadSmartSuggestModules() {
     createInMemorySmartSuggestRepositories: storage.createInMemorySmartSuggestRepositories,
     parseRuianOfficialCsvSnapshotChanges: datasets.parseRuianOfficialCsvSnapshotChanges,
     parseRuianOfficialCsvSnapshotRows: datasets.parseRuianOfficialCsvSnapshotRows,
-    runAddressDatasetImport: datasets.runAddressDatasetImport,
+    runAddressDatasetImport: (options) =>
+      runCliEffectAsPromise(datasets.runAddressDatasetImportEffect(options)),
   };
 }
 
@@ -799,7 +1160,7 @@ async function createRepositories(args, modules) {
     target: args.d1Target,
   });
   const repositories = modules.createD1SmartSuggestRepositories(binding);
-  const health = await repositories.health.check();
+  const health = await runCliEffectAsPromise(repositories.health.check());
 
   if (!health.ok) {
     throw new Error(`D1 health check failed: ${health.error ?? 'unknown error'}`);
@@ -890,6 +1251,55 @@ function parseCommaList(value) {
     .filter((entry) => entry.length > 0);
 }
 
+function parseJsonObject(value, label) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = JSON.parse(value);
+
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object.`);
+  }
+
+  return parsed;
+}
+
+function parseShardRegionBindingMap(args) {
+  const parsed = parseJsonObject(args.shardRegionMapJson, '--shard-region-map-json');
+  const map = new Map();
+
+  if (parsed === undefined) {
+    return map;
+  }
+
+  const allowedBindings = parseCommaList(args.shardBindings);
+  const allowedBindingSet = new Set(allowedBindings);
+
+  for (const [regionCode, bindingName] of Object.entries(parsed)) {
+    const normalizedRegionCode = regionCode.trim();
+
+    if (!/^\d+$/u.test(normalizedRegionCode)) {
+      throw new Error(`Shard region map key must be a numeric VUSC code: ${regionCode}`);
+    }
+    if (typeof bindingName !== 'string' || bindingName.trim().length === 0) {
+      throw new Error(`Shard region map value for ${regionCode} must be a binding name string.`);
+    }
+
+    const normalizedBindingName = bindingName.trim();
+
+    if (allowedBindings.length > 0 && !allowedBindingSet.has(normalizedBindingName)) {
+      throw new Error(
+        `Shard region map value ${normalizedBindingName} for region ${regionCode} is not in --shard-bindings.`,
+      );
+    }
+
+    map.set(normalizedRegionCode, normalizedBindingName);
+  }
+
+  return map;
+}
+
 function changeRuian(change) {
   return change.kind === 'address' ? change.row.ruian : change.tombstone.ruian;
 }
@@ -907,7 +1317,8 @@ function requireChangeRegionCode(change) {
 }
 
 function shardBindingForRegion(args, regionCode) {
-  const bindingName = `${args.shardBindingPrefix}${regionCode}`;
+  const regionBindingMap = parseShardRegionBindingMap(args);
+  const bindingName = regionBindingMap.get(regionCode) ?? `${args.shardBindingPrefix}${regionCode}`;
   const allowedBindings = parseCommaList(args.shardBindings);
 
   if (allowedBindings.length > 0 && !allowedBindings.includes(bindingName)) {
@@ -930,7 +1341,7 @@ function ensureShardRoute(routes, args, regionCode) {
   const route = {
     addressRows: 0,
     bindingName,
-    filePath: path.join(args.routeTempDir, `${bindingName}.jsonl`),
+    filePath: path.join(args.routeTempDir, `${bindingName}-${regionCode}.jsonl`),
     regionCode,
     totalRows: 0,
     tombstoneRows: 0,
@@ -1024,7 +1435,28 @@ function assertShardRouteBudgets(args, routes) {
   const oversizedRoute = routes.find((route) => route.totalRows > args.shardMaxRows);
 
   if (oversizedRoute === undefined) {
-    return;
+    const rowsByBinding = new Map();
+
+    for (const route of routes) {
+      rowsByBinding.set(
+        route.bindingName,
+        (rowsByBinding.get(route.bindingName) ?? 0) + route.totalRows,
+      );
+    }
+
+    const oversizedPhysicalShard = [...rowsByBinding.entries()].find(
+      ([, totalRows]) => totalRows > args.shardMaxRows,
+    );
+
+    if (oversizedPhysicalShard === undefined) {
+      return;
+    }
+
+    const [bindingName, totalRows] = oversizedPhysicalShard;
+
+    throw new Error(
+      `Physical shard ${bindingName} routed ${totalRows} row(s), exceeding --shard-max-rows ${args.shardMaxRows}.`,
+    );
   }
 
   throw new Error(
@@ -1047,6 +1479,138 @@ async function* readJsonlImportChanges(filePath) {
   }
 }
 
+function createOfficialParserOptions(args, checksumSha256, maxRows) {
+  return {
+    atomEntryId: args.atomEntryId,
+    checksumSha256,
+    datasetVersion: args.datasetVersion,
+    delimiter: args.csvDelimiter,
+    encoding: args.csvEncoding,
+    feedId: args.feedId,
+    fileKind: args.fileKind,
+    maxRows,
+    snapshotUri: args.snapshotUri,
+    sourceGeneratedAt: args.sourceGeneratedAt,
+    sourceId: args.sourceId,
+    sourceUri: args.sourceUri,
+    sourceValidAt: args.sourceValidAt,
+    sourceVersion: args.sourceVersion,
+  };
+}
+
+function addRegionCodeToChange(change, regionCode) {
+  if (change.kind === 'address') {
+    return {
+      ...change,
+      row: {
+        ...change.row,
+        ruian: {
+          ...change.row.ruian,
+          regionCode,
+        },
+      },
+    };
+  }
+
+  return {
+    ...change,
+    tombstone: {
+      ...change.tombstone,
+      ruian: {
+        ...change.tombstone.ruian,
+        regionCode,
+      },
+    },
+  };
+}
+
+function applyMunicipalityRegionMapToChange(change, municipalityRegionMap) {
+  if (municipalityRegionMap === undefined) {
+    return change;
+  }
+
+  const ruian = changeRuian(change);
+  const existingRegionCode = ruian?.regionCode?.trim();
+
+  if (existingRegionCode !== undefined && existingRegionCode.length > 0) {
+    return change;
+  }
+
+  const municipalityCode = ruian?.municipalityCode?.trim();
+  const rowId = change.kind === 'address' ? change.row.id : change.tombstone.id;
+
+  if (municipalityCode === undefined || municipalityCode.length === 0) {
+    throw new Error(
+      `Official row ${rowId} is missing RUIAN municipalityCode; cannot derive VUSC regionCode.`,
+    );
+  }
+
+  const regionCode = municipalityRegionMap.map.get(municipalityCode);
+
+  if (regionCode === undefined) {
+    throw new Error(
+      `Official row ${rowId} references municipality ${municipalityCode}, which is missing from the supplied RUIAN VFR hierarchy map.`,
+    );
+  }
+
+  return addRegionCodeToChange(change, regionCode);
+}
+
+async function* parseOfficialSnapshotChanges(
+  args,
+  modules,
+  officialSnapshot,
+  checksumSha256,
+  municipalityRegionMap,
+) {
+  let emittedChanges = 0;
+
+  for (const entry of officialSnapshot.entries) {
+    const remainingMaxRows =
+      args.maxRows === undefined ? undefined : Math.max(0, args.maxRows - emittedChanges);
+
+    if (remainingMaxRows === 0) {
+      return;
+    }
+
+    const stream = await entry.openStream();
+    const parsedChanges = modules.parseRuianOfficialCsvSnapshotChanges(
+      stream,
+      createOfficialParserOptions(args, checksumSha256, remainingMaxRows),
+    );
+
+    try {
+      for await (const change of parsedChanges) {
+        yield applyMunicipalityRegionMapToChange(change, municipalityRegionMap);
+        emittedChanges += 1;
+      }
+    } catch (error) {
+      const entryLabel =
+        entry.name === undefined ? path.basename(officialSnapshot.snapshotPath) : entry.name;
+      const message = error instanceof Error ? error.message : String(error);
+
+      throw new Error(`RUIAN snapshot entry ${entryLabel}: ${message}`);
+    }
+  }
+}
+
+function summarizeOfficialSnapshot(officialSnapshot, checksumSha256, args, municipalityRegionMap) {
+  const entryNames = officialSnapshot.entries
+    .map((entry) => entry.name)
+    .filter((entryName) => entryName !== undefined);
+
+  return {
+    checksumSha256,
+    municipalityRegionMap: municipalityRegionMap?.report,
+    selectedEntryCount: officialSnapshot.entries.length,
+    selectedEntryName: entryNames.length === 1 ? entryNames[0] : undefined,
+    selectedEntryNamesSample: entryNames.slice(0, 10),
+    snapshotFileName: path.basename(officialSnapshot.snapshotPath),
+    snapshotFormat: officialSnapshot.snapshotFormat,
+    sourceUri: args.sourceUri,
+  };
+}
+
 async function createDatasetInput(args, modules) {
   if (args.snapshotPath === undefined) {
     const fixturePath = resolveInputPath(args.fixture);
@@ -1063,34 +1627,25 @@ async function createDatasetInput(args, modules) {
 
   const checksumSha256 = await hashFileSha256(resolveInputPath(args.snapshotPath));
   assertExpectedSnapshotChecksum(args, checksumSha256);
-  const { selectedEntryName, snapshotPath, stream } = await openOfficialSnapshotStream(args);
+  const officialSnapshot = await openOfficialSnapshotEntries(args);
+  const municipalityRegionMap = await loadMunicipalityRegionMap(args);
   const sourceLineage = createSourceLineage(args, checksumSha256);
-  const parsedChanges = modules.parseRuianOfficialCsvSnapshotChanges(stream, {
-    atomEntryId: args.atomEntryId,
+  const parsedChanges = parseOfficialSnapshotChanges(
+    args,
+    modules,
+    officialSnapshot,
     checksumSha256,
-    datasetVersion: args.datasetVersion,
-    delimiter: args.csvDelimiter,
-    encoding: args.csvEncoding,
-    feedId: args.feedId,
-    fileKind: args.fileKind,
-    maxRows: args.maxRows,
-    snapshotUri: args.snapshotUri,
-    sourceGeneratedAt: args.sourceGeneratedAt,
-    sourceId: args.sourceId,
-    sourceUri: args.sourceUri,
-    sourceValidAt: args.sourceValidAt,
-    sourceVersion: args.sourceVersion,
-  });
+    municipalityRegionMap,
+  );
   const collected = collectImportChangeIds(parsedChanges);
 
   return {
-    officialSnapshot: {
+    officialSnapshot: summarizeOfficialSnapshot(
+      officialSnapshot,
       checksumSha256,
-      selectedEntryName,
-      snapshotFileName: path.basename(snapshotPath),
-      snapshotFormat: inferSnapshotFormat(snapshotPath, args.snapshotFormat),
-      sourceUri: args.sourceUri,
-    },
+      args,
+      municipalityRegionMap,
+    ),
     rowIds: collected.rowIds,
     rows: collected.rows,
     sourceLineage,
@@ -1159,34 +1714,44 @@ async function updateRouterShardRegistry({ args, modules, shardResults }) {
     },
     modules,
   );
-  const existingRecords = await repositories.shardRegistry.listShardMetadata({
-    countryCode: args.country,
-  });
-  const existingByBinding = new Map(existingRecords.map((record) => [record.bindingName, record]));
+  const existingRecords = await runCliEffectAsPromise(
+    repositories.shardRegistry.listShardMetadata({
+      countryCode: args.country,
+    }),
+  );
+  const existingByRegion = new Map(
+    existingRecords.map((record) => [
+      `${record.countryCode}:${record.regionKind}:${record.regionCode}:${record.state}`,
+      record,
+    ]),
+  );
   const updated = [];
 
   for (const shardResult of shardResults) {
-    const previousRowCount = existingByBinding.get(shardResult.bindingName)?.rowCount ?? 0;
+    const previousRowCount =
+      existingByRegion.get(`${args.country}:vusc:${shardResult.regionCode}:active`)?.rowCount ?? 0;
     const nextRowCount = Math.max(
       0,
       previousRowCount + shardResult.result.insertedRows - shardResult.result.tombstonedRows,
     );
-    const record = await repositories.shardRegistry.upsertShardMetadata({
-      bindingName: shardResult.bindingName,
-      countryCode: args.country,
-      estimatedSizeBytes: shardResult.route.estimatedSizeBytes,
-      importVersion: args.datasetVersion,
-      lastImportCompletedAt: shardResult.result.importRun.completedAt,
-      regionCode: shardResult.regionCode,
-      regionKind: 'vusc',
-      regionName: `VUSC ${shardResult.regionCode}`,
-      rowCount: nextRowCount,
-      shardId: `smart-suggest-${args.country.toLocaleLowerCase('en-US')}-vusc-${
-        shardResult.regionCode
-      }`,
-      sourceFreshnessAt: args.sourceValidAt,
-      state: 'active',
-    });
+    const record = await runCliEffectAsPromise(
+      repositories.shardRegistry.upsertShardMetadata({
+        bindingName: shardResult.bindingName,
+        countryCode: args.country,
+        estimatedSizeBytes: shardResult.route.estimatedSizeBytes,
+        importVersion: args.datasetVersion,
+        lastImportCompletedAt: shardResult.result.importRun.completedAt,
+        regionCode: shardResult.regionCode,
+        regionKind: 'vusc',
+        regionName: `VUSC ${shardResult.regionCode}`,
+        rowCount: nextRowCount,
+        shardId: `smart-suggest-${args.country.toLocaleLowerCase('en-US')}-vusc-${
+          shardResult.regionCode
+        }`,
+        sourceFreshnessAt: args.sourceValidAt,
+        state: 'active',
+      }),
+    );
     updated.push(record);
   }
 
@@ -1256,7 +1821,9 @@ async function importShardedDataset(args, modules) {
 
 async function importedLabels(repositories, rowIds) {
   const records = await Promise.all(
-    rowIds.map((rowId) => repositories.addressRecords.getAddressRecord(rowId)),
+    rowIds.map((rowId) =>
+      runCliEffectAsPromise(repositories.addressRecords.getAddressRecord(rowId)),
+    ),
   );
 
   return records
@@ -1286,7 +1853,9 @@ function writeReport(report, outPath) {
 
 async function runImportLocal(args, modules) {
   const { officialSnapshot, repositories, result, rowIds } = await importDataset(args, modules);
-  const providerEvents = await repositories.providerEvents.listProviderEvents(args.scenarioId);
+  const providerEvents = await runCliEffectAsPromise(
+    repositories.providerEvents.listProviderEvents(args.scenarioId),
+  );
   const labels = officialSnapshot === undefined ? await importedLabels(repositories, rowIds) : [];
   const summary = summarizeSuggestions(labels);
   const report = {
@@ -1316,7 +1885,9 @@ async function runImportLocal(args, modules) {
 
 async function runImportD1(args, modules) {
   const { officialSnapshot, repositories, result, rowIds } = await importDataset(args, modules);
-  const providerEvents = await repositories.providerEvents.listProviderEvents(result.importRun.id);
+  const providerEvents = await runCliEffectAsPromise(
+    repositories.providerEvents.listProviderEvents(result.importRun.id),
+  );
   const labels = officialSnapshot === undefined ? await importedLabels(repositories, rowIds) : [];
   const summary = summarizeSuggestions(labels);
   const report = {
@@ -1371,7 +1942,7 @@ async function runImportShardedD1(args, modules) {
       estimatedSizeBytes: shardResult.route.estimatedSizeBytes,
       regionCode: shardResult.regionCode,
       registryShardId:
-        shardRegistry.find((record) => record.bindingName === shardResult.bindingName)?.shardId ??
+        shardRegistry.find((record) => record.regionCode === shardResult.regionCode)?.shardId ??
         undefined,
       tombstonedRows: shardResult.result.tombstonedRows,
       totalRows: shardResult.result.totalRows,
@@ -1393,12 +1964,16 @@ async function runImportShardedD1(args, modules) {
 
 async function runProofOffline(args, modules) {
   const { repositories } = await importDataset(args, modules);
-  const records = await repositories.addressRecords.searchAddressRecords({
-    countryCode: args.country,
-    limit: args.limit,
-    query: args.query,
-  });
-  const providerEvents = await repositories.providerEvents.listProviderEvents(args.scenarioId);
+  const records = await runCliEffectAsPromise(
+    repositories.addressRecords.searchAddressRecords({
+      countryCode: args.country,
+      limit: args.limit,
+      query: args.query,
+    }),
+  );
+  const providerEvents = await runCliEffectAsPromise(
+    repositories.providerEvents.listProviderEvents(args.scenarioId),
+  );
   const suggestions = records.map((record) => ({
     label: record.displayLabel,
     sourceId: record.sourceId,

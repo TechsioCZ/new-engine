@@ -4,7 +4,7 @@ import {
   isSerializableSuggestion,
   normalizeSuggestLimit,
   type SmartSuggestSuggestion,
-} from "../src/index"
+} from "../src/core"
 
 describe("Smart Suggest core contracts", () => {
   it("keeps suggestions JSON-serializable", () => {

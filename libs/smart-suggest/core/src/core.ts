@@ -1,13 +1,16 @@
-export type SmartSuggestKind = 'address' | 'place' | 'postal';
+import { Schema } from "effect";
+import type * as Effect from "effect/Effect";
 
-export type SmartSuggestCacheStatus = 'disabled' | 'hit' | 'miss' | 'stale' | 'written';
+export type SmartSuggestKind = "address" | "place" | "postal";
+
+export type SmartSuggestCacheStatus = "disabled" | "hit" | "miss" | "stale" | "written";
 
 export type SmartSuggestCacheLevelName =
-  | 'browserMemory'
-  | 'workerMemory'
-  | 'edgeCache'
-  | 'd1ReadThrough'
-  | 'ownedDb';
+  | "browserMemory"
+  | "workerMemory"
+  | "edgeCache"
+  | "d1ReadThrough"
+  | "ownedDb";
 
 export type SmartSuggestCacheLevel = {
   enabled: boolean;
@@ -18,14 +21,14 @@ export type SmartSuggestCacheLevels = Record<SmartSuggestCacheLevelName, SmartSu
 
 export type ProviderCachePolicy =
   | {
-      kind: 'none';
+      kind: "none";
     }
   | {
-      kind: 'ttl';
+      kind: "ttl";
       ttlSeconds: number;
     }
   | {
-      kind: 'permanent';
+      kind: "permanent";
     };
 
 export type SmartSuggestCountryCode = Uppercase<string>;
@@ -59,7 +62,7 @@ export type AddressParts = {
   line2?: string;
 };
 
-export type SuggestionSourceKind = 'owned-dataset' | 'live-provider' | 'cache';
+export type SuggestionSourceKind = "owned-dataset" | "live-provider" | "cache";
 
 export type SuggestionAttribution = {
   label: string;
@@ -105,14 +108,14 @@ export type SmartSuggestAcceptEvent = {
 };
 
 export type SmartSuggestErrorCode =
-  | 'bad-request'
-  | 'validation-error'
-  | 'provider-timeout'
-  | 'provider-unavailable'
-  | 'cache-policy-violation'
-  | 'storage-unavailable'
-  | 'not-found'
-  | 'internal-error';
+  | "bad-request"
+  | "validation-error"
+  | "provider-timeout"
+  | "provider-unavailable"
+  | "cache-policy-violation"
+  | "storage-unavailable"
+  | "not-found"
+  | "internal-error";
 
 export type SmartSuggestError = {
   code: SmartSuggestErrorCode;
@@ -123,7 +126,7 @@ export type SmartSuggestError = {
 
 export type ProviderEventSummary = {
   providerId: string;
-  status: 'success' | 'timeout' | 'error' | 'skipped';
+  status: "success" | "timeout" | "error" | "skipped";
   latencyMs?: number;
   errorCode?: SmartSuggestErrorCode;
 };
@@ -140,6 +143,66 @@ export type SmartSuggestProviderResult = {
   attribution?: SuggestionAttribution;
 };
 
+const ProviderErrorBaseSchema = Schema.Struct({
+  message: Schema.String,
+  providerId: Schema.String,
+});
+
+export const ProviderErrorCauseSchema = Schema.Struct({
+  message: Schema.String,
+  name: Schema.optionalKey(Schema.String),
+});
+
+export type ProviderErrorCause = typeof ProviderErrorCauseSchema.Type;
+
+export class ProviderTimeout extends Schema.TaggedErrorClass<ProviderTimeout>()(
+  "ProviderTimeout",
+  ProviderErrorBaseSchema,
+) {}
+
+export class ProviderHttpStatus extends Schema.TaggedErrorClass<ProviderHttpStatus>()(
+  "ProviderHttpStatus",
+  Schema.Struct({
+    message: Schema.String,
+    providerId: Schema.String,
+    status: Schema.Number,
+  }),
+) {}
+
+export class ProviderNetwork extends Schema.TaggedErrorClass<ProviderNetwork>()(
+  "ProviderNetwork",
+  Schema.Struct({
+    cause: Schema.optionalKey(ProviderErrorCauseSchema),
+    message: Schema.String,
+    providerId: Schema.String,
+  }),
+) {}
+
+export class ProviderDecode extends Schema.TaggedErrorClass<ProviderDecode>()(
+  "ProviderDecode",
+  Schema.Struct({
+    cause: Schema.optionalKey(ProviderErrorCauseSchema),
+    message: Schema.String,
+    providerId: Schema.String,
+  }),
+) {}
+
+export class ProviderAborted extends Schema.TaggedErrorClass<ProviderAborted>()(
+  "ProviderAborted",
+  Schema.Struct({
+    cause: Schema.optionalKey(ProviderErrorCauseSchema),
+    message: Schema.String,
+    providerId: Schema.String,
+  }),
+) {}
+
+export type SmartSuggestProviderError =
+  | ProviderAborted
+  | ProviderDecode
+  | ProviderHttpStatus
+  | ProviderNetwork
+  | ProviderTimeout;
+
 export type SmartSuggestProvider = {
   id: string;
   name: string;
@@ -148,7 +211,7 @@ export type SmartSuggestProvider = {
   suggest: (
     request: SmartSuggestRequest,
     context: SmartSuggestProviderContext,
-  ) => Promise<SmartSuggestProviderResult>;
+  ) => Effect.Effect<SmartSuggestProviderResult, SmartSuggestProviderError, never>;
 };
 
 export type RankingInput = {
@@ -189,4 +252,4 @@ export const normalizeSuggestLimit = (limit: number | undefined) => {
 };
 
 export const cachePolicyAllowsPersistentWrite = (policy: ProviderCachePolicy) =>
-  policy.kind !== 'none';
+  policy.kind !== "none";

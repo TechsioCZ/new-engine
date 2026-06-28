@@ -1,9 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": [
+    "api",
     "locales/**/*.json",
     "package.json",
+    "shared",
     "src",
+    "tests",
     "modern.config.ts",
     "module-federation.config.ts"
   ]

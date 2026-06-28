@@ -85,8 +85,8 @@ function writeJson(filePath, value) {
 
 function writeSyntheticSnapshot() {
   const csv = [
-    'Kod adresniho mista;Nazev obce;Nazev casti obce;Nazev ulice;Cislo domovni;Cislo orientacni;PSC',
-    '1203603;Praha 10;Vrsovice;K Louzi;1258;12;10100',
+    'Kod adresniho mista;Kod obce;Nazev obce;Nazev casti obce;Nazev ulice;Cislo domovni;Cislo orientacni;PSC',
+    '1203603;554782;Praha 10;Vrsovice;K Louzi;1258;12;10100',
   ].join('\n');
   const snapshotPath = path.join(proofDir, 'synthetic-ruian-proof.csv');
 
@@ -95,6 +95,27 @@ function writeSyntheticSnapshot() {
 
   return {
     checksumSha256: sha256(`${csv}\n`),
+    snapshotPath,
+  };
+}
+
+function writeSyntheticRegionMapSnapshot() {
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<vf:VymennyFormat xmlns:obi="urn:cz:isvs:ruian:schemas:ObecIntTypy:v1" xmlns:oki="urn:cz:isvs:ruian:schemas:OkresIntTypy:v1" xmlns:vci="urn:cz:isvs:ruian:schemas:VuscIntTypy:v1" xmlns:vf="urn:cz:isvs:ruian:schemas:VymennyFormatTypy:v1">',
+    '<vf:Data>',
+    '<vf:Okresy><vf:Okres><oki:Kod>3100</oki:Kod><oki:Vusc><vci:Kod>19</vci:Kod></oki:Vusc></vf:Okres></vf:Okresy>',
+    '<vf:Obce><vf:Obec><obi:Kod>554782</obi:Kod><obi:Okres><oki:Kod>3100</oki:Kod></obi:Okres></vf:Obec></vf:Obce>',
+    '</vf:Data>',
+    '</vf:VymennyFormat>',
+  ].join('');
+  const snapshotPath = path.join(proofDir, 'synthetic-ruian-st-uzsz-proof.xml');
+
+  fs.mkdirSync(proofDir, { recursive: true });
+  fs.writeFileSync(snapshotPath, `${xml}\n`);
+
+  return {
+    checksumSha256: sha256(`${xml}\n`),
     snapshotPath,
   };
 }
@@ -141,8 +162,12 @@ function resetOperatorEnv() {
     SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL: '',
     SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE: '',
     SMART_SUGGEST_RUIAN_ATTRIBUTION_URL: '',
+    SMART_SUGGEST_RUIAN_CSV_DELIMITER: '',
+    SMART_SUGGEST_RUIAN_CSV_ENCODING: '',
     SMART_SUGGEST_RUIAN_DATASET_VERSION: '',
     SMART_SUGGEST_RUIAN_MODIFICATION_NOTE: '',
+    SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256: '',
+    SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH: '',
     SMART_SUGGEST_RUIAN_SNAPSHOT_CHECKSUM_SHA256: '',
     SMART_SUGGEST_RUIAN_SNAPSHOT_PATH: '',
     SMART_SUGGEST_RUIAN_SNAPSHOT_URI: '',
@@ -165,6 +190,8 @@ function assertNoUnsafeReportPaths(label, value) {
 function baseProductionSeedCommand({
   checksumSha256,
   jsonOut = seedReportPath,
+  regionMapChecksumSha256,
+  regionMapSnapshotPath,
   snapshotPath,
   includeGovernance = true,
   attributionLabel = 'CUZK RUIAN',
@@ -193,6 +220,10 @@ function baseProductionSeedCommand({
     '2026-06-28',
     '--atom-entry-id',
     'tag:example.invalid,2026:smart-suggest-production-seed-proof',
+    '--municipality-region-map-snapshot-path',
+    regionMapSnapshotPath,
+    '--municipality-region-map-snapshot-checksum-sha256',
+    regionMapChecksumSha256,
     '--json-out',
     jsonOut,
     '--preflight-json-out',
@@ -221,9 +252,13 @@ function baseProductionSeedCommand({
 
 function runProductionSeedProof() {
   const { checksumSha256, snapshotPath } = writeSyntheticSnapshot();
+  const { checksumSha256: regionMapChecksumSha256, snapshotPath: regionMapSnapshotPath } =
+    writeSyntheticRegionMapSnapshot();
   const wranglerConfig = writePlaceholderWranglerConfig();
   const command = baseProductionSeedCommand({
     checksumSha256,
+    regionMapChecksumSha256,
+    regionMapSnapshotPath,
     snapshotPath,
     wranglerConfig,
   });
@@ -279,6 +314,14 @@ function runProductionSeedProof() {
   );
   assert(seedReport.snapshot?.checksumVerified === true, 'Snapshot checksum must be verified.');
   assert(seedReport.snapshot?.pathRedacted === true, 'Snapshot path must be redacted.');
+  assert(
+    seedReport.municipalityRegionMapSnapshot?.checksumVerified === true,
+    'Hierarchy snapshot checksum must be verified.',
+  );
+  assert(
+    seedReport.municipalityRegionMapSnapshot?.pathRedacted === true,
+    'Hierarchy snapshot path must be redacted.',
+  );
   assert(seedReport.source?.attribution?.label === 'CUZK RUIAN', 'Attribution label is recorded.');
   assert(
     seedReport.source?.attribution?.license === 'CC BY 4.0',
@@ -329,11 +372,15 @@ function runProductionSeedProof() {
 
 function runMismatchedAttributionProof() {
   const { checksumSha256, snapshotPath } = writeSyntheticSnapshot();
+  const { checksumSha256: regionMapChecksumSha256, snapshotPath: regionMapSnapshotPath } =
+    writeSyntheticRegionMapSnapshot();
   const wranglerConfig = writePlaceholderWranglerConfig();
   const command = baseProductionSeedCommand({
     attributionLabel: 'Wrong attribution',
     checksumSha256,
     jsonOut: mismatchedAttributionReportPath,
+    regionMapChecksumSha256,
+    regionMapSnapshotPath,
     snapshotPath,
     wranglerConfig,
   });
@@ -374,11 +421,15 @@ function runMismatchedAttributionProof() {
 
 function runMissingGovernanceProof() {
   const { checksumSha256, snapshotPath } = writeSyntheticSnapshot();
+  const { checksumSha256: regionMapChecksumSha256, snapshotPath: regionMapSnapshotPath } =
+    writeSyntheticRegionMapSnapshot();
   const wranglerConfig = writePlaceholderWranglerConfig();
   const command = baseProductionSeedCommand({
     checksumSha256,
     includeGovernance: false,
     jsonOut: missingGovernanceReportPath,
+    regionMapChecksumSha256,
+    regionMapSnapshotPath,
     snapshotPath,
     wranglerConfig,
   });

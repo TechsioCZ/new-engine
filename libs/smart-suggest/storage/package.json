@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/storage.d.ts",
+      "import": "./dist/storage.js"
     },
     "./package.json": "./package.json"
   },
@@ -24,15 +24,18 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.89",
     "@rslib/core": "^0.18.0",
     "@techsio/smart-suggest-tooling": "workspace:^",
-    "drizzle-kit": "0.31.7",
+    "drizzle-kit": "1.0.0-rc.4",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@effect/sql-d1": "4.0.0-beta.90",
     "@techsio/smart-suggest-core": "workspace:^",
     "@techsio/smart-suggest-indexing": "workspace:^",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "4.0.0-beta.89"
   }
 }

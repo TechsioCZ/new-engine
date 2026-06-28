@@ -13,27 +13,34 @@ export default defineConfig({
       },
       {
         find: '@techsio/smart-suggest-core',
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/core/src/index.ts'),
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/core/src/core.ts'),
       },
       {
         find: '@techsio/smart-suggest-datasets',
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/datasets/src/index.ts'),
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/datasets/src/datasets.ts'),
       },
       {
         find: '@techsio/smart-suggest-indexing',
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/indexing/src/index.ts'),
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/indexing/src/indexing.ts'),
       },
       {
         find: '@techsio/smart-suggest-integrations',
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/integrations/src/index.ts'),
+        replacement: path.join(
+          workspaceRoot,
+          'libs/smart-suggest/integrations/src/integrations.ts',
+        ),
       },
       {
         find: '@techsio/smart-suggest-storage',
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/storage/src/index.ts'),
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/storage/src/storage.ts'),
+      },
+      {
+        find: /^@techsio\/smart-suggest-validation\/(?<entry>.+)$/u,
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/validation/src/$<entry>.ts'),
       },
       {
         find: '@techsio/smart-suggest-validation',
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/validation/src/index.ts'),
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/validation/src/validation.ts'),
       },
       {
         find: /^@techsio\/smart-suggest-ui\/(?<entry>.+)$/u,
@@ -41,11 +48,15 @@ export default defineConfig({
       },
       {
         find: /^@techsio\/smart-suggest-react$/u,
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/react/dist/index.js'),
+        replacement: path.join(workspaceRoot, 'libs/smart-suggest/react/dist/react.js'),
       },
       {
         find: /^@techsio\/ui-kit\/(?<entry>.+)$/u,
         replacement: path.join(workspaceRoot, 'libs/ui/dist/$<entry>.js'),
+      },
+      {
+        find: '@zag-js/react',
+        replacement: path.join(rootDir, 'node_modules/@zag-js/react'),
       },
       {
         find: 'react',
@@ -60,7 +71,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['api/**/*.test.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ['tests/**/*.test.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     passWithNoTests: false,
     restoreMocks: true,
     typecheck: { tsconfig: './tsconfig.json' },

@@ -1,30 +1,34 @@
-import type { SmartSuggestClient } from "@techsio/smart-suggest-client";
 import type {
   AddressParts,
   SmartSuggestRequest,
   SmartSuggestSuggestion,
   SmartSuggestTenantContext,
-} from "@techsio/smart-suggest-core";
-import { useAddressSuggest, useSmartSuggestClient } from "@techsio/smart-suggest-react";
-import { Combobox, type ComboboxProps } from "@techsio/ui-kit/molecules/combobox";
-import { type ReactNode, useMemo, useState } from "react";
+} from '@techsio/smart-suggest-core';
+import {
+  detachSmartSuggestEffectAtBrowserEdge,
+  type SmartSuggestEffectClient,
+  useAddressSuggest,
+  useSmartSuggestClient,
+} from '@techsio/smart-suggest-react';
+import { Combobox, type ComboboxProps } from '@techsio/ui-kit/molecules/combobox';
+import { type ReactNode, useMemo, useState } from 'react';
 
 export type AddressSuggestFieldProps = Omit<
   ComboboxProps<SmartSuggestSuggestion>,
-  | "error"
-  | "filterMode"
-  | "inputValue"
-  | "itemToString"
-  | "itemToValue"
-  | "items"
-  | "loading"
-  | "onChange"
-  | "onInputValueChange"
-  | "renderItem"
-  | "allowCustomValue"
-  | "closeOnSelect"
+  | 'error'
+  | 'filterMode'
+  | 'inputValue'
+  | 'itemToString'
+  | 'itemToValue'
+  | 'items'
+  | 'loading'
+  | 'onChange'
+  | 'onInputValueChange'
+  | 'renderItem'
+  | 'allowCustomValue'
+  | 'closeOnSelect'
 > & {
-  client?: SmartSuggestClient;
+  client?: SmartSuggestEffectClient;
   countryCode?: Uppercase<string>;
   language?: string;
   tenant?: SmartSuggestTenantContext;
@@ -65,21 +69,21 @@ export function AddressSuggestField({
   inputValue,
   language,
   minQueryLength,
-  noResultsMessage = "No matching address",
+  noResultsMessage = 'No matching address',
   onAddressSelect,
   onInputValueChange,
   onSuggestionSelect,
   renderSuggestion = defaultRenderAddressSuggestion,
-  suggestUnavailableMessage = "Address suggestions are unavailable",
+  suggestUnavailableMessage = 'Address suggestions are unavailable',
   tenant,
   ...props
 }: AddressSuggestFieldProps) {
   const resolvedClient = useSmartSuggestClient(client);
-  const [internalInputValue, setInternalInputValue] = useState("");
+  const [internalInputValue, setInternalInputValue] = useState('');
   const currentInputValue = inputValue ?? internalInputValue;
   const request = useMemo(() => {
     const nextRequest: SmartSuggestRequest = {
-      kind: "address",
+      kind: 'address',
       query: currentInputValue,
     };
 
@@ -111,7 +115,7 @@ export function AddressSuggestField({
   }
 
   const suggestState = useAddressSuggest(suggestOptions);
-  const suggestions = suggestState.status === "success" ? suggestState.data.suggestions : [];
+  const suggestions = suggestState.status === 'success' ? suggestState.data.suggestions : [];
   const selectedById = useMemo(
     () => new Map(suggestions.map((suggestion) => [suggestion.id, suggestion])),
     [suggestions],
@@ -121,21 +125,22 @@ export function AddressSuggestField({
       return;
     }
 
-    const requestId = suggestState.status === "success" ? suggestState.data.requestId : "unknown";
+    const requestId = suggestState.status === 'success' ? suggestState.data.requestId : 'unknown';
 
-    resolvedClient
-      .accept({
+    detachSmartSuggestEffectAtBrowserEdge(
+      resolvedClient.accept({
         acceptedAt: new Date().toISOString(),
         requestId,
         source: suggestion.source,
         suggestionId: suggestion.id,
         ...(tenant === undefined ? {} : { tenant }),
-      })
-      .catch(() => {
+      }),
+      () => {
         // Accept telemetry must never block manual checkout completion.
-      });
+      },
+    );
   };
-  const handleChange: NonNullable<ComboboxProps<SmartSuggestSuggestion>["onChange"]> = (value) => {
+  const handleChange: NonNullable<ComboboxProps<SmartSuggestSuggestion>['onChange']> = (value) => {
     const selectedId = Array.isArray(value) ? value[0] : value;
     const suggestion = selectedId === undefined ? undefined : selectedById.get(selectedId);
 
@@ -157,13 +162,13 @@ export function AddressSuggestField({
       {...props}
       allowCustomValue
       closeOnSelect
-      error={suggestState.status === "error" ? suggestUnavailableMessage : error}
+      error={suggestState.status === 'error' ? suggestUnavailableMessage : error}
       filterMode="remote"
       inputValue={currentInputValue}
       items={suggestions}
       itemToString={itemToString}
       itemToValue={itemToValue}
-      loading={suggestState.status === "loading"}
+      loading={suggestState.status === 'loading'}
       noResultsMessage={noResultsMessage}
       onChange={handleChange}
       onInputValueChange={(value) => {

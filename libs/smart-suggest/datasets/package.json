@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/datasets.d.ts",
+      "import": "./dist/datasets.js"
     },
     "./source-catalog": {
       "types": "./dist/source-catalog.d.ts",
@@ -27,6 +27,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.89",
     "@rslib/core": "^0.18.0",
     "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
@@ -35,6 +36,7 @@
   "dependencies": {
     "@techsio/smart-suggest-core": "workspace:^",
     "@techsio/smart-suggest-indexing": "workspace:^",
-    "@techsio/smart-suggest-storage": "workspace:^"
+    "@techsio/smart-suggest-storage": "workspace:^",
+    "effect": "4.0.0-beta.89"
   }
 }

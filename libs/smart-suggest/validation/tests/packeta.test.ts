@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest"
 
-import { validatePacketaContact } from "../src/index"
+import { validatePacketaContact } from "../src/validation"
+import { validatePacketaContactStrict } from "../src/packeta-strict"
 
 describe("validatePacketaContact", () => {
+  it("keeps root Packeta validation browser-safe and requires explicit strict validation", () => {
+    const result = validatePacketaContact({
+      deliveryType: "pickup-point",
+      phone: "+420 777 123 456",
+      defaultCountry: "CZ",
+    })
+
+    expect(result).toMatchObject({ isValid: false })
+    expect(result.fieldErrors.phone).toContainEqual(
+      expect.objectContaining({ code: "phone.strict_validation_required" })
+    )
+  })
+})
+
+describe("validatePacketaContactStrict", () => {
   it("accepts a valid mobile phone for pickup points", () => {
     expect(
-      validatePacketaContact({
+      validatePacketaContactStrict({
         deliveryType: "pickup-point",
         phone: "+420 777 123 456",
         defaultCountry: "CZ",
@@ -20,7 +36,7 @@ describe("validatePacketaContact", () => {
   })
 
   it("requires phone presence", () => {
-    const result = validatePacketaContact({
+    const result = validatePacketaContactStrict({
       deliveryType: "pickup-point",
       phone: "",
       defaultCountry: "CZ",
@@ -33,7 +49,7 @@ describe("validatePacketaContact", () => {
   })
 
   it("rejects fixed-line phones for pickup point delivery", () => {
-    const result = validatePacketaContact({
+    const result = validatePacketaContactStrict({
       deliveryType: "pickup-point",
       phone: "+420 222 111 222",
       defaultCountry: "CZ",
@@ -47,7 +63,7 @@ describe("validatePacketaContact", () => {
 
   it("allows home-delivery fixed-line phones unless policy requires mobile", () => {
     expect(
-      validatePacketaContact({
+      validatePacketaContactStrict({
         deliveryType: "home-delivery",
         phone: "+420 222 111 222",
         defaultCountry: "CZ",
@@ -56,7 +72,7 @@ describe("validatePacketaContact", () => {
   })
 
   it("reports country mismatch", () => {
-    const result = validatePacketaContact({
+    const result = validatePacketaContactStrict({
       deliveryType: "pickup-point",
       phone: "+421 905 123 456",
       defaultCountry: "CZ",
@@ -70,7 +86,7 @@ describe("validatePacketaContact", () => {
   })
 
   it("reports malformed phones", () => {
-    const result = validatePacketaContact({
+    const result = validatePacketaContactStrict({
       deliveryType: "pickup-point",
       phone: "abc",
       defaultCountry: "CZ",

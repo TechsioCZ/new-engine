@@ -11,7 +11,7 @@ import {
   scoreAddressCandidate,
   scoreAddressRecordQuality,
   tokenizeAddressText,
-} from '../src/index';
+} from '../src/indexing';
 
 describe('address text normalization', () => {
   it('normalizes Czech and Slovak diacritics, casing, punctuation, and whitespace', () => {

@@ -1,11 +1,12 @@
 import type { SmartSuggestCountryCode } from "@techsio/smart-suggest-core"
 import type {
+  PhoneLiteValidationResult,
   PhoneValidationPolicy,
   PhoneValidationRequest,
   PhoneValidationResult,
   ValidationIssue,
 } from "./phone-lite"
-import { validatePhoneNumber as validateStrictPhoneNumber } from "./phone-strict"
+import { validatePhoneNumberLite } from "./phone-lite"
 
 export type {
   PhoneInputHints,
@@ -25,7 +26,7 @@ export type {
   ValidationIssue,
 } from "./phone-lite"
 
-export const validatePhoneNumber = validateStrictPhoneNumber
+export const validatePhoneNumber = validatePhoneNumberLite
 
 export type PostalValidationStatus = boolean | "unknown"
 
@@ -63,7 +64,7 @@ export type PacketaContactValidationRequest = PacketaValidationPolicy & {
 export type PacketaContactValidationResult = {
   deliveryType: PacketaDeliveryType
   isValid: boolean
-  phone: PhoneValidationResult
+  phone: PhoneValidationResult | PhoneLiteValidationResult
   fieldErrors: Record<"phone", readonly ValidationIssue[]>
 }
 
@@ -239,6 +240,13 @@ export const validatePostalCode = (
 const shouldRequireMobileForPacketa = (deliveryType: PacketaDeliveryType) =>
   deliveryType === "pickup-point"
 
+const toStrictValidationRequiredIssue = (): ValidationIssue =>
+  createIssue(
+    "phone.strict_validation_required",
+    "phone",
+    "Strict phone validation is required before this contact can be accepted."
+  )
+
 export const validatePacketaContact = (
   request: PacketaContactValidationRequest
 ): PacketaContactValidationResult => {
@@ -261,12 +269,16 @@ export const validatePacketaContact = (
     phoneRequest.requireCountryMatch = request.requireCountryMatch
   }
 
-  const phone = validatePhoneNumber(phoneRequest)
+  const phone = validatePhoneNumberLite(phoneRequest)
+  const phoneErrors =
+    phone.status === "strict_validation_required"
+      ? [toStrictValidationRequiredIssue()]
+      : phone.errors
 
   return {
     deliveryType: request.deliveryType,
-    isValid: phone.isValid,
+    isValid: false,
     phone,
-    fieldErrors: { phone: phone.errors },
+    fieldErrors: { phone: phoneErrors },
   }
 }

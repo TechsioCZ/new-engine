@@ -1,7 +1,10 @@
 import type { SmartSuggestCountryCode } from "@techsio/smart-suggest-core"
-import { describe, expect, it } from "vitest"
+import { Cause, Effect, Exit } from "effect"
+import { readFileSync } from "node:fs"
+import { describe, expect, it } from "@effect/vitest"
 
-import { validatePhoneNumber } from "../src/index"
+import { validatePhoneNumber as validateDefaultPhoneNumber } from "../src/validation"
+import { validatePhoneNumberEffect } from "../src/phone-strict-effect"
 import {
   DEFAULT_PHONE_VALIDATION_MODE,
   getPhoneInputHints,
@@ -9,6 +12,8 @@ import {
   isPhoneValidationMode,
   validatePhoneNumberLite,
 } from "../src/phone-lite"
+import { validatePhoneNumber } from "../src/phone-strict"
+import { PhoneValidationError } from "../src/schemas"
 
 type PhoneFixture = readonly [SmartSuggestCountryCode, string, string, string]
 
@@ -151,6 +156,76 @@ describe("validatePhoneNumber", () => {
       isValid: true,
     })
   })
+
+  it("keeps the root phone export lite and browser-safe", () => {
+    expect(
+      validateDefaultPhoneNumber({
+        rawInput: "+420 777 123 456",
+        defaultCountry: "CZ",
+      })
+    ).toMatchObject({
+      status: "strict_validation_required",
+      canAttemptStrictValidation: true,
+      errors: [],
+    })
+  })
+
+  it("does not statically import strict phone metadata from root or lite sources", () => {
+    const strictMetadataPackageName = ["libphonenumber", "js"].join("-")
+    const rootSource = readFileSync(
+      new URL("../src/validation.ts", import.meta.url),
+      "utf8"
+    )
+    const liteSource = readFileSync(
+      new URL("../src/phone-lite.ts", import.meta.url),
+      "utf8"
+    )
+
+    expect(rootSource).not.toContain(strictMetadataPackageName)
+    expect(rootSource).not.toContain("./phone-strict")
+    expect(liteSource).not.toContain(strictMetadataPackageName)
+  })
+})
+
+describe("validatePhoneNumberEffect", () => {
+  it.effect("succeeds with strict phone results", () =>
+    Effect.gen(function* strictPhoneSuccessProgram() {
+      const result = yield* validatePhoneNumberEffect({
+        rawInput: "+420 777 123 456",
+        defaultCountry: "CZ",
+      })
+
+      expect(result).toMatchObject({
+        e164: "+420777123456",
+        isValid: true,
+      })
+    })
+  )
+
+  it.effect("fails invalid phones with a schema-backed error", () =>
+    Effect.gen(function* strictPhoneFailureProgram() {
+      const exit = yield* Effect.exit(
+        validatePhoneNumberEffect({
+          rawInput: "abc",
+        })
+      )
+
+      expect(Exit.isFailure(exit)).toBe(true)
+
+      if (!Exit.isFailure(exit)) {
+        return
+      }
+
+      const failure = Cause.squash(exit.cause)
+
+      expect(failure).toMatchObject({
+        _tag: "PhoneValidationError",
+        issues: [expect.objectContaining({ field: "phone" })],
+        result: expect.objectContaining({ isValid: false }),
+      })
+      expect(failure).toBeInstanceOf(PhoneValidationError)
+    })
+  )
 })
 
 describe("phone validation mode contract", () => {

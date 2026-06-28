@@ -149,7 +149,8 @@ export default defineConfig(
         : {}),
       bff: {
         effect: {
-          entry: './api/effect/index',
+          entry: './api/index',
+          strictEffectApproach: true,
         },
         prefix: '/api',
         runtimeFramework: 'effect',
@@ -225,7 +226,7 @@ export default defineConfig(
       source: {
         alias: {
           '@modern-js/plugin-i18n/runtime': '@modern-js/plugin-i18n/runtime/no-react-i18next',
-          '@techsio/smart-suggest-react': `${workspaceRoot}/libs/smart-suggest/react/dist/index.js`,
+          '@techsio/smart-suggest-react': `${workspaceRoot}/libs/smart-suggest/react/dist/react.js`,
           '@techsio/smart-suggest-ui/address-suggest-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/address-suggest-field.js`,
           '@techsio/smart-suggest-ui/phone-validation-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/phone-validation-field.js`,
           '@techsio/smart-suggest-ui/postal-validation-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/postal-validation-field.js`,

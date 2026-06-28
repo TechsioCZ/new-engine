@@ -241,6 +241,8 @@ export SMART_SUGGEST_RUIAN_SOURCE_VERSION="20260531"
 export SMART_SUGGEST_RUIAN_SOURCE_GENERATED_AT="2026-06-01T07:18:12+02:00"
 export SMART_SUGGEST_RUIAN_SOURCE_VALID_AT="2026-05-31T00:00:00+02:00"
 export SMART_SUGGEST_RUIAN_ATOM_ENTRY_ID="RUIAN-CSV-ADR-ST-20260531_OB_ADR_csv.zip"
+export SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH="<local-retained-ruian-st-uzsz-snapshot-path>"
+export SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256="<sha256-hex>"
 export SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL="CUZK RUIAN"
 export SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE="CC BY 4.0"
 export SMART_SUGGEST_RUIAN_ATTRIBUTION_URL="https://ruian.cuzk.cz/"
@@ -250,6 +252,12 @@ pnpm smart-suggest:seed:production
 
 pnpm smart-suggest:seed:production:execute
 ```
+
+The production wrapper defaults to `--csv-encoding windows-1250` and
+`--csv-delimiter ";"` for the official RUIAN CSV export. The retained
+`ST_UZSZ` VFR snapshot is used only to derive municipality-to-VÚSC shard
+routing; its local path is redacted from public reports, while its checksum and
+file name are recorded.
 
 Only export the shard binding allowlist manually when using a custom Wrangler
 config or intentionally overriding the generated binding list:

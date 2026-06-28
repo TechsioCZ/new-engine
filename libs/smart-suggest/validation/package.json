@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/validation.d.ts",
+      "import": "./dist/validation.js"
     },
     "./phone-lite": {
       "types": "./dist/phone-lite.d.ts",
@@ -15,6 +15,22 @@
     "./phone-strict": {
       "types": "./dist/phone-strict.d.ts",
       "import": "./dist/phone-strict.js"
+    },
+    "./phone-strict-effect": {
+      "types": "./dist/phone-strict-effect.d.ts",
+      "import": "./dist/phone-strict-effect.js"
+    },
+    "./packeta-strict": {
+      "types": "./dist/packeta-strict.d.ts",
+      "import": "./dist/packeta-strict.js"
+    },
+    "./effect": {
+      "types": "./dist/effect.d.ts",
+      "import": "./dist/effect.js"
+    },
+    "./schemas": {
+      "types": "./dist/schemas.d.ts",
+      "import": "./dist/schemas.js"
     },
     "./package.json": "./package.json"
   },
@@ -31,6 +47,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.89",
     "@rslib/core": "^0.18.0",
     "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
@@ -38,6 +55,7 @@
   },
   "dependencies": {
     "@techsio/smart-suggest-core": "workspace:^",
+    "effect": "4.0.0-beta.89",
     "libphonenumber-js": "^1.13.2"
   }
 }

@@ -129,9 +129,9 @@ const requiredMicroVerticalPaths = (vertical) => [
   `${vertical.path}/tsconfig.json`,
   `${vertical.path}/modern.config.ts`,
   `${vertical.path}/module-federation.config.ts`,
-  `${vertical.path}/api/effect/index.ts`,
-  `${vertical.path}/shared/effect/api.ts`,
-  `${vertical.path}/src/effect/${vertical.stem}-client.ts`,
+  `${vertical.path}/api/index.ts`,
+  `${vertical.path}/shared/api.ts`,
+  `${vertical.path}/src/api/${vertical.stem}-client.ts`,
   `${vertical.path}/src/modern-app-env.d.ts`,
   `${vertical.path}/src/modern.runtime.ts`,
   `${vertical.path}/src/federation-entry.tsx`,
@@ -312,7 +312,7 @@ const assertMicroVerticalContractGraph = ({
         },
         effect: {
           prefix: vertical.apiPrefix,
-          serverEntry: `${vertical.path}/api/effect/index.ts`,
+          serverEntry: `${vertical.path}/api/index.ts`,
         },
       },
       `topology/reference-topology.json verticals.${vertical.id}`,
@@ -404,8 +404,8 @@ const assertMicroVerticalContractGraph = ({
         },
         effect: {
           prefix: vertical.apiPrefix,
-          contract: './shared/effect/api',
-          client: './effect/client',
+          contract: './api',
+          client: './api/client',
         },
         ssr: {
           mode: 'string',
@@ -779,6 +779,7 @@ const requiredPaths = [
   'topology/reference-topology.json',
   'topology/ownership.json',
   'topology/local-overlays/development.json',
+  '.modernjs/ultramodern.json',
   '.modernjs/ultramodern-workspace-template-manifest.json',
   '.modernjs/ultramodern-package-source.json',
   '.modernjs/ultramodern-generated-contract.json',
@@ -798,7 +799,10 @@ const requiredPaths = [
   'apps/shell-super-app/module-federation.config.ts',
   'apps/shell-super-app/src/modern-app-env.d.ts',
   'apps/shell-super-app/src/modern.runtime.ts',
-  'apps/shell-super-app/src/effect/vertical-clients.ts',
+  'apps/shell-super-app/api/index.ts',
+  'apps/shell-super-app/shared/api.ts',
+  'apps/shell-super-app/src/api/smart-suggest-client.ts',
+  'apps/shell-super-app/src/api/vertical-clients.ts',
   'apps/shell-super-app/locales/en/translation.json',
   `apps/shell-super-app/locales/en/${shellNamespace}.json`,
   'apps/shell-super-app/locales/cs/translation.json',
@@ -843,7 +847,37 @@ for (const oldRemotePath of oldRemotePaths) {
   assertNotExists(oldRemotePath);
 }
 const rootPackage = readJson('package.json');
-const packageSource = readJson('.modernjs/ultramodern-package-source.json');
+const ultramodernConfig = readJson('.modernjs/ultramodern.json');
+const modernPackageVersion = ultramodernConfig.packageSource?.modernPackageVersion;
+const modernPackageAliasScope = ultramodernConfig.packageSource?.aliasScope ?? 'bleedingdev';
+const modernPackageAliasPrefix =
+  ultramodernConfig.packageSource?.aliasPackageNamePrefix ?? 'modern-js-';
+const modernPackageNames = [
+  '@modern-js/create',
+  '@modern-js/code-tools',
+  '@modern-js/app-tools',
+  '@modern-js/plugin-bff',
+  '@modern-js/plugin-i18n',
+  '@modern-js/plugin-tanstack',
+  '@modern-js/runtime',
+];
+const packageSource = {
+  strategy: ultramodernConfig.packageSource?.strategy,
+  modernPackages: {
+    aliases: Object.fromEntries(
+      modernPackageNames.map((packageName) => {
+        const stem = packageName.slice('@modern-js/'.length);
+
+        return [packageName, `@${modernPackageAliasScope}/${modernPackageAliasPrefix}${stem}`];
+      }),
+    ),
+    packages: modernPackageNames,
+    specifier: modernPackageVersion,
+  },
+  generatedWorkspacePackages: {
+    specifier: 'workspace:*',
+  },
+};
 const generatedContract = readJson('.modernjs/ultramodern-generated-contract.json');
 const topology = readJson('topology/reference-topology.json');
 const ownership = readJson('topology/ownership.json');
@@ -898,8 +932,12 @@ assert(
 );
 assert(rootPackage.modernjs?.preset === 'presetUltramodern', 'Root must declare presetUltramodern');
 assert(
-  rootPackage.modernjs?.packageSource?.config === './.modernjs/ultramodern-package-source.json',
+  rootPackage.modernjs?.packageSource?.config === './.modernjs/ultramodern.json#packageSource',
   'Root must point at package source metadata',
+);
+assert(
+  ultramodernConfig.generator?.version === modernPackageVersion,
+  'UltraModern generator.version and packageSource.modernPackageVersion must match',
 );
 assert(
   rootPackage.modernjs?.packageSource?.strategy === packageSource.strategy,
@@ -1224,7 +1262,52 @@ assert(
     expectedModernPackageSpecifier('@modern-js/runtime'),
   'Shell runtime dependency must match package source metadata',
 );
+const expectedShellApiContract = {
+  runtime: 'effect',
+  bff: {
+    prefix: '/api',
+    openapi: '/openapi.json',
+    strictEffectApproach: true,
+  },
+  contract: {
+    export: './api',
+    path: 'apps/shell-super-app/shared/api.ts',
+  },
+  client: {
+    export: './api/client',
+    path: 'apps/shell-super-app/src/api/smart-suggest-client.ts',
+  },
+  serverEntry: 'apps/shell-super-app/api/index.ts',
+  basePath: '/api/v1',
+  consumedBy: ['shell-super-app'],
+};
+assertSameJson(
+  {
+    api: shellPackage.exports?.['./api'],
+    apiClient: shellPackage.exports?.['./api/client'],
+    apiClients: shellPackage.exports?.['./api/clients'],
+  },
+  {
+    api: './shared/api.ts',
+    apiClient: './src/api/smart-suggest-client.ts',
+    apiClients: './src/api/vertical-clients.ts',
+  },
+  'apps/shell-super-app/package.json API exports',
+  'restore direct UltraModern Effect API package exports',
+);
+assertSameJson(
+  topology.shell?.api,
+  expectedShellApiContract,
+  'topology/reference-topology.json shell.api',
+  'restore direct UltraModern Effect API topology metadata',
+);
 const shellContract = generatedContract.apps?.find((app) => app.id === 'shell-super-app');
+assertSameJson(
+  shellContract?.api,
+  expectedShellApiContract,
+  '.modernjs/ultramodern-generated-contract.json apps.shell-super-app.api',
+  'regenerate the direct UltraModern Effect API contract metadata',
+);
 assert(
   shellContract?.deploy?.cloudflare?.workerName === expectedWorkerName('shell-super-app'),
   'Shell Cloudflare workerName is incorrect',
@@ -1502,11 +1585,11 @@ for (const vertical of fullStackVerticals) {
     `${vertical.id} runtime dependency must match package source metadata`,
   );
   assert(
-    packageJson.exports?.['./effect/client'] === `./src/effect/${vertical.stem}-client.ts`,
+    packageJson.exports?.['./api/client'] === `./src/api/${vertical.stem}-client.ts`,
     `${vertical.id} must export its Effect client`,
   );
   assert(
-    packageJson.exports?.['./shared/effect/api'] === './shared/effect/api.ts',
+    packageJson.exports?.['./api'] === './shared/api.ts',
     `${vertical.id} must export its Effect API contract`,
   );
   const expectedVerticalZephyrDependencies = Object.fromEntries(
@@ -1837,7 +1920,7 @@ for (const vertical of fullStackVerticals) {
     `${vertical.id} topology API prefix is incorrect`,
   );
   assert(
-    topologyEntry?.api?.effect?.serverEntry === `${vertical.path}/api/effect/index.ts`,
+    topologyEntry?.api?.serverEntry === `${vertical.path}/api/index.ts`,
     `${vertical.id} topology server entry is incorrect`,
   );
   assert(

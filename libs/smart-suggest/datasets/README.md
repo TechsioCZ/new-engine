@@ -4,16 +4,17 @@ Dataset fixtures, source metadata, and import mapping for Smart Suggest.
 
 ## Import runner contract
 
-`runAddressDatasetImport` registers source attribution, starts an import run,
-normalizes address rows in chunks, upserts runtime address records, and finishes
-the run with inserted/failed row counts. Raw snapshots stay outside D1; pass a
-`snapshotUri` such as an R2/object-storage URI and keep only normalized runtime
-rows in the repository.
+`runAddressDatasetImportEffect` registers source attribution, starts an import
+run, normalizes address rows in chunks, upserts runtime address records, and
+finishes the run with inserted/failed row counts. Raw snapshots stay outside D1;
+pass a `snapshotUri` such as an R2/object-storage URI and keep only normalized
+runtime rows in the repository. Repository and dataset failures stay in the
+Effect error channel.
 
 Local CZ/SK sample seed:
 
 ```ts
-await seedSampleAddressDatasets(repositories);
+yield* seedSampleAddressDatasetsEffect(repositories);
 ```
 
 The sample seed also registers the OpenAddresses US/CA fixture so `/v1/suggest`
@@ -23,7 +24,7 @@ volume benchmark.
 Production-style owned-data import:
 
 ```ts
-await runAddressDatasetImport({
+yield* runAddressDatasetImportEffect({
   chunkSize: 500,
   repositories,
   runId: "import-ruian-cz-2026-06-26",
@@ -36,6 +37,10 @@ await runAddressDatasetImport({
 });
 ```
 
+Node entry scripts and benchmarks should execute `runAddressDatasetImportEffect`
+at the CLI boundary. Runtime and server code should compose the Effect APIs
+directly.
+
 Use country/region-specific D1 shards for large sources. Do not load global raw
 payload blobs into D1; D1 stores source metadata, import-run counts, normalized
 address records, and derived search labels/tokens only.
@@ -47,7 +52,7 @@ CI job, or local operator script that constructs repositories from the target D1
 binding and passes an object-storage snapshot URI:
 
 ```ts
-await runAddressDatasetImport({
+yield* runAddressDatasetImportEffect({
   chunkSize: 500,
   repositories,
   runId: `import-${source.id}-${source.datasetVersion}`,

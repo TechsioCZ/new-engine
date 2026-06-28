@@ -1,7 +1,10 @@
 import type { SmartSuggestCountryCode } from "@techsio/smart-suggest-core"
-import { describe, expect, it } from "vitest"
+import { Cause, Effect, Exit } from "effect"
+import { describe, expect, it } from "@effect/vitest"
 
-import { getPostalInputHints, validatePostalCode } from "../src/index"
+import { validatePostalCodeEffect } from "../src/effect"
+import { getPostalInputHints, validatePostalCode } from "../src/validation"
+import { PostalValidationError } from "../src/schemas"
 
 type PostalFixture = readonly [SmartSuggestCountryCode, string, string]
 
@@ -57,4 +60,47 @@ describe("validatePostalCode", () => {
     expect(getPostalInputHints("CA")).toMatchObject({ inputMode: "text" })
     expect(getPostalInputHints("US")).toMatchObject({ inputMode: "text" })
   })
+})
+
+describe("validatePostalCodeEffect", () => {
+  it.effect("succeeds with strict postal results", () =>
+    Effect.gen(function* strictPostalSuccessProgram() {
+      const result = yield* validatePostalCodeEffect({
+        countryCode: "CZ",
+        rawInput: "12345",
+      })
+
+      expect(result).toMatchObject({
+        displayValue: "123 45",
+        isValid: true,
+      })
+    })
+  )
+
+  it.effect("fails unknown or invalid postal codes with schema-backed errors", () =>
+    Effect.gen(function* strictPostalFailureProgram() {
+      const unknownCountryExit = yield* Effect.exit(
+        validatePostalCodeEffect({ countryCode: "ZZ", rawInput: "12345" })
+      )
+      const invalidPostalExit = yield* Effect.exit(
+        validatePostalCodeEffect({ countryCode: "CZ", rawInput: "abc" })
+      )
+
+      expect(Exit.isFailure(unknownCountryExit)).toBe(true)
+      expect(Exit.isFailure(invalidPostalExit)).toBe(true)
+
+      if (!Exit.isFailure(unknownCountryExit) || !Exit.isFailure(invalidPostalExit)) {
+        return
+      }
+
+      expect(Cause.squash(unknownCountryExit.cause)).toMatchObject({
+        _tag: "PostalValidationError",
+        issues: [expect.objectContaining({ code: "postal.country_unsupported" })],
+        result: expect.objectContaining({ isValid: "unknown" }),
+      })
+      expect(Cause.squash(invalidPostalExit.cause)).toBeInstanceOf(
+        PostalValidationError
+      )
+    })
+  )
 })

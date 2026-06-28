@@ -14,6 +14,7 @@ import {
   supportedExternalBaselineIds,
 } from './external-baseline-adapters.mjs';
 import { finalBossRequiredPreflightCheckIds } from './final-boss-preflight-contract.mjs';
+import { runCliEffectAsPromise } from '../effect-runtime.mjs';
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(scriptDirectory, '..', '..');
@@ -32,7 +33,7 @@ const smartSuggestD1MigrationsSource = path.resolve(
 );
 const smartSuggestIntegrationsDistPath = path.resolve(
   repositoryRoot,
-  'libs/smart-suggest/integrations/dist/index.js',
+  'libs/smart-suggest/integrations/dist/integrations.js',
 );
 const allowedPathKeys = new Set(['in-memory', 'sqlite-local', 'http-api-all-caches']);
 const defaultPathKeys = ['in-memory', 'sqlite-local'];
@@ -673,8 +674,8 @@ function assertCorpus(corpus) {
 }
 
 async function loadSmartSuggestModules() {
-  const datasetsPath = path.resolve(repositoryRoot, 'libs/smart-suggest/datasets/dist/index.js');
-  const storagePath = path.resolve(repositoryRoot, 'libs/smart-suggest/storage/dist/index.js');
+  const datasetsPath = path.resolve(repositoryRoot, 'libs/smart-suggest/datasets/dist/datasets.js');
+  const storagePath = path.resolve(repositoryRoot, 'libs/smart-suggest/storage/dist/storage.js');
 
   if (!(fs.existsSync(datasetsPath) && fs.existsSync(storagePath))) {
     throw new Error(
@@ -692,7 +693,8 @@ async function loadSmartSuggestModules() {
     createAuthoritativeAddressImportSource: datasets.createAuthoritativeAddressImportSource,
     createD1SmartSuggestRepositories: storage.createD1SmartSuggestRepositories,
     createInMemorySmartSuggestRepositories: storage.createInMemorySmartSuggestRepositories,
-    runAddressDatasetImport: datasets.runAddressDatasetImport,
+    runAddressDatasetImport: (options) =>
+      runCliEffectAsPromise(datasets.runAddressDatasetImportEffect(options)),
   };
 }
 
@@ -903,7 +905,7 @@ async function createPathContext(pathKey, modules) {
 
   const sqlite = createObservableSqliteD1Binding();
   const repositories = modules.createD1SmartSuggestRepositories(sqlite.binding);
-  const health = await repositories.health.check();
+  const health = await runCliEffectAsPromise(repositories.health.check());
 
   if (!health.ok) {
     sqlite.close();
@@ -1211,11 +1213,13 @@ async function runScenario(context, scenario, args, requestLimit) {
 
   try {
     records = await withTimeout(
-      context.repositories.addressRecords.searchAddressRecords({
-        countryCode: scenario.countryCode ?? 'CZ',
-        limit: requestLimit,
-        query: scenario.query,
-      }),
+      runCliEffectAsPromise(
+        context.repositories.addressRecords.searchAddressRecords({
+          countryCode: scenario.countryCode ?? 'CZ',
+          limit: requestLimit,
+          query: scenario.query,
+        }),
+      ),
       args.timeoutMs,
     );
   } catch (error) {
@@ -1226,7 +1230,7 @@ async function runScenario(context, scenario, args, requestLimit) {
   const latencyMs = performance.now() - startedAt;
   const searchStorageSnapshot = context.storageSnapshot();
   const providerEvents = (
-    await context.repositories.providerEvents.listProviderEvents(scenario.id)
+    await runCliEffectAsPromise(context.repositories.providerEvents.listProviderEvents(scenario.id))
   ).map((event) => normalizeProviderEvent(event));
   const correctness =
     status === 'success'
@@ -1746,11 +1750,13 @@ async function runWarmup(context, scenarios, args, requestLimit) {
     for (const scenario of scenarios) {
       context.resetStorageStats();
       await withTimeout(
-        context.repositories.addressRecords.searchAddressRecords({
-          countryCode: scenario.countryCode ?? 'CZ',
-          limit: requestLimit,
-          query: scenario.query,
-        }),
+        runCliEffectAsPromise(
+          context.repositories.addressRecords.searchAddressRecords({
+            countryCode: scenario.countryCode ?? 'CZ',
+            limit: requestLimit,
+            query: scenario.query,
+          }),
+        ),
         args.timeoutMs,
       );
     }

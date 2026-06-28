@@ -559,7 +559,7 @@ async function detectApiBase(report, baseUrl, args) {
 }
 
 async function createDirectApiTransport(report) {
-  const distHandlerPath = path.join(workspaceRoot, 'apps/shell-super-app/dist/api/effect/index.js');
+  const distHandlerPath = path.join(workspaceRoot, 'apps/shell-super-app/dist/api/index.js');
 
   if (!fs.existsSync(distHandlerPath)) {
     skip(
@@ -575,11 +575,19 @@ async function createDirectApiTransport(report) {
 
   try {
     const module = await import(pathToFileURL(distHandlerPath).href);
-    const handler = module.handler;
+    const runtime = module.default ?? module;
+    const createdHandler =
+      typeof runtime.createHandler === 'function'
+        ? runtime.createHandler({ openapi: false })
+        : undefined;
+    const handler = createdHandler?.handler;
 
     if (typeof handler !== 'function') {
-      throw new Error('dist handler export is missing.');
+      throw new Error('dist Effect runtime createHandler export is missing.');
     }
+
+    const { createEffectOperationContext, runWithEffectContext } =
+      await import('@modern-js/plugin-bff/effect-server');
 
     pass(report, 'direct-api-fallback', 'Loaded built API handler for direct fallback checks.', {
       distHandlerPath: relativeWorkspacePath(distHandlerPath),
@@ -589,23 +597,36 @@ async function createDirectApiTransport(report) {
       apiBase: 'dist-api-handler',
       kind: 'direct-dist',
       async requestJson(routePath, init) {
-        const response = await handler(
-          new Request(`https://smart-suggest.local${routePath}`, {
-            ...init,
-            headers: {
-              accept: 'application/json',
-              ...(init?.body === undefined ? {} : { 'content-type': 'application/json' }),
-              ...init?.headers,
-            },
-          }),
-          {
-            HERE_API_KEY: '',
-            MAPY_CZ_API_KEY: '',
-            NOMINATIM_USER_AGENT: '',
-            RADAR_API_KEY: '',
-            RUIAN_GEOCODE_DISABLED: 'true',
-            SMART_SUGGEST_PROVIDER_PRIORITY: '',
+        const request = new Request(`https://smart-suggest.local${routePath}`, {
+          ...init,
+          headers: {
+            accept: 'application/json',
+            ...(init?.body === undefined ? {} : { 'content-type': 'application/json' }),
+            ...init?.headers,
           },
+        });
+        const env = {
+          HERE_API_KEY: '',
+          MAPY_CZ_API_KEY: '',
+          NOMINATIM_USER_AGENT: '',
+          RADAR_API_KEY: '',
+          RUIAN_GEOCODE_DISABLED: 'true',
+          SMART_SUGGEST_PROVIDER_PRIORITY: '',
+        };
+        const context = {
+          request,
+          env,
+          path: routePath,
+          method: request.method,
+          operationContext: createEffectOperationContext({
+            request,
+            env,
+            path: routePath,
+            method: request.method,
+          }),
+        };
+        const response = await runWithEffectContext(context, () =>
+          handler.length > 1 ? handler(request, context) : handler(request),
         );
 
         return responseToJson(response);
@@ -1130,7 +1151,7 @@ function runStaticSourceProof(report) {
   const rootSource = readSource('apps/shell-super-app/src/routes/page.tsx');
   const demoSource = readSource('apps/shell-super-app/sdk/demo.html');
   const sdkSource = readSource('apps/shell-super-app/sdk/techsio-smart-suggest.js');
-  const vanillaSource = readRepositorySource('libs/smart-suggest/vanilla/src/index.ts');
+  const vanillaSource = readRepositorySource('libs/smart-suggest/vanilla/src/vanilla.ts');
   const validationPhoneSource = readRepositorySource(
     'libs/smart-suggest/validation/src/phone-lite.ts',
   );

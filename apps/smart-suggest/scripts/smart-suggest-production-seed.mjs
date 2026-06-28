@@ -108,6 +108,17 @@ const productionSeedRequiredEnvironment = {
       option: '--atom-entry-id',
       purpose: 'Stable source feed entry id recorded for restart and delta continuity.',
     },
+    {
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH',
+      option: '--municipality-region-map-snapshot-path',
+      purpose:
+        'Retained official RUIAN ST_UZSZ hierarchy snapshot path used to derive municipality-to-VUSC shard routing.',
+    },
+    {
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
+      option: '--municipality-region-map-snapshot-checksum-sha256',
+      purpose: 'Expected SHA-256 for the retained hierarchy snapshot.',
+    },
   ],
   sourceGovernance: [
     {
@@ -142,6 +153,12 @@ const productionSeedOptionalEnvironment = [
     purpose: 'Override the generated CZ VUSC shard binding allowlist.',
   },
   {
+    env: 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
+    option: '--shard-region-map-json',
+    purpose:
+      'Optional JSON map from CZ VUSC region codes to physical D1 shard bindings when multiple logical regions share one D1 database.',
+  },
+  {
     env: 'SMART_SUGGEST_D1_ROUTER_BINDING',
     option: '--router-d1-binding',
     purpose: 'Override the generated router binding name.',
@@ -150,6 +167,16 @@ const productionSeedOptionalEnvironment = [
     env: 'SMART_SUGGEST_ROUTER_D1_BINDING',
     option: '--router-d1-binding',
     purpose: 'Backward-compatible router binding override.',
+  },
+  {
+    env: 'SMART_SUGGEST_RUIAN_CSV_ENCODING',
+    option: '--csv-encoding',
+    purpose: 'Override official RUIAN CSV text encoding; defaults to windows-1250.',
+  },
+  {
+    env: 'SMART_SUGGEST_RUIAN_CSV_DELIMITER',
+    option: '--csv-delimiter',
+    purpose: 'Override official RUIAN CSV delimiter; defaults to semicolon.',
   },
 ];
 const checkInputContracts = new Map([
@@ -258,6 +285,54 @@ const checkInputContracts = new Map([
     },
   ],
   [
+    'missing-region-map-snapshot-path',
+    {
+      category: 'source-snapshot',
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH',
+      option: '--municipality-region-map-snapshot-path',
+    },
+  ],
+  [
+    'region-map-snapshot-path-not-found',
+    {
+      category: 'source-snapshot',
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH',
+      option: '--municipality-region-map-snapshot-path',
+    },
+  ],
+  [
+    'missing-region-map-snapshot-checksum-sha256',
+    {
+      category: 'source-snapshot',
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
+      option: '--municipality-region-map-snapshot-checksum-sha256',
+    },
+  ],
+  [
+    'invalid-region-map-snapshot-checksum-sha256',
+    {
+      category: 'source-snapshot',
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
+      option: '--municipality-region-map-snapshot-checksum-sha256',
+    },
+  ],
+  [
+    'region-map-snapshot-checksum-not-computed',
+    {
+      category: 'source-snapshot',
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH',
+      option: '--municipality-region-map-snapshot-path',
+    },
+  ],
+  [
+    'region-map-snapshot-checksum-mismatch',
+    {
+      category: 'source-snapshot',
+      env: 'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
+      option: '--municipality-region-map-snapshot-checksum-sha256',
+    },
+  ],
+  [
     'missing-attribution-label',
     {
       category: 'source-governance',
@@ -321,11 +396,19 @@ const checkInputContracts = new Map([
     },
   ],
   [
+    'missing-shard-region-map-bindings',
+    {
+      category: 'd1-config',
+      env: 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
+      option: '--shard-region-map-json',
+    },
+  ],
+  [
     'missing-expected-cz-vusc-shards',
     {
       category: 'd1-config',
-      env: 'SMART_SUGGEST_CZ_VUSC_<code>_DATABASE_ID',
-      option: 'generated Wrangler D1 bindings',
+      env: 'SMART_SUGGEST_D1_SHARD_BINDINGS + SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
+      option: '--shard-bindings + --shard-region-map-json',
     },
   ],
 ]);
@@ -344,12 +427,17 @@ const stringOptionFields = {
   '--json-out': 'jsonOut',
   '--max-import-age-hours': 'maxImportAgeHours',
   '--modification-note': 'modificationNote',
+  '--municipality-region-map-snapshot-checksum-sha256':
+    'municipalityRegionMapSnapshotChecksumSha256',
+  '--municipality-region-map-snapshot-entry': 'municipalityRegionMapSnapshotEntry',
+  '--municipality-region-map-snapshot-path': 'municipalityRegionMapSnapshotPath',
   '--optimize-json-out': 'optimizeJsonOut',
   '--persist-to': 'persistTo',
   '--preflight-json-out': 'preflightJsonOut',
   '--router-d1-binding': 'routerD1Binding',
   '--shard-binding-prefix': 'shardBindingPrefix',
   '--shard-bindings': 'shardBindings',
+  '--shard-region-map-json': 'shardRegionMapJson',
   '--snapshot-checksum-sha256': 'snapshotChecksumSha256',
   '--shard-max-rows': 'shardMaxRows',
   '--snapshot-entry': 'snapshotEntry',
@@ -392,12 +480,21 @@ Options:
   --source-generated-at value  Official generated timestamp.
   --source-valid-at value      Official valid-at timestamp/date.
   --atom-entry-id value        Atom/feed entry id or stable source entry id.
+  --municipality-region-map-snapshot-path path
+                               External official RUIAN ST_UZSZ XML/ZIP hierarchy snapshot path.
+  --municipality-region-map-snapshot-checksum-sha256 value
+                               Expected SHA-256 of the retained hierarchy snapshot.
+  --municipality-region-map-snapshot-entry value
+                               Optional XML ZIP entry name or suffix for the hierarchy snapshot.
   --attribution-label value    Required source attribution label for the retained artifact.
   --attribution-license value  Required source attribution license for the retained artifact.
   --attribution-url value      Required source attribution URL for the retained artifact.
   --modification-note value    Required note describing Smart Suggest normalization.
   --feed-id RUIAN-CSV-ADR-ST   Feed id, defaults to official CSV baseline feed.
+  --csv-delimiter ";"          Official CSV delimiter.
+  --csv-encoding windows-1250  Official CSV text encoding.
   --shard-bindings value       Comma-separated shard binding allowlist.
+  --shard-region-map-json value JSON object mapping VUSC region codes to shard bindings.
   --router-d1-binding value    Router D1 binding.
   --persist-to path            Optional local Wrangler D1 persistence directory.
   --optimize-json-out path     Public-safe post-import optimize report.
@@ -413,6 +510,8 @@ Environment fallbacks:
   SMART_SUGGEST_RUIAN_SOURCE_GENERATED_AT
   SMART_SUGGEST_RUIAN_SOURCE_VALID_AT
   SMART_SUGGEST_RUIAN_ATOM_ENTRY_ID
+  SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH
+  SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256
   SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL
   SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE
   SMART_SUGGEST_RUIAN_ATTRIBUTION_URL
@@ -443,8 +542,8 @@ function defaultArgs() {
     attributionLicense: envValue('SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE'),
     attributionUrl: envValue('SMART_SUGGEST_RUIAN_ATTRIBUTION_URL'),
     chunkSize: '500',
-    csvDelimiter: ';',
-    csvEncoding: 'utf-8',
+    csvDelimiter: envValue('SMART_SUGGEST_RUIAN_CSV_DELIMITER') ?? ';',
+    csvEncoding: envValue('SMART_SUGGEST_RUIAN_CSV_ENCODING') ?? 'windows-1250',
     d1Target: 'remote',
     datasetVersion: envValue('SMART_SUGGEST_RUIAN_DATASET_VERSION'),
     execute,
@@ -453,6 +552,11 @@ function defaultArgs() {
     jsonOut: execute ? defaultExecuteReportPath : defaultSeedReportPath,
     maxImportAgeHours: '999999',
     modificationNote: envValue('SMART_SUGGEST_RUIAN_MODIFICATION_NOTE'),
+    municipalityRegionMapSnapshotChecksumSha256: envValue(
+      'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
+    ),
+    municipalityRegionMapSnapshotEntry: undefined,
+    municipalityRegionMapSnapshotPath: envValue('SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH'),
     optimizeJsonOut: defaultOptimizeReportPath,
     persistTo: undefined,
     preflightJsonOut: defaultPreflightReportPath,
@@ -467,6 +571,9 @@ function defaultArgs() {
     shardBindings: envValue('SMART_SUGGEST_D1_SHARD_BINDINGS'),
     shardBindingsSource:
       envValue('SMART_SUGGEST_D1_SHARD_BINDINGS') !== undefined ? 'environment' : undefined,
+    shardRegionMapJson: envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON'),
+    shardRegionMapSource:
+      envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') !== undefined ? 'environment' : undefined,
     shardMaxRows: undefined,
     snapshotChecksumSha256: envValue('SMART_SUGGEST_RUIAN_SNAPSHOT_CHECKSUM_SHA256'),
     skipD1Preflight: false,
@@ -536,6 +643,9 @@ function parseArgs(argv) {
     if (field === 'shardBindings') {
       parsed.shardBindingsSource = 'cli';
     }
+    if (field === 'shardRegionMapJson') {
+      parsed.shardRegionMapSource = 'cli';
+    }
     index += 1;
   }
 
@@ -558,6 +668,50 @@ function parseCommaSeparated(value) {
     .split(',')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
+}
+
+function parseJsonObject(value, label) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = JSON.parse(value);
+
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object.`);
+  }
+
+  return parsed;
+}
+
+function parseShardRegionBindingMap(mapJson) {
+  const parsed = parseJsonObject(mapJson, 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON');
+  const map = new Map();
+
+  if (parsed === undefined) {
+    return map;
+  }
+
+  for (const [regionCode, bindingName] of Object.entries(parsed)) {
+    const normalizedRegionCode = regionCode.trim();
+
+    if (!/^\d+$/u.test(normalizedRegionCode)) {
+      throw new Error(`Shard region map key must be a numeric VUSC code: ${regionCode}`);
+    }
+    if (typeof bindingName !== 'string' || bindingName.trim().length === 0) {
+      throw new Error(`Shard region map value for ${regionCode} must be a binding name string.`);
+    }
+
+    map.set(normalizedRegionCode, bindingName.trim());
+  }
+
+  return map;
+}
+
+function sortRegionCodes(codes) {
+  return [...new Set(codes)].toSorted(
+    (left, right) => Number(left) - Number(right) || left.localeCompare(right),
+  );
 }
 
 function resolveWorkspacePath(inputPath) {
@@ -623,6 +777,19 @@ function inferShardBindingsFromConfig(config, args) {
   };
 }
 
+function inferShardRegionMapFromConfig(config) {
+  const configured = readConfigVar(config, 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON');
+
+  if (configured === undefined) {
+    return undefined;
+  }
+
+  return {
+    shardRegionMapJson: configured,
+    source: 'wrangler-config-var',
+  };
+}
+
 function resolveD1BindingsFromConfig(args) {
   const config = readOptionalWranglerConfig(args.wranglerConfig);
 
@@ -645,6 +812,8 @@ function resolveD1BindingsFromConfig(args) {
       : 'wrangler-config-var');
   const inferredShardBindings =
     args.shardBindings === undefined ? inferShardBindingsFromConfig(config, args) : undefined;
+  const inferredShardRegionMap =
+    args.shardRegionMapJson === undefined ? inferShardRegionMapFromConfig(config) : undefined;
 
   return {
     ...args,
@@ -652,6 +821,8 @@ function resolveD1BindingsFromConfig(args) {
     routerD1BindingSource,
     shardBindings: args.shardBindings ?? inferredShardBindings?.shardBindings,
     shardBindingsSource: args.shardBindingsSource ?? inferredShardBindings?.source,
+    shardRegionMapJson: args.shardRegionMapJson ?? inferredShardRegionMap?.shardRegionMapJson,
+    shardRegionMapSource: args.shardRegionMapSource ?? inferredShardRegionMap?.source,
   };
 }
 
@@ -881,6 +1052,103 @@ function validateSnapshotChecksum(args) {
   };
 }
 
+function validateRegionMapSnapshot(args) {
+  const required = requireText(
+    args.municipalityRegionMapSnapshotPath,
+    'missing-region-map-snapshot-path',
+    '--municipality-region-map-snapshot-path',
+  );
+
+  if (required.status === 'error') {
+    return required;
+  }
+
+  const absoluteSnapshotPath = resolveExternalPath(args.municipalityRegionMapSnapshotPath);
+
+  if (!fs.existsSync(absoluteSnapshotPath)) {
+    return {
+      id: 'region-map-snapshot-path-not-found',
+      message: 'The external official hierarchy snapshot path does not exist.',
+      snapshotFileName: path.basename(absoluteSnapshotPath),
+      status: 'error',
+    };
+  }
+
+  return {
+    id: 'region-map-snapshot-path-readable',
+    snapshotFileName: path.basename(absoluteSnapshotPath),
+    status: 'ok',
+  };
+}
+
+function validateRegionMapSnapshotChecksum(args) {
+  const required = requireText(
+    args.municipalityRegionMapSnapshotChecksumSha256,
+    'missing-region-map-snapshot-checksum-sha256',
+    '--municipality-region-map-snapshot-checksum-sha256',
+  );
+
+  if (required.status === 'error') {
+    return required;
+  }
+
+  const expectedSha256 = normalizeSha256(args.municipalityRegionMapSnapshotChecksumSha256);
+
+  if (expectedSha256 === undefined) {
+    return {
+      id: 'invalid-region-map-snapshot-checksum-sha256',
+      message: '--municipality-region-map-snapshot-checksum-sha256 must be a SHA-256 hex value.',
+      status: 'error',
+    };
+  }
+  if (
+    args.municipalityRegionMapSnapshotPath === undefined ||
+    args.municipalityRegionMapSnapshotPath.trim().length === 0
+  ) {
+    return {
+      expectedSha256,
+      id: 'region-map-snapshot-checksum-not-computed',
+      message:
+        '--municipality-region-map-snapshot-checksum-sha256 requires --municipality-region-map-snapshot-path.',
+      status: 'error',
+    };
+  }
+
+  const absoluteSnapshotPath = resolveExternalPath(args.municipalityRegionMapSnapshotPath);
+
+  if (!fs.existsSync(absoluteSnapshotPath)) {
+    return {
+      expectedSha256,
+      id: 'region-map-snapshot-checksum-not-computed',
+      message: 'The external official hierarchy snapshot path does not exist.',
+      snapshotFileName: path.basename(absoluteSnapshotPath),
+      status: 'error',
+    };
+  }
+
+  const actualSha256 = hashFileSha256(absoluteSnapshotPath);
+
+  if (actualSha256 !== expectedSha256) {
+    return {
+      actualSha256,
+      expectedSha256,
+      id: 'region-map-snapshot-checksum-mismatch',
+      message:
+        'The external official hierarchy snapshot checksum does not match the expected value.',
+      snapshotFileName: path.basename(absoluteSnapshotPath),
+      status: 'error',
+    };
+  }
+
+  return {
+    checksumSha256: actualSha256,
+    expectedSha256,
+    id: 'region-map-snapshot-checksum-verified',
+    snapshotFileName: path.basename(absoluteSnapshotPath),
+    status: 'ok',
+  };
+}
+
 function regionCodeFromBinding(binding, prefix) {
   if (!binding.startsWith(prefix)) {
     return undefined;
@@ -889,6 +1157,25 @@ function regionCodeFromBinding(binding, prefix) {
   const suffix = binding.slice(prefix.length);
 
   return /^\d+$/u.test(suffix) ? suffix : undefined;
+}
+
+function logicalCzVuscCoverage(args, bindings) {
+  const shardRegionBindingMap = parseShardRegionBindingMap(args.shardRegionMapJson);
+  const bindingSet = new Set(bindings);
+  const missingMappedBindings = [
+    ...new Set([...shardRegionBindingMap.values()].filter((binding) => !bindingSet.has(binding))),
+  ].toSorted((left, right) => left.localeCompare(right));
+  const directRegionCodes = bindings
+    .map((binding) => regionCodeFromBinding(binding, args.shardBindingPrefix))
+    .filter((code) => code !== undefined);
+  const mappedRegionCodes =
+    missingMappedBindings.length === 0 ? [...shardRegionBindingMap.keys()] : [];
+
+  return {
+    logicalRegionCodes: sortRegionCodes([...directRegionCodes, ...mappedRegionCodes]),
+    missingMappedBindings,
+    shardRegionBindingMap,
+  };
 }
 
 function validateShardBindings(args) {
@@ -903,18 +1190,27 @@ function validateShardBindings(args) {
     };
   }
 
-  const regionCodes = new Set(
-    bindings
-      .map((binding) => regionCodeFromBinding(binding, args.shardBindingPrefix))
-      .filter((code) => code !== undefined),
-  );
+  const coverage = logicalCzVuscCoverage(args, bindings);
+
+  if (coverage.missingMappedBindings.length > 0) {
+    return {
+      configuredShardCount: bindings.length,
+      id: 'missing-shard-region-map-bindings',
+      message: 'Shard region map references bindings that are not configured.',
+      missingBindings: coverage.missingMappedBindings,
+      status: 'error',
+    };
+  }
+
+  const regionCodes = new Set(coverage.logicalRegionCodes);
   const missingRegionCodes = expectedCzVuscCodes.filter((code) => !regionCodes.has(code));
 
   if (!args.allowPartialShards && missingRegionCodes.length > 0) {
     return {
       configuredShardCount: bindings.length,
       id: 'missing-expected-cz-vusc-shards',
-      message: 'Production seeding requires all 14 CZ VUSC shard bindings.',
+      logicalRegionCodes: coverage.logicalRegionCodes,
+      message: 'Production seeding requires all 14 CZ VUSC regions to be covered.',
       missingRegionCodes,
       status: 'error',
     };
@@ -923,6 +1219,8 @@ function validateShardBindings(args) {
   return {
     configuredShardCount: bindings.length,
     id: 'shard-bindings-ready',
+    logicalRegionCodes: coverage.logicalRegionCodes,
+    logicalRegionCount: coverage.logicalRegionCodes.length,
     partialShardProof: args.allowPartialShards,
     source: args.shardBindingsSource ?? 'unknown',
     status: 'ok',
@@ -940,6 +1238,8 @@ function validationChecks(args) {
     requireText(args.sourceGeneratedAt, 'missing-source-generated-at', '--source-generated-at'),
     requireText(args.sourceValidAt, 'missing-source-valid-at', '--source-valid-at'),
     requireText(args.atomEntryId, 'missing-atom-entry-id', '--atom-entry-id'),
+    validateRegionMapSnapshot(args),
+    validateRegionMapSnapshotChecksum(args),
     requireText(args.attributionLabel, 'missing-attribution-label', '--attribution-label'),
     requireText(args.attributionLicense, 'missing-attribution-license', '--attribution-license'),
     requireText(args.attributionUrl, 'missing-attribution-url', '--attribution-url'),
@@ -966,6 +1266,9 @@ function commonD1Args(args) {
     args.shardBindings,
   ];
 
+  if (args.shardRegionMapJson !== undefined) {
+    command.push('--shard-region-map-json', args.shardRegionMapJson);
+  }
   if (args.persistTo !== undefined) {
     command.push('--persist-to', args.persistTo);
   }
@@ -1064,6 +1367,10 @@ function importCommand(args) {
     args.sourceValidAt,
     '--atom-entry-id',
     args.atomEntryId,
+    '--municipality-region-map-snapshot-path',
+    args.municipalityRegionMapSnapshotPath,
+    '--municipality-region-map-snapshot-checksum-sha256',
+    args.municipalityRegionMapSnapshotChecksumSha256,
     '--feed-id',
     args.feedId,
     '--file-kind',
@@ -1076,6 +1383,9 @@ function importCommand(args) {
     args.chunkSize,
   ];
 
+  if (args.shardRegionMapJson !== undefined) {
+    command.push('--shard-region-map-json', args.shardRegionMapJson);
+  }
   if (args.applyMigrations) {
     command.push('--apply-migrations');
   }
@@ -1084,6 +1394,12 @@ function importCommand(args) {
   }
   if (args.snapshotEntry !== undefined) {
     command.push('--snapshot-entry', args.snapshotEntry);
+  }
+  if (args.municipalityRegionMapSnapshotEntry !== undefined) {
+    command.push(
+      '--municipality-region-map-snapshot-entry',
+      args.municipalityRegionMapSnapshotEntry,
+    );
   }
   if (args.shardMaxRows !== undefined) {
     command.push('--shard-max-rows', args.shardMaxRows);
@@ -1106,6 +1422,12 @@ function redactReportCommand(command) {
 
   if (snapshotIndex >= 0 && redacted[snapshotIndex + 1] !== undefined) {
     redacted[snapshotIndex + 1] = '$SMART_SUGGEST_RUIAN_SNAPSHOT_PATH';
+  }
+
+  const regionMapSnapshotIndex = redacted.indexOf('--municipality-region-map-snapshot-path');
+
+  if (regionMapSnapshotIndex >= 0 && redacted[regionMapSnapshotIndex + 1] !== undefined) {
+    redacted[regionMapSnapshotIndex + 1] = '$SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_PATH';
   }
 
   const persistIndex = redacted.indexOf('--persist-to');
@@ -1247,13 +1569,28 @@ function createOperatorReadiness(args, checks, stage, execution) {
 function createReport(args, checks, stage, execution = {}) {
   const snapshotPath =
     args.snapshotPath === undefined ? undefined : resolveExternalPath(args.snapshotPath);
+  const regionMapSnapshotPath =
+    args.municipalityRegionMapSnapshotPath === undefined
+      ? undefined
+      : resolveExternalPath(args.municipalityRegionMapSnapshotPath);
   const importCommandValue = importCommand(args);
   const expectedChecksumSha256 = normalizeSha256(args.snapshotChecksumSha256) ?? null;
+  const expectedRegionMapChecksumSha256 =
+    normalizeSha256(args.municipalityRegionMapSnapshotChecksumSha256) ?? null;
   const checksumCheck = checks.find((check) =>
     ['snapshot-checksum-mismatch', 'snapshot-checksum-verified'].includes(check.id),
   );
+  const regionMapChecksumCheck = checks.find((check) =>
+    ['region-map-snapshot-checksum-mismatch', 'region-map-snapshot-checksum-verified'].includes(
+      check.id,
+    ),
+  );
   const actualChecksumSha256 = checksumCheck?.actualSha256 ?? checksumCheck?.checksumSha256 ?? null;
+  const actualRegionMapChecksumSha256 =
+    regionMapChecksumCheck?.actualSha256 ?? regionMapChecksumCheck?.checksumSha256 ?? null;
   const commandFailed = Object.values(execution).some((result) => result?.ok === false);
+  const shardBindings = parseCommaSeparated(args.shardBindings);
+  const shardCoverage = logicalCzVuscCoverage(args, shardBindings);
 
   return {
     allowPartialShards: args.allowPartialShards,
@@ -1270,8 +1607,12 @@ function createReport(args, checks, stage, execution = {}) {
     execution,
     generatedAt: new Date().toISOString(),
     operatorReadiness: createOperatorReadiness(args, checks, stage, execution),
-    shardBindingCount: parseCommaSeparated(args.shardBindings).length,
+    shardBindingCount: shardBindings.length,
     shardBindingsSource: args.shardBindingsSource ?? null,
+    shardLogicalCzVuscCodes: shardCoverage.logicalRegionCodes,
+    shardLogicalCzVuscCount: shardCoverage.logicalRegionCodes.length,
+    shardRegionBindingMap: Object.fromEntries(shardCoverage.shardRegionBindingMap.entries()),
+    shardRegionMapSource: args.shardRegionMapSource ?? null,
     routerD1BindingSource: args.routerD1BindingSource ?? null,
     snapshot: {
       exists: snapshotPath === undefined ? false : fs.existsSync(snapshotPath),
@@ -1281,6 +1622,14 @@ function createReport(args, checks, stage, execution = {}) {
       checksumVerified: checksumCheck?.id === 'snapshot-checksum-verified',
       snapshotUri: args.snapshotUri ?? null,
       sourceUri: args.sourceUri ?? null,
+    },
+    municipalityRegionMapSnapshot: {
+      checksumSha256: actualRegionMapChecksumSha256 ?? expectedRegionMapChecksumSha256,
+      checksumVerified: regionMapChecksumCheck?.id === 'region-map-snapshot-checksum-verified',
+      exists: regionMapSnapshotPath === undefined ? false : fs.existsSync(regionMapSnapshotPath),
+      fileName: regionMapSnapshotPath === undefined ? null : path.basename(regionMapSnapshotPath),
+      pathRedacted: regionMapSnapshotPath === undefined ? false : true,
+      selectedEntryName: args.municipalityRegionMapSnapshotEntry ?? null,
     },
     source: {
       atomEntryId: args.atomEntryId ?? null,

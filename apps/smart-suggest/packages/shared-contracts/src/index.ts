@@ -141,6 +141,12 @@ const isNonEmptyString = (value: unknown): value is string =>
 const isNonNegativeNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0;
 
+const hasRequiredProperty = <Key extends string, Value>(
+  value: Record<string, unknown>,
+  key: Key,
+  predicate: (property: unknown) => property is Value,
+): value is Record<Key, Value> & Record<string, unknown> => predicate(value[key]);
+
 const isUltramodernWorkspaceLocale = (value: unknown): value is UltramodernWorkspaceLocale =>
   value === 'en' || value === 'cs';
 
@@ -178,7 +184,7 @@ export const isUltramodernNavigatePayload = (
   payload: unknown,
 ): payload is UltramodernNavigatePayload =>
   isRecord(payload) &&
-  isNonEmptyString(payload['to']) &&
+  hasRequiredProperty(payload, 'to', isNonEmptyString) &&
   hasOptionalBoolean(payload, 'replace') &&
   hasOptionalRecord(payload, 'state');
 
@@ -186,7 +192,7 @@ export const isUltramodernRouteSettledPayload = (
   payload: unknown,
 ): payload is UltramodernRouteSettledPayload =>
   isRecord(payload) &&
-  isNonEmptyString(payload['pathname']) &&
+  hasRequiredProperty(payload, 'pathname', isNonEmptyString) &&
   hasOptionalLocale(payload, 'locale') &&
   hasOptionalString(payload, 'title');
 
@@ -194,7 +200,7 @@ export const isUltramodernRemoteReadyPayload = (
   payload: unknown,
 ): payload is UltramodernRemoteReadyPayload =>
   isRecord(payload) &&
-  isNonEmptyString(payload['appId']) &&
+  hasRequiredProperty(payload, 'appId', isNonEmptyString) &&
   hasOptionalString(payload, 'build') &&
   hasOptionalString(payload, 'surface') &&
   hasOptionalString(payload, 'version');
@@ -203,8 +209,8 @@ export const isUltramodernPerformanceSignalPayload = (
   payload: unknown,
 ): payload is UltramodernPerformanceSignalPayload =>
   isRecord(payload) &&
-  isPerformanceReadinessSignalId(payload['signalId']) &&
-  isPerformanceReadinessSignalStatus(payload['status']) &&
+  hasRequiredProperty(payload, 'signalId', isPerformanceReadinessSignalId) &&
+  hasRequiredProperty(payload, 'status', isPerformanceReadinessSignalStatus) &&
   hasOptionalNonNegativeNumber(payload, 'durationMs') &&
   hasOptionalRecord(payload, 'detail');
 

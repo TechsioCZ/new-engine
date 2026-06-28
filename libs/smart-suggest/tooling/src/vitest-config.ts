@@ -20,14 +20,14 @@ type SmartSuggestVitestOptions = {
 const sourcePath = (relativePath: string) => new URL(relativePath, import.meta.url).pathname;
 
 const packageSources: Record<SmartSuggestPackage, string> = {
-  client: '../../client/src/index.ts',
-  core: '../../core/src/index.ts',
-  datasets: '../../datasets/src/index.ts',
-  indexing: '../../indexing/src/index.ts',
-  integrations: '../../integrations/src/index.ts',
-  react: '../../react/src/index.ts',
-  storage: '../../storage/src/index.ts',
-  validation: '../../validation/src/index.ts',
+  client: '../../client/src/client.ts',
+  core: '../../core/src/core.ts',
+  datasets: '../../datasets/src/datasets.ts',
+  indexing: '../../indexing/src/indexing.ts',
+  integrations: '../../integrations/src/integrations.ts',
+  react: '../../react/src/react.ts',
+  storage: '../../storage/src/storage.ts',
+  validation: '../../validation/src/validation.ts',
 };
 
 const packageSubpathSources: Partial<Record<SmartSuggestPackage, Record<string, string>>> = {

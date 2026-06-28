@@ -1,51 +1,55 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it } from '@effect/vitest';
+import { gen, succeed } from 'effect/Effect';
 
-import { createMockSmartSuggestClient } from "../src/index"
+import { createMockSmartSuggestClient } from '../src/react';
 
-describe("createMockSmartSuggestClient", () => {
-  it("returns deterministic mock suggestions", async () => {
-    const client = createMockSmartSuggestClient()
+describe('createMockSmartSuggestClient', () => {
+  it.effect('returns deterministic mock suggestions', () =>
+    gen(function* deterministicMockSuggestionsProgram() {
+      const client = createMockSmartSuggestClient();
+      const result = yield* client.suggest({ kind: 'address', query: 'Praha' });
 
-    await expect(
-      client.suggest({ kind: "address", query: "Praha" })
-    ).resolves.toMatchObject({
-      cacheStatus: "disabled",
-      requestId: "mock-address",
-      suggestions: [],
-    })
-  })
-
-  it("uses validation package behavior for phone and postal mocks", async () => {
-    const client = createMockSmartSuggestClient()
-
-    await expect(
-      client.validatePhone({
-        defaultCountry: "CZ",
-        rawInput: "777 123 456",
-      })
-    ).resolves.toMatchObject({
-      e164: "+420777123456",
-      isValid: true,
-    })
-    await expect(
-      client.validatePostal({ countryCode: "CZ", rawInput: "12345" })
-    ).resolves.toMatchObject({
-      displayValue: "123 45",
-      isValid: true,
-    })
-  })
-
-  it("allows method overrides", async () => {
-    const client = createMockSmartSuggestClient({
-      suggest: async () => ({
-        cacheStatus: "hit",
-        requestId: "override",
+      expect(result).toMatchObject({
+        cacheStatus: 'disabled',
+        requestId: 'mock-address',
         suggestions: [],
-      }),
-    })
+      });
+    }),
+  );
 
-    await expect(
-      client.suggest({ kind: "address", query: "Praha" })
-    ).resolves.toMatchObject({ cacheStatus: "hit", requestId: "override" })
-  })
-})
+  it.effect('uses validation package behavior for phone and postal mocks', () =>
+    gen(function* mockValidationProgram() {
+      const client = createMockSmartSuggestClient();
+      const phone = yield* client.validatePhone({
+        defaultCountry: 'CZ',
+        rawInput: 'not a phone',
+      });
+      const postal = yield* client.validatePostal({ countryCode: 'CZ', rawInput: '12345' });
+
+      expect(phone).toMatchObject({
+        errors: [expect.objectContaining({ code: 'phone.invalid_shape' })],
+        isValid: false,
+      });
+      expect(postal).toMatchObject({
+        displayValue: '12345',
+        isValid: 'unknown',
+      });
+    }),
+  );
+
+  it.effect('allows method overrides', () =>
+    gen(function* methodOverridesProgram() {
+      const client = createMockSmartSuggestClient({
+        suggest: () =>
+          succeed({
+            cacheStatus: 'hit',
+            requestId: 'override',
+            suggestions: [],
+          }),
+      });
+      const result = yield* client.suggest({ kind: 'address', query: 'Praha' });
+
+      expect(result).toMatchObject({ cacheStatus: 'hit', requestId: 'override' });
+    }),
+  );
+});

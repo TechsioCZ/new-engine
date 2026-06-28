@@ -74,7 +74,8 @@ Options:
   --router-d1-binding value     Router binding. Defaults to config var or SMART_SUGGEST_ROUTER_D1.
   --shard-bindings a,b          Comma-separated address shard bindings.
   --shard-binding-prefix value  Defaults to SMART_SUGGEST_CZ_VUSC_.
-  --require-14-cz-shards        Fail preflight unless all 14 expected VUSC shards exist.
+  --shard-region-map-json value JSON object mapping VUSC region codes to shard bindings.
+  --require-14-cz-shards        Fail preflight unless all 14 expected VUSC regions are covered.
   --require-cloudflare-ids      Fail preflight when any planned DB lacks database_id.
   --backup-prefix path          App-relative backup output prefix.
   --persist-to path             Optional local Wrangler D1 state for read-only status.
@@ -136,6 +137,7 @@ function defaultArgs(command) {
       envValue('SMART_SUGGEST_D1_SHARD_BINDINGS') ??
       envValue('SMART_SUGGEST_SHARD_BINDINGS') ??
       undefined,
+    shardRegionMapJson: envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') ?? undefined,
     warnSizeBytes: defaultShardSizeWarnBytes,
     wranglerConfig: defaultWranglerConfigPath,
   };
@@ -184,6 +186,11 @@ function parseArgs(argv) {
     }
     if (arg === '--shard-binding-prefix') {
       parsed.shardBindingPrefix = readRequiredOption(rest, index, arg);
+      index += 1;
+      continue;
+    }
+    if (arg === '--shard-region-map-json') {
+      parsed.shardRegionMapJson = readRequiredOption(rest, index, arg);
       index += 1;
       continue;
     }
@@ -340,12 +347,30 @@ function readConfigVar(config, name) {
     : undefined;
 }
 
+function parseJsonObject(value, label) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const parsed = JSON.parse(value);
+
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${label} must be a JSON object.`);
+  }
+
+  return parsed;
+}
+
 function inferRouterBinding(config, args) {
   return (
     args.routerD1Binding ??
     readConfigVar(config, 'SMART_SUGGEST_D1_ROUTER_BINDING') ??
     'SMART_SUGGEST_ROUTER_D1'
   );
+}
+
+function inferShardRegionMapJson(config, args) {
+  return args.shardRegionMapJson ?? readConfigVar(config, 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON');
 }
 
 function inferShardBindings(config, args) {
@@ -375,6 +400,36 @@ function regionCodeFromBinding(binding, prefix) {
   return /^\d+$/u.test(suffix) ? suffix : undefined;
 }
 
+function parseShardRegionBindingMap(mapJson) {
+  const parsed = parseJsonObject(mapJson, 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON');
+  const map = new Map();
+
+  if (parsed === undefined) {
+    return map;
+  }
+
+  for (const [regionCode, bindingName] of Object.entries(parsed)) {
+    const normalizedRegionCode = regionCode.trim();
+
+    if (!/^\d+$/u.test(normalizedRegionCode)) {
+      throw new Error(`Shard region map key must be a numeric VUSC code: ${regionCode}`);
+    }
+    if (typeof bindingName !== 'string' || bindingName.trim().length === 0) {
+      throw new Error(`Shard region map value for ${regionCode} must be a binding name string.`);
+    }
+
+    map.set(normalizedRegionCode, bindingName.trim());
+  }
+
+  return map;
+}
+
+function sortRegionCodes(codes) {
+  return [...new Set(codes)].toSorted(
+    (left, right) => Number(left) - Number(right) || left.localeCompare(right),
+  );
+}
+
 function normalizeDatabasePlan({ binding, configEntry, role, vuscCode }) {
   return {
     binding,
@@ -393,6 +448,14 @@ function normalizeDatabasePlan({ binding, configEntry, role, vuscCode }) {
 function createPlans(config, args) {
   const routerBinding = inferRouterBinding(config, args);
   const shardBindings = inferShardBindings(config, args);
+  const shardRegionMapJson = inferShardRegionMapJson(config, args);
+  const shardRegionBindingMap = parseShardRegionBindingMap(shardRegionMapJson);
+  const shardBindingSet = new Set(shardBindings);
+  const missingMappedBindings = [
+    ...new Set(
+      [...shardRegionBindingMap.values()].filter((binding) => !shardBindingSet.has(binding)),
+    ),
+  ].toSorted((left, right) => left.localeCompare(right));
   const routerConfig = findDatabase(config, routerBinding);
   const router =
     routerConfig === undefined
@@ -411,11 +474,18 @@ function createPlans(config, args) {
       vuscCode: regionCodeFromBinding(binding, args.shardBindingPrefix) ?? null,
     }),
   );
+  const directVuscCodes = shards.map((shard) => shard.vuscCode).filter((code) => code !== null);
+  const mappedVuscCodes =
+    missingMappedBindings.length === 0 ? [...shardRegionBindingMap.keys()] : [];
 
   return {
     databases: [...(router === undefined ? [] : [router]), ...shards],
+    logicalCzVuscCodes: sortRegionCodes([...directVuscCodes, ...mappedVuscCodes]),
+    missingMappedBindings,
     router,
     routerBinding,
+    shardRegionBindingMap,
+    shardRegionMapJson,
     shardBindings,
     shards,
   };
@@ -457,20 +527,27 @@ function validatePlans(configPath, plans, args) {
   });
   pushCheck({
     actual: plans.shards.length,
-    expected: args.require14CzShards ? expectedCzVuscCodes.length : undefined,
+    expectedLogicalCzVuscCount: args.require14CzShards ? expectedCzVuscCodes.length : undefined,
     id: 'address-shard-count',
-    ok: !args.require14CzShards || plans.shards.length === expectedCzVuscCodes.length,
+    ok: plans.shards.length > 0,
     severity: args.require14CzShards ? 'error' : 'warning',
   });
 
-  const presentVuscCodes = new Set(
-    plans.shards.map((shard) => shard.vuscCode).filter((code) => code !== null),
-  );
+  pushCheck({
+    id: 'shard-region-map-bindings',
+    missingBindings: plans.missingMappedBindings,
+    ok: plans.missingMappedBindings.length === 0,
+    severity: 'error',
+  });
+
+  const presentVuscCodes = new Set(plans.logicalCzVuscCodes);
   const missingVuscCodes = expectedCzVuscCodes.filter((code) => !presentVuscCodes.has(code));
 
   pushCheck({
     id: 'expected-cz-vusc-shards',
     missingVuscCodes,
+    physicalShardCount: plans.shards.length,
+    presentVuscCodes: plans.logicalCzVuscCodes,
     ok: !args.require14CzShards || missingVuscCodes.length === 0,
     severity: args.require14CzShards ? 'error' : 'warning',
   });
@@ -578,6 +655,9 @@ function provisionEnvTemplate(plans) {
         .map((shard) => shard.binding)
         .join(',')}"`,
     );
+    if (plans.shardRegionMapJson !== undefined) {
+      lines.push(`export SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON='${plans.shardRegionMapJson}'`);
+    }
   }
 
   return lines;
@@ -803,6 +883,7 @@ function createAlert({ binding, id, message, metric, severity, value }) {
 
 function alertsFromRouterShards(result, args, nowMs) {
   const alerts = [];
+  const sizeEstimatesByBinding = new Map();
 
   for (const row of result.results ?? []) {
     const binding = typeof row.binding_name === 'string' ? row.binding_name : result.binding;
@@ -821,27 +902,10 @@ function alertsFromRouterShards(result, args, nowMs) {
           value: null,
         }),
       );
-    } else if (estimatedSizeBytes >= args.blockSizeBytes) {
-      alerts.push(
-        createAlert({
-          binding,
-          id: 'shard-size-block',
-          message: 'Shard estimated size is at or above the import block threshold.',
-          metric: 'estimated_size_bytes',
-          severity: 'error',
-          value: estimatedSizeBytes,
-        }),
-      );
-    } else if (estimatedSizeBytes !== undefined && estimatedSizeBytes >= args.warnSizeBytes) {
-      alerts.push(
-        createAlert({
-          binding,
-          id: 'shard-size-warn',
-          message: 'Shard estimated size is at or above the warning threshold.',
-          metric: 'estimated_size_bytes',
-          severity: 'warning',
-          value: estimatedSizeBytes,
-        }),
+    } else {
+      sizeEstimatesByBinding.set(
+        binding,
+        (sizeEstimatesByBinding.get(binding) ?? 0) + estimatedSizeBytes,
       );
     }
 
@@ -860,6 +924,32 @@ function alertsFromRouterShards(result, args, nowMs) {
           }),
         );
       }
+    }
+  }
+
+  for (const [binding, estimatedSizeBytes] of sizeEstimatesByBinding.entries()) {
+    if (estimatedSizeBytes >= args.blockSizeBytes) {
+      alerts.push(
+        createAlert({
+          binding,
+          id: 'shard-size-block',
+          message: 'Physical shard estimated size is at or above the import block threshold.',
+          metric: 'physical_estimated_size_bytes',
+          severity: 'error',
+          value: estimatedSizeBytes,
+        }),
+      );
+    } else if (estimatedSizeBytes >= args.warnSizeBytes) {
+      alerts.push(
+        createAlert({
+          binding,
+          id: 'shard-size-warn',
+          message: 'Physical shard estimated size is at or above the warning threshold.',
+          metric: 'physical_estimated_size_bytes',
+          severity: 'warning',
+          value: estimatedSizeBytes,
+        }),
+      );
     }
   }
 
@@ -1134,6 +1224,8 @@ function main(argv = process.argv.slice(2)) {
     configPath: relativeWorkspacePath(configPath),
     databases: plans.databases,
     expectedCzVuscCodes,
+    logicalCzVuscCodes: plans.logicalCzVuscCodes,
+    shardRegionBindingMap: Object.fromEntries(plans.shardRegionBindingMap.entries()),
     mutatingExecution: args.command === 'optimize' ? args.execute : false,
     optimizeOperations,
     optimizeResults,

@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
     },
     "./package.json": "./package.json"
   },
@@ -23,13 +23,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.89",
     "@rslib/core": "^0.18.0",
     "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@smart-suggest/shell-super-app": "workspace:*",
     "@techsio/smart-suggest-core": "workspace:^",
-    "@techsio/smart-suggest-validation": "workspace:^"
+    "@techsio/smart-suggest-validation": "workspace:^",
+    "effect": "4.0.0-beta.89"
   }
 }

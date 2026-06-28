@@ -113,6 +113,7 @@ Environment:
   SMART_SUGGEST_ROUTER_D1_DATABASE_NAME Defaults to smart-suggest-router
   SMART_SUGGEST_ROUTER_D1_DATABASE_ID  Required with --require-d1 when enabled
   SMART_SUGGEST_D1_SHARDS_JSON         JSON array of shard D1 configs
+  SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON Optional JSON object mapping VUSC codes to shard bindings
   SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED true to add all 14 CZ VUSC shards
   SMART_SUGGEST_D1_CZ_VUSC_SHARD_BINDING_PREFIX Defaults to SMART_SUGGEST_CZ_VUSC_
   SMART_SUGGEST_D1_CZ_VUSC_SHARD_DATABASE_NAME_PREFIX Defaults to smart-suggest-cz-vusc-
@@ -480,6 +481,11 @@ function mergeSmartSuggestVars(config, routerDatabase, shardDatabases) {
     nextVars.SMART_SUGGEST_D1_SHARD_BINDINGS = shardDatabases
       .map((database) => database.binding)
       .join(',');
+  }
+  if (envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') !== undefined) {
+    nextVars.SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON = envValue(
+      'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
+    );
   }
 
   return nextVars;

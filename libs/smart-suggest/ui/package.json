@@ -35,7 +35,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@techsio/smart-suggest-client": "workspace:^",
     "@techsio/smart-suggest-core": "workspace:^",
     "@techsio/smart-suggest-react": "workspace:^",
     "@techsio/smart-suggest-validation": "workspace:^"
@@ -47,6 +46,7 @@
     "@techsio/ui-kit": "workspace:^",
     "@types/react": "19.2.3",
     "@types/react-dom": "19.2.3",
+    "effect": "4.0.0-beta.89",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "typescript": "^5.9.3",

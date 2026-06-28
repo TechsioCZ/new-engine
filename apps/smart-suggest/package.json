@@ -54,9 +54,10 @@
     "mf:types": "node ./scripts/assert-mf-types.mjs",
     "performance:readiness": "node ./scripts/ultramodern-performance-readiness.mjs",
     "contract:check": "node ./scripts/validate-ultramodern-workspace.mjs",
+    "api:check": "node ./scripts/check-ultramodern-api-boundaries.mjs",
     "i18n:boundaries": "node ./scripts/check-ultramodern-i18n-boundaries.mjs",
     "postinstall": "oxfmt . '!repos/**' && node ./scripts/bootstrap-agent-skills.mjs --postinstall",
-    "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm contract:check && pnpm test:smoke && pnpm mf:types && pnpm performance:readiness"
+    "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm api:check && pnpm contract:check && pnpm test:smoke && pnpm mf:types && pnpm performance:readiness"
   },
   "engines": {
     "node": ">=26",
@@ -74,14 +75,15 @@
     "ownership": "./topology/ownership.json",
     "packageSource": {
       "strategy": "install",
-      "config": "./.modernjs/ultramodern-package-source.json"
+      "config": "./.modernjs/ultramodern.json#packageSource"
     }
   },
   "devDependencies": {
     "@effect/tsgo": "0.14.6",
-    "@modern-js/code-tools": "npm:@bleedingdev/modern-js-code-tools@3.4.0-ultramodern.12",
-    "@modern-js/create": "npm:@bleedingdev/modern-js-create@3.4.0-ultramodern.12",
+    "@modern-js/code-tools": "npm:@bleedingdev/modern-js-code-tools@3.4.0-ultramodern.20",
+    "@modern-js/create": "npm:@bleedingdev/modern-js-create@3.4.0-ultramodern.20",
     "@typescript/native-preview": "7.0.0-dev.20260624.1",
+    "effect": "4.0.0-beta.89",
     "lefthook": "^2.1.9",
     "oxfmt": "0.55.0",
     "oxlint": "1.71.0",

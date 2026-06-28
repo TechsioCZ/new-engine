@@ -1,9 +1,14 @@
-import type {
-  SmartSuggestProvider,
-  SmartSuggestProviderResult,
-  SmartSuggestRequest,
-} from '@techsio/smart-suggest-core';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  ProviderAborted,
+  ProviderNetwork,
+  type SmartSuggestProvider,
+  type SmartSuggestRequest,
+} from "@techsio/smart-suggest-core";
+import * as Cause from "effect/Cause";
+import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
+import * as Exit from "effect/Exit";
+import { describe, expect, it, vi } from "@effect/vitest";
 
 import {
   createHereDiscoverProvider,
@@ -13,32 +18,32 @@ import {
   createRuianGeocodeProvider,
   createSmartSuggestProviderRegistry,
   type SmartSuggestProviderFetch,
-} from '../src/index';
+} from "../src/integrations";
 
 const addressRequest: SmartSuggestRequest = {
-  countryCode: 'CZ',
-  kind: 'address',
+  countryCode: "CZ",
+  kind: "address",
   limit: 3,
-  query: 'Vaclavske namesti',
+  query: "Vaclavske namesti",
 };
 
 const createSuggestionProvider = (id: string, displayLabel: string): SmartSuggestProvider => ({
-  cachePolicy: { kind: 'none' },
+  cachePolicy: { kind: "none" },
   id,
   name: id,
-  supportedKinds: ['address'],
+  supportedKinds: ["address"],
   suggest: () =>
-    Promise.resolve({
-      cachePolicy: { kind: 'none' },
+    Effect.succeed({
+      cachePolicy: { kind: "none" },
       suggestions: [
         {
           confidence: 0.8,
           displayLabel,
           id: `${id}-suggestion`,
-          kind: 'address',
+          kind: "address",
           source: {
             id,
-            kind: 'live-provider',
+            kind: "live-provider",
             name: id,
           },
         },
@@ -48,7 +53,7 @@ const createSuggestionProvider = (id: string, displayLabel: string): SmartSugges
 
 const jsonResponse = (body: unknown, init?: ResponseInit) => {
   const responseInit: ResponseInit = {
-    headers: { 'content-type': 'application/json' },
+    headers: { "content-type": "application/json" },
     status: init?.status ?? 200,
   };
 
@@ -59,117 +64,148 @@ const jsonResponse = (body: unknown, init?: ResponseInit) => {
   return new Response(JSON.stringify(body), responseInit);
 };
 
-describe('createSmartSuggestProviderRegistry', () => {
-  it('aggregates configured providers in priority order before applying the request limit', async () => {
+describe("createSmartSuggestProviderRegistry", () => {
+  it.effect("aggregates configured providers in priority order before applying the request limit", () =>
+    Effect.gen(function* () {
     const registry = createSmartSuggestProviderRegistry({
-      priority: ['preferred', 'fallback'],
+      priority: ["preferred", "fallback"],
       providers: [
-        createSuggestionProvider('fallback', 'Fallback result'),
-        createSuggestionProvider('preferred', 'Preferred result'),
+        createSuggestionProvider("fallback", "Fallback result"),
+        createSuggestionProvider("preferred", "Preferred result"),
       ],
     });
 
-    await expect(
-      registry.suggest(addressRequest, { requestId: 'request-1' }),
-    ).resolves.toMatchObject({
-      provider: { id: 'preferred' },
+    const result = yield* registry.suggest(addressRequest, { requestId: "request-1" });
+
+    expect(result).toMatchObject({
+      provider: { id: "preferred" },
       response: {
-        cacheStatus: 'disabled',
-        requestId: 'request-1',
-        suggestions: [{ displayLabel: 'Preferred result' }, { displayLabel: 'Fallback result' }],
+        cacheStatus: "disabled",
+        requestId: "request-1",
+        suggestions: [{ displayLabel: "Preferred result" }, { displayLabel: "Fallback result" }],
       },
     });
-  });
+    }),
+  );
 
-  it('falls back after provider timeout and records provider events', async () => {
+  it.live("falls back after provider timeout and records provider events", () =>
+    Effect.gen(function* () {
     vi.useFakeTimers();
 
     try {
       const timedOutProvider: SmartSuggestProvider = {
-        cachePolicy: { kind: 'none' },
-        id: 'slow',
-        name: 'Slow',
-        supportedKinds: ['address'],
-        suggest: () =>
-          new Promise<SmartSuggestProviderResult>(() => {
-            // Intentionally unresolved to exercise provider timeout fallback.
-          }),
+        cachePolicy: { kind: "none" },
+        id: "slow",
+        name: "Slow",
+        supportedKinds: ["address"],
+        suggest: () => Effect.never,
       };
-      const fallbackProvider = createSuggestionProvider('fallback', 'Fallback result');
+      const fallbackProvider = createSuggestionProvider("fallback", "Fallback result");
       const providerEvents = vi.fn();
       const registry = createSmartSuggestProviderRegistry({
         onProviderEvent: providerEvents,
         providers: [timedOutProvider, fallbackProvider],
         timeoutMs: 10,
       });
-      const result = registry.suggest(addressRequest, {
-        requestId: 'request-2',
-      });
+      const fiber = yield* registry
+        .suggest(addressRequest, {
+          requestId: "request-2",
+        })
+        .pipe(Effect.forkChild({ startImmediately: true }));
 
-      await vi.advanceTimersByTimeAsync(11);
-      await expect(result).resolves.toMatchObject({
-        provider: { id: 'fallback' },
+      yield* Effect.promise(() => vi.advanceTimersByTimeAsync(11));
+
+      const result = yield* Fiber.join(fiber);
+
+      expect(result).toMatchObject({
+        provider: { id: "fallback" },
         response: {
           providerEvents: [
             {
-              errorCode: 'provider-timeout',
-              providerId: 'slow',
-              status: 'timeout',
+              errorCode: "provider-timeout",
+              providerId: "slow",
+              status: "timeout",
             },
-            { providerId: 'fallback', status: 'success' },
+            { providerId: "fallback", status: "success" },
           ],
-          suggestions: [{ displayLabel: 'Fallback result' }],
+          suggestions: [{ displayLabel: "Fallback result" }],
         },
       });
       expect(providerEvents).toHaveBeenCalledWith(
-        expect.objectContaining({ providerId: 'slow', status: 'timeout' }),
+        expect.objectContaining({ providerId: "slow", status: "timeout" }),
       );
     } finally {
       vi.useRealTimers();
     }
-  });
+    }),
+  );
 
-  it('propagates caller aborts when providers ignore the signal', async () => {
+  it.live("propagates caller aborts when providers ignore the signal", () =>
+    Effect.gen(function* () {
     vi.useFakeTimers();
 
     try {
       const ignoredAbortProvider: SmartSuggestProvider = {
-        cachePolicy: { kind: 'none' },
-        id: 'ignores-abort',
-        name: 'Ignores abort',
-        supportedKinds: ['address'],
-        suggest: () =>
-          new Promise<SmartSuggestProviderResult>(() => {
-            // Intentionally unresolved to prove caller abort wins the race.
-          }),
+        cachePolicy: { kind: "none" },
+        id: "ignores-abort",
+        name: "Ignores abort",
+        supportedKinds: ["address"],
+        suggest: () => Effect.never,
       };
       const abortController = new AbortController();
-      const abortReason = new Error('caller aborted');
+      const abortReason = new Error("caller aborted");
       const registry = createSmartSuggestProviderRegistry({
         providers: [ignoredAbortProvider],
         timeoutMs: 10_000,
       });
-      const result = registry.suggest(addressRequest, {
-        requestId: 'request-abort',
-        signal: abortController.signal,
-      });
+      const fiber = yield* registry
+        .suggest(addressRequest, {
+          requestId: "request-abort",
+          signal: abortController.signal,
+        })
+        .pipe(Effect.forkChild({ startImmediately: true }));
 
       abortController.abort(abortReason);
 
-      await expect(result).rejects.toBe(abortReason);
+      const exit = yield* Effect.exit(Fiber.join(fiber));
+
+      expect(Exit.isFailure(exit)).toBe(true);
+
+      if (!Exit.isFailure(exit)) {
+        return;
+      }
+
+      const failure = Cause.squash(exit.cause);
+
+      expect(failure).toMatchObject({
+        _tag: "ProviderAborted",
+        cause: abortReason,
+        providerId: "ignores-abort",
+      });
+      expect(failure).toBeInstanceOf(ProviderAborted);
     } finally {
       vi.useRealTimers();
     }
-  });
+    }),
+  );
 
-  it('opens the circuit after repeated provider failures', async () => {
+  it.effect("opens the circuit after repeated provider failures", () =>
+    Effect.gen(function* () {
     let now = 1000;
     const failingProvider: SmartSuggestProvider = {
-      cachePolicy: { kind: 'none' },
-      id: 'failing',
-      name: 'Failing',
-      supportedKinds: ['address'],
-      suggest: vi.fn(() => Promise.reject(new Error('Provider unavailable'))),
+      cachePolicy: { kind: "none" },
+      id: "failing",
+      name: "Failing",
+      supportedKinds: ["address"],
+      suggest: vi.fn(() =>
+        Effect.fail(
+          new ProviderNetwork({
+            cause: { message: "Provider unavailable", name: "Error" },
+            message: "Provider unavailable",
+            providerId: "failing",
+          }),
+        ),
+      ),
     };
     const registry = createSmartSuggestProviderRegistry({
       circuitBreaker: { failureThreshold: 1, openMs: 500 },
@@ -177,28 +213,27 @@ describe('createSmartSuggestProviderRegistry', () => {
       providers: [failingProvider],
     });
 
-    await expect(
-      registry.suggest(addressRequest, { requestId: 'request-3' }),
-    ).resolves.toMatchObject({
+    const firstResult = yield* registry.suggest(addressRequest, { requestId: "request-3" });
+    const secondResult = yield* registry.suggest(addressRequest, { requestId: "request-4" });
+
+    expect(firstResult).toMatchObject({
       response: {
         providerEvents: [
           {
-            errorCode: 'provider-unavailable',
-            providerId: 'failing',
-            status: 'error',
+            errorCode: "provider-unavailable",
+            providerId: "failing",
+            status: "error",
           },
         ],
       },
     });
-    await expect(
-      registry.suggest(addressRequest, { requestId: 'request-4' }),
-    ).resolves.toMatchObject({
+    expect(secondResult).toMatchObject({
       response: {
         providerEvents: [
           {
-            errorCode: 'provider-unavailable',
-            providerId: 'failing',
-            status: 'skipped',
+            errorCode: "provider-unavailable",
+            providerId: "failing",
+            status: "skipped",
           },
         ],
       },
@@ -207,183 +242,195 @@ describe('createSmartSuggestProviderRegistry', () => {
 
     now += 501;
 
-    await registry.suggest(addressRequest, { requestId: 'request-5' });
+    yield* registry.suggest(addressRequest, { requestId: "request-5" });
     expect(failingProvider.suggest).toHaveBeenCalledTimes(2);
-  });
+    }),
+  );
 });
 
-describe('createMapyCzProvider', () => {
-  it('normalizes Mapy suggest responses and keeps cache disabled', async () => {
+describe("createMapyCzProvider", () => {
+  it.effect("normalizes Mapy suggest responses and keeps cache disabled", () =>
+    Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse({
           items: [
             {
-              id: 'mapy-address-1',
-              label: 'Václavské náměstí 832/19',
-              name: 'Václavské náměstí 832/19',
+              id: "mapy-address-1",
+              label: "Václavské náměstí 832/19",
+              name: "Václavské náměstí 832/19",
               position: { lat: 50.081, lon: 14.428 },
               regionalStructure: [
-                { isoCode: 'CZ', name: 'Česko', type: 'country' },
-                { name: 'Praha', type: 'municipality' },
+                { isoCode: "CZ", name: "Česko", type: "country" },
+                { name: "Praha", type: "municipality" },
               ],
-              type: 'regional.address',
-              zip: '110 00',
+              type: "regional.address",
+              zip: "110 00",
             },
           ],
         }),
       ),
     );
     const provider = createMapyCzProvider({
-      apiKey: 'test-key',
-      endpointUrl: 'https://mapy.test/suggest',
+      apiKey: "test-key",
+      endpointUrl: "https://mapy.test/suggest",
       fetch: fetchMock,
     });
 
-    await expect(
-      provider.suggest(addressRequest, {
-        cachePolicy: provider.cachePolicy,
-        requestId: 'request-6',
-      }),
-    ).resolves.toMatchObject({
-      cachePolicy: { kind: 'none' },
+    const result = yield* provider.suggest(addressRequest, {
+      cachePolicy: provider.cachePolicy,
+      requestId: "request-6",
+    });
+
+    expect(result).toMatchObject({
+      cachePolicy: { kind: "none" },
       suggestions: [
         {
           address: {
-            city: 'Praha',
-            countryCode: 'CZ',
-            line1: 'Václavské náměstí 832/19',
-            postalCode: '110 00',
+            city: "Praha",
+            countryCode: "CZ",
+            line1: "Václavské náměstí 832/19",
+            postalCode: "110 00",
           },
-          displayLabel: 'Václavské náměstí 832/19, 110 00, Praha, CZ',
-          source: { id: 'mapy-cz', kind: 'live-provider' },
+          displayLabel: "Václavské náměstí 832/19, 110 00, Praha, CZ",
+          source: { id: "mapy-cz", kind: "live-provider" },
         },
       ],
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://mapy.test/suggest?apikey=test-key&query=Vaclavske+namesti&lang=cs&limit=3&type=regional.address&locality=cz',
-      expect.objectContaining({ method: 'GET' }),
+      "https://mapy.test/suggest?apikey=test-key&query=Vaclavske+namesti&lang=cs&limit=3&type=regional.address&locality=cz",
+      expect.objectContaining({ method: "GET" }),
     );
-  });
+    }),
+  );
 });
 
-describe('createRuianGeocodeProvider', () => {
-  it('normalizes RÚIAN address-point suggestions and drops generic street rows', async () => {
+describe("createRuianGeocodeProvider", () => {
+  it.effect(
+    "normalizes RÚIAN address-point suggestions and drops generic street rows",
+    () =>
+      Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse({
           suggestions: [
             {
               isCollection: false,
-              magicKey: '4_34593',
-              text: 'K louži, Praha',
-              type: 'Ulice',
+              magicKey: "4_34593",
+              text: "K louži, Praha",
+              type: "Ulice",
             },
             {
               isCollection: false,
-              magicKey: '1_1203603',
-              text: 'K louži 1258/12, Vršovice, 10100 Praha 10',
-              type: 'AdresniMisto',
+              magicKey: "1_1203603",
+              text: "K louži 1258/12, Vršovice, 10100 Praha 10",
+              type: "AdresniMisto",
             },
           ],
         }),
       ),
     );
     const provider = createRuianGeocodeProvider({
-      baseUrl: 'https://ruian.test/geocode',
+      baseUrl: "https://ruian.test/geocode",
       fetch: fetchMock,
     });
 
-    await expect(
-      provider.suggest(
-        { countryCode: 'CZ', kind: 'address', limit: 20, query: 'K Louži' },
-        {
-          cachePolicy: provider.cachePolicy,
-          requestId: 'request-ruian',
-        },
-      ),
-    ).resolves.toMatchObject({
+    const result = yield* provider.suggest(
+      { countryCode: "CZ", kind: "address", limit: 20, query: "K Louži" },
+      {
+        cachePolicy: provider.cachePolicy,
+        requestId: "request-ruian",
+      },
+    );
+
+    expect(result).toMatchObject({
       suggestions: [
         {
           address: {
-            city: 'Praha 10',
-            countryCode: 'CZ',
-            district: 'Vršovice',
-            houseNumber: '1258',
-            orientationNumber: '12',
-            postalCode: '101 00',
-            street: 'K louži',
+            city: "Praha 10",
+            countryCode: "CZ",
+            district: "Vršovice",
+            houseNumber: "1258",
+            orientationNumber: "12",
+            postalCode: "101 00",
+            street: "K louži",
           },
           confidence: 0.98,
-          displayLabel: 'K louži 1258/12, Vršovice, 10100 Praha 10',
-          id: 'ruian-geocode:1_1203603',
-          source: { id: 'ruian-geocode', kind: 'live-provider' },
+          displayLabel: "K louži 1258/12, Vršovice, 10100 Praha 10",
+          id: "ruian-geocode:1_1203603",
+          source: { id: "ruian-geocode", kind: "live-provider" },
         },
       ],
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://ruian.test/geocode/suggest?text=K+Lou%C5%BEi&f=json&maxSuggestions=20',
-      expect.objectContaining({ method: 'GET' }),
+      "https://ruian.test/geocode/suggest?text=K+Lou%C5%BEi&f=json&maxSuggestions=20",
+      expect.objectContaining({ method: "GET" }),
     );
-  });
+      }),
+  );
 
-  it('does not emit RÚIAN administrative rows for address suggestions', async () => {
+  it.effect("does not emit RÚIAN administrative rows for address suggestions", () =>
+    Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse({
           suggestions: [
             {
               isCollection: false,
-              magicKey: '4_123',
-              text: 'Liberecký kraj',
-              type: 'VyssiUzemneSamospravnyCelek',
+              magicKey: "4_123",
+              text: "Liberecký kraj",
+              type: "VyssiUzemneSamospravnyCelek",
             },
             {
               isCollection: false,
-              magicKey: '4_456',
-              text: 'Králova Lhota (Písek)',
-              type: 'Obec',
+              magicKey: "4_456",
+              text: "Králova Lhota (Písek)",
+              type: "Obec",
             },
             {
               isCollection: false,
-              magicKey: '4_789',
-              text: 'K louži, Praha',
-              type: 'Ulice',
+              magicKey: "4_789",
+              text: "K louži, Praha",
+              type: "Ulice",
             },
           ],
         }),
       ),
     );
     const provider = createRuianGeocodeProvider({
-      baseUrl: 'https://ruian.test/geocode',
+      baseUrl: "https://ruian.test/geocode",
       fetch: fetchMock,
     });
 
-    await expect(
-      provider.suggest(
-        { countryCode: 'CZ', kind: 'address', limit: 20, query: 'K L' },
-        {
-          cachePolicy: provider.cachePolicy,
-          requestId: 'request-ruian-admin',
-        },
-      ),
-    ).resolves.toMatchObject({ suggestions: [] });
-  });
+    const result = yield* provider.suggest(
+      { countryCode: "CZ", kind: "address", limit: 20, query: "K L" },
+      {
+        cachePolicy: provider.cachePolicy,
+        requestId: "request-ruian-admin",
+      },
+    );
 
-  it('expands trailing RÚIAN house-number prefixes to recover matching address points', async () => {
+    expect(result).toMatchObject({ suggestions: [] });
+    }),
+  );
+
+  it.effect(
+    "expands trailing RÚIAN house-number prefixes to recover matching address points",
+    () =>
+      Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>((input) => {
       const url = new URL(String(input));
-      const query = url.searchParams.get('text');
+      const query = url.searchParams.get("text");
 
-      if (query === 'K Louži 125') {
+      if (query === "K Louži 125") {
         return Promise.resolve(
           jsonResponse({
             suggestions: [
               {
                 isCollection: false,
-                magicKey: '1_999999',
-                text: 'K Louži 125, 25228 Vonoklasy',
-                type: 'AdresniMisto',
+                magicKey: "1_999999",
+                text: "K Louži 125, 25228 Vonoklasy",
+                type: "AdresniMisto",
               },
             ],
           }),
@@ -395,54 +442,56 @@ describe('createRuianGeocodeProvider', () => {
           suggestions: [
             {
               isCollection: false,
-              magicKey: '1_1203603',
-              text: 'K louži 1258/12, Vršovice, 10100 Praha 10',
-              type: 'AdresniMisto',
+              magicKey: "1_1203603",
+              text: "K louži 1258/12, Vršovice, 10100 Praha 10",
+              type: "AdresniMisto",
             },
             {
               isCollection: false,
-              magicKey: '1_784',
-              text: 'K louži 784/3, Vršovice, 10100 Praha 10',
-              type: 'AdresniMisto',
+              magicKey: "1_784",
+              text: "K louži 784/3, Vršovice, 10100 Praha 10",
+              type: "AdresniMisto",
             },
             {
               isCollection: false,
-              magicKey: '4_34593',
-              text: 'K louži, Praha',
-              type: 'Ulice',
+              magicKey: "4_34593",
+              text: "K louži, Praha",
+              type: "Ulice",
             },
           ],
         }),
       );
     });
     const provider = createRuianGeocodeProvider({
-      baseUrl: 'https://ruian.test/geocode',
+      baseUrl: "https://ruian.test/geocode",
       fetch: fetchMock,
     });
 
-    const result = await provider.suggest(
-      { countryCode: 'CZ', kind: 'address', limit: 20, query: 'K Louži 125' },
+    const result = yield* provider.suggest(
+      { countryCode: "CZ", kind: "address", limit: 20, query: "K Louži 125" },
       {
         cachePolicy: provider.cachePolicy,
-        requestId: 'request-ruian-prefix',
+        requestId: "request-ruian-prefix",
       },
     );
 
     expect(result.suggestions.map((suggestion) => suggestion.displayLabel)).toEqual([
-      'K Louži 125, 25228 Vonoklasy',
-      'K louži 1258/12, Vršovice, 10100 Praha 10',
+      "K Louži 125, 25228 Vonoklasy",
+      "K louži 1258/12, Vršovice, 10100 Praha 10",
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(
-      fetchMock.mock.calls.map(([input]) => new URL(String(input)).searchParams.get('text')),
-    ).toEqual(['K Louži 125', 'K Louži']);
-  });
+      fetchMock.mock.calls.map(([input]) => new URL(String(input)).searchParams.get("text")),
+    ).toEqual(["K Louži 125", "K Louži"]);
+      }),
+  );
 
-  it('matches RÚIAN expanded rows by orientation-number prefix too', async () => {
+  it.effect("matches RÚIAN expanded rows by orientation-number prefix too", () =>
+    Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>((input) => {
       const url = new URL(String(input));
 
-      if (url.searchParams.get('text') === 'K Louži 12') {
+      if (url.searchParams.get("text") === "K Louži 12") {
         return Promise.resolve(jsonResponse({ suggestions: [] }));
       }
 
@@ -451,58 +500,62 @@ describe('createRuianGeocodeProvider', () => {
           suggestions: [
             {
               isCollection: false,
-              magicKey: '1_1203603',
-              text: 'K louži 1258/12, Vršovice, 10100 Praha 10',
-              type: 'AdresniMisto',
+              magicKey: "1_1203603",
+              text: "K louži 1258/12, Vršovice, 10100 Praha 10",
+              type: "AdresniMisto",
             },
             {
               isCollection: false,
-              magicKey: '1_784',
-              text: 'K louži 784/3, Vršovice, 10100 Praha 10',
-              type: 'AdresniMisto',
+              magicKey: "1_784",
+              text: "K louži 784/3, Vršovice, 10100 Praha 10",
+              type: "AdresniMisto",
             },
           ],
         }),
       );
     });
     const provider = createRuianGeocodeProvider({
-      baseUrl: 'https://ruian.test/geocode',
+      baseUrl: "https://ruian.test/geocode",
       fetch: fetchMock,
     });
 
-    const result = await provider.suggest(
-      { countryCode: 'CZ', kind: 'address', limit: 20, query: 'K Louži 12' },
+    const result = yield* provider.suggest(
+      { countryCode: "CZ", kind: "address", limit: 20, query: "K Louži 12" },
       {
         cachePolicy: provider.cachePolicy,
-        requestId: 'request-ruian-orientation-prefix',
+        requestId: "request-ruian-orientation-prefix",
       },
     );
 
     expect(result.suggestions.map((suggestion) => suggestion.displayLabel)).toEqual([
-      'K louži 1258/12, Vršovice, 10100 Praha 10',
+      "K louži 1258/12, Vršovice, 10100 Praha 10",
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
+    }),
+  );
 
-  it('ranks exact-street RÚIAN expansion matches ahead of broader street-name matches', async () => {
+  it.effect(
+    "ranks exact-street RÚIAN expansion matches ahead of broader street-name matches",
+    () =>
+      Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>((input) => {
       const url = new URL(String(input));
 
-      if (url.searchParams.get('text') === 'K Louži 1') {
+      if (url.searchParams.get("text") === "K Louži 1") {
         return Promise.resolve(
           jsonResponse({
             suggestions: [
               {
                 isCollection: false,
-                magicKey: '1_1312',
-                text: 'K louži 1312/1, Vršovice, 10100 Praha 10',
-                type: 'AdresniMisto',
+                magicKey: "1_1312",
+                text: "K louži 1312/1, Vršovice, 10100 Praha 10",
+                type: "AdresniMisto",
               },
               {
                 isCollection: false,
-                magicKey: '1_kaci',
-                text: 'Ke Kačí louži 18/1, Černice, 32600 Plzeň',
-                type: 'AdresniMisto',
+                magicKey: "1_kaci",
+                text: "Ke Kačí louži 18/1, Černice, 32600 Plzeň",
+                type: "AdresniMisto",
               },
             ],
           }),
@@ -514,294 +567,309 @@ describe('createRuianGeocodeProvider', () => {
           suggestions: [
             {
               isCollection: false,
-              magicKey: '1_1203603',
-              text: 'K louži 1258/12, Vršovice, 10100 Praha 10',
-              type: 'AdresniMisto',
+              magicKey: "1_1203603",
+              text: "K louži 1258/12, Vršovice, 10100 Praha 10",
+              type: "AdresniMisto",
             },
           ],
         }),
       );
     });
     const provider = createRuianGeocodeProvider({
-      baseUrl: 'https://ruian.test/geocode',
+      baseUrl: "https://ruian.test/geocode",
       fetch: fetchMock,
     });
 
-    const result = await provider.suggest(
-      { countryCode: 'CZ', kind: 'address', limit: 20, query: 'K Louži 1' },
+    const result = yield* provider.suggest(
+      { countryCode: "CZ", kind: "address", limit: 20, query: "K Louži 1" },
       {
         cachePolicy: provider.cachePolicy,
-        requestId: 'request-ruian-street-rank',
+        requestId: "request-ruian-street-rank",
       },
     );
 
     expect(result.suggestions.map((suggestion) => suggestion.displayLabel)).toEqual([
-      'K louži 1312/1, Vršovice, 10100 Praha 10',
-      'K louži 1258/12, Vršovice, 10100 Praha 10',
-      'Ke Kačí louži 18/1, Černice, 32600 Plzeň',
+      "K louži 1312/1, Vršovice, 10100 Praha 10",
+      "K louži 1258/12, Vršovice, 10100 Praha 10",
+      "Ke Kačí louži 18/1, Černice, 32600 Plzeň",
     ]);
-  });
+      }),
+  );
 
-  it('skips non-CZ address requests without calling RÚIAN', async () => {
+  it.effect("skips non-CZ address requests without calling RÚIAN", () =>
+    Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>();
     const provider = createRuianGeocodeProvider({ fetch: fetchMock });
 
-    await expect(
-      provider.suggest(
-        { countryCode: 'SK', kind: 'address', limit: 20, query: 'Hlavná' },
-        {
-          cachePolicy: provider.cachePolicy,
-          requestId: 'request-ruian-skip',
-        },
-      ),
-    ).resolves.toMatchObject({ suggestions: [] });
+    const result = yield* provider.suggest(
+      { countryCode: "SK", kind: "address", limit: 20, query: "Hlavná" },
+      {
+        cachePolicy: provider.cachePolicy,
+        requestId: "request-ruian-skip",
+      },
+    );
+
+    expect(result).toMatchObject({ suggestions: [] });
     expect(fetchMock).not.toHaveBeenCalled();
-  });
+    }),
+  );
 });
 
-describe('createRadarAutocompleteProvider', () => {
-  it('normalizes Radar autocomplete responses', async () => {
+describe("createRadarAutocompleteProvider", () => {
+  it.effect("normalizes Radar autocomplete responses", () =>
+    Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse({
           addresses: [
             {
-              city: 'Praha',
-              countryCode: 'CZ',
-              formattedAddress: 'K Louži 1, Praha',
+              city: "Praha",
+              countryCode: "CZ",
+              formattedAddress: "K Louži 1, Praha",
               latitude: 50.03,
               longitude: 14.5,
-              number: '1',
-              postalCode: '101 00',
-              state: 'Praha',
-              street: 'K Louži',
+              number: "1",
+              postalCode: "101 00",
+              state: "Praha",
+              street: "K Louži",
             },
           ],
         }),
       ),
     );
     const provider = createRadarAutocompleteProvider({
-      apiKey: 'radar-key',
-      baseUrl: 'https://radar.test',
+      apiKey: "radar-key",
+      baseUrl: "https://radar.test",
       fetch: fetchMock,
-      layers: 'address',
-      near: '50.087,14.421',
+      layers: "address",
+      near: "50.087,14.421",
     });
 
-    await expect(
-      provider.suggest(addressRequest, {
-        cachePolicy: provider.cachePolicy,
-        requestId: 'request-radar',
-      }),
-    ).resolves.toMatchObject({
+    const result = yield* provider.suggest(addressRequest, {
+      cachePolicy: provider.cachePolicy,
+      requestId: "request-radar",
+    });
+
+    expect(result).toMatchObject({
       suggestions: [
         {
           address: {
-            city: 'Praha',
-            countryCode: 'CZ',
-            line1: 'K Louži 1',
-            postalCode: '101 00',
+            city: "Praha",
+            countryCode: "CZ",
+            line1: "K Louži 1",
+            postalCode: "101 00",
           },
-          displayLabel: 'K Louži 1, Praha',
-          source: { id: 'radar-autocomplete', kind: 'live-provider' },
+          displayLabel: "K Louži 1, Praha",
+          source: { id: "radar-autocomplete", kind: "live-provider" },
         },
       ],
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://radar.test/v1/search/autocomplete?query=Vaclavske+namesti&limit=3&layers=address&near=50.087%2C14.421&countryCode=CZ',
+      "https://radar.test/v1/search/autocomplete?query=Vaclavske+namesti&limit=3&layers=address&near=50.087%2C14.421&countryCode=CZ",
       expect.objectContaining({
-        headers: { accept: 'application/json', authorization: 'radar-key' },
-        method: 'GET',
+        headers: { accept: "application/json", authorization: "radar-key" },
+        method: "GET",
       }),
     );
-  });
+    }),
+  );
 });
 
-describe('createHereDiscoverProvider', () => {
-  it('normalizes HERE discover responses and maps CZ country filters to HERE alpha-3', async () => {
+describe("createHereDiscoverProvider", () => {
+  it.effect(
+    "normalizes HERE discover responses and maps CZ country filters to HERE alpha-3",
+    () =>
+      Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse({
           items: [
             {
               address: {
-                city: 'Praha',
-                countryCode: 'CZE',
-                houseNumber: '1',
-                label: 'K Louži 1, Praha, Česko',
-                postalCode: '101 00',
-                street: 'K Louži',
+                city: "Praha",
+                countryCode: "CZE",
+                houseNumber: "1",
+                label: "K Louži 1, Praha, Česko",
+                postalCode: "101 00",
+                street: "K Louži",
               },
-              id: 'here-1',
+              id: "here-1",
               position: { lat: 50.03, lng: 14.5 },
-              resultType: 'houseNumber',
+              resultType: "houseNumber",
               scoring: { queryScore: 0.91 },
-              title: 'K Louži 1',
+              title: "K Louži 1",
             },
           ],
         }),
       ),
     );
     const provider = createHereDiscoverProvider({
-      apiKey: 'here-key',
-      baseUrl: 'https://here.test',
+      apiKey: "here-key",
+      baseUrl: "https://here.test",
       fetch: fetchMock,
     });
 
-    await expect(
-      provider.suggest(addressRequest, {
-        cachePolicy: provider.cachePolicy,
-        requestId: 'request-here',
-      }),
-    ).resolves.toMatchObject({
+    const result = yield* provider.suggest(addressRequest, {
+      cachePolicy: provider.cachePolicy,
+      requestId: "request-here",
+    });
+
+    expect(result).toMatchObject({
       suggestions: [
         {
           address: {
-            city: 'Praha',
-            countryCode: 'CZ',
-            line1: 'K Louži 1',
-            postalCode: '101 00',
+            city: "Praha",
+            countryCode: "CZ",
+            line1: "K Louži 1",
+            postalCode: "101 00",
           },
           confidence: 0.91,
-          id: 'here-discover:here-1',
-          source: { id: 'here-discover', kind: 'live-provider' },
+          id: "here-discover:here-1",
+          source: { id: "here-discover", kind: "live-provider" },
         },
       ],
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://here.test/v1/discover?q=Vaclavske+namesti&apiKey=here-key&limit=3&in=countryCode%3ACZE',
-      expect.objectContaining({ method: 'GET' }),
+      "https://here.test/v1/discover?q=Vaclavske+namesti&apiKey=here-key&limit=3&in=countryCode%3ACZE",
+      expect.objectContaining({ method: "GET" }),
     );
-  });
+      }),
+  );
 });
 
-describe('createNominatimProvider', () => {
-  it('normalizes Nominatim responses with required request headers', async () => {
+describe("createNominatimProvider", () => {
+  it.effect("normalizes Nominatim responses with required request headers", () =>
+    Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse([
           {
             address: {
-              city: 'Praha',
-              country_code: 'cz',
-              house_number: '1',
-              postcode: '101 00',
-              road: 'K Louži',
-              state: 'Praha',
+              city: "Praha",
+              country_code: "cz",
+              house_number: "1",
+              postcode: "101 00",
+              road: "K Louži",
+              state: "Praha",
             },
-            class: 'place',
-            display_name: 'K Louži 1, Praha, Česko',
+            class: "place",
+            display_name: "K Louži 1, Praha, Česko",
             importance: 0.7,
-            lat: '50.03',
-            lon: '14.5',
+            lat: "50.03",
+            lon: "14.5",
             osm_id: 123,
-            osm_type: 'way',
+            osm_type: "way",
             place_id: 456,
-            type: 'house',
+            type: "house",
           },
         ]),
       ),
     );
     const provider = createNominatimProvider({
-      baseUrl: 'https://nominatim.test',
-      email: 'ops@example.test',
+      baseUrl: "https://nominatim.test",
+      email: "ops@example.test",
       fetch: fetchMock,
-      referer: 'https://shop.example.test',
-      userAgent: 'smart-suggest-test',
+      referer: "https://shop.example.test",
+      userAgent: "smart-suggest-test",
     });
 
-    await expect(
-      provider.suggest(addressRequest, {
-        cachePolicy: provider.cachePolicy,
-        requestId: 'request-nominatim',
-      }),
-    ).resolves.toMatchObject({
+    const result = yield* provider.suggest(addressRequest, {
+      cachePolicy: provider.cachePolicy,
+      requestId: "request-nominatim",
+    });
+
+    expect(result).toMatchObject({
       suggestions: [
         {
           address: {
-            city: 'Praha',
-            countryCode: 'CZ',
-            line1: 'K Louži 1',
-            postalCode: '101 00',
+            city: "Praha",
+            countryCode: "CZ",
+            line1: "K Louži 1",
+            postalCode: "101 00",
           },
           confidence: 0.7,
-          id: 'nominatim:456',
-          source: { id: 'nominatim', kind: 'live-provider' },
+          id: "nominatim:456",
+          source: { id: "nominatim", kind: "live-provider" },
         },
       ],
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://nominatim.test/search?q=Vaclavske+namesti&format=jsonv2&addressdetails=1&limit=3&countrycodes=cz&email=ops%40example.test',
+      "https://nominatim.test/search?q=Vaclavske+namesti&format=jsonv2&addressdetails=1&limit=3&countrycodes=cz&email=ops%40example.test",
       expect.objectContaining({
         headers: {
-          accept: 'application/json',
-          referer: 'https://shop.example.test',
-          'user-agent': 'smart-suggest-test',
+          accept: "application/json",
+          referer: "https://shop.example.test",
+          "user-agent": "smart-suggest-test",
         },
-        method: 'GET',
+        method: "GET",
       }),
     );
-  });
+    }),
+  );
 
-  it('drops Nominatim rows that are not complete address points for address suggestions', async () => {
+  it.effect(
+    "drops Nominatim rows that are not complete address points for address suggestions",
+    () =>
+      Effect.gen(function* () {
     const fetchMock = vi.fn<SmartSuggestProviderFetch>(() =>
       Promise.resolve(
         jsonResponse([
           {
             address: {
-              country_code: 'cz',
-              postcode: '101 00',
-              road: 'K Louži',
+              country_code: "cz",
+              postcode: "101 00",
+              road: "K Louži",
             },
-            class: 'highway',
-            display_name: 'K Louži, Praha, Česko',
+            class: "highway",
+            display_name: "K Louži, Praha, Česko",
             importance: 0.6,
             place_id: 1,
-            type: 'residential',
+            type: "residential",
           },
           {
             address: {
-              city: 'Praha',
-              country_code: 'cz',
-              house_number: '1258/12',
-              postcode: '101 00',
-              road: 'K Louži',
+              city: "Praha",
+              country_code: "cz",
+              house_number: "1258/12",
+              postcode: "101 00",
+              road: "K Louži",
             },
-            class: 'place',
-            display_name: '1258/12, K Louži, Praha, Česko',
+            class: "place",
+            display_name: "1258/12, K Louži, Praha, Česko",
             importance: 0.8,
             place_id: 2,
-            type: 'house',
+            type: "house",
           },
         ]),
       ),
     );
     const provider = createNominatimProvider({
-      baseUrl: 'https://nominatim.test',
+      baseUrl: "https://nominatim.test",
       fetch: fetchMock,
-      userAgent: 'smart-suggest-test',
+      userAgent: "smart-suggest-test",
     });
 
-    await expect(
-      provider.suggest(
-        { countryCode: 'CZ', kind: 'address', limit: 20, query: 'K Louži' },
-        {
-          cachePolicy: provider.cachePolicy,
-          requestId: 'request-nominatim-filter',
-        },
-      ),
-    ).resolves.toMatchObject({
+    const result = yield* provider.suggest(
+      { countryCode: "CZ", kind: "address", limit: 20, query: "K Louži" },
+      {
+        cachePolicy: provider.cachePolicy,
+        requestId: "request-nominatim-filter",
+      },
+    );
+
+    expect(result).toMatchObject({
       suggestions: [
         {
           address: {
-            houseNumber: '1258',
-            orientationNumber: '12',
-            street: 'K Louži',
+            houseNumber: "1258",
+            orientationNumber: "12",
+            street: "K Louži",
           },
-          displayLabel: '1258/12, K Louži, Praha, Česko',
-          source: { id: 'nominatim' },
+          displayLabel: "1258/12, K Louži, Praha, Česko",
+          source: { id: "nominatim" },
         },
       ],
     });
-  });
+      }),
+  );
 });

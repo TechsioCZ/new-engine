@@ -120,7 +120,10 @@ function main(argv = process.argv.slice(2)) {
   const appRoot = path.resolve(workspaceRoot, 'apps', args.app);
   assertInside(path.resolve(workspaceRoot, 'apps'), appRoot);
 
-  const vanillaEntry = path.resolve(workspaceRoot, '../../libs/smart-suggest/vanilla/src/index.ts');
+  const vanillaEntry = path.resolve(
+    workspaceRoot,
+    '../../libs/smart-suggest/vanilla/src/vanilla.ts',
+  );
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-suggest-sdk-'));
   const bundleConfig = path.join(tempRoot, 'rslib.config.ts');
   const bundleOutputDir = path.join(tempRoot, 'dist');

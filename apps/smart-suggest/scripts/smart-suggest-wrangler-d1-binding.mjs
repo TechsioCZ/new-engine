@@ -1,8 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 const sqlPlaceholder = '?';
+const maxWranglerCommandSqlLength = 30_000;
 
 function wranglerExecutable() {
   return process.platform === 'win32' ? 'wrangler.cmd' : 'wrangler';
@@ -176,6 +178,15 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function writeTemporarySqlFile(sql) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-suggest-d1-sql-'));
+  const filePath = path.join(directory, 'statement.sql');
+
+  fs.writeFileSync(filePath, `${sql.trim().replace(/;*$/u, '')};\n`);
+
+  return filePath;
+}
+
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -267,6 +278,8 @@ class WranglerD1Runner {
 
   execute(sql, params) {
     const command = bindSqlParameters(sql, params);
+    const sqlFilePath =
+      command.length > maxWranglerCommandSqlLength ? writeTemporarySqlFile(command) : undefined;
     const result = spawnSync(
       wranglerExecutable(),
       [
@@ -277,8 +290,7 @@ class WranglerD1Runner {
         this.configPath,
         ...targetArgs({ persistTo: this.persistTo, target: this.target }),
         '--json',
-        '--command',
-        command,
+        ...(sqlFilePath === undefined ? ['--command', command] : ['--file', sqlFilePath]),
       ],
       {
         cwd: this.cwd,
@@ -287,6 +299,10 @@ class WranglerD1Runner {
         maxBuffer: 10 * 1024 * 1024,
       },
     );
+
+    if (sqlFilePath !== undefined) {
+      fs.rmSync(path.dirname(sqlFilePath), { force: true, recursive: true });
+    }
 
     if (result.error !== undefined) {
       throw result.error;

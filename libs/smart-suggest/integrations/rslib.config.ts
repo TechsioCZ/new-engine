@@ -2,4 +2,5 @@ import { defineSmartSuggestRslibConfig } from "@techsio/smart-suggest-tooling/rs
 
 export default defineSmartSuggestRslibConfig({
   configUrl: import.meta.url,
+  entry: "./src/integrations.ts",
 })

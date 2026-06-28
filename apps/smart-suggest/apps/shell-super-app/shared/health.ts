@@ -1,8 +1,9 @@
 import { DateTime } from 'effect';
 import type { StorageHealth } from '@techsio/smart-suggest-storage';
 import { ultramodernApiMarker } from './ultramodern-build';
+import type { SmartSuggestHealthResponse } from './api';
 
-export const getHealthPayload = (storage?: StorageHealth) => ({
+export const getHealthPayload = (storage?: StorageHealth): SmartSuggestHealthResponse => ({
   buildId: ultramodernApiMarker.build,
   db: storage ?? {
     checkedAt: DateTime.formatIso(DateTime.nowUnsafe()),
@@ -11,7 +12,7 @@ export const getHealthPayload = (storage?: StorageHealth) => ({
   },
   deployProfile: ultramodernApiMarker.deployProfile,
   environment: 'local',
-  service: 'smart-suggest',
+  service: 'smart-suggest' as const,
   timestamp: DateTime.formatIso(DateTime.nowUnsafe()),
   version: ultramodernApiMarker.version,
 });

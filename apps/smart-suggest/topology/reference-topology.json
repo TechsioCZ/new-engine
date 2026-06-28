@@ -15,6 +15,27 @@
       "ssr": true,
       "sharedContractVersion": "mf-ssr-contract-v1"
     },
+    "api": {
+      "runtime": "effect",
+      "bff": {
+        "prefix": "/api",
+        "openapi": "/openapi.json",
+        "strictEffectApproach": true
+      },
+      "contract": {
+        "export": "./api",
+        "path": "apps/shell-super-app/shared/api.ts"
+      },
+      "client": {
+        "export": "./api/client",
+        "path": "apps/shell-super-app/src/api/smart-suggest-client.ts"
+      },
+      "serverEntry": "apps/shell-super-app/api/index.ts",
+      "basePath": "/api/v1",
+      "consumedBy": [
+        "shell-super-app"
+      ]
+    },
     "cloudflare": {
       "target": "cloudflare",
       "workerName": "smart-suggest-shell-super-app",

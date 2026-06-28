@@ -1,9 +1,13 @@
+import {
+  createSmartSuggestEffectClient,
+  type SmartSuggestEffectClient,
+  type SmartSuggestFetch,
+} from '@techsio/smart-suggest-client';
 import type {
   AddressParts,
   SmartSuggestAcceptEvent,
   SmartSuggestCountryCode,
   SmartSuggestRequest,
-  SmartSuggestResponse,
   SmartSuggestSuggestion,
 } from '@techsio/smart-suggest-core';
 import {
@@ -14,11 +18,11 @@ import {
   type PhoneValidationRequest,
   validatePhoneNumberLite,
 } from '@techsio/smart-suggest-validation/phone-lite';
+import { squash } from 'effect/Cause';
+import { type Effect, runCallback } from 'effect/Effect';
+import { isFailure } from 'effect/Exit';
 
-export type SmartSuggestVanillaFetch = (
-  input: RequestInfo | URL,
-  init?: RequestInit,
-) => Promise<Response>;
+export type SmartSuggestVanillaFetch = SmartSuggestFetch;
 
 type TextControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
@@ -95,6 +99,32 @@ const DEFAULT_SUGGEST_LIMIT = 20;
 
 export const SMART_SUGGEST_PHONE_VALIDATION_MODES = PHONE_VALIDATION_MODES;
 
+const runVanillaEffectAsPromise = <TResponse>(
+  effect: Effect<TResponse, Error>,
+): Promise<TResponse> =>
+  new Promise<TResponse>((resolve, reject) => {
+    runCallback(effect, {
+      onExit: (result) => {
+        if (isFailure(result)) {
+          reject(squash(result.cause));
+          return;
+        }
+
+        resolve(result.value);
+      },
+    });
+  });
+
+const detachVanillaEffect = (effect: Effect<unknown, Error>, onError?: (error: unknown) => void) => {
+  runCallback(effect, {
+    onExit: (result) => {
+      if (isFailure(result)) {
+        reportError(onError, squash(result.cause));
+      }
+    },
+  });
+};
+
 const defaultPhoneValidatorLoader: SmartSuggestVanillaPhoneValidatorLoader = async () => {
   const validatorModule =
     (await import('@techsio/smart-suggest-validation/phone-strict')) as SmartSuggestVanillaPhoneValidatorModule;
@@ -109,16 +139,6 @@ function missingPhoneValidator(): SmartSuggestVanillaPhoneValidatorModule | unde
 const normalizeBaseUrl = (apiBaseUrl: string | undefined) => {
   const baseUrl = apiBaseUrl ?? '/api';
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-};
-
-const addOptionalParam = (
-  params: URLSearchParams,
-  name: string,
-  value: number | string | undefined,
-) => {
-  if (value !== undefined && String(value).trim() !== '') {
-    params.set(name, String(value));
-  }
 };
 
 const isTextControl = (element: Element | null): element is TextControl =>
@@ -204,77 +224,6 @@ const isAbortError = (error: unknown) =>
 
 const createAbortReason = () =>
   new DOMException('Smart Suggest request was superseded.', 'AbortError');
-
-const requestJson = async <TResponse>(
-  fetchImpl: SmartSuggestVanillaFetch,
-  url: string,
-  init: RequestInit,
-  timeoutMs: number,
-) => {
-  const controller = new AbortController();
-  const externalSignal = init.signal;
-  const abortFromExternalSignal = () => {
-    controller.abort(externalSignal?.reason);
-  };
-  const timeout = setTimeout(() => {
-    controller.abort(new DOMException('Smart Suggest request timed out.', 'TimeoutError'));
-  }, timeoutMs);
-
-  if (externalSignal?.aborted === true) {
-    abortFromExternalSignal();
-  } else {
-    externalSignal?.addEventListener('abort', abortFromExternalSignal, {
-      once: true,
-    });
-  }
-
-  try {
-    const response = await fetchImpl(url, {
-      ...init,
-      headers: {
-        accept: 'application/json',
-        'content-type': 'application/json',
-        ...init.headers,
-      },
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Smart Suggest request failed with ${response.status}.`);
-    }
-
-    return (await response.json()) as TResponse;
-  } finally {
-    clearTimeout(timeout);
-    externalSignal?.removeEventListener('abort', abortFromExternalSignal);
-  }
-};
-
-const toSuggestUrl = (apiBaseUrl: string, request: SmartSuggestRequest) => {
-  const params = new URLSearchParams();
-  params.set('kind', request.kind);
-  params.set('q', request.query);
-  addOptionalParam(params, 'countryCode', request.countryCode);
-  addOptionalParam(params, 'language', request.language);
-  addOptionalParam(params, 'limit', request.limit);
-  return `${apiBaseUrl}/v1/suggest?${params.toString()}`;
-};
-
-type SmartSuggestJsonPostOptions = {
-  apiBaseUrl: string;
-  body: unknown;
-  fetchImpl: SmartSuggestVanillaFetch;
-  path: string;
-  timeoutMs: number;
-};
-
-const postJson = <TResponse>(options: SmartSuggestJsonPostOptions) =>
-  requestJson<TResponse>(
-    options.fetchImpl,
-    `${options.apiBaseUrl}${options.path}`,
-    { body: JSON.stringify(options.body), method: 'POST' },
-    options.timeoutMs,
-  );
 
 type PopoverListElement = HTMLUListElement & {
   hidePopover?: () => void;
@@ -593,6 +542,11 @@ export const attachSmartSuggest = (
   const limit = config.limit ?? DEFAULT_SUGGEST_LIMIT;
   const minQueryLength = config.minQueryLength ?? 3;
   const timeoutMs = config.timeoutMs ?? 3000;
+  const smartSuggestClient: SmartSuggestEffectClient = createSmartSuggestEffectClient({
+    apiBaseUrl,
+    fetch: fetchImpl,
+    timeoutMs,
+  });
   const phoneValidationMode = config.phoneValidationMode ?? DEFAULT_PHONE_VALIDATION_MODE;
   const phoneValidatorLoader = config.phoneValidatorLoader ?? defaultPhoneValidatorLoader;
   const suggestionList =
@@ -636,14 +590,7 @@ export const attachSmartSuggest = (
       source: suggestion.source,
       suggestionId: suggestion.id,
     };
-    const accepted = postJson<{ accepted: true }>({
-      apiBaseUrl,
-      body: event,
-      fetchImpl,
-      path: '/v1/accept',
-      timeoutMs,
-    });
-    accepted.catch((error: unknown) => reportError(config.onError, error));
+    detachVanillaEffect(smartSuggestClient.accept(event), config.onError);
   };
 
   const selectSuggestion = (suggestion: SmartSuggestSuggestion) => {
@@ -731,15 +678,10 @@ export const attachSmartSuggest = (
     activeSuggestController = requestController;
 
     try {
-      const response = await requestJson<SmartSuggestResponse>(
-        fetchImpl,
-        toSuggestUrl(apiBaseUrl, createSuggestRequest(trimmedQuery)),
-        {
-          headers: { accept: 'application/json' },
-          method: 'GET',
+      const response = await runVanillaEffectAsPromise(
+        smartSuggestClient.suggest(createSuggestRequest(trimmedQuery), {
           signal: requestController.signal,
-        },
-        timeoutMs,
+        }),
       );
 
       if (shouldIgnoreSuggestResponse(requestController, requestSequence)) {
@@ -817,13 +759,7 @@ export const attachSmartSuggest = (
         (phoneValidationMode === 'server-only'
           ? undefined
           : await validatePhoneWithFrontend(request)) ??
-        (await postJson<SmartSuggestVanillaValidationResult>({
-          apiBaseUrl,
-          body: request,
-          fetchImpl,
-          path: '/v1/validate/phone',
-          timeoutMs,
-        }));
+        (await runVanillaEffectAsPromise(smartSuggestClient.validatePhone(request)));
 
       if (
         validationSequence !== phoneValidationSequence ||
@@ -857,13 +793,9 @@ export const attachSmartSuggest = (
     }
 
     try {
-      const result = await postJson<SmartSuggestVanillaValidationResult>({
-        apiBaseUrl,
-        body: { countryCode, rawInput },
-        fetchImpl,
-        path: '/v1/validate/postal',
-        timeoutMs,
-      });
+      const result = await runVanillaEffectAsPromise(
+        smartSuggestClient.validatePostal({ countryCode, rawInput }),
+      );
 
       if (
         validationSequence !== postalValidationSequence ||
