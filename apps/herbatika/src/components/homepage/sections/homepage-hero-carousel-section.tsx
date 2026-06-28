@@ -124,10 +124,11 @@ function HeroCarousel({
   spacing = HERO_SLIDE_SPACING,
 }: HeroCarouselProps) {
   const didDragRef = useRef(false)
-  const handleSlidePointerDownCapture: PointerEventHandler<HTMLAnchorElement> =
-    () => {
-      didDragRef.current = false
-    }
+  const handleSlidePointerDownCapture: PointerEventHandler<
+    HTMLAnchorElement
+  > = () => {
+    didDragRef.current = false
+  }
   const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
     event
   ) => {
@@ -157,16 +158,16 @@ function HeroCarousel({
       className="w-full"
       key={restoreKey}
       loop={hasOverflow}
-      size="full"
-      slideCount={slides.length}
-      slidesPerMove={1}
-      slidesPerPage={slidesPerPage}
-      spacing={spacing}
       onDragStatusChange={(details) => {
         if (details.type === "dragging") {
           didDragRef.current = true
         }
       }}
+      size="full"
+      slideCount={slides.length}
+      slidesPerMove={1}
+      slidesPerPage={slidesPerPage}
+      spacing={spacing}
     >
       <Carousel.Slides className={slidesClassName} slides={slides} />
       {hasOverflow ? (

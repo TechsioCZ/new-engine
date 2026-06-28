@@ -25,9 +25,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
   const controller = useProductDetailController({ handle })
   const [activeInfoSection, setActiveInfoSection] = useState<
     string | undefined
-  >(
-    controller.defaultInfoSectionValue
-  )
+  >(controller.defaultInfoSectionValue)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
   useEffect(() => {
