@@ -1174,8 +1174,8 @@ export const createAddressSearchFtsQuery = (query: string) => {
     : ftsTokens.map((token) => `${token}*`).join(" ")
 }
 
-const isWeakAddressSearchQuery = (query: string) =>
-  createAddressSearchFtsQuery(query) === undefined
+const hasAddressSearchPrefixToken = (query: string) =>
+  tokenizeAddressText(query).some((token) => token.length >= 2)
 
 type RankedAddressRecordCandidate = AddressRecord & {
   confidence: number
@@ -2521,9 +2521,10 @@ export const createD1SmartSuggestRepositories = (
           ? yield* ignoreAddressSearchFtsUnavailable(
               withD1Database((db) =>
                 db.all<{ recordId: string }>(sql`
-                  select distinct record_id as recordId
+                  select record_id as recordId
                   from smart_suggest_address_search_fts
                   where smart_suggest_address_search_fts match ${ftsQuery}
+                  order by rank
                   limit ${limit}
                 `)
               )
@@ -2531,10 +2532,11 @@ export const createD1SmartSuggestRepositories = (
           : yield* ignoreAddressSearchFtsUnavailable(
               withD1Database((db) =>
                 db.all<{ recordId: string }>(sql`
-                  select distinct record_id as recordId
+                  select record_id as recordId
                   from smart_suggest_address_search_fts
                   where smart_suggest_address_search_fts match ${ftsQuery}
                     and country_code = ${countryCode}
+                  order by rank
                   limit ${limit}
                 `)
               )
@@ -3352,35 +3354,43 @@ export const createD1SmartSuggestRepositories = (
       searchAddressRecords: ({ countryCode, limit = 10, query }) =>
         Effect.gen(function* () {
           const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+          const ftsQuery = createAddressSearchFtsQuery(query)
+          const canUsePrefixIndex = hasAddressSearchPrefixToken(query)
 
-          if (isWeakAddressSearchQuery(query)) {
-            return []
-          }
-
-          const indexedResults = yield* searchAddressRecordsByFts({
-            countryCode,
-            limit: normalizedLimit,
-            query,
-          })
+          const indexedResults =
+            ftsQuery === undefined
+              ? undefined
+              : yield* searchAddressRecordsByFts({
+                  countryCode,
+                  limit: normalizedLimit,
+                  query,
+                })
 
           if (indexedResults !== undefined) {
             return indexedResults
           }
 
-          const tokenResults = yield* searchAddressRecordsByTokens({
+          const tokenResults = canUsePrefixIndex
+            ? yield* searchAddressRecordsByTokens({
+                countryCode,
+                limit: normalizedLimit,
+                query,
+              })
+            : undefined
+
+          if (tokenResults !== undefined) {
+            return tokenResults
+          }
+
+          if (ftsQuery === undefined) {
+            return []
+          }
+
+          return yield* searchAddressRecordsByLabel({
             countryCode,
             limit: normalizedLimit,
             query,
           })
-
-          return (
-            tokenResults ??
-            (yield* searchAddressRecordsByLabel({
-              countryCode,
-              limit: normalizedLimit,
-              query,
-            }))
-          )
         }),
       getAddressRecord: (recordId) =>
         withD1Database((db) =>
@@ -3885,12 +3895,16 @@ export const createInMemorySmartSuggestRepositories =
           storageEffect(() => {
             const normalizedQuery = normalizeSearchText(query)
             const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50))
+            const ftsQuery = createAddressSearchFtsQuery(query)
+            const canUsePrefixIndex = hasAddressSearchPrefixToken(query)
 
-            if (isWeakAddressSearchQuery(query)) {
+            const indexedRecords = canUsePrefixIndex
+              ? findIndexedAddressRecords(query, countryCode)
+              : []
+            if (indexedRecords.length === 0 && ftsQuery === undefined) {
               return []
             }
 
-            const indexedRecords = findIndexedAddressRecords(query, countryCode)
             const candidates =
               indexedRecords.length > 0
                 ? indexedRecords

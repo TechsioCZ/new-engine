@@ -35,6 +35,7 @@
       "id": "techsiocz-private",
       "visibility": "private",
       "repository": "https://github.com/TechsioCZ/skills",
+      "commit": "d472fd0c35293d5ba8abb8c2d8ed0573eff6a1e7",
       "install": "clone-if-authorized",
       "baseline": [
         {

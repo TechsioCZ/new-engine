@@ -7,14 +7,21 @@ import type {
 import type { ValidationIssue } from '@techsio/smart-suggest-validation/phone-lite';
 import { FormInput } from '@techsio/ui-kit/molecules/form-input';
 import {
+  type FocusEvent,
   type ChangeEventHandler,
   type ComponentPropsWithoutRef,
   type ReactNode,
+  useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
 type FormInputProps = ComponentPropsWithoutRef<typeof FormInput>;
+
+export type PostalValidationFieldValidator = (
+  request: PostalValidationRequest,
+) => PostalValidationResult | Promise<PostalValidationResult | undefined> | undefined;
 
 export type PostalValidationFieldProps = Omit<
   FormInputProps,
@@ -25,6 +32,7 @@ export type PostalValidationFieldProps = Omit<
   onChange?: ChangeEventHandler<HTMLInputElement>;
   onValidationChange?: (result: PostalValidationResult) => void;
   statusText?: ReactNode;
+  validatePostalCode?: PostalValidationFieldValidator;
   validateEmpty?: boolean;
 };
 
@@ -211,13 +219,17 @@ const getStatusText = (
   return result?.errors[0]?.message;
 };
 
+const ignorePostalValidationError = () => null;
+
 export function PostalValidationField({
   countryCode,
   defaultValue,
   helpText,
+  onBlur,
   onChange,
   onValidationChange,
   statusText,
+  validatePostalCode: providedValidatePostalCode,
   validateEmpty = false,
   value,
   ...props
@@ -230,26 +242,77 @@ export function PostalValidationField({
   const normalizedCountryCode = countryCode.trim().toUpperCase() as Uppercase<string>;
   const validationResult = useMemo(
     () =>
-      shouldValidate
+      shouldValidate && providedValidatePostalCode === undefined
         ? validatePostalCode({
             countryCode: normalizedCountryCode,
             rawInput,
           })
         : undefined,
-    [normalizedCountryCode, rawInput, shouldValidate],
+    [normalizedCountryCode, providedValidatePostalCode, rawInput, shouldValidate],
   );
+  const [serverValidationResult, setServerValidationResult] = useState<
+    PostalValidationResult | undefined
+  >(undefined);
+  const validationRequestIdRef = useRef(0);
+  const resolvedValidationResult = serverValidationResult ?? validationResult;
   const inputHints = getPostalInputHints(normalizedCountryCode);
-  const validateStatus = getValidationStatus(validationResult?.isValid);
-  const resolvedStatusText = getStatusText(helpText, validationResult, statusText);
+  const validateStatus = getValidationStatus(resolvedValidationResult?.isValid);
+  const resolvedStatusText = getStatusText(helpText, resolvedValidationResult, statusText);
   const formInputDefaultValueProps = defaultValue === undefined ? {} : { defaultValue };
   const formInputHelpTextProps =
     resolvedStatusText === undefined ? {} : { helpText: resolvedStatusText };
   const formInputValueProps = value === undefined ? {} : { value };
+  const clearServerValidationResult = useCallback(() => {
+    validationRequestIdRef.current += 1;
+    setServerValidationResult(undefined);
+  }, []);
+  const validateCurrentValue = useCallback(
+    async (nextRawInput = rawInput) => {
+      const shouldValidateCurrent = validateEmpty || nextRawInput.trim().length > 0;
+      const validationRequestId = validationRequestIdRef.current + 1;
+      validationRequestIdRef.current = validationRequestId;
+
+      if (!shouldValidateCurrent) {
+        setServerValidationResult(undefined);
+        return;
+      }
+
+      const request: PostalValidationRequest = {
+        countryCode: normalizedCountryCode,
+        rawInput: nextRawInput,
+      };
+      const fallbackResult = validatePostalCode(request);
+      let nextResult = fallbackResult;
+
+      try {
+        nextResult = (await providedValidatePostalCode?.(request)) ?? fallbackResult;
+      } catch {
+        nextResult = fallbackResult;
+      }
+
+      if (validationRequestId !== validationRequestIdRef.current) {
+        return;
+      }
+
+      setServerValidationResult(nextResult);
+      onValidationChange?.(nextResult);
+    },
+    [normalizedCountryCode, onValidationChange, providedValidatePostalCode, rawInput, validateEmpty],
+  );
+
+  const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
+    onBlur?.(event);
+
+    if (providedValidatePostalCode !== undefined) {
+      validateCurrentValue().catch(ignorePostalValidationError);
+    }
+  };
 
   return (
     <FormInput
       autoComplete={inputHints.autoComplete}
       inputMode={inputHints.inputMode}
+      onBlur={handleBlur}
       onChange={(event) => {
         const nextValue = event.target.value;
 
@@ -257,13 +320,22 @@ export function PostalValidationField({
           setInternalRawInput(nextValue);
         }
 
-        onValidationChange?.(
-          validatePostalCode({
-            countryCode: normalizedCountryCode,
-            rawInput: nextValue,
-          }),
-        );
+        clearServerValidationResult();
+
+        if (providedValidatePostalCode === undefined) {
+          onValidationChange?.(
+            validatePostalCode({
+              countryCode: normalizedCountryCode,
+              rawInput: nextValue,
+            }),
+          );
+        }
+
         onChange?.(event);
+
+        if (providedValidatePostalCode !== undefined) {
+          validateCurrentValue(nextValue).catch(ignorePostalValidationError);
+        }
       }}
       validateStatus={validateStatus}
       {...props}

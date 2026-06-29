@@ -17,7 +17,7 @@ import {
 
 type CheckoutAddressField = keyof CheckoutAddressValues
 type CheckoutAddressFieldValidator = (value: string) => string | undefined
-type CheckoutPostalValidationScope = "billing" | "shipping"
+type CheckoutAddressValidationScope = "billing" | "shipping"
 type CheckoutScopedValueValidationContext<TValue> = {
   fieldApi: {
     form: {
@@ -90,10 +90,9 @@ const validateRequiredPhoneNumberForCountry = (
   return validation.isValid ? undefined : "Zadajte platné telefónne číslo."
 }
 
-const validateRequiredPhoneNumber: CheckoutAddressFieldValidator = (value) =>
-  validateRequiredPhoneNumberForCountry(value, "SK")
-
-const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
+const validatePostalCodeForSupportedCountry: CheckoutAddressFieldValidator = (
+  value
+) => {
   const normalized = value.trim()
 
   if (!normalized) {
@@ -144,7 +143,7 @@ const validatePostalCodeForCountry = (
 }
 
 const createCheckoutPostalCodeValidators = (
-  scope: CheckoutPostalValidationScope,
+  scope: CheckoutAddressValidationScope,
   shouldValidate?: (values: CheckoutDetailsValues) => boolean
 ) => {
   const validateWhenActive =
@@ -168,7 +167,7 @@ const createCheckoutPostalCodeValidators = (
 }
 
 const createCheckoutPhoneValidators = (
-  scope: CheckoutPostalValidationScope,
+  scope: CheckoutAddressValidationScope,
   shouldValidate?: (values: CheckoutDetailsValues) => boolean
 ) => {
   const validateWhenActive =
@@ -237,8 +236,7 @@ export const checkoutAddressFieldValidators = {
   email: validateEmailAddress,
   firstName: (value: string) => validateCustomerName(value, "Meno"),
   lastName: (value: string) => validateCustomerName(value, "Priezvisko"),
-  phone: validateRequiredPhoneNumber,
-  postalCode: validatePostalCode,
+  postalCode: validatePostalCodeForSupportedCountry,
   taxId: (value: string) => validateCompanyIdentifier(value, "DIČ"),
 } as const satisfies Partial<
   Record<CheckoutAddressField, CheckoutAddressFieldValidator>

@@ -1,7 +1,9 @@
 "use client"
 
-import type { AddressParts } from "@techsio/smart-suggest-core"
-import { AddressSuggestField } from "@techsio/smart-suggest-ui/address-suggest-field"
+import {
+  AddressSuggestField,
+  type AddressSuggestFieldProps,
+} from "@techsio/smart-suggest-ui/address-suggest-field"
 import { type ReactNode, useState } from "react"
 import {
   resolveVisibleFieldFeedback,
@@ -16,8 +18,12 @@ type FormSmartSuggestAddressFieldProps = {
   countryCode?: string
   required?: boolean
   validationMode?: "none" | "blur"
-  onAddressSelect?: (address: AddressParts) => void
+  onAddressSelect?: (address: SmartSuggestAddressParts) => void
 }
+
+type SmartSuggestAddressParts = Parameters<
+  NonNullable<AddressSuggestFieldProps["onAddressSelect"]>
+>[0]
 
 const toCountryCode = (countryCode: string | undefined) => {
   const normalizedCountryCode = countryCode?.trim().toUpperCase()
@@ -26,7 +32,10 @@ const toCountryCode = (countryCode: string | undefined) => {
     : undefined
 }
 
-const formatAddressLine = (address: AddressParts, fallback: string) => {
+const formatAddressLine = (
+  address: SmartSuggestAddressParts,
+  fallback: string
+) => {
   if (address.line1?.trim()) {
     return address.line1.trim()
   }

@@ -80,6 +80,7 @@
     }
   },
   "devDependencies": {
+    "@effect/language-service": "0.86.2",
     "@effect/tsgo": "0.14.6",
     "@modern-js/code-tools": "npm:@bleedingdev/modern-js-code-tools@3.4.0-ultramodern.20",
     "@modern-js/create": "npm:@bleedingdev/modern-js-create@3.4.0-ultramodern.20",

@@ -6,12 +6,20 @@ const generatedContractPath = path.join(root, '.modernjs/ultramodern-generated-c
 const generatedContract = fs.existsSync(generatedContractPath)
   ? JSON.parse(fs.readFileSync(generatedContractPath, 'utf-8'))
   : undefined;
-const defaultAppDirs = Array.isArray(generatedContract?.apps)
+const contractAppDirs = Array.isArray(generatedContract?.apps)
   ? generatedContract.apps
       .map((app) => (typeof app.path === 'string' ? app.path : undefined))
       .filter((appPath) => appPath !== undefined)
-      .filter((appPath) => fs.existsSync(path.join(root, appPath, 'module-federation.config.ts')))
   : [];
+const shellAppDirs = Array.isArray(generatedContract?.apps)
+  ? generatedContract.apps
+      .filter((app) => app.kind === 'shell')
+      .map((app) => (typeof app.path === 'string' ? app.path : undefined))
+      .filter((appPath) => appPath !== undefined)
+  : [];
+const defaultAppDirs = (shellAppDirs.length > 0 ? shellAppDirs : contractAppDirs)
+  .filter((appPath) => fs.existsSync(path.join(root, appPath, 'module-federation.config.ts')))
+  .filter((appPath, index, appPaths) => appPaths.indexOf(appPath) === index);
 
 const args = process.argv.slice(2);
 if (args.includes('--help') || args.includes('-h')) {
@@ -60,7 +68,7 @@ for (const appDir of appDirs) {
   const exposes = contractEntry?.moduleFederation?.exposes;
   const hasExposes = Array.isArray(exposes) ? exposes.length > 0 : configHasExposes(configPath);
 
-  if (!(hasExposes || configHasExposes(configPath))) {
+  if (!hasExposes) {
     continue;
   }
 

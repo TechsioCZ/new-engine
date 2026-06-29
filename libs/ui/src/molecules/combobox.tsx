@@ -237,6 +237,22 @@ function defaultIsItemDisabled<TItem>(item: TItem) {
     : false
 }
 
+function filterComboboxItems<TItem>(
+  items: TItem[],
+  currentInputValue: string,
+  itemToString: (item: TItem) => string
+) {
+  const normalizedInputValue = currentInputValue.toLowerCase()
+
+  if (!normalizedInputValue) {
+    return items
+  }
+
+  return items.filter((item) =>
+    itemToString(item).toLowerCase().includes(normalizedInputValue)
+  )
+}
+
 function ComboboxStateContent({
   className,
   error,
@@ -327,12 +343,17 @@ export function Combobox<TItem = DefaultComboboxItem>({
   const generatedId = useId()
   const uniqueId = id || generatedId
 
-  const [filteredItems, setFilteredItems] = useState(items)
+  const [currentInputValue, setCurrentInputValue] = useState(inputValue ?? "")
   useEffect(() => {
-    setFilteredItems(items)
-  }, [items])
+    if (inputValue !== undefined) {
+      setCurrentInputValue(inputValue)
+    }
+  }, [inputValue])
 
-  const collectionItems = filterMode === "remote" ? items : filteredItems
+  const collectionItems =
+    filterMode === "remote"
+      ? items
+      : filterComboboxItems(items, currentInputValue, itemToString)
   const collection = createComboboxCollection({
     items: collectionItems,
     itemToString,
@@ -365,22 +386,10 @@ export function Combobox<TItem = DefaultComboboxItem>({
       onChange?.(selectedValue)
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
-      if (filterMode === "local") {
-        const filtered = items.filter((item) =>
-          itemToString(item)
-            .toLowerCase()
-            .includes(newItemInputValue.toLowerCase())
-        )
-        setFilteredItems(filtered)
-      } else {
-        setFilteredItems(items)
-      }
+      setCurrentInputValue(newItemInputValue)
       onInputValueChange?.(newItemInputValue)
     },
     onOpenChange: ({ open }) => {
-      if (filterMode === "local") {
-        setFilteredItems(items)
-      }
       onOpenChange?.(open)
     },
   })

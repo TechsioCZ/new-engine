@@ -49,10 +49,10 @@ jobs:
             command: pnpm contract:check
           - name: Smoke
             command: pnpm test:smoke
-          - name: MF Types
-            command: pnpm mf:types
           - name: Build
             command: pnpm build
+          - name: MF Types
+            command: pnpm mf:types
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2

@@ -206,6 +206,9 @@ importers:
       '@techsio/smart-suggest-core':
         specifier: workspace:^
         version: link:../../libs/smart-suggest/core
+      '@techsio/smart-suggest-react':
+        specifier: workspace:^
+        version: link:../../libs/smart-suggest/react
       '@techsio/smart-suggest-ui':
         specifier: workspace:^
         version: file:libs/smart-suggest/ui(@techsio/ui-kit@file:libs/ui(@types/react-dom@19.2.3(@types/react@19.2.3))(@types/react@19.2.3)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(tailwindcss@4.2.4))(react@19.2.3)

@@ -25,7 +25,7 @@ This documentation has been split into project-specific guides:
 
 **Decision flow:**
 
-```
+```text
 User's project
 ├─ Is it Rspack-based? (Rsbuild, Rslib, Rspress, etc.)
 │  ├─ Yes → projectType: 'rspack'

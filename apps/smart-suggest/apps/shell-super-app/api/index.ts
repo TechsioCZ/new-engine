@@ -919,6 +919,22 @@ const runtimeEnvBoolean = (
 const configuredCorsOrigins = (env?: SmartSuggestWorkerEnv) =>
   runtimeEnvStringArray(env, 'SMART_SUGGEST_ALLOWED_ORIGINS') ?? [];
 
+const corsAllowedOrigins = (
+  env?: SmartSuggestWorkerEnv,
+): readonly string[] | ((origin: string) => boolean) => {
+  const allowedOrigins = configuredCorsOrigins(env);
+
+  if (allowedOrigins.length === 0) {
+    return (_origin: string) => false;
+  }
+
+  if (allowedOrigins.includes('*')) {
+    return ['*'];
+  }
+
+  return (origin: string) => allowedOrigins.includes(origin);
+};
+
 const alpha2ByAlpha3: Record<string, string> = {
   AUT: 'AT',
   CZE: 'CZ',
@@ -2199,9 +2215,7 @@ const suggestFromProviderFallback = ({
       }),
     ]).pipe(
       Effect.as(mergedResponse),
-      Effect.orElseSucceed(() =>
-        mergeSuggestionResponses(ownedResponse, result.response, request.limit),
-      ),
+      Effect.orElseSucceed(() => mergedResponse),
     );
   }).pipe(Effect.orElseSucceed(() => ownedResponse));
 
@@ -2445,7 +2459,7 @@ const suggest = (
           {
             cacheStatus: 'hit',
             requestId: `cache-${queryHash.slice(0, 16)}`,
-            suggestions: cached.payload.slice(0, suggestRequest.limit).map((suggestion) => ({
+            suggestions: cached.payload.map((suggestion) => ({
               ...suggestion,
               cacheStatus: 'hit',
             })),
@@ -2453,6 +2467,10 @@ const suggest = (
           cacheLevels,
         ),
       );
+      response = {
+        ...response,
+        suggestions: response.suggestions.slice(0, normalizeSuggestLimit(suggestRequest.limit)),
+      };
 
       cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(response));
       yield* rememberRuntimeSuggestCaches(cacheKey, response, cacheLevels, workerCache, edgeCache);
@@ -2645,25 +2663,24 @@ export const createSmartSuggestApiGroupLayer = (
       .handle('validatePostal', ({ payload }) => Effect.succeed(validatePostalCode(payload))),
   );
 
-const createSmartSuggestCorsLayer = (env?: SmartSuggestWorkerEnv) => {
-  const isAllowedOrigin = (origin: string) => {
-    const allowedOrigins = configuredCorsOrigins(readEffectWorkerEnv() ?? env);
-
-    return allowedOrigins.includes('*') || allowedOrigins.includes(origin);
-  };
-
-  return HttpRouter.middleware(
+const createSmartSuggestCorsLayer = (env?: SmartSuggestWorkerEnv) =>
+  HttpRouter.middleware(
     Effect.succeed(
       HttpMiddleware.cors({
         allowedHeaders: ['authorization', 'content-type'],
         allowedMethods: ['GET', 'POST', 'OPTIONS'],
-        allowedOrigins: isAllowedOrigin,
+        allowedOrigins: (origin) => {
+          const allowedOrigins = corsAllowedOrigins(readEffectWorkerEnv() ?? env);
+
+          return typeof allowedOrigins === 'function'
+            ? allowedOrigins(origin)
+            : allowedOrigins.includes('*') || allowedOrigins.includes(origin);
+        },
         maxAge: 600,
       }),
     ),
     { global: true },
   );
-};
 
 export const createSmartSuggestApiLayer = (
   repositories?: SmartSuggestRepositories,

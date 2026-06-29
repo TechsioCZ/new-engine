@@ -77,17 +77,6 @@ const TEXT_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
   "US",
 ])
 
-const NUMERIC_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
-  "AT",
-  "CZ",
-  "DE",
-  "HU",
-  "PL",
-  "RO",
-  "SK",
-  "US",
-])
-
 const POSTAL_CODE_PATTERNS: Partial<Record<SmartSuggestCountryCode, RegExp>> = {
   AT: /^\d{4}$/,
   CA: /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][\s-]?\d[ABCEGHJ-NPRSTV-Z]\d$/i,
@@ -99,6 +88,19 @@ const POSTAL_CODE_PATTERNS: Partial<Record<SmartSuggestCountryCode, RegExp>> = {
   RO: /^\d{6}$/,
   SK: /^\d{3}\s?\d{2}$/,
   US: /^\d{5}(?:-\d{4})?$/,
+}
+
+const NUMERIC_POSTAL_INPUT_PATTERNS: Partial<
+  Record<SmartSuggestCountryCode, RegExp>
+> = {
+  AT: /^\d{4}$/,
+  CZ: /^\d{3} ?\d{2}$/,
+  DE: /^\d{5}$/,
+  HU: /^\d{4}$/,
+  PL: /^\d{2}-?\d{3}$/,
+  RO: /^\d{6}$/,
+  SK: /^\d{3} ?\d{2}$/,
+  US: /^\d{5}(?:-?\d{4})?$/,
 }
 
 const createIssue = (
@@ -119,9 +121,7 @@ const normalizePostalText = (value: string) =>
 const isPostalInputShapeAllowed = (
   countryCode: SmartSuggestCountryCode,
   normalizedValue: string
-) =>
-  !NUMERIC_POSTAL_INPUT_COUNTRIES.has(countryCode) ||
-  /^[\d\s-]+$/u.test(normalizedValue)
+) => NUMERIC_POSTAL_INPUT_PATTERNS[countryCode]?.test(normalizedValue) ?? true
 
 const isPostalCodeValidForCountry = (
   countryCode: SmartSuggestCountryCode,

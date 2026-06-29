@@ -76,7 +76,7 @@ export default {
 ### Rsbuild/Rslib/Modern.js
 
 See [Rsbuild - Use Rsdoctor](https://rsbuild.rs/guide/debug/rsdoctor) for more details.
-If this is Modern.js project can see [tools.rspack](https://modernjs.dev/configure/app/tools/rspack) of `modern.config.ts`:
+For Modern.js projects, see the [`tools.rspack`](https://modernjs.dev/configure/app/tools/rspack) section of `modern.config.ts`:
 
 For `@rsdoctor/rspack-plugin` < `1.5.11`, configure JSON output in `rsbuild.config.ts`:
 

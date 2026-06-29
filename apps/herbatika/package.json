@@ -30,6 +30,7 @@
     "@tanstack/react-query": "^5.90.2",
     "@techsio/smart-suggest-client": "workspace:^",
     "@techsio/smart-suggest-core": "workspace:^",
+    "@techsio/smart-suggest-react": "workspace:^",
     "@techsio/smart-suggest-ui": "workspace:^",
     "@techsio/smart-suggest-validation": "workspace:^",
     "@techsio/storefront-data": "workspace:*",

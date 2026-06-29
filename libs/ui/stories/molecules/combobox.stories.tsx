@@ -84,9 +84,9 @@ function ProductOption({
   label: string
 }) {
   return (
-    <span className="flex flex-col gap-25">
+    <span className="flex flex-col gap-50">
       <span>{label}</span>
-      <span className="text-combobox-fg-placeholder text-sm">
+      <span className="text-combobox-fg-placeholder text-combobox-item-sm">
         {item.department}
         {!item.available && ' · unavailable'}
       </span>
@@ -278,13 +278,13 @@ export const MultipleSelection: Story = {
     }
 
     return (
-      <div className="w-80 space-y-4">
+      <div className="w-xs space-y-200">
         {selectedCountries.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-150">
             {selectedCountries.map((country) => (
               <span
                 key={country.value}
-                className="inline-flex items-center gap-50 rounded-full bg-surface p-150 py-50 text-sm"
+                className="inline-flex items-center gap-50 rounded-badge bg-surface px-150 py-50 text-combobox-item-sm"
               >
                 {country.label}
                 <Button
@@ -364,7 +364,7 @@ export const RemoteSearch: Story = {
     }, [query])
 
     return (
-      <div className="w-80">
+      <div className="w-xs">
         <Combobox<ProductSuggestion>
           {...productAccessors}
           filterMode="remote"
@@ -386,7 +386,7 @@ export const RemoteSearch: Story = {
 
 export const RemoteLoading: Story = {
   render: () => (
-    <div className="w-80">
+    <div className="w-xs">
       <Combobox<ProductSuggestion>
         {...productAccessors}
         filterMode="remote"
@@ -403,7 +403,7 @@ export const RemoteLoading: Story = {
 
 export const RemoteError: Story = {
   render: () => (
-    <div className="w-80">
+    <div className="w-xs">
       <Combobox<ProductSuggestion>
         {...productAccessors}
         error="Search is temporarily unavailable."
@@ -422,7 +422,7 @@ export const RemoteError: Story = {
 
 export const RemoteEmpty: Story = {
   render: () => (
-    <div className="w-80">
+    <div className="w-xs">
       <Combobox<ProductSuggestion>
         {...productAccessors}
         filterMode="remote"
@@ -440,7 +440,7 @@ export const RemoteEmpty: Story = {
 
 export const Focused: Story = {
   render: () => (
-    <div className="w-80">
+    <div className="w-xs">
       <Combobox
         autoFocus
         helpText="The input receives focus when the story mounts."
@@ -454,7 +454,7 @@ export const Focused: Story = {
 
 export const Disabled: Story = {
   render: () => (
-    <div className="w-80">
+    <div className="w-xs">
       <Combobox
         disabled
         helpText="Search is disabled until the previous step is complete."
@@ -473,7 +473,7 @@ export const MobileWidth: Story = {
     },
   },
   render: () => (
-    <div className="w-64">
+    <div className="w-3xs">
       <Combobox<ProductSuggestion>
         {...productAccessors}
         filterMode="remote"
@@ -513,7 +513,7 @@ export const ComplexStory: Story = {
             : 'Select your country of residence'
 
     return (
-      <div className="w-72 space-y-8">
+      <div className="w-2xs space-y-400">
         <Combobox
           label="Select Country (Dynamic Validation)"
           placeholder="Choose a country..."
@@ -525,9 +525,9 @@ export const ComplexStory: Story = {
           validateStatus={validateStatus}
           helpText={dynamicHelpText}
         />
-        <div className="text-sm ">
+        <div className="text-combobox-sm">
           Try selecting different countries to see validation states change:
-          <ul className="mt-2 ml-5 list-disc">
+          <ul className="mt-100 ml-250 list-disc">
             <li>USA - error</li>
             <li>Slovakia - warning</li>
             <li>Czech Republic - success</li>

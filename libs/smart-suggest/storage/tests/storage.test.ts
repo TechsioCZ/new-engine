@@ -84,6 +84,45 @@ describe("smart suggest storage", () => {
     })
   )
 
+  it.effect(
+    "orders FTS address candidates before applying the candidate limit",
+    () =>
+      Effect.gen(function* () {
+    const preparedQueries: string[] = []
+    const binding = {
+      prepare: (query: string) => {
+        preparedQueries.push(query)
+
+        return {
+          bind: () => ({
+            all: async () => ({ results: [] }),
+            raw: async () => [],
+          }),
+        }
+      },
+    } as unknown as SmartSuggestD1Binding
+    const repositories = createD1SmartSuggestRepositories(binding)
+
+    yield* resolveStorageEffect(
+      repositories.addressRecords.searchAddressRecords({
+        countryCode: "CZ",
+        limit: 1,
+        query: "Lou",
+      })
+    )
+
+    const ftsQuery = preparedQueries.find(
+      (query) =>
+        query.includes("smart_suggest_address_search_fts") &&
+        query.includes(" match ")
+    )
+
+    expect(ftsQuery?.replaceAll(/\s+/g, " ").toLowerCase()).toContain(
+      "order by rank limit"
+    )
+      })
+  )
+
   it.effect("stores and resolves CZ VUSC shard routing metadata", () =>
     Effect.gen(function* () {
     const repositories = createInMemorySmartSuggestRepositories()
@@ -544,7 +583,7 @@ describe("smart suggest storage", () => {
     expect(createAddressSearchFtsQuery("10100 K Louzi")).toBe("10100* louzi*")
   })
 
-  it.effect("does not return same-city records for multi-token street queries", () =>
+  it.effect("lets the prefix index handle short address queries", () =>
     Effect.gen(function* () {
     const repositories = createInMemorySmartSuggestRepositories()
     const source = yield* resolveStorageEffect(
@@ -623,7 +662,7 @@ describe("smart suggest storage", () => {
 
     expect(kLouziResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })])
     expect(shortKResults).toEqual([])
-    expect(shortLoResults).toEqual([])
+    expect(shortLoResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })])
     })
   )
 

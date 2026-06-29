@@ -353,6 +353,10 @@ function sourceRendersCheckoutDemo() {
     demoSource.includes('SmartSuggestAddressFieldRemote') &&
     demoSource.includes('PostalValidationField') &&
     demoSource.includes('PhoneValidationField') &&
+    demoSource.includes('validatePostalCode={(request) =>') &&
+    demoSource.includes('validatePhoneNumber={(request) =>') &&
+    demoSource.includes('smartSuggestClient.validatePostal(request)') &&
+    demoSource.includes('smartSuggestClient.validatePhone(request)') &&
     demoSource.includes('action="/checkout"')
   );
 }

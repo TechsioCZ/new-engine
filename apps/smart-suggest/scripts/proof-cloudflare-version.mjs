@@ -65,7 +65,8 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   const contract = readJson(contractPath);
-  const apps = args.appId ? contract.apps.filter((app) => app.id === args.appId) : contract.apps;
+  const allApps = Array.isArray(contract.apps) ? contract.apps : [];
+  const apps = args.appId ? allApps.filter((app) => app.id === args.appId) : allApps;
   assert(apps.length > 0, `No generated app matched ${args.appId}`);
 
   const results = [];

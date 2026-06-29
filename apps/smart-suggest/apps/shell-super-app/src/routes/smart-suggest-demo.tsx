@@ -4,7 +4,8 @@ import { PostalValidationField } from '@techsio/smart-suggest-ui/postal-validati
 import type { AddressParts, SmartSuggestRequest } from '@techsio/smart-suggest-core';
 import type { PhoneInputCountry } from '@techsio/ui-kit/molecules/phone-input';
 import { Effect } from 'effect';
-import { type FormEvent, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import { useMemo, useState } from 'react';
 import { createSmartSuggestApiClient, runEffectRequest } from '../api/smart-suggest-client';
 import { SmartSuggestAddressFieldRemote } from '../federation/smart-suggest-address-field';
 import type { SmartSuggestAddressFieldRemoteProps } from '../federation/smart-suggest-address-field';
@@ -227,6 +228,9 @@ export default function SmartSuggestDemoPage() {
                 markDeliveryChanged();
               }}
               required
+              validatePostalCode={(request) =>
+                runEffectRequest(smartSuggestClient.validatePostal(request))
+              }
               value={postalCode}
             />
             <label className="shell:grid shell:gap-2 shell:text-sm shell:font-bold shell:text-stone-800">

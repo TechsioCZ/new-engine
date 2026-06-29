@@ -28,7 +28,12 @@ function parseDuration(durationStr) {
 }
 
 // Get trace file path
-const tracePath = process.argv[2] || path.join(__dirname, 'trace.json');
+const tracePath = path.resolve(process.argv[2] || path.join(__dirname, 'trace.json'));
+
+if (path.extname(tracePath) !== '.json') {
+  console.error('Error: Trace file must have a .json extension');
+  process.exit(1);
+}
 
 if (!fs.existsSync(tracePath)) {
   console.error(`Error: Trace file not found at ${tracePath}`);
@@ -45,10 +50,11 @@ try {
   const events = fileContent
     .trim()
     .split('\n')
-    .map(line => {
+    .map((line, index) => {
       try {
         return JSON.parse(line);
       } catch (err) {
+        console.warn(`Warning: failed to parse line ${index + 1}: ${err.message}`);
         return null;
       }
     })

@@ -40,7 +40,7 @@ Optional:
 
 - Use `builtin:lightningcss-loader` when goals are syntax downgrade + vendor prefixing
 - Use `sass-loader`/`less-loader` for preprocessing Sass/Less files
-- Use `@tailwindcss/webpack` for Tailwind CSS integration
+- For Tailwind CSS v4, use `@tailwindcss/postcss` or `@tailwindcss/cli` rather than a webpack-specific integration package
 
 ## Bundle size optimization
 

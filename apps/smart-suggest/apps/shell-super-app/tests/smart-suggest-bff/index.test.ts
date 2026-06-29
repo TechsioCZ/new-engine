@@ -409,7 +409,7 @@ describe('Smart Suggest effect API', () => {
       }),
   );
 
-  it.effect('filters incomplete address suggestions from cache-hit responses', () =>
+  it.effect('filters incomplete address suggestions before limiting cache-hit responses', () =>
     Effect.gen(function* shellEffectTestProgram9() {
       const repositories = createInMemorySmartSuggestRepositories();
       const testHandler = createSmartSuggestHandler(repositories);
@@ -417,7 +417,7 @@ describe('Smart Suggest effect API', () => {
         createSuggestQueryHashEffect({
           countryCode: 'CZ',
           kind: 'address',
-          limit: 5,
+          limit: 1,
           query: 'K L',
         }),
       );
@@ -472,7 +472,7 @@ describe('Smart Suggest effect API', () => {
 
       const response = yield* handlerCallEffect(
         testHandler,
-        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=K%20L&limit=5'),
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=K%20L&limit=1'),
       );
       const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
 

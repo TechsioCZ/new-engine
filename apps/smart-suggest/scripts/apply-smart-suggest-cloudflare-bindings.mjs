@@ -164,7 +164,18 @@ function parseJsonEnv(name) {
 }
 
 function writeJson(filePath, value) {
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+  const directory = path.dirname(filePath);
+  const temporaryPath = path.join(
+    directory,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`,
+  );
+
+  try {
+    fs.writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`);
+    fs.renameSync(temporaryPath, filePath);
+  } finally {
+    fs.rmSync(temporaryPath, { force: true });
+  }
 }
 
 function isRecord(value) {
@@ -518,6 +529,11 @@ function main(argv = process.argv.slice(2)) {
   assertInside(appsRoot, appRoot);
 
   const wranglerPath = path.join(appRoot, '.output/wrangler.json');
+  if (!fs.existsSync(wranglerPath)) {
+    throw new Error(
+      `Generated Wrangler config is missing: ${wranglerPath}. Run the app Cloudflare build before applying Smart Suggest bindings.`,
+    );
+  }
   const config = readJson(wranglerPath);
   const binding = envValue('SMART_SUGGEST_D1_BINDING') ?? 'SMART_SUGGEST_D1';
   const databaseName = envValue('SMART_SUGGEST_D1_DATABASE_NAME') ?? 'smart-suggest';

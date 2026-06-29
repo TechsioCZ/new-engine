@@ -278,19 +278,91 @@ const clearControlValidation = (control: TextControl | undefined) => {
 const applyControlValidationResult = (
   control: TextControl | undefined,
   result: SmartSuggestVanillaValidationResult,
+  fallbackMessage = 'Enter a valid phone number.',
 ) => {
   if (control === undefined) {
     return;
   }
 
   if (result.isValid === false) {
-    const message = result.errors?.[0]?.message ?? 'Enter a valid phone number.';
+    const message = result.errors?.[0]?.message ?? fallbackMessage;
     control.setCustomValidity(message);
     control.setAttribute('aria-invalid', 'true');
     return;
   }
 
   clearControlValidation(control);
+};
+
+type SmartSuggestVanillaValidationIssue = NonNullable<
+  SmartSuggestVanillaValidationResult['errors']
+>[number];
+
+const isVanillaValidationIssue = (
+  value: unknown,
+): value is SmartSuggestVanillaValidationIssue => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const code = Reflect.get(value, 'code');
+  const field = Reflect.get(value, 'field');
+  const message = Reflect.get(value, 'message');
+
+  return (
+    typeof code === 'string' &&
+    (field === undefined || typeof field === 'string') &&
+    typeof message === 'string'
+  );
+};
+
+const toPostalValidationResultFromError = (
+  error: unknown,
+  rawInput: string,
+): SmartSuggestVanillaValidationResult | undefined => {
+  if (typeof error !== 'object' || error === null) {
+    return;
+  }
+
+  const status = Reflect.get(error, 'status');
+  const errorTag = Reflect.get(error, '_tag');
+  const errorName = Reflect.get(error, 'name');
+  const isValidationError =
+    status === 422 ||
+    errorTag === 'SmartSuggestValidationError' ||
+    errorName === 'SmartSuggestValidationError';
+
+  if (!isValidationError) {
+    return;
+  }
+
+  const errors = Reflect.get(error, 'errors');
+  const validationErrors = Array.isArray(errors) ? errors.filter(isVanillaValidationIssue) : [];
+  if (validationErrors.length === 0) {
+    const message = Reflect.get(error, 'message');
+
+    if (typeof message !== 'string' || message.trim().length === 0) {
+      return;
+    }
+
+    return {
+      displayValue: rawInput,
+      errors: [
+        {
+          code: 'validation-error',
+          field: 'postalCode',
+          message,
+        },
+      ],
+      isValid: false,
+    };
+  }
+
+  return {
+    displayValue: rawInput,
+    errors: validationErrors,
+    isValid: false,
+  };
 };
 
 const restoreStyleProperty = (
@@ -806,8 +878,28 @@ export const attachSmartSuggest = (
       }
 
       setControlValue(controls.postalCode, result.displayValue);
-      applyControlValidationResult(controls.postalCode, result);
+      applyControlValidationResult(
+        controls.postalCode,
+        result,
+        'Enter a valid postal code.',
+      );
     } catch (error) {
+      if (
+        validationSequence === postalValidationSequence &&
+        rawInput === getControlValue(controls.postalCode) &&
+        countryCode === readCountryCode()
+      ) {
+        const result = toPostalValidationResultFromError(error, rawInput);
+
+        if (result !== undefined) {
+          applyControlValidationResult(
+            controls.postalCode,
+            result,
+            'Enter a valid postal code.',
+          );
+        }
+      }
+
       reportError(config.onError, error);
     }
   };

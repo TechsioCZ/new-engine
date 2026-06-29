@@ -507,6 +507,48 @@ describe('attachSmartSuggest', () => {
     expect(postalCode.getAttribute('aria-invalid')).toBeNull();
   });
 
+  it('applies rejected postal validation errors to the postal control', async () => {
+    const postalCode = addInput('postal-code', '123-45');
+    const country = addInput('country', 'CZ');
+    const onError = vi.fn();
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
+      Promise.resolve(
+        jsonResponse(
+          {
+            _tag: 'SmartSuggestValidationError',
+            errors: [
+              {
+                code: 'validation-error',
+                field: 'postalCode',
+                message: 'Enter a valid postal code for the selected country.',
+              },
+            ],
+            message: 'Enter a valid postal code for the selected country.',
+          },
+          { status: 422, statusText: 'Unprocessable Entity' },
+        ),
+      ),
+    );
+    const instance = attachSmartSuggest({
+      country,
+      fetch: fetchMock,
+      onError,
+      postalCode,
+    });
+
+    await instance.validatePostal();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/validate/postal',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(postalCode.validationMessage).toBe(
+      'Enter a valid postal code for the selected country.',
+    );
+    expect(postalCode.getAttribute('aria-invalid')).toBe('true');
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ status: 422 }));
+  });
+
   it('keeps phone validation server-only by default and applies native tel semantics', async () => {
     const phone = addInput('phone', '+420777123456');
     const country = addInput('country', 'CZ');

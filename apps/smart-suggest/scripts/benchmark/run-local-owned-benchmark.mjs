@@ -1473,7 +1473,7 @@ async function runExternalScenario(context, normalizer, scenario, args, requestL
   const startedAt = performance.now();
   let normalizedRecords = [];
   let providerEvents = [];
-  let status = 'success';
+  let status;
   let errorCode;
   let network = {
     bytesTransferred: 0,

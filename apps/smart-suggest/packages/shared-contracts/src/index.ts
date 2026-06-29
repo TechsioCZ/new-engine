@@ -56,16 +56,27 @@ export interface UltramodernPerformanceReadinessDiagnosticsConfig {
 export const ultramodernWorkspaceContract = {
   ownership: 'topology/ownership.json',
   performanceReadiness: {
-    defaultOn: true,
-    optOut: 'scripts/ultramodern-performance-readiness.config.mjs#enabled=false',
-    report: '.codex/reports/performance-readiness/ultramodern-performance-readiness.json',
+    default: 'enabled',
+    optOut: {
+      config: {
+        field: 'enabled',
+        path: 'scripts/ultramodern-performance-readiness.config.mjs',
+        value: false,
+      },
+      env: 'ULTRAMODERN_PERFORMANCE_READINESS_DIAGNOSTICS=false',
+    },
+    report: {
+      defaultPath: '.codex/reports/performance-readiness/ultramodern-performance-readiness.json',
+      deterministic: true,
+      script: 'scripts/ultramodern-performance-readiness.mjs',
+    },
     signals: [
-      'bfcache',
-      'core-web-vitals-rum',
-      'duplicate-prefetch-warmup',
-      'cache-policy-sanity',
-      'save-data-behavior',
-      'cloudflare-ssr-cache-hints',
+      { id: 'bfcache' },
+      { id: 'core-web-vitals-rum' },
+      { id: 'duplicate-prefetch-warmup' },
+      { id: 'cache-policy-sanity' },
+      { id: 'save-data-behavior' },
+      { id: 'cloudflare-ssr-cache-hints' },
     ],
   },
   preset: 'presetUltramodern',

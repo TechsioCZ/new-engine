@@ -71,6 +71,27 @@ describe("validatePostalCode", () => {
     )
   })
 
+  it.each([
+    ["CZ", "123-45", "123-45"],
+    ["CZ", "1 23 45", "1 23 45"],
+    ["PL", "12 345", "12 345"],
+    ["US", "90210--1234", "90210--1234"],
+  ] satisfies readonly PostalFixture[])(
+    "rejects noisy numeric %s postal input %s before digit formatting",
+    (countryCode, rawInput, displayValue) => {
+      const result = validatePostalCode({ countryCode, rawInput })
+
+      expect(result).toMatchObject({
+        displayValue,
+        isValid: false,
+        normalizedValue: displayValue,
+      })
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "postal.invalid" })
+      )
+    }
+  )
+
   it("does not force numeric input for alphanumeric or punctuated countries", () => {
     expect(getPostalInputHints("GB")).toMatchObject({ inputMode: "text" })
     expect(getPostalInputHints("CA")).toMatchObject({ inputMode: "text" })

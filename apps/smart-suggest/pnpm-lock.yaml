@@ -16,6 +16,9 @@ importers:
 
   .:
     devDependencies:
+      '@effect/language-service':
+        specifier: 0.86.2
+        version: 0.86.2
       '@effect/tsgo':
         specifier: 0.14.6
         version: 0.14.6
@@ -1281,6 +1284,10 @@ packages:
 
   '@drizzle-team/brocli@0.12.0':
     resolution: {integrity: sha512-mlUE+rZ8CatQekLhnaiN91Iemdd+e2gFKooGlnRB3oPTL3VghLfX24dx7HrzMNeC1JrIB/0kpsfyty3f5HNfxQ==}
+
+  '@effect/language-service@0.86.2':
+    resolution: {integrity: sha512-SaPln+8srOqDJDUwNTDmP5e+IYpEDr9+1epGznnsLqu8xvo6VnxyWARdeLpqvZJlb0Pgy9ca7ppqvvdWbHPXAg==}
+    hasBin: true
 
   '@effect/opentelemetry@4.0.0-beta.89':
     resolution: {integrity: sha512-Jf+X8g228sbubnYF7GGdYaiPAEdap45ZkOi6QXLecy09c56lUowxb2+x0stmbyy09oxGjcanAgI3vPUz6CQAJA==}
@@ -11119,6 +11126,8 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@drizzle-team/brocli@0.12.0': {}
+
+  '@effect/language-service@0.86.2': {}
 
   '@effect/opentelemetry@4.0.0-beta.89(@opentelemetry/api-logs@0.219.0)(@opentelemetry/api@1.9.1)(@opentelemetry/resources@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-logs@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-metrics@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-node@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-web@2.8.0(@opentelemetry/api@1.9.1))(@opentelemetry/semantic-conventions@1.41.1)(effect@4.0.0-beta.89)':
     dependencies:
