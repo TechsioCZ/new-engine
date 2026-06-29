@@ -1006,7 +1006,7 @@ assert(
 );
 assert(
   rootPackage.scripts?.typecheck ===
-    'pnpm -r --filter "@smart-suggest/*" --filter "@techsio/smart-suggest-*" typecheck',
+    'pnpm build:packages && pnpm -r --filter "@smart-suggest/*" --filter "@techsio/smart-suggest-*" typecheck',
   'Root typecheck must run strict TS-Go project checks across workspace packages',
 );
 assert(
@@ -1068,7 +1068,7 @@ assert(
 );
 assert(
   rootPackage.scripts?.['mf:types'] ===
-    'ULTRAMODERN_ZEPHYR=false pnpm --filter "./apps/shell-super-app" run build && pnpm mf:types:assert',
+    'pnpm build:packages && ULTRAMODERN_ZEPHYR=false pnpm --filter "./apps/shell-super-app" run build && pnpm mf:types:assert',
   'Root must expose mf:types with a shell build before assertion',
 );
 assert(

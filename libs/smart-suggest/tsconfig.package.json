@@ -1,11 +1,6 @@
 {
   "extends": "../../apps/smart-suggest/tsconfig.base.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "paths": {
-      "@smart-suggest/shell-super-app/api": [
-        "../../apps/smart-suggest/apps/shell-super-app/shared/api.ts"
-      ]
-    }
+    "jsx": "react-jsx"
   }
 }

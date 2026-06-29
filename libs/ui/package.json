@@ -58,7 +58,7 @@
     "src/tokens"
   ],
   "scripts": {
-    "build": "rslib build",
+    "build": "rslib build --tsconfig tsconfig.build.json",
     "build:storybook": "storybook build",
     "dev": "rslib build --watch",
     "storybook": "storybook dev",
