@@ -37,6 +37,11 @@ const packageSubpathSources: Partial<Record<SmartSuggestPackage, Record<string, 
   },
 };
 
+const shellApiAlias = {
+  find: /^@smart-suggest\/shell-super-app\/api$/u,
+  replacement: sourcePath('../../../../apps/smart-suggest/apps/shell-super-app/shared/api.ts'),
+};
+
 const REACT_IMPORT_PATTERN = /^react$/u;
 const REACT_JSX_DEV_RUNTIME_PATTERN = /^react\/jsx-dev-runtime$/u;
 const REACT_JSX_RUNTIME_PATTERN = /^react\/jsx-runtime$/u;
@@ -76,6 +81,7 @@ export const defineSmartSuggestVitestConfig = ({
   defineConfig({
     resolve: {
       alias: [
+        shellApiAlias,
         ...(reactSingletonFrom ? reactSingletonAliases(reactSingletonFrom) : []),
         ...packages.flatMap(packageAliases),
       ],

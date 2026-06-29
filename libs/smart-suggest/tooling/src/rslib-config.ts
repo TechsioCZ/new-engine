@@ -2,8 +2,11 @@ import { fileURLToPath } from "node:url"
 import { defineConfig, type RslibConfig } from "@rslib/core"
 
 type SmartSuggestRslibOptions = {
+  alias?: Record<string, string>
+  bundle?: boolean
   configUrl: string
   entry?: string | Record<string, string>
+  outBase?: string
   plugins?: RslibConfig["plugins"]
 }
 
@@ -11,8 +14,11 @@ const packagePath = (configUrl: string, relativePath: string) =>
   fileURLToPath(new URL(relativePath, configUrl))
 
 export const defineSmartSuggestRslibConfig = ({
+  alias,
+  bundle = false,
   configUrl,
   entry = "./src/index.ts",
+  outBase,
   plugins,
 }: SmartSuggestRslibOptions) =>
   defineConfig({
@@ -27,7 +33,15 @@ export const defineSmartSuggestRslibConfig = ({
               ])
             ),
     },
-    lib: [{ bundle: false, dts: true, format: "esm" }],
+    ...(alias ? { resolve: { alias } } : {}),
+    lib: [
+      {
+        bundle,
+        dts: true,
+        format: "esm",
+        ...(outBase ? { outBase } : {}),
+      },
+    ],
     output: { target: "web" },
     ...(plugins ? { plugins } : {}),
   })
