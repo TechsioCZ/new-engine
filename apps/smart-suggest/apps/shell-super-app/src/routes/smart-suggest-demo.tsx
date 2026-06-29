@@ -2,7 +2,6 @@ import { useModernI18n } from '@modern-js/plugin-i18n/runtime';
 import { PhoneValidationField } from '@techsio/smart-suggest-ui/phone-validation-field';
 import { PostalValidationField } from '@techsio/smart-suggest-ui/postal-validation-field';
 import type { AddressParts, SmartSuggestRequest } from '@techsio/smart-suggest-core';
-import type { PhoneInputCountry } from '@techsio/ui-kit/molecules/phone-input';
 import { Effect } from 'effect';
 import type { FormEvent } from 'react';
 import { useMemo, useState } from 'react';
@@ -79,7 +78,7 @@ const normalizeDemoCountry = (countryCode: string | undefined): SupportedDemoCou
   countryCode === 'SK' ? 'SK' : 'CZ';
 
 const renderAddressSuggestion = (suggestion: { displayLabel: string }) => (
-  <span className="shell:block shell:min-w-0 shell:truncate shell:text-sm shell:font-bold shell:text-stone-950">
+  <span className="shell:block shell:min-w-0 shell:truncate shell:text-sm shell:font-bold">
     {suggestion.displayLabel}
   </span>
 );
@@ -91,7 +90,7 @@ export default function SmartSuggestDemoPage() {
   const { i18nInstance, language } = useModernI18n();
   const t = i18nInstance['t'].bind(i18nInstance);
   const smartSuggestClient = useMemo(() => createDemoSmartSuggestClient(), []);
-  const phoneCountries: PhoneInputCountry[] = supportedCountries.map((country) => {
+  const phoneCountries = supportedCountries.map((country) => {
     const name = t(`shell.demo.countries.${country}`);
 
     return { label: name, name, value: country };

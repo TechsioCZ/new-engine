@@ -11,7 +11,7 @@ export default function ShellFrame({ children }: ShellFrameProps) {
   const { alternates } = useLocalizedLocation();
 
   return (
-    <main className="shell:min-h-screen shell:overflow-x-hidden shell:bg-[#f5f7f2] shell:px-4 shell:py-4 shell:text-um-foreground shell:sm:px-6 shell:lg:px-12">
+    <main className="shell:min-h-screen shell:overflow-x-hidden shell:bg-[#f5f7f2] shell:px-4 shell:py-4 shell:scheme-light shell:text-um-foreground shell:sm:px-6 shell:lg:px-12">
       <div className="shell:mx-auto shell:flex shell:max-w-6xl shell:justify-end">
         <label className="shell:sr-only" htmlFor="smart-suggest-language">
           {t('shell.language.switcher')}

@@ -15,8 +15,8 @@
 
   --padding-combobox-trigger: 0 var(--spacing-100);
 
-  --color-combobox-item-fg-hover: var(--color-combobox-item-fg);
-  --color-combobox-item-fg-selected: var(--color-combobox-item-fg);
+  --color-combobox-item-state-bg: var(--color-neutral-900);
+  --color-combobox-item-state-fg: var(--color-white);
 
   --z-combobox-content: 20;
 }
