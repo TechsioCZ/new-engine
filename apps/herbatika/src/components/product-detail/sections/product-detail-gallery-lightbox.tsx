@@ -62,7 +62,9 @@ export function ProductDetailGalleryLightbox({
     onOpenChange(nextOpen)
   }
 
-  const handleValueChange = ({ value: nextValue }: GalleryValueChangeDetails) => {
+  const handleValueChange = ({
+    value: nextValue,
+  }: GalleryValueChangeDetails) => {
     onValueChange(nextValue)
   }
 
@@ -85,7 +87,7 @@ export function ProductDetailGalleryLightbox({
         <div className="relative h-dvh max-h-dvh overflow-hidden p-300 text-fg-reverse">
           <ActionIcon
             aria-label="Zavrieť galériu"
-            className="absolute top-300 right-300 z-2 bg-transparent text-fg-reverse hover:text-primary active:bg-fg-reverse/25 focus-visible:outline-fg-reverse"
+            className="absolute top-300 right-300 z-2 bg-transparent text-fg-reverse hover:text-primary focus-visible:outline-fg-reverse active:bg-fg-reverse/25"
             icon="token-icon-close"
             onClick={handleClose}
             size="lg"
@@ -116,11 +118,11 @@ export function ProductDetailGalleryLightbox({
                 <Gallery.Slides className="h-full" />
                 {hasMultipleImages ? (
                   <Carousel.Control
-                    className="pointer-events-none absolute inset-x-200 top-1/2 z-1 -translate-y-1/2 justify-between bg-transparent p-0 max-md:text-fg-primary"
+                    className="-translate-y-1/2 pointer-events-none absolute inset-x-200 top-1/2 z-1 justify-between bg-transparent p-0 max-md:text-fg-primary"
                     controlPosition="unset"
                   >
-                    <Carousel.Previous className="pointer-events-auto bg-base rounded-full aspect-square max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
-                    <Carousel.Next className="pointer-events-auto bg-base rounded-full aspect-square max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
+                    <Carousel.Previous className="pointer-events-auto aspect-square rounded-full bg-base max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
+                    <Carousel.Next className="pointer-events-auto aspect-square rounded-full bg-base max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
                   </Carousel.Control>
                 ) : null}
               </Gallery.Carousel>
