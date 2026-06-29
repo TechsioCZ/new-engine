@@ -78,3 +78,9 @@
 .smart-suggest-demo :where(.form-control-base button) {
   min-height: 2.75rem;
 }
+
+:where([data-scope='combobox'][data-part='item'][data-highlighted]),
+:where([data-scope='combobox'][data-part='item'][data-state='checked']) {
+  background-color: #1f2937;
+  color: #ffffff;
+}

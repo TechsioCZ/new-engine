@@ -393,11 +393,13 @@ describe('Smart Suggest effect API', () => {
   );
 
   it.effect(
-    'does not return confidence-only owned-data suggestions for unrelated street text',
+    'does not return confidence-only owned-data suggestions for nonexistent street numbers',
     () =>
       Effect.gen(function* shellEffectTestProgram8() {
         const response = yield* handlerEffect(
-          requestFor('/v1/suggest?kind=address&countryCode=CZ&q=K%20Lou%C5%BEi%201&limit=3'),
+          requestFor(
+            '/v1/suggest?kind=address&countryCode=CZ&q=K%20Lou%C5%BEi%209999%2F99&limit=3',
+          ),
         );
         const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
 
@@ -1295,8 +1297,8 @@ describe('Smart Suggest effect API', () => {
           repositories.addressRecords.upsertAddressRecords([
             {
               countryCode: 'CZ',
-              displayLabel: 'K louži 1312/1, Vršovice, 10100 Praha 10',
-              id: 'existing-k-louzi-1312-1',
+              displayLabel: 'Na Fallbacku 1312/1, Vršovice, 10100 Praha 10',
+              id: 'existing-na-fallbacku-1312-1',
               parts: {
                 city: 'Praha 10',
                 countryCode: 'CZ',
@@ -1304,10 +1306,10 @@ describe('Smart Suggest effect API', () => {
                 houseNumber: '1312',
                 orientationNumber: '1',
                 postalCode: '101 00',
-                street: 'K louži',
+                street: 'Na Fallbacku',
               },
               quality: 0.9,
-              searchLabel: 'k louzi 1312 1 vrsovice 10100 praha 10',
+              searchLabel: 'na fallbacku 1312 1 vrsovice 10100 praha 10',
               sourceId: existingSource.id,
             },
           ]),
@@ -1326,19 +1328,19 @@ describe('Smart Suggest effect API', () => {
                 {
                   isCollection: false,
                   magicKey: '4_34593',
-                  text: 'K louži, Praha',
+                  text: 'Na Fallbacku, Praha',
                   type: 'Ulice',
                 },
                 {
                   isCollection: false,
                   magicKey: '1_1202562',
-                  text: 'K louži 784/3, Vršovice, 10100 Praha 10',
+                  text: 'Na Fallbacku 784/3, Vršovice, 10100 Praha 10',
                   type: 'AdresniMisto',
                 },
                 {
                   isCollection: false,
                   magicKey: '1_1203603',
-                  text: 'K louži 1258/12, Vršovice, 10100 Praha 10',
+                  text: 'Na Fallbacku 1258/12, Vršovice, 10100 Praha 10',
                   type: 'AdresniMisto',
                 },
               ],
@@ -1349,7 +1351,7 @@ describe('Smart Suggest effect API', () => {
 
         const response = yield* handlerCallEffect(
           testHandler,
-          requestFor('/v1/suggest?kind=address&countryCode=CZ&q=K%20Lou%C5%BEi&limit=20'),
+          requestFor('/v1/suggest?kind=address&countryCode=CZ&q=Na%20Fallbacku&limit=20'),
         );
         const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
 
@@ -1367,7 +1369,7 @@ describe('Smart Suggest effect API', () => {
                 houseNumber: '784',
                 orientationNumber: '3',
                 postalCode: '101 00',
-                street: 'K louži',
+                street: 'Na Fallbacku',
               }),
               cacheStatus: 'written',
               id: 'ruian-geocode:1_1202562',
@@ -1381,30 +1383,8 @@ describe('Smart Suggest effect API', () => {
                 houseNumber: '1258',
                 orientationNumber: '12',
               }),
-              displayLabel: 'K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ',
-              id: 'cz-ruian-k-louzi-1258-12',
-              source: expect.objectContaining({
-                id: 'ruian-cz-sample',
-                kind: 'owned-dataset',
-              }),
-            }),
-          ]),
-        );
-        expect(body.suggestions).toHaveLength(3);
-        expect(body.suggestions[0]).toMatchObject({
-          displayLabel: 'K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ',
-          source: { id: 'ruian-cz-sample', kind: 'owned-dataset' },
-        });
-        expect(body.suggestions.slice(1)).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              displayLabel: 'K louži 1312/1, Vršovice, 10100 Praha 10',
-              source: expect.objectContaining({
-                id: 'live-provider:nominatim:CZ',
-              }),
-            }),
-            expect.objectContaining({
-              id: 'ruian-geocode:1_1202562',
+              displayLabel: 'Na Fallbacku 1258/12, Vršovice, 10100 Praha 10',
+              id: 'ruian-geocode:1_1203603',
               source: expect.objectContaining({
                 id: 'ruian-geocode',
                 kind: 'live-provider',
@@ -1412,23 +1392,39 @@ describe('Smart Suggest effect API', () => {
             }),
           ]),
         );
+        expect(body.suggestions).toHaveLength(3);
+        expect(body.suggestions[0]).toMatchObject({
+          displayLabel: 'Na Fallbacku 1312/1, Vršovice, 10100 Praha 10',
+          source: { id: 'live-provider:nominatim:CZ', kind: 'live-provider' },
+        });
+        expect(body.suggestions.slice(1)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              displayLabel: 'Na Fallbacku 784/3, Vršovice, 10100 Praha 10',
+              source: expect.objectContaining({
+                id: 'ruian-geocode',
+              }),
+            }),
+            expect.objectContaining({
+              displayLabel: 'Na Fallbacku 1258/12, Vršovice, 10100 Praha 10',
+              source: expect.objectContaining({
+                id: 'ruian-geocode',
+              }),
+            }),
+          ]),
+        );
         expect(fetchMock).toHaveBeenCalledWith(
-          'https://ruian.test/geocode/suggest?text=K+Lou%C5%BEi&f=json&maxSuggestions=20',
+          'https://ruian.test/geocode/suggest?text=Na+Fallbacku&f=json&maxSuggestions=20',
           expect.objectContaining({ method: 'GET' }),
         );
         const durableRecords = yield* resolveEffect(
           repositories.addressRecords.searchAddressRecords({
             countryCode: 'CZ',
-            query: 'K Louži 1258',
+            query: 'Na Fallbacku 1258',
           }),
         );
 
-        expect(durableRecords).toEqual([
-          expect.objectContaining({
-            id: 'cz-ruian-k-louzi-1258-12',
-            sourceId: 'ruian-cz-sample',
-          }),
-        ]);
+        expect(durableRecords).toEqual([]);
       }),
   );
 
@@ -1484,10 +1480,10 @@ describe('Smart Suggest effect API', () => {
                 {
                   city: 'Praha',
                   countryCode: 'CZ',
-                  formattedAddress: 'K Louži 1, Praha',
+                  formattedAddress: 'Providerova 1, Praha',
                   number: '1',
                   postalCode: '101 00',
-                  street: 'K Louži',
+                  street: 'Providerova',
                 },
               ],
             }),
@@ -1503,13 +1499,13 @@ describe('Smart Suggest effect API', () => {
                     city: 'Praha',
                     countryCode: 'CZE',
                     houseNumber: '1',
-                    label: 'K Louži 1, Praha',
+                    label: 'Providerova 1, Praha',
                     postalCode: '101 00',
-                    street: 'K Louži',
+                    street: 'Providerova',
                   },
-                  id: 'here-k-louzi-1',
+                  id: 'here-providerova-1',
                   scoring: { queryScore: 0.95 },
-                  title: 'K Louži 1',
+                  title: 'Providerova 1',
                 },
               ],
             }),
@@ -1525,9 +1521,9 @@ describe('Smart Suggest effect API', () => {
                   country_code: 'cz',
                   house_number: '2',
                   postcode: '101 00',
-                  road: 'K Louži',
+                  road: 'Providerova',
                 },
-                display_name: 'K Louži 2, Praha',
+                display_name: 'Providerova 2, Praha',
                 importance: 0.7,
                 lat: '50.03',
                 lon: '14.5',
@@ -1546,7 +1542,7 @@ describe('Smart Suggest effect API', () => {
       const response = yield* handlerCallEffect(
         testHandler,
         requestFor(
-          '/v1/suggest?kind=address&countryCode=CZ&q=K%20Lou%C5%BEi%201&tenantId=tenant-fanout-test&limit=3',
+          '/v1/suggest?kind=address&countryCode=CZ&q=Providerova%201&tenantId=tenant-fanout-test&limit=3',
         ),
       );
       const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
@@ -1560,18 +1556,18 @@ describe('Smart Suggest effect API', () => {
         ],
       });
       expect(body.suggestions.map((suggestion) => suggestion.displayLabel)).toEqual([
-        'K Louži 1, Praha',
-        'K Louži 2, Praha',
+        'Providerova 1, Praha',
+        'Providerova 2, Praha',
       ]);
       expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(fetchMock).toHaveBeenCalledWith(
-        'https://here.test/v1/discover?q=K+Lou%C5%BEi+1&apiKey=here-key&limit=3&in=countryCode%3ACZE',
+        'https://here.test/v1/discover?q=Providerova+1&apiKey=here-key&limit=3&in=countryCode%3ACZE',
         expect.objectContaining({ method: 'GET' }),
       );
       const hereRecords = yield* resolveEffect(
         repositories.addressRecords.searchAddressRecords({
           countryCode: 'CZ',
-          query: 'K Louži 1',
+          query: 'Providerova 1',
         }),
       );
       const hereSource = yield* resolveEffect(
@@ -1580,7 +1576,7 @@ describe('Smart Suggest effect API', () => {
       const nominatimRecords = yield* resolveEffect(
         repositories.addressRecords.searchAddressRecords({
           countryCode: 'CZ',
-          query: 'K Louži 2',
+          query: 'Providerova 2',
         }),
       );
       const nominatimSource = yield* resolveEffect(
@@ -1589,7 +1585,7 @@ describe('Smart Suggest effect API', () => {
 
       expect(hereRecords).toEqual([
         expect.objectContaining({
-          displayLabel: 'K Louži 1, Praha',
+          displayLabel: 'Providerova 1, Praha',
           sourceId: 'live-provider:here-discover:CZ',
         }),
       ]);
@@ -1598,7 +1594,7 @@ describe('Smart Suggest effect API', () => {
       });
       expect(nominatimRecords).toEqual([
         expect.objectContaining({
-          displayLabel: 'K Louži 2, Praha',
+          displayLabel: 'Providerova 2, Praha',
           sourceId: 'live-provider:nominatim:CZ',
         }),
       ]);

@@ -806,6 +806,7 @@ async function runSuggestScenario(report, transport, scenario) {
   const suggestions = Array.isArray(response.json?.suggestions) ? response.json.suggestions : [];
   const providerEvents = providerEventsForResponse(response.json);
   const matchingSuggestion = suggestions.find(scenario.matches ?? (() => false));
+  const suggestionIds = suggestions.map((suggestion) => suggestion.id);
   const details = {
     cacheStatus: response.json?.cacheStatus,
     mode: transport.kind,
@@ -813,6 +814,7 @@ async function runSuggestScenario(report, transport, scenario) {
     requestId: response.json?.requestId,
     scenarioId: scenario.id,
     suggestionCount: suggestions.length,
+    suggestionIds,
     suggestions: summarizeSuggestions(suggestions),
   };
 
@@ -847,6 +849,29 @@ async function runSuggestScenario(report, transport, scenario) {
       scenario.failSummary ?? 'Owned address suggestion was not available.',
       details,
     );
+  } else if (scenario.expect === 'minimum-suggestion-count') {
+    check(
+      report,
+      suggestions.length >= scenario.minimumCount,
+      scenario.id,
+      scenario.passSummary ?? 'Suggest scenario returned enough suggestions.',
+      scenario.failSummary ?? 'Suggest scenario returned too few suggestions.',
+      details,
+    );
+
+    if (Array.isArray(scenario.requiredSuggestionIds)) {
+      check(
+        report,
+        scenario.requiredSuggestionIds.every((id) => suggestionIds.includes(id)),
+        `${scenario.id}-required-ids`,
+        'Suggest scenario returned the required suggestions.',
+        'Suggest scenario missed required suggestions.',
+        {
+          ...details,
+          requiredSuggestionIds: scenario.requiredSuggestionIds,
+        },
+      );
+    }
   } else if (scenario.expect === 'empty') {
     check(
       report,
@@ -1124,6 +1149,21 @@ async function runApiMatrix(report, transport) {
     limit: 5,
     matches: isOwnedKLouzi1258Slash12,
     query: 'K Louzi 1258',
+  });
+  await runSuggestScenario(report, transport, {
+    expect: 'minimum-suggestion-count',
+    failSummary: 'Street prefix returned fewer than four K Louzi suggestions.',
+    id: 'k-louzi-street-prefix-cluster',
+    limit: 5,
+    minimumCount: 4,
+    passSummary: 'Street prefix returned the K Louzi sample cluster.',
+    query: 'K Lou',
+    requiredSuggestionIds: [
+      'cz-ruian-k-louzi-1258-12',
+      'cz-ruian-k-louzi-1258-7',
+      'cz-ruian-k-louzi-784-3',
+      'cz-ruian-k-louzi-1312-1',
+    ],
   });
   await runSuggestScenario(report, transport, {
     expect: 'empty',

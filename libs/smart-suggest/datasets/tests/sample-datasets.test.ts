@@ -55,6 +55,9 @@ describe("sample smart suggest datasets", () => {
       expect(result.records.map((record) => record.searchLabel)).toContain(
         "k louzi 1258 12 101 00 praha 10 vrsovice cz"
       )
+      expect(
+        result.records.filter((record) => record.parts.street === "K Louži")
+      ).toHaveLength(4)
 
       const source = yield* repositories.dataSources.getDataSource(
         RUIAN_CZ_SAMPLE_SOURCE.id
@@ -90,6 +93,18 @@ describe("sample smart suggest datasets", () => {
         reasons: expect.arrayContaining(["house-number:pair-exact:1258/12"]),
       }),
     })
+
+    expect(
+      searchSampleAddressFixtures("K Lou", {
+        countryCode: "CZ",
+        limit: 5,
+      }).map((record) => record.id)
+    ).toEqual([
+      "cz-ruian-k-louzi-1258-12",
+      "cz-ruian-k-louzi-1258-7",
+      "cz-ruian-k-louzi-784-3",
+      "cz-ruian-k-louzi-1312-1",
+    ])
 
     expect(
       searchSampleAddressFixtures("zizkova zilina", {
