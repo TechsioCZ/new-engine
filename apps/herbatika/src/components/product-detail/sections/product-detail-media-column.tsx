@@ -1,18 +1,15 @@
 "use client"
 
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { type MouseEvent, type PointerEvent, useRef, useState } from "react"
-import { FallbackImage } from "@/components/fallback-image"
-import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types"
 import { ProductDetailGalleryLightbox } from "@/components/product-detail/sections/product-detail-gallery-lightbox"
+import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
@@ -29,99 +26,14 @@ export function ProductDetailMediaColumn({
 }: ProductDetailMediaColumnProps) {
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
-  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
-  const pendingOpenImageIndexRef = useRef<number | null>(null)
-  const cancelPendingOpen = () => {
-    pendingOpenImageIndexRef.current = null
-  }
-  const handleMainImagePointerDown = (
-    event: PointerEvent<HTMLButtonElement>,
-    index: number
-  ) => {
-    if (event.button !== 0) {
-      cancelPendingOpen()
-      return
-    }
-
-    pendingOpenImageIndexRef.current = index
-  }
-  const handleMainImagePointerUp = () => {
-    const pendingIndex = pendingOpenImageIndexRef.current
-    cancelPendingOpen()
-
-    if (pendingIndex !== null) {
-      handleOpenLightbox(pendingIndex)
-    }
-  }
-  const handleOpenLightbox = (index: number) => {
-    setSelectedImageIndex(index)
-    setIsLightboxOpen(true)
-  }
-  const handleMainImageClick = (
-    event: MouseEvent<HTMLButtonElement>,
-    index: number
-  ) => {
-    if (event.detail === 0) {
-      handleOpenLightbox(index)
-    }
-  }
-  const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
-    (item, index) => {
-      const imageSrc = item.src || FALLBACK_IMAGE_SRC
-      const imageAlt = item.alt || "Produkt"
-      const imageContent = item.content ?? (
-        <FallbackImage
-          alt={imageAlt}
-          className="h-full w-full object-contain"
-          height={408}
-          loading="eager"
-          quality={75}
-          sizes="(max-width: 767px) 60vw, (max-width: 1023px) 408px, 32vw"
-          src={imageSrc}
-          width={408}
-        />
-      )
-
-      return {
-        ...item,
-        alt: imageAlt,
-        src: imageSrc,
-        content: (
-          <Button
-            aria-label={`Otvoriť obrázok ${index + 1} v galérii`}
-            className="flex h-full w-full cursor-zoom-in items-center justify-center p-0 active:cursor-grabbing"
-            onClick={(event) => handleMainImageClick(event, index)}
-            onPointerCancel={cancelPendingOpen}
-            onPointerDown={(event) => handleMainImagePointerDown(event, index)}
-            onPointerUp={handleMainImagePointerUp}
-            size="current"
-            theme="unstyled"
-            type="button"
-          >
-            {imageContent}
-          </Button>
-        ),
-        thumbnailContent: item.thumbnailContent ?? (
-          <span className="flex h-full w-full items-center justify-center">
-            <FallbackImage
-              alt={item.thumbnailAlt || imageAlt}
-              className="h-full w-full object-contain"
-              height={88}
-              quality={60}
-              sizes="88px"
-              src={item.thumbnailSrc || imageSrc}
-              width={88}
-            />
-          </span>
-        ),
-      }
-    }
-  )
-  const safeSelectedImageIndex = Math.min(
-    selectedImageIndex,
-    Math.max(galleryItemsWithFallback.length - 1, 0)
-  )
+  const {
+    cancelPendingOpen,
+    galleryItemsWithFallback,
+    isLightboxOpen,
+    safeSelectedImageIndex,
+    setIsLightboxOpen,
+    setSelectedImageIndex,
+  } = useProductDetailGalleryState({ galleryItems })
 
   return (
     <div className="min-w-0 space-y-300">
