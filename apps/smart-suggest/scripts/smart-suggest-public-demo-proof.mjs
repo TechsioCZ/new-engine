@@ -336,11 +336,39 @@ function htmlHasDemoLink(html) {
   return html.includes('/sdk/demo.html') || html.includes('Open Smart Suggest demo');
 }
 
+function htmlBootstrapsModernRoot(html) {
+  return (
+    html.includes('id="root"') && /<script\b[^>]*\bsrc=["']\/static\/js\/index\.js["']/iu.test(html)
+  );
+}
+
+function sourceRendersCheckoutDemo() {
+  const rootSource = readSource('apps/shell-super-app/src/routes/page.tsx');
+  const localizedRootSource = readSource('apps/shell-super-app/src/routes/[lang]/page.tsx');
+  const demoSource = readSource('apps/shell-super-app/src/routes/smart-suggest-demo.tsx');
+
+  return (
+    rootSource.includes('smart-suggest-demo') &&
+    localizedRootSource.includes('smart-suggest-demo') &&
+    demoSource.includes('SmartSuggestAddressFieldRemote') &&
+    demoSource.includes('PostalValidationField') &&
+    demoSource.includes('PhoneValidationField') &&
+    demoSource.includes('action="/checkout"')
+  );
+}
+
+function htmlHasSdkModuleScript(html) {
+  return /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'](?:\.\/)?techsio-smart-suggest\.js["']/iu.test(
+    html,
+  );
+}
+
 function validateRootHtml(report, root) {
   const contentType = root.contentType ?? '';
   const isHtml = contentType.toLowerCase().includes('text/html') || root.body.includes('<html');
   const hasDemoForm = htmlHasDemoForm(root.body);
   const hasDemoLink = htmlHasDemoLink(root.body);
+  const bootsCheckoutDemo = htmlBootstrapsModernRoot(root.body) && sourceRendersCheckoutDemo();
 
   check(
     report,
@@ -364,12 +392,22 @@ function validateRootHtml(report, root) {
   );
   check(
     report,
-    hasDemoForm || hasDemoLink,
+    hasDemoForm || hasDemoLink || bootsCheckoutDemo,
     'root-html-demo-entry',
-    hasDemoForm ? 'Root renders the checkout demo form.' : 'Root links to the checkout demo.',
+    hasDemoForm
+      ? 'Root renders the checkout demo form.'
+      : bootsCheckoutDemo
+        ? 'Root boots the checkout demo app.'
+        : 'Root links to the checkout demo.',
     'Root does not expose the Smart Suggest demo entry.',
     {
-      rootSurface: hasDemoForm ? 'demo-form' : hasDemoLink ? 'demo-link' : 'missing',
+      rootSurface: hasDemoForm
+        ? 'demo-form'
+        : bootsCheckoutDemo
+          ? 'checkout-app'
+          : hasDemoLink
+            ? 'demo-link'
+            : 'missing',
     },
   );
 }
@@ -378,7 +416,8 @@ function validateDemoHtml(report, demo, source) {
   const contentType = demo.contentType ?? '';
   const isHtml = contentType.toLowerCase().includes('text/html') || demo.body.includes('<html');
   const hasForm = htmlHasDemoForm(demo.body);
-  const hasSdk = demo.body.includes('/sdk/techsio-smart-suggest.js');
+  const hasSdk =
+    demo.body.includes('/sdk/techsio-smart-suggest.js') || htmlHasSdkModuleScript(demo.body);
   const hasAttach = demo.body.includes('TechsioSmartSuggest') && demo.body.includes('attach');
 
   check(
@@ -1159,10 +1198,10 @@ function runStaticSourceProof(report) {
   report.target.mode = 'static-source';
   check(
     report,
-    rootSource.includes('/sdk/demo.html'),
+    rootSource.includes('smart-suggest-demo') && sourceRendersCheckoutDemo(),
     'static-root-demo-entry',
-    'Source root route links to the Smart Suggest demo.',
-    'Source root route does not link to the Smart Suggest demo.',
+    'Source root route renders the checkout demo.',
+    'Source root route does not render the checkout demo.',
   );
   validateDemoHtml(
     report,

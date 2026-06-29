@@ -3,7 +3,7 @@
     "demo": {
       "address": "Street address",
       "addressPlaceholder": "Vinohradska 12, Praha",
-      "addressSelected": "Address selected",
+      "addressSelected": "We found the full address.",
       "addressUnavailable": "Address suggestions are unavailable right now.",
       "city": "City",
       "countries": {
@@ -13,15 +13,37 @@
       "country": "Country",
       "email": "Email",
       "emptyValue": "Not filled yet",
-      "eyebrow": "Delivery",
+      "eyebrow": "Delivery details",
       "name": "Full name",
       "noAddress": "No matching address",
       "note": "Delivery note",
+      "order": {
+        "confirmed": "Delivery details saved.",
+        "confirmedLabel": "Delivering to",
+        "delivery": "Delivery",
+        "deliveryLabel": "Delivery address",
+        "eyebrow": "Today's order",
+        "free": "Free",
+        "items": {
+          "tea": "Mountain herbal tea",
+          "vitamins": "Vitamin C + zinc"
+        },
+        "prices": {
+          "tea": "349 Kč",
+          "vitamins": "189 Kč"
+        },
+        "title": "Your basket",
+        "total": "Total",
+        "totalPrice": "538 Kč",
+        "waiting": "Add your delivery address.",
+        "window": "Delivery today between 18:00 and 20:00"
+      },
       "phone": "Phone",
       "postalCode": "Postal code",
-      "submit": "Use this address",
+      "submit": "Confirm delivery details",
+      "subtitle": "Choose an address, check the postal code, and leave a phone number for the courier.",
       "summaryTitle": "Delivery address",
-      "title": "Complete your address"
+      "title": "Where should we deliver your order?"
     },
     "language": {
       "cs": "Czech",
@@ -29,8 +51,8 @@
       "switcher": "Language"
     },
     "seo": {
-      "description": "Smart Suggest helps complete delivery addresses."
+      "description": "Complete delivery details for a local order."
     },
-    "title": "Smart Suggest"
+    "title": "Delivery details"
   }
 }

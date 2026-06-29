@@ -8,7 +8,7 @@ import {
   SmartSuggestProviderUnavailableError,
   SmartSuggestStorageUnavailableError,
   SmartSuggestValidationError,
-} from "@smart-suggest/shell-super-app/api"
+} from "./api"
 import type {
   SmartSuggestAcceptEvent,
   SmartSuggestError,

@@ -3,7 +3,7 @@
     "demo": {
       "address": "Ulice a číslo",
       "addressPlaceholder": "Vinohradská 12, Praha",
-      "addressSelected": "Adresa vybrána",
+      "addressSelected": "Našli jsme celou adresu.",
       "addressUnavailable": "Našeptávání adres teď není dostupné.",
       "city": "Město",
       "countries": {
@@ -13,15 +13,37 @@
       "country": "Stát",
       "email": "E-mail",
       "emptyValue": "Zatím nevyplněno",
-      "eyebrow": "Doručení",
+      "eyebrow": "Doručovací údaje",
       "name": "Celé jméno",
       "noAddress": "Nenašli jsme odpovídající adresu",
       "note": "Poznámka k doručení",
+      "order": {
+        "confirmed": "Doručovací údaje jsou uložené.",
+        "confirmedLabel": "Doručíme na",
+        "delivery": "Doručení",
+        "deliveryLabel": "Doručovací adresa",
+        "eyebrow": "Dnešní objednávka",
+        "free": "Zdarma",
+        "items": {
+          "tea": "Horský bylinný čaj",
+          "vitamins": "Vitamin C + zinek"
+        },
+        "prices": {
+          "tea": "349 Kč",
+          "vitamins": "189 Kč"
+        },
+        "title": "Váš košík",
+        "total": "Celkem",
+        "totalPrice": "538 Kč",
+        "waiting": "Doplňte doručovací adresu.",
+        "window": "Doručení dnes mezi 18:00 a 20:00"
+      },
       "phone": "Telefon",
       "postalCode": "PSČ",
-      "submit": "Použít tuto adresu",
+      "submit": "Potvrdit doručovací údaje",
+      "subtitle": "Vyberte adresu, zkontrolujte PSČ a nechte kurýrovi telefonní číslo.",
       "summaryTitle": "Doručovací adresa",
-      "title": "Doplňte adresu"
+      "title": "Kam máme objednávku doručit?"
     },
     "language": {
       "cs": "Čeština",
@@ -29,8 +51,8 @@
       "switcher": "Jazyk"
     },
     "seo": {
-      "description": "Smart Suggest pomáhá doplnit doručovací adresu."
+      "description": "Vyplnění doručovacích údajů pro lokální objednávku."
     },
-    "title": "Smart Suggest"
+    "title": "Doručovací údaje"
   }
 }

@@ -531,6 +531,39 @@ const boundedShardCandidates = (
     });
   });
 
+const shardCandidatesForAddressRecord = (
+  router: SmartSuggestRepositories,
+  record: AddressSearchRecordInput,
+  shardBindingNames: readonly string[],
+) =>
+  Effect.gen(function* shardCandidatesForAddressRecordProgram() {
+    const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
+      countryCode: record.countryCode,
+      states: ['active'],
+    };
+    const postalCode = record.parts.postalCode ?? record.ruian?.postalCode;
+    const municipalityHint = record.parts.city;
+
+    if (postalCode !== undefined) {
+      routeInput.postalCode = postalCode;
+    }
+    if (municipalityHint !== undefined) {
+      routeInput.municipalityHint = municipalityHint;
+    }
+    if (record.ruian?.regionCode !== undefined) {
+      routeInput.regionCode = record.ruian.regionCode;
+    }
+    if (record.ruian?.municipalityCode !== undefined) {
+      routeInput.municipalityCode = record.ruian.municipalityCode;
+    }
+
+    const activeCandidates = yield* router.shardRegistry.resolveShardMetadata(routeInput);
+
+    return activeCandidates.filter((candidate) =>
+      shardBindingNames.includes(candidate.bindingName),
+    );
+  });
+
 export const createShardedRepositories = ({
   router,
   shardRepositories,
@@ -593,7 +626,52 @@ export const createShardedRepositories = ({
           )
           .slice(0, limit);
       }),
-    upsertAddressRecords: router.addressRecords.upsertAddressRecords,
+    upsertAddressRecords: (records) =>
+      Effect.gen(function* upsertAddressRecordsProgram() {
+        if (records.length === 0) {
+          return [];
+        }
+
+        const shardBindingNames = [...shardRepositories.keys()];
+        const shardRecords = new Map<string, AddressSearchRecordInput[]>();
+        const routerRecords: AddressSearchRecordInput[] = [];
+
+        for (const record of records) {
+          const candidates = yield* shardCandidatesForAddressRecord(
+            router,
+            record,
+            shardBindingNames,
+          );
+
+          if (candidates.length === 0) {
+            routerRecords.push(record);
+            continue;
+          }
+
+          for (const candidate of candidates) {
+            const existing = shardRecords.get(candidate.bindingName) ?? [];
+            existing.push(record);
+            shardRecords.set(candidate.bindingName, existing);
+          }
+        }
+
+        const writes = [
+          ...(routerRecords.length === 0
+            ? []
+            : [router.addressRecords.upsertAddressRecords(routerRecords)]),
+          ...[...shardRecords.entries()].flatMap(([bindingName, routedRecords]) => {
+            const repository = shardRepositories.get(bindingName);
+
+            return repository === undefined
+              ? []
+              : [repository.addressRecords.upsertAddressRecords(routedRecords)];
+          }),
+        ];
+
+        const results = yield* Effect.all(writes);
+
+        return results.flat();
+      }),
   },
   addressTombstones: router.addressTombstones,
   apiKeys: router.apiKeys,
@@ -1927,6 +2005,14 @@ const isCompleteAddressSuggestion = (suggestion: SmartSuggestSuggestion) =>
   hasAddressNumberSignal(suggestion.address) &&
   (suggestion.address.street !== undefined || suggestion.address.line1 !== undefined);
 
+const hasCompleteOwnedAddressAnswer = (
+  request: SmartSuggestRequest,
+  ownedResponse: SmartSuggestResponse,
+) =>
+  request.kind === 'address' &&
+  addressNumberPattern.test(request.query) &&
+  ownedResponse.suggestions.some(isCompleteAddressSuggestion);
+
 const filterSuggestionsForRequest = (
   request: SmartSuggestRequest,
   response: SmartSuggestResponse,
@@ -2010,13 +2096,13 @@ const writeProviderCache = ({
   response,
   ttlSeconds,
 }: WriteProviderCacheInput) => {
-  const cacheableSuggestions = response.suggestions.filter(
+  const hasUncacheableProviderSuggestion = response.suggestions.some(
     (suggestion) =>
-      suggestion.source.kind !== 'live-provider' ||
-      sourceAllowsProviderCache(suggestion.source, ttlSeconds),
+      suggestion.source.kind === 'live-provider' &&
+      !sourceAllowsProviderCache(suggestion.source, ttlSeconds),
   );
 
-  if (cacheableSuggestions.length === 0) {
+  if (hasUncacheableProviderSuggestion || response.suggestions.length === 0) {
     return Effect.void;
   }
 
@@ -2028,7 +2114,7 @@ const writeProviderCache = ({
     cachePolicy: { kind: 'ttl', ttlSeconds },
     expiresAt,
     kind: request.kind,
-    payload: cacheableSuggestions,
+    payload: response.suggestions,
     queryHash,
     status: 'written',
   };
@@ -2081,12 +2167,20 @@ const suggestFromProviderFallback = ({
       requestId: result.response.requestId,
     });
 
-    if (result.response.suggestions.length === 0) {
+    let providerResponse = filterSuggestionsForRequest(
+      request,
+      withCacheStatus(result.response, 'written'),
+    );
+
+    if (providerResponse.suggestions.length === 0) {
       return ownedResponse;
     }
 
-    const providerResponse = withCacheStatus(result.response, 'written');
-    const mergedResponse = mergeSuggestionResponses(ownedResponse, providerResponse, request.limit);
+    providerResponse = withCacheStatus(providerResponse, 'written');
+    const mergedResponse = filterSuggestionsForRequest(
+      request,
+      mergeSuggestionResponses(ownedResponse, providerResponse, request.limit),
+    );
 
     return yield* Effect.all([
       persistLiveProviderSuggestions(
@@ -2240,7 +2334,10 @@ const providerFallbackResponseFor = ({
   request,
 }: ProviderFallbackResponseInput) =>
   Effect.gen(function* providerFallbackResponseForProgram() {
-    if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
+    if (
+      ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit) ||
+      hasCompleteOwnedAddressAnswer(request, ownedResponse)
+    ) {
       return;
     }
 

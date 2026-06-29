@@ -330,9 +330,8 @@ describe("createSmartSuggestEffectClient", () => {
       ([, specifier]) => specifier
     )
 
-    expect(importSpecifiers).toContain(
-      "@smart-suggest/shell-super-app/api"
-    )
+    expect(importSpecifiers).toContain("./api")
+    expect(importSpecifiers).not.toContain("@smart-suggest/shell-super-app/api")
     expect(importSpecifiers).toContain("effect/unstable/httpapi")
     expect(source).toContain("HttpApiClient.makeWith(SmartSuggestHttpApi")
     expect(source).not.toContain("createSmartSuggestClient")

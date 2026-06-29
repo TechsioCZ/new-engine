@@ -4,7 +4,7 @@ import { PostalValidationField } from '@techsio/smart-suggest-ui/postal-validati
 import type { AddressParts, SmartSuggestRequest } from '@techsio/smart-suggest-core';
 import type { PhoneInputCountry } from '@techsio/ui-kit/molecules/phone-input';
 import { Effect } from 'effect';
-import { useMemo, useState } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
 import { createSmartSuggestApiClient, runEffectRequest } from '../api/smart-suggest-client';
 import { SmartSuggestAddressFieldRemote } from '../federation/smart-suggest-address-field';
 import type { SmartSuggestAddressFieldRemoteProps } from '../federation/smart-suggest-address-field';
@@ -19,7 +19,7 @@ const supportedCountries: readonly SupportedDemoCountry[] = ['CZ', 'SK'];
 type DemoSmartSuggestClient = NonNullable<SmartSuggestAddressFieldRemoteProps['client']>;
 
 const toError = (error: unknown) =>
-  error instanceof Error ? error : new Error('Smart Suggest request failed.');
+  error instanceof Error ? error : new Error('Address lookup failed.');
 
 const normalizeClientEffect = <TValue,>(
   effect: Effect.Effect<TValue, Error, never>,
@@ -78,10 +78,13 @@ const normalizeDemoCountry = (countryCode: string | undefined): SupportedDemoCou
   countryCode === 'SK' ? 'SK' : 'CZ';
 
 const renderAddressSuggestion = (suggestion: { displayLabel: string }) => (
-  <span className="shell:block shell:min-w-0 shell:truncate shell:text-sm shell:font-semibold shell:text-stone-950">
+  <span className="shell:block shell:min-w-0 shell:truncate shell:text-sm shell:font-bold shell:text-stone-950">
     {suggestion.displayLabel}
   </span>
 );
+
+const formatDeliveryAddress = (line: string, city: string, postalCode: string) =>
+  compact([line, compact([postalCode, city])]);
 
 export default function SmartSuggestDemoPage() {
   const { i18nInstance, language } = useModernI18n();
@@ -98,8 +101,13 @@ export default function SmartSuggestDemoPage() {
   const [postalCode, setPostalCode] = useState('');
   const [phone, setPhone] = useState('');
   const [selectedAddress, setSelectedAddress] = useState<AddressParts | undefined>();
+  const [deliveryConfirmed, setDeliveryConfirmed] = useState(false);
   const selectedLine = selectedAddress === undefined ? '' : addressLineFromParts(selectedAddress);
-  const hasSelectedAddress = selectedLine.length > 0 || city.length > 0 || postalCode.length > 0;
+  const deliveryLine = selectedLine || addressInput.trim();
+  const formattedDeliveryAddress = formatDeliveryAddress(deliveryLine, city, postalCode);
+  const hasDeliveryAddress = formattedDeliveryAddress.length > 0;
+
+  const markDeliveryChanged = () => setDeliveryConfirmed(false);
 
   const handleAddressSelect = (address: AddressParts) => {
     const nextCountryCode = normalizeDemoCountry(address.countryCode);
@@ -110,23 +118,39 @@ export default function SmartSuggestDemoPage() {
     setAddressInput(nextLine);
     setCity(address.city?.trim() ?? '');
     setPostalCode(address.postalCode?.trim() ?? '');
+    setDeliveryConfirmed(false);
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!event.currentTarget.reportValidity()) {
+      return;
+    }
+
+    setDeliveryConfirmed(true);
   };
 
   return (
     <ShellFrame>
       <UltramodernRouteHead />
-      <section className="smart-suggest-demo-page shell:mx-auto shell:grid shell:min-w-0 shell:max-w-6xl shell:gap-6 shell:py-8 shell:lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <section className="smart-suggest-demo-page shell:mx-auto shell:grid shell:min-w-0 shell:max-w-6xl shell:gap-6 shell:py-5 shell:lg:grid-cols-[minmax(0,1fr)_22rem] shell:lg:py-8">
         <form
+          action="/checkout"
           className="smart-suggest-demo shell:grid shell:min-w-0 shell:gap-5 shell:rounded-lg shell:border shell:border-stone-900/10 shell:bg-white shell:p-5 shell:shadow-xl shell:shadow-stone-900/10 shell:sm:p-6"
-          onSubmit={(event) => event.preventDefault()}
+          method="post"
+          onSubmit={handleSubmit}
         >
           <div className="shell:grid shell:gap-2">
-            <p className="shell:text-sm shell:font-semibold shell:text-emerald-800">
+            <p className="shell:text-sm shell:font-black shell:text-teal-800">
               {t('shell.demo.eyebrow')}
             </p>
             <h1 className="shell:break-words shell:text-3xl shell:font-black shell:leading-tight shell:tracking-normal shell:text-stone-950 shell:sm:text-5xl">
               {t('shell.demo.title')}
             </h1>
+            <p className="shell:max-w-2xl shell:text-base shell:font-semibold shell:leading-7 shell:text-stone-600">
+              {t('shell.demo.subtitle')}
+            </p>
           </div>
 
           <div className="shell:grid shell:gap-4 shell:md:grid-cols-2">
@@ -156,8 +180,8 @@ export default function SmartSuggestDemoPage() {
             autoComplete="address-line1"
             client={smartSuggestClient}
             countryCode={countryCode}
-            helpText={hasSelectedAddress ? t('shell.demo.addressSelected') : undefined}
-            id="delivery-address"
+            helpText={selectedAddress === undefined ? undefined : t('shell.demo.addressSelected')}
+            id="address-line"
             inputValue={addressInput}
             label={t('shell.demo.address')}
             language={language}
@@ -167,6 +191,7 @@ export default function SmartSuggestDemoPage() {
             onInputValueChange={(value) => {
               setAddressInput(value);
               setSelectedAddress(undefined);
+              markDeliveryChanged();
             }}
             placeholder={t('shell.demo.addressPlaceholder')}
             renderSuggestion={renderAddressSuggestion}
@@ -181,8 +206,12 @@ export default function SmartSuggestDemoPage() {
               <input
                 autoComplete="address-level2"
                 className="shell:min-h-12 shell:rounded-lg shell:border shell:border-stone-900/15 shell:bg-white shell:px-4 shell:text-base shell:font-semibold shell:text-stone-950 shell:shadow-sm shell:shadow-stone-900/5 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40"
+                id="city"
                 name="address-level2"
-                onChange={(event) => setCity(event.currentTarget.value)}
+                onChange={(event) => {
+                  setCity(event.currentTarget.value);
+                  markDeliveryChanged();
+                }}
                 required
                 type="text"
                 value={city}
@@ -190,10 +219,13 @@ export default function SmartSuggestDemoPage() {
             </label>
             <PostalValidationField
               countryCode={countryCode}
-              id="delivery-postal-code"
+              id="postal-code"
               label={t('shell.demo.postalCode')}
               name="postal-code"
-              onChange={(event) => setPostalCode(event.currentTarget.value)}
+              onChange={(event) => {
+                setPostalCode(event.currentTarget.value);
+                markDeliveryChanged();
+              }}
               required
               value={postalCode}
             />
@@ -202,10 +234,12 @@ export default function SmartSuggestDemoPage() {
               <select
                 autoComplete="country"
                 className="shell:min-h-12 shell:rounded-lg shell:border shell:border-stone-900/15 shell:bg-white shell:px-4 shell:text-base shell:font-black shell:text-stone-950 shell:shadow-sm shell:shadow-stone-900/5 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40"
+                id="country"
                 name="country"
-                onChange={(event) =>
-                  setCountryCode(normalizeDemoCountry(event.currentTarget.value))
-                }
+                onChange={(event) => {
+                  setCountryCode(normalizeDemoCountry(event.currentTarget.value));
+                  markDeliveryChanged();
+                }}
                 value={countryCode}
               >
                 {supportedCountries.map((country) => (
@@ -222,10 +256,17 @@ export default function SmartSuggestDemoPage() {
             countries={phoneCountries}
             country={countryCode}
             countryName="phone-country"
+            id="phone"
             label={t('shell.demo.phone')}
             name="phone"
-            onCountryChange={(details) => setCountryCode(normalizeDemoCountry(details.country))}
-            onValueChange={(details) => setPhone(details.value)}
+            onCountryChange={(details) => {
+              setCountryCode(normalizeDemoCountry(details.country));
+              markDeliveryChanged();
+            }}
+            onValueChange={(details) => {
+              setPhone(details.value);
+              markDeliveryChanged();
+            }}
             requireCountryMatch
             required
             validatePhoneNumber={(request) =>
@@ -241,47 +282,85 @@ export default function SmartSuggestDemoPage() {
               autoComplete="off"
               className="shell:min-h-24 shell:resize-y shell:rounded-lg shell:border shell:border-stone-900/15 shell:bg-white shell:px-4 shell:py-3 shell:text-base shell:font-semibold shell:text-stone-950 shell:shadow-sm shell:shadow-stone-900/5 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40"
               name="delivery-note"
+              onChange={markDeliveryChanged}
             />
           </label>
 
           <button
-            className="shell:min-h-12 shell:rounded-lg shell:bg-stone-950 shell:px-5 shell:text-base shell:font-black shell:text-white shell:shadow-lg shell:shadow-stone-900/15 shell:transition-colors shell:hover:bg-emerald-900 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/50 shell:motion-reduce:transition-none"
+            className="shell:min-h-12 shell:rounded-lg shell:bg-stone-950 shell:px-5 shell:text-base shell:font-black shell:text-white shell:shadow-lg shell:shadow-stone-900/15 shell:transition-colors shell:hover:bg-teal-900 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/50 shell:motion-reduce:transition-none"
             type="submit"
           >
             {t('shell.demo.submit')}
           </button>
         </form>
 
-        <aside className="shell:min-w-0 shell:rounded-lg shell:border shell:border-emerald-900/10 shell:bg-emerald-50 shell:p-5 shell:text-stone-950 shell:shadow-xl shell:shadow-stone-900/10">
-          <h2 className="shell:text-xl shell:font-black shell:tracking-normal">
-            {t('shell.demo.summaryTitle')}
-          </h2>
-          <dl className="shell:mt-5 shell:grid shell:gap-4">
-            <div>
-              <dt className="shell:text-xs shell:font-black shell:uppercase shell:tracking-normal shell:text-stone-500">
-                {t('shell.demo.address')}
-              </dt>
-              <dd className="shell:mt-1 shell:text-base shell:font-bold shell:text-stone-950">
-                {selectedLine || addressInput || t('shell.demo.emptyValue')}
-              </dd>
-            </div>
-            <div>
-              <dt className="shell:text-xs shell:font-black shell:uppercase shell:tracking-normal shell:text-stone-500">
-                {t('shell.demo.city')}
-              </dt>
-              <dd className="shell:mt-1 shell:text-base shell:font-bold shell:text-stone-950">
-                {city || t('shell.demo.emptyValue')}
-              </dd>
-            </div>
-            <div>
-              <dt className="shell:text-xs shell:font-black shell:uppercase shell:tracking-normal shell:text-stone-500">
-                {t('shell.demo.postalCode')}
-              </dt>
-              <dd className="shell:mt-1 shell:text-base shell:font-bold shell:text-stone-950">
-                {postalCode || t('shell.demo.emptyValue')}
-              </dd>
-            </div>
-          </dl>
+        <aside className="shell:grid shell:min-w-0 shell:content-start shell:gap-4 shell:rounded-lg shell:border shell:border-stone-900/10 shell:bg-[#fff8e8] shell:p-5 shell:text-stone-950 shell:shadow-xl shell:shadow-stone-900/10">
+          <div className="shell:grid shell:gap-1">
+            <p className="shell:text-sm shell:font-black shell:text-rose-800">
+              {t('shell.demo.order.eyebrow')}
+            </p>
+            <h2 className="shell:text-2xl shell:font-black shell:tracking-normal">
+              {t('shell.demo.order.title')}
+            </h2>
+            <p className="shell:text-sm shell:font-semibold shell:leading-6 shell:text-stone-600">
+              {t('shell.demo.order.window')}
+            </p>
+          </div>
+
+          <ul className="shell:grid shell:list-none shell:gap-3 shell:p-0">
+            <li className="shell:flex shell:items-start shell:justify-between shell:gap-4 shell:border-t shell:border-stone-900/10 shell:pt-3">
+              <span className="shell:min-w-0 shell:text-sm shell:font-bold shell:text-stone-800">
+                {t('shell.demo.order.items.tea')}
+              </span>
+              <span className="shell:shrink-0 shell:text-sm shell:font-black shell:text-stone-950">
+                {t('shell.demo.order.prices.tea')}
+              </span>
+            </li>
+            <li className="shell:flex shell:items-start shell:justify-between shell:gap-4 shell:border-t shell:border-stone-900/10 shell:pt-3">
+              <span className="shell:min-w-0 shell:text-sm shell:font-bold shell:text-stone-800">
+                {t('shell.demo.order.items.vitamins')}
+              </span>
+              <span className="shell:shrink-0 shell:text-sm shell:font-black shell:text-stone-950">
+                {t('shell.demo.order.prices.vitamins')}
+              </span>
+            </li>
+            <li className="shell:flex shell:items-start shell:justify-between shell:gap-4 shell:border-t shell:border-stone-900/10 shell:pt-3">
+              <span className="shell:min-w-0 shell:text-sm shell:font-bold shell:text-stone-800">
+                {t('shell.demo.order.delivery')}
+              </span>
+              <span className="shell:shrink-0 shell:text-sm shell:font-black shell:text-teal-800">
+                {t('shell.demo.order.free')}
+              </span>
+            </li>
+          </ul>
+
+          <div className="shell:flex shell:items-center shell:justify-between shell:gap-4 shell:border-t shell:border-stone-950 shell:pt-4">
+            <span className="shell:text-base shell:font-black">{t('shell.demo.order.total')}</span>
+            <span className="shell:text-xl shell:font-black">
+              {t('shell.demo.order.totalPrice')}
+            </span>
+          </div>
+
+          <div className="shell:rounded-lg shell:border shell:border-stone-900/10 shell:bg-white shell:p-4">
+            <p className="shell:text-xs shell:font-black shell:uppercase shell:tracking-normal shell:text-stone-500">
+              {deliveryConfirmed
+                ? t('shell.demo.order.confirmedLabel')
+                : t('shell.demo.order.deliveryLabel')}
+            </p>
+            <p className="shell:mt-2 shell:text-base shell:font-black shell:leading-6 shell:text-stone-950">
+              {hasDeliveryAddress ? formattedDeliveryAddress : t('shell.demo.order.waiting')}
+            </p>
+            {phone.trim().length > 0 ? (
+              <p className="shell:mt-2 shell:text-sm shell:font-semibold shell:text-stone-600">
+                {phone}
+              </p>
+            ) : null}
+            {deliveryConfirmed ? (
+              <p className="shell:mt-3 shell:text-sm shell:font-black shell:text-teal-800">
+                {t('shell.demo.order.confirmed')}
+              </p>
+            ) : null}
+          </div>
         </aside>
       </section>
       <span

@@ -1,12 +1,4 @@
 {
   "extends": "../tsconfig.package.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@smart-suggest/shell-super-app/api": [
-        "../../../apps/smart-suggest/apps/shell-super-app/shared/api.ts"
-      ]
-    }
-  },
   "include": ["src", "tests", "vitest.config.ts"]
 }

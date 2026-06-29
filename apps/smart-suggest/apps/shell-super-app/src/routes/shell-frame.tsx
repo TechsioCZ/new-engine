@@ -1,6 +1,5 @@
 import { useLocalizedLocation, useModernI18n } from '@modern-js/plugin-i18n/runtime';
 import type { ReactNode } from 'react';
-import { Header } from './vertical-components';
 
 interface ShellFrameProps {
   children: ReactNode;
@@ -12,35 +11,28 @@ export default function ShellFrame({ children }: ShellFrameProps) {
   const { alternates } = useLocalizedLocation();
 
   return (
-    <main className="shell:min-h-screen shell:overflow-x-hidden shell:bg-zinc-50 shell:px-4 shell:py-5 shell:text-um-foreground shell:sm:px-6 shell:lg:px-12">
-      <div className="shell:mx-auto shell:flex shell:min-h-16 shell:max-w-6xl shell:items-center shell:justify-between shell:gap-4 shell:border-b shell:border-stone-900/10 shell:pb-4">
-        <Header />
-        <div className="shell:flex shell:min-w-0 shell:flex-wrap shell:items-center shell:gap-2 shell:md:ml-auto">
-          <label className="shell:sr-only" htmlFor="smart-suggest-language">
-            {t('shell.language.switcher')}
-          </label>
-          <select
-            aria-label={t('shell.language.switcher')}
-            className="shell:h-10 shell:w-10 shell:cursor-pointer shell:appearance-none shell:border-0 shell:bg-transparent shell:p-0 shell:text-center shell:text-3xl shell:font-black shell:leading-none shell:text-stone-950 shell:shadow-none shell:[appearance:none] shell:[text-align-last:center] shell:focus-visible:rounded-md shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40 shell:[&::-ms-expand]:hidden shell:[&::picker-icon]:hidden shell:[&_option]:text-xl"
-            id="smart-suggest-language"
-            name="language"
-            onChange={(event) => {
-              const nextLanguage = event.currentTarget.value;
-              const targetHref = alternates[nextLanguage];
-              if (targetHref !== undefined) {
-                window.location.assign(targetHref);
-              }
-            }}
-            value={language}
-          >
-            <option aria-label={t('shell.language.en')} value="en">
-              EN
-            </option>
-            <option aria-label={t('shell.language.cs')} value="cs">
-              CS
-            </option>
-          </select>
-        </div>
+    <main className="shell:min-h-screen shell:overflow-x-hidden shell:bg-[#f5f7f2] shell:px-4 shell:py-4 shell:text-um-foreground shell:sm:px-6 shell:lg:px-12">
+      <div className="shell:mx-auto shell:flex shell:max-w-6xl shell:justify-end">
+        <label className="shell:sr-only" htmlFor="smart-suggest-language">
+          {t('shell.language.switcher')}
+        </label>
+        <select
+          aria-label={t('shell.language.switcher')}
+          className="shell:min-h-11 shell:w-36 shell:cursor-pointer shell:rounded-lg shell:border shell:border-stone-900/10 shell:bg-white shell:px-3 shell:text-sm shell:font-black shell:text-stone-950 shell:shadow-sm shell:shadow-stone-900/5 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40"
+          id="smart-suggest-language"
+          name="language"
+          onChange={(event) => {
+            const nextLanguage = event.currentTarget.value;
+            const targetHref = alternates[nextLanguage];
+            if (targetHref !== undefined) {
+              window.location.assign(targetHref);
+            }
+          }}
+          value={language}
+        >
+          <option value="en">{t('shell.language.en')}</option>
+          <option value="cs">{t('shell.language.cs')}</option>
+        </select>
       </div>
       {children}
     </main>
