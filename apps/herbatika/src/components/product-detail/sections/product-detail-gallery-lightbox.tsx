@@ -119,8 +119,8 @@ export function ProductDetailGalleryLightbox({
                     className="pointer-events-none absolute inset-x-200 top-1/2 z-1 -translate-y-1/2 justify-between bg-transparent p-0 max-md:text-fg-primary"
                     controlPosition="unset"
                   >
-                    <Carousel.Previous className="pointer-events-auto bg-white rounded-full aspect-square max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
-                    <Carousel.Next className="pointer-events-auto bg-white rounded-full aspect-square max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
+                    <Carousel.Previous className="pointer-events-auto bg-base rounded-full aspect-square max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
+                    <Carousel.Next className="pointer-events-auto bg-base rounded-full aspect-square max-md:shadow-md md:bg-transparent md:hover:bg-transparent" />
                   </Carousel.Control>
                 ) : null}
               </Gallery.Carousel>

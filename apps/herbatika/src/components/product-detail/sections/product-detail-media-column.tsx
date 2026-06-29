@@ -70,12 +70,24 @@ export function ProductDetailMediaColumn({
     (item, index) => {
       const imageSrc = item.src || FALLBACK_IMAGE_SRC
       const imageAlt = item.alt || "Produkt"
+      const imageContent = item.content ?? (
+        <FallbackImage
+          alt={imageAlt}
+          className="h-full w-full object-contain"
+          height={408}
+          loading="eager"
+          quality={75}
+          sizes="(max-width: 767px) 60vw, (max-width: 1023px) 408px, 32vw"
+          src={imageSrc}
+          width={408}
+        />
+      )
 
       return {
         ...item,
         alt: imageAlt,
         src: imageSrc,
-        content: item.content ?? (
+        content: (
           <Button
             aria-label={`Otvoriť obrázok ${index + 1} v galérii`}
             className="flex h-full w-full cursor-zoom-in items-center justify-center p-0 active:cursor-grabbing"
@@ -87,16 +99,7 @@ export function ProductDetailMediaColumn({
             theme="unstyled"
             type="button"
           >
-            <FallbackImage
-              alt={imageAlt}
-              className="h-full w-full object-contain"
-              height={408}
-              loading="eager"
-              quality={75}
-              sizes="(max-width: 767px) 60vw, (max-width: 1023px) 408px, 32vw"
-              src={imageSrc}
-              width={408}
-            />
+            {imageContent}
           </Button>
         ),
         thumbnailContent: item.thumbnailContent ?? (
