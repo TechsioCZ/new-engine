@@ -462,6 +462,51 @@ describe('attachSmartSuggest', () => {
     await waitFor(() => expect(postalCode.value).toBe('123 45'));
   });
 
+  it('applies invalid postal validation to the postal control', async () => {
+    const postalCode = addInput('postal-code', '12a345');
+    const country = addInput('country', 'CZ');
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
+      Promise.resolve(
+        jsonResponse({
+          countryCode: 'CZ',
+          displayValue: '12A345',
+          errors: [
+            {
+              code: 'postal.invalid',
+              field: 'postalCode',
+              message: 'Enter a valid postal code for the selected country.',
+            },
+          ],
+          inputHints: { autoComplete: 'postal-code', inputMode: 'numeric' },
+          isValid: false,
+          normalizedValue: '12A345',
+          rawInput: '12a345',
+        }),
+      ),
+    );
+
+    attachSmartSuggest({
+      country,
+      fetch: fetchMock,
+      postalCode,
+    });
+
+    postalCode.dispatchEvent(new FocusEvent('blur'));
+
+    await waitFor(() =>
+      expect(postalCode.validationMessage).toBe(
+        'Enter a valid postal code for the selected country.',
+      ),
+    );
+    expect(postalCode.getAttribute('aria-invalid')).toBe('true');
+
+    postalCode.value = '12345';
+    postalCode.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(postalCode.validationMessage).toBe('');
+    expect(postalCode.getAttribute('aria-invalid')).toBeNull();
+  });
+
   it('keeps phone validation server-only by default and applies native tel semantics', async () => {
     const phone = addInput('phone', '+420777123456');
     const country = addInput('country', 'CZ');
@@ -500,6 +545,40 @@ describe('attachSmartSuggest', () => {
     expect(phone.getAttribute('type')).toBeNull();
     expect(phone.getAttribute('autocomplete')).toBeNull();
     expect(phone.getAttribute('inputmode')).toBeNull();
+  });
+
+  it('blocks phone form submission when required server validation is inconclusive', async () => {
+    const form = document.createElement('form');
+    const phone = document.createElement('input');
+    phone.value = '+420777123456';
+    form.append(phone);
+    document.body.append(form);
+    const submitSpy = vi
+      .spyOn(form, 'requestSubmit')
+      .mockImplementation(() => undefined);
+    const reportValiditySpy = vi
+      .spyOn(phone, 'reportValidity')
+      .mockImplementation(() => true);
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
+      Promise.reject(new Error('validation unavailable')),
+    );
+
+    attachSmartSuggest({
+      fetch: fetchMock,
+      phone,
+    });
+
+    form.dispatchEvent(
+      new SubmitEvent('submit', { bubbles: true, cancelable: true }),
+    );
+    await waitFor(() => expect(reportValiditySpy).toHaveBeenCalledTimes(1));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(submitSpy).not.toHaveBeenCalled();
+    expect(phone.validationMessage).toBe(
+      'Phone validation is unavailable. Try again.',
+    );
+    expect(phone.getAttribute('aria-invalid')).toBe('true');
   });
 
   it('keeps strict phone validation behind the dynamic phone-strict subpath', () => {

@@ -1,7 +1,9 @@
 import {
-  validatePhoneNumber,
   validatePostalCode as validateSmartSuggestPostalCode,
 } from "@techsio/smart-suggest-validation"
+import {
+  validatePhoneNumber as validateStrictPhoneNumber,
+} from "@techsio/smart-suggest-validation/phone-strict"
 import type {
   CheckoutAddressValues,
   CheckoutDetailsValues,
@@ -62,19 +64,34 @@ const createRequiredTextValidator =
     return
   }
 
-const validateRequiredPhoneNumber: CheckoutAddressFieldValidator = (value) => {
+const validateRequiredPhoneNumberForCountry = (
+  value: string,
+  countryCodeValue: string
+) => {
   if (!value.trim()) {
     return "Zadajte telefón."
   }
 
-  const validation = validatePhoneNumber({
+  const normalizedCountryCode = normalizeCountryCode(countryCodeValue)
+
+  if (
+    !(normalizedCountryCode && isCheckoutCountryCode(normalizedCountryCode))
+  ) {
+    return "Vyberte krajinu pre overenie telefónu."
+  }
+
+  const validation = validateStrictPhoneNumber({
     allowedCountries: CHECKOUT_COUNTRIES,
-    defaultCountry: "SK",
+    defaultCountry: normalizedCountryCode,
     rawInput: value,
+    requireCountryMatch: true,
   })
 
   return validation.isValid ? undefined : "Zadajte platné telefónne číslo."
 }
+
+const validateRequiredPhoneNumber: CheckoutAddressFieldValidator = (value) =>
+  validateRequiredPhoneNumberForCountry(value, "SK")
 
 const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
   const normalized = value.trim()
@@ -140,6 +157,30 @@ const createCheckoutPostalCodeValidators = (
 
     return validateWhenActive(values)
       ? validatePostalCodeForCountry(value, values[scope].countryCode)
+      : undefined
+  }
+
+  return {
+    onBlur: validate,
+    onChange: validate,
+    onSubmit: validate,
+  }
+}
+
+const createCheckoutPhoneValidators = (
+  scope: CheckoutPostalValidationScope,
+  shouldValidate?: (values: CheckoutDetailsValues) => boolean
+) => {
+  const validateWhenActive =
+    shouldValidate ?? ((_values: CheckoutDetailsValues) => true)
+  const validate = ({
+    fieldApi,
+    value,
+  }: CheckoutScopedValueValidationContext<string>) => {
+    const values = fieldApi.form.state.values
+
+    return validateWhenActive(values)
+      ? validateRequiredPhoneNumberForCountry(value, values[scope].countryCode)
       : undefined
   }
 
@@ -230,9 +271,7 @@ const shippingFieldValidators = {
   lastName: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.lastName
   ),
-  phone: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.phone
-  ),
+  phone: createCheckoutPhoneValidators("shipping"),
   postalCode: createCheckoutPostalCodeValidators("shipping"),
   taxId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.taxId,

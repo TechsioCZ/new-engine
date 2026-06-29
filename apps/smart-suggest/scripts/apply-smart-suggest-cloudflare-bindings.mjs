@@ -469,6 +469,16 @@ function applyD1MigrationsForDatabases({ appRoot, databases }) {
   }
 }
 
+function assertRemoteMigrationDatabaseIds(databases) {
+  for (const database of databases) {
+    if (database.database_id !== localD1DatabaseIdForBinding(database.binding)) {
+      continue;
+    }
+
+    throw new Error(`${database.binding} database_id is required when using --apply-migrations.`);
+  }
+}
+
 function mergeSmartSuggestVars(config, routerDatabase, shardDatabases) {
   const existingVars = isRecord(config.vars) ? config.vars : {};
   const nextVars = { ...existingVars };
@@ -569,6 +579,7 @@ function main(argv = process.argv.slice(2)) {
     `Copied Smart Suggest D1 migrations to ${path.relative(appRoot, migrations.outputPath)} (${migrations.sqlFiles.length} SQL file(s))\n`,
   );
   if (args.applyMigrations) {
+    assertRemoteMigrationDatabaseIds(smartSuggestD1Databases);
     applyD1MigrationsForDatabases({ appRoot, databases: smartSuggestD1Databases });
   }
   if (removedPaths.length > 0) {

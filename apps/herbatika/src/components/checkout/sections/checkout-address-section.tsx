@@ -29,8 +29,10 @@ type CheckoutAddressSectionProps = {
 const formatSelectedAddressLine = (address: AddressParts) =>
   address.line1?.trim() ||
   [
-    address.street,
-    [address.houseNumber, address.orientationNumber].filter(Boolean).join("/"),
+    address.street?.trim(),
+    [address.houseNumber?.trim(), address.orientationNumber?.trim()]
+      .filter(Boolean)
+      .join("/"),
   ]
     .filter(Boolean)
     .join(" ")

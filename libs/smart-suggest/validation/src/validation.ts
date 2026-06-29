@@ -77,6 +77,17 @@ const TEXT_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
   "US",
 ])
 
+const NUMERIC_POSTAL_INPUT_COUNTRIES = new Set<SmartSuggestCountryCode>([
+  "AT",
+  "CZ",
+  "DE",
+  "HU",
+  "PL",
+  "RO",
+  "SK",
+  "US",
+])
+
 const POSTAL_CODE_PATTERNS: Partial<Record<SmartSuggestCountryCode, RegExp>> = {
   AT: /^\d{4}$/,
   CA: /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][\s-]?\d[ABCEGHJ-NPRSTV-Z]\d$/i,
@@ -104,6 +115,13 @@ const digitsOnly = (value: string) => value.replaceAll(/\D/g, "")
 
 const normalizePostalText = (value: string) =>
   value.trim().toUpperCase().replaceAll(/\s+/g, " ")
+
+const isPostalInputShapeAllowed = (
+  countryCode: SmartSuggestCountryCode,
+  normalizedValue: string
+) =>
+  !NUMERIC_POSTAL_INPUT_COUNTRIES.has(countryCode) ||
+  /^[\d\s-]+$/u.test(normalizedValue)
 
 const isPostalCodeValidForCountry = (
   countryCode: SmartSuggestCountryCode,
@@ -171,7 +189,6 @@ export const validatePostalCode = (
     .trim()
     .toUpperCase() as SmartSuggestCountryCode
   const normalizedValue = normalizePostalText(rawInput)
-  const displayValue = formatPostalDisplayValue(countryCode, rawInput)
   const errors: ValidationIssue[] = []
 
   if (normalizedValue.length === 0) {
@@ -179,7 +196,7 @@ export const validatePostalCode = (
       rawInput,
       countryCode,
       normalizedValue,
-      displayValue,
+      displayValue: normalizedValue,
       isValid: false,
       inputHints: getPostalInputHints(countryCode),
       errors: [
@@ -187,6 +204,26 @@ export const validatePostalCode = (
       ],
     }
   }
+
+  if (!isPostalInputShapeAllowed(countryCode, normalizedValue)) {
+    return {
+      rawInput,
+      countryCode,
+      normalizedValue,
+      displayValue: normalizedValue,
+      isValid: false,
+      inputHints: getPostalInputHints(countryCode),
+      errors: [
+        createIssue(
+          "postal.invalid",
+          "postalCode",
+          "Enter a valid postal code for the selected country."
+        ),
+      ],
+    }
+  }
+
+  const displayValue = formatPostalDisplayValue(countryCode, rawInput)
 
   const metadataResult = isPostalCodeValidForCountry(countryCode, displayValue)
 

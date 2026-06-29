@@ -806,6 +806,7 @@ export const attachSmartSuggest = (
       }
 
       setControlValue(controls.postalCode, result.displayValue);
+      applyControlValidationResult(controls.postalCode, result);
     } catch (error) {
       reportError(config.onError, error);
     }
@@ -862,7 +863,13 @@ export const attachSmartSuggest = (
 
     pending
       .then((result) => {
-        if (result?.isValid === false) {
+        if (result?.isValid !== true) {
+          if (result === undefined) {
+            controls.phone?.setCustomValidity(
+              'Phone validation is unavailable. Try again.',
+            );
+            controls.phone?.setAttribute('aria-invalid', 'true');
+          }
           controls.phone?.reportValidity();
           return;
         }
@@ -890,6 +897,10 @@ export const attachSmartSuggest = (
     const pending = validatePostal();
     pending.catch((error: unknown) => reportError(config.onError, error));
   };
+  const onPostalInput = () => {
+    postalValidationSequence += 1;
+    clearControlValidation(controls.postalCode);
+  };
 
   controls.addressLine?.addEventListener('input', onAddressInput);
   controls.addressLine?.addEventListener('keydown', onAddressKeyDown);
@@ -899,6 +910,7 @@ export const attachSmartSuggest = (
   controls.phone?.addEventListener('input', onPhoneInput);
   phoneForm?.addEventListener('submit', onPhoneFormSubmit);
   controls.postalCode?.addEventListener('blur', onPostalBlur);
+  controls.postalCode?.addEventListener('input', onPostalInput);
 
   return {
     destroy: () => {
@@ -915,6 +927,7 @@ export const attachSmartSuggest = (
       controls.phone?.removeEventListener('input', onPhoneInput);
       phoneForm?.removeEventListener('submit', onPhoneFormSubmit);
       controls.postalCode?.removeEventListener('blur', onPostalBlur);
+      controls.postalCode?.removeEventListener('input', onPostalInput);
       restorePhoneInputSemantics();
       suggestionList?.destroy();
     },

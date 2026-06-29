@@ -67,12 +67,13 @@ import {
 } from '@techsio/smart-suggest-storage';
 import { validatePostalCode } from '@techsio/smart-suggest-validation';
 import { validatePhoneNumber } from '@techsio/smart-suggest-validation/phone-strict';
-import { DateTime, Duration, Schema } from 'effect';
+import { DateTime, Duration, Random, Schema } from 'effect';
 import { catch as catchEffect } from 'effect/Effect';
 import { getHealthPayload } from '../shared/health';
 import { createSmartSuggestEdgeCacheResponse } from '../shared/edge-cache';
 
 interface SmartSuggestWorkerEnv {
+  CF_PAGES_BRANCH?: string;
   HERE_API_KEY?: string;
   HERE_DEFAULT_LAT?: string;
   HERE_DEFAULT_LNG?: string;
@@ -81,8 +82,10 @@ interface SmartSuggestWorkerEnv {
   HERE_DISCOVER_DEFAULT_LIMIT?: string;
   HERE_DISCOVER_IN_AREA?: string;
   HERE_DISCOVER_LANGUAGE?: string;
+  MODERNJS_DEPLOY?: string;
   MAPY_CZ_API_KEY?: string;
   MAPY_CZ_ENDPOINT_URL?: string;
+  NODE_ENV?: string;
   NOMINATIM_BASE_URL?: string;
   NOMINATIM_DEFAULT_LIMIT?: string;
   NOMINATIM_EMAIL?: string;
@@ -101,6 +104,7 @@ interface SmartSuggestWorkerEnv {
   SMART_SUGGEST_D1?: SmartSuggestD1Binding;
   SMART_SUGGEST_D1_ROUTER_BINDING?: string;
   SMART_SUGGEST_D1_SHARD_BINDINGS?: string;
+  SMART_SUGGEST_ENVIRONMENT?: string;
   SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS?: string;
   SMART_SUGGEST_PROVIDER_PRIORITY?: string;
   SMART_SUGGEST_PROVIDER_TIMEOUT_MS?: string;
@@ -112,7 +116,6 @@ const inMemoryRepositories = createInMemorySmartSuggestRepositories();
 const d1Repositories = new WeakMap<SmartSuggestD1Binding, SmartSuggestRepositories>();
 const shardedRepositories = new Map<string, SmartSuggestRepositories>();
 const seededRepositories = new WeakSet<SmartSuggestRepositories>();
-const repositoryTelemetrySequences = new WeakMap<SmartSuggestRepositories, number>();
 const runtimeMetricsByRepository = new WeakMap<
   SmartSuggestRepositories,
   SmartSuggestRuntimeMetrics
@@ -711,12 +714,18 @@ const seedRepositories = (repositories: SmartSuggestRepositories) => {
   );
 };
 
-const createTelemetryId = (repositories: SmartSuggestRepositories, ...parts: readonly string[]) => {
-  const sequence = (repositoryTelemetrySequences.get(repositories) ?? 0) + 1;
-  repositoryTelemetrySequences.set(repositories, sequence);
+const telemetryRandomSegment = (value: number) => Math.abs(value).toString(36);
 
-  return [...parts, String(sequence)].join(':');
-};
+const createTelemetryId = (...parts: readonly string[]) =>
+  Effect.all([Random.nextInt, Random.nextInt]).pipe(
+    Effect.map((randomParts) =>
+      [
+        ...parts,
+        nowIso(),
+        ...randomParts.map((randomPart) => telemetryRandomSegment(randomPart)),
+      ].join(':'),
+    ),
+  );
 
 const badRequestError = (message: string, field?: string) => {
   const error =
@@ -860,10 +869,11 @@ const readOptionalRecord = (value: unknown) => (isRecord(value) ? value : undefi
 
 const health = (
   repositories: SmartSuggestRepositories,
+  env?: SmartSuggestWorkerEnv,
 ): Effect.Effect<SmartSuggestHealthResponse, never, never> =>
   repositories.health.check().pipe(
-    Effect.map((storage) => getHealthPayload(storage)),
-    Effect.orElseSucceed(() => getHealthPayload()),
+    Effect.map((storage) => getHealthPayload(storage, env)),
+    Effect.orElseSucceed(() => getHealthPayload(undefined, env)),
   );
 
 type EffectSuccess<T> = T extends Effect.Effect<infer A, unknown, never> ? A : never;
@@ -1753,29 +1763,32 @@ const recordProviderEvents = ({
   const metrics = metricsForRepositories(repositories);
 
   return Effect.all(
-    events.map((event, index) => {
-      const { providerId, status: providerStatus } = event;
-      const record: Parameters<typeof repositories.providerEvents.recordProviderEvent>[0] = {
-        id: createTelemetryId(repositories, 'provider', requestId, providerId, String(index)),
-        providerId,
-        queryHash,
-        requestId,
-        status: providerStatus,
-      };
+    events.map((event, index) =>
+      Effect.gen(function* recordProviderEventProgram() {
+        const { providerId, status: providerStatus } = event;
+        const id = yield* createTelemetryId('provider', requestId, providerId, String(index));
+        const record: Parameters<typeof repositories.providerEvents.recordProviderEvent>[0] = {
+          id,
+          providerId,
+          queryHash,
+          requestId,
+          status: providerStatus,
+        };
 
-      if (event.errorCode !== undefined) {
-        record.errorCode = event.errorCode;
-      }
-      if (event.latencyMs !== undefined) {
-        record.latencyMs = event.latencyMs;
-      }
-      if (request.tenant?.tenantId !== undefined) {
-        record.tenantId = request.tenant.tenantId;
-      }
+        if (event.errorCode !== undefined) {
+          record.errorCode = event.errorCode;
+        }
+        if (event.latencyMs !== undefined) {
+          record.latencyMs = event.latencyMs;
+        }
+        if (request.tenant?.tenantId !== undefined) {
+          record.tenantId = request.tenant.tenantId;
+        }
 
-      metrics.providerEvents[providerStatus] += 1;
-      return repositories.providerEvents.recordProviderEvent(record);
-    }),
+        metrics.providerEvents[providerStatus] += 1;
+        yield* repositories.providerEvents.recordProviderEvent(record);
+      }),
+    ),
   ).pipe(Effect.asVoid);
 };
 
@@ -2438,7 +2451,8 @@ const normalizeAcceptEvent = (event: {
   return normalizedEvent;
 };
 
-const healthEffect = (repositories: SmartSuggestRepositories) => health(repositories);
+const healthEffect = (repositories: SmartSuggestRepositories, env?: SmartSuggestWorkerEnv) =>
+  health(repositories, env);
 
 const statusEffect = (repositories: SmartSuggestRepositories) => status(repositories);
 
@@ -2454,10 +2468,11 @@ const recordAcceptEventEffect = (
 ) =>
   Effect.gen(function* recordAcceptEventEffectProgram() {
     const event = normalizeAcceptEvent(input);
+    const id = yield* createTelemetryId('accept', event.requestId, event.suggestionId);
 
     yield* repositories.acceptEvents.recordAcceptEvent({
       acceptedAt: event.acceptedAt,
-      id: createTelemetryId(repositories, 'accept', event.requestId, event.suggestionId),
+      id,
       requestId: event.requestId,
       sourceId: event.source.id,
       suggestionId: event.suggestionId,
@@ -2510,8 +2525,8 @@ export const createSmartSuggestApiGroupLayer = (
   HttpApiBuilder.group(SmartSuggestHttpApi, 'smartSuggest', (handlers) =>
     handlers
       .handle('getHealth', () =>
-        withRuntimeResources(repositories, env, ({ repositories: runtimeRepositories }) =>
-          healthEffect(runtimeRepositories),
+        withRuntimeResources(repositories, env, (resources) =>
+          healthEffect(resources.repositories, resources.env),
         ),
       )
       .handle('getStatus', () =>
@@ -2534,14 +2549,18 @@ export const createSmartSuggestApiGroupLayer = (
   );
 
 const createSmartSuggestCorsLayer = (env?: SmartSuggestWorkerEnv) => {
-  const allowedOrigins = configuredCorsOrigins(env);
+  const isAllowedOrigin = (origin: string) => {
+    const allowedOrigins = configuredCorsOrigins(readEffectWorkerEnv() ?? env);
+
+    return allowedOrigins.includes('*') || allowedOrigins.includes(origin);
+  };
 
   return HttpRouter.middleware(
     Effect.succeed(
       HttpMiddleware.cors({
         allowedHeaders: ['authorization', 'content-type'],
         allowedMethods: ['GET', 'POST', 'OPTIONS'],
-        allowedOrigins: (origin) => allowedOrigins.includes('*') || allowedOrigins.includes(origin),
+        allowedOrigins: isAllowedOrigin,
         maxAge: 600,
       }),
     ),

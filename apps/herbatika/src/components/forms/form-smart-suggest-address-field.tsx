@@ -28,12 +28,14 @@ const toCountryCode = (countryCode: string | undefined) => {
 
 const formatAddressLine = (address: AddressParts, fallback: string) => {
   if (address.line1?.trim()) {
-    return address.line1
+    return address.line1.trim()
   }
 
   const streetLine = [
-    address.street,
-    [address.houseNumber, address.orientationNumber].filter(Boolean).join("/"),
+    address.street?.trim(),
+    [address.houseNumber?.trim(), address.orientationNumber?.trim()]
+      .filter(Boolean)
+      .join("/"),
   ]
     .filter(Boolean)
     .join(" ")
@@ -61,36 +63,43 @@ export function FormSmartSuggestAddressField({
   })
 
   return (
-    <AddressSuggestField
-      autoComplete="address-line1"
-      client={herbatikaSmartSuggestClient}
-      countryCode={toCountryCode(countryCode)}
-      helpText={fieldFeedback.errorText}
-      id={id}
-      inputValue={value}
-      label={label ? String(label) : undefined}
-      minQueryLength={2}
-      name={field.name}
-      onAddressSelect={(address) => {
-        field.handleChange(formatAddressLine(address, value))
+    <div
+      onBlurCapture={() => {
         field.handleBlur()
         setHasChangedSinceBlur(false)
-        onAddressSelect?.(address)
       }}
-      onInputValueChange={(nextValue) => {
-        if (
-          shouldTrackLiveFieldFeedback({
-            meta: field.state.meta,
-            submissionAttempts: field.form.state.submissionAttempts,
-          })
-        ) {
-          setHasChangedSinceBlur(true)
-        }
-        field.handleChange(nextValue)
-      }}
-      placeholder="Začnite písať ulicu"
-      required={required}
-      validateStatus={fieldFeedback.validateStatus}
-    />
+    >
+      <AddressSuggestField
+        autoComplete="address-line1"
+        client={herbatikaSmartSuggestClient}
+        countryCode={toCountryCode(countryCode)}
+        helpText={fieldFeedback.errorText}
+        id={id}
+        inputValue={value}
+        label={label ? String(label) : undefined}
+        minQueryLength={2}
+        name={field.name}
+        onAddressSelect={(address) => {
+          field.handleChange(formatAddressLine(address, value))
+          field.handleBlur()
+          setHasChangedSinceBlur(false)
+          onAddressSelect?.(address)
+        }}
+        onInputValueChange={(nextValue) => {
+          if (
+            shouldTrackLiveFieldFeedback({
+              meta: field.state.meta,
+              submissionAttempts: field.form.state.submissionAttempts,
+            })
+          ) {
+            setHasChangedSinceBlur(true)
+          }
+          field.handleChange(nextValue)
+        }}
+        placeholder="Začnite písať ulicu"
+        required={required}
+        validateStatus={fieldFeedback.validateStatus}
+      />
+    </div>
   )
 }

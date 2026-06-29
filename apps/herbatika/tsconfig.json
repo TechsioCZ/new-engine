@@ -21,6 +21,24 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
+      "@techsio/smart-suggest-client": [
+        "../../libs/smart-suggest/client/src/client.ts"
+      ],
+      "@techsio/smart-suggest-core": [
+        "../../libs/smart-suggest/core/src/core.ts"
+      ],
+      "@techsio/smart-suggest-react": [
+        "../../libs/smart-suggest/react/src/react.ts"
+      ],
+      "@techsio/smart-suggest-ui/*": [
+        "../../libs/smart-suggest/ui/src/*"
+      ],
+      "@techsio/smart-suggest-validation": [
+        "../../libs/smart-suggest/validation/src/validation.ts"
+      ],
+      "@techsio/smart-suggest-validation/*": [
+        "../../libs/smart-suggest/validation/src/*"
+      ],
       "@techsio/storefront-data": ["../../libs/storefront-data/src/index.ts"],
       "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"]
     }

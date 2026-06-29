@@ -1,8 +1,16 @@
-name: Ultramodern Workspace Gates
+name: Smart Suggest UltraModern Workspace Gates
 
 on:
   push:
+    paths:
+      - "apps/smart-suggest/**"
+      - "libs/smart-suggest/**"
+      - ".github/workflows/smart-suggest-ultramodern-workspace-gates.yml"
   pull_request:
+    paths:
+      - "apps/smart-suggest/**"
+      - "libs/smart-suggest/**"
+      - ".github/workflows/smart-suggest-ultramodern-workspace-gates.yml"
 
 permissions:
   contents: read
@@ -10,9 +18,10 @@ permissions:
 defaults:
   run:
     shell: bash
+    working-directory: apps/smart-suggest
 
 concurrency:
-  group: ultramodern-workspace-gates-${{ github.workflow }}-${{ github.ref }}
+  group: smart-suggest-ultramodern-workspace-gates-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,8 +43,14 @@ jobs:
             command: pnpm skills:check
           - name: I18n Boundaries
             command: pnpm i18n:boundaries
+          - name: API
+            command: pnpm api:check
           - name: Contract
             command: pnpm contract:check
+          - name: Smoke
+            command: pnpm test:smoke
+          - name: MF Types
+            command: pnpm mf:types
           - name: Build
             command: pnpm build
     steps:
@@ -53,7 +68,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: '26.3.0'
+          node-version: "26.3.0"
 
       - name: Setup mise
         uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0

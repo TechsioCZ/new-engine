@@ -55,6 +55,22 @@ describe("validatePostalCode", () => {
     )
   })
 
+  it("rejects letters in numeric postal codes before formatting", () => {
+    const result = validatePostalCode({
+      countryCode: "CZ",
+      rawInput: "12a345",
+    })
+
+    expect(result).toMatchObject({
+      displayValue: "12A345",
+      isValid: false,
+      normalizedValue: "12A345",
+    })
+    expect(result.errors).toContainEqual(
+      expect.objectContaining({ code: "postal.invalid" })
+    )
+  })
+
   it("does not force numeric input for alphanumeric or punctuated countries", () => {
     expect(getPostalInputHints("GB")).toMatchObject({ inputMode: "text" })
     expect(getPostalInputHints("CA")).toMatchObject({ inputMode: "text" })

@@ -3,7 +3,7 @@ import { Helmet } from '@modern-js/runtime/head';
 import { ultramodernRouteMetadata } from './ultramodern-route-metadata';
 import type { RouteJsonLd } from './ultramodern-jsonld';
 
-const appName = 'Shell Super App';
+const appName = 'Smart Suggest';
 const fallbackLanguage = 'en';
 const supportedLanguages = ['en', 'cs'] as const;
 type SupportedLanguage = (typeof supportedLanguages)[number];

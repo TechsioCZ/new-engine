@@ -716,11 +716,7 @@ async function ownedSuggestChecks(args) {
 
   const proof = ownedProofScenario(args);
   const checks = [];
-  let response = {
-    json: undefined,
-    ok: false,
-    statusCode: undefined,
-  };
+  let response;
 
   try {
     response = await fetchSuggest(args.apiBase, proof.scenario);

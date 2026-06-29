@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 type SmartSuggestPackage =
@@ -17,7 +18,8 @@ type SmartSuggestVitestOptions = {
   reactSingletonFrom?: 'ui';
 };
 
-const sourcePath = (relativePath: string) => new URL(relativePath, import.meta.url).pathname;
+const sourcePath = (relativePath: string) =>
+  fileURLToPath(new URL(relativePath, import.meta.url));
 
 const packageSources: Record<SmartSuggestPackage, string> = {
   client: '../../client/src/client.ts',

@@ -1,32 +1,36 @@
 {
   "shell": {
-    "boundaries": {
-      "toggle": "zobrazit hranice týmů"
-    },
-    "hero": {
-      "cardOne": "Přidejte první business vertical příkazem create <domain> --vertical, až ho opravdu potřebujete.",
-      "cardOneKicker": "Verticaly",
-      "cardTwo": "Plný markup, styly a lokalizovaný obsah se vykreslí před hydratací.",
-      "cardTwoKicker": "Vykreslení",
-      "empty": "Zatím nejsou připojené žádné MicroVerticaly.",
-      "eyebrow": "Shell SuperApp starter",
-      "lede": "Začněte s produkčně připraveným shellem. MicroVerticaly přidávejte až podle skutečných business domén.",
-      "primary": "Shell je připraven",
-      "secondary": "Přidejte vertical, až bude potřeba"
+    "demo": {
+      "address": "Ulice a číslo",
+      "addressPlaceholder": "Vinohradská 12, Praha",
+      "addressSelected": "Adresa vybrána",
+      "addressUnavailable": "Našeptávání adres teď není dostupné.",
+      "city": "Město",
+      "countries": {
+        "CZ": "Česko",
+        "SK": "Slovensko"
+      },
+      "country": "Stát",
+      "email": "E-mail",
+      "emptyValue": "Zatím nevyplněno",
+      "eyebrow": "Doručení",
+      "name": "Celé jméno",
+      "noAddress": "Nenašli jsme odpovídající adresu",
+      "note": "Poznámka k doručení",
+      "phone": "Telefon",
+      "postalCode": "PSČ",
+      "submit": "Použít tuto adresu",
+      "summaryTitle": "Doručovací adresa",
+      "title": "Doplňte adresu"
     },
     "language": {
       "cs": "Čeština",
       "en": "Angličtina",
       "switcher": "Jazyk"
     },
-    "remoteUnavailable": "Remote vertical je nedostupný",
-    "remotes": {},
-    "routes": {
-      "home": "Domů"
-    },
     "seo": {
-      "description": "UltraModern shell SuperApp s lokalizovaným SSR, Module Federation a frameworkem řízenými public metadata."
+      "description": "Smart Suggest pomáhá doplnit doručovací adresu."
     },
-    "title": "UltraModern Workspace"
+    "title": "Smart Suggest"
   }
 }

@@ -8,19 +8,19 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm build"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm build"
       }
     },
     "check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm check"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm check"
       }
     },
     "cloudflare:build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm cloudflare:build"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm cloudflare:build"
       }
     },
     "lint": {
@@ -32,7 +32,7 @@
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --filter '@techsio/smart-suggest-*' build && cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm typecheck"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm typecheck"
       }
     }
   }

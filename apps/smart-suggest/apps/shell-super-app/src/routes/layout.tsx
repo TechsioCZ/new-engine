@@ -1,5 +1,6 @@
 import { Outlet } from '@modern-js/plugin-tanstack/runtime';
 import './index.css';
+import './ui-kit.css';
 
 export default function Layout() {
   return (

@@ -192,6 +192,7 @@ export default defineConfig(
             fallbackLanguage: 'en',
             ignoreRedirectRoutes: [
               '/@mf-types',
+              '/api',
               '/assets',
               '/bundles',
               '/shell-super-app-api',

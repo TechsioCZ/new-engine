@@ -396,6 +396,11 @@ function assertReadyReport(report) {
     report.checks.every((entry) => entry.ok === true),
     'Ready final-boss preflight proof must have zero failing checks.',
   );
+  assert(
+    JSON.stringify(report.providers) === JSON.stringify(providers),
+    'Ready proof must include exactly the expected provider baseline set.',
+    { expected: providers, received: report.providers },
+  );
 }
 
 function assertBlockedReport(report, expectedCheckId) {

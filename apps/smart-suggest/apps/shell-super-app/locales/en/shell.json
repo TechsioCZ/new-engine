@@ -1,32 +1,36 @@
 {
   "shell": {
-    "boundaries": {
-      "toggle": "show team boundaries"
-    },
-    "hero": {
-      "cardOne": "Add the first business vertical with create <domain> --vertical when the product needs one.",
-      "cardOneKicker": "Verticals",
-      "cardTwo": "Full page markup, styles, and localized content render before hydration.",
-      "cardTwoKicker": "Rendering",
-      "empty": "No MicroVerticals are connected yet.",
-      "eyebrow": "Shell SuperApp starter",
-      "lede": "Start with a production-ready shell. Add MicroVerticals later for real business domains.",
-      "primary": "Shell ready",
-      "secondary": "Add a vertical when needed"
+    "demo": {
+      "address": "Street address",
+      "addressPlaceholder": "Vinohradska 12, Praha",
+      "addressSelected": "Address selected",
+      "addressUnavailable": "Address suggestions are unavailable right now.",
+      "city": "City",
+      "countries": {
+        "CZ": "Czechia",
+        "SK": "Slovakia"
+      },
+      "country": "Country",
+      "email": "Email",
+      "emptyValue": "Not filled yet",
+      "eyebrow": "Delivery",
+      "name": "Full name",
+      "noAddress": "No matching address",
+      "note": "Delivery note",
+      "phone": "Phone",
+      "postalCode": "Postal code",
+      "submit": "Use this address",
+      "summaryTitle": "Delivery address",
+      "title": "Complete your address"
     },
     "language": {
       "cs": "Czech",
       "en": "English",
       "switcher": "Language"
     },
-    "remoteUnavailable": "Remote vertical unavailable",
-    "remotes": {},
-    "routes": {
-      "home": "Home"
-    },
     "seo": {
-      "description": "UltraModern shell SuperApp with localized SSR, Module Federation, and framework-owned public metadata."
+      "description": "Smart Suggest helps complete delivery addresses."
     },
-    "title": "UltraModern Workspace"
+    "title": "Smart Suggest"
   }
 }

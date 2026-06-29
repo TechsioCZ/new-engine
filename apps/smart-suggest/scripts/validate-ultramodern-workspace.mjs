@@ -10,11 +10,13 @@ const fullStackVerticals = [];
 const shellNamespace = 'shell';
 const oldRemotePaths = ['apps/remotes'];
 const expectedBuildScript =
-  'ULTRAMODERN_ZEPHYR=false pnpm --filter "./apps/shell-super-app" run build && pnpm mf:types && pnpm performance:readiness';
+  'pnpm build:packages && ULTRAMODERN_ZEPHYR=false pnpm --filter "./apps/shell-super-app" run build && pnpm mf:types:assert && pnpm performance:readiness';
 const expectedCloudflareBuildScript =
-  'pnpm --filter "./apps/shell-super-app" run cloudflare:build && pnpm mf:types';
+  'pnpm build:packages && pnpm --filter "./apps/shell-super-app" run cloudflare:build && pnpm mf:types:assert';
 const expectedCloudflareDeployScript =
   'pnpm --filter "./apps/shell-super-app" run cloudflare:deploy';
+const expectedWorkflowPath =
+  '../../.github/workflows/smart-suggest-ultramodern-workspace-gates.yml';
 const expectedCloudflareSecurity = {
   enabled: true,
   headers: {
@@ -772,7 +774,7 @@ const requiredPaths = [
   'oxlint.config.ts',
   'oxfmt.config.ts',
   '.github/renovate.json',
-  '.github/workflows/ultramodern-workspace-gates.yml',
+  expectedWorkflowPath,
   '.agents/skills-lock.json',
   '.agents/agent-reference-repos.json',
   '.agents/rstackjs-agent-skills-LICENSE',
@@ -803,9 +805,7 @@ const requiredPaths = [
   'apps/shell-super-app/shared/api.ts',
   'apps/shell-super-app/src/api/smart-suggest-client.ts',
   'apps/shell-super-app/src/api/vertical-clients.ts',
-  'apps/shell-super-app/locales/en/translation.json',
   `apps/shell-super-app/locales/en/${shellNamespace}.json`,
-  'apps/shell-super-app/locales/cs/translation.json',
   `apps/shell-super-app/locales/cs/${shellNamespace}.json`,
   'apps/shell-super-app/src/routes/index.css',
   'apps/shell-super-app/src/routes/layout.tsx',
@@ -919,7 +919,7 @@ assert(
   readText('.mise.toml').includes(`pnpm = "${packageManagerPnpmVersion}"`),
   'mise must pin the generated pnpm version',
 );
-const workflowText = readText('.github/workflows/ultramodern-workspace-gates.yml');
+const workflowText = readText(expectedWorkflowPath);
 const workflowNodeVersions = extractWorkflowNodeVersions(workflowText);
 assert(workflowNodeVersions.length > 0, 'CI workflow must configure setup-node node-version');
 assert(
@@ -1005,7 +1005,8 @@ assert(
   'Root must not expose ultramodern:check',
 );
 assert(
-  rootPackage.scripts?.typecheck === 'pnpm -r --filter "@smart-suggest/*" typecheck',
+  rootPackage.scripts?.typecheck ===
+    'pnpm -r --filter "@smart-suggest/*" --filter "@techsio/smart-suggest-*" typecheck',
   'Root typecheck must run strict TS-Go project checks across workspace packages',
 );
 assert(
@@ -1066,8 +1067,13 @@ assert(
   'Root i18n boundary script must call @modern-js/code-tools',
 );
 assert(
-  rootPackage.scripts?.['mf:types'] === 'node ./scripts/assert-mf-types.mjs',
-  'Root must expose mf:types',
+  rootPackage.scripts?.['mf:types'] ===
+    'ULTRAMODERN_ZEPHYR=false pnpm --filter "./apps/shell-super-app" run build && pnpm mf:types:assert',
+  'Root must expose mf:types with a shell build before assertion',
+);
+assert(
+  rootPackage.scripts?.['mf:types:assert'] === 'node ./scripts/assert-mf-types.mjs',
+  'Root must expose mf:types:assert',
 );
 assert(
   rootPackage.scripts?.['cloudflare:deploy'] === expectedCloudflareDeployScript,
