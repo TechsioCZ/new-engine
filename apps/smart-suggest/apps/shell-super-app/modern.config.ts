@@ -1,4 +1,5 @@
 // @effect-diagnostics processEnv:off
+import { fileURLToPath } from 'node:url';
 import { appTools, defineConfig, presetUltramodern } from '@modern-js/app-tools';
 import { bffPlugin } from '@modern-js/plugin-bff';
 import { i18nPlugin } from '@modern-js/plugin-i18n';
@@ -22,9 +23,7 @@ interface ModernPluginApi {
 
 const zephyrEnabled = process.env['ULTRAMODERN_ZEPHYR'] !== 'false';
 const cloudflareDeployEnabled = process.env['MODERNJS_DEPLOY'] === 'cloudflare';
-const workspaceRoot = decodeURIComponent(
-  new URL('../../../..', import.meta.url).pathname.replace(/\/$/u, ''),
-);
+const workspaceRoot = fileURLToPath(new URL('../../../..', import.meta.url)).replace(/[\\/]$/u, '');
 
 const forceServerTsgoEsmPlugin = () => ({
   name: 'ultramodern-server-tsgo-esm-plugin',

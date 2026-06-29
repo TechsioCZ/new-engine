@@ -1,9 +1,11 @@
+import { fileURLToPath } from "node:url"
+
 import { mergeConfig } from "vitest/config"
 
 import { defineSmartSuggestVitestConfig } from "@techsio/smart-suggest-tooling/vitest-config"
 
 const sourcePath = (relativePath: string) =>
-  new URL(relativePath, import.meta.url).pathname
+  fileURLToPath(new URL(relativePath, import.meta.url))
 
 export default mergeConfig(
   defineSmartSuggestVitestConfig({

@@ -1620,6 +1620,9 @@ const readRuianGeocodeProviderConfig = (
   if (enabled === false || disabled === true) {
     return;
   }
+  if (enabled !== true && disabled !== false) {
+    return;
+  }
 
   const config: NonNullable<SmartSuggestProviderRuntimeConfig['ruianGeocode']> = {};
   const baseUrl =
