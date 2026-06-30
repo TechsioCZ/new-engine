@@ -46,6 +46,140 @@ type UseProductDetailDataProps = {
   handle: string
 }
 
+const PRODUCT_SUMMARY_FALLBACK = "Popis produktu bude čoskoro doplnený."
+
+const resolveSelectedVariant = (
+  variants: HttpTypes.StoreProductVariant[],
+  selectedVariantId: string | null
+) =>
+  variants.find((variant) => variant.id === selectedVariantId) ??
+  variants[0] ??
+  null
+
+const resolveOptionTitlesById = (product: Product | null) => {
+  const optionTitlesById = new Map<string, string>()
+
+  for (const option of product?.options ?? []) {
+    if (!option.id) {
+      continue
+    }
+
+    const title = asString(option.title)
+    if (!title) {
+      continue
+    }
+
+    optionTitlesById.set(option.id, title)
+  }
+
+  return optionTitlesById
+}
+
+const resolveVariantItems = (
+  variants: HttpTypes.StoreProductVariant[],
+  optionTitlesById: Map<string, string>
+): SelectItem[] =>
+  variants
+    .filter(
+      (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
+        Boolean(variant.id)
+    )
+    .map((variant) => ({
+      value: variant.id,
+      label: resolveVariantLabel(variant, optionTitlesById),
+    }))
+
+const resolveShortDescriptionHtml = (product: Product | null) => {
+  const metadata = asRecord(product?.metadata)
+  return asString(metadata?.short_description) ?? ""
+}
+
+const resolveProductSummaryText = (
+  product: Product | null,
+  shortDescriptionHtml: string
+) => {
+  const shortText = stripHtml(shortDescriptionHtml)
+  if (shortText) {
+    return shortText
+  }
+
+  const descriptionText = stripHtml(product?.description)
+  return descriptionText || PRODUCT_SUMMARY_FALLBACK
+}
+
+const resolveDisplayOriginalLabel = (
+  productPrice: ReturnType<typeof resolvePriceState> | null,
+  displayOriginalAmount: number | null,
+  currentCurrencyCode: string
+) =>
+  productPrice && typeof displayOriginalAmount === "number"
+    ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
+    : null
+
+const resolveProductVolumeDiscountOptions = (
+  currentAmount: number | null,
+  currentCurrencyCode: string,
+  offerState: ReturnType<typeof resolveOfferState>,
+  availableQuantity: number | null
+) => {
+  const discountOptions = resolveVolumeDiscountOptions(
+    currentAmount,
+    currentCurrencyCode,
+    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount
+  )
+
+  if (availableQuantity === null) {
+    return discountOptions
+  }
+
+  return discountOptions.filter(
+    (option) => option.quantity <= availableQuantity
+  )
+}
+
+const resolveSelectedVolumeDiscountOption = (
+  volumeDiscountOptions: ReturnType<typeof resolveVolumeDiscountOptions>,
+  selectedVolumeDiscountId: string | null
+) =>
+  volumeDiscountOptions.find(
+    (option) => option.id === selectedVolumeDiscountId
+  ) ??
+  volumeDiscountOptions[0] ??
+  null
+
+const resolveProductBreadcrumbItems = (
+  productCategories: HttpTypes.StoreProductCategory[],
+  product: Product | null,
+  handle: string
+): HerbatikaBreadcrumbItem[] => {
+  const primaryCategory = productCategories[0]
+
+  return [
+    ...(primaryCategory?.handle
+      ? [
+          {
+            label: normalizeCategoryName(primaryCategory.name),
+            href: `/c/${primaryCategory.handle}`,
+            icon: "token-icon-home" as IconType,
+          },
+        ]
+      : []),
+    { label: product?.title || handle },
+  ]
+}
+
+const resolveFreeShippingThresholdLabel = (currentCurrencyCode: string) => {
+  const freeShippingThresholdAmount =
+    resolveFreeShippingThresholdAmount(currentCurrencyCode)
+
+  return freeShippingThresholdAmount === null
+    ? null
+    : formatCurrencyAmount(freeShippingThresholdAmount, currentCurrencyCode, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })
+}
+
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
@@ -66,34 +200,9 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 
-  const selectedVariant =
-    variants.find((variant) => variant.id === selectedVariantId) ??
-    variants[0] ??
-    null
-
-  const optionTitlesById = new Map<string, string>()
-  for (const option of product?.options ?? []) {
-    if (!option.id) {
-      continue
-    }
-
-    const title = asString(option.title)
-    if (!title) {
-      continue
-    }
-
-    optionTitlesById.set(option.id, title)
-  }
-
-  const variantItems: SelectItem[] = variants
-    .filter(
-      (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
-        Boolean(variant.id)
-    )
-    .map((variant) => ({
-      value: variant.id,
-      label: resolveVariantLabel(variant, optionTitlesById),
-    }))
+  const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
+  const optionTitlesById = resolveOptionTitlesById(product)
+  const variantItems = resolveVariantItems(variants, optionTitlesById)
 
   const offerState = resolveOfferState(product, selectedVariant)
   const selectedVariantInventory = resolveVariantInventoryState(
@@ -103,12 +212,11 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const productPrice = product
     ? resolvePriceState(product, selectedVariantId, regionCurrencyCode)
     : null
-  const metadata = asRecord(product?.metadata)
-  const shortDescriptionHtml = asString(metadata?.short_description) ?? ""
-  const shortText = stripHtml(shortDescriptionHtml)
-  const descriptionText = stripHtml(product?.description)
-  const productSummaryText =
-    shortText || descriptionText || "Popis produktu bude čoskoro doplnený."
+  const shortDescriptionHtml = resolveShortDescriptionHtml(product)
+  const productSummaryText = resolveProductSummaryText(
+    product,
+    shortDescriptionHtml
+  )
   const productImages = resolveProductImages(product)
   const galleryItems = resolveGalleryItems(productImages, product?.title)
   const productHighlights = resolveProductHighlights(
@@ -133,10 +241,11 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
 
   const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
 
-  const displayOriginalLabel =
-    productPrice && typeof displayOriginalAmount === "number"
-      ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
-      : null
+  const displayOriginalLabel = resolveDisplayOriginalLabel(
+    productPrice,
+    displayOriginalAmount,
+    currentCurrencyCode
+  )
 
   const discountPercent = resolveDiscountPercent(
     currentAmount,
@@ -158,22 +267,17 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     vatRate,
   })
 
-  const discountOptions = resolveVolumeDiscountOptions(
+  const availableQuantity = selectedVariantInventory.availableQuantity
+  const volumeDiscountOptions = resolveProductVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount
+    offerState,
+    availableQuantity
   )
-  const availableQuantity = selectedVariantInventory.availableQuantity
-  const volumeDiscountOptions =
-    availableQuantity === null
-      ? discountOptions
-      : discountOptions.filter((option) => option.quantity <= availableQuantity)
-  const selectedVolumeDiscountOption =
-    volumeDiscountOptions.find(
-      (option) => option.id === selectedVolumeDiscountId
-    ) ??
-    volumeDiscountOptions[0] ??
-    null
+  const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
+    volumeDiscountOptions,
+    selectedVolumeDiscountId
+  )
 
   const relatedSections = useProductDetailRelatedProducts({
     product,
@@ -186,8 +290,6 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   }, [product?.variants])
 
   useEffect(() => {
-    const availableQuantity = selectedVariantInventory.availableQuantity
-
     if (availableQuantity === null || availableQuantity < 1) {
       return
     }
@@ -195,7 +297,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     if (quantity > availableQuantity) {
       setQuantity(availableQuantity)
     }
-  }, [quantity, selectedVariantInventory.availableQuantity])
+  }, [availableQuantity, quantity])
 
   useEffect(() => {
     setSelectedVolumeDiscountId(volumeDiscountOptions[0]?.id ?? null)
@@ -204,22 +306,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   useProductDetailDebugLog(product)
   useRecordRecentlyVisitedProduct(product)
 
-  const primaryCategory = productCategories[0]
-
-  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
-    ...(primaryCategory?.handle
-      ? [
-          {
-            label: normalizeCategoryName(primaryCategory.name),
-            href: `/c/${primaryCategory.handle}`,
-            icon: "token-icon-home" as IconType,
-          },
-        ]
-      : []),
-    { label: product?.title || handle },
-  ]
-  const freeShippingThresholdAmount =
-    resolveFreeShippingThresholdAmount(currentCurrencyCode)
+  const breadcrumbItems = resolveProductBreadcrumbItems(
+    productCategories,
+    product,
+    handle
+  )
+  const freeShippingThresholdLabel =
+    resolveFreeShippingThresholdLabel(currentCurrencyCode)
 
   return {
     breadcrumbItems,
@@ -228,14 +321,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
     displayOriginalLabel,
     discountPercent,
-    freeShippingThresholdLabel:
-      freeShippingThresholdAmount === null
-        ? null
-        : formatCurrencyAmount(
-            freeShippingThresholdAmount,
-            currentCurrencyCode,
-            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-          ),
+    freeShippingThresholdLabel,
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
     maxQuantity,

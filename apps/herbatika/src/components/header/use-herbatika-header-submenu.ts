@@ -69,10 +69,7 @@ export function useHerbatikaHeaderSubmenu() {
     }
   }
 
-  const childrenByParentId = new Map<
-    string,
-    HttpTypes.StoreProductCategory[]
-  >()
+  const childrenByParentId = new Map<string, HttpTypes.StoreProductCategory[]>()
 
   for (const category of categoriesQuery.categories) {
     if (!(category.parent_category_id && category.handle)) {

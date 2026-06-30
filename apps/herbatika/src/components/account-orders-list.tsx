@@ -55,7 +55,7 @@ export function AccountOrdersList() {
         })
       )
     })
-  }, [currentPage, ordersQuery.totalPages, setCurrentPage, startTransition])
+  }, [currentPage, ordersQuery.totalPages, setCurrentPage])
 
   const prefetchOrderDetail = (orderId: string) => {
     runDetachedPromise(

@@ -106,7 +106,6 @@ export function useCategoryListingQueries({
     categoryById.set(category.id, category)
   }
 
-
   const activeCategory = categoryByHandle.get(slug) ?? null
 
   const activeCategoryFilterIds = activeCategory
@@ -122,7 +121,8 @@ export function useCategoryListingQueries({
   const topLevelCategories = categoriesQuery.categories
     .filter((category) => !category.parent_category_id && category.handle)
     .sort((left, right) => {
-      const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right)
+      const rankDifference =
+        resolveCategoryRank(left) - resolveCategoryRank(right)
       if (rankDifference !== 0) {
         return rankDifference
       }

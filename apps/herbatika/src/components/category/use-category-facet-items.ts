@@ -20,9 +20,7 @@ export function useCategoryFacetItems({
     catalogFacets.status.filter((item) =>
       isCatalogStatusFilterSupported(item.id)
     ),
-    seedFacets.status.filter((item) =>
-      isCatalogStatusFilterSupported(item.id)
-    ),
+    seedFacets.status.filter((item) => isCatalogStatusFilterSupported(item.id)),
     queryState.status.filter(isCatalogStatusFilterSupported)
   )
 
