@@ -28,7 +28,6 @@
     "@payloadcms/translations": "3.85.1",
     "@payloadcms/ui": "3.85.1",
     "@pigment/auto-translate": "^1.3.4",
-    "babel-plugin-react-compiler": "1.0.0",
     "dotenv": "16.4.7",
     "exceljs": "^4.4.0",
     "graphql": "^16.8.1",

@@ -27,11 +27,16 @@ const resolveMedusaImageRemotePattern = () =>
 const resolvePayloadImageRemotePattern = () =>
   resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
+const isTurbopack = Boolean(process.env.TURBOPACK)
+const turbopackRustCompiler = isTurbopack
+  ? ({ turbopackRustReactCompiler: true } as const)
+  : {}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
-  reactCompiler: true,
+  reactCompiler: isTurbopack,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
@@ -78,6 +83,7 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
     cpus: 1,
+    ...turbopackRustCompiler,
     webpackMemoryOptimizations: true,
   },
 }

@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
+const isTurbopack = Boolean(process.env.TURBOPACK)
+const turbopackRustCompiler = isTurbopack
+  ? { turbopackRustReactCompiler: true }
+  : {}
+
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["ui"],
-  reactCompiler: true,
+  reactCompiler: isTurbopack,
+  experimental: turbopackRustCompiler,
   // Removed 'output: export' to enable SSG with dynamic functions
   images: {
     remotePatterns: [
