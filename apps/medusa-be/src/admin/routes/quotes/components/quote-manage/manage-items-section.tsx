@@ -55,10 +55,12 @@ export const ManageItemsSection = ({
     setIsOpen("inbound-items", false)
   }
 
+  const normalizedFilterTerm = filterTerm.trim().toLowerCase()
+
   const filteredItems = preview.items.filter(
     (i) =>
-      i.title.toLowerCase().includes(filterTerm) ||
-      i.product_title?.toLowerCase().includes(filterTerm)
+      i.title.toLowerCase().includes(normalizedFilterTerm) ||
+      i.product_title?.toLowerCase().includes(normalizedFilterTerm)
   )
   const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
 

@@ -79,12 +79,13 @@ export function HeaderSearch() {
     if (selectedValues.length > 0 && selectedValues[0]) {
       const nextSelectedValue = selectedValues[0]
 
-      // Zkontrolovat jestli je to existující produkt nebo custom search
-      const isProductHandle = searchItems.some(
-        (item) => item.value === nextSelectedValue
-      )
-
-      if (isProductHandle) {
+      if (nextSelectedValue === "__search__") {
+        handleSearch(searchQuery)
+      } else if (
+        searchResults.some(
+          (product) => (product.handle || product.id) === nextSelectedValue
+        )
+      ) {
         router.push(`/products/${nextSelectedValue}`)
       } else {
         // Custom hodnota = search query

@@ -54,6 +54,22 @@ const getCurrencySymbol = (currencyCode: string) =>
   currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
   currencyCode.toUpperCase()
 
+const toCustomerOption = (
+  customer: HttpTypes.AdminCustomer
+): CustomerOption | null => {
+  if (!customer.id) {
+    return null
+  }
+
+  return {
+    email: customer.email,
+    first_name: customer.first_name,
+    id: customer.id,
+    last_name: customer.last_name,
+    phone: customer.phone,
+  }
+}
+
 const RequiredLabel = ({
   children,
   required,
@@ -196,7 +212,12 @@ export function EmployeesCreateForm({
     })
 
   const currencyCode = company.currency_code?.toLowerCase() || "usd"
-  const customerOptions = (customerSearch?.customers ?? []) as CustomerOption[]
+  const customerOptions = (customerSearch?.customers ?? []).flatMap(
+    (customer) => {
+      const customerOption = toCustomerOption(customer)
+      return customerOption ? [customerOption] : []
+    }
+  )
   const normalizedEmail = emailInput.toLowerCase()
   const exactCustomer =
     customerOptions.find(

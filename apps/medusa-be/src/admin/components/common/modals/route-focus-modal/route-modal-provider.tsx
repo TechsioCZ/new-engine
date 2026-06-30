@@ -15,7 +15,7 @@ export const RouteModalProvider = ({
   const [closeOnEscape, setCloseOnEscape] = useState(true)
 
   const handleSuccess = (path?: string) => {
-    const to = path || prev
+    const to = path ?? prev
     navigate(to, { replace: true, state: { isSubmitSuccessful: true } })
   }
 
