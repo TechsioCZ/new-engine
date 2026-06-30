@@ -16,6 +16,8 @@
       "default",
       "!{projectRoot}/**/*.spec.ts",
       "!{projectRoot}/**/*.test.ts",
+      "!{projectRoot}/**/*.spec.tsx",
+      "!{projectRoot}/**/*.test.tsx",
       "!{projectRoot}/tests/**",
       "!{projectRoot}/integration-tests/**",
       "!{projectRoot}/e2e-tests/**",
