@@ -82,7 +82,9 @@ export function HeaderSearch() {
       if (nextSelectedValue === "__search__") {
         handleSearch(searchQuery)
       } else if (
-        searchResults.some((product) => product.handle === nextSelectedValue)
+        searchResults.some(
+          (product) => (product.handle || product.id) === nextSelectedValue
+        )
       ) {
         router.push(`/products/${nextSelectedValue}`)
       } else {
