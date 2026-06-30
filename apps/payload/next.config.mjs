@@ -6,14 +6,8 @@ const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: join(import.meta.dirname, "../../"),
   reactCompiler: true,
-  webpack: (webpackConfig) => {
-    webpackConfig.resolve.extensionAlias = {
-      ".cjs": [".cts", ".cjs"],
-      ".js": [".ts", ".tsx", ".js", ".jsx"],
-      ".mjs": [".mts", ".mjs"],
-    }
-
-    return webpackConfig
+  experimental: {
+    turbopackRustReactCompiler: true,
   },
 }
 
