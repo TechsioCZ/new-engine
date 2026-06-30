@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
 import {
   ProductReviewForm,
@@ -55,7 +55,7 @@ export function ProductReviewTokenPage({
     },
   })
   const isBusy = createReviewMutation.isPending
-  const productStatus = useMemo<ProductReviewTokenProductStatus>(() => {
+  const productStatus: ProductReviewTokenProductStatus = (() => {
     if (!normalizedProductId) {
       return "missing-product-id"
     }
@@ -73,7 +73,7 @@ export function ProductReviewTokenPage({
     }
 
     return "ready"
-  }, [normalizedProductId, product, productQuery.error, productQuery.isLoading])
+  })()
   const productStatusMessage = resolveProductStatusMessage(productStatus)
 
   const handleSubmit = ({

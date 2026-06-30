@@ -6,7 +6,6 @@ import type {
   CatalogListResponse,
   UseCatalogProductsResult,
 } from "@techsio/storefront-data/catalog/types"
-import { useMemo } from "react"
 import type {
   CatalogProductsParams,
   CatalogQueryState,
@@ -89,9 +88,8 @@ export const useCatalogProducts = (
   options?: UseCatalogProductsOptions
 ): UseCatalogProductsResult<HttpTypes.StoreProduct, CatalogFacets> => {
   const catalogQuery = catalogHooks.useCatalogProducts(input, options)
-  const inventorySnapshotHandles = useMemo(
-    () => resolveInventorySnapshotHandles(catalogQuery.products),
-    [catalogQuery.products]
+  const inventorySnapshotHandles = resolveInventorySnapshotHandles(
+    catalogQuery.products
   )
   const shouldLoadInventorySnapshots = inventorySnapshotHandles.length > 0
   const inventorySnapshotsQuery = useProducts({
@@ -100,34 +98,22 @@ export const useCatalogProducts = (
     fields: PRODUCT_CARD_FIELDS,
     enabled: catalogQuery.isSuccess && shouldLoadInventorySnapshots,
   })
-  const inventoryProductByHandle = useMemo(
-    () =>
-      new Map(
-        inventorySnapshotsQuery.products
-          .filter((product) => product.handle)
-          .map((product) => [product.handle, product])
-      ),
-    [inventorySnapshotsQuery.products]
+  const inventoryProductByHandle = new Map(
+    inventorySnapshotsQuery.products
+      .filter((product) => product.handle)
+      .map((product) => [product.handle, product])
   )
-  const products = useMemo(() => {
-    if (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading) {
-      return []
-    }
-
-    return catalogQuery.products.map((product) =>
-      mergeProductInventorySnapshot(
-        product,
-        product.handle
-          ? inventoryProductByHandle.get(product.handle)
-          : undefined
-      )
-    )
-  }, [
-    catalogQuery.products,
-    inventoryProductByHandle,
-    inventorySnapshotsQuery.isLoading,
-    shouldLoadInventorySnapshots,
-  ])
+  const products =
+    shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading
+      ? []
+      : catalogQuery.products.map((product) =>
+          mergeProductInventorySnapshot(
+            product,
+            product.handle
+              ? inventoryProductByHandle.get(product.handle)
+              : undefined
+          )
+        )
 
   return {
     ...catalogQuery,

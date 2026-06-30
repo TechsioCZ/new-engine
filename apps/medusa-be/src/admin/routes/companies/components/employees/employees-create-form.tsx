@@ -8,13 +8,7 @@ import {
   Label,
   Text,
 } from "@medusajs/ui"
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
 import { CoolSwitch } from "../../../../components"
@@ -169,6 +163,7 @@ const CustomerSelection = ({
   )
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: existing employee form branching is outside this compiler cleanup.
 export function EmployeesCreateForm({
   handleSubmit,
   loading,
@@ -201,19 +196,12 @@ export function EmployeesCreateForm({
     })
 
   const currencyCode = company.currency_code?.toLowerCase() || "usd"
-  const customerOptions = useMemo(
-    () => (customerSearch?.customers ?? []) as CustomerOption[],
-    [customerSearch?.customers]
-  )
-  const exactCustomer = useMemo(() => {
-    const normalizedEmail = emailInput.toLowerCase()
-
-    return (
-      customerOptions.find(
-        (customer) => customer.email?.toLowerCase() === normalizedEmail
-      ) ?? null
-    )
-  }, [customerOptions, emailInput])
+  const customerOptions = (customerSearch?.customers ?? []) as CustomerOption[]
+  const normalizedEmail = emailInput.toLowerCase()
+  const exactCustomer =
+    customerOptions.find(
+      (customer) => customer.email?.toLowerCase() === normalizedEmail
+    ) ?? null
   const selectedCustomer =
     customerOptions.find((customer) => customer.id === formData.customer_id) ??
     null

@@ -14,13 +14,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
@@ -191,14 +185,8 @@ function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
     ],
   })
 
-  const rawOrders = useMemo(
-    () => ordersQuery.data?.orders ?? [],
-    [ordersQuery.data?.orders]
-  )
-  const rawOrderIds = useMemo(
-    () => rawOrders.map((order) => order.id),
-    [rawOrders]
-  )
+  const rawOrders = ordersQuery.data?.orders ?? []
+  const rawOrderIds = rawOrders.map((order) => order.id)
   const businessStatusesQuery = useQuery({
     enabled: rawOrderIds.length > 0,
     queryFn: () => {
@@ -212,22 +200,11 @@ function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
     },
     queryKey: ["order-business-statuses-by-ids", rawOrderIds],
   })
-  const businessStatusesById = useMemo(
-    () =>
-      new Map(
-        (businessStatusesQuery.data?.orders ?? []).map((order) => [
-          order.id,
-          order,
-        ])
-      ),
-    [businessStatusesQuery.data?.orders]
+  const businessStatusesById = new Map(
+    (businessStatusesQuery.data?.orders ?? []).map((order) => [order.id, order])
   )
-  const orders = useMemo(
-    () =>
-      rawOrders.map((order) =>
-        mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
-      ),
-    [businessStatusesById, rawOrders]
+  const orders = rawOrders.map((order) =>
+    mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
   )
 
   return {
@@ -301,18 +278,9 @@ function useOrderExpeditionSelection(
   selectedOrdersById: Map<string, OrderExpeditionOrderDto>,
   orders: OrderExpeditionOrderDto[]
 ) {
-  const selectedOrders = useMemo(
-    () => [...selectedOrdersById.values()],
-    [selectedOrdersById]
-  )
-  const selectedOrderIds = useMemo(
-    () => new Set(selectedOrdersById.keys()),
-    [selectedOrdersById]
-  )
-  const selectedOrderIdsList = useMemo(
-    () => [...selectedOrdersById.keys()],
-    [selectedOrdersById]
-  )
+  const selectedOrders = [...selectedOrdersById.values()]
+  const selectedOrderIds = new Set(selectedOrdersById.keys())
+  const selectedOrderIdsList = [...selectedOrdersById.keys()]
   const allPageOrdersSelected =
     orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
   const somePageOrdersSelected =
@@ -1497,10 +1465,7 @@ const OrderExpeditionPage = () => {
   const [blockingOrders, setBlockingOrders] = useState<
     OrderExpeditionBlockingOrder[]
   >([])
-  const intlLocale = useMemo(
-    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  )
+  const intlLocale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
 
   const { businessStatusesQuery, carriersQuery, orders, ordersQuery } =
     useOrderExpeditionQueries({ carrier, businessStatus, offset })
@@ -1523,10 +1488,7 @@ const OrderExpeditionPage = () => {
     targetStatus,
   })
 
-  const targetStatusOptions = useMemo(
-    () => getTargetStatusOptions(selectedOrders),
-    [selectedOrders]
-  )
+  const targetStatusOptions = getTargetStatusOptions(selectedOrders)
   const selectedTargetStatusOption = targetStatus
     ? targetStatusOptions.find((option) => option.value === targetStatus)
     : undefined

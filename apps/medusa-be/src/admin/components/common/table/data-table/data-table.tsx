@@ -1,5 +1,4 @@
 import { clx } from "@medusajs/ui"
-import { memo } from "react"
 import { TableSkeleton } from "../../skeleton"
 import { NoRecords, type NoResultsProps } from "../"
 import { DataTableQuery, type DataTableQueryProps } from "./data-table-query"
@@ -13,10 +12,6 @@ interface DataTableProps<TData>
   queryObject?: Record<string, unknown>
   noRecords?: Pick<NoResultsProps, "title" | "message">
 }
-
-// Maybe we should use the memoized version of DataTableRoot
-// const MemoizedDataTableRoot = memo(DataTableRoot) as typeof DataTableRoot
-const MemoizedDataTableQuery = memo(DataTableQuery)
 
 export const DataTable = <TData,>({
   table,
@@ -71,7 +66,7 @@ export const DataTable = <TData,>({
         "flex h-full flex-col overflow-hidden": layout === "fill",
       })}
     >
-      <MemoizedDataTableQuery
+      <DataTableQuery
         filters={filters}
         orderBy={orderBy}
         prefix={prefix}

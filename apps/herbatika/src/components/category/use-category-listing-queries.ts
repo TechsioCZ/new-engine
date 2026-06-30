@@ -2,7 +2,6 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useMemo } from "react"
 import {
   resolveCategoryBottomHtml,
   resolveCategoryContextImageTiles,
@@ -95,75 +94,56 @@ export function useCategoryListingQueries({
     fields: CATEGORY_TREE_FIELDS,
   })
 
-  const categoryByHandle = useMemo(() => {
-    const map = new Map<string, HttpTypes.StoreProductCategory>()
-    for (const category of categoriesQuery.categories) {
-      if (category.handle) {
-        map.set(category.handle, category)
-      }
+  const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
+  for (const category of categoriesQuery.categories) {
+    if (category.handle) {
+      categoryByHandle.set(category.handle, category)
     }
+  }
 
-    return map
-  }, [categoriesQuery.categories])
+  const categoryById = new Map<string, HttpTypes.StoreProductCategory>()
+  for (const category of categoriesQuery.categories) {
+    categoryById.set(category.id, category)
+  }
 
-  const categoryById = useMemo(() => {
-    const map = new Map<string, HttpTypes.StoreProductCategory>()
-    for (const category of categoriesQuery.categories) {
-      map.set(category.id, category)
-    }
-
-    return map
-  }, [categoriesQuery.categories])
 
   const activeCategory = categoryByHandle.get(slug) ?? null
 
-  const activeCategoryFilterIds = useMemo(() => {
-    if (!activeCategory) {
-      return []
-    }
+  const activeCategoryFilterIds = activeCategory
+    ? [
+        activeCategory.id,
+        ...collectDescendantCategoryIds(
+          categoriesQuery.categories,
+          activeCategory.id
+        ),
+      ]
+    : []
 
-    return [
-      activeCategory.id,
-      ...collectDescendantCategoryIds(
-        categoriesQuery.categories,
-        activeCategory.id
-      ),
-    ]
-  }, [activeCategory, categoriesQuery.categories])
+  const topLevelCategories = categoriesQuery.categories
+    .filter((category) => !category.parent_category_id && category.handle)
+    .sort((left, right) => {
+      const rankDifference = resolveCategoryRank(left) - resolveCategoryRank(right)
+      if (rankDifference !== 0) {
+        return rankDifference
+      }
 
-  const topLevelCategories = useMemo(
-    () =>
-      categoriesQuery.categories
-        .filter((category) => !category.parent_category_id && category.handle)
-        .sort((left, right) => {
-          const rankDifference =
-            resolveCategoryRank(left) - resolveCategoryRank(right)
-          if (rankDifference !== 0) {
-            return rankDifference
-          }
+      return normalizeCategoryName(left.name).localeCompare(
+        normalizeCategoryName(right.name),
+        "sk"
+      )
+    })
 
-          return normalizeCategoryName(left.name).localeCompare(
-            normalizeCategoryName(right.name),
-            "sk"
-          )
-        }),
-    [categoriesQuery.categories]
+  const breadcrumbItems = resolveBreadcrumbItems(
+    slug,
+    activeCategory,
+    categoryById
   )
 
-  const breadcrumbItems = useMemo(
-    () => resolveBreadcrumbItems(slug, activeCategory, categoryById),
-    [activeCategory, categoryById, slug]
-  )
-
-  const catalogProductsInput = useMemo(
-    () =>
-      buildCatalogProductsParams({
-        queryState,
-        categoryIds: activeCategoryFilterIds,
-        limit: PLP_PAGE_SIZE,
-      }),
-    [activeCategoryFilterIds, queryState]
-  )
+  const catalogProductsInput = buildCatalogProductsParams({
+    queryState,
+    categoryIds: activeCategoryFilterIds,
+    limit: PLP_PAGE_SIZE,
+  })
 
   const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id)
 
@@ -172,25 +152,21 @@ export function useCategoryListingQueries({
     enabled: isCatalogQueryEnabled,
   })
 
-  const catalogFacetSeedInput = useMemo(
-    () =>
-      buildCatalogProductsParams({
-        queryState: {
-          ...queryState,
-          page: 1,
-          sort: "recommended",
-          status: [],
-          form: [],
-          brand: [],
-          ingredient: [],
-          price_min: null,
-          price_max: null,
-        },
-        categoryIds: activeCategoryFilterIds,
-        limit: 1,
-      }),
-    [activeCategoryFilterIds, queryState]
-  )
+  const catalogFacetSeedInput = buildCatalogProductsParams({
+    queryState: {
+      ...queryState,
+      page: 1,
+      sort: "recommended",
+      status: [],
+      form: [],
+      brand: [],
+      ingredient: [],
+      price_min: null,
+      price_max: null,
+    },
+    categoryIds: activeCategoryFilterIds,
+    limit: 1,
+  })
 
   const catalogFacetSeedQuery = useCatalogProducts({
     ...catalogFacetSeedInput,
@@ -208,21 +184,12 @@ export function useCategoryListingQueries({
     seedFacets: catalogFacetSeedQuery.facets,
   })
 
-  const categoryContextImageTiles = useMemo(
-    () =>
-      resolveCategoryContextImageTiles({
-        activeCategory,
-        activeCategoryFilterIds,
-        categories: categoriesQuery.categories,
-        categoryById,
-      }),
-    [
-      activeCategory,
-      activeCategoryFilterIds,
-      categoriesQuery.categories,
-      categoryById,
-    ]
-  )
+  const categoryContextImageTiles = resolveCategoryContextImageTiles({
+    activeCategory,
+    activeCategoryFilterIds,
+    categories: categoriesQuery.categories,
+    categoryById,
+  })
 
   return {
     activeAsideFilterCount: resolveCatalogActiveFilterCount(queryState),

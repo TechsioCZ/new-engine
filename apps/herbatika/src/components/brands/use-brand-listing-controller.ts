@@ -2,7 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
-import { useEffect, useMemo } from "react"
+import { useEffect } from "react"
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
@@ -32,20 +32,14 @@ export function useBrandListingController({
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
-  const visibleQueryState = useMemo(
-    () => ({
-      ...queryState,
-      brand: [],
-    }),
-    [queryState]
-  )
-  const brandQueryState = useMemo(
-    () => ({
-      ...queryState,
-      brand: [brandFacetId],
-    }),
-    [brandFacetId, queryState]
-  )
+  const visibleQueryState = {
+    ...queryState,
+    brand: [],
+  }
+  const brandQueryState = {
+    ...queryState,
+    brand: [brandFacetId],
+  }
   const isBrandQueryEnabled = Boolean(region?.region_id && brandFacetId)
   const queryBrandSignature = queryState.brand.join("\0")
 
@@ -57,38 +51,30 @@ export function useBrandListingController({
     runDetachedPromise(setQueryState({ brand: [] }))
   }, [queryBrandSignature, setQueryState])
 
-  const catalogProductsInput = useMemo(
-    () =>
-      buildCatalogProductsParams({
-        queryState: brandQueryState,
-        limit: PLP_PAGE_SIZE,
-      }),
-    [brandQueryState]
-  )
+  const catalogProductsInput = buildCatalogProductsParams({
+    queryState: brandQueryState,
+    limit: PLP_PAGE_SIZE,
+  })
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
     enabled: isBrandQueryEnabled,
   })
 
-  const catalogFacetSeedInput = useMemo(
-    () =>
-      buildCatalogProductsParams({
-        queryState: {
-          ...queryState,
-          page: 1,
-          sort: "recommended",
-          status: [],
-          form: [],
-          brand: [brandFacetId],
-          ingredient: [],
-          price_min: null,
-          price_max: null,
-        },
-        limit: 1,
-      }),
-    [brandFacetId, queryState]
-  )
+  const catalogFacetSeedInput = buildCatalogProductsParams({
+    queryState: {
+      ...queryState,
+      page: 1,
+      sort: "recommended",
+      status: [],
+      form: [],
+      brand: [brandFacetId],
+      ingredient: [],
+      price_min: null,
+      price_max: null,
+    },
+    limit: 1,
+  })
 
   const catalogFacetSeedQuery = useCatalogProducts({
     ...catalogFacetSeedInput,

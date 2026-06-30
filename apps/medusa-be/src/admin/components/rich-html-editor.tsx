@@ -22,7 +22,7 @@ import {
 } from "@mdxeditor/editor"
 import "@mdxeditor/editor/style.css"
 import { marked } from "marked"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import "./rich-html-editor.css"
 
 const HEADING_TAG_PATTERN = /^h[1-6]$/
@@ -193,37 +193,34 @@ export const RichHtmlEditor = ({
     editorRef.current?.setMarkdown(nextMarkdown)
   }, [valueHtml])
 
-  const plugins = useMemo(
-    () => [
-      toolbarPlugin({
-        toolbarContents: () => (
-          <>
-            <UndoRedo />
-            <Separator />
-            <BlockTypeSelect />
-            <Separator />
-            <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
-            <StrikeThroughSupSubToggles options={["Strikethrough"]} />
-            <Separator />
-            <ListsToggle />
-            <Separator />
-            <CreateLink />
-            <InsertTable />
-            <InsertThematicBreak />
-          </>
-        ),
-      }),
-      headingsPlugin(),
-      listsPlugin(),
-      quotePlugin(),
-      thematicBreakPlugin(),
-      linkPlugin(),
-      linkDialogPlugin(),
-      tablePlugin(),
-      markdownShortcutPlugin(),
-    ],
-    []
-  )
+  const plugins = [
+    toolbarPlugin({
+      toolbarContents: () => (
+        <>
+          <UndoRedo />
+          <Separator />
+          <BlockTypeSelect />
+          <Separator />
+          <BoldItalicUnderlineToggles options={["Bold", "Italic"]} />
+          <StrikeThroughSupSubToggles options={["Strikethrough"]} />
+          <Separator />
+          <ListsToggle />
+          <Separator />
+          <CreateLink />
+          <InsertTable />
+          <InsertThematicBreak />
+        </>
+      ),
+    }),
+    headingsPlugin(),
+    listsPlugin(),
+    quotePlugin(),
+    thematicBreakPlugin(),
+    linkPlugin(),
+    linkDialogPlugin(),
+    tablePlugin(),
+    markdownShortcutPlugin(),
+  ]
 
   return (
     <MDXEditor

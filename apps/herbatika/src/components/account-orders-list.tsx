@@ -8,7 +8,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
 import { parseAsInteger, useQueryState } from "nuqs"
-import { useCallback, useEffect, useTransition } from "react"
+import { useEffect, useTransition } from "react"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderGroup } from "@/components/account/orders/account-order-group"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
@@ -38,20 +38,6 @@ export function AccountOrdersList() {
     (ordersQuery.query.isFetching || isPageTransitionPending) &&
     (hasVisibleOrders || ordersQuery.query.isPlaceholderData)
 
-  const setPage = useCallback(
-    (nextPage: number, replaceHistoryEntry = false) => {
-      const normalizedPage = Math.max(1, nextPage)
-      startTransition(() => {
-        runDetachedPromise(
-          setCurrentPage(normalizedPage, {
-            history: replaceHistoryEntry ? "replace" : "push",
-          })
-        )
-      })
-    },
-    [setCurrentPage]
-  )
-
   useEffect(() => {
     if (ordersQuery.totalPages < 1) {
       return
@@ -61,17 +47,21 @@ export function AccountOrdersList() {
       return
     }
 
-    setPage(ordersQuery.totalPages, true)
-  }, [currentPage, ordersQuery.totalPages, setPage])
-
-  const prefetchOrderDetail = useCallback(
-    (orderId: string) => {
+    const normalizedPage = Math.max(1, ordersQuery.totalPages)
+    startTransition(() => {
       runDetachedPromise(
-        queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }))
+        setCurrentPage(normalizedPage, {
+          history: "replace",
+        })
       )
-    },
-    [queryClient]
-  )
+    })
+  }, [currentPage, ordersQuery.totalPages, setCurrentPage, startTransition])
+
+  const prefetchOrderDetail = (orderId: string) => {
+    runDetachedPromise(
+      queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }))
+    )
+  }
 
   if (authQuery.isLoading || (ordersQuery.isLoading && !hasVisibleOrders)) {
     return <AccountOrdersSkeleton />

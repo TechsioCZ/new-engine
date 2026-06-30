@@ -11,7 +11,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   listReviews,
@@ -164,16 +164,13 @@ const ReviewsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [status, setStatus] = useState<ReviewStatus | undefined>("pending")
   const debouncedQuery = useDebouncedValue(query, 250)
-  const params = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: "-created_at",
-      q: debouncedQuery || undefined,
-      status,
-    }),
-    [debouncedQuery, pageIndex, status]
-  )
+  const params = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: "-created_at",
+    q: debouncedQuery || undefined,
+    status,
+  }
   const { data, isLoading } = useQuery({
     queryFn: () => listReviews(params),
     queryKey: reviewQueryKeys.list(params),

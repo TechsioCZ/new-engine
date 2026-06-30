@@ -1,6 +1,6 @@
 import type { AdminOrder, AdminOrderPreview } from "@medusajs/framework/types"
 import { Button, Heading, Input, toast } from "@medusajs/ui"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   RouteFocusModal,
@@ -55,20 +55,12 @@ export const ManageItemsSection = ({
     setIsOpen("inbound-items", false)
   }
 
-  const filteredItems = useMemo(
-    () =>
-      preview.items.filter(
-        (i) =>
-          i.title.toLowerCase().includes(filterTerm) ||
-          i.product_title?.toLowerCase().includes(filterTerm)
-      ),
-    [preview, filterTerm]
+  const filteredItems = preview.items.filter(
+    (i) =>
+      i.title.toLowerCase().includes(filterTerm) ||
+      i.product_title?.toLowerCase().includes(filterTerm)
   )
-
-  const originalItemsMap = useMemo(
-    () => new Map(order.items.map((item) => [item.id, item])),
-    [order]
-  )
+  const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
 
   return (
     <div>

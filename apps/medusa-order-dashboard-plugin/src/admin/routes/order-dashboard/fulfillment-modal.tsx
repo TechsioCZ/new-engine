@@ -8,7 +8,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   createOrderDashboardFulfillment,
@@ -101,25 +101,15 @@ export function OrderFulfillmentModal({
 
   const stockLocations = stockLocationsQuery.data ?? []
   const shippingOptions = shippingOptionsQuery.data ?? []
-  const preview = useMemo(
-    () =>
-      locationId && fulfillmentOrdersQuery.data && shippingOptionsQuery.data
-        ? getBulkFulfillmentPreview(
-            fulfillmentOrdersQuery.data,
-            selectedOrders,
-            shippingOptions,
-            t
-          )
-        : { fulfillable: [], skipped: [] },
-    [
-      fulfillmentOrdersQuery.data,
-      locationId,
-      selectedOrders,
-      shippingOptions,
-      shippingOptionsQuery.data,
-      t,
-    ]
-  )
+  const preview =
+    locationId && fulfillmentOrdersQuery.data && shippingOptionsQuery.data
+      ? getBulkFulfillmentPreview(
+          fulfillmentOrdersQuery.data,
+          selectedOrders,
+          shippingOptions,
+          t
+        )
+      : { fulfillable: [], skipped: [] }
   const isPreviewLoading =
     fulfillmentOrdersQuery.isLoading ||
     stockLocationsQuery.isLoading ||

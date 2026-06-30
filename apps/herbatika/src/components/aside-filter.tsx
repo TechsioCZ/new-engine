@@ -2,7 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   type AsideFilterChipItem,
   AsideFilterChipSection,
@@ -147,10 +147,7 @@ export function AsideFilter({
   onReset,
   showBrandFilter = true,
 }: AsideFilterProps) {
-  const incomingPriceBounds = useMemo(
-    () => toSafeBounds(priceBounds),
-    [priceBounds]
-  )
+  const incomingPriceBounds = toSafeBounds(priceBounds)
   const hasActivePriceFilter =
     typeof selectedPriceRange.min === "number" ||
     typeof selectedPriceRange.max === "number"
@@ -172,16 +169,16 @@ export function AsideFilter({
     )
   }, [hasActivePriceFilter, incomingPriceBounds])
 
-  const selectedRange = useMemo(
-    () => resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
-    [priceBoundsForRender, selectedPriceRange]
+  const selectedRange = resolveRangeFromSelection(
+    selectedPriceRange,
+    priceBoundsForRender
   )
 
   const [sliderRange, setSliderRange] =
     useState<[number, number]>(selectedRange)
-  const sliderRangeForRender = useMemo(
-    () => resolveRangeWithinBounds(sliderRange, priceBoundsForRender),
-    [priceBoundsForRender, sliderRange]
+  const sliderRangeForRender = resolveRangeWithinBounds(
+    sliderRange,
+    priceBoundsForRender
   )
 
   useEffect(() => {

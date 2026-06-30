@@ -21,7 +21,7 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
@@ -113,10 +113,7 @@ const fulfillmentStatusColors = {
 const OrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
-  const locale = useMemo(
-    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  )
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageIndex: 0,
     pageSize: ORDER_DASHBOARD_PAGE_SIZE,
@@ -177,49 +174,28 @@ const OrderDashboardPage = () => {
   })
 
   const orders = ordersQuery.data?.orders ?? []
-  const selectedOrders = useMemo(
-    () => Array.from(selectedOrdersById.values()),
-    [selectedOrdersById]
-  )
-  const selectedOrderIds = useMemo(
-    () => Array.from(selectedOrdersById.keys()),
-    [selectedOrdersById]
-  )
-  const selectedOrderIdsKey = useMemo(
-    () => JSON.stringify([...selectedOrderIds].sort()),
-    [selectedOrderIds]
-  )
-  const selectedOrderIdSet = useMemo(
-    () => new Set<string>(JSON.parse(selectedOrderIdsKey)),
-    [selectedOrderIdsKey]
-  )
-  const selectedPacketaCarrierOrderIds = useMemo(
-    () => getPacketaCarrierOrderIds(selectedOrders),
-    [selectedOrders]
-  )
+  const selectedOrders = Array.from(selectedOrdersById.values())
+  const selectedOrderIds = Array.from(selectedOrdersById.keys())
+  const selectedOrderIdSet = new Set(selectedOrderIds)
+  const selectedPacketaCarrierOrderIds =
+    getPacketaCarrierOrderIds(selectedOrders)
   const packetaEligibilityQuery = useQuery({
     enabled: selectedPacketaCarrierOrderIds.length > 0,
     queryFn: () =>
       listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
     queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
   })
-  const packetaLabelPreview = useMemo(
-    () =>
-      getPacketaLabelPreview(selectedOrders, packetaEligibilityQuery.data, t),
-    [packetaEligibilityQuery.data, selectedOrders, t]
+  const packetaLabelPreview = getPacketaLabelPreview(
+    selectedOrders,
+    packetaEligibilityQuery.data,
+    t
   )
   const selectedCount = selectedOrders.length
   const packetaEligibleCount = packetaLabelPreview.printableOrders.length
-  const detailOrder = useMemo(
-    () =>
-      orders.find((order) => order.id === detailOrderId) ??
-      (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined),
-    [detailOrderId, orders, selectedOrdersById]
-  )
-  const targetStatusOptions = useMemo(
-    () => getTargetStatusOptions(selectedOrders, t),
-    [selectedOrders, t]
-  )
+  const detailOrder =
+    orders.find((order) => order.id === detailOrderId) ??
+    (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined)
+  const targetStatusOptions = getTargetStatusOptions(selectedOrders, t)
   const selectedTargetStatusOption = targetStatus
     ? targetStatusOptions.find((option) => option.value === targetStatus)
     : undefined
@@ -244,182 +220,169 @@ const OrderDashboardPage = () => {
       : getManualStatusLabel(manualStatusTarget, t)
   const activeQueueId: OrderDashboardQueueId =
     businessStatusGroupFilter ?? businessStatusFilter ?? "all"
-  const queueTabs = useMemo(
-    () =>
-      ORDER_DASHBOARD_QUEUE_IDS.map((queueId) => ({
-        count: getQueueCount(queueId, summaryQuery.data),
-        id: queueId,
-        label: getQueueLabel(queueId, t),
+  const queueTabs = ORDER_DASHBOARD_QUEUE_IDS.map((queueId) => ({
+    count: getQueueCount(queueId, summaryQuery.data),
+    id: queueId,
+    label: getQueueLabel(queueId, t),
+  }))
+
+  const filters = [
+    filterHelper.accessor(CARRIER_FILTER_ID, {
+      label: t("filters.carrier"),
+      options: ORDER_DASHBOARD_CARRIER_KEYS.map((carrier) => ({
+        label: carrier === "ppl" ? "PPL" : formatOptionLabel(carrier),
+        value: carrier,
       })),
-    [summaryQuery.data, t]
-  )
+      type: "radio",
+    }),
+    filterHelper.accessor(BUSINESS_STATUS_FILTER_ID, {
+      label: t("filters.businessStatus"),
+      options: ORDER_DASHBOARD_BUSINESS_STATUS_IDS.map((status) => ({
+        label: t(`statuses.${status}`),
+        value: status,
+      })),
+      type: "radio",
+    }),
+  ]
 
-  const filters = useMemo(
-    () => [
-      filterHelper.accessor(CARRIER_FILTER_ID, {
-        label: t("filters.carrier"),
-        options: ORDER_DASHBOARD_CARRIER_KEYS.map((carrier) => ({
-          label: carrier === "ppl" ? "PPL" : formatOptionLabel(carrier),
-          value: carrier,
-        })),
-        type: "radio",
-      }),
-      filterHelper.accessor(BUSINESS_STATUS_FILTER_ID, {
-        label: t("filters.businessStatus"),
-        options: ORDER_DASHBOARD_BUSINESS_STATUS_IDS.map((status) => ({
-          label: t(`statuses.${status}`),
-          value: status,
-        })),
-        type: "radio",
-      }),
-    ],
-    [t]
-  )
-
-  const columns = useMemo(
-    () => [
-      columnHelper.select(),
-      columnHelper.accessor("order_display_id", {
-        cell: ({ row }) => (
-          <Link
-            className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-            to={`/orders/${row.original.id}`}
-          >
-            {row.original.order_display_id}
-          </Link>
-        ),
-        header: t("columns.order"),
-      }),
-      columnHelper.accessor("created_at", {
-        cell: ({ getValue }) => (
-          <Text leading="compact" size="small">
-            {formatOrderDate(getValue(), locale)}
+  const columns = [
+    columnHelper.select(),
+    columnHelper.accessor("order_display_id", {
+      cell: ({ row }) => (
+        <Link
+          className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+          to={`/orders/${row.original.id}`}
+        >
+          {row.original.order_display_id}
+        </Link>
+      ),
+      header: t("columns.order"),
+    }),
+    columnHelper.accessor("created_at", {
+      cell: ({ getValue }) => (
+        <Text leading="compact" size="small">
+          {formatOrderDate(getValue(), locale)}
+        </Text>
+      ),
+      header: t("columns.created"),
+    }),
+    columnHelper.accessor("customer", {
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col gap-y-1">
+          <Text leading="compact" size="small" weight="plus">
+            {row.original.customer}
           </Text>
-        ),
-        header: t("columns.created"),
-      }),
-      columnHelper.accessor("customer", {
-        cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col gap-y-1">
-            <Text leading="compact" size="small" weight="plus">
-              {row.original.customer}
-            </Text>
-            {row.original.email ? (
-              <Text
-                className="max-w-[220px] truncate text-ui-fg-subtle"
-                leading="compact"
-                size="small"
-              >
-                {row.original.email}
-              </Text>
-            ) : null}
-          </div>
-        ),
-        header: t("columns.customer"),
-      }),
-      columnHelper.accessor("carrier.value", {
-        cell: ({ row }) => (
-          <Text leading="compact" size="small">
-            {getCarrierLabel(row.original)}
-          </Text>
-        ),
-        header: t("columns.carrier"),
-      }),
-      columnHelper.accessor("delivery_address", {
-        cell: ({ row }) => {
-          const address = formatOrderDeliveryAddress(
-            row.original.delivery_address
-          )
-
-          return (
+          {row.original.email ? (
             <Text
-              className="max-w-[240px] truncate text-ui-fg-subtle"
+              className="max-w-[220px] truncate text-ui-fg-subtle"
               leading="compact"
               size="small"
-              title={address}
             >
-              {address}
+              {row.original.email}
             </Text>
-          )
-        },
-        header: t("columns.address"),
-      }),
-      columnHelper.accessor("business_status.id", {
-        cell: ({ row }) => (
-          <Badge color={row.original.business_status.tone} size="2xsmall">
-            {t(row.original.business_status.translation_key)}
-          </Badge>
-        ),
-        header: t("columns.businessStatus"),
-      }),
-      columnHelper.accessor("fulfillment_status", {
-        cell: ({ row }) => {
-          const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
+          ) : null}
+        </div>
+      ),
+      header: t("columns.customer"),
+    }),
+    columnHelper.accessor("carrier.value", {
+      cell: ({ row }) => (
+        <Text leading="compact" size="small">
+          {getCarrierLabel(row.original)}
+        </Text>
+      ),
+      header: t("columns.carrier"),
+    }),
+    columnHelper.accessor("delivery_address", {
+      cell: ({ row }) => {
+        const address = formatOrderDeliveryAddress(
+          row.original.delivery_address
+        )
 
-          return (
-            <StatusBadge
-              className="text-nowrap"
-              color={fulfillmentStatus.color}
-            >
-              {fulfillmentStatus.label}
-            </StatusBadge>
-          )
-        },
-        header: t("columns.fulfillment"),
-      }),
-      columnHelper.display({
-        cell: ({ row }) => (
-          <ManualStatusControl
-            manualStatus={row.original.manual_status}
-            orderId={row.original.id}
-          />
-        ),
-        header: t("columns.manualStatus"),
-        id: "manual_status",
-      }),
-      columnHelper.accessor("payment_status", {
-        cell: ({ row }) => (
-          <div className="flex flex-col gap-y-1">
-            <Text leading="compact" size="small">
-              {row.original.payment_status ?? "-"}
-            </Text>
-            <Text className="text-ui-fg-subtle" leading="compact" size="small">
-              {formatPaymentMethodLabel(row.original.payment_method)}
-            </Text>
-          </div>
-        ),
-        header: t("columns.payment"),
-      }),
-      columnHelper.accessor("total", {
-        cell: ({ row }) => (
-          <Text leading="compact" size="small" weight="plus">
-            {formatOrderTotal(row.original, locale)}
-          </Text>
-        ),
-        header: t("columns.total"),
-        headerAlign: "right",
-      }),
-      columnHelper.display({
-        cell: ({ row }) => (
-          <Button
-            onClick={() =>
-              setDetailOrderId((currentOrderId) =>
-                currentOrderId === row.original.id ? null : row.original.id
-              )
-            }
+        return (
+          <Text
+            className="max-w-[240px] truncate text-ui-fg-subtle"
+            leading="compact"
             size="small"
-            type="button"
-            variant="transparent"
+            title={address}
           >
-            {t("actions.details")}
-          </Button>
-        ),
-        header: t("columns.details"),
-        id: "details",
-      }),
-    ],
-    [locale, t]
-  )
+            {address}
+          </Text>
+        )
+      },
+      header: t("columns.address"),
+    }),
+    columnHelper.accessor("business_status.id", {
+      cell: ({ row }) => (
+        <Badge color={row.original.business_status.tone} size="2xsmall">
+          {t(row.original.business_status.translation_key)}
+        </Badge>
+      ),
+      header: t("columns.businessStatus"),
+    }),
+    columnHelper.accessor("fulfillment_status", {
+      cell: ({ row }) => {
+        const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
+
+        return (
+          <StatusBadge className="text-nowrap" color={fulfillmentStatus.color}>
+            {fulfillmentStatus.label}
+          </StatusBadge>
+        )
+      },
+      header: t("columns.fulfillment"),
+    }),
+    columnHelper.display({
+      cell: ({ row }) => (
+        <ManualStatusControl
+          manualStatus={row.original.manual_status}
+          orderId={row.original.id}
+        />
+      ),
+      header: t("columns.manualStatus"),
+      id: "manual_status",
+    }),
+    columnHelper.accessor("payment_status", {
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-y-1">
+          <Text leading="compact" size="small">
+            {row.original.payment_status ?? "-"}
+          </Text>
+          <Text className="text-ui-fg-subtle" leading="compact" size="small">
+            {formatPaymentMethodLabel(row.original.payment_method)}
+          </Text>
+        </div>
+      ),
+      header: t("columns.payment"),
+    }),
+    columnHelper.accessor("total", {
+      cell: ({ row }) => (
+        <Text leading="compact" size="small" weight="plus">
+          {formatOrderTotal(row.original, locale)}
+        </Text>
+      ),
+      header: t("columns.total"),
+      headerAlign: "right",
+    }),
+    columnHelper.display({
+      cell: ({ row }) => (
+        <Button
+          onClick={() =>
+            setDetailOrderId((currentOrderId) =>
+              currentOrderId === row.original.id ? null : row.original.id
+            )
+          }
+          size="small"
+          type="button"
+          variant="transparent"
+        >
+          {t("actions.details")}
+        </Button>
+      ),
+      header: t("columns.details"),
+      id: "details",
+    }),
+  ]
 
   const clearSelection = () => {
     setRowSelection({})
@@ -1224,10 +1187,7 @@ function OrderDashboardDetailPanel({
   order: OrderDashboardOrder
 }) {
   const { i18n, t } = useTranslation("orderDashboard")
-  const locale = useMemo(
-    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  )
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const manualStatusLabel = order.manual_status
     ? t(`manualStatus.${order.manual_status}`)
     : t("manualStatus.none")

@@ -1,10 +1,11 @@
-import { withPayload } from "@payloadcms/next/withPayload"
 import { join } from "node:path"
+import { withPayload } from "@payloadcms/next/withPayload"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: join(import.meta.dirname, "../../"),
+  reactCompiler: true,
   webpack: (webpackConfig) => {
     webpackConfig.resolve.extensionAlias = {
       ".cjs": [".cts", ".cjs"],

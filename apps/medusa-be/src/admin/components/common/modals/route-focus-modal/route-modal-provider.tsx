@@ -1,4 +1,4 @@
-import { type PropsWithChildren, useCallback, useMemo, useState } from "react"
+import { type PropsWithChildren, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { RouteModalProviderContext } from "./route-modal-context"
 
@@ -14,22 +14,16 @@ export const RouteModalProvider = ({
 
   const [closeOnEscape, setCloseOnEscape] = useState(true)
 
-  const handleSuccess = useCallback(
-    (path?: string) => {
-      const to = path || prev
-      navigate(to, { replace: true, state: { isSubmitSuccessful: true } })
-    },
-    [navigate, prev]
-  )
+  const handleSuccess = (path?: string) => {
+    const to = path || prev
+    navigate(to, { replace: true, state: { isSubmitSuccessful: true } })
+  }
 
-  const value = useMemo(
-    () => ({
-      handleSuccess,
-      setCloseOnEscape,
-      __internal: { closeOnEscape },
-    }),
-    [handleSuccess, closeOnEscape]
-  )
+  const value = {
+    handleSuccess,
+    setCloseOnEscape,
+    __internal: { closeOnEscape },
+  }
 
   return (
     <RouteModalProviderContext.Provider value={value}>
