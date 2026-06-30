@@ -1,9 +1,9 @@
 import type { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts"
-import { resolveOfferState } from "@/components/product-detail/utils/metadata-parsers"
+import type { resolveOfferState } from "@/components/product-detail/utils/metadata-parsers"
 import {
   resolveDiscountPercent,
   resolveDisplayOriginalAmount,
-  resolvePriceState,
+  type resolvePriceState,
   resolveUnitPriceLabel,
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,

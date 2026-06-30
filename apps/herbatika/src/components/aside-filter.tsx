@@ -188,11 +188,21 @@ export function AsideFilter({
     sliderRange,
     priceBoundsForRender
   )
+  const selectedPriceRangeMin = selectedPriceRange.min
+  const selectedPriceRangeMax = selectedPriceRange.max
+  const priceBoundsForRenderMin = priceBoundsForRender.min
+  const priceBoundsForRenderMax = priceBoundsForRender.max
 
   useEffect(() => {
     const nextSelectedRange = resolveRangeFromSelection(
-      selectedPriceRange,
-      priceBoundsForRender
+      {
+        min: selectedPriceRangeMin,
+        max: selectedPriceRangeMax,
+      },
+      {
+        min: priceBoundsForRenderMin,
+        max: priceBoundsForRenderMax,
+      }
     )
 
     setSliderRange((currentRange) =>
@@ -201,10 +211,10 @@ export function AsideFilter({
         : nextSelectedRange
     )
   }, [
-    selectedPriceRange.min,
-    selectedPriceRange.max,
-    priceBoundsForRender.min,
-    priceBoundsForRender.max,
+    selectedPriceRangeMin,
+    selectedPriceRangeMax,
+    priceBoundsForRenderMin,
+    priceBoundsForRenderMax,
   ])
 
   return (

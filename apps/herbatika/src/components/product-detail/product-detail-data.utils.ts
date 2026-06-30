@@ -8,7 +8,10 @@ import {
   normalizeCategoryName,
   resolveVariantLabel,
 } from "@/components/product-detail/utils/metadata-parsers"
-import { asRecord, asString } from "@/components/product-detail/utils/value-utils"
+import {
+  asRecord,
+  asString,
+} from "@/components/product-detail/utils/value-utils"
 
 const PRODUCT_SUMMARY_FALLBACK = "Popis produktu bude čoskoro doplnený."
 
