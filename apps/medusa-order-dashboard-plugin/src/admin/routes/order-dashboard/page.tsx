@@ -182,12 +182,16 @@ const OrderDashboardPage = () => {
     [selectedOrdersById]
   )
   const selectedOrderIds = useMemo(
-    () => selectedOrders.map((order) => order.id),
-    [selectedOrders]
+    () => Array.from(selectedOrdersById.keys()),
+    [selectedOrdersById]
   )
   const selectedOrderIdsKey = useMemo(
-    () => [...selectedOrderIds].sort().join("|"),
+    () => JSON.stringify([...selectedOrderIds].sort()),
     [selectedOrderIds]
+  )
+  const selectedOrderIdSet = useMemo(
+    () => new Set<string>(JSON.parse(selectedOrderIdsKey)),
+    [selectedOrderIdsKey]
   )
   const selectedPacketaCarrierOrderIds = useMemo(
     () => getPacketaCarrierOrderIds(selectedOrders),
@@ -771,18 +775,20 @@ const OrderDashboardPage = () => {
     targetStatus,
   ])
 
+  // Row selection only depends on selected IDs; refreshed order objects keep the
+  // same visible rows selected without retriggering this effect.
   useEffect(() => {
-    const visibleSelection = getVisibleRowSelection(orders, selectedOrdersById)
+    const visibleSelection = getVisibleRowSelection(orders, selectedOrderIdSet)
 
     setRowSelection((currentSelection) =>
       isSameRowSelection(currentSelection, visibleSelection)
         ? currentSelection
         : visibleSelection
     )
-  }, [orders, selectedOrdersById])
+  }, [orders, selectedOrderIdSet])
 
   useEffect(() => {
-    if (!(orders.length && selectedOrderIdsKey)) {
+    if (!(orders.length && selectedOrderIdSet.size)) {
       return
     }
 
@@ -805,7 +811,7 @@ const OrderDashboardPage = () => {
 
       return hasChanged ? nextSelection : currentSelection
     })
-  }, [orders, selectedOrderIdsKey])
+  }, [orders, selectedOrderIdSet])
 
   return (
     <Container className="divide-y p-0">
@@ -1583,12 +1589,12 @@ function BlockingOrdersPanel({
 
 function getVisibleRowSelection(
   orders: OrderDashboardOrder[],
-  selectedOrdersById: Map<string, OrderDashboardOrder>
+  selectedOrderIdSet: ReadonlySet<string>
 ) {
   const visibleSelection: DataTableRowSelectionState = {}
 
   for (const order of orders) {
-    if (selectedOrdersById.has(order.id)) {
+    if (selectedOrderIdSet.has(order.id)) {
       visibleSelection[order.id] = true
     }
   }
