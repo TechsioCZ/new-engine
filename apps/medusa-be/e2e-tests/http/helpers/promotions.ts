@@ -6,7 +6,7 @@ type ApiKey = {
   token: string
 }
 
-export type Producer = {
+export type Brand = {
   id: string
   title: string
 }
@@ -168,20 +168,17 @@ async function getOrCreateE2eRegion(admin: ApiClient) {
   return existing
 }
 
-export async function createProducer(
+export async function createBrand(
   admin: ApiClient,
-  title = `Producer ${suffix()}`
+  title = `Brand ${suffix()}`
 ) {
   const handle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-  const { producer } = await admin.post<{ producer: Producer }>(
-    "/admin/producers",
-    {
-      handle,
-      title,
-    }
-  )
+  const { brand } = await admin.post<{ brand: Brand }>("/admin/brands", {
+    handle,
+    title,
+  })
 
-  return producer
+  return brand
 }
 
 export async function createProduct(
@@ -189,7 +186,7 @@ export async function createProduct(
   salesChannelId: string,
   options: {
     amount?: number
-    producerId?: string
+    brandId?: string
     title?: string
   } = {}
 ) {
@@ -215,9 +212,9 @@ export async function createProduct(
     }
   )
 
-  if (options.producerId) {
-    await admin.post(`/admin/products/${product.id}/producers`, {
-      producer_ids: [options.producerId],
+  if (options.brandId) {
+    await admin.post(`/admin/products/${product.id}/brands`, {
+      brand_ids: [options.brandId],
     })
   }
 

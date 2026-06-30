@@ -18,8 +18,8 @@ import {
   createProductsWorkflow,
   updateProductsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { PRODUCER_MODULE } from "../../../modules/producer"
-import type ProducerModuleService from "../../../modules/producer/service"
+import { BRAND_MODULE } from "../../../modules/brand"
+import type BrandModuleService from "../../../modules/brand/service"
 
 type ProductInput = {
   title: string
@@ -41,12 +41,19 @@ type ProductInput = {
     title: string
     values: string[]
   }[]
-  producer?: {
+  brand?: {
     title?: string
     attributes?: {
       name: string
       value: string
     }[]
+    gpsrContactEmail?: string | null
+    gpsrEuropeanResellerContactEmail?: string | null
+    gpsrEuropeanResellerManufacturingCompanyName?: string | null
+    gpsrEuropeanResellerPostalAddress?: string | null
+    gpsrManufacturedOutsideEu?: boolean
+    gpsrManufacturingCompanyName?: string | null
+    gpsrPostalAddress?: string | null
   } | null
   variants?: {
     title: string
@@ -101,9 +108,19 @@ type ExistingSalesChannel = Awaited<
 type ExistingShippingProfile = Awaited<
   ReturnType<IFulfillmentModuleService["listShippingProfiles"]>
 >[number]
-type ProducerRegistry = Map<
+type BrandRegistry = Map<
   string,
-  { attributes: Map<string, string>; products: string[] }
+  {
+    attributes: Map<string, string>
+    gpsrContactEmail?: string | null
+    gpsrEuropeanResellerContactEmail?: string | null
+    gpsrEuropeanResellerManufacturingCompanyName?: string | null
+    gpsrEuropeanResellerPostalAddress?: string | null
+    gpsrManufacturedOutsideEu?: boolean
+    gpsrManufacturingCompanyName?: string | null
+    gpsrPostalAddress?: string | null
+    products: string[]
+  }
 >
 type VariantImagesRegistry = Map<string, Map<string, ProductVariantImagesInput>>
 type WorkflowContainer = Parameters<typeof createProductsWorkflow>[0]
@@ -259,36 +276,67 @@ function findExistingVariant(
   )
 }
 
-function processProductProducerInput(
+function processProductBrandInput(
   inputProduct: ProductInput,
-  producers: Map<
-    string,
-    { attributes: Map<string, string>; products: string[] }
-  >
+  brands: BrandRegistry
 ) {
-  if (!inputProduct.producer?.title) {
+  if (!inputProduct.brand?.title) {
     return
   }
 
-  if (!producers.has(inputProduct.producer.title)) {
-    producers.set(inputProduct.producer.title, {
+  if (!brands.has(inputProduct.brand.title)) {
+    brands.set(inputProduct.brand.title, {
       products: [],
       attributes: new Map(),
     })
   }
 
-  const producer = producers.get(inputProduct.producer.title)
+  const brand = brands.get(inputProduct.brand.title)
 
-  if (!producer) {
-    throw new Error(`Producer "${inputProduct.producer.title}" not found`)
+  if (!brand) {
+    throw new Error(`Brand "${inputProduct.brand.title}" not found`)
   }
 
-  producer.products.push(inputProduct.handle)
+  brand.products.push(inputProduct.handle)
 
-  for (const attribute of inputProduct.producer.attributes ?? []) {
-    if (!producer.attributes.has(attribute.name)) {
-      producer.attributes.set(attribute.name, attribute.value)
+  for (const attribute of inputProduct.brand.attributes ?? []) {
+    if (!brand.attributes.has(attribute.name)) {
+      brand.attributes.set(attribute.name, attribute.value)
     }
+  }
+
+  const scalarFields = [
+    ["gpsrContactEmail", inputProduct.brand.gpsrContactEmail],
+    [
+      "gpsrEuropeanResellerContactEmail",
+      inputProduct.brand.gpsrEuropeanResellerContactEmail,
+    ],
+    [
+      "gpsrEuropeanResellerManufacturingCompanyName",
+      inputProduct.brand.gpsrEuropeanResellerManufacturingCompanyName,
+    ],
+    [
+      "gpsrEuropeanResellerPostalAddress",
+      inputProduct.brand.gpsrEuropeanResellerPostalAddress,
+    ],
+    [
+      "gpsrManufacturingCompanyName",
+      inputProduct.brand.gpsrManufacturingCompanyName,
+    ],
+    ["gpsrPostalAddress", inputProduct.brand.gpsrPostalAddress],
+  ] as const
+
+  for (const [key, value] of scalarFields) {
+    if (value !== undefined && brand[key] === undefined) {
+      brand[key] = value
+    }
+  }
+
+  if (inputProduct.brand.gpsrManufacturedOutsideEu === true) {
+    brand.gpsrManufacturedOutsideEu = true
+  } else if (brand.gpsrManufacturedOutsideEu === undefined) {
+    brand.gpsrManufacturedOutsideEu =
+      inputProduct.brand.gpsrManufacturedOutsideEu
   }
 }
 
@@ -439,10 +487,10 @@ function resolveSalesChannel(
 
 function registerProductSideInputs(
   inputProduct: ProductInput,
-  producers: ProducerRegistry,
+  brands: BrandRegistry,
   productVariantImages: VariantImagesRegistry
 ): void {
-  processProductProducerInput(inputProduct, producers)
+  processProductBrandInput(inputProduct, brands)
   processProductVariantImagesInput(inputProduct, productVariantImages)
 }
 
@@ -572,7 +620,7 @@ function buildUpdateProductPayloads(params: {
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-  producers: ProducerRegistry
+  brands: BrandRegistry
   productVariantImages: VariantImagesRegistry
 }) {
   return params.existingProducts.flatMap((existingProduct) => {
@@ -586,7 +634,7 @@ function buildUpdateProductPayloads(params: {
 
     registerProductSideInputs(
       inputProduct,
-      params.producers,
+      params.brands,
       params.productVariantImages
     )
 
@@ -607,13 +655,13 @@ function buildCreateProductPayloads(params: {
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-  producers: ProducerRegistry
+  brands: BrandRegistry
   productVariantImages: VariantImagesRegistry
 }) {
   return params.missingProducts.map((inputProduct) => {
     registerProductSideInputs(
       inputProduct,
-      params.producers,
+      params.brands,
       params.productVariantImages
     )
 
@@ -648,27 +696,37 @@ async function applyVariantImageUpdates(params: {
   }
 }
 
-async function linkProducers(params: {
+async function linkBrands(params: {
   link: Link
   productService: IProductModuleService
-  producerService: ProducerModuleService
-  producers: ProducerRegistry
+  brandService: BrandModuleService
+  brands: BrandRegistry
 }): Promise<void> {
-  for (const [key, producerData] of params.producers.entries()) {
-    const attributes = [...producerData.attributes.entries()].map(
+  for (const [key, brandData] of params.brands.entries()) {
+    const attributes = [...brandData.attributes.entries()].map(
       ([name, attrValue]) => ({
         name,
         value: attrValue,
       })
     )
 
-    const producer = await params.producerService.upsertProducer({
+    const brand = await params.brandService.upsertBrand({
       name: key,
       attributes,
+      gpsrContactEmail: brandData.gpsrContactEmail,
+      gpsrEuropeanResellerContactEmail:
+        brandData.gpsrEuropeanResellerContactEmail,
+      gpsrEuropeanResellerManufacturingCompanyName:
+        brandData.gpsrEuropeanResellerManufacturingCompanyName,
+      gpsrEuropeanResellerPostalAddress:
+        brandData.gpsrEuropeanResellerPostalAddress,
+      gpsrManufacturedOutsideEu: brandData.gpsrManufacturedOutsideEu,
+      gpsrManufacturingCompanyName: brandData.gpsrManufacturingCompanyName,
+      gpsrPostalAddress: brandData.gpsrPostalAddress,
     })
 
     const products = await params.productService.listProducts(
-      { handle: { $in: producerData.products } },
+      { handle: { $in: brandData.products } },
       {
         select: ["id"],
       }
@@ -678,8 +736,8 @@ async function linkProducers(params: {
       [Modules.PRODUCT]: {
         product_id: product.id,
       },
-      [PRODUCER_MODULE]: {
-        producer_id: producer.id,
+      [BRAND_MODULE]: {
+        brand_id: brand.id,
       },
     }))
 
@@ -702,11 +760,10 @@ export const createProductsStep = createStep(
     const salesChannelService = container.resolve<ISalesChannelModuleService>(
       Modules.SALES_CHANNEL
     )
-    const producerService =
-      container.resolve<ProducerModuleService>(PRODUCER_MODULE)
+    const brandService = container.resolve<BrandModuleService>(BRAND_MODULE)
 
     const productVariantImages: VariantImagesRegistry = new Map()
-    const producers: ProducerRegistry = new Map()
+    const brands: BrandRegistry = new Map()
 
     const existingCategories = await productService.listProductCategories(
       {
@@ -747,7 +804,7 @@ export const createProductsStep = createStep(
         existingCategories,
         existingShippingProfiles,
         existingSalesChannels,
-        producers,
+        brands,
         productVariantImages,
       })
     )
@@ -760,7 +817,7 @@ export const createProductsStep = createStep(
         existingCategories,
         existingShippingProfiles,
         existingSalesChannels,
-        producers,
+        brands,
         productVariantImages,
       })
 
@@ -843,11 +900,11 @@ export const createProductsStep = createStep(
       })
     }
 
-    await linkProducers({
+    await linkBrands({
       link,
       productService,
-      producerService,
-      producers,
+      brandService,
+      brands,
     })
 
     return new StepResponse({

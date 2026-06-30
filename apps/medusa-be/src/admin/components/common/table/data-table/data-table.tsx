@@ -1,7 +1,7 @@
 import { clx } from "@medusajs/ui"
 import { memo } from "react"
-import { TableSkeleton } from "../../skeleton"
-import { NoRecords, type NoResultsProps } from "../"
+import { TableSkeleton } from "../../skeleton/skeleton"
+import { NoRecords, type NoResultsProps } from "../empty-state"
 import { DataTableQuery, type DataTableQueryProps } from "./data-table-query"
 import { DataTableRoot, type DataTableRootProps } from "./data-table-root"
 
@@ -14,8 +14,6 @@ interface DataTableProps<TData>
   noRecords?: Pick<NoResultsProps, "title" | "message">
 }
 
-// Maybe we should use the memoized version of DataTableRoot
-// const MemoizedDataTableRoot = memo(DataTableRoot) as typeof DataTableRoot
 const MemoizedDataTableQuery = memo(DataTableQuery)
 
 export const DataTable = <TData,>({
@@ -85,7 +83,7 @@ export const DataTable = <TData,>({
         navigateTo={navigateTo}
         noHeader={noHeader}
         noResults={noResults}
-        pagination
+        pagination={pagination}
         table={table}
       />
     </div>

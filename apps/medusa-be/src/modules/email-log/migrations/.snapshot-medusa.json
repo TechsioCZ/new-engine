@@ -24200,7 +24200,7 @@
           "mappedType": "text"
         }
       },
-      "name": "producer",
+      "name": "brand",
       "schema": "public",
       "indexes": [
         {
@@ -24209,10 +24209,10 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_deleted_at",
+          "keyName": "IDX_brand_deleted_at",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_producer_deleted_at\" ON public.producer USING btree (deleted_at) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_brand_deleted_at\" ON public.brand USING btree (deleted_at) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
@@ -24220,10 +24220,10 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_handle_unique",
+          "keyName": "IDX_brand_handle_unique",
           "unique": true,
           "primary": false,
-          "expression": "CREATE UNIQUE INDEX \"IDX_producer_handle_unique\" ON public.producer USING btree (handle) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE UNIQUE INDEX \"IDX_brand_handle_unique\" ON public.brand USING btree (handle) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
@@ -24231,7 +24231,7 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "producer_pkey",
+          "keyName": "brand_pkey",
           "unique": true,
           "primary": true
         }
@@ -24333,8 +24333,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "producer_id": {
-          "name": "producer_id",
+        "brand_id": {
+          "name": "brand_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -24398,7 +24398,7 @@
           "mappedType": "datetime"
         }
       },
-      "name": "producer_attribute",
+      "name": "brand_attribute",
       "schema": "public",
       "indexes": [
         {
@@ -24407,10 +24407,10 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_attribute_attribute_type_id",
+          "keyName": "IDX_brand_attribute_attribute_type_id",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_producer_attribute_attribute_type_id\" ON public.producer_attribute USING btree (attribute_type_id) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_brand_attribute_attribute_type_id\" ON public.brand_attribute USING btree (attribute_type_id) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
@@ -24418,21 +24418,21 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_attribute_deleted_at",
+          "keyName": "IDX_brand_attribute_deleted_at",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_producer_attribute_deleted_at\" ON public.producer_attribute USING btree (deleted_at) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_brand_attribute_deleted_at\" ON public.brand_attribute USING btree (deleted_at) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
-            "producer_id"
+            "brand_id"
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_attribute_producer_id",
+          "keyName": "IDX_brand_attribute_brand_id",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_producer_attribute_producer_id\" ON public.producer_attribute USING btree (producer_id) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_brand_attribute_brand_id\" ON public.brand_attribute USING btree (brand_id) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
@@ -24440,33 +24440,33 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "producer_attribute_pkey",
+          "keyName": "brand_attribute_pkey",
           "unique": true,
           "primary": true
         }
       ],
       "checks": [],
       "foreignKeys": {
-        "producer_attribute_attribute_type_id_foreign": {
+        "brand_attribute_attribute_type_id_foreign": {
           "columnNames": [
             "attribute_type_id"
           ],
-          "constraintName": "producer_attribute_attribute_type_id_foreign",
-          "localTableName": "public.producer_attribute",
-          "referencedTableName": "public.producer_attribute_type",
+          "constraintName": "brand_attribute_attribute_type_id_foreign",
+          "localTableName": "public.brand_attribute",
+          "referencedTableName": "public.brand_attribute_type",
           "referencedColumnNames": [
             "id"
           ],
           "updateRule": "cascade",
           "deleteRule": "no action"
         },
-        "producer_attribute_producer_id_foreign": {
+        "brand_attribute_brand_id_foreign": {
           "columnNames": [
-            "producer_id"
+            "brand_id"
           ],
-          "constraintName": "producer_attribute_producer_id_foreign",
-          "localTableName": "public.producer_attribute",
-          "referencedTableName": "public.producer",
+          "constraintName": "brand_attribute_brand_id_foreign",
+          "localTableName": "public.brand_attribute",
+          "referencedTableName": "public.brand",
           "referencedColumnNames": [
             "id"
           ],
@@ -24602,7 +24602,7 @@
           "mappedType": "datetime"
         }
       },
-      "name": "producer_attribute_type",
+      "name": "brand_attribute_type",
       "schema": "public",
       "indexes": [
         {
@@ -24611,10 +24611,10 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_attribute_type_deleted_at",
+          "keyName": "IDX_brand_attribute_type_deleted_at",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_producer_attribute_type_deleted_at\" ON public.producer_attribute_type USING btree (deleted_at) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_brand_attribute_type_deleted_at\" ON public.brand_attribute_type USING btree (deleted_at) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
@@ -24622,7 +24622,7 @@
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "producer_attribute_type_pkey",
+          "keyName": "brand_attribute_type_pkey",
           "unique": true,
           "primary": true
         }
@@ -26344,8 +26344,8 @@
           "enumItems": [],
           "mappedType": "string"
         },
-        "producer_id": {
-          "name": "producer_id",
+        "brand_id": {
+          "name": "brand_id",
           "type": "varchar(255)",
           "unsigned": false,
           "autoincrement": false,
@@ -26425,7 +26425,7 @@
           "mappedType": "datetime"
         }
       },
-      "name": "product_product_producer_producer",
+      "name": "product_product_brand_brand",
       "schema": "public",
       "indexes": [
         {
@@ -26450,14 +26450,14 @@
         },
         {
           "columnNames": [
-            "producer_id"
+            "brand_id"
           ],
           "composite": false,
           "constraint": false,
-          "keyName": "IDX_producer_id_1de2c574c",
+          "keyName": "IDX_brand_id_1de2c574c",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_producer_id_1de2c574c\" ON public.product_product_producer_producer USING btree (producer_id) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_brand_id_1de2c574c\" ON public.product_product_brand_brand USING btree (brand_id) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
@@ -26468,16 +26468,16 @@
           "keyName": "IDX_product_id_1de2c574c",
           "unique": false,
           "primary": false,
-          "expression": "CREATE INDEX \"IDX_product_id_1de2c574c\" ON public.product_product_producer_producer USING btree (product_id) WHERE (deleted_at IS NULL)"
+          "expression": "CREATE INDEX \"IDX_product_id_1de2c574c\" ON public.product_product_brand_brand USING btree (product_id) WHERE (deleted_at IS NULL)"
         },
         {
           "columnNames": [
             "product_id",
-            "producer_id"
+            "brand_id"
           ],
           "composite": true,
           "constraint": false,
-          "keyName": "product_product_producer_producer_pkey",
+          "keyName": "product_product_brand_brand_pkey",
           "unique": true,
           "primary": true
         }

@@ -1,6 +1,6 @@
 import { createBrandSlug } from "@/lib/storefront/brands"
 
-const PRODUCER_PATH_PATTERN = /\/producers\/([^/]+)/
+const BRAND_PATH_PATTERN = /\/brands\/([^/]+)/
 
 export const normalizeString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
@@ -16,7 +16,7 @@ export const createHandleLabel = (handle: string) => {
   return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Kategória"
 }
 
-export const resolveProducerSlug = (handle: string, title: string) => {
-  const producerPathMatch = handle.match(PRODUCER_PATH_PATTERN)
-  return createBrandSlug(producerPathMatch?.[1] || handle || title)
+export const resolveBrandSlug = (handle: string, title: string) => {
+  const brandPathMatch = handle.match(BRAND_PATH_PATTERN)
+  return createBrandSlug(brandPathMatch?.[1] || handle || title)
 }

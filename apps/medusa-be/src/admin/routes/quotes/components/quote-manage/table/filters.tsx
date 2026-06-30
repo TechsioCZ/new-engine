@@ -1,4 +1,4 @@
-import type { Filter } from "../../../../../components/common/table/data-table/data-table-filter"
+import type { Filter } from "../../../../../components/common/table/data-table/data-table-filter/data-table-filter"
 
 export const useManageItemsTableFilters = () => {
   const filters: Filter[] = []

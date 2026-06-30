@@ -6,8 +6,8 @@ import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 const BATCH_SIZE = 1000
 
 type SyncEntityConfig = {
-  entity: "product" | "product_category" | "producer"
-  entityType: "products" | "categories" | "producers"
+  entity: "product" | "product_category" | "brand"
+  entityType: "products" | "categories" | "brands"
   filters?: Record<string, unknown>
 }
 
@@ -45,8 +45,8 @@ const SYNC_ENTITIES: SyncEntityConfig[] = [
     },
   },
   {
-    entity: "producer",
-    entityType: "producers",
+    entity: "brand",
+    entityType: "brands",
   },
 ]
 

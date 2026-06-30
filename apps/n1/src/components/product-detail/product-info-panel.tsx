@@ -27,7 +27,7 @@ export const ProductInfoPanel = ({
     <SectionBasicInfo>
       <ProductMetadata
         rows={[
-          { label: "Výrobce", value: detail.producer?.title },
+          { label: "Výrobce", value: detail.brand?.title },
           {
             label: "Kód produktu",
             value: selectedVariant?.metadata?.user_code,

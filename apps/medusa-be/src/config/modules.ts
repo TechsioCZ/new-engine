@@ -192,7 +192,7 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     buildCachingModule(env),
     {
-      resolve: "./src/modules/producer",
+      resolve: "./src/modules/brand",
     },
     {
       resolve: "./src/modules/product-list",

@@ -11,7 +11,7 @@ export const SEARCH_PRODUCT_CARD_FIELDS = PRODUCT_CARD_FIELDS
 
 export const RELATED_PRODUCT_FIELDS = `${PRODUCT_CARD_FIELDS},+metadata.source_shopitem_id`
 
-export const PRODUCT_DETAIL_FIELDS = `${PRODUCT_CARD_FIELDS},description,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,producer.id,producer.title,producer.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+metadata.content_sections,+metadata.related_products,+metadata.alternative_products`
+export const PRODUCT_DETAIL_FIELDS = `${PRODUCT_CARD_FIELDS},description,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,brand.id,brand.title,brand.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+metadata.content_sections,+metadata.related_products,+metadata.alternative_products`
 
 export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
   handle?: string | string[]
