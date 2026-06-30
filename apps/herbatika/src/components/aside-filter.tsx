@@ -181,23 +181,31 @@ export function AsideFilter({
     })
   }, [hasActivePriceFilter, incomingPriceBounds])
 
-  const selectedRange = resolveRangeFromSelection(
-    selectedPriceRange,
-    priceBoundsForRender
+  const [sliderRange, setSliderRange] = useState<[number, number]>(() =>
+    resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender)
   )
-
-  const [sliderRange, setSliderRange] =
-    useState<[number, number]>(selectedRange)
   const sliderRangeForRender = resolveRangeWithinBounds(
     sliderRange,
     priceBoundsForRender
   )
 
   useEffect(() => {
-    setSliderRange((currentRange) =>
-      areRangesEqual(currentRange, selectedRange) ? currentRange : selectedRange
+    const nextSelectedRange = resolveRangeFromSelection(
+      selectedPriceRange,
+      priceBoundsForRender
     )
-  }, [selectedRange])
+
+    setSliderRange((currentRange) =>
+      areRangesEqual(currentRange, nextSelectedRange)
+        ? currentRange
+        : nextSelectedRange
+    )
+  }, [
+    selectedPriceRange.min,
+    selectedPriceRange.max,
+    priceBoundsForRender.min,
+    priceBoundsForRender.max,
+  ])
 
   return (
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
