@@ -1,0 +1,46 @@
+diff --git a/dist/src/lib/container/ContainerEntryModule.d.ts b/dist/src/lib/container/ContainerEntryModule.d.ts
+index ada9e408778890bc27b5179ecbbb122655e4938b..c6f41ebac352bbedc846508bcec07c18d57ccdb4 100644
+--- a/dist/src/lib/container/ContainerEntryModule.d.ts
++++ b/dist/src/lib/container/ContainerEntryModule.d.ts
+@@ -1,10 +1,19 @@
+-import * as webpack$1 from "webpack";
+-import { Compilation } from "webpack";
+-import { InputFileSystem, LibIdentOptions, NeedBuildContext, ObjectDeserializerContext, ObjectSerializerContext, RequestShortener, ResolverWithOptions, WebpackOptions } from "webpack/lib/Module";
+-import WebpackError$1 from "webpack/lib/WebpackError";
++import webpack = require("webpack");
++
++type BuildParameters = Parameters<webpack.Module["build"]>;
++type Compilation = BuildParameters[1];
++type InputFileSystem = BuildParameters[3];
++type LibIdentOptions = Parameters<webpack.Module["libIdent"]>[0];
++type NeedBuildContext = Parameters<webpack.Module["needBuild"]>[0];
++type ObjectDeserializerContext = webpack.ObjectDeserializerContext;
++type ObjectSerializerContext = webpack.ObjectSerializerContext;
++type RequestShortener = Parameters<webpack.Module["readableIdentifier"]>[0];
++type ResolverWithOptions = BuildParameters[2];
++type WebpackError$1 = webpack.WebpackError;
++type WebpackOptions = BuildParameters[0];
+
+ //#region src/lib/container/ContainerEntryModule.d.ts
+-declare const Module$1: typeof webpack$1.Module;
++declare const Module$1: typeof webpack.Module;
+ type ExposeOptions = {
+   /**
+    * requests to exposed modules (last one is exported)
+diff --git a/dist/src/lib/container/runtime/FederationRuntimeDependency.d.ts b/dist/src/lib/container/runtime/FederationRuntimeDependency.d.ts
+index 10e7d25f418be710ade8e36569b4d11575f952d6..cc1d632b43156c74e90aef7dd30e853d7516ac1a 100644
+--- a/dist/src/lib/container/runtime/FederationRuntimeDependency.d.ts
++++ b/dist/src/lib/container/runtime/FederationRuntimeDependency.d.ts
+@@ -1,7 +1,10 @@
+-import * as webpack_lib_dependencies_ModuleDependency0 from "webpack/lib/dependencies/ModuleDependency";
++import webpack = require("webpack");
+
+ //#region src/lib/container/runtime/FederationRuntimeDependency.d.ts
+-declare const ModuleDependency: typeof webpack_lib_dependencies_ModuleDependency0;
++declare class ModuleDependency extends webpack.Dependency {
++  constructor(request: string, sourceOrder?: number);
++  request: string;
++}
+ declare class FederationRuntimeDependency extends ModuleDependency {
+   constructor(request: string);
+   get type(): string;

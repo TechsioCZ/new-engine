@@ -1,3 +1,2 @@
 @import '@techsio/ui-kit/tokens-with-tailwind';
 @source '../../../../../../libs/ui/src/**/*.{js,ts,jsx,tsx}';
-@source '../../../../../../libs/smart-suggest/ui/src/**/*.{js,ts,jsx,tsx}';

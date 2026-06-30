@@ -1,13 +1,27 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": false,
+    "emitDeclarationOnly": true,
+    "incremental": true,
+    "noEmit": false,
+    "outDir": "../../node_modules/.cache/tsgo/declarations/apps__shell-super-app",
+    "tsBuildInfoFile": "../../node_modules/.cache/tsgo/apps__shell-super-app.tsbuildinfo"
+  },
   "include": [
-    "api",
+    "src",
     "locales/**/*.json",
     "package.json",
-    "shared",
-    "src",
-    "tests",
-    "modern.config.ts",
-    "module-federation.config.ts"
+    "shared"
+  ],
+  "references": [
+    {
+      "path": "../../packages/shared-contracts"
+    },
+    {
+      "path": "../../packages/shared-design-tokens"
+    }
   ]
 }

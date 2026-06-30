@@ -10,7 +10,6 @@ import {
   type SmartSuggestVanillaWindow,
 } from '../src/vanilla';
 
-const SMART_SUGGEST_ADDRESS_ANCHOR_PATTERN = /^--smart-suggest-address-/u;
 const TOP_LEVEL_VALIDATION_IMPORT_PATTERN = new RegExp(
   '@techsio/smart-suggest-' + 'validation["\']',
   'u',
@@ -313,6 +312,37 @@ describe('attachSmartSuggest', () => {
     expect(address.getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('requests postal suggestions for postal-code-first searches', async () => {
+    const address = addInput('address');
+    const onSuggestStateChange = vi.fn();
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
+      Promise.resolve(
+        jsonResponse({
+          cacheStatus: 'miss',
+          requestId: 'request-postal',
+          suggestions: [],
+        }),
+      ),
+    );
+    const instance = attachSmartSuggest({
+      addressLine: address,
+      fetch: fetchMock,
+      minQueryLength: 1,
+      onSuggestStateChange,
+    });
+
+    await instance.suggest('101 00');
+
+    const suggestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), 'https://shop.example');
+    expect(suggestUrl.searchParams.get('kind')).toBe('postal');
+    expect(onSuggestStateChange).toHaveBeenCalledWith({ status: 'loading' });
+    expect(onSuggestStateChange).toHaveBeenLastCalledWith({
+      requestId: 'request-postal',
+      status: 'success',
+      suggestions: [],
+    });
+  });
+
   it('uses an anchored popover combobox and supports keyboard selection', async () => {
     const address = addInput('address');
     const city = addInput('city');
@@ -379,14 +409,8 @@ describe('attachSmartSuggest', () => {
     expect(address.getAttribute('aria-autocomplete')).toBe('list');
     expect(address.getAttribute('aria-controls')).toBe((list as HTMLUListElement).id);
     expect(address.getAttribute('aria-expanded')).toBe('true');
-    expect(address.style.getPropertyValue('anchor-name')).toMatch(
-      SMART_SUGGEST_ADDRESS_ANCHOR_PATTERN,
-    );
     expect((list as HTMLUListElement).getAttribute('popover')).toBe('auto');
     expect((list as HTMLUListElement).hidden).toBe(false);
-    expect((list as HTMLUListElement).style.getPropertyValue('position-anchor')).toBe(
-      address.style.getPropertyValue('anchor-name'),
-    );
 
     const options = Array.from(document.querySelectorAll<HTMLElement>('[role="option"]'));
     expect(options.map((option) => option.textContent)).toEqual([
@@ -432,7 +456,6 @@ describe('attachSmartSuggest', () => {
     expect(document.querySelector('[data-smart-suggest-list]')).toBeNull();
     expect(address.getAttribute('role')).toBeNull();
     expect(address.getAttribute('aria-controls')).toBeNull();
-    expect(address.style.getPropertyValue('anchor-name')).toBe('');
   });
 
   it('normalizes phone and postal fields on blur without blocking the form', async () => {
@@ -595,12 +618,8 @@ describe('attachSmartSuggest', () => {
     phone.value = '+420777123456';
     form.append(phone);
     document.body.append(form);
-    const submitSpy = vi
-      .spyOn(form, 'requestSubmit')
-      .mockImplementation(() => undefined);
-    const reportValiditySpy = vi
-      .spyOn(phone, 'reportValidity')
-      .mockImplementation(() => true);
+    const submitSpy = vi.spyOn(form, 'requestSubmit').mockImplementation(() => undefined);
+    const reportValiditySpy = vi.spyOn(phone, 'reportValidity').mockImplementation(() => true);
     const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
       Promise.reject(new Error('validation unavailable')),
     );
@@ -610,16 +629,12 @@ describe('attachSmartSuggest', () => {
       phone,
     });
 
-    form.dispatchEvent(
-      new SubmitEvent('submit', { bubbles: true, cancelable: true }),
-    );
+    form.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }));
     await waitFor(() => expect(reportValiditySpy).toHaveBeenCalledTimes(1));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(submitSpy).not.toHaveBeenCalled();
-    expect(phone.validationMessage).toBe(
-      'Phone validation is unavailable. Try again.',
-    );
+    expect(phone.validationMessage).toBe('Phone validation is unavailable. Try again.');
     expect(phone.getAttribute('aria-invalid')).toBe('true');
   });
 

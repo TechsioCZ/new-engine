@@ -4,6 +4,7 @@ import {
   SmartSuggestStorageError,
 } from '@techsio/smart-suggest-storage';
 import type { SmartSuggestRepositories } from '@techsio/smart-suggest-storage';
+import { seedSampleAddressDatasetsEffect } from '@techsio/smart-suggest-datasets';
 import { describe, expect, layer } from '@effect/vitest';
 import { HttpServer, Layer } from '@modern-js/plugin-bff/effect-edge';
 import { isFailReason } from 'effect/Cause';
@@ -16,41 +17,42 @@ const createSmartSuggestApiTestLayer = (repositories: SmartSuggestRepositories) 
   Layer.mergeAll(HttpServer.layerServices, createSmartSuggestApiGroupLayer(repositories));
 
 describe('Smart Suggest HttpApi', () => {
-  layer(createSmartSuggestApiTestLayer(createInMemorySmartSuggestRepositories()))(
-    'success paths',
-    (it) => {
-      it.effect('runs success paths through the generated Effect client', () =>
-        gen(function* program() {
-          const client = yield* HttpApiTest.groups(SmartSuggestHttpApi, ['smartSuggest'] as const);
-          const suggest = yield* client.suggest({
-            query: {
-              countryCode: 'CZ',
-              kind: 'address',
-              limit: 1,
-              q: 'K Louži',
-            },
-          });
-          const phone = yield* client.validatePhone({
-            payload: {
-              defaultCountry: 'CZ',
-              rawInput: '777 123 456',
-            },
-          });
+  const successRepositories = createInMemorySmartSuggestRepositories();
 
-          expect(suggest.suggestions).toEqual([
-            expect.objectContaining({
-              id: 'cz-ruian-k-louzi-1258-12',
-              kind: 'address',
-            }),
-          ]);
-          expect(phone).toMatchObject({
-            e164: '+420777123456',
-            isValid: true,
-          });
-        }),
-      );
-    },
-  );
+  layer(createSmartSuggestApiTestLayer(successRepositories))('success paths', (it) => {
+    it.effect('runs success paths through the generated Effect client', () =>
+      gen(function* program() {
+        yield* seedSampleAddressDatasetsEffect(successRepositories);
+
+        const client = yield* HttpApiTest.groups(SmartSuggestHttpApi, ['smartSuggest'] as const);
+        const suggest = yield* client.suggest({
+          query: {
+            countryCode: 'CZ',
+            kind: 'address',
+            limit: 1,
+            q: 'K Louži',
+          },
+        });
+        const phone = yield* client.validatePhone({
+          payload: {
+            defaultCountry: 'CZ',
+            rawInput: '777 123 456',
+          },
+        });
+
+        expect(suggest.suggestions).toEqual([
+          expect.objectContaining({
+            id: 'cz-ruian-k-louzi-1258-12',
+            kind: 'address',
+          }),
+        ]);
+        expect(phone).toMatchObject({
+          e164: '+420777123456',
+          isValid: true,
+        });
+      }),
+    );
+  });
 
   const storageFailureRepositories = createInMemorySmartSuggestRepositories();
   storageFailureRepositories.acceptEvents.recordAcceptEvent = () =>

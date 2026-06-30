@@ -79,6 +79,20 @@ type ProviderRunFailure = {
 
 type ProviderRunResult = ProviderRunFailure | ProviderRunSuccess;
 
+interface ProviderRegistryRunAttempted {
+  provider: SmartSuggestProvider;
+  runResult: ProviderRunResult;
+  status: "attempted";
+}
+
+interface ProviderRegistryRunSkipped {
+  event: ProviderEventSummary;
+  provider: SmartSuggestProvider;
+  status: "skipped";
+}
+
+type ProviderRegistryRunResult = ProviderRegistryRunAttempted | ProviderRegistryRunSkipped;
+
 type ProviderRunOptions = {
   context: {
     requestId: string;
@@ -489,37 +503,64 @@ export const createSmartSuggestProviderRegistry = (
         const suggestions: SmartSuggestSuggestion[] = [];
         let firstSuccessfulProvider: SmartSuggestProvider | undefined;
 
-        for (const provider of sortProviders(options.providers, options.priority, request)) {
-          if (isCircuitOpen(states, provider.id, now)) {
-            emitEvent(
-              providerEvents,
-              createProviderEvent(provider.id, "skipped", 0, "provider-unavailable"),
+        const providerContext: ProviderRunOptions["context"] = { requestId };
+
+        if (context.signal !== undefined) {
+          providerContext.signal = context.signal;
+        }
+
+        const providerRuns = sortProviders(options.providers, options.priority, request).map(
+          (provider) => {
+            if (isCircuitOpen(states, provider.id, now)) {
+              return Effect.succeed({
+                event: createProviderEvent(provider.id, "skipped", 0, "provider-unavailable"),
+                provider,
+                status: "skipped",
+              } satisfies ProviderRegistryRunResult);
+            }
+
+            return runProvider({
+              context: providerContext,
+              now,
+              provider,
+              request,
+              timeoutMs: options.timeoutMs ?? 1500,
+            }).pipe(
+              Effect.map(
+                (runResult) =>
+                  ({
+                    provider,
+                    runResult,
+                    status: "attempted",
+                  }) satisfies ProviderRegistryRunResult,
+              ),
             );
+          },
+        );
+
+        const providerResults = yield* Effect.all(providerRuns, {
+          concurrency: "unbounded",
+        });
+
+        for (const providerResult of providerResults) {
+          const { provider } = providerResult;
+
+          if (providerResult.status === "skipped") {
+            emitEvent(providerEvents, providerResult.event);
             continue;
           }
 
-          const providerContext: ProviderRunOptions["context"] = { requestId };
+          const { runResult } = providerResult;
 
-          if (context.signal !== undefined) {
-            providerContext.signal = context.signal;
-          }
+          emitEvent(providerEvents, runResult.event);
 
-          const providerResult = yield* runProvider({
-            context: providerContext,
-            now,
-            provider,
-            request,
-            timeoutMs: options.timeoutMs ?? 1500,
-          });
-          emitEvent(providerEvents, providerResult.event);
-
-          if (providerResult.status === "success") {
+          if (runResult.status === "success") {
             markProviderSuccess(states, provider.id);
 
-            if (providerResult.result.suggestions.length > 0) {
+            if (runResult.result.suggestions.length > 0) {
               firstSuccessfulProvider ??= provider;
               suggestions.push(
-                ...toProviderResponse(requestId, providerResult.result, providerEvents).suggestions,
+                ...toProviderResponse(requestId, runResult.result, providerEvents).suggestions,
               );
             }
 
@@ -872,6 +913,26 @@ const ruianTextSignalPattern = /\p{L}/u;
 
 const formatRuianPostalCode = (first: string, second: string) => `${first} ${second}`;
 
+const applyRuianPostalCitySegment = (parts: AddressParts, segment: string) => {
+  const postalCityMatch = ruianPostalCityPattern.exec(segment);
+
+  if (postalCityMatch?.groups === undefined) {
+    return false;
+  }
+
+  const first = postalCityMatch.groups["first"];
+  const second = postalCityMatch.groups["second"];
+  const city = postalCityMatch.groups["city"];
+
+  if (first === undefined || second === undefined || city === undefined) {
+    return false;
+  }
+
+  parts.postalCode = formatRuianPostalCode(first, second);
+  parts.city = city;
+  return true;
+};
+
 const addressFromRuianText = (
   text: string,
   request: SmartSuggestRequest,
@@ -910,26 +971,24 @@ const addressFromRuianText = (
     parts.street = streetSegment;
   }
 
-  if (districtSegment !== undefined) {
+  const districtSegmentIsPostalCity =
+    postalCitySegment === undefined &&
+    districtSegment !== undefined &&
+    applyRuianPostalCitySegment(parts, districtSegment);
+
+  if (districtSegment !== undefined && !districtSegmentIsPostalCity) {
     parts.district = districtSegment;
   }
 
   if (postalCitySegment !== undefined) {
-    const postalCityMatch = ruianPostalCityPattern.exec(postalCitySegment);
-
-    if (postalCityMatch?.groups !== undefined) {
-      const first = postalCityMatch.groups["first"];
-      const second = postalCityMatch.groups["second"];
-      const city = postalCityMatch.groups["city"];
-
-      if (first !== undefined && second !== undefined && city !== undefined) {
-        parts.postalCode = formatRuianPostalCode(first, second);
-        parts.city = city;
-      }
-    } else {
+    if (!applyRuianPostalCitySegment(parts, postalCitySegment)) {
       parts.city = postalCitySegment;
     }
-  } else if (districtSegment !== undefined && streetHouseMatch === null) {
+  } else if (
+    districtSegment !== undefined &&
+    !districtSegmentIsPostalCity &&
+    streetHouseMatch === null
+  ) {
     parts.city = districtSegment;
     delete parts.district;
   }
@@ -1202,6 +1261,7 @@ export const createRuianGeocodeProvider = (
           });
 
         const suggestions = yield* fetchAddressPointSuggestions(request);
+
         const expansion = createRuianAddressNumberPrefixExpansion(request);
 
         if (expansion !== undefined) {

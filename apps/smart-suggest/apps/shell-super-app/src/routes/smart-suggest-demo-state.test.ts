@@ -1,0 +1,110 @@
+import { describe, expect, it } from 'vitest';
+import {
+  getAddressStatus,
+  resolveDeliverySuggestKind,
+  shouldOfferManualEntry,
+} from './smart-suggest-demo-state';
+import type { CheckoutStateCopy, DemoAddressSuggestState } from './smart-suggest-demo-state';
+
+const checkoutCopy = {
+  addressEmpty: 'No match found. Check the text or enter the address manually.',
+  addressError: 'Suggestions are unavailable. You can enter the address manually.',
+  addressLoading: 'Looking up matching addresses...',
+  addressManual: 'Manual address entry',
+  addressManualAction: 'Enter address manually',
+  addressSelected: 'Address selected from suggestions.',
+  formInvalid: 'Check the highlighted fields before continuing.',
+  phoneInvalid: 'Check the courier phone number.',
+  postalInvalid: 'Check the postal code for the selected country.',
+  postalSelected: 'City and postal code are filled. Add the street and house number.',
+  saved: 'Delivery details are ready for the next step.',
+} satisfies CheckoutStateCopy;
+
+const emptySuggestState = {
+  data: {
+    suggestions: [],
+  },
+  status: 'success',
+} satisfies DemoAddressSuggestState;
+
+describe('smart suggest demo state', () => {
+  it('routes postal-code-only search text to locality lookup', () => {
+    expect(resolveDeliverySuggestKind('101 00')).toBe('postal');
+    expect(resolveDeliverySuggestKind('10100')).toBe('postal');
+    expect(resolveDeliverySuggestKind('Vinohradska 12 Praha')).toBe('address');
+  });
+
+  it('offers and labels manual entry after an unseeded lookup has no match', () => {
+    expect(
+      shouldOfferManualEntry({
+        addressInput: 'Unseededova 404',
+        addressSuggestState: emptySuggestState,
+        manualAddress: false,
+        selectedAddress: undefined,
+      }),
+    ).toBe(true);
+
+    expect(
+      getAddressStatus({
+        addressInput: 'Unseededova 404',
+        addressSuggestState: emptySuggestState,
+        copy: checkoutCopy,
+        manualAddress: false,
+        postalLocalitySelected: false,
+        selectedAddress: undefined,
+      }),
+    ).toEqual({
+      status: 'warning',
+      text: checkoutCopy.addressEmpty,
+    });
+
+    expect(
+      getAddressStatus({
+        addressInput: 'Unseededova 404',
+        addressSuggestState: emptySuggestState,
+        copy: checkoutCopy,
+        manualAddress: true,
+        postalLocalitySelected: false,
+        selectedAddress: undefined,
+      }),
+    ).toEqual({
+      status: 'warning',
+      text: checkoutCopy.addressManual,
+    });
+  });
+
+  it('keeps selected suggestion and postal locality states distinct', () => {
+    expect(
+      getAddressStatus({
+        addressInput: '',
+        addressSuggestState: { status: 'idle' },
+        copy: checkoutCopy,
+        manualAddress: false,
+        postalLocalitySelected: true,
+        selectedAddress: undefined,
+      }),
+    ).toEqual({
+      status: 'default',
+      text: checkoutCopy.postalSelected,
+    });
+
+    expect(
+      getAddressStatus({
+        addressInput: 'Vinohradska 12',
+        addressSuggestState: emptySuggestState,
+        copy: checkoutCopy,
+        manualAddress: false,
+        postalLocalitySelected: false,
+        selectedAddress: {
+          city: 'Praha',
+          countryCode: 'CZ',
+          line1: 'Vinohradska 12',
+          postalCode: '101 00',
+        },
+      }),
+    ).toEqual({
+      status: 'success',
+      text: checkoutCopy.addressSelected,
+    });
+  });
+});

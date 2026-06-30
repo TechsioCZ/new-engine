@@ -56,6 +56,16 @@ export type SmartSuggestVanillaAddressSelection = {
   suggestion: SmartSuggestSuggestion;
 };
 
+export type SmartSuggestVanillaSuggestState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { error: unknown; status: 'error' }
+  | {
+      requestId: string;
+      status: 'success';
+      suggestions: readonly SmartSuggestSuggestion[];
+    };
+
 export type SmartSuggestVanillaConfig = {
   addressLine?: SmartSuggestVanillaField;
   apiBaseUrl?: string;
@@ -68,6 +78,7 @@ export type SmartSuggestVanillaConfig = {
   limit?: number;
   minQueryLength?: number;
   onError?: (error: unknown) => void;
+  onSuggestStateChange?: (state: SmartSuggestVanillaSuggestState) => void;
   onSuggestionSelect?: (selection: SmartSuggestVanillaAddressSelection) => void;
   optionClassName?: string;
   phone?: SmartSuggestVanillaField;
@@ -176,6 +187,13 @@ const setControlValue = (control: TextControl | undefined, value?: string) => {
 const getControlValue = (control: TextControl | undefined) => control?.value.trim() ?? '';
 
 const getSuggestQuerySignalLength = (value: string) => [...value.matchAll(/[\p{L}\p{N}]/gu)].length;
+
+const resolveSuggestKind = (query: string): SmartSuggestRequest['kind'] => {
+  const postalDigits = query.replaceAll(/\D/gu, '');
+  const postalOnly = /^\s*\d[\d\s-]*\s*$/u.test(query);
+
+  return postalOnly && postalDigits.length >= 5 ? 'postal' : 'address';
+};
 
 const createPhoneValidationRequest = (
   rawInput: string,
@@ -699,11 +717,12 @@ export const attachSmartSuggest = (
   const clearSuggestResults = () => {
     currentRequestId = undefined;
     suggestionList?.render([], selectSuggestion);
+    config.onSuggestStateChange?.({ status: 'idle' });
   };
 
   const createSuggestRequest = (query: string) => {
     const request: SmartSuggestRequest = {
-      kind: 'address',
+      kind: resolveSuggestKind(query),
       limit,
       query,
     };
@@ -731,6 +750,7 @@ export const attachSmartSuggest = (
     }
 
     clearSuggestResults();
+    config.onSuggestStateChange?.({ error, status: 'error' });
     reportError(config.onError, error);
   };
 
@@ -748,6 +768,7 @@ export const attachSmartSuggest = (
 
     const requestController = new AbortController();
     activeSuggestController = requestController;
+    config.onSuggestStateChange?.({ status: 'loading' });
 
     try {
       const response = await runVanillaEffectAsPromise(
@@ -762,6 +783,11 @@ export const attachSmartSuggest = (
 
       currentRequestId = response.requestId;
       suggestionList?.render(response.suggestions, selectSuggestion);
+      config.onSuggestStateChange?.({
+        requestId: response.requestId,
+        status: 'success',
+        suggestions: response.suggestions,
+      });
     } catch (error) {
       handleSuggestError(error, requestSequence);
     } finally {

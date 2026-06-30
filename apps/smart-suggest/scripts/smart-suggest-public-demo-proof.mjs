@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -7,6 +9,10 @@ const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)),
 const repositoryRoot = path.resolve(workspaceRoot, '../..');
 const defaultReportPath = '.codex/reports/smart-suggest-public-demo-proof/public-demo-proof.json';
 const defaultLocalUrl = 'http://localhost:3020';
+const productionArtifactManifestPath = path.join(
+  workspaceRoot,
+  '.codex/artifacts/smart-suggest-owned-data-production/manifest.json',
+);
 const phoneValidationModes = ['server-only', 'frontend-lazy', 'frontend-immediate'];
 const expectedKLouziAddress = {
   countryCode: 'CZ',
@@ -350,13 +356,13 @@ function sourceRendersCheckoutDemo() {
   return (
     rootSource.includes('smart-suggest-demo') &&
     localizedRootSource.includes('smart-suggest-demo') &&
-    demoSource.includes('SmartSuggestAddressFieldRemote') &&
-    demoSource.includes('PostalValidationField') &&
-    demoSource.includes('PhoneValidationField') &&
-    demoSource.includes('validatePostalCode={(request) =>') &&
-    demoSource.includes('validatePhoneNumber={(request) =>') &&
-    demoSource.includes('smartSuggestClient.validatePostal(request)') &&
-    demoSource.includes('smartSuggestClient.validatePhone(request)') &&
+    demoSource.includes('TechsioSmartSuggest') &&
+    demoSource.includes('/sdk/techsio-smart-suggest.js') &&
+    demoSource.includes("apiBaseUrl: '/api'") &&
+    demoSource.includes("addressLine: '#address-line'") &&
+    demoSource.includes("postalCode: '#postal-code'") &&
+    demoSource.includes("phone: '#phone'") &&
+    demoSource.includes("phoneValidationMode: 'server-only'") &&
     demoSource.includes('action="/checkout"')
   );
 }
@@ -559,6 +565,149 @@ function createHttpTransport(apiBase, timeoutMs) {
   };
 }
 
+function staticContentType(filePath) {
+  if (filePath.endsWith('.json')) {
+    return 'application/json; charset=utf-8';
+  }
+
+  return 'application/octet-stream';
+}
+
+async function createLocalArtifactServer(rootDir) {
+  const artifactRoot = path.resolve(rootDir);
+  const server = createServer((request, response) => {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      response.writeHead(405, { allow: 'GET, HEAD' });
+      response.end();
+      return;
+    }
+
+    const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+    const decodedPath = decodeURIComponent(url.pathname).replace(/^\/+/u, '');
+    const filePath = path.resolve(artifactRoot, decodedPath);
+
+    if (filePath !== artifactRoot && !filePath.startsWith(`${artifactRoot}${path.sep}`)) {
+      response.writeHead(403);
+      response.end();
+      return;
+    }
+
+    fs.stat(filePath, (statError, stat) => {
+      if (statError !== null || !stat.isFile()) {
+        response.writeHead(404);
+        response.end();
+        return;
+      }
+
+      response.writeHead(200, {
+        'cache-control': 'public, max-age=31536000, immutable',
+        'content-length': String(stat.size),
+        'content-type': staticContentType(filePath),
+      });
+
+      if (request.method === 'HEAD') {
+        response.end();
+        return;
+      }
+
+      const stream = fs.createReadStream(filePath);
+      stream.on('error', () => {
+        response.destroy();
+      });
+      stream.pipe(response);
+    });
+  });
+
+  const { manifestUrl } = await new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off('listening', onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      server.off('error', onError);
+      const address = server.address();
+
+      if (address === null || typeof address === 'string') {
+        reject(new Error('Local artifact server did not expose a TCP address.'));
+        return;
+      }
+
+      resolve({
+        manifestUrl: `http://127.0.0.1:${address.port}/manifest.json`,
+      });
+    };
+
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(0, '127.0.0.1');
+  });
+
+  return {
+    manifestUrl,
+    async close() {
+      await new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error !== undefined) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      });
+    },
+  };
+}
+
+async function createDirectArtifactManifest(report) {
+  const explicitManifestUrl =
+    envValue('SMART_SUGGEST_PUBLIC_DEMO_ARTIFACT_MANIFEST_URL') ??
+    envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL');
+
+  if (explicitManifestUrl !== undefined) {
+    pass(
+      report,
+      'direct-api-production-artifacts',
+      'Direct API fallback uses the configured owned artifact manifest URL.',
+      {
+        manifestUrl: explicitManifestUrl,
+      },
+    );
+    return {
+      manifestUrl: explicitManifestUrl,
+      async close() {},
+    };
+  }
+
+  if (!fs.existsSync(productionArtifactManifestPath)) {
+    fail(
+      report,
+      'direct-api-production-artifacts',
+      'Production owned artifact manifest is missing for direct API fallback.',
+      {
+        expectedManifestPath: relativeWorkspacePath(productionArtifactManifestPath),
+        remediation:
+          'Run pnpm smart-suggest:artifacts:build:production or set SMART_SUGGEST_PUBLIC_DEMO_ARTIFACT_MANIFEST_URL.',
+      },
+    );
+    return;
+  }
+
+  const artifactServer = await createLocalArtifactServer(
+    path.dirname(productionArtifactManifestPath),
+  );
+  pass(
+    report,
+    'direct-api-production-artifacts',
+    'Direct API fallback serves the local production owned artifact tree.',
+    {
+      manifestPath: relativeWorkspacePath(productionArtifactManifestPath),
+      manifestUrl: artifactServer.manifestUrl,
+    },
+  );
+
+  return artifactServer;
+}
+
 function isSmartSuggestStatus(value) {
   return value?.service === 'smart-suggest';
 }
@@ -629,8 +778,18 @@ async function createDirectApiTransport(report) {
       throw new Error('dist Effect runtime createHandler export is missing.');
     }
 
-    const { createEffectOperationContext, runWithEffectContext } =
-      await import('@modern-js/plugin-bff/effect-server');
+    const shellAppRequire = createRequire(
+      pathToFileURL(path.join(workspaceRoot, 'apps/shell-super-app/package.json')).href,
+    );
+    const effectServerPath = shellAppRequire.resolve('@modern-js/plugin-bff/effect-server');
+    const { createEffectOperationContext, runWithEffectContext } = await import(
+      pathToFileURL(effectServerPath).href
+    );
+    const artifactManifest = await createDirectArtifactManifest(report);
+
+    if (artifactManifest === undefined) {
+      return;
+    }
 
     pass(report, 'direct-api-fallback', 'Loaded built API handler for direct fallback checks.', {
       distHandlerPath: relativeWorkspacePath(distHandlerPath),
@@ -638,6 +797,7 @@ async function createDirectApiTransport(report) {
 
     return {
       apiBase: 'dist-api-handler',
+      close: artifactManifest.close,
       kind: 'direct-dist',
       async requestJson(routePath, init) {
         const request = new Request(`https://smart-suggest.local${routePath}`, {
@@ -654,6 +814,9 @@ async function createDirectApiTransport(report) {
           NOMINATIM_USER_AGENT: '',
           RADAR_API_KEY: '',
           RUIAN_GEOCODE_DISABLED: 'true',
+          SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE: 'false',
+          SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL: artifactManifest.manifestUrl,
+          SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS: 'false',
           SMART_SUGGEST_PROVIDER_PRIORITY: '',
         };
         const context = {
@@ -732,6 +895,17 @@ function isOwnedKLouzi1258Slash12(suggestion) {
   );
 }
 
+function isOwnedKLouziStreetSuggestion(suggestion) {
+  const address = suggestion?.address ?? {};
+  const streetText = normalizeText(address.street ?? address.line1 ?? suggestion?.displayLabel);
+
+  return (
+    suggestion?.source?.kind === 'owned-dataset' &&
+    address.countryCode === expectedKLouziAddress.countryCode &&
+    streetText.includes('k louzi')
+  );
+}
+
 function sourceForAccept(source) {
   if (
     typeof source?.id !== 'string' ||
@@ -806,6 +980,8 @@ async function runSuggestScenario(report, transport, scenario) {
   const suggestions = Array.isArray(response.json?.suggestions) ? response.json.suggestions : [];
   const providerEvents = providerEventsForResponse(response.json);
   const matchingSuggestion = suggestions.find(scenario.matches ?? (() => false));
+  const relevantSuggestions =
+    scenario.matches === undefined ? suggestions : suggestions.filter(scenario.matches);
   const suggestionIds = suggestions.map((suggestion) => suggestion.id);
   const details = {
     cacheStatus: response.json?.cacheStatus,
@@ -813,6 +989,7 @@ async function runSuggestScenario(report, transport, scenario) {
     providerEventCount: providerEvents.length,
     requestId: response.json?.requestId,
     scenarioId: scenario.id,
+    relevantSuggestionCount: relevantSuggestions.length,
     suggestionCount: suggestions.length,
     suggestionIds,
     suggestions: summarizeSuggestions(suggestions),
@@ -852,7 +1029,7 @@ async function runSuggestScenario(report, transport, scenario) {
   } else if (scenario.expect === 'minimum-suggestion-count') {
     check(
       report,
-      suggestions.length >= scenario.minimumCount,
+      relevantSuggestions.length >= scenario.minimumCount,
       scenario.id,
       scenario.passSummary ?? 'Suggest scenario returned enough suggestions.',
       scenario.failSummary ?? 'Suggest scenario returned too few suggestions.',
@@ -1155,15 +1332,10 @@ async function runApiMatrix(report, transport) {
     failSummary: 'Street prefix returned fewer than four K Louzi suggestions.',
     id: 'k-louzi-street-prefix-cluster',
     limit: 5,
+    matches: isOwnedKLouziStreetSuggestion,
     minimumCount: 4,
-    passSummary: 'Street prefix returned the K Louzi sample cluster.',
+    passSummary: 'Street prefix returned multiple real K Louzi owned suggestions.',
     query: 'K Lou',
-    requiredSuggestionIds: [
-      'cz-ruian-k-louzi-1258-12',
-      'cz-ruian-k-louzi-1258-7',
-      'cz-ruian-k-louzi-784-3',
-      'cz-ruian-k-louzi-1312-1',
-    ],
   });
   await runSuggestScenario(report, transport, {
     expect: 'empty',
@@ -1289,7 +1461,11 @@ async function runFallbackProof(report) {
   const directTransport = await createDirectApiTransport(report);
 
   if (directTransport !== undefined) {
-    await runApiMatrix(report, directTransport);
+    try {
+      await runApiMatrix(report, directTransport);
+    } finally {
+      await directTransport.close?.();
+    }
   }
 }
 

@@ -5,9 +5,11 @@ import {
   type SmartSuggestRequest,
 } from "@techsio/smart-suggest-core";
 import * as Cause from "effect/Cause";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
-import * as Fiber from "effect/Fiber";
 import * as Exit from "effect/Exit";
+import * as Fiber from "effect/Fiber";
+import * as Ref from "effect/Ref";
 import { describe, expect, it, vi } from "@effect/vitest";
 
 import {
@@ -51,6 +53,51 @@ const createSuggestionProvider = (id: string, displayLabel: string): SmartSugges
     }),
 });
 
+const createControlledSuggestionProvider = (
+  id: string,
+  displayLabel: string,
+  options: {
+    bothStarted: Deferred.Deferred<boolean>;
+    release: Deferred.Deferred<boolean>;
+    startedCount: Ref.Ref<number>;
+  },
+): SmartSuggestProvider => ({
+  cachePolicy: { kind: "none" },
+  id,
+  name: id,
+  suggest: () =>
+    Effect.gen(function* controlledSuggestionProviderProgram() {
+      const startedCount = yield* Ref.updateAndGet(
+        options.startedCount,
+        (currentCount) => currentCount + 1,
+      );
+
+      if (startedCount >= 2) {
+        yield* Deferred.succeed(options.bothStarted, true);
+      }
+
+      yield* Deferred.await(options.release);
+
+      return {
+        cachePolicy: { kind: "none" },
+        suggestions: [
+          {
+            confidence: 0.8,
+            displayLabel,
+            id: `${id}-suggestion`,
+            kind: "address",
+            source: {
+              id,
+              kind: "live-provider",
+              name: id,
+            },
+          },
+        ],
+      };
+    }),
+  supportedKinds: ["address"],
+});
+
 const jsonResponse = (body: unknown, init?: ResponseInit) => {
   const responseInit: ResponseInit = {
     headers: { "content-type": "application/json" },
@@ -91,6 +138,52 @@ describe("createSmartSuggestProviderRegistry", () => {
           },
         });
       }),
+  );
+
+  it.effect("starts configured provider calls concurrently", () =>
+    Effect.gen(function* providerFanoutProgram() {
+      const slowRelease = yield* Deferred.make<boolean>();
+      const fastRelease = yield* Deferred.make<boolean>();
+      const bothStarted = yield* Deferred.make<boolean>();
+      const startedCount = yield* Ref.make(0);
+      const registry = createSmartSuggestProviderRegistry({
+        providers: [
+          createControlledSuggestionProvider("slow", "Slow result", {
+            bothStarted,
+            release: slowRelease,
+            startedCount,
+          }),
+          createControlledSuggestionProvider("fast", "Fast result", {
+            bothStarted,
+            release: fastRelease,
+            startedCount,
+          }),
+        ],
+        timeoutMs: 1000,
+      });
+      const fiber = yield* registry
+        .suggest(addressRequest, { requestId: "request-concurrent" })
+        .pipe(Effect.forkChild({ startImmediately: true }));
+      const bothStartedBeforeSlowRelease = yield* Deferred.await(bothStarted).pipe(
+        Effect.map(() => true),
+        Effect.timeoutOrElse({
+          duration: 10,
+          orElse: () => Effect.succeed(false),
+        }),
+      );
+
+      yield* Deferred.succeed(slowRelease, true);
+      yield* Deferred.await(bothStarted);
+      yield* Deferred.succeed(fastRelease, true);
+
+      const result = yield* Fiber.join(fiber);
+
+      expect(bothStartedBeforeSlowRelease).toBe(true);
+      expect(result.response.suggestions.map((suggestion) => suggestion.displayLabel)).toEqual([
+        "Slow result",
+        "Fast result",
+      ]);
+    }),
   );
 
   it.live("falls back after provider timeout and records provider events", () =>

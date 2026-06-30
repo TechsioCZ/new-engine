@@ -18,23 +18,18 @@ const optimizeReportPath =
   '.codex/reports/smart-suggest-d1-operations/optimize-production-seed-proof.json';
 const statusReportPath =
   '.codex/reports/smart-suggest-d1-operations/status-production-seed-proof.json';
-const expectedCzVuscCodes = [
-  '19',
-  '27',
-  '35',
-  '43',
-  '51',
-  '60',
-  '78',
-  '86',
-  '94',
-  '108',
-  '116',
-  '124',
-  '132',
-  '141',
+const freeTierShardGroups = [
+  { index: '01', regionCodes: ['19'] },
+  { index: '02', regionCodes: ['27'] },
+  { index: '03', regionCodes: ['35', '43'] },
+  { index: '04', regionCodes: ['51', '78'] },
+  { index: '05', regionCodes: ['60'] },
+  { index: '06', regionCodes: ['86', '94', '108'] },
+  { index: '07', regionCodes: ['116'] },
+  { index: '08', regionCodes: ['124', '132'] },
+  { index: '09', regionCodes: ['141'] },
 ];
-const shardBindings = expectedCzVuscCodes.map((code) => `SMART_SUGGEST_CZ_VUSC_${code}`);
+const shardBindings = freeTierShardGroups.map((group) => `SMART_SUGGEST_FREE_TIER_${group.index}`);
 const routerBinding = 'SMART_SUGGEST_ROUTER_D1';
 const unsafeReportPatternSources = [
   'file:\\/\\/',
@@ -140,13 +135,23 @@ function writePlaceholderWranglerConfig() {
   writeJson(configPath, {
     d1_databases: [
       databaseEntry(routerBinding, 'smart-suggest-router-proof'),
-      ...expectedCzVuscCodes.map((code) =>
-        databaseEntry(`SMART_SUGGEST_CZ_VUSC_${code}`, `smart-suggest-cz-vusc-${code}-proof`),
+      ...freeTierShardGroups.map((group) =>
+        databaseEntry(
+          `SMART_SUGGEST_FREE_TIER_${group.index}`,
+          `smart-suggest-free-tier-${group.index}-proof`,
+        ),
       ),
     ],
     vars: {
       SMART_SUGGEST_D1_ROUTER_BINDING: routerBinding,
       SMART_SUGGEST_D1_SHARD_BINDINGS: shardBindings.join(','),
+      SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON: JSON.stringify(
+        Object.fromEntries(
+          freeTierShardGroups.flatMap((group) =>
+            group.regionCodes.map((code) => [code, `SMART_SUGGEST_FREE_TIER_${group.index}`]),
+          ),
+        ),
+      ),
     },
   });
 
@@ -157,6 +162,9 @@ function resetOperatorEnv() {
   return {
     SMART_SUGGEST_D1_ROUTER_BINDING: '',
     SMART_SUGGEST_D1_SHARD_BINDINGS: '',
+    SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON: '',
+    SMART_SUGGEST_D1_TOPOLOGY: '',
+    SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED: '',
     SMART_SUGGEST_ROUTER_D1_BINDING: '',
     SMART_SUGGEST_RUIAN_ATOM_ENTRY_ID: '',
     SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL: '',
@@ -308,9 +316,11 @@ function runProductionSeedProof() {
   );
   assert(
     (seedReport.operatorReadiness?.requiredEnvironment?.d1GeneratedConfig ?? []).some(
-      (entry) => entry.env === 'SMART_SUGGEST_CZ_VUSC_19_DATABASE_ID',
+      (entry) =>
+        entry.env ===
+        'SMART_SUGGEST_D1_SHARDS_JSON or SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED',
     ),
-    'Readiness must list the CZ VUSC shard database id env vars.',
+    'Readiness must list the free-tier shard configuration env contract.',
   );
   assert(seedReport.snapshot?.checksumVerified === true, 'Snapshot checksum must be verified.');
   assert(seedReport.snapshot?.pathRedacted === true, 'Snapshot path must be redacted.');
@@ -339,7 +349,40 @@ function runProductionSeedProof() {
     seedReport.commands?.import?.includes('--modification-note-sha256'),
     'Seed import command must pass the modification-note hash into the mutating importer.',
   );
-  assert(seedReport.shardBindingCount === 14, 'Seed proof must resolve all 14 CZ VUSC shards.');
+  assert(
+    seedReport.commands?.import?.includes('--shard-max-rows 400000'),
+    'Free-tier seed import command must keep the address D1 row guard.',
+  );
+  assert(
+    seedReport.commands?.import?.includes('--search-index-mode fts-only'),
+    'Free-tier seed import command must avoid the legacy prefix-token index by default.',
+  );
+  assert(
+    seedReport.searchIndexMode === 'fts-only',
+    'Free-tier seed report must expose the FTS-only index mode.',
+  );
+  assert(
+    seedReport.freeTierCapacityGuard?.enabled === true,
+    'Free-tier seed report must expose the capacity guard.',
+  );
+  assert(
+    seedReport.freeTierCapacityGuard?.effectiveMaxAddressShardRows === 400000,
+    'Free-tier capacity guard must default to the reviewed address D1 row ceiling.',
+  );
+  assert(
+    seedReport.freeTierCapacityGuard?.defaultFtsOnlyMaxAddressShardRows === 400000,
+    'Free-tier capacity guard must document the FTS-only row ceiling.',
+  );
+  assert(
+    seedReport.freeTierCapacityGuard?.defaultLegacyPrefixMaxAddressShardRows === 125000,
+    'Free-tier capacity guard must document the legacy prefix row ceiling.',
+  );
+  assert(seedReport.d1Topology === 'free-tier', 'Seed proof must use free-tier D1 topology.');
+  assert(seedReport.shardBindingCount === 9, 'Seed proof must resolve nine free-tier shards.');
+  assert(
+    seedReport.shardLogicalCzVuscCount === 14,
+    'Seed proof must cover all 14 logical CZ VUSC regions.',
+  );
   assert(
     seedReport.shardBindingsSource === 'wrangler-config-var',
     'Seed proof must use generated Wrangler shard binding resolution.',

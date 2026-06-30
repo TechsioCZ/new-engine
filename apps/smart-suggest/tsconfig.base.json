@@ -17,13 +17,13 @@
     "allowImportingTsExtensions": true,
     "allowJs": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
-    "skipLibCheck": true,
     "resolveJsonModule": true,
     "plugins": [
       {

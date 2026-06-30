@@ -7,12 +7,15 @@ const nonBlankString = (fieldName: string) =>
 
 export const SmartSuggestErrorCodeSchema = Schema.Literals([
   'bad-request',
+  'forbidden',
   'validation-error',
   'provider-timeout',
   'provider-unavailable',
   'cache-policy-violation',
   'storage-unavailable',
   'not-found',
+  'rate-limit',
+  'unauthorized',
   'internal-error',
 ]);
 
@@ -39,6 +42,11 @@ export const SmartSuggestBadRequestErrorPayloadSchema = Schema.Struct({
 
 export const SmartSuggestCachePolicyViolationErrorPayloadSchema = Schema.Struct({
   code: Schema.Literal('cache-policy-violation'),
+  ...SmartSuggestErrorPayloadBaseFields,
+});
+
+export const SmartSuggestForbiddenErrorPayloadSchema = Schema.Struct({
+  code: Schema.Literal('forbidden'),
   ...SmartSuggestErrorPayloadBaseFields,
 });
 
@@ -69,8 +77,18 @@ export const SmartSuggestProviderUnavailableErrorPayloadSchema = Schema.Struct({
   ...SmartSuggestErrorPayloadBaseFields,
 });
 
+export const SmartSuggestRateLimitErrorPayloadSchema = Schema.Struct({
+  code: Schema.Literal('rate-limit'),
+  ...SmartSuggestErrorPayloadBaseFields,
+});
+
 export const SmartSuggestStorageUnavailableErrorPayloadSchema = Schema.Struct({
   code: Schema.Literal('storage-unavailable'),
+  ...SmartSuggestErrorPayloadBaseFields,
+});
+
+export const SmartSuggestUnauthorizedErrorPayloadSchema = Schema.Struct({
+  code: Schema.Literal('unauthorized'),
   ...SmartSuggestErrorPayloadBaseFields,
 });
 
@@ -86,6 +104,11 @@ export const SmartSuggestBadRequestErrorBodySchema = Schema.Struct({
 
 export const SmartSuggestCachePolicyViolationErrorBodySchema = Schema.Struct({
   errors: Schema.mutable(Schema.NonEmptyArray(SmartSuggestCachePolicyViolationErrorPayloadSchema)),
+  message: SmartSuggestErrorMessageSchema,
+});
+
+export const SmartSuggestForbiddenErrorBodySchema = Schema.Struct({
+  errors: Schema.mutable(Schema.NonEmptyArray(SmartSuggestForbiddenErrorPayloadSchema)),
   message: SmartSuggestErrorMessageSchema,
 });
 
@@ -114,8 +137,18 @@ export const SmartSuggestProviderUnavailableErrorBodySchema = Schema.Struct({
   message: SmartSuggestErrorMessageSchema,
 });
 
+export const SmartSuggestRateLimitErrorBodySchema = Schema.Struct({
+  errors: Schema.mutable(Schema.NonEmptyArray(SmartSuggestRateLimitErrorPayloadSchema)),
+  message: SmartSuggestErrorMessageSchema,
+});
+
 export const SmartSuggestStorageUnavailableErrorBodySchema = Schema.Struct({
   errors: Schema.mutable(Schema.NonEmptyArray(SmartSuggestStorageUnavailableErrorPayloadSchema)),
+  message: SmartSuggestErrorMessageSchema,
+});
+
+export const SmartSuggestUnauthorizedErrorBodySchema = Schema.Struct({
+  errors: Schema.mutable(Schema.NonEmptyArray(SmartSuggestUnauthorizedErrorPayloadSchema)),
   message: SmartSuggestErrorMessageSchema,
 });
 

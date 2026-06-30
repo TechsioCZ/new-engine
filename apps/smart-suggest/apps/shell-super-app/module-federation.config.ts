@@ -30,9 +30,7 @@ const moduleFederationConfig: ModuleFederationConfigExport = createModuleFederat
     },
     tsConfigPath: './tsconfig.mf-types.json',
   },
-  exposes: {
-    './SmartSuggestAddressField': './src/federation/smart-suggest-address-field.tsx',
-  },
+  exposes: {},
   filename: 'remoteEntry.js',
   name: 'shellSuperApp',
   shared: {

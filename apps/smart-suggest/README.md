@@ -94,7 +94,7 @@ dashboard review, one-day release age, grouped updates, and manual approval for
 major upgrades.
 
 Package source metadata is generated in
-`.modernjs/ultramodern.json#packageSource`. This workspace uses the published
+`.modernjs/ultramodern.json`. This workspace uses the published
 UltraModern.js install cohort, while generated shared packages still use
 `workspace:*` because they are part of this workspace.
 

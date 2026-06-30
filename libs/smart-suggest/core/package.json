@@ -29,6 +29,6 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
-    "effect": "4.0.0-beta.89"
+    "effect": "4.0.0-beta.91"
   }
 }

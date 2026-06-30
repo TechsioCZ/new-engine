@@ -932,7 +932,7 @@ assert(
 );
 assert(rootPackage.modernjs?.preset === 'presetUltramodern', 'Root must declare presetUltramodern');
 assert(
-  rootPackage.modernjs?.packageSource?.config === './.modernjs/ultramodern.json#packageSource',
+  rootPackage.modernjs?.packageSource?.config === './.modernjs/ultramodern.json',
   'Root must point at package source metadata',
 );
 assert(

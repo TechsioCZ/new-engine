@@ -110,6 +110,9 @@ export type SmartSuggestAcceptEvent = {
 export type SmartSuggestErrorCode =
   | "bad-request"
   | "validation-error"
+  | "unauthorized"
+  | "forbidden"
+  | "rate-limit"
   | "provider-timeout"
   | "provider-unavailable"
   | "cache-policy-violation"

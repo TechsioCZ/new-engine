@@ -215,19 +215,12 @@ const createHttpClient = (
             fetchImpl(
               toPublicUrl(webRequest.url),
               requestInitFromWebRequest(webRequest, mergedSignal.signal)
-            ).then((response) => normalizeFetchResponse(response)),
+            ),
         })
       ),
       map((response) => HttpClientResponse.fromWeb(request, response)),
       ensuring(sync(mergedSignal.cleanup))
     )
-  })
-
-const normalizeFetchResponse = async (response: Response) =>
-  new Response(response.status === 204 || response.status === 304 ? null : await response.text(), {
-    headers: new Headers(response.headers),
-    status: response.status,
-    statusText: response.statusText,
   })
 
 const isNamedAbortError = (value: unknown): value is Error =>

@@ -29,6 +29,20 @@ const expectedCzVuscCodes = [
 ];
 const defaultCzVuscShardBindingPrefix = 'SMART_SUGGEST_CZ_VUSC_';
 const defaultCzVuscShardDatabaseNamePrefix = 'smart-suggest-cz-vusc-';
+const defaultCompactCzShardBinding = 'SMART_SUGGEST_D1';
+const defaultFreeTierShardBindingPrefix = 'SMART_SUGGEST_FREE_TIER_';
+const defaultFreeTierShardDatabaseNamePrefix = 'smart-suggest-free-tier-';
+const freeTierShardGroups = [
+  { index: '01', regionCodes: ['19'] },
+  { index: '02', regionCodes: ['27'] },
+  { index: '03', regionCodes: ['35', '43'] },
+  { index: '04', regionCodes: ['51', '78'] },
+  { index: '05', regionCodes: ['60'] },
+  { index: '06', regionCodes: ['86', '94', '108'] },
+  { index: '07', regionCodes: ['116'] },
+  { index: '08', regionCodes: ['124', '132'] },
+  { index: '09', regionCodes: ['141'] },
+];
 
 function localD1DatabaseIdForBinding(binding) {
   const hash = crypto.createHash('sha1').update(binding).digest('hex');
@@ -46,8 +60,13 @@ function parseArgs(argv) {
   const parsed = {
     applyMigrations: false,
     app: undefined,
+    artifactManifestUrl: undefined,
+    artifactPublicOrigin: undefined,
+    artifactStatic: false,
+    compactCzShard: false,
     czVuscShards: false,
     printCzVuscEnvTemplate: false,
+    printFreeTierEnvTemplate: false,
     requireD1: false,
   };
 
@@ -65,13 +84,40 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === '--artifact-static') {
+      parsed.artifactStatic = true;
+      continue;
+    }
+
+    if (arg === '--artifact-manifest-url') {
+      parsed.artifactManifestUrl = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg === '--artifact-public-origin') {
+      parsed.artifactPublicOrigin = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
     if (arg === '--cz-vusc-shards') {
       parsed.czVuscShards = true;
       continue;
     }
 
+    if (arg === '--compact-cz-shard') {
+      parsed.compactCzShard = true;
+      continue;
+    }
+
     if (arg === '--print-cz-vusc-env-template') {
       parsed.printCzVuscEnvTemplate = true;
+      continue;
+    }
+
+    if (arg === '--print-free-tier-env-template') {
+      parsed.printFreeTierEnvTemplate = true;
       continue;
     }
 
@@ -88,7 +134,9 @@ function parseArgs(argv) {
     throw new Error(`Unknown argument: ${arg}`);
   }
 
-  if (!(parsed.app || parsed.help || parsed.printCzVuscEnvTemplate)) {
+  if (
+    !(parsed.app || parsed.help || parsed.printCzVuscEnvTemplate || parsed.printFreeTierEnvTemplate)
+  ) {
     throw new Error('Missing required --app argument.');
   }
 
@@ -98,12 +146,20 @@ function parseArgs(argv) {
 function printHelp() {
   process.stdout.write(`Usage:
   node scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app [--require-d1] [--apply-migrations]
+  node scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app --artifact-static --artifact-public-origin https://example.workers.dev
+  node scripts/apply-smart-suggest-cloudflare-bindings.mjs --print-free-tier-env-template
   node scripts/apply-smart-suggest-cloudflare-bindings.mjs --print-cz-vusc-env-template
 
 Adds Smart Suggest Cloudflare bindings to the generated .output/wrangler.json.
 Copies generated D1 migrations into .output and can apply them before deploy.
+Use --artifact-static for the no-pay profile: full owned data is served from
+Worker Static Assets, and corpus D1 bindings are removed from generated output.
 
 Environment:
+  SMART_SUGGEST_ARTIFACT_STATIC_ENABLED true to enable the no-pay static artifact profile
+  SMART_SUGGEST_ARTIFACT_PUBLIC_ORIGIN Public origin used to derive /smart-suggest-owned-data/manifest.json
+  SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL Explicit deployed artifact manifest URL
+  SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES Optional runtime token-page read ceiling
   SMART_SUGGEST_D1_BINDING             Defaults to SMART_SUGGEST_D1
   SMART_SUGGEST_D1_DATABASE_NAME       Defaults to smart-suggest
   SMART_SUGGEST_D1_DATABASE_ID         Required with --require-d1
@@ -112,8 +168,17 @@ Environment:
   SMART_SUGGEST_ROUTER_D1_BINDING      Defaults to SMART_SUGGEST_ROUTER_D1
   SMART_SUGGEST_ROUTER_D1_DATABASE_NAME Defaults to smart-suggest-router
   SMART_SUGGEST_ROUTER_D1_DATABASE_ID  Required with --require-d1 when enabled
+  SMART_SUGGEST_D1_TOPOLOGY            free-tier, compact-cz, paid-vusc, or custom
+  SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED true to use router plus 9 address D1s
+  SMART_SUGGEST_D1_FREE_TIER_SHARD_BINDING_PREFIX Defaults to SMART_SUGGEST_FREE_TIER_
+  SMART_SUGGEST_D1_FREE_TIER_SHARD_DATABASE_NAME_PREFIX Defaults to smart-suggest-free-tier-
+  SMART_SUGGEST_FREE_TIER_<index>_DATABASE_ID Required with --require-d1 for free-tier max shards
+  SMART_SUGGEST_FREE_TIER_<index>_PREVIEW_DATABASE_ID Optional preview database id
+  SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY Defaults to hash for free-tier, vusc for paid-vusc
+  SMART_SUGGEST_D1_COMPACT_CZ_ENABLED  true to map all CZ VUSC regions to one physical D1 fallback
+  SMART_SUGGEST_D1_COMPACT_CZ_SHARD_BINDING Defaults to SMART_SUGGEST_D1
   SMART_SUGGEST_D1_SHARDS_JSON         JSON array of shard D1 configs
-  SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON Optional JSON object mapping VUSC codes to shard bindings
+  SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON Optional legacy/vusc JSON object mapping VUSC codes to shard bindings
   SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED true to add all 14 CZ VUSC shards
   SMART_SUGGEST_D1_CZ_VUSC_SHARD_BINDING_PREFIX Defaults to SMART_SUGGEST_CZ_VUSC_
   SMART_SUGGEST_D1_CZ_VUSC_SHARD_DATABASE_NAME_PREFIX Defaults to smart-suggest-cz-vusc-
@@ -135,6 +200,63 @@ function envFlag(name) {
   const value = envValue(name);
 
   return value === '1' || value === 'true';
+}
+
+function normalizePublicOrigin(value) {
+  if (value === undefined) {
+    return;
+  }
+
+  const origin = value.replace(/\/+$/u, '');
+
+  if (!/^https?:\/\//u.test(origin)) {
+    throw new Error(`Artifact public origin must be an absolute URL: ${value}`);
+  }
+
+  return origin;
+}
+
+function normalizeArtifactManifestUrl(args) {
+  const explicitUrl =
+    args.artifactManifestUrl ?? envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL');
+
+  if (explicitUrl !== undefined) {
+    if (!/^https?:\/\//u.test(explicitUrl)) {
+      throw new Error(`Artifact manifest URL must be an absolute URL: ${explicitUrl}`);
+    }
+
+    return explicitUrl;
+  }
+
+  const publicOrigin = normalizePublicOrigin(
+    args.artifactPublicOrigin ?? envValue('SMART_SUGGEST_ARTIFACT_PUBLIC_ORIGIN'),
+  );
+
+  if (publicOrigin === undefined) {
+    throw new Error(
+      '--artifact-static requires --artifact-manifest-url, --artifact-public-origin, SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL, or SMART_SUGGEST_ARTIFACT_PUBLIC_ORIGIN.',
+    );
+  }
+
+  return `${publicOrigin}/smart-suggest-owned-data/manifest.json`;
+}
+
+function artifactStaticEnabled(args) {
+  return args.artifactStatic || envFlag('SMART_SUGGEST_ARTIFACT_STATIC_ENABLED');
+}
+
+function compactCzRegionMapJson(binding) {
+  return JSON.stringify(Object.fromEntries(expectedCzVuscCodes.map((code) => [code, binding])));
+}
+
+function freeTierRegionMapJson(databases) {
+  return JSON.stringify(
+    Object.fromEntries(
+      freeTierShardGroups.flatMap((group, index) =>
+        group.regionCodes.map((code) => [code, databases[index].binding]),
+      ),
+    ),
+  );
 }
 
 function assertInside(parent, child) {
@@ -243,8 +365,46 @@ function createPrimaryD1Database({
   });
 }
 
-function routerD1Enabled() {
+function paidCzVuscShardsEnabled(args) {
   return (
+    args.czVuscShards ||
+    envFlag('SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED') ||
+    envValue('SMART_SUGGEST_D1_TOPOLOGY') === 'paid-vusc'
+  );
+}
+
+function compactCzShardEnabled(args) {
+  if (paidCzVuscShardsEnabled(args)) {
+    return false;
+  }
+
+  const topology = envValue('SMART_SUGGEST_D1_TOPOLOGY');
+
+  return (
+    args.compactCzShard ||
+    envFlag('SMART_SUGGEST_D1_COMPACT_CZ_ENABLED') ||
+    topology === 'compact-cz'
+  );
+}
+
+function freeTierMaxShardsEnabled(args) {
+  if (paidCzVuscShardsEnabled(args) || compactCzShardEnabled(args)) {
+    return false;
+  }
+
+  const topology = envValue('SMART_SUGGEST_D1_TOPOLOGY');
+
+  return (
+    envFlag('SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED') ||
+    (topology === 'free-tier' && envValue('SMART_SUGGEST_D1_SHARDS_JSON') === undefined) ||
+    (topology === undefined && envValue('SMART_SUGGEST_D1_SHARDS_JSON') === undefined)
+  );
+}
+
+function routerD1Enabled(args) {
+  return (
+    compactCzShardEnabled(args) ||
+    freeTierMaxShardsEnabled(args) ||
     envValue('SMART_SUGGEST_ROUTER_D1_ENABLED') === 'true' ||
     envValue('SMART_SUGGEST_ROUTER_D1_DATABASE_ID') !== undefined ||
     envValue('SMART_SUGGEST_ROUTER_D1_DATABASE_NAME') !== undefined ||
@@ -253,11 +413,11 @@ function routerD1Enabled() {
 }
 
 function czVuscShardsEnabled(args) {
-  return args.czVuscShards || envFlag('SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED');
+  return paidCzVuscShardsEnabled(args);
 }
 
-function createRouterD1Database(requireD1) {
-  if (!routerD1Enabled()) {
+function createRouterD1Database(args, requireD1) {
+  if (!routerD1Enabled(args)) {
     return;
   }
 
@@ -270,8 +430,16 @@ function createRouterD1Database(requireD1) {
   });
 }
 
+function compactCzShardBinding(primaryBinding) {
+  return envValue('SMART_SUGGEST_D1_COMPACT_CZ_SHARD_BINDING') ?? primaryBinding;
+}
+
 function czVuscShardFieldEnv(prefix, code, suffix) {
   return envValue(`${prefix}${code}_${suffix}`);
+}
+
+function freeTierShardFieldEnv(prefix, index, suffix) {
+  return envValue(`${prefix}${index}_${suffix}`);
 }
 
 function createCzVuscShardD1Databases(args, requireD1) {
@@ -301,6 +469,34 @@ function createCzVuscShardD1Databases(args, requireD1) {
       previewDatabaseId:
         czVuscShardFieldEnv(bindingPrefix, code, 'PREVIEW_DATABASE_ID') ??
         envValue(`SMART_SUGGEST_D1_CZ_VUSC_${code}_PREVIEW_DATABASE_ID`),
+      requireD1,
+    });
+  });
+}
+
+function createFreeTierShardD1Databases(args, requireD1) {
+  if (!freeTierMaxShardsEnabled(args)) {
+    return [];
+  }
+
+  const bindingPrefix =
+    envValue('SMART_SUGGEST_D1_FREE_TIER_SHARD_BINDING_PREFIX') ??
+    defaultFreeTierShardBindingPrefix;
+  const databaseNamePrefix =
+    envValue('SMART_SUGGEST_D1_FREE_TIER_SHARD_DATABASE_NAME_PREFIX') ??
+    defaultFreeTierShardDatabaseNamePrefix;
+
+  return freeTierShardGroups.map((group) => {
+    const binding = `${bindingPrefix}${group.index}`;
+
+    return createD1DatabaseConfig({
+      binding,
+      databaseId: freeTierShardFieldEnv(bindingPrefix, group.index, 'DATABASE_ID'),
+      databaseName:
+        freeTierShardFieldEnv(bindingPrefix, group.index, 'DATABASE_NAME') ??
+        `${databaseNamePrefix}${group.index}`,
+      migrationsDir: `./${smartSuggestD1MigrationsOutput}`,
+      previewDatabaseId: freeTierShardFieldEnv(bindingPrefix, group.index, 'PREVIEW_DATABASE_ID'),
       requireD1,
     });
   });
@@ -366,6 +562,32 @@ function printCzVuscEnvTemplate() {
   for (const code of expectedCzVuscCodes) {
     lines.push(`export SMART_SUGGEST_CZ_VUSC_${code}_DATABASE_ID="<cz-vusc-${code}-database-id>"`);
   }
+
+  process.stdout.write(`${lines.join('\n')}\n`);
+}
+
+function printFreeTierEnvTemplate() {
+  const bindingPrefix =
+    envValue('SMART_SUGGEST_D1_FREE_TIER_SHARD_BINDING_PREFIX') ??
+    defaultFreeTierShardBindingPrefix;
+  const shardBindings = freeTierShardGroups.map((group) => `${bindingPrefix}${group.index}`);
+  const lines = [
+    '# Smart Suggest free-tier D1 bindings',
+    '# Uses one router D1 plus 9 row-balanced address D1s; raw source snapshots stay outside git.',
+    'export SMART_SUGGEST_D1_TOPOLOGY=free-tier',
+    'export SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY=hash',
+    'export SMART_SUGGEST_ROUTER_D1_ENABLED=true',
+    'export SMART_SUGGEST_ROUTER_D1_DATABASE_ID="<router-database-id>"',
+    'export SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED=true',
+  ];
+
+  for (const binding of shardBindings) {
+    lines.push(
+      `export ${binding}_DATABASE_ID="<${binding.toLowerCase().replaceAll('_', '-')}-database-id>"`,
+    );
+  }
+
+  lines.push(`export SMART_SUGGEST_D1_SHARD_BINDINGS="${shardBindings.join(',')}"`);
 
   process.stdout.write(`${lines.join('\n')}\n`);
 }
@@ -490,7 +712,83 @@ function assertRemoteMigrationDatabaseIds(databases) {
   }
 }
 
-function mergeSmartSuggestVars(config, routerDatabase, shardDatabases) {
+function uniqueDatabasesByBinding(databases) {
+  const unique = [];
+  const seen = new Set();
+
+  for (const database of databases.filter((entry) => entry !== undefined)) {
+    if (seen.has(database.binding)) {
+      continue;
+    }
+
+    seen.add(database.binding);
+    unique.push(database);
+  }
+
+  return unique;
+}
+
+function isManagedSmartSuggestD1Binding(binding, managedBindings) {
+  if (typeof binding !== 'string') {
+    return false;
+  }
+  if (managedBindings.has(binding)) {
+    return true;
+  }
+
+  const managedPrefixes = [
+    defaultCzVuscShardBindingPrefix,
+    envValue('SMART_SUGGEST_D1_CZ_VUSC_SHARD_BINDING_PREFIX') ?? defaultCzVuscShardBindingPrefix,
+    defaultFreeTierShardBindingPrefix,
+    envValue('SMART_SUGGEST_D1_FREE_TIER_SHARD_BINDING_PREFIX') ??
+      defaultFreeTierShardBindingPrefix,
+  ];
+
+  return managedPrefixes.some((prefix) => binding.startsWith(prefix));
+}
+
+function removeSmartSuggestD1Vars(vars) {
+  const nextVars = { ...vars };
+
+  for (const key of [
+    'SMART_SUGGEST_D1_ROUTER_BINDING',
+    'SMART_SUGGEST_D1_SHARD_BINDINGS',
+    'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
+    'SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY',
+  ]) {
+    delete nextVars[key];
+  }
+
+  return nextVars;
+}
+
+function mergeSmartSuggestArtifactStaticVars(config, args) {
+  const existingVars = isRecord(config.vars) ? config.vars : {};
+  const nextVars = removeSmartSuggestD1Vars(existingVars);
+  const maxTokenPages = envValue('SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES');
+
+  nextVars.SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL = normalizeArtifactManifestUrl(args);
+  nextVars.SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE =
+    envValue('SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE') ?? 'false';
+  nextVars.SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS =
+    envValue('SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS') ?? 'false';
+
+  if (maxTokenPages !== undefined) {
+    nextVars.SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES = maxTokenPages;
+  } else {
+    delete nextVars.SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES;
+  }
+
+  return nextVars;
+}
+
+function mergeSmartSuggestVars(
+  config,
+  routerDatabase,
+  shardBindingNames,
+  shardRegionMapJson,
+  shardRouteStrategy,
+) {
   const existingVars = isRecord(config.vars) ? config.vars : {};
   const nextVars = { ...existingVars };
 
@@ -498,15 +796,17 @@ function mergeSmartSuggestVars(config, routerDatabase, shardDatabases) {
     nextVars.SMART_SUGGEST_D1_ROUTER_BINDING = routerDatabase.binding;
   }
 
-  if (shardDatabases.length > 0) {
-    nextVars.SMART_SUGGEST_D1_SHARD_BINDINGS = shardDatabases
-      .map((database) => database.binding)
-      .join(',');
+  if (shardRouteStrategy !== undefined) {
+    nextVars.SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY = shardRouteStrategy;
   }
-  if (envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') !== undefined) {
-    nextVars.SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON = envValue(
-      'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
-    );
+
+  if (shardBindingNames.length > 0) {
+    nextVars.SMART_SUGGEST_D1_SHARD_BINDINGS = shardBindingNames.join(',');
+  }
+  if (shardRegionMapJson !== undefined) {
+    nextVars.SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON = shardRegionMapJson;
+  } else if (shardRouteStrategy === 'hash') {
+    delete nextVars.SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON;
   }
 
   return nextVars;
@@ -523,6 +823,10 @@ function main(argv = process.argv.slice(2)) {
     printCzVuscEnvTemplate();
     return 0;
   }
+  if (args.printFreeTierEnvTemplate) {
+    printFreeTierEnvTemplate();
+    return 0;
+  }
 
   const appsRoot = path.resolve(workspaceRoot, 'apps');
   const appRoot = path.resolve(appsRoot, args.app);
@@ -535,56 +839,133 @@ function main(argv = process.argv.slice(2)) {
     );
   }
   const config = readJson(wranglerPath);
-  const binding = envValue('SMART_SUGGEST_D1_BINDING') ?? 'SMART_SUGGEST_D1';
-  const databaseName = envValue('SMART_SUGGEST_D1_DATABASE_NAME') ?? 'smart-suggest';
-  const databaseId = envValue('SMART_SUGGEST_D1_DATABASE_ID');
-  const previewDatabaseId = envValue('SMART_SUGGEST_D1_PREVIEW_DATABASE_ID');
-
-  if (args.requireD1 && databaseId === undefined) {
-    throw new Error('SMART_SUGGEST_D1_DATABASE_ID is required for Cloudflare deploy.');
-  }
-
-  const d1Database = createPrimaryD1Database({
-    binding,
-    databaseId,
-    databaseName,
-    previewDatabaseId,
-    requireD1: args.requireD1,
-  });
-  const routerD1Database = createRouterD1Database(args.requireD1);
-  const shardD1Databases = mergeShardD1Databases(
-    parseShardD1Databases(args.requireD1),
-    createCzVuscShardD1Databases(args, args.requireD1),
-  );
-  const smartSuggestD1Databases = [
-    d1Database,
-    ...(routerD1Database === undefined ? [] : [routerD1Database]),
-    ...shardD1Databases,
-  ];
-  const smartSuggestBindings = new Set(smartSuggestD1Databases.map((database) => database.binding));
   const existingD1Databases = Array.isArray(config.d1_databases) ? config.d1_databases : [];
   const migrations = copyD1Migrations(appRoot);
   exposeSdkDemoAtRoot(appRoot);
   patchWorkerAssetDispatch(appRoot);
 
+  if (artifactStaticEnabled(args)) {
+    const managedBindings = new Set([
+      'SMART_SUGGEST_D1',
+      'SMART_SUGGEST_ROUTER_D1',
+      envValue('SMART_SUGGEST_D1_BINDING') ?? 'SMART_SUGGEST_D1',
+      envValue('SMART_SUGGEST_ROUTER_D1_BINDING') ?? 'SMART_SUGGEST_ROUTER_D1',
+    ]);
+    writeJson(wranglerPath, {
+      ...config,
+      d1_databases: existingD1Databases.filter(
+        (entry) => !isManagedSmartSuggestD1Binding(entry?.binding, managedBindings),
+      ),
+      workers_dev: config.workers_dev ?? true,
+      vars: mergeSmartSuggestArtifactStaticVars(config, args),
+    });
+    const removedPaths = removeServerOnlyPublicOutput(appRoot);
+    process.stdout.write(`Applied Smart Suggest static artifact profile to ${wranglerPath}\n`);
+    process.stdout.write('Removed Smart Suggest corpus D1 bindings for artifact-first deploy\n');
+    process.stdout.write('Exposed Smart Suggest SDK demo at public root index.html\n');
+    process.stdout.write(
+      'Patched Cloudflare asset dispatch to leave non-GET/HEAD BFF bodies unread\n',
+    );
+    process.stdout.write(
+      `Copied Smart Suggest D1 migrations to ${path.relative(appRoot, migrations.outputPath)} (${migrations.sqlFiles.length} SQL file(s))\n`,
+    );
+    if (removedPaths.length > 0) {
+      process.stdout.write(`Removed server-only public output: ${removedPaths.join(', ')}\n`);
+    }
+    return 0;
+  }
+
+  const binding = envValue('SMART_SUGGEST_D1_BINDING') ?? 'SMART_SUGGEST_D1';
+  const databaseName = envValue('SMART_SUGGEST_D1_DATABASE_NAME') ?? 'smart-suggest';
+  const databaseId = envValue('SMART_SUGGEST_D1_DATABASE_ID');
+  const previewDatabaseId = envValue('SMART_SUGGEST_D1_PREVIEW_DATABASE_ID');
+  const compactShardBindingName = compactCzShardEnabled(args)
+    ? compactCzShardBinding(binding)
+    : undefined;
+  const primaryBinding = compactShardBindingName ?? binding;
+  const parsedShardD1Databases = parseShardD1Databases(args.requireD1);
+  const freeTierShardD1Databases = createFreeTierShardD1Databases(args, args.requireD1);
+  const czVuscShardD1Databases = createCzVuscShardD1Databases(args, args.requireD1);
+  const shardD1Databases = mergeShardD1Databases(
+    parsedShardD1Databases,
+    freeTierShardD1Databases,
+    czVuscShardD1Databases,
+  );
+  const primaryD1Required = shardD1Databases.length === 0 || compactShardBindingName !== undefined;
+
+  if (args.requireD1 && primaryD1Required && databaseId === undefined) {
+    throw new Error('SMART_SUGGEST_D1_DATABASE_ID is required for Cloudflare deploy.');
+  }
+
+  const d1Database = primaryD1Required
+    ? createPrimaryD1Database({
+        binding: primaryBinding,
+        databaseId,
+        databaseName,
+        previewDatabaseId,
+        requireD1: args.requireD1,
+      })
+    : undefined;
+  const routerD1Database = createRouterD1Database(args, args.requireD1);
+  const shardBindingNames = [
+    ...shardD1Databases.map((database) => database.binding),
+    ...(compactShardBindingName === undefined ? [] : [compactShardBindingName]),
+  ];
+  const d1Topology = envValue('SMART_SUGGEST_D1_TOPOLOGY') ?? 'custom';
+  const shardRouteStrategy =
+    envValue('SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY') ??
+    (d1Topology === 'paid-vusc' ? 'vusc' : d1Topology === 'free-tier' ? 'hash' : undefined);
+  const shardRegionMapJson =
+    shardRouteStrategy === 'hash'
+      ? undefined
+      : (envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') ??
+        (compactShardBindingName !== undefined
+          ? compactCzRegionMapJson(compactShardBindingName)
+          : freeTierShardD1Databases.length > 0
+            ? freeTierRegionMapJson(freeTierShardD1Databases)
+            : undefined));
+  const smartSuggestD1Databases = uniqueDatabasesByBinding([
+    d1Database,
+    ...(routerD1Database === undefined ? [] : [routerD1Database]),
+    ...shardD1Databases,
+  ]);
+  const smartSuggestBindings = new Set([
+    'SMART_SUGGEST_D1',
+    'SMART_SUGGEST_ROUTER_D1',
+    binding,
+    primaryBinding,
+    ...smartSuggestD1Databases.map((database) => database.binding),
+  ]);
   writeJson(wranglerPath, {
     ...config,
     d1_databases: [
       ...smartSuggestD1Databases,
-      ...existingD1Databases.filter((entry) => !smartSuggestBindings.has(entry?.binding)),
+      ...existingD1Databases.filter(
+        (entry) => !isManagedSmartSuggestD1Binding(entry?.binding, smartSuggestBindings),
+      ),
     ],
-    vars: mergeSmartSuggestVars(config, routerD1Database, shardD1Databases),
+    vars: mergeSmartSuggestVars(
+      config,
+      routerD1Database,
+      shardBindingNames,
+      shardRegionMapJson,
+      shardRouteStrategy,
+    ),
   });
   const removedPaths = removeServerOnlyPublicOutput(appRoot);
-  process.stdout.write(`Applied Smart Suggest D1 binding ${binding} to ${wranglerPath}\n`);
+  if (d1Database !== undefined) {
+    process.stdout.write(
+      `Applied Smart Suggest D1 binding ${d1Database.binding} to ${wranglerPath}\n`,
+    );
+  } else {
+    process.stdout.write(`Applied Smart Suggest D1 topology to ${wranglerPath}\n`);
+  }
   if (routerD1Database !== undefined) {
     process.stdout.write(`Applied Smart Suggest router D1 binding ${routerD1Database.binding}\n`);
   }
-  if (shardD1Databases.length > 0) {
+  if (shardBindingNames.length > 0) {
     process.stdout.write(
-      `Applied Smart Suggest shard D1 bindings ${shardD1Databases
-        .map((database) => database.binding)
-        .join(', ')}\n`,
+      `Applied Smart Suggest shard D1 bindings ${shardBindingNames.join(', ')}\n`,
     );
   }
   process.stdout.write('Exposed Smart Suggest SDK demo at public root index.html\n');

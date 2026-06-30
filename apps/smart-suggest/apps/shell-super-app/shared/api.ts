@@ -9,6 +9,10 @@ import {
   SmartSuggestCachePolicyViolationErrorSchema as InternalSmartSuggestCachePolicyViolationErrorSchema,
 } from './smart-suggest-api-errors/cache-policy-violation';
 import {
+  SmartSuggestForbiddenError as InternalSmartSuggestForbiddenError,
+  SmartSuggestForbiddenErrorSchema as InternalSmartSuggestForbiddenErrorSchema,
+} from './smart-suggest-api-errors/forbidden';
+import {
   SmartSuggestInternalError as InternalSmartSuggestInternalError,
   SmartSuggestInternalErrorSchema as InternalSmartSuggestInternalErrorSchema,
 } from './smart-suggest-api-errors/internal-error';
@@ -26,6 +30,8 @@ import {
   SmartSuggestErrorFieldSchema as InternalSmartSuggestErrorFieldSchema,
   SmartSuggestErrorMessageSchema as InternalSmartSuggestErrorMessageSchema,
   SmartSuggestErrorPayloadSchema as InternalSmartSuggestErrorPayloadSchema,
+  SmartSuggestForbiddenErrorBodySchema as InternalSmartSuggestForbiddenErrorBodySchema,
+  SmartSuggestForbiddenErrorPayloadSchema as InternalSmartSuggestForbiddenErrorPayloadSchema,
   SmartSuggestInternalErrorBodySchema as InternalSmartSuggestInternalErrorBodySchema,
   SmartSuggestInternalErrorPayloadSchema as InternalSmartSuggestInternalErrorPayloadSchema,
   SmartSuggestNotFoundErrorBodySchema as InternalSmartSuggestNotFoundErrorBodySchema,
@@ -34,8 +40,12 @@ import {
   SmartSuggestProviderTimeoutErrorPayloadSchema as InternalSmartSuggestProviderTimeoutErrorPayloadSchema,
   SmartSuggestProviderUnavailableErrorBodySchema as InternalSmartSuggestProviderUnavailableErrorBodySchema,
   SmartSuggestProviderUnavailableErrorPayloadSchema as InternalSmartSuggestProviderUnavailableErrorPayloadSchema,
+  SmartSuggestRateLimitErrorBodySchema as InternalSmartSuggestRateLimitErrorBodySchema,
+  SmartSuggestRateLimitErrorPayloadSchema as InternalSmartSuggestRateLimitErrorPayloadSchema,
   SmartSuggestStorageUnavailableErrorBodySchema as InternalSmartSuggestStorageUnavailableErrorBodySchema,
   SmartSuggestStorageUnavailableErrorPayloadSchema as InternalSmartSuggestStorageUnavailableErrorPayloadSchema,
+  SmartSuggestUnauthorizedErrorBodySchema as InternalSmartSuggestUnauthorizedErrorBodySchema,
+  SmartSuggestUnauthorizedErrorPayloadSchema as InternalSmartSuggestUnauthorizedErrorPayloadSchema,
   SmartSuggestValidationErrorBodySchema as InternalSmartSuggestValidationErrorBodySchema,
   SmartSuggestValidationErrorPayloadSchema as InternalSmartSuggestValidationErrorPayloadSchema,
 } from './smart-suggest-api-errors/payloads';
@@ -48,9 +58,17 @@ import {
   SmartSuggestProviderUnavailableErrorSchema as InternalSmartSuggestProviderUnavailableErrorSchema,
 } from './smart-suggest-api-errors/provider-unavailable';
 import {
+  SmartSuggestRateLimitError as InternalSmartSuggestRateLimitError,
+  SmartSuggestRateLimitErrorSchema as InternalSmartSuggestRateLimitErrorSchema,
+} from './smart-suggest-api-errors/rate-limit';
+import {
   SmartSuggestStorageUnavailableError as InternalSmartSuggestStorageUnavailableError,
   SmartSuggestStorageUnavailableErrorSchema as InternalSmartSuggestStorageUnavailableErrorSchema,
 } from './smart-suggest-api-errors/storage-unavailable';
+import {
+  SmartSuggestUnauthorizedError as InternalSmartSuggestUnauthorizedError,
+  SmartSuggestUnauthorizedErrorSchema as InternalSmartSuggestUnauthorizedErrorSchema,
+} from './smart-suggest-api-errors/unauthorized';
 import {
   SmartSuggestValidationError as InternalSmartSuggestValidationError,
   SmartSuggestValidationErrorSchema as InternalSmartSuggestValidationErrorSchema,
@@ -69,6 +87,12 @@ export const SmartSuggestCachePolicyViolationErrorPayloadSchema =
   InternalSmartSuggestCachePolicyViolationErrorPayloadSchema;
 export const SmartSuggestCachePolicyViolationErrorSchema =
   InternalSmartSuggestCachePolicyViolationErrorSchema;
+
+export const SmartSuggestForbiddenError = InternalSmartSuggestForbiddenError;
+export const SmartSuggestForbiddenErrorBodySchema = InternalSmartSuggestForbiddenErrorBodySchema;
+export const SmartSuggestForbiddenErrorPayloadSchema =
+  InternalSmartSuggestForbiddenErrorPayloadSchema;
+export const SmartSuggestForbiddenErrorSchema = InternalSmartSuggestForbiddenErrorSchema;
 
 export const SmartSuggestErrorBodySchema = InternalSmartSuggestErrorBodySchema;
 export const SmartSuggestErrorCodeSchema = InternalSmartSuggestErrorCodeSchema;
@@ -104,6 +128,12 @@ export const SmartSuggestProviderUnavailableErrorPayloadSchema =
 export const SmartSuggestProviderUnavailableErrorSchema =
   InternalSmartSuggestProviderUnavailableErrorSchema;
 
+export const SmartSuggestRateLimitError = InternalSmartSuggestRateLimitError;
+export const SmartSuggestRateLimitErrorBodySchema = InternalSmartSuggestRateLimitErrorBodySchema;
+export const SmartSuggestRateLimitErrorPayloadSchema =
+  InternalSmartSuggestRateLimitErrorPayloadSchema;
+export const SmartSuggestRateLimitErrorSchema = InternalSmartSuggestRateLimitErrorSchema;
+
 export const SmartSuggestStorageUnavailableError = InternalSmartSuggestStorageUnavailableError;
 export const SmartSuggestStorageUnavailableErrorBodySchema =
   InternalSmartSuggestStorageUnavailableErrorBodySchema;
@@ -111,6 +141,13 @@ export const SmartSuggestStorageUnavailableErrorPayloadSchema =
   InternalSmartSuggestStorageUnavailableErrorPayloadSchema;
 export const SmartSuggestStorageUnavailableErrorSchema =
   InternalSmartSuggestStorageUnavailableErrorSchema;
+
+export const SmartSuggestUnauthorizedError = InternalSmartSuggestUnauthorizedError;
+export const SmartSuggestUnauthorizedErrorBodySchema =
+  InternalSmartSuggestUnauthorizedErrorBodySchema;
+export const SmartSuggestUnauthorizedErrorPayloadSchema =
+  InternalSmartSuggestUnauthorizedErrorPayloadSchema;
+export const SmartSuggestUnauthorizedErrorSchema = InternalSmartSuggestUnauthorizedErrorSchema;
 
 export const SmartSuggestValidationError = InternalSmartSuggestValidationError;
 export const SmartSuggestValidationErrorBodySchema = InternalSmartSuggestValidationErrorBodySchema;
@@ -122,6 +159,7 @@ export type SmartSuggestBadRequestError = InstanceType<typeof SmartSuggestBadReq
 export type SmartSuggestCachePolicyViolationError = InstanceType<
   typeof SmartSuggestCachePolicyViolationError
 >;
+export type SmartSuggestForbiddenError = InstanceType<typeof SmartSuggestForbiddenError>;
 export type SmartSuggestInternalError = InstanceType<typeof SmartSuggestInternalError>;
 export type SmartSuggestNotFoundError = InstanceType<typeof SmartSuggestNotFoundError>;
 export type SmartSuggestProviderTimeoutError = InstanceType<
@@ -130,13 +168,18 @@ export type SmartSuggestProviderTimeoutError = InstanceType<
 export type SmartSuggestProviderUnavailableError = InstanceType<
   typeof SmartSuggestProviderUnavailableError
 >;
+export type SmartSuggestRateLimitError = InstanceType<typeof SmartSuggestRateLimitError>;
 export type SmartSuggestStorageUnavailableError = InstanceType<
   typeof SmartSuggestStorageUnavailableError
 >;
+export type SmartSuggestUnauthorizedError = InstanceType<typeof SmartSuggestUnauthorizedError>;
 export type SmartSuggestValidationError = InstanceType<typeof SmartSuggestValidationError>;
 
 export const SmartSuggestEndpointErrors = [
   SmartSuggestBadRequestErrorSchema,
+  SmartSuggestUnauthorizedErrorSchema,
+  SmartSuggestForbiddenErrorSchema,
+  SmartSuggestRateLimitErrorSchema,
   SmartSuggestValidationErrorSchema,
   SmartSuggestProviderTimeoutErrorSchema,
   SmartSuggestProviderUnavailableErrorSchema,

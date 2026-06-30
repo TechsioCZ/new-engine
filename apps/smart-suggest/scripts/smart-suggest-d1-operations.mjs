@@ -74,9 +74,17 @@ Options:
   --router-d1-binding value     Router binding. Defaults to config var or SMART_SUGGEST_ROUTER_D1.
   --shard-bindings a,b          Comma-separated address shard bindings.
   --shard-binding-prefix value  Defaults to SMART_SUGGEST_CZ_VUSC_.
+  --shard-route-strategy hash|vusc
+                               Defaults to SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY or vusc.
   --shard-region-map-json value JSON object mapping VUSC region codes to shard bindings.
-  --require-14-cz-shards        Fail preflight unless all 14 expected VUSC regions are covered.
+  --require-cz-vusc-coverage    Fail unless all 14 expected VUSC regions are covered.
+  --require-14-cz-shards        Backward-compatible alias for --require-cz-vusc-coverage.
+  --require-14-physical-cz-shards
+                               Fail unless all 14 VUSC regions use direct physical shard bindings.
   --require-cloudflare-ids      Fail preflight when any planned DB lacks database_id.
+  --max-d1-databases value      Fail when planned D1 databases exceed this count.
+  --max-address-shard-databases value
+                               Fail when physical address shard D1 databases exceed this count.
   --backup-prefix path          App-relative backup output prefix.
   --persist-to path             Optional local Wrangler D1 state for read-only status.
   --warn-size-bytes value       Shard size warning threshold. Defaults to 5 GiB.
@@ -124,9 +132,13 @@ function defaultArgs(command) {
     jsonOut: undefined,
     maxFailedRows: defaultMaxFailedRows,
     maxImportAgeHours: defaultMaxImportAgeHours,
+    maxAddressShardDatabases: undefined,
+    maxD1Databases: undefined,
     persistTo: undefined,
     require14CzShards: false,
+    require14PhysicalCzShards: false,
     requireCloudflareIds: false,
+    requireCzVuscCoverage: false,
     requireSizeEstimates: false,
     routerD1Binding:
       envValue('SMART_SUGGEST_D1_ROUTER_BINDING') ??
@@ -137,7 +149,11 @@ function defaultArgs(command) {
       envValue('SMART_SUGGEST_D1_SHARD_BINDINGS') ??
       envValue('SMART_SUGGEST_SHARD_BINDINGS') ??
       undefined,
-    shardRegionMapJson: envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') ?? undefined,
+    shardRouteStrategy: envValue('SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY') ?? 'vusc',
+    shardRegionMapJson:
+      envValue('SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY') === 'hash'
+        ? undefined
+        : (envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') ?? undefined),
     warnSizeBytes: defaultShardSizeWarnBytes,
     wranglerConfig: defaultWranglerConfigPath,
   };
@@ -189,6 +205,11 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--shard-route-strategy') {
+      parsed.shardRouteStrategy = readRequiredOption(rest, index, arg);
+      index += 1;
+      continue;
+    }
     if (arg === '--shard-region-map-json') {
       parsed.shardRegionMapJson = readRequiredOption(rest, index, arg);
       index += 1;
@@ -224,6 +245,19 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === '--max-d1-databases') {
+      parsed.maxD1Databases = parseNonNegativeNumber(readRequiredOption(rest, index, arg), arg);
+      index += 1;
+      continue;
+    }
+    if (arg === '--max-address-shard-databases') {
+      parsed.maxAddressShardDatabases = parseNonNegativeNumber(
+        readRequiredOption(rest, index, arg),
+        arg,
+      );
+      index += 1;
+      continue;
+    }
     if (arg === '--json-out') {
       parsed.jsonOut = readRequiredOption(rest, index, arg);
       index += 1;
@@ -231,6 +265,16 @@ function parseArgs(argv) {
     }
     if (arg === '--require-14-cz-shards') {
       parsed.require14CzShards = true;
+      parsed.requireCzVuscCoverage = true;
+      continue;
+    }
+    if (arg === '--require-cz-vusc-coverage') {
+      parsed.requireCzVuscCoverage = true;
+      continue;
+    }
+    if (arg === '--require-14-physical-cz-shards') {
+      parsed.require14PhysicalCzShards = true;
+      parsed.requireCzVuscCoverage = true;
       continue;
     }
     if (arg === '--require-cloudflare-ids') {
@@ -263,6 +307,9 @@ function parseArgs(argv) {
   }
   if (!['local', 'remote'].includes(parsed.d1Target)) {
     throw new Error('--d1-target must be local or remote.');
+  }
+  if (!['hash', 'vusc'].includes(parsed.shardRouteStrategy)) {
+    throw new Error('--shard-route-strategy must be hash or vusc.');
   }
   if (parsed.command === 'status' && !parsed.executeReadonly) {
     throw new Error('status requires --execute-readonly.');
@@ -370,6 +417,10 @@ function inferRouterBinding(config, args) {
 }
 
 function inferShardRegionMapJson(config, args) {
+  if (args.shardRouteStrategy === 'hash') {
+    return undefined;
+  }
+
   return args.shardRegionMapJson ?? readConfigVar(config, 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON');
 }
 
@@ -519,18 +570,38 @@ function checkMigrationsDir(configPath, database) {
 function validatePlans(configPath, plans, args) {
   const checks = [];
   const pushCheck = (check) => checks.push(check);
+  const strictD1TopologyRequired =
+    args.requireCzVuscCoverage || args.require14PhysicalCzShards || args.requireCloudflareIds;
 
   pushCheck({
     id: 'router-binding-configured',
     ok: plans.router !== undefined,
-    severity: args.require14CzShards ? 'error' : 'warning',
+    severity: strictD1TopologyRequired ? 'error' : 'warning',
   });
   pushCheck({
     actual: plans.shards.length,
-    expectedLogicalCzVuscCount: args.require14CzShards ? expectedCzVuscCodes.length : undefined,
+    expectedLogicalCzVuscCount: args.requireCzVuscCoverage ? expectedCzVuscCodes.length : undefined,
     id: 'address-shard-count',
     ok: plans.shards.length > 0,
-    severity: args.require14CzShards ? 'error' : 'warning',
+    severity: strictD1TopologyRequired ? 'error' : 'warning',
+  });
+
+  pushCheck({
+    actual: plans.databases.length,
+    expectedMaximum: args.maxD1Databases,
+    id: 'd1-database-count',
+    ok: args.maxD1Databases === undefined || plans.databases.length <= args.maxD1Databases,
+    severity: args.maxD1Databases === undefined ? 'warning' : 'error',
+  });
+
+  pushCheck({
+    actual: plans.shards.length,
+    expectedMaximum: args.maxAddressShardDatabases,
+    id: 'address-shard-database-count',
+    ok:
+      args.maxAddressShardDatabases === undefined ||
+      plans.shards.length <= args.maxAddressShardDatabases,
+    severity: args.maxAddressShardDatabases === undefined ? 'warning' : 'error',
   });
 
   pushCheck({
@@ -548,8 +619,24 @@ function validatePlans(configPath, plans, args) {
     missingVuscCodes,
     physicalShardCount: plans.shards.length,
     presentVuscCodes: plans.logicalCzVuscCodes,
-    ok: !args.require14CzShards || missingVuscCodes.length === 0,
-    severity: args.require14CzShards ? 'error' : 'warning',
+    ok: !args.requireCzVuscCoverage || missingVuscCodes.length === 0,
+    severity: args.requireCzVuscCoverage ? 'error' : 'warning',
+  });
+
+  const directPhysicalVuscCodes = plans.shards
+    .map((shard) => shard.vuscCode)
+    .filter((code) => code !== null);
+  const missingPhysicalVuscCodes = expectedCzVuscCodes.filter(
+    (code) => !directPhysicalVuscCodes.includes(code),
+  );
+
+  pushCheck({
+    id: 'expected-physical-cz-vusc-shards',
+    missingVuscCodes: missingPhysicalVuscCodes,
+    physicalShardCount: plans.shards.length,
+    presentVuscCodes: sortRegionCodes(directPhysicalVuscCodes),
+    ok: !args.require14PhysicalCzShards || missingPhysicalVuscCodes.length === 0,
+    severity: args.require14PhysicalCzShards ? 'error' : 'warning',
   });
 
   for (const database of plans.databases) {
@@ -620,6 +707,16 @@ function databaseIdEnvName(database) {
   return `${database.binding}_DATABASE_ID`;
 }
 
+function shardJsonEnvTemplate(shards) {
+  return JSON.stringify(
+    shards.map((shard) => ({
+      binding: shard.binding,
+      database_name: shard.databaseName,
+      database_id: `<paste-${shard.databaseName}-database-id>`,
+    })),
+  );
+}
+
 function provisionArgsForDatabase(database) {
   const command = ['wrangler', 'd1', 'create', database.databaseName];
 
@@ -642,12 +739,24 @@ function provisionEnvTemplate(plans) {
     lines.push(`export ${databaseIdEnvName(plans.router)}="<paste-router-database-id>"`);
   }
   if (plans.shards.length > 0) {
-    lines.push('export SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED=true');
+    const hasDirectVuscShards = plans.shards.some((shard) => shard.vuscCode !== null);
+    if (hasDirectVuscShards) {
+      lines.push('export SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED=true');
+    } else if (plans.shards.length === 1) {
+      lines.push('export SMART_SUGGEST_D1_COMPACT_CZ_ENABLED=true');
+    } else {
+      lines.push('export SMART_SUGGEST_D1_TOPOLOGY=free-tier');
+      lines.push(`export SMART_SUGGEST_D1_SHARDS_JSON='${shardJsonEnvTemplate(plans.shards)}'`);
+    }
 
-    for (const shard of plans.shards.toSorted(
-      (left, right) => Number(left.vuscCode ?? 0) - Number(right.vuscCode ?? 0),
-    )) {
-      lines.push(`export ${databaseIdEnvName(shard)}="<paste-${shard.databaseName}-database-id>"`);
+    if (hasDirectVuscShards || plans.shards.length === 1) {
+      for (const shard of plans.shards.toSorted(
+        (left, right) => Number(left.vuscCode ?? 0) - Number(right.vuscCode ?? 0),
+      )) {
+        lines.push(
+          `export ${databaseIdEnvName(shard)}="<paste-${shard.databaseName}-database-id>"`,
+        );
+      }
     }
 
     lines.push(
@@ -1239,6 +1348,10 @@ function main(argv = process.argv.slice(2)) {
       blockSizeBytes: args.blockSizeBytes,
       maxFailedRows: args.maxFailedRows,
       maxImportAgeHours: args.maxImportAgeHours,
+      maxAddressShardDatabases: args.maxAddressShardDatabases ?? null,
+      maxD1Databases: args.maxD1Databases ?? null,
+      require14PhysicalCzShards: args.require14PhysicalCzShards,
+      requireCzVuscCoverage: args.requireCzVuscCoverage,
       requireSizeEstimates: args.requireSizeEstimates,
       warnSizeBytes: args.warnSizeBytes,
     },

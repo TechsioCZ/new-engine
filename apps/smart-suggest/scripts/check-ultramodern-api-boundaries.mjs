@@ -188,8 +188,8 @@ for (const ownerPath of apiOwners) {
     assertContains(
       apiEntry,
       entry,
-      /from ['"]\.\.\/shared\/api['"]/u,
-      'must import the contract from ../shared/api.',
+      /from ['"]\.\.\/shared\/api\.ts['"]/u,
+      'must import the contract from ../shared/api.ts.',
     );
   }
 
@@ -275,12 +275,23 @@ if (exists('package.json')) {
 
 if (exists('.modernjs/ultramodern.json')) {
   const config = JSON.parse(readText('.modernjs/ultramodern.json'));
+  const rootPackageJson = exists('package.json') ? JSON.parse(readText('package.json')) : {};
+  const modernCreateSpecifier =
+    rootPackageJson.devDependencies?.['@modern-js/create'] ??
+    rootPackageJson.dependencies?.['@modern-js/create'];
+  const expectedModernPackageVersion = /^npm:@bleedingdev\/modern-js-create@(?<version>.+)$/u.exec(
+    modernCreateSpecifier ?? '',
+  )?.groups?.version;
   assert(
-    config.generator?.version === '3.4.0-ultramodern.20',
+    typeof expectedModernPackageVersion === 'string',
+    'Root package.json must install @modern-js/create from the bleedingdev UltraModern alias.',
+  );
+  assert(
+    config.generator?.version === expectedModernPackageVersion,
     '.modernjs/ultramodern.json generator.version must match the UltraModern cohort.',
   );
   assert(
-    config.packageSource?.modernPackageVersion === '3.4.0-ultramodern.20',
+    config.packageSource?.modernPackageVersion === expectedModernPackageVersion,
     '.modernjs/ultramodern.json packageSource.modernPackageVersion must match the UltraModern cohort.',
   );
 

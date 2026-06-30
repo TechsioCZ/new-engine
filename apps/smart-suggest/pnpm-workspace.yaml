@@ -43,7 +43,11 @@ overrides:
   node-fetch: '^3.3.2'
 
 patchedDependencies:
+  '@module-federation/enhanced@2.6.0': patches/@module-federation__enhanced@2.6.0.patch
+  '@rsbuild/plugin-sass@2.0.0': patches/@rsbuild__plugin-sass@2.0.0.patch
   '@tanstack/router-core@1.171.13': patches/@tanstack__router-core@1.171.13.patch
+  drizzle-orm@1.0.0-rc.4: patches/drizzle-orm@1.0.0-rc.4.patch
+  '@module-federation/modern-js-v3@2.6.0': patches/@module-federation__modern-js-v3@2.6.0.patch
 
 allowBuilds:
   '@parcel/watcher': false
@@ -53,4 +57,5 @@ allowBuilds:
   lefthook: true
   msgpackr-extract: true
   sharp: true
+  unrs-resolver: true
   workerd: true

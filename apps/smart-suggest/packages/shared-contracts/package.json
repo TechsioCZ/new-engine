@@ -18,6 +18,6 @@
   },
   "devDependencies": {
     "@effect/tsgo": "0.14.6",
-    "@typescript/native-preview": "7.0.0-dev.20260624.1"
+    "@typescript/native-preview": "7.0.0-dev.20260628.1"
   }
 }

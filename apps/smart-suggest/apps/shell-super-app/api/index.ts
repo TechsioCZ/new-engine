@@ -1,25 +1,7 @@
-import {
-  defineEffectBff,
-  Effect,
-  HttpApiBuilder,
-  HttpMiddleware,
-  HttpRouter,
-  Layer,
-} from '@modern-js/plugin-bff/effect-edge';
+import { defineEffectBff } from '@modern-js/plugin-bff/effect-edge';
 import { useEffectContext } from '@modern-js/plugin-bff/effect-server';
-import {
-  SmartSuggestBadRequestError,
-  SmartSuggestBadRequestErrorSchema,
-  SmartSuggestHttpApi,
-  SmartSuggestInternalError,
-  SmartSuggestInternalErrorSchema,
-} from '../shared/api';
 import type {
-  SmartSuggestHealthResponse,
-  SmartSuggestQuery,
-  SmartSuggestStatusResponse,
-} from '../shared/api';
-import type {
+  AddressParts,
   ProviderEventSummary,
   SmartSuggestAcceptEvent,
   SmartSuggestCacheLevels,
@@ -33,10 +15,6 @@ import type {
   SuggestionSourceKind,
 } from '@techsio/smart-suggest-core';
 import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
-import {
-  SAMPLE_DATA_SOURCES,
-  seedSampleAddressDatasetsEffect,
-} from '@techsio/smart-suggest-datasets';
 import {
   getSmartSuggestSourcePolicy,
   SMART_SUGGEST_PROVIDER_SOURCE_ID_ALIASES,
@@ -60,6 +38,7 @@ import type {
 } from '@techsio/smart-suggest-storage';
 import {
   createAddressRecordFromSuggestion,
+  createArtifactSmartSuggestRepositories,
   createD1SmartSuggestRepositories,
   createInMemorySmartSuggestRepositories,
   createSuggestCacheKey,
@@ -67,10 +46,36 @@ import {
 } from '@techsio/smart-suggest-storage';
 import { validatePostalCode } from '@techsio/smart-suggest-validation';
 import { validatePhoneNumber } from '@techsio/smart-suggest-validation/phone-strict';
-import { DateTime, Duration, Random, Schema } from 'effect';
+import { Clock, DateTime, Duration, Effect, Layer, Option, Random, Schema } from 'effect';
 import { catch as catchEffect } from 'effect/Effect';
-import { getHealthPayload } from '../shared/health';
+import {
+  HttpMiddleware,
+  HttpRouter,
+  HttpServerRequest,
+  HttpServerResponse,
+} from 'effect/unstable/http';
+import { HttpApiBuilder } from 'effect/unstable/httpapi';
+import type {
+  SmartSuggestHealthResponse,
+  SmartSuggestQuery,
+  SmartSuggestStatusResponse,
+} from '../shared/api.ts';
+import {
+  SmartSuggestBadRequestError,
+  SmartSuggestBadRequestErrorSchema,
+  SmartSuggestForbiddenError,
+  SmartSuggestForbiddenErrorSchema,
+  SmartSuggestHttpApi,
+  SmartSuggestInternalError,
+  SmartSuggestInternalErrorSchema,
+  SmartSuggestRateLimitError,
+  SmartSuggestRateLimitErrorSchema,
+  SmartSuggestResponseSchema,
+  SmartSuggestUnauthorizedError,
+  SmartSuggestUnauthorizedErrorSchema,
+} from '../shared/api.ts';
 import { createSmartSuggestEdgeCacheResponse } from '../shared/edge-cache';
+import { getHealthPayload } from '../shared/health';
 
 interface SmartSuggestWorkerEnv {
   CF_PAGES_BRANCH?: string;
@@ -101,10 +106,16 @@ interface SmartSuggestWorkerEnv {
   RUIAN_GEOCODE_DEFAULT_LIMIT?: string;
   RUIAN_GEOCODE_DISABLED?: string;
   SMART_SUGGEST_ALLOWED_ORIGINS?: string;
+  SMART_SUGGEST_BFF_RATE_LIMIT_MAX?: string;
+  SMART_SUGGEST_BFF_RATE_LIMIT_WINDOW_MS?: string;
   SMART_SUGGEST_D1?: SmartSuggestD1Binding;
   SMART_SUGGEST_D1_ROUTER_BINDING?: string;
   SMART_SUGGEST_D1_SHARD_BINDINGS?: string;
   SMART_SUGGEST_ENVIRONMENT?: string;
+  SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE?: string;
+  SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL?: string;
+  SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES?: string;
+  SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS?: string;
   SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS?: string;
   SMART_SUGGEST_PROVIDER_PRIORITY?: string;
   SMART_SUGGEST_PROVIDER_TIMEOUT_MS?: string;
@@ -114,8 +125,11 @@ interface SmartSuggestWorkerEnv {
 
 const inMemoryRepositories = createInMemorySmartSuggestRepositories();
 const d1Repositories = new WeakMap<SmartSuggestD1Binding, SmartSuggestRepositories>();
+const artifactRepositories = new WeakMap<
+  SmartSuggestRepositories,
+  Map<string, SmartSuggestRepositories>
+>();
 const shardedRepositories = new Map<string, SmartSuggestRepositories>();
-const seededRepositories = new WeakSet<SmartSuggestRepositories>();
 const runtimeMetricsByRepository = new WeakMap<
   SmartSuggestRepositories,
   SmartSuggestRuntimeMetrics
@@ -125,7 +139,14 @@ const workerSuggestCaches = new WeakMap<
   SmartSuggestRepositories,
   Map<string, SmartSuggestResponse>
 >();
+const inboundRateLimitBucketsByRepository = new WeakMap<
+  SmartSuggestRepositories,
+  Map<string, InboundRateLimitBucket>
+>();
 const maxWorkerSuggestCacheEntries = 500;
+const maxInboundRateLimitBuckets = 2000;
+const defaultInboundRateLimitMax = 600;
+const defaultInboundRateLimitWindowMs = 60_000;
 
 interface SmartSuggestEdgeCache {
   match: (request: Request) => Promise<Response | undefined>;
@@ -136,15 +157,12 @@ interface SmartSuggestCacheStorage {
   default?: SmartSuggestEdgeCache;
 }
 
-const smartSuggestCacheStatuses = new Set<SmartSuggestCacheStatus>([
-  'disabled',
-  'hit',
-  'miss',
-  'stale',
-  'written',
-]);
+interface InboundRateLimitBucket {
+  count: number;
+  resetAt: number;
+}
 
-type SuggestSourceKind = 'cache' | 'owned' | 'provider-fallback';
+type SuggestSourceKind = 'cache' | 'owned' | 'provider-enrichment';
 
 interface SmartSuggestRuntimeMetrics {
   accept: {
@@ -265,6 +283,9 @@ const responseForLayerCache = (response: SmartSuggestResponse): SmartSuggestResp
   suggestions: response.suggestions,
 });
 
+const responseForPublicDto = (response: SmartSuggestResponse): SmartSuggestResponse =>
+  responseForLayerCache(response);
+
 const rememberWorkerSuggestResponse = (
   cache: Map<string, SmartSuggestResponse>,
   cacheKey: string,
@@ -299,9 +320,6 @@ const edgeCacheRequestFor = (cacheKey: string) =>
     method: 'GET',
   });
 
-const isSmartSuggestCacheStatus = (value: unknown): value is SmartSuggestCacheStatus =>
-  typeof value === 'string' && smartSuggestCacheStatuses.has(value as SmartSuggestCacheStatus);
-
 const missingEdgeSuggestResponse: SmartSuggestResponse | undefined = undefined;
 
 const recoverMissingEdgeSuggestResponse = () => missingEdgeSuggestResponse;
@@ -320,29 +338,11 @@ const serverError = () =>
 
 const readCachedEdgeSuggestResponseBody = (
   cached: Response,
-): Effect.Effect<Partial<SmartSuggestResponse>, SmartSuggestInternalError, never> =>
+): Effect.Effect<unknown, SmartSuggestInternalError, never> =>
   Effect.tryPromise({
     catch: () => serverError(),
-    try: () => cached.json() as Promise<Partial<SmartSuggestResponse>>,
+    try: () => cached.json(),
   });
-
-const normalizeCachedEdgeSuggestResponse = (
-  body: Partial<SmartSuggestResponse>,
-): SmartSuggestResponse | undefined => {
-  if (
-    typeof body.requestId !== 'string' ||
-    !Array.isArray(body.suggestions) ||
-    !isSmartSuggestCacheStatus(body.cacheStatus)
-  ) {
-    return recoverMissingEdgeSuggestResponse();
-  }
-
-  return {
-    cacheStatus: body.cacheStatus,
-    requestId: body.requestId,
-    suggestions: body.suggestions,
-  } satisfies SmartSuggestResponse;
-};
 
 const readEdgeSuggestResponse = (
   edgeCache: SmartSuggestEdgeCache,
@@ -356,7 +356,13 @@ const readEdgeSuggestResponse = (
       cached === undefined
         ? Effect.succeed(recoverMissingEdgeSuggestResponse())
         : readCachedEdgeSuggestResponseBody(cached).pipe(
-            Effect.map(normalizeCachedEdgeSuggestResponse),
+            Effect.map((body) => {
+              const decoded = Option.getOrUndefined(
+                Schema.decodeUnknownOption(SmartSuggestResponseSchema)(body),
+              );
+
+              return decoded ?? recoverMissingEdgeSuggestResponse();
+            }),
           ),
     ),
     Effect.orElseSucceed(recoverMissingEdgeSuggestResponse),
@@ -366,19 +372,19 @@ const writeEdgeSuggestResponse = (
   edgeCache: SmartSuggestEdgeCache | undefined,
   cacheKey: string,
   response: SmartSuggestResponse,
-) => {
+): Effect.Effect<boolean, never, never> => {
   if (edgeCache === undefined || response.cacheStatus === 'disabled') {
     return Effect.succeed(false);
   }
 
-  return Effect.tryPromise({
-    catch: () => serverError(),
-    try: () =>
-      edgeCache.put(
-        edgeCacheRequestFor(cacheKey),
-        createSmartSuggestEdgeCacheResponse(responseForLayerCache(response)),
-      ),
-  }).pipe(
+  return createSmartSuggestEdgeCacheResponse(responseForLayerCache(response)).pipe(
+    Effect.mapError(() => serverError()),
+    Effect.flatMap((cacheResponse) =>
+      Effect.tryPromise({
+        catch: () => serverError(),
+        try: () => edgeCache.put(edgeCacheRequestFor(cacheKey), cacheResponse),
+      }),
+    ),
     Effect.as(true),
     Effect.orElseSucceed(() => false),
   );
@@ -390,7 +396,7 @@ const rememberRuntimeSuggestCaches = (
   levels: SmartSuggestCacheLevels,
   workerCache: Map<string, SmartSuggestResponse>,
   edgeCache: SmartSuggestEdgeCache | undefined,
-) =>
+): Effect.Effect<SmartSuggestCacheLevels, never, never> =>
   Effect.gen(function* rememberRuntimeSuggestCachesProgram() {
     if (response.cacheStatus === 'disabled') {
       return levels;
@@ -444,7 +450,7 @@ const recordSuggestResponse = (
   if (sourceKind === 'owned') {
     metrics.suggest.ownedSuccess += 1;
   }
-  if (sourceKind === 'provider-fallback') {
+  if (sourceKind === 'provider-enrichment') {
     metrics.suggest.providerFallback += 1;
   }
 };
@@ -486,6 +492,36 @@ const readNamedD1Binding = (env: SmartSuggestWorkerEnv | undefined, bindingName:
   return isSmartSuggestD1Binding(value) ? value : undefined;
 };
 
+const maxShardSearchFanout = 14;
+const shardHashModulus = 2_147_483_647;
+
+const hashStringToPositiveInteger = (value: string) => {
+  let hash = 0;
+
+  for (const character of value) {
+    hash = (Math.imul(hash, 131) + (character.codePointAt(0) ?? 0)) % shardHashModulus;
+
+    if (hash < 0) {
+      hash += shardHashModulus;
+    }
+  }
+
+  return hash;
+};
+
+const deterministicShardBindingForRecord = (
+  record: AddressSearchRecordInput,
+  shardBindingNames: readonly string[],
+) => {
+  if (shardBindingNames.length === 0 || shardBindingNames.length > maxShardSearchFanout) {
+    return;
+  }
+
+  const routeKey = record.ruian?.stableAddressId ?? record.ruian?.addressPlaceCode ?? record.id;
+
+  return shardBindingNames[hashStringToPositiveInteger(routeKey) % shardBindingNames.length];
+};
+
 const extractPostalRouteHint = (query: string) => {
   const match = /\b\d{3}\s?\d{2}\b/u.exec(query);
 
@@ -518,10 +554,10 @@ const boundedShardCandidates = (
     const routed = yield* router.shardRegistry.resolveShardMetadata(routeInput);
 
     if (routed.length > 0) {
-      return routed.slice(0, 2);
+      return routed;
     }
 
-    if (shardBindingNames.length > 2) {
+    if (shardBindingNames.length > maxShardSearchFanout) {
       return [];
     }
 
@@ -558,11 +594,36 @@ const shardCandidatesForAddressRecord = (
     }
 
     const activeCandidates = yield* router.shardRegistry.resolveShardMetadata(routeInput);
-
-    return activeCandidates.filter((candidate) =>
+    const routedCandidates = activeCandidates.filter((candidate) =>
       shardBindingNames.includes(candidate.bindingName),
     );
+
+    if (routedCandidates.length > 0) {
+      return routedCandidates;
+    }
+
+    const fallbackBindingName = deterministicShardBindingForRecord(record, shardBindingNames);
+
+    return fallbackBindingName === undefined ? [] : [{ bindingName: fallbackBindingName }];
   });
+
+const uniqueShardMetadataByBindingName = <
+  T extends {
+    bindingName: string;
+  },
+>(
+  candidates: readonly T[],
+) => {
+  const unique = new Map<string, T>();
+
+  for (const candidate of candidates) {
+    if (!unique.has(candidate.bindingName)) {
+      unique.set(candidate.bindingName, candidate);
+    }
+  }
+
+  return [...unique.values()];
+};
 
 export const createShardedRepositories = ({
   router,
@@ -589,11 +650,48 @@ export const createShardedRepositories = ({
 
         return records.find((record) => record !== undefined);
       }),
+    listPostalLocalityAddressRecords: (input) =>
+      Effect.gen(function* listPostalLocalityAddressRecordsProgram() {
+        const routedCandidates =
+          input.countryCode === undefined
+            ? []
+            : yield* router.shardRegistry.resolveShardMetadata({
+                countryCode: input.countryCode,
+                postalCode: input.postalCode,
+                states: ['active'],
+              });
+        const routedRepositories = routedCandidates
+          .map((candidate) => shardRepositories.get(candidate.bindingName))
+          .filter((repository): repository is SmartSuggestRepositories => repository !== undefined);
+        const repositories = [
+          ...new Set(
+            routedRepositories.length > 0 ? routedRepositories : [...shardRepositories.values()],
+          ),
+        ];
+        const results = yield* Effect.all([
+          router.addressRecords.listPostalLocalityAddressRecords(input),
+          ...repositories.map((repository) =>
+            repository.addressRecords.listPostalLocalityAddressRecords(input),
+          ),
+        ]);
+        const byRecordId = new Map<string, AddressRecord>();
+
+        for (const record of results.flat()) {
+          byRecordId.set(record.id, record);
+        }
+
+        return [...byRecordId.values()].toSorted(
+          (left, right) =>
+            (left.parts.city ?? '').localeCompare(right.parts.city ?? '') ||
+            right.quality - left.quality ||
+            left.displayLabel.localeCompare(right.displayLabel),
+        );
+      }),
     searchAddressRecords: (input) =>
       Effect.gen(function* searchAddressRecordsProgram() {
-        const candidates = yield* boundedShardCandidates(router, input, [
-          ...shardRepositories.keys(),
-        ]);
+        const candidates = uniqueShardMetadataByBindingName(
+          yield* boundedShardCandidates(router, input, [...shardRepositories.keys()]),
+        );
         const limit = normalizeSuggestLimit(input.limit);
         const shardResults = yield* Effect.all(
           candidates.map((candidate) => {
@@ -761,37 +859,6 @@ const resolveShardedRepositories = (env?: SmartSuggestWorkerEnv) => {
   return repositories;
 };
 
-const resolveRepositories = (env?: SmartSuggestWorkerEnv) => {
-  const sharded = resolveShardedRepositories(env);
-
-  if (sharded !== undefined) {
-    return sharded;
-  }
-
-  const binding = env?.SMART_SUGGEST_D1;
-
-  if (binding === undefined) {
-    return inMemoryRepositories;
-  }
-
-  return repositoriesForD1Binding(binding);
-};
-
-const seedRepositories = (repositories: SmartSuggestRepositories) => {
-  if (seededRepositories.has(repositories)) {
-    return Effect.void;
-  }
-
-  return seedSampleAddressDatasetsEffect(repositories).pipe(
-    Effect.tap(() =>
-      Effect.sync(() => {
-        seededRepositories.add(repositories);
-      }),
-    ),
-    Effect.asVoid,
-  );
-};
-
 const telemetryRandomSegment = (value: number) => Math.abs(value).toString(36);
 
 const createTelemetryId = (...parts: readonly string[]) =>
@@ -824,13 +891,86 @@ const badRequestError = (message: string, field?: string) => {
   });
 };
 
-const isSmartSuggestBadRequestError = Schema.is(SmartSuggestBadRequestErrorSchema);
-const isSmartSuggestInternalError = Schema.is(SmartSuggestInternalErrorSchema);
+const unauthorizedError = (message: string) =>
+  new SmartSuggestUnauthorizedError({
+    errors: [
+      {
+        code: 'unauthorized',
+        message,
+        retryable: false,
+      },
+    ],
+    message,
+  });
 
-const normalizeApiError = (error: unknown) =>
-  isSmartSuggestBadRequestError(error) || isSmartSuggestInternalError(error)
-    ? error
-    : serverError();
+const forbiddenError = (message: string) =>
+  new SmartSuggestForbiddenError({
+    errors: [
+      {
+        code: 'forbidden',
+        message,
+        retryable: false,
+      },
+    ],
+    message,
+  });
+
+const rateLimitError = (message = 'Smart Suggest request rate limit exceeded.') =>
+  new SmartSuggestRateLimitError({
+    errors: [
+      {
+        code: 'rate-limit',
+        message,
+        retryable: true,
+      },
+    ],
+    message,
+  });
+
+const isSmartSuggestBadRequestError = Schema.is(SmartSuggestBadRequestErrorSchema);
+const isSmartSuggestForbiddenError = Schema.is(SmartSuggestForbiddenErrorSchema);
+const isSmartSuggestInternalError = Schema.is(SmartSuggestInternalErrorSchema);
+const isSmartSuggestRateLimitError = Schema.is(SmartSuggestRateLimitErrorSchema);
+const isSmartSuggestUnauthorizedError = Schema.is(SmartSuggestUnauthorizedErrorSchema);
+
+type SmartSuggestApiError =
+  | SmartSuggestBadRequestError
+  | SmartSuggestForbiddenError
+  | SmartSuggestInternalError
+  | SmartSuggestRateLimitError
+  | SmartSuggestUnauthorizedError;
+
+type SmartSuggestSuggestError = SmartSuggestBadRequestError | SmartSuggestInternalError;
+
+const isSmartSuggestApiError = (error: unknown): error is SmartSuggestApiError =>
+  isSmartSuggestBadRequestError(error) ||
+  isSmartSuggestForbiddenError(error) ||
+  isSmartSuggestInternalError(error) ||
+  isSmartSuggestRateLimitError(error) ||
+  isSmartSuggestUnauthorizedError(error);
+
+const normalizeApiError = (error: unknown): SmartSuggestApiError =>
+  isSmartSuggestApiError(error) ? error : serverError();
+
+const normalizeSuggestError = (error: unknown): SmartSuggestSuggestError => {
+  const badRequest = Option.getOrUndefined(
+    Schema.decodeUnknownOption(SmartSuggestBadRequestErrorSchema)(error),
+  );
+
+  if (badRequest !== undefined) {
+    return badRequest;
+  }
+
+  const internal = Option.getOrUndefined(
+    Schema.decodeUnknownOption(SmartSuggestInternalErrorSchema)(error),
+  );
+
+  if (internal !== undefined) {
+    return internal;
+  }
+
+  return serverError();
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -916,24 +1056,407 @@ const runtimeEnvBoolean = (
   key: keyof SmartSuggestWorkerEnv,
 ) => envBoolean(runtimeEnvValue(env, key));
 
+const boundedPositiveInt = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+) => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  return Math.max(min, Math.min(Math.trunc(value), max));
+};
+
+const optionalBoundedPositiveInt = (value: number | undefined, min: number, max: number) =>
+  value === undefined ? undefined : Math.max(min, Math.min(Math.trunc(value), max));
+
+const resolveArtifactRepositories = (
+  env: SmartSuggestWorkerEnv | undefined,
+  fallback: SmartSuggestRepositories,
+) => {
+  const manifestUrl = runtimeEnvString(env, 'SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL');
+
+  if (manifestUrl === undefined) {
+    return fallback;
+  }
+
+  const allowIncomplete =
+    runtimeEnvBoolean(env, 'SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE') ?? false;
+  const readFallbackAddressRecords =
+    runtimeEnvBoolean(env, 'SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS') ?? false;
+  const maxAddressTokenPages = optionalBoundedPositiveInt(
+    runtimeEnvNumber(env, 'SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES'),
+    1,
+    10_000,
+  );
+  const cacheKey = [
+    manifestUrl,
+    allowIncomplete ? 'allow-incomplete' : 'complete-only',
+    readFallbackAddressRecords ? 'with-address-fallback' : 'artifact-primary',
+    maxAddressTokenPages === undefined ? 'manifest-page-budget' : String(maxAddressTokenPages),
+  ].join('|');
+  let variants = artifactRepositories.get(fallback);
+
+  if (variants === undefined) {
+    variants = new Map();
+    artifactRepositories.set(fallback, variants);
+  }
+
+  const existing = variants.get(cacheKey);
+
+  if (existing !== undefined) {
+    return existing;
+  }
+
+  const baseOptions = {
+    allowIncomplete,
+    fallback,
+    manifestUrl,
+    readFallbackAddressRecords,
+  };
+  const options: Parameters<typeof createArtifactSmartSuggestRepositories>[0] =
+    maxAddressTokenPages === undefined ? baseOptions : { ...baseOptions, maxAddressTokenPages };
+
+  const repositories = createArtifactSmartSuggestRepositories(options);
+  variants.set(cacheKey, repositories);
+
+  return repositories;
+};
+
+const resolveRepositories = (env?: SmartSuggestWorkerEnv) => {
+  const sharded = resolveShardedRepositories(env);
+
+  if (sharded !== undefined) {
+    return resolveArtifactRepositories(env, sharded);
+  }
+
+  const binding = env?.SMART_SUGGEST_D1;
+
+  if (binding === undefined) {
+    return resolveArtifactRepositories(env, inMemoryRepositories);
+  }
+
+  return resolveArtifactRepositories(env, repositoriesForD1Binding(binding));
+};
+
+const readInboundRateLimitConfig = (env?: SmartSuggestWorkerEnv) => ({
+  max: boundedPositiveInt(
+    runtimeEnvNumber(env, 'SMART_SUGGEST_BFF_RATE_LIMIT_MAX'),
+    defaultInboundRateLimitMax,
+    1,
+    100_000,
+  ),
+  windowMs: boundedPositiveInt(
+    runtimeEnvNumber(env, 'SMART_SUGGEST_BFF_RATE_LIMIT_WINDOW_MS'),
+    defaultInboundRateLimitWindowMs,
+    100,
+    3_600_000,
+  ),
+});
+
 const configuredCorsOrigins = (env?: SmartSuggestWorkerEnv) =>
   runtimeEnvStringArray(env, 'SMART_SUGGEST_ALLOWED_ORIGINS') ?? [];
 
-const corsAllowedOrigins = (
-  env?: SmartSuggestWorkerEnv,
-): readonly string[] | ((origin: string) => boolean) => {
-  const allowedOrigins = configuredCorsOrigins(env);
+const explicitCorsOrigins = (origins: readonly string[]) =>
+  origins.filter((origin) => origin !== '*');
 
-  if (allowedOrigins.length === 0) {
-    return (_origin: string) => false;
+const requestHeaderValue = (
+  headers: Readonly<Record<string, string | undefined>>,
+  headerName: string,
+) => envString(headers[headerName] ?? headers[headerName.toLowerCase()]);
+
+const requestOrigin = (request: HttpServerRequest.HttpServerRequest) =>
+  requestHeaderValue(request.headers, 'origin');
+
+const missingCorsOrigin: string | undefined = undefined;
+const recoverMissingCorsOrigin = () => missingCorsOrigin;
+
+const requestUrl = (request: HttpServerRequest.HttpServerRequest) => {
+  let url: URL | undefined;
+
+  try {
+    url = new URL(request.url, 'https://smart-suggest.internal');
+  } catch {
+    // Invalid request URLs are treated the same as requests without tenant CORS context.
   }
 
-  if (allowedOrigins.includes('*')) {
-    return ['*'];
-  }
-
-  return (origin: string) => allowedOrigins.includes(origin);
+  return url;
 };
+
+const tenantIdFromSuggestCorsRequest = (request: HttpServerRequest.HttpServerRequest) => {
+  const url = requestUrl(request);
+
+  return url?.pathname === '/v1/suggest'
+    ? envString(url.searchParams.get('tenantId') ?? undefined)
+    : missingCorsOrigin;
+};
+
+const corsSimpleHeaders = (origin: string) => ({
+  'access-control-allow-origin': origin,
+  vary: 'Origin',
+});
+
+const corsPreflightHeaders = (origin: string | undefined) => ({
+  ...(origin === undefined ? {} : corsSimpleHeaders(origin)),
+  'access-control-allow-headers': 'authorization, content-type, x-api-key',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-max-age': '600',
+});
+
+const tenantAllowsOrigin = (tenant: TenantRecord, origin: string) =>
+  explicitCorsOrigins(tenant.allowedOrigins).includes(origin);
+
+const tenantHasConfiguredOriginPolicy = (tenant: TenantRecord) => tenant.allowedOrigins.length > 0;
+
+interface AuthorizedTenantRequest {
+  apiKeyHash?: string;
+  origin: string | undefined;
+  tenant?: TenantRecord;
+  tenantId?: string;
+}
+
+const presentedApiKeyFromHeaders = (headers: Readonly<Record<string, string | undefined>>) => {
+  const explicitApiKey = requestHeaderValue(headers, 'x-api-key');
+
+  if (explicitApiKey !== undefined) {
+    return explicitApiKey;
+  }
+
+  const authorization = requestHeaderValue(headers, 'authorization');
+  const bearerPrefix = 'bearer ';
+
+  if (authorization?.toLowerCase().startsWith(bearerPrefix) === true) {
+    return envString(authorization.slice(bearerPrefix.length));
+  }
+
+  return missingCorsOrigin;
+};
+
+const sha256Hex = (value: string): Effect.Effect<string, SmartSuggestInternalError, never> =>
+  Effect.tryPromise({
+    catch: () => serverError(),
+    try: () => {
+      const subtleCrypto = globalThis.crypto?.subtle;
+
+      if (subtleCrypto === undefined) {
+        return Promise.reject(new Error('Web Crypto subtle digest is unavailable.'));
+      }
+
+      return subtleCrypto
+        .digest('SHA-256', new TextEncoder().encode(value))
+        .then((digest) =>
+          [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join(''),
+        );
+    },
+  });
+
+const enforceTenantOrigin = (
+  tenant: TenantRecord,
+  origin: string | undefined,
+): Effect.Effect<void, SmartSuggestForbiddenError, never> => {
+  if (origin === undefined || !tenantHasConfiguredOriginPolicy(tenant)) {
+    return Effect.void;
+  }
+
+  if (!tenantAllowsOrigin(tenant, origin)) {
+    return Effect.fail(forbiddenError('Smart Suggest origin is not allowed for this tenant.'));
+  }
+
+  return Effect.void;
+};
+
+const enforceTenantApiKey = (
+  tenantId: string,
+  tenantApiKeys: readonly { keyHash: string }[],
+  headers: Readonly<Record<string, string | undefined>>,
+  repositories: SmartSuggestRepositories,
+) =>
+  Effect.gen(function* enforceTenantApiKeyProgram() {
+    if (tenantApiKeys.length === 0) {
+      return;
+    }
+
+    const presentedApiKey = presentedApiKeyFromHeaders(headers);
+
+    if (presentedApiKey === undefined) {
+      return yield* unauthorizedError('Smart Suggest API key is required.');
+    }
+
+    const keyHash = yield* sha256Hex(presentedApiKey);
+    const apiKey = yield* repositories.apiKeys.getApiKeyByHash(keyHash);
+
+    if (apiKey === undefined) {
+      return yield* unauthorizedError('Smart Suggest API key is invalid.');
+    }
+
+    if (apiKey.status !== 'active') {
+      return yield* unauthorizedError('Smart Suggest API key is not active.');
+    }
+
+    if (apiKey.tenantId !== tenantId) {
+      return yield* forbiddenError('Smart Suggest API key is not scoped to this tenant.');
+    }
+
+    return keyHash;
+  });
+
+const authorizeTenantRequest = ({
+  headers,
+  origin,
+  repositories,
+  requireKnownTenant,
+  tenantId,
+}: {
+  headers: Readonly<Record<string, string | undefined>>;
+  origin: string | undefined;
+  repositories: SmartSuggestRepositories;
+  requireKnownTenant: boolean;
+  tenantId: string | undefined;
+}): Effect.Effect<
+  AuthorizedTenantRequest,
+  | SmartSuggestForbiddenError
+  | SmartSuggestInternalError
+  | SmartSuggestStorageError
+  | SmartSuggestUnauthorizedError,
+  never
+> =>
+  Effect.gen(function* authorizeTenantRequestProgram() {
+    if (tenantId === undefined) {
+      return { origin };
+    }
+
+    const tenant = yield* repositories.tenants.getTenant(tenantId);
+
+    if (tenant === undefined) {
+      if (requireKnownTenant) {
+        return yield* forbiddenError('Smart Suggest tenant is not available.');
+      }
+
+      return { origin, tenantId };
+    }
+
+    if (tenant.status !== 'active') {
+      return yield* forbiddenError('Smart Suggest tenant is not active.');
+    }
+
+    yield* enforceTenantOrigin(tenant, origin);
+
+    const keyHash = yield* enforceTenantApiKey(
+      tenantId,
+      yield* repositories.apiKeys.listApiKeysForTenant(tenantId),
+      headers,
+      repositories,
+    );
+
+    return keyHash === undefined
+      ? { origin, tenant, tenantId }
+      : { apiKeyHash: keyHash, origin, tenant, tenantId };
+  });
+
+const inboundRateLimitBucketsFor = (repositories: SmartSuggestRepositories) => {
+  const existingBuckets = inboundRateLimitBucketsByRepository.get(repositories);
+
+  if (existingBuckets !== undefined) {
+    return existingBuckets;
+  }
+
+  const buckets = new Map<string, InboundRateLimitBucket>();
+  inboundRateLimitBucketsByRepository.set(repositories, buckets);
+
+  return buckets;
+};
+
+const requestClientIdentity = (request: HttpServerRequest.HttpServerRequest) => {
+  const forwardedFor = requestHeaderValue(request.headers, 'x-forwarded-for')
+    ?.split(',')[0]
+    ?.trim();
+
+  return (
+    requestHeaderValue(request.headers, 'cf-connecting-ip') ??
+    envString(forwardedFor) ??
+    Option.getOrUndefined(request.remoteAddress) ??
+    requestOrigin(request) ??
+    'anonymous'
+  );
+};
+
+const rateLimitKeyFor = (
+  request: HttpServerRequest.HttpServerRequest,
+  endpoint: string,
+  authorization: AuthorizedTenantRequest,
+) =>
+  [
+    endpoint,
+    authorization.tenantId ?? 'public',
+    authorization.apiKeyHash === undefined ? 'no-api-key' : `api-key:${authorization.apiKeyHash}`,
+    authorization.origin ?? requestClientIdentity(request),
+  ].join(':');
+
+const trimExpiredRateLimitBuckets = (buckets: Map<string, InboundRateLimitBucket>, now: number) => {
+  if (buckets.size < maxInboundRateLimitBuckets) {
+    return;
+  }
+
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) {
+      buckets.delete(key);
+    }
+  }
+
+  for (const key of buckets.keys()) {
+    if (buckets.size < maxInboundRateLimitBuckets) {
+      return;
+    }
+
+    buckets.delete(key);
+  }
+};
+
+const consumeInboundRateLimit = ({
+  authorization,
+  endpoint,
+  env,
+  repositories,
+  request,
+}: {
+  authorization: AuthorizedTenantRequest;
+  endpoint: string;
+  env: SmartSuggestWorkerEnv | undefined;
+  repositories: SmartSuggestRepositories;
+  request: HttpServerRequest.HttpServerRequest;
+}) =>
+  Effect.gen(function* consumeInboundRateLimitProgram() {
+    const now = yield* Clock.currentTimeMillis;
+    const config = readInboundRateLimitConfig(env);
+    const buckets = inboundRateLimitBucketsFor(repositories);
+    const key = rateLimitKeyFor(request, endpoint, authorization);
+    const existing = buckets.get(key);
+
+    const allowed = yield* Effect.sync(() => {
+      trimExpiredRateLimitBuckets(buckets, now);
+
+      if (existing === undefined || existing.resetAt <= now) {
+        buckets.set(key, {
+          count: 1,
+          resetAt: now + config.windowMs,
+        });
+        return true;
+      }
+
+      if (existing.count >= config.max) {
+        return false;
+      }
+
+      existing.count += 1;
+      return true;
+    });
+
+    if (!allowed) {
+      return yield* rateLimitError();
+    }
+  });
 
 const alpha2ByAlpha3: Record<string, string> = {
   AUT: 'AT',
@@ -1332,12 +1855,14 @@ const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | un
 
   const request: SmartSuggestRequest = {
     kind: query.kind,
-    limit: normalizeSuggestLimit(query.limit),
     query: rawQuery,
   };
   const countryCode = toCountryCode(query.countryCode);
   const tenant = readTenantContext(query);
 
+  if (query.kind !== 'postal') {
+    request.limit = normalizeSuggestLimit(query.limit);
+  }
   if (countryCode !== undefined) {
     request.countryCode = countryCode;
   }
@@ -1351,14 +1876,13 @@ const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | un
   return request;
 };
 
-type SuggestionSourceRecord = Pick<
-  DataSourceRecord,
-  'attribution' | 'datasetVersion' | 'id' | 'name' | 'sourceKind'
->;
-
-type SampleSuggestionSourceRecord = Omit<SuggestionSourceRecord, 'sourceKind'> & {
-  sourceKind: string;
-};
+interface SuggestionSourceRecord {
+  attribution?: SuggestionSource['attribution'];
+  datasetVersion?: string;
+  id: string;
+  name: string;
+  sourceKind: SuggestionSourceKind;
+}
 
 const suggestionSourceKinds = new Set<SuggestionSourceKind>([
   'cache',
@@ -1369,34 +1893,16 @@ const suggestionSourceKinds = new Set<SuggestionSourceKind>([
 const isSuggestionSourceKind = (value: string): value is SuggestionSourceKind =>
   suggestionSourceKinds.has(value as SuggestionSourceKind);
 
-const normalizeSampleSuggestionSource = (
-  source: SampleSuggestionSourceRecord,
-): SuggestionSourceRecord => {
-  if (!isSuggestionSourceKind(source.sourceKind)) {
-    throw new Error(`Unknown Smart Suggest sample source kind: ${source.sourceKind}`);
-  }
-
-  const normalizedSource: SuggestionSourceRecord = {
-    attribution: source.attribution,
-    id: source.id,
-    name: source.name,
-    sourceKind: source.sourceKind,
-  };
-
-  if (source.datasetVersion !== undefined) {
-    normalizedSource.datasetVersion = source.datasetVersion;
-  }
-
-  return normalizedSource;
-};
-
 const toSuggestionSource = (source: SuggestionSourceRecord): SuggestionSource => {
   const suggestionSource: SuggestionSource = {
-    attribution: source.attribution,
     id: source.id,
     kind: source.sourceKind,
     name: source.name,
   };
+
+  if (source.attribution !== undefined) {
+    suggestionSource.attribution = source.attribution;
+  }
 
   if (source.datasetVersion !== undefined) {
     suggestionSource.datasetVersion = source.datasetVersion;
@@ -1405,23 +1911,23 @@ const toSuggestionSource = (source: SuggestionSourceRecord): SuggestionSource =>
   return suggestionSource;
 };
 
-const defaultSampleDataSource = (): SuggestionSourceRecord => {
-  const [source] = SAMPLE_DATA_SOURCES;
-
-  if (source === undefined) {
-    throw new Error('Smart Suggest sample data sources are empty.');
+const fallbackSourceKindForSourceId = (sourceId: string): SuggestionSourceKind => {
+  if (sourceId.startsWith('live-provider:')) {
+    return 'live-provider';
+  }
+  if (isSuggestionSourceKind(sourceId)) {
+    return sourceId;
   }
 
-  return normalizeSampleSuggestionSource(source);
+  return 'owned-dataset';
 };
 
-const sourceForSourceId = (sourceId: string): SuggestionSource => {
-  const source = SAMPLE_DATA_SOURCES.find((entry) => entry.id === sourceId);
-
-  return toSuggestionSource(
-    source === undefined ? defaultSampleDataSource() : normalizeSampleSuggestionSource(source),
-  );
-};
+const sourceForSourceId = (sourceId: string): SuggestionSource =>
+  toSuggestionSource({
+    id: sourceId,
+    name: sourceId,
+    sourceKind: fallbackSourceKindForSourceId(sourceId),
+  });
 
 const sourceForAddressRecord = (repositories: SmartSuggestRepositories, record: AddressRecord) =>
   repositories.dataSources
@@ -1461,6 +1967,107 @@ const toSuggestion = (
     return suggestion;
   });
 
+const normalizeSuggestionMergeText = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replaceAll(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('cs-CZ')
+    .replaceAll(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replaceAll(/\s+/gu, ' ');
+
+const normalizeSuggestionPostalCode = (value: string | undefined) =>
+  value?.replaceAll(/\D/gu, '') ?? '';
+
+const compactPostalTextParts = (parts: readonly (string | undefined)[]) =>
+  parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => part !== undefined && part.length > 0)
+    .join(' ');
+
+const normalizePostalLocalityIdPart = (value: string) =>
+  normalizeSuggestionMergeText(value).replaceAll(/\s+/gu, '-');
+
+const createPostalLocalitySuggestions = ({
+  cacheStatus,
+  request,
+  suggestions,
+}: {
+  cacheStatus?: SmartSuggestCacheStatus;
+  request: SmartSuggestRequest;
+  suggestions: readonly SmartSuggestSuggestion[];
+}) => {
+  const postalSuggestions: SmartSuggestSuggestion[] = [];
+  const seen = new Set<string>();
+
+  for (const suggestion of suggestions) {
+    const { address } = suggestion;
+    const postalDigits = normalizeSuggestionPostalCode(address?.postalCode);
+    const city = address?.city?.trim();
+
+    if (address === undefined || postalDigits === '' || city === undefined || city === '') {
+      continue;
+    }
+
+    const countryCode = address.countryCode ?? request.countryCode;
+    const key = [countryCode, postalDigits, normalizeSuggestionMergeText(city)].join('|');
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+
+    const localityAddress: AddressParts = {
+      city,
+    };
+
+    if (address.postalCode !== undefined) {
+      localityAddress.postalCode = address.postalCode;
+    }
+    if (countryCode !== undefined) {
+      localityAddress.countryCode = countryCode;
+    }
+    if (address.region !== undefined) {
+      localityAddress.region = address.region;
+    }
+
+    const displayLabel = compactPostalTextParts([address.postalCode, city]);
+    const metadata: Record<string, string | number | boolean | null> = {
+      localityKind: 'postal-code',
+    };
+
+    if (address.district !== undefined) {
+      metadata['representativeDistrict'] = address.district;
+    }
+
+    const postalSuggestion: SmartSuggestSuggestion = {
+      address: localityAddress,
+      confidence: Math.min(suggestion.confidence, 0.93),
+      displayLabel,
+      id: `${suggestion.source.id}:postal:${postalDigits}:${normalizePostalLocalityIdPart(city)}`,
+      kind: 'postal',
+      metadata,
+      searchLabel: compactPostalTextParts([displayLabel, address.district, address.region]),
+      source: suggestion.source,
+    };
+
+    if (suggestion.attribution !== undefined) {
+      postalSuggestion.attribution = suggestion.attribution;
+    }
+
+    const resolvedCacheStatus = cacheStatus ?? suggestion.cacheStatus;
+
+    if (resolvedCacheStatus !== undefined) {
+      postalSuggestion.cacheStatus = resolvedCacheStatus;
+    }
+
+    postalSuggestions.push(postalSuggestion);
+  }
+
+  return postalSuggestions;
+};
+
 const suggestFromOwnedData = (
   request: SmartSuggestRequest,
   queryHash: string,
@@ -1468,11 +2075,39 @@ const suggestFromOwnedData = (
   cacheStatus: SmartSuggestCacheStatus = 'miss',
 ): Effect.Effect<SmartSuggestResponse, SmartSuggestStorageError, never> =>
   Effect.gen(function* suggestFromOwnedDataProgram() {
-    if (request.kind !== 'address') {
+    if (request.kind !== 'address' && request.kind !== 'postal') {
       return {
         cacheStatus: 'disabled',
         requestId: `owned-${queryHash.slice(0, 16)}`,
         suggestions: [],
+      };
+    }
+
+    if (request.kind === 'postal') {
+      const postalInput: Parameters<
+        SmartSuggestRepositories['addressRecords']['listPostalLocalityAddressRecords']
+      >[0] = {
+        postalCode: request.query,
+      };
+
+      if (request.countryCode !== undefined) {
+        postalInput.countryCode = request.countryCode;
+      }
+
+      const records =
+        yield* repositories.addressRecords.listPostalLocalityAddressRecords(postalInput);
+      const addressSuggestions = yield* Effect.all(
+        records.map((record) => toSuggestion(repositories, record, cacheStatus)),
+      );
+
+      return {
+        cacheStatus,
+        requestId: `owned-${queryHash.slice(0, 16)}`,
+        suggestions: createPostalLocalitySuggestions({
+          cacheStatus,
+          request,
+          suggestions: addressSuggestions,
+        }),
       };
     }
 
@@ -1490,14 +2125,14 @@ const suggestFromOwnedData = (
     }
 
     const records = yield* repositories.addressRecords.searchAddressRecords(searchInput);
-    const suggestions = yield* Effect.all(
+    const addressSuggestions = yield* Effect.all(
       records.map((record) => toSuggestion(repositories, record, cacheStatus)),
     );
 
     return {
       cacheStatus,
       requestId: `owned-${queryHash.slice(0, 16)}`,
-      suggestions,
+      suggestions: addressSuggestions,
     };
   });
 
@@ -1600,7 +2235,7 @@ const readRuianGeocodeProviderConfig = (
   request: SmartSuggestRequest,
   env?: SmartSuggestWorkerEnv,
 ): SmartSuggestProviderRuntimeConfig['ruianGeocode'] => {
-  if (request.kind !== 'address') {
+  if (request.kind !== 'address' && request.kind !== 'postal') {
     return;
   }
 
@@ -1618,9 +2253,6 @@ const readRuianGeocodeProviderConfig = (
     optionalBoolean(ruianConfig?.['disabled']) ?? runtimeEnvBoolean(env, 'RUIAN_GEOCODE_DISABLED');
 
   if (enabled === false || disabled === true) {
-    return;
-  }
-  if (enabled !== true && disabled !== false) {
     return;
   }
 
@@ -1972,6 +2604,7 @@ const persistLiveProviderSuggestions = (
 
           if (
             countryCode === undefined ||
+            suggestion.kind !== 'address' ||
             !sourceAllowsLiveProviderDurableRetention(suggestion.source)
           ) {
             return;
@@ -2024,14 +2657,6 @@ const isCompleteAddressSuggestion = (suggestion: SmartSuggestSuggestion) =>
   hasAddressNumberSignal(suggestion.address) &&
   (suggestion.address.street !== undefined || suggestion.address.line1 !== undefined);
 
-const hasCompleteOwnedAddressAnswer = (
-  request: SmartSuggestRequest,
-  ownedResponse: SmartSuggestResponse,
-) =>
-  request.kind === 'address' &&
-  addressNumberPattern.test(request.query) &&
-  ownedResponse.suggestions.some(isCompleteAddressSuggestion);
-
 const filterSuggestionsForRequest = (
   request: SmartSuggestRequest,
   response: SmartSuggestResponse,
@@ -2042,18 +2667,6 @@ const filterSuggestionsForRequest = (
         suggestions: response.suggestions.filter(isCompleteAddressSuggestion),
       }
     : response;
-
-const normalizeSuggestionMergeText = (value: string) =>
-  value
-    .normalize('NFKD')
-    .replaceAll(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase('cs-CZ')
-    .replaceAll(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim()
-    .replaceAll(/\s+/gu, ' ');
-
-const normalizeSuggestionPostalCode = (value: string | undefined) =>
-  value?.replaceAll(/\D/gu, '') ?? '';
 
 const suggestionMergeKey = (suggestion: SmartSuggestSuggestion) => {
   const { address } = suggestion;
@@ -2076,10 +2689,12 @@ const suggestionMergeKey = (suggestion: SmartSuggestSuggestion) => {
 const mergeSuggestionResponses = (
   ownedResponse: SmartSuggestResponse,
   providerResponse: SmartSuggestResponse,
-  limit: number | undefined,
+  request: SmartSuggestRequest,
 ): SmartSuggestResponse => {
   const seen = new Set<string>();
   const suggestions: SmartSuggestSuggestion[] = [];
+  const limit =
+    request.kind === 'postal' ? Number.POSITIVE_INFINITY : normalizeSuggestLimit(request.limit);
 
   for (const suggestion of [...ownedResponse.suggestions, ...providerResponse.suggestions]) {
     const key = suggestionMergeKey(suggestion);
@@ -2094,7 +2709,7 @@ const mergeSuggestionResponses = (
 
   return {
     ...providerResponse,
-    suggestions: suggestions.slice(0, normalizeSuggestLimit(limit)),
+    suggestions: suggestions.slice(0, limit),
   };
 };
 
@@ -2151,7 +2766,7 @@ const writeProviderCache = ({
   return repositories.suggestCache.writeSuggestCache(cacheWrite);
 };
 
-interface SuggestFromProviderFallbackInput {
+interface SuggestFromProviderEnrichmentInput {
   cacheKey: string;
   env?: SmartSuggestWorkerEnv | undefined;
   ownedResponse: SmartSuggestResponse;
@@ -2160,15 +2775,15 @@ interface SuggestFromProviderFallbackInput {
   request: SmartSuggestRequest;
 }
 
-const suggestFromProviderFallback = ({
+const suggestFromProviderEnrichment = ({
   cacheKey,
   env,
   ownedResponse,
   queryHash,
   repositories,
   request,
-}: SuggestFromProviderFallbackInput) =>
-  Effect.gen(function* suggestFromProviderFallbackProgram() {
+}: SuggestFromProviderEnrichmentInput): Effect.Effect<SmartSuggestResponse, never, never> =>
+  Effect.gen(function* suggestFromProviderEnrichmentProgram() {
     const tenantId = request.tenant?.tenantId;
     const tenant =
       tenantId === undefined ? undefined : yield* repositories.tenants.getTenant(tenantId);
@@ -2198,7 +2813,7 @@ const suggestFromProviderFallback = ({
     providerResponse = withCacheStatus(providerResponse, 'written');
     const mergedResponse = filterSuggestionsForRequest(
       request,
-      mergeSuggestionResponses(ownedResponse, providerResponse, request.limit),
+      mergeSuggestionResponses(ownedResponse, providerResponse, request),
     );
 
     return yield* Effect.all([
@@ -2302,7 +2917,7 @@ const finalizeSuggestResponse = ({
   sourceKind,
   startedAt,
   workerCache,
-}: FinalizeSuggestResponseInput) =>
+}: FinalizeSuggestResponseInput): Effect.Effect<SmartSuggestResponse, never, never> =>
   Effect.gen(function* finalizeSuggestResponseProgram() {
     yield* rememberRuntimeSuggestCaches(cacheKey, response, cacheLevels, workerCache, edgeCache);
     const responseWithLevels = withCacheLevels(
@@ -2312,13 +2927,13 @@ const finalizeSuggestResponse = ({
 
     recordSuggestResponse(repositories, responseWithLevels, startedAt, sourceKind);
 
-    return responseWithLevels;
+    return responseForPublicDto(responseWithLevels);
   });
 
 const writeOwnedCacheBestEffort = (
   input: WriteOwnedCacheInput,
   cacheLevels: SmartSuggestCacheLevels,
-) =>
+): Effect.Effect<void, never, never> =>
   writeOwnedCache(input).pipe(
     Effect.tap(() =>
       Effect.sync(() => {
@@ -2331,7 +2946,7 @@ const writeOwnedCacheBestEffort = (
     catchEffect(() => Effect.void),
   );
 
-interface ProviderFallbackResponseInput {
+interface ProviderEnrichmentResponseInput {
   cacheKey: string;
   cacheLevels: SmartSuggestCacheLevels;
   env?: SmartSuggestWorkerEnv | undefined;
@@ -2341,7 +2956,7 @@ interface ProviderFallbackResponseInput {
   request: SmartSuggestRequest;
 }
 
-const providerFallbackResponseFor = ({
+const providerEnrichmentResponseFor = ({
   cacheKey,
   cacheLevels,
   env,
@@ -2349,18 +2964,23 @@ const providerFallbackResponseFor = ({
   queryHash,
   repositories,
   request,
-}: ProviderFallbackResponseInput) =>
-  Effect.gen(function* providerFallbackResponseForProgram() {
-    if (
-      ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit) ||
-      hasCompleteOwnedAddressAnswer(request, ownedResponse)
-    ) {
+}: ProviderEnrichmentResponseInput): Effect.Effect<
+  SmartSuggestResponse | undefined,
+  never,
+  never
+> =>
+  Effect.gen(function* providerEnrichmentResponseForProgram() {
+    if (request.kind === 'postal') {
       return;
     }
 
-    const fallbackResponse = filterSuggestionsForRequest(
+    if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
+      return;
+    }
+
+    const enrichedResponse = filterSuggestionsForRequest(
       request,
-      yield* suggestFromProviderFallback({
+      yield* suggestFromProviderEnrichment({
         cacheKey,
         env,
         ownedResponse,
@@ -2370,28 +2990,24 @@ const providerFallbackResponseFor = ({
       }),
     );
 
-    if (fallbackResponse === ownedResponse) {
+    if (enrichedResponse === ownedResponse) {
       return;
     }
 
-    cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(fallbackResponse));
+    cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(enrichedResponse));
 
-    if (fallbackResponse.cacheStatus === 'written') {
+    if (enrichedResponse.cacheStatus === 'written') {
       cacheLevels.d1ReadThrough = cacheLevel(true, 'written');
     }
 
-    return fallbackResponse;
+    return enrichedResponse;
   });
 
 const suggest = (
   query: SmartSuggestQuery,
   repositories: SmartSuggestRepositories,
   env?: SmartSuggestWorkerEnv,
-): Effect.Effect<
-  SmartSuggestResponse,
-  SmartSuggestBadRequestError | SmartSuggestInternalError,
-  never
-> => {
+): Effect.Effect<SmartSuggestResponse, SmartSuggestSuggestError, never> => {
   const startedAt = performance.now();
   const suggestRequest = parseSuggestRequest(query);
 
@@ -2400,8 +3016,6 @@ const suggest = (
   }
 
   return Effect.gen(function* suggestProgram() {
-    yield* seedRepositories(repositories);
-
     const queryHashOptions: Parameters<typeof createSuggestQueryHashEffect>[1] = {};
 
     if (env?.SMART_SUGGEST_QUERY_HASH_SECRET !== undefined) {
@@ -2427,7 +3041,7 @@ const suggest = (
 
       recordSuggestResponse(repositories, response, startedAt, 'cache');
 
-      return response;
+      return responseForPublicDto(response);
     }
 
     const workerCached = workerCache.get(cacheKey);
@@ -2448,7 +3062,7 @@ const suggest = (
 
       recordSuggestResponse(repositories, response, startedAt, 'cache');
 
-      return response;
+      return responseForPublicDto(response);
     }
 
     const cached = yield* repositories.suggestCache.readSuggestCache(cacheKey);
@@ -2470,9 +3084,13 @@ const suggest = (
           cacheLevels,
         ),
       );
+      const cachedSuggestionLimit =
+        suggestRequest.kind === 'postal'
+          ? Number.POSITIVE_INFINITY
+          : normalizeSuggestLimit(suggestRequest.limit);
       response = {
         ...response,
-        suggestions: response.suggestions.slice(0, normalizeSuggestLimit(suggestRequest.limit)),
+        suggestions: response.suggestions.slice(0, cachedSuggestionLimit),
       };
 
       cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(response));
@@ -2481,7 +3099,7 @@ const suggest = (
 
       recordSuggestResponse(repositories, response, startedAt, 'cache');
 
-      return response;
+      return responseForPublicDto(response);
     }
 
     const ownedCacheStatus = cached?.status === 'stale' ? 'stale' : 'miss';
@@ -2495,7 +3113,7 @@ const suggest = (
     response = filterSuggestionsForRequest(suggestRequest, response);
     cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(response));
 
-    const fallbackResponse = yield* providerFallbackResponseFor({
+    const enrichedResponse = yield* providerEnrichmentResponseFor({
       cacheKey,
       cacheLevels,
       env,
@@ -2505,14 +3123,14 @@ const suggest = (
       request: suggestRequest,
     });
 
-    if (fallbackResponse !== undefined) {
+    if (enrichedResponse !== undefined) {
       return yield* finalizeSuggestResponse({
         cacheKey,
         cacheLevels,
         edgeCache,
         repositories,
-        response: fallbackResponse,
-        sourceKind: 'provider-fallback',
+        response: enrichedResponse,
+        sourceKind: 'provider-enrichment',
         startedAt,
         workerCache,
       });
@@ -2543,7 +3161,7 @@ const suggest = (
     catchEffect((failure) =>
       Effect.sync(() => {
         recordSuggestError(repositories, startedAt);
-      }).pipe(Effect.flatMap(() => Effect.fail(normalizeApiError(failure)))),
+      }).pipe(Effect.flatMap(() => Effect.fail(normalizeSuggestError(failure)))),
     ),
   );
 };
@@ -2574,18 +3192,96 @@ const healthEffect = (repositories: SmartSuggestRepositories, env?: SmartSuggest
 
 const statusEffect = (repositories: SmartSuggestRepositories) => status(repositories);
 
+const protectBffRequest = ({
+  endpoint,
+  env,
+  repositories,
+  request,
+  requireKnownTenant,
+  tenantId,
+}: {
+  endpoint: string;
+  env: SmartSuggestWorkerEnv | undefined;
+  repositories: SmartSuggestRepositories;
+  request: HttpServerRequest.HttpServerRequest;
+  requireKnownTenant: boolean;
+  tenantId: string | undefined;
+}) =>
+  Effect.gen(function* protectBffRequestProgram() {
+    const authorization = yield* authorizeTenantRequest({
+      headers: request.headers,
+      origin: requestOrigin(request),
+      repositories,
+      requireKnownTenant,
+      tenantId,
+    });
+
+    yield* consumeInboundRateLimit({
+      authorization,
+      endpoint,
+      env,
+      repositories,
+      request,
+    });
+
+    return authorization;
+  }).pipe(Effect.mapError(normalizeApiError));
+
+const applyPublicBffRateLimit = (
+  endpoint: string,
+  repositories: SmartSuggestRepositories,
+  env: SmartSuggestWorkerEnv | undefined,
+  request: HttpServerRequest.HttpServerRequest,
+) =>
+  consumeInboundRateLimit({
+    authorization: { origin: requestOrigin(request) },
+    endpoint,
+    env,
+    repositories,
+    request,
+  }).pipe(Effect.mapError(normalizeApiError));
+
 const suggestEffect = (
   query: Parameters<typeof suggest>[0],
   repositories: SmartSuggestRepositories,
   env?: SmartSuggestWorkerEnv,
-) => suggest(query, repositories, env);
+  request?: HttpServerRequest.HttpServerRequest,
+) =>
+  Effect.gen(function* suggestEffectProgram() {
+    if (request !== undefined) {
+      yield* protectBffRequest({
+        endpoint: 'suggest',
+        env,
+        repositories,
+        request,
+        requireKnownTenant: query.tenantId !== undefined,
+        tenantId: query.tenantId,
+      });
+    }
+
+    return yield* suggest(query, repositories, env);
+  }).pipe(Effect.mapError(normalizeApiError));
 
 const recordAcceptEventEffect = (
   repositories: SmartSuggestRepositories,
   input: Parameters<typeof normalizeAcceptEvent>[0],
+  env?: SmartSuggestWorkerEnv,
+  request?: HttpServerRequest.HttpServerRequest,
 ) =>
   Effect.gen(function* recordAcceptEventEffectProgram() {
     const event = normalizeAcceptEvent(input);
+
+    if (request !== undefined) {
+      yield* protectBffRequest({
+        endpoint: 'accept',
+        env,
+        repositories,
+        request,
+        requireKnownTenant: false,
+        tenantId: event.tenant?.tenantId,
+      });
+    }
+
     const id = yield* createTelemetryId('accept', event.requestId, event.suggestionId);
 
     yield* repositories.acceptEvents.recordAcceptEvent({
@@ -2636,6 +3332,40 @@ const withRuntimeResources = <A, E>(
   }) => Effect.Effect<A, E, never>,
 ) => runtimeResourcesEffect(repositories, env).pipe(Effect.flatMap(run));
 
+const corsOriginForRequest = (
+  request: HttpServerRequest.HttpServerRequest,
+  repositories: SmartSuggestRepositories | undefined,
+  env: SmartSuggestWorkerEnv | undefined,
+) => {
+  const origin = requestOrigin(request);
+
+  if (origin === undefined) {
+    return Effect.succeed(recoverMissingCorsOrigin());
+  }
+
+  if (explicitCorsOrigins(configuredCorsOrigins(env)).includes(origin)) {
+    return Effect.succeed(origin);
+  }
+
+  const tenantId = tenantIdFromSuggestCorsRequest(request);
+
+  if (tenantId === undefined) {
+    return Effect.succeed(recoverMissingCorsOrigin());
+  }
+
+  return runtimeResourcesEffect(repositories, env).pipe(
+    Effect.flatMap(({ repositories: runtimeRepositories }) =>
+      runtimeRepositories.tenants.getTenant(tenantId),
+    ),
+    Effect.map((tenant) =>
+      tenant !== undefined && tenant.status === 'active' && tenantAllowsOrigin(tenant, origin)
+        ? origin
+        : undefined,
+    ),
+    Effect.orElseSucceed(recoverMissingCorsOrigin),
+  );
+};
+
 export const createSmartSuggestApiGroupLayer = (
   repositories?: SmartSuggestRepositories,
   env?: SmartSuggestWorkerEnv,
@@ -2652,35 +3382,66 @@ export const createSmartSuggestApiGroupLayer = (
           statusEffect(runtimeRepositories),
         ),
       )
-      .handle('suggest', ({ query }) =>
+      .handle('suggest', ({ query, request }) =>
         withRuntimeResources(repositories, env, (resources) =>
-          suggestEffect(query, resources.repositories, resources.env),
+          suggestEffect(query, resources.repositories, resources.env, request),
         ),
       )
-      .handle('accept', ({ payload }) =>
-        withRuntimeResources(repositories, env, ({ repositories: runtimeRepositories }) =>
-          recordAcceptEventEffect(runtimeRepositories, payload),
+      .handle('accept', ({ payload, request }) =>
+        withRuntimeResources(repositories, env, (resources) =>
+          recordAcceptEventEffect(resources.repositories, payload, resources.env, request),
         ),
       )
-      .handle('validatePhone', ({ payload }) => Effect.succeed(validatePhoneNumber(payload)))
-      .handle('validatePostal', ({ payload }) => Effect.succeed(validatePostalCode(payload))),
+      .handle('validatePhone', ({ payload, request }) =>
+        withRuntimeResources(repositories, env, (resources) =>
+          applyPublicBffRateLimit(
+            'validate-phone',
+            resources.repositories,
+            resources.env,
+            request,
+          ).pipe(Effect.as(validatePhoneNumber(payload))),
+        ),
+      )
+      .handle('validatePostal', ({ payload, request }) =>
+        withRuntimeResources(repositories, env, (resources) =>
+          applyPublicBffRateLimit(
+            'validate-postal',
+            resources.repositories,
+            resources.env,
+            request,
+          ).pipe(Effect.as(validatePostalCode(payload))),
+        ),
+      ),
   );
 
-const createSmartSuggestCorsLayer = (env?: SmartSuggestWorkerEnv) =>
+const createSmartSuggestCorsLayer = (
+  repositories?: SmartSuggestRepositories,
+  env?: SmartSuggestWorkerEnv,
+) =>
   HttpRouter.middleware(
     Effect.succeed(
-      HttpMiddleware.cors({
-        allowedHeaders: ['authorization', 'content-type'],
-        allowedMethods: ['GET', 'POST', 'OPTIONS'],
-        allowedOrigins: (origin) => {
-          const allowedOrigins = corsAllowedOrigins(readEffectWorkerEnv() ?? env);
+      HttpMiddleware.make((httpApp) =>
+        Effect.gen(function* smartSuggestCorsMiddlewareProgram() {
+          const request = yield* HttpServerRequest.HttpServerRequest;
+          const runtimeEnv = readEffectWorkerEnv() ?? env;
 
-          return typeof allowedOrigins === 'function'
-            ? allowedOrigins(origin)
-            : allowedOrigins.includes('*') || allowedOrigins.includes(origin);
-        },
-        maxAge: 600,
-      }),
+          if (request.method === 'OPTIONS') {
+            const origin = yield* corsOriginForRequest(request, repositories, runtimeEnv);
+
+            return HttpServerResponse.empty({
+              headers: corsPreflightHeaders(origin),
+              status: 204,
+            });
+          }
+
+          const response = yield* httpApp;
+          const origin = yield* corsOriginForRequest(request, repositories, runtimeEnv);
+
+          return origin === undefined
+            ? response
+            : HttpServerResponse.setHeaders(response, corsSimpleHeaders(origin));
+        }),
+      ),
     ),
     { global: true },
   );
@@ -2691,7 +3452,7 @@ export const createSmartSuggestApiLayer = (
 ) =>
   HttpApiBuilder.layer(SmartSuggestHttpApi).pipe(
     Layer.provide(createSmartSuggestApiGroupLayer(repositories, env)),
-    Layer.provide(createSmartSuggestCorsLayer(env)),
+    Layer.provide(createSmartSuggestCorsLayer(repositories, env)),
   );
 
 const smartSuggestApiRuntime = defineEffectBff({

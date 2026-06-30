@@ -1,6 +1,7 @@
 # @techsio/smart-suggest-datasets
 
-Dataset fixtures, source metadata, and import mapping for Smart Suggest.
+Source metadata, official owned-data import mapping, and explicitly named
+fixture helpers for Smart Suggest.
 
 ## Import runner contract
 
@@ -11,35 +12,49 @@ pass a `snapshotUri` such as an R2/object-storage URI and keep only normalized
 runtime rows in the repository. Repository and dataset failures stay in the
 Effect error channel.
 
-Local CZ/SK sample seed:
+Sample fixtures are intentionally separate from production import inputs. They
+live behind `sample-fixtures` helpers for dataset tests, import-proof tests, and
+synthetic demos only:
 
 ```ts
-yield* seedSampleAddressDatasetsEffect(repositories);
+import { seedSampleAddressFixtureDatasetsEffect } from "./src/sample-fixtures";
+
+yield * seedSampleAddressFixtureDatasetsEffect(repositories);
 ```
 
-The sample seed also registers the OpenAddresses US/CA fixture so `/v1/suggest`
-has a tiny non-CZ/SK open-data proof path. It is intentionally small and is not a
-volume benchmark.
+The sample fixture seed also registers the OpenAddresses US/CA fixture so test
+and demo proofs have a tiny non-CZ/SK open-data path. It is intentionally small,
+is not a volume benchmark, and is not runtime BFF startup or production seed
+behavior. The production import runner rejects sample fixture source ids such as
+`ruian-cz-sample` because they are not source-catalog entries.
 
 Production-style owned-data import:
 
 ```ts
-yield* runAddressDatasetImportEffect({
-  chunkSize: 500,
-  repositories,
-  runId: "import-ruian-cz-2026-06-26",
-  source: {
-    ...RUIAN_CZ_SAMPLE_SOURCE,
-    shardCountryCode: "CZ",
-    snapshotUri: "r2://smart-suggest-snapshots/ruian/cz-2026-06-26.jsonl",
-  },
-  rows,
-});
+import {
+  createAuthoritativeAddressImportSource,
+  runAddressDatasetImportEffect,
+} from "./src/datasets";
+
+yield *
+  runAddressDatasetImportEffect({
+    chunkSize: 500,
+    repositories,
+    runId: "import-ruian-cz-2026-06-26",
+    source: createAuthoritativeAddressImportSource({
+      datasetVersion: "2026-06-26",
+      sourceId: "ruian-cz",
+      shardCountryCode: "CZ",
+      snapshotUri: "r2://smart-suggest-snapshots/ruian/cz-2026-06-26.jsonl",
+    }),
+    rows,
+  });
 ```
 
 Node entry scripts and benchmarks should execute `runAddressDatasetImportEffect`
 at the CLI boundary. Runtime and server code should compose the Effect APIs
-directly.
+directly against configured repositories. Runtime code must not silently seed
+sample fixtures when D1 or provider configuration is missing.
 
 Use country/region-specific D1 shards for large sources. Do not load global raw
 payload blobs into D1; D1 stores source metadata, import-run counts, normalized
@@ -52,17 +67,18 @@ CI job, or local operator script that constructs repositories from the target D1
 binding and passes an object-storage snapshot URI:
 
 ```ts
-yield* runAddressDatasetImportEffect({
-  chunkSize: 500,
-  repositories,
-  runId: `import-${source.id}-${source.datasetVersion}`,
-  source: {
-    ...source,
-    shardCountryCode: source.countryCode,
-    snapshotUri: `r2://smart-suggest-snapshots/${source.id}/${source.datasetVersion}.jsonl`,
-  },
-  rows,
-});
+yield *
+  runAddressDatasetImportEffect({
+    chunkSize: 500,
+    repositories,
+    runId: `import-${source.id}-${source.datasetVersion}`,
+    source: {
+      ...source,
+      shardCountryCode: source.countryCode,
+      snapshotUri: `r2://smart-suggest-snapshots/${source.id}/${source.datasetVersion}.jsonl`,
+    },
+    rows,
+  });
 ```
 
 The runner is restartable by idempotent upsert, not by cursor checkpoint. Re-run

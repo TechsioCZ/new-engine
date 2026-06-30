@@ -1,5 +1,4 @@
 // @effect-diagnostics processEnv:off
-import { fileURLToPath } from 'node:url';
 import { appTools, defineConfig, presetUltramodern } from '@modern-js/app-tools';
 import { bffPlugin } from '@modern-js/plugin-bff';
 import { i18nPlugin } from '@modern-js/plugin-i18n';
@@ -9,32 +8,9 @@ import { withZephyr as withZephyrRspack } from 'zephyr-rspack-plugin';
 import { ultramodernLocalisedUrls } from './src/routes/ultramodern-route-metadata';
 
 type ZephyrRspackConfig = Parameters<ReturnType<typeof withZephyrRspack>>[0];
-type ModernModuleType = 'module' | 'commonjs';
-
-interface ModernAppContext {
-  readonly moduleType: ModernModuleType;
-  readonly [key: string]: unknown;
-}
-
-interface ModernPluginApi {
-  getAppContext: () => ModernAppContext;
-  updateAppContext: (context: ModernAppContext) => void;
-}
 
 const zephyrEnabled = process.env['ULTRAMODERN_ZEPHYR'] !== 'false';
 const cloudflareDeployEnabled = process.env['MODERNJS_DEPLOY'] === 'cloudflare';
-const workspaceRoot = fileURLToPath(new URL('../../../..', import.meta.url)).replace(/[\\/]$/u, '');
-
-const forceServerTsgoEsmPlugin = () => ({
-  name: 'ultramodern-server-tsgo-esm-plugin',
-  setup(api: ModernPluginApi) {
-    const appContext = api.getAppContext();
-    if (appContext.moduleType === 'module') {
-      return;
-    }
-    api.updateAppContext({ ...appContext, moduleType: 'module' });
-  },
-});
 
 const zephyrRspackPlugin = () => ({
   name: 'ultramodern-zephyr-rspack-plugin',
@@ -62,6 +38,8 @@ const configuredSiteUrl = envValue('MODERN_PUBLIC_SITE_URL');
 const configuredCloudflareUrl = envValue('ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP');
 const configuredUltramodernAssetPrefix = envValue('ULTRAMODERN_ASSET_PREFIX');
 const configuredModernAssetPrefix = envValue('MODERN_ASSET_PREFIX');
+const moduleFederationDevServerOrigin =
+  envValue('ULTRAMODERN_MF_DEV_ORIGIN') || 'http://localhost:3020';
 const cloudflareWorkersDevSubdomain = envValue('ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN');
 const inferredCloudflareUrl =
   cloudflareDeployEnabled && cloudflareWorkersDevSubdomain !== undefined
@@ -74,11 +52,14 @@ const siteUrl =
   configuredCloudflareUrl ||
   inferredCloudflareUrl ||
   `http://localhost:${port}`;
-// Asset loading is intentionally independent from the canonical site URL and
-// deployment public URL. Without an explicit asset prefix, assets stay
-// origin-relative so self-hosted apps, tunnels, and reverse proxies never leak
-// localhost URLs into production HTML.
+// Asset loading is intentionally independent from the canonical site URL.
+// Module Federation remotes must publish an absolute publicPath so browsers
+// load remoteEntry.js and exposed chunks from the remote origin, not the host.
 const assetPrefix = configuredModernAssetPrefix || configuredUltramodernAssetPrefix || '/';
+const buildTarget = cloudflareDeployEnabled ? 'cloudflare' : 'web';
+const buildOutputRoot = cloudflareDeployEnabled ? 'dist-cloudflare' : 'dist';
+const buildTempDirectory = `node_modules/.modern-js-${appId}-${buildTarget}`;
+const buildCacheDirectory = `node_modules/.cache/rspack-${appId}-${buildTarget}`;
 
 if (
   cloudflareDeployEnabled &&
@@ -155,8 +136,8 @@ export default defineConfig(
         runtimeFramework: 'effect',
       },
       dev: {
-        // Keep dev assets origin-relative too; the default absolute
-        // http://localhost:<port> prefix breaks pages served through tunnels.
+        // Keep shell dev assets origin-relative so the shell works through
+        // tunnels and local previews without rewriting its own chunks.
         assetPrefix: '/',
       },
       html: {
@@ -167,11 +148,17 @@ export default defineConfig(
         disableTsChecker: false,
         distPath: {
           html: './',
+          root: buildOutputRoot,
         },
         polyfill: 'off',
         splitRouteChunks: true,
+        tempDir: buildTempDirectory,
       },
       performance: {
+        buildCache: {
+          cacheDigest: [appId, buildTarget],
+          cacheDirectory: buildCacheDirectory,
+        },
         rsdoctor: {
           disableClientServer: true,
           enabled: process.env['ULTRAMODERN_RSDOCTOR'] === 'true',
@@ -179,7 +166,6 @@ export default defineConfig(
       },
       plugins: [
         appTools(),
-        forceServerTsgoEsmPlugin(),
         bffPlugin(),
         tanstackRouterPlugin(),
         i18nPlugin({
@@ -191,7 +177,6 @@ export default defineConfig(
             fallbackLanguage: 'en',
             ignoreRedirectRoutes: [
               '/@mf-types',
-              '/api',
               '/assets',
               '/bundles',
               '/shell-super-app-api',
@@ -221,20 +206,18 @@ export default defineConfig(
           mode: 'string',
           moduleFederationAppSSR: true,
         },
-        tsconfigPath: './tsconfig.server.json',
       },
       source: {
         alias: {
           '@modern-js/plugin-i18n/runtime': '@modern-js/plugin-i18n/runtime/no-react-i18next',
-          '@techsio/smart-suggest-react': `${workspaceRoot}/libs/smart-suggest/react/dist/react.js`,
-          '@techsio/smart-suggest-ui/address-suggest-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/address-suggest-field.js`,
-          '@techsio/smart-suggest-ui/phone-validation-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/phone-validation-field.js`,
-          '@techsio/smart-suggest-ui/postal-validation-field': `${workspaceRoot}/libs/smart-suggest/ui/dist/postal-validation-field.js`,
         },
         globalVars: {
           ULTRAMODERN_SITE_URL: siteUrl,
         },
         mainEntryName: 'index',
+      },
+      splitChunks: {
+        chunks: 'async',
       },
       tools: {
         autoprefixer: {
@@ -244,12 +227,13 @@ export default defineConfig(
           chain.output
             .uniqueName('shellSuperApp')
             .chunkLoadingGlobal('__ULTRAMODERN_SHELL_SUPER_APP_LOADED_CHUNKS__');
-          chain.ignoreWarnings([
-            {
-              message: /the request of a dependency is an expression/u,
-              module: /modern-js-plugin-i18n/u,
-            },
-          ]);
+        },
+        devServer: {
+          headers: {
+            'Access-Control-Allow-Headers': 'Accept, Authorization, Content-Type, X-Requested-With',
+            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+            'Access-Control-Allow-Origin': moduleFederationDevServerOrigin,
+          },
         },
       },
     },

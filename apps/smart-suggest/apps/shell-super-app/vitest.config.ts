@@ -43,20 +43,8 @@ export default defineConfig({
         replacement: path.join(workspaceRoot, 'libs/smart-suggest/validation/src/validation.ts'),
       },
       {
-        find: /^@techsio\/smart-suggest-ui\/(?<entry>.+)$/u,
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/ui/dist/$<entry>.js'),
-      },
-      {
-        find: /^@techsio\/smart-suggest-react$/u,
-        replacement: path.join(workspaceRoot, 'libs/smart-suggest/react/dist/react.js'),
-      },
-      {
         find: /^@techsio\/ui-kit\/(?<entry>.+)$/u,
         replacement: path.join(workspaceRoot, 'libs/ui/dist/$<entry>.js'),
-      },
-      {
-        find: '@zag-js/react',
-        replacement: path.join(rootDir, 'node_modules/@zag-js/react'),
       },
       {
         find: 'react',

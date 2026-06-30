@@ -26,7 +26,7 @@
     "react": ">=19.2.0"
   },
   "devDependencies": {
-    "@effect/vitest": "4.0.0-beta.89",
+    "@effect/vitest": "4.0.0-beta.91",
     "@rsbuild/plugin-react": "^1.4.2",
     "@rslib/core": "^0.18.0",
     "@techsio/smart-suggest-tooling": "workspace:^",
@@ -40,6 +40,6 @@
   "dependencies": {
     "@techsio/smart-suggest-core": "workspace:^",
     "@techsio/smart-suggest-validation": "workspace:^",
-    "effect": "4.0.0-beta.89"
+    "effect": "4.0.0-beta.91"
   }
 }

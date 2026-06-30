@@ -28,6 +28,8 @@ const d1Targets = new Set(['local', 'preview', 'remote']);
 const officialSnapshotFormats = new Set(['auto', 'csv', 'zip']);
 const ruianFeedIds = new Set(['RUIAN-CSV-ADR-ST', 'RUIAN-S-ZA-U', 'RUIAN-S-ZA-Z']);
 const ruianFileKinds = new Set(['baseline', 'delta']);
+const d1SearchIndexModes = new Set(['fts-and-prefix', 'fts-only']);
+const shardRouteStrategies = new Set(['hash', 'vusc']);
 const zipEndOfCentralDirectorySignature = 0x06_05_4b_50;
 const zipCentralDirectorySignature = 0x02_01_4b_50;
 const zipLocalFileHeaderSignature = 0x04_03_4b_50;
@@ -35,6 +37,9 @@ const maxZipEndOfCentralDirectorySearchBytes = 66_000;
 const shardStorageEstimateFloorBytes = 64 * 1024;
 const shardStorageEstimateMultiplier = 4;
 const shardStorageEstimateRowFloorBytes = 512;
+const ftsOnlyShardStorageEstimateRowBytes = 1_100;
+const shardHashModulus = 2_147_483_647;
+const rawSqlFailureDetailPattern = /Failed query:|params:/u;
 const csvZipEntryPattern = /\.(csv|txt)$/iu;
 const xmlZipEntryPattern = /\.xml$/iu;
 const vfrVuscRecordBlockPattern = /<vf:Vusc\b[^>]*gml:id="VC\.[^"]+"[\s\S]*?<\/vf:Vusc>/gu;
@@ -54,6 +59,17 @@ const addressPartKeys = new Set([
   'street',
 ]);
 const addressRowKeys = new Set(['id', 'latitude', 'longitude', 'parts', 'quality']);
+
+function sanitizeCliErrorMessage(error) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (rawSqlFailureDetailPattern.test(message)) {
+    return 'Smart Suggest import failed during D1 SQL execution.';
+  }
+
+  return message.length > 1_000 ? `${message.slice(0, 1_000)}...` : message;
+}
+
 const stringOptionFields = {
   '--country': 'country',
   '--dataset-version': 'datasetVersion',
@@ -77,10 +93,13 @@ const stringOptionFields = {
   '--persist-to': 'persistTo',
   '--previous-atom-entry-id': 'previousAtomEntryId',
   '--query': 'query',
+  '--artifact-out-dir': 'artifactOutDir',
   '--region': 'region',
   '--repository': 'repository',
   '--router-d1-binding': 'routerD1Binding',
   '--scenario-id': 'scenarioId',
+  '--search-index-mode': 'searchIndexMode',
+  '--shard-route-strategy': 'shardRouteStrategy',
   '--shard-binding-prefix': 'shardBindingPrefix',
   '--shard-bindings': 'shardBindings',
   '--shard-region-map-json': 'shardRegionMapJson',
@@ -97,21 +116,31 @@ const stringOptionFields = {
   '--wrangler-config': 'wranglerConfig',
 };
 const numberOptionFields = {
+  '--artifact-max-file-size-bytes': 'artifactMaxFileSizeBytes',
+  '--artifact-max-token-length': 'artifactMaxTokenLength',
+  '--artifact-min-token-length': 'artifactMinTokenLength',
+  '--artifact-page-size': 'artifactPageSize',
+  '--artifact-record-shard-count': 'artifactRecordShardCount',
+  '--artifact-token-bucket-count': 'artifactTokenBucketCount',
   '--chunk-size': 'chunkSize',
   '--limit': 'limit',
   '--max-rows': 'maxRows',
+  '--shard-max-estimated-size-bytes': 'shardMaxEstimatedSizeBytes',
   '--shard-max-rows': 'shardMaxRows',
 };
 const booleanOptionFields = {
+  '--allow-partial-artifact': 'allowPartialArtifact',
   '--apply-migrations': 'applyMigrations',
+  '--route-plan-only': 'routePlanOnly',
 };
 
 function printHelp() {
   process.stdout.write(`Usage:
-  node scripts/smart-suggest-owned-import.mjs import-local [--fixture fixture.jsonl] [--out proof.json]
-  node scripts/smart-suggest-owned-import.mjs proof-offline [--fixture fixture.jsonl] [--out proof.json]
-  node scripts/smart-suggest-owned-import.mjs import-d1 [--d1-target local|remote|preview] [--apply-migrations]
-  node scripts/smart-suggest-owned-import.mjs import-sharded-d1 --snapshot-path file.csv [--apply-migrations]
+	  node scripts/smart-suggest-owned-import.mjs import-local [--fixture fixture.jsonl] [--out proof.json]
+	  node scripts/smart-suggest-owned-import.mjs proof-offline [--fixture fixture.jsonl] [--out proof.json]
+	  node scripts/smart-suggest-owned-import.mjs import-d1 [--d1-target local|remote|preview] [--apply-migrations]
+	  node scripts/smart-suggest-owned-import.mjs import-sharded-d1 --snapshot-path file.csv [--apply-migrations]
+	  node scripts/smart-suggest-owned-import.mjs build-artifacts --snapshot-path file.zip --artifact-out-dir .codex/artifacts/smart-suggest-owned-data
 
 Imports normalized AddressSnapshotRow JSON or JSONL fixtures, or streams an
 external official RUIAN-style CSV/ZIP snapshot into an in-memory Smart Suggest
@@ -160,7 +189,16 @@ Options:
   --scenario-id value          Proof scenario id
   --query value                Proof query; never written to output artifacts
   --expect-label-contains text Required label fragment for proof mode
-  --out path                   Optional JSON output path
+	  --out path                   Optional JSON output path
+	  --artifact-out-dir path      App-relative output directory for static owned-data artifacts
+	  --artifact-max-file-size-bytes 26214400
+	                             Abort when one generated artifact exceeds this byte ceiling
+	  --artifact-page-size 50      Address-token artifact records per page
+	  --artifact-min-token-length 2
+	  --artifact-max-token-length 8
+	  --artifact-record-shard-count 2048
+	  --artifact-token-bucket-count 4096
+	  --allow-partial-artifact     Allow --max-rows artifact proofs; never use for production
 
 D1 options:
   --d1-target local             Cloudflare D1 target: local, remote, or preview
@@ -168,11 +206,16 @@ D1 options:
   --wrangler-config path        Defaults to apps/shell-super-app/.output/wrangler.json
   --persist-to path             Optional Wrangler local D1 persistence directory
   --apply-migrations            Sync and apply configured D1 migrations before import
+  --search-index-mode value     D1 address index mode: fts-and-prefix or fts-only
+  --shard-route-strategy value  Sharded import route strategy: vusc or hash
   --router-d1-binding value     Router D1 binding for shard metadata
   --shard-bindings value        Comma-separated shard binding allowlist
   --shard-binding-prefix value  Defaults to SMART_SUGGEST_CZ_VUSC_
   --shard-region-map-json value JSON object mapping VUSC region codes to shard bindings
+  --shard-max-estimated-size-bytes value
+                               Abort if one shard route exceeds this estimated D1 storage size
   --shard-max-rows value        Abort sharded import if one shard route exceeds this row count
+  --route-plan-only             Parse and route the snapshot, then report shard sizes without D1 writes
 `);
 }
 
@@ -182,26 +225,50 @@ function envValue(name) {
   return value === undefined || value === '' ? undefined : value;
 }
 
+function hashTextSha256(value) {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function envModificationNoteSha256() {
+  const explicitHash = envValue('SMART_SUGGEST_RUIAN_MODIFICATION_NOTE_SHA256');
+
+  if (explicitHash !== undefined) {
+    return explicitHash;
+  }
+
+  const note = envValue('SMART_SUGGEST_RUIAN_MODIFICATION_NOTE');
+
+  return note === undefined ? undefined : hashTextSha256(note);
+}
+
 function defaultArgs(command) {
   return {
+    allowPartialArtifact: false,
     applyMigrations: false,
+    artifactMaxFileSizeBytes: 25 * 1024 * 1024,
+    artifactMaxTokenLength: 8,
+    artifactMinTokenLength: 2,
+    artifactOutDir: '.codex/artifacts/smart-suggest-owned-data',
+    artifactPageSize: 50,
+    artifactRecordShardCount: 2048,
+    artifactTokenBucketCount: 4096,
     chunkSize: 500,
     command,
     country: 'CZ',
     d1Binding: envValue('SMART_SUGGEST_D1_BINDING') ?? 'SMART_SUGGEST_D1',
     d1Target: 'local',
-    datasetVersion: 'local-proof',
-    expectedChecksumSha256: undefined,
+    datasetVersion: envValue('SMART_SUGGEST_RUIAN_DATASET_VERSION') ?? 'local-proof',
+    expectedChecksumSha256: envValue('SMART_SUGGEST_RUIAN_SNAPSHOT_CHECKSUM_SHA256'),
     expectedLabel: defaultExpectedLabel,
     fixture: defaultFixturePath,
-    atomEntryId: undefined,
-    csvDelimiter: ';',
-    csvEncoding: 'utf-8',
-    feedId: undefined,
+    atomEntryId: envValue('SMART_SUGGEST_RUIAN_ATOM_ENTRY_ID'),
+    csvDelimiter: envValue('SMART_SUGGEST_RUIAN_CSV_DELIMITER') ?? ';',
+    csvEncoding: envValue('SMART_SUGGEST_RUIAN_CSV_ENCODING') ?? 'utf-8',
+    feedId: envValue('SMART_SUGGEST_RUIAN_FEED_ID'),
     fileKind: 'baseline',
     limit: 5,
     maxRows: undefined,
-    modificationNoteSha256: undefined,
+    modificationNoteSha256: envModificationNoteSha256(),
     municipalityRegionMapPath: envValue('SMART_SUGGEST_RUIAN_MUNICIPALITY_REGION_MAP_PATH'),
     municipalityRegionMapSnapshotChecksumSha256: envValue(
       'SMART_SUGGEST_RUIAN_REGION_MAP_SNAPSHOT_CHECKSUM_SHA256',
@@ -214,25 +281,29 @@ function defaultArgs(command) {
     query: defaultScenarioQuery,
     region: undefined,
     repository: ['import-d1', 'import-sharded-d1'].includes(command) ? 'd1' : 'memory',
+    routePlanOnly: false,
     routerD1Binding:
       envValue('SMART_SUGGEST_D1_ROUTER_BINDING') ??
       envValue('SMART_SUGGEST_ROUTER_D1_BINDING') ??
       'SMART_SUGGEST_ROUTER_D1',
     scenarioId: defaultScenarioId,
+    searchIndexMode: envValue('SMART_SUGGEST_D1_SEARCH_INDEX_MODE') ?? 'fts-and-prefix',
+    shardRouteStrategy: envValue('SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY') ?? 'vusc',
     shardBindingPrefix: 'SMART_SUGGEST_CZ_VUSC_',
     shardBindings: envValue('SMART_SUGGEST_D1_SHARD_BINDINGS'),
+    shardMaxEstimatedSizeBytes: undefined,
     shardRegionMapJson: envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON'),
     shardMaxRows: undefined,
     snapshotEntry: undefined,
     snapshotFormat: 'auto',
-    snapshotPath: undefined,
-    snapshotUri: undefined,
-    sourceGeneratedAt: undefined,
+    snapshotPath: envValue('SMART_SUGGEST_RUIAN_SNAPSHOT_PATH'),
+    snapshotUri: envValue('SMART_SUGGEST_RUIAN_SNAPSHOT_URI'),
+    sourceGeneratedAt: envValue('SMART_SUGGEST_RUIAN_SOURCE_GENERATED_AT'),
     sourceId: 'ruian-cz',
-    sourceName: undefined,
-    sourceUri: undefined,
-    sourceValidAt: undefined,
-    sourceVersion: undefined,
+    sourceName: envValue('SMART_SUGGEST_RUIAN_SOURCE_NAME'),
+    sourceUri: envValue('SMART_SUGGEST_RUIAN_SOURCE_URI'),
+    sourceValidAt: envValue('SMART_SUGGEST_RUIAN_SOURCE_VALID_AT'),
+    sourceVersion: envValue('SMART_SUGGEST_RUIAN_SOURCE_VERSION'),
     wranglerConfig: defaultWranglerConfigPath,
   };
 }
@@ -274,6 +345,17 @@ function applyOption(parsed, arg, next) {
   }
   if (stringField !== undefined) {
     parsed[stringField] = next;
+    if (stringField === 'fixture') {
+      parsed.atomEntryId = undefined;
+      parsed.expectedChecksumSha256 = undefined;
+      parsed.feedId = undefined;
+      parsed.modificationNoteSha256 = undefined;
+      parsed.snapshotPath = undefined;
+      parsed.sourceGeneratedAt = undefined;
+      parsed.sourceUri = undefined;
+      parsed.sourceValidAt = undefined;
+      parsed.sourceVersion = undefined;
+    }
   }
   if (numberField !== undefined) {
     parsed[numberField] = parsePositiveInteger(next, arg);
@@ -339,12 +421,16 @@ function assertParsedArgs(parsed) {
     return;
   }
   if (
-    !['import-d1', 'import-local', 'import-sharded-d1', 'proof-offline'].includes(
-      parsed.command ?? '',
-    )
+    ![
+      'build-artifacts',
+      'import-d1',
+      'import-local',
+      'import-sharded-d1',
+      'proof-offline',
+    ].includes(parsed.command ?? '')
   ) {
     throw new Error(
-      'Command must be import-local, proof-offline, import-d1, or import-sharded-d1.',
+      'Command must be import-local, proof-offline, import-d1, import-sharded-d1, or build-artifacts.',
     );
   }
 
@@ -357,8 +443,31 @@ function assertParsedArgs(parsed) {
     if (!d1Targets.has(parsed.d1Target)) {
       throw new Error('--d1-target must be local, remote, or preview.');
     }
+    if (!d1SearchIndexModes.has(parsed.searchIndexMode)) {
+      throw new Error('--search-index-mode must be fts-and-prefix or fts-only.');
+    }
+    if (!shardRouteStrategies.has(parsed.shardRouteStrategy)) {
+      throw new Error('--shard-route-strategy must be vusc or hash.');
+    }
     if (parsed.command === 'import-sharded-d1' && parsed.snapshotPath === undefined) {
       throw new Error('import-sharded-d1 requires --snapshot-path.');
+    }
+    return;
+  }
+  if (parsed.command === 'build-artifacts') {
+    if (
+      parsed.snapshotPath !== undefined &&
+      parsed.maxRows !== undefined &&
+      !parsed.allowPartialArtifact
+    ) {
+      throw new Error(
+        'build-artifacts refuses --max-rows for official snapshots unless --allow-partial-artifact is set.',
+      );
+    }
+    if (parsed.artifactMinTokenLength > parsed.artifactMaxTokenLength) {
+      throw new Error(
+        '--artifact-min-token-length must be less than or equal to --artifact-max-token-length.',
+      );
     }
     return;
   }
@@ -1065,6 +1174,7 @@ async function loadSmartSuggestModules() {
     createAddressImportRunId: datasets.createAddressImportRunId,
     createAuthoritativeAddressImportSource: datasets.createAuthoritativeAddressImportSource,
     createInMemorySmartSuggestRepositories: storage.createInMemorySmartSuggestRepositories,
+    normalizeAddressSnapshotRowForImport: datasets.normalizeAddressSnapshotRowForImport,
     parseRuianOfficialCsvSnapshotChanges: datasets.parseRuianOfficialCsvSnapshotChanges,
     parseRuianOfficialCsvSnapshotRows: datasets.parseRuianOfficialCsvSnapshotRows,
     runAddressDatasetImport: (options) =>
@@ -1159,7 +1269,9 @@ async function createRepositories(args, modules) {
     persistTo: d1.persistTo,
     target: args.d1Target,
   });
-  const repositories = modules.createD1SmartSuggestRepositories(binding);
+  const repositories = modules.createD1SmartSuggestRepositories(binding, {
+    searchIndexMode: args.searchIndexMode,
+  });
   const health = await runCliEffectAsPromise(repositories.health.check());
 
   if (!health.ok) {
@@ -1300,20 +1412,46 @@ function parseShardRegionBindingMap(args) {
   return map;
 }
 
+function hashStringToPositiveInteger(value) {
+  let hash = 0;
+
+  for (const character of value) {
+    hash = (Math.imul(hash, 131) + (character.codePointAt(0) ?? 0)) % shardHashModulus;
+
+    if (hash < 0) {
+      hash += shardHashModulus;
+    }
+  }
+
+  return hash;
+}
+
 function changeRuian(change) {
   return change.kind === 'address' ? change.row.ruian : change.tombstone.ruian;
+}
+
+function changeId(change) {
+  return change.kind === 'address' ? change.row.id : change.tombstone.id;
 }
 
 function requireChangeRegionCode(change) {
   const regionCode = changeRuian(change)?.regionCode?.trim();
 
   if (regionCode === undefined || regionCode.length === 0) {
-    const id = change.kind === 'address' ? change.row.id : change.tombstone.id;
-
-    throw new Error(`Sharded import row ${id} is missing RUIAN regionCode/VUSC code.`);
+    throw new Error(
+      `Sharded import row ${changeId(change)} is missing RUIAN regionCode/VUSC code.`,
+    );
   }
 
   return regionCode;
+}
+
+function routeKeyForHashShard(change) {
+  const ruian = changeRuian(change);
+
+  return (
+    ruian?.stableAddressId?.trim() || ruian?.addressPlaceCode?.trim() || changeId(change).trim()
+  );
 }
 
 function shardBindingForRegion(args, regionCode) {
@@ -1330,29 +1468,75 @@ function shardBindingForRegion(args, regionCode) {
   return bindingName;
 }
 
-function ensureShardRoute(routes, args, regionCode) {
-  const existing = routes.get(regionCode);
+function shardBindingForHashRoute(args, change) {
+  const allowedBindings = parseCommaList(args.shardBindings);
+
+  if (allowedBindings.length === 0) {
+    throw new Error('--shard-bindings is required for hash sharded imports.');
+  }
+
+  const routeKey = routeKeyForHashShard(change);
+  const shardIndex = hashStringToPositiveInteger(routeKey) % allowedBindings.length;
+
+  return {
+    bindingName: allowedBindings[shardIndex],
+    regionCode: `hash-${String(shardIndex + 1).padStart(2, '0')}`,
+    regionKind: 'country',
+    regionName: `${args.country} address hash shard ${String(shardIndex + 1).padStart(2, '0')}`,
+  };
+}
+
+function routeDescriptorForChange(args, change) {
+  if (args.shardRouteStrategy === 'hash') {
+    return shardBindingForHashRoute(args, change);
+  }
+
+  const regionCode = requireChangeRegionCode(change);
+
+  return {
+    bindingName: shardBindingForRegion(args, regionCode),
+    regionCode,
+    regionKind: 'vusc',
+    regionName: `VUSC ${regionCode}`,
+  };
+}
+
+function ensureShardRoute(routes, args, descriptor) {
+  const routeId = `${descriptor.regionKind}:${descriptor.regionCode}`;
+  const existing = routes.get(routeId);
 
   if (existing !== undefined) {
     return existing;
   }
 
-  const bindingName = shardBindingForRegion(args, regionCode);
   const route = {
     addressRows: 0,
-    bindingName,
-    filePath: path.join(args.routeTempDir, `${bindingName}-${regionCode}.jsonl`),
-    regionCode,
+    bindingName: descriptor.bindingName,
+    filePath: path.join(
+      args.routeTempDir,
+      `${descriptor.bindingName}-${descriptor.regionCode}.jsonl`,
+    ),
+    logicalRegionCodes: new Set(),
+    regionCode: descriptor.regionCode,
+    regionKind: descriptor.regionKind,
+    regionName: descriptor.regionName,
+    routingStrategy: args.shardRouteStrategy,
     totalRows: 0,
     tombstoneRows: 0,
     stream: undefined,
   };
-  routes.set(regionCode, route);
+  routes.set(routeId, route);
 
   return route;
 }
 
 function writeImportChange(route, change) {
+  const logicalRegionCode = changeRuian(change)?.regionCode?.trim();
+
+  if (logicalRegionCode !== undefined && logicalRegionCode.length > 0) {
+    route.logicalRegionCodes.add(logicalRegionCode);
+  }
+
   route.stream ??= fs.createWriteStream(route.filePath, { flags: 'a' });
   route.stream.write(`${JSON.stringify(change)}\n`);
   route.totalRows += 1;
@@ -1365,7 +1549,14 @@ function writeImportChange(route, change) {
   route.tombstoneRows += 1;
 }
 
-function estimateShardStorageBytes(route) {
+function estimateShardStorageBytes(args, route) {
+  if (args.searchIndexMode === 'fts-only') {
+    return Math.max(
+      shardStorageEstimateFloorBytes,
+      route.addressRows * ftsOnlyShardStorageEstimateRowBytes,
+    );
+  }
+
   const fileSizeBytes = fs.statSync(route.filePath).size;
   const sourcePayloadEstimateBytes = fileSizeBytes * shardStorageEstimateMultiplier;
   const addressRowFloorBytes = route.addressRows * shardStorageEstimateRowFloorBytes;
@@ -1375,6 +1566,21 @@ function estimateShardStorageBytes(route) {
     Math.ceil(sourcePayloadEstimateBytes),
     addressRowFloorBytes,
   );
+}
+
+function storageEstimatePolicy(args) {
+  if (args.searchIndexMode === 'fts-only') {
+    return {
+      bytesPerAddressRow: ftsOnlyShardStorageEstimateRowBytes,
+      mode: 'fts-only-reviewed-row-estimate',
+    };
+  }
+
+  return {
+    fileSizeMultiplier: shardStorageEstimateMultiplier,
+    mode: 'legacy-jsonl-source-payload-estimate',
+    rowFloorBytes: shardStorageEstimateRowFloorBytes,
+  };
 }
 
 async function closeShardRouteStreams(routes) {
@@ -1406,8 +1612,8 @@ async function routeImportChangesToShardFiles(args, rows) {
         throw new Error('Sharded import requires official parsed address/tombstone changes.');
       }
 
-      const regionCode = requireChangeRegionCode(change);
-      const route = ensureShardRoute(routes, routeArgs, regionCode);
+      const descriptor = routeDescriptorForChange(routeArgs, change);
+      const route = ensureShardRoute(routes, routeArgs, descriptor);
       writeImportChange(route, change);
     }
 
@@ -1421,46 +1627,201 @@ async function routeImportChangesToShardFiles(args, rows) {
   return {
     routes: [...routes.values()].map(({ stream: _stream, ...route }) => ({
       ...route,
-      estimatedSizeBytes: estimateShardStorageBytes(route),
+      estimatedSizeBytes: estimateShardStorageBytes(args, route),
+      logicalRegionCodes: [...route.logicalRegionCodes],
     })),
     routeTempDir,
   };
 }
 
 function assertShardRouteBudgets(args, routes) {
-  if (args.shardMaxRows === undefined) {
+  const budget = evaluateShardRouteBudgets(args, routes);
+
+  if (budget.status === 'ok') {
     return;
   }
 
-  const oversizedRoute = routes.find((route) => route.totalRows > args.shardMaxRows);
+  const [violation] = budget.violations;
 
-  if (oversizedRoute === undefined) {
-    const rowsByBinding = new Map();
-
-    for (const route of routes) {
-      rowsByBinding.set(
-        route.bindingName,
-        (rowsByBinding.get(route.bindingName) ?? 0) + route.totalRows,
-      );
-    }
-
-    const oversizedPhysicalShard = [...rowsByBinding.entries()].find(
-      ([, totalRows]) => totalRows > args.shardMaxRows,
-    );
-
-    if (oversizedPhysicalShard === undefined) {
-      return;
-    }
-
-    const [bindingName, totalRows] = oversizedPhysicalShard;
-
+  if (violation?.kind === 'physical-shard') {
     throw new Error(
-      `Physical shard ${bindingName} routed ${totalRows} row(s), exceeding --shard-max-rows ${args.shardMaxRows}.`,
+      `Physical shard ${violation.bindingName} routed ${violation.totalRows} row(s), exceeding --shard-max-rows ${violation.maxRows}.`,
+    );
+  }
+  if (violation?.kind === 'logical-shard') {
+    throw new Error(
+      `Shard ${violation.bindingName} routed ${violation.totalRows} row(s), exceeding --shard-max-rows ${violation.maxRows}.`,
+    );
+  }
+  if (violation?.kind === 'logical-shard-size') {
+    throw new Error(
+      `Shard ${violation.bindingName} estimated ${violation.estimatedSizeBytes} byte(s), exceeding --shard-max-estimated-size-bytes ${violation.maxEstimatedSizeBytes}.`,
+    );
+  }
+  if (violation?.kind === 'physical-shard-size') {
+    throw new Error(
+      `Physical shard ${violation.bindingName} estimated ${violation.estimatedSizeBytes} byte(s), exceeding --shard-max-estimated-size-bytes ${violation.maxEstimatedSizeBytes}.`,
     );
   }
 
-  throw new Error(
-    `Shard ${oversizedRoute.bindingName} routed ${oversizedRoute.totalRows} row(s), exceeding --shard-max-rows ${args.shardMaxRows}.`,
+  throw new Error('Shard route budget failed.');
+}
+
+function compareRouteCodes(left, right) {
+  const leftNumber = Number(left.regionCode);
+  const rightNumber = Number(right.regionCode);
+
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    return leftNumber - rightNumber;
+  }
+
+  return left.regionCode.localeCompare(right.regionCode);
+}
+
+function sortRouteCodes(codes) {
+  return [...new Set(codes)].toSorted((left, right) => {
+    const leftNumber = Number(left);
+    const rightNumber = Number(right);
+
+    if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+      return leftNumber - rightNumber;
+    }
+
+    return left.localeCompare(right);
+  });
+}
+
+function summarizeShardRoutes(routes) {
+  return routes
+    .map((route) => ({
+      addressRows: route.addressRows,
+      bindingName: route.bindingName,
+      estimatedSizeBytes: route.estimatedSizeBytes,
+      logicalRegionCodes: sortRouteCodes(route.logicalRegionCodes ?? []),
+      regionCode: route.regionCode,
+      regionKind: route.regionKind,
+      regionName: route.regionName,
+      routingStrategy: route.routingStrategy,
+      tombstoneRows: route.tombstoneRows,
+      totalRows: route.totalRows,
+    }))
+    .toSorted(compareRouteCodes);
+}
+
+function summarizePhysicalShardRoutes(routes) {
+  const byBinding = new Map();
+
+  for (const route of routes) {
+    const existing = byBinding.get(route.bindingName) ?? {
+      addressRows: 0,
+      bindingName: route.bindingName,
+      estimatedSizeBytes: 0,
+      logicalRegionCodes: [],
+      routeCodes: [],
+      tombstoneRows: 0,
+      totalRows: 0,
+    };
+
+    existing.addressRows += route.addressRows;
+    existing.estimatedSizeBytes += route.estimatedSizeBytes;
+    existing.logicalRegionCodes.push(...(route.logicalRegionCodes ?? [route.regionCode]));
+    existing.routeCodes.push(route.regionCode);
+    existing.tombstoneRows += route.tombstoneRows;
+    existing.totalRows += route.totalRows;
+    byBinding.set(route.bindingName, existing);
+  }
+
+  return [...byBinding.values()]
+    .map((summary) => ({
+      ...summary,
+      logicalRegionCodes: sortRouteCodes(summary.logicalRegionCodes),
+      routeCodes: sortRouteCodes(summary.routeCodes),
+    }))
+    .toSorted((left, right) => left.bindingName.localeCompare(right.bindingName));
+}
+
+function evaluateShardRouteBudgets(args, routes) {
+  if (args.shardMaxRows === undefined && args.shardMaxEstimatedSizeBytes === undefined) {
+    return {
+      maxEstimatedSizeBytes: null,
+      maxRows: null,
+      status: 'ok',
+      violations: [],
+    };
+  }
+
+  const violations = [];
+
+  for (const route of routes) {
+    if (args.shardMaxRows !== undefined && route.totalRows > args.shardMaxRows) {
+      violations.push({
+        bindingName: route.bindingName,
+        kind: 'logical-shard',
+        maxRows: args.shardMaxRows,
+        regionCode: route.regionCode,
+        totalRows: route.totalRows,
+      });
+    }
+    if (
+      args.shardMaxEstimatedSizeBytes !== undefined &&
+      route.estimatedSizeBytes > args.shardMaxEstimatedSizeBytes
+    ) {
+      violations.push({
+        bindingName: route.bindingName,
+        estimatedSizeBytes: route.estimatedSizeBytes,
+        kind: 'logical-shard-size',
+        maxEstimatedSizeBytes: args.shardMaxEstimatedSizeBytes,
+        regionCode: route.regionCode,
+      });
+    }
+  }
+
+  for (const physicalShard of summarizePhysicalShardRoutes(routes)) {
+    if (args.shardMaxRows !== undefined && physicalShard.totalRows > args.shardMaxRows) {
+      violations.push({
+        bindingName: physicalShard.bindingName,
+        kind: 'physical-shard',
+        logicalRegionCodes: physicalShard.logicalRegionCodes,
+        maxRows: args.shardMaxRows,
+        totalRows: physicalShard.totalRows,
+      });
+    }
+    if (
+      args.shardMaxEstimatedSizeBytes !== undefined &&
+      physicalShard.estimatedSizeBytes > args.shardMaxEstimatedSizeBytes
+    ) {
+      violations.push({
+        bindingName: physicalShard.bindingName,
+        estimatedSizeBytes: physicalShard.estimatedSizeBytes,
+        kind: 'physical-shard-size',
+        maxEstimatedSizeBytes: args.shardMaxEstimatedSizeBytes,
+        routeCodes: physicalShard.routeCodes,
+      });
+    }
+  }
+
+  return {
+    maxEstimatedSizeBytes: args.shardMaxEstimatedSizeBytes ?? null,
+    maxRows: args.shardMaxRows ?? null,
+    status: violations.length === 0 ? 'ok' : 'failed',
+    violations,
+  };
+}
+
+function summarizeRouteTotals(routes) {
+  return routes.reduce(
+    (summary, route) => ({
+      addressRows: summary.addressRows + route.addressRows,
+      estimatedSizeBytes: summary.estimatedSizeBytes + route.estimatedSizeBytes,
+      tombstoneRows: summary.tombstoneRows + route.tombstoneRows,
+      totalRows: summary.totalRows + route.totalRows,
+    }),
+    {
+      addressRows: 0,
+      estimatedSizeBytes: 0,
+      tombstoneRows: 0,
+      totalRows: 0,
+    },
   );
 }
 
@@ -1700,6 +2061,8 @@ async function importShardRoute({ args, modules, route }) {
 
   return {
     bindingName: route.bindingName,
+    regionKind: route.regionKind,
+    regionName: route.regionName,
     regionCode: route.regionCode,
     result,
     route,
@@ -1726,10 +2089,18 @@ async function updateRouterShardRegistry({ args, modules, shardResults }) {
     ]),
   );
   const updated = [];
+  const nextActiveRegionKeys = new Set(
+    shardResults.map(
+      (shardResult) =>
+        `${args.country}:${shardResult.route.regionKind ?? 'vusc'}:${shardResult.regionCode}`,
+    ),
+  );
 
   for (const shardResult of shardResults) {
+    const regionKind = shardResult.route.regionKind ?? 'vusc';
     const previousRowCount =
-      existingByRegion.get(`${args.country}:vusc:${shardResult.regionCode}:active`)?.rowCount ?? 0;
+      existingByRegion.get(`${args.country}:${regionKind}:${shardResult.regionCode}:active`)
+        ?.rowCount ?? 0;
     const nextRowCount = Math.max(
       0,
       previousRowCount + shardResult.result.insertedRows - shardResult.result.tombstonedRows,
@@ -1742,10 +2113,10 @@ async function updateRouterShardRegistry({ args, modules, shardResults }) {
         importVersion: args.datasetVersion,
         lastImportCompletedAt: shardResult.result.importRun.completedAt,
         regionCode: shardResult.regionCode,
-        regionKind: 'vusc',
-        regionName: `VUSC ${shardResult.regionCode}`,
+        regionKind,
+        regionName: shardResult.route.regionName ?? `VUSC ${shardResult.regionCode}`,
         rowCount: nextRowCount,
-        shardId: `smart-suggest-${args.country.toLocaleLowerCase('en-US')}-vusc-${
+        shardId: `smart-suggest-${args.country.toLocaleLowerCase('en-US')}-${regionKind}-${
           shardResult.regionCode
         }`,
         sourceFreshnessAt: args.sourceValidAt,
@@ -1755,7 +2126,991 @@ async function updateRouterShardRegistry({ args, modules, shardResults }) {
     updated.push(record);
   }
 
+  for (const existingRecord of existingRecords) {
+    const existingRegionKey = `${existingRecord.countryCode}:${existingRecord.regionKind}:${existingRecord.regionCode}`;
+
+    if (existingRecord.state !== 'active' || nextActiveRegionKeys.has(existingRegionKey)) {
+      continue;
+    }
+
+    const record = await runCliEffectAsPromise(
+      repositories.shardRegistry.upsertShardMetadata({
+        bindingName: existingRecord.bindingName,
+        countryCode: existingRecord.countryCode,
+        estimatedSizeBytes: existingRecord.estimatedSizeBytes,
+        importVersion: existingRecord.importVersion,
+        lastImportCompletedAt: existingRecord.lastImportCompletedAt,
+        municipalityCodes: existingRecord.municipalityCodes,
+        municipalityHints: existingRecord.municipalityHints,
+        postalPrefixes: existingRecord.postalPrefixes,
+        regionCode: existingRecord.regionCode,
+        regionKind: existingRecord.regionKind,
+        regionName: existingRecord.regionName,
+        rowCount: existingRecord.rowCount,
+        shardId: existingRecord.shardId,
+        sourceFreshnessAt: existingRecord.sourceFreshnessAt,
+        state: 'disabled',
+      }),
+    );
+    updated.push(record);
+  }
+
   return updated;
+}
+
+async function planShardedDataset(args, modules) {
+  const datasetInput = await createDatasetInput(args, modules);
+
+  if (datasetInput.officialSnapshot === undefined) {
+    throw new Error('import-sharded-d1 route planning requires an external official snapshot.');
+  }
+
+  const routed = await routeImportChangesToShardFiles(args, datasetInput.rows);
+
+  try {
+    const routes = routed.routes;
+
+    return {
+      budget: evaluateShardRouteBudgets(args, routes),
+      officialSnapshot: datasetInput.officialSnapshot,
+      physicalShards: summarizePhysicalShardRoutes(routes),
+      routes: summarizeShardRoutes(routes),
+      routingStrategy: args.shardRouteStrategy,
+      storageEstimatePolicy: storageEstimatePolicy(args),
+      totals: summarizeRouteTotals(routes),
+    };
+  } finally {
+    fs.rmSync(routed.routeTempDir, { force: true, recursive: true });
+  }
+}
+
+const artifactTokenPattern = /[\p{L}\p{N}]+/gu;
+const artifactHashModulus = 2_147_483_647;
+const artifactBucketFlushBytes = 256 * 1024;
+const artifactTotalFlushBytes = 16 * 1024 * 1024;
+
+class ArtifactAppendBuckets {
+  constructor(directory, extension) {
+    this.buffers = new Map();
+    this.directory = directory;
+    this.extension = extension;
+    this.totalBufferedBytes = 0;
+  }
+
+  append(bucketName, line) {
+    const fileName = `${bucketName}.${this.extension}`;
+    const text = `${line}\n`;
+    const byteLength = Buffer.byteLength(text);
+    const buffer = this.buffers.get(fileName) ?? {
+      bytes: 0,
+      chunks: [],
+    };
+
+    buffer.bytes += byteLength;
+    buffer.chunks.push(text);
+    this.buffers.set(fileName, buffer);
+    this.totalBufferedBytes += byteLength;
+
+    if (buffer.bytes >= artifactBucketFlushBytes) {
+      this.flushFile(fileName);
+    }
+    if (this.totalBufferedBytes >= artifactTotalFlushBytes) {
+      this.flushLargestFile();
+    }
+  }
+
+  filePath(fileName) {
+    return path.join(this.directory, fileName);
+  }
+
+  flushFile(fileName) {
+    const buffer = this.buffers.get(fileName);
+
+    if (buffer === undefined) {
+      return;
+    }
+
+    fs.mkdirSync(this.directory, { recursive: true });
+    fs.appendFileSync(this.filePath(fileName), buffer.chunks.join(''));
+    this.totalBufferedBytes -= buffer.bytes;
+    this.buffers.delete(fileName);
+  }
+
+  flushLargestFile() {
+    let largestFileName;
+    let largestBytes = 0;
+
+    for (const [fileName, buffer] of this.buffers.entries()) {
+      if (buffer.bytes > largestBytes) {
+        largestBytes = buffer.bytes;
+        largestFileName = fileName;
+      }
+    }
+
+    if (largestFileName !== undefined) {
+      this.flushFile(largestFileName);
+    }
+  }
+
+  flushAll() {
+    for (const fileName of [...this.buffers.keys()]) {
+      this.flushFile(fileName);
+    }
+  }
+}
+
+function normalizeArtifactSearchText(value) {
+  return value
+    .normalize('NFKD')
+    .replaceAll(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase('cs-CZ')
+    .replaceAll(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replaceAll(/\s+/gu, ' ');
+}
+
+function postalDigits(value) {
+  return value?.replaceAll(/\D/gu, '') ?? '';
+}
+
+function hashArtifactKey(value) {
+  let hash = 0;
+
+  for (const character of value) {
+    hash = (Math.imul(hash, 131) + (character.codePointAt(0) ?? 0)) % artifactHashModulus;
+
+    if (hash < 0) {
+      hash += artifactHashModulus;
+    }
+  }
+
+  return hash;
+}
+
+function artifactBucketForKey(value, bucketCount) {
+  return hashArtifactKey(value) % bucketCount;
+}
+
+function artifactBucketName(bucket) {
+  return String(bucket).padStart(4, '0');
+}
+
+function artifactOrderedSearchTokens(value) {
+  const normalized = normalizeArtifactSearchText(value);
+  const seen = new Set();
+  const tokens = [];
+
+  for (const match of normalized.matchAll(artifactTokenPattern)) {
+    const [token] = match;
+
+    if (token.length === 0 || seen.has(token)) {
+      continue;
+    }
+
+    seen.add(token);
+    tokens.push(token);
+  }
+
+  return tokens;
+}
+
+function addArtifactTokenPrefixes(tokens, token, args) {
+  const maxLength = Math.min(token.length, args.artifactMaxTokenLength);
+
+  for (let length = args.artifactMinTokenLength; length <= maxLength; length += 1) {
+    tokens.add(token.slice(0, length));
+  }
+}
+
+function addArtifactSequenceTokenPrefixes(tokens, leftToken, rightToken, args) {
+  const left = leftToken.slice(0, args.artifactMaxTokenLength);
+  const maxLength = Math.min(rightToken.length, args.artifactMaxTokenLength);
+
+  if (left.length === 0) {
+    return;
+  }
+
+  for (let length = args.artifactMinTokenLength; length <= maxLength; length += 1) {
+    tokens.add(`${left} ${rightToken.slice(0, length)}`);
+  }
+}
+
+function artifactTokensForRecord(record, args) {
+  const searchTokens = artifactOrderedSearchTokens(record.searchLabel);
+  const tokens = new Set();
+  const postalCode = postalDigits(record.parts.postalCode ?? record.ruian?.postalCode);
+  const countryToken = normalizeArtifactSearchText(record.parts.countryCode ?? record.countryCode);
+
+  for (const token of searchTokens) {
+    addArtifactTokenPrefixes(tokens, token, args);
+  }
+
+  for (let index = 1; index < searchTokens.length; index += 1) {
+    const left = searchTokens[index - 1];
+    const right = searchTokens[index];
+
+    if (left !== countryToken && right !== countryToken) {
+      addArtifactSequenceTokenPrefixes(tokens, left, right, args);
+    }
+  }
+
+  if (postalCode.length >= args.artifactMinTokenLength) {
+    const maxLength = Math.min(postalCode.length, args.artifactMaxTokenLength);
+
+    for (let length = args.artifactMinTokenLength; length <= maxLength; length += 1) {
+      tokens.add(postalCode.slice(0, length));
+    }
+  }
+  if (countryToken.length > 0) {
+    tokens.delete(countryToken);
+  }
+
+  return [...tokens].toSorted();
+}
+
+function replicationStatusForArtifactRecord(record) {
+  if (record.replicationStatus !== undefined) {
+    return record.replicationStatus;
+  }
+  if (record.visibility?.replicationStatus !== undefined) {
+    return record.visibility.replicationStatus;
+  }
+
+  return record.visibility?.invalid === true ? 'invalid' : 'active';
+}
+
+function searchVisibleForArtifactRecord(record, replicationStatus) {
+  return record.searchVisible ?? record.visibility?.searchVisible ?? replicationStatus === 'active';
+}
+
+function toArtifactAddressRecord(record, timestamp) {
+  const replicationStatus = replicationStatusForArtifactRecord(record);
+  const searchVisible = searchVisibleForArtifactRecord(record, replicationStatus);
+
+  return {
+    ...record,
+    createdAt: timestamp,
+    replicationStatus,
+    searchVisible,
+    updatedAt: timestamp,
+  };
+}
+
+function addMapValue(map, key, value) {
+  const values = map.get(key);
+
+  if (values === undefined) {
+    map.set(key, [value]);
+    return;
+  }
+
+  values.push(value);
+}
+
+async function* readNonEmptyLines(filePath) {
+  const lines = createInterface({
+    crlfDelay: Infinity,
+    input: fs.createReadStream(filePath, 'utf8'),
+  });
+
+  for await (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed.length > 0) {
+      yield trimmed;
+    }
+  }
+}
+
+async function* readJsonArtifactLines(filePath) {
+  for await (const line of readNonEmptyLines(filePath)) {
+    yield JSON.parse(line);
+  }
+}
+
+function compareArtifactRecords(left, right) {
+  return (
+    right.quality - left.quality ||
+    left.displayLabel.localeCompare(right.displayLabel, 'cs-CZ') ||
+    left.id.localeCompare(right.id, 'cs-CZ')
+  );
+}
+
+function artifactPostalLocalityKey(record, postalCode) {
+  const city = record.parts.city?.trim();
+
+  if (city === undefined || city.length === 0) {
+    return undefined;
+  }
+
+  const localityCountryCode = record.parts.countryCode ?? record.countryCode;
+
+  return [
+    localityCountryCode,
+    postalCode,
+    normalizeArtifactSearchText(city),
+    normalizeArtifactSearchText(record.parts.region ?? ''),
+  ].join('|');
+}
+
+function addArtifactPostalLocalityCandidate(bestByLocality, postalCode, record) {
+  const key = artifactPostalLocalityKey(record, postalCode);
+
+  if (key === undefined) {
+    return;
+  }
+
+  const existing = bestByLocality.get(key);
+
+  if (
+    existing === undefined ||
+    record.quality > existing.quality ||
+    (record.quality === existing.quality &&
+      record.displayLabel.localeCompare(existing.displayLabel, 'cs-CZ') < 0)
+  ) {
+    bestByLocality.set(key, record);
+  }
+}
+
+function sortArtifactPostalLocalityRecords(records) {
+  return records.toSorted((left, right) => {
+    const leftCity = left.parts.city ?? '';
+    const rightCity = right.parts.city ?? '';
+
+    return (
+      leftCity.localeCompare(rightCity, 'cs-CZ') ||
+      (left.parts.region ?? '').localeCompare(right.parts.region ?? '', 'cs-CZ') ||
+      right.quality - left.quality ||
+      left.displayLabel.localeCompare(right.displayLabel, 'cs-CZ')
+    );
+  });
+}
+
+function writeJsonArtifact(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value)}\n`);
+}
+
+function listArtifactBucketFiles(directory, extension) {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+
+  return fs
+    .readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(`.${extension}`))
+    .map((entry) => ({
+      bucketName: entry.name.slice(0, -1 * `.${extension}`.length),
+      path: path.join(directory, entry.name),
+    }))
+    .toSorted((left, right) => left.bucketName.localeCompare(right.bucketName, 'cs-CZ'));
+}
+
+function summarizeArtifactFiles(outDir, maxFileSizeBytes) {
+  const files = fs
+    .readdirSync(outDir, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile());
+  let totalSizeBytes = 0;
+  let largestFile = {
+    path: undefined,
+    sizeBytes: 0,
+  };
+  const oversizedFiles = [];
+
+  for (const entry of files) {
+    const parentPath = entry.parentPath ?? outDir;
+    const filePath = path.join(parentPath, entry.name);
+    const sizeBytes = fs.statSync(filePath).size;
+    const relativePath = path.relative(outDir, filePath);
+
+    totalSizeBytes += sizeBytes;
+
+    if (sizeBytes > largestFile.sizeBytes) {
+      largestFile = {
+        path: relativePath,
+        sizeBytes,
+      };
+    }
+    if (maxFileSizeBytes !== undefined && sizeBytes > maxFileSizeBytes) {
+      oversizedFiles.push({
+        path: relativePath,
+        sizeBytes,
+      });
+    }
+  }
+
+  return {
+    fileCount: files.length,
+    largestFile,
+    oversizedFiles: oversizedFiles.toSorted((left, right) => right.sizeBytes - left.sizeBytes),
+    totalSizeBytes,
+  };
+}
+
+function artifactSourceRecord(source, timestamp) {
+  return {
+    attribution: source.attribution,
+    cachePolicy: source.cachePolicy,
+    countryCode: source.countryCode,
+    createdAt: timestamp,
+    datasetVersion: source.datasetVersion,
+    id: source.id,
+    modificationNoteSha256: source.modificationNoteSha256,
+    name: source.name,
+    region: source.region,
+    sourceKind: source.sourceKind,
+    updatedAt: timestamp,
+  };
+}
+
+function artifactImportRunRecord({ args, complete, runId, source, timestamp, totals }) {
+  return {
+    atomEntryId: args.atomEntryId,
+    checksumSha256: normalizeSha256(args.expectedChecksumSha256),
+    completedAt: timestamp,
+    failedRows: totals.failedRows,
+    id: runId,
+    importKind: args.fileKind,
+    insertedRows: totals.addressRows,
+    shardCountryCode: source.shardCountryCode,
+    skippedRows: totals.failedRows,
+    sourceFeedId: args.feedId,
+    sourceGeneratedAt: args.sourceGeneratedAt,
+    sourceId: source.id,
+    sourceUri: args.sourceUri,
+    sourceValidAt: args.sourceValidAt,
+    sourceVersion: args.sourceVersion ?? args.datasetVersion,
+    startedAt: timestamp,
+    status: complete && totals.failedRows === 0 ? 'completed' : 'failed',
+    tombstonedRows: totals.tombstoneRows,
+    totalRows: totals.totalRows,
+    upsertedRows: totals.addressRows,
+  };
+}
+
+function artifactShardRecord({ args, complete, estimatedSizeBytes, rowCount, timestamp }) {
+  return {
+    bindingName: 'SMART_SUGGEST_OWNED_ARTIFACTS',
+    countryCode: args.country,
+    createdAt: timestamp,
+    estimatedSizeBytes,
+    importVersion: args.datasetVersion,
+    lastImportCompletedAt: complete ? timestamp : undefined,
+    municipalityCodes: [],
+    municipalityHints: [],
+    postalPrefixes: [],
+    regionCode: args.country,
+    regionKind: 'country',
+    regionName: `${args.country} owned static artifact index`,
+    rowCount,
+    shardId: `smart-suggest-${args.country.toLocaleLowerCase('en-US')}-owned-artifacts`,
+    sourceFreshnessAt: args.sourceValidAt,
+    state: complete ? 'active' : 'standby',
+    updatedAt: timestamp,
+  };
+}
+
+async function writePostalArtifactsFromTemp({ args, datasetVersion, outDir, postalTempDir }) {
+  const postalSummaries = [];
+
+  for (const bucketFile of listArtifactBucketFiles(postalTempDir, 'jsonl')) {
+    const postalCode = bucketFile.bucketName;
+    const bestByLocality = new Map();
+
+    for await (const record of readJsonArtifactLines(bucketFile.path)) {
+      addArtifactPostalLocalityCandidate(bestByLocality, postalCode, record);
+    }
+
+    const sortedRecords = sortArtifactPostalLocalityRecords([...bestByLocality.values()]);
+    const relativePath = `postal/${args.country}/${postalCode}.json`;
+
+    writeJsonArtifact(path.join(outDir, relativePath), {
+      complete: true,
+      countryCode: args.country,
+      datasetVersion,
+      query: {
+        kind: 'postal-code',
+        value: postalCode,
+      },
+      records: sortedRecords,
+      schemaVersion: 'smart-suggest-address-records/v1',
+    });
+    postalSummaries.push({
+      path: relativePath,
+      postalCode,
+      recordCount: sortedRecords.length,
+    });
+  }
+
+  return postalSummaries;
+}
+
+async function writeRecordArtifactsFromTemp({ args, datasetVersion, outDir, recordTempDir }) {
+  const recordShardSummaries = [];
+
+  for (const bucketFile of listArtifactBucketFiles(recordTempDir, 'jsonl')) {
+    const bucketName = bucketFile.bucketName;
+    const bucket = Number(bucketName);
+    const records = [];
+
+    for await (const record of readJsonArtifactLines(bucketFile.path)) {
+      records.push(record);
+    }
+
+    const sortedRecords = records.toSorted((left, right) =>
+      left.id.localeCompare(right.id, 'cs-CZ'),
+    );
+    const relativePath = `records/${args.country}/${bucketName}.json`;
+
+    writeJsonArtifact(path.join(outDir, relativePath), {
+      complete: true,
+      countryCode: args.country,
+      datasetVersion,
+      query: {
+        kind: 'address-record-bucket',
+        value: bucketName,
+      },
+      records: sortedRecords,
+      schemaVersion: 'smart-suggest-address-records/v1',
+    });
+    recordShardSummaries.push({
+      bucket,
+      path: relativePath,
+      recordCount: sortedRecords.length,
+    });
+  }
+
+  return recordShardSummaries;
+}
+
+function parseArtifactTokenReference(line) {
+  const separatorIndex = line.indexOf('\t');
+
+  if (separatorIndex < 1 || separatorIndex === line.length - 1) {
+    throw new Error('Artifact token reference line is malformed.');
+  }
+
+  return {
+    recordId: line.slice(separatorIndex + 1),
+    token: line.slice(0, separatorIndex),
+  };
+}
+
+function tokenBucketArtifact({ args, bucket, datasetVersion, tokens }) {
+  return {
+    bucket,
+    complete: true,
+    countryCode: args.country,
+    datasetVersion,
+    schemaVersion: 'smart-suggest-address-token-bucket/v1',
+    tokens,
+  };
+}
+
+function tokenBucketPageArtifact({ args, bucket, datasetVersion, page, tokens }) {
+  return {
+    bucket,
+    complete: true,
+    countryCode: args.country,
+    datasetVersion,
+    page,
+    schemaVersion: 'smart-suggest-address-token-bucket-page/v1',
+    tokens,
+  };
+}
+
+function artifactJsonSizeBytes(value) {
+  return Buffer.byteLength(`${JSON.stringify(value)}\n`);
+}
+
+function tokenEntriesToObject(entries) {
+  return Object.fromEntries(
+    entries.map(([token, recordIds]) => [
+      token,
+      {
+        recordCount: recordIds.length,
+        recordIds,
+      },
+    ]),
+  );
+}
+
+function writePagedTokenBucketArtifacts({
+  args,
+  bucket,
+  bucketName,
+  datasetVersion,
+  outDir,
+  sortedTokenEntries,
+}) {
+  const pages = [];
+  const tokenReferences = {};
+  let pageEntries = [];
+
+  const writePage = () => {
+    if (pageEntries.length === 0) {
+      return;
+    }
+
+    const page = pages.length;
+    const pageName = String(page).padStart(4, '0');
+    const relativePath = `token/${args.country}/bucket-${bucketName}/${pageName}.json`;
+    const tokens = tokenEntriesToObject(pageEntries);
+    const recordCount = pageEntries.reduce((count, [, recordIds]) => count + recordIds.length, 0);
+
+    writeJsonArtifact(
+      path.join(outDir, relativePath),
+      tokenBucketPageArtifact({
+        args,
+        bucket,
+        datasetVersion,
+        page,
+        tokens,
+      }),
+    );
+
+    for (const [token, recordIds] of pageEntries) {
+      tokenReferences[token] = {
+        page,
+        recordCount: recordIds.length,
+      };
+    }
+
+    pages.push({
+      page,
+      path: relativePath,
+      recordCount,
+      tokenCount: pageEntries.length,
+    });
+    pageEntries = [];
+  };
+
+  for (const tokenEntry of sortedTokenEntries) {
+    const oneTokenSizeBytes = artifactJsonSizeBytes(
+      tokenBucketPageArtifact({
+        args,
+        bucket,
+        datasetVersion,
+        page: pages.length,
+        tokens: tokenEntriesToObject([tokenEntry]),
+      }),
+    );
+
+    if (oneTokenSizeBytes > args.artifactMaxFileSizeBytes) {
+      throw new Error(
+        `Artifact token "${tokenEntry[0]}" produces ${oneTokenSizeBytes} bytes, exceeding --artifact-max-file-size-bytes ${args.artifactMaxFileSizeBytes}.`,
+      );
+    }
+
+    const nextEntries = [...pageEntries, tokenEntry];
+    const nextSizeBytes = artifactJsonSizeBytes(
+      tokenBucketPageArtifact({
+        args,
+        bucket,
+        datasetVersion,
+        page: pages.length,
+        tokens: tokenEntriesToObject(nextEntries),
+      }),
+    );
+
+    if (pageEntries.length > 0 && nextSizeBytes > args.artifactMaxFileSizeBytes) {
+      writePage();
+    }
+
+    pageEntries.push(tokenEntry);
+  }
+
+  writePage();
+
+  const relativePath = `token/${args.country}/bucket-${bucketName}/manifest.json`;
+
+  writeJsonArtifact(path.join(outDir, relativePath), {
+    bucket,
+    complete: true,
+    countryCode: args.country,
+    datasetVersion,
+    pageCount: pages.length,
+    pages,
+    schemaVersion: 'smart-suggest-address-token-bucket-manifest/v1',
+    tokens: tokenReferences,
+  });
+
+  return {
+    pageCount: pages.length,
+    path: relativePath,
+  };
+}
+
+async function writeTokenArtifactsFromTemp({ args, datasetVersion, outDir, tokenTempDir }) {
+  const tokenBucketSummaries = [];
+  let tokenIdReferenceCount = 0;
+  let tokenShardCount = 0;
+
+  for (const bucketFile of listArtifactBucketFiles(tokenTempDir, 'tsv')) {
+    const bucketName = bucketFile.bucketName;
+    const bucket = Number(bucketName);
+    const bucketTokens = new Map();
+
+    for await (const line of readNonEmptyLines(bucketFile.path)) {
+      const reference = parseArtifactTokenReference(line);
+      const recordIds = bucketTokens.get(reference.token) ?? new Set();
+
+      recordIds.add(reference.recordId);
+      bucketTokens.set(reference.token, recordIds);
+    }
+
+    const sortedTokenEntries = [...bucketTokens.entries()]
+      .toSorted((left, right) => left[0].localeCompare(right[0], 'cs-CZ'))
+      .map(([token, recordIdSet]) => {
+        const recordIds = [...recordIdSet].toSorted((left, right) =>
+          left.localeCompare(right, 'cs-CZ'),
+        );
+
+        tokenIdReferenceCount += recordIds.length;
+        tokenShardCount += 1;
+
+        return [token, recordIds];
+      });
+    const tokens = tokenEntriesToObject(sortedTokenEntries);
+    const relativePath = `token/${args.country}/bucket-${bucketName}.json`;
+    const artifact = tokenBucketArtifact({
+      args,
+      bucket,
+      datasetVersion,
+      tokens,
+    });
+
+    if (artifactJsonSizeBytes(artifact) <= args.artifactMaxFileSizeBytes) {
+      writeJsonArtifact(path.join(outDir, relativePath), artifact);
+      tokenBucketSummaries.push({
+        bucket,
+        pageCount: 1,
+        path: relativePath,
+        tokenCount: bucketTokens.size,
+      });
+    } else {
+      const paged = writePagedTokenBucketArtifacts({
+        args,
+        bucket,
+        bucketName,
+        datasetVersion,
+        outDir,
+        sortedTokenEntries,
+      });
+
+      tokenBucketSummaries.push({
+        bucket,
+        pageCount: paged.pageCount,
+        path: paged.path,
+        tokenCount: bucketTokens.size,
+      });
+    }
+  }
+
+  return {
+    tokenBucketSummaries,
+    tokenIdReferenceCount,
+    tokenShardCount,
+  };
+}
+
+async function buildOwnedDataArtifacts(args, modules) {
+  const datasetInput = await createDatasetInput(args, modules);
+  const timestamp = new Date().toISOString();
+  const metadata = createImportMetadata(args);
+  const source = modules.createAuthoritativeAddressImportSource(metadata);
+  const runId = modules.createAddressImportRunId(metadata);
+  const complete = !(datasetInput.officialSnapshot !== undefined && args.maxRows !== undefined);
+  const outDir = resolveWorkspacePath(args.artifactOutDir);
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-suggest-owned-artifacts-'));
+  const recordBuckets = new ArtifactAppendBuckets(path.join(tempDir, 'records'), 'jsonl');
+  const tokenBuckets = new ArtifactAppendBuckets(path.join(tempDir, 'tokens'), 'tsv');
+  const postalBuckets = new ArtifactAppendBuckets(path.join(tempDir, 'postal'), 'jsonl');
+  const errors = [];
+  const totals = {
+    addressRows: 0,
+    failedRows: 0,
+    tombstoneRows: 0,
+    totalRows: 0,
+  };
+
+  fs.rmSync(outDir, { force: true, recursive: true });
+  fs.mkdirSync(outDir, { recursive: true });
+
+  try {
+    for await (const input of datasetInput.rows) {
+      totals.totalRows += 1;
+
+      if ('kind' in input && input.kind === 'tombstone') {
+        totals.tombstoneRows += 1;
+        continue;
+      }
+
+      const row = 'kind' in input && input.kind === 'address' ? input.row : input;
+      const normalized = modules.normalizeAddressSnapshotRowForImport(
+        row,
+        source,
+        totals.totalRows - 1,
+        runId,
+      );
+
+      if ('message' in normalized) {
+        totals.failedRows += 1;
+
+        if (errors.length < 5) {
+          errors.push(normalized);
+        }
+
+        continue;
+      }
+
+      const record = toArtifactAddressRecord(normalized, timestamp);
+
+      if (record.replicationStatus !== 'active' || !record.searchVisible) {
+        continue;
+      }
+
+      totals.addressRows += 1;
+
+      const recordLine = JSON.stringify(record);
+      const recordBucketName = artifactBucketName(
+        artifactBucketForKey(record.id, args.artifactRecordShardCount),
+      );
+
+      recordBuckets.append(recordBucketName, recordLine);
+
+      const recordPostalCode = postalDigits(record.parts.postalCode ?? record.ruian?.postalCode);
+
+      if (recordPostalCode.length > 0) {
+        postalBuckets.append(recordPostalCode, recordLine);
+      }
+
+      for (const token of artifactTokensForRecord(record, args)) {
+        const tokenBucketName = artifactBucketName(
+          artifactBucketForKey(token, args.artifactTokenBucketCount),
+        );
+
+        tokenBuckets.append(tokenBucketName, `${token}\t${record.id}`);
+      }
+    }
+
+    recordBuckets.flushAll();
+    tokenBuckets.flushAll();
+    postalBuckets.flushAll();
+
+    if (totals.failedRows > 0) {
+      throw new Error(`Artifact build rejected ${totals.failedRows} address row(s).`);
+    }
+
+    const postalSummaries = await writePostalArtifactsFromTemp({
+      args,
+      datasetVersion: args.datasetVersion,
+      outDir,
+      postalTempDir: path.join(tempDir, 'postal'),
+    });
+    const recordShardSummaries = await writeRecordArtifactsFromTemp({
+      args,
+      datasetVersion: args.datasetVersion,
+      outDir,
+      recordTempDir: path.join(tempDir, 'records'),
+    });
+    const { tokenBucketSummaries, tokenIdReferenceCount, tokenShardCount } =
+      await writeTokenArtifactsFromTemp({
+        args,
+        datasetVersion: args.datasetVersion,
+        outDir,
+        tokenTempDir: path.join(tempDir, 'tokens'),
+      });
+    const firstArtifactFileSummary = summarizeArtifactFiles(outDir, args.artifactMaxFileSizeBytes);
+    const manifest = {
+      dataset: {
+        complete,
+        countryCode: args.country,
+        estimatedSizeBytes: firstArtifactFileSummary.totalSizeBytes,
+        importRun: artifactImportRunRecord({
+          args,
+          complete,
+          runId,
+          source,
+          timestamp,
+          totals,
+        }),
+        rowCount: totals.addressRows,
+        source: artifactSourceRecord(source, timestamp),
+      },
+      generatedAt: timestamp,
+      indexes: {
+        addressRecords: {
+          bucketCount: args.artifactRecordShardCount,
+          complete,
+          pathTemplate: 'records/{countryCode}/{recordBucket}.json',
+        },
+        addressTokens: {
+          bucketCount: args.artifactTokenBucketCount,
+          bucketManifestPathTemplate: 'token/{countryCode}/bucket-{tokenBucket}/manifest.json',
+          bucketPagePathTemplate: 'token/{countryCode}/bucket-{tokenBucket}/{page}.json',
+          bucketPathTemplate: 'token/{countryCode}/bucket-{tokenBucket}.json',
+          complete,
+          maxFileSizeBytes: args.artifactMaxFileSizeBytes,
+          manifestPathTemplate: 'token/{countryCode}/{token}/manifest.json',
+          maxPagesPerQuery: 4,
+          maxTokenLength: args.artifactMaxTokenLength,
+          minTokenLength: args.artifactMinTokenLength,
+          pagePathTemplate: 'token/{countryCode}/{token}/{page}.json',
+          pageSize: args.artifactPageSize,
+        },
+        postalLocalities: {
+          complete,
+          pathTemplate: 'postal/{countryCode}/{postalCode}.json',
+        },
+      },
+      schemaVersion: 'smart-suggest-owned-artifacts/v1',
+      shards: [
+        artifactShardRecord({
+          args,
+          complete,
+          estimatedSizeBytes: firstArtifactFileSummary.totalSizeBytes,
+          rowCount: totals.addressRows,
+          timestamp,
+        }),
+      ],
+    };
+    const manifestPath = path.join(outDir, 'manifest.json');
+
+    writeJsonArtifact(manifestPath, manifest);
+
+    const artifactFileSummary = summarizeArtifactFiles(outDir, args.artifactMaxFileSizeBytes);
+
+    if (artifactFileSummary.oversizedFiles.length > 0) {
+      const [largestOversizedFile] = artifactFileSummary.oversizedFiles;
+
+      throw new Error(
+        `Artifact build produced ${artifactFileSummary.oversizedFiles.length} file(s) larger than ${args.artifactMaxFileSizeBytes} bytes. Largest: ${largestOversizedFile.path} (${largestOversizedFile.sizeBytes} bytes).`,
+      );
+    }
+
+    return {
+      artifactFileCount: artifactFileSummary.fileCount,
+      artifactOutDir: path.relative(workspaceRoot, outDir),
+      complete,
+      estimatedSizeBytes: artifactFileSummary.totalSizeBytes,
+      largestArtifactFile: artifactFileSummary.largestFile,
+      manifestPath: path.relative(workspaceRoot, manifestPath),
+      officialSnapshot: datasetInput.officialSnapshot,
+      oversizedArtifactFiles: artifactFileSummary.oversizedFiles,
+      postalShardCount: postalSummaries.length,
+      recordShardCount: recordShardSummaries.length,
+      rowCount: totals.addressRows,
+      schemaVersion: manifest.schemaVersion,
+      staticAssetMaxFileSizeBytes: args.artifactMaxFileSizeBytes,
+      tokenBucketCount: tokenBucketSummaries.length,
+      tokenIdReferenceCount,
+      tokenShardCount,
+      totals,
+    };
+  } finally {
+    fs.rmSync(tempDir, { force: true, recursive: true });
+  }
 }
 
 async function importShardedDataset(args, modules) {
@@ -1771,9 +3126,7 @@ async function importShardedDataset(args, modules) {
   try {
     const shardResults = [];
 
-    for (const route of routed.routes.toSorted((left, right) =>
-      left.regionCode.localeCompare(right.regionCode),
-    )) {
+    for (const route of routed.routes.toSorted(compareRouteCodes)) {
       shardResults.push(
         await importShardRoute({
           args,
@@ -1899,6 +3252,7 @@ async function runImportD1(args, modules) {
     rawSnapshotStoredInD1: result.rawSnapshotStoredInD1,
     restartable: result.restartable,
     scenarioId: result.importRun.id,
+    searchIndexMode: args.searchIndexMode,
     tombstonedRows: result.tombstonedRows,
     totalRows: result.totalRows,
     upsertedRows: result.upsertedRows,
@@ -1917,6 +3271,41 @@ async function runImportD1(args, modules) {
 }
 
 async function runImportShardedD1(args, modules) {
+  if (args.routePlanOnly) {
+    const routePlan = await planShardedDataset(args, modules);
+    const report = {
+      budget: routePlan.budget,
+      d1Target: args.d1Target,
+      failedRows: 0,
+      mode: 'route-plan-only',
+      officialSnapshot: routePlan.officialSnapshot,
+      physicalShardCount: routePlan.physicalShards.length,
+      physicalShards: routePlan.physicalShards,
+      rawSnapshotStoredInD1: false,
+      restartable: true,
+      routerBinding: args.routerD1Binding,
+      routingStrategy: routePlan.routingStrategy,
+      scenarioId: `route-plan-sharded-${args.sourceId}-${args.country}-${args.datasetVersion}`,
+      searchIndexMode: args.searchIndexMode,
+      shardCount: routePlan.routes.length,
+      shards: routePlan.routes,
+      status: routePlan.budget.status,
+      storageEstimatePolicy: routePlan.storageEstimatePolicy,
+      tombstonedRows: routePlan.totals.tombstoneRows,
+      totalEstimatedSizeBytes: routePlan.totals.estimatedSizeBytes,
+      totalRows: routePlan.totals.totalRows,
+    };
+
+    writeReport(report, args.out);
+    process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+
+    if (routePlan.budget.status !== 'ok') {
+      throw new Error('Sharded route plan exceeds the configured shard row budget.');
+    }
+
+    return;
+  }
+
   const { officialSnapshot, shardRegistry, shardResults, totals } = await importShardedDataset(
     args,
     modules,
@@ -1929,10 +3318,13 @@ async function runImportShardedD1(args, modules) {
     rawSnapshotStoredInD1: false,
     restartable: true,
     routerBinding: args.routerD1Binding,
+    routingStrategy: args.shardRouteStrategy,
     scenarioId: `import-sharded-${args.sourceId}-${args.country}-${args.datasetVersion}`,
+    searchIndexMode: args.searchIndexMode,
     sourceProvenance: {
       modificationNoteSha256: normalizeSha256(args.modificationNoteSha256) ?? null,
     },
+    storageEstimatePolicy: storageEstimatePolicy(args),
     shardCount: shardResults.length,
     shards: shardResults.map((shardResult) => ({
       bindingName: shardResult.bindingName,
@@ -1941,9 +3333,15 @@ async function runImportShardedD1(args, modules) {
       importedRows: shardResult.result.insertedRows,
       estimatedSizeBytes: shardResult.route.estimatedSizeBytes,
       regionCode: shardResult.regionCode,
+      regionKind: shardResult.regionKind,
+      regionName: shardResult.regionName,
+      routingStrategy: shardResult.route.routingStrategy,
       registryShardId:
-        shardRegistry.find((record) => record.regionCode === shardResult.regionCode)?.shardId ??
-        undefined,
+        shardRegistry.find(
+          (record) =>
+            record.regionCode === shardResult.regionCode &&
+            record.regionKind === shardResult.regionKind,
+        )?.shardId ?? undefined,
       tombstonedRows: shardResult.result.tombstonedRows,
       totalRows: shardResult.result.totalRows,
       upsertedRows: shardResult.result.upsertedRows,
@@ -1957,6 +3355,13 @@ async function runImportShardedD1(args, modules) {
   if (totals.failedRows > 0) {
     throw new Error(`Sharded D1 import completed with ${totals.failedRows} rejected row(s).`);
   }
+
+  writeReport(report, args.out);
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+}
+
+async function runBuildArtifacts(args, modules) {
+  const report = await buildOwnedDataArtifacts(args, modules);
 
   writeReport(report, args.out);
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -2019,12 +3424,16 @@ async function main(argv = process.argv.slice(2)) {
     await runImportShardedD1(args, modules);
     return 0;
   }
+  if (args.command === 'build-artifacts') {
+    await runBuildArtifacts(args, modules);
+    return 0;
+  }
 
   await runProofOffline(args, modules);
   return 0;
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(`${sanitizeCliErrorMessage(error)}\n`);
   process.exitCode = 1;
 });

@@ -11,10 +11,12 @@ const defaultSeedReportPath = '.codex/reports/smart-suggest-production-seed/plan
 const defaultExecuteReportPath = '.codex/reports/smart-suggest-production-seed/execute.json';
 const defaultStatusReportPath =
   '.codex/reports/smart-suggest-d1-operations/status-production-seed.json';
+const defaultRoutePlanReportPath = '.codex/reports/smart-suggest-production-seed/route-plan.json';
 const defaultOptimizeReportPath =
   '.codex/reports/smart-suggest-d1-operations/optimize-production-seed.json';
 const defaultPreflightReportPath =
   '.codex/reports/smart-suggest-d1-operations/preflight-production-seed.json';
+const defaultFreeTierMaxWriteRowsPerRun = '100000';
 const expectedSourceAttributions = new Map([
   [
     'ruian-cz',
@@ -26,6 +28,7 @@ const expectedSourceAttributions = new Map([
   ],
 ]);
 const d1Targets = new Set(['local', 'remote']);
+const unsafeChildOutputPattern = /Failed query:|params:/u;
 const expectedCzVuscCodes = [
   '19',
   '27',
@@ -43,25 +46,14 @@ const expectedCzVuscCodes = [
   '141',
 ];
 const defaultShardBindingPrefix = 'SMART_SUGGEST_CZ_VUSC_';
-const productionSeedRequiredEnvironment = {
-  d1GeneratedConfig: [
-    {
-      env: 'SMART_SUGGEST_ROUTER_D1_ENABLED',
-      purpose: 'Enables the router D1 binding during cloudflare:build.',
-    },
-    {
-      env: 'SMART_SUGGEST_ROUTER_D1_DATABASE_ID',
-      purpose: 'Cloudflare database id for the router D1 binding.',
-    },
-    {
-      env: 'SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED',
-      purpose: 'Enables all CZ VUSC shard D1 bindings during cloudflare:build.',
-    },
-    ...expectedCzVuscCodes.map((code) => ({
-      env: `SMART_SUGGEST_CZ_VUSC_${code}_DATABASE_ID`,
-      purpose: `Cloudflare database id for CZ VUSC shard ${code}.`,
-    })),
-  ],
+const defaultFreeTierLegacyPrefixMaxAddressRows = '125000';
+const defaultFreeTierFtsOnlyMaxAddressRows = '400000';
+const freeTierD1DatabaseMaxBytes = 500_000_000;
+const freeTierAddressShardIndexes = ['01', '02', '03', '04', '05', '06', '07', '08', '09'];
+const d1Topologies = new Set(['free-tier', 'paid-vusc']);
+const d1SearchIndexModes = new Set(['fts-and-prefix', 'fts-only']);
+const d1ShardRouteStrategies = new Set(['hash', 'vusc']);
+const productionSeedRequiredSourceEnvironment = {
   sourceSnapshot: [
     {
       env: 'SMART_SUGGEST_RUIAN_SNAPSHOT_PATH',
@@ -146,7 +138,87 @@ const productionSeedRequiredEnvironment = {
     },
   ],
 };
+const productionSeedFreeTierD1Environment = [
+  {
+    env: 'SMART_SUGGEST_D1_TOPOLOGY',
+    purpose: 'Must be free-tier for the router plus up to nine address D1 topology.',
+  },
+  {
+    env: 'SMART_SUGGEST_ROUTER_D1_ENABLED',
+    purpose: 'Enables the router D1 binding during cloudflare:build.',
+  },
+  {
+    env: 'SMART_SUGGEST_ROUTER_D1_DATABASE_ID',
+    purpose: 'Cloudflare database id for the router D1 binding.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_SHARDS_JSON or SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED',
+    purpose:
+      'Configures custom free-tier address shard D1s, or enables the generated nine-shard free-tier layout when the account has all free D1 slots available.',
+  },
+  {
+    env: `SMART_SUGGEST_FREE_TIER_<01..${freeTierAddressShardIndexes.at(-1)}>_DATABASE_ID`,
+    purpose:
+      'Cloudflare database ids for the generated nine-shard free-tier layout when SMART_SUGGEST_D1_SHARDS_JSON is not used.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_SHARD_BINDINGS',
+    purpose: 'Must contain the configured free-tier address shard bindings.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY',
+    purpose:
+      'Defaults to hash; keep hash for the no-pay row-balanced free-tier address shard topology.',
+  },
+];
+const productionSeedPaidD1Environment = [
+  {
+    env: 'SMART_SUGGEST_ROUTER_D1_ENABLED',
+    purpose: 'Enables the router D1 binding during cloudflare:build.',
+  },
+  {
+    env: 'SMART_SUGGEST_ROUTER_D1_DATABASE_ID',
+    purpose: 'Cloudflare database id for the router D1 binding.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED',
+    purpose: 'Enables all CZ VUSC shard D1 bindings during cloudflare:build.',
+  },
+  ...expectedCzVuscCodes.map((code) => ({
+    env: `SMART_SUGGEST_CZ_VUSC_${code}_DATABASE_ID`,
+    purpose: `Cloudflare database id for CZ VUSC shard ${code}.`,
+  })),
+];
 const productionSeedOptionalEnvironment = [
+  {
+    env: 'SMART_SUGGEST_D1_TOPOLOGY',
+    option: '--d1-topology',
+    purpose: 'Use free-tier for nine physical address D1s or paid-vusc for 14 physical shard D1s.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_FREE_TIER_MAX_ADDRESS_ROWS',
+    option: '--free-tier-max-address-rows',
+    purpose:
+      'Maximum rows allowed in one free-tier address D1 before import aborts; defaults to 400000 with fts-only and 125000 with fts-and-prefix.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_FREE_TIER_MAX_WRITE_ROWS_PER_RUN',
+    option: '--free-tier-max-write-rows-per-run',
+    purpose:
+      'Maximum D1 address row writes allowed for one free-tier production seed execution; defaults to 100000.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_SEARCH_INDEX_MODE',
+    option: '--search-index-mode',
+    purpose:
+      'Use fts-only for free-tier production imports to avoid writing the bulky legacy prefix-token table; paid can use fts-and-prefix.',
+  },
+  {
+    env: 'SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY',
+    option: '--shard-route-strategy',
+    purpose:
+      'Use hash for free-tier row-balanced address shards or vusc for paid physical VUSC shards.',
+  },
   {
     env: 'SMART_SUGGEST_D1_SHARD_BINDINGS',
     option: '--shard-bindings',
@@ -421,9 +493,12 @@ const stringOptionFields = {
   '--csv-delimiter': 'csvDelimiter',
   '--csv-encoding': 'csvEncoding',
   '--d1-target': 'd1Target',
+  '--d1-topology': 'd1Topology',
   '--dataset-version': 'datasetVersion',
   '--feed-id': 'feedId',
   '--file-kind': 'fileKind',
+  '--free-tier-max-write-rows-per-run': 'freeTierMaxWriteRowsPerRun',
+  '--free-tier-max-address-rows': 'freeTierMaxAddressRows',
   '--json-out': 'jsonOut',
   '--max-import-age-hours': 'maxImportAgeHours',
   '--modification-note': 'modificationNote',
@@ -435,9 +510,12 @@ const stringOptionFields = {
   '--persist-to': 'persistTo',
   '--preflight-json-out': 'preflightJsonOut',
   '--router-d1-binding': 'routerD1Binding',
+  '--route-plan-json-out': 'routePlanJsonOut',
+  '--search-index-mode': 'searchIndexMode',
   '--shard-binding-prefix': 'shardBindingPrefix',
   '--shard-bindings': 'shardBindings',
   '--shard-region-map-json': 'shardRegionMapJson',
+  '--shard-route-strategy': 'shardRouteStrategy',
   '--snapshot-checksum-sha256': 'snapshotChecksumSha256',
   '--shard-max-rows': 'shardMaxRows',
   '--snapshot-entry': 'snapshotEntry',
@@ -466,10 +544,16 @@ D1-safe post-import optimization, and strict status checks.
 
 Options:
   --execute                    Actually run the sharded D1 import. Default only plans.
+  --route-plan-only            Validate and route the real snapshot without writing D1 rows.
   --allow-partial-shards       Allow fewer than all 14 CZ VUSC shards for local proof only.
   --skip-d1-preflight          Skip D1 config preflight. Not for production.
   --no-apply-migrations        Do not apply migrations before import.
   --d1-target remote           D1 target: remote or local.
+  --d1-topology free-tier      D1 topology: free-tier or paid-vusc.
+  --free-tier-max-address-rows value
+                               Free-tier address D1 row ceiling. Defaults to 400000 for fts-only, 125000 for fts-and-prefix.
+  --free-tier-max-write-rows-per-run value
+                               Free-tier D1 address row write ceiling for one execution. Defaults to 100000.
   --snapshot-path path         External official snapshot path. May live outside git.
   --snapshot-checksum-sha256 value
                                Expected SHA-256 of the retained snapshot.
@@ -493,9 +577,12 @@ Options:
   --feed-id RUIAN-CSV-ADR-ST   Feed id, defaults to official CSV baseline feed.
   --csv-delimiter ";"          Official CSV delimiter.
   --csv-encoding windows-1250  Official CSV text encoding.
+  --search-index-mode value    D1 address index mode. Free-tier defaults to fts-only; paid defaults to fts-and-prefix.
+  --shard-route-strategy value Shard routing: hash for free-tier row-balanced shards, vusc for paid physical VUSC shards.
   --shard-bindings value       Comma-separated shard binding allowlist.
   --shard-region-map-json value JSON object mapping VUSC region codes to shard bindings.
   --router-d1-binding value    Router D1 binding.
+  --route-plan-json-out path   Public-safe route plan report for --route-plan-only.
   --persist-to path            Optional local Wrangler D1 persistence directory.
   --optimize-json-out path     Public-safe post-import optimize report.
   --json-out path              Public-safe seed plan/result report.
@@ -516,6 +603,10 @@ Environment fallbacks:
   SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE
   SMART_SUGGEST_RUIAN_ATTRIBUTION_URL
   SMART_SUGGEST_RUIAN_MODIFICATION_NOTE
+  SMART_SUGGEST_D1_FREE_TIER_MAX_ADDRESS_ROWS
+  SMART_SUGGEST_D1_FREE_TIER_MAX_WRITE_ROWS_PER_RUN
+  SMART_SUGGEST_D1_SEARCH_INDEX_MODE
+  SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY
   SMART_SUGGEST_D1_SHARD_BINDINGS
   SMART_SUGGEST_D1_ROUTER_BINDING or SMART_SUGGEST_ROUTER_D1_BINDING
 
@@ -533,6 +624,18 @@ function envValue(name) {
 
 function defaultArgs() {
   const execute = false;
+  const d1Topology = envValue('SMART_SUGGEST_D1_TOPOLOGY') ?? 'free-tier';
+  const searchIndexMode =
+    envValue('SMART_SUGGEST_D1_SEARCH_INDEX_MODE') ??
+    (d1Topology === 'free-tier' ? 'fts-only' : 'fts-and-prefix');
+  const shardRouteStrategy =
+    envValue('SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY') ??
+    (d1Topology === 'free-tier' ? 'hash' : 'vusc');
+  const freeTierMaxAddressRows =
+    envValue('SMART_SUGGEST_D1_FREE_TIER_MAX_ADDRESS_ROWS') ??
+    (searchIndexMode === 'fts-only'
+      ? defaultFreeTierFtsOnlyMaxAddressRows
+      : defaultFreeTierLegacyPrefixMaxAddressRows);
 
   return {
     allowPartialShards: false,
@@ -541,14 +644,19 @@ function defaultArgs() {
     attributionLabel: envValue('SMART_SUGGEST_RUIAN_ATTRIBUTION_LABEL'),
     attributionLicense: envValue('SMART_SUGGEST_RUIAN_ATTRIBUTION_LICENSE'),
     attributionUrl: envValue('SMART_SUGGEST_RUIAN_ATTRIBUTION_URL'),
-    chunkSize: '500',
+    chunkSize: envValue('SMART_SUGGEST_D1_IMPORT_CHUNK_SIZE') ?? '100',
     csvDelimiter: envValue('SMART_SUGGEST_RUIAN_CSV_DELIMITER') ?? ';',
     csvEncoding: envValue('SMART_SUGGEST_RUIAN_CSV_ENCODING') ?? 'windows-1250',
     d1Target: 'remote',
+    d1Topology,
     datasetVersion: envValue('SMART_SUGGEST_RUIAN_DATASET_VERSION'),
     execute,
     feedId: envValue('SMART_SUGGEST_RUIAN_FEED_ID') ?? 'RUIAN-CSV-ADR-ST',
     fileKind: 'baseline',
+    freeTierMaxAddressRows,
+    freeTierMaxWriteRowsPerRun:
+      envValue('SMART_SUGGEST_D1_FREE_TIER_MAX_WRITE_ROWS_PER_RUN') ??
+      defaultFreeTierMaxWriteRowsPerRun,
     jsonOut: execute ? defaultExecuteReportPath : defaultSeedReportPath,
     maxImportAgeHours: '999999',
     modificationNote: envValue('SMART_SUGGEST_RUIAN_MODIFICATION_NOTE'),
@@ -560,6 +668,8 @@ function defaultArgs() {
     optimizeJsonOut: defaultOptimizeReportPath,
     persistTo: undefined,
     preflightJsonOut: defaultPreflightReportPath,
+    routePlanJsonOut: defaultRoutePlanReportPath,
+    routePlanOnly: false,
     routerD1Binding:
       envValue('SMART_SUGGEST_D1_ROUTER_BINDING') ?? envValue('SMART_SUGGEST_ROUTER_D1_BINDING'),
     routerD1BindingSource:
@@ -567,13 +677,21 @@ function defaultArgs() {
       envValue('SMART_SUGGEST_ROUTER_D1_BINDING') !== undefined
         ? 'environment'
         : undefined,
+    searchIndexMode,
+    shardRouteStrategy,
     shardBindingPrefix: defaultShardBindingPrefix,
     shardBindings: envValue('SMART_SUGGEST_D1_SHARD_BINDINGS'),
     shardBindingsSource:
       envValue('SMART_SUGGEST_D1_SHARD_BINDINGS') !== undefined ? 'environment' : undefined,
-    shardRegionMapJson: envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON'),
+    shardRegionMapJson:
+      shardRouteStrategy === 'hash'
+        ? undefined
+        : envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON'),
     shardRegionMapSource:
-      envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') !== undefined ? 'environment' : undefined,
+      shardRouteStrategy !== 'hash' &&
+      envValue('SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON') !== undefined
+        ? 'environment'
+        : undefined,
     shardMaxRows: undefined,
     snapshotChecksumSha256: envValue('SMART_SUGGEST_RUIAN_SNAPSHOT_CHECKSUM_SHA256'),
     skipD1Preflight: false,
@@ -617,6 +735,10 @@ function parseArgs(argv) {
         parsed.jsonOut === defaultSeedReportPath ? defaultExecuteReportPath : parsed.jsonOut;
       continue;
     }
+    if (arg === '--route-plan-only') {
+      parsed.routePlanOnly = true;
+      continue;
+    }
     if (arg === '--allow-partial-shards') {
       parsed.allowPartialShards = true;
       continue;
@@ -654,6 +776,15 @@ function parseArgs(argv) {
   }
   if (!d1Targets.has(parsed.d1Target)) {
     throw new Error('--d1-target must be local or remote.');
+  }
+  if (!d1Topologies.has(parsed.d1Topology)) {
+    throw new Error('--d1-topology must be free-tier or paid-vusc.');
+  }
+  if (!d1SearchIndexModes.has(parsed.searchIndexMode)) {
+    throw new Error('--search-index-mode must be fts-and-prefix or fts-only.');
+  }
+  if (!d1ShardRouteStrategies.has(parsed.shardRouteStrategy)) {
+    throw new Error('--shard-route-strategy must be hash or vusc.');
   }
 
   return parsed;
@@ -777,7 +908,11 @@ function inferShardBindingsFromConfig(config, args) {
   };
 }
 
-function inferShardRegionMapFromConfig(config) {
+function inferShardRegionMapFromConfig(config, args) {
+  if (args.shardRouteStrategy === 'hash') {
+    return undefined;
+  }
+
   const configured = readConfigVar(config, 'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON');
 
   if (configured === undefined) {
@@ -813,7 +948,7 @@ function resolveD1BindingsFromConfig(args) {
   const inferredShardBindings =
     args.shardBindings === undefined ? inferShardBindingsFromConfig(config, args) : undefined;
   const inferredShardRegionMap =
-    args.shardRegionMapJson === undefined ? inferShardRegionMapFromConfig(config) : undefined;
+    args.shardRegionMapJson === undefined ? inferShardRegionMapFromConfig(config, args) : undefined;
 
   return {
     ...args,
@@ -892,6 +1027,43 @@ function hashFileSha256(filePath) {
 
 function hashTextSha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function parsePositiveSafeInteger(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+
+  if (!/^[1-9]\d*$/u.test(normalized)) {
+    return undefined;
+  }
+
+  const parsed = Number(normalized);
+
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+function validateOptionalPositiveInteger(value, id, label) {
+  if (value === undefined) {
+    return {
+      id: `${id}-not-configured`,
+      status: 'ok',
+    };
+  }
+  if (parsePositiveSafeInteger(value) === undefined) {
+    return {
+      id,
+      message: `${label} must be a positive safe integer.`,
+      status: 'error',
+    };
+  }
+
+  return {
+    id: `${id}-valid`,
+    status: 'ok',
+  };
 }
 
 function normalizeAttributionUrl(value) {
@@ -1190,6 +1362,17 @@ function validateShardBindings(args) {
     };
   }
 
+  if (args.shardRouteStrategy === 'hash') {
+    return {
+      configuredShardCount: bindings.length,
+      id: 'hash-shard-bindings-ready',
+      logicalCoverage: 'proved-by-route-plan',
+      routeStrategy: args.shardRouteStrategy,
+      source: args.shardBindingsSource ?? 'unknown',
+      status: 'ok',
+    };
+  }
+
   const coverage = logicalCzVuscCoverage(args, bindings);
 
   if (coverage.missingMappedBindings.length > 0) {
@@ -1227,6 +1410,32 @@ function validateShardBindings(args) {
   };
 }
 
+function validateFreeTierCapacityGuard(args) {
+  if (args.d1Topology !== 'free-tier') {
+    return {
+      id: 'free-tier-capacity-guard-disabled-paid-topology',
+      status: 'ok',
+    };
+  }
+
+  const maxAddressRows = parsePositiveSafeInteger(args.freeTierMaxAddressRows);
+
+  if (maxAddressRows === undefined) {
+    return {
+      id: 'invalid-free-tier-max-address-rows',
+      message: '--free-tier-max-address-rows must be a positive safe integer.',
+      status: 'error',
+    };
+  }
+
+  return {
+    databaseMaxBytes: freeTierD1DatabaseMaxBytes,
+    id: 'free-tier-capacity-guard-ready',
+    maxAddressShardRows: maxAddressRows,
+    status: 'ok',
+  };
+}
+
 function validationChecks(args) {
   return [
     validateSnapshot(args),
@@ -1247,6 +1456,17 @@ function validationChecks(args) {
     requireText(args.modificationNote, 'missing-modification-note', '--modification-note'),
     requireText(args.routerD1Binding, 'missing-router-d1-binding', '--router-d1-binding'),
     validateShardBindings(args),
+    validateOptionalPositiveInteger(
+      args.shardMaxRows,
+      'invalid-shard-max-rows',
+      '--shard-max-rows',
+    ),
+    validateOptionalPositiveInteger(
+      args.freeTierMaxWriteRowsPerRun,
+      'invalid-free-tier-max-write-rows-per-run',
+      '--free-tier-max-write-rows-per-run',
+    ),
+    validateFreeTierCapacityGuard(args),
   ];
 }
 
@@ -1264,9 +1484,11 @@ function commonD1Args(args) {
     args.routerD1Binding,
     '--shard-bindings',
     args.shardBindings,
+    '--shard-route-strategy',
+    args.shardRouteStrategy,
   ];
 
-  if (args.shardRegionMapJson !== undefined) {
+  if (args.shardRouteStrategy !== 'hash' && args.shardRegionMapJson !== undefined) {
     command.push('--shard-region-map-json', args.shardRegionMapJson);
   }
   if (args.persistTo !== undefined) {
@@ -1274,6 +1496,69 @@ function commonD1Args(args) {
   }
 
   return command;
+}
+
+function strictD1RequirementArgs(args) {
+  const command = ['--require-cloudflare-ids'];
+
+  if (args.d1Topology === 'free-tier') {
+    command.push('--max-d1-databases', '10', '--max-address-shard-databases', '9');
+    if (args.shardRouteStrategy !== 'hash') {
+      command.push('--require-cz-vusc-coverage');
+    }
+  } else {
+    command.push('--require-cz-vusc-coverage', '--require-14-physical-cz-shards');
+  }
+
+  return command;
+}
+
+function effectiveShardMaxRows(args) {
+  const explicitShardMaxRows = parsePositiveSafeInteger(args.shardMaxRows);
+
+  if (args.d1Topology !== 'free-tier') {
+    return explicitShardMaxRows === undefined ? undefined : String(explicitShardMaxRows);
+  }
+
+  const freeTierMaxAddressRows = parsePositiveSafeInteger(args.freeTierMaxAddressRows);
+
+  if (freeTierMaxAddressRows === undefined) {
+    return undefined;
+  }
+  if (explicitShardMaxRows === undefined) {
+    return String(freeTierMaxAddressRows);
+  }
+
+  return String(Math.min(explicitShardMaxRows, freeTierMaxAddressRows));
+}
+
+function freeTierCapacityGuardReport(args) {
+  const explicitShardMaxRows = parsePositiveSafeInteger(args.shardMaxRows);
+  const configuredFreeTierMaxAddressRows = parsePositiveSafeInteger(args.freeTierMaxAddressRows);
+  const effectiveMaxAddressShardRows = effectiveShardMaxRows(args);
+
+  if (args.d1Topology !== 'free-tier') {
+    return {
+      enabled: false,
+      reason:
+        'paid-vusc topology uses physical VUSC shards and is not capped by the free-tier guard',
+    };
+  }
+
+  return {
+    action:
+      'The production import aborts before writing D1 rows if one free-tier address shard routes more rows than this limit.',
+    databaseMaxBytes: freeTierD1DatabaseMaxBytes,
+    defaultFtsOnlyMaxAddressShardRows: Number(defaultFreeTierFtsOnlyMaxAddressRows),
+    defaultLegacyPrefixMaxAddressShardRows: Number(defaultFreeTierLegacyPrefixMaxAddressRows),
+    defaultMaxWriteRowsPerRun: Number(defaultFreeTierMaxWriteRowsPerRun),
+    effectiveMaxAddressShardRows:
+      effectiveMaxAddressShardRows === undefined ? null : Number(effectiveMaxAddressShardRows),
+    enabled: true,
+    explicitShardMaxRows: explicitShardMaxRows ?? null,
+    maxWriteRowsPerRun: parsePositiveSafeInteger(args.freeTierMaxWriteRowsPerRun) ?? null,
+    configuredMaxAddressShardRows: configuredFreeTierMaxAddressRows ?? null,
+  };
 }
 
 function preflightCommand(args) {
@@ -1287,7 +1572,7 @@ function preflightCommand(args) {
   ];
 
   if (!args.allowPartialShards) {
-    command.push('--require-14-cz-shards', '--require-cloudflare-ids');
+    command.push(...strictD1RequirementArgs(args));
   }
 
   return command;
@@ -1308,7 +1593,7 @@ function statusCommand(args) {
   ];
 
   if (!args.allowPartialShards) {
-    command.push('--require-14-cz-shards', '--require-cloudflare-ids');
+    command.push(...strictD1RequirementArgs(args));
   }
 
   return command;
@@ -1326,13 +1611,14 @@ function optimizeCommand(args) {
   ];
 
   if (!args.allowPartialShards) {
-    command.push('--require-14-cz-shards', '--require-cloudflare-ids');
+    command.push(...strictD1RequirementArgs(args));
   }
 
   return command;
 }
 
 function importCommand(args) {
+  const shardMaxRows = effectiveShardMaxRows(args);
   const command = [
     process.execPath,
     './scripts/smart-suggest-owned-import.mjs',
@@ -1381,9 +1667,13 @@ function importCommand(args) {
     args.csvEncoding,
     '--chunk-size',
     args.chunkSize,
+    '--search-index-mode',
+    args.searchIndexMode,
+    '--shard-route-strategy',
+    args.shardRouteStrategy,
   ];
 
-  if (args.shardRegionMapJson !== undefined) {
+  if (args.shardRouteStrategy !== 'hash' && args.shardRegionMapJson !== undefined) {
     command.push('--shard-region-map-json', args.shardRegionMapJson);
   }
   if (args.applyMigrations) {
@@ -1401,14 +1691,27 @@ function importCommand(args) {
       args.municipalityRegionMapSnapshotEntry,
     );
   }
-  if (args.shardMaxRows !== undefined) {
-    command.push('--shard-max-rows', args.shardMaxRows);
+  if (shardMaxRows !== undefined) {
+    command.push('--shard-max-rows', shardMaxRows);
+  }
+  if (args.d1Topology === 'free-tier') {
+    command.push('--shard-max-estimated-size-bytes', String(freeTierD1DatabaseMaxBytes));
+  }
+  if (args.routePlanOnly) {
+    command.push('--route-plan-only', '--out', args.routePlanJsonOut);
   }
   if (args.modificationNote !== undefined) {
     command.push('--modification-note-sha256', hashTextSha256(args.modificationNote));
   }
 
   return command;
+}
+
+function routePlanCommand(args) {
+  return importCommand({
+    ...args,
+    routePlanOnly: true,
+  });
 }
 
 function redactReportCommand(command) {
@@ -1439,11 +1742,36 @@ function redactReportCommand(command) {
   return redacted;
 }
 
+function sanitizeChildOutput(output) {
+  if (output === undefined || output.length === 0) {
+    return '';
+  }
+
+  if (unsafeChildOutputPattern.test(output)) {
+    return 'Command output redacted because it contained raw SQL or parameter details.\n';
+  }
+
+  return output;
+}
+
+function writeChildOutput(output, stream) {
+  const sanitized = sanitizeChildOutput(output);
+
+  if (sanitized.length > 0) {
+    stream.write(sanitized);
+  }
+}
+
 function runCommand(command, label) {
   const result = spawnSync(command[0], command.slice(1), {
     cwd: workspaceRoot,
-    stdio: 'inherit',
+    encoding: 'utf8',
+    maxBuffer: 20 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
+
+  writeChildOutput(result.stdout, process.stdout);
+  writeChildOutput(result.stderr, process.stderr);
 
   if (result.error !== undefined) {
     return {
@@ -1460,6 +1788,52 @@ function runCommand(command, label) {
     label,
     ok: result.status === 0,
     signal: result.signal ?? null,
+  };
+}
+
+function readJsonReport(reportPath) {
+  return JSON.parse(fs.readFileSync(resolveWorkspacePath(reportPath), 'utf8'));
+}
+
+function evaluateFreeTierWriteBudget(args) {
+  if (args.d1Topology !== 'free-tier') {
+    return {
+      label: 'Free-tier D1 write budget',
+      ok: true,
+      reason: 'disabled-paid-topology',
+    };
+  }
+
+  const maxWriteRowsPerRun = parsePositiveSafeInteger(args.freeTierMaxWriteRowsPerRun);
+
+  if (maxWriteRowsPerRun === undefined) {
+    return {
+      label: 'Free-tier D1 write budget',
+      ok: false,
+      reason: 'invalid-max-write-rows-per-run',
+    };
+  }
+
+  const routePlan = readJsonReport(args.routePlanJsonOut);
+  const plannedWriteRows = Number(routePlan.totalRows ?? 0) + Number(routePlan.tombstonedRows ?? 0);
+
+  if (plannedWriteRows > maxWriteRowsPerRun) {
+    return {
+      label: 'Free-tier D1 write budget',
+      maxWriteRowsPerRun,
+      ok: false,
+      plannedWriteRows,
+      reason: 'free-tier-write-budget-exceeded',
+      reportPath: args.routePlanJsonOut,
+    };
+  }
+
+  return {
+    label: 'Free-tier D1 write budget',
+    maxWriteRowsPerRun,
+    ok: true,
+    plannedWriteRows,
+    reportPath: args.routePlanJsonOut,
   };
 }
 
@@ -1496,6 +1870,23 @@ function operatorBlockingStages(stage, execution) {
       category: 'import',
       id: 'import-failed',
       message: 'The sharded production import failed before post-import optimization.',
+    });
+  }
+  if (execution.freeTierWriteBudget?.ok === false) {
+    stages.push({
+      category: 'free-tier-quota',
+      id: execution.freeTierWriteBudget.reason ?? 'free-tier-write-budget-blocked',
+      message:
+        'The planned production seed exceeds the configured Cloudflare Free D1 write budget for one execution.',
+      reportPath: execution.freeTierWriteBudget.reportPath ?? null,
+    });
+  }
+  if (execution.routePlan?.ok === false) {
+    stages.push({
+      category: 'import-capacity',
+      id: 'route-plan-failed',
+      message: 'The real snapshot route plan exceeds the configured free-tier shard budget.',
+      reportPath: execution.routePlan.reportPath ?? null,
     });
   }
   if (execution.optimize?.ok === false) {
@@ -1540,24 +1931,38 @@ function operatorReadinessStatus({ blockingStages, missingInputs, stage }) {
 function createOperatorReadiness(args, checks, stage, execution) {
   const blockingStages = operatorBlockingStages(stage, execution);
   const missingInputs = missingOperatorInputs(checks);
+  const requiredD1Environment =
+    args.d1Topology === 'paid-vusc'
+      ? productionSeedPaidD1Environment
+      : productionSeedFreeTierD1Environment;
 
   return {
     blockingStages,
     commandMatrix: {
       buildGeneratedConfig: 'pnpm cloudflare:build',
       d1ProvisionPlan: 'pnpm smart-suggest:d1:provision-plan',
+      d1ProvisionPlanPaid: 'pnpm smart-suggest:d1:provision-plan:paid',
       d1ShardEnvTemplate: 'pnpm smart-suggest:d1:cz-shards:template',
+      d1ShardEnvTemplatePaid: 'pnpm smart-suggest:d1:paid:cz-shards:template',
       optimizeProduction: 'pnpm smart-suggest:d1:optimize:production',
+      optimizeProductionPaid: 'pnpm smart-suggest:d1:optimize:production:paid',
       seedExecute: 'pnpm smart-suggest:seed:production:execute',
       seedPlan: 'pnpm smart-suggest:seed:production',
+      seedRoutePlan: 'pnpm smart-suggest:seed:production:route-plan',
       statusProduction: 'pnpm smart-suggest:d1:status:production',
+      statusProductionPaid: 'pnpm smart-suggest:d1:status:production:paid',
       strictD1Preflight: 'pnpm smart-suggest:d1:preflight:production',
+      strictD1PreflightPaid: 'pnpm smart-suggest:d1:preflight:production:paid',
     },
     d1Target: args.d1Target,
+    d1Topology: args.d1Topology,
     missingInputs,
     optionalEnvironment: productionSeedOptionalEnvironment,
     profile: 'smart-suggest-production-seed-readiness-v1',
-    requiredEnvironment: productionSeedRequiredEnvironment,
+    requiredEnvironment: {
+      d1GeneratedConfig: requiredD1Environment,
+      ...productionSeedRequiredSourceEnvironment,
+    },
     status: operatorReadinessStatus({
       blockingStages,
       missingInputs,
@@ -1591,6 +1996,10 @@ function createReport(args, checks, stage, execution = {}) {
   const commandFailed = Object.values(execution).some((result) => result?.ok === false);
   const shardBindings = parseCommaSeparated(args.shardBindings);
   const shardCoverage = logicalCzVuscCoverage(args, shardBindings);
+  const shardLogicalCzVuscCodes =
+    args.shardRouteStrategy === 'hash' ? expectedCzVuscCodes : shardCoverage.logicalRegionCodes;
+  const shardLogicalCzVuscSource =
+    args.shardRouteStrategy === 'hash' ? 'route-plan-required' : 'region-map-or-direct-binding';
 
   return {
     allowPartialShards: args.allowPartialShards,
@@ -1603,14 +2012,19 @@ function createReport(args, checks, stage, execution = {}) {
       status: commandToShell(redactReportCommand(statusCommand(args))),
     },
     d1Target: args.d1Target,
+    d1Topology: args.d1Topology,
     execute: args.execute,
     execution,
+    freeTierCapacityGuard: freeTierCapacityGuardReport(args),
     generatedAt: new Date().toISOString(),
     operatorReadiness: createOperatorReadiness(args, checks, stage, execution),
+    searchIndexMode: args.searchIndexMode,
+    shardRouteStrategy: args.shardRouteStrategy,
     shardBindingCount: shardBindings.length,
     shardBindingsSource: args.shardBindingsSource ?? null,
-    shardLogicalCzVuscCodes: shardCoverage.logicalRegionCodes,
-    shardLogicalCzVuscCount: shardCoverage.logicalRegionCodes.length,
+    shardLogicalCzVuscCodes,
+    shardLogicalCzVuscCount: shardLogicalCzVuscCodes.length,
+    shardLogicalCzVuscSource,
     shardRegionBindingMap: Object.fromEntries(shardCoverage.shardRegionBindingMap.entries()),
     shardRegionMapSource: args.shardRegionMapSource ?? null,
     routerD1BindingSource: args.routerD1BindingSource ?? null,
@@ -1701,10 +2115,56 @@ function run() {
     }
   }
 
+  if (args.routePlanOnly) {
+    execution.routePlan = {
+      ...runCommand(routePlanCommand(args), 'Smart Suggest sharded production route plan'),
+      reportPath: args.routePlanJsonOut,
+    };
+
+    if (!execution.routePlan.ok) {
+      const routePlanFailedReport = createReport(args, checks, 'route-plan-failed', execution);
+      writeReport(routePlanFailedReport, args.jsonOut);
+      process.stdout.write(`${JSON.stringify(routePlanFailedReport, null, 2)}\n`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const routePlannedReport = createReport(args, checks, 'route-planned', execution);
+    writeReport(routePlannedReport, args.jsonOut);
+    process.stdout.write(`${JSON.stringify(routePlannedReport, null, 2)}\n`);
+    return;
+  }
+
   if (!args.execute) {
     const plannedReport = createReport(args, checks, 'planned', execution);
     writeReport(plannedReport, args.jsonOut);
     process.stdout.write(`${JSON.stringify(plannedReport, null, 2)}\n`);
+    return;
+  }
+
+  execution.routePlan = {
+    ...runCommand(routePlanCommand(args), 'Smart Suggest sharded production route plan'),
+    reportPath: args.routePlanJsonOut,
+  };
+  if (!execution.routePlan.ok) {
+    const routePlanFailedReport = createReport(args, checks, 'route-plan-failed', execution);
+    writeReport(routePlanFailedReport, args.jsonOut);
+    process.stdout.write(`${JSON.stringify(routePlanFailedReport, null, 2)}\n`);
+    process.exitCode = 1;
+    return;
+  }
+
+  execution.freeTierWriteBudget = evaluateFreeTierWriteBudget(args);
+  if (!execution.freeTierWriteBudget.ok) {
+    const writeBudgetBlockedReport = createReport(
+      args,
+      checks,
+      'free-tier-write-budget-blocked',
+      execution,
+    );
+    writeReport(writeBudgetBlockedReport, args.jsonOut);
+    process.stdout.write(`${JSON.stringify(writeBudgetBlockedReport, null, 2)}\n`);
+    process.exitCode = 1;
     return;
   }
 

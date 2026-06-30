@@ -1,8 +1,8 @@
 {
   "shell": {
     "demo": {
-      "address": "Street address",
-      "addressPlaceholder": "Vinohradska 12, Praha",
+      "address": "Address or postal code",
+      "addressPlaceholder": "Vinohradska 12, Praha or 10100",
       "addressSelected": "We found the full address.",
       "addressUnavailable": "Address suggestions are unavailable right now.",
       "city": "City",
@@ -15,7 +15,7 @@
       "emptyValue": "Not filled yet",
       "eyebrow": "Delivery details",
       "name": "Full name",
-      "noAddress": "No matching address",
+      "noAddress": "No matching delivery location",
       "note": "Delivery note",
       "order": {
         "confirmed": "Delivery details saved.",
