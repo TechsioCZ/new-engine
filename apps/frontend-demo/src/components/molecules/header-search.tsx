@@ -1,7 +1,7 @@
 "use client"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Combobox, type ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
-import { Popover } from "@techsio/ui-kit/molecules/popover"
+import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { useSearchProducts } from "@/hooks/use-search-products"

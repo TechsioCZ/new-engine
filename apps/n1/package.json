@@ -29,7 +29,7 @@
     "@tanstack/react-query": "^5.90.2",
     "@techsio/analytics": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
-    "next": "16.0.7",
+    "next": "16.3.0-preview.5",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwind-variants": "^3.1.1"

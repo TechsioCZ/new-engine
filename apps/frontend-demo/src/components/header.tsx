@@ -2,7 +2,7 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
-import { Popover } from "@techsio/ui-kit/molecules/popover"
+import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import Link from "next/link"
 import { type ComponentPropsWithoutRef, type ReactNode, useState } from "react"
 import { useCart } from "@/hooks/use-cart"
@@ -109,7 +109,7 @@ export function Header({
               {/* Mobile menu button */}
               {showMobileMenu && (
                 <Button
-                  className="inline-flex items-center justify-center rounded-header-mobile-menu p-header-mobile-menu-padding text-header-icon-size text-header-mobile-menu-text hover:bg-header-mobile-menu-hover hover:text-header-mobile-menu-text-hover focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) lg:hidden"
+                  className="focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-offset-(length:--default-ring-offset) inline-flex items-center justify-center rounded-header-mobile-menu p-header-mobile-menu-padding text-header-icon-size text-header-mobile-menu-text hover:bg-header-mobile-menu-hover hover:text-header-mobile-menu-text-hover focus-visible:outline-ring lg:hidden"
                   icon="token-icon-menu"
                   onClick={() => setIsMobileMenuOpen(true)}
                   size="sm"
