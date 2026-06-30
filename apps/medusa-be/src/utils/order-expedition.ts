@@ -607,7 +607,11 @@ function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {
   const summaryTotal = getLatestOrderExpeditionSummaryTotal(order.summary)
   const orderTotal = normalizeOrderExpeditionAmount(order.total)
 
-  return summaryTotal ?? orderTotal ?? null
+  if (isNonZeroAmount(orderTotal) || summaryTotal === undefined) {
+    return orderTotal ?? null
+  }
+
+  return summaryTotal
 }
 
 function getLatestOrderExpeditionSummaryTotal(

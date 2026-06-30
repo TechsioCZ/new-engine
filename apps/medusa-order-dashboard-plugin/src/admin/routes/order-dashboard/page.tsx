@@ -47,21 +47,25 @@ import {
 } from "./format"
 import { OrderFulfillmentModal } from "./fulfillment-modal"
 import {
+  getPacketaCarrierOrderIds,
+  getPacketaLabelPreview,
+  preparePacketaLabelDownload,
+} from "./packeta-labels"
+import {
   ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
   ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
-  ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
   ORDER_DASHBOARD_QUEUE_IDS,
   ORDER_DASHBOARD_TARGET_STATUSES,
+  type OrderDashboardBlockingOrder,
   type OrderDashboardBusinessStatusGroupId,
   type OrderDashboardBusinessStatusId,
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
-  type OrderDashboardPacketaEligibilityOrder,
   type OrderDashboardQueueId,
   type OrderDashboardSummaryResponse,
   type OrderDashboardTargetStatus,
@@ -83,11 +87,6 @@ type TargetStatusOption = {
   blockedOrders: OrderDashboardBlockingOrder[]
   label: string
   value: OrderDashboardTargetStatus
-}
-type OrderDashboardBlockingOrder = {
-  id: string
-  order_display_id: string
-  reason: string
 }
 type TranslationFunction = (
   key: string,
@@ -191,10 +190,7 @@ const OrderDashboardPage = () => {
     [selectedOrderIds]
   )
   const selectedPacketaCarrierOrderIds = useMemo(
-    () =>
-      selectedOrders
-        .filter((order) => order.carrier.value === "packeta")
-        .map((order) => order.id),
+    () => getPacketaCarrierOrderIds(selectedOrders),
     [selectedOrders]
   )
   const packetaEligibilityQuery = useQuery({
@@ -639,9 +635,9 @@ const OrderDashboardPage = () => {
 
   const handlePacketaLabels = async () => {
     const selectedOrdersSnapshot = selectedOrders
-    const selectedPacketaCarrierOrderIdsSnapshot = selectedOrdersSnapshot
-      .filter((order) => order.carrier.value === "packeta")
-      .map((order) => order.id)
+    const selectedPacketaCarrierOrderIdsSnapshot = getPacketaCarrierOrderIds(
+      selectedOrdersSnapshot
+    )
     const labelFormatSnapshot = labelFormat
 
     if (!selectedOrdersSnapshot.length) {
@@ -668,30 +664,23 @@ const OrderDashboardPage = () => {
         [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIdsSnapshot],
         eligibilityOrders
       )
-      const freshPacketaLabelPreview = getPacketaLabelPreview(
+      const packetaLabelPreparation = preparePacketaLabelDownload(
         selectedOrdersSnapshot,
         eligibilityOrders,
         t
       )
 
-      if (freshPacketaLabelPreview.skipped.length) {
-        setBlockingOrders(freshPacketaLabelPreview.skipped)
-      } else {
-        setBlockingOrders([])
-      }
+      setBlockingOrders(packetaLabelPreparation.blockingOrders)
 
-      if (!freshPacketaLabelPreview.printableOrders.length) {
+      if (packetaLabelPreparation.kind === "no-printable") {
         toast.error(t("toast.noPacketaSelection"))
         return
       }
 
-      if (
-        freshPacketaLabelPreview.printableOrders.length >
-        ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS
-      ) {
+      if (packetaLabelPreparation.kind === "too-many") {
         toast.error(
           t("toast.packetaLabelLimit", {
-            count: ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
+            count: packetaLabelPreparation.limit,
           })
         )
         return
@@ -699,9 +688,7 @@ const OrderDashboardPage = () => {
 
       await packetaLabelsMutation.mutateAsync({
         labelFormat: labelFormatSnapshot,
-        orderIds: freshPacketaLabelPreview.printableOrders.map(
-          (order) => order.id
-        ),
+        orderIds: packetaLabelPreparation.orderIds,
       })
     } catch (error) {
       toast.error(getErrorMessage(error, t("toast.requestFailed")))
@@ -1469,67 +1456,6 @@ function getBulkManualStatusPreview(
   }
 
   return { skipped, updatable }
-}
-
-function getPacketaLabelPreview(
-  selectedOrders: OrderDashboardOrder[],
-  eligibilityOrders: OrderDashboardPacketaEligibilityOrder[] | undefined,
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
-  const eligibilityOrdersById = new Map(
-    (eligibilityOrders ?? []).map((order) => [order.id, order])
-  )
-  const printableOrders: OrderDashboardOrder[] = []
-  const skipped: OrderDashboardBlockingOrder[] = []
-
-  for (const order of selectedOrders) {
-    const eligibilityOrder = eligibilityOrdersById.get(order.id)
-    const skipReason = getPacketaLabelSkipReason(order, eligibilityOrder, t)
-
-    if (skipReason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason: skipReason,
-      })
-      continue
-    }
-
-    printableOrders.push(order)
-  }
-
-  return { printableOrders, skipped }
-}
-
-function getPacketaLabelSkipReason(
-  order: OrderDashboardOrder,
-  eligibilityOrder: OrderDashboardPacketaEligibilityOrder | undefined,
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
-  if (order.carrier.value !== "packeta") {
-    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order) })
-  }
-
-  if (!eligibilityOrder) {
-    return t("packetaSkip.unchecked")
-  }
-
-  if (!hasPrintablePacketaLabel(eligibilityOrder)) {
-    return t("packetaSkip.noActiveLabel")
-  }
-
-  return
-}
-
-function hasPrintablePacketaLabel(
-  order: OrderDashboardPacketaEligibilityOrder
-) {
-  return (order.fulfillments ?? []).some(
-    (fulfillment) =>
-      fulfillment.provider_id === "packeta_packeta" &&
-      !fulfillment.canceled_at &&
-      typeof fulfillment.data?.packet_id === "number"
-  )
 }
 
 function StatusSelectItem({
