@@ -92,7 +92,7 @@ export function AccountOrdersList() {
         <p className="text-fg-secondary text-sm">
           Zatiaľ nemáte žiadnu dokončenú objednávku.
         </p>
-        <LinkButton as={NextLink} href="/" variant="secondary">
+        <LinkButton as={NextLink} href="/" variant="secondary" size="sm">
           Prejsť na produkty
         </LinkButton>
       </AccountSurface>

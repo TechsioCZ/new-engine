@@ -92,11 +92,11 @@ export function ProductDetail({ handle }: ProductDetailProps) {
       controller.productQuery.isLoading ||
       controller.productQuery.error ||
       controller.product ? null : (
-        <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
+        <section className="space-y-400 rounded-sm border border-border-secondary bg-surface p-600">
           <StatusText showIcon status="error">
             Produkt sa nepodarilo nájsť.
           </StatusText>
-          <LinkButton as={NextLink} href="/" variant="secondary">
+          <LinkButton as={NextLink} href="/" variant="secondary" size="sm">
             Späť na domovskú stránku
           </LinkButton>
         </section>
