@@ -186,6 +186,10 @@ const OrderDashboardPage = () => {
     () => selectedOrders.map((order) => order.id),
     [selectedOrders]
   )
+  const selectedOrderIdsKey = useMemo(
+    () => [...selectedOrderIds].sort().join("|"),
+    [selectedOrderIds]
+  )
   const selectedPacketaCarrierOrderIds = useMemo(
     () =>
       selectedOrders
@@ -509,6 +513,7 @@ const OrderDashboardPage = () => {
 
   const handleFulfillmentCompleted = () => {
     refreshFulfillmentData()
+    clearSelection()
     setBlockingOrders([])
     setDetailOrderId(null)
   }
@@ -660,10 +665,7 @@ const OrderDashboardPage = () => {
         selectedPacketaCarrierOrderIdsSnapshot
       )
       queryClient.setQueryData(
-        [
-          PACKETA_ELIGIBILITY_QUERY_KEY,
-          selectedPacketaCarrierOrderIdsSnapshot,
-        ],
+        [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIdsSnapshot],
         eligibilityOrders
       )
       const freshPacketaLabelPreview = getPacketaLabelPreview(
@@ -793,7 +795,7 @@ const OrderDashboardPage = () => {
   }, [orders, selectedOrdersById])
 
   useEffect(() => {
-    if (!orders.length || !selectedOrdersById.size) {
+    if (!(orders.length && selectedOrderIdsKey)) {
       return
     }
 
@@ -816,7 +818,7 @@ const OrderDashboardPage = () => {
 
       return hasChanged ? nextSelection : currentSelection
     })
-  }, [orders, selectedOrdersById])
+  }, [orders, selectedOrderIdsKey])
 
   return (
     <Container className="divide-y p-0">
@@ -1000,8 +1002,7 @@ const OrderDashboardPage = () => {
                 packetaLabelsMutation.isPending
               }
               isLoading={
-                isPreparingPacketaLabels ||
-                packetaLabelsMutation.isPending
+                isPreparingPacketaLabels || packetaLabelsMutation.isPending
               }
               onClick={handlePacketaLabels}
               size="small"
