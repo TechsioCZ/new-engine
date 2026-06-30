@@ -300,7 +300,16 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   }, [availableQuantity, quantity])
 
   useEffect(() => {
-    setSelectedVolumeDiscountId(volumeDiscountOptions[0]?.id ?? null)
+    setSelectedVolumeDiscountId((currentOptionId) => {
+      if (
+        currentOptionId &&
+        volumeDiscountOptions.some((option) => option.id === currentOptionId)
+      ) {
+        return currentOptionId
+      }
+
+      return volumeDiscountOptions[0]?.id ?? null
+    })
   }, [volumeDiscountOptions])
 
   useProductDetailDebugLog(product)

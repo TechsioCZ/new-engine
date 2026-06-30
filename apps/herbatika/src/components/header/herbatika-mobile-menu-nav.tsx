@@ -103,6 +103,10 @@ const resolveExpandedValues = (
   return [activeGroup.value]
 }
 
+const areExpandedValuesEqual = (left: string[], right: string[]) =>
+  left.length === right.length &&
+  left.every((value, index) => value === right[index])
+
 export function HerbatikaMobileMenuNav() {
   const pathname = usePathname()
   const { setIsMobileMenuOpen } = useContext(HeaderContext)
@@ -113,7 +117,13 @@ export function HerbatikaMobileMenuNav() {
   )
 
   useEffect(() => {
-    setExpandedValues(resolveExpandedValues(pathname, mobileMenuEntries))
+    const nextExpandedValues = resolveExpandedValues(pathname, mobileMenuEntries)
+
+    setExpandedValues((currentExpandedValues) =>
+      areExpandedValuesEqual(currentExpandedValues, nextExpandedValues)
+        ? currentExpandedValues
+        : nextExpandedValues
+    )
   }, [mobileMenuEntries, pathname])
 
   const handleClose = () => setIsMobileMenuOpen(false)

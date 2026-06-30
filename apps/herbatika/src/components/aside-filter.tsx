@@ -95,6 +95,14 @@ const resolveBoundsForRender = (
   }
 }
 
+const areBoundsEqual = (
+  left: AsideFilterPriceBounds,
+  right: AsideFilterPriceBounds
+) => left.min === right.min && left.max === right.max
+
+const areRangesEqual = (left: [number, number], right: [number, number]) =>
+  left[0] === right[0] && left[1] === right[1]
+
 const normalizeCommittedRange = (
   nextRange: [number, number],
   bounds: AsideFilterPriceBounds
@@ -160,13 +168,17 @@ export function AsideFilter({
     )
 
   useEffect(() => {
-    setPriceBoundsForRender((currentBounds) =>
-      resolveBoundsForRender(
+    setPriceBoundsForRender((currentBounds) => {
+      const nextBounds = resolveBoundsForRender(
         currentBounds,
         incomingPriceBounds,
         hasActivePriceFilter
       )
-    )
+
+      return areBoundsEqual(currentBounds, nextBounds)
+        ? currentBounds
+        : nextBounds
+    })
   }, [hasActivePriceFilter, incomingPriceBounds])
 
   const selectedRange = resolveRangeFromSelection(
@@ -182,7 +194,11 @@ export function AsideFilter({
   )
 
   useEffect(() => {
-    setSliderRange(selectedRange)
+    setSliderRange((currentRange) =>
+      areRangesEqual(currentRange, selectedRange)
+        ? currentRange
+        : selectedRange
+    )
   }, [selectedRange])
 
   return (
