@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  ssr: {
+    external: ["@medusajs/js-sdk"],
+  },
   test: {
     environment: "jsdom",
     setupFiles: ["./tests/vitest.setup.ts"],
@@ -9,6 +12,6 @@ export default defineConfig({
     restoreMocks: true,
     typecheck: {
       tsconfig: "./tsconfig.test.json",
-    }
+    },
   },
 })
