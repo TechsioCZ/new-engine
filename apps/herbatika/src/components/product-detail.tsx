@@ -96,7 +96,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
           <StatusText showIcon status="error">
             Produkt sa nepodarilo nájsť.
           </StatusText>
-          <LinkButton as={NextLink} href="/" variant="secondary" size="sm">
+          <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
             Späť na domovskú stránku
           </LinkButton>
         </section>
