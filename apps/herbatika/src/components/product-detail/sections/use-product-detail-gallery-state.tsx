@@ -55,6 +55,10 @@ export function useProductDetailGalleryState({
       handleOpenLightbox(index)
     }
   }
+  const safeSelectedImageIndex = Math.min(
+    selectedImageIndex,
+    Math.max(galleryItems.length - 1, 0)
+  )
 
   const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
     (item, index) => {
@@ -65,7 +69,7 @@ export function useProductDetailGalleryState({
           alt={imageAlt}
           className="h-full w-full object-contain"
           height={408}
-          loading="eager"
+          loading={index === safeSelectedImageIndex ? "eager" : "lazy"}
           quality={75}
           sizes="(max-width: 767px) 60vw, (max-width: 1023px) 408px, 32vw"
           src={imageSrc}
@@ -107,10 +111,6 @@ export function useProductDetailGalleryState({
         ),
       }
     }
-  )
-  const safeSelectedImageIndex = Math.min(
-    selectedImageIndex,
-    Math.max(galleryItemsWithFallback.length - 1, 0)
   )
 
   return {
