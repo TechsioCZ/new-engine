@@ -50,7 +50,7 @@ jobs:
       - name: Generate Next.js types (n1)
         id: generate_next_types_n1
         if: contains(steps.determine_affected.outputs.projects_csv, ',n1,')
-        run: pnpm --filter=n1 exec next typegen
+        run: TURBOPACK=1 pnpm --filter=n1 exec next typegen
 
       # Prepend any command with "nx-cloud record --" to record its logs to Nx Cloud
       # - run: pnpm exec nx-cloud record -- echo Hello World
