@@ -2,18 +2,5 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": [
-    {
-      "path": "./libs/ui"
-    },
-    {
-      "path": "./libs/storefront-data"
-    },
-    {
-      "path": "./libs/analytics"
-    },
-    {
-      "path": "./apps/n1"
-    }
-  ]
+  "references": []
 }

@@ -6,6 +6,7 @@
     "skipLibCheck": true,
     "strict": true,
     "baseUrl": ".",
+    "composite": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -33,13 +34,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "local"],
-  "references": [
-    {
-      "path": "../../libs/ui"
-    },
-    {
-      "path": "../../libs/storefront-data"
-    }
-  ]
+  "exclude": ["node_modules", "local"]
 }
