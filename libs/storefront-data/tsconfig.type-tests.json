@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.test.json",
-  "include": ["src", "tests/type-contracts.typecheck.tsx"]
+  "include": ["tests/type-contracts.typecheck.tsx"]
 }

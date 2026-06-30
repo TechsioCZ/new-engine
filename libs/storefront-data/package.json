@@ -339,7 +339,10 @@
           "^production",
           "workspaceTooling"
         ],
-        "outputs": [],
+        "outputs": [
+          "{projectRoot}/tsconfig.tsbuildinfo",
+          "{projectRoot}/tsconfig.type-tests.tsbuildinfo"
+        ],
         "options": {
           "command": "pnpm typecheck",
           "cwd": "libs/storefront-data"

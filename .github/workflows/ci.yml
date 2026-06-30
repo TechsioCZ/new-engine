@@ -59,7 +59,7 @@ jobs:
       - name: Test new-engine-ctl CI wiring
         run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
       - name: Typecheck affected projects
-        # medusa-be has existing typecheck debt; keep the newly split/cacheable typecheck targets covered.
+        # Temporarily exclude medusa-be while its existing typecheck debt is tracked in #493.
         run: ./node_modules/.bin/nubx --node nx affected -t typecheck --exclude=medusa-be
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
