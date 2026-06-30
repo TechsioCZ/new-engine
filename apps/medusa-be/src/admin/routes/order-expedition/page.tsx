@@ -14,7 +14,13 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react"
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
@@ -185,8 +191,14 @@ function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
     ],
   })
 
-  const rawOrders = ordersQuery.data?.orders ?? []
-  const rawOrderIds = rawOrders.map((order) => order.id)
+  const rawOrders = useMemo(
+    () => ordersQuery.data?.orders ?? [],
+    [ordersQuery.data?.orders]
+  )
+  const rawOrderIds = useMemo(
+    () => rawOrders.map((order) => order.id),
+    [rawOrders]
+  )
   const businessStatusesQuery = useQuery({
     enabled: rawOrderIds.length > 0,
     queryFn: () => {
@@ -200,11 +212,22 @@ function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
     },
     queryKey: ["order-business-statuses-by-ids", rawOrderIds],
   })
-  const businessStatusesById = new Map(
-    (businessStatusesQuery.data?.orders ?? []).map((order) => [order.id, order])
+  const businessStatusesById = useMemo(
+    () =>
+      new Map(
+        (businessStatusesQuery.data?.orders ?? []).map((order) => [
+          order.id,
+          order,
+        ])
+      ),
+    [businessStatusesQuery.data?.orders]
   )
-  const orders = rawOrders.map((order) =>
-    mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
+  const orders = useMemo(
+    () =>
+      rawOrders.map((order) =>
+        mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
+      ),
+    [businessStatusesById, rawOrders]
   )
 
   return {

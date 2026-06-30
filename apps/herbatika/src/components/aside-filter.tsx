@@ -195,9 +195,7 @@ export function AsideFilter({
 
   useEffect(() => {
     setSliderRange((currentRange) =>
-      areRangesEqual(currentRange, selectedRange)
-        ? currentRange
-        : selectedRange
+      areRangesEqual(currentRange, selectedRange) ? currentRange : selectedRange
     )
   }, [selectedRange])
 

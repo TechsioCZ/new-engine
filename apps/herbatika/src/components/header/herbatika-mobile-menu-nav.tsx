@@ -117,7 +117,10 @@ export function HerbatikaMobileMenuNav() {
   )
 
   useEffect(() => {
-    const nextExpandedValues = resolveExpandedValues(pathname, mobileMenuEntries)
+    const nextExpandedValues = resolveExpandedValues(
+      pathname,
+      mobileMenuEntries
+    )
 
     setExpandedValues((currentExpandedValues) =>
       areExpandedValuesEqual(currentExpandedValues, nextExpandedValues)
