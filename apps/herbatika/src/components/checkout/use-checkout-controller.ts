@@ -412,16 +412,10 @@ export function useCheckoutController() {
   )
   const cartItemsTotalAmount = resolveCartItemsTotalAmount(cartQuery.cart)
   const cartShippingTotalAmount = hasCartShippingMethods
-    ? resolveCartShippingTotalAmount(
-        cartQuery.cart,
-        selectedShippingOptionPrice
-      )
+    ? resolveCartShippingTotalAmount(cartQuery.cart)
     : selectedShippingOptionPrice
   const cartShippingSubtotalAmount = hasCartShippingMethods
-    ? resolveCartShippingSubtotalAmount(
-        cartQuery.cart,
-        selectedShippingOptionPrice
-      )
+    ? resolveCartShippingSubtotalAmount(cartQuery.cart)
     : selectedShippingOptionPrice
   const cartTaxAmount = resolveCartTaxAmount(cartQuery.cart)
   const cartTotalAmount = resolveCartTotalAmount(cartQuery.cart)
