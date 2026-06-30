@@ -18,13 +18,7 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Link,
@@ -470,14 +464,11 @@ const ProductAssignmentDrawer = ({
     }
   }, [currentProductIds, open])
 
-  const params = useMemo(
-    () => ({
-      limit: PRODUCT_SELECTOR_PAGE_SIZE,
-      offset: pageIndex * PRODUCT_SELECTOR_PAGE_SIZE,
-      q: debouncedQ,
-    }),
-    [debouncedQ, pageIndex]
-  )
+  const params = {
+    limit: PRODUCT_SELECTOR_PAGE_SIZE,
+    offset: pageIndex * PRODUCT_SELECTOR_PAGE_SIZE,
+    q: debouncedQ,
+  }
 
   const { data, isLoading } = useQuery({
     enabled: open,
@@ -837,15 +828,12 @@ const ProducerDetailPage = () => {
   const producer = producerQuery.data?.producer
   const isDeleted = !!producer?.deleted_at
 
-  const productParams = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: productOrderBy,
-      q: debouncedProductQ,
-    }),
-    [debouncedProductQ, pageIndex, productOrderBy]
-  )
+  const productParams = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: productOrderBy,
+    q: debouncedProductQ,
+  }
 
   const productsQuery = useQuery({
     enabled: !!id && !!producer,
@@ -863,15 +851,12 @@ const ProducerDetailPage = () => {
   const productIds = productsQuery.data?.product_ids ?? []
   const count = productsQuery.data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
-  const attributeTypesParams = useMemo(
-    () => ({
-      include_deleted: true,
-      limit: 100,
-      offset: 0,
-      order_by: "name",
-    }),
-    []
-  )
+  const attributeTypesParams = {
+    include_deleted: true,
+    limit: 100,
+    offset: 0,
+    order_by: "name",
+  }
   const attributeTypesQuery = useQuery({
     queryFn: () => listProducerAttributeTypes(attributeTypesParams),
     queryKey: producerQueryKeys.attributeTypes(attributeTypesParams),

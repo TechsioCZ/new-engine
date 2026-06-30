@@ -301,18 +301,9 @@ function useOrderExpeditionSelection(
   selectedOrdersById: Map<string, OrderExpeditionOrderDto>,
   orders: OrderExpeditionOrderDto[]
 ) {
-  const selectedOrders = useMemo(
-    () => [...selectedOrdersById.values()],
-    [selectedOrdersById]
-  )
-  const selectedOrderIds = useMemo(
-    () => new Set(selectedOrdersById.keys()),
-    [selectedOrdersById]
-  )
-  const selectedOrderIdsList = useMemo(
-    () => [...selectedOrdersById.keys()],
-    [selectedOrdersById]
-  )
+  const selectedOrders = [...selectedOrdersById.values()]
+  const selectedOrderIds = new Set(selectedOrdersById.keys())
+  const selectedOrderIdsList = [...selectedOrdersById.keys()]
   const allPageOrdersSelected =
     orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
   const somePageOrdersSelected =
@@ -1497,10 +1488,7 @@ const OrderExpeditionPage = () => {
   const [blockingOrders, setBlockingOrders] = useState<
     OrderExpeditionBlockingOrder[]
   >([])
-  const intlLocale = useMemo(
-    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  )
+  const intlLocale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
 
   const { businessStatusesQuery, carriersQuery, orders, ordersQuery } =
     useOrderExpeditionQueries({ carrier, businessStatus, offset })
@@ -1523,10 +1511,7 @@ const OrderExpeditionPage = () => {
     targetStatus,
   })
 
-  const targetStatusOptions = useMemo(
-    () => getTargetStatusOptions(selectedOrders),
-    [selectedOrders]
-  )
+  const targetStatusOptions = getTargetStatusOptions(selectedOrders)
   const selectedTargetStatusOption = targetStatus
     ? targetStatusOptions.find((option) => option.value === targetStatus)
     : undefined

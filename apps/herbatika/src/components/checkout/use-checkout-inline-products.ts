@@ -1,7 +1,6 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { useMemo } from "react"
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree"
 import { asStorefrontString } from "@/lib/storefront/product-pricing"
 import {
@@ -24,22 +23,20 @@ export function useCheckoutInlineProducts(
   const { isLoading: isCartProductsLoading, products: cartProducts } =
     useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS)
 
-  const relatedCategoryIds = useMemo(() => {
-    const seenCategoryIds = new Set<string>()
+  const seenCategoryIds = new Set<string>()
 
-    return cartProducts.reduce<string[]>((ids, product) => {
-      for (const categoryId of resolveRelatedCategoryIds(product)) {
-        if (seenCategoryIds.has(categoryId)) {
-          continue
-        }
-
-        seenCategoryIds.add(categoryId)
-        ids.push(categoryId)
+  const relatedCategoryIds = cartProducts.reduce<string[]>((ids, product) => {
+    for (const categoryId of resolveRelatedCategoryIds(product)) {
+      if (seenCategoryIds.has(categoryId)) {
+        continue
       }
 
-      return ids
-    }, [])
-  }, [cartProducts])
+      seenCategoryIds.add(categoryId)
+      ids.push(categoryId)
+    }
+
+    return ids
+  }, [])
 
   const relatedProductsQuery = useProducts({
     page: 1,
@@ -50,43 +47,41 @@ export function useCheckoutInlineProducts(
     enabled: relatedCategoryIds.length > 0,
   })
 
-  const relatedProducts = useMemo(() => {
-    const cartProductIds = new Set(
-      cartProducts
-        .map((product) => asStorefrontString(product.id))
-        .filter((productId): productId is string => Boolean(productId))
-    )
-    const cartProductHandlesSet = new Set(
-      cartProducts
-        .map((product) => asStorefrontString(product.handle))
-        .filter((productHandle): productHandle is string =>
-          Boolean(productHandle)
-        )
-    )
-    const cartFamilyKeys = new Set(
-      cartProducts.map((product) => resolveRecommendedProductFamilyKey(product))
-    )
+  const cartProductIds = new Set(
+    cartProducts
+      .map((product) => asStorefrontString(product.id))
+      .filter((productId): productId is string => Boolean(productId))
+  )
+  const cartProductHandlesSet = new Set(
+    cartProducts
+      .map((product) => asStorefrontString(product.handle))
+      .filter((productHandle): productHandle is string =>
+        Boolean(productHandle)
+      )
+  )
+  const cartFamilyKeys = new Set(
+    cartProducts.map((product) => resolveRecommendedProductFamilyKey(product))
+  )
 
-    const filteredProducts = relatedProductsQuery.products.filter((product) => {
-      const productId = asStorefrontString(product.id)
-      if (productId && cartProductIds.has(productId)) {
-        return false
-      }
+  const filteredProducts = relatedProductsQuery.products.filter((product) => {
+    const productId = asStorefrontString(product.id)
+    if (productId && cartProductIds.has(productId)) {
+      return false
+    }
 
-      const productHandle = asStorefrontString(product.handle)
-      if (productHandle && cartProductHandlesSet.has(productHandle)) {
-        return false
-      }
+    const productHandle = asStorefrontString(product.handle)
+    if (productHandle && cartProductHandlesSet.has(productHandle)) {
+      return false
+    }
 
-      const productFamilyKey = resolveRecommendedProductFamilyKey(product)
-      return !cartFamilyKeys.has(productFamilyKey)
-    })
+    const productFamilyKey = resolveRecommendedProductFamilyKey(product)
+    return !cartFamilyKeys.has(productFamilyKey)
+  })
 
-    return selectRecommendedProductRepresentatives(
-      filteredProducts,
-      CHECKOUT_INLINE_PRODUCTS_LIMIT
-    )
-  }, [cartProducts, relatedProductsQuery.products])
+  const relatedProducts = selectRecommendedProductRepresentatives(
+    filteredProducts,
+    CHECKOUT_INLINE_PRODUCTS_LIMIT
+  )
 
   const isLoading = isCartProductsLoading || relatedProductsQuery.isLoading
 

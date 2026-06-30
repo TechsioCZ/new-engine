@@ -110,7 +110,7 @@ ENV NEXT_PUBLIC_HEUREKA_API_KEY=${NEXT_PUBLIC_HEUREKA_API_KEY}
 # after building @techsio/* dist outputs or Next build can resolve stale package state.
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
-    pnpm --filter=n1 exec next typegen && \
+    TURBOPACK=1 pnpm --filter=n1 exec next typegen && \
     pnpm --filter=n1 build && \
     test -f apps/n1/.next/BUILD_ID
 

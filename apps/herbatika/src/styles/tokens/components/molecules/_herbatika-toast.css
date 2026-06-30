@@ -1,4 +1,11 @@
 @theme static {
-  --color-toast-fg: white;
-  --color-toast-close-fg: white;
+  --color-toast-fg: var(--color-herbatika-white);
+  --color-toast-close-fg: var(--color-herbatika-white);
+  --color-icon-control-bg-hover: transparent;
+}
+
+[data-scope="toast"][data-part="close-trigger"] {
+  --color-icon-control-fg: var(--color-toast-close-fg);
+  --color-icon-control-bg-hover: transparent;
+  --color-icon-control-bg-active: transparent;
 }

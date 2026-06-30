@@ -21,7 +21,7 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
@@ -47,21 +47,25 @@ import {
 } from "./format"
 import { OrderFulfillmentModal } from "./fulfillment-modal"
 import {
+  getPacketaCarrierOrderIds,
+  getPacketaLabelPreview,
+  preparePacketaLabelDownload,
+} from "./packeta-labels"
+import {
   ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS,
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
   ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
-  ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
   ORDER_DASHBOARD_QUEUE_IDS,
   ORDER_DASHBOARD_TARGET_STATUSES,
+  type OrderDashboardBlockingOrder,
   type OrderDashboardBusinessStatusGroupId,
   type OrderDashboardBusinessStatusId,
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
-  type OrderDashboardPacketaEligibilityOrder,
   type OrderDashboardQueueId,
   type OrderDashboardSummaryResponse,
   type OrderDashboardTargetStatus,
@@ -69,6 +73,7 @@ import {
 
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
+const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
 const CARRIER_FILTER_ID = "carrier.value"
 const BUSINESS_STATUS_GROUP_FILTER_ID = "business_status.group"
 const BUSINESS_STATUS_FILTER_ID = "business_status.id"
@@ -82,11 +87,6 @@ type TargetStatusOption = {
   blockedOrders: OrderDashboardBlockingOrder[]
   label: string
   value: OrderDashboardTargetStatus
-}
-type OrderDashboardBlockingOrder = {
-  id: string
-  order_display_id: string
-  reason: string
 }
 type TranslationFunction = (
   key: string,
@@ -113,10 +113,7 @@ const fulfillmentStatusColors = {
 const OrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
-  const locale = useMemo(
-    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  )
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageIndex: 0,
     pageSize: ORDER_DASHBOARD_PAGE_SIZE,
@@ -140,6 +137,8 @@ const OrderDashboardPage = () => {
   const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false)
   const [labelFormat, setLabelFormat] =
     useState<OrderDashboardLabelFormat>("A6")
+  const [isPreparingPacketaLabels, setIsPreparingPacketaLabels] =
+    useState(false)
   const [blockingOrders, setBlockingOrders] = useState<
     OrderDashboardBlockingOrder[]
   >([])
@@ -175,47 +174,28 @@ const OrderDashboardPage = () => {
   })
 
   const orders = ordersQuery.data?.orders ?? []
-  const selectedOrders = useMemo(
-    () => Array.from(selectedOrdersById.values()),
-    [selectedOrdersById]
-  )
-  const selectedOrderIds = useMemo(
-    () => selectedOrders.map((order) => order.id),
-    [selectedOrders]
-  )
-  const selectedPacketaCarrierOrderIds = useMemo(
-    () =>
-      selectedOrders
-        .filter((order) => order.carrier.value === "packeta")
-        .map((order) => order.id),
-    [selectedOrders]
-  )
+  const selectedOrders = Array.from(selectedOrdersById.values())
+  const selectedOrderIds = Array.from(selectedOrdersById.keys())
+  const selectedOrderIdSet = new Set(selectedOrderIds)
+  const selectedPacketaCarrierOrderIds =
+    getPacketaCarrierOrderIds(selectedOrders)
   const packetaEligibilityQuery = useQuery({
     enabled: selectedPacketaCarrierOrderIds.length > 0,
     queryFn: () =>
       listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
-    queryKey: [
-      "order-dashboard-packeta-eligibility",
-      selectedPacketaCarrierOrderIds,
-    ],
+    queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
   })
-  const packetaLabelPreview = useMemo(
-    () =>
-      getPacketaLabelPreview(selectedOrders, packetaEligibilityQuery.data, t),
-    [packetaEligibilityQuery.data, selectedOrders, t]
+  const packetaLabelPreview = getPacketaLabelPreview(
+    selectedOrders,
+    packetaEligibilityQuery.data,
+    t
   )
   const selectedCount = selectedOrders.length
   const packetaEligibleCount = packetaLabelPreview.printableOrders.length
-  const detailOrder = useMemo(
-    () =>
-      orders.find((order) => order.id === detailOrderId) ??
-      (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined),
-    [detailOrderId, orders, selectedOrdersById]
-  )
-  const targetStatusOptions = useMemo(
-    () => getTargetStatusOptions(selectedOrders, t),
-    [selectedOrders, t]
-  )
+  const detailOrder =
+    orders.find((order) => order.id === detailOrderId) ??
+    (detailOrderId ? selectedOrdersById.get(detailOrderId) : undefined)
+  const targetStatusOptions = getTargetStatusOptions(selectedOrders, t)
   const selectedTargetStatusOption = targetStatus
     ? targetStatusOptions.find((option) => option.value === targetStatus)
     : undefined
@@ -240,182 +220,169 @@ const OrderDashboardPage = () => {
       : getManualStatusLabel(manualStatusTarget, t)
   const activeQueueId: OrderDashboardQueueId =
     businessStatusGroupFilter ?? businessStatusFilter ?? "all"
-  const queueTabs = useMemo(
-    () =>
-      ORDER_DASHBOARD_QUEUE_IDS.map((queueId) => ({
-        count: getQueueCount(queueId, summaryQuery.data),
-        id: queueId,
-        label: getQueueLabel(queueId, t),
+  const queueTabs = ORDER_DASHBOARD_QUEUE_IDS.map((queueId) => ({
+    count: getQueueCount(queueId, summaryQuery.data),
+    id: queueId,
+    label: getQueueLabel(queueId, t),
+  }))
+
+  const filters = [
+    filterHelper.accessor(CARRIER_FILTER_ID, {
+      label: t("filters.carrier"),
+      options: ORDER_DASHBOARD_CARRIER_KEYS.map((carrier) => ({
+        label: carrier === "ppl" ? "PPL" : formatOptionLabel(carrier),
+        value: carrier,
       })),
-    [summaryQuery.data, t]
-  )
+      type: "radio",
+    }),
+    filterHelper.accessor(BUSINESS_STATUS_FILTER_ID, {
+      label: t("filters.businessStatus"),
+      options: ORDER_DASHBOARD_BUSINESS_STATUS_IDS.map((status) => ({
+        label: t(`statuses.${status}`),
+        value: status,
+      })),
+      type: "radio",
+    }),
+  ]
 
-  const filters = useMemo(
-    () => [
-      filterHelper.accessor(CARRIER_FILTER_ID, {
-        label: t("filters.carrier"),
-        options: ORDER_DASHBOARD_CARRIER_KEYS.map((carrier) => ({
-          label: carrier === "ppl" ? "PPL" : formatOptionLabel(carrier),
-          value: carrier,
-        })),
-        type: "radio",
-      }),
-      filterHelper.accessor(BUSINESS_STATUS_FILTER_ID, {
-        label: t("filters.businessStatus"),
-        options: ORDER_DASHBOARD_BUSINESS_STATUS_IDS.map((status) => ({
-          label: t(`statuses.${status}`),
-          value: status,
-        })),
-        type: "radio",
-      }),
-    ],
-    [t]
-  )
-
-  const columns = useMemo(
-    () => [
-      columnHelper.select(),
-      columnHelper.accessor("order_display_id", {
-        cell: ({ row }) => (
-          <Link
-            className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-            to={`/orders/${row.original.id}`}
-          >
-            {row.original.order_display_id}
-          </Link>
-        ),
-        header: t("columns.order"),
-      }),
-      columnHelper.accessor("created_at", {
-        cell: ({ getValue }) => (
-          <Text leading="compact" size="small">
-            {formatOrderDate(getValue(), locale)}
+  const columns = [
+    columnHelper.select(),
+    columnHelper.accessor("order_display_id", {
+      cell: ({ row }) => (
+        <Link
+          className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+          to={`/orders/${row.original.id}`}
+        >
+          {row.original.order_display_id}
+        </Link>
+      ),
+      header: t("columns.order"),
+    }),
+    columnHelper.accessor("created_at", {
+      cell: ({ getValue }) => (
+        <Text leading="compact" size="small">
+          {formatOrderDate(getValue(), locale)}
+        </Text>
+      ),
+      header: t("columns.created"),
+    }),
+    columnHelper.accessor("customer", {
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col gap-y-1">
+          <Text leading="compact" size="small" weight="plus">
+            {row.original.customer}
           </Text>
-        ),
-        header: t("columns.created"),
-      }),
-      columnHelper.accessor("customer", {
-        cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col gap-y-1">
-            <Text leading="compact" size="small" weight="plus">
-              {row.original.customer}
-            </Text>
-            {row.original.email ? (
-              <Text
-                className="max-w-[220px] truncate text-ui-fg-subtle"
-                leading="compact"
-                size="small"
-              >
-                {row.original.email}
-              </Text>
-            ) : null}
-          </div>
-        ),
-        header: t("columns.customer"),
-      }),
-      columnHelper.accessor("carrier.value", {
-        cell: ({ row }) => (
-          <Text leading="compact" size="small">
-            {getCarrierLabel(row.original)}
-          </Text>
-        ),
-        header: t("columns.carrier"),
-      }),
-      columnHelper.accessor("delivery_address", {
-        cell: ({ row }) => {
-          const address = formatOrderDeliveryAddress(
-            row.original.delivery_address
-          )
-
-          return (
+          {row.original.email ? (
             <Text
-              className="max-w-[240px] truncate text-ui-fg-subtle"
+              className="max-w-[220px] truncate text-ui-fg-subtle"
               leading="compact"
               size="small"
-              title={address}
             >
-              {address}
+              {row.original.email}
             </Text>
-          )
-        },
-        header: t("columns.address"),
-      }),
-      columnHelper.accessor("business_status.id", {
-        cell: ({ row }) => (
-          <Badge color={row.original.business_status.tone} size="2xsmall">
-            {t(row.original.business_status.translation_key)}
-          </Badge>
-        ),
-        header: t("columns.businessStatus"),
-      }),
-      columnHelper.accessor("fulfillment_status", {
-        cell: ({ row }) => {
-          const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
+          ) : null}
+        </div>
+      ),
+      header: t("columns.customer"),
+    }),
+    columnHelper.accessor("carrier.value", {
+      cell: ({ row }) => (
+        <Text leading="compact" size="small">
+          {getCarrierLabel(row.original)}
+        </Text>
+      ),
+      header: t("columns.carrier"),
+    }),
+    columnHelper.accessor("delivery_address", {
+      cell: ({ row }) => {
+        const address = formatOrderDeliveryAddress(
+          row.original.delivery_address
+        )
 
-          return (
-            <StatusBadge
-              className="text-nowrap"
-              color={fulfillmentStatus.color}
-            >
-              {fulfillmentStatus.label}
-            </StatusBadge>
-          )
-        },
-        header: t("columns.fulfillment"),
-      }),
-      columnHelper.display({
-        cell: ({ row }) => (
-          <ManualStatusControl
-            manualStatus={row.original.manual_status}
-            orderId={row.original.id}
-          />
-        ),
-        header: t("columns.manualStatus"),
-        id: "manual_status",
-      }),
-      columnHelper.accessor("payment_status", {
-        cell: ({ row }) => (
-          <div className="flex flex-col gap-y-1">
-            <Text leading="compact" size="small">
-              {row.original.payment_status ?? "-"}
-            </Text>
-            <Text className="text-ui-fg-subtle" leading="compact" size="small">
-              {formatPaymentMethodLabel(row.original.payment_method)}
-            </Text>
-          </div>
-        ),
-        header: t("columns.payment"),
-      }),
-      columnHelper.accessor("total", {
-        cell: ({ row }) => (
-          <Text leading="compact" size="small" weight="plus">
-            {formatOrderTotal(row.original, locale)}
-          </Text>
-        ),
-        header: t("columns.total"),
-        headerAlign: "right",
-      }),
-      columnHelper.display({
-        cell: ({ row }) => (
-          <Button
-            onClick={() =>
-              setDetailOrderId((currentOrderId) =>
-                currentOrderId === row.original.id ? null : row.original.id
-              )
-            }
+        return (
+          <Text
+            className="max-w-[240px] truncate text-ui-fg-subtle"
+            leading="compact"
             size="small"
-            type="button"
-            variant="transparent"
+            title={address}
           >
-            {t("actions.details")}
-          </Button>
-        ),
-        header: t("columns.details"),
-        id: "details",
-      }),
-    ],
-    [locale, t]
-  )
+            {address}
+          </Text>
+        )
+      },
+      header: t("columns.address"),
+    }),
+    columnHelper.accessor("business_status.id", {
+      cell: ({ row }) => (
+        <Badge color={row.original.business_status.tone} size="2xsmall">
+          {t(row.original.business_status.translation_key)}
+        </Badge>
+      ),
+      header: t("columns.businessStatus"),
+    }),
+    columnHelper.accessor("fulfillment_status", {
+      cell: ({ row }) => {
+        const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
+
+        return (
+          <StatusBadge className="text-nowrap" color={fulfillmentStatus.color}>
+            {fulfillmentStatus.label}
+          </StatusBadge>
+        )
+      },
+      header: t("columns.fulfillment"),
+    }),
+    columnHelper.display({
+      cell: ({ row }) => (
+        <ManualStatusControl
+          manualStatus={row.original.manual_status}
+          orderId={row.original.id}
+        />
+      ),
+      header: t("columns.manualStatus"),
+      id: "manual_status",
+    }),
+    columnHelper.accessor("payment_status", {
+      cell: ({ row }) => (
+        <div className="flex flex-col gap-y-1">
+          <Text leading="compact" size="small">
+            {row.original.payment_status ?? "-"}
+          </Text>
+          <Text className="text-ui-fg-subtle" leading="compact" size="small">
+            {formatPaymentMethodLabel(row.original.payment_method)}
+          </Text>
+        </div>
+      ),
+      header: t("columns.payment"),
+    }),
+    columnHelper.accessor("total", {
+      cell: ({ row }) => (
+        <Text leading="compact" size="small" weight="plus">
+          {formatOrderTotal(row.original, locale)}
+        </Text>
+      ),
+      header: t("columns.total"),
+      headerAlign: "right",
+    }),
+    columnHelper.display({
+      cell: ({ row }) => (
+        <Button
+          onClick={() =>
+            setDetailOrderId((currentOrderId) =>
+              currentOrderId === row.original.id ? null : row.original.id
+            )
+          }
+          size="small"
+          type="button"
+          variant="transparent"
+        >
+          {t("actions.details")}
+        </Button>
+      ),
+      header: t("columns.details"),
+      id: "details",
+    }),
+  ]
 
   const clearSelection = () => {
     setRowSelection({})
@@ -429,6 +396,10 @@ const OrderDashboardPage = () => {
           currentSelection: DataTableRowSelectionState
         ) => DataTableRowSelectionState)
   ) => {
+    if (isPreparingPacketaLabels) {
+      return
+    }
+
     const resolvedSelection =
       typeof nextSelection === "function"
         ? nextSelection(rowSelection)
@@ -495,6 +466,21 @@ const OrderDashboardPage = () => {
     })
   }
 
+  const refreshFulfillmentData = () => {
+    refreshOrders()
+    queryClient.invalidateQueries({
+      queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY],
+      refetchType: "active",
+    })
+  }
+
+  const handleFulfillmentCompleted = () => {
+    refreshFulfillmentData()
+    clearSelection()
+    setBlockingOrders([])
+    setDetailOrderId(null)
+  }
+
   const invalidateOrders = () => {
     refreshOrders()
     clearSelection()
@@ -551,9 +537,6 @@ const OrderDashboardPage = () => {
 
   const packetaLabelsMutation = useMutation({
     mutationFn: downloadOrderDashboardPacketaLabels,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, t("toast.requestFailed")))
-    },
     onSuccess: () => {
       toast.success(t("toast.packetaLabelsReady"))
     },
@@ -617,49 +600,68 @@ const OrderDashboardPage = () => {
     expeditionPdfMutation.mutate(selectedOrderIds)
   }
 
-  const handlePacketaLabels = () => {
-    if (!selectedOrderIds.length) {
+  const handlePacketaLabels = async () => {
+    const selectedOrdersSnapshot = selectedOrders
+    const selectedPacketaCarrierOrderIdsSnapshot = getPacketaCarrierOrderIds(
+      selectedOrdersSnapshot
+    )
+    const labelFormatSnapshot = labelFormat
+
+    if (!selectedOrdersSnapshot.length) {
       toast.error(t("toast.noSelection"))
       return
     }
 
-    if (packetaEligibilityQuery.isLoading) {
-      toast.error(t("toast.packetaEligibilityLoading"))
-      return
-    }
-
-    if (packetaEligibilityQuery.error) {
-      toast.error(
-        getErrorMessage(packetaEligibilityQuery.error, t("toast.requestFailed"))
-      )
-      return
-    }
-
-    if (packetaLabelPreview.skipped.length) {
-      setBlockingOrders(packetaLabelPreview.skipped)
-    }
-
-    if (!packetaLabelPreview.printableOrders.length) {
+    if (!selectedPacketaCarrierOrderIdsSnapshot.length) {
       toast.error(t("toast.noPacketaSelection"))
       return
     }
 
-    if (
-      packetaLabelPreview.printableOrders.length >
-      ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS
-    ) {
-      toast.error(
-        t("toast.packetaLabelLimit", {
-          count: ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
-        })
-      )
+    if (isPreparingPacketaLabels || packetaLabelsMutation.isPending) {
       return
     }
 
-    packetaLabelsMutation.mutate({
-      labelFormat,
-      orderIds: packetaLabelPreview.printableOrders.map((order) => order.id),
-    })
+    setIsPreparingPacketaLabels(true)
+
+    try {
+      const eligibilityOrders = await listOrderDashboardPacketaEligibility(
+        selectedPacketaCarrierOrderIdsSnapshot
+      )
+      queryClient.setQueryData(
+        [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIdsSnapshot],
+        eligibilityOrders
+      )
+      const packetaLabelPreparation = preparePacketaLabelDownload(
+        selectedOrdersSnapshot,
+        eligibilityOrders,
+        t
+      )
+
+      setBlockingOrders(packetaLabelPreparation.blockingOrders)
+
+      if (packetaLabelPreparation.kind === "no-printable") {
+        toast.error(t("toast.noPacketaSelection"))
+        return
+      }
+
+      if (packetaLabelPreparation.kind === "too-many") {
+        toast.error(
+          t("toast.packetaLabelLimit", {
+            count: packetaLabelPreparation.limit,
+          })
+        )
+        return
+      }
+
+      await packetaLabelsMutation.mutateAsync({
+        labelFormat: labelFormatSnapshot,
+        orderIds: packetaLabelPreparation.orderIds,
+      })
+    } catch (error) {
+      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    } finally {
+      setIsPreparingPacketaLabels(false)
+    }
   }
 
   const handleFulfillmentOpen = () => {
@@ -736,15 +738,43 @@ const OrderDashboardPage = () => {
     targetStatus,
   ])
 
+  // Row selection only depends on selected IDs; refreshed order objects keep the
+  // same visible rows selected without retriggering this effect.
   useEffect(() => {
-    const visibleSelection = getVisibleRowSelection(orders, selectedOrdersById)
+    const visibleSelection = getVisibleRowSelection(orders, selectedOrderIdSet)
 
     setRowSelection((currentSelection) =>
       isSameRowSelection(currentSelection, visibleSelection)
         ? currentSelection
         : visibleSelection
     )
-  }, [orders, selectedOrdersById])
+  }, [orders, selectedOrderIdSet])
+
+  useEffect(() => {
+    if (!(orders.length && selectedOrderIdSet.size)) {
+      return
+    }
+
+    setSelectedOrdersById((currentSelection) => {
+      let hasChanged = false
+      const nextSelection = new Map(currentSelection)
+
+      for (const order of orders) {
+        if (!nextSelection.has(order.id)) {
+          continue
+        }
+
+        if (nextSelection.get(order.id) === order) {
+          continue
+        }
+
+        nextSelection.set(order.id, order)
+        hasChanged = true
+      }
+
+      return hasChanged ? nextSelection : currentSelection
+    })
+  }, [orders, selectedOrderIdSet])
 
   return (
     <Container className="divide-y p-0">
@@ -838,9 +868,9 @@ const OrderDashboardPage = () => {
       </Prompt>
 
       <OrderFulfillmentModal
-        onCompleted={invalidateOrders}
+        onCompleted={handleFulfillmentCompleted}
         onOpenChange={setIsFulfillmentModalOpen}
-        onOrdersChanged={refreshOrders}
+        onOrdersChanged={refreshFulfillmentData}
         open={isFulfillmentModalOpen}
         selectedOrderIds={selectedOrderIds}
         selectedOrders={selectedOrders}
@@ -905,7 +935,12 @@ const OrderDashboardPage = () => {
               }
               value={labelFormat}
             >
-              <Select.Trigger className="w-[84px]">
+              <Select.Trigger
+                className="w-[84px]"
+                disabled={
+                  isPreparingPacketaLabels || packetaLabelsMutation.isPending
+                }
+              >
                 <Select.Value />
               </Select.Trigger>
               <Select.Content>
@@ -919,13 +954,11 @@ const OrderDashboardPage = () => {
             <Button
               disabled={
                 !selectedCount ||
-                packetaEligibilityQuery.isLoading ||
-                packetaEligibilityQuery.isError ||
+                isPreparingPacketaLabels ||
                 packetaLabelsMutation.isPending
               }
               isLoading={
-                packetaEligibilityQuery.isLoading ||
-                packetaLabelsMutation.isPending
+                isPreparingPacketaLabels || packetaLabelsMutation.isPending
               }
               onClick={handlePacketaLabels}
               size="small"
@@ -1154,10 +1187,7 @@ function OrderDashboardDetailPanel({
   order: OrderDashboardOrder
 }) {
   const { i18n, t } = useTranslation("orderDashboard")
-  const locale = useMemo(
-    () => formatLocaleCode(i18n.resolvedLanguage ?? i18n.language),
-    [i18n.language, i18n.resolvedLanguage]
-  )
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const manualStatusLabel = order.manual_status
     ? t(`manualStatus.${order.manual_status}`)
     : t("manualStatus.none")
@@ -1394,67 +1424,6 @@ function getBulkManualStatusPreview(
   return { skipped, updatable }
 }
 
-function getPacketaLabelPreview(
-  selectedOrders: OrderDashboardOrder[],
-  eligibilityOrders: OrderDashboardPacketaEligibilityOrder[] | undefined,
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
-  const eligibilityOrdersById = new Map(
-    (eligibilityOrders ?? []).map((order) => [order.id, order])
-  )
-  const printableOrders: OrderDashboardOrder[] = []
-  const skipped: OrderDashboardBlockingOrder[] = []
-
-  for (const order of selectedOrders) {
-    const eligibilityOrder = eligibilityOrdersById.get(order.id)
-    const skipReason = getPacketaLabelSkipReason(order, eligibilityOrder, t)
-
-    if (skipReason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason: skipReason,
-      })
-      continue
-    }
-
-    printableOrders.push(order)
-  }
-
-  return { printableOrders, skipped }
-}
-
-function getPacketaLabelSkipReason(
-  order: OrderDashboardOrder,
-  eligibilityOrder: OrderDashboardPacketaEligibilityOrder | undefined,
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
-  if (order.carrier.value !== "packeta") {
-    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order) })
-  }
-
-  if (!eligibilityOrder) {
-    return t("packetaSkip.unchecked")
-  }
-
-  if (!hasPrintablePacketaLabel(eligibilityOrder)) {
-    return t("packetaSkip.noActiveLabel")
-  }
-
-  return
-}
-
-function hasPrintablePacketaLabel(
-  order: OrderDashboardPacketaEligibilityOrder
-) {
-  return (order.fulfillments ?? []).some(
-    (fulfillment) =>
-      fulfillment.provider_id === "packeta_packeta" &&
-      !fulfillment.canceled_at &&
-      typeof fulfillment.data?.packet_id === "number"
-  )
-}
-
 function StatusSelectItem({
   onBlockedAttempt,
   option,
@@ -1580,12 +1549,12 @@ function BlockingOrdersPanel({
 
 function getVisibleRowSelection(
   orders: OrderDashboardOrder[],
-  selectedOrdersById: Map<string, OrderDashboardOrder>
+  selectedOrderIdSet: ReadonlySet<string>
 ) {
   const visibleSelection: DataTableRowSelectionState = {}
 
   for (const order of orders) {
-    if (selectedOrdersById.has(order.id)) {
+    if (selectedOrderIdSet.has(order.id)) {
       visibleSelection[order.id] = true
     }
   }

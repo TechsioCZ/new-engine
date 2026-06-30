@@ -4,7 +4,6 @@ import type {
   AdminOrderPreview,
 } from "@medusajs/framework/types"
 import { Badge, Copy, Text } from "@medusajs/ui"
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { AmountCell, Thumbnail } from "../../../../components/common"
 
@@ -15,10 +14,7 @@ export const QuoteItems = ({
   order: AdminOrder
   preview: AdminOrderPreview
 }) => {
-  const originalItemsMap = useMemo(
-    () => new Map(order.items.map((item) => [item.id, item])),
-    [order]
-  )
+  const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
 
   return (
     <div>
@@ -47,21 +43,11 @@ export const QuoteItem = ({
 }) => {
   const { t } = useTranslation("quotes")
 
-  const isAddedItem = useMemo(
-    () => !!item.actions?.find((a) => a.action === "ITEM_ADD"),
-    [item]
-  )
-
-  const isItemUpdated = useMemo(
-    () => !!item.actions?.find((a) => a.action === "ITEM_UPDATE"),
-    [item]
-  )
-
-  const isItemRemoved = useMemo(() => {
-    const updateAction = item.actions?.find((a) => a.action === "ITEM_UPDATE")
-
-    return !!updateAction && item.quantity === item.detail.fulfilled_quantity
-  }, [item])
+  const isAddedItem = !!item.actions?.find((a) => a.action === "ITEM_ADD")
+  const isItemUpdated = !!item.actions?.find((a) => a.action === "ITEM_UPDATE")
+  const updateAction = item.actions?.find((a) => a.action === "ITEM_UPDATE")
+  const isItemRemoved =
+    !!updateAction && item.quantity === item.detail.fulfilled_quantity
 
   return (
     <div

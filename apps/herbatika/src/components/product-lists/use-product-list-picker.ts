@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { type FormEvent, useEffect, useMemo, useState } from "react"
+import { type FormEvent, useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
@@ -69,10 +69,7 @@ export function useProductListPicker({
     limit: 100,
     enabled: shouldFetchLists,
   })
-  const listIds = useMemo(
-    () => listsQuery.productLists.map((list) => list.id).filter(Boolean),
-    [listsQuery.productLists]
-  )
+  const listIds = listsQuery.productLists.map((list) => list.id).filter(Boolean)
   const detailQueries = useProductListDetails(listIds, {
     customerId,
     enabled: shouldFetchLists && listIds.length > 0,
@@ -85,43 +82,37 @@ export function useProductListPicker({
     createCustomMutation.isPending ||
     addItemMutation.isPending ||
     addFavoriteItemMutation.isPending
-  const detailListsById = useMemo(
-    () => listById(detailQueries.map((query) => query.data)),
-    [detailQueries]
+  const detailListsById = listById(detailQueries.map((query) => query.data))
+  const hydratedLists = listsQuery.productLists.map(
+    (list) => detailListsById.get(list.id) ?? list
   )
-  const rows = useMemo<ProductListPickerRow[]>(() => {
-    const hydratedLists = listsQuery.productLists.map(
-      (list) => detailListsById.get(list.id) ?? list
-    )
-    const favoriteList =
-      hydratedLists.find((list) => isFavoriteProductList(list)) ?? null
-    const customLists = hydratedLists.filter(
-      (list) => !isFavoriteProductList(list)
-    )
-
-    return [
-      {
-        key: favoriteList?.id ?? "favorite",
-        title: "Obľúbené",
-        count: getProductListItemCount(favoriteList),
-        checked: isProductInProductList(
-          favoriteList,
-          product.id,
-          selectedVariantId
-        ),
-        isFavorite: true,
-        list: favoriteList,
-      },
-      ...customLists.map((list) => ({
-        key: list.id,
-        title: getProductListTitle(list),
-        count: getProductListItemCount(list),
-        checked: isProductInProductList(list, product.id, selectedVariantId),
-        isFavorite: false,
-        list,
-      })),
-    ]
-  }, [detailListsById, listsQuery.productLists, product.id, selectedVariantId])
+  const favoriteList =
+    hydratedLists.find((list) => isFavoriteProductList(list)) ?? null
+  const customLists = hydratedLists.filter(
+    (list) => !isFavoriteProductList(list)
+  )
+  const rows: ProductListPickerRow[] = [
+    {
+      key: favoriteList?.id ?? "favorite",
+      title: "Obľúbené",
+      count: getProductListItemCount(favoriteList),
+      checked: isProductInProductList(
+        favoriteList,
+        product.id,
+        selectedVariantId
+      ),
+      isFavorite: true,
+      list: favoriteList,
+    },
+    ...customLists.map((list) => ({
+      key: list.id,
+      title: getProductListTitle(list),
+      count: getProductListItemCount(list),
+      checked: isProductInProductList(list, product.id, selectedVariantId),
+      isFavorite: false,
+      list,
+    })),
+  ]
 
   useEffect(() => {
     if (isOpen) {

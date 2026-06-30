@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect } from "react"
 import {
   resolveCarrierPickupHint,
   resolveCarrierPickupRequirement,
@@ -41,16 +41,12 @@ export function CheckoutShippingSection({
   shippingOptions,
   shippingPrices,
 }: CheckoutShippingSectionProps) {
-  const pickupRequirements = useMemo(
-    () =>
-      new Map(
-        shippingOptions.flatMap((option) => {
-          const requirement = resolveCarrierPickupRequirement(option)
+  const pickupRequirements = new Map(
+    shippingOptions.flatMap((option) => {
+      const requirement = resolveCarrierPickupRequirement(option)
 
-          return requirement ? [[option.id, requirement]] : []
-        })
-      ),
-    [shippingOptions]
+      return requirement ? [[option.id, requirement]] : []
+    })
   )
 
   useEffect(() => {

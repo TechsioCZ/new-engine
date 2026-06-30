@@ -4,7 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import type { ProductDetailProps } from "@/components/product-detail/product-detail.types"
 import { ProductDetailHero } from "@/components/product-detail/sections/product-detail-hero"
@@ -50,7 +50,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
     setActiveInfoSection(PRODUCT_DETAIL_REVIEWS_TAB_VALUE)
   }, [controller.product?.id])
 
-  const handleShowAllReviews = useCallback(() => {
+  const handleShowAllReviews = () => {
     setActiveInfoSection(PRODUCT_DETAIL_REVIEWS_TAB_VALUE)
     window.history.replaceState(
       null,
@@ -62,7 +62,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
         .getElementById(PRODUCT_DETAIL_REVIEWS_SECTION_ID)
         ?.scrollIntoView({ behavior: "smooth", block: "start" })
     })
-  }, [])
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-product-detail-page-gap p-product-detail-page font-rubik 2xl:p-product-detail-page-lg">
@@ -92,11 +92,11 @@ export function ProductDetail({ handle }: ProductDetailProps) {
       controller.productQuery.isLoading ||
       controller.productQuery.error ||
       controller.product ? null : (
-        <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
+        <section className="space-y-400 rounded-base border border-border-secondary bg-surface p-600">
           <StatusText showIcon status="error">
             Produkt sa nepodarilo nájsť.
           </StatusText>
-          <LinkButton as={NextLink} href="/" variant="secondary">
+          <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
             Späť na domovskú stránku
           </LinkButton>
         </section>
