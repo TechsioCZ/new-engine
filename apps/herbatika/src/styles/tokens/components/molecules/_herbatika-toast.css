@@ -5,7 +5,7 @@
 }
 
 [data-scope="toast"][data-part="close-trigger"] {
-    --color-icon-control-fg: var(--color-toast-close-fg);
-    --color-icon-control-bg-hover: transparent;
-    --color-icon-control-bg-active: transparent;
+  --color-icon-control-fg: var(--color-toast-close-fg);
+  --color-icon-control-bg-hover: transparent;
+  --color-icon-control-bg-active: transparent;
 }
