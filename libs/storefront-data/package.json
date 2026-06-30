@@ -308,7 +308,7 @@
     "dev": "rslib build --watch",
     "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.type-tests.json"
   },
   "nx": {
     "tags": [
