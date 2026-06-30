@@ -21,7 +21,7 @@ CMD ["sh", "-lc", "\
     [ -x apps/herbatika/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatika...; \
     pnpm --filter=@techsio/storefront-data build; \
     pnpm --filter=@techsio/ui-kit build; \
-    pnpm --filter=herbatika exec next dev --hostname 0.0.0.0 --port 3000 \
+    pnpm --filter=herbatika exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
 "]
 
 FROM base AS build

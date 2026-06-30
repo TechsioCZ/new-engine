@@ -13,9 +13,9 @@
     ]
   },
   "scripts": {
-    "dev": "next dev",
-    "start:ci-dev": "next dev --hostname 0.0.0.0 --port 3000",
-    "build": "next build",
+    "dev": "next dev --turbopack",
+    "start:ci-dev": "next dev --turbopack --hostname 0.0.0.0 --port 3000",
+    "build": "next build --turbopack",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",

@@ -7,10 +7,10 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
-    "build:static": "next build",
-    "build:no-types": "cross-env SKIP_TYPE_CHECK=1 next build",
+    "dev": "next dev --turbopack -p 3000",
+    "build": "next build --turbopack",
+    "build:static": "next build --turbopack",
+    "build:no-types": "cross-env SKIP_TYPE_CHECK=1 next build --turbopack",
     "start": "next start -p 3000",
     "check:unused": "node scripts/check-unused-exports.js",
     "generate:categories": "node scripts/generate-categories.mjs",

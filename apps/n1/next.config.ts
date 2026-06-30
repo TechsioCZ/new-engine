@@ -1,17 +1,12 @@
 import { join } from "node:path"
 import type { NextConfig } from "next"
 
-const isTurbopack = Boolean(process.env.TURBOPACK)
-const turbopackRustCompiler = isTurbopack
-  ? ({ turbopackRustReactCompiler: true } as const)
-  : {}
-
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["n1.medusa.localhost"],
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
-  reactCompiler: isTurbopack,
+  reactCompiler: true,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
@@ -48,7 +43,7 @@ const nextConfig: NextConfig = {
 
   experimental: {
     typedEnv: true,
-    ...turbopackRustCompiler,
+    turbopackRustReactCompiler: true,
   },
 
   // Security headers
