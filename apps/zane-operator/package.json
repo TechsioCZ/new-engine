@@ -8,7 +8,7 @@
     "start": "bun src/main.ts",
     "create:dev-user": "bun src/cli.ts create-dev-user",
     "build": "bun build src/main.ts --compile --outfile dist/zane-operator",
-    "typecheck": "bunx tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {

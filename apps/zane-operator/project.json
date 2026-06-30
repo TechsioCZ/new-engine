@@ -23,7 +23,7 @@
       "outputs": [],
       "options": {
         "cwd": "apps/zane-operator",
-        "command": "bun run typecheck"
+        "command": "pnpm run typecheck"
       }
     },
     "test": {
