@@ -2,6 +2,7 @@
 
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import { useMemo } from "react"
+import { isCatalogStatusFilterSupported } from "@/lib/storefront/catalog-query-state/status-filters"
 import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state"
 import { buildFacetChipItems } from "./category-selection-utils"
 
@@ -19,9 +20,13 @@ export function useCategoryFacetItems({
   const asideStatusItems = useMemo(
     () =>
       buildFacetChipItems(
-        catalogFacets.status,
-        seedFacets.status,
-        queryState.status
+        catalogFacets.status.filter((item) =>
+          isCatalogStatusFilterSupported(item.id)
+        ),
+        seedFacets.status.filter((item) =>
+          isCatalogStatusFilterSupported(item.id)
+        ),
+        queryState.status.filter(isCatalogStatusFilterSupported)
       ),
     [catalogFacets.status, queryState.status, seedFacets.status]
   )

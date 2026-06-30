@@ -23,9 +23,9 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
 export function ProductDetail({ handle }: ProductDetailProps) {
   const controller = useProductDetailController({ handle })
-  const [activeInfoSection, setActiveInfoSection] = useState(
-    controller.defaultInfoSectionValue
-  )
+  const [activeInfoSection, setActiveInfoSection] = useState<
+    string | undefined
+  >(controller.defaultInfoSectionValue)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `controller.product?.id` is an intentional trigger — re-syncs the active section when navigating to a different product (App Router reuses the component).
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 
-type AppToastType = "error" | "warning"
+type AppToastType = "error" | "success" | "warning"
 
 type AppToastMessage = {
   description?: string
@@ -25,6 +25,8 @@ export function useAppToast() {
 
   return {
     error: (message: AppToastMessage) => showToast(toaster, "error", message),
+    success: (message: AppToastMessage) =>
+      showToast(toaster, "success", message),
     warning: (message: AppToastMessage) =>
       showToast(toaster, "warning", message),
   }

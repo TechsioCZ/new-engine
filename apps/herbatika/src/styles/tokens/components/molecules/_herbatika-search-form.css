@@ -7,4 +7,7 @@
   --color-form-control-border-hover: var(--color-border-primary);
   --color-form-control-border-focus: var(--color-primary);
   --color-form-control-fg-placeholder: var(--color-fg-placeholder);
+
+  --color-search-form-border-focused: var(--color-black);
+  --color-search-form-bg-focused: var(--color-button-bg-primary-hover);
 }
