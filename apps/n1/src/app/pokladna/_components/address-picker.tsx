@@ -3,7 +3,6 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
-import { useMemo } from "react"
 import type { StoreCustomerAddress } from "@/services/customer-service"
 import { addressToFormData } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
@@ -33,17 +32,13 @@ export function AddressPicker({
   onSelect,
   disabled,
 }: AddressPickerProps) {
-  const items = useMemo<AddressSelectItem[]>(
-    () =>
-      addresses.map((address, index) => ({
-        value: address.id,
-        label: `${address.city}, ${address.address_1}`,
-        displayValue: `${address.city}, ${address.address_1}`,
-        isDefault: index === 0,
-        address,
-      })),
-    [addresses]
-  )
+  const items: AddressSelectItem[] = addresses.map((address, index) => ({
+    value: address.id,
+    label: `${address.city}, ${address.address_1}`,
+    displayValue: `${address.city}, ${address.address_1}`,
+    isDefault: index === 0,
+    address,
+  }))
 
   if (addresses.length === 0) {
     return null

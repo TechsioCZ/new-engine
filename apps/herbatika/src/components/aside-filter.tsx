@@ -2,7 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   type AsideFilterChipItem,
   AsideFilterChipSection,
@@ -95,6 +95,14 @@ const resolveBoundsForRender = (
   }
 }
 
+const areBoundsEqual = (
+  left: AsideFilterPriceBounds,
+  right: AsideFilterPriceBounds
+) => left.min === right.min && left.max === right.max
+
+const areRangesEqual = (left: [number, number], right: [number, number]) =>
+  left[0] === right[0] && left[1] === right[1]
+
 const normalizeCommittedRange = (
   nextRange: [number, number],
   bounds: AsideFilterPriceBounds
@@ -147,10 +155,7 @@ export function AsideFilter({
   onReset,
   showBrandFilter = true,
 }: AsideFilterProps) {
-  const incomingPriceBounds = useMemo(
-    () => toSafeBounds(priceBounds),
-    [priceBounds]
-  )
+  const incomingPriceBounds = toSafeBounds(priceBounds)
   const hasActivePriceFilter =
     typeof selectedPriceRange.min === "number" ||
     typeof selectedPriceRange.max === "number"
@@ -163,30 +168,54 @@ export function AsideFilter({
     )
 
   useEffect(() => {
-    setPriceBoundsForRender((currentBounds) =>
-      resolveBoundsForRender(
+    setPriceBoundsForRender((currentBounds) => {
+      const nextBounds = resolveBoundsForRender(
         currentBounds,
         incomingPriceBounds,
         hasActivePriceFilter
       )
-    )
+
+      return areBoundsEqual(currentBounds, nextBounds)
+        ? currentBounds
+        : nextBounds
+    })
   }, [hasActivePriceFilter, incomingPriceBounds])
 
-  const selectedRange = useMemo(
-    () => resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender),
-    [priceBoundsForRender, selectedPriceRange]
+  const [sliderRange, setSliderRange] = useState<[number, number]>(() =>
+    resolveRangeFromSelection(selectedPriceRange, priceBoundsForRender)
   )
-
-  const [sliderRange, setSliderRange] =
-    useState<[number, number]>(selectedRange)
-  const sliderRangeForRender = useMemo(
-    () => resolveRangeWithinBounds(sliderRange, priceBoundsForRender),
-    [priceBoundsForRender, sliderRange]
+  const sliderRangeForRender = resolveRangeWithinBounds(
+    sliderRange,
+    priceBoundsForRender
   )
+  const selectedPriceRangeMin = selectedPriceRange.min
+  const selectedPriceRangeMax = selectedPriceRange.max
+  const priceBoundsForRenderMin = priceBoundsForRender.min
+  const priceBoundsForRenderMax = priceBoundsForRender.max
 
   useEffect(() => {
-    setSliderRange(selectedRange)
-  }, [selectedRange])
+    const nextSelectedRange = resolveRangeFromSelection(
+      {
+        min: selectedPriceRangeMin,
+        max: selectedPriceRangeMax,
+      },
+      {
+        min: priceBoundsForRenderMin,
+        max: priceBoundsForRenderMax,
+      }
+    )
+
+    setSliderRange((currentRange) =>
+      areRangesEqual(currentRange, nextSelectedRange)
+        ? currentRange
+        : nextSelectedRange
+    )
+  }, [
+    selectedPriceRangeMin,
+    selectedPriceRangeMax,
+    priceBoundsForRenderMin,
+    priceBoundsForRenderMax,
+  ])
 
   return (
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">

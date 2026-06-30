@@ -2,7 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   buildAuthRouteHref,
   buildLoginDefaults,
@@ -65,23 +65,19 @@ export const useAuthController = ({
     }
   )
 
-  const safeRedirectHref = useMemo(
-    () => resolveSafeRedirectHref(afterAuthHref),
-    [afterAuthHref]
-  )
-  const loginDefaultValues = useMemo(() => buildLoginDefaults(), [])
-  const registerDefaultValues = useMemo(
-    () => buildRegisterDefaults({ countryCode: region?.country_code }),
-    [region?.country_code]
-  )
+  const safeRedirectHref = resolveSafeRedirectHref(afterAuthHref)
+  const loginDefaultValues = buildLoginDefaults()
+  const registerDefaultValues = buildRegisterDefaults({
+    countryCode: region?.country_code,
+  })
 
-  const clearFeedback = useCallback(() => {
+  const clearFeedback = () => {
     setAuthError(null)
     setAuthMessage(null)
     setAuthNotice(null)
-  }, [])
+  }
 
-  const transferCartIfAvailable = useCallback(async () => {
+  const transferCartIfAvailable = async () => {
     const activeCartId = cartQuery.cart?.id
     if (!activeCartId) {
       return
@@ -93,9 +89,9 @@ export const useAuthController = ({
     if (transferredCart?.id) {
       cartStorage.setCartId(transferredCart.id)
     }
-  }, [cartQuery.cart?.id, transferCartMutation])
+  }
 
-  const runPostAuthCartTransfer = useCallback(async () => {
+  const runPostAuthCartTransfer = async () => {
     if (!cartQuery.cart?.id) {
       return null
     }
@@ -106,7 +102,7 @@ export const useAuthController = ({
     } catch {
       return "Účet je aktívny, ale obsah košíka sa nepodarilo preniesť. Skúste to prosím znova v košíku."
     }
-  }, [cartQuery.cart?.id, transferCartIfAvailable])
+  }
 
   useEffect(() => {
     if (!safeRedirectHref) {
@@ -120,75 +116,60 @@ export const useAuthController = ({
     router.replace(safeRedirectHref)
   }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
 
-  const handleLoginSubmit = useCallback(
-    async (values: LoginFormValues): Promise<string | null> => {
-      clearFeedback()
+  const handleLoginSubmit = async (
+    values: LoginFormValues
+  ): Promise<string | null> => {
+    clearFeedback()
 
-      try {
-        await loginMutation.mutateAsync(values)
-        const transferNotice = await runPostAuthCartTransfer()
+    try {
+      await loginMutation.mutateAsync(values)
+      const transferNotice = await runPostAuthCartTransfer()
 
-        if (safeRedirectHref) {
-          router.replace(safeRedirectHref)
-          return null
-        }
-
-        setAuthMessage("Prihlásenie prebehlo úspešne.")
-        setAuthNotice(transferNotice)
+      if (safeRedirectHref) {
+        router.replace(safeRedirectHref)
         return null
-      } catch (error) {
-        return resolveLoginSubmitError(error)
       }
-    },
-    [
-      clearFeedback,
-      loginMutation,
-      router,
-      runPostAuthCartTransfer,
-      safeRedirectHref,
-    ]
-  )
 
-  const handleRegisterSubmit = useCallback(
-    async (values: RegisterFormValues): Promise<string | null> => {
-      clearFeedback()
+      setAuthMessage("Prihlásenie prebehlo úspešne.")
+      setAuthNotice(transferNotice)
+      return null
+    } catch (error) {
+      return resolveLoginSubmitError(error)
+    }
+  }
 
-      try {
-        await registerMutation.mutateAsync(
-          buildAuthRegisterInput(values, {
-            currencyCode: resolveRegionCurrency(region),
-          })
-        )
-        const transferNotice = await runPostAuthCartTransfer()
+  const handleRegisterSubmit = async (
+    values: RegisterFormValues
+  ): Promise<string | null> => {
+    clearFeedback()
 
-        if (safeRedirectHref) {
-          router.replace(safeRedirectHref)
-          return null
-        }
+    try {
+      await registerMutation.mutateAsync(
+        buildAuthRegisterInput(values, {
+          currencyCode: resolveRegionCurrency(region),
+        })
+      )
+      const transferNotice = await runPostAuthCartTransfer()
 
-        setAuthMessage("Registrácia prebehla úspešne.")
-        setAuthNotice(
-          buildRegisterSuccessNotice({
-            isWholesale: isWholesaleRegistration(values),
-            transferNotice,
-          })
-        )
+      if (safeRedirectHref) {
+        router.replace(safeRedirectHref)
         return null
-      } catch (error) {
-        return resolveRegisterSubmitError(error)
       }
-    },
-    [
-      clearFeedback,
-      registerMutation,
-      region,
-      router,
-      runPostAuthCartTransfer,
-      safeRedirectHref,
-    ]
-  )
 
-  const handleLogout = useCallback(async () => {
+      setAuthMessage("Registrácia prebehla úspešne.")
+      setAuthNotice(
+        buildRegisterSuccessNotice({
+          isWholesale: isWholesaleRegistration(values),
+          transferNotice,
+        })
+      )
+      return null
+    } catch (error) {
+      return resolveRegisterSubmitError(error)
+    }
+  }
+
+  const handleLogout = async () => {
     clearFeedback()
 
     const result = await performLogout()
@@ -198,9 +179,9 @@ export const useAuthController = ({
     }
 
     setAuthError(result.error)
-  }, [clearFeedback, performLogout])
+  }
 
-  const handleTransferCart = useCallback(async () => {
+  const handleTransferCart = async () => {
     clearFeedback()
 
     try {
@@ -209,7 +190,7 @@ export const useAuthController = ({
     } catch (error) {
       setAuthError(resolveErrorMessage(error))
     }
-  }, [clearFeedback, transferCartIfAvailable])
+  }
 
   const isBusy =
     loginMutation.isPending ||

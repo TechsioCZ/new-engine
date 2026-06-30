@@ -3,7 +3,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Combobox, type ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSearchProducts } from "@/hooks/use-search-products"
 import type { Product } from "@/types/product"
 
@@ -24,7 +24,7 @@ export function HeaderSearch() {
   )
 
   // Use search hook
-  const { searchResults, isSearching, searchProducts } = useSearchProducts({
+  const { searchResults, searchProducts } = useSearchProducts({
     limit: 5,
   })
 
@@ -35,22 +35,19 @@ export function HeaderSearch() {
   }))
 
   // Update search query and trigger debounced search
-  const handleInputChange = useCallback(
-    (value: string) => {
-      setSearchQuery(value)
+  const handleInputChange = (value: string) => {
+    setSearchQuery(value)
 
-      // Clear existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
 
-      // Set new timer
-      debounceTimerRef.current = setTimeout(() => {
-        searchProducts(value)
-      }, 300)
-    },
-    [searchProducts]
-  )
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      searchProducts(value)
+    }, 300)
+  }
 
   // Create combobox items
   const searchItems: ComboboxItem<Product>[] = searchResults.map((product) => ({
@@ -80,18 +77,19 @@ export function HeaderSearch() {
     const selectedValues = Array.isArray(value) ? value : [value]
 
     if (selectedValues.length > 0 && selectedValues[0]) {
-      const selectedValue = selectedValues[0]
+      const nextSelectedValue = selectedValues[0]
 
-      // Zkontrolovat jestli je to existující produkt nebo custom search
-      const isProductHandle = searchItems.some(
-        (item) => item.value === selectedValue
-      )
-
-      if (isProductHandle) {
-        router.push(`/products/${selectedValue}`)
+      if (nextSelectedValue === "__search__") {
+        handleSearch(searchQuery)
+      } else if (
+        searchResults.some(
+          (product) => (product.handle || product.id) === nextSelectedValue
+        )
+      ) {
+        router.push(`/products/${nextSelectedValue}`)
       } else {
         // Custom hodnota = search query
-        handleSearch(selectedValue)
+        handleSearch(nextSelectedValue)
       }
 
       setSearchQuery("")

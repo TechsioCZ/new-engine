@@ -58,6 +58,7 @@
     "debugProductCount": "medusa exec ./src/scripts/debug-product-count.ts"
   },
   "dependencies": {
+    "@babel/core": "^7.29.7",
     "@badgateway/oauth2-client": "^3.3.1",
     "@hookform/resolvers": "^3.4.2",
     "@mdxeditor/editor": "3.54.0",
@@ -91,12 +92,15 @@
     "@radix-ui/react-radio-group": "1.2.2",
     "@radix-ui/react-slot": "1.1.1",
     "@rokmohar/medusa-plugin-meilisearch": "^1.4.3",
+    "@rolldown/plugin-babel": "^0.2.3",
     "@sentry/node": "^10.29.0",
     "@sentry/opentelemetry": "^10.34.0",
     "@swc/helpers": "^0.5.18",
     "@tanstack/react-query": "5.64.2",
     "@tanstack/react-table": "^8.20.5",
     "@uiw/react-json-view": "^2.0.0-alpha.40",
+    "@vitejs/plugin-react": "6.0.1",
+    "babel-plugin-react-compiler": "1.0.0",
     "bwip-js": "^4.11.1",
     "cmdk": "^0.2.1",
     "date-fns": "^3.6.0",

@@ -4,7 +4,6 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
-import { useMemo } from "react"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCategories } from "@/lib/storefront/categories"
@@ -28,24 +27,19 @@ export function CheckoutEmptyCartSection() {
     fields: CATEGORY_TREE_FIELDS,
   })
 
-  const recommendationCategoryIds = useMemo(() => {
-    const recommendationCategory = categoriesQuery.categories.find(
-      (category) =>
-        category.handle === EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE
-    )
+  const recommendationCategory = categoriesQuery.categories.find(
+    (category) => category.handle === EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE
+  )
 
-    if (!recommendationCategory) {
-      return []
-    }
-
-    return [
-      recommendationCategory.id,
-      ...collectDescendantCategoryIds(
-        categoriesQuery.categories,
-        recommendationCategory.id
-      ),
-    ]
-  }, [categoriesQuery.categories])
+  const recommendationCategoryIds = recommendationCategory
+    ? [
+        recommendationCategory.id,
+        ...collectDescendantCategoryIds(
+          categoriesQuery.categories,
+          recommendationCategory.id
+        ),
+      ]
+    : []
 
   const recommendationsQuery = useProducts({
     page: 1,
@@ -58,13 +52,9 @@ export function CheckoutEmptyCartSection() {
         : undefined,
     enabled: Boolean(region?.region_id && recommendationCategoryIds.length > 0),
   })
-  const recommendedProducts = useMemo(
-    () =>
-      selectRecommendedProductRepresentatives(
-        recommendationsQuery.products,
-        EMPTY_CART_RECOMMENDATIONS_LIMIT
-      ),
-    [recommendationsQuery.products]
+  const recommendedProducts = selectRecommendedProductRepresentatives(
+    recommendationsQuery.products,
+    EMPTY_CART_RECOMMENDATIONS_LIMIT
   )
 
   return (

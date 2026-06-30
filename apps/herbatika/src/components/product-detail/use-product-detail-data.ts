@@ -1,50 +1,41 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
-import type { SelectItem } from "@techsio/ui-kit/molecules/select"
-import { useEffect, useMemo, useState } from "react"
-import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
+import { useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
+import {
+  resolveOptionTitlesById,
+  resolveProductBreadcrumbItems,
+  resolveProductSummaryText,
+  resolveSelectedVariant,
+  resolveShortDescriptionHtml,
+  resolveVariantItems,
+} from "@/components/product-detail/product-detail-data.utils"
+import {
+  resolveFreeShippingThresholdLabel,
+  resolveProductPricingLabels,
+  resolveProductVolumeDiscountOptions,
+  resolveSelectedVolumeDiscountOption,
+} from "@/components/product-detail/product-detail-pricing-data.utils"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
 import {
   resolveGalleryItems,
   resolveProductHighlights,
 } from "@/components/product-detail/utils/display-utils"
-import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
 import { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts"
 import {
-  normalizeCategoryName,
   resolveOfferState,
   resolveProductContentSections,
   resolveProductImages,
-  resolveVariantLabel,
 } from "@/components/product-detail/utils/metadata-parsers"
-import {
-  resolveDiscountPercent,
-  resolveDisplayOriginalAmount,
-  resolvePriceState,
-  resolveUnitPriceLabel,
-  resolveVipCreditLabel,
-  resolveVolumeDiscountOptions,
-} from "@/components/product-detail/utils/pricing-utils"
-import {
-  asNumber,
-  asRecord,
-  asString,
-} from "@/components/product-detail/utils/value-utils"
-import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
-type UseProductDetailDataProps = {
-  handle: string
-}
+type UseProductDetailDataProps = { handle: string }
 
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const region = useRegionContext()
@@ -66,190 +57,65 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 
-  const selectedVariant = useMemo(() => {
-    if (variants.length === 0) {
-      return null
-    }
+  const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
+  const optionTitlesById = resolveOptionTitlesById(product)
+  const variantItems = resolveVariantItems(variants, optionTitlesById)
 
-    return (
-      variants.find((variant) => variant.id === selectedVariantId) ??
-      variants[0]
-    )
-  }, [selectedVariantId, variants])
-
-  const optionTitlesById = useMemo(() => {
-    const titles = new Map<string, string>()
-
-    for (const option of product?.options ?? []) {
-      if (!option.id) {
-        continue
-      }
-
-      const title = asString(option.title)
-      if (!title) {
-        continue
-      }
-
-      titles.set(option.id, title)
-    }
-
-    return titles
-  }, [product?.options])
-
-  const variantItems = useMemo<SelectItem[]>(
-    () =>
-      variants
-        .filter(
-          (
-            variant
-          ): variant is HttpTypes.StoreProductVariant & { id: string } =>
-            Boolean(variant.id)
-        )
-        .map((variant) => ({
-          value: variant.id,
-          label: resolveVariantLabel(variant, optionTitlesById),
-        })),
-    [optionTitlesById, variants]
+  const offerState = resolveOfferState(product, selectedVariant)
+  const selectedVariantInventory = resolveVariantInventoryState(
+    selectedVariant,
+    quantity
   )
-
-  const offerState = useMemo(
-    () => resolveOfferState(product, selectedVariant),
-    [product, selectedVariant]
+  const productPrice = product
+    ? resolvePriceState(product, selectedVariantId, regionCurrencyCode)
+    : null
+  const shortDescriptionHtml = resolveShortDescriptionHtml(product)
+  const productSummaryText = resolveProductSummaryText(
+    product,
+    shortDescriptionHtml
   )
-  const selectedVariantInventory = useMemo(
-    () => resolveVariantInventoryState(selectedVariant, quantity),
-    [quantity, selectedVariant]
+  const productImages = resolveProductImages(product)
+  const galleryItems = resolveGalleryItems(productImages, product?.title)
+  const productHighlights = resolveProductHighlights(
+    productSummaryText,
+    productCategories
   )
-
-  const productPrice = useMemo(() => {
-    if (!product) {
-      return null
-    }
-
-    return resolvePriceState(product, selectedVariantId, regionCurrencyCode)
-  }, [product, regionCurrencyCode, selectedVariantId])
-
-  const shortDescriptionHtml = useMemo(() => {
-    const metadata = asRecord(product?.metadata)
-    return asString(metadata?.short_description) ?? ""
-  }, [product?.metadata])
-
-  const productSummaryText = useMemo(() => {
-    const shortText = stripHtml(shortDescriptionHtml)
-    if (shortText) {
-      return shortText
-    }
-
-    const descriptionText = stripHtml(product?.description)
-    return descriptionText || "Popis produktu bude čoskoro doplnený."
-  }, [product?.description, shortDescriptionHtml])
-
-  const productImages = useMemo(() => resolveProductImages(product), [product])
-  const galleryItems = useMemo(
-    () => resolveGalleryItems(productImages, product?.title),
-    [product?.title, productImages]
+  const productContentSections = resolveProductContentSections(
+    product,
+    shortDescriptionHtml
   )
-
-  const productHighlights = useMemo(
-    () => resolveProductHighlights(productSummaryText, productCategories),
-    [productCategories, productSummaryText]
-  )
-
-  const productContentSections = useMemo(
-    () => resolveProductContentSections(product, shortDescriptionHtml),
-    [product, shortDescriptionHtml]
-  )
-  const mediaFacts = useMemo(
-    () => resolveProductMediaFacts(product, productContentSections),
-    [product, productContentSections]
-  )
-
-  const currentAmount = productPrice?.currentAmount ?? null
-  const currentAmountWithoutTax = productPrice?.currentAmountWithoutTax ?? null
-  const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie"
-  const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode
+  const mediaFacts = resolveProductMediaFacts(product, productContentSections)
+  const {
+    currentAmount,
+    currentAmountLabel,
+    currentCurrencyCode,
+    discountPercent,
+    displayOriginalLabel,
+    unitPriceLabel,
+    vipCreditLabel,
+  } = resolveProductPricingLabels({
+    productPrice,
+    regionCurrencyCode,
+    offerState,
+    mediaFacts,
+  })
   const canAddToCart =
     Boolean(selectedVariant?.id) &&
     typeof productPrice?.currentAmount === "number" &&
     selectedVariantInventory.isPurchasable
   const maxQuantity = selectedVariantInventory.maxPurchaseQuantity
 
-  const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
-
-  const displayOriginalLabel = useMemo(() => {
-    if (!productPrice || typeof displayOriginalAmount !== "number") {
-      return null
-    }
-
-    return formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
-  }, [currentCurrencyCode, displayOriginalAmount, productPrice])
-
-  const discountPercent = useMemo(
-    () => resolveDiscountPercent(currentAmount, displayOriginalAmount),
-    [currentAmount, displayOriginalAmount]
-  )
-  const vipCreditLabel = useMemo(
-    () =>
-      resolveVipCreditLabel(
-        currentAmount,
-        currentCurrencyCode,
-        offerState.applyLoyaltyDiscount
-      ),
-    [currentAmount, currentCurrencyCode, offerState.applyLoyaltyDiscount]
-  )
-
-  const unitPriceLabel = useMemo(() => {
-    const vatRate = asNumber(offerState.offerSource?.vat)
-
-    return resolveUnitPriceLabel({
-      currentAmount,
-      currentAmountWithoutTax,
-      currencyCode: currentCurrencyCode,
-      mediaFacts,
-      unitLabel: offerState.unitLabel,
-      vatRate,
-    })
-  }, [
-    currentAmount,
-    currentAmountWithoutTax,
-    currentCurrencyCode,
-    mediaFacts,
-    offerState.offerSource,
-    offerState.unitLabel,
-  ])
-
-  const volumeDiscountOptions = useMemo(() => {
-    const options = resolveVolumeDiscountOptions(
-      currentAmount,
-      currentCurrencyCode,
-      offerState.applyQuantityDiscount || offerState.applyVolumeDiscount
-    )
-    const availableQuantity = selectedVariantInventory.availableQuantity
-
-    if (availableQuantity === null) {
-      return options
-    }
-
-    return options.filter((option) => option.quantity <= availableQuantity)
-  }, [
+  const availableQuantity = selectedVariantInventory.availableQuantity
+  const volumeDiscountOptions = resolveProductVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyQuantityDiscount,
-    offerState.applyVolumeDiscount,
-    selectedVariantInventory.availableQuantity,
-  ])
-
-  const selectedVolumeDiscountOption = useMemo(() => {
-    if (volumeDiscountOptions.length === 0) {
-      return null
-    }
-
-    return (
-      volumeDiscountOptions.find(
-        (option) => option.id === selectedVolumeDiscountId
-      ) ?? volumeDiscountOptions[0]
-    )
-  }, [selectedVolumeDiscountId, volumeDiscountOptions])
+    offerState,
+    availableQuantity
+  )
+  const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
+    volumeDiscountOptions,
+    selectedVolumeDiscountId
+  )
 
   const relatedSections = useProductDetailRelatedProducts({
     product,
@@ -262,8 +128,6 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   }, [product?.variants])
 
   useEffect(() => {
-    const availableQuantity = selectedVariantInventory.availableQuantity
-
     if (availableQuantity === null || availableQuantity < 1) {
       return
     }
@@ -271,31 +135,31 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     if (quantity > availableQuantity) {
       setQuantity(availableQuantity)
     }
-  }, [quantity, selectedVariantInventory.availableQuantity])
+  }, [availableQuantity, quantity])
 
   useEffect(() => {
-    setSelectedVolumeDiscountId(volumeDiscountOptions[0]?.id ?? null)
+    setSelectedVolumeDiscountId((currentOptionId) => {
+      if (
+        currentOptionId &&
+        volumeDiscountOptions.some((option) => option.id === currentOptionId)
+      ) {
+        return currentOptionId
+      }
+
+      return volumeDiscountOptions[0]?.id ?? null
+    })
   }, [volumeDiscountOptions])
 
   useProductDetailDebugLog(product)
   useRecordRecentlyVisitedProduct(product)
 
-  const primaryCategory = productCategories[0]
-
-  const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
-    ...(primaryCategory?.handle
-      ? [
-          {
-            label: normalizeCategoryName(primaryCategory.name),
-            href: `/c/${primaryCategory.handle}`,
-            icon: "token-icon-home" as IconType,
-          },
-        ]
-      : []),
-    { label: product?.title || handle },
-  ]
-  const freeShippingThresholdAmount =
-    resolveFreeShippingThresholdAmount(currentCurrencyCode)
+  const breadcrumbItems = resolveProductBreadcrumbItems(
+    productCategories,
+    product,
+    handle
+  )
+  const freeShippingThresholdLabel =
+    resolveFreeShippingThresholdLabel(currentCurrencyCode)
 
   return {
     breadcrumbItems,
@@ -304,14 +168,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
     displayOriginalLabel,
     discountPercent,
-    freeShippingThresholdLabel:
-      freeShippingThresholdAmount === null
-        ? null
-        : formatCurrencyAmount(
-            freeShippingThresholdAmount,
-            currentCurrencyCode,
-            { minimumFractionDigits: 0, maximumFractionDigits: 0 }
-          ),
+    freeShippingThresholdLabel,
     galleryItems,
     isBootstrappingRegion: !region?.region_id,
     maxQuantity,

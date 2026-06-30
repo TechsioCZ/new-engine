@@ -1,6 +1,4 @@
 "use client"
-
-import { useMemo } from "react"
 import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
 
 type CategoryRichTextProps = {
@@ -25,10 +23,7 @@ export const sanitizeCategoryRichTextHtml = (
 ) => (html ? sanitizeHtml(html) : "")
 
 export function CategoryRichText({ className, html }: CategoryRichTextProps) {
-  const sanitizedHtml = useMemo(
-    () => sanitizeCategoryRichTextHtml(html),
-    [html]
-  )
+  const sanitizedHtml = sanitizeCategoryRichTextHtml(html)
 
   if (!sanitizedHtml) {
     return null

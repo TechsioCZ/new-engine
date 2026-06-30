@@ -6,7 +6,6 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import { useMemo } from "react"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -80,10 +79,7 @@ export function CheckoutCartItemRow({
     itemInventory ?? FALLBACK_MAX_QUANTITY
   )
   const currentLineAmount = resolveLineItemTotalAmount(item)
-  const originalLineAmount = useMemo(
-    () => resolveOriginalLineItemTotalAmount(item, product),
-    [item, product]
-  )
+  const originalLineAmount = resolveOriginalLineItemTotalAmount(item, product)
   const availabilityText = resolveAvailabilityText(item, product)
 
   return (
