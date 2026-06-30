@@ -58,5 +58,8 @@ jobs:
         run: pnpm lint:nx
       - name: Test new-engine-ctl CI wiring
         run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
+      - name: Typecheck storefront-data
+        if: contains(steps.determine_affected.outputs.projects_csv, ',@techsio/storefront-data,')
+        run: ./node_modules/.bin/nubx --node nx run @techsio/storefront-data:typecheck
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test

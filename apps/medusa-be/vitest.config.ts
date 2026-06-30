@@ -56,7 +56,7 @@ export default defineConfig({
       ".medusa",
       ...(isModuleIntegration ? ["**/*.unit.spec.ts"] : []),
     ],
-    fileParallelism: false,
+    fileParallelism: !isIntegration,
     globals: isIntegration,
     hookTimeout: isIntegration ? 60_000 : 20_000,
     include,

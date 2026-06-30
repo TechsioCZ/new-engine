@@ -307,19 +307,43 @@
     "build": "rslib build",
     "dev": "rslib build --watch",
     "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
-    "test": "vitest run --config vitest.config.ts --typecheck",
-    "test:runtime": "vitest run --config vitest.config.ts"
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "nx": {
-    "tags": ["type:lib", "platform:web", "framework:react"],
+    "tags": [
+      "type:lib",
+      "platform:web",
+      "framework:react"
+    ],
     "targets": {
       "test": {
         "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "default",
+          "^production",
+          "workspaceTooling"
+        ],
+        "outputs": [],
         "options": {
           "command": "pnpm test",
           "cwd": "libs/storefront-data"
-        },
-        "cache": true
+        }
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "default",
+          "^production",
+          "workspaceTooling"
+        ],
+        "outputs": [],
+        "options": {
+          "command": "pnpm typecheck",
+          "cwd": "libs/storefront-data"
+        }
       }
     }
   },
