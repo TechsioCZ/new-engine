@@ -99,7 +99,7 @@
     "@tanstack/react-query": "5.64.2",
     "@tanstack/react-table": "^8.20.5",
     "@uiw/react-json-view": "^2.0.0-alpha.40",
-    "@vitejs/plugin-react": "6.0.1",
+    "@vitejs/plugin-react": "6.0.3",
     "babel-plugin-react-compiler": "1.0.0",
     "bwip-js": "^4.11.1",
     "cmdk": "^0.2.1",
@@ -142,7 +142,7 @@
     "cross-env": "^10.1.0",
     "ts-node": "10.9.2",
     "typescript": "^5.9.3",
-    "vite": "8.0.11",
+    "vite": "8.1.0",
     "vitest": "4.1.5",
     "yalc": "1.0.0-pre.53"
   },
