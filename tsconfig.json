@@ -4,10 +4,16 @@
   "files": [],
   "references": [
     {
-      "path": "./apps/medusa-be"
+      "path": "./libs/ui"
     },
     {
-      "path": "./libs/ui"
+      "path": "./libs/storefront-data"
+    },
+    {
+      "path": "./libs/analytics"
+    },
+    {
+      "path": "./apps/n1"
     }
   ]
 }

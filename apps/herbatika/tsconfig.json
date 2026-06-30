@@ -33,5 +33,13 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "local"]
+  "exclude": ["node_modules", "local"],
+  "references": [
+    {
+      "path": "../../libs/ui"
+    },
+    {
+      "path": "../../libs/storefront-data"
+    }
+  ]
 }

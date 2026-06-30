@@ -33,5 +33,13 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "local", "local/**/*", ".next", "dist"]
+  "exclude": ["node_modules", "local", "local/**/*", ".next", "dist"],
+  "references": [
+    {
+      "path": "../../libs/ui"
+    },
+    {
+      "path": "../../libs/analytics"
+    }
+  ]
 }
