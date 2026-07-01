@@ -6,7 +6,14 @@ import {
 } from "@techsio/address/phone/utils"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as select from "@zag-js/select"
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react"
+import {
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ErrorText } from "../atoms/error-text"
 import { ExtraText } from "../atoms/extra-text"
@@ -155,13 +162,13 @@ function renderSelectedCountryFlag(
   countryCodeClassName: string
 ) {
   const flagIcon = country && FLAG_ICON_TOKENS[country.flag]
-  if (!flagIcon) {
+  if (!callingCode) {
     return null
   }
 
   return (
     <>
-      <Icon className={countryFlagClassName} icon={flagIcon} />
+      {flagIcon && <Icon className={countryFlagClassName} icon={flagIcon} />}
       <span className={countryCodeClassName}>+{callingCode}</span>
     </>
   )
@@ -256,6 +263,7 @@ export function FormPhoneInput({
     }
     return ""
   })
+  const selectedCountryRef = useRef(selectedCountry)
 
   // === Filtered & sorted countries ===
   const sortedCountries = useMemo(() => {
@@ -266,11 +274,15 @@ export function FormPhoneInput({
   }, [countries, priorityCountries, excludeCountries])
 
   // === Zag.js Select for country dropdown ===
-  const countryCollection = select.collection({
-    items: sortedCountries,
-    itemToString: (country) => country.name,
-    itemToValue: (country) => country.code,
-  })
+  const countryCollection = useMemo(
+    () =>
+      select.collection({
+        items: sortedCountries,
+        itemToString: (country) => country.name,
+        itemToValue: (country) => country.code,
+      }),
+    [sortedCountries]
+  )
 
   const countryService = useMachine(select.machine, {
     id: countrySelectId,
@@ -295,14 +307,14 @@ export function FormPhoneInput({
   useEffect(() => {
     if (value !== undefined) {
       const { countryCode, nationalNumber } = fromE164(value)
-      if (countryCode && countryCode !== selectedCountry) {
+      const nextCountry = countryCode || selectedCountryRef.current
+      if (countryCode && countryCode !== selectedCountryRef.current) {
+        selectedCountryRef.current = countryCode
         setSelectedCountry(countryCode)
       }
-      setDisplayValue(
-        formatAsYouType(nationalNumber, countryCode || selectedCountry)
-      )
+      setDisplayValue(formatAsYouType(nationalNumber, nextCountry))
     }
-  }, [value, selectedCountry])
+  }, [value])
 
   // === Handlers ===
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -316,6 +328,7 @@ export function FormPhoneInput({
   }
 
   function handleCountryChange(newCountry: string) {
+    selectedCountryRef.current = newCountry
     setSelectedCountry(newCountry)
     onCountryChange?.(newCountry)
 
