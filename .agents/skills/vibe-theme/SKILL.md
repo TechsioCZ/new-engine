@@ -35,7 +35,8 @@ re-point the semantic alias) and re-validate — do not silence it.
 ## How the system works (why this is a producer, not a new mechanism)
 
 The theme pipeline is brand-agnostic. Every brand is a **full parallel token
-set** — one folder per mode, each with the exact same ~1782 token names:
+set** — one folder per mode, each with the exact same set of token names as
+base (parity-enforced by `validate-brand.mjs`):
 
 ```
 libs/ui/src/tokens/figma/light/        base brand, light mode  (source of truth)
@@ -54,7 +55,7 @@ axis and a `.light`/`.dark` class for the mode axis.
 
 ## The core rule: touch primitives, inherit the rest
 
-`neo` overrides only ~37 of 1782 tokens, yet re-skins the entire library. That
+`neo` overrides only a few dozen tokens, yet re-skins the entire library. That
 works because every semantic and component token is a `var()` chain pointing at
 the primitive scales — override the roots and the change cascades everywhere.
 
@@ -62,7 +63,7 @@ the primitive scales — override the roots and the change cascades everywhere.
 and edits ONLY the brand-defining surface. Untouched tokens stay identical to
 base, so merge emits them as non-diffs and the brand inherits the whole system.
 This is what keeps a vibed theme internally consistent *by construction*. Never
-hand-author all 1782 values — that discards the cascade and turns every token
+hand-author the whole set — that discards the cascade and turns every token
 into a place a bug can hide.
 
 ## The brand-defining surface (what you edit)
@@ -202,7 +203,7 @@ node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs
 
 Regenerates `variables.css` + `brand-overrides.css`. Confirm a
 `[data-theme="<brand>"]` block appears with only your intended overrides (a
-handful of tokens, like neo's ~37 — if it's hundreds, you edited too much or
+handful of tokens (a few dozen, like neo) — if it's hundreds, you edited too much or
 broke the cascade).
 
 ### 8. Verify in Storybook (mandatory — same rule as figma-token-binding)
