@@ -5,7 +5,7 @@ import { getFieldStatus, getSelectFieldProps } from "./field-bindings"
 
 export type SelectFieldProps = {
   field: AnyFieldApi
-  label: string
+  label: ReactNode
   options: SelectItem[]
   required?: boolean
   disabled?: boolean
@@ -49,16 +49,16 @@ export function SelectField({
 
   return (
     <Select
-      items={options}
+      className={className}
       disabled={disabled}
       id={fieldProps.id}
+      items={options}
       name={fieldProps.name}
       onValueChange={handleValueChange}
       required={required}
       size={size}
       validateStatus={fieldStatus.validateStatus}
       value={fieldProps.value}
-      className={className}
     >
       <Select.Label>{label}</Select.Label>
       <Select.Control>
@@ -72,7 +72,7 @@ export function SelectField({
       <Select.Positioner>
         <Select.Content>
           {options.map((item) => (
-            <Select.Item key={item.value} item={item}>
+            <Select.Item item={item} key={item.value}>
               <Select.ItemText />
               <Select.ItemIndicator />
             </Select.Item>
@@ -82,8 +82,8 @@ export function SelectField({
       {resolvedHelpText && (
         <Select.StatusText
           id={helpTextId}
-          status={fieldStatus.errorMessage ? "error" : "default"}
           showIcon={showHelpTextIcon}
+          status={fieldStatus.errorMessage ? "error" : "default"}
         >
           {resolvedHelpText}
         </Select.StatusText>

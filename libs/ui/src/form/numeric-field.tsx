@@ -1,16 +1,21 @@
 import type { AnyFieldApi } from "@tanstack/react-form"
 import type { ReactNode } from "react"
 import type { IconType } from "../atoms/icon"
-import {
-  NumericInput,
-  type NumericInputProps,
-} from "../atoms/numeric-input"
+import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { FormNumericInput } from "../molecules/form-numeric-input"
+import { tv } from "../utils"
 import {
+  type FieldErrorVisibility,
   getFieldStatus,
   getNumericFieldProps,
-  type FieldErrorVisibility,
 } from "./field-bindings"
+
+const numericFieldVariants = tv({
+  slots: {
+    sidesControl: "flex-1",
+    sidesWrapper: "flex items-center gap-50",
+  },
+})
 
 export type NumericFieldProps = Omit<
   NumericInputProps,
@@ -68,6 +73,7 @@ export function NumericField({
     externalError,
   })
   const resolvedHelpText = fieldStatus.errorMessage ?? helpText
+  const { sidesControl, sidesWrapper } = numericFieldVariants()
 
   const handleChange = (value: number) => {
     fieldProps.onChange(value)
@@ -77,7 +83,9 @@ export function NumericField({
   }
 
   const controlContent = (
-    <NumericInput.Control className={controlsPosition === "sides" ? "flex-1" : undefined}>
+    <NumericInput.Control
+      className={controlsPosition === "sides" ? sidesControl() : undefined}
+    >
       {showScrubber && <NumericInput.Scrubber />}
       <NumericInput.Input />
       {showControls && controlsPosition === "right" && (
@@ -106,7 +114,7 @@ export function NumericField({
       {...numericInputProps}
     >
       {controlsPosition === "sides" ? (
-        <div className="flex items-center gap-50">
+        <div className={sidesWrapper()}>
           {showControls && (
             <NumericInput.DecrementTrigger icon={decrementIcon} />
           )}

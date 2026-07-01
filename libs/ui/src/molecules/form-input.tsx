@@ -7,6 +7,13 @@ import {
 import { Input, type InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
+import { tv } from "../utils"
+
+const formInputVariants = tv({
+  slots: {
+    input: "p-input-sm md:p-input-md",
+  },
+})
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
 
@@ -28,31 +35,29 @@ export function FormInputRaw({
   className,
   ...props
 }: FormInputRawProps) {
-  const { ["aria-describedby"]: ariaDescribedBy, ...inputProps } = props
+  const { "aria-describedby": ariaDescribedBy, ...inputProps } = props
   const helpTextElement = isValidElement(helpText)
     ? (helpText as ReactElement<{ id?: string }>)
     : null
   const resolvedHelpTextId =
     helpTextElement?.props?.id ?? (helpText ? `${id}-helptext` : undefined)
-  const mergedDescribedBy = [ariaDescribedBy, resolvedHelpTextId]
-    .filter(Boolean)
-    .join(" ") || undefined
-  const inputClassName = className
-    ? `p-input-sm md:p-input-md ${className}`
-    : "p-input-sm md:p-input-md"
-  const helpTextContent = helpText
-    ? helpTextElement
-      ? helpTextElement.props.id
-        ? helpTextElement
-        : cloneElement(helpTextElement, {
-            id: resolvedHelpTextId,
-          })
-      : (
-          <div id={resolvedHelpTextId}>
-            {helpText}
-          </div>
-        )
-    : null
+  const mergedDescribedBy =
+    [ariaDescribedBy, resolvedHelpTextId].filter(Boolean).join(" ") || undefined
+  const { input } = formInputVariants()
+  const inputClassName = input({ className })
+  let helpTextContent: ReactNode = null
+
+  if (helpText) {
+    if (helpTextElement?.props.id) {
+      helpTextContent = helpTextElement
+    } else if (helpTextElement) {
+      helpTextContent = cloneElement(helpTextElement, {
+        id: resolvedHelpTextId,
+      })
+    } else {
+      helpTextContent = <div id={resolvedHelpTextId}>{helpText}</div>
+    }
+  }
 
   return (
     <div className="flex flex-col gap-form-field-gap">
@@ -60,12 +65,12 @@ export function FormInputRaw({
         {label}
       </Label>
       <Input
+        aria-describedby={mergedDescribedBy}
         disabled={disabled}
         id={id}
         required={required}
         size={size}
         variant={validateStatus}
-        aria-describedby={mergedDescribedBy}
         {...inputProps}
         className={inputClassName}
       />
@@ -92,9 +97,9 @@ export function FormInput({
       helpText={
         helpText && (
           <StatusText
-            status={validateStatus}
             showIcon={showHelpTextIcon}
             size={size}
+            status={validateStatus}
           >
             {helpText}
           </StatusText>
