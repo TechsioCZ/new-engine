@@ -175,14 +175,14 @@ export const resolveOfferState = (
 }
 
 export const resolveProductContentSections = (
-  product: Product | null,
-  shortDescriptionHtml: string
+  product: Product | null
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata)
   const sectionMap = asRecord(metadata?.content_sections_map)
   const sectionsFromList = Array.isArray(metadata?.content_sections)
     ? metadata.content_sections
     : []
+  const productDescriptionHtml = asString(product?.description) ?? ""
 
   const sectionHtmlByKey = new Map<string, string>()
   for (const section of sectionsFromList) {
@@ -200,19 +200,15 @@ export const resolveProductContentSections = (
     sectionHtmlByKey.set(key, html)
   }
 
-  const fallbackHtml = [shortDescriptionHtml, asString(product?.description)]
-    .filter((value): value is string => Boolean(value))
-    .join("\n")
-
   const sections = PRODUCT_DETAIL_SECTION_ORDER.map((sectionKey) => {
-    let html =
+    const metadataSectionHtml =
       sectionHtmlByKey.get(sectionKey) ??
       asString(sectionMap?.[sectionKey]) ??
       ""
-
-    if (!html && sectionKey === "description") {
-      html = fallbackHtml
-    }
+    const html =
+      sectionKey === "description"
+        ? productDescriptionHtml || metadataSectionHtml
+        : metadataSectionHtml
 
     return {
       key: sectionKey,
@@ -229,7 +225,7 @@ export const resolveProductContentSections = (
     {
       key: "description",
       title: PRODUCT_DETAIL_SECTION_TITLES.description,
-      html: fallbackHtml,
+      html: productDescriptionHtml,
     },
   ]
 }

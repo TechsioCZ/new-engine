@@ -156,8 +156,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   )
 
   const productContentSections = useMemo(
-    () => resolveProductContentSections(product, shortDescriptionHtml),
-    [product, shortDescriptionHtml]
+    () => resolveProductContentSections(product),
+    [product]
   )
   const mediaFacts = useMemo(
     () => resolveProductMediaFacts(product, productContentSections),
