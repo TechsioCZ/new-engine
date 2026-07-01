@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
+import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-stock-availability"
 
 export const FALLBACK_MAX_QUANTITY = 99
 
@@ -37,6 +38,11 @@ export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
     !Array.isArray(itemRecord.variant)
       ? (itemRecord.variant as Record<string, unknown>)
       : null
+
+  const defaultStockInventory = resolveDefaultStockInventoryQuantity(variant)
+  if (defaultStockInventory !== null) {
+    return defaultStockInventory
+  }
 
   const metadataInventory = asFiniteNumber(metadata?.inventory_quantity)
   if (metadataInventory !== null) {

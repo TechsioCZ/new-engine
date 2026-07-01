@@ -11,7 +11,7 @@ import type {
   CatalogProductsParams,
   CatalogQueryState,
 } from "./catalog-query-state"
-import { resolveVariantInventoryState } from "./product-availability"
+import { hasDefaultStockInventoryQuantity } from "./default-stock-availability"
 import { PRODUCT_CARD_FIELDS } from "./product-query-config"
 import { useProducts } from "./products"
 import { storefront } from "./storefront"
@@ -36,8 +36,7 @@ type UseCatalogProductsOptions = Parameters<
 const productNeedsInventorySnapshot = (product: HttpTypes.StoreProduct) =>
   (product.variants ?? []).some(
     (variant) =>
-      Boolean(variant.id) &&
-      !resolveVariantInventoryState(variant).isInventoryKnown
+      Boolean(variant.id) && !hasDefaultStockInventoryQuantity(variant)
   )
 
 const resolveInventorySnapshotHandles = (
@@ -71,11 +70,15 @@ const mergeProductInventorySnapshot = (
     variants:
       product.variants?.map((variant) => {
         const inventoryVariant = inventoryVariantById.get(variant.id)
+        const inventoryVariantRecord = inventoryVariant as
+          | (HttpTypes.StoreProductVariant & { inventory_items?: unknown })
+          | undefined
 
         return inventoryVariant
           ? {
               ...variant,
               allow_backorder: inventoryVariant.allow_backorder,
+              inventory_items: inventoryVariantRecord?.inventory_items,
               inventory_quantity: inventoryVariant.inventory_quantity,
               manage_inventory: inventoryVariant.manage_inventory,
             }

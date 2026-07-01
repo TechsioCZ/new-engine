@@ -46,6 +46,7 @@ import { buildHerbatikaPaymentSessionData } from "./payment-session"
 import {
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
+  VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES,
 } from "./product-query-config"
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys"
 
@@ -55,6 +56,16 @@ export const CATEGORY_FIELDS =
 export const CATALOG_DEFAULT_LIMIT = 24
 export const CATALOG_DEFAULT_SORT = "recommended"
 export const ORDER_DEFAULT_SORT = "-created_at"
+
+const CART_ITEM_VARIANT_INVENTORY_FIELDS = [
+  "items.variant.id",
+  "+items.variant.inventory_quantity",
+  "+items.variant.manage_inventory",
+  "+items.variant.allow_backorder",
+  ...VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES.map(
+    (field) => `items.variant.${field}`
+  ),
+]
 
 export const CART_FIELDS = [
   "id",
@@ -96,6 +107,7 @@ export const CART_FIELDS = [
   "payment_collection.*",
   "payment_collection.payment_sessions.*",
   "*items",
+  ...CART_ITEM_VARIANT_INVENTORY_FIELDS,
   "items.tax_lines.*",
   "items.adjustments.*",
   "shipping_methods.*",

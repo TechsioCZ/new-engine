@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -9,7 +8,11 @@ import {
   PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products"
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+import {
+  ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE,
+  resolveAddProductToCartErrorMessage,
+  useAddProductToCart,
+} from "@/lib/storefront/use-add-product-to-cart"
 
 type UseProductDetailActionsProps = {
   product: ProductDetailDataState["product"]
@@ -26,7 +29,6 @@ export function useProductDetailActions({
   selectedVariant,
   selectedVolumeDiscountOption,
 }: UseProductDetailActionsProps) {
-  const [addToCartError, setAddToCartError] = useState<string | null>(null)
   const addToCart = useAddProductToCart({
     regionId: region?.region_id,
     countryCode: region?.country_code,
@@ -42,24 +44,19 @@ export function useProductDetailActions({
     quantityToAdd: number,
     variantIdOverride?: string | null
   ) => {
-    setAddToCartError(null)
-
     try {
       await addToCart.addProductToCart({
         product: productToAdd,
         quantity: quantityToAdd,
         variantId: variantIdOverride,
       })
-      toast.success({ title: "Produkt bol pridaný do košíka." })
+      toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
     } catch (error) {
-      setAddToCartError(
-        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."
-      )
+      toast.error({ title: resolveAddProductToCartErrorMessage(error) })
     }
   }
 
   return {
-    addToCartError,
     handleAddMainProductToCart: () => {
       if (!(product && selectedVariant?.id)) {
         return

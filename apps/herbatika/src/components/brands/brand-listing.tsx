@@ -57,7 +57,6 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
         results={
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
-            addToCartError={controller.addToCartError}
             catalogError={controller.catalogError}
             categoriesError={null}
             emptyMessage="Táto značka zatiaľ nemá dostupné produkty pre zvolený filter."

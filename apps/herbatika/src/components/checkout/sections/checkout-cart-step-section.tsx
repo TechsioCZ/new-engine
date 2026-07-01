@@ -2,9 +2,8 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { useState } from "react"
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
+import { useAppToast } from "@/hooks/use-app-toast"
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -27,7 +26,7 @@ export function CheckoutCartStepSection({
   cartItemsTotalAmount,
   currencyCode,
 }: CheckoutCartStepSectionProps) {
-  const [lineItemError, setLineItemError] = useState<string | null>(null)
+  const toast = useAppToast()
   const updateLineItemMutation = useUpdateLineItem()
   const removeLineItemMutation = useRemoveLineItem()
   const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
@@ -70,12 +69,13 @@ export function CheckoutCartStepSection({
       return
     }
 
-    setLineItemError(null)
     updateLineItemMutation.mutate(
       { cartId, lineItemId, quantity },
       {
         onError: (error) => {
-          setLineItemError(resolveErrorMessage(error))
+          toast.error({
+            title: resolveErrorMessage(error, "Úprava košíka zlyhala."),
+          })
         },
       }
     )
@@ -86,12 +86,13 @@ export function CheckoutCartStepSection({
       return
     }
 
-    setLineItemError(null)
     removeLineItemMutation.mutate(
       { cartId, lineItemId },
       {
         onError: (error) => {
-          setLineItemError(resolveErrorMessage(error))
+          toast.error({
+            title: resolveErrorMessage(error, "Odstránenie položky zlyhalo."),
+          })
         },
       }
     )
@@ -162,12 +163,6 @@ export function CheckoutCartStepSection({
           </div>
         ))}
       </div>
-
-      {lineItemError ? (
-        <StatusText showIcon status="error">
-          {lineItemError}
-        </StatusText>
-      ) : null}
     </section>
   )
 }

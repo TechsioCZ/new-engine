@@ -4,10 +4,10 @@ import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { useAppToast } from "@/hooks/use-app-toast"
 import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import {
   asFiniteNumber,
@@ -102,10 +102,10 @@ export function HerbatikaCartPopover({
   itemCount,
 }: HerbatikaCartPopoverProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
+  const toast = useAppToast()
   const updateLineItemMutation = useUpdateLineItem()
   const removeLineItemMutation = useRemoveLineItem()
   const cartItems = cart?.items ?? []
@@ -165,7 +165,6 @@ export function HerbatikaCartPopover({
       return
     }
 
-    setErrorMessage(null)
     updateLineItemMutation.mutate(
       {
         cartId: cart.id,
@@ -174,7 +173,9 @@ export function HerbatikaCartPopover({
       },
       {
         onError: (error) => {
-          setErrorMessage(resolveErrorMessage(error))
+          toast.error({
+            title: resolveErrorMessage(error, "Úprava košíka zlyhala."),
+          })
         },
       }
     )
@@ -185,7 +186,6 @@ export function HerbatikaCartPopover({
       return
     }
 
-    setErrorMessage(null)
     removeLineItemMutation.mutate(
       {
         cartId: cart.id,
@@ -193,7 +193,9 @@ export function HerbatikaCartPopover({
       },
       {
         onError: (error) => {
-          setErrorMessage(resolveErrorMessage(error))
+          toast.error({
+            title: resolveErrorMessage(error, "Odstránenie položky zlyhalo."),
+          })
         },
       }
     )
@@ -267,12 +269,6 @@ export function HerbatikaCartPopover({
 
               {hiddenItemCount > 0 ? (
                 <p className="text-fg-secondary text-xs">{`+ ${hiddenItemCount} ďalších položiek v košíku`}</p>
-              ) : null}
-
-              {errorMessage ? (
-                <StatusText showIcon status="error">
-                  {errorMessage}
-                </StatusText>
               ) : null}
 
               <CartTotals

@@ -138,12 +138,6 @@ export function ProductDetail({ handle }: ProductDetailProps) {
               options={controller.volumeDiscountOptions}
               selectedOptionId={controller.selectedVolumeDiscountId}
             />
-
-            {controller.addToCartError ? (
-              <StatusText showIcon status="error">
-                {controller.addToCartError}
-              </StatusText>
-            ) : null}
           </ProductDetailHero>
 
           <ProductDetailMetrics

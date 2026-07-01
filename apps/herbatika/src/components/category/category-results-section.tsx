@@ -15,7 +15,6 @@ import { CategorySortTabs } from "./category-sort-tabs"
 
 type CategoryResultsSectionProps = {
   activeSort: ProductSortValue
-  addToCartError: string | null
   categoriesError: string | null
   catalogError: string | null
   isEmpty: boolean
@@ -41,7 +40,6 @@ type CategoryResultsSectionProps = {
 
 export function CategoryResultsSection({
   activeSort,
-  addToCartError,
   categoriesError,
   catalogError,
   isEmpty,
@@ -84,11 +82,6 @@ export function CategoryResultsSection({
         <Skeleton.Rectangle className="h-100 rounded-full" speed="fast" />
       ) : null}
 
-      {addToCartError && (
-        <StatusText showIcon status="error">
-          {addToCartError}
-        </StatusText>
-      )}
       {categoriesError && (
         <StatusText showIcon status="error">
           {categoriesError}

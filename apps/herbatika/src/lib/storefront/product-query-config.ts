@@ -2,8 +2,21 @@ import type { HttpTypes } from "@medusajs/types"
 
 export const DEFAULT_PRODUCT_PAGE_SIZE = 12
 
-export const PRODUCT_VARIANT_INVENTORY_FIELDS =
-  "+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder"
+export const VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES = [
+  "inventory_items.inventory_item_id",
+  "inventory_items.required_quantity",
+  "inventory_items.inventory.location_levels.*",
+  "inventory_items.inventory.location_levels.stock_locations.name",
+] as const
+
+export const PRODUCT_VARIANT_INVENTORY_FIELDS = [
+  "+variants.inventory_quantity",
+  "+variants.manage_inventory",
+  "+variants.allow_backorder",
+  ...VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES.map(
+    (field) => `variants.${field}`
+  ),
+].join(",")
 
 export const PRODUCT_CARD_FIELDS = `id,title,handle,thumbnail,*variants.calculated_price,${PRODUCT_VARIANT_INVENTORY_FIELDS},+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map`
 
