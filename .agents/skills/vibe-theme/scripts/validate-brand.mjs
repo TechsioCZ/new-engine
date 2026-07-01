@@ -31,11 +31,26 @@ const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
 
 const DECL_RE = /^\s*(--[a-z0-9-]+):\s*([^;]+);/gm
 
-/** fg / bg pairs to check for AA contrast, with the minimum ratio. */
+/*
+ * fg / bg pairs to check for AA contrast, with the minimum ratio. 4.5 is AA for
+ * normal-size text (badge/button labels are small, so they use 4.5, not the 3.0
+ * large-text threshold). Only pairs whose BOTH tokens exist in the per-mode
+ * export can be checked — there is no page-background token in the export, so an
+ * "accent text on page" pair is intentionally omitted rather than left dead.
+ */
 const CONTRAST_PAIRS = [
-  ["--color-button-fg-primary", "--color-bg-primary-base", "button primary", 4.5],
-  ["--color-fg-accent-primary", "--color-bg", "accent text on page", 4.5],
-  ["--color-badge-fg-primary", "--color-badge-bg-primary", "badge primary", 3.0],
+  [
+    "--color-button-fg-primary",
+    "--color-bg-primary-base",
+    "button primary",
+    4.5,
+  ],
+  [
+    "--color-badge-fg-primary",
+    "--color-badge-bg-primary",
+    "badge primary",
+    4.5,
+  ],
 ]
 
 let errors = 0
@@ -74,10 +89,14 @@ function checkParity(label, brandMap, baseMap) {
     return
   }
   if (missing.length) {
-    err(`${label}: missing ${missing.length} base tokens, e.g. ${missing.slice(0, 5).join(", ")}`)
+    err(
+      `${label}: missing ${missing.length} base tokens, e.g. ${missing.slice(0, 5).join(", ")}`
+    )
   }
   if (extra.length) {
-    err(`${label}: ${extra.length} tokens not in base, e.g. ${extra.slice(0, 5).join(", ")}`)
+    err(
+      `${label}: ${extra.length} tokens not in base, e.g. ${extra.slice(0, 5).join(", ")}`
+    )
   }
 }
 
@@ -115,7 +134,7 @@ function resolveVar(name, map, seen = new Set()) {
     return null
   }
   seen.add(name)
-  let val = map.get(name)
+  const val = map.get(name)
   if (val === undefined) {
     return null
   }
@@ -127,13 +146,16 @@ function resolveVar(name, map, seen = new Set()) {
 }
 
 function srgbToLinear(c) {
-  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  return c <= 0.039_28 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
 }
 
 function hexToLinear(hex) {
   let h = hex.replace("#", "")
   if (h.length === 3) {
-    h = h.split("").map((x) => x + x).join("")
+    h = h
+      .split("")
+      .map((x) => x + x)
+      .join("")
   }
   if (h.length !== 6) {
     return null
@@ -159,13 +181,13 @@ function oklchToLinear(str) {
   const H = (Number.parseFloat(m[3]) * Math.PI) / 180
   const a = C * Math.cos(H)
   const b = C * Math.sin(H)
-  const l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
-  const m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
-  const s_ = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
+  const l_ = (L + 0.396_337_777_4 * a + 0.215_803_757_3 * b) ** 3
+  const m_ = (L - 0.105_561_345_8 * a - 0.063_854_172_8 * b) ** 3
+  const s_ = (L - 0.089_484_177_5 * a - 1.291_485_548 * b) ** 3
   return [
-    4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
-    -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
-    -0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_,
+    4.076_741_662_1 * l_ - 3.307_711_591_3 * m_ + 0.230_969_929_2 * s_,
+    -1.268_438_004_6 * l_ + 2.609_757_401_1 * m_ - 0.341_319_396_5 * s_,
+    -0.004_196_086_3 * l_ - 0.703_418_614_7 * m_ + 1.707_614_701 * s_,
   ]
 }
 
@@ -205,7 +227,7 @@ function checkContrast(label, brandMap) {
   for (const [fgName, bgName, pairLabel, min] of CONTRAST_PAIRS) {
     const fg = toLinear(resolveVar(fgName, brandMap))
     const bg = toLinear(resolveVar(bgName, brandMap))
-    if (!fg || !bg) {
+    if (!(fg && bg)) {
       continue // unresolved (e.g. gradient / unknown color form) — skip
     }
     const ratio = contrast(fg, bg)

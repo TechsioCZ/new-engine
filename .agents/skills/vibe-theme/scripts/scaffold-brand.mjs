@@ -37,6 +37,16 @@ const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
 
 const BRAND_RE = /^[a-z][a-z0-9-]*$/
 
+/*
+ * Names that must never be scaffolded over, even with --force: the base modes
+ * and the canonical Figma-exported brands. Their token files are the
+ * source of truth and are NOT regenerable from base, so a stray
+ * `scaffold-brand neo --force` must not clobber them. Add future
+ * Figma-exported brands here; code-authored ("vibed") brands are safe to
+ * overwrite while iterating and are deliberately absent.
+ */
+const RESERVED = new Set(["light", "dark", "base", "neo", "neo-dark"])
+
 function die(msg) {
   console.error(`✗ ${msg}`)
   process.exit(1)
@@ -68,8 +78,10 @@ function main() {
   if (!BRAND_RE.test(brand)) {
     die(`invalid brand "${brand}" — use lowercase kebab-case (a-z, 0-9, -)`)
   }
-  if (brand === "light" || brand === "dark" || brand === "base") {
-    die(`"${brand}" is reserved`)
+  if (RESERVED.has(brand)) {
+    die(
+      `"${brand}" is a reserved/canonical brand and cannot be scaffolded over`
+    )
   }
 
   copyMode("light", brand, force)
@@ -77,11 +89,15 @@ function main() {
 
   console.log("")
   console.log("Next steps (see vibe-theme SKILL.md):")
-  console.log(`  1. Edit ONLY the brand-defining tokens in both new files.`)
+  console.log("  1. Edit ONLY the brand-defining tokens in both new files.")
   console.log(`  2. Register "${brand}" in merge-figma-themes.mjs BRANDS and`)
-  console.log(`     theme-config.ts THEMES.`)
-  console.log(`  3. node .agents/skills/vibe-theme/scripts/validate-brand.mjs ${brand}`)
-  console.log(`  4. node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs`)
+  console.log("     theme-config.ts THEMES.")
+  console.log(
+    `  3. node .agents/skills/vibe-theme/scripts/validate-brand.mjs ${brand}`
+  )
+  console.log(
+    "  4. node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs"
+  )
 }
 
 main()
