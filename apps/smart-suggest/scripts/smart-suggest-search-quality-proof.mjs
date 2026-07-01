@@ -9,16 +9,6 @@ const appRoot = path.resolve(scriptDirectory, '..');
 const defaultReportPath = '.codex/reports/smart-suggest-search-quality-proof/search-quality.json';
 const defaultBenchmarkReportDirectory = '.codex/reports/smart-suggest-search-quality-proof';
 const targetModes = new Set(['local', 'http', 'both']);
-const booleanEnvValues = new Map([
-  ['1', true],
-  ['true', true],
-  ['yes', true],
-  ['on', true],
-  ['0', false],
-  ['false', false],
-  ['no', false],
-  ['off', false],
-]);
 
 function printHelp() {
   process.stdout.write(`Usage:
@@ -52,12 +42,6 @@ function envValue(name) {
   const value = process.env[name]?.trim();
 
   return value === undefined || value === '' ? undefined : value;
-}
-
-function envBoolean(name) {
-  const value = envValue(name)?.toLowerCase();
-
-  return value === undefined ? undefined : booleanEnvValues.get(value);
 }
 
 function defaultArgs() {

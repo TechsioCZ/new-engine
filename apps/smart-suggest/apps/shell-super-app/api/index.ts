@@ -3030,7 +3030,7 @@ const suggestFromProviderEnrichment = ({
       repositories,
       request,
       requestId: result.response.requestId,
-    });
+    }).pipe(Effect.orElseSucceed(() => null));
     const providerAttempted = result.providerEvents.length > 0;
 
     let providerResponse = filterSuggestionsForRequest(

@@ -1470,6 +1470,112 @@ describe('Smart Suggest effect API', () => {
     }),
   );
 
+  it.effect('keeps provider enrichment when provider telemetry storage fails', () =>
+    Effect.gen(function* shellEffectTestProgram16() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = yield* createSeededSmartSuggestHandler(repositories);
+
+      yield* resolveEffect(
+        repositories.tenants.upsertTenant({
+          allowedOrigins: [],
+          countryConfig: {
+            countries: {
+              CZ: {
+                kinds: {
+                  address: {
+                    providerPriority: ['mapy-cz'],
+                    providerTimeoutMs: 100,
+                    providers: {
+                      'mapy-cz': {
+                        apiKey: 'test-mapy-telemetry-failure-key',
+                        endpointUrl: 'https://mapy-telemetry-failure.test/suggest',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          id: 'tenant-provider-telemetry-failure-test',
+          name: 'Tenant Provider Telemetry Failure Test',
+          providerPriority: ['mapy-cz'],
+          status: 'active',
+        }),
+      );
+
+      const recordProviderEventMock = vi.fn<
+        SmartSuggestRepositories['providerEvents']['recordProviderEvent']
+      >(() =>
+        Effect.fail(new SmartSuggestStorageError('storage-unavailable', 'telemetry unavailable')),
+      );
+
+      repositories.providerEvents.recordProviderEvent = recordProviderEventMock;
+
+      const fetchMock = vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          Response.json({
+            items: [
+              {
+                id: 'mapy-k-louzi-telemetry-failure-nearby',
+                label: 'K Louži 1260/16, 101 00 Praha, Česko',
+                name: 'K Louži 1260/16',
+                regionalStructure: [
+                  { isoCode: 'CZ', name: 'Česko', type: 'country' },
+                  { name: 'Praha', type: 'municipality' },
+                ],
+                type: 'regional.address',
+                zip: '101 00',
+              },
+            ],
+          }),
+        ),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      const response = yield* handlerCallEffect(
+        testHandler,
+        requestFor(
+          '/v1/suggest?kind=address&countryCode=CZ&q=K%20Lou%C5%BEi%201258%2F12&tenantId=tenant-provider-telemetry-failure-test&limit=2',
+        ),
+      );
+      const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
+      const { queryHash, requestId } = yield* providerRequestIdFor('K Louži 1258/12');
+      const providerEvents = yield* resolveEffect(
+        repositories.providerEvents.listProviderEvents(requestId),
+      );
+      const statusResponse = yield* handlerCallEffect(testHandler, requestFor('/v1/status'));
+      const statusBody = yield* decodeJsonResponse(
+        statusResponse,
+        SmartSuggestStatusResponseSchema,
+      );
+
+      expect(response.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(recordProviderEventMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          providerId: 'mapy-cz',
+          queryHash,
+          requestId,
+          status: 'success',
+          tenantId: 'tenant-provider-telemetry-failure-test',
+        }),
+      );
+      expect(body).toMatchObject({
+        cacheStatus: 'written',
+      });
+      expect(body.suggestions.map((suggestion) => suggestion.id)).toEqual([
+        'cz-ruian-k-louzi-1258-12',
+        'mapy-k-louzi-telemetry-failure-nearby',
+      ]);
+      expect(body).not.toHaveProperty('providerEvents');
+      expect(providerEvents).toEqual([]);
+      expect(statusBody.metrics.providerEvents.success).toBe(1);
+      expect(statusBody.metrics.suggest.providerFallback).toBe(1);
+      expect(statusBody.metrics.suggest.cacheStatus.written).toBe(1);
+      expect(statusBody.metrics.suggest.errors).toBe(0);
+    }),
+  );
+
   it.effect(
     'keeps Radar provider suggestions in the TTL cache without durable address records',
     () =>
