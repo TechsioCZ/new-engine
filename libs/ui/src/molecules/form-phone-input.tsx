@@ -154,6 +154,12 @@ function getFlagIcon(flag: string): IconType {
   )
 }
 
+function warnFlagIconsStylesheetLoadError(error: unknown) {
+  if (process.env.NODE_ENV === "development") {
+    console.warn("Failed to load flag icons stylesheet:", error)
+  }
+}
+
 // === DEFAULT COUNTRIES ===
 // EU-typical countries only (must have corresponding flag token)
 
@@ -328,13 +334,13 @@ export function FormPhoneInput({
   useEffect(() => {
     if (!currentCountry) return
     if (FLAG_ICON_TOKENS[currentCountry.flag] != null) return
-    void loadFlagIconsStylesheet().catch(() => {})
+    void loadFlagIconsStylesheet().catch(warnFlagIconsStylesheetLoadError)
   }, [currentCountry?.flag])
 
   useEffect(() => {
     if (!countryApi.open) return
     if (!needsFullFlagSet) return
-    void loadFlagIconsStylesheet().catch(() => {})
+    void loadFlagIconsStylesheet().catch(warnFlagIconsStylesheetLoadError)
   }, [countryApi.open, needsFullFlagSet])
 
   // === Styles ===

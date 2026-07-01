@@ -46,25 +46,25 @@ const colorSelectVariants = tv({
         atom: "rounded-color-select-full",
       },
     },
-	    size: {
-	      sm: {
-	        group: "gap-color-select-group-sm",
-	        atom: "h-color-select-sm",
-	        icon: "text-[length:var(--text-color-select-sm)]",
-	      },
-	      md: {
-	        group: "gap-color-select-group-md",
-	        atom: "h-color-select-md",
-	        icon: "text-[length:var(--text-color-select-md)]",
-	      },
-	      lg: {
-	        group: "gap-color-select-group-lg",
-	        atom: "h-color-select-lg",
-	        icon: "text-[length:var(--text-color-select-lg)]",
-	      },
-	      full: {
-	        group: "h-full",
-	        cell: "h-full",
+    size: {
+      sm: {
+        group: "gap-color-select-group-sm",
+        atom: "h-color-select-sm",
+        icon: "text-color-select-sm",
+      },
+      md: {
+        group: "gap-color-select-group-md",
+        atom: "h-color-select-md",
+        icon: "text-color-select-md",
+      },
+      lg: {
+        group: "gap-color-select-group-lg",
+        atom: "h-color-select-lg",
+        icon: "text-color-select-lg",
+      },
+      full: {
+        group: "h-full",
+        cell: "h-full",
         atom: "h-full",
         icon: "h-color-select-icon w-color-select-icon",
       },
