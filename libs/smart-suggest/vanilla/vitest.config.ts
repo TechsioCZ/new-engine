@@ -10,7 +10,7 @@ const sourcePath = (relativePath: string) =>
 export default mergeConfig(
   defineSmartSuggestVitestConfig({
     environment: "jsdom",
-    packages: ["core"],
+    packages: ["core", "client"],
   }),
   {
     resolve: {

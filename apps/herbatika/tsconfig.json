@@ -33,9 +33,7 @@
       "@techsio/smart-suggest-ui": [
         "../../libs/smart-suggest/ui/src/address-suggest-field.tsx"
       ],
-      "@techsio/smart-suggest-ui/*": [
-        "../../libs/smart-suggest/ui/src/*"
-      ],
+      "@techsio/smart-suggest-ui/*": ["../../libs/smart-suggest/ui/src/*"],
       "@techsio/smart-suggest-validation": [
         "../../libs/smart-suggest/validation/src/validation.ts"
       ],

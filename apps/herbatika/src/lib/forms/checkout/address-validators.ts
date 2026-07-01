@@ -1,9 +1,5 @@
-import {
-  validatePostalCode as validateSmartSuggestPostalCode,
-} from "@techsio/smart-suggest-validation"
-import {
-  validatePhoneNumber as validateStrictPhoneNumber,
-} from "@techsio/smart-suggest-validation/phone-strict"
+import { validatePostalCode as validateSmartSuggestPostalCode } from "@techsio/smart-suggest-validation"
+import { validatePhoneNumber as validateStrictPhoneNumber } from "@techsio/smart-suggest-validation/phone-strict"
 import type {
   CheckoutAddressValues,
   CheckoutDetailsValues,
