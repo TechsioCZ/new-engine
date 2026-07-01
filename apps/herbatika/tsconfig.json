@@ -30,6 +30,9 @@
       "@techsio/smart-suggest-react": [
         "../../libs/smart-suggest/react/src/react.ts"
       ],
+      "@techsio/smart-suggest-ui": [
+        "../../libs/smart-suggest/ui/src/address-suggest-field.tsx"
+      ],
       "@techsio/smart-suggest-ui/*": [
         "../../libs/smart-suggest/ui/src/*"
       ],

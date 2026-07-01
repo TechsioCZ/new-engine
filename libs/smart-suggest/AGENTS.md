@@ -8,8 +8,10 @@ Cloudflare-only concerns across the package that owns them.
 
 - `core`: serialization-safe contracts only. No React, UI-kit, Drizzle,
   Cloudflare, or provider SDK imports. Keep exports small, named, and stable.
-  Do not store or expose raw-query persistence helpers here. Use discriminated
-  string codes for errors and status values.
+  Do not add contracts that move plaintext user search text into persisted
+  records, cache payloads, or events. Query identity belongs in deterministic
+  hashes/cache keys, not raw query fields. Use discriminated string codes for
+  errors and status values.
 - `client`: browser-safe API client code. No provider SDK, Drizzle, D1,
   Cloudflare runtime, React, or UI-kit imports.
 - `datasets`: dataset fixtures, parsers, import mapping, and source attribution
@@ -20,8 +22,14 @@ Cloudflare-only concerns across the package that owns them.
   payloads must be normalized before leaving this package.
 - `react`: React hooks over the Smart Suggest client. No UI-kit, storage,
   provider SDK, Drizzle, D1, or Cloudflare runtime imports.
-- `storage`: Drizzle/D1 schema and repository APIs. Repository APIs must not
-  accept raw query persistence.
+- `storage`: Drizzle/D1 schema and repository APIs. Persist search data only as
+  normalized address labels, prefix-token index rows, hashed suggest-cache
+  identities, source lineage, and attribution metadata. Do not add raw user
+  query columns, repository inputs, event payload fields, or helpers that store
+  plaintext queries. Address search must filter to active/search-visible
+  records, collect prefix-token candidates with deterministic usefulness
+  ordering before any candidate-window limit, then use the shared ranking helper
+  before applying the public result limit.
 - `ui`: domain wrappers that compose `@techsio/ui-kit` primitives and Smart
   Suggest hooks. No provider SDK, storage, Drizzle, D1, or Cloudflare runtime
   imports.

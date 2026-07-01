@@ -98,6 +98,60 @@ describe('Smart Suggest React hooks', () => {
     expect(suggest).toHaveBeenCalledTimes(1);
   });
 
+  it('clears stale address suggestions while a debounced request is waiting', async () => {
+    let request = {
+      kind: 'address',
+      query: 'Praha',
+    } satisfies SmartSuggestRequest;
+    const states: SmartSuggestAsyncState<SmartSuggestResponse>[] = [];
+    const suggest = vi.fn<SmartSuggestEffectClient['suggest']>((activeRequest) =>
+      succeed({
+        cacheStatus: 'miss',
+        requestId: activeRequest.query,
+        suggestions: [],
+      }),
+    );
+    const client = createMockSmartSuggestClient({ suggest });
+
+    const Probe = () => {
+      states.push(useAddressSuggest({ client, debounceMs: 20, request }));
+      return null;
+    };
+
+    await render(createElement(Probe));
+    expect(states.at(-1)).toMatchObject({ status: 'loading' });
+    expect(suggest).toHaveBeenCalledTimes(0);
+
+    await advanceTimers(20);
+
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      status: 'success',
+    });
+
+    request = {
+      kind: 'address',
+      query: 'Brno',
+    };
+    await render(createElement(Probe));
+
+    expect(states.at(-1)).toEqual({ status: 'loading' });
+    expect(suggest).toHaveBeenCalledTimes(1);
+
+    await advanceTimers(19);
+
+    expect(states.at(-1)).toEqual({ status: 'loading' });
+    expect(suggest).toHaveBeenCalledTimes(1);
+
+    await advanceTimers(1);
+
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Brno' },
+      status: 'success',
+    });
+    expect(suggest).toHaveBeenCalledTimes(2);
+  });
+
   it('aborts an in-flight address request when the query changes', async () => {
     let request = {
       kind: 'address',

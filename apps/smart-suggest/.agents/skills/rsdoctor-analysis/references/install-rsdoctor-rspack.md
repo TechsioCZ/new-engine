@@ -12,7 +12,7 @@ This guide covers installation for Rspack-based projects, including:
 
 For projects based on Rspack, such as Rsbuild or Rslib:
 
-**Note:** Prefer using the latest versions of the above dependencies when available.
+**Note:** Prefer the latest available versions of these dependencies.
 
 ```bash
 npm add @rsdoctor/rspack-plugin -D
@@ -21,7 +21,7 @@ pnpm add @rsdoctor/rspack-plugin -D
 
 ## Step 2: Register Plugin
 
-After the dependency installation, check the installed `@rsdoctor/rspack-plugin` version before changing config or running a build. Do not infer plugin capabilities from `@rsdoctor/agent-cli --version`.
+After installing the dependency, check the installed `@rsdoctor/rspack-plugin` version before changing config or running a build. Do not infer plugin capabilities from `@rsdoctor/agent-cli --version`.
 
 Required version gate (use exactly this if/else order):
 

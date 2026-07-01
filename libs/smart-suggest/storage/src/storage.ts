@@ -1342,6 +1342,7 @@ const SEARCH_INDEX_PREFIX_OPTIONS = {
   maxLength: 16,
   minLength: 1,
 } as const;
+const ADDRESS_SEARCH_PREFIX_MIN_QUERY_TOKEN_LENGTH = 2;
 const ADDRESS_SEARCH_FTS_MIN_TEXT_TOKEN_LENGTH = 3;
 const D1_ADDRESS_IMPORT_SUBCHUNK_SIZE = 10;
 const D1_TOKEN_INSERT_SUBCHUNK_SIZE = 1000;
@@ -1396,7 +1397,9 @@ const createQuerySearchPrefixes = (query: string) => {
     }
   }
 
-  return [...queryTokens].map((token) => token.slice(0, SEARCH_INDEX_PREFIX_OPTIONS.maxLength));
+  return [...queryTokens]
+    .filter((token) => token.length >= ADDRESS_SEARCH_PREFIX_MIN_QUERY_TOKEN_LENGTH)
+    .map((token) => token.slice(0, SEARCH_INDEX_PREFIX_OPTIONS.maxLength));
 };
 
 export const createAddressSearchFtsQuery = (query: string) => {
@@ -1505,12 +1508,7 @@ const selectPostalLocalityAddressRecords = (
 };
 
 const hasAddressSearchPrefixToken = (query: string) => {
-  const tokens = tokenizeAddressText(query);
-
-  return (
-    tokens.some((token) => token.length >= ADDRESS_SEARCH_FTS_MIN_TEXT_TOKEN_LENGTH) ||
-    extractPostalCodeCandidates(query).length > 0
-  );
+  return createQuerySearchPrefixes(query).length > 0;
 };
 
 type RankedAddressRecordCandidate = AddressRecord & {
@@ -3745,7 +3743,10 @@ export const createD1SmartSuggestRepositories = (
       for (const tokenChunk of chunkItems(tokenRows, D1_TOKEN_INSERT_SUBCHUNK_SIZE)) {
         if (tokenChunk.length > 0) {
           yield* withD1Database((db) =>
-            db.insert(smartSuggestAddressSearchTokens).values(tokenChunk),
+            db
+              .insert(smartSuggestAddressSearchTokens)
+              .values(tokenChunk)
+              .onConflictDoNothing({ target: smartSuggestAddressSearchTokens.id }),
           );
         }
       }
@@ -3898,17 +3899,38 @@ export const createD1SmartSuggestRepositories = (
       }
 
       const indexedRecordLimit = Math.max(limit * 20, 50);
-      const tokenFilters = [inArray(smartSuggestAddressSearchTokens.prefix, prefixes)];
+      const tokenFilters = [
+        inArray(smartSuggestAddressSearchTokens.prefix, prefixes),
+        eq(smartSuggestAddressRecords.searchVisible, true),
+        eq(smartSuggestAddressRecords.replicationStatus, "active"),
+      ];
 
       if (countryCode !== undefined) {
         tokenFilters.push(eq(smartSuggestAddressSearchTokens.countryCode, countryCode));
+        tokenFilters.push(eq(smartSuggestAddressRecords.countryCode, countryCode));
       }
 
+      const tokenMatchScoreOrder = sql`sum(${smartSuggestAddressSearchTokens.weight}) desc`;
       const tokenMatches = yield* withD1Database((db) =>
         db
           .select({ recordId: smartSuggestAddressSearchTokens.recordId })
           .from(smartSuggestAddressSearchTokens)
+          .innerJoin(
+            smartSuggestAddressRecords,
+            eq(smartSuggestAddressRecords.id, smartSuggestAddressSearchTokens.recordId),
+          )
           .where(and(...tokenFilters))
+          .groupBy(
+            smartSuggestAddressSearchTokens.recordId,
+            smartSuggestAddressRecords.quality,
+            smartSuggestAddressRecords.displayLabel,
+          )
+          .orderBy(
+            tokenMatchScoreOrder,
+            desc(smartSuggestAddressRecords.quality),
+            sql`${smartSuggestAddressRecords.displayLabel} asc`,
+            sql`${smartSuggestAddressSearchTokens.recordId} asc`,
+          )
           .limit(indexedRecordLimit),
       );
       const recordIds = [...new Set(tokenMatches.map((match) => match.recordId))];

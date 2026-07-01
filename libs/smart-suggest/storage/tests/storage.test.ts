@@ -298,6 +298,176 @@ describe("smart suggest storage", () => {
     }),
   );
 
+  it.effect("orders prefix-token address candidates before applying the candidate window limit", () =>
+    Effect.gen(function* () {
+      const preparedQueries: string[] = [];
+      const binding = {
+        prepare: (query: string) => {
+          preparedQueries.push(query);
+
+          return {
+            bind: () => ({
+              all: async () => ({ results: [] }),
+              raw: async () => [],
+            }),
+          };
+        },
+      } as unknown as SmartSuggestD1Binding;
+      const repositories = createD1SmartSuggestRepositories(binding);
+
+      yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          limit: 1,
+          query: "Lo",
+        }),
+      );
+
+      const tokenQuery = preparedQueries.find(
+        (query) =>
+          query.toLowerCase().includes("select") &&
+          query.includes("smart_suggest_address_search_tokens"),
+      );
+      const normalizedTokenQuery = tokenQuery?.replaceAll(/\s+/g, " ").toLowerCase();
+
+      expect(normalizedTokenQuery).toBeDefined();
+      if (normalizedTokenQuery === undefined) {
+        return;
+      }
+
+      expect(normalizedTokenQuery).toContain("inner join");
+      expect(normalizedTokenQuery).toContain("group by");
+      expect(normalizedTokenQuery).toContain("order by sum(");
+      expect(normalizedTokenQuery).toContain("quality");
+      expect(normalizedTokenQuery).toContain("display_label");
+      expect(normalizedTokenQuery.indexOf("order by")).toBeLessThan(
+        normalizedTokenQuery.lastIndexOf("limit"),
+      );
+    }),
+  );
+
+  it.effect("uses conflict-safe deterministic address search token writes", () =>
+    Effect.gen(function* () {
+      const preparedQueries: string[] = [];
+      const binding = {
+        prepare: (query: string) => {
+          preparedQueries.push(query);
+
+          return {
+            bind: () => ({
+              all: async () => ({ results: [] }),
+              raw: async () => [],
+            }),
+          };
+        },
+      } as unknown as SmartSuggestD1Binding;
+      const repositories = createD1SmartSuggestRepositories(binding);
+
+      yield* resolveStorageEffect(
+        repositories.addressRecords.upsertAddressRecords([
+          {
+            countryCode: "CZ",
+            displayLabel: "K Louži 1258/12, 101 00 Praha 10, CZ",
+            id: "ruian-cz:1203603",
+            parts: {
+              city: "Praha 10",
+              countryCode: "CZ",
+              houseNumber: "1258",
+              orientationNumber: "12",
+              postalCode: "101 00",
+              street: "K Louži",
+            },
+            quality: 0.99,
+            searchLabel: "k louzi 1258 12 101 00 praha 10 cz",
+            sourceId: "ruian-cz",
+          },
+        ]),
+      );
+
+      const tokenInsertQuery = preparedQueries.find(
+        (query) =>
+          query.toLowerCase().includes("insert") &&
+          query.includes("smart_suggest_address_search_tokens"),
+      );
+      const normalizedTokenInsertQuery = tokenInsertQuery?.replaceAll(/\s+/g, " ").toLowerCase();
+
+      expect(normalizedTokenInsertQuery).toContain("on conflict");
+      expect(normalizedTokenInsertQuery).toContain("do nothing");
+    }),
+  );
+
+  it.effect("marks D1 tombstone matches hidden and clears their search indexes", () =>
+    Effect.gen(function* () {
+      const preparedQueries: string[] = [];
+      const binding = {
+        prepare: (query: string) => {
+          preparedQueries.push(query);
+          const matchedAddressRows = () => {
+            const normalizedQuery = query.replaceAll(/\s+/g, " ").toLowerCase();
+
+            return normalizedQuery.includes("select") &&
+              normalizedQuery.includes("smart_suggest_address_records")
+              ? [["ruian-cz:1203603"]]
+              : [];
+          };
+
+          return {
+            bind: () => ({
+              all: async () => ({ results: matchedAddressRows() }),
+              raw: async () => matchedAddressRows(),
+            }),
+          };
+        },
+      } as unknown as SmartSuggestD1Binding;
+      const repositories = createD1SmartSuggestRepositories(binding);
+
+      yield* resolveStorageEffect(
+        repositories.addressTombstones.upsertAddressTombstones([
+          {
+            countryCode: "CZ",
+            deletedAt: "2026-06-27",
+            id: "ruian-cz:1203603",
+            reason: "removed by RUIAN delta",
+            ruian: {
+              addressPlaceCode: "1203603",
+            },
+            sourceId: "ruian-cz",
+          },
+        ]),
+      );
+
+      const normalizedQueries = preparedQueries.map((query) =>
+        query.replaceAll(/\s+/g, " ").toLowerCase(),
+      );
+
+      expect(
+        normalizedQueries.some(
+          (query) =>
+            query.includes("update") &&
+            query.includes("smart_suggest_address_records") &&
+            query.includes("replication_status") &&
+            query.includes("search_visible"),
+        ),
+      ).toBe(true);
+      expect(
+        normalizedQueries.some(
+          (query) =>
+            query.includes("delete") &&
+            query.includes("smart_suggest_address_search_tokens") &&
+            query.includes("record_id"),
+        ),
+      ).toBe(true);
+      expect(
+        normalizedQueries.some(
+          (query) =>
+            query.includes("delete") &&
+            query.includes("smart_suggest_address_search_fts") &&
+            query.includes("record_id"),
+        ),
+      ).toBe(true);
+    }),
+  );
+
   it.effect("stores and resolves CZ VUSC shard routing metadata", () =>
     Effect.gen(function* () {
       const repositories = createInMemorySmartSuggestRepositories();
@@ -1149,7 +1319,7 @@ describe("smart suggest storage", () => {
 
         expect(kLouziResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })]);
         expect(shortKResults).toEqual([]);
-        expect(shortLoResults).toEqual([]);
+        expect(shortLoResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })]);
       }),
   );
 

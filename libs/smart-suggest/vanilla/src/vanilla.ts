@@ -2,14 +2,14 @@ import {
   createSmartSuggestEffectClient,
   type SmartSuggestEffectClient,
   type SmartSuggestFetch,
-} from '@techsio/smart-suggest-client';
+} from "@techsio/smart-suggest-client";
 import type {
   AddressParts,
   SmartSuggestAcceptEvent,
   SmartSuggestCountryCode,
   SmartSuggestRequest,
   SmartSuggestSuggestion,
-} from '@techsio/smart-suggest-core';
+} from "@techsio/smart-suggest-core";
 import {
   DEFAULT_PHONE_VALIDATION_MODE,
   getPhoneInputHints,
@@ -17,10 +17,10 @@ import {
   type PhoneValidationMode,
   type PhoneValidationRequest,
   validatePhoneNumberLite,
-} from '@techsio/smart-suggest-validation/phone-lite';
-import { squash } from 'effect/Cause';
-import { type Effect, runCallback } from 'effect/Effect';
-import { isFailure } from 'effect/Exit';
+} from "@techsio/smart-suggest-validation/phone-lite";
+import { squash } from "effect/Cause";
+import { type Effect, runCallback } from "effect/Effect";
+import { isFailure } from "effect/Exit";
 
 export type SmartSuggestVanillaFetch = SmartSuggestFetch;
 
@@ -35,7 +35,7 @@ export type SmartSuggestVanillaValidationResult = {
     field?: string;
     message: string;
   }[];
-  isValid: boolean | 'unknown';
+  isValid: boolean | "unknown";
 };
 
 export type SmartSuggestVanillaPhoneValidationMode = PhoneValidationMode;
@@ -57,12 +57,12 @@ export type SmartSuggestVanillaAddressSelection = {
 };
 
 export type SmartSuggestVanillaSuggestState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { error: unknown; status: 'error' }
+  | { status: "idle" }
+  | { status: "loading" }
+  | { error: unknown; status: "error" }
   | {
       requestId: string;
-      status: 'success';
+      status: "success";
       suggestions: readonly SmartSuggestSuggestion[];
     };
 
@@ -126,7 +126,10 @@ const runVanillaEffectAsPromise = <TResponse>(
     });
   });
 
-const detachVanillaEffect = (effect: Effect<unknown, Error>, onError?: (error: unknown) => void) => {
+const detachVanillaEffect = (
+  effect: Effect<unknown, Error>,
+  onError?: (error: unknown) => void,
+) => {
   runCallback(effect, {
     onExit: (result) => {
       if (isFailure(result)) {
@@ -138,7 +141,7 @@ const detachVanillaEffect = (effect: Effect<unknown, Error>, onError?: (error: u
 
 const defaultPhoneValidatorLoader: SmartSuggestVanillaPhoneValidatorLoader = async () => {
   const validatorModule =
-    (await import('@techsio/smart-suggest-validation/phone-strict')) as SmartSuggestVanillaPhoneValidatorModule;
+    (await import("@techsio/smart-suggest-validation/phone-strict")) as SmartSuggestVanillaPhoneValidatorModule;
 
   return validatorModule;
 };
@@ -148,8 +151,8 @@ function missingPhoneValidator(): SmartSuggestVanillaPhoneValidatorModule | unde
 }
 
 const normalizeBaseUrl = (apiBaseUrl: string | undefined) => {
-  const baseUrl = apiBaseUrl ?? '/api';
-  return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const baseUrl = apiBaseUrl ?? "/api";
+  return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 };
 
 const isTextControl = (element: Element | null): element is TextControl =>
@@ -157,16 +160,16 @@ const isTextControl = (element: Element | null): element is TextControl =>
   element instanceof HTMLSelectElement ||
   element instanceof HTMLTextAreaElement;
 
-const resolveRoot = (root: SmartSuggestVanillaConfig['root']) => {
-  if (typeof root === 'string') {
-    return document.querySelector(root) ?? document;
+const resolveRoot = (root: SmartSuggestVanillaConfig["root"]) => {
+  if (typeof root === "string") {
+    return document.querySelector(root) ?? undefined;
   }
 
   return root ?? document;
 };
 
 const resolveField = (root: Document | Element, field: SmartSuggestVanillaField) => {
-  if (typeof field === 'string') {
+  if (typeof field === "string") {
     const element = root.querySelector(field);
     return isTextControl(element) ? element : undefined;
   }
@@ -180,19 +183,21 @@ const setControlValue = (control: TextControl | undefined, value?: string) => {
   }
 
   control.value = value;
-  control.dispatchEvent(new Event('input', { bubbles: true }));
-  control.dispatchEvent(new Event('change', { bubbles: true }));
+  control.dispatchEvent(new Event("input", { bubbles: true }));
+  control.dispatchEvent(new Event("change", { bubbles: true }));
 };
 
-const getControlValue = (control: TextControl | undefined) => control?.value.trim() ?? '';
+const getControlValue = (control: TextControl | undefined) => control?.value.trim() ?? "";
+
+const getControlForm = (control: TextControl | undefined) => control?.form ?? undefined;
 
 const getSuggestQuerySignalLength = (value: string) => [...value.matchAll(/[\p{L}\p{N}]/gu)].length;
 
-const resolveSuggestKind = (query: string): SmartSuggestRequest['kind'] => {
-  const postalDigits = query.replaceAll(/\D/gu, '');
+const resolveSuggestKind = (query: string): SmartSuggestRequest["kind"] => {
+  const postalDigits = query.replaceAll(/\D/gu, "");
   const postalOnly = /^\s*\d[\d\s-]*\s*$/u.test(query);
 
-  return postalOnly && postalDigits.length >= 5 ? 'postal' : 'address';
+  return postalOnly && postalDigits.length >= 5 ? "postal" : "address";
 };
 
 const createPhoneValidationRequest = (
@@ -210,7 +215,7 @@ const createPhoneValidationRequest = (
 
 const toCountryCode = (value: string | undefined) => {
   const normalized = value?.trim().toUpperCase();
-  return normalized === '' || normalized === undefined
+  return normalized === "" || normalized === undefined
     ? undefined
     : (normalized as SmartSuggestCountryCode);
 };
@@ -219,29 +224,29 @@ const buildAddressLine = (
   suggestion: SmartSuggestSuggestion,
   address: AddressParts | undefined,
 ) => {
-  if (address?.line1 !== undefined && address.line1.trim() !== '') {
+  if (address?.line1 !== undefined && address.line1.trim() !== "") {
     return address.line1;
   }
 
   const houseNumber = [address?.houseNumber, address?.orientationNumber]
-    .filter((value) => value !== undefined && value.trim() !== '')
-    .join('/');
+    .filter((value) => value !== undefined && value.trim() !== "")
+    .join("/");
   const streetLine = [address?.street, houseNumber]
-    .filter((value) => value !== undefined && value.trim() !== '')
-    .join(' ');
+    .filter((value) => value !== undefined && value.trim() !== "")
+    .join(" ");
 
-  return streetLine === '' ? suggestion.displayLabel : streetLine;
+  return streetLine === "" ? suggestion.displayLabel : streetLine;
 };
 
-const reportError = (onError: SmartSuggestVanillaConfig['onError'], error: unknown) => {
+const reportError = (onError: SmartSuggestVanillaConfig["onError"], error: unknown) => {
   onError?.(error);
 };
 
 const isAbortError = (error: unknown) =>
-  error instanceof DOMException && error.name === 'AbortError';
+  error instanceof DOMException && error.name === "AbortError";
 
 const createAbortReason = () =>
-  new DOMException('Smart Suggest request was superseded.', 'AbortError');
+  new DOMException("Smart Suggest request was superseded.", "AbortError");
 
 type PopoverListElement = HTMLUListElement & {
   hidePopover?: () => void;
@@ -249,7 +254,7 @@ type PopoverListElement = HTMLUListElement & {
 };
 
 type ToggleStateEvent = Event & {
-  newState?: 'closed' | 'open';
+  newState?: "closed" | "open";
 };
 
 const restoreAttribute = (element: Element, name: string, value: string | null) => {
@@ -265,6 +270,17 @@ function noop() {
   return;
 }
 
+const noopAsync = async () => {
+  return;
+};
+
+const createDisabledSmartSuggestInstance = (): SmartSuggestVanillaInstance => ({
+  destroy: noop,
+  suggest: noopAsync,
+  validatePhone: noopAsync,
+  validatePostal: noopAsync,
+});
+
 const configurePhoneInputSemantics = (control: TextControl | undefined) => {
   if (!(control instanceof HTMLInputElement)) {
     return noop;
@@ -272,14 +288,14 @@ const configurePhoneInputSemantics = (control: TextControl | undefined) => {
   const inputHints = getPhoneInputHints();
 
   const previousAttributes = new Map(
-    ['autocomplete', 'inputmode', 'type'].map(
+    ["autocomplete", "inputmode", "type"].map(
       (name) => [name, control.getAttribute(name)] as const,
     ),
   );
 
-  control.setAttribute('type', inputHints.type);
-  control.setAttribute('autocomplete', inputHints.autoComplete);
-  control.setAttribute('inputmode', inputHints.inputMode);
+  control.setAttribute("type", inputHints.type);
+  control.setAttribute("autocomplete", inputHints.autoComplete);
+  control.setAttribute("inputmode", inputHints.inputMode);
 
   return () => {
     for (const [name, value] of previousAttributes) {
@@ -289,14 +305,14 @@ const configurePhoneInputSemantics = (control: TextControl | undefined) => {
 };
 
 const clearControlValidation = (control: TextControl | undefined) => {
-  control?.setCustomValidity('');
-  control?.removeAttribute('aria-invalid');
+  control?.setCustomValidity("");
+  control?.removeAttribute("aria-invalid");
 };
 
 const applyControlValidationResult = (
   control: TextControl | undefined,
   result: SmartSuggestVanillaValidationResult,
-  fallbackMessage = 'Enter a valid phone number.',
+  fallbackMessage = "Enter a valid phone number.",
 ) => {
   if (control === undefined) {
     return;
@@ -305,32 +321,51 @@ const applyControlValidationResult = (
   if (result.isValid === false) {
     const message = result.errors?.[0]?.message ?? fallbackMessage;
     control.setCustomValidity(message);
-    control.setAttribute('aria-invalid', 'true');
+    control.setAttribute("aria-invalid", "true");
     return;
   }
 
   clearControlValidation(control);
 };
 
+const reportBlockingValidationResult = (
+  control: TextControl | undefined,
+  result: SmartSuggestVanillaValidationResult | undefined,
+  fallbackMessage: string,
+) => {
+  if (control === undefined) {
+    return;
+  }
+
+  if (result === undefined) {
+    control.setCustomValidity(fallbackMessage);
+    control.setAttribute("aria-invalid", "true");
+  } else if (result.isValid !== true) {
+    const message = result.errors?.[0]?.message ?? fallbackMessage;
+    control.setCustomValidity(message);
+    control.setAttribute("aria-invalid", "true");
+  }
+
+  control.reportValidity();
+};
+
 type SmartSuggestVanillaValidationIssue = NonNullable<
-  SmartSuggestVanillaValidationResult['errors']
+  SmartSuggestVanillaValidationResult["errors"]
 >[number];
 
-const isVanillaValidationIssue = (
-  value: unknown,
-): value is SmartSuggestVanillaValidationIssue => {
-  if (typeof value !== 'object' || value === null) {
+const isVanillaValidationIssue = (value: unknown): value is SmartSuggestVanillaValidationIssue => {
+  if (typeof value !== "object" || value === null) {
     return false;
   }
 
-  const code = Reflect.get(value, 'code');
-  const field = Reflect.get(value, 'field');
-  const message = Reflect.get(value, 'message');
+  const code = Reflect.get(value, "code");
+  const field = Reflect.get(value, "field");
+  const message = Reflect.get(value, "message");
 
   return (
-    typeof code === 'string' &&
-    (field === undefined || typeof field === 'string') &&
-    typeof message === 'string'
+    typeof code === "string" &&
+    (field === undefined || typeof field === "string") &&
+    typeof message === "string"
   );
 };
 
@@ -338,28 +373,28 @@ const toPostalValidationResultFromError = (
   error: unknown,
   rawInput: string,
 ): SmartSuggestVanillaValidationResult | undefined => {
-  if (typeof error !== 'object' || error === null) {
+  if (typeof error !== "object" || error === null) {
     return;
   }
 
-  const status = Reflect.get(error, 'status');
-  const errorTag = Reflect.get(error, '_tag');
-  const errorName = Reflect.get(error, 'name');
+  const status = Reflect.get(error, "status");
+  const errorTag = Reflect.get(error, "_tag");
+  const errorName = Reflect.get(error, "name");
   const isValidationError =
     status === 422 ||
-    errorTag === 'SmartSuggestValidationError' ||
-    errorName === 'SmartSuggestValidationError';
+    errorTag === "SmartSuggestValidationError" ||
+    errorName === "SmartSuggestValidationError";
 
   if (!isValidationError) {
     return;
   }
 
-  const errors = Reflect.get(error, 'errors');
+  const errors = Reflect.get(error, "errors");
   const validationErrors = Array.isArray(errors) ? errors.filter(isVanillaValidationIssue) : [];
   if (validationErrors.length === 0) {
-    const message = Reflect.get(error, 'message');
+    const message = Reflect.get(error, "message");
 
-    if (typeof message !== 'string' || message.trim().length === 0) {
+    if (typeof message !== "string" || message.trim().length === 0) {
       return;
     }
 
@@ -367,8 +402,8 @@ const toPostalValidationResultFromError = (
       displayValue: rawInput,
       errors: [
         {
-          code: 'validation-error',
-          field: 'postalCode',
+          code: "validation-error",
+          field: "postalCode",
           message,
         },
       ],
@@ -389,7 +424,7 @@ const restoreStyleProperty = (
   value: string,
   priority: string,
 ) => {
-  if (value === '') {
+  if (value === "") {
     element.style.removeProperty(name);
     return;
   }
@@ -405,16 +440,16 @@ const getNextSuggestionListSequence = () => {
 };
 
 const createSuggestionList = (input: TextControl, optionClassName: string | undefined) => {
-  const list = document.createElement('ul') as PopoverListElement;
+  const list = document.createElement("ul") as PopoverListElement;
   const listId =
-    input.id.trim() === ''
+    input.id.trim() === ""
       ? `smart-suggest-address-list-${getNextSuggestionListSequence()}`
       : `${input.id}-smart-suggest-list`;
   const anchorName = `--smart-suggest-address-${getNextSuggestionListSequence()}`;
-  const previousAnchorName = input.style.getPropertyValue('anchor-name');
-  const previousAnchorNamePriority = input.style.getPropertyPriority('anchor-name');
+  const previousAnchorName = input.style.getPropertyValue("anchor-name");
+  const previousAnchorNamePriority = input.style.getPropertyPriority("anchor-name");
   const previousInputAttributes = new Map(
-    ['aria-activedescendant', 'aria-autocomplete', 'aria-controls', 'aria-expanded', 'role'].map(
+    ["aria-activedescendant", "aria-autocomplete", "aria-controls", "aria-expanded", "role"].map(
       (name) => [name, input.getAttribute(name)] as const,
     ),
   );
@@ -426,33 +461,33 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
 
   list.id = listId;
   list.hidden = true;
-  list.setAttribute('role', 'listbox');
-  list.setAttribute('popover', 'auto');
-  list.setAttribute('data-smart-suggest-list', '');
-  list.style.setProperty('position-anchor', anchorName);
+  list.setAttribute("role", "listbox");
+  list.setAttribute("popover", "auto");
+  list.setAttribute("data-smart-suggest-list", "");
+  list.style.setProperty("position-anchor", anchorName);
 
-  input.style.setProperty('anchor-name', anchorName);
-  input.setAttribute('role', 'combobox');
-  input.setAttribute('aria-autocomplete', 'list');
-  input.setAttribute('aria-controls', list.id);
-  input.setAttribute('aria-expanded', 'false');
-  input.insertAdjacentElement('afterend', list);
+  input.style.setProperty("anchor-name", anchorName);
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", list.id);
+  input.setAttribute("aria-expanded", "false");
+  input.insertAdjacentElement("afterend", list);
 
   const readOptions = () =>
-    Array.from(list.querySelectorAll<HTMLElement>('[data-smart-suggest-option]'));
+    Array.from(list.querySelectorAll<HTMLElement>("[data-smart-suggest-option]"));
 
   const setOpenState = (nextOpen: boolean) => {
     open = nextOpen;
-    input.setAttribute('aria-expanded', String(nextOpen));
+    input.setAttribute("aria-expanded", String(nextOpen));
 
     if (!nextOpen) {
       activeIndex = -1;
-      input.removeAttribute('aria-activedescendant');
+      input.removeAttribute("aria-activedescendant");
     }
   };
 
   const close = () => {
-    if (open && typeof list.hidePopover === 'function') {
+    if (open && typeof list.hidePopover === "function") {
       list.hidePopover();
     }
 
@@ -463,7 +498,7 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
   const openList = () => {
     list.hidden = false;
 
-    if (!open && typeof list.showPopover === 'function') {
+    if (!open && typeof list.showPopover === "function") {
       list.showPopover();
     }
 
@@ -475,7 +510,7 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
 
     if (options.length === 0) {
       activeIndex = -1;
-      input.removeAttribute('aria-activedescendant');
+      input.removeAttribute("aria-activedescendant");
       return;
     }
 
@@ -483,13 +518,13 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
 
     for (const [index, option] of options.entries()) {
       const selected = index === activeIndex;
-      option.setAttribute('aria-selected', String(selected));
+      option.setAttribute("aria-selected", String(selected));
 
       if (selected) {
-        input.setAttribute('aria-activedescendant', option.id);
+        input.setAttribute("aria-activedescendant", option.id);
 
-        if (typeof option.scrollIntoView === 'function') {
-          option.scrollIntoView({ block: 'nearest' });
+        if (typeof option.scrollIntoView === "function") {
+          option.scrollIntoView({ block: "nearest" });
         }
       }
     }
@@ -506,11 +541,11 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
     return true;
   };
 
-  list.addEventListener('toggle', (event: Event) => {
+  list.addEventListener("toggle", (event: Event) => {
     const { newState } = event as ToggleStateEvent;
 
     if (newState !== undefined) {
-      setOpenState(newState === 'open');
+      setOpenState(newState === "open");
     }
   });
 
@@ -551,16 +586,16 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
     }
 
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         return moveActiveOption(event, activeIndex < 0 ? 0 : activeIndex + 1);
-      case 'ArrowUp':
+      case "ArrowUp":
         return moveActiveOption(
           event,
           activeIndex < 0 ? currentSuggestions.length - 1 : activeIndex - 1,
         );
-      case 'Enter':
+      case "Enter":
         return selectActiveFromKeyboard(event);
-      case 'Escape':
+      case "Escape":
         return closeFromKeyboard(event);
       default:
         return false;
@@ -572,7 +607,7 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
     destroy: () => {
       close();
       list.remove();
-      restoreStyleProperty(input, 'anchor-name', previousAnchorName, previousAnchorNamePriority);
+      restoreStyleProperty(input, "anchor-name", previousAnchorName, previousAnchorNamePriority);
 
       for (const [name, value] of previousInputAttributes) {
         restoreAttribute(input, name, value);
@@ -588,7 +623,7 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
       currentSelect = onSelect;
       activeIndex = -1;
       list.replaceChildren();
-      input.removeAttribute('aria-activedescendant');
+      input.removeAttribute("aria-activedescendant");
 
       if (suggestions.length === 0) {
         close();
@@ -596,17 +631,17 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
       }
 
       for (const [index, suggestion] of suggestions.entries()) {
-        const item = document.createElement('li');
+        const item = document.createElement("li");
         item.id = `${list.id}-option-${index}`;
-        item.className = optionClassName ?? '';
+        item.className = optionClassName ?? "";
         item.textContent = suggestion.displayLabel;
-        item.setAttribute('aria-selected', 'false');
-        item.setAttribute('data-smart-suggest-option', '');
-        item.setAttribute('role', 'option');
-        item.addEventListener('pointerdown', (event) => {
+        item.setAttribute("aria-selected", "false");
+        item.setAttribute("data-smart-suggest-option", "");
+        item.setAttribute("role", "option");
+        item.addEventListener("pointerdown", (event) => {
           event.preventDefault();
         });
-        item.addEventListener('click', () => onSelect(suggestion));
+        item.addEventListener("click", () => onSelect(suggestion));
         list.append(item);
       }
 
@@ -619,6 +654,11 @@ export const attachSmartSuggest = (
   config: SmartSuggestVanillaConfig,
 ): SmartSuggestVanillaInstance => {
   const root = resolveRoot(config.root);
+
+  if (root === undefined) {
+    return createDisabledSmartSuggestInstance();
+  }
+
   const controls = {
     addressLine: resolveField(root, config.addressLine),
     city: resolveField(root, config.city),
@@ -644,14 +684,19 @@ export const attachSmartSuggest = (
       ? undefined
       : createSuggestionList(controls.addressLine, config.optionClassName);
   const restorePhoneInputSemantics = configurePhoneInputSemantics(controls.phone);
-  const phoneForm = controls.phone instanceof HTMLInputElement ? controls.phone.form : undefined;
+  const phoneForm =
+    controls.phone instanceof HTMLInputElement ? getControlForm(controls.phone) : undefined;
+  const postalForm = getControlForm(controls.postalCode);
+  const validationForms = [
+    ...new Set([phoneForm, postalForm].filter((form) => form !== undefined)),
+  ];
 
   let activeSuggestController: AbortController | undefined;
   let currentRequestId: string | undefined;
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let didPhoneValidatorLoadFail = false;
   let isApplyingSuggestion = false;
-  let isSubmittingAfterPhoneValidation = false;
+  let submittingAfterValidationForm: HTMLFormElement | undefined;
   let phoneValidatorPromise:
     | Promise<SmartSuggestVanillaPhoneValidatorModule | undefined>
     | undefined;
@@ -717,7 +762,7 @@ export const attachSmartSuggest = (
   const clearSuggestResults = () => {
     currentRequestId = undefined;
     suggestionList?.render([], selectSuggestion);
-    config.onSuggestStateChange?.({ status: 'idle' });
+    config.onSuggestStateChange?.({ status: "idle" });
   };
 
   const createSuggestRequest = (query: string) => {
@@ -750,7 +795,7 @@ export const attachSmartSuggest = (
     }
 
     clearSuggestResults();
-    config.onSuggestStateChange?.({ error, status: 'error' });
+    config.onSuggestStateChange?.({ error, status: "error" });
     reportError(config.onError, error);
   };
 
@@ -768,7 +813,7 @@ export const attachSmartSuggest = (
 
     const requestController = new AbortController();
     activeSuggestController = requestController;
-    config.onSuggestStateChange?.({ status: 'loading' });
+    config.onSuggestStateChange?.({ status: "loading" });
 
     try {
       const response = await runVanillaEffectAsPromise(
@@ -785,7 +830,7 @@ export const attachSmartSuggest = (
       suggestionList?.render(response.suggestions, selectSuggestion);
       config.onSuggestStateChange?.({
         requestId: response.requestId,
-        status: 'success',
+        status: "success",
         suggestions: response.suggestions,
       });
     } catch (error) {
@@ -798,7 +843,7 @@ export const attachSmartSuggest = (
   };
 
   const beginPhoneValidatorLoad = () => {
-    if (phoneValidationMode === 'server-only' || didPhoneValidatorLoadFail) {
+    if (phoneValidationMode === "server-only" || didPhoneValidatorLoadFail) {
       return;
     }
 
@@ -811,12 +856,12 @@ export const attachSmartSuggest = (
     return phoneValidatorPromise;
   };
 
-  if (phoneValidationMode === 'frontend-immediate') {
+  if (phoneValidationMode === "frontend-immediate") {
     beginPhoneValidatorLoad();
   }
 
   const validatePhoneWithFrontend = async (request: SmartSuggestVanillaPhoneValidationRequest) => {
-    if (phoneValidationMode === 'server-only') {
+    if (phoneValidationMode === "server-only") {
       return;
     }
 
@@ -831,7 +876,7 @@ export const attachSmartSuggest = (
     const validationSequence = phoneValidationSequence + 1;
     phoneValidationSequence = validationSequence;
 
-    if (rawInput === '') {
+    if (rawInput === "") {
       clearControlValidation(controls.phone);
       return;
     }
@@ -854,7 +899,7 @@ export const attachSmartSuggest = (
       }
 
       const result =
-        (phoneValidationMode === 'server-only'
+        (phoneValidationMode === "server-only"
           ? undefined
           : await validatePhoneWithFrontend(request)) ??
         (await runVanillaEffectAsPromise(smartSuggestClient.validatePhone(request)));
@@ -880,13 +925,13 @@ export const attachSmartSuggest = (
     await validatePhoneInternal();
   };
 
-  const validatePostal = async () => {
+  const validatePostalInternal = async () => {
     const rawInput = getControlValue(controls.postalCode);
     const countryCode = readCountryCode();
     const validationSequence = postalValidationSequence + 1;
     postalValidationSequence = validationSequence;
 
-    if (rawInput === '' || countryCode === undefined) {
+    if (rawInput === "" || countryCode === undefined) {
       return;
     }
 
@@ -904,11 +949,8 @@ export const attachSmartSuggest = (
       }
 
       setControlValue(controls.postalCode, result.displayValue);
-      applyControlValidationResult(
-        controls.postalCode,
-        result,
-        'Enter a valid postal code.',
-      );
+      applyControlValidationResult(controls.postalCode, result, "Enter a valid postal code.");
+      return result;
     } catch (error) {
       if (
         validationSequence === postalValidationSequence &&
@@ -918,16 +960,19 @@ export const attachSmartSuggest = (
         const result = toPostalValidationResultFromError(error, rawInput);
 
         if (result !== undefined) {
-          applyControlValidationResult(
-            controls.postalCode,
-            result,
-            'Enter a valid postal code.',
-          );
+          applyControlValidationResult(controls.postalCode, result, "Enter a valid postal code.");
+          reportError(config.onError, error);
+          return result;
         }
       }
 
       reportError(config.onError, error);
+      return;
     }
+  };
+
+  const validatePostal = async () => {
+    await validatePostalInternal();
   };
 
   const onAddressInput = () => {
@@ -964,50 +1009,81 @@ export const attachSmartSuggest = (
     clearControlValidation(controls.phone);
     beginPhoneValidatorLoad();
   };
-  const onPhoneFormSubmit = (event: Event) => {
-    if (isSubmittingAfterPhoneValidation) {
-      isSubmittingAfterPhoneValidation = false;
+  const submitFormAfterValidation = (
+    form: HTMLFormElement,
+    submitter: SubmitEvent["submitter"] | undefined,
+  ) => {
+    submittingAfterValidationForm = form;
+
+    if (typeof form.requestSubmit === "function") {
+      if (
+        submitter instanceof HTMLElement &&
+        (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement)
+      ) {
+        form.requestSubmit(submitter);
+        return;
+      }
+
+      form.requestSubmit();
       return;
     }
 
-    if (controls.phone === undefined || getControlValue(controls.phone) === '') {
+    form.submit();
+  };
+
+  const onValidationFormSubmit = (event: Event) => {
+    const form = event.currentTarget;
+
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+
+    if (submittingAfterValidationForm === form) {
+      submittingAfterValidationForm = undefined;
+      return;
+    }
+
+    const shouldValidatePhone =
+      phoneForm === form && controls.phone !== undefined && getControlValue(controls.phone) !== "";
+    const shouldValidatePostal =
+      postalForm === form &&
+      controls.postalCode !== undefined &&
+      getControlValue(controls.postalCode) !== "" &&
+      readCountryCode() !== undefined;
+
+    if (!shouldValidatePhone && !shouldValidatePostal) {
       return;
     }
 
     event.preventDefault();
 
-    const submitter = 'submitter' in event ? event.submitter : undefined;
-    const pending = validatePhoneInternal();
+    const submitter = event instanceof SubmitEvent ? event.submitter : undefined;
+    const pending = Promise.all([
+      shouldValidatePhone ? validatePhoneInternal() : Promise.resolve(undefined),
+      shouldValidatePostal ? validatePostalInternal() : Promise.resolve(undefined),
+    ]);
 
     pending
-      .then((result) => {
-        if (result?.isValid !== true) {
-          if (result === undefined) {
-            controls.phone?.setCustomValidity(
-              'Phone validation is unavailable. Try again.',
-            );
-            controls.phone?.setAttribute('aria-invalid', 'true');
-          }
-          controls.phone?.reportValidity();
+      .then(([phoneResult, postalResult]) => {
+        if (shouldValidatePhone && phoneResult?.isValid !== true) {
+          reportBlockingValidationResult(
+            controls.phone,
+            phoneResult,
+            "Phone validation is unavailable. Try again.",
+          );
           return;
         }
 
-        isSubmittingAfterPhoneValidation = true;
-
-        if (typeof phoneForm?.requestSubmit === 'function') {
-          if (
-            submitter instanceof HTMLElement &&
-            (submitter instanceof HTMLButtonElement || submitter instanceof HTMLInputElement)
-          ) {
-            phoneForm.requestSubmit(submitter);
-            return;
-          }
-
-          phoneForm.requestSubmit();
+        if (shouldValidatePostal && postalResult?.isValid !== true) {
+          reportBlockingValidationResult(
+            controls.postalCode,
+            postalResult,
+            "Postal validation is unavailable. Try again.",
+          );
           return;
         }
 
-        phoneForm?.submit();
+        submitFormAfterValidation(form, submitter);
       })
       .catch((error: unknown) => reportError(config.onError, error));
   };
@@ -1020,15 +1096,17 @@ export const attachSmartSuggest = (
     clearControlValidation(controls.postalCode);
   };
 
-  controls.addressLine?.addEventListener('input', onAddressInput);
-  controls.addressLine?.addEventListener('keydown', onAddressKeyDown);
-  controls.addressLine?.addEventListener('blur', onAddressBlur);
-  controls.phone?.addEventListener('blur', onPhoneBlur);
-  controls.phone?.addEventListener('focus', onPhoneFocus);
-  controls.phone?.addEventListener('input', onPhoneInput);
-  phoneForm?.addEventListener('submit', onPhoneFormSubmit);
-  controls.postalCode?.addEventListener('blur', onPostalBlur);
-  controls.postalCode?.addEventListener('input', onPostalInput);
+  controls.addressLine?.addEventListener("input", onAddressInput);
+  controls.addressLine?.addEventListener("keydown", onAddressKeyDown);
+  controls.addressLine?.addEventListener("blur", onAddressBlur);
+  controls.phone?.addEventListener("blur", onPhoneBlur);
+  controls.phone?.addEventListener("focus", onPhoneFocus);
+  controls.phone?.addEventListener("input", onPhoneInput);
+  for (const form of validationForms) {
+    form.addEventListener("submit", onValidationFormSubmit);
+  }
+  controls.postalCode?.addEventListener("blur", onPostalBlur);
+  controls.postalCode?.addEventListener("input", onPostalInput);
 
   return {
     destroy: () => {
@@ -1037,15 +1115,17 @@ export const attachSmartSuggest = (
       postalValidationSequence += 1;
       suggestSequence += 1;
       activeSuggestController?.abort(createAbortReason());
-      controls.addressLine?.removeEventListener('input', onAddressInput);
-      controls.addressLine?.removeEventListener('keydown', onAddressKeyDown);
-      controls.addressLine?.removeEventListener('blur', onAddressBlur);
-      controls.phone?.removeEventListener('blur', onPhoneBlur);
-      controls.phone?.removeEventListener('focus', onPhoneFocus);
-      controls.phone?.removeEventListener('input', onPhoneInput);
-      phoneForm?.removeEventListener('submit', onPhoneFormSubmit);
-      controls.postalCode?.removeEventListener('blur', onPostalBlur);
-      controls.postalCode?.removeEventListener('input', onPostalInput);
+      controls.addressLine?.removeEventListener("input", onAddressInput);
+      controls.addressLine?.removeEventListener("keydown", onAddressKeyDown);
+      controls.addressLine?.removeEventListener("blur", onAddressBlur);
+      controls.phone?.removeEventListener("blur", onPhoneBlur);
+      controls.phone?.removeEventListener("focus", onPhoneFocus);
+      controls.phone?.removeEventListener("input", onPhoneInput);
+      for (const form of validationForms) {
+        form.removeEventListener("submit", onValidationFormSubmit);
+      }
+      controls.postalCode?.removeEventListener("blur", onPostalBlur);
+      controls.postalCode?.removeEventListener("input", onPostalInput);
       restorePhoneInputSemantics();
       suggestionList?.destroy();
     },

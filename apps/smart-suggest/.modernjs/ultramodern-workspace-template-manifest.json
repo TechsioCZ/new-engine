@@ -129,7 +129,7 @@
     "postMaterializationValidation": [
       "ultramodern-workspace-contract-check",
       "github-workflow-security-enforced",
-      "pnpm-11-policy-enforced",
+      "pnpm-11.9-policy-enforced",
       "template-manifest-retained"
     ],
     "expectedCommands": [
@@ -137,6 +137,7 @@
       "pnpm install",
       "pnpm run i18n:boundaries",
       "pnpm run contract:check",
+      "pnpm run mf:types",
       "pnpm run performance:readiness"
     ]
   }

@@ -221,8 +221,7 @@
             "envFallbackOrder": [
               "MODERN_PUBLIC_SITE_URL",
               "ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP",
-              "ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN",
-              "SHELL_SUPER_APP_PORT"
+              "ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN"
             ],
             "defaultLocalhostPort": 3020
           },
@@ -316,7 +315,7 @@
               "permissionsPolicy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
             },
             "contentSecurityPolicy": {
-              "mode": "report-only",
+              "mode": "enforce",
               "directives": {
                 "base-uri": [
                   "'self'"
@@ -324,9 +323,7 @@
                 "connect-src": [
                   "'self'",
                   "https:",
-                  "http:",
-                  "wss:",
-                  "ws:"
+                  "wss:"
                 ],
                 "default-src": [
                   "'self'"
@@ -334,8 +331,7 @@
                 "font-src": [
                   "'self'",
                   "data:",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "form-action": [
                   "'self'"
@@ -347,13 +343,11 @@
                   "'self'",
                   "data:",
                   "blob:",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "manifest-src": [
                   "'self'",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "object-src": [
                   "'none'"
@@ -361,23 +355,20 @@
                 "script-src": [
                   "'self'",
                   "'unsafe-inline'",
-                  "'unsafe-eval'",
                   "https:",
-                  "http:",
                   "blob:"
                 ],
                 "style-src": [
                   "'self'",
                   "'unsafe-inline'",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "worker-src": [
                   "'self'",
                   "blob:"
                 ]
               },
-              "reason": "Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement."
+              "reason": "Enforced Cloudflare CSP blocks mixed-content and eval sources while permitting Modern SSR and Module Federation assets from self, HTTPS, WSS, and blob workers."
             },
             "noindex": {
               "workersDev": true,
@@ -413,8 +404,9 @@
               "cssAssetMaxBytes": 750000
             },
             "csp": {
-              "finalMode": "report-only-dogfood",
-              "decision": "Report-only remains the generated final mode until public smoke proof records MF SSR script/style/connect compatibility for the deployed surface."
+              "mode": "enforce",
+              "purpose": "enforced-worker-policy",
+              "decision": "The generated Cloudflare Worker ships an enforced CSP that blocks mixed-content and eval sources while allowing Modern SSR and Module Federation assets from self, HTTPS, WSS, and blob workers."
             }
           },
           "evidence": {
@@ -433,7 +425,7 @@
               "permissionsPolicy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
             },
             "contentSecurityPolicy": {
-              "mode": "report-only",
+              "mode": "enforce",
               "directives": {
                 "base-uri": [
                   "'self'"
@@ -441,9 +433,7 @@
                 "connect-src": [
                   "'self'",
                   "https:",
-                  "http:",
-                  "wss:",
-                  "ws:"
+                  "wss:"
                 ],
                 "default-src": [
                   "'self'"
@@ -451,8 +441,7 @@
                 "font-src": [
                   "'self'",
                   "data:",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "form-action": [
                   "'self'"
@@ -464,13 +453,11 @@
                   "'self'",
                   "data:",
                   "blob:",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "manifest-src": [
                   "'self'",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "object-src": [
                   "'none'"
@@ -478,23 +465,20 @@
                 "script-src": [
                   "'self'",
                   "'unsafe-inline'",
-                  "'unsafe-eval'",
                   "https:",
-                  "http:",
                   "blob:"
                 ],
                 "style-src": [
                   "'self'",
                   "'unsafe-inline'",
-                  "https:",
-                  "http:"
+                  "https:"
                 ],
                 "worker-src": [
                   "'self'",
                   "blob:"
                 ]
               },
-              "reason": "Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement."
+              "reason": "Enforced Cloudflare CSP blocks mixed-content and eval sources while permitting Modern SSR and Module Federation assets from self, HTTPS, WSS, and blob workers."
             },
             "noindex": {
               "workersDev": true,

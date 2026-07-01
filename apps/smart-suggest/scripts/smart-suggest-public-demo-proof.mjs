@@ -46,9 +46,10 @@ function printHelp() {
   process.stdout.write(`Usage:
   node scripts/smart-suggest-public-demo-proof.mjs [--url http://localhost:3020] [--api-base /api] [--out proof.json]
 
-Checks the Smart Suggest public demo root and API matrix without live provider
-credentials. The default URL is ${defaultLocalUrl}. Set SMART_SUGGEST_DEMO_URL or
-ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP, or pass --url, to prove a public Worker.
+Checks the Smart Suggest localized root redirect, public SDK demo, and API matrix
+without live provider credentials. The default URL is ${defaultLocalUrl}. Set
+SMART_SUGGEST_DEMO_URL or ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP, or pass --url,
+to prove a public Worker.
 
 Options:
   --url value             Demo/public base URL. Default: ${defaultLocalUrl}
@@ -297,6 +298,30 @@ async function fetchText(url, timeoutMs) {
   );
 }
 
+async function fetchRootLocaleRedirect(url, timeoutMs) {
+  const response = await fetchWithTimeout(
+    url,
+    {
+      headers: {
+        accept: 'text/html, text/plain, */*',
+        'accept-language': 'cs-CZ,cs;q=0.9,en;q=0.1',
+      },
+      method: 'GET',
+      redirect: 'manual',
+    },
+    timeoutMs,
+  );
+
+  return {
+    body: await response.text(),
+    cacheControl: response.headers.get('cache-control'),
+    location: response.headers.get('location'),
+    ok: response.ok,
+    status: response.status,
+    vary: response.headers.get('vary'),
+  };
+}
+
 async function fetchJson(url, init, timeoutMs) {
   return responseToJson(
     await fetchWithTimeout(
@@ -338,23 +363,11 @@ function htmlHasManualEntryFallback(html) {
   );
 }
 
-function htmlHasDemoLink(html) {
-  return html.includes('/sdk/demo.html') || html.includes('Open Smart Suggest demo');
-}
-
-function htmlBootstrapsModernRoot(html) {
-  return (
-    html.includes('id="root"') && /<script\b[^>]*\bsrc=["']\/static\/js\/index\.js["']/iu.test(html)
-  );
-}
-
 function sourceRendersCheckoutDemo() {
-  const rootSource = readSource('apps/shell-super-app/src/routes/page.tsx');
   const localizedRootSource = readSource('apps/shell-super-app/src/routes/[lang]/page.tsx');
   const demoSource = readSource('apps/shell-super-app/src/routes/smart-suggest-demo.tsx');
 
   return (
-    rootSource.includes('smart-suggest-demo') &&
     localizedRootSource.includes('smart-suggest-demo') &&
     demoSource.includes('TechsioSmartSuggest') &&
     demoSource.includes('/sdk/techsio-smart-suggest.js') &&
@@ -373,51 +386,45 @@ function htmlHasSdkModuleScript(html) {
   );
 }
 
-function validateRootHtml(report, root) {
-  const contentType = root.contentType ?? '';
-  const isHtml = contentType.toLowerCase().includes('text/html') || root.body.includes('<html');
-  const hasDemoForm = htmlHasDemoForm(root.body);
-  const hasDemoLink = htmlHasDemoLink(root.body);
-  const bootsCheckoutDemo = htmlBootstrapsModernRoot(root.body) && sourceRendersCheckoutDemo();
-
+function validateRootLocaleRedirect(report, root) {
   check(
     report,
-    root.ok,
-    'root-html-http',
-    'Root HTML returned HTTP success.',
-    'Root HTML did not return HTTP success.',
+    root.status === 302,
+    'root-locale-redirect-status',
+    'Root request returned the framework-owned locale redirect.',
+    'Root request did not return the framework-owned locale redirect.',
     {
       statusCode: root.status,
     },
   );
   check(
     report,
-    isHtml,
-    'root-html-content-type',
-    'Root response is HTML.',
-    'Root response was not recognizable HTML.',
+    root.location === '/cs',
+    'root-locale-redirect-location',
+    'Root redirect targeted the negotiated Czech locale path.',
+    'Root redirect did not target the negotiated Czech locale path.',
     {
-      contentType,
+      location: root.location,
     },
   );
   check(
     report,
-    hasDemoForm || hasDemoLink || bootsCheckoutDemo,
-    'root-html-demo-entry',
-    hasDemoForm
-      ? 'Root renders the checkout demo form.'
-      : bootsCheckoutDemo
-        ? 'Root boots the checkout demo app.'
-        : 'Root links to the checkout demo.',
-    'Root does not expose the Smart Suggest demo entry.',
+    root.cacheControl === 'private, no-store',
+    'root-locale-redirect-cache-control',
+    'Root redirect is private and not stored.',
+    'Root redirect did not include private, no-store cache control.',
     {
-      rootSurface: hasDemoForm
-        ? 'demo-form'
-        : bootsCheckoutDemo
-          ? 'checkout-app'
-          : hasDemoLink
-            ? 'demo-link'
-            : 'missing',
+      cacheControl: root.cacheControl,
+    },
+  );
+  check(
+    report,
+    typeof root.vary === 'string' && root.vary.toLowerCase().includes('accept-language'),
+    'root-locale-redirect-vary',
+    'Root redirect varies on locale negotiation headers.',
+    'Root redirect did not vary on locale negotiation headers.',
+    {
+      vary: root.vary,
     },
   );
 }
@@ -1383,8 +1390,8 @@ async function runApiMatrix(report, transport) {
 
 async function runHttpProof(report, args) {
   const baseUrl = normalizeBaseUrl(args.url);
-  const root = await fetchText(joinOriginRoute(baseUrl, '/'), args.timeoutMs);
-  validateRootHtml(report, root);
+  const root = await fetchRootLocaleRedirect(joinOriginRoute(baseUrl, '/'), args.timeoutMs);
+  validateRootLocaleRedirect(report, root);
 
   const demo = await fetchText(joinOriginRoute(baseUrl, '/sdk/demo.html'), args.timeoutMs);
   validateDemoHtml(report, demo, 'public');
@@ -1403,7 +1410,6 @@ async function runHttpProof(report, args) {
 }
 
 function runStaticSourceProof(report) {
-  const rootSource = readSource('apps/shell-super-app/src/routes/page.tsx');
   const demoSource = readSource('apps/shell-super-app/sdk/demo.html');
   const sdkSource = readSource('apps/shell-super-app/sdk/techsio-smart-suggest.js');
   const vanillaSource = readRepositorySource('libs/smart-suggest/vanilla/src/vanilla.ts');
@@ -1414,10 +1420,10 @@ function runStaticSourceProof(report) {
   report.target.mode = 'static-source';
   check(
     report,
-    rootSource.includes('smart-suggest-demo') && sourceRendersCheckoutDemo(),
-    'static-root-demo-entry',
-    'Source root route renders the checkout demo.',
-    'Source root route does not render the checkout demo.',
+    sourceRendersCheckoutDemo(),
+    'static-localized-demo-entry',
+    'Source localized route renders the checkout demo.',
+    'Source localized route does not render the checkout demo.',
   );
   validateDemoHtml(
     report,

@@ -55,21 +55,43 @@ describe("validatePostalCode", () => {
     )
   })
 
-  it("rejects letters in numeric postal codes before formatting", () => {
-    const result = validatePostalCode({
-      countryCode: "CZ",
-      rawInput: "12a345",
-    })
+  it.each([
+    ["CZ", "12a345", "12A345"],
+    ["SK", "12a345", "12A345"],
+    ["US", "90210foo1234", "90210FOO1234"],
+  ] satisfies readonly PostalFixture[])(
+    "rejects letters in numeric %s postal codes before formatting",
+    (countryCode, rawInput, displayValue) => {
+      const result = validatePostalCode({
+        countryCode,
+        rawInput,
+      })
 
-    expect(result).toMatchObject({
-      displayValue: "12A345",
-      isValid: false,
-      normalizedValue: "12A345",
-    })
-    expect(result.errors).toContainEqual(
-      expect.objectContaining({ code: "postal.invalid" })
-    )
-  })
+      expect(result).toMatchObject({
+        displayValue,
+        isValid: false,
+        normalizedValue: displayValue,
+      })
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({ code: "postal.invalid" })
+      )
+    }
+  )
+
+  it.each([
+    ["CZ", "123 45", "123 45"],
+    ["SK", "811 01", "811 01"],
+    ["PL", "12-345", "12-345"],
+    ["US", "90210-1234", "90210-1234"],
+  ] satisfies readonly PostalFixture[])(
+    "allows documented %s postal separators in %s",
+    (countryCode, rawInput, displayValue) => {
+      expect(validatePostalCode({ countryCode, rawInput })).toMatchObject({
+        displayValue,
+        isValid: true,
+      })
+    }
+  )
 
   it.each([
     ["CZ", "123-45", "123-45"],

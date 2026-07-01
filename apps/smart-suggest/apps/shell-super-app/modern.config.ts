@@ -86,28 +86,21 @@ export default defineConfig(
                   contentSecurityPolicy: {
                     directives: {
                       'base-uri': ["'self'"],
-                      'connect-src': ["'self'", 'https:', 'http:', 'wss:', 'ws:'],
+                      'connect-src': ["'self'", 'https:', 'wss:'],
                       'default-src': ["'self'"],
-                      'font-src': ["'self'", 'data:', 'https:', 'http:'],
+                      'font-src': ["'self'", 'data:', 'https:'],
                       'form-action': ["'self'"],
                       'frame-ancestors': ["'self'"],
-                      'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
-                      'manifest-src': ["'self'", 'https:', 'http:'],
+                      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+                      'manifest-src': ["'self'", 'https:'],
                       'object-src': ["'none'"],
-                      'script-src': [
-                        "'self'",
-                        "'unsafe-inline'",
-                        "'unsafe-eval'",
-                        'https:',
-                        'http:',
-                        'blob:',
-                      ],
-                      'style-src': ["'self'", "'unsafe-inline'", 'https:', 'http:'],
+                      'script-src': ["'self'", "'unsafe-inline'", 'https:', 'blob:'],
+                      'style-src': ["'self'", "'unsafe-inline'", 'https:'],
                       'worker-src': ["'self'", 'blob:'],
                     },
-                    mode: 'report-only',
+                    mode: 'enforce',
                     reason:
-                      'Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement.',
+                      'Enforced Cloudflare CSP blocks mixed-content and eval sources while permitting Modern SSR and Module Federation assets from self, HTTPS, WSS, and blob workers.',
                   },
                   enabled: true,
                   headers: {
@@ -176,6 +169,7 @@ export default defineConfig(
           localeDetection: {
             fallbackLanguage: 'en',
             ignoreRedirectRoutes: [
+              '/api',
               '/@mf-types',
               '/assets',
               '/bundles',

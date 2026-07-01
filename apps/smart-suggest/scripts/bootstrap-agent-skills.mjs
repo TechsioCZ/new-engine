@@ -19,6 +19,62 @@ const cloneTimeoutMs = Number.parseInt(
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 
+const toDisplayPath = (filePath) => path.relative(root, filePath).replaceAll(path.sep, '/');
+
+const pathIsInside = (parent, child) => {
+  const relative = path.relative(parent, child);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+};
+
+const pathSegments = (relativePath, label) => {
+  if (
+    typeof relativePath !== 'string' ||
+    relativePath.length === 0 ||
+    path.isAbsolute(relativePath) ||
+    path.win32.isAbsolute(relativePath)
+  ) {
+    throw new Error(`Unsafe ${label}: ${relativePath}`);
+  }
+
+  const segments = relativePath.split(/[\\/]+/).filter((segment) => segment.length > 0);
+  if (segments.length === 0 || segments.includes('..')) {
+    throw new Error(`Unsafe ${label}: ${relativePath}`);
+  }
+  return segments.filter((segment) => segment !== '.');
+};
+
+const resolveRootPath = (relativePath, label) => {
+  const resolved = path.resolve(root, ...pathSegments(relativePath, label));
+  if (!pathIsInside(root, resolved)) {
+    throw new Error(`Unsafe ${label}: ${relativePath}`);
+  }
+  return resolved;
+};
+
+const assertSafeSkillName = (skillName) => {
+  if (
+    typeof skillName !== 'string' ||
+    skillName.length === 0 ||
+    skillName === '.' ||
+    skillName === '..' ||
+    skillName.includes('/') ||
+    skillName.includes('\\')
+  ) {
+    throw new Error(`Unsafe agent skill name in lockfile: ${skillName}`);
+  }
+};
+
+const assertCommitPin = (source) => {
+  if (
+    (source.install === 'clone' || source.install === 'clone-if-authorized') &&
+    !/^[a-f0-9]{40}$/iu.test(source.commit ?? '')
+  ) {
+    throw new Error(
+      `Agent skill source ${source.id ?? source.repository} must be pinned to a 40-character commit.`,
+    );
+  }
+};
+
 const run = (command, args, options = {}) =>
   execFileSync(command, args, {
     cwd: options.cwd ?? root,
@@ -131,6 +187,7 @@ const cloneSource = (source, targetDir) => {
 };
 
 const resolveSkillDir = (sourceRoot, skillName) => {
+  assertSafeSkillName(skillName);
   const candidates = [
     path.join(sourceRoot, skillName),
     path.join(sourceRoot, 'skills', skillName),
@@ -146,8 +203,17 @@ if (!fs.existsSync(lockPath)) {
 }
 
 const lock = readJson(lockPath);
-const installDir = path.join(root, lock.installDir ?? '.agents/skills');
+const agentSkillsDir = path.resolve(root, '.agents', 'skills');
+const installDir = resolveRootPath(lock.installDir ?? '.agents/skills', 'agent skills installDir');
+if (!pathIsInside(agentSkillsDir, installDir)) {
+  throw new Error(
+    `Agent skills installDir must stay inside .agents/skills, got ${toDisplayPath(installDir)}`,
+  );
+}
 const sources = lock.sources ?? [];
+for (const source of sources) {
+  assertCommitPin(source);
+}
 const requiredCloneSources = sources.filter((source) => source.install === 'clone');
 const optionalCloneSources = sources.filter((source) => source.install === 'clone-if-authorized');
 const cloneSourceSkillNames = new Set(
@@ -159,6 +225,37 @@ const vendoredRequiredSkills = (lock.baseline ?? []).filter(
   (skill) => !cloneSourceSkillNames.has(skill.name),
 );
 const cloneOptIn = truthy(process.env.ULTRAMODERN_AGENT_SKILLS);
+
+const skillTargetDir = (skillName) => {
+  assertSafeSkillName(skillName);
+  const targetDir = path.resolve(installDir, skillName);
+  if (!pathIsInside(installDir, targetDir)) {
+    throw new Error(`Agent skill ${skillName} resolves outside ${toDisplayPath(installDir)}`);
+  }
+  return targetDir;
+};
+
+const validateSkillDefinition = (skill) => {
+  assertSafeSkillName(skill.name);
+  if (skill.path === undefined) {
+    return;
+  }
+
+  const resolvedSkillPath = resolveRootPath(skill.path, `agent skill path for ${skill.name}`);
+  const expectedSkillPath = skillTargetDir(skill.name);
+  if (resolvedSkillPath !== expectedSkillPath) {
+    throw new Error(
+      `Agent skill ${skill.name} path must resolve to ${toDisplayPath(expectedSkillPath)}, got ${toDisplayPath(resolvedSkillPath)}`,
+    );
+  }
+};
+
+for (const skill of [
+  ...(lock.baseline ?? []),
+  ...sources.flatMap((source) => source.baseline ?? []),
+]) {
+  validateSkillDefinition(skill);
+}
 
 if (skipRequested) {
   const reason = 'agent skills bootstrap skipped by environment';
@@ -174,27 +271,44 @@ if (skipRequested) {
 if (checkOnly) {
   const missingVendored = vendoredRequiredSkills
     .map((skill) => skill.name)
-    .filter((skillName) => !fs.existsSync(path.join(installDir, skillName, 'SKILL.md')));
-  const missingCloneInstalled = [...requiredCloneSources, ...optionalCloneSources].flatMap(
-    (source) =>
-      (source.baseline ?? [])
-        .map((skill) => skill.name)
-        .filter((skillName) => !fs.existsSync(path.join(installDir, skillName, 'SKILL.md'))),
+    .filter((skillName) => !fs.existsSync(path.join(skillTargetDir(skillName), 'SKILL.md')));
+  const missingRequiredCloneInstalled = requiredCloneSources.flatMap((source) =>
+    (source.baseline ?? [])
+      .map((skill) => skill.name)
+      .filter((skillName) => !fs.existsSync(path.join(skillTargetDir(skillName), 'SKILL.md'))),
   );
+  const missingOptionalCloneInstalled = optionalCloneSources.flatMap((source) =>
+    (source.baseline ?? [])
+      .map((skill) => skill.name)
+      .filter((skillName) => !fs.existsSync(path.join(skillTargetDir(skillName), 'SKILL.md'))),
+  );
+
+  let hasBlockingMissingSkills = false;
 
   if (missingVendored.length > 0) {
     console.error(
       `Required agent skills not installed: ${missingVendored.join(', ')}. Run pnpm skills:install.`,
     );
-    process.exit(1);
+    hasBlockingMissingSkills = true;
   }
 
-  if (missingCloneInstalled.length > 0) {
-    console.log(
-      `Advisory: clone-installed agent skills are not present: ${missingCloneInstalled.join(', ')}. This is expected in CI, nested generated workspaces, and postinstall-only installs; run pnpm skills:install when you need those skills.`,
+  if (missingRequiredCloneInstalled.length > 0) {
+    console.error(
+      `Required clone-installed agent skills not installed: ${missingRequiredCloneInstalled.join(', ')}. Run pnpm skills:install.`,
     );
-  } else {
+    hasBlockingMissingSkills = true;
+  }
+
+  if (missingOptionalCloneInstalled.length > 0) {
+    console.log(
+      `Advisory: optional authorization-gated agent skills are not present: ${missingOptionalCloneInstalled.join(', ')}. Run pnpm skills:install from an authorized environment when you need those skills.`,
+    );
+  } else if (!hasBlockingMissingSkills) {
     console.log('All pinned agent skills are installed.');
+  }
+
+  if (hasBlockingMissingSkills) {
+    process.exit(1);
   }
   process.exit(0);
 }
@@ -227,7 +341,7 @@ for (const source of [...requiredCloneSources, ...optionalCloneSources]) {
       if (!sourceSkillDir) {
         throw new Error(`Skill ${skill.name} not found in ${source.repository}`);
       }
-      const targetSkillDir = path.join(installDir, skill.name);
+      const targetSkillDir = skillTargetDir(skill.name);
       if (fs.existsSync(targetSkillDir)) {
         if (!force) {
           console.log(`Skipping existing ${skill.name}`);

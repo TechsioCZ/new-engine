@@ -1,5 +1,4 @@
-import { defineEffectBff } from '@modern-js/plugin-bff/effect-edge';
-import { useEffectContext } from '@modern-js/plugin-bff/effect-server';
+import { defineEffectBff, useEffectContext } from '@modern-js/plugin-bff/effect-edge';
 import type {
   AddressParts,
   ProviderEventSummary,
@@ -30,10 +29,12 @@ import { createSmartSuggestProviderRegistryFromConfig } from '@techsio/smart-sug
 import type {
   AddressRecord,
   AddressSearchRecordInput,
+  AddressTombstoneRecordInput,
   DataSourceRecord,
   SmartSuggestD1Binding,
   SmartSuggestRepositories,
   SmartSuggestStorageError,
+  SuggestCacheRecord,
   TenantRecord,
 } from '@techsio/smart-suggest-storage';
 import {
@@ -137,7 +138,7 @@ const runtimeMetricsByRepository = new WeakMap<
 const providerRegistries = new Map<string, SmartSuggestProviderRegistry>();
 const workerSuggestCaches = new WeakMap<
   SmartSuggestRepositories,
-  Map<string, SmartSuggestResponse>
+  Map<string, SmartSuggestLayerCacheEntry>
 >();
 const inboundRateLimitBucketsByRepository = new WeakMap<
   SmartSuggestRepositories,
@@ -147,6 +148,8 @@ const maxWorkerSuggestCacheEntries = 500;
 const maxInboundRateLimitBuckets = 2000;
 const defaultInboundRateLimitMax = 600;
 const defaultInboundRateLimitWindowMs = 60_000;
+const defaultEdgeCacheTtlSeconds = 3600;
+const secondsPerDay = 86_400;
 
 interface SmartSuggestEdgeCache {
   match: (request: Request) => Promise<Response | undefined>;
@@ -155,6 +158,11 @@ interface SmartSuggestEdgeCache {
 
 interface SmartSuggestCacheStorage {
   default?: SmartSuggestEdgeCache;
+}
+
+interface SmartSuggestLayerCacheEntry {
+  edgeTtlSeconds?: number;
+  response: SmartSuggestResponse;
 }
 
 interface InboundRateLimitBucket {
@@ -264,6 +272,48 @@ const hasOwnedDatasetSuggestions = (response: SmartSuggestResponse) =>
 const ownedDbCacheStatusForResponse = (response: SmartSuggestResponse): SmartSuggestCacheStatus =>
   hasOwnedDatasetSuggestions(response) ? 'hit' : 'miss';
 
+const liveProviderSourceIdFromDataSourceId = (sourceId: string) => {
+  if (!sourceId.startsWith('live-provider:')) {
+    return sourceId;
+  }
+
+  return sourceId.slice('live-provider:'.length).split(':')[0] ?? sourceId;
+};
+
+const catalogSourceIdForSuggestionSource = (source: SuggestionSource) =>
+  liveProviderSourceIdFromDataSourceId(source.id);
+
+const sourceAllowsProviderCache = (source: SuggestionSource, ttlSeconds: number) => {
+  const sourceId = catalogSourceIdForSuggestionSource(source);
+
+  return (
+    smartSuggestSourceAllowsWrite(sourceId, 'permanent-cache') ||
+    smartSuggestSourceAllowsTtlCache(sourceId, Math.ceil(ttlSeconds / secondsPerDay))
+  );
+};
+
+const hasUncacheableProviderSuggestion = (
+  response: SmartSuggestResponse,
+  ttlSeconds = defaultEdgeCacheTtlSeconds,
+) =>
+  response.suggestions.some(
+    (suggestion) =>
+      suggestion.source.kind === 'live-provider' &&
+      !sourceAllowsProviderCache(suggestion.source, ttlSeconds),
+  );
+
+const isLayerCacheableSuggestResponse = (
+  response: SmartSuggestResponse,
+  ttlSeconds = defaultEdgeCacheTtlSeconds,
+) =>
+  response.cacheStatus !== 'disabled' &&
+  response.suggestions.length > 0 &&
+  !hasUncacheableProviderSuggestion(response, ttlSeconds);
+
+const edgeCacheTtlSecondsForCachePolicy = (
+  cachePolicy: SuggestCacheRecord['cachePolicy'],
+): number | undefined => (cachePolicy.kind === 'ttl' ? cachePolicy.ttlSeconds : undefined);
+
 const workerSuggestCacheFor = (repositories: SmartSuggestRepositories) => {
   const existingCache = workerSuggestCaches.get(repositories);
 
@@ -271,7 +321,7 @@ const workerSuggestCacheFor = (repositories: SmartSuggestRepositories) => {
     return existingCache;
   }
 
-  const cache = new Map<string, SmartSuggestResponse>();
+  const cache = new Map<string, SmartSuggestLayerCacheEntry>();
   workerSuggestCaches.set(repositories, cache);
 
   return cache;
@@ -287,15 +337,24 @@ const responseForPublicDto = (response: SmartSuggestResponse): SmartSuggestRespo
   responseForLayerCache(response);
 
 const rememberWorkerSuggestResponse = (
-  cache: Map<string, SmartSuggestResponse>,
+  cache: Map<string, SmartSuggestLayerCacheEntry>,
   cacheKey: string,
   response: SmartSuggestResponse,
+  edgeTtlSeconds?: number,
 ) => {
   if (cache.has(cacheKey)) {
     cache.delete(cacheKey);
   }
 
-  cache.set(cacheKey, responseForLayerCache(response));
+  const cacheEntry: SmartSuggestLayerCacheEntry = {
+    response: responseForLayerCache(response),
+  };
+
+  if (edgeTtlSeconds !== undefined) {
+    cacheEntry.edgeTtlSeconds = edgeTtlSeconds;
+  }
+
+  cache.set(cacheKey, cacheEntry);
 
   while (cache.size > maxWorkerSuggestCacheEntries) {
     const oldestKey = cache.keys().next().value;
@@ -372,12 +431,18 @@ const writeEdgeSuggestResponse = (
   edgeCache: SmartSuggestEdgeCache | undefined,
   cacheKey: string,
   response: SmartSuggestResponse,
+  edgeTtlSeconds?: number,
 ): Effect.Effect<boolean, never, never> => {
-  if (edgeCache === undefined || response.cacheStatus === 'disabled') {
+  if (edgeCache === undefined || !isLayerCacheableSuggestResponse(response, edgeTtlSeconds)) {
     return Effect.succeed(false);
   }
 
-  return createSmartSuggestEdgeCacheResponse(responseForLayerCache(response)).pipe(
+  const edgeCacheOptions = edgeTtlSeconds === undefined ? {} : { ttlSeconds: edgeTtlSeconds };
+
+  return createSmartSuggestEdgeCacheResponse(
+    responseForLayerCache(response),
+    edgeCacheOptions,
+  ).pipe(
     Effect.mapError(() => serverError()),
     Effect.flatMap((cacheResponse) =>
       Effect.tryPromise({
@@ -394,18 +459,19 @@ const rememberRuntimeSuggestCaches = (
   cacheKey: string,
   response: SmartSuggestResponse,
   levels: SmartSuggestCacheLevels,
-  workerCache: Map<string, SmartSuggestResponse>,
+  workerCache: Map<string, SmartSuggestLayerCacheEntry>,
   edgeCache: SmartSuggestEdgeCache | undefined,
+  edgeTtlSeconds?: number,
 ): Effect.Effect<SmartSuggestCacheLevels, never, never> =>
   Effect.gen(function* rememberRuntimeSuggestCachesProgram() {
-    if (response.cacheStatus === 'disabled') {
+    if (!isLayerCacheableSuggestResponse(response, edgeTtlSeconds)) {
       return levels;
     }
 
-    rememberWorkerSuggestResponse(workerCache, cacheKey, response);
+    rememberWorkerSuggestResponse(workerCache, cacheKey, response, edgeTtlSeconds);
     levels.workerMemory = cacheLevel(true, 'written');
 
-    if (yield* writeEdgeSuggestResponse(edgeCache, cacheKey, response)) {
+    if (yield* writeEdgeSuggestResponse(edgeCache, cacheKey, response, edgeTtlSeconds)) {
       levels.edgeCache = cacheLevel(true, 'written');
     }
 
@@ -494,6 +560,7 @@ const readNamedD1Binding = (env: SmartSuggestWorkerEnv | undefined, bindingName:
 
 const maxShardSearchFanout = 14;
 const shardHashModulus = 2_147_483_647;
+const shardAddressNumberPattern = /\d/u;
 
 const hashStringToPositiveInteger = (value: string) => {
   let hash = 0;
@@ -509,24 +576,65 @@ const hashStringToPositiveInteger = (value: string) => {
   return hash;
 };
 
-const deterministicShardBindingForRecord = (
-  record: AddressSearchRecordInput,
+const deterministicShardBindingForRouteKey = (
+  routeKey: string,
   shardBindingNames: readonly string[],
 ) => {
   if (shardBindingNames.length === 0 || shardBindingNames.length > maxShardSearchFanout) {
     return;
   }
 
-  const routeKey = record.ruian?.stableAddressId ?? record.ruian?.addressPlaceCode ?? record.id;
-
   return shardBindingNames[hashStringToPositiveInteger(routeKey) % shardBindingNames.length];
 };
+
+const deterministicShardBindingForRecord = (
+  record: AddressSearchRecordInput,
+  shardBindingNames: readonly string[],
+) =>
+  deterministicShardBindingForRouteKey(
+    record.ruian?.stableAddressId ?? record.ruian?.addressPlaceCode ?? record.id,
+    shardBindingNames,
+  );
+
+const deterministicShardBindingForTombstone = (
+  tombstone: AddressTombstoneRecordInput,
+  shardBindingNames: readonly string[],
+) =>
+  deterministicShardBindingForRouteKey(
+    tombstone.ruian?.stableAddressId ?? tombstone.ruian?.addressPlaceCode ?? tombstone.id,
+    shardBindingNames,
+  );
 
 const extractPostalRouteHint = (query: string) => {
   const match = /\b\d{3}\s?\d{2}\b/u.exec(query);
 
   return match?.[0];
 };
+
+const isStrongShardSearchQuery = (query: string) =>
+  shardAddressNumberPattern.test(query) || extractPostalRouteHint(query) !== undefined;
+
+const activeShardCandidatesForFanout = (
+  router: SmartSuggestRepositories,
+  input: {
+    countryCode?: SmartSuggestCountryCode;
+  },
+  shardBindingNames: readonly string[],
+) =>
+  Effect.gen(function* activeShardCandidatesForFanoutProgram() {
+    const listInput: Parameters<typeof router.shardRegistry.listShardMetadata>[0] =
+      input.countryCode === undefined
+        ? { state: 'active' }
+        : { countryCode: input.countryCode, state: 'active' };
+    const listed = yield* router.shardRegistry.listShardMetadata(listInput);
+    const activeCandidates = listed.filter((candidate) =>
+      shardBindingNames.includes(candidate.bindingName),
+    );
+
+    return activeCandidates.length > 0
+      ? activeCandidates
+      : shardBindingNames.map((bindingName) => ({ bindingName }));
+  });
 
 const boundedShardCandidates = (
   router: SmartSuggestRepositories,
@@ -538,7 +646,9 @@ const boundedShardCandidates = (
 ) =>
   Effect.gen(function* boundedShardCandidatesProgram() {
     if (input.countryCode === undefined) {
-      return [];
+      return isStrongShardSearchQuery(input.query)
+        ? yield* activeShardCandidatesForFanout(router, input, shardBindingNames)
+        : [];
     }
 
     const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
@@ -558,7 +668,9 @@ const boundedShardCandidates = (
     }
 
     if (shardBindingNames.length > maxShardSearchFanout) {
-      return [];
+      return isStrongShardSearchQuery(input.query)
+        ? yield* activeShardCandidatesForFanout(router, input, shardBindingNames)
+        : [];
     }
 
     return yield* router.shardRegistry.listShardMetadata({
@@ -603,6 +715,41 @@ const shardCandidatesForAddressRecord = (
     }
 
     const fallbackBindingName = deterministicShardBindingForRecord(record, shardBindingNames);
+
+    return fallbackBindingName === undefined ? [] : [{ bindingName: fallbackBindingName }];
+  });
+
+const shardCandidatesForAddressTombstone = (
+  router: SmartSuggestRepositories,
+  tombstone: AddressTombstoneRecordInput,
+  shardBindingNames: readonly string[],
+) =>
+  Effect.gen(function* shardCandidatesForAddressTombstoneProgram() {
+    const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
+      countryCode: tombstone.countryCode,
+      states: ['active'],
+    };
+
+    if (tombstone.ruian?.postalCode !== undefined) {
+      routeInput.postalCode = tombstone.ruian.postalCode;
+    }
+    if (tombstone.ruian?.regionCode !== undefined) {
+      routeInput.regionCode = tombstone.ruian.regionCode;
+    }
+    if (tombstone.ruian?.municipalityCode !== undefined) {
+      routeInput.municipalityCode = tombstone.ruian.municipalityCode;
+    }
+
+    const activeCandidates = yield* router.shardRegistry.resolveShardMetadata(routeInput);
+    const routedCandidates = activeCandidates.filter((candidate) =>
+      shardBindingNames.includes(candidate.bindingName),
+    );
+
+    if (routedCandidates.length > 0) {
+      return routedCandidates;
+    }
+
+    const fallbackBindingName = deterministicShardBindingForTombstone(tombstone, shardBindingNames);
 
     return fallbackBindingName === undefined ? [] : [{ bindingName: fallbackBindingName }];
   });
@@ -771,7 +918,68 @@ export const createShardedRepositories = ({
         return results.flat();
       }),
   },
-  addressTombstones: router.addressTombstones,
+  addressTombstones: {
+    listAddressTombstones: (limit) =>
+      Effect.gen(function* listAddressTombstonesProgram() {
+        const normalizedLimit = limit ?? 10;
+        const results = yield* Effect.all([
+          router.addressTombstones.listAddressTombstones(normalizedLimit),
+          ...[...shardRepositories.values()].map((repository) =>
+            repository.addressTombstones.listAddressTombstones(normalizedLimit),
+          ),
+        ]);
+        const byTombstoneId = new Map<string, (typeof results)[number][number]>();
+
+        for (const tombstone of results.flat()) {
+          byTombstoneId.set(tombstone.id, tombstone);
+        }
+
+        return [...byTombstoneId.values()]
+          .toSorted((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+          .slice(0, normalizedLimit);
+      }),
+    upsertAddressTombstones: (tombstones) =>
+      Effect.gen(function* upsertAddressTombstonesProgram() {
+        if (tombstones.length === 0) {
+          return [];
+        }
+
+        const shardBindingNames = [...shardRepositories.keys()];
+        const shardTombstones = new Map<string, AddressTombstoneRecordInput[]>();
+
+        for (const tombstone of tombstones) {
+          const candidates = yield* shardCandidatesForAddressTombstone(
+            router,
+            tombstone,
+            shardBindingNames,
+          );
+
+          for (const candidate of candidates) {
+            const existing = shardTombstones.get(candidate.bindingName) ?? [];
+            existing.push(tombstone);
+            shardTombstones.set(candidate.bindingName, existing);
+          }
+        }
+
+        const results = yield* Effect.all([
+          router.addressTombstones.upsertAddressTombstones(tombstones),
+          ...[...shardTombstones.entries()].flatMap(([bindingName, routedTombstones]) => {
+            const repository = shardRepositories.get(bindingName);
+
+            return repository === undefined
+              ? []
+              : [repository.addressTombstones.upsertAddressTombstones(routedTombstones)];
+          }),
+        ]);
+        const byTombstoneId = new Map<string, (typeof results)[number][number]>();
+
+        for (const tombstone of results.flat()) {
+          byTombstoneId.set(tombstone.id, tombstone);
+        }
+
+        return [...byTombstoneId.values()];
+      }),
+  },
   apiKeys: router.apiKeys,
   dataSources: {
     getDataSource: (sourceId) =>
@@ -790,7 +998,17 @@ export const createShardedRepositories = ({
 
         return sources.find((source) => source !== undefined);
       }),
-    registerDataSource: router.dataSources.registerDataSource,
+    registerDataSource: (input) =>
+      Effect.gen(function* registerDataSourceProgram() {
+        const results = yield* Effect.all([
+          router.dataSources.registerDataSource(input),
+          ...[...shardRepositories.values()].map((repository) =>
+            repository.dataSources.registerDataSource(input),
+          ),
+        ]);
+
+        return results[0];
+      }),
   },
   health: {
     check: () =>
@@ -1185,10 +1403,12 @@ const requestUrl = (request: HttpServerRequest.HttpServerRequest) => {
   return url;
 };
 
-const tenantIdFromSuggestCorsRequest = (request: HttpServerRequest.HttpServerRequest) => {
+const tenantIdCorsRoutes = new Set(['/v1/accept', '/v1/suggest']);
+
+const tenantIdFromCorsRequest = (request: HttpServerRequest.HttpServerRequest) => {
   const url = requestUrl(request);
 
-  return url?.pathname === '/v1/suggest'
+  return url !== undefined && tenantIdCorsRoutes.has(url.pathname)
     ? envString(url.searchParams.get('tenantId') ?? undefined)
     : missingCorsOrigin;
 };
@@ -1849,7 +2069,7 @@ const readTenantContext = (query: SmartSuggestQuery) => {
 const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | undefined => {
   const rawQuery = query.q ?? query.query;
 
-  if (rawQuery === undefined || rawQuery.trim().length === 0) {
+  if (rawQuery === undefined || rawQuery.trim().length === 0 || !/[\p{L}\p{N}]/u.test(rawQuery)) {
     return;
   }
 
@@ -2524,30 +2744,8 @@ const recordProviderEvents = ({
 const liveProviderDataSourceId = (source: SuggestionSource, countryCode: SmartSuggestCountryCode) =>
   `live-provider:${source.id}:${countryCode}`;
 
-const liveProviderSourceIdFromDataSourceId = (sourceId: string) => {
-  if (!sourceId.startsWith('live-provider:')) {
-    return sourceId;
-  }
-
-  return sourceId.slice('live-provider:'.length).split(':')[0] ?? sourceId;
-};
-
-const catalogSourceIdForSuggestionSource = (source: SuggestionSource) =>
-  liveProviderSourceIdFromDataSourceId(source.id);
-
 const sourceAllowsLiveProviderDurableRetention = (source: SuggestionSource) =>
   smartSuggestSourceAllowsWrite(catalogSourceIdForSuggestionSource(source), 'durable-retention');
-
-const secondsPerDay = 86_400;
-
-const sourceAllowsProviderCache = (source: SuggestionSource, ttlSeconds: number) => {
-  const sourceId = catalogSourceIdForSuggestionSource(source);
-
-  return (
-    smartSuggestSourceAllowsWrite(sourceId, 'permanent-cache') ||
-    smartSuggestSourceAllowsTtlCache(sourceId, Math.ceil(ttlSeconds / secondsPerDay))
-  );
-};
 
 const attributionForLiveProviderSuggestion = (suggestion: SmartSuggestSuggestion) =>
   suggestion.source.attribution ??
@@ -2730,13 +2928,7 @@ const writeProviderCache = ({
   response,
   ttlSeconds,
 }: WriteProviderCacheInput) => {
-  const hasUncacheableProviderSuggestion = response.suggestions.some(
-    (suggestion) =>
-      suggestion.source.kind === 'live-provider' &&
-      !sourceAllowsProviderCache(suggestion.source, ttlSeconds),
-  );
-
-  if (hasUncacheableProviderSuggestion || response.suggestions.length === 0) {
+  if (!isLayerCacheableSuggestResponse(response, ttlSeconds)) {
     return Effect.void;
   }
 
@@ -2775,6 +2967,17 @@ interface SuggestFromProviderEnrichmentInput {
   request: SmartSuggestRequest;
 }
 
+type SuggestFromProviderEnrichmentResult =
+  | {
+      kind: 'contributed';
+      response: SmartSuggestResponse;
+      ttlSeconds: number;
+    }
+  | {
+      kind: 'miss';
+      providerAttempted: boolean;
+    };
+
 const suggestFromProviderEnrichment = ({
   cacheKey,
   env,
@@ -2782,7 +2985,11 @@ const suggestFromProviderEnrichment = ({
   queryHash,
   repositories,
   request,
-}: SuggestFromProviderEnrichmentInput): Effect.Effect<SmartSuggestResponse, never, never> =>
+}: SuggestFromProviderEnrichmentInput): Effect.Effect<
+  SuggestFromProviderEnrichmentResult | undefined,
+  never,
+  never
+> =>
   Effect.gen(function* suggestFromProviderEnrichmentProgram() {
     const tenantId = request.tenant?.tenantId;
     const tenant =
@@ -2800,6 +3007,7 @@ const suggestFromProviderEnrichment = ({
       request,
       requestId: result.response.requestId,
     });
+    const providerAttempted = result.providerEvents.length > 0;
 
     let providerResponse = filterSuggestionsForRequest(
       request,
@@ -2807,7 +3015,7 @@ const suggestFromProviderEnrichment = ({
     );
 
     if (providerResponse.suggestions.length === 0) {
-      return ownedResponse;
+      return { kind: 'miss', providerAttempted };
     }
 
     providerResponse = withCacheStatus(providerResponse, 'written');
@@ -2832,10 +3040,18 @@ const suggestFromProviderEnrichment = ({
         ttlSeconds: providerCacheTtlSeconds,
       }),
     ]).pipe(
-      Effect.as(mergedResponse),
-      Effect.orElseSucceed(() => mergedResponse),
+      Effect.as({
+        kind: 'contributed' as const,
+        response: mergedResponse,
+        ttlSeconds: providerCacheTtlSeconds,
+      }),
+      Effect.orElseSucceed(() => ({
+        kind: 'contributed' as const,
+        response: mergedResponse,
+        ttlSeconds: providerCacheTtlSeconds,
+      })),
     );
-  }).pipe(Effect.orElseSucceed(() => ownedResponse));
+  }).pipe(Effect.orElseSucceed(() => ({ kind: 'miss', providerAttempted: false })));
 
 interface WriteOwnedCacheInput {
   cacheKey: string;
@@ -2852,6 +3068,10 @@ const writeOwnedCache = ({
   request,
   response,
 }: WriteOwnedCacheInput) => {
+  if (!isLayerCacheableSuggestResponse(response)) {
+    return Effect.void;
+  }
+
   const cacheWrite: Parameters<typeof repositories.suggestCache.writeSuggestCache>[0] = {
     cacheKey,
     cachePolicy: { kind: 'permanent' },
@@ -2896,11 +3116,13 @@ interface FinalizeSuggestResponseInput {
   cacheKey: string;
   cacheLevels: SmartSuggestCacheLevels;
   edgeCache: SmartSuggestEdgeCache | undefined;
+  edgeTtlSeconds?: number;
   repositories: SmartSuggestRepositories;
   response: SmartSuggestResponse;
+  runtimeCacheEnabled?: boolean;
   sourceKind: SuggestSourceKind;
   startedAt: number;
-  workerCache: Map<string, SmartSuggestResponse>;
+  workerCache: Map<string, SmartSuggestLayerCacheEntry>;
 }
 
 const cacheLevelsForFinalResponse = (
@@ -2912,14 +3134,25 @@ const finalizeSuggestResponse = ({
   cacheKey,
   cacheLevels,
   edgeCache,
+  edgeTtlSeconds,
   repositories,
   response,
+  runtimeCacheEnabled = true,
   sourceKind,
   startedAt,
   workerCache,
 }: FinalizeSuggestResponseInput): Effect.Effect<SmartSuggestResponse, never, never> =>
   Effect.gen(function* finalizeSuggestResponseProgram() {
-    yield* rememberRuntimeSuggestCaches(cacheKey, response, cacheLevels, workerCache, edgeCache);
+    if (runtimeCacheEnabled) {
+      yield* rememberRuntimeSuggestCaches(
+        cacheKey,
+        response,
+        cacheLevels,
+        workerCache,
+        edgeCache,
+        edgeTtlSeconds,
+      );
+    }
     const responseWithLevels = withCacheLevels(
       response,
       cacheLevelsForFinalResponse(response, cacheLevels),
@@ -2933,8 +3166,12 @@ const finalizeSuggestResponse = ({
 const writeOwnedCacheBestEffort = (
   input: WriteOwnedCacheInput,
   cacheLevels: SmartSuggestCacheLevels,
-): Effect.Effect<void, never, never> =>
-  writeOwnedCache(input).pipe(
+): Effect.Effect<void, never, never> => {
+  if (!isLayerCacheableSuggestResponse(input.response)) {
+    return Effect.void;
+  }
+
+  return writeOwnedCache(input).pipe(
     Effect.tap(() =>
       Effect.sync(() => {
         if (input.response.cacheStatus !== 'disabled') {
@@ -2945,6 +3182,7 @@ const writeOwnedCacheBestEffort = (
     Effect.asVoid,
     catchEffect(() => Effect.void),
   );
+};
 
 interface ProviderEnrichmentResponseInput {
   cacheKey: string;
@@ -2956,6 +3194,17 @@ interface ProviderEnrichmentResponseInput {
   request: SmartSuggestRequest;
 }
 
+type ProviderEnrichmentResponseResult =
+  | {
+      edgeTtlSeconds: number;
+      kind: 'contributed';
+      response: SmartSuggestResponse;
+    }
+  | {
+      kind: 'miss';
+      providerAttempted: boolean;
+    };
+
 const providerEnrichmentResponseFor = ({
   cacheKey,
   cacheLevels,
@@ -2965,7 +3214,7 @@ const providerEnrichmentResponseFor = ({
   repositories,
   request,
 }: ProviderEnrichmentResponseInput): Effect.Effect<
-  SmartSuggestResponse | undefined,
+  ProviderEnrichmentResponseResult | undefined,
   never,
   never
 > =>
@@ -2978,20 +3227,23 @@ const providerEnrichmentResponseFor = ({
       return;
     }
 
-    const enrichedResponse = filterSuggestionsForRequest(
+    const enrichment = yield* suggestFromProviderEnrichment({
+      cacheKey,
+      env,
+      ownedResponse,
+      queryHash,
+      repositories,
       request,
-      yield* suggestFromProviderEnrichment({
-        cacheKey,
-        env,
-        ownedResponse,
-        queryHash,
-        repositories,
-        request,
-      }),
-    );
+    });
 
-    if (enrichedResponse === ownedResponse) {
-      return;
+    if (enrichment === undefined || enrichment.kind === 'miss') {
+      return enrichment;
+    }
+
+    const enrichedResponse = filterSuggestionsForRequest(request, enrichment.response);
+
+    if (enrichedResponse.suggestions.length === 0) {
+      return { kind: 'miss', providerAttempted: true };
     }
 
     cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(enrichedResponse));
@@ -3000,7 +3252,11 @@ const providerEnrichmentResponseFor = ({
       cacheLevels.d1ReadThrough = cacheLevel(true, 'written');
     }
 
-    return enrichedResponse;
+    return {
+      edgeTtlSeconds: enrichment.ttlSeconds,
+      kind: 'contributed',
+      response: enrichedResponse,
+    };
   });
 
 const suggest = (
@@ -3048,14 +3304,16 @@ const suggest = (
 
     if (workerCached !== undefined) {
       cacheLevels.workerMemory = cacheLevel(true, 'hit');
-      cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(workerCached));
+      cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(workerCached.response));
 
       let response = filterSuggestionsForRequest(
         suggestRequest,
-        withCacheLevels(withCacheStatus(workerCached, 'hit'), cacheLevels),
+        withCacheLevels(withCacheStatus(workerCached.response, 'hit'), cacheLevels),
       );
 
-      if (yield* writeEdgeSuggestResponse(edgeCache, cacheKey, response)) {
+      if (
+        yield* writeEdgeSuggestResponse(edgeCache, cacheKey, response, workerCached.edgeTtlSeconds)
+      ) {
         cacheLevels.edgeCache = cacheLevel(true, 'written');
         response = withCacheLevels(response, cacheLevels);
       }
@@ -3069,6 +3327,7 @@ const suggest = (
 
     if (cached !== undefined && cached.status === 'hit') {
       cacheLevels.d1ReadThrough = cacheLevel(true, 'hit');
+      const edgeTtlSeconds = edgeCacheTtlSecondsForCachePolicy(cached.cachePolicy);
 
       let response = filterSuggestionsForRequest(
         suggestRequest,
@@ -3094,7 +3353,14 @@ const suggest = (
       };
 
       cacheLevels.ownedDb = cacheLevel(true, ownedDbCacheStatusForResponse(response));
-      yield* rememberRuntimeSuggestCaches(cacheKey, response, cacheLevels, workerCache, edgeCache);
+      yield* rememberRuntimeSuggestCaches(
+        cacheKey,
+        response,
+        cacheLevels,
+        workerCache,
+        edgeCache,
+        edgeTtlSeconds,
+      );
       response = withCacheLevels(response, cacheLevels);
 
       recordSuggestResponse(repositories, response, startedAt, 'cache');
@@ -3123,13 +3389,28 @@ const suggest = (
       request: suggestRequest,
     });
 
-    if (enrichedResponse !== undefined) {
+    if (enrichedResponse?.kind === 'contributed') {
+      return yield* finalizeSuggestResponse({
+        cacheKey,
+        cacheLevels,
+        edgeCache,
+        edgeTtlSeconds: enrichedResponse.edgeTtlSeconds,
+        repositories,
+        response: enrichedResponse.response,
+        sourceKind: 'provider-enrichment',
+        startedAt,
+        workerCache,
+      });
+    }
+
+    if (enrichedResponse?.kind === 'miss' && enrichedResponse.providerAttempted) {
       return yield* finalizeSuggestResponse({
         cacheKey,
         cacheLevels,
         edgeCache,
         repositories,
-        response: enrichedResponse,
+        response,
+        runtimeCacheEnabled: false,
         sourceKind: 'provider-enrichment',
         startedAt,
         workerCache,
@@ -3347,7 +3628,7 @@ const corsOriginForRequest = (
     return Effect.succeed(origin);
   }
 
-  const tenantId = tenantIdFromSuggestCorsRequest(request);
+  const tenantId = tenantIdFromCorsRequest(request);
 
   if (tenantId === undefined) {
     return Effect.succeed(recoverMissingCorsOrigin());

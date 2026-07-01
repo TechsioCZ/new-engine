@@ -1,17 +1,20 @@
 import type {
-  PostalInputHints,
   PostalValidationRequest,
   PostalValidationResult,
   PostalValidationStatus,
 } from '@techsio/smart-suggest-react';
-import type { ValidationIssue } from '@techsio/smart-suggest-validation/phone-lite';
+import {
+  getPostalInputHints,
+  validatePostalCode as validatePostalCodeFallback,
+} from '@techsio/smart-suggest-validation';
 import { FormInput } from '@techsio/ui-kit/molecules/form-input';
 import {
-  type FocusEvent,
   type ChangeEventHandler,
   type ComponentPropsWithoutRef,
+  type FocusEvent,
   type ReactNode,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -34,159 +37,6 @@ export type PostalValidationFieldProps = Omit<
   statusText?: ReactNode;
   validatePostalCode?: PostalValidationFieldValidator;
   validateEmpty?: boolean;
-};
-
-const TEXT_POSTAL_INPUT_COUNTRIES = new Set<Uppercase<string>>([
-  'CA',
-  'GB',
-  'IE',
-  'MT',
-  'NL',
-  'US',
-]);
-
-const POSTAL_CODE_PATTERNS: Partial<Record<Uppercase<string>, RegExp>> = {
-  AT: /^\d{4}$/,
-  CA: /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][\s-]?\d[ABCEGHJ-NPRSTV-Z]\d$/i,
-  CZ: /^\d{3}\s?\d{2}$/,
-  DE: /^\d{5}$/,
-  GB: /^(GIR\s?0AA|[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$/i,
-  HU: /^\d{4}$/,
-  PL: /^\d{2}-?\d{3}$/,
-  RO: /^\d{6}$/,
-  SK: /^\d{3}\s?\d{2}$/,
-  US: /^\d{5}(?:-\d{4})?$/,
-};
-
-const createIssue = (code: string, field: string, message: string): ValidationIssue => ({
-  code,
-  field,
-  message,
-});
-
-const digitsOnly = (value: string) => value.replaceAll(/\D/g, '');
-
-const normalizePostalText = (value: string) => value.trim().toUpperCase().replaceAll(/\s+/g, ' ');
-
-const isPostalCodeValidForCountry = (
-  countryCode: Uppercase<string>,
-  displayValue: string,
-): PostalValidationStatus => {
-  const pattern = POSTAL_CODE_PATTERNS[countryCode];
-
-  if (pattern === undefined) {
-    return 'unknown';
-  }
-
-  return pattern.test(displayValue);
-};
-
-const formatPostalDisplayValue = (countryCode: Uppercase<string>, value: string) => {
-  const normalizedText = normalizePostalText(value);
-  const digits = digitsOnly(normalizedText);
-
-  if ((countryCode === 'CZ' || countryCode === 'SK') && digits.length === 5) {
-    return `${digits.slice(0, 3)} ${digits.slice(3)}`;
-  }
-
-  if (countryCode === 'PL' && digits.length === 5) {
-    return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  }
-
-  if (countryCode === 'US' && digits.length === 9) {
-    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-  }
-
-  if (countryCode === 'CA') {
-    const compact = normalizedText.replaceAll(/[\s-]/g, '');
-
-    if (compact.length === 6) {
-      return `${compact.slice(0, 3)} ${compact.slice(3)}`;
-    }
-  }
-
-  if (countryCode === 'GB') {
-    const compact = normalizedText.replaceAll(/\s/g, '');
-
-    if (compact.length > 3) {
-      return `${compact.slice(0, -3)} ${compact.slice(-3)}`;
-    }
-  }
-
-  return normalizedText;
-};
-
-const getPostalInputHints = (countryCode: Uppercase<string>): PostalInputHints => ({
-  autoComplete: 'postal-code',
-  inputMode: TEXT_POSTAL_INPUT_COUNTRIES.has(countryCode) ? 'text' : 'numeric',
-});
-
-const validatePostalCode = (request: PostalValidationRequest): PostalValidationResult => {
-  const rawInput = request.rawInput;
-  const countryCode = request.countryCode.trim().toUpperCase() as Uppercase<string>;
-  const normalizedValue = normalizePostalText(rawInput);
-  const displayValue = formatPostalDisplayValue(countryCode, rawInput);
-  const errors: ValidationIssue[] = [];
-
-  if (normalizedValue.length === 0) {
-    return {
-      rawInput,
-      countryCode,
-      normalizedValue,
-      displayValue,
-      isValid: false,
-      inputHints: getPostalInputHints(countryCode),
-      errors: [createIssue('postal.required', 'postalCode', 'Enter a postal code.')],
-    };
-  }
-
-  const metadataResult = isPostalCodeValidForCountry(countryCode, displayValue);
-
-  if (metadataResult === true) {
-    return {
-      rawInput,
-      countryCode,
-      normalizedValue,
-      displayValue,
-      isValid: true,
-      inputHints: getPostalInputHints(countryCode),
-      errors,
-    };
-  }
-
-  if (metadataResult === 'unknown') {
-    return {
-      rawInput,
-      countryCode,
-      normalizedValue,
-      displayValue,
-      isValid: 'unknown',
-      inputHints: getPostalInputHints(countryCode),
-      errors: [
-        createIssue(
-          'postal.country_unsupported',
-          'postalCode',
-          'Postal-code metadata is not available for this country.',
-        ),
-      ],
-    };
-  }
-
-  return {
-    rawInput,
-    countryCode,
-    normalizedValue,
-    displayValue,
-    isValid: false,
-    inputHints: getPostalInputHints(countryCode),
-    errors: [
-      createIssue(
-        'postal.invalid',
-        'postalCode',
-        'Enter a valid postal code for the selected country.',
-      ),
-    ],
-  };
 };
 
 const getValidationStatus = (
@@ -243,7 +93,7 @@ export function PostalValidationField({
   const validationResult = useMemo(
     () =>
       shouldValidate && providedValidatePostalCode === undefined
-        ? validatePostalCode({
+        ? validatePostalCodeFallback({
             countryCode: normalizedCountryCode,
             rawInput,
           })
@@ -266,6 +116,11 @@ export function PostalValidationField({
     validationRequestIdRef.current += 1;
     setServerValidationResult(undefined);
   }, []);
+
+  useEffect(() => {
+    clearServerValidationResult();
+  }, [clearServerValidationResult, normalizedCountryCode]);
+
   const validateCurrentValue = useCallback(
     async (nextRawInput = rawInput) => {
       const shouldValidateCurrent = validateEmpty || nextRawInput.trim().length > 0;
@@ -281,8 +136,8 @@ export function PostalValidationField({
         countryCode: normalizedCountryCode,
         rawInput: nextRawInput,
       };
-      const fallbackResult = validatePostalCode(request);
-      let nextResult = fallbackResult;
+      const fallbackResult = validatePostalCodeFallback(request);
+      let nextResult: PostalValidationResult;
 
       try {
         nextResult = (await providedValidatePostalCode?.(request)) ?? fallbackResult;
@@ -324,7 +179,7 @@ export function PostalValidationField({
 
         if (providedValidatePostalCode === undefined) {
           onValidationChange?.(
-            validatePostalCode({
+            validatePostalCodeFallback({
               countryCode: normalizedCountryCode,
               rawInput: nextValue,
             }),

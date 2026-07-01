@@ -5,9 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fail } from "effect/Effect";
 
 import type { SmartSuggestRequest, SmartSuggestSuggestion } from "@techsio/smart-suggest-core";
-import { createMockSmartSuggestClient } from "@techsio/smart-suggest-react";
+import {
+  createMockSmartSuggestClient,
+  type PostalValidationRequest,
+  type PostalValidationResult,
+} from "@techsio/smart-suggest-react";
 
 const comboboxProps = vi.hoisted(() => [] as Array<Record<string, unknown>>);
+const formInputProps = vi.hoisted(() => [] as Array<Record<string, unknown>>);
 const addressSuggestOptions = vi.hoisted(
   () =>
     [] as Array<{
@@ -34,6 +39,13 @@ vi.mock("@techsio/ui-kit/molecules/combobox", () => ({
   },
 }));
 
+vi.mock("@techsio/ui-kit/molecules/form-input", () => ({
+  FormInput: (props: Record<string, unknown>) => {
+    formInputProps.push(props);
+    return null;
+  },
+}));
+
 vi.mock("@techsio/smart-suggest-react", async () => {
   const actual = await vi.importActual<typeof import("@techsio/smart-suggest-react")>(
     "@techsio/smart-suggest-react",
@@ -56,9 +68,29 @@ import { PostalValidationField } from "../src/postal-validation-field";
 
 const roots: Root[] = [];
 
+const createServerPostalValidationResult = (
+  request: PostalValidationRequest,
+): PostalValidationResult => {
+  const displayValue = request.rawInput.trim();
+
+  return {
+    rawInput: request.rawInput,
+    countryCode: request.countryCode,
+    normalizedValue: displayValue.toUpperCase(),
+    displayValue,
+    isValid: true,
+    inputHints: {
+      autoComplete: "postal-code",
+      inputMode: "numeric",
+    },
+    errors: [],
+  };
+};
+
 describe("smart suggest UI wrappers", () => {
   beforeEach(() => {
     comboboxProps.length = 0;
+    formInputProps.length = 0;
     addressSuggestOptions.length = 0;
     addressSuggestState.current = { status: "idle" };
   });
@@ -247,6 +279,100 @@ describe("smart suggest UI wrappers", () => {
 
     expect(comboboxProps.at(-1)).toMatchObject({
       error: "Návrhy adries nie sú dostupné",
+    });
+  });
+
+  it("uses the shared postal fallback for local postal validation", async () => {
+    const onValidationChange = vi.fn();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    document.body.append(container);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        createElement(PostalValidationField, {
+          countryCode: "CZ",
+          id: "postal-code",
+          label: "Postal code",
+          onValidationChange,
+        }),
+      );
+    });
+
+    const onChange = formInputProps.at(-1)?.["onChange"];
+
+    expect(onChange).toBeTypeOf("function");
+    await act(async () => {
+      if (typeof onChange === "function") {
+        onChange({ target: { value: "12a345" } });
+      }
+    });
+
+    expect(onValidationChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        displayValue: "12A345",
+        isValid: false,
+        normalizedValue: "12A345",
+        errors: [expect.objectContaining({ code: "postal.invalid" })],
+      }),
+    );
+  });
+
+  it("clears stale server postal validation when the country changes", async () => {
+    const validatePostalCode = vi.fn(createServerPostalValidationResult);
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    document.body.append(container);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        createElement(PostalValidationField, {
+          countryCode: "CZ",
+          defaultValue: "12345",
+          id: "postal-code",
+          label: "Postal code",
+          validateEmpty: true,
+          validatePostalCode,
+        }),
+      );
+    });
+
+    const onBlur = formInputProps.at(-1)?.["onBlur"];
+
+    expect(onBlur).toBeTypeOf("function");
+    await act(async () => {
+      if (typeof onBlur === "function") {
+        onBlur({});
+      }
+
+      await Promise.resolve();
+    });
+
+    expect(formInputProps.at(-1)).toMatchObject({
+      validateStatus: "success",
+    });
+
+    await act(async () => {
+      root.render(
+        createElement(PostalValidationField, {
+          countryCode: "SK",
+          defaultValue: "12345",
+          id: "postal-code",
+          label: "Postal code",
+          validateEmpty: true,
+          validatePostalCode,
+        }),
+      );
+
+      await Promise.resolve();
+    });
+
+    expect(formInputProps.at(-1)).toMatchObject({
+      validateStatus: "default",
     });
   });
 

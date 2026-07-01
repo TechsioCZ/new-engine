@@ -17,7 +17,19 @@ const shellAppDirs = Array.isArray(generatedContract?.apps)
       .map((app) => (typeof app.path === 'string' ? app.path : undefined))
       .filter((appPath) => appPath !== undefined)
   : [];
+const discoverWorkspaceAppDirs = () => {
+  const appsRoot = path.join(root, 'apps');
+  if (!fs.existsSync(appsRoot)) {
+    return [];
+  }
+  return fs
+    .readdirSync(appsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `apps/${entry.name}`)
+    .filter((appPath) => fs.existsSync(path.join(root, appPath, 'module-federation.config.ts')));
+};
 const defaultAppDirs = (shellAppDirs.length > 0 ? shellAppDirs : contractAppDirs)
+  .concat(shellAppDirs.length > 0 || contractAppDirs.length > 0 ? [] : discoverWorkspaceAppDirs())
   .filter((appPath) => fs.existsSync(path.join(root, appPath, 'module-federation.config.ts')))
   .filter((appPath, index, appPaths) => appPaths.indexOf(appPath) === index);
 
@@ -37,6 +49,12 @@ const appDirs = candidateDirs.length
   : fs.existsSync(path.join(root, 'module-federation.config.ts'))
     ? ['.']
     : defaultAppDirs;
+
+if (appDirs.length === 0) {
+  throw new Error(
+    'No Module Federation app directories were found. Run from the workspace root or pass app dirs explicitly.',
+  );
+}
 
 const configHasExposes = (configPath) => {
   const config = fs.readFileSync(configPath, 'utf-8');

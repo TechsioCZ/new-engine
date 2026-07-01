@@ -24,10 +24,10 @@ export default defineConfig({
       },
     },
     {
-      files: ['apps/*/src/**/*.{ts,tsx}', 'packages/*/src/**/*.ts'],
       env: {
         browser: true,
       },
+      files: ['apps/*/src/**/*.{ts,tsx}', 'packages/*/src/**/*.ts'],
       globals: {
         ULTRAMODERN_SITE_URL: 'readonly',
       },
@@ -36,6 +36,9 @@ export default defineConfig({
       },
     },
     {
+      env: {
+        node: true,
+      },
       files: [
         '*.config.{ts,mjs}',
         'scripts/**/*.mjs',
@@ -46,9 +49,6 @@ export default defineConfig({
         'packages/*/*.config.{ts,mjs}',
         'packages/*/tests/**/*.ts',
       ],
-      env: {
-        node: true,
-      },
       rules: {
         'no-undef': 'error',
       },

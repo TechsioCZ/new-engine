@@ -608,16 +608,13 @@ function removeServerOnlyPublicOutput(appRoot) {
   return removedPaths;
 }
 
-function exposeSdkDemoAtRoot(appRoot) {
+function assertSdkDemoOutput(appRoot) {
   const publicRoot = path.join(appRoot, '.output/public');
   const demoPath = path.join(publicRoot, 'sdk/demo.html');
-  const rootPath = path.join(publicRoot, 'index.html');
 
   if (!fs.existsSync(demoPath)) {
     throw new Error(`Smart Suggest SDK demo is missing from Cloudflare output: ${demoPath}`);
   }
-
-  fs.copyFileSync(demoPath, rootPath);
 }
 
 function patchWorkerAssetDispatch(appRoot) {
@@ -841,7 +838,7 @@ function main(argv = process.argv.slice(2)) {
   const config = readJson(wranglerPath);
   const existingD1Databases = Array.isArray(config.d1_databases) ? config.d1_databases : [];
   const migrations = copyD1Migrations(appRoot);
-  exposeSdkDemoAtRoot(appRoot);
+  assertSdkDemoOutput(appRoot);
   patchWorkerAssetDispatch(appRoot);
 
   if (artifactStaticEnabled(args)) {
@@ -862,7 +859,7 @@ function main(argv = process.argv.slice(2)) {
     const removedPaths = removeServerOnlyPublicOutput(appRoot);
     process.stdout.write(`Applied Smart Suggest static artifact profile to ${wranglerPath}\n`);
     process.stdout.write('Removed Smart Suggest corpus D1 bindings for artifact-first deploy\n');
-    process.stdout.write('Exposed Smart Suggest SDK demo at public root index.html\n');
+    process.stdout.write('Verified Smart Suggest SDK demo output at sdk/demo.html\n');
     process.stdout.write(
       'Patched Cloudflare asset dispatch to leave non-GET/HEAD BFF bodies unread\n',
     );
@@ -968,7 +965,7 @@ function main(argv = process.argv.slice(2)) {
       `Applied Smart Suggest shard D1 bindings ${shardBindingNames.join(', ')}\n`,
     );
   }
-  process.stdout.write('Exposed Smart Suggest SDK demo at public root index.html\n');
+  process.stdout.write('Verified Smart Suggest SDK demo output at sdk/demo.html\n');
   process.stdout.write(
     'Patched Cloudflare asset dispatch to leave non-GET/HEAD BFF bodies unread\n',
   );

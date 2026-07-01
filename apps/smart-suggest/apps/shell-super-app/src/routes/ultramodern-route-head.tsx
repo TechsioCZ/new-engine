@@ -99,7 +99,7 @@ export const UltramodernRouteHead = () => {
   const route = resolveRouteMetadata(canonical);
   const title = route === undefined ? appName : t(route.titleKey);
   const description = route === undefined ? appName : t(route.descriptionKey);
-  const canonicalUrl = absoluteUrl(alternates[fallbackLanguage] ?? `/${fallbackLanguage}`);
+  const canonicalUrl = absoluteUrl(canonical);
   const indexable = isPublicIndexableRoute(route);
   const jsonLd = route?.jsonLd;
 

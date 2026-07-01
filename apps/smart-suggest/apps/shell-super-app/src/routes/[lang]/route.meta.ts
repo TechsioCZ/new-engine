@@ -1,11 +1,11 @@
 const routeMeta = {
-  canonicalPath: '/',
+  canonicalPath: '/en',
   descriptionKey: 'shell.seo.description',
   id: 'shell-home',
   indexable: false,
   localisedPaths: {
-    cs: '/',
-    en: '/',
+    cs: '/cs',
+    en: '/en',
   },
   mfBoundaryId: 'shellSuperApp',
   namespace: 'shell',

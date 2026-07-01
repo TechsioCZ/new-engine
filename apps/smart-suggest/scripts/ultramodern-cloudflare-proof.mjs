@@ -6,24 +6,76 @@ function normalizeUrlWithTrailingSlash(url) {
   return url.endsWith('/') ? url : `${url}/`;
 }
 
-async function fetchText(url) {
-  const response = await fetch(url);
+function resolveModuleFederationPublicPath(publicPath, publicUrl) {
+  const value = typeof publicPath === 'string' ? publicPath.trim() : '';
+  if (value === '') {
+    return {
+      mode: 'missing',
+      reason: 'publicPath is missing',
+      valid: false,
+    };
+  }
+
+  const baseUrl = normalizeUrlWithTrailingSlash(publicUrl);
+  const expectedOrigin = new URL(baseUrl).origin;
+  const absoluteUrl = /^[a-z][a-z\d+.-]*:/iu.test(value);
+  const originRelative = value.startsWith('/') && !value.startsWith('//');
+  if (!(absoluteUrl || originRelative)) {
+    return {
+      mode: 'relative',
+      reason: 'publicPath must be an absolute URL or origin-relative path',
+      valid: false,
+    };
+  }
+
+  const resolved = new URL(value, baseUrl);
+  const sameOrigin = resolved.origin === expectedOrigin;
   return {
-    ok: response.ok,
-    status: response.status,
-    accessControlAllowOrigin: response.headers.get('access-control-allow-origin'),
-    cacheControl: response.headers.get('cache-control'),
-    contentLength: response.headers.get('content-length'),
-    contentSecurityPolicy: response.headers.get('content-security-policy'),
-    contentSecurityPolicyReportOnly: response.headers.get('content-security-policy-report-only'),
-    contentType: response.headers.get('content-type'),
-    link: response.headers.get('link'),
-    permissionsPolicy: response.headers.get('permissions-policy'),
-    referrerPolicy: response.headers.get('referrer-policy'),
-    xContentTypeOptions: response.headers.get('x-content-type-options'),
-    xRobotsTag: response.headers.get('x-robots-tag'),
-    body: await response.text(),
+    mode: originRelative ? 'origin-relative' : 'absolute',
+    reason: sameOrigin
+      ? undefined
+      : `resolved origin ${resolved.origin} does not match ${expectedOrigin}`,
+    resolved: normalizeUrlWithTrailingSlash(String(resolved)),
+    valid: sameOrigin,
   };
+}
+
+function fetchTimeoutMs() {
+  const configured = Number(process.env['ULTRAMODERN_CLOUDFLARE_PROOF_FETCH_TIMEOUT_MS']);
+  return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
+}
+
+async function fetchText(url) {
+  const urlText = String(url);
+  const timeoutMs = fetchTimeoutMs();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(urlText, { signal: controller.signal });
+    return {
+      ok: response.ok,
+      status: response.status,
+      accessControlAllowOrigin: response.headers.get('access-control-allow-origin'),
+      cacheControl: response.headers.get('cache-control'),
+      contentLength: response.headers.get('content-length'),
+      contentSecurityPolicy: response.headers.get('content-security-policy'),
+      contentSecurityPolicyReportOnly: response.headers.get('content-security-policy-report-only'),
+      contentType: response.headers.get('content-type'),
+      link: response.headers.get('link'),
+      permissionsPolicy: response.headers.get('permissions-policy'),
+      referrerPolicy: response.headers.get('referrer-policy'),
+      xContentTypeOptions: response.headers.get('x-content-type-options'),
+      xRobotsTag: response.headers.get('x-robots-tag'),
+      body: await response.text(),
+    };
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Fetch timed out after ${timeoutMs}ms: ${urlText}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function parseMaybeJson(body) {
@@ -167,6 +219,32 @@ function shouldNoindexUrl(publicUrl, noindex) {
   );
 }
 
+function robotDirectives(value) {
+  const directives = new Set();
+  for (const part of String(value || '')
+    .toLowerCase()
+    .split(',')) {
+    const normalized = part.trim().replace(/^[a-z0-9_-]+:\s*/u, '');
+    if (!normalized) {
+      continue;
+    }
+    for (const token of normalized.split(/\s+/u)) {
+      if (token) {
+        directives.add(token);
+      }
+    }
+  }
+  if (directives.has('none')) {
+    directives.add('noindex');
+    directives.add('nofollow');
+  }
+  return directives;
+}
+
+function hasRobotDirective(value, directive) {
+  return robotDirectives(value).has(directive);
+}
+
 function assertHeader(evidence, response, expected, options) {
   if (expected === false || expected === undefined) {
     return;
@@ -241,16 +319,16 @@ function assertCloudflareSecurity(evidence, app, response, route, publicUrl, opt
   }
 
   if (shouldNoindexUrl(publicUrl, security.noindex)) {
+    const directives = Array.from(robotDirectives(response.xRobotsTag));
+    const hasNoindex = directives.includes('noindex');
     evidence.assertions.push({
       type: 'security-noindex',
       route,
       actual: response.xRobotsTag,
-      status: response.xRobotsTag === 'noindex, nofollow' ? 'pass' : 'fail',
+      actualDirectives: directives,
+      status: hasNoindex ? 'pass' : 'fail',
     });
-    assert(
-      response.xRobotsTag === 'noindex, nofollow',
-      `${app.id} ${route} is missing noindex X-Robots-Tag`,
-    );
+    assert(hasNoindex, `${app.id} ${route} is missing noindex X-Robots-Tag`);
   }
 }
 
@@ -288,14 +366,96 @@ function assertNoPublicSourcemapRefs(evidence, app, manifestJson) {
   );
 }
 
-function extractPreloadStyleUrls(linkHeader, publicUrl) {
-  const urls = [];
-  for (const match of String(linkHeader || '').matchAll(
-    /<([^>]+)>\s*;[^,]*rel=preload[^,]*as=style/giu,
-  )) {
-    urls.push(String(joinUrl(publicUrl, match[1])));
+function splitHeaderValue(value, separator) {
+  const parts = [];
+  let current = '';
+  let quote;
+  let angleDepth = 0;
+  for (const character of String(value || '')) {
+    if (quote) {
+      current += character;
+      if (character === quote) {
+        quote = undefined;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+      current += character;
+      continue;
+    }
+    if (character === '<') {
+      angleDepth += 1;
+      current += character;
+      continue;
+    }
+    if (character === '>' && angleDepth > 0) {
+      angleDepth -= 1;
+      current += character;
+      continue;
+    }
+    if (character === separator && angleDepth === 0) {
+      parts.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += character;
   }
-  return urls;
+  if (current.trim() !== '') {
+    parts.push(current.trim());
+  }
+  return parts;
+}
+
+function unquoteHeaderValue(value) {
+  const trimmed = String(value || '').trim();
+  if (
+    ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))) &&
+    trimmed.length >= 2
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function parseLinkHeader(linkHeader) {
+  const links = [];
+  for (const entry of splitHeaderValue(linkHeader, ',')) {
+    const parts = splitHeaderValue(entry, ';');
+    const target = /^<(?<url>[^>]+)>$/u.exec(parts[0])?.groups?.url;
+    if (!target) {
+      continue;
+    }
+    const params = {};
+    for (const param of parts.slice(1)) {
+      const [rawName, ...rawValueParts] = param.split('=');
+      const name = rawName?.trim().toLowerCase();
+      if (!name) {
+        continue;
+      }
+      params[name] = unquoteHeaderValue(rawValueParts.join('='));
+    }
+    links.push({
+      params,
+      rel: String(params.rel || '')
+        .toLowerCase()
+        .split(/\s+/u)
+        .filter(Boolean),
+      url: target,
+    });
+  }
+  return links;
+}
+
+function isStylePreloadLink(link) {
+  return link.rel.includes('preload') && String(link.params.as || '').toLowerCase() === 'style';
+}
+
+function extractPreloadStyleUrls(linkHeader, publicUrl) {
+  return parseLinkHeader(linkHeader)
+    .filter(isStylePreloadLink)
+    .map((link) => String(joinUrl(publicUrl, link.url)));
 }
 
 function htmlHasRobotsDirective(html, expectedContent) {
@@ -391,6 +551,7 @@ async function validateSsrHead(evidence, app, publicUrl, ssrRoute, ssr) {
     });
   }
   const isPreview = shouldNoindexUrl(publicUrl, app.deploy?.cloudflare?.security?.noindex);
+  const xRobotsNoindex = hasRobotDirective(headResponse.xRobotsTag, 'noindex');
   const robotsIndexable = htmlHasRobotsDirective(headResponse.body, 'index, follow');
   evidence.assertions.push({
     type: 'indexing-policy',
@@ -398,14 +559,11 @@ async function validateSsrHead(evidence, app, publicUrl, ssrRoute, ssr) {
     mode: isPreview ? 'preview' : 'production',
     xRobotsTag: headResponse.xRobotsTag,
     htmlRobotsIndexable: robotsIndexable,
-    status:
-      isPreview || (headResponse.xRobotsTag !== 'noindex, nofollow' && robotsIndexable)
-        ? 'pass'
-        : 'fail',
+    status: isPreview || (!xRobotsNoindex && robotsIndexable) ? 'pass' : 'fail',
   });
   if (!isPreview) {
     assert(
-      headResponse.xRobotsTag !== 'noindex, nofollow' && robotsIndexable,
+      !xRobotsNoindex && robotsIndexable,
       `${app.id} ${headRoute} production public route must be indexable`,
     );
   }
@@ -690,16 +848,15 @@ function validateCssRootMarkerEvidence(evidence, app, ssr) {
 
 function validateCssPreloadLinkEvidence(evidence, app, ssr) {
   const cssPreloadLinkHeader = ssr.link ?? '';
+  const stylePreloadLinks = parseLinkHeader(cssPreloadLinkHeader).filter(isStylePreloadLink);
   evidence.assertions.push({
     type: 'css-preload-link-header',
     actual: cssPreloadLinkHeader,
-    status:
-      cssPreloadLinkHeader.includes('rel=preload') && cssPreloadLinkHeader.includes('as=style')
-        ? 'pass'
-        : 'fail',
+    parsedStylePreloadCount: stylePreloadLinks.length,
+    status: stylePreloadLinks.length > 0 ? 'pass' : 'fail',
   });
   assert(
-    cssPreloadLinkHeader.includes('rel=preload') && cssPreloadLinkHeader.includes('as=style'),
+    stylePreloadLinks.length > 0,
     `${app.id} SSR response is missing CSS preload Link headers`,
   );
 }
@@ -746,17 +903,22 @@ async function validateModuleFederationManifestEvidence(evidence, app, publicUrl
     manifest.accessControlAllowOrigin === '*',
     `${app.id} MF manifest is missing Cloudflare CORS headers`,
   );
-  const expectedPublicPath = normalizeUrlWithTrailingSlash(publicUrl);
+  const expectedOrigin = new URL(publicUrl).origin;
   const manifestPublicPath = manifestJson?.metaData?.publicPath;
+  const publicPath = resolveModuleFederationPublicPath(manifestPublicPath, publicUrl);
   evidence.assertions.push({
     type: 'mf-manifest-public-path',
-    expected: expectedPublicPath,
+    accepted: ['absolute-same-origin', 'origin-relative'],
+    expectedOrigin,
     actual: manifestPublicPath,
-    status: manifestPublicPath === expectedPublicPath ? 'pass' : 'fail',
+    mode: publicPath.mode,
+    reason: publicPath.reason,
+    resolved: publicPath.resolved,
+    status: publicPath.valid ? 'pass' : 'fail',
   });
   assert(
-    manifestPublicPath === expectedPublicPath,
-    `${app.id} MF manifest publicPath must resolve remote assets from ${expectedPublicPath}`,
+    publicPath.valid,
+    `${app.id} MF manifest publicPath must be absolute same-origin or origin-relative for ${expectedOrigin}`,
   );
 }
 

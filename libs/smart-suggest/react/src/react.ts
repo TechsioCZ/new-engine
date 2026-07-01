@@ -5,7 +5,7 @@ import type {
   SmartSuggestResponse,
 } from '@techsio/smart-suggest-core';
 import type { Effect } from 'effect/Effect';
-import { flatMap, runCallback, sleep, succeed, sync } from 'effect/Effect';
+import { flatMap, runCallback, sleep, succeed, suspend } from 'effect/Effect';
 import { isFailure } from 'effect/Exit';
 import { squash } from 'effect/Cause';
 import type {
@@ -169,9 +169,9 @@ const useAbortableRequest = <TRequest, TResponse>(
 
     const activeRequest = request;
     let isActive = true;
-    const startRequest = sync(() => {
-      setState({ status: 'loading' });
-    }).pipe(flatMap(() => requestFn(client, activeRequest, {})));
+    setState({ status: 'loading' });
+
+    const startRequest = suspend(() => requestFn(client, activeRequest, {}));
     const program = delayMs > 0 ? sleep(delayMs).pipe(flatMap(() => startRequest)) : startRequest;
     const interrupt = runCallback(program, {
       onExit: (result) => {

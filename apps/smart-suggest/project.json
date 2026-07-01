@@ -8,31 +8,31 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm build"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || pnpm install --frozen-lockfile --ignore-scripts) && pnpm build"
       }
     },
     "check": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm check"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || pnpm install --frozen-lockfile --ignore-scripts) && pnpm check"
       }
     },
     "cloudflare:build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm cloudflare:build"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || pnpm install --frozen-lockfile --ignore-scripts) && pnpm cloudflare:build"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd apps/smart-suggest && mise exec -- pnpm lint"
+        "command": "cd apps/smart-suggest && pnpm lint"
       }
     },
     "typecheck": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cd apps/smart-suggest && ([ -d node_modules ] || mise exec -- pnpm install --frozen-lockfile --ignore-scripts) && mise exec -- pnpm typecheck"
+        "command": "cd apps/smart-suggest && ([ -d node_modules ] || pnpm install --frozen-lockfile --ignore-scripts) && pnpm typecheck"
       }
     }
   }

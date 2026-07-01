@@ -20,8 +20,13 @@ minimumReleaseAgeExclude:
   - '@typescript/native-preview'
   - '@typescript/native-preview-*'
   - '@types/react'
+  - 'effect@4.0.0-beta.91'
+  - '@effect/opentelemetry@4.0.0-beta.91'
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 1440
+trustPolicyExclude:
+  - 'effect@4.0.0-beta.91'
+  - '@effect/opentelemetry@4.0.0-beta.91'
 blockExoticSubdeps: true
 engineStrict: true
 pmOnFail: error

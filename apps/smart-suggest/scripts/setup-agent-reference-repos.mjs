@@ -2,11 +2,12 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
+const appRoot = process.cwd();
+let worktreeRoot = appRoot;
 const args = new Set(process.argv.slice(2));
 const checkOnly = args.has('--check');
-const configPath = path.join(root, '.agents', 'agent-reference-repos.json');
-const manifestPath = path.join(root, '.modernjs', 'agent-reference-repos.json');
+const configPath = path.join(appRoot, '.agents', 'agent-reference-repos.json');
+const manifestPath = path.join(appRoot, '.modernjs', 'agent-reference-repos.json');
 
 const truthy = (value) => /^(1|true|yes|on)$/i.test(String(value ?? ''));
 const falsy = (value) => /^(0|false|no|off)$/i.test(String(value ?? ''));
@@ -39,7 +40,7 @@ function readJson(filePath) {
 
 function run(command, commandArgs, options = {}) {
   const result = spawnSync(command, commandArgs, {
-    cwd: options.cwd ?? root,
+    cwd: options.cwd ?? appRoot,
     encoding: 'utf-8',
     env: {
       ...process.env,
@@ -60,11 +61,35 @@ function run(command, commandArgs, options = {}) {
   return result.stdout?.trim() ?? '';
 }
 
+function toGitPath(filePath) {
+  return filePath.replaceAll(path.sep, '/');
+}
+
+function appRelativePath(filePath) {
+  return toGitPath(path.relative(appRoot, filePath));
+}
+
+function worktreeRelativePath(filePath) {
+  const relativePath = path.relative(worktreeRoot, filePath);
+  if (relativePath.length === 0 || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error(`${filePath} is outside git worktree ${worktreeRoot}`);
+  }
+  return toGitPath(relativePath);
+}
+
+function runGit(commandArgs, options = {}) {
+  return run('git', commandArgs, {
+    ...options,
+    cwd: options.cwd ?? worktreeRoot,
+  });
+}
+
 function assertSafeRepoPath(relativePath) {
   if (
     typeof relativePath !== 'string' ||
     relativePath.length === 0 ||
     path.isAbsolute(relativePath) ||
+    path.win32.isAbsolute(relativePath) ||
     relativePath.split(/[\\/]+/).includes('..') ||
     !relativePath.startsWith('repos/')
   ) {
@@ -92,16 +117,28 @@ function hasGitSubtree() {
 
 function isGitWorkTree() {
   const result = spawnSync('git', ['rev-parse', '--is-inside-work-tree'], {
-    cwd: root,
+    cwd: appRoot,
     encoding: 'utf-8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   return result.status === 0 && result.stdout.trim() === 'true';
 }
 
+function gitTopLevel() {
+  const result = spawnSync('git', ['rev-parse', '--show-toplevel'], {
+    cwd: appRoot,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.status !== 0) {
+    return;
+  }
+  return path.resolve(result.stdout.trim());
+}
+
 function hasCommits() {
   const result = spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {
-    cwd: root,
+    cwd: worktreeRoot,
     encoding: 'utf-8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -109,11 +146,11 @@ function hasCommits() {
 }
 
 function porcelainStatus() {
-  return run('git', ['status', '--porcelain'], { timeout: 30_000 });
+  return runGit(['status', '--porcelain'], { timeout: 30_000 });
 }
 
 function commitInstallerChanges(message) {
-  run('git', ['commit', '--no-verify', '-m', message], {
+  runGit(['commit', '--no-verify', '-m', message], {
     timeout: 120_000,
   });
 }
@@ -126,6 +163,9 @@ function ensureGitRepository() {
     }
     log('initializing git repository for agent reference subtrees');
     run('git', ['init'], { timeout: 30_000 });
+    worktreeRoot = appRoot;
+  } else {
+    worktreeRoot = gitTopLevel() ?? appRoot;
   }
 
   if (!hasCommits()) {
@@ -134,8 +174,12 @@ function ensureGitRepository() {
       return false;
     }
     log('creating initial workspace commit before adding reference subtrees');
-    run('git', ['add', '-A'], { timeout: 30_000 });
+    runGit(['add', '-A'], { timeout: 30_000 });
     commitInstallerChanges('Initialize UltraModern workspace');
+    return true;
+  }
+
+  if (checkOnly) {
     return true;
   }
 
@@ -151,11 +195,11 @@ function ensureGitRepository() {
 }
 
 function remoteCommit(repo) {
-  let output = run('git', ['ls-remote', repo.url, `refs/heads/${repo.ref}`], {
+  let output = runGit(['ls-remote', repo.url, `refs/heads/${repo.ref}`], {
     timeout: 120_000,
   });
   if (!output) {
-    output = run('git', ['ls-remote', repo.url, repo.ref], {
+    output = runGit(['ls-remote', repo.url, repo.ref], {
       timeout: 120_000,
     });
   }
@@ -166,17 +210,46 @@ function remoteCommit(repo) {
   return commit;
 }
 
-function subtreeCommitExists(repo) {
+function repoTargetPath(repo) {
+  assertSafeRepoPath(repo.path);
+  return path.resolve(appRoot, repo.path);
+}
+
+function repoSubtreePrefix(repo) {
+  return worktreeRelativePath(repoTargetPath(repo));
+}
+
+function subtreeEvidence(repo) {
+  const subtreePrefix = repoSubtreePrefix(repo);
   const result = spawnSync(
     'git',
-    ['log', '--grep', `git-subtree-dir: ${repo.path}`, '--format=%H', '-n', '1'],
+    [
+      'log',
+      '--fixed-strings',
+      '--grep',
+      `git-subtree-dir: ${subtreePrefix}`,
+      '--format=%H%n%B',
+      '-n',
+      '1',
+    ],
     {
-      cwd: root,
+      cwd: worktreeRoot,
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
-  return result.status === 0 && result.stdout.trim().length > 0;
+  const output = result.stdout.trim();
+  if (result.status !== 0 || output.length === 0) {
+    return;
+  }
+
+  const [subtreeCommit] = output.split(/\r?\n/u);
+  const splitCommit = output.match(/git-subtree-split:\s*([a-f0-9]{40})/iu)?.[1];
+  return {
+    splitCommit,
+    subtreeCommit,
+    subtreePrefix,
+  };
 }
 
 function installedManifestEntry(repo) {
@@ -191,34 +264,79 @@ function installedManifestEntry(repo) {
   }
 }
 
-function assertSubtreePresent(repo) {
-  assertSafeRepoPath(repo.path);
-  const targetPath = path.join(root, repo.path);
+function fallbackManifestEntry(repo, evidence) {
+  return {
+    id: repo.id,
+    name: repo.name,
+    url: repo.url,
+    ref: repo.ref,
+    commit: evidence.splitCommit,
+    path: repo.path,
+    readOnly: repo.readOnly !== false,
+    status: 'present',
+    strategy: 'git-subtree-squash',
+  };
+}
+
+function validateManifestEntry(repo, entry) {
+  const expectedReadOnly = repo.readOnly !== false;
+  const mismatches = [];
+  for (const [field, expected] of Object.entries({
+    id: repo.id,
+    name: repo.name,
+    url: repo.url,
+    ref: repo.ref,
+    path: repo.path,
+    readOnly: expectedReadOnly,
+    strategy: 'git-subtree-squash',
+  })) {
+    if (entry[field] !== expected) {
+      mismatches.push(`${field}=${JSON.stringify(entry[field])}`);
+    }
+  }
+  if (!/^[a-f0-9]{40}$/iu.test(entry.commit ?? '')) {
+    mismatches.push('commit=<missing or invalid>');
+  }
+  if (mismatches.length > 0) {
+    fail(
+      `${appRelativePath(manifestPath)} entry for ${repo.id} does not match generated config: ${mismatches.join(', ')}`,
+    );
+    return;
+  }
+  return entry;
+}
+
+function assertSubtreePresent(repo, options = {}) {
+  const targetPath = repoTargetPath(repo);
   if (!fs.existsSync(targetPath)) {
     fail(`${repo.path} is missing`);
     return;
   }
-  if (!subtreeCommitExists(repo)) {
+  const evidence = subtreeEvidence(repo);
+  if (!evidence) {
     fail(`${repo.path} is present but has no git-subtree commit evidence`);
     return;
   }
-  return (
-    installedManifestEntry(repo) ?? {
-      id: repo.id,
-      name: repo.name,
-      url: repo.url,
-      ref: repo.ref,
-      path: repo.path,
-      readOnly: repo.readOnly !== false,
-      status: 'present',
-      strategy: 'git-subtree-squash',
-    }
-  );
+  const manifestEntry = installedManifestEntry(repo);
+  if (manifestEntry) {
+    return validateManifestEntry(repo, manifestEntry);
+  }
+  if (options.requireManifest) {
+    fail(
+      `${repo.path} is present but ${appRelativePath(manifestPath)} has no entry for ${repo.id}`,
+    );
+    return;
+  }
+  if (!evidence.splitCommit) {
+    fail(`${repo.path} is present but its git-subtree commit has no split commit metadata`);
+    return;
+  }
+  return fallbackManifestEntry(repo, evidence);
 }
 
 function addSubtree(repo) {
-  assertSafeRepoPath(repo.path);
-  const targetPath = path.join(root, repo.path);
+  const targetPath = repoTargetPath(repo);
+  const subtreePrefix = repoSubtreePrefix(repo);
   const existing = fs.existsSync(targetPath);
 
   if (existing && !refresh) {
@@ -237,16 +355,15 @@ function addSubtree(repo) {
 
   const commit = remoteCommit(repo);
   log(`adding ${repo.name} as git subtree at ${repo.path} (${commit})`);
-  run('git', ['fetch', '--depth', '1', repo.url, repo.ref], {
+  runGit(['fetch', '--depth', '1', repo.url, repo.ref], {
     timeout: 300_000,
   });
-  run(
-    'git',
+  runGit(
     [
       'subtree',
       'add',
       '--prefix',
-      repo.path,
+      subtreePrefix,
       'FETCH_HEAD',
       '--squash',
       '-m',
@@ -289,13 +406,14 @@ function writeManifest(entries) {
 }
 
 function commitManifestIfChanged() {
-  const status = run('git', ['status', '--porcelain', '--', manifestPath], {
+  const manifestGitPath = worktreeRelativePath(manifestPath);
+  const status = runGit(['status', '--porcelain', '--', manifestGitPath], {
     timeout: 30_000,
   });
   if (!status) {
     return;
   }
-  run('git', ['add', manifestPath], { timeout: 30_000 });
+  runGit(['add', manifestGitPath], { timeout: 30_000 });
   commitInstallerChanges('Record agent reference repo manifest');
 }
 
@@ -327,7 +445,9 @@ function main() {
 
   const entries = [];
   for (const repo of config.repositories ?? []) {
-    const result = checkOnly ? assertSubtreePresent(repo) : addSubtree(repo);
+    const result = checkOnly
+      ? assertSubtreePresent(repo, { requireManifest: true })
+      : addSubtree(repo);
     if (result) {
       entries.push(result);
     }

@@ -11,8 +11,8 @@
     "build": "pnpm build:packages && ULTRAMODERN_ZEPHYR=false pnpm --filter \"./apps/shell-super-app\" run build && pnpm mf:types:assert && pnpm performance:readiness",
     "format": "oxfmt . '!repos/**'",
     "format:check": "oxfmt --check . '!repos/**'",
-    "lint": "cd ../.. && apps/smart-suggest/node_modules/.bin/oxlint apps/smart-suggest/apps apps/smart-suggest/packages libs/smart-suggest",
-    "lint:fix": "cd ../.. && apps/smart-suggest/node_modules/.bin/oxlint apps/smart-suggest/apps apps/smart-suggest/packages libs/smart-suggest --fix",
+    "lint": "cd ../.. && apps/smart-suggest/node_modules/.bin/oxlint apps/smart-suggest/apps apps/smart-suggest/packages apps/smart-suggest/*.ts apps/smart-suggest/tsconfig*.json libs/smart-suggest",
+    "lint:fix": "cd ../.. && apps/smart-suggest/node_modules/.bin/oxlint apps/smart-suggest/apps apps/smart-suggest/packages apps/smart-suggest/*.ts apps/smart-suggest/tsconfig*.json libs/smart-suggest --fix",
     "typecheck": "pnpm build:packages && pnpm -r --filter \"@smart-suggest/*\" --filter \"@techsio/smart-suggest-*\" typecheck",
     "cloudflare:build": "pnpm build:packages && pnpm --filter \"./apps/shell-super-app\" run cloudflare:build && pnpm mf:types:assert",
     "cloudflare:deploy": "pnpm --filter \"./apps/shell-super-app\" run cloudflare:deploy",
@@ -81,7 +81,7 @@
   },
   "engines": {
     "node": ">=26",
-    "pnpm": ">=11"
+    "pnpm": ">=11.9.0"
   },
   "workspaces": [
     "apps/*",
@@ -101,8 +101,8 @@
   "devDependencies": {
     "@effect/language-service": "0.86.2",
     "@effect/tsgo": "0.14.6",
-    "@modern-js/code-tools": "npm:@bleedingdev/modern-js-code-tools@3.5.0-ultramodern.18",
-    "@modern-js/create": "npm:@bleedingdev/modern-js-create@3.5.0-ultramodern.18",
+    "@modern-js/code-tools": "npm:@bleedingdev/modern-js-code-tools@3.5.0-ultramodern.20",
+    "@modern-js/create": "npm:@bleedingdev/modern-js-create@3.5.0-ultramodern.20",
     "@types/debug": "4.1.13",
     "@types/prettier": "2.7.3",
     "@types/webpack": "5.28.5",

@@ -44,10 +44,10 @@ function parseArgs(argv) {
 
 function printHelp() {
   process.stdout.write(`Usage:
-  node scripts/proof-cloudflare-version.mjs [--app workspace] [--out evidence.json] [--require-public-urls]
+  node scripts/proof-cloudflare-version.mjs [--app shell-super-app] [--out evidence.json] [--require-public-urls]
 
 Set each app's public URL using the contract env key, for example:
-  ULTRAMODERN_PUBLIC_URL_WORKSPACE=https://workspace.example.workers.dev
+  ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP=https://smart-suggest.example.workers.dev
 `);
 }
 
@@ -55,6 +55,30 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function selectApps(contract, appId) {
+  assert(Array.isArray(contract.apps), 'Generated contract must contain an apps array');
+  assert(contract.apps.length > 0, 'Generated contract does not contain any apps to validate');
+
+  if (appId) {
+    const matched = contract.apps.filter((app) => app.id === appId);
+    assert(matched.length > 0, `No generated app matched --app ${appId}`);
+    return matched;
+  }
+
+  return contract.apps;
+}
+
+function getCloudflarePublicUrlEnv(app) {
+  assert(typeof app?.id === 'string' && app.id.trim() !== '', 'Generated app is missing id');
+  const cloudflare = app.deploy?.cloudflare;
+  assert(cloudflare && typeof cloudflare === 'object', `${app.id} is missing deploy.cloudflare`);
+  assert(
+    typeof cloudflare.publicUrlEnv === 'string' && cloudflare.publicUrlEnv.trim() !== '',
+    `${app.id} is missing deploy.cloudflare.publicUrlEnv`,
+  );
+  return cloudflare.publicUrlEnv;
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -65,15 +89,13 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   const contract = readJson(contractPath);
-  const allApps = Array.isArray(contract.apps) ? contract.apps : [];
-  const apps = args.appId ? allApps.filter((app) => app.id === args.appId) : allApps;
-  assert(apps.length > 0, `No generated app matched ${args.appId}`);
+  const apps = selectApps(contract, args.appId);
 
   const results = [];
   const skipped = [];
   for (const app of apps) {
-    const publicUrlEnv = app.deploy?.cloudflare?.publicUrlEnv;
-    const publicUrl = publicUrlEnv && process.env[publicUrlEnv];
+    const publicUrlEnv = getCloudflarePublicUrlEnv(app);
+    const publicUrl = process.env[publicUrlEnv];
     if (!publicUrl) {
       const skippedEntry = {
         appId: app.id,

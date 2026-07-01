@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from '@effect/vitest';
-import { HttpRouter, HttpServer, Layer } from '@modern-js/plugin-bff/effect-edge';
+import {
+  createEffectOperationContext,
+  HttpRouter,
+  HttpServer,
+  Layer,
+  runWithEffectContext,
+} from '@modern-js/plugin-bff/effect-edge';
 import { seedSampleAddressDatasetsEffect } from '@techsio/smart-suggest-datasets';
 import type { SmartSuggestRepositories } from '@techsio/smart-suggest-storage';
 import {
@@ -18,6 +24,7 @@ import {
   ProviderEventStatusSchema,
   SmartSuggestAcceptEventSchema,
   SmartSuggestAcceptResponseSchema,
+  SmartSuggestBadRequestErrorBodySchema,
   SmartSuggestErrorCodeSchema,
   SmartSuggestForbiddenErrorBodySchema,
   SmartSuggestHealthResponseSchema,
@@ -108,6 +115,40 @@ const createSmartSuggestHandlerFromEnv = (
   ).handler;
 
   return (request) => webHandler(request, Context.makeUnsafe<unknown>(new Map<string, unknown>()));
+};
+const requestPath = (request: Request) => new URL(request.url).pathname;
+const createSmartSuggestHandlerFromWorkerEnv = (
+  repositories: SmartSuggestRepositories,
+  env?: SmartSuggestTestEnv,
+): SmartSuggestTestHandler => {
+  const webHandler = HttpRouter.toWebHandler(
+    createSmartSuggestApiLayer(repositories).pipe(Layer.provide(HttpServer.layerServices)),
+    {
+      disableLogger: true,
+    },
+  ).handler;
+  const runtimeEnv = testEnvFor(env);
+
+  return (request) => {
+    const path = requestPath(request);
+    const { method } = request;
+    const context = {
+      env: runtimeEnv,
+      method,
+      operationContext: createEffectOperationContext({
+        env: runtimeEnv,
+        method,
+        path,
+        request,
+      }),
+      path,
+      request,
+    };
+
+    return runWithEffectContext(context, () =>
+      webHandler(request, Context.makeUnsafe<unknown>(new Map<string, unknown>())),
+    );
+  };
 };
 const createSmartSuggestHandler = (
   repositories: SmartSuggestRepositories,
@@ -236,6 +277,39 @@ describe('Smart Suggest effect API', () => {
     }),
   );
 
+  it.effect('builds CORS decisions from Worker request env when the layer is envless', () =>
+    Effect.gen(function* workerEnvCorsProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = createSmartSuggestHandlerFromWorkerEnv(repositories, {
+        SMART_SUGGEST_ALLOWED_ORIGINS: 'https://worker-env.example',
+      });
+
+      const preflightResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/health', {
+          headers: {
+            origin: 'https://worker-env.example',
+          },
+          method: 'OPTIONS',
+        }),
+      );
+      const healthResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/health', {
+          headers: { origin: 'https://worker-env.example' },
+        }),
+      );
+
+      expect(preflightResponse.status).toBe(204);
+      expect(preflightResponse.headers.get('access-control-allow-origin')).toBe(
+        'https://worker-env.example',
+      );
+      expect(healthResponse.headers.get('access-control-allow-origin')).toBe(
+        'https://worker-env.example',
+      );
+    }),
+  );
+
   it.effect('ignores wildcard CORS and applies tenant-scoped origins on protected suggest', () =>
     Effect.gen(function* tenantScopedCorsProgram() {
       const repositories = createInMemorySmartSuggestRepositories();
@@ -270,6 +344,16 @@ describe('Smart Suggest effect API', () => {
           method: 'OPTIONS',
         }),
       );
+      const tenantAcceptPreflightResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/accept?tenantId=tenant-origin-test', {
+          headers: {
+            'access-control-request-headers': 'content-type',
+            origin: 'https://tenant-shop.example',
+          },
+          method: 'OPTIONS',
+        }),
+      );
       const blockedResponse = yield* handlerCallEffect(
         testHandler,
         requestFor(
@@ -299,6 +383,10 @@ describe('Smart Suggest effect API', () => {
       expect(tenantPreflightResponse.headers.get('access-control-allow-origin')).toBe(
         'https://tenant-shop.example',
       );
+      expect(tenantAcceptPreflightResponse.status).toBe(204);
+      expect(tenantAcceptPreflightResponse.headers.get('access-control-allow-origin')).toBe(
+        'https://tenant-shop.example',
+      );
       expect(blockedResponse.status).toBe(403);
       expect(blockedBody.errors[0]).toMatchObject({ code: 'forbidden' });
       expect(allowedResponse.status).toBe(200);
@@ -306,6 +394,22 @@ describe('Smart Suggest effect API', () => {
         'https://tenant-shop.example',
       );
       expect(allowedBody.suggestions).toHaveLength(1);
+    }),
+  );
+
+  it.effect('rejects punctuation-only suggest queries before provider or storage lookup', () =>
+    Effect.gen(function* punctuationOnlySuggestProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = yield* createSeededSmartSuggestHandler(repositories);
+
+      const response = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=...---...&limit=1'),
+      );
+      const body = yield* decodeJsonResponse(response, SmartSuggestBadRequestErrorBodySchema);
+
+      expect(response.status).toBe(400);
+      expect(body.errors[0]).toMatchObject({ code: 'bad-request' });
     }),
   );
 
@@ -1368,6 +1472,15 @@ describe('Smart Suggest effect API', () => {
       Effect.gen(function* shellEffectTestProgram16() {
         const repositories = createInMemorySmartSuggestRepositories();
         const testHandler = createSmartSuggestHandler(repositories);
+        const edgeCacheControlHeaders: string[] = [];
+        const edgeCache = {
+          match: vi.fn(() => {}),
+          put: vi.fn((_request: Request, response: Response) => {
+            edgeCacheControlHeaders.push(response.headers.get('cache-control') ?? '');
+            return Promise.resolve();
+          }),
+        };
+        vi.stubGlobal('caches', { default: edgeCache });
 
         yield* resolveEffect(
           repositories.tenants.upsertTenant({
@@ -1377,6 +1490,7 @@ describe('Smart Suggest effect API', () => {
                 CZ: {
                   kinds: {
                     address: {
+                      providerCacheTtlSeconds: 120,
                       providerPriority: ['radar-autocomplete'],
                       providerTimeoutMs: 100,
                       providers: {
@@ -1455,6 +1569,7 @@ describe('Smart Suggest effect API', () => {
         );
 
         expect(cacheEntry).toMatchObject({
+          cachePolicy: { kind: 'ttl', ttlSeconds: 120 },
           payload: [
             {
               displayLabel: 'Radarova 9, Praha',
@@ -1471,6 +1586,101 @@ describe('Smart Suggest effect API', () => {
         );
 
         expect(durableRecords).toEqual([]);
+        expect(edgeCache.put).toHaveBeenCalledOnce();
+        expect(edgeCacheControlHeaders).toEqual(['public, max-age=120']);
+      }),
+  );
+
+  it.effect(
+    'does not cache empty provider fallback misses after filtering incomplete addresses',
+    () =>
+      Effect.gen(function* incompleteProviderFallbackCacheProgram() {
+        const repositories = createInMemorySmartSuggestRepositories();
+        const testHandler = createSmartSuggestHandler(repositories);
+        const edgeCache = {
+          match: vi.fn(() => {}),
+          put: vi.fn(() => Promise.resolve()),
+        };
+        vi.stubGlobal('caches', { default: edgeCache });
+
+        yield* resolveEffect(
+          repositories.tenants.upsertTenant({
+            allowedOrigins: [],
+            countryConfig: {
+              countries: {
+                CZ: {
+                  kinds: {
+                    address: {
+                      providerPriority: ['mapy-cz'],
+                      providerTimeoutMs: 100,
+                      providers: {
+                        'mapy-cz': {
+                          apiKey: 'mapy-incomplete-key',
+                          endpointUrl: 'https://mapy-incomplete.test/suggest',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            id: 'tenant-incomplete-provider-cache-test',
+            name: 'Tenant Incomplete Provider Cache Test',
+            providerPriority: ['mapy-cz'],
+            status: 'active',
+          }),
+        );
+
+        const fetchMock = vi.fn<typeof fetch>(() =>
+          Promise.resolve(
+            Response.json({
+              items: [
+                {
+                  id: 'mapy-incomplete-street',
+                  label: 'Národní, Praha, Česko',
+                  name: 'Národní',
+                  regionalStructure: [
+                    { isoCode: 'CZ', name: 'Česko', type: 'country' },
+                    { name: 'Praha', type: 'municipality' },
+                  ],
+                  type: 'regional.address',
+                  zip: '110 00',
+                },
+              ],
+            }),
+          ),
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const path =
+          '/v1/suggest?kind=address&countryCode=CZ&q=incomplete-provider-only&tenantId=tenant-incomplete-provider-cache-test&limit=1';
+        const firstResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+        const secondResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+        const firstBody = yield* decodeJsonResponse(firstResponse, SmartSuggestResponseSchema);
+        const secondBody = yield* decodeJsonResponse(secondResponse, SmartSuggestResponseSchema);
+        const queryHash = yield* resolveEffect(
+          createSuggestQueryHashEffect({
+            countryCode: 'CZ',
+            kind: 'address',
+            limit: 1,
+            query: 'incomplete-provider-only',
+          }),
+        );
+        const cacheKey = createSuggestCacheKey({
+          countryCode: 'CZ',
+          kind: 'address',
+          queryHash,
+          tenantId: 'tenant-incomplete-provider-cache-test',
+        });
+        const cacheEntry = yield* resolveEffect(
+          repositories.suggestCache.readSuggestCache(cacheKey),
+        );
+
+        expect(firstBody).toMatchObject({ cacheStatus: 'miss', suggestions: [] });
+        expect(secondBody).toMatchObject({ cacheStatus: 'miss', suggestions: [] });
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(edgeCache.put).not.toHaveBeenCalled();
+        expect(cacheEntry).toBeUndefined();
       }),
   );
 
@@ -1581,6 +1791,70 @@ describe('Smart Suggest effect API', () => {
         'https://ruian-default.test/geocode/suggest?text=K+Lou%C5%BEi&f=json&maxSuggestions=4',
         expect.objectContaining({ method: 'GET' }),
       );
+    }),
+  );
+
+  it.effect('does not write non-cacheable provider suggestions to runtime caches', () =>
+    Effect.gen(function* nonCacheableProviderRuntimeCacheProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = createSmartSuggestHandlerFromEnv(repositories, {
+        RUIAN_GEOCODE_BASE_URL: 'https://ruian-live-only.test/geocode',
+        RUIAN_GEOCODE_DISABLED: 'false',
+        SMART_SUGGEST_PROVIDER_PRIORITY: 'ruian-geocode',
+        SMART_SUGGEST_PROVIDER_TIMEOUT_MS: '100',
+      });
+      const edgeCache = {
+        match: vi.fn(() => {}),
+        put: vi.fn(() => Promise.resolve()),
+      };
+      vi.stubGlobal('caches', { default: edgeCache });
+      const fetchMock = vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          Response.json({
+            suggestions: [
+              {
+                isCollection: false,
+                magicKey: '1_1203603',
+                text: 'K Louži 1258/12, Vršovice, 10100 Praha 10',
+                type: 'AdresniMisto',
+              },
+            ],
+          }),
+        ),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      const path = '/v1/suggest?kind=address&countryCode=CZ&q=K%20Lou%C5%BEi&limit=1';
+      const firstResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+      const secondResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+      const firstBody = yield* decodeJsonResponse(firstResponse, SmartSuggestResponseSchema);
+      const secondBody = yield* decodeJsonResponse(secondResponse, SmartSuggestResponseSchema);
+      const queryHash = yield* resolveEffect(
+        createSuggestQueryHashEffect({
+          countryCode: 'CZ',
+          kind: 'address',
+          limit: 1,
+          query: 'K Louži',
+        }),
+      );
+      const cacheKey = createSuggestCacheKey({
+        countryCode: 'CZ',
+        kind: 'address',
+        queryHash,
+      });
+      const cacheEntry = yield* resolveEffect(repositories.suggestCache.readSuggestCache(cacheKey));
+
+      expect(firstBody).toMatchObject({
+        cacheStatus: 'written',
+        suggestions: [{ id: 'ruian-geocode:1_1203603' }],
+      });
+      expect(secondBody).toMatchObject({
+        cacheStatus: 'written',
+        suggestions: [{ id: 'ruian-geocode:1_1203603' }],
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(edgeCache.put).not.toHaveBeenCalled();
+      expect(cacheEntry).toBeUndefined();
     }),
   );
 
@@ -2585,6 +2859,236 @@ describe('Smart Suggest effect API', () => {
             id: 'ruian-cz',
             kind: 'owned-dataset',
           }),
+        }),
+      ]);
+    }),
+  );
+
+  it.effect('fans out unscoped strong queries across many shard repositories', () =>
+    Effect.gen(function* unscopedStrongShardFanoutProgram() {
+      const router = createInMemorySmartSuggestRepositories();
+      const shardEntries = Array.from({ length: 15 }, (_value, index) => {
+        const bindingName = `SMART_SUGGEST_TEST_SHARD_${String(index + 1).padStart(2, '0')}`;
+        return [bindingName, createInMemorySmartSuggestRepositories()] as const;
+      });
+      const targetShardEntry = shardEntries.at(14);
+
+      expect(targetShardEntry).toBeDefined();
+
+      if (targetShardEntry === undefined) {
+        return;
+      }
+
+      const [, targetShard] = targetShardEntry;
+
+      for (const [index, [bindingName]] of shardEntries.entries()) {
+        yield* resolveEffect(
+          router.shardRegistry.upsertShardMetadata({
+            bindingName,
+            countryCode: 'CZ',
+            regionCode: String(index + 1).padStart(2, '0'),
+            regionKind: 'vusc',
+            regionName: `Shard ${index + 1}`,
+            rowCount: index === 14 ? 1 : 0,
+            shardId: `smart-suggest-test-shard-${index + 1}`,
+            state: 'active',
+          }),
+        );
+      }
+
+      yield* resolveEffect(
+        targetShard.dataSources.registerDataSource({
+          attribution: {
+            label: 'RUIAN CZ',
+            license: 'CC BY 4.0',
+            url: 'https://ruian.cuzk.gov.cz/',
+          },
+          cachePolicy: { kind: 'permanent' },
+          countryCode: 'CZ',
+          datasetVersion: '2026-06-28',
+          id: 'ruian-cz',
+          name: 'RUIAN CZ',
+          sourceKind: 'owned-dataset',
+        }),
+      );
+      yield* resolveEffect(
+        targetShard.addressRecords.upsertAddressRecords([
+          {
+            countryCode: 'CZ',
+            displayLabel: 'K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ',
+            id: 'ruian-cz:many-shards-1203603',
+            parts: {
+              city: 'Praha 10',
+              countryCode: 'CZ',
+              district: 'Vršovice',
+              houseNumber: '1258',
+              orientationNumber: '12',
+              postalCode: '101 00',
+              street: 'K Louži',
+            },
+            quality: 0.99,
+            ruian: {
+              addressPlaceCode: '1203603',
+              regionCode: '15',
+              stableAddressId: 'ruian-cz:many-shards-1203603',
+            },
+            searchLabel: 'k louzi 1258 12 101 00 praha 10 vrsovice cz',
+            sourceId: 'ruian-cz',
+          },
+        ]),
+      );
+
+      const repositories = createShardedRepositories({
+        router,
+        shardRepositories: new Map(shardEntries),
+      });
+      const testHandler = createSmartSuggestHandler(repositories);
+      const response = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/suggest?kind=address&query=K%20Lou%C5%BEi%201258&limit=5'),
+      );
+      const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
+
+      expect(body.suggestions).toEqual([
+        expect.objectContaining({
+          displayLabel: 'K Louži 1258/12, 101 00 Praha 10, Vršovice, CZ',
+          id: 'ruian-cz:many-shards-1203603',
+          source: expect.objectContaining({
+            id: 'ruian-cz',
+            kind: 'owned-dataset',
+          }),
+        }),
+      ]);
+    }),
+  );
+
+  it.effect('routes shard data-source registration and tombstones into shard repositories', () =>
+    Effect.gen(function* shardTombstoneRoutingProgram() {
+      const router = createInMemorySmartSuggestRepositories();
+      const shardPraha = createInMemorySmartSuggestRepositories();
+      const shardCentralBohemia = createInMemorySmartSuggestRepositories();
+      const repositories = createShardedRepositories({
+        router,
+        shardRepositories: new Map([
+          ['SMART_SUGGEST_CZ_VUSC_19', shardPraha],
+          ['SMART_SUGGEST_CZ_VUSC_27', shardCentralBohemia],
+        ]),
+      });
+
+      yield* resolveEffect(
+        router.shardRegistry.upsertShardMetadata({
+          bindingName: 'SMART_SUGGEST_CZ_VUSC_19',
+          countryCode: 'CZ',
+          regionCode: '19',
+          regionKind: 'vusc',
+          regionName: 'Praha',
+          rowCount: 1,
+          shardId: 'smart-suggest-cz-vusc-19',
+          state: 'active',
+        }),
+      );
+      yield* resolveEffect(
+        router.shardRegistry.upsertShardMetadata({
+          bindingName: 'SMART_SUGGEST_CZ_VUSC_27',
+          countryCode: 'CZ',
+          regionCode: '27',
+          regionKind: 'vusc',
+          regionName: 'Středočeský',
+          rowCount: 0,
+          shardId: 'smart-suggest-cz-vusc-27',
+          state: 'active',
+        }),
+      );
+
+      const providerSource = yield* resolveEffect(
+        repositories.dataSources.registerDataSource({
+          attribution: { label: 'Mapy.cz' },
+          cachePolicy: { kind: 'permanent' },
+          countryCode: 'CZ',
+          id: 'live-provider:mapy-cz:CZ',
+          name: 'Mapy.cz CZ cache',
+          sourceKind: 'live-provider',
+        }),
+      );
+
+      yield* resolveEffect(
+        repositories.addressRecords.upsertAddressRecords([
+          {
+            countryCode: 'CZ',
+            displayLabel: 'Providerova 1, Praha',
+            id: 'provider-retained-praha-1',
+            parts: {
+              city: 'Praha',
+              countryCode: 'CZ',
+              houseNumber: '1',
+              postalCode: '101 00',
+              street: 'Providerova',
+            },
+            quality: 0.91,
+            ruian: {
+              addressPlaceCode: 'provider-retained-praha-1',
+              regionCode: '19',
+              stableAddressId: 'provider-retained-praha-1',
+            },
+            searchLabel: 'providerova 1 praha',
+            sourceId: providerSource.id,
+          },
+        ]),
+      );
+
+      const shardSource = yield* resolveEffect(
+        shardPraha.dataSources.getDataSource('live-provider:mapy-cz:CZ'),
+      );
+      const retainedBeforeTombstone = yield* resolveEffect(
+        shardPraha.addressRecords.searchAddressRecords({
+          countryCode: 'CZ',
+          query: 'Providerova 1',
+        }),
+      );
+
+      yield* resolveEffect(
+        repositories.addressTombstones.upsertAddressTombstones([
+          {
+            countryCode: 'CZ',
+            deletedAt: '2026-06-30T00:00:00.000Z',
+            id: 'provider-retained-praha-1',
+            reason: 'provider-retention-delete',
+            ruian: {
+              addressPlaceCode: 'provider-retained-praha-1',
+              regionCode: '19',
+              stableAddressId: 'provider-retained-praha-1',
+            },
+            sourceId: providerSource.id,
+          },
+        ]),
+      );
+
+      const retainedAfterTombstone = yield* resolveEffect(
+        shardPraha.addressRecords.searchAddressRecords({
+          countryCode: 'CZ',
+          query: 'Providerova 1',
+        }),
+      );
+      const tombstones = yield* resolveEffect(
+        repositories.addressTombstones.listAddressTombstones(),
+      );
+
+      expect(shardSource).toMatchObject({
+        cachePolicy: { kind: 'permanent' },
+        id: 'live-provider:mapy-cz:CZ',
+      });
+      expect(retainedBeforeTombstone).toEqual([
+        expect.objectContaining({
+          displayLabel: 'Providerova 1, Praha',
+          sourceId: 'live-provider:mapy-cz:CZ',
+        }),
+      ]);
+      expect(retainedAfterTombstone).toEqual([]);
+      expect(tombstones).toEqual([
+        expect.objectContaining({
+          id: 'provider-retained-praha-1',
+          reason: 'provider-retention-delete',
+          sourceId: 'live-provider:mapy-cz:CZ',
         }),
       ]);
     }),

@@ -5,6 +5,7 @@ import path from 'node:path';
 const root = process.cwd();
 const packageScope = 'smart-suggest';
 const expectedNodeVersion = '26.3.0';
+const expectedPnpmVersion = '11.9.0';
 const tailwindEnabled = true;
 const fullStackVerticals = [];
 const shellNamespace = 'shell';
@@ -25,23 +26,23 @@ const expectedCloudflareSecurity = {
     permissionsPolicy: 'camera=(), geolocation=(), microphone=(), payment=(), usb=()',
   },
   contentSecurityPolicy: {
-    mode: 'report-only',
+    mode: 'enforce',
     directives: {
       'base-uri': ["'self'"],
-      'connect-src': ["'self'", 'https:', 'http:', 'wss:', 'ws:'],
+      'connect-src': ["'self'", 'https:', 'wss:'],
       'default-src': ["'self'"],
-      'font-src': ["'self'", 'data:', 'https:', 'http:'],
+      'font-src': ["'self'", 'data:', 'https:'],
       'form-action': ["'self'"],
       'frame-ancestors': ["'self'"],
-      'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http:'],
-      'manifest-src': ["'self'", 'https:', 'http:'],
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'manifest-src': ["'self'", 'https:'],
       'object-src': ["'none'"],
-      'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https:', 'http:', 'blob:'],
-      'style-src': ["'self'", "'unsafe-inline'", 'https:', 'http:'],
+      'script-src': ["'self'", "'unsafe-inline'", 'https:', 'blob:'],
+      'style-src': ["'self'", "'unsafe-inline'", 'https:'],
       'worker-src': ["'self'", 'blob:'],
     },
     reason:
-      'Report-only by default so Cloudflare Module Federation SSR can prove remote script, style, and connect compatibility before enforcement.',
+      'Enforced Cloudflare CSP blocks mixed-content and eval sources while permitting Modern SSR and Module Federation assets from self, HTTPS, WSS, and blob workers.',
   },
   noindex: {
     workersDev: true,
@@ -652,9 +653,14 @@ const assertCloudflareQualityGates = (appId, qualityGates) => {
     typeof qualityGates?.budgets?.mfManifestMaxBytes === 'number',
     `${appId} quality gates must define MF manifest byte budget`,
   );
+  assert(qualityGates?.csp?.mode === 'enforce', `${appId} CSP mode must stay enforced`);
   assert(
-    qualityGates?.csp?.finalMode === 'report-only-dogfood',
-    `${appId} CSP final mode decision is missing`,
+    qualityGates?.csp?.purpose === 'enforced-worker-policy',
+    `${appId} CSP purpose must be enforced-worker-policy`,
+  );
+  assert(
+    !('finalMode' in (qualityGates?.csp ?? {})),
+    `${appId} CSP quality gate must not imply an enforced final mode`,
   );
 };
 const extractAssetPrefixExpression = (modernConfig) => {
@@ -750,14 +756,14 @@ const activePnpmVersion = execFileSync('pnpm', ['--pm-on-fail=ignore', '--versio
   stdio: ['ignore', 'pipe', 'pipe'],
 }).trim();
 const activeNodeVersion = process.versions.node;
-const minimumPnpmVersion = { major: 11, minor: 0, patch: 0 };
+const minimumPnpmVersion = parseSemver(expectedPnpmVersion);
 const currentPnpmVersion = parseSemver(activePnpmVersion);
 const minimumNodeVersion = { major: 26, minor: 0, patch: 0 };
 const currentNodeVersion = parseSemver(activeNodeVersion);
 
 assert(
   compareSemver(currentPnpmVersion, minimumPnpmVersion) >= 0,
-  `Generated workspace requires pnpm >=11; active pnpm is ${activePnpmVersion}. Run mise install, then rerun pnpm from the activated shell.`,
+  `Generated workspace requires pnpm >=${expectedPnpmVersion}; active pnpm is ${activePnpmVersion}. Run mise install, then rerun pnpm from the activated shell.`,
 );
 assert(
   compareSemver(currentNodeVersion, minimumNodeVersion) >= 0,
@@ -879,6 +885,7 @@ const packageSource = {
   },
 };
 const generatedContract = readJson('.modernjs/ultramodern-generated-contract.json');
+const templateManifest = readJson('.modernjs/ultramodern-workspace-template-manifest.json');
 const topology = readJson('topology/reference-topology.json');
 const ownership = readJson('topology/ownership.json');
 const overlay = readJson('topology/local-overlays/development.json');
@@ -898,11 +905,14 @@ const packageManagerPnpmVersionMatch = /^pnpm@(\d+\.\d+\.\d+)$/u.exec(rootPackag
 assert(packageManagerPnpmVersionMatch, 'Root packageManager must pin pnpm with a semver version');
 const packageManagerPnpmVersion = packageManagerPnpmVersionMatch[1];
 assert(
-  compareSemver(parseSemver(packageManagerPnpmVersion), minimumPnpmVersion) >= 0,
-  'Root packageManager must use pnpm >=11',
+  packageManagerPnpmVersion === expectedPnpmVersion,
+  `Root packageManager must pin pnpm ${expectedPnpmVersion}`,
 );
 assert(rootPackage.engines?.node === '>=26', 'Root must require Node >=26');
-assert(rootPackage.engines?.pnpm === '>=11', 'Root must require pnpm >=11');
+assert(
+  rootPackage.engines?.pnpm === `>=${expectedPnpmVersion}`,
+  `Root must require pnpm >=${expectedPnpmVersion}`,
+);
 assert(
   generatedContract.node?.version === expectedNodeVersion,
   'Generated contract must record the Node toolchain version',
@@ -921,6 +931,14 @@ assert(
 );
 const workflowText = readText(expectedWorkflowPath);
 const workflowNodeVersions = extractWorkflowNodeVersions(workflowText);
+assert(
+  workflowText.includes('working-directory: apps/smart-suggest'),
+  'CI workflow must run commands from apps/smart-suggest',
+);
+assert(
+  workflowText.includes('name: MF Types') && workflowText.includes('command: pnpm mf:types'),
+  'CI workflow must include the Module Federation types gate',
+);
 assert(workflowNodeVersions.length > 0, 'CI workflow must configure setup-node node-version');
 assert(
   workflowNodeVersions.every((nodeVersion) => nodeVersion === expectedNodeVersion),
@@ -929,6 +947,14 @@ assert(
 assert(
   !workflowText.includes('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24'),
   'CI workflow must not carry the legacy Node 24 override',
+);
+assert(
+  templateManifest.validation?.postMaterializationValidation?.includes('pnpm-11.9-policy-enforced'),
+  'Template manifest must advertise the pnpm 11.9 policy',
+);
+assert(
+  templateManifest.validation?.expectedCommands?.includes('pnpm run mf:types'),
+  'Template manifest must advertise the Module Federation types gate',
 );
 assert(rootPackage.modernjs?.preset === 'presetUltramodern', 'Root must declare presetUltramodern');
 assert(
@@ -991,6 +1017,10 @@ if (packageSource.strategy === 'install') {
 assert(
   packageSource.generatedWorkspacePackages?.specifier === 'workspace:*',
   'Generated workspace packages must keep workspace:* links',
+);
+assert(
+  topology.validation?.commands?.includes('pnpm mf:types'),
+  'Reference topology validation commands must include pnpm mf:types',
 );
 assert(
   rootPackage.scripts?.build === expectedBuildScript,
@@ -1441,7 +1471,6 @@ assert(
       'MODERN_PUBLIC_SITE_URL',
       'ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP',
       'ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN',
-      'SHELL_SUPER_APP_PORT',
     ]),
   'Shell site URL env fallback order is incorrect',
 );
