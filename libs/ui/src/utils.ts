@@ -84,6 +84,7 @@ export function loadStylesheet(
       "error",
       () => {
         stylesheetLoads.delete(key)
+        link.remove()
         reject(new Error(`Failed to load stylesheet: ${href}`))
       },
       { once: true }

@@ -83,14 +83,14 @@ export function ProductCardTemplate({
 
       {name && <ProductCard.Name>{name}</ProductCard.Name>}
 
-	      {(price || originalPrice) && (
-	        <div className="flex items-baseline gap-100">
-	          {originalPrice && (
-	            <span className="text-fg-secondary line-through">{originalPrice}</span>
-	          )}
-	          {price && <ProductCard.Price>{price}</ProductCard.Price>}
-	        </div>
-	      )}
+      {(price || originalPrice) && (
+        <div className="flex items-baseline gap-100">
+          {originalPrice && (
+            <span className="text-fg-muted line-through">{originalPrice}</span>
+          )}
+          {price && <ProductCard.Price>{price}</ProductCard.Price>}
+        </div>
+      )}
 
       {rating && (
         <div className="flex items-center gap-100">
@@ -99,14 +99,14 @@ export function ProductCardTemplate({
               value: rating.value,
               count: rating.count,
             }}
-	          />
-	          {rating.reviewCount && (
-	            <span className="text-fg-secondary text-sm">
-	              ({rating.reviewCount})
-	            </span>
-	          )}
-	        </div>
-	      )}
+          />
+          {rating.reviewCount && (
+            <span className="text-fg-muted text-sm">
+              ({rating.reviewCount})
+            </span>
+          )}
+        </div>
+      )}
 
       {stock && (
         <ProductCard.Stock status={stock.status || "in-stock"}>
