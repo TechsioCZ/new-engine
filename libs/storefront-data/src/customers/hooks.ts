@@ -206,7 +206,7 @@ export function createCustomerHooks<
     options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation<TAddress, unknown, TCreateInput, TContext>({
+    const mutation = useMutation<TAddress, unknown, TCreateInput, TContext>({
       mutationFn: (input: TCreateInput) => {
         const normalized = addressAdapter?.normalizeCreate
           ? addressAdapter.normalizeCreate(input, { mode: "create" })
@@ -235,13 +235,19 @@ export function createCustomerHooks<
         options?.onSettled?.(data, error, variables, context)
       },
     })
+
+    return {
+      ...mutation,
+      createAddress: mutation.mutate,
+      createAddressAsync: mutation.mutateAsync,
+    }
   }
 
   function useUpdateCustomerAddress<TContext = unknown>(
     options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>
   ) {
     const queryClient = useQueryClient()
-    return useMutation<TAddress, unknown, TUpdateInput, TContext>({
+    const mutation = useMutation<TAddress, unknown, TUpdateInput, TContext>({
       mutationFn: (input: TUpdateInput) => {
         const addressId = input.addressId
         if (!addressId) {
@@ -281,6 +287,12 @@ export function createCustomerHooks<
         options?.onSettled?.(data, error, variables, context)
       },
     })
+
+    return {
+      ...mutation,
+      updateAddress: mutation.mutate,
+      updateAddressAsync: mutation.mutateAsync,
+    }
   }
 
   function useDeleteCustomerAddress<TContext = unknown>(

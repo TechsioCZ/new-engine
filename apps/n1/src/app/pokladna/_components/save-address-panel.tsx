@@ -21,11 +21,12 @@ export function SaveAddressPanel() {
   >("idle")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const isDirty = useStore(form.store, (state) => state.isDirty)
-  const shouldShowSavePanel = Boolean(customer) && (isDirty || saveStatus !== "idle")
+  const shouldShowSavePanel =
+    Boolean(customer) && (isDirty || saveStatus !== "idle")
 
-  const { mutateAsync: createAddressAsync } =
+  const { createAddressAsync } =
     storefront.hooks.customers.useCreateCustomerAddress()
-  const { mutateAsync: updateAddressAsync } =
+  const { updateAddressAsync } =
     storefront.hooks.customers.useUpdateCustomerAddress()
 
   const syncBillingAddress = (
