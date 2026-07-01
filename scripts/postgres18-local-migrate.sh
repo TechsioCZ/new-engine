@@ -44,6 +44,12 @@ stop_and_remove_container() {
   fi
 }
 
+stop_compose_postgres_service() {
+  local project_name="$1"
+  log "Stopping compose postgres service for project '${project_name}' (if running)."
+  docker compose -f "$COMPOSE_FILE" -p "$project_name" stop -t 60 medusa-db >/dev/null 2>&1 || true
+}
+
 wait_for_ready() {
   local container="$1"
   local user="$2"
@@ -67,6 +73,13 @@ require_cmd docker
 
 [[ -f "$COMPOSE_FILE" ]] || die "Compose file not found: $COMPOSE_FILE"
 [[ -d "$OLD_DATA_DIR" ]] || die "Old data dir not found: $OLD_DATA_DIR"
+
+LEGACY_PROJECT_NAME="${LEGACY_PROJECT_NAME:-new-engine}"
+stop_compose_postgres_service "$PROJECT_NAME"
+if [[ "$LEGACY_PROJECT_NAME" != "$PROJECT_NAME" ]]; then
+  stop_compose_postgres_service "$LEGACY_PROJECT_NAME"
+fi
+
 old_major="$(
   docker run --rm \
     -v "$OLD_DATA_DIR:/var/lib/postgresql/data:ro" \
@@ -104,9 +117,6 @@ cleanup() {
   stop_and_remove_container "$new_container"
 }
 trap cleanup EXIT
-
-log "Stopping compose postgres service (if running) for a consistent backup."
-docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" stop -t 60 medusa-db >/dev/null 2>&1 || true
 
 log "Creating physical backup: $physical_backup"
 docker run --rm \

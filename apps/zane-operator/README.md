@@ -66,7 +66,7 @@ Teardown response includes role cleanup result:
 ## Optional env vars
 
 - `PORT` (default: `8080`)
-- `PGPORT` (default: `5433`)
+- `PGPORT` (default: `5432`)
 - `PGDATABASE` (default: `postgres`)
 - `PGSSLMODE` (default: `disable`)
 - `DB_TEMPLATE_NAME` (default: `template_medusa`)
@@ -456,7 +456,7 @@ Required env vars for CLI run:
 - `PGUSER`
 - `PGPASSWORD`
 - variable referenced by `--password-env` (for example `DEV_ROLE_PASSWORD`)
-- `PGPORT` (optional, default `5433`)
+- `PGPORT` (optional, default `5432`)
 - `PGDATABASE` (optional, default `postgres`)
 - `PGSSLMODE` (optional, default `disable`)
 

@@ -22,10 +22,10 @@ needs_port_resolution() {
     fi
 
     case "$arg" in
-      --ansi|--env-file|-f|--file|--parallel|--profile|--progress|--project-directory|-p|--project-name)
+      --ansi|-c|--context|--env-file|-f|--file|--parallel|--profile|--progress|--project-directory|-p|--project-name)
         skip_next=1
         ;;
-      --ansi=*|--env-file=*|--file=*|--parallel=*|--profile=*|--progress=*|--project-directory=*|--project-name=*|-f=*|-p=*)
+      --ansi=*|-c=*|--context=*|--env-file=*|--file=*|--parallel=*|--profile=*|--progress=*|--project-directory=*|--project-name=*|-f=*|-p=*)
         ;;
       --*|-*)
         ;;

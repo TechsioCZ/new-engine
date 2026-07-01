@@ -308,7 +308,12 @@ async function getDockerPublishedPorts(args = []) {
       "{{.Ports}}",
     ])
     return parseDockerPublishedPorts(result.stdout)
-  } catch {
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error)
+    const filterDescription = args.length > 0 ? ` ${args.join(" ")}` : ""
+    process.stderr.write(
+      `Warning: docker ps${filterDescription} failed while resolving local ports: ${details}\n`
+    )
     return new Set()
   }
 }
