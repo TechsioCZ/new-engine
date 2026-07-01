@@ -46,7 +46,7 @@
     "react-router": "7.18.0"
   },
   "devDependencies": {
-    "@effect/tsgo": "0.14.6",
+    "@effect/tsgo": "0.15.0",
     "@effect/vitest": "4.0.0-beta.91",
     "@modern-js/app-tools": "npm:@bleedingdev/modern-js-app-tools@3.5.0-ultramodern.20",
     "@tailwindcss/postcss": "^4.3.1",

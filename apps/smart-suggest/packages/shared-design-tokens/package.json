@@ -18,7 +18,7 @@
     "typecheck": "node ../../scripts/ultramodern-typecheck.mjs --project tsconfig.json"
   },
   "devDependencies": {
-    "@effect/tsgo": "0.14.6",
+    "@effect/tsgo": "0.15.0",
     "@typescript/native-preview": "7.0.0-dev.20260628.1"
   }
 }

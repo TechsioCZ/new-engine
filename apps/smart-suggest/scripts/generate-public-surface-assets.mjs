@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const contractPath = path.join(workspaceRoot, '.modernjs/ultramodern-generated-contract.json');
+const canonicalLanguage = 'en';
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -354,7 +355,7 @@ async function expandContentSources(app, publicSurface, languages) {
       expanded.push({
         ...route,
         ...normalizeSitemapFields(route.id, entry),
-        canonicalUrlPath: localeUrlPaths.en,
+        canonicalUrlPath: localeUrlPaths[canonicalLanguage],
         localeUrlPaths,
       });
     }
@@ -499,6 +500,11 @@ function writeText(outputDir, fileName, content) {
 async function generatePublicSurfaceAssets(app, target, requirePublicOrigin) {
   const publicSurface = app.routes?.publicSurface ?? {};
   const languages = publicSurface.languages ?? ['en', 'cs'];
+  if (!languages.includes(canonicalLanguage)) {
+    throw new Error(
+      `${app.id} public surface languages must include ${canonicalLanguage} for canonical URL generation`,
+    );
+  }
   const outputDir = ensureOutputDir(app, target);
   const shouldRequirePublicOrigin =
     requirePublicOrigin || process.env.ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS === 'true';

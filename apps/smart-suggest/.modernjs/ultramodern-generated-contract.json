@@ -516,7 +516,8 @@
         ],
         "publicDir": [
           "./locales",
-          "./assets"
+          "./assets",
+          "./sdk"
         ],
         "localisedUrls": {},
         "resourceOwnership": {
@@ -540,11 +541,11 @@
             "indexable": false,
             "public": false,
             "publicSurface": "private-app-screen",
-            "canonicalPath": "/",
+            "canonicalPath": "/en",
             "id": "shell-home",
             "localisedPaths": {
-              "cs": "/",
-              "en": "/"
+              "cs": "/cs",
+              "en": "/en"
             },
             "titleKey": "shell.title"
           }
