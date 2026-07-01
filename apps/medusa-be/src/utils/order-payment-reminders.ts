@@ -76,8 +76,7 @@ export function formatTotal(order: PaymentReminderOrder) {
     return
   }
 
-  const normalizedTotal =
-    typeof total === "string" ? Number(total) : total
+  const normalizedTotal = typeof total === "string" ? Number(total) : total
 
   if (!Number.isFinite(normalizedTotal)) {
     return

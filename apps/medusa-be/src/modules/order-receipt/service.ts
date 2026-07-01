@@ -153,9 +153,7 @@ function buildPdf(order: OrderReceiptOrder) {
     const y = tableTop - 24 - index * 22
 
     commands.push(pdfText(row.quantity, LEFT, y, { size: 9 }))
-    commands.push(
-      pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 })
-    )
+    commands.push(pdfText(truncate(row.title, 36), LEFT + 32, y, { size: 9 }))
     commands.push(pdfText(row.taxLabel, 335, y, { align: "right", size: 9 }))
     commands.push(
       pdfText(formatMoney(row.unitPriceNet, currency), 430, y, {
