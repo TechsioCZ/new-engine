@@ -46,7 +46,7 @@
     "@techsio/ui-kit": "workspace:^",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "effect": "4.0.0-beta.91",
+    "effect": "4.0.0-beta.92",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "typescript": "^5.9.3",

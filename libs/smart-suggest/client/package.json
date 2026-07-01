@@ -27,7 +27,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@effect/vitest": "4.0.0-beta.91",
+    "@effect/vitest": "4.0.0-beta.92",
     "@rslib/core": "^0.18.0",
     "@techsio/smart-suggest-tooling": "workspace:^",
     "typescript": "^5.9.3",
@@ -36,6 +36,6 @@
   "dependencies": {
     "@techsio/smart-suggest-core": "workspace:^",
     "@techsio/smart-suggest-validation": "workspace:^",
-    "effect": "4.0.0-beta.91"
+    "effect": "4.0.0-beta.92"
   }
 }
