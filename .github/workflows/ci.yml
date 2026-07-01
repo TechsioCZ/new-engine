@@ -58,5 +58,16 @@ jobs:
         run: pnpm lint:nx
       - name: Test new-engine-ctl CI wiring
         run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
+      - name: Typecheck affected prepared projects
+        run: |
+          affected="${{ steps.determine_affected.outputs.projects }}"
+          # Only run project-owned typecheck targets; inferred TypeScript targets use build mode.
+          prepared="@techsio/storefront-data,new-engine-ctl,zane-operator,medusa-symmy-plugin,medusa-order-dashboard-plugin"
+          projects="$(AFFECTED="$affected" PREPARED="$prepared" node -e 'const affected = (process.env.AFFECTED || "").split(",").filter(Boolean); const prepared = new Set((process.env.PREPARED || "").split(",").filter(Boolean)); process.stdout.write(affected.filter((project) => prepared.has(project)).join(","));')"
+          if [ -z "$projects" ]; then
+            echo "No affected projects with explicit typecheck targets."
+            exit 0
+          fi
+          ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
