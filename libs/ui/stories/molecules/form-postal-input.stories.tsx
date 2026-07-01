@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { getPostalErrorText, getPostalHelpText } from "@techsio/address/i18n/en"
 import { useState } from "react"
 import { FormPostalInput } from "../../src/molecules/form-postal-input"
 
@@ -75,7 +76,7 @@ export const Default: Story = {
 		id: "postal-default",
 		label: "Postal Code",
 		countryCode: "CZ",
-		helpText: "Enter your postal code",
+		helpText: getPostalHelpText("CZ"),
 	},
 }
 
@@ -182,14 +183,14 @@ export const ValidationStates: Story = {
 				id="postal-default-state"
 				label="Default State"
 				countryCode="CZ"
-				helpText="Enter your postal code"
+				helpText={getPostalHelpText("CZ")}
 			/>
 			<FormPostalInput
 				id="postal-error"
 				label="Error State"
 				countryCode="CZ"
 				validateStatus="error"
-				errorText="Invalid postal code format"
+				errorText={getPostalErrorText("CZ")}
 				value="123"
 			/>
 			<FormPostalInput

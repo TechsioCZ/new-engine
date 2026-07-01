@@ -11,6 +11,22 @@
       "types": "./dist/src/countries/types.d.ts",
       "import": "./dist/countries/types.js"
     },
+    "./i18n/types": {
+      "types": "./dist/src/i18n/types.d.ts",
+      "import": "./dist/i18n/types.js"
+    },
+    "./i18n/cs": {
+      "types": "./dist/src/i18n/cs.d.ts",
+      "import": "./dist/i18n/cs.js"
+    },
+    "./i18n/en": {
+      "types": "./dist/src/i18n/en.d.ts",
+      "import": "./dist/i18n/en.js"
+    },
+    "./i18n/de": {
+      "types": "./dist/src/i18n/de.d.ts",
+      "import": "./dist/i18n/de.js"
+    },
     "./postal-code/format": {
       "types": "./dist/src/postal-code/format.d.ts",
       "import": "./dist/postal-code/format.js"

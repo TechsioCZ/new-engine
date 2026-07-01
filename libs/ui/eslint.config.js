@@ -38,7 +38,8 @@ export default [
       "tailwindcss/migration-from-tailwind-2": "off",
       "tailwindcss/no-arbitrary-value": "off",
       "tailwindcss/no-contradicting-classname": "error",
-      "tailwindcss/no-custom-classname": "error",
+      // Tailwind v4 token utilities + tailwind-variants slot names cause false positives in this rule.
+      "tailwindcss/no-custom-classname": "off",
       "tailwindcss/no-unnecessary-arbitrary-value": "error",
     },
   },

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
+import { getPhoneErrorText, getPhoneHelpText } from "@techsio/address/i18n/en"
 import { useState } from "react"
 import { Button } from "../../src/atoms/button"
 import { FormPhoneInput } from "../../src/molecules/form-phone-input"
@@ -68,7 +69,7 @@ export const Default: Story = {
 		id: "phone-default",
 		label: "Phone Number",
 		placeholder: "Enter phone number",
-		helpText: "Enter your phone number with country code",
+		helpText: getPhoneHelpText("CZ"),
 	},
 }
 
@@ -127,14 +128,14 @@ export const ValidationStates: Story = {
 				id="phone-default-state"
 				label="Default State"
 				placeholder="Phone number"
-				helpText="Enter your contact number"
+				helpText={getPhoneHelpText("CZ")}
 			/>
 			<FormPhoneInput
 				id="phone-error"
 				label="Error State"
 				placeholder="Phone number"
 				validateStatus="error"
-				errorText="Please enter a valid phone number"
+				errorText={getPhoneErrorText("DE")}
 				defaultValue="+49555"
 			/>
 			<FormPhoneInput
