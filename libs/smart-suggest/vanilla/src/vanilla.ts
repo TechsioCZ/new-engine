@@ -982,6 +982,9 @@ export const attachSmartSuggest = (
       return;
     }
 
+    abortActiveSuggestRequest();
+    clearSuggestResults();
+
     debounceTimer = setTimeout(() => {
       const pending = suggest();
       pending.catch((error: unknown) => reportError(config.onError, error));

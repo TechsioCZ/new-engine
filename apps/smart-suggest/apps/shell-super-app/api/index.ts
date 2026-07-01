@@ -2107,9 +2107,7 @@ const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | un
   const countryCode = toCountryCode(query.countryCode);
   const tenant = readTenantContext(query);
 
-  if (query.kind !== 'postal') {
-    request.limit = normalizeSuggestLimit(query.limit);
-  }
+  request.limit = normalizeSuggestLimit(query.limit);
   if (countryCode !== undefined) {
     request.countryCode = countryCode;
   }
@@ -2354,7 +2352,7 @@ const suggestFromOwnedData = (
           cacheStatus,
           request,
           suggestions: addressSuggestions,
-        }),
+        }).slice(0, normalizeSuggestLimit(request.limit)),
       };
     }
 
@@ -2918,8 +2916,7 @@ const mergeSuggestionResponses = (
 ): SmartSuggestResponse => {
   const seen = new Set<string>();
   const suggestions: SmartSuggestSuggestion[] = [];
-  const limit =
-    request.kind === 'postal' ? Number.POSITIVE_INFINITY : normalizeSuggestLimit(request.limit);
+  const limit = normalizeSuggestLimit(request.limit);
 
   for (const suggestion of [...ownedResponse.suggestions, ...providerResponse.suggestions]) {
     const key = suggestionMergeKey(suggestion);
@@ -3370,10 +3367,7 @@ const suggest = (
           cacheLevels,
         ),
       );
-      const cachedSuggestionLimit =
-        suggestRequest.kind === 'postal'
-          ? Number.POSITIVE_INFINITY
-          : normalizeSuggestLimit(suggestRequest.limit);
+      const cachedSuggestionLimit = normalizeSuggestLimit(suggestRequest.limit);
       response = {
         ...response,
         suggestions: response.suggestions.slice(0, cachedSuggestionLimit),

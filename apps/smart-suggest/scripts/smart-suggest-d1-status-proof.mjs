@@ -175,10 +175,6 @@ function writeProofWranglerConfig() {
   });
 }
 
-function wranglerRouterExecuteArgs(sql) {
-  return wranglerD1ExecuteArgs(routerDatabaseName, sql);
-}
-
 function wranglerD1ExecuteArgs(databaseName, sql) {
   return [
     'd1',

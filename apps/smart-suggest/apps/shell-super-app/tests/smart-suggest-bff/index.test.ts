@@ -841,76 +841,66 @@ describe('Smart Suggest effect API', () => {
       const body = yield* decodeJsonResponse(response, SmartSuggestResponseSchema);
 
       expect(body.cacheStatus).toBe('miss');
-      expect(body.suggestions).toHaveLength(27);
-      expect(body.suggestions).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            address: expect.objectContaining({
-              city: 'Praha 10',
-              countryCode: 'CZ',
-              postalCode: '101 00',
-            }),
-            displayLabel: '101 00 Praha 10',
-            id: 'ruian-cz:postal:10100:praha-10',
-            kind: 'postal',
-            source: expect.objectContaining({
-              id: 'ruian-cz',
-              kind: 'owned-dataset',
-            }),
+      expect(body.suggestions).toHaveLength(2);
+      expect(body.suggestions).toEqual([
+        expect.objectContaining({
+          address: expect.objectContaining({
+            city: 'Jiná Obec',
+            countryCode: 'CZ',
+            postalCode: '101 00',
           }),
-          expect.objectContaining({
-            address: expect.objectContaining({
-              city: 'Jiná Obec',
-              countryCode: 'CZ',
-              postalCode: '101 00',
-            }),
-            displayLabel: '101 00 Jiná Obec',
-            id: 'ruian-cz:postal:10100:jina-obec',
-            kind: 'postal',
-            source: expect.objectContaining({
-              id: 'ruian-cz',
-              kind: 'owned-dataset',
-            }),
+          displayLabel: '101 00 Jiná Obec',
+          id: 'ruian-cz:postal:10100:jina-obec',
+          kind: 'postal',
+          source: expect.objectContaining({
+            id: 'ruian-cz',
+            kind: 'owned-dataset',
           }),
-          expect.objectContaining({
-            address: expect.objectContaining({
-              city: 'Obec 25',
-              countryCode: 'CZ',
-              postalCode: '101 00',
-            }),
-            displayLabel: '101 00 Obec 25',
-            id: 'ruian-cz:postal:10100:obec-25',
-            kind: 'postal',
-            source: expect.objectContaining({
-              id: 'ruian-cz',
-              kind: 'owned-dataset',
-            }),
+        }),
+        expect.objectContaining({
+          address: expect.objectContaining({
+            city: 'Obec 01',
+            countryCode: 'CZ',
+            postalCode: '101 00',
           }),
-        ]),
-      );
+          displayLabel: '101 00 Obec 01',
+          id: 'ruian-cz:postal:10100:obec-01',
+          kind: 'postal',
+          source: expect.objectContaining({
+            id: 'ruian-cz',
+            kind: 'owned-dataset',
+          }),
+        }),
+      ]);
 
       const cachedResponse = yield* handlerCallEffect(
         testHandler,
-        requestFor('/v1/suggest?kind=postal&countryCode=CZ&q=10100&limit=1'),
+        requestFor('/v1/suggest?kind=postal&countryCode=CZ&q=10100&limit=2'),
       );
       const cachedBody = yield* decodeJsonResponse(cachedResponse, SmartSuggestResponseSchema);
 
       expect(cachedBody.cacheStatus).toBe('hit');
-      expect(cachedBody.suggestions).toHaveLength(27);
-      expect(cachedBody.suggestions).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            address: expect.objectContaining({
-              city: 'Obec 25',
-              countryCode: 'CZ',
-              postalCode: '101 00',
-            }),
-            displayLabel: '101 00 Obec 25',
-            id: 'ruian-cz:postal:10100:obec-25',
-            kind: 'postal',
-          }),
-        ]),
+      expect(cachedBody.suggestions).toHaveLength(2);
+
+      const limitOneResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/suggest?kind=postal&countryCode=CZ&q=10100&limit=1'),
       );
+      const limitOneBody = yield* decodeJsonResponse(limitOneResponse, SmartSuggestResponseSchema);
+
+      expect(limitOneBody.cacheStatus).toBe('miss');
+      expect(limitOneBody.suggestions).toEqual([
+        expect.objectContaining({
+          address: expect.objectContaining({
+            city: 'Jiná Obec',
+            countryCode: 'CZ',
+            postalCode: '101 00',
+          }),
+          displayLabel: '101 00 Jiná Obec',
+          id: 'ruian-cz:postal:10100:jina-obec',
+          kind: 'postal',
+        }),
+      ]);
     }),
   );
 

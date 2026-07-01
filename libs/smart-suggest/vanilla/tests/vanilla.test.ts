@@ -313,6 +313,64 @@ describe("attachSmartSuggest", () => {
     expect(document.querySelector('[role="option"]')?.textContent).toBe("Brno, Czechia");
   });
 
+  it("clears stale address suggestions before the next debounced lookup", async () => {
+    const address = addInput("address");
+    const selected = vi.fn();
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
+      Promise.resolve(
+        jsonResponse({
+          cacheStatus: "miss",
+          requestId: "request-praha",
+          suggestions: [
+            {
+              confidence: 0.9,
+              displayLabel: "Praha, Czechia",
+              id: "praha",
+              kind: "address",
+              source: { id: "ruian-cz", kind: "owned-dataset", name: "RUIAN" },
+            },
+          ],
+        }),
+      ),
+    );
+    const instance = attachSmartSuggest({
+      addressLine: address,
+      debounceMs: 50,
+      fetch: fetchMock,
+      minQueryLength: 1,
+      onSuggestionSelect: selected,
+    });
+
+    await instance.suggest("Praha");
+
+    const option = document.querySelector('[role="option"]');
+    expect(option?.textContent).toBe("Praha, Czechia");
+    address.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "ArrowDown",
+      }),
+    );
+
+    address.value = "Brno";
+    address.dispatchEvent(new Event("input", { bubbles: true }));
+    address.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Enter",
+      }),
+    );
+
+    expect(document.querySelector('[role="option"]')).toBeNull();
+    expect(address.value).toBe("Brno");
+    expect(selected).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    instance.destroy();
+  });
+
   it("clears stale suggestions when the latest lookup fails", async () => {
     const address = addInput("address");
     const onError = vi.fn();
