@@ -148,6 +148,25 @@ const FLAG_ICON_TOKENS: Record<string, IconType> = {
   gb: "token-icon-flag-gb",
 }
 
+function renderSelectedCountryFlag(
+  country: PhoneCountryData | undefined,
+  callingCode: string,
+  countryFlagClassName: string,
+  countryCodeClassName: string
+) {
+  const flagIcon = country && FLAG_ICON_TOKENS[country.flag]
+  if (!flagIcon) {
+    return null
+  }
+
+  return (
+    <>
+      <Icon className={countryFlagClassName} icon={flagIcon} />
+      <span className={countryCodeClassName}>+{callingCode}</span>
+    </>
+  )
+}
+
 // === DEFAULT COUNTRIES ===
 // EU-typical countries only (must have corresponding flag token)
 
@@ -333,6 +352,12 @@ export function FormPhoneInput({
     itemName,
     itemDialCode,
   } = phoneInputVariants({ size })
+  const selectedCountryFlag = renderSelectedCountryFlag(
+    currentCountry,
+    callingCode,
+    countryFlag(),
+    countryCodeStyle()
+  )
 
   return (
     <>
@@ -367,16 +392,7 @@ export function FormPhoneInput({
             {...countryApi.getTriggerProps()}
             data-disabled={disabled || undefined}
           >
-            {(() => {
-              const flagIcon =
-                currentCountry && FLAG_ICON_TOKENS[currentCountry.flag]
-              return flagIcon ? (
-                <>
-                  <Icon className={countryFlag()} icon={flagIcon} />
-                  <span className={countryCodeStyle()}>+{callingCode}</span>
-                </>
-              ) : null
-            })()}
+            {selectedCountryFlag}
             <Icon
               className={countryChevron()}
               data-state={countryApi.open ? "open" : "closed"}

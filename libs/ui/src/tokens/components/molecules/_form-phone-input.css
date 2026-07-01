@@ -1,20 +1,20 @@
 @theme static {
   /* === BASE COLOR MAPPING === */
   /* Reference layer - single source of truth for theming */
-  --color-phone-input: var(--color-surface);
-  --color-phone-input-accent: var(--color-primary);
+  --color-phone-input-bg-base: var(--color-surface);
+  --color-phone-input-border-accent: var(--color-primary);
   --color-phone-input-success-fg: var(--color-success);
   --color-phone-input-warning-fg: var(--color-warning);
   --color-phone-input-danger-fg: var(--color-danger);
 
   /* === DERIVED COLORS === */
   /* Background colors */
-  --color-phone-input-bg: var(--color-phone-input);
+  --color-phone-input-bg: var(--color-phone-input-bg-base);
   --color-phone-input-bg-hover: oklch(
-    from var(--color-phone-input) calc(l + var(--state-hover)) c h
+    from var(--color-phone-input-bg-base) calc(l + var(--state-hover)) c h
   );
   --color-phone-input-bg-focus: oklch(
-    from var(--color-phone-input) calc(l + var(--state-active)) c h
+    from var(--color-phone-input-bg-base) calc(l + var(--state-active)) c h
   );
 
   /* Foreground colors */
@@ -30,7 +30,7 @@
   --color-phone-input-border-hover: oklch(
     from var(--color-phone-input-border) calc(l + var(--state-hover)) c h
   );
-  --color-phone-input-border-focus: var(--color-phone-input-accent);
+  --color-phone-input-border-focus: var(--color-phone-input-border-accent);
   --color-phone-input-divider: var(--color-border-secondary);
 
   /* === VALIDATION STATES === */
@@ -44,7 +44,7 @@
   --color-phone-input-border-disabled: var(--color-border-disabled);
 
   /* === DROPDOWN COLORS === */
-  --color-phone-input-dropdown-bg: var(--color-phone-input);
+  --color-phone-input-dropdown-bg: var(--color-phone-input-bg-base);
   --color-phone-input-dropdown-border: var(--color-border-primary);
   --color-phone-input-item-fg: var(--color-phone-input-fg);
   --color-phone-input-item-bg-hover: var(--color-phone-input-bg-hover);

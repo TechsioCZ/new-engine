@@ -69,7 +69,6 @@ export const Default: Story = {
 		label: "Phone Number",
 		placeholder: "Enter phone number",
 		helpText: "Enter your phone number with country code",
-		size: "sm",
 	},
 }
 
@@ -230,7 +229,6 @@ export const Controlled: Story = {
 						size="sm"
 						onClick={() => {
 							setValue("+442071234567")
-							setCountry("GB")
 						}}
 					>
 						Set UK Number
