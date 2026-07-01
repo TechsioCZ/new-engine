@@ -12,7 +12,6 @@ NO_CACHE="false"
 
 PROJECT_NAME="$(new_engine_project_name)"
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
-LEGACY_PROJECT_NAME="${LEGACY_PROJECT_NAME:-new-engine}"
 
 usage() {
   cat <<'EOF'
@@ -45,10 +44,9 @@ done
 
 compose_dev=(docker compose -f "$REPO_ROOT/docker-compose.yaml" -p "$PROJECT_NAME")
 compose_prod=(docker compose -f "$REPO_ROOT/docker-compose.yaml" -f "$REPO_ROOT/docker-compose.prod.yaml" -p "$PROJECT_NAME")
-compose_legacy_prod=(docker compose -f "$REPO_ROOT/docker-compose.yaml" -f "$REPO_ROOT/docker-compose.prod.yaml" -p "$LEGACY_PROJECT_NAME")
-build_args=(build)
+build_flags=()
 if [[ "$NO_CACHE" == "true" ]]; then
-  build_args+=(--no-cache)
+  build_flags+=(--no-cache)
 fi
 
 wait_for_health() {
@@ -84,12 +82,9 @@ wait_for_health() {
 }
 
 cd "$REPO_ROOT"
-if [[ "$PROJECT_NAME" != "$LEGACY_PROJECT_NAME" ]]; then
-  "${compose_legacy_prod[@]}" down || true
-fi
 "${compose_prod[@]}" down || true
 docker rmi "${PROJECT_NAME}-medusa-be" "${PROJECT_NAME}-n1" || true
-"${compose_prod[@]}" "${build_args[@]}" medusa-be
+"${compose_prod[@]}" build "${build_flags[@]}" medusa-be
 "${compose_prod[@]}" up -d medusa-be
 wait_for_health medusa-be
 
@@ -99,5 +94,5 @@ wait_for_health medusa-be
   -e MEDUSA_BACKEND_URL_INTERNAL=http://medusa-be:9000 \
   n1 sh -lc '[ -d node_modules ] && [ -d apps/n1/node_modules ] || pnpm install --frozen-lockfile --prefer-offline --filter=n1...; pnpm --filter n1 run generate:categories'
 
-"${compose_prod[@]}" "${build_args[@]}" n1
+"${compose_prod[@]}" build "${build_flags[@]}" n1
 "${compose_prod[@]}" up -d
