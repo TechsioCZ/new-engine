@@ -1429,10 +1429,13 @@ const requestUrl = (request: HttpServerRequest.HttpServerRequest) => {
 
 const tenantIdCorsRoutes = new Set(['/v1/accept', '/v1/suggest']);
 
+const normalizeTenantIdCorsPathname = (pathname: string) =>
+  pathname.startsWith('/api/') ? pathname.slice('/api'.length) : pathname;
+
 const tenantIdFromCorsRequest = (request: HttpServerRequest.HttpServerRequest) => {
   const url = requestUrl(request);
 
-  return url !== undefined && tenantIdCorsRoutes.has(url.pathname)
+  return url !== undefined && tenantIdCorsRoutes.has(normalizeTenantIdCorsPathname(url.pathname))
     ? envString(url.searchParams.get('tenantId') ?? undefined)
     : missingCorsOrigin;
 };

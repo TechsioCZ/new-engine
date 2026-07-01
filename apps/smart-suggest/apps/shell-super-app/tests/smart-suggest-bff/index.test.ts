@@ -344,6 +344,16 @@ describe('Smart Suggest effect API', () => {
           method: 'OPTIONS',
         }),
       );
+      const prefixedTenantPreflightResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/api/v1/suggest?tenantId=tenant-origin-test', {
+          headers: {
+            'access-control-request-headers': 'x-api-key',
+            origin: 'https://tenant-shop.example',
+          },
+          method: 'OPTIONS',
+        }),
+      );
       const tenantAcceptPreflightResponse = yield* handlerCallEffect(
         testHandler,
         requestFor('/v1/accept?tenantId=tenant-origin-test', {
@@ -381,6 +391,10 @@ describe('Smart Suggest effect API', () => {
       expect(wildcardHealthResponse.headers.get('access-control-allow-origin')).toBeNull();
       expect(tenantPreflightResponse.status).toBe(204);
       expect(tenantPreflightResponse.headers.get('access-control-allow-origin')).toBe(
+        'https://tenant-shop.example',
+      );
+      expect(prefixedTenantPreflightResponse.status).toBe(204);
+      expect(prefixedTenantPreflightResponse.headers.get('access-control-allow-origin')).toBe(
         'https://tenant-shop.example',
       );
       expect(tenantAcceptPreflightResponse.status).toBe(204);
