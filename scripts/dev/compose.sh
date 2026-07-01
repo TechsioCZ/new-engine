@@ -10,8 +10,9 @@ LOCAL_DEV_RUNTIME_ENV_FILE="${LOCAL_DEV_RUNTIME_ENV_FILE:-${ROOT_DIR}/.docker_da
 
 PROJECT_NAME="$(new_engine_project_name)"
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+LEGACY_PROJECT_NAME="${LEGACY_PROJECT_NAME:-new-engine}"
 
-needs_port_resolution() {
+compose_command() {
   local arg command
   local skip_next=0
 
@@ -36,12 +37,41 @@ needs_port_resolution() {
     esac
   done
 
-  case "${command:-}" in
+  if [[ -n "${command:-}" ]]; then
+    printf '%s\n' "$command"
+    return 0
+  fi
+
+  return 1
+}
+
+needs_port_resolution() {
+  local command="$1"
+
+  case "$command" in
     build|config|create|run|up)
       return 0
       ;;
     *)
       return 1
+      ;;
+  esac
+}
+
+stop_legacy_project_if_needed() {
+  local command="$1"
+  shift
+
+  if [[ "$PROJECT_NAME" == "$LEGACY_PROJECT_NAME" ]]; then
+    return 0
+  fi
+
+  case "$command" in
+    create|run|up)
+      docker compose -f docker-compose.yaml -p "$LEGACY_PROJECT_NAME" stop -t "${COMPOSE_STOP_TIMEOUT:-60}" >/dev/null 2>&1 || true
+      ;;
+    down)
+      docker compose -f docker-compose.yaml -p "$LEGACY_PROJECT_NAME" "$@" >/dev/null 2>&1 || true
       ;;
   esac
 }
@@ -57,11 +87,16 @@ compose_env_args() {
 }
 
 main() {
+  local command
   local compose_args=()
 
   cd "$ROOT_DIR"
 
-  if needs_port_resolution "$@"; then
+  command="$(compose_command "$@" || true)"
+
+  stop_legacy_project_if_needed "$command" "$@"
+
+  if needs_port_resolution "$command"; then
     bash ./scripts/dev/mise-dev-helpers.sh resolve-local-ports >/dev/null
   fi
 
