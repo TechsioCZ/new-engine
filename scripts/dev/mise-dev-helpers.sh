@@ -46,7 +46,7 @@ ensure_ctl_dist() {
 
 resolve_local_ports() {
   require_cmd node
-  node "$ROOT_DIR/scripts/dev/resolve-local-ports.mjs" \
+  "$ROOT_DIR/scripts/dev/resolve-local-ports.mjs" \
     --env-file "$ENV_FILE" \
     --output "$LOCAL_DEV_RUNTIME_ENV_FILE" \
     --project-name "$PROJECT_NAME"

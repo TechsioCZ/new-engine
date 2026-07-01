@@ -17,7 +17,7 @@ admin.medusa.localhost:9009 {
 }
 
 admin.medusa.localhost {
-    redir https://{host}{uri}
+    redir https://admin.medusa.localhost:{$DC_CADDY_HTTPS_PUBLIC_PORT:443}{uri}
 }
 
 n1.medusa.localhost:443 {
@@ -26,7 +26,7 @@ n1.medusa.localhost:443 {
 }
 
 n1.medusa.localhost {
-    redir https://{host}{uri}
+    redir https://n1.medusa.localhost:{$DC_CADDY_HTTPS_PUBLIC_PORT:443}{uri}
 }
 
 admin.meilisearch.localhost:443 {
@@ -35,7 +35,7 @@ admin.meilisearch.localhost:443 {
 }
 
 admin.meilisearch.localhost {
-    redir https://{host}{uri}
+    redir https://admin.meilisearch.localhost:{$DC_CADDY_HTTPS_PUBLIC_PORT:443}{uri}
 }
 
 admin.minio.localhost:443 {
@@ -49,7 +49,7 @@ api.minio.localhost:80 {
 }
 
 admin.minio.localhost {
-    redir https://{host}{uri}
+    redir https://admin.minio.localhost:{$DC_CADDY_HTTPS_PUBLIC_PORT:443}{uri}
 }
 
 admin.db.localhost:443 {
@@ -58,7 +58,7 @@ admin.db.localhost:443 {
 }
 
 admin.db.localhost {
-    redir https://{host}{uri}
+    redir https://admin.db.localhost:{$DC_CADDY_HTTPS_PUBLIC_PORT:443}{uri}
 }
 
 admin.zane-operator.localhost:443 {
@@ -67,5 +67,5 @@ admin.zane-operator.localhost:443 {
 }
 
 admin.zane-operator.localhost {
-    redir https://{host}{uri}
+    redir https://admin.zane-operator.localhost:{$DC_CADDY_HTTPS_PUBLIC_PORT:443}{uri}
 }

@@ -316,6 +316,8 @@ services:
       - "127.0.0.1:${DC_CADDY_HTTP_PUBLIC_PORT:-80}:80"
       - "127.0.0.1:${DC_CADDY_HTTPS_PUBLIC_PORT:-443}:443"
       - "127.0.0.1:${DC_CADDY_HTTPS_PUBLIC_PORT:-443}:443/udp"
+    environment:
+      DC_CADDY_HTTPS_PUBLIC_PORT: ${DC_CADDY_HTTPS_PUBLIC_PORT:-443}
     networks:
       - internal
     volumes:
