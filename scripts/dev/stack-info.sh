@@ -22,7 +22,7 @@ runtime_value() {
     gsub(/^"|"$/, "", value)
     print value
     exit
-  }' "$LOCAL_DEV_RUNTIME_ENV_FILE"
+  }' "$LOCAL_DEV_RUNTIME_ENV_FILE" || true
 }
 
 print_url() {
@@ -86,7 +86,7 @@ main() {
     print_url "Caddy HTTP" "${caddy_http_port:+$(local_http_url n1.medusa.localhost "$caddy_http_port")}"
     print_url "Caddy HTTPS" "${caddy_https_port:+$(local_https_url n1.medusa.localhost "$caddy_https_port")}"
   else
-    printf "\nNo runtime env exists yet. Run `mise run dev:ports` or `mise run dev`.\n"
+    printf '\n%s\n' "No runtime env exists yet. Run \`mise run dev:ports\` or \`mise run dev\`."
   fi
 
   printf "\nCompose services:\n"

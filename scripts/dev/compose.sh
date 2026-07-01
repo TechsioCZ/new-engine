@@ -12,17 +12,38 @@ PROJECT_NAME="$(new_engine_project_name)"
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 
 needs_port_resolution() {
-  local arg
+  local arg command
+  local skip_next=0
 
   for arg in "$@"; do
+    if (( skip_next )); then
+      skip_next=0
+      continue
+    fi
+
     case "$arg" in
-      build|config|create|restart|run|start|up)
-        return 0
+      --ansi|--env-file|-f|--file|--parallel|--profile|--progress|--project-directory|-p|--project-name)
+        skip_next=1
+        ;;
+      --ansi=*|--env-file=*|--file=*|--parallel=*|--profile=*|--progress=*|--project-directory=*|--project-name=*|-f=*|-p=*)
+        ;;
+      --*|-*)
+        ;;
+      *)
+        command="$arg"
+        break
         ;;
     esac
   done
 
-  return 1
+  case "${command:-}" in
+    build|config|create|run|up)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 compose_env_args() {
@@ -48,7 +69,11 @@ main() {
     compose_args+=("$arg")
   done < <(compose_env_args)
 
-  docker compose "${compose_args[@]}" -f docker-compose.yaml -p "$PROJECT_NAME" "$@"
+  if (( ${#compose_args[@]} > 0 )); then
+    docker compose "${compose_args[@]}" -f docker-compose.yaml -p "$PROJECT_NAME" "$@"
+  else
+    docker compose -f docker-compose.yaml -p "$PROJECT_NAME" "$@"
+  fi
 }
 
 main "$@"

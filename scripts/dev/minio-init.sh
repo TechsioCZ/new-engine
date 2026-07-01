@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+# shellcheck disable=SC2034 # consumed by scripts/dev/project-env.sh::new_engine_project_name
 ROOT_DIR="$REPO_ROOT"
 COMPOSE_FILE="${REPO_ROOT}/docker-compose.yaml"
 MINIO_BOOTSTRAP_ALIAS="${MINIO_BOOTSTRAP_ALIAS:-local}"

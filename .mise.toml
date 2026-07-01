@@ -196,7 +196,7 @@ run = "bash ./scripts/dev/compose.sh up -d --build --no-deps $(bash ./scripts/de
 [tasks."dev:internal:backend:prepare"]
 description = "Run Medusa DB migrations before backend startup"
 hide = true
-run = "bash ./scripts/dev/compose.sh run --rm --build --no-deps medusa-be pnpm --filter medusa-be run migrate"
+run = "bash ./scripts/dev/compose.sh build medusa-be && bash ./scripts/dev/compose.sh run --rm --no-deps medusa-be pnpm --filter medusa-be run migrate"
 
 [tasks."dev:internal:backend:wait"]
 description = "Wait for manifest-defined backend phase services to become healthy"

@@ -50,6 +50,11 @@ const integerPattern = /^\d+$/
 const dockerPublishedPortPattern =
   /(?:^|,\s)[^,]*:(\d+)(?:-(\d+))?->\d+(?:-\d+)?\/(tcp|udp)/g
 const bareShellEnvValuePattern = /^[A-Za-z0-9_./:@,+%-]*$/
+const bindProbeResult = {
+  available: "available",
+  unavailable: "unavailable",
+  unknown: "unknown",
+}
 const argOptionMap = {
   "--env-file": "envFile",
   "--output": "output",
@@ -186,13 +191,13 @@ async function canBindTcp(host, port) {
     const server = createServer()
     server.once("error", (error) => {
       if (error?.code === "EACCES" && port < 1024) {
-        resolveProbe(true)
+        resolveProbe(bindProbeResult.unknown)
         return
       }
-      resolveProbe(false)
+      resolveProbe(bindProbeResult.unavailable)
     })
     server.once("listening", () => {
-      server.close(() => resolveProbe(true))
+      server.close(() => resolveProbe(bindProbeResult.available))
     })
     server.listen({ host, port })
   })
@@ -203,11 +208,15 @@ async function canBindUdp(host, port) {
     const socket = createSocket("udp4")
     socket.once("error", (error) => {
       socket.close()
-      resolveProbe(error?.code === "EACCES" && port < 1024)
+      resolveProbe(
+        error?.code === "EACCES" && port < 1024
+          ? bindProbeResult.unknown
+          : bindProbeResult.unavailable
+      )
     })
     socket.once("listening", () => {
       socket.close()
-      resolveProbe(true)
+      resolveProbe(bindProbeResult.available)
     })
     socket.bind(port, host)
   })
@@ -222,10 +231,14 @@ async function isEndpointPortAvailable(
   for (const protocol of endpoint.protocols) {
     const key = `${protocol}:${port}`
     const canBind = protocol === "udp" ? canBindUdp : canBindTcp
-    if (projectPorts.has(key)) {
+    if (projectPorts.owners.get(key) === endpoint.id) {
       continue
     }
-    if (dockerPorts.has(key) || !(await canBind(endpoint.host, port))) {
+    if (
+      dockerPorts.has(key) ||
+      projectPorts.ports.has(key) ||
+      (await canBind(endpoint.host, port)) !== bindProbeResult.available
+    ) {
       return false
     }
   }
@@ -300,6 +313,27 @@ async function getDockerPublishedPorts(args = []) {
   }
 }
 
+function projectPortOwners(projectPorts, runtimeEnvFile) {
+  const owners = new Map()
+
+  for (const endpoint of endpoints) {
+    const value = runtimeEnvFile[endpoint.envVar]
+    if (!value) {
+      continue
+    }
+
+    const port = parsePort(value, endpoint.envVar)
+    for (const protocol of endpoint.protocols) {
+      const key = `${protocol}:${port}`
+      if (projectPorts.has(key)) {
+        owners.set(key, endpoint.id)
+      }
+    }
+  }
+
+  return owners
+}
+
 function caddyHttpsOrigin(host, port) {
   return port === "443" ? `https://${host}` : `https://${host}:${port}`
 }
@@ -333,17 +367,13 @@ function derivedEnvValues(env) {
   }
 }
 
-function shouldRenderDerivedEnv(envVar, envFile, runtimeEnvFile) {
+function shouldRenderDerivedEnv(envVar, envFile) {
   if (process.env[envVar]) {
     return false
   }
 
   const currentValue = envFile[envVar]
   if (!currentValue) {
-    return true
-  }
-
-  if (runtimeEnvFile[envVar] === currentValue) {
     return true
   }
 
@@ -399,6 +429,10 @@ async function main() {
   ])
   const envFile = parseEnv(envRaw)
   const runtimeEnvFile = parseEnv(runtimeEnvRaw)
+  const projectPortState = {
+    ports: projectPorts,
+    owners: projectPortOwners(projectPorts, runtimeEnvFile),
+  }
   const allocatedPorts = new Set()
   const ports = []
   const env = {}
@@ -410,7 +444,7 @@ async function main() {
       preferredPort: preferred.port,
       source: preferred.source,
       dockerPorts,
-      projectPorts,
+      projectPorts: projectPortState,
       allocatedPorts,
     })
     ports.push(resolved)
@@ -424,7 +458,7 @@ async function main() {
     ...env,
   })
   for (const [envVar, value] of Object.entries(nextDerivedEnv)) {
-    if (shouldRenderDerivedEnv(envVar, envFile, runtimeEnvFile)) {
+    if (shouldRenderDerivedEnv(envVar, envFile)) {
       env[envVar] = value
       renderedDerivedEnv.push(envVar)
     }
