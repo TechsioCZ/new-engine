@@ -10,8 +10,5 @@ export default defineConfig({
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     globals: true,
     restoreMocks: true,
-    typecheck: {
-      tsconfig: "./tsconfig.test.json",
-    },
   },
 })

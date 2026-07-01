@@ -1,45 +1,42 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
-import { http, HttpResponse } from "msw"
+import { HttpResponse, http } from "msw"
 import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client/provider"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import type { CartService, UpdateCartInputBase } from "../src/cart/types"
-import type { StorefrontAddressValidationIssue } from "../src/shared/address"
-import {
-  createCustomerHooks,
-} from "../src/customers/hooks"
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createCustomerHooks } from "../src/customers/hooks"
 import type {
   CustomerAddressListInputBase,
   CustomerService,
 } from "../src/customers/types"
-import {
-  createOrderHooks,
-} from "../src/orders/hooks"
+import { createOrderHooks } from "../src/orders/hooks"
 import type {
   OrderDetailInputBase,
   OrderListInputBase,
   OrderService,
 } from "../src/orders/types"
-import {
-  createProductHooks,
-} from "../src/products/hooks"
+import { createProductHooks } from "../src/products/hooks"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import type {
   ProductListInputBase,
   ProductService,
 } from "../src/products/types"
+import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 import { server } from "./msw-server"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
 
 const trackedClients: QueryClient[] = []
 
-const createTestClient = (config?: ConstructorParameters<typeof QueryClient>[0]) => {
+const createTestClient = (
+  config?: ConstructorParameters<typeof QueryClient>[0]
+) => {
   const client = new QueryClient(config)
   trackedClients.push(client)
   return client
@@ -307,7 +304,11 @@ describe("storefront-data hook smoke tests", () => {
         })
       )
 
-      const service: ProductService<Product, ProductListParams, ProductDetailParams> = {
+      const service: ProductService<
+        Product,
+        ProductListParams,
+        ProductDetailParams
+      > = {
         getProducts: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
@@ -397,7 +398,11 @@ describe("storefront-data hook smoke tests", () => {
         })
       )
 
-      const service: ProductService<Product, ProductListParams, ProductDetailParams> = {
+      const service: ProductService<
+        Product,
+        ProductListParams,
+        ProductDetailParams
+      > = {
         getProducts: async (params) => {
           const query = new URLSearchParams({
             limit: String(params.limit),
@@ -448,7 +453,6 @@ describe("storefront-data hook smoke tests", () => {
 
       expect(offsets).toEqual([0, 4])
     })
-
   })
 
   describe("orders", () => {
@@ -492,9 +496,9 @@ describe("storefront-data hook smoke tests", () => {
             offset,
           })
         }),
-        http.get(`${baseUrl}/orders/:id`, ({ params }) => {
-          return HttpResponse.json({ order: { id: String(params.id) } })
-        })
+        http.get(`${baseUrl}/orders/:id`, ({ params }) =>
+          HttpResponse.json({ order: { id: String(params.id) } })
+        )
       )
 
       const service: OrderService<Order, OrderListParams, OrderDetailParams> = {
@@ -526,10 +530,9 @@ describe("storefront-data hook smoke tests", () => {
 
       const wrapper = createWrapper(queryClient)
 
-      const listHook = renderHook(
-        () => useOrders({ page: 1, limit: 1 }),
-        { wrapper }
-      )
+      const listHook = renderHook(() => useOrders({ page: 1, limit: 1 }), {
+        wrapper,
+      })
 
       await waitFor(() => {
         expect(listHook.result.current.isSuccess).toBe(true)
@@ -537,10 +540,9 @@ describe("storefront-data hook smoke tests", () => {
 
       expect(listHook.result.current.orders).toHaveLength(1)
 
-      const detailHook = renderHook(
-        () => useOrder({ id: "order_1" }),
-        { wrapper }
-      )
+      const detailHook = renderHook(() => useOrder({ id: "order_1" }), {
+        wrapper,
+      })
 
       await waitFor(() => {
         expect(detailHook.result.current.order?.id).toBe("order_1")
@@ -564,20 +566,29 @@ describe("storefront-data hook smoke tests", () => {
       lastCreateBody = null
       lastUpdateBody = null
       server.use(
-        http.get(`${baseUrl}/customers/me/addresses`, () => {
-          return HttpResponse.json({ addresses: [{ id: "addr_1", address_1: "Main" }] })
-        }),
+        http.get(`${baseUrl}/customers/me/addresses`, () =>
+          HttpResponse.json({
+            addresses: [{ id: "addr_1", address_1: "Main" }],
+          })
+        ),
         http.post(`${baseUrl}/customers/me/addresses`, async ({ request }) => {
           lastCreateBody = (await request.json()) as CreateParams
-          return HttpResponse.json({ address: { id: "addr_2", address_1: "New" } })
+          return HttpResponse.json({
+            address: { id: "addr_2", address_1: "New" },
+          })
         }),
-        http.post(`${baseUrl}/customers/me/addresses/:id`, async ({ request, params }) => {
-          lastUpdateBody = (await request.json()) as Record<string, unknown>
-          return HttpResponse.json({ address: { id: String(params.id), address_1: "Updated" } })
-        }),
-        http.delete(`${baseUrl}/customers/me/addresses/:id`, () => {
-          return HttpResponse.json({})
-        }),
+        http.post(
+          `${baseUrl}/customers/me/addresses/:id`,
+          async ({ request, params }) => {
+            lastUpdateBody = (await request.json()) as Record<string, unknown>
+            return HttpResponse.json({
+              address: { id: String(params.id), address_1: "Updated" },
+            })
+          }
+        ),
+        http.delete(`${baseUrl}/customers/me/addresses/:id`, () =>
+          HttpResponse.json({})
+        ),
         http.post(`${baseUrl}/customers/me`, async ({ request }) => {
           lastUpdateBody = (await request.json()) as Record<string, unknown>
           return HttpResponse.json({ customer: { id: "cust_1" } })
@@ -648,7 +659,10 @@ describe("storefront-data hook smoke tests", () => {
       })
 
       const queryClient = createTestClient({
-        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+        defaultOptions: {
+          queries: { retry: false },
+          mutations: { retry: false },
+        },
       })
       const wrapper = createWrapper(queryClient)
 
@@ -663,7 +677,9 @@ describe("storefront-data hook smoke tests", () => {
 
       expect(listHook.result.current.addresses).toHaveLength(1)
 
-      const createHook = renderHook(() => useCreateCustomerAddress(), { wrapper })
+      const createHook = renderHook(() => useCreateCustomerAddress(), {
+        wrapper,
+      })
 
       await act(async () => {
         await createHook.result.current.mutateAsync({ address_1: "New" })
@@ -671,7 +687,9 @@ describe("storefront-data hook smoke tests", () => {
 
       expect(lastCreateBody?.address_1).toBe("New")
 
-      const updateHook = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+      const updateHook = renderHook(() => useUpdateCustomerAddress(), {
+        wrapper,
+      })
 
       await act(async () => {
         await updateHook.result.current.mutateAsync({
@@ -682,14 +700,20 @@ describe("storefront-data hook smoke tests", () => {
 
       expect(lastUpdateBody?.addressId).toBeUndefined()
 
-      const deleteHook = renderHook(() => useDeleteCustomerAddress(), { wrapper })
+      const deleteHook = renderHook(() => useDeleteCustomerAddress(), {
+        wrapper,
+      })
 
       await act(async () => {
         await deleteHook.result.current.mutateAsync({ addressId: "addr_1" })
       })
-      expect(deleteHook.result.current.isSuccess).toBe(true)
+      await waitFor(() => {
+        expect(deleteHook.result.current.isSuccess).toBe(true)
+      })
 
-      const updateCustomerHook = renderHook(() => useUpdateCustomer(), { wrapper })
+      const updateCustomerHook = renderHook(() => useUpdateCustomer(), {
+        wrapper,
+      })
 
       await act(async () => {
         await updateCustomerHook.result.current.mutateAsync({
