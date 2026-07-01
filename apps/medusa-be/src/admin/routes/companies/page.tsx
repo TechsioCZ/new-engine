@@ -12,7 +12,7 @@ import {
   Text,
   Toaster,
 } from "@medusajs/ui"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import type { QueryCompany } from "../../../types"
@@ -62,17 +62,14 @@ const Companies = () => {
   const [q, setQ] = useState("")
   const [status, setStatus] = useState<CompanyStatusFilter>("active")
   const debouncedQ = useDebouncedValue(q)
-  const companiesQuery = useMemo(
-    () => ({
-      fields: adminCompanyDisplayFieldsQuery,
-      limit: String(PAGE_SIZE),
-      offset: String(pageIndex * PAGE_SIZE),
-      order_by: orderBy,
-      q: debouncedQ,
-      status,
-    }),
-    [debouncedQ, orderBy, pageIndex, status]
-  )
+  const companiesQuery = {
+    fields: adminCompanyDisplayFieldsQuery,
+    limit: String(PAGE_SIZE),
+    offset: String(pageIndex * PAGE_SIZE),
+    order_by: orderBy,
+    q: debouncedQ,
+    status,
+  }
   const { data, isPending } = useCompanies(companiesQuery)
   const companies = data?.companies ?? []
   const count = data?.count ?? 0

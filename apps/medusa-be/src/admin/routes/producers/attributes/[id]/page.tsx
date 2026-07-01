@@ -12,7 +12,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Link,
@@ -152,16 +152,13 @@ const ProducerAttributeDetailPage = () => {
   const [status, setStatus] = useState("active")
   const debouncedQ = useDebouncedValue(q)
 
-  const params = useMemo(
-    () => ({
-      include_deleted: status === "all",
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: orderBy,
-      q: debouncedQ,
-    }),
-    [debouncedQ, orderBy, pageIndex, status]
-  )
+  const params = {
+    include_deleted: status === "all",
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: orderBy,
+    q: debouncedQ,
+  }
 
   const { data, error, isLoading } = useQuery({
     enabled: !!id,

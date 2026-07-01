@@ -12,6 +12,7 @@ module.exports = [
       "**/storybook-static/**",
       "**/coverage/**",
       "**/*.d.ts",
+      "**/eslint.config.*",
       "apps/payload/src/payload-types.ts",
       "apps/payload/src/app/(payload)/importMap.js",
     ],

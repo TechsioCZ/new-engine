@@ -1,6 +1,5 @@
 import { StatusBadge } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
-import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import type { AdminCartWithApprovals } from "../../../../../types"
 import { ApprovalStatusType } from "../../../../../types"
@@ -38,50 +37,45 @@ const getStatusColor = (status: ApprovalStatusType) => {
 export const useApprovalsTableColumns = () => {
   const { t } = useTranslation("approvals")
 
-  return useMemo(
-    () => [
-      columnHelper.accessor("id", {
-        header: t("columns.id"),
-        cell: ({ getValue }) => <TextCell text={`#${getValue().slice(-4)}`} />,
-      }),
-      columnHelper.accessor("updated_at", {
-        header: t("columns.updatedAt"),
-        cell: ({ getValue }) => <DateCell date={getValue()} />,
-      }),
-      columnHelper.display({
-        id: "company",
-        header: t("columns.company"),
-        cell: ({ row }) => (
-          <TextCell text={row.original.company?.name ?? "-"} />
-        ),
-      }),
-      columnHelper.accessor("approval_status.status", {
-        header: t("columns.status"),
-        cell: ({ getValue }) => {
-          const status = getValue()
-          return (
-            <StatusBadge color={getStatusColor(status)}>
-              {t(`statuses.${status.toLowerCase()}`)}
-            </StatusBadge>
-          )
-        },
-      }),
-      columnHelper.display({
-        id: "items",
-        header: t("columns.items"),
-        cell: ({ row }) => (
-          <ItemsPopover
-            currencyCode={row.original.currency_code ?? ""}
-            items={getApprovalItems(row.original.items)}
-          />
-        ),
-      }),
-      columnHelper.display({
-        id: "actions",
-        header: t("columns.actions"),
-        cell: ({ row }) => <ApprovalActions cart={row.original} />,
-      }),
-    ],
-    [t]
-  )
+  return [
+    columnHelper.accessor("id", {
+      header: t("columns.id"),
+      cell: ({ getValue }) => <TextCell text={`#${getValue().slice(-4)}`} />,
+    }),
+    columnHelper.accessor("updated_at", {
+      header: t("columns.updatedAt"),
+      cell: ({ getValue }) => <DateCell date={getValue()} />,
+    }),
+    columnHelper.display({
+      id: "company",
+      header: t("columns.company"),
+      cell: ({ row }) => <TextCell text={row.original.company?.name ?? "-"} />,
+    }),
+    columnHelper.accessor("approval_status.status", {
+      header: t("columns.status"),
+      cell: ({ getValue }) => {
+        const status = getValue()
+        return (
+          <StatusBadge color={getStatusColor(status)}>
+            {t(`statuses.${status.toLowerCase()}`)}
+          </StatusBadge>
+        )
+      },
+    }),
+    columnHelper.display({
+      id: "items",
+      header: t("columns.items"),
+      cell: ({ row }) => (
+        <ItemsPopover
+          currencyCode={row.original.currency_code ?? ""}
+          items={getApprovalItems(row.original.items)}
+        />
+      ),
+    }),
+    columnHelper.display({
+      id: "actions",
+      header: t("columns.actions"),
+      cell: ({ row }) => <ApprovalActions cart={row.original} />,
+    }),
+  ]
 }

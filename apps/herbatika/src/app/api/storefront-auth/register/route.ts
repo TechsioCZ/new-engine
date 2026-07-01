@@ -1,35 +1,37 @@
 import { NextResponse } from "next/server"
+import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
+import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
-  badRequest,
-  buildErrorResponse,
-  buildMedusaUrl,
-  getPublishableHeaders,
-  parseResponseJson,
-  serverError,
-  setSessionTokenCookie,
-} from "../_lib"
+  createCustomerIdentity,
+  createCustomerProfile,
+  createWholesaleProfile,
+  loginCustomerIdentity,
+  type ParsedRegisterPayload,
+  refreshCustomerToken,
+} from "./register-flow"
+import { parseWholesaleRegistration } from "./wholesale"
 
 type RegisterBody = {
   email?: string
   password?: string
   first_name?: string
   last_name?: string
+  wholesale?: unknown
 }
 
 type RegisterResponse = {
   token: string
 }
 
-const asStringOrUndefined = (value: unknown) => {
-  if (typeof value !== "string") {
-    return
-  }
-
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
-
-const isConflictStatus = (status: number) => status === 409
+type ParseRegisterBodyResult =
+  | {
+      error: NextResponse
+      value: null
+    }
+  | {
+      error: null
+      value: ParsedRegisterPayload
+    }
 
 const createRegisterResponse = (token: string) => {
   const response = NextResponse.json<RegisterResponse>(
@@ -43,14 +45,34 @@ const createRegisterResponse = (token: string) => {
   return response
 }
 
-const parseRegisterBody = async (request: Request) => {
-  const body = (await request.json()) as RegisterBody
+const parseRegisterBody = async (
+  request: Request
+): Promise<ParseRegisterBodyResult> => {
+  const body = asRecordOrUndefined(await request.json()) as
+    | RegisterBody
+    | undefined
+
+  if (!body) {
+    return {
+      error: badRequest("Telo požiadavky musí byť platný JSON objekt."),
+      value: null,
+    }
+  }
+
   const email = asStringOrUndefined(body.email)
   const password = asStringOrUndefined(body.password)
 
   if (!(email && password)) {
     return {
       error: badRequest("E-mail aj heslo sú povinné."),
+      value: null,
+    }
+  }
+
+  const wholesale = parseWholesaleRegistration(body.wholesale)
+  if (wholesale.error) {
+    return {
+      error: wholesale.error,
       value: null,
     }
   }
@@ -62,27 +84,9 @@ const parseRegisterBody = async (request: Request) => {
       password,
       firstName: asStringOrUndefined(body.first_name),
       lastName: asStringOrUndefined(body.last_name),
-    },
+      wholesale: wholesale.value,
+    } satisfies ParsedRegisterPayload,
   }
-}
-
-const refreshCustomerToken = async (loginToken: string) => {
-  const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${loginToken}`,
-    },
-    cache: "no-store",
-  })
-
-  if (!refreshResponse.ok) {
-    return loginToken
-  }
-
-  const refreshPayload = await parseResponseJson(refreshResponse)
-  return refreshPayload && typeof refreshPayload.token === "string"
-    ? refreshPayload.token
-    : loginToken
 }
 
 export async function POST(request: Request) {
@@ -92,85 +96,45 @@ export async function POST(request: Request) {
       return parsedBody.error
     }
 
-    const { email, firstName, lastName, password } = parsedBody.value
-    const registerResponse = await fetch(
-      buildMedusaUrl("/auth/customer/emailpass/register"),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-        cache: "no-store",
-      }
-    )
-
-    if (!registerResponse.ok) {
-      return buildErrorResponse(registerResponse)
+    const { email, firstName, lastName, password, wholesale } = parsedBody.value
+    const registerError = await createCustomerIdentity({
+      email,
+      password,
+      wholesale,
+    })
+    if (registerError) {
+      return registerError
     }
 
-    const loginResponse = await fetch(
-      buildMedusaUrl("/auth/customer/emailpass"),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-        cache: "no-store",
-      }
-    )
-
-    if (!loginResponse.ok) {
-      return buildErrorResponse(loginResponse)
+    const loginResult = await loginCustomerIdentity({ email, password })
+    if (loginResult.error) {
+      return loginResult.error
     }
 
-    const loginPayload = await parseResponseJson(loginResponse)
-    const loginToken =
-      loginPayload && typeof loginPayload.token === "string"
-        ? loginPayload.token
-        : null
-
-    if (!loginToken) {
-      return serverError(
-        "Prihlásenie zákazníka prebehlo úspešne, ale token nebol vrátený."
-      )
+    const createCustomerError = await createCustomerProfile({
+      loginToken: loginResult.token,
+      payload: {
+        email,
+        firstName,
+        lastName,
+        wholesale,
+      },
+    })
+    if (createCustomerError) {
+      return createCustomerError
     }
 
-    const createCustomerResponse = await fetch(
-      buildMedusaUrl("/store/customers"),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${loginToken}`,
-          ...getPublishableHeaders(),
-        },
-        body: JSON.stringify({
-          email,
-          first_name: firstName,
-          last_name: lastName,
-        }),
-        cache: "no-store",
-      }
-    )
-
-    if (
-      !(
-        createCustomerResponse.ok ||
-        isConflictStatus(createCustomerResponse.status)
-      )
-    ) {
-      return buildErrorResponse(createCustomerResponse)
+    const sessionToken = await refreshCustomerToken(loginResult.token)
+    const companyError = await createWholesaleProfile({
+      email,
+      sessionToken,
+      wholesale,
+    })
+    if (companyError) {
+      return companyError
     }
 
-    return createRegisterResponse(await refreshCustomerToken(loginToken))
+    return createRegisterResponse(sessionToken)
   } catch (error) {
     if (error instanceof SyntaxError) {
       return badRequest("Telo požiadavky musí byť platné JSON.")

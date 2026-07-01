@@ -5,6 +5,7 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { useState } from "react"
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useAppToast } from "@/hooks/use-app-toast"
 import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
 
 type BlogFeaturedProductCardProps = {
@@ -20,6 +21,7 @@ export function BlogFeaturedProductCard({
     regionId: region?.region_id,
     countryCode: region?.country_code,
   })
+  const toast = useAppToast()
 
   const handleAddToCart = async (selectedProduct: HttpTypes.StoreProduct) => {
     setAddToCartError(null)
@@ -29,6 +31,7 @@ export function BlogFeaturedProductCard({
         product: selectedProduct,
         quantity: 1,
       })
+      toast.success({ title: "Produkt bol pridaný do košíka." })
     } catch (error) {
       setAddToCartError(
         error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."

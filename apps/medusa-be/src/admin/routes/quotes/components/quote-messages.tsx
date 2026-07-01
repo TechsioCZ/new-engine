@@ -10,7 +10,6 @@ import {
   Textarea,
   toast,
 } from "@medusajs/ui"
-import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -53,14 +52,11 @@ export function QuoteMessages({
   const { mutateAsync: createMessage, isPending: isCreatingMessage } =
     useCreateQuoteMessage(quoteId)
 
-  const originalItemsMap = useMemo(
-    () => new Map(quote?.draft_order?.items?.map((item) => [item.id, item])),
-    [quote?.draft_order]
+  const originalItemsMap = new Map(
+    quote?.draft_order?.items?.map((item) => [item.id, item])
   )
-
-  const previewItemsMap = useMemo(
-    () => new Map(preview?.items?.map((item) => [item.id, item])),
-    [preview]
+  const previewItemsMap = new Map(
+    preview?.items?.map((item) => [item.id, item])
   )
 
   const handleSubmit = form.handleSubmit(async (data) => {

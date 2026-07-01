@@ -18,7 +18,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query"
 import type { TFunction } from "i18next"
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type {
   CommercialDiscountIntent,
@@ -999,7 +999,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   const [preview, setPreview] = useState<CommercialValuesPreview>()
   const latestPreviewKey = useRef<string | undefined>(undefined)
 
-  const queryKey = useMemo(() => [QUERY_KEY_PREFIX, order?.id], [order?.id])
+  const queryKey = [QUERY_KEY_PREFIX, order?.id]
 
   const {
     data: snapshotData,

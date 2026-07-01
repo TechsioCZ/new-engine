@@ -1,11 +1,12 @@
-import { Button } from "@techsio/ui-kit/atoms/button"
+import { buttonVariants } from "@techsio/ui-kit/atoms/button"
 import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import Image from "next/image"
 import NextLink from "next/link"
-import { useMemo } from "react"
+import type { MouseEventHandler, PointerEventHandler } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
 const HERO_CTA_LABEL = "Zistiť viac"
@@ -17,12 +18,24 @@ const HERO_SLIDES_PER_PAGE = {
   lg: 4.1,
 } as const
 
-function HeroBannerCard({ banner }: { banner: HeroBannerItem }) {
+type HeroBannerCardProps = {
+  banner: HeroBannerItem
+  onClickCapture: MouseEventHandler<HTMLAnchorElement>
+  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
+}
+
+function HeroBannerCard({
+  banner,
+  onClickCapture,
+  onPointerDownCapture,
+}: HeroBannerCardProps) {
   return (
     <NextLink
       aria-label={`${banner.title} - ${HERO_CTA_LABEL}`}
       className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
       href={banner.href}
+      onClickCapture={onClickCapture}
+      onPointerDownCapture={onPointerDownCapture}
     >
       <Image
         alt={banner.id}
@@ -41,19 +54,34 @@ function HeroBannerCard({ banner }: { banner: HeroBannerItem }) {
               {banner.subtitle}
             </p>
           )}
-          <Button className="mt-350 rounded-xl px-450 py-250 text-md" size="md">
+          <span
+            className={buttonVariants({
+              className: "mt-350 rounded-xl px-450 py-250 text-md",
+              size: "md",
+            })}
+          >
             {HERO_CTA_LABEL}
-          </Button>
+          </span>
         </div>
       )}
     </NextLink>
   )
 }
 
-const buildHeroSlides = (banners: HeroBannerItem[]): CarouselSlide[] =>
+const buildHeroSlides = (
+  banners: HeroBannerItem[],
+  onClickCapture: MouseEventHandler<HTMLAnchorElement>,
+  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
+): CarouselSlide[] =>
   banners.map((banner) => ({
     id: banner.id,
-    content: <HeroBannerCard banner={banner} />,
+    content: (
+      <HeroBannerCard
+        banner={banner}
+        onClickCapture={onClickCapture}
+        onPointerDownCapture={onPointerDownCapture}
+      />
+    ),
   }))
 
 type HomepageHeroCarouselSectionProps = {
@@ -61,25 +89,80 @@ type HomepageHeroCarouselSectionProps = {
 }
 
 type HeroCarouselProps = {
-  slides: CarouselSlide[]
+  banners: HeroBannerItem[]
+  restoreKey: number
   slidesClassName?: string
   slidesPerPage?: number
   spacing?: string
 }
 
+function usePageRestoreKey() {
+  const [restoreKey, setRestoreKey] = useState(0)
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setRestoreKey((currentKey) => currentKey + 1)
+      }
+    }
+
+    window.addEventListener("pageshow", handlePageShow)
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow)
+    }
+  }, [])
+
+  return restoreKey
+}
+
 function HeroCarousel({
-  slides,
+  banners,
+  restoreKey,
   slidesClassName = "h-homepage-hero-carousel",
   slidesPerPage = 1,
   spacing = HERO_SLIDE_SPACING,
 }: HeroCarouselProps) {
+  const didDragRef = useRef(false)
+  const handleSlidePointerDownCapture: PointerEventHandler<
+    HTMLAnchorElement
+  > = () => {
+    didDragRef.current = false
+  }
+  const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
+    event
+  ) => {
+    if (event.detail === 0) {
+      didDragRef.current = false
+      return
+    }
+
+    if (!didDragRef.current) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    didDragRef.current = false
+  }
+  const slides = buildHeroSlides(
+    banners,
+    handleSlideClickCapture,
+    handleSlidePointerDownCapture
+  )
   const hasOverflow = slides.length > slidesPerPage
 
   return (
     <Carousel.Root
       aspectRatio="none"
       className="w-full"
+      key={restoreKey}
       loop={hasOverflow}
+      onDragStatusChange={(details) => {
+        if (details.type === "dragging") {
+          didDragRef.current = true
+        }
+      }}
       size="full"
       slideCount={slides.length}
       slidesPerMove={1}
@@ -100,21 +183,37 @@ function HeroCarousel({
 export function HomepageHeroCarouselSection({
   banners,
 }: HomepageHeroCarouselSectionProps) {
-  const slides = useMemo(() => buildHeroSlides(banners), [banners])
+  const restoreKey = usePageRestoreKey()
 
   return (
     <section>
       <div className="xs:hidden">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.xs} />
+        <HeroCarousel
+          banners={banners}
+          restoreKey={restoreKey}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.xs}
+        />
       </div>
       <div className="xs:block hidden md:hidden">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.sm} />
+        <HeroCarousel
+          banners={banners}
+          restoreKey={restoreKey}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.sm}
+        />
       </div>
       <div className="hidden md:block lg:hidden">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.md} />
+        <HeroCarousel
+          banners={banners}
+          restoreKey={restoreKey}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.md}
+        />
       </div>
       <div className="hidden lg:block">
-        <HeroCarousel slides={slides} slidesPerPage={HERO_SLIDES_PER_PAGE.lg} />
+        <HeroCarousel
+          banners={banners}
+          restoreKey={restoreKey}
+          slidesPerPage={HERO_SLIDES_PER_PAGE.lg}
+        />
       </div>
     </section>
   )

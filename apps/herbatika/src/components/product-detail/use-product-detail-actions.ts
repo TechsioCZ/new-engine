@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
+import { useAppToast } from "@/hooks/use-app-toast"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   PRODUCT_DETAIL_FIELDS,
@@ -30,6 +31,7 @@ export function useProductDetailActions({
     regionId: region?.region_id,
     countryCode: region?.country_code,
   })
+  const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 220,
     skipMode: "any",
@@ -48,6 +50,7 @@ export function useProductDetailActions({
         quantity: quantityToAdd,
         variantId: variantIdOverride,
       })
+      toast.success({ title: "Produkt bol pridaný do košíka." })
     } catch (error) {
       setAddToCartError(
         error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."

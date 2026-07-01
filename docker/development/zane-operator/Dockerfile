@@ -15,12 +15,37 @@ WORKDIR /var/www
 
 ENV NODE_ENV=production
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/zane-operator/package.json apps/zane-operator/package.json
 RUN --mount=type=cache,id=pnpm-store-zane-operator,target=/pnpm/store \
   corepack install \
   && pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --prod --filter=zane-operator...
+
+FROM node:24-slim AS dev
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV NODE_ENV=development
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm i -g corepack@0.34.5 \
+  && corepack enable
+
+COPY --from=oven/bun:1.3.5 /usr/local/bin/bun /usr/local/bin/bun
+
+WORKDIR /var/www
+
+WORKDIR /tmp/corepack
+COPY package.json /tmp/corepack/package.json
+RUN corepack install && rm -rf /tmp/corepack
+
+WORKDIR /var/www/apps/zane-operator
+
+CMD ["pnpm", "dev"]
 
 FROM oven/bun:1.3.5 AS build
 

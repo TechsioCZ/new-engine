@@ -2,9 +2,9 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
-import { RichHtmlEditor } from "./rich-html-editor"
 
 type ProductCategoryWithMetadata = {
   id: string
@@ -111,12 +111,12 @@ const CategoryDescriptionEditor = ({
     },
   })
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     mutation.mutate({
       bottomDescriptionHtml: bottomDescriptionHtmlRef.current,
       topDescriptionHtml: topDescriptionHtmlRef.current,
     })
-  }, [mutation])
+  }
 
   if (!category?.id) {
     return null

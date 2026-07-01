@@ -8,7 +8,7 @@ import {
   Tooltip,
   toast,
 } from "@medusajs/ui"
-import { useMemo, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { QueryCompany } from "../../../../types"
 import {
@@ -39,14 +39,11 @@ export function CompanyCustomerGroupDrawer({
   const [q, setQ] = useState("")
   const searchInputRef = useRef<HTMLInputElement>(null)
   const debouncedQ = useDebouncedValue(q)
-  const customerGroupsQuery = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      q: debouncedQ,
-    }),
-    [debouncedQ, pageIndex]
-  )
+  const customerGroupsQuery = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    q: debouncedQ,
+  }
   const {
     data,
     error: customerGroupsError,
@@ -88,10 +85,7 @@ export function CompanyCustomerGroupDrawer({
     (data?.customer_groups as HttpTypes.AdminCustomerGroup[] | undefined) ?? []
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
-  const customerGroupIds = useMemo(
-    () => customerGroups.map((group) => group.id),
-    [customerGroups]
-  )
+  const customerGroupIds = customerGroups.map((group) => group.id)
   const {
     data: ownerData,
     error: ownersError,
@@ -101,17 +95,13 @@ export function CompanyCustomerGroupDrawer({
     enabled: open && customerGroupIds.length > 0,
     placeholderData: (previousData) => previousData,
   })
-  const ownersByGroupId = useMemo(() => {
-    const ownerMap = new Map<string, QueryCompany[]>()
+  const ownersByGroupId = new Map<string, QueryCompany[]>()
 
-    for (const link of ownerData?.customer_group_links ?? []) {
-      const owners = ownerMap.get(link.customer_group_id) ?? []
-      owners.push(link.company as QueryCompany)
-      ownerMap.set(link.customer_group_id, owners)
-    }
-
-    return ownerMap
-  }, [ownerData])
+  for (const link of ownerData?.customer_group_links ?? []) {
+    const owners = ownersByGroupId.get(link.customer_group_id) ?? []
+    owners.push(link.company as QueryCompany)
+    ownersByGroupId.set(link.customer_group_id, owners)
+  }
 
   const getActiveLinkedCompany = (group: HttpTypes.AdminCustomerGroup) =>
     (ownersByGroupId.get(group.id) ?? []).find(

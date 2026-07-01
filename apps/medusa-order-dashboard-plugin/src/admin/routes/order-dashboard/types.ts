@@ -66,6 +66,12 @@ export type OrderDashboardTargetStatus =
 
 export type OrderDashboardLabelFormat = "A6" | "A7"
 
+export type OrderDashboardBlockingOrder = {
+  id: string
+  order_display_id: string
+  reason: string
+}
+
 export type OrderDashboardBusinessStatusTone =
   | "blue"
   | "green"

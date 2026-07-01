@@ -51,6 +51,7 @@ export async function executeMeiliApiCredentialsCommand(
     meiliUrl: input.meiliUrl,
     masterKey: input.masterKey,
     waitSeconds: input.waitSeconds,
+    timeoutSeconds: input.timeoutSeconds,
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
     stackInputs: contracts.stackInputs,

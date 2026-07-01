@@ -24,23 +24,28 @@ jobs:
       head_sha: ${{ github.event.workflow_run.head_sha }}
     steps:
       - name: Checkout workflow head SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Determine Medusa BE test scope
         id: scope
         shell: bash
+        env:
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_EVENT_NAME: ${{ github.event.workflow_run.event }}
+          WORKFLOW_PR_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha || '' }}
         run: |
           set -euo pipefail
 
-          head_sha="${{ github.event.workflow_run.head_sha }}"
-          event_name="${{ github.event.workflow_run.event }}"
+          head_sha="$WORKFLOW_HEAD_SHA"
+          event_name="$WORKFLOW_EVENT_NAME"
           base_sha=""
 
-          if [[ "$event_name" == "pull_request" ]] && [[ -n "${{ github.event.workflow_run.pull_requests[0].base.sha || '' }}" ]]; then
-            base_sha="${{ github.event.workflow_run.pull_requests[0].base.sha }}"
+          if [[ "$event_name" == "pull_request" ]] && [[ -n "$WORKFLOW_PR_BASE_SHA" ]]; then
+            base_sha="$WORKFLOW_PR_BASE_SHA"
           else
             base_sha="$(git rev-parse "${head_sha}^" 2>/dev/null || git rev-list --max-parents=0 "$head_sha")"
           fi
@@ -65,14 +70,20 @@ jobs:
 
       - name: Preflight summary
         if: always()
+        env:
+          WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_EVENT_NAME: ${{ github.event.workflow_run.event }}
+          WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          BASE_SHA: ${{ steps.scope.outputs.base_sha || 'n/a' }}
+          SHOULD_RUN: ${{ steps.scope.outputs.should_run || 'n/a' }}
         run: |
           {
-            echo "## Medusa BE Tests Preflight"
-            echo "- Triggering workflow: ${{ github.event.workflow_run.name }}"
-            echo "- Event: ${{ github.event.workflow_run.event }}"
-            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
-            echo "- Base SHA: ${{ steps.scope.outputs.base_sha }}"
-            echo "- Ready to run: ${{ steps.scope.outputs.should_run }}"
+            printf '%s\n' "## Medusa BE Tests Preflight"
+            printf '%s\n' "- Triggering workflow: $WORKFLOW_RUN_NAME"
+            printf '%s\n' "- Event: $WORKFLOW_EVENT_NAME"
+            printf '%s\n' "- Head SHA: $WORKFLOW_HEAD_SHA"
+            printf '%s\n' "- Base SHA: $BASE_SHA"
+            printf '%s\n' "- Ready to run: $SHOULD_RUN"
           } >> "$GITHUB_STEP_SUMMARY"
 
   unit:
@@ -83,13 +94,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout workflow head SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ needs.preflight.outputs.head_sha }}
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -128,13 +140,14 @@ jobs:
       DB_TEMP_NAME: medusa_test
     steps:
       - name: Checkout workflow head SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ needs.preflight.outputs.head_sha }}
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -155,13 +168,14 @@ jobs:
       MEDUSA_E2E_PROJECT_NAME: medusa-be-e2e-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout workflow head SHA
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ needs.preflight.outputs.head_sha }}
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm

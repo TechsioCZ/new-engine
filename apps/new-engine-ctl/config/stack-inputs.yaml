@@ -231,6 +231,8 @@ runtime_providers:
           target_envs:
             - service_id: n1
               env_var: NEXT_PUBLIC_MEILISEARCH_API_KEY
+            - service_id: herbatika
+              env_var: MEILISEARCH_SEARCH_API_KEY
           policy:
             kind: meilisearch_key
             uid: 4b7f7f7e-8798-4b3f-8e73-c0f76f8b35d6
@@ -265,6 +267,26 @@ runtime_providers:
           policy:
             kind: medusa_publishable_key
             title: Storefront Publishable Key
+
+local_env_aliases:
+  runtime_provider_outputs:
+    - provider_id: meili_api_credentials
+      output_id: backend_key
+      service_id: medusa-be
+      env_var: MEILISEARCH_API_KEY
+      local_env_var: DC_MEILISEARCH_BACKEND_API_KEY
+
+    - provider_id: meili_api_credentials
+      output_id: frontend_key
+      service_id: n1
+      env_var: NEXT_PUBLIC_MEILISEARCH_API_KEY
+      local_env_var: DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY
+
+    - provider_id: meili_api_credentials
+      output_id: frontend_key
+      service_id: herbatika
+      env_var: MEILISEARCH_SEARCH_API_KEY
+      local_env_var: DC_HERBATIKA_MEILISEARCH_SEARCH_API_KEY
 
 preview_runtime_reconciliation:
   shared_env:

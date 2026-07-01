@@ -76,7 +76,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-common::ensure_pnpm "$ROOT_DIR"
 common::require_command jq
 common::require_command node
 common::require_command sed
@@ -96,6 +95,7 @@ command_args=(
   --meili-url "$meili_url"
   --master-key "$master_key"
   --wait-seconds "$wait_seconds"
+  --timeout-seconds "$timeout_seconds"
   --retry-count "$retry_count"
   --retry-delay-seconds "$retry_delay_seconds"
 )
@@ -106,7 +106,7 @@ fi
 
 (
   cd "$ROOT_DIR/apps/new-engine-ctl"
-  pnpm run build >/dev/null
+  node ./scripts/build.mjs >/dev/null
 )
 
 meili_json="$(

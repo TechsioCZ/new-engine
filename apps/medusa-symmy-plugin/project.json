@@ -7,12 +7,18 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["production", "^production", "workspaceTooling"],
+      "outputs": ["{projectRoot}/.medusa/server"],
       "options": {
         "command": "pnpm --dir apps/medusa-symmy-plugin build"
       }
     },
     "typecheck": {
       "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production", "workspaceTooling"],
+      "outputs": [],
       "options": {
         "command": "pnpm --dir apps/medusa-symmy-plugin typecheck"
       }

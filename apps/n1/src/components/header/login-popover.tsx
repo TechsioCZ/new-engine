@@ -1,6 +1,6 @@
 "use client"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Popover } from "@techsio/ui-kit/molecules/popover"
+import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import Link from "next/link"
 import { LoginForm } from "../forms/login-form"
 import { useHeaderContext } from "./store/header-context"

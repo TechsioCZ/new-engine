@@ -3,7 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import NextLink from "next/link"
-import { useState } from "react"
+import { useAppToast } from "@/hooks/use-app-toast"
 import {
   type LoginFormValues,
   loginValidators,
@@ -20,8 +20,6 @@ type LoginFormProps = {
   onSubmit: (values: LoginFormValues) => Promise<string | null>
 }
 
-const _REMEMBER_FIELD_ID = "login-remember"
-
 export const LoginForm = ({
   isBusy,
   defaultValues,
@@ -29,15 +27,15 @@ export const LoginForm = ({
   forgotPasswordHref,
   onSubmit,
 }: LoginFormProps) => {
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [_rememberMe, _setRememberMe] = useState(false)
+  const toast = useAppToast()
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
-      setSubmitError(null)
       const error = await onSubmit(value)
-      setSubmitError(error)
+      if (error) {
+        toast.error({ title: error })
+      }
     },
   })
 
@@ -57,7 +55,6 @@ export const LoginForm = ({
               autoComplete="email"
               id="login-email"
               label="E-mail"
-              onValueChange={() => setSubmitError(null)}
               type="email"
               validationMode="blur"
             />
@@ -79,10 +76,8 @@ export const LoginForm = ({
             {(field) => (
               <field.TextField
                 autoComplete="current-password"
-                externalError={submitError}
                 id="login-password"
                 label={<span className="sr-only">Heslo</span>}
-                onValueChange={() => setSubmitError(null)}
                 type="password"
                 validationMode="blur"
               />

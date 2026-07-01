@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 
-const MEDUSA_BACKEND_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000"
+import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
+
+const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const MEDUSA_PUBLISHABLE_KEY =
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
@@ -50,8 +51,13 @@ export const buildErrorResponse = async (response: Response) => {
   )
 }
 
+export const isConflictStatus = (status: number) => status === 409
+
 export const badRequest = (message: string) =>
   NextResponse.json<ErrorPayload>({ message }, { status: 400 })
+
+export const conflict = (message: string) =>
+  NextResponse.json<ErrorPayload>({ message }, { status: 409 })
 
 export const serverError = (message: string, details?: unknown) =>
   NextResponse.json<ErrorPayload>(

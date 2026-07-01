@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process"
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname, matchesGlob } from "node:path"
+import { delimiter, dirname, join, matchesGlob } from "node:path"
 import { promisify } from "node:util"
 
 import type { ScopeCommandInput, ScopeResponse } from "../contracts/scope.js"
@@ -24,6 +24,29 @@ type NxStatus = ScopeResponse["nx_status"]
 type ExecResult = {
   stdout: string
   stderr: string
+}
+
+export function withWorkspaceBinPath(
+  env: NodeJS.ProcessEnv
+): NodeJS.ProcessEnv {
+  const pathKey =
+    Object.keys(env).find((key) => key === "PATH") ??
+    Object.keys(env).find((key) => key.toUpperCase() === "PATH") ??
+    "PATH"
+  const nextEnv = { ...env }
+
+  for (const key of Object.keys(nextEnv)) {
+    if (key !== pathKey && key.toUpperCase() === "PATH") {
+      delete nextEnv[key]
+    }
+  }
+
+  return {
+    ...nextEnv,
+    [pathKey]: [join(process.cwd(), "node_modules", ".bin"), env[pathKey]]
+      .filter(Boolean)
+      .join(delimiter),
+  }
 }
 
 function toCsv(values: string[]): string {
@@ -111,9 +134,9 @@ async function resolveNxAffectedProjects(input: {
 }> {
   try {
     const result = await runCommand(
-      "pnpm",
+      "nubx",
       [
-        "exec",
+        "--node",
         "nx",
         "show",
         "projects",
@@ -124,7 +147,7 @@ async function resolveNxAffectedProjects(input: {
       ],
       {
         env: {
-          ...process.env,
+          ...withWorkspaceBinPath(process.env),
           NX_DAEMON: "false",
           NX_ISOLATE_PLUGINS: String(input.nxIsolatePlugins),
         },
@@ -141,7 +164,16 @@ async function resolveNxAffectedProjects(input: {
         (value): value is string => typeof value === "string"
       ),
     }
-  } catch {
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      throw new Error("Required command not found: nubx")
+    }
+
     return {
       nxStatus: "fallback",
       projects: [],

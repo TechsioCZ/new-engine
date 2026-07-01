@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   type CheckoutDetailsValues,
   resolveEffectiveCheckoutAddressDetails,
@@ -51,7 +51,7 @@ import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
 import {
   clearStoredPaymentProviderSelection,
-  readStoredPaymentProviderSelection,
+  useStoredPaymentProviderSelection,
   writeStoredPaymentProviderSelection,
 } from "./checkout-payment-selection-storage"
 import { useCheckoutActions } from "./use-checkout-actions"
@@ -74,11 +74,6 @@ export function useCheckoutController() {
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [marketingConsent, setMarketingConsent] = useState(false)
   const [heurekaConsent, setHeurekaConsent] = useState(false)
-  const [selectedPaymentProviderState, setSelectedPaymentProviderState] =
-    useState<{ cartId?: string | null; providerId: string | null }>({
-      cartId: null,
-      providerId: null,
-    })
   const saveAddressSucceededRef = useRef(false)
 
   const cartQuery = useCart({
@@ -125,39 +120,11 @@ export function useCheckoutController() {
   const cartSelectedPaymentProviderId = resolveSelectedPaymentProviderId(
     cartQuery.cart
   )
-  const storedPaymentProviderId = readStoredPaymentProviderSelection(
+  const storedPaymentProviderId = useStoredPaymentProviderSelection(
     cartQuery.cart?.id
   )
-  const selectedPaymentProviderId =
-    selectedPaymentProviderState.cartId === cartQuery.cart?.id
-      ? selectedPaymentProviderState.providerId
-      : null
   const effectiveSelectedPaymentProviderId =
-    selectedPaymentProviderId ??
-    cartSelectedPaymentProviderId ??
-    storedPaymentProviderId
-
-  useEffect(() => {
-    const cartId = cartQuery.cart?.id
-    if (!cartId) {
-      return
-    }
-
-    const providerId =
-      cartSelectedPaymentProviderId ??
-      readStoredPaymentProviderSelection(cartId)
-
-    setSelectedPaymentProviderState((current) => {
-      if (current.cartId === cartId && current.providerId) {
-        return current
-      }
-
-      return {
-        cartId,
-        providerId,
-      }
-    })
-  }, [cartQuery.cart?.id, cartSelectedPaymentProviderId])
+    storedPaymentProviderId ?? cartSelectedPaymentProviderId
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id
@@ -199,17 +166,14 @@ export function useCheckoutController() {
     )
   }, [activeRegionId, queryClient])
 
-  const countryItems = useMemo(
-    () =>
-      resolveCheckoutCountryItemsForRegion({
-        activeCountryCode: region?.country_code,
-        regionId: activeRegionId,
-        regions: regionsQuery.regions,
-      }),
-    [activeRegionId, region?.country_code, regionsQuery.regions]
-  )
+  const countryItems = resolveCheckoutCountryItemsForRegion({
+    activeCountryCode: region?.country_code,
+    regionId: activeRegionId,
+    regions: regionsQuery.regions,
+  })
 
   const actions = useCheckoutActions({
+    cart: cartQuery.cart,
     cartId: cartQuery.cart?.id,
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completedOrderId,
@@ -253,10 +217,6 @@ export function useCheckoutController() {
     },
     onCheckoutErrorChange: setCheckoutError,
     onPaymentProviderSelect: (providerId) => {
-      setSelectedPaymentProviderState({
-        cartId: cartQuery.cart?.id,
-        providerId,
-      })
       writeStoredPaymentProviderSelection({
         cartId: cartQuery.cart?.id,
         providerId,
@@ -264,6 +224,10 @@ export function useCheckoutController() {
     },
     onPaymentRedirect: (url) => {
       window.location.assign(url)
+    },
+    refreshCart: async () => {
+      const result = await cartQuery.query.refetch()
+      return result.data ?? null
     },
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
@@ -437,61 +401,28 @@ export function useCheckoutController() {
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId)
   const hasPayment = Boolean(effectiveSelectedPaymentProviderId)
 
-  const selectedShippingOptionPrice = useMemo(() => {
-    if (!checkoutShippingQuery.selectedShippingMethodId) {
-      return 0
-    }
-
-    return (
-      checkoutShippingQuery.shippingPrices[
-        checkoutShippingQuery.selectedShippingMethodId
-      ] ?? 0
-    )
-  }, [
-    checkoutShippingQuery.selectedShippingMethodId,
-    checkoutShippingQuery.shippingPrices,
-  ])
-
-  const cartItemsTotalAmount = useMemo(
-    () => resolveCartItemsTotalAmount(cartQuery.cart),
-    [cartQuery.cart]
+  const selectedShippingOptionPrice =
+    checkoutShippingQuery.selectedShippingMethodId
+      ? (checkoutShippingQuery.shippingPrices[
+          checkoutShippingQuery.selectedShippingMethodId
+        ] ?? 0)
+      : 0
+  const hasCartShippingMethods = Boolean(
+    cartQuery.cart?.shipping_methods?.length
   )
-
-  const cartShippingTotalAmount = useMemo(() => {
-    if (cartQuery.cart?.shipping_methods?.length) {
-      return resolveCartShippingTotalAmount(cartQuery.cart)
-    }
-
-    return selectedShippingOptionPrice
-  }, [cartQuery.cart, selectedShippingOptionPrice])
-
-  const cartShippingSubtotalAmount = useMemo(() => {
-    if (cartQuery.cart?.shipping_methods?.length) {
-      return resolveCartShippingSubtotalAmount(cartQuery.cart)
-    }
-
-    return selectedShippingOptionPrice
-  }, [cartQuery.cart, selectedShippingOptionPrice])
-
-  const cartTaxAmount = useMemo(
-    () => resolveCartTaxAmount(cartQuery.cart),
-    [cartQuery.cart]
+  const cartItemsTotalAmount = resolveCartItemsTotalAmount(cartQuery.cart)
+  const cartShippingTotalAmount = hasCartShippingMethods
+    ? resolveCartShippingTotalAmount(cartQuery.cart)
+    : selectedShippingOptionPrice
+  const cartShippingSubtotalAmount = hasCartShippingMethods
+    ? resolveCartShippingSubtotalAmount(cartQuery.cart)
+    : selectedShippingOptionPrice
+  const cartTaxAmount = resolveCartTaxAmount(cartQuery.cart)
+  const cartTotalAmount = resolveCartTotalAmount(cartQuery.cart)
+  const cartTotalWithoutTaxAmount = resolveCartTotalWithoutTaxAmount(
+    cartQuery.cart
   )
-
-  const cartTotalAmount = useMemo(
-    () => resolveCartTotalAmount(cartQuery.cart),
-    [cartQuery.cart]
-  )
-
-  const cartTotalWithoutTaxAmount = useMemo(
-    () => resolveCartTotalWithoutTaxAmount(cartQuery.cart),
-    [cartQuery.cart]
-  )
-
-  const cartItemsSubtotalAmount = useMemo(
-    () => resolveCartItemsSubtotalAmount(cartQuery.cart),
-    [cartQuery.cart]
-  )
+  const cartItemsSubtotalAmount = resolveCartItemsSubtotalAmount(cartQuery.cart)
 
   const isBusy =
     cartQuery.isFetching ||

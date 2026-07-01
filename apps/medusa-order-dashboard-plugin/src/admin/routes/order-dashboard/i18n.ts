@@ -181,7 +181,6 @@ export type OrderDashboardAdminI18nNamespace = {
     | "missingOrderStatus"
     | "noPacketaSelection"
     | "noSelection"
-    | "packetaEligibilityLoading"
     | "packetaLabelLimit"
     | "packetaLabelsReady"
     | "pdfReady"
@@ -396,7 +395,6 @@ const englishOrderDashboardAdminI18n = {
     missingOrderStatus: "Select a target order status.",
     noPacketaSelection: "No selected orders have printable Packeta labels.",
     noSelection: "Select at least one order.",
-    packetaEligibilityLoading: "Packeta label eligibility is still loading.",
     packetaLabelLimit: "Select up to {{count}} orders.",
     packetaLabelsReady: "Packeta labels are ready",
     pdfReady: "Expedition PDF is ready",
@@ -612,8 +610,6 @@ const czechOrderDashboardAdminI18n = {
     noPacketaSelection:
       "Žádné vybrané objednávky nemají tisknutelné štítky Packeta.",
     noSelection: "Vyberte alespoň jednu objednávku.",
-    packetaEligibilityLoading:
-      "Způsobilost štítků Packeta se ještě načítá.",
     packetaLabelLimit: "Vyberte nejvýše {{count}} objednávek.",
     packetaLabelsReady: "Štítky Packeta jsou připravené",
     pdfReady: "Expediční PDF je připravené",

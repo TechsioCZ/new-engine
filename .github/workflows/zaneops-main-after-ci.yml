@@ -31,14 +31,15 @@ jobs:
       requires_downtime_approval: ${{ steps.scope_data.outputs.requires_downtime_approval }}
       downtime_service_ids: ${{ steps.scope_data.outputs.downtime_service_ids }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -47,7 +48,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build new-engine-ctl
-        run: pnpm exec nx run new-engine-ctl:build
+        run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:build
 
       - name: Resolve base SHA
         id: base
@@ -60,14 +61,17 @@ jobs:
 
       - name: Resolve main scope
         id: scope_data
+        env:
+          BASE_SHA: ${{ steps.base.outputs.base_sha }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           node apps/new-engine-ctl/dist/cli.js scope \
             --lane main \
-            --base-sha "${{ steps.base.outputs.base_sha }}" \
-            --head-sha "${{ github.event.workflow_run.head_sha }}"
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA"
 
       - name: Upload new-engine-ctl artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist/cli.js
@@ -75,16 +79,24 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          BASE_SHA: ${{ steps.base.outputs.base_sha || 'n/a' }}
+          PROJECTS_CSV: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}
+          SERVICES_CSV: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}
+          NX_STATUS: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}
+          REQUIRES_DOWNTIME_APPROVAL: ${{ steps.scope_data.outputs.requires_downtime_approval || 'false' }}
+          DOWNTIME_SERVICE_IDS: ${{ steps.scope_data.outputs.downtime_service_ids || 'n/a' }}
         run: |
           {
-            echo "## Main Scope"
-            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
-            echo "- Base SHA: ${{ steps.base.outputs.base_sha || 'n/a' }}"
-            echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
-            echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
-            echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
-            echo "- Requires downtime approval: ${{ steps.scope_data.outputs.requires_downtime_approval || 'false' }}"
-            echo "- Downtime-risk services: ${{ steps.scope_data.outputs.downtime_service_ids || 'n/a' }}"
+            printf '%s\n' "## Main Scope"
+            printf '%s\n' "- Head SHA: $HEAD_SHA"
+            printf '%s\n' "- Base SHA: $BASE_SHA"
+            printf '%s\n' "- Affected projects: $PROJECTS_CSV"
+            printf '%s\n' "- Affected services: $SERVICES_CSV"
+            printf '%s\n' "- Nx status: $NX_STATUS"
+            printf '%s\n' "- Requires downtime approval: $REQUIRES_DOWNTIME_APPROVAL"
+            printf '%s\n' "- Downtime-risk services: $DOWNTIME_SERVICE_IDS"
           } >> "$GITHUB_STEP_SUMMARY"
 
   approval:
@@ -95,10 +107,12 @@ jobs:
       name: zaneops-main-downtime
     steps:
       - name: Summary
+        env:
+          DOWNTIME_SERVICE_IDS: ${{ needs.scope.outputs.downtime_service_ids || 'n/a' }}
         run: |
           {
-            echo "## Main Downtime Approval"
-            echo "- Approved downtime-risk services: ${{ needs.scope.outputs.downtime_service_ids || 'n/a' }}"
+            printf '%s\n' "## Main Downtime Approval"
+            printf '%s\n' "- Approved downtime-risk services: $DOWNTIME_SERVICE_IDS"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -125,16 +139,17 @@ jobs:
       runtime_provider_outputs_json: ${{ steps.run_deploy.outputs.runtime_provider_outputs_json }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -152,6 +167,7 @@ jobs:
         env:
           SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
           REQUIRES_DOWNTIME_APPROVAL: ${{ needs.scope.outputs.requires_downtime_approval }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
@@ -165,21 +181,28 @@ jobs:
 
           node apps/new-engine-ctl/dist/cli.js deploy-main \
             --environment-name "$ZANE_PRODUCTION_ENVIRONMENT_NAME" \
-            --git-commit-sha "${{ github.event.workflow_run.head_sha }}" \
+            --git-commit-sha "$HEAD_SHA" \
             --services-csv "$SERVICES_CSV" \
             "${downtime_args[@]}"
 
       - name: Summary
         if: always()
+        env:
+          ENVIRONMENT_NAME: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}
+          REQUESTED_SERVICES_CSV: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}
+          DEPLOY_SERVICES_CSV: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}
+          TRIGGERED_SERVICES_CSV: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}
+          SKIPPED_SERVICES_CSV: ${{ steps.run_deploy.outputs.skipped_services_csv || 'n/a' }}
+          RUNTIME_PROVIDER_OUTPUT_KEYS_CSV: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}
         run: |
           {
-            echo "## Main Deploy"
-            echo "- Environment: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}"
-            echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
-            echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
-            echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
-            echo "- Skipped services: ${{ steps.run_deploy.outputs.skipped_services_csv || 'n/a' }}"
-            echo "- Runtime provider outputs: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}"
+            printf '%s\n' "## Main Deploy"
+            printf '%s\n' "- Environment: $ENVIRONMENT_NAME"
+            printf '%s\n' "- Requested services: $REQUESTED_SERVICES_CSV"
+            printf '%s\n' "- Deploy services: $DEPLOY_SERVICES_CSV"
+            printf '%s\n' "- Triggered services: $TRIGGERED_SERVICES_CSV"
+            printf '%s\n' "- Skipped services: $SKIPPED_SERVICES_CSV"
+            printf '%s\n' "- Runtime provider outputs: $RUNTIME_PROVIDER_OUTPUT_KEYS_CSV"
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
@@ -188,16 +211,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -235,11 +259,16 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          ENVIRONMENT_NAME: ${{ needs.deploy.outputs.environment_name || secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME || 'n/a' }}
+          REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}
+          DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}
+          TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}
         run: |
           {
-            echo "## Main Verify"
-            echo "- Environment: ${{ needs.deploy.outputs.environment_name || secrets.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME || 'n/a' }}"
-            echo "- Requested services: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}"
-            echo "- Deploy services: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}"
-            echo "- Triggered services: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}"
+            printf '%s\n' "## Main Verify"
+            printf '%s\n' "- Environment: $ENVIRONMENT_NAME"
+            printf '%s\n' "- Requested services: $REQUESTED_SERVICES_CSV"
+            printf '%s\n' "- Deploy services: $DEPLOY_SERVICES_CSV"
+            printf '%s\n' "- Triggered services: $TRIGGERED_SERVICES_CSV"
           } >> "$GITHUB_STEP_SUMMARY"

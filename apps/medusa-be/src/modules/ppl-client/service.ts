@@ -485,7 +485,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   // Public API: Configuration
   // ============================================
 
-  getEnvironment(): PplEnvironment {
+  async getEnvironment(): Promise<PplEnvironment> {
     return this.environment_
   }
 

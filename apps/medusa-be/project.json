@@ -7,9 +7,12 @@
   "targets": {
     "test": {
       "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production", "workspaceTooling"],
+      "outputs": [],
       "options": {
         "cwd": "apps/medusa-be",
-        "command": "node ./scripts/run-vitest.mjs run --config vitest.config.ts"
+        "command": "cross-env TEST_TYPE=unit node ./scripts/run-vitest.mjs run --config vitest.config.ts"
       }
     },
     "test-e2e-admin": {

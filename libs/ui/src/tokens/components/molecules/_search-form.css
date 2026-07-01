@@ -1,4 +1,12 @@
 /*
- * SearchForm — runtime tokens come entirely from
+ * SearchForm — runtime tokens come mostly from
  * libs/ui/src/tokens/figma/variables.css.
+ *
+ * This file only declares what Figma does not export:
+ *   - `--spacing-search-form-gapped` — the horizontal gap inserted between
+ *     the input and the button when the `gapped` prop is enabled (8px).
  */
+
+@theme static {
+  --spacing-search-form-gapped: var(--dimension-8);
+}

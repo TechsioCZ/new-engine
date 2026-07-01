@@ -16,6 +16,7 @@ type FormRadioGroupFieldProps = {
   id: string
   items: RadioGroupItem[]
   label: ReactNode
+  className?: string
   orientation?: "horizontal" | "vertical"
   required?: boolean
   size?: "sm" | "md" | "lg"
@@ -25,6 +26,7 @@ type FormRadioGroupFieldProps = {
 }
 
 export function FormRadioGroupField({
+  className,
   id,
   items,
   label,
@@ -61,7 +63,7 @@ export function FormRadioGroupField({
       variant={variant}
     >
       <RadioGroup.Label>{label}</RadioGroup.Label>
-      <RadioGroup.ItemGroup>
+      <RadioGroup.ItemGroup className={className}>
         {items.map((item) => (
           <RadioGroup.Item
             disabled={item.disabled}

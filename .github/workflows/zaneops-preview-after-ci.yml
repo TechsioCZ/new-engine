@@ -36,14 +36,15 @@ jobs:
       requires_preview_db: ${{ steps.scope_data.outputs.requires_preview_db }}
       preview_db_service_ids: ${{ steps.scope_data.outputs.preview_db_service_ids }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -52,11 +53,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build new-engine-ctl
-        run: pnpm exec nx run new-engine-ctl:build
+        run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:build
 
       - name: Resolve PR number
         id: pr
-        run: echo "number=${{ github.event.workflow_run.pull_requests[0].number }}" >> "$GITHUB_OUTPUT"
+        env:
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
 
       - name: Read preview commit state
         id: preview_commit_state
@@ -65,32 +68,38 @@ jobs:
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
           ZANEOPS_ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
           ZANE_PROJECT_SLUG: ${{ secrets.ZANEOPS_ZANE_PROJECT_SLUG }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           node apps/new-engine-ctl/dist/cli.js preview-commit-state \
-            --pr-number "${{ steps.pr.outputs.number }}"
+            --pr-number "$PR_NUMBER"
 
       - name: Resolve preview scope base SHA
         id: scope_base
+        env:
+          LAST_DEPLOYED_COMMIT_SHA: ${{ steps.preview_commit_state.outputs.last_deployed_commit_sha }}
+          PR_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
         run: |
-          BASE_SHA="${{ steps.preview_commit_state.outputs.last_deployed_commit_sha }}"
+          BASE_SHA="$LAST_DEPLOYED_COMMIT_SHA"
           if [[ -z "$BASE_SHA" ]]; then
-            BASE_SHA="${{ github.event.workflow_run.pull_requests[0].base.sha }}"
+            BASE_SHA="$PR_BASE_SHA"
           fi
           echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Resolve preview scope
         id: scope_data
         env:
+          BASE_SHA: ${{ steps.scope_base.outputs.base_sha }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           PREVIEW_BASELINE_COMPLETE: ${{ steps.preview_commit_state.outputs.baseline_complete || 'false' }}
         run: |
           node apps/new-engine-ctl/dist/cli.js scope \
             --lane preview \
-            --base-sha "${{ steps.scope_base.outputs.base_sha }}" \
-            --head-sha "${{ github.event.workflow_run.head_sha }}" \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
             --preview-baseline-complete "$PREVIEW_BASELINE_COMPLETE"
 
       - name: Upload new-engine-ctl artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist/cli.js
@@ -98,18 +107,28 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          BASELINE_SHA: ${{ steps.scope_base.outputs.base_sha || 'n/a' }}
+          BASELINE_COMPLETE: ${{ steps.preview_commit_state.outputs.baseline_complete || 'false' }}
+          PROJECTS_CSV: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}
+          SERVICES_CSV: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}
+          NX_STATUS: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}
+          SHOULD_PREPARE: ${{ steps.scope_data.outputs.should_prepare || 'false' }}
+          REQUIRES_PREVIEW_DB: ${{ steps.scope_data.outputs.requires_preview_db || 'false' }}
         run: |
           {
-            echo "## Preview Scope"
-            echo "- PR: #${{ steps.pr.outputs.number }}"
-            echo "- Head SHA: ${{ github.event.workflow_run.head_sha }}"
-            echo "- Baseline SHA: ${{ steps.scope_base.outputs.base_sha }}"
-            echo "- Baseline complete: ${{ steps.preview_commit_state.outputs.baseline_complete || 'false' }}"
-            echo "- Affected projects: ${{ steps.scope_data.outputs.projects_csv || 'n/a' }}"
-            echo "- Affected services: ${{ steps.scope_data.outputs.services_csv || 'n/a' }}"
-            echo "- Nx status: ${{ steps.scope_data.outputs.nx_status || 'n/a' }}"
-            echo "- Should prepare: ${{ steps.scope_data.outputs.should_prepare || 'false' }}"
-            echo "- Requires preview DB: ${{ steps.scope_data.outputs.requires_preview_db || 'false' }}"
+            printf '%s\n' "## Preview Scope"
+            printf '%s\n' "- PR: #$PR_NUMBER"
+            printf '%s\n' "- Head SHA: $HEAD_SHA"
+            printf '%s\n' "- Baseline SHA: $BASELINE_SHA"
+            printf '%s\n' "- Baseline complete: $BASELINE_COMPLETE"
+            printf '%s\n' "- Affected projects: $PROJECTS_CSV"
+            printf '%s\n' "- Affected services: $SERVICES_CSV"
+            printf '%s\n' "- Nx status: $NX_STATUS"
+            printf '%s\n' "- Should prepare: $SHOULD_PREPARE"
+            printf '%s\n' "- Requires preview DB: $REQUIRES_PREVIEW_DB"
           } >> "$GITHUB_STEP_SUMMARY"
 
   prepare:
@@ -126,16 +145,17 @@ jobs:
       preview_db_user: ${{ steps.run_prepare.outputs.preview_db_user }}
       preview_db_password: ${{ steps.run_prepare.outputs.preview_db_password }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -161,13 +181,18 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          PR_NUMBER: ${{ needs.scope.outputs.pr_number }}
+          REQUIRES_PREVIEW_DB: ${{ needs.scope.outputs.requires_preview_db || 'n/a' }}
+          PREVIEW_DB_CREATED: ${{ steps.run_prepare.outputs.preview_db_created || 'n/a' }}
+          PREVIEW_DB_NAME: ${{ steps.run_prepare.outputs.preview_db_name || 'n/a' }}
         run: |
           {
-            echo "## Preview Prepare"
-            echo "- PR: #${{ needs.scope.outputs.pr_number }}"
-            echo "- Requires preview DB: ${{ needs.scope.outputs.requires_preview_db }}"
-            echo "- Preview DB created: ${{ steps.run_prepare.outputs.preview_db_created || 'n/a' }}"
-            echo "- Preview DB name: ${{ steps.run_prepare.outputs.preview_db_name || 'n/a' }}"
+            printf '%s\n' "## Preview Prepare"
+            printf '%s\n' "- PR: #$PR_NUMBER"
+            printf '%s\n' "- Requires preview DB: $REQUIRES_PREVIEW_DB"
+            printf '%s\n' "- Preview DB created: $PREVIEW_DB_CREATED"
+            printf '%s\n' "- Preview DB name: $PREVIEW_DB_NAME"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -200,16 +225,17 @@ jobs:
       preview_random_once_secrets_json: ${{ steps.run_deploy.outputs.preview_random_once_secrets_json }}
       deployments_json: ${{ steps.run_deploy.outputs.deployments_json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -249,20 +275,32 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          PR_NUMBER: ${{ needs.scope.outputs.pr_number }}
+          ENVIRONMENT_NAME: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}
+          ENVIRONMENT_CREATED: ${{ steps.run_deploy.outputs.environment_created || 'n/a' }}
+          ENVIRONMENT_READY: ${{ steps.run_deploy.outputs.environment_ready || 'n/a' }}
+          ENVIRONMENT_WARNING_COUNT: ${{ steps.run_deploy.outputs.environment_warning_count || '0' }}
+          TARGET_COMMIT_SHA: ${{ steps.run_deploy.outputs.target_commit_sha || 'n/a' }}
+          LAST_DEPLOYED_COMMIT_SHA: ${{ steps.run_deploy.outputs.last_deployed_commit_sha || 'n/a' }}
+          RUNTIME_PROVIDER_OUTPUT_KEYS_CSV: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}
+          REQUESTED_SERVICES_CSV: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}
+          DEPLOY_SERVICES_CSV: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}
+          TRIGGERED_SERVICES_CSV: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}
         run: |
           {
-            echo "## Preview Deploy"
-            echo "- PR: #${{ needs.scope.outputs.pr_number }}"
-            echo "- Environment: ${{ steps.run_deploy.outputs.environment_name || 'n/a' }}"
-            echo "- Environment created: ${{ steps.run_deploy.outputs.environment_created || 'n/a' }}"
-            echo "- Environment ready: ${{ steps.run_deploy.outputs.environment_ready || 'n/a' }}"
-            echo "- Environment warnings: ${{ steps.run_deploy.outputs.environment_warning_count || '0' }}"
-            echo "- Target SHA: ${{ steps.run_deploy.outputs.target_commit_sha || 'n/a' }}"
-            echo "- Last deployed SHA: ${{ steps.run_deploy.outputs.last_deployed_commit_sha || 'n/a' }}"
-            echo "- Runtime provider outputs: ${{ steps.run_deploy.outputs.runtime_provider_output_keys_csv || 'n/a' }}"
-            echo "- Requested services: ${{ steps.run_deploy.outputs.requested_services_csv || 'n/a' }}"
-            echo "- Deploy services: ${{ steps.run_deploy.outputs.deploy_services_csv || 'n/a' }}"
-            echo "- Triggered services: ${{ steps.run_deploy.outputs.triggered_services_csv || 'n/a' }}"
+            printf '%s\n' "## Preview Deploy"
+            printf '%s\n' "- PR: #$PR_NUMBER"
+            printf '%s\n' "- Environment: $ENVIRONMENT_NAME"
+            printf '%s\n' "- Environment created: $ENVIRONMENT_CREATED"
+            printf '%s\n' "- Environment ready: $ENVIRONMENT_READY"
+            printf '%s\n' "- Environment warnings: $ENVIRONMENT_WARNING_COUNT"
+            printf '%s\n' "- Target SHA: $TARGET_COMMIT_SHA"
+            printf '%s\n' "- Last deployed SHA: $LAST_DEPLOYED_COMMIT_SHA"
+            printf '%s\n' "- Runtime provider outputs: $RUNTIME_PROVIDER_OUTPUT_KEYS_CSV"
+            printf '%s\n' "- Requested services: $REQUESTED_SERVICES_CSV"
+            printf '%s\n' "- Deploy services: $DEPLOY_SERVICES_CSV"
+            printf '%s\n' "- Triggered services: $TRIGGERED_SERVICES_CSV"
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
@@ -271,16 +309,17 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -330,12 +369,18 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          PR_NUMBER: ${{ needs.scope.outputs.pr_number }}
+          ENVIRONMENT_NAME: ${{ needs.deploy.outputs.environment_name || 'n/a' }}
+          REQUESTED_SERVICES_CSV: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}
+          DEPLOY_SERVICES_CSV: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}
+          TRIGGERED_SERVICES_CSV: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}
         run: |
           {
-            echo "## Preview Verify"
-            echo "- PR: #${{ needs.scope.outputs.pr_number }}"
-            echo "- Environment: ${{ needs.deploy.outputs.environment_name || 'n/a' }}"
-            echo "- Requested services: ${{ needs.deploy.outputs.requested_services_csv || 'n/a' }}"
-            echo "- Deploy services: ${{ needs.deploy.outputs.deploy_services_csv || 'n/a' }}"
-            echo "- Triggered services: ${{ needs.deploy.outputs.triggered_services_csv || 'n/a' }}"
+            printf '%s\n' "## Preview Verify"
+            printf '%s\n' "- PR: #$PR_NUMBER"
+            printf '%s\n' "- Environment: $ENVIRONMENT_NAME"
+            printf '%s\n' "- Requested services: $REQUESTED_SERVICES_CSV"
+            printf '%s\n' "- Deploy services: $DEPLOY_SERVICES_CSV"
+            printf '%s\n' "- Triggered services: $TRIGGERED_SERVICES_CSV"
           } >> "$GITHUB_STEP_SUMMARY"
