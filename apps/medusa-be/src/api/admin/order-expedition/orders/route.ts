@@ -1,6 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
+import type OrderNoteModuleService from "../../../../modules/order-note/service"
 import {
   isActionRequiredOrderBusinessStatusId,
   type OrderBusinessStatusGroupId,
@@ -16,6 +18,10 @@ import {
   orderMatchesExpeditionCarrier,
   toOrderExpeditionDto,
 } from "../../../../utils/order-expedition"
+import {
+  fetchOrderExpeditionOrderNotesByOrderIds,
+  resolveOrderExpeditionCustomerSignals,
+} from "../../../../utils/order-expedition-customer-signals"
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
 
 type OrderExpeditionOrdersPage = {
@@ -53,6 +59,8 @@ const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const orderNoteService =
+    req.scope.resolve<OrderNoteModuleService>(ORDER_NOTE_MODULE)
   const {
     business_status_group: businessStatusGroup,
     business_status: businessStatus,
@@ -77,8 +85,24 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         )
       : await fetchOrders(query, normalizedLimit, normalizedOffset)
 
+  const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
+    orderNoteService,
+    result.orders.map((order) => order.id)
+  )
+  const { signalsByOrderId } = await resolveOrderExpeditionCustomerSignals(
+    query,
+    result.orders,
+    notesByOrderId
+  )
+
   res.json({
-    orders: result.orders.map(toOrderExpeditionDto),
+    orders: result.orders.map((order) =>
+      toOrderExpeditionDto(
+        order,
+        signalsByOrderId.get(order.id),
+        notesByOrderId.get(order.id)
+      )
+    ),
     count: result.count,
     has_next: result.hasNext,
     count_exact: result.countExact,

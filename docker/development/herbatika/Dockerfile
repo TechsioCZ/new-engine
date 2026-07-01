@@ -21,7 +21,7 @@ CMD ["sh", "-lc", "\
     [ -x apps/herbatika/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatika...; \
     pnpm --filter=@techsio/storefront-data build; \
     pnpm --filter=@techsio/ui-kit build; \
-    pnpm --filter=herbatika exec next dev --hostname 0.0.0.0 --port 3000 \
+    pnpm --filter=herbatika exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
 "]
 
 FROM base AS build
@@ -63,7 +63,7 @@ RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 
 RUN --mount=type=cache,id=next-cache-herbatika,target=/var/www/apps/herbatika/.next/cache \
-    pnpm --filter=herbatika exec next build --webpack && \
+    pnpm --filter=herbatika exec next build --turbopack && \
     test -f apps/herbatika/.next/BUILD_ID
 
 FROM node:24-slim AS prod

@@ -12,6 +12,7 @@ export type OrderBusinessStatusOrder = OrderBusinessStatusInput & {
   created_at?: Date | string | null
   currency_code?: string | null
   custom_display_id?: string | null
+  customer_id?: string | null
   display_id?: number | null
   email?: string | null
   id: string
@@ -30,6 +31,7 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "status",
   "metadata",
   "payment_status",
+  "customer_id",
   "payment_collections.status",
   "fulfillment_status",
   "fulfillments.shipped_at",

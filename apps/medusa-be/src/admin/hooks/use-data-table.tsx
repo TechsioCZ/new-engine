@@ -9,7 +9,7 @@ import {
   type RowSelectionState,
   useReactTable,
 } from "@tanstack/react-table"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
 type UseDataTableProps<TData> = {
@@ -53,13 +53,10 @@ export const useDataTable = <TData,>({
     pageIndex: offset ? Math.ceil(Number(offset) / _pageSize) : 0,
     pageSize: _pageSize,
   })
-  const pagination = useMemo(
-    () => ({
-      pageIndex,
-      pageSize,
-    }),
-    [pageIndex, pageSize]
-  )
+  const pagination = {
+    pageIndex,
+    pageSize,
+  }
   const [localRowSelection, setLocalRowSelection] = useState({})
   const rowSelection = _rowSelection?.state ?? localRowSelection
   const setRowSelection = _rowSelection?.updater ?? setLocalRowSelection

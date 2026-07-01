@@ -14,7 +14,7 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { ActionMenu, AmountCell, Thumbnail } from "../../../../components"
 import { Form } from "../../../../components/common/form"
@@ -54,21 +54,12 @@ function ManageItem({
   const { mutateAsync: updateOriginalItem } = useUpdateQuoteItem(orderId)
   const { mutateAsync: undoAction } = useRemoveQuoteItem(orderId)
 
-  const isAddedItem = useMemo(
-    () => !!item.actions?.find((a) => a.action === "ITEM_ADD"),
-    [item]
-  )
-
-  const isItemUpdated = useMemo(
-    () => !!item.actions?.find((a) => a.action === "ITEM_UPDATE"),
-    [item]
-  )
-
-  const isItemRemoved = useMemo(() => {
-    // To be removed item needs to have updated quantity
-    const updateAction = item.actions?.find((a) => a.action === "ITEM_UPDATE")
-    return !!updateAction && item.quantity === item.detail.fulfilled_quantity
-  }, [item])
+  const isAddedItem = !!item.actions?.find((a) => a.action === "ITEM_ADD")
+  const isItemUpdated = !!item.actions?.find((a) => a.action === "ITEM_UPDATE")
+  // To be removed item needs to have updated quantity
+  const updateAction = item.actions?.find((a) => a.action === "ITEM_UPDATE")
+  const isItemRemoved =
+    !!updateAction && item.quantity === item.detail.fulfilled_quantity
 
   /**
    * HANDLERS

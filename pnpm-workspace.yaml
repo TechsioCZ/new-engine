@@ -41,10 +41,10 @@ overrides:
   '@types/react': 19.2.3
   '@types/react-dom': 19.2.3
   '@types/node': 24.12.4
-  '@medusajs/admin-bundler>vite': 8.0.11
-  '@medusajs/admin-vite-plugin>vite': 8.0.11
-  '@medusajs/admin-bundler>@vitejs/plugin-react': 6.0.1
-  vite: 8.0.11
+  '@medusajs/admin-bundler>vite': 8.1.0
+  '@medusajs/admin-vite-plugin>vite': 8.1.0
+  '@medusajs/admin-bundler>@vitejs/plugin-react': 6.0.3
+  vite: 8.1.0
 
 supportedArchitectures:
   os:
@@ -97,6 +97,7 @@ syncInjectedDepsAfterScripts:
   - build
 
 allowBuilds:
+  '@nubjs/nub': true
   '@biomejs/biome': true
   '@medusajs/telemetry': false
   '@parcel/watcher': true

@@ -1,6 +1,4 @@
 "use client"
-
-import { useMemo } from "react"
 import { RELATED_PRODUCTS_LIMIT } from "@/components/product-detail/product-detail.constants"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
@@ -23,21 +21,11 @@ type UseProductDetailRelatedProductsProps = {
 export function useProductDetailRelatedProducts({
   product,
 }: UseProductDetailRelatedProductsProps) {
-  const relatedCategoryIds = useMemo(
-    () => resolveRelatedCategoryIds(product),
-    [product]
-  )
-  const relatedReferenceCodes = useMemo(
-    () => resolveRelatedProductReferenceCodes(product),
-    [product]
-  )
-  const relatedReferenceHandles = useMemo(
-    () =>
-      relatedReferenceCodes
-        .map(resolveProductReferenceHandle)
-        .filter((handle): handle is string => Boolean(handle)),
-    [relatedReferenceCodes]
-  )
+  const relatedCategoryIds = resolveRelatedCategoryIds(product)
+  const relatedReferenceCodes = resolveRelatedProductReferenceCodes(product)
+  const relatedReferenceHandles = relatedReferenceCodes
+    .map(resolveProductReferenceHandle)
+    .filter((handle): handle is string => Boolean(handle))
   const referencedProductsQuery = useProducts({
     page: 1,
     limit: RELATED_PRODUCTS_LIMIT,
@@ -55,38 +43,28 @@ export function useProductDetailRelatedProducts({
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(product?.id),
   })
-  const relatedProducts = useMemo(() => {
-    const referencedProducts = orderProductsByReferenceCodes(
-      referencedProductsQuery.products,
-      relatedReferenceCodes
-    )
-    const products = [...referencedProducts, ...fallbackProductsQuery.products]
-    const usedProductIds = new Set<string>()
-    const filtered: Product[] = []
+  const referencedProducts = orderProductsByReferenceCodes(
+    referencedProductsQuery.products,
+    relatedReferenceCodes
+  )
+  const products = [...referencedProducts, ...fallbackProductsQuery.products]
+  const usedProductIds = new Set<string>()
+  const filtered: Product[] = []
 
-    for (const relatedProduct of products) {
-      if (!relatedProduct.id || relatedProduct.id === product?.id) {
-        continue
-      }
-
-      if (usedProductIds.has(relatedProduct.id)) {
-        continue
-      }
-
-      usedProductIds.add(relatedProduct.id)
-      filtered.push(relatedProduct)
+  for (const relatedProduct of products) {
+    if (!relatedProduct.id || relatedProduct.id === product?.id) {
+      continue
     }
 
-    return filtered.slice(0, RELATED_PRODUCTS_LIMIT)
-  }, [
-    fallbackProductsQuery.products,
-    product?.id,
-    referencedProductsQuery.products,
-    relatedReferenceCodes,
-  ])
+    if (usedProductIds.has(relatedProduct.id)) {
+      continue
+    }
 
-  return useMemo(
-    () => resolveRelatedSections(relatedProducts),
-    [relatedProducts]
-  )
+    usedProductIds.add(relatedProduct.id)
+    filtered.push(relatedProduct)
+  }
+
+  const relatedProducts = filtered.slice(0, RELATED_PRODUCTS_LIMIT)
+
+  return resolveRelatedSections(relatedProducts)
 }

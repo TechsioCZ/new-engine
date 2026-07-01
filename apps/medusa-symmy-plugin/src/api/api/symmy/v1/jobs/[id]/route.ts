@@ -3,7 +3,7 @@ import {
   SYMMY_IMPORT_JOB_MODULE,
   type SymmyImportJobDTO,
   type SymmyImportJobModuleService,
-} from "../../../../../../modules/import-job"
+} from "../../../../../../modules/import-job/index"
 
 const serializeJob = (job: SymmyImportJobDTO) => ({
   id: job.id,

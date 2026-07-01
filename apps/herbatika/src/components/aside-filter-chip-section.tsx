@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { AsideFilterButton } from "@/components/aside-filter-button"
 import { SupportingText } from "@/components/text/supporting-text"
 
@@ -32,13 +32,10 @@ export function AsideFilterChipSection({
 }: AsideFilterChipSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const visibleItems = useMemo(() => {
-    if (!collapseAfter || collapseAfter <= 0 || isExpanded) {
-      return items
-    }
-
-    return items.slice(0, collapseAfter)
-  }, [collapseAfter, isExpanded, items])
+  const visibleItems =
+    !collapseAfter || collapseAfter <= 0 || isExpanded
+      ? items
+      : items.slice(0, collapseAfter)
 
   return (
     <section className="space-y-250">

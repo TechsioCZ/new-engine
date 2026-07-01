@@ -1,6 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useMemo } from "react"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import { useCategories } from "@/lib/storefront/categories"
 import {
@@ -34,17 +33,13 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const prefetchActions = useHomepagePrefetch(region)
 
-  const categoryByHandle = useMemo(() => {
-    const map = new Map<string, HttpTypes.StoreProductCategory>()
+  const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
 
-    for (const category of categoriesQuery.categories) {
-      if (category.handle) {
-        map.set(category.handle, category)
-      }
+  for (const category of categoriesQuery.categories) {
+    if (category.handle) {
+      categoryByHandle.set(category.handle, category)
     }
-
-    return map
-  }, [categoriesQuery.categories])
+  }
 
   const bestsellersCategoryId = categoryByHandle.get(
     HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE
@@ -86,27 +81,20 @@ export function useHomepageController(): UseHomepageControllerResult {
       categoriesQuery.isLoading ||
       sectionQueries.some((query) => query.isLoading))
 
-  const preparedProductSections = useMemo<HomepageProductSection[]>(
-    () => [
-      {
-        ...PRODUCT_SECTIONS[0],
-        products: bestsellersProductsQuery.products,
-      },
-      {
-        ...PRODUCT_SECTIONS[1],
-        products: newProductsQuery.products,
-      },
-      {
-        ...PRODUCT_SECTIONS[2],
-        products: actionProductsQuery.products,
-      },
-    ],
-    [
-      actionProductsQuery.products,
-      bestsellersProductsQuery.products,
-      newProductsQuery.products,
-    ]
-  )
+  const preparedProductSections: HomepageProductSection[] = [
+    {
+      ...PRODUCT_SECTIONS[0],
+      products: bestsellersProductsQuery.products,
+    },
+    {
+      ...PRODUCT_SECTIONS[1],
+      products: newProductsQuery.products,
+    },
+    {
+      ...PRODUCT_SECTIONS[2],
+      products: actionProductsQuery.products,
+    },
+  ]
 
   return {
     productsError:

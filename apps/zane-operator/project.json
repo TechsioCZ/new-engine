@@ -7,7 +7,9 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
+      "cache": true,
       "dependsOn": ["typecheck", "^build"],
+      "inputs": ["production", "^production", "workspaceTooling"],
       "outputs": ["{projectRoot}/dist"],
       "options": {
         "cwd": "apps/zane-operator",
@@ -16,13 +18,19 @@
     },
     "typecheck": {
       "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production", "workspaceTooling"],
+      "outputs": [],
       "options": {
         "cwd": "apps/zane-operator",
-        "command": "bun run typecheck"
+        "command": "pnpm run typecheck"
       }
     },
     "test": {
       "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["default", "^production", "workspaceTooling"],
+      "outputs": [],
       "options": {
         "cwd": "apps/zane-operator",
         "command": "pnpm run test"

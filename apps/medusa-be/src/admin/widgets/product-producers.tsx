@@ -12,7 +12,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
@@ -209,15 +209,12 @@ const ProducerAssignmentDrawer = ({
     }
   }, [currentProducer?.id, open])
 
-  const params = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: "title",
-      q: debouncedQ,
-    }),
-    [debouncedQ, pageIndex]
-  )
+  const params = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: "title",
+    q: debouncedQ,
+  }
 
   const { data, isLoading } = useQuery({
     enabled: open,

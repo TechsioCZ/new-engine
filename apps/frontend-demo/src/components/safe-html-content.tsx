@@ -1,7 +1,6 @@
 "use client"
 
 import DOMPurify from "dompurify"
-import { useMemo } from "react"
 
 type SanitizerConfig = NonNullable<Parameters<typeof DOMPurify.sanitize>[1]>
 
@@ -45,6 +44,72 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   node.setAttribute("rel", Array.from(relTokens).join(" "))
 })
 
+function processSafeHtmlContent(
+  content: string | null | undefined,
+  config?: SanitizerConfig
+) {
+  if (!content) {
+    return { isHtml: false, content: "" }
+  }
+
+  // Check if content contains HTML tags or HTML entities
+  const hasHtmlTags = HTML_TAG_PATTERN.test(content)
+  const hasHtmlEntities = HTML_ENTITY_PATTERN.test(content)
+  const isHtml = hasHtmlTags || hasHtmlEntities
+
+  if (isHtml) {
+    // Default safe config for product descriptions
+    const defaultConfig = {
+      ALLOWED_TAGS: [
+        "p",
+        "br",
+        "strong",
+        "del",
+        "em",
+        "b",
+        "i",
+        "s",
+        "strike",
+        "u",
+        "hr",
+        "ul",
+        "ol",
+        "li",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "a",
+        "blockquote",
+        "code",
+        "pre",
+        "table",
+        "thead",
+        "tbody",
+        "tr",
+        "th",
+        "td",
+        "span",
+        "div",
+      ],
+      ALLOWED_ATTR: ["class", "style", "href", "target", "rel"],
+      ALLOW_DATA_ATTR: false,
+      FORBID_TAGS: ["script", "iframe", "form", "input"],
+      FORBID_ATTR: ["onerror", "onclick", "onload"],
+    }
+
+    // Custom config shallow-overrides defaults; array fields are replaced.
+    const finalConfig = { ...defaultConfig, ...config }
+    const sanitized = DOMPurify.sanitize(content, finalConfig)
+
+    return { isHtml: true, content: String(sanitized) }
+  }
+
+  return { isHtml: false, content }
+}
+
 /**
  * Safely renders HTML content with automatic detection and sanitization.
  * Detects if content contains HTML tags or entities and sanitizes accordingly.
@@ -55,68 +120,7 @@ export function SafeHtmlContent({
   className,
   config,
 }: SafeHtmlContentProps) {
-  const processedContent = useMemo(() => {
-    if (!content) {
-      return { isHtml: false, content: "" }
-    }
-
-    // Check if content contains HTML tags or HTML entities
-    const hasHtmlTags = HTML_TAG_PATTERN.test(content)
-    const hasHtmlEntities = HTML_ENTITY_PATTERN.test(content)
-    const isHtml = hasHtmlTags || hasHtmlEntities
-
-    if (isHtml) {
-      // Default safe config for product descriptions
-      const defaultConfig = {
-        ALLOWED_TAGS: [
-          "p",
-          "br",
-          "strong",
-          "del",
-          "em",
-          "b",
-          "i",
-          "s",
-          "strike",
-          "u",
-          "hr",
-          "ul",
-          "ol",
-          "li",
-          "h1",
-          "h2",
-          "h3",
-          "h4",
-          "h5",
-          "h6",
-          "a",
-          "blockquote",
-          "code",
-          "pre",
-          "table",
-          "thead",
-          "tbody",
-          "tr",
-          "th",
-          "td",
-          "span",
-          "div",
-        ],
-        ALLOWED_ATTR: ["class", "style", "href", "target", "rel"],
-        ALLOW_DATA_ATTR: false,
-        FORBID_TAGS: ["script", "iframe", "form", "input"],
-        FORBID_ATTR: ["onerror", "onclick", "onload"],
-      }
-
-      // Custom config shallow-overrides defaults; array fields are replaced.
-      const finalConfig = { ...defaultConfig, ...config }
-      const sanitized = DOMPurify.sanitize(content, finalConfig)
-
-      return { isHtml: true, content: String(sanitized) }
-    }
-
-    return { isHtml: false, content }
-  }, [content, config])
+  const processedContent = processSafeHtmlContent(content, config)
 
   if (!processedContent.content) {
     return null

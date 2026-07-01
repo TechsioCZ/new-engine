@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useStore } from "@tanstack/react-store"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect } from "react"
+import { useEffect } from "react"
 import { AUTH_MESSAGES } from "@/lib/auth/constants"
 import { queryKeys } from "@/lib/query-keys"
 import { authHelpers, authStore } from "@/stores/auth-store"
@@ -146,11 +146,8 @@ export function useAuth() {
   })
 
   // Get field error
-  const getFieldError = useCallback(
-    (field: string): string | undefined =>
-      authState.validationErrors.find((e) => e.field === field)?.message,
-    [authState.validationErrors]
-  )
+  const getFieldError = (field: string): string | undefined =>
+    authState.validationErrors.find((e) => e.field === field)?.message
 
   return {
     // Auth state
