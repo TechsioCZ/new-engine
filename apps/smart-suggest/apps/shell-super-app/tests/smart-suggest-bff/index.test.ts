@@ -2962,6 +2962,96 @@ describe('Smart Suggest effect API', () => {
     }),
   );
 
+  it.effect('re-ranks flattened shard repository results before applying the global limit', () =>
+    Effect.gen(function* shardedSearchGlobalRankingProgram() {
+      const router = createInMemorySmartSuggestRepositories();
+      const shardPraha = createInMemorySmartSuggestRepositories();
+      const shardCentralBohemia = createInMemorySmartSuggestRepositories();
+
+      yield* resolveEffect(
+        router.shardRegistry.upsertShardMetadata({
+          bindingName: 'SMART_SUGGEST_CZ_VUSC_19',
+          countryCode: 'CZ',
+          regionCode: '19',
+          regionKind: 'vusc',
+          regionName: 'Praha',
+          rowCount: 1,
+          shardId: 'smart-suggest-cz-vusc-19',
+          state: 'active',
+        }),
+      );
+      yield* resolveEffect(
+        router.shardRegistry.upsertShardMetadata({
+          bindingName: 'SMART_SUGGEST_CZ_VUSC_27',
+          countryCode: 'CZ',
+          regionCode: '27',
+          regionKind: 'vusc',
+          regionName: 'Stredocesky',
+          rowCount: 1,
+          shardId: 'smart-suggest-cz-vusc-27',
+          state: 'active',
+        }),
+      );
+
+      yield* resolveEffect(
+        shardPraha.addressRecords.upsertAddressRecords([
+          {
+            countryCode: 'CZ',
+            displayLabel: 'K Louze 1, 110 00 Praha 1, CZ',
+            id: 'ruian-cz:fuzzy-k-louze',
+            parts: {
+              city: 'Praha 1',
+              countryCode: 'CZ',
+              houseNumber: '1',
+              postalCode: '110 00',
+              street: 'K Louze',
+            },
+            quality: 0.99,
+            searchLabel: 'k louze 1 110 00 praha 1 cz',
+            sourceId: 'ruian-cz',
+          },
+        ]),
+      );
+      yield* resolveEffect(
+        shardCentralBohemia.addressRecords.upsertAddressRecords([
+          {
+            countryCode: 'CZ',
+            displayLabel: 'K Louzi 1258/12, 101 00 Praha 10, CZ',
+            id: 'ruian-cz:exact-k-louzi',
+            parts: {
+              city: 'Praha 10',
+              countryCode: 'CZ',
+              houseNumber: '1258',
+              orientationNumber: '12',
+              postalCode: '101 00',
+              street: 'K Louzi',
+            },
+            quality: 0.7,
+            searchLabel: 'k louzi 1258 12 101 00 praha 10 cz',
+            sourceId: 'ruian-cz',
+          },
+        ]),
+      );
+
+      const repositories = createShardedRepositories({
+        router,
+        shardRepositories: new Map([
+          ['SMART_SUGGEST_CZ_VUSC_19', shardPraha],
+          ['SMART_SUGGEST_CZ_VUSC_27', shardCentralBohemia],
+        ]),
+      });
+      const results = yield* resolveEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: 'CZ',
+          limit: 1,
+          query: 'K Louzi',
+        }),
+      );
+
+      expect(results.map((record) => record.id)).toEqual(['ruian-cz:exact-k-louzi']);
+    }),
+  );
+
   it.effect('routes shard data-source registration and tombstones into shard repositories', () =>
     Effect.gen(function* shardTombstoneRoutingProgram() {
       const router = createInMemorySmartSuggestRepositories();

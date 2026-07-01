@@ -9,7 +9,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   createExternalBaselineContexts,
   createExternalResultNormalizer,
-  externalBaselineLabel,
   fakeExternalBaselineId,
   supportedExternalBaselineIds,
 } from './external-baseline-adapters.mjs';

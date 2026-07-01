@@ -625,6 +625,9 @@ importers:
       '@techsio/smart-suggest-datasets':
         specifier: workspace:^
         version: link:../../../../libs/smart-suggest/datasets
+      '@techsio/smart-suggest-indexing':
+        specifier: workspace:^
+        version: link:../../../../libs/smart-suggest/indexing
       '@techsio/smart-suggest-integrations':
         specifier: workspace:^
         version: link:../../../../libs/smart-suggest/integrations

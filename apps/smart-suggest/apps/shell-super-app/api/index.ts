@@ -21,6 +21,7 @@ import {
   smartSuggestSourceAllowsWrite,
   smartSuggestSourceMaxTtlDays,
 } from '@techsio/smart-suggest-datasets/source-catalog';
+import { rankAddressCandidates } from '@techsio/smart-suggest-indexing';
 import type {
   SmartSuggestProviderRegistry,
   SmartSuggestProviderRuntimeConfig,
@@ -772,6 +773,35 @@ const uniqueShardMetadataByBindingName = <
   return [...unique.values()];
 };
 
+type RankedShardAddressRecordCandidate = AddressRecord & {
+  confidence: number;
+};
+
+const rankShardAddressRecordResults = (
+  query: string,
+  records: readonly AddressRecord[],
+  limit: number,
+): AddressRecord[] => {
+  const byRecordId = new Map<string, AddressRecord>();
+
+  for (const record of records) {
+    byRecordId.set(record.id, record);
+  }
+
+  const candidates: RankedShardAddressRecordCandidate[] = [...byRecordId.values()].map(
+    (record) => ({
+      ...record,
+      confidence: record.quality,
+    }),
+  );
+
+  return rankAddressCandidates(query, candidates, { limit }).map(({ candidate }) => {
+    const { confidence: _confidence, ...record } = candidate;
+
+    return byRecordId.get(record.id) ?? record;
+  });
+};
+
 export const createShardedRepositories = ({
   router,
   shardRepositories,
@@ -863,13 +893,7 @@ export const createShardedRepositories = ({
           }),
         );
 
-        return shardResults
-          .flat()
-          .toSorted(
-            (left, right) =>
-              right.quality - left.quality || left.displayLabel.localeCompare(right.displayLabel),
-          )
-          .slice(0, limit);
+        return rankShardAddressRecordResults(input.query, shardResults.flat(), limit);
       }),
     upsertAddressRecords: (records) =>
       Effect.gen(function* upsertAddressRecordsProgram() {

@@ -34,6 +34,7 @@
     "@tanstack/react-router": "1.170.16",
     "@techsio/smart-suggest-core": "workspace:^",
     "@techsio/smart-suggest-datasets": "workspace:^",
+    "@techsio/smart-suggest-indexing": "workspace:^",
     "@techsio/smart-suggest-integrations": "workspace:^",
     "@techsio/smart-suggest-storage": "workspace:^",
     "@techsio/smart-suggest-validation": "workspace:^",
