@@ -2,7 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { type ReactNode, useMemo, useState } from "react"
+import { type ReactNode, useState } from "react"
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -46,10 +46,7 @@ export function RecentlyVisitedProductsSection({
   const recentlyVisitedHandles = useRecentlyVisitedProductHandles({
     excludeHandle,
   })
-  const productHandles = useMemo(
-    () => recentlyVisitedHandles.slice(0, visibleCount),
-    [recentlyVisitedHandles, visibleCount]
-  )
+  const productHandles = recentlyVisitedHandles.slice(0, visibleCount)
   const [productsWithImageError, setProductsWithImageError] = useState<
     string[]
   >([])
@@ -62,20 +59,16 @@ export function RecentlyVisitedProductsSection({
     enabled: Boolean(region?.region_id && productHandles.length > 0),
   })
 
-  const visibleProducts = useMemo(
-    () =>
-      orderProductsByHandles(
-        recentProductsQuery.products,
-        productHandles
-      ).filter((product) => {
-        if (!product.id) {
-          return true
-        }
+  const visibleProducts = orderProductsByHandles(
+    recentProductsQuery.products,
+    productHandles
+  ).filter((product) => {
+    if (!product.id) {
+      return true
+    }
 
-        return !productsWithImageError.includes(product.id)
-      }),
-    [productHandles, productsWithImageError, recentProductsQuery.products]
-  )
+    return !productsWithImageError.includes(product.id)
+  })
 
   const shouldShowSkeleton =
     productHandles.length > 0 &&

@@ -16,10 +16,7 @@ on:
         default: "true"
 
 permissions:
-  actions: read
   contents: read
-  pull-requests: write
-  checks: write
 
 jobs:
   detect-a11y-changes:
@@ -30,6 +27,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check changed paths
         id: changed-paths
@@ -72,6 +70,11 @@ jobs:
   storybook-a11y:
     needs: detect-a11y-changes
     if: needs.detect-a11y-changes.outputs.should-run == 'true'
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+      checks: write
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
       node-version: "24"

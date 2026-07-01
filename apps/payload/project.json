@@ -34,6 +34,7 @@
     },
     "test": {
       "executor": "nx:run-commands",
+      "cache": false,
       "options": {
         "cwd": "apps/payload",
         "command": "pnpm test"

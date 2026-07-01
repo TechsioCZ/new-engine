@@ -1,7 +1,6 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { useMemo } from "react"
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 
@@ -26,10 +25,7 @@ export function useCartProductsByHandle(
   cartItems: HttpTypes.StoreCartLineItem[],
   fields = PRODUCT_CARD_FIELDS
 ) {
-  const productHandles = useMemo(
-    () => resolveCartProductHandles(cartItems),
-    [cartItems]
-  )
+  const productHandles = resolveCartProductHandles(cartItems)
   const productsQuery = useProducts({
     page: 1,
     limit: Math.max(productHandles.length, 1),
@@ -37,26 +33,19 @@ export function useCartProductsByHandle(
     fields,
     enabled: productHandles.length > 0,
   })
-  const products = useMemo(() => {
-    const expectedHandles = new Set(productHandles)
+  const expectedHandles = new Set(productHandles)
+  const products = productsQuery.products.filter(
+    (product) =>
+      typeof product.handle === "string" && expectedHandles.has(product.handle)
+  )
 
-    return productsQuery.products.filter(
-      (product) =>
-        typeof product.handle === "string" &&
-        expectedHandles.has(product.handle)
-    )
-  }, [productHandles, productsQuery.products])
-  const productsByHandle = useMemo(() => {
-    const nextProductsByHandle = new Map<string, HttpTypes.StoreProduct>()
+  const productsByHandle = new Map<string, HttpTypes.StoreProduct>()
 
-    for (const product of products) {
-      if (typeof product.handle === "string") {
-        nextProductsByHandle.set(product.handle, product)
-      }
+  for (const product of products) {
+    if (typeof product.handle === "string") {
+      productsByHandle.set(product.handle, product)
     }
-
-    return nextProductsByHandle
-  }, [products])
+  }
 
   return {
     isLoading: productsQuery.isLoading,

@@ -1,18 +1,13 @@
-import { withPayload } from "@payloadcms/next/withPayload"
 import { join } from "node:path"
+import { withPayload } from "@payloadcms/next/withPayload"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: join(import.meta.dirname, "../../"),
-  webpack: (webpackConfig) => {
-    webpackConfig.resolve.extensionAlias = {
-      ".cjs": [".cts", ".cjs"],
-      ".js": [".ts", ".tsx", ".js", ".jsx"],
-      ".mjs": [".mts", ".mjs"],
-    }
-
-    return webpackConfig
+  reactCompiler: true,
+  experimental: {
+    turbopackRustReactCompiler: true,
   },
 }
 

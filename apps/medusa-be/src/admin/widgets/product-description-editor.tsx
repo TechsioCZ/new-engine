@@ -2,7 +2,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
 
@@ -210,9 +210,9 @@ const ProductDescriptionEditor = ({
     },
   })
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     mutation.mutate(descriptionHtmlRef.current)
-  }, [mutation])
+  }
 
   if (!product?.id) {
     return null

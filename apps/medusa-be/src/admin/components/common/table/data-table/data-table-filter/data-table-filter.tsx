@@ -5,7 +5,7 @@ import {
   Root as PopoverRoot,
   Trigger as PopoverTrigger,
 } from "@radix-ui/react-popover"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
 import { DataTableFilterContext, useDataTableFilterContext } from "./context"
@@ -94,23 +94,20 @@ export const DataTableFilter = ({
     setActiveFilters((prev) => [...prev, { ...filter, openOnMount: true }])
   }
 
-  const removeFilter = useCallback((key: string) => {
+  const removeFilter = (key: string) => {
     setActiveFilters((prev) => prev.filter((f) => f.key !== key))
-  }, [])
+  }
 
-  const removeAllFilters = useCallback(() => {
+  const removeAllFilters = () => {
     setActiveFilters([])
-  }, [])
+  }
 
   return (
     <DataTableFilterContext.Provider
-      value={useMemo(
-        () => ({
-          removeFilter,
-          removeAllFilters,
-        }),
-        [removeAllFilters, removeFilter]
-      )}
+      value={{
+        removeFilter,
+        removeAllFilters,
+      }}
     >
       <div className="flex max-w-2/3 flex-wrap items-center gap-2">
         {activeFilters.map((filter) => {

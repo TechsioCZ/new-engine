@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
 import {
   type CategoryContextImageTile,
@@ -77,10 +77,7 @@ export function CategoryContextPanel({
   introText,
 }: CategoryContextPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const sanitizedIntroHtml = useMemo(
-    () => sanitizeCategoryRichTextHtml(introHtml),
-    [introHtml]
-  )
+  const sanitizedIntroHtml = sanitizeCategoryRichTextHtml(introHtml)
   const resolvedIntroText = sanitizedIntroHtml
     ? stripHtml(sanitizedIntroHtml)
     : (introText ?? "")

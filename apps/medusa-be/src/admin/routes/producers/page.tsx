@@ -21,7 +21,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
@@ -539,16 +539,13 @@ const AttributeTypesSection = () => {
   const [isCheckingName, setIsCheckingName] = useState(false)
   const debouncedQ = useDebouncedValue(q)
 
-  const params = useMemo(
-    () => ({
-      include_deleted: status === "all",
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: "name",
-      q: debouncedQ,
-    }),
-    [debouncedQ, pageIndex, status]
-  )
+  const params = {
+    include_deleted: status === "all",
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: "name",
+    q: debouncedQ,
+  }
 
   const { data, isLoading } = useQuery({
     queryFn: () => listProducerAttributeTypes(params),
@@ -900,16 +897,13 @@ const ProducersPage = () => {
   const [status, setStatus] = useState("active")
   const debouncedQ = useDebouncedValue(q)
 
-  const params = useMemo(
-    () => ({
-      include_deleted: status === "all",
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: orderBy,
-      q: debouncedQ,
-    }),
-    [debouncedQ, orderBy, pageIndex, status]
-  )
+  const params = {
+    include_deleted: status === "all",
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: orderBy,
+    q: debouncedQ,
+  }
 
   const {
     data,
@@ -966,15 +960,12 @@ const ProducersPage = () => {
   const producers = data?.producers ?? []
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
-  const attributeTypesParams = useMemo(
-    () => ({
-      include_deleted: true,
-      limit: 100,
-      offset: 0,
-      order_by: "name",
-    }),
-    []
-  )
+  const attributeTypesParams = {
+    include_deleted: true,
+    limit: 100,
+    offset: 0,
+    order_by: "name",
+  }
   const attributeTypesQuery = useQuery({
     queryFn: () => listProducerAttributeTypes(attributeTypesParams),
     queryKey: producerQueryKeys.attributeTypes(attributeTypesParams),

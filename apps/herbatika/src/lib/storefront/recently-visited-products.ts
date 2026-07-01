@@ -1,7 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
 const RECENTLY_VISITED_PRODUCTS_STORAGE_KEY =
   "herbatika:recently-visited-products"
@@ -122,10 +122,7 @@ export const useRecentlyVisitedProductHandles = (options?: {
     }
   }, [])
 
-  return useMemo(
-    () => handles.filter((handle) => handle !== options?.excludeHandle),
-    [handles, options?.excludeHandle]
-  )
+  return handles.filter((handle) => handle !== options?.excludeHandle)
 }
 
 export const useRecordRecentlyVisitedProduct = (

@@ -1,6 +1,6 @@
 "use client"
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
-import { Popover } from "@techsio/ui-kit/molecules/popover"
+import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { slugify } from "@techsio/ui-kit/utils"
 import Link from "next/link"
 import type { ComponentPropsWithoutRef } from "react"

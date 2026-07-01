@@ -4,7 +4,7 @@ import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
-import { useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
 import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu"
@@ -103,20 +103,30 @@ const resolveExpandedValues = (
   return [activeGroup.value]
 }
 
+const areExpandedValuesEqual = (left: string[], right: string[]) =>
+  left.length === right.length &&
+  left.every((value, index) => value === right[index])
+
 export function HerbatikaMobileMenuNav() {
   const pathname = usePathname()
   const { setIsMobileMenuOpen } = useContext(HeaderContext)
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
-  const mobileMenuEntries = useMemo(
-    () => buildMobileMenuEntries(groupsByRootHandle),
-    [groupsByRootHandle]
-  )
+  const mobileMenuEntries = buildMobileMenuEntries(groupsByRootHandle)
   const [expandedValues, setExpandedValues] = useState<string[]>(() =>
     resolveExpandedValues(pathname, mobileMenuEntries)
   )
 
   useEffect(() => {
-    setExpandedValues(resolveExpandedValues(pathname, mobileMenuEntries))
+    const nextExpandedValues = resolveExpandedValues(
+      pathname,
+      mobileMenuEntries
+    )
+
+    setExpandedValues((currentExpandedValues) =>
+      areExpandedValuesEqual(currentExpandedValues, nextExpandedValues)
+        ? currentExpandedValues
+        : nextExpandedValues
+    )
   }, [mobileMenuEntries, pathname])
 
   const handleClose = () => setIsMobileMenuOpen(false)

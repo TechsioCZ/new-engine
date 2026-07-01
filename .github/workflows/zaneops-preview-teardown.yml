@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   build_cli:
@@ -15,11 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -33,7 +34,7 @@ jobs:
         run: NX_ISOLATE_PLUGINS=false ./node_modules/.bin/nubx --node nx run new-engine-ctl:build
 
       - name: Upload new-engine-ctl artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist/cli.js
@@ -48,14 +49,16 @@ jobs:
       group: zaneops-preview-teardown-pr-${{ github.event.pull_request.number }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: new-engine-ctl-dist
           path: apps/new-engine-ctl/dist
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -82,20 +85,32 @@ jobs:
 
       - name: Summary
         if: always()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SKIPPED: ${{ steps.run_teardown.outcome == 'skipped' && 'true' || 'false' }}
+          ENVIRONMENT_OUTCOME: ${{ steps.run_teardown.outputs.environment_outcome || 'n/a' }}
+          ENVIRONMENT_HTTP_CODE: ${{ steps.run_teardown.outputs.environment_http_code || 'n/a' }}
+          ENVIRONMENT_NAME: ${{ steps.run_teardown.outputs.environment_name || 'n/a' }}
+          ENVIRONMENT_NOOP: ${{ steps.run_teardown.outputs.environment_noop || 'n/a' }}
+          PREVIEW_DB_OUTCOME: ${{ steps.run_teardown.outputs.preview_db_outcome || 'n/a' }}
+          PREVIEW_DB_HTTP_CODE: ${{ steps.run_teardown.outputs.preview_db_http_code || 'n/a' }}
+          PREVIEW_DB_STATUS: ${{ steps.run_teardown.outputs.preview_db_status || 'n/a' }}
+          PREVIEW_DB_NAME: ${{ steps.run_teardown.outputs.preview_db_name || 'n/a' }}
+          PREVIEW_DB_NOOP: ${{ steps.run_teardown.outputs.preview_db_noop || 'n/a' }}
         run: |
           {
-            echo "## Preview Teardown"
-            echo "- PR: #${{ github.event.pull_request.number }}"
-            echo "- Skipped: ${{ steps.run_teardown.outcome == 'skipped' && 'true' || 'false' }}"
-            echo "- Environment outcome: ${{ steps.run_teardown.outputs.environment_outcome || 'n/a' }}"
-            echo "- Environment HTTP: ${{ steps.run_teardown.outputs.environment_http_code || 'n/a' }}"
-            echo "- Environment name: ${{ steps.run_teardown.outputs.environment_name || 'n/a' }}"
-            echo "- Environment noop: ${{ steps.run_teardown.outputs.environment_noop || 'n/a' }}"
-            echo "- DB outcome: ${{ steps.run_teardown.outputs.preview_db_outcome || 'n/a' }}"
-            echo "- DB HTTP: ${{ steps.run_teardown.outputs.preview_db_http_code || 'n/a' }}"
-            echo "- DB status: ${{ steps.run_teardown.outputs.preview_db_status || 'n/a' }}"
-            echo "- DB name: ${{ steps.run_teardown.outputs.preview_db_name || 'n/a' }}"
-            echo "- DB noop: ${{ steps.run_teardown.outputs.preview_db_noop || 'n/a' }}"
+            printf '%s\n' "## Preview Teardown"
+            printf '%s\n' "- PR: #$PR_NUMBER"
+            printf '%s\n' "- Skipped: $SKIPPED"
+            printf '%s\n' "- Environment outcome: $ENVIRONMENT_OUTCOME"
+            printf '%s\n' "- Environment HTTP: $ENVIRONMENT_HTTP_CODE"
+            printf '%s\n' "- Environment name: $ENVIRONMENT_NAME"
+            printf '%s\n' "- Environment noop: $ENVIRONMENT_NOOP"
+            printf '%s\n' "- DB outcome: $PREVIEW_DB_OUTCOME"
+            printf '%s\n' "- DB HTTP: $PREVIEW_DB_HTTP_CODE"
+            printf '%s\n' "- DB status: $PREVIEW_DB_STATUS"
+            printf '%s\n' "- DB name: $PREVIEW_DB_NAME"
+            printf '%s\n' "- DB noop: $PREVIEW_DB_NOOP"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail when teardown failed

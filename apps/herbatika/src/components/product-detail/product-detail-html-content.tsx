@@ -1,6 +1,4 @@
 "use client"
-
-import { useMemo } from "react"
 import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
 
 type ProductDetailHtmlContentProps = {
@@ -12,7 +10,7 @@ export function ProductDetailHtmlContent({
   html,
   fallback,
 }: ProductDetailHtmlContentProps) {
-  const sanitizedHtml = useMemo(() => sanitizeHtml(html), [html])
+  const sanitizedHtml = sanitizeHtml(html)
 
   if (!sanitizedHtml) {
     return <p className="text-fg-secondary text-md">{fallback}</p>

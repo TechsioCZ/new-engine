@@ -3,7 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useRouter, useSearchParams } from "next/navigation"
-import { type FormEvent, useEffect, useMemo, useState } from "react"
+import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -100,10 +100,7 @@ export function useAccountProductLists() {
     limit: 100,
     enabled: authQuery.isAuthenticated,
   })
-  const sortedLists = useMemo(
-    () => sortProductLists(listsQuery.productLists),
-    [listsQuery.productLists]
-  )
+  const sortedLists = sortProductLists(listsQuery.productLists)
   const activeListQuery = useProductList(activeListId, {
     customerId,
     enabled: authQuery.isAuthenticated && Boolean(activeListId),
@@ -113,18 +110,12 @@ export function useAccountProductLists() {
     sortedLists.find((list) => list.id === activeListId) ??
     null
   const activeListSupportsQuantity = Boolean(activeList)
-  const deleteList = useMemo(
-    () =>
-      sortedLists.find(
-        (list) => list.id === deleteListId && !isFavoriteProductList(list)
-      ) ?? null,
-    [deleteListId, sortedLists]
-  )
-  const activeItems = useMemo(
-    () => getProductListItems(activeList),
-    [activeList]
-  )
-  const productIds = useMemo(() => uniqueProductIds(activeItems), [activeItems])
+  const deleteList =
+    sortedLists.find(
+      (list) => list.id === deleteListId && !isFavoriteProductList(list)
+    ) ?? null
+  const activeItems = getProductListItems(activeList)
+  const productIds = uniqueProductIds(activeItems)
   const productsQuery = useProducts({
     id: productIds.length > 0 ? productIds : undefined,
     page: 1,
@@ -132,34 +123,20 @@ export function useAccountProductLists() {
     fields: PRODUCT_CARD_FIELDS,
     enabled: Boolean(region?.region_id && activeListId && productIds.length),
   } as ProductListInput)
-  const productsById = useMemo(
-    () => buildProductMap(activeItems, productsQuery.products),
-    [activeItems, productsQuery.products]
-  )
-  const activeProductsAreLoading = useMemo(
-    () =>
-      productsQuery.isLoading &&
-      productIds.some((productId) => !productsById.has(productId)),
-    [productIds, productsById, productsQuery.isLoading]
-  )
+  const productsById = buildProductMap(activeItems, productsQuery.products)
+  const activeProductsAreLoading =
+    productsQuery.isLoading &&
+    productIds.some((productId) => !productsById.has(productId))
   const regionCurrencyCode = resolveRegionCurrency(region)
-  const activeListPriceSummary = useMemo(
-    () =>
-      resolveProductListPriceSummary({
-        currencyCode: regionCurrencyCode,
-        items: activeItems,
-        productsById,
-      }),
-    [activeItems, productsById, regionCurrencyCode]
-  )
-  const activeListAvailabilitySummary = useMemo(
-    () =>
-      resolveProductListAvailabilitySummary({
-        items: activeItems,
-        productsById,
-      }),
-    [activeItems, productsById]
-  )
+  const activeListPriceSummary = resolveProductListPriceSummary({
+    currencyCode: regionCurrencyCode,
+    items: activeItems,
+    productsById,
+  })
+  const activeListAvailabilitySummary = resolveProductListAvailabilitySummary({
+    items: activeItems,
+    productsById,
+  })
   const createListMutation = useCreateCustomProductList()
   const createListCartMutation = useCreateProductListCart()
   const deleteListMutation = useDeleteProductList()
