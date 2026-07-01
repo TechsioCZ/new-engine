@@ -247,7 +247,7 @@ export const normalizeSuggestLimit = (limit: number | undefined) => {
     return 10;
   }
 
-  if (!Number.isFinite(limit)) {
+  if (Number.isNaN(limit)) {
     return 10;
   }
 

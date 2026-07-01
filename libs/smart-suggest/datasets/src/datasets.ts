@@ -888,12 +888,14 @@ const toCompletedImportRunInput = ({
   runId,
   tombstonedRows,
   totalRows,
+  upsertedRows,
 }: {
   errors: readonly AddressImportRowError[];
   insertedRows: number;
   runId: string;
   tombstonedRows: number;
   totalRows: number;
+  upsertedRows: number;
 }): Parameters<SmartSuggestRepositories["importRuns"]["finishImportRun"]>[0] => {
   const input: Parameters<SmartSuggestRepositories["importRuns"]["finishImportRun"]>[0] = {
     completedAt: new Date().toISOString(),
@@ -902,12 +904,12 @@ const toCompletedImportRunInput = ({
     insertedRows,
     skippedRows: errors.length,
     status:
-      insertedRows === 0 && tombstonedRows === 0 && errors.length > 0 && totalRows > 0
+      upsertedRows === 0 && tombstonedRows === 0 && errors.length > 0 && totalRows > 0
         ? "failed"
         : "completed",
     tombstonedRows,
     totalRows,
-    upsertedRows: insertedRows,
+    upsertedRows,
   };
   const errorSummary = toImportRunErrorSummary(errors);
 
@@ -924,14 +926,16 @@ const toFailedImportRunInput = ({
   runId,
   tombstonedRows,
   totalRows,
+  upsertedRows,
 }: {
   insertedRows: number;
   message: string;
   runId: string;
   tombstonedRows: number;
   totalRows: number;
+  upsertedRows: number;
 }): Parameters<SmartSuggestRepositories["importRuns"]["finishImportRun"]>[0] => {
-  const failedRows = Math.max(1, totalRows - insertedRows);
+  const failedRows = Math.max(1, totalRows - upsertedRows);
 
   return {
     completedAt: new Date().toISOString(),
@@ -943,7 +947,7 @@ const toFailedImportRunInput = ({
     status: "failed",
     tombstonedRows,
     totalRows,
-    upsertedRows: insertedRows,
+    upsertedRows,
   };
 };
 
@@ -1072,6 +1076,31 @@ const collectAddressImportChunkRecords = (
   return { errors, nextRowIndex, records, tombstones };
 };
 
+const collectNewAddressRecordIdsEffect = (
+  repositories: SmartSuggestRepositories,
+  records: readonly AddressSearchRecordInput[],
+): Effect<Set<string>, AddressDatasetImportEffectError, never> =>
+  gen(function* () {
+    const checkedIds = new Set<string>();
+    const newIds = new Set<string>();
+
+    for (const record of records) {
+      if (checkedIds.has(record.id)) {
+        continue;
+      }
+
+      checkedIds.add(record.id);
+
+      const existingRecord = yield* repositories.addressRecords.getAddressRecord(record.id);
+
+      if (existingRecord === undefined) {
+        newIds.add(record.id);
+      }
+    }
+
+    return newIds;
+  });
+
 const assertAddressDatasetImportOptionsEffect = (
   source: AddressImportSource,
 ): Effect<void, AddressDatasetImportEffectError, never> =>
@@ -1101,6 +1130,7 @@ export const runAddressDatasetImportEffect = (
   let processedRows = 0;
   let startedRun: ImportRunRecord | undefined;
   let tombstonedRows = 0;
+  let upsertedRows = 0;
 
   const startImportRun = (chunk: readonly AddressDatasetImportInput[] = []) =>
     gen(function* () {
@@ -1154,9 +1184,21 @@ export const runAddressDatasetImportEffect = (
       errors.push(...chunkResult.errors);
 
       if (chunkResult.records.length > 0) {
-        insertedRows += (yield* options.repositories.addressRecords.upsertAddressRecords(
+        const newRecordIds = yield* collectNewAddressRecordIdsEffect(
+          options.repositories,
           chunkResult.records,
-        )).length;
+        );
+        const upsertedRecords = yield* options.repositories.addressRecords.upsertAddressRecords(
+          chunkResult.records,
+        );
+
+        upsertedRows += upsertedRecords.length;
+
+        for (const record of upsertedRecords) {
+          if (newRecordIds.delete(record.id)) {
+            insertedRows += 1;
+          }
+        }
       }
       if (chunkResult.tombstones.length > 0) {
         tombstonedRows += (yield* options.repositories.addressTombstones.upsertAddressTombstones(
@@ -1177,6 +1219,7 @@ export const runAddressDatasetImportEffect = (
         runId: importRun.id,
         tombstonedRows,
         totalRows: processedRows,
+        upsertedRows,
       }),
     );
 
@@ -1190,7 +1233,7 @@ export const runAddressDatasetImportEffect = (
       source: registeredSource,
       tombstonedRows,
       totalRows: processedRows,
-      upsertedRows: insertedRows,
+      upsertedRows,
     };
 
     if (options.source.snapshotUri !== undefined) {
@@ -1212,6 +1255,7 @@ export const runAddressDatasetImportEffect = (
             runId: startedRun.id,
             tombstonedRows,
             totalRows: processedRows,
+            upsertedRows,
           }),
         );
       }

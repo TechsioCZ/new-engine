@@ -84,7 +84,7 @@ const validateRequiredPhoneNumberForCountry = (
     allowedCountries: CHECKOUT_COUNTRIES,
     defaultCountry: normalizedCountryCode,
     rawInput: value,
-    requireCountryMatch: true,
+    requireCountryMatch: false,
   })
 
   return validation.isValid ? undefined : "Zadajte platné telefónne číslo."

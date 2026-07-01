@@ -271,6 +271,7 @@ describe("sample smart suggest datasets", () => {
         shardCountryCode: "CZ",
         snapshotUri: "r2://smart-suggest-snapshots/ruian/cz-2026-06-26.jsonl",
         totalRows: 4,
+        upsertedRows: 2,
       });
       expect(result.errors).toEqual([
         expect.objectContaining({ index: 1, rowId: "bad-row" }),
@@ -281,6 +282,7 @@ describe("sample smart suggest datasets", () => {
         insertedRows: 2,
         status: "completed",
         totalRows: 4,
+        upsertedRows: 2,
       });
 
       const searchResults = yield* repositories.addressRecords.searchAddressRecords({
@@ -325,8 +327,15 @@ describe("sample smart suggest datasets", () => {
       });
 
       expect(restartedResult).toMatchObject({
-        importRun: { insertedRows: 1, status: "completed", totalRows: 1 },
+        importRun: {
+          insertedRows: 0,
+          status: "completed",
+          totalRows: 1,
+          upsertedRows: 1,
+        },
+        insertedRows: 0,
         restartable: true,
+        upsertedRows: 1,
       });
     }),
   );

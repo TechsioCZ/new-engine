@@ -99,17 +99,39 @@ const createControlledSuggestionProvider = (
 });
 
 const jsonResponse = (body: unknown, init?: ResponseInit) => {
-  const responseInit: ResponseInit = {
-    headers: { "content-type": "application/json" },
+  const headers = new Headers(init?.headers);
+
+  headers.set("content-type", "application/json");
+
+  return new Response(JSON.stringify(body), {
+    ...init,
+    headers,
     status: init?.status ?? 200,
-  };
-
-  if (init?.statusText !== undefined) {
-    responseInit.statusText = init.statusText;
-  }
-
-  return new Response(JSON.stringify(body), responseInit);
+  });
 };
+
+describe("jsonResponse", () => {
+  it("preserves caller response init while forcing JSON content type", () => {
+    const response = jsonResponse(
+      { ok: true },
+      {
+        headers: {
+          "cache-control": "no-store",
+          "content-type": "text/plain",
+          "x-provider-trace": "trace-1",
+        },
+        status: 202,
+        statusText: "Accepted",
+      },
+    );
+
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-type")).toBe("application/json");
+    expect(response.headers.get("x-provider-trace")).toBe("trace-1");
+    expect(response.status).toBe(202);
+    expect(response.statusText).toBe("Accepted");
+  });
+});
 
 describe("createSmartSuggestProviderRegistry", () => {
   it.effect(

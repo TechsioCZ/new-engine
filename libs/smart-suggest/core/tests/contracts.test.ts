@@ -37,6 +37,8 @@ describe("Smart Suggest core contracts", () => {
   it("normalizes suggest limits to the public API range", () => {
     expect(normalizeSuggestLimit(undefined)).toBe(10)
     expect(normalizeSuggestLimit(Number.NaN)).toBe(10)
+    expect(normalizeSuggestLimit(Number.POSITIVE_INFINITY)).toBe(20)
+    expect(normalizeSuggestLimit(Number.NEGATIVE_INFINITY)).toBe(1)
     expect(normalizeSuggestLimit(0)).toBe(1)
     expect(normalizeSuggestLimit(6.8)).toBe(6)
     expect(normalizeSuggestLimit(100)).toBe(20)

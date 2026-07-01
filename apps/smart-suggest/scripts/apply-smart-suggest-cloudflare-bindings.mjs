@@ -29,7 +29,6 @@ const expectedCzVuscCodes = [
 ];
 const defaultCzVuscShardBindingPrefix = 'SMART_SUGGEST_CZ_VUSC_';
 const defaultCzVuscShardDatabaseNamePrefix = 'smart-suggest-cz-vusc-';
-const defaultCompactCzShardBinding = 'SMART_SUGGEST_D1';
 const defaultFreeTierShardBindingPrefix = 'SMART_SUGGEST_FREE_TIER_';
 const defaultFreeTierShardDatabaseNamePrefix = 'smart-suggest-free-tier-';
 const freeTierShardGroups = [

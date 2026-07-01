@@ -540,9 +540,12 @@ describe("RUIAN address snapshot mapping", () => {
     expect(repeatedResult).toMatchObject({
       importRun: {
         checksumSha256: "fixture-sha256-a",
+        insertedRows: 0,
         status: "completed",
+        upsertedRows: 1,
       },
-      insertedRows: 1,
+      insertedRows: 0,
+      upsertedRows: 1,
     })
       })
   )
@@ -644,14 +647,14 @@ describe("RUIAN address snapshot mapping", () => {
 
     expect(deltaResult).toMatchObject({
       errors: [],
-      insertedRows: 1,
+      insertedRows: 0,
       tombstonedRows: 1,
       totalRows: 2,
       upsertedRows: 1,
     })
     expect(repeatedDeltaResult).toMatchObject({
       errors: [],
-      insertedRows: 1,
+      insertedRows: 0,
       tombstonedRows: 1,
       totalRows: 2,
       upsertedRows: 1,
@@ -659,6 +662,7 @@ describe("RUIAN address snapshot mapping", () => {
     expect(deltaResult.importRun).toMatchObject({
       checksumSha256: "delta-fixture-sha256",
       importKind: "delta",
+      insertedRows: 0,
       sourceFeedId: "RUIAN-S-ZA-Z",
       tombstonedRows: 1,
       totalRows: 2,
