@@ -55,7 +55,6 @@ export type FieldStatusOptions = FieldErrorOptions & {
 
 export type FieldStatus = {
   errorMessage?: string
-  helpText?: string
   errorId: string
   validateStatus: FieldValidateStatus
   "aria-invalid": boolean
@@ -289,7 +288,6 @@ export function getFieldStatus(
 
   return {
     errorMessage,
-    helpText: errorMessage,
     errorId,
     validateStatus: hasError ? "error" : "default",
     "aria-invalid": hasError,
