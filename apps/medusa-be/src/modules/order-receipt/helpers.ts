@@ -50,7 +50,7 @@ export type OrderReceiptPaymentCollection = {
   payments?: OrderReceiptPayment[] | null
 }
 
-type OrderReceiptSummary = {
+export type OrderReceiptSummary = {
   accounting_total?: OrderReceiptMoney
   current_order_total?: OrderReceiptMoney
   original_order_total?: OrderReceiptMoney
@@ -282,7 +282,9 @@ export function getItemTitle(item: OrderReceiptLineItem) {
   return item.title ?? item.detail?.title
 }
 
-function getTaxRate(item: { tax_lines?: Array<{ rate?: OrderReceiptMoney } | null> | null }) {
+function getTaxRate(item: {
+  tax_lines?: Array<{ rate?: OrderReceiptMoney } | null> | null
+}) {
   const rate = item.tax_lines?.find(
     (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined
   )?.rate
@@ -292,24 +294,6 @@ function getTaxRate(item: { tax_lines?: Array<{ rate?: OrderReceiptMoney } | nul
   }
 
   return toNumber(rate)
-}
-
-function getOrderTaxRate(order: OrderReceiptOrder) {
-  for (const item of order.items ?? []) {
-    const rate = getTaxRate(item)
-    if (rate > 0) {
-      return rate
-    }
-  }
-
-  for (const shippingMethod of order.shipping_methods ?? []) {
-    const rate = getTaxRate(shippingMethod)
-    if (rate > 0) {
-      return rate
-    }
-  }
-
-  return 0
 }
 
 function roundMoney(value: number) {
@@ -324,6 +308,14 @@ function getNetFromGross(grossValue: number, rate: number) {
   return roundMoney(grossValue / (1 + rate / 100))
 }
 
+function getTaxExclusiveAmount(
+  amount: number,
+  rate: number,
+  isTaxInclusive?: boolean | null
+) {
+  return isTaxInclusive === true ? getNetFromGross(amount, rate) : amount
+}
+
 export function getItemGrossUnitPrice(item: OrderReceiptLineItem) {
   return toNumber(
     item.unit_price ??
@@ -334,10 +326,10 @@ export function getItemGrossUnitPrice(item: OrderReceiptLineItem) {
 }
 
 export function getItemUnitPrice(item: OrderReceiptLineItem) {
-  const grossUnitPrice = getItemGrossUnitPrice(item)
+  const unitPrice = getItemGrossUnitPrice(item)
   const rate = getTaxRate(item)
 
-  return getNetFromGross(grossUnitPrice, rate)
+  return getTaxExclusiveAmount(unitPrice, rate, item.is_tax_inclusive)
 }
 
 export function getItemTaxLabel(item: OrderReceiptLineItem) {
@@ -366,17 +358,32 @@ export function getItemQuantity(item: OrderReceiptLineItem) {
 }
 
 export function getItemSubtotal(item: OrderReceiptLineItem) {
-  const quantity = getItemQuantity(item)
-  const grossSubtotal = toNumber(
-    item.subtotal ??
-      item.total ??
-      (item.unit_price !== null && item.unit_price !== undefined
-        ? toNumber(item.unit_price) * quantity
-        : 0)
-  )
+  const subtotal = getItemSubtotalAmount(item)
   const rate = getTaxRate(item)
 
-  return getNetFromGross(grossSubtotal, rate)
+  return getTaxExclusiveAmount(subtotal, rate, item.is_tax_inclusive)
+}
+
+function getItemSubtotalAmount(item: OrderReceiptLineItem) {
+  const quantity = getItemQuantity(item)
+  const unitPrice = getItemGrossUnitPrice(item)
+  const unitPriceSubtotal = unitPrice * quantity
+  const subtotal = toNumber(item.subtotal)
+
+  if (subtotal > 0) {
+    if (quantity > 1 && subtotal === unitPrice) {
+      return unitPriceSubtotal
+    }
+
+    return subtotal
+  }
+
+  const total = toNumber(item.total)
+  if (total > 0) {
+    return total
+  }
+
+  return unitPriceSubtotal
 }
 
 function getItemsSubtotal(items: OrderReceiptLineItem[]) {
@@ -384,24 +391,24 @@ function getItemsSubtotal(items: OrderReceiptLineItem[]) {
 }
 
 function getItemTaxTotal(item: OrderReceiptLineItem) {
-  const grossSubtotal = toNumber(
-    item.subtotal ??
-      item.total ??
-      (item.unit_price !== null && item.unit_price !== undefined
-        ? toNumber(item.unit_price) * getItemQuantity(item)
-        : 0)
-  )
+  const subtotal = getItemSubtotalAmount(item)
   const rate = getTaxRate(item)
 
   if (rate <= 0) {
     return toNumber(item.tax_total)
   }
 
-  const netSubtotal = getNetFromGross(grossSubtotal, rate)
-  return roundMoney(grossSubtotal - netSubtotal)
+  if (item.is_tax_inclusive === true) {
+    return roundMoney(subtotal - getNetFromGross(subtotal, rate))
+  }
+
+  const taxTotal = toNumber(item.tax_total)
+  return taxTotal > 0 ? taxTotal : roundMoney((subtotal * rate) / 100)
 }
 
-export function getShippingSubtotal(shippingMethod?: OrderReceiptShippingMethod | null) {
+export function getShippingSubtotal(
+  shippingMethod?: OrderReceiptShippingMethod | null
+) {
   if (!shippingMethod) {
     return 0
   }
@@ -414,10 +421,16 @@ export function getShippingSubtotal(shippingMethod?: OrderReceiptShippingMethod 
   )
   const rate = getTaxRate(shippingMethod)
 
-  return getNetFromGross(grossSubtotal, rate)
+  return getTaxExclusiveAmount(
+    grossSubtotal,
+    rate,
+    shippingMethod.is_tax_inclusive
+  )
 }
 
-export function getShippingTaxTotal(shippingMethod?: OrderReceiptShippingMethod | null) {
+export function getShippingTaxTotal(
+  shippingMethod?: OrderReceiptShippingMethod | null
+) {
   if (!shippingMethod) {
     return 0
   }
@@ -434,7 +447,12 @@ export function getShippingTaxTotal(shippingMethod?: OrderReceiptShippingMethod 
     return toNumber(shippingMethod.tax_total)
   }
 
-  return roundMoney(grossSubtotal - getNetFromGross(grossSubtotal, rate))
+  if (shippingMethod.is_tax_inclusive === true) {
+    return roundMoney(grossSubtotal - getNetFromGross(grossSubtotal, rate))
+  }
+
+  const taxTotal = toNumber(shippingMethod.tax_total)
+  return taxTotal > 0 ? taxTotal : roundMoney((grossSubtotal * rate) / 100)
 }
 
 export function getSubtotal(order: OrderReceiptOrder) {
@@ -446,10 +464,14 @@ export function getTaxTotal(order: OrderReceiptOrder) {
     order.summary?.current_order_total !== null &&
     order.summary?.current_order_total !== undefined
   ) {
-    return roundMoney(
-      toNumber(order.summary.current_order_total) -
-        getSubtotal(order) -
-        getShippingSubtotalTotal(order)
+    return Math.max(
+      0,
+      roundMoney(
+        toNumber(order.summary.current_order_total) +
+          toNumber(order.discount_total) -
+          getSubtotal(order) -
+          getShippingSubtotalTotal(order)
+      )
     )
   }
 
@@ -475,10 +497,7 @@ export function getShippingSubtotalTotal(order: OrderReceiptOrder) {
     )
   }
 
-  const grossShippingTotal = toNumber(order.shipping_total)
-  const rate = getOrderTaxRate(order)
-
-  return getNetFromGross(grossShippingTotal, rate)
+  return toNumber(order.shipping_total)
 }
 
 export function getTotal(order: OrderReceiptOrder) {

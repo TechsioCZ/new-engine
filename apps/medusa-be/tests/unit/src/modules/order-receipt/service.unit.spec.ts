@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest"
 import {
   getItemQuantity,
   getItemSubtotal,
+  getItemUnitPrice,
+  getShippingSubtotalTotal,
+  getTaxTotal,
+  getTotal,
 } from "../../../../../src/modules/order-receipt/helpers"
 import OrderReceiptModuleService from "../../../../../src/modules/order-receipt/service"
 import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../../../../../src/modules/payment-qr/constants"
@@ -64,6 +68,115 @@ describe("order receipt service", () => {
         unit_price: 100,
       })
     ).toBe(160)
+  })
+
+  it("keeps tax-exclusive item prices as net amounts", () => {
+    const item = {
+      is_tax_inclusive: false,
+      quantity: 1,
+      subtotal: 100,
+      tax_lines: [{ rate: 21 }],
+      unit_price: 100,
+    }
+
+    expect(getItemUnitPrice(item)).toBe(100)
+    expect(getItemSubtotal(item)).toBe(100)
+  })
+
+  it("converts tax-inclusive item prices to net amounts", () => {
+    const item = {
+      is_tax_inclusive: true,
+      quantity: 1,
+      subtotal: 121,
+      tax_lines: [{ rate: 21 }],
+      unit_price: 121,
+    }
+
+    expect(getItemUnitPrice(item)).toBe(100)
+    expect(getItemSubtotal(item)).toBe(100)
+  })
+
+  it("derives discounted tax totals from the current order total", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 10,
+        id: "order_discounted",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 20,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 0 }],
+          },
+        ],
+        summary: {
+          current_order_total: 131,
+        },
+      })
+    ).toBe(21)
+  })
+
+  it("clamps derived tax totals at zero", () => {
+    expect(
+      getTaxTotal({
+        id: "order_rounding",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 20,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        summary: {
+          current_order_total: 10,
+        },
+      })
+    ).toBe(0)
+  })
+
+  it("keeps receipt total aligned with QR/manual payment amount", () => {
+    const order = {
+      currency_code: "EUR",
+      id: "order_total",
+      items: [
+        {
+          is_tax_inclusive: true,
+          quantity: 2,
+          subtotal: 16.98,
+          tax_lines: [{ rate: 0 }],
+        },
+      ],
+      shipping_methods: [
+        {
+          amount: 10,
+          is_tax_inclusive: true,
+          tax_lines: [{ rate: 23 }],
+        },
+      ],
+      summary: {
+        current_order_total: 26.98,
+      },
+    }
+
+    const item = order.items.at(0)
+    if (!item) {
+      throw new Error("Expected receipt test order to include an item")
+    }
+
+    const subtotal = getItemSubtotal(item)
+    const shipping = getShippingSubtotalTotal(order)
+    const tax = getTaxTotal(order)
+
+    expect(getTotal(order)).toBe(26.98)
+    expect(subtotal + shipping + tax).toBeCloseTo(26.98)
   })
 
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {
