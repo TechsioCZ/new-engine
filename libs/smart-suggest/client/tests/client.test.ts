@@ -279,6 +279,84 @@ describe("createSmartSuggestEffectClient", () => {
     }),
   );
 
+  it.effect("decodes BFF auth and rate-limit API errors", () =>
+    Effect.gen(function* bffBoundaryApiErrorProgram() {
+      const apiErrors = [
+        {
+          code: "unauthorized",
+          message: "Smart Suggest API key is required.",
+          status: 401,
+          statusText: "Unauthorized",
+          tag: "SmartSuggestUnauthorizedError",
+        },
+        {
+          code: "forbidden",
+          message: "Smart Suggest origin is not allowed for this tenant.",
+          status: 403,
+          statusText: "Forbidden",
+          tag: "SmartSuggestForbiddenError",
+        },
+        {
+          code: "rate-limit",
+          message: "Smart Suggest request rate limit exceeded.",
+          retryable: true,
+          status: 429,
+          statusText: "Too Many Requests",
+          tag: "SmartSuggestRateLimitError",
+        },
+      ] satisfies ReadonlyArray<{
+        code: "unauthorized" | "forbidden" | "rate-limit";
+        message: string;
+        retryable?: boolean;
+        status: 401 | 403 | 429;
+        statusText: string;
+        tag:
+          | "SmartSuggestUnauthorizedError"
+          | "SmartSuggestForbiddenError"
+          | "SmartSuggestRateLimitError";
+      }>;
+
+      for (const apiError of apiErrors) {
+        const client = createSmartSuggestEffectClient({
+          fetch: async () =>
+            jsonResponse(
+              {
+                _tag: apiError.tag,
+                errors: [
+                  {
+                    code: apiError.code,
+                    message: apiError.message,
+                    retryable: apiError.retryable,
+                  },
+                ],
+                message: apiError.message,
+              },
+              { status: apiError.status, statusText: apiError.statusText },
+            ),
+        });
+
+        const exit = yield* Effect.exit(
+          client.suggest({
+            countryCode: "CZ",
+            kind: "address",
+            query: "Praha",
+          }),
+        );
+
+        expect(isFailure(exit)).toBe(true);
+
+        if (!isFailure(exit)) {
+          return;
+        }
+
+        expect(squash(exit.cause)).toMatchObject({
+          errors: [expect.objectContaining({ code: apiError.code })],
+          status: apiError.status,
+        } satisfies Partial<SmartSuggestClientError>);
+      }
+    }),
+  );
+
   it.live("uses AbortController for request timeouts", () =>
     Effect.gen(function* requestTimeoutProgram() {
       vi.useFakeTimers();

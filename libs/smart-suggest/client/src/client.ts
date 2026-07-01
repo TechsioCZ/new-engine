@@ -1,12 +1,15 @@
 import {
   SmartSuggestBadRequestError,
   SmartSuggestCachePolicyViolationError,
+  SmartSuggestForbiddenError,
   SmartSuggestHttpApi,
   SmartSuggestInternalError,
   SmartSuggestNotFoundError,
   SmartSuggestProviderTimeoutError,
   SmartSuggestProviderUnavailableError,
+  SmartSuggestRateLimitError,
   SmartSuggestStorageUnavailableError,
+  SmartSuggestUnauthorizedError,
   SmartSuggestValidationError,
 } from "./api";
 import type {
@@ -256,6 +259,18 @@ const abortCauseFromClientError = (error: HttpClientError.HttpClientError) => {
 const sharedApiErrorStatus = (error: unknown) => {
   if (error instanceof SmartSuggestBadRequestError) {
     return 400;
+  }
+
+  if (error instanceof SmartSuggestUnauthorizedError) {
+    return 401;
+  }
+
+  if (error instanceof SmartSuggestForbiddenError) {
+    return 403;
+  }
+
+  if (error instanceof SmartSuggestRateLimitError) {
+    return 429;
   }
 
   if (error instanceof SmartSuggestValidationError) {
