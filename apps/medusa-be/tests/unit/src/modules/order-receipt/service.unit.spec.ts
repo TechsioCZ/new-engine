@@ -69,7 +69,7 @@ describe("order receipt service", () => {
     ).toBe(160)
   })
 
-  it("keeps discounted multi-quantity line subtotal equal to unit price", () => {
+  it("does not multiply explicit subtotal by quantity when it equals unit price", () => {
     expect(
       getItemSubtotal({
         quantity: 2,
@@ -77,6 +77,24 @@ describe("order receipt service", () => {
         unit_price: 100,
       })
     ).toBe(100)
+  })
+
+  it("treats explicit zero line subtotal and total as authoritative", () => {
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        subtotal: 0,
+        unit_price: 100,
+      })
+    ).toBe(0)
+
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        total: 0,
+        unit_price: 100,
+      })
+    ).toBe(0)
   })
 
   it("keeps tax-exclusive item prices as net amounts", () => {
@@ -130,6 +148,27 @@ describe("order receipt service", () => {
         },
       })
     ).toBe(21)
+  })
+
+  it("does not add discount again when item subtotal is already discounted", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 100,
+        id: "order_discounted_line_subtotal",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 2,
+            subtotal: 100,
+            tax_lines: [{ rate: 0 }],
+            unit_price: 100,
+          },
+        ],
+        summary: {
+          current_order_total: 100,
+        },
+      })
+    ).toBe(0)
   })
 
   it("clamps derived tax totals at zero", () => {

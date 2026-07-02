@@ -383,6 +383,38 @@ function getItemsSubtotal(items: OrderReceiptLineItem[]) {
   return items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
 }
 
+function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
+  const quantity = getItemQuantity(item)
+  const unitPrice = getItemGrossUnitPrice(item)
+  const rate = getTaxRate(item)
+
+  return getTaxExclusiveAmount(
+    unitPrice * quantity,
+    rate,
+    item.is_tax_inclusive
+  )
+}
+
+function getItemsUndiscountedSubtotal(items: OrderReceiptLineItem[]) {
+  return items.reduce((sum, item) => sum + getItemUndiscountedSubtotal(item), 0)
+}
+
+function getTaxDiscountTotal(order: OrderReceiptOrder) {
+  const discountTotal = toNumber(order.discount_total)
+  if (discountTotal <= 0) {
+    return 0
+  }
+
+  const subtotal = getSubtotal(order)
+  const undiscountedSubtotal = getItemsUndiscountedSubtotal(order.items ?? [])
+  const reflectedLineDiscount = Math.max(
+    0,
+    roundMoney(undiscountedSubtotal - subtotal)
+  )
+
+  return Math.max(0, roundMoney(discountTotal - reflectedLineDiscount))
+}
+
 function getItemTaxTotal(item: OrderReceiptLineItem) {
   const subtotal = getItemSubtotalAmount(item)
   const rate = getTaxRate(item)
@@ -461,7 +493,7 @@ export function getTaxTotal(order: OrderReceiptOrder) {
       0,
       roundMoney(
         toNumber(order.summary.current_order_total) +
-          toNumber(order.discount_total) -
+          getTaxDiscountTotal(order) -
           getSubtotal(order) -
           getShippingSubtotalTotal(order)
       )
