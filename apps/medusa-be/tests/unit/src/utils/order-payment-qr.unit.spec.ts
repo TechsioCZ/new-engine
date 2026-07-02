@@ -21,6 +21,36 @@ describe("order payment QR", () => {
     )
   })
 
+  it("prefers current order summary total over stale order total", () => {
+    expect(
+      orderPaymentQr.buildSpayd(
+        {
+          currency_code: "CZK",
+          display_id: 123,
+          id: "order_123",
+          summary: {
+            current_order_total: 123.45,
+            original_order_total: 999,
+          },
+          total: 999,
+        },
+        "CZ9608000000005444195083"
+      )
+    ).toContain("*AM:123.45*")
+  })
+
+  it("builds payment-session SPAYD from payment amount", () => {
+    expect(
+      orderPaymentQr.buildPaymentSpayd({
+        amount: 250,
+        currency_code: "CZK",
+        iban: "CZ9608000000005444195083",
+        message: "OBJEDNAVKA 123456",
+        reference: "123456",
+      })
+    ).toContain("*AM:250.00*")
+  })
+
   it("uses numeric custom display id as variable symbol", () => {
     expect(
       orderPaymentQr.buildSpayd(

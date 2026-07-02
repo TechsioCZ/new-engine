@@ -84,6 +84,7 @@ export type OrderReceiptOrder = {
   payment_collections?: OrderReceiptPaymentCollection[] | null
   shipping_methods?: OrderReceiptShippingMethod[] | null
   shipping_total?: OrderReceiptMoney
+  shipping_tax_total?: OrderReceiptMoney
   shipping_address?: OrderReceiptAddress | null
   subtotal?: OrderReceiptMoney
   summary?: OrderReceiptSummary | null
@@ -131,6 +132,14 @@ export function toNumber(value: OrderReceiptMoney | undefined): number {
   const number = typeof value === "string" ? Number(value) : value
 
   return Number.isFinite(number) ? number : 0
+}
+
+function hasExplicitMoney(value: OrderReceiptMoney | undefined) {
+  return value !== null && value !== undefined
+}
+
+function getExplicitMoneyTotal(value: OrderReceiptMoney | undefined) {
+  return hasExplicitMoney(value) ? toNumber(value) : null
 }
 
 export function ascii(value: unknown) {
@@ -365,45 +374,73 @@ export function getItemSubtotal(item: OrderReceiptLineItem) {
 }
 
 function getItemSubtotalAmount(item: OrderReceiptLineItem) {
+  if (item.subtotal !== null && item.subtotal !== undefined) {
+    return toNumber(item.subtotal)
+  }
+
+  if (item.total !== null && item.total !== undefined) {
+    return toNumber(item.total)
+  }
+
   const quantity = getItemQuantity(item)
   const unitPrice = getItemGrossUnitPrice(item)
-  const unitPriceSubtotal = unitPrice * quantity
-  const subtotal = toNumber(item.subtotal)
 
-  if (subtotal > 0) {
-    if (quantity > 1 && subtotal === unitPrice) {
-      return unitPriceSubtotal
-    }
-
-    return subtotal
-  }
-
-  const total = toNumber(item.total)
-  if (total > 0) {
-    return total
-  }
-
-  return unitPriceSubtotal
+  return unitPrice * quantity
 }
 
 function getItemsSubtotal(items: OrderReceiptLineItem[]) {
   return items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
 }
 
+function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
+  const quantity = getItemQuantity(item)
+  const unitPrice = getItemGrossUnitPrice(item)
+
+  return getTaxExclusiveAmount(
+    unitPrice * quantity,
+    getTaxRate(item),
+    item.is_tax_inclusive
+  )
+}
+
+function getItemsUndiscountedSubtotal(items: OrderReceiptLineItem[]) {
+  return items.reduce((sum, item) => sum + getItemUndiscountedSubtotal(item), 0)
+}
+
+export function getDiscountTotal(order: OrderReceiptOrder) {
+  const discountTotal = toNumber(order.discount_total)
+  if (discountTotal <= 0) {
+    return 0
+  }
+
+  const reflectedLineDiscount = Math.max(
+    0,
+    roundMoney(
+      getItemsUndiscountedSubtotal(order.items ?? []) - getSubtotal(order)
+    )
+  )
+
+  return Math.max(0, roundMoney(discountTotal - reflectedLineDiscount))
+}
+
 function getItemTaxTotal(item: OrderReceiptLineItem) {
+  const taxTotal = getExplicitMoneyTotal(item.tax_total)
+  if (taxTotal !== null) {
+    return taxTotal
+  }
+
   const subtotal = getItemSubtotalAmount(item)
   const rate = getTaxRate(item)
 
   if (rate <= 0) {
-    return toNumber(item.tax_total)
+    return 0
   }
 
   if (item.is_tax_inclusive === true) {
     return roundMoney(subtotal - getNetFromGross(subtotal, rate))
   }
 
-  const taxTotal = toNumber(item.tax_total)
-  return taxTotal > 0 ? taxTotal : roundMoney((subtotal * rate) / 100)
+  return roundMoney((subtotal * rate) / 100)
 }
 
 export function getShippingSubtotal(
@@ -435,6 +472,11 @@ export function getShippingTaxTotal(
     return 0
   }
 
+  const taxTotal = getExplicitMoneyTotal(shippingMethod.tax_total)
+  if (taxTotal !== null) {
+    return Math.max(0, taxTotal)
+  }
+
   const grossSubtotal = toNumber(
     shippingMethod.subtotal ??
       shippingMethod.total ??
@@ -444,44 +486,137 @@ export function getShippingTaxTotal(
   const rate = getTaxRate(shippingMethod)
 
   if (rate <= 0) {
-    return toNumber(shippingMethod.tax_total)
+    return 0
   }
 
   if (shippingMethod.is_tax_inclusive === true) {
     return roundMoney(grossSubtotal - getNetFromGross(grossSubtotal, rate))
   }
 
-  const taxTotal = toNumber(shippingMethod.tax_total)
-  return taxTotal > 0 ? taxTotal : roundMoney((grossSubtotal * rate) / 100)
+  return roundMoney((grossSubtotal * rate) / 100)
 }
 
 export function getSubtotal(order: OrderReceiptOrder) {
   return getItemsSubtotal(order.items ?? [])
 }
 
-export function getTaxTotal(order: OrderReceiptOrder) {
-  if (
-    order.summary?.current_order_total !== null &&
-    order.summary?.current_order_total !== undefined
-  ) {
-    return Math.max(
-      0,
-      roundMoney(
-        toNumber(order.summary.current_order_total) +
-          toNumber(order.discount_total) -
-          getSubtotal(order) -
-          getShippingSubtotalTotal(order)
-      )
-    )
-  }
+function getLineItemsTaxTotal(items: OrderReceiptLineItem[]) {
+  return items.reduce((sum, item) => sum + getItemTaxTotal(item), 0)
+}
 
-  const itemTaxTotal = (order.items ?? []).reduce(
-    (sum, item) => sum + getItemTaxTotal(item),
-    0
-  )
-  const shippingTaxTotal = (order.shipping_methods ?? []).reduce(
+function getShippingMethodsTaxTotal(
+  shippingMethods: OrderReceiptShippingMethod[]
+) {
+  return shippingMethods.reduce(
     (sum, shippingMethod) => sum + getShippingTaxTotal(shippingMethod),
     0
+  )
+}
+
+function hasCompleteRelationTaxSignal(
+  relation: Array<{ tax_total?: OrderReceiptMoney }> | null | undefined,
+  taxTotal: number | null
+) {
+  if (!Array.isArray(relation)) {
+    return false
+  }
+
+  if (taxTotal !== null) {
+    return true
+  }
+
+  return (
+    relation.length > 0 &&
+    relation.every((entry) => hasExplicitMoney(entry.tax_total))
+  )
+}
+
+function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
+  if (
+    order.summary?.current_order_total === null ||
+    order.summary?.current_order_total === undefined
+  ) {
+    return null
+  }
+
+  return roundMoney(
+    toNumber(order.summary.current_order_total) +
+      getDiscountTotal(order) -
+      getSubtotal(order) -
+      getShippingSubtotalTotal(order)
+  )
+}
+
+function getCurrentOrderTaxTotal(order: OrderReceiptOrder) {
+  const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
+
+  return currentOrderTaxBalance === null
+    ? null
+    : Math.max(0, currentOrderTaxBalance)
+}
+
+function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
+  const hasItemsRelation = Array.isArray(order.items)
+  const hasShippingMethodsRelation = Array.isArray(order.shipping_methods)
+  const items = hasItemsRelation ? (order.items ?? []) : []
+  const shippingMethods = hasShippingMethodsRelation
+    ? (order.shipping_methods ?? [])
+    : []
+  const itemTaxTotal = getExplicitMoneyTotal(order.item_tax_total)
+  const shippingTaxTotal = getExplicitMoneyTotal(order.shipping_tax_total)
+  const clampedShippingTaxTotal =
+    shippingTaxTotal === null ? null : Math.max(0, shippingTaxTotal)
+  const hasItemTaxSignal = hasCompleteRelationTaxSignal(
+    order.items,
+    itemTaxTotal
+  )
+  const hasShippingTaxSignal = hasCompleteRelationTaxSignal(
+    order.shipping_methods,
+    clampedShippingTaxTotal
+  )
+
+  if (hasItemTaxSignal && hasShippingTaxSignal) {
+    const explicitTaxTotal = roundMoney(
+      (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
+        (clampedShippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
+    )
+    const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
+    const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
+
+    if (
+      toNumber(order.discount_total) > 0 &&
+      currentOrderTaxBalance !== null &&
+      currentOrderTaxBalance >= 0 &&
+      currentOrderTaxTotal !== null
+    ) {
+      return Math.min(explicitTaxTotal, currentOrderTaxTotal)
+    }
+
+    return explicitTaxTotal
+  }
+
+  const taxTotal = getExplicitMoneyTotal(order.tax_total)
+  if (taxTotal !== null && toNumber(order.discount_total) <= 0) {
+    return roundMoney(taxTotal)
+  }
+
+  return null
+}
+
+export function getTaxTotal(order: OrderReceiptOrder) {
+  const explicitTaxTotal = getExplicitOrderTaxTotal(order)
+  if (explicitTaxTotal !== null) {
+    return explicitTaxTotal
+  }
+
+  const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
+  if (currentOrderTaxTotal !== null) {
+    return currentOrderTaxTotal
+  }
+
+  const itemTaxTotal = getLineItemsTaxTotal(order.items ?? [])
+  const shippingTaxTotal = getShippingMethodsTaxTotal(
+    order.shipping_methods ?? []
   )
 
   return roundMoney(itemTaxTotal + shippingTaxTotal)
@@ -709,41 +844,113 @@ export function estimateTextWidth(
   )
 }
 
-export function truncateToEstimatedWidth(
+function splitTokenToEstimatedWidth(
+  token: string,
+  maxWidth: number,
+  fontSize: number,
+  font: PdfFont
+) {
+  const lines: string[] = []
+  let currentLine = ""
+
+  for (const character of Array.from(token)) {
+    const candidate = `${currentLine}${character}`
+
+    if (
+      currentLine &&
+      estimateTextWidth(candidate, fontSize, font) > maxWidth
+    ) {
+      lines.push(currentLine)
+      currentLine = character
+      continue
+    }
+
+    currentLine = candidate
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
+type TextWrapContext = {
+  font: PdfFont
+  fontSize: number
+  maxWidth: number
+}
+
+function appendWrappedLine(
+  lines: string[],
+  currentLine: string,
+  tokenLine: string,
+  context: TextWrapContext
+) {
+  const candidate = currentLine ? `${currentLine} ${tokenLine}` : tokenLine
+
+  if (
+    currentLine &&
+    estimateTextWidth(candidate, context.fontSize, context.font) >
+      context.maxWidth
+  ) {
+    lines.push(currentLine)
+    return tokenLine
+  }
+
+  return candidate
+}
+
+function tokenLinesToEstimatedWidth(
+  token: string,
+  maxWidth: number,
+  fontSize: number,
+  font: PdfFont
+) {
+  return estimateTextWidth(token, fontSize, font) <= maxWidth
+    ? [token]
+    : splitTokenToEstimatedWidth(token, maxWidth, fontSize, font)
+}
+
+export function wrapToEstimatedWidth(
   value: unknown,
   maxWidth: number,
   fontSize: number,
   font: PdfFont = "F1"
 ) {
+  const context = { font, fontSize, maxWidth }
   const textValue = String(value ?? "")
     .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
 
+  if (!textValue || maxWidth <= 0) {
+    return []
+  }
+
   if (estimateTextWidth(textValue, fontSize, font) <= maxWidth) {
-    return textValue
+    return [textValue]
   }
 
-  if (estimateTextWidth(TRUNCATION_MARKER, fontSize, font) > maxWidth) {
-    return ""
-  }
+  const lines: string[] = []
+  let currentLine = ""
 
-  let lowestMaxLength = 1
-  let highestMaxLength = textValue.length - 1
-  let bestFit = TRUNCATION_MARKER
-
-  while (lowestMaxLength <= highestMaxLength) {
-    const maxLength = Math.floor((lowestMaxLength + highestMaxLength) / 2)
-    const truncatedText = truncate(textValue, maxLength)
-
-    if (estimateTextWidth(truncatedText, fontSize, font) <= maxWidth) {
-      bestFit = truncatedText
-      lowestMaxLength = maxLength + 1
-    } else {
-      highestMaxLength = maxLength - 1
+  for (const token of textValue.split(" ")) {
+    for (const tokenLine of tokenLinesToEstimatedWidth(
+      token,
+      maxWidth,
+      fontSize,
+      font
+    )) {
+      currentLine = appendWrappedLine(lines, currentLine, tokenLine, context)
     }
   }
 
-  return bestFit
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
 }
 export type PdfCommand = string
 
