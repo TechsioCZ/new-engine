@@ -618,32 +618,67 @@ function assertSdkDemoOutput(appRoot) {
 
 function patchWorkerAssetDispatch(appRoot) {
   const workerPath = path.join(appRoot, '.output/server/index.mjs');
-  const source = fs.readFileSync(workerPath, 'utf8');
-  const existing = `async function fetchAsset(request, env) {
-    const assets = env?.[ASSETS_BINDING];
-    if (!assets || 'function' != typeof assets.fetch) return null;
-    const response = await assets.fetch(request);
-    if (404 === response.status) return null;
-    return withAssetHeaders(response, request);
+  let source = fs.readFileSync(workerPath, 'utf8');
+  const existingFetchAsset = `async function fetchAsset(request, env) {
+const assets = env?.[ASSETS_BINDING];
+if (!assets || 'function' != typeof assets.fetch) return null;
+const response = await assets.fetch(request);
+if (404 === response.status) return null;
+return withAssetHeaders(response, request);
 }`;
-  const patched = `async function fetchAsset(request, env) {
-    if ('GET' !== request.method && 'HEAD' !== request.method) return null;
-    const assets = env?.[ASSETS_BINDING];
-    if (!assets || 'function' != typeof assets.fetch) return null;
-    const response = await assets.fetch(request);
-    if (404 === response.status) return null;
-    return withAssetHeaders(response, request);
+  const patchedFetchAsset = `async function fetchAsset(request, env) {
+if ('GET' !== request.method && 'HEAD' !== request.method) return null;
+const assets = env?.[ASSETS_BINDING];
+if (!assets || 'function' != typeof assets.fetch) return null;
+const response = await assets.fetch(request);
+if (404 === response.status) return null;
+return withAssetHeaders(response, request);
+}`;
+  const existingHtmlAssetPredicate = `function isAssetLikePathname(pathname) {
+const extension = getPathExtension(pathname);
+return '' !== extension && '.html' !== extension && '.htm' !== extension;
+}`;
+  const patchedHtmlAssetPredicate = `function isAssetLikePathname(pathname) {
+const extension = getPathExtension(pathname);
+return '' !== extension;
 }`;
 
-  if (source.includes(patched)) {
-    return;
-  }
+  const fetchAssetHasMethodGuard =
+    /async function fetchAsset\(request, env\) \{\s*if \('GET' !== request\.method && 'HEAD' !== request\.method\) return null;\s*const assets = env\?\.\[ASSETS_BINDING\];/u.test(
+      source,
+    );
+  const existingFetchAssetPattern =
+    /async function fetchAsset\(request, env\) \{\s*const assets = env\?\.\[ASSETS_BINDING\];\s*if \(!assets \|\| 'function' != typeof assets\.fetch\) return null;\s*const response = await assets\.fetch\(request\);\s*if \(404 === response\.status\) return null;\s*return withAssetHeaders\(response, request\);\s*\}/u;
 
-  if (!source.includes(existing)) {
+  if (source.includes(existingFetchAsset)) {
+    source = source.replace(existingFetchAsset, patchedFetchAsset);
+  } else if (existingFetchAssetPattern.test(source)) {
+    source = source.replace(existingFetchAssetPattern, patchedFetchAsset);
+  } else if (!source.includes(patchedFetchAsset) && !fetchAssetHasMethodGuard) {
     throw new Error(`Modern.js Cloudflare worker asset dispatch shape changed: ${workerPath}`);
   }
 
-  fs.writeFileSync(workerPath, source.replace(existing, patched));
+  const htmlAssetPredicateHasPatch =
+    /function isAssetLikePathname\(pathname\) \{\s*const extension = getPathExtension\(pathname\);\s*return '' !== extension;\s*\}/u.test(
+      source,
+    );
+  const htmlAssetPredicateHasGeneratedExclusion =
+    /function isAssetLikePathname\(pathname\) \{\s*const extension = getPathExtension\(pathname\);\s*return '' !== extension && '\.html' !== extension && '\.htm' !== extension;\s*\}/u.test(
+      source,
+    );
+
+  if (source.includes(existingHtmlAssetPredicate)) {
+    source = source.replace(existingHtmlAssetPredicate, patchedHtmlAssetPredicate);
+  } else if (htmlAssetPredicateHasGeneratedExclusion) {
+    source = source.replace(
+      /function isAssetLikePathname\(pathname\) \{\s*const extension = getPathExtension\(pathname\);\s*return '' !== extension && '\.html' !== extension && '\.htm' !== extension;\s*\}/u,
+      patchedHtmlAssetPredicate,
+    );
+  } else if (!source.includes(patchedHtmlAssetPredicate) && !htmlAssetPredicateHasPatch) {
+    throw new Error(`Modern.js Cloudflare worker asset predicate shape changed: ${workerPath}`);
+  }
+
+  fs.writeFileSync(workerPath, source);
 }
 
 function copyD1Migrations(appRoot) {
@@ -808,6 +843,17 @@ function mergeSmartSuggestVars(
   return nextVars;
 }
 
+function preserveExplicitHtmlAssetPaths(config, wranglerPath) {
+  if (!isRecord(config.assets)) {
+    throw new Error(`Generated Wrangler config missing assets block: ${wranglerPath}`);
+  }
+
+  config.assets = {
+    ...config.assets,
+    html_handling: 'none',
+  };
+}
+
 function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
 
@@ -835,6 +881,7 @@ function main(argv = process.argv.slice(2)) {
     );
   }
   const config = readJson(wranglerPath);
+  preserveExplicitHtmlAssetPaths(config, wranglerPath);
   const existingD1Databases = Array.isArray(config.d1_databases) ? config.d1_databases : [];
   const migrations = copyD1Migrations(appRoot);
   assertSdkDemoOutput(appRoot);
