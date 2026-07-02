@@ -138,7 +138,7 @@ function buildPdf(order: OrderReceiptOrder) {
       quantity: getItemQuantity(item),
       taxLabel: getItemTaxLabel(item),
       title: getItemTitle(item) || "Položka",
-      total: getItemSubtotal(item),
+      total: getItemSubtotal(item, { discountTotal: order.discount_total }),
       unitPriceNet: getItemUnitPrice(item),
     }))
     .slice(0, 12)

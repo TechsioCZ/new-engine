@@ -79,6 +79,18 @@ describe("order receipt service", () => {
     ).toBe(100)
   })
 
+  it("multiplies legacy raw detail unit subtotal by quantity", () => {
+    const item = {
+      detail: {
+        raw_quantity: { precision: 20, value: "2" },
+        raw_unit_price: { precision: 20, value: "1652.06612" },
+      },
+      subtotal: { precision: 20, value: "1652.06612" },
+    }
+
+    expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
+  })
+
   it("treats explicit zero line subtotal and total as authoritative", () => {
     expect(
       getItemSubtotal({

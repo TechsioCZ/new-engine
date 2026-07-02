@@ -357,16 +357,81 @@ export function getItemQuantity(item: OrderReceiptLineItem) {
   return quantity > 0 ? quantity : 1
 }
 
-export function getItemSubtotal(item: OrderReceiptLineItem) {
-  const subtotal = getItemSubtotalAmount(item)
+type ItemSubtotalOptions = {
+  discountTotal?: OrderReceiptMoney | undefined
+}
+
+export function getItemSubtotal(
+  item: OrderReceiptLineItem,
+  options: ItemSubtotalOptions = {}
+) {
+  const subtotal = getItemSubtotalAmount(item, options)
   const rate = getTaxRate(item)
 
   return getTaxExclusiveAmount(subtotal, rate, item.is_tax_inclusive)
 }
 
-function getItemSubtotalAmount(item: OrderReceiptLineItem) {
+function getReflectedItemDiscount(
+  item: OrderReceiptLineItem,
+  explicitSubtotal: number
+) {
+  const rate = getTaxRate(item)
+  const explicitNetSubtotal = getTaxExclusiveAmount(
+    explicitSubtotal,
+    rate,
+    item.is_tax_inclusive
+  )
+
+  return Math.max(
+    0,
+    roundMoney(getItemUndiscountedSubtotal(item) - explicitNetSubtotal)
+  )
+}
+
+function shouldTrustExplicitItemSubtotal(
+  item: OrderReceiptLineItem,
+  explicitSubtotal: number,
+  options: ItemSubtotalOptions
+) {
+  const discountTotal = toNumber(options.discountTotal)
+  if (discountTotal <= 0) {
+    return false
+  }
+
+  const reflectedItemDiscount = getReflectedItemDiscount(item, explicitSubtotal)
+
+  return reflectedItemDiscount > 0 && reflectedItemDiscount <= discountTotal
+}
+
+function getItemSubtotalAmount(
+  item: OrderReceiptLineItem,
+  options: ItemSubtotalOptions = {}
+) {
   if (item.subtotal !== null && item.subtotal !== undefined) {
-    return toNumber(item.subtotal)
+    const subtotal = toNumber(item.subtotal)
+    const quantity = getItemQuantity(item)
+    const unitPrice = getItemGrossUnitPrice(item)
+    const hasRawUnitSubtotal =
+      (item.detail?.raw_quantity !== null &&
+        item.detail?.raw_quantity !== undefined &&
+        item.detail?.raw_unit_price !== null &&
+        item.detail?.raw_unit_price !== undefined) ||
+      (item.raw_quantity !== null &&
+        item.raw_quantity !== undefined &&
+        item.raw_unit_price !== null &&
+        item.raw_unit_price !== undefined)
+
+    if (
+      hasRawUnitSubtotal &&
+      subtotal > 0 &&
+      quantity > 1 &&
+      subtotal === unitPrice &&
+      !shouldTrustExplicitItemSubtotal(item, subtotal, options)
+    ) {
+      return unitPrice * quantity
+    }
+
+    return subtotal
   }
 
   if (item.total !== null && item.total !== undefined) {
@@ -379,8 +444,11 @@ function getItemSubtotalAmount(item: OrderReceiptLineItem) {
   return unitPrice * quantity
 }
 
-function getItemsSubtotal(items: OrderReceiptLineItem[]) {
-  return items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
+function getItemsSubtotal(
+  items: OrderReceiptLineItem[],
+  options: ItemSubtotalOptions = {}
+) {
+  return items.reduce((sum, item) => sum + getItemSubtotal(item, options), 0)
 }
 
 function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
@@ -481,7 +549,9 @@ export function getShippingTaxTotal(
 }
 
 export function getSubtotal(order: OrderReceiptOrder) {
-  return getItemsSubtotal(order.items ?? [])
+  return getItemsSubtotal(order.items ?? [], {
+    discountTotal: order.discount_total,
+  })
 }
 
 export function getTaxTotal(order: OrderReceiptOrder) {
