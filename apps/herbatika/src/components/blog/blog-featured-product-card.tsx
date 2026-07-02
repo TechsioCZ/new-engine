@@ -2,11 +2,13 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useState } from "react"
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
-import { SupportingText } from "@/components/text/supporting-text"
 import { useAppToast } from "@/hooks/use-app-toast"
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+import {
+  ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE,
+  resolveAddProductToCartErrorMessage,
+  useAddProductToCart,
+} from "@/lib/storefront/use-add-product-to-cart"
 
 type BlogFeaturedProductCardProps = {
   product: HttpTypes.StoreProduct
@@ -16,7 +18,6 @@ export function BlogFeaturedProductCard({
   product,
 }: BlogFeaturedProductCardProps) {
   const region = useRegionContext()
-  const [addToCartError, setAddToCartError] = useState<string | null>(null)
   const addToCart = useAddProductToCart({
     regionId: region?.region_id,
     countryCode: region?.country_code,
@@ -24,18 +25,14 @@ export function BlogFeaturedProductCard({
   const toast = useAppToast()
 
   const handleAddToCart = async (selectedProduct: HttpTypes.StoreProduct) => {
-    setAddToCartError(null)
-
     try {
       await addToCart.addProductToCart({
         product: selectedProduct,
         quantity: 1,
       })
-      toast.success({ title: "Produkt bol pridaný do košíka." })
+      toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
     } catch (error) {
-      setAddToCartError(
-        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."
-      )
+      toast.error({ title: resolveAddProductToCartErrorMessage(error) })
     }
   }
 
@@ -46,12 +43,6 @@ export function BlogFeaturedProductCard({
         onAddToCart={handleAddToCart}
         product={product}
       />
-
-      {addToCartError ? (
-        <SupportingText className="text-danger text-sm">
-          {addToCartError}
-        </SupportingText>
-      ) : null}
     </div>
   )
 }

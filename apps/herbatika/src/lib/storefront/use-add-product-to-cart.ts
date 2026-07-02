@@ -2,12 +2,17 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
-import { useAddLineItem } from "./cart"
+import { cartReadQueryOptions, useAddLineItem, useCart } from "./cart"
 import { resolveErrorMessage } from "./error-utils"
 import { resolveVariantInventoryState } from "./product-availability"
-import { resolveProductTopOffer } from "./product-pricing"
+import {
+  asStorefrontNumber,
+  asStorefrontRecord,
+  resolveProductTopOffer,
+} from "./product-pricing"
 
 type AddToCartMessages = {
+  insufficientQuantity?: string
   missingRegion?: string
   missingVariant?: string
   outOfStock?: string
@@ -30,7 +35,11 @@ type AddProductToCartInput = {
   variantId?: string | null
 }
 
+export const ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE =
+  "Produkt bol pridaný do košíka."
+
 const DEFAULT_MESSAGES = {
+  insufficientQuantity: "Nedostatočné množstvo produktu.",
   missingRegion: "Región sa ešte načítava. Skúste to prosím o chvíľu.",
   missingVariant: "Produkt nemá dostupnú variantu na pridanie do košíka.",
   outOfStock: "Produkt momentálne nie je skladom.",
@@ -44,15 +53,27 @@ const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
 const isInsufficientInventoryError = (message: string) =>
   INSUFFICIENT_INVENTORY_ERROR_PATTERN.test(message)
 
-const resolveInsufficientQuantityMessage = (
-  availableQuantity: number | null,
+export const resolveAddProductToCartErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : DEFAULT_MESSAGES.failed
+
+const resolveInsufficientQuantityMessage = ({
+  availableQuantity,
+  cartQuantity,
+  fallbackMessage,
+}: {
+  availableQuantity: number | null
+  cartQuantity: number
   fallbackMessage: string
-) => {
+}) => {
   if (availableQuantity === null || availableQuantity < 1) {
     return fallbackMessage
   }
 
-  return `Na sklade je dostupné množstvo ${availableQuantity} ks.`
+  if (cartQuantity > 0) {
+    return `${fallbackMessage} V košíku už máte ${cartQuantity} ks, dostupné množstvo je ${availableQuantity} ks.`
+  }
+
+  return `${fallbackMessage} Dostupné množstvo: ${availableQuantity} ks.`
 }
 
 const resolveProductVariantId = (
@@ -87,12 +108,44 @@ const resolveLineItemMetadata = (product: AddProductToCartInput["product"]) => {
   return topOffer ? { top_offer: topOffer } : undefined
 }
 
+const resolveLineItemVariantId = (
+  item: HttpTypes.StoreCartLineItem
+): string | null => {
+  const itemRecord = asStorefrontRecord(item)
+
+  if (typeof itemRecord?.variant_id === "string") {
+    return itemRecord.variant_id
+  }
+
+  const variant = asStorefrontRecord(itemRecord?.variant)
+  return typeof variant?.id === "string" ? variant.id : null
+}
+
+const resolveExistingCartVariantQuantity = (
+  cart: HttpTypes.StoreCart | null,
+  variantId: string | null
+) => {
+  if (!variantId) {
+    return 0
+  }
+
+  return (cart?.items ?? []).reduce((sum, item) => {
+    if (resolveLineItemVariantId(item) !== variantId) {
+      return sum
+    }
+
+    return sum + Math.max(0, Math.floor(asStorefrontNumber(item.quantity) ?? 0))
+  }, 0)
+}
+
 const assertAddProductToCartVariant = ({
+  cartQuantity,
   messages,
   product,
   quantity,
   variantId,
 }: {
+  cartQuantity: number
   messages: Required<AddToCartMessages>
   product: AddProductToCartInput["product"]
   quantity: number
@@ -109,7 +162,11 @@ const assertAddProductToCartVariant = ({
     throw new Error(messages.unavailableInRegion)
   }
 
-  const inventoryState = resolveVariantInventoryState(resolvedVariant, quantity)
+  const requestedTotalQuantity = cartQuantity + quantity
+  const inventoryState = resolveVariantInventoryState(
+    resolvedVariant,
+    requestedTotalQuantity
+  )
 
   if (!inventoryState.isInStock) {
     throw new Error(messages.outOfStock)
@@ -117,10 +174,11 @@ const assertAddProductToCartVariant = ({
 
   if (!inventoryState.isPurchasable) {
     throw new Error(
-      resolveInsufficientQuantityMessage(
-        inventoryState.availableQuantity,
-        messages.outOfStock
-      )
+      resolveInsufficientQuantityMessage({
+        availableQuantity: inventoryState.availableQuantity,
+        cartQuantity,
+        fallbackMessage: messages.insufficientQuantity,
+      })
     )
   }
 
@@ -139,6 +197,17 @@ export function useAddProductToCart({
   const [activeProductId, setActiveProductId] = useState<string | null>(null)
 
   const addLineItemMutation = useAddLineItem()
+  const cartQuery = useCart(
+    {
+      autoCreate: false,
+      autoUpdateRegion: false,
+      country_code: countryCode,
+      region_id: regionId,
+    },
+    {
+      queryOptions: cartReadQueryOptions,
+    }
+  )
 
   const addProductToCart = async ({
     product,
@@ -149,7 +218,12 @@ export function useAddProductToCart({
       throw new Error(resolvedMessages.missingRegion)
     }
 
+    const resolvedProductVariantId = resolveProductVariantId(product, variantId)
     const resolvedVariantId = assertAddProductToCartVariant({
+      cartQuantity: resolveExistingCartVariantQuantity(
+        cartQuery.cart,
+        resolvedProductVariantId
+      ),
       messages: resolvedMessages,
       product,
       quantity,
@@ -171,7 +245,7 @@ export function useAddProductToCart({
       const errorMessage = resolveErrorMessage(error, resolvedMessages.failed)
       throw new Error(
         isInsufficientInventoryError(errorMessage)
-          ? resolvedMessages.outOfStock
+          ? resolvedMessages.insufficientQuantity
           : errorMessage
       )
     } finally {

@@ -86,7 +86,7 @@ export const resolveAvailabilityText = (
   const topOffer = resolveLineItemTopOffer(item, product)
   const stock = asStorefrontRecord(topOffer?.stock)
   const stockAmount =
-    asStorefrontNumber(stock?.amount) ?? resolveLineItemInventory(item)
+    resolveLineItemInventory(item) ?? asStorefrontNumber(stock?.amount)
   const isInStock = stockAmount === null ? true : stockAmount > 0
 
   if (!isInStock) {

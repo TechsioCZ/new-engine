@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { resolveDefaultStockInventoryQuantity } from "./default-stock-availability"
 import {
   asStorefrontBoolean,
   asStorefrontNumber,
@@ -41,9 +42,9 @@ export const resolveVariantInventoryState = (
     asStorefrontBoolean(variantRecord?.allow_backorder) === true
   const manageInventory =
     asStorefrontBoolean(variantRecord?.manage_inventory) !== false
-  const inventoryQuantity = asStorefrontNumber(
-    variantRecord?.inventory_quantity
-  )
+  const inventoryQuantity =
+    resolveDefaultStockInventoryQuantity(variantRecord) ??
+    asStorefrontNumber(variantRecord?.inventory_quantity)
   const hasInventoryQuantity = inventoryQuantity !== null
 
   if (!(hasVariant && hasPrice)) {
