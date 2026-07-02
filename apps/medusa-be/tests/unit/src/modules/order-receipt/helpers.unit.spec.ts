@@ -27,6 +27,23 @@ describe("order receipt helpers", () => {
     )
   })
 
+  it("truncates wide Helvetica glyphs within the PDF column width", () => {
+    const wideCompanyName = "WWWWMMMMWWWWMMMMWWWWMMMM SPOL S R O"
+
+    const truncatedText = truncateToEstimatedWidth(
+      wideCompanyName,
+      CUSTOMER_MAX_WIDTH,
+      12,
+      "F2"
+    )
+
+    expect(truncatedText).not.toBe(wideCompanyName)
+    expect(truncatedText.endsWith(".")).toBe(true)
+    expect(estimateTextWidth(truncatedText, 12, "F2")).toBeLessThanOrEqual(
+      CUSTOMER_MAX_WIDTH
+    )
+  })
+
   it("keeps text unchanged when it already fits", () => {
     expect(
       truncateToEstimatedWidth("Customer Name", CUSTOMER_MAX_WIDTH, 10)

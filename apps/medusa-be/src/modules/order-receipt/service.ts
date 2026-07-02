@@ -120,7 +120,7 @@ function buildPdf(order: OrderReceiptOrder) {
 
       commands.push(
         pdfText(
-          truncateToEstimatedWidth(lineValue, CUSTOMER_MAX_WIDTH, size),
+          truncateToEstimatedWidth(lineValue, CUSTOMER_MAX_WIDTH, size, font),
           CUSTOMER_X,
           CUSTOMER_START_Y - index * CUSTOMER_LINE_HEIGHT,
           {
