@@ -45,6 +45,14 @@ const qrPaymentCollections = [
   },
 ]
 
+const PDF_PAGE_COUNT_REGEX = /\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/
+
+function getPdfPageCount(pdf: string) {
+  const match = pdf.match(PDF_PAGE_COUNT_REGEX)
+
+  return match ? Number(match[1]) : 0
+}
+
 describe("order receipt service", () => {
   it("uses detail quantity when calculating line subtotal", () => {
     const item = {
@@ -177,6 +185,37 @@ describe("order receipt service", () => {
 
     expect(getTotal(order)).toBe(26.98)
     expect(subtotal + shipping + tax).toBeCloseTo(26.98)
+  })
+
+  it("paginates more than 12 receipt items without dropping rows", async () => {
+    const service = new OrderReceiptModuleService()
+    const items = Array.from({ length: 13 }, (_, index) => {
+      const amount = 100 + index
+
+      return {
+        quantity: 1,
+        subtotal: amount,
+        tax_total: 0,
+        title: `Receipt pagination item ${String(index + 1).padStart(2, "0")}`,
+        total: amount,
+        unit_price: amount,
+      }
+    })
+    const total = items.reduce((sum, item) => sum + item.total, 0)
+
+    const attachment = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      items,
+      subtotal: total,
+      tax_total: 0,
+      total,
+    })
+    const pdf = attachment.content.toString("utf8")
+
+    expect(getPdfPageCount(pdf)).toBe(2)
+    for (const item of items) {
+      expect(pdf).toContain(item.title)
+    }
   })
 
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {
