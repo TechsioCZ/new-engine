@@ -495,28 +495,27 @@ function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
     return roundMoney(taxTotal)
   }
 
+  const items = order.items ?? []
+  const shippingMethods = order.shipping_methods ?? []
   const itemTaxTotal = getExplicitMoneyTotal(order.item_tax_total)
   const shippingTaxTotal = getExplicitMoneyTotal(order.shipping_tax_total)
-  const itemsHaveTaxTotals = (order.items ?? []).some((item) =>
+  const allItemsHaveTaxTotals = items.every((item) =>
     hasExplicitMoney(item.tax_total)
   )
-  const shippingMethodsHaveTaxTotals = (order.shipping_methods ?? []).some(
+  const allShippingMethodsHaveTaxTotals = shippingMethods.every(
     (shippingMethod) => hasExplicitMoney(shippingMethod.tax_total)
   )
+  const hasItemTaxSignal = itemTaxTotal !== null || allItemsHaveTaxTotals
+  const hasShippingTaxSignal =
+    shippingTaxTotal !== null || allShippingMethodsHaveTaxTotals
 
-  if (
-    itemTaxTotal === null &&
-    shippingTaxTotal === null &&
-    !itemsHaveTaxTotals &&
-    !shippingMethodsHaveTaxTotals
-  ) {
+  if (!(hasItemTaxSignal && hasShippingTaxSignal)) {
     return null
   }
 
   return roundMoney(
-    (itemTaxTotal ?? getLineItemsTaxTotal(order.items ?? [])) +
-      (shippingTaxTotal ??
-        getShippingMethodsTaxTotal(order.shipping_methods ?? []))
+    (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
+      (shippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
   )
 }
 

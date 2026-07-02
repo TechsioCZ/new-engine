@@ -187,6 +187,125 @@ describe("order receipt service", () => {
     ).toBe(7.5)
   })
 
+  it("uses order-level item tax total with stored shipping tax total", () => {
+    expect(
+      getTaxTotal({
+        id: "order_level_item_tax",
+        item_tax_total: 15,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 3,
+          },
+        ],
+        summary: {
+          current_order_total: 999,
+        },
+      })
+    ).toBe(18)
+  })
+
+  it("uses order-level shipping tax total with stored item tax total", () => {
+    expect(
+      getTaxTotal({
+        id: "order_level_shipping_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 15,
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_tax_total: 3,
+        summary: {
+          current_order_total: 999,
+        },
+      })
+    ).toBe(18)
+  })
+
+  it("keeps discount-aware fallback when explicit tax totals are partial", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_partial_stored_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 1,
+          },
+        ],
+        summary: {
+          current_order_total: 61,
+        },
+      })
+    ).toBe(1)
+  })
+
+  it("keeps discount-aware fallback when stored item tax totals are partial", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_partial_line_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 4,
+          },
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 40,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 1,
+          },
+        ],
+        summary: {
+          current_order_total: 101,
+        },
+      })
+    ).toBe(1)
+  })
+
   it("clamps derived tax totals at zero", () => {
     expect(
       getTaxTotal({

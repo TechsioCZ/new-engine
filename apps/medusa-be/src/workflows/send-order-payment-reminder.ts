@@ -61,6 +61,7 @@ const ORDER_PAYMENT_REMINDER_RECEIPT_FIELDS = [
   "payment_collections.payments.data",
   "payment_collections.payments.provider_id",
   "shipping_total",
+  "shipping_tax_total",
   "shipping_methods.amount",
   "shipping_methods.is_tax_inclusive",
   "shipping_methods.name",
