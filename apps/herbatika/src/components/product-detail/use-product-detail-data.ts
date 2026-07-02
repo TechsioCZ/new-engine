@@ -80,10 +80,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productSummaryText,
     productCategories
   )
-  const productContentSections = resolveProductContentSections(
-    product,
-    shortDescriptionHtml
-  )
+  const productContentSections = resolveProductContentSections(product)
   const mediaFacts = resolveProductMediaFacts(product, productContentSections)
   const {
     currentAmount,
