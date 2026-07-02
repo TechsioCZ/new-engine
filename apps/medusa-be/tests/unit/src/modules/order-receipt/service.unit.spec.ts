@@ -123,10 +123,10 @@ describe("order receipt service", () => {
     ).toBe(21)
   })
 
-  it("prefers stored order tax totals over discounted balance arithmetic", () => {
+  it("uses stored order tax totals when receipt is not discounted", () => {
     expect(
       getTaxTotal({
-        discount_total: 50,
+        discount_total: 0,
         id: "order_stored_tax",
         items: [
           {
@@ -243,6 +243,54 @@ describe("order receipt service", () => {
     ).toBe(18)
   })
 
+  it("uses side stored tax totals before order tax total on discounted receipts", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_discounted_side_tax",
+        item_tax_total: 12.32,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: 0,
+        summary: {
+          current_order_total: 62.32,
+        },
+        tax_total: 21,
+      })
+    ).toBe(12.32)
+  })
+
+  it("treats explicit zero tax totals as present when relations are loaded", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 1,
+        id: "order_zero_side_tax",
+        item_tax_total: 0,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: 0,
+        summary: {
+          current_order_total: 999,
+        },
+        tax_total: 99,
+      })
+    ).toBe(0)
+  })
+
   it("keeps discount-aware fallback when explicit tax totals are partial", () => {
     expect(
       getTaxTotal({
@@ -266,6 +314,47 @@ describe("order receipt service", () => {
         ],
         summary: {
           current_order_total: 61,
+        },
+      })
+    ).toBe(1)
+  })
+
+  it("keeps discount-aware fallback when shipping methods relation is missing", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_missing_shipping_relation",
+        item_tax_total: 21,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        summary: {
+          current_order_total: 51,
+        },
+      })
+    ).toBe(1)
+  })
+
+  it("keeps discount-aware fallback when items relation is missing", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 5,
+        id: "order_missing_items_relation",
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_tax_total: 2,
+        summary: {
+          current_order_total: 6,
         },
       })
     ).toBe(1)

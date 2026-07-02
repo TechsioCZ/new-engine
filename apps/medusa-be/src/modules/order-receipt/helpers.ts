@@ -489,34 +489,55 @@ function getShippingMethodsTaxTotal(
   )
 }
 
-function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
-  const taxTotal = getExplicitMoneyTotal(order.tax_total)
+function hasCompleteRelationTaxSignal(
+  relation: Array<{ tax_total?: OrderReceiptMoney }> | null | undefined,
+  taxTotal: number | null
+) {
+  if (!Array.isArray(relation)) {
+    return false
+  }
+
   if (taxTotal !== null) {
+    return true
+  }
+
+  return (
+    relation.length > 0 &&
+    relation.every((entry) => hasExplicitMoney(entry.tax_total))
+  )
+}
+
+function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
+  const hasItemsRelation = Array.isArray(order.items)
+  const hasShippingMethodsRelation = Array.isArray(order.shipping_methods)
+  const items = hasItemsRelation ? (order.items ?? []) : []
+  const shippingMethods = hasShippingMethodsRelation
+    ? (order.shipping_methods ?? [])
+    : []
+  const itemTaxTotal = getExplicitMoneyTotal(order.item_tax_total)
+  const shippingTaxTotal = getExplicitMoneyTotal(order.shipping_tax_total)
+  const hasItemTaxSignal = hasCompleteRelationTaxSignal(
+    order.items,
+    itemTaxTotal
+  )
+  const hasShippingTaxSignal = hasCompleteRelationTaxSignal(
+    order.shipping_methods,
+    shippingTaxTotal
+  )
+
+  if (hasItemTaxSignal && hasShippingTaxSignal) {
+    return roundMoney(
+      (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
+        (shippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
+    )
+  }
+
+  const taxTotal = getExplicitMoneyTotal(order.tax_total)
+  if (taxTotal !== null && toNumber(order.discount_total) <= 0) {
     return roundMoney(taxTotal)
   }
 
-  const items = order.items ?? []
-  const shippingMethods = order.shipping_methods ?? []
-  const itemTaxTotal = getExplicitMoneyTotal(order.item_tax_total)
-  const shippingTaxTotal = getExplicitMoneyTotal(order.shipping_tax_total)
-  const allItemsHaveTaxTotals = items.every((item) =>
-    hasExplicitMoney(item.tax_total)
-  )
-  const allShippingMethodsHaveTaxTotals = shippingMethods.every(
-    (shippingMethod) => hasExplicitMoney(shippingMethod.tax_total)
-  )
-  const hasItemTaxSignal = itemTaxTotal !== null || allItemsHaveTaxTotals
-  const hasShippingTaxSignal =
-    shippingTaxTotal !== null || allShippingMethodsHaveTaxTotals
-
-  if (!(hasItemTaxSignal && hasShippingTaxSignal)) {
-    return null
-  }
-
-  return roundMoney(
-    (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
-      (shippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
-  )
+  return null
 }
 
 export function getTaxTotal(order: OrderReceiptOrder) {
