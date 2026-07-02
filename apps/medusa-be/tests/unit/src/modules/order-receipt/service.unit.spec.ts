@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  escapePdfText,
   getItemQuantity,
   getItemSubtotal,
   getItemUnitPrice,
@@ -46,6 +47,8 @@ const qrPaymentCollections = [
 ]
 
 const PDF_PAGE_COUNT_REGEX = /\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/
+const CUSTOMER_TEXT_ROW_REGEX =
+  /BT \/F[12] (?:10|12) Tf 322\.00 (\d+\.\d{2}) Td \(([^)]*)\) Tj ET/g
 
 function getPdfPageCount(pdf: string) {
   const match = pdf.match(PDF_PAGE_COUNT_REGEX)
@@ -619,6 +622,78 @@ describe("order receipt service", () => {
     for (const item of order.items) {
       expect(pdf).toContain(item.title)
     }
+  })
+
+  it("wraps long customer text without overlapping the item table", async () => {
+    const service = new OrderReceiptModuleService()
+    const receipt = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      billing_address: {
+        address_1:
+          "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678",
+        address_2:
+          "Floor 12 Department of International Procurement and Invoice Validation",
+        city: "Praha - Nove Mesto With Additional District Name",
+        company: "WWWWMMMMWWWWMMMMWWWWMMMM SPOL S RUCENIM OMEZENYM EXTRA LONG",
+        country_code: "CZ",
+        first_name: "Verylongfirstnamewithmanycharacters",
+        last_name: "Verylonglastnamewithmanycharacters",
+        postal_code: "11000",
+      },
+      email:
+        "customer.name.with.a.very.long.email.address.for.receipts@example-commerce.test",
+      id: "order_long_customer_block",
+      items: [
+        {
+          is_tax_inclusive: false,
+          quantity: 1,
+          subtotal: 100,
+          tax_lines: [{ rate: 21 }],
+          title: "Screenshot proof item",
+          total: 121,
+          unit_price: 100,
+        },
+      ],
+      summary: {
+        current_order_total: 121,
+      },
+    })
+    const pdf = receipt.content.toString("utf8")
+    const customerRows = Array.from(
+      pdf.matchAll(CUSTOMER_TEXT_ROW_REGEX),
+      (match) => ({
+        text: match[2] ?? "",
+        y: Number(match[1]),
+      })
+    )
+
+    expect(customerRows.length).toBeGreaterThan(6)
+    expect(customerRows.length).toBeLessThanOrEqual(9)
+    expect(Math.min(...customerRows.map((row) => row.y))).toBeGreaterThan(450)
+    expect(customerRows.at(-1)?.text.endsWith(".")).toBe(true)
+    expect(pdf).toContain("Screenshot proof item")
+  })
+
+  it("renders customer fallback when customer fields are blank", async () => {
+    const service = new OrderReceiptModuleService()
+    const receipt = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      billing_address: {
+        address_1: " \u00a0 ",
+        address_2: " ",
+        city: " ",
+        company: " ",
+        country_code: " ",
+        first_name: " ",
+        last_name: " ",
+        postal_code: " ",
+      },
+      email: " \u00a0 ",
+      id: "order_blank_customer_pdf",
+    })
+    const pdf = receipt.content.toString("utf8")
+
+    expect(pdf).toContain(`(${escapePdfText("Zákazník")})`)
   })
 
   it("does not render a discount row when line subtotals already include it", async () => {

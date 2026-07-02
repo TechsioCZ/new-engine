@@ -1,6 +1,7 @@
 import { orderPaymentQr } from "../../utils/order-payment-qr"
 import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../payment-qr/constants"
 import {
+  estimateTextWidth,
   formatDate,
   formatMoney,
   getAddressLines,
@@ -21,9 +22,11 @@ import {
   type OrderReceiptOrder,
   PDF_CZECH_ENCODING_DIFFERENCES,
   type PdfCommand,
+  type PdfFont,
   pdfLine,
   pdfText,
   truncate,
+  wrapToEstimatedWidth,
 } from "./helpers"
 
 export type {
@@ -45,6 +48,12 @@ const PAYMENT_QR_X = LEFT
 const PAYMENT_QR_PROVIDER_IDS = new Set([QR_PAYMENT_MEDUSA_PROVIDER_ID])
 const SUPPLIER_Y = 626
 const SUPPLIER_Y_WITH_PAYMENT_QR = 560
+const CUSTOMER_X = 322
+const CUSTOMER_LABEL_Y = 626
+const CUSTOMER_START_Y = 603
+const CUSTOMER_LINE_HEIGHT = 16
+const CUSTOMER_MAX_WIDTH = RIGHT - CUSTOMER_X
+const CUSTOMER_MAX_ROWS = 9
 const FIRST_PAGE_TABLE_TOP = 436
 const CONTINUATION_PAGE_TABLE_TOP = 720
 const TABLE_ROW_HEIGHT = 22
@@ -73,17 +82,80 @@ type ReceiptTablePage = {
   tableTop: number
 }
 
+function normalizeCustomerLine(value?: string | null) {
+  return String(value ?? "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 function customerBlock(
   address?: OrderReceiptAddress | null,
   email?: string | null
 ) {
-  const lines = getAddressLines(address)
-
-  if (email) {
-    lines.push(email)
-  }
+  const lines = [...getAddressLines(address), email]
+    .map(normalizeCustomerLine)
+    .filter((line) => line.length > 0)
 
   return lines.length ? lines : ["Zákazník"]
+}
+
+type CustomerTextRow = {
+  font: PdfFont
+  size: number
+  value: string
+}
+
+function markCustomerOverflow(row: CustomerTextRow): CustomerTextRow {
+  const marker = "."
+
+  if (
+    estimateTextWidth(`${row.value}${marker}`, row.size, row.font) <=
+    CUSTOMER_MAX_WIDTH
+  ) {
+    return { ...row, value: `${row.value}${marker}` }
+  }
+
+  let value = row.value
+  while (
+    value &&
+    estimateTextWidth(`${value}${marker}`, row.size, row.font) >
+      CUSTOMER_MAX_WIDTH
+  ) {
+    value = value.slice(0, -1).trimEnd()
+  }
+
+  return { ...row, value: value ? `${value}${marker}` : marker }
+}
+
+function customerTextRows(
+  address?: OrderReceiptAddress | null,
+  email?: string | null
+) {
+  const rows = customerBlock(address, email).flatMap((lineValue, index) => {
+    const font = index === 0 ? FONT_BOLD : FONT_NORMAL
+    const size = index === 0 ? 12 : 10
+
+    return wrapToEstimatedWidth(lineValue, CUSTOMER_MAX_WIDTH, size, font).map(
+      (value) => ({
+        font,
+        size,
+        value,
+      })
+    )
+  })
+
+  if (rows.length <= CUSTOMER_MAX_ROWS) {
+    return rows
+  }
+
+  const visibleRows = rows.slice(0, CUSTOMER_MAX_ROWS)
+  const lastRow = visibleRows.at(-1)
+  if (lastRow) {
+    visibleRows[visibleRows.length - 1] = markCustomerOverflow(lastRow)
+  }
+
+  return visibleRows
 }
 
 function buildTableRows(order: OrderReceiptOrder): ReceiptTableRow[] {
@@ -276,17 +348,22 @@ function renderFirstPageHeader(
     pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 })
   )
 
-  commands.push(pdfText("Odběratel", 322, 626, { size: 11 }))
-  customerBlock(billingAddress, order.email)
-    .slice(0, 6)
-    .forEach((lineValue, index) => {
-      commands.push(
-        pdfText(lineValue, 322, 603 - index * 16, {
-          font: index === 0 ? FONT_BOLD : FONT_NORMAL,
-          size: index === 0 ? 12 : 10,
-        })
+  commands.push(
+    pdfText("Odběratel", CUSTOMER_X, CUSTOMER_LABEL_Y, { size: 11 })
+  )
+  customerTextRows(billingAddress, order.email).forEach((row, index) => {
+    commands.push(
+      pdfText(
+        row.value,
+        CUSTOMER_X,
+        CUSTOMER_START_Y - index * CUSTOMER_LINE_HEIGHT,
+        {
+          font: row.font,
+          size: row.size,
+        }
       )
-    })
+    )
+  })
 }
 
 function renderContinuationHeader(commands: PdfCommand[], orderNumber: string) {
@@ -515,17 +592,22 @@ function buildPdf(order: OrderReceiptOrder) {
     pdfText(orderNumber, 205, supplierY - 81, { align: "right", size: 10 })
   )
 
-  commands.push(pdfText("Odběratel", 322, 626, { size: 11 }))
-  customerBlock(billingAddress, order.email)
-    .slice(0, 6)
-    .forEach((lineValue, index) => {
-      commands.push(
-        pdfText(lineValue, 322, 603 - index * 16, {
-          font: index === 0 ? FONT_BOLD : FONT_NORMAL,
-          size: index === 0 ? 12 : 10,
-        })
+  commands.push(
+    pdfText("Odběratel", CUSTOMER_X, CUSTOMER_LABEL_Y, { size: 11 })
+  )
+  customerTextRows(billingAddress, order.email).forEach((row, index) => {
+    commands.push(
+      pdfText(
+        row.value,
+        CUSTOMER_X,
+        CUSTOMER_START_Y - index * CUSTOMER_LINE_HEIGHT,
+        {
+          font: row.font,
+          size: row.size,
+        }
       )
-    })
+    )
+  })
 
   const tableTop = FIRST_PAGE_TABLE_TOP
   commands.push(pdfText("ks", LEFT, tableTop + 14, { size: 9 }))
