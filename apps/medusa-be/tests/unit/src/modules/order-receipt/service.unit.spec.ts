@@ -123,6 +123,70 @@ describe("order receipt service", () => {
     ).toBe(21)
   })
 
+  it("prefers stored order tax totals over discounted balance arithmetic", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_stored_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        summary: {
+          current_order_total: 150,
+        },
+        tax_total: 11,
+      })
+    ).toBe(11)
+  })
+
+  it("sums mixed stored item and shipping tax totals before discounted balance arithmetic", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 20,
+        id: "order_stored_line_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 0,
+          },
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 30,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 6.3,
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 1.2,
+          },
+        ],
+        summary: {
+          current_order_total: 100,
+        },
+      })
+    ).toBe(7.5)
+  })
+
   it("clamps derived tax totals at zero", () => {
     expect(
       getTaxTotal({
