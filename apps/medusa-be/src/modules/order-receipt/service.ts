@@ -4,6 +4,7 @@ import {
   formatDate,
   formatMoney,
   getAddressLines,
+  getDiscountTotal,
   getItemQuantity,
   getItemSubtotal,
   getItemTaxLabel,
@@ -22,7 +23,6 @@ import {
   type PdfCommand,
   pdfLine,
   pdfText,
-  toNumber,
   truncate,
 } from "./helpers"
 
@@ -402,7 +402,7 @@ function buildPaginatedPdf(
   const currency = order.currency_code
   const subtotal = getSubtotal(order)
   const taxTotal = getTaxTotal(order)
-  const discountTotal = toNumber(order.discount_total)
+  const discountTotal = getDiscountTotal(order)
   const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
   const supplierName = process.env.STORE_NAME || "N1 Shop"
@@ -471,7 +471,7 @@ function buildPdf(order: OrderReceiptOrder) {
   const currency = order.currency_code
   const subtotal = getSubtotal(order)
   const taxTotal = getTaxTotal(order)
-  const discountTotal = toNumber(order.discount_total)
+  const discountTotal = getDiscountTotal(order)
   const shippingTotal = getShippingSubtotalTotal(order)
   const total = getTotal(order)
   const supplierName = process.env.STORE_NAME || "N1 Shop"

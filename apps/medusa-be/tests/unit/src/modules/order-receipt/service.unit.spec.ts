@@ -82,13 +82,12 @@ function buildPaginationOrder(itemCount: number) {
 }
 
 describe("order receipt service", () => {
-  it("uses detail quantity when calculating line subtotal", () => {
+  it("uses detail quantity when line subtotal is missing", () => {
     const item = {
       detail: {
         raw_quantity: { value: "2", precision: 20 },
         raw_unit_price: { value: "1652.06612", precision: 20 },
       },
-      subtotal: 1652.066_12,
       title: "Pánská mikina Capita SKULL HOODIE",
     }
 
@@ -96,7 +95,7 @@ describe("order receipt service", () => {
     expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
   })
 
-  it("keeps discounted line subtotal when it differs from unit price", () => {
+  it("keeps explicit line subtotal when it differs from unit price", () => {
     expect(
       getItemSubtotal({
         quantity: 2,
@@ -104,6 +103,34 @@ describe("order receipt service", () => {
         unit_price: 100,
       })
     ).toBe(160)
+  })
+
+  it("does not multiply explicit subtotal when it equals unit price", () => {
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        subtotal: 100,
+        unit_price: 100,
+      })
+    ).toBe(100)
+  })
+
+  it("treats explicit zero subtotal and total as authoritative", () => {
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        subtotal: 0,
+        unit_price: 100,
+      })
+    ).toBe(0)
+
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        total: 0,
+        unit_price: 100,
+      })
+    ).toBe(0)
   })
 
   it("keeps tax-exclusive item prices as net amounts", () => {
@@ -157,6 +184,28 @@ describe("order receipt service", () => {
         },
       })
     ).toBe(21)
+  })
+
+  it("does not discount already-discounted line subtotals again", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 100,
+        id: "order_discounted_line_subtotal",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 2,
+            subtotal: 100,
+            tax_lines: [{ rate: 0 }],
+            unit_price: 100,
+          },
+        ],
+        shipping_methods: [],
+        summary: {
+          current_order_total: 100,
+        },
+      })
+    ).toBe(0)
   })
 
   it("uses stored order tax totals when receipt is not discounted", () => {
@@ -570,6 +619,33 @@ describe("order receipt service", () => {
     for (const item of order.items) {
       expect(pdf).toContain(item.title)
     }
+  })
+
+  it("does not render a discount row when line subtotals already include it", async () => {
+    const service = new OrderReceiptModuleService()
+    const receipt = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      discount_total: 100,
+      id: "order_discounted_line_subtotal_pdf",
+      items: [
+        {
+          is_tax_inclusive: false,
+          quantity: 2,
+          subtotal: 100,
+          tax_lines: [{ rate: 0 }],
+          title: "Discounted product",
+          unit_price: 100,
+        },
+      ],
+      shipping_methods: [],
+      summary: {
+        current_order_total: 100,
+      },
+    })
+    const pdf = receipt.content.toString("utf8")
+
+    expect(pdf).not.toContain("Sleva")
+    expect(pdf).not.toContain("-100")
   })
 
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {

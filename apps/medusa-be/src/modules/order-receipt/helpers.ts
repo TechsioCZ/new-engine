@@ -374,29 +374,53 @@ export function getItemSubtotal(item: OrderReceiptLineItem) {
 }
 
 function getItemSubtotalAmount(item: OrderReceiptLineItem) {
+  if (item.subtotal !== null && item.subtotal !== undefined) {
+    return toNumber(item.subtotal)
+  }
+
+  if (item.total !== null && item.total !== undefined) {
+    return toNumber(item.total)
+  }
+
   const quantity = getItemQuantity(item)
   const unitPrice = getItemGrossUnitPrice(item)
-  const unitPriceSubtotal = unitPrice * quantity
-  const subtotal = toNumber(item.subtotal)
 
-  if (subtotal > 0) {
-    if (quantity > 1 && subtotal === unitPrice) {
-      return unitPriceSubtotal
-    }
-
-    return subtotal
-  }
-
-  const total = toNumber(item.total)
-  if (total > 0) {
-    return total
-  }
-
-  return unitPriceSubtotal
+  return unitPrice * quantity
 }
 
 function getItemsSubtotal(items: OrderReceiptLineItem[]) {
   return items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
+}
+
+function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
+  const quantity = getItemQuantity(item)
+  const unitPrice = getItemGrossUnitPrice(item)
+
+  return getTaxExclusiveAmount(
+    unitPrice * quantity,
+    getTaxRate(item),
+    item.is_tax_inclusive
+  )
+}
+
+function getItemsUndiscountedSubtotal(items: OrderReceiptLineItem[]) {
+  return items.reduce((sum, item) => sum + getItemUndiscountedSubtotal(item), 0)
+}
+
+export function getDiscountTotal(order: OrderReceiptOrder) {
+  const discountTotal = toNumber(order.discount_total)
+  if (discountTotal <= 0) {
+    return 0
+  }
+
+  const reflectedLineDiscount = Math.max(
+    0,
+    roundMoney(
+      getItemsUndiscountedSubtotal(order.items ?? []) - getSubtotal(order)
+    )
+  )
+
+  return Math.max(0, roundMoney(discountTotal - reflectedLineDiscount))
 }
 
 function getItemTaxTotal(item: OrderReceiptLineItem) {
@@ -517,7 +541,7 @@ function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
 
   return roundMoney(
     toNumber(order.summary.current_order_total) +
-      toNumber(order.discount_total) -
+      getDiscountTotal(order) -
       getSubtotal(order) -
       getShippingSubtotalTotal(order)
   )
