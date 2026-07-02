@@ -71,6 +71,52 @@ type Notification = {
   data?: Record<string, unknown>
 }
 
+type OrderTotalFixture = {
+  summary: {
+    current_order_total?: number | string | null
+    original_order_total?: number | string | null
+  } | null
+  total: number | string | null
+}
+
+function createPaymentReminderNotificationContext(order: OrderTotalFixture) {
+  const graph = vi.fn().mockResolvedValue({
+    data: [
+      {
+        currency_code: "czk",
+        customer_id: "cus_123",
+        display_id: 1001,
+        id: "order_123",
+        ...order,
+      },
+    ],
+  })
+  const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
+    content: Buffer.from("pdf"),
+    content_type: "application/pdf",
+    filename: "receipt.pdf",
+  })
+  const container = {
+    resolve: vi.fn((key: string) => {
+      if (key === "query") {
+        return { graph }
+      }
+
+      if (key === "logger") {
+        return { warn: vi.fn() }
+      }
+
+      if (key === "order_receipt") {
+        return { generateOrderReceiptAttachment }
+      }
+
+      throw new Error(`Unexpected dependency ${key}`)
+    }),
+  }
+
+  return { container, generateOrderReceiptAttachment, graph }
+}
+
 describe("send order payment reminder workflow", () => {
   it("uses the fetched order summary total for notification data", async () => {
     await import("../send-order-payment-reminder")
@@ -81,43 +127,13 @@ describe("send order payment reminder workflow", () => {
 
     expect(step).toBeDefined()
 
-    const graph = vi.fn().mockResolvedValue({
-      data: [
-        {
-          currency_code: "czk",
-          customer_id: "cus_123",
-          display_id: 1001,
-          id: "order_123",
-          summary: {
-            current_order_total: 1234.56,
-            original_order_total: 1999,
-          },
-          total: 1999,
-        },
-      ],
+    const { container, graph } = createPaymentReminderNotificationContext({
+      summary: {
+        current_order_total: 1234.56,
+        original_order_total: 1999,
+      },
+      total: 1999,
     })
-    const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
-      content: Buffer.from("pdf"),
-      content_type: "application/pdf",
-      filename: "receipt.pdf",
-    })
-    const container = {
-      resolve: vi.fn((key: string) => {
-        if (key === "query") {
-          return { graph }
-        }
-
-        if (key === "logger") {
-          return { warn: vi.fn() }
-        }
-
-        if (key === "order_receipt") {
-          return { generateOrderReceiptAttachment }
-        }
-
-        throw new Error(`Unexpected dependency ${key}`)
-      }),
-    }
 
     const result = (await step?.(
       {
@@ -198,39 +214,7 @@ describe("send order payment reminder workflow", () => {
     )
     expect(step).toBeDefined()
 
-    const graph = vi.fn().mockResolvedValue({
-      data: [
-        {
-          currency_code: "czk",
-          customer_id: "cus_123",
-          display_id: 1001,
-          id: "order_123",
-          ...order,
-        },
-      ],
-    })
-    const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
-      content: Buffer.from("pdf"),
-      content_type: "application/pdf",
-      filename: "receipt.pdf",
-    })
-    const container = {
-      resolve: vi.fn((key: string) => {
-        if (key === "query") {
-          return { graph }
-        }
-
-        if (key === "logger") {
-          return { warn: vi.fn() }
-        }
-
-        if (key === "order_receipt") {
-          return { generateOrderReceiptAttachment }
-        }
-
-        throw new Error(`Unexpected dependency ${key}`)
-      }),
-    }
+    const { container } = createPaymentReminderNotificationContext(order)
 
     const result = (await step?.(
       {
