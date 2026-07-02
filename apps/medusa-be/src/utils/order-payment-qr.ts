@@ -185,8 +185,8 @@ function formatSpaydAmount(value: OrderPaymentQrOrder["total"]) {
 
 function getOrderPaymentAmount(order: OrderPaymentQrOrder) {
   return (
-    order.total ??
     order.summary?.current_order_total ??
+    order.total ??
     order.summary?.original_order_total
   )
 }
