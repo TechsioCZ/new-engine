@@ -148,4 +148,103 @@ describe("send order payment reminder workflow", () => {
       })
     )
   })
+
+  it.each([
+    {
+      expectedTotal: new Intl.NumberFormat("cs-CZ", {
+        currency: "CZK",
+        style: "currency",
+      }).format(1500),
+      inputTotal: "stale input total",
+      order: {
+        summary: {
+          current_order_total: null,
+          original_order_total: 1500,
+        },
+        total: 1999,
+      },
+    },
+    {
+      expectedTotal: new Intl.NumberFormat("cs-CZ", {
+        currency: "CZK",
+        style: "currency",
+      }).format(1600.5),
+      inputTotal: "stale input total",
+      order: {
+        summary: {
+          current_order_total: null,
+          original_order_total: null,
+        },
+        total: "1600.5",
+      },
+    },
+    {
+      expectedTotal: "1 234,56 Kč",
+      inputTotal: "1 234,56 Kč",
+      order: {
+        summary: null,
+        total: null,
+      },
+    },
+  ])("uses fetched order total precedence before input fallback %#", async ({
+    expectedTotal,
+    inputTotal,
+    order,
+  }) => {
+    await import("../send-order-payment-reminder")
+
+    const step = workflowSdkMock.steps.get(
+      "build-order-payment-reminder-notification"
+    )
+    expect(step).toBeDefined()
+
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        {
+          currency_code: "czk",
+          customer_id: "cus_123",
+          display_id: 1001,
+          id: "order_123",
+          ...order,
+        },
+      ],
+    })
+    const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
+      content: Buffer.from("pdf"),
+      content_type: "application/pdf",
+      filename: "receipt.pdf",
+    })
+    const container = {
+      resolve: vi.fn((key: string) => {
+        if (key === "query") {
+          return { graph }
+        }
+
+        if (key === "logger") {
+          return { warn: vi.fn() }
+        }
+
+        if (key === "order_receipt") {
+          return { generateOrderReceiptAttachment }
+        }
+
+        throw new Error(`Unexpected dependency ${key}`)
+      }),
+    }
+
+    const result = (await step?.(
+      {
+        customer_id: "cus_123",
+        email: "customer@example.com",
+        order_display_id: "#1001",
+        order_id: "order_123",
+        payment_url: "https://shop.example/orders/order_123",
+        store_name: "Store",
+        total: inputTotal,
+      },
+      { container }
+    )) as { output: Notification[] }
+
+    expect(result.output[0]?.data?.total).toBe(expectedTotal)
+  })
 })
