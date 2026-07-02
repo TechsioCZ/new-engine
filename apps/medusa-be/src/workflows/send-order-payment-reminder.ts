@@ -16,6 +16,10 @@ import {
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
+import {
+  formatTotal,
+  type PaymentReminderOrder,
+} from "../utils/order-payment-reminders"
 import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
@@ -28,9 +32,7 @@ type WorkflowInput = {
   total?: string
 }
 
-type QueryOrder = OrderReceiptOrder & {
-  customer_id?: string | null
-}
+type QueryOrder = OrderReceiptOrder & PaymentReminderOrder
 
 function isQueryOrder(value: unknown): value is QueryOrder {
   if (typeof value !== "object" || value === null) {
@@ -61,6 +63,7 @@ const ORDER_PAYMENT_REMINDER_RECEIPT_FIELDS = [
   "payment_collections.payments.data",
   "payment_collections.payments.provider_id",
   "shipping_total",
+  "shipping_tax_total",
   "shipping_methods.amount",
   "shipping_methods.is_tax_inclusive",
   "shipping_methods.name",
@@ -151,7 +154,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
           order_id: input.order_id,
           payment_url: input.payment_url,
           store_name: input.store_name,
-          total: order.total,
+          total: formatTotal(order) ?? input.total,
         },
         receiver_id: input.customer_id,
         resource_id: input.order_id,

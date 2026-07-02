@@ -45,8 +45,44 @@ const qrPaymentCollections = [
   },
 ]
 
+const PDF_PAGE_COUNT_REGEX = /\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/
+
+function getPdfPageCount(pdf: string) {
+  const match = pdf.match(PDF_PAGE_COUNT_REGEX)
+
+  return match ? Number(match[1]) : 0
+}
+
+function buildPaginationItems(count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const amount = 100 + index
+
+    return {
+      quantity: 1,
+      subtotal: amount,
+      tax_total: 0,
+      title: `Receipt pagination item ${String(index + 1).padStart(2, "0")}`,
+      total: amount,
+      unit_price: amount,
+    }
+  })
+}
+
+function buildPaginationOrder(itemCount: number) {
+  const items = buildPaginationItems(itemCount)
+  const total = items.reduce((sum, item) => sum + item.total, 0)
+
+  return {
+    ...baseOrder,
+    items,
+    subtotal: total,
+    tax_total: 0,
+    total,
+  }
+}
+
 describe("order receipt service", () => {
-  it("derives detail unit price line subtotal when subtotal is absent", () => {
+  it("uses detail quantity when line subtotal is missing", () => {
     const item = {
       detail: {
         raw_quantity: { value: "2", precision: 20 },
@@ -59,7 +95,7 @@ describe("order receipt service", () => {
     expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
   })
 
-  it("keeps discounted line subtotal when it differs from unit price", () => {
+  it("keeps explicit line subtotal when it differs from unit price", () => {
     expect(
       getItemSubtotal({
         quantity: 2,
@@ -69,7 +105,7 @@ describe("order receipt service", () => {
     ).toBe(160)
   })
 
-  it("does not multiply explicit subtotal by quantity when it equals unit price", () => {
+  it("does not multiply explicit subtotal when it equals unit price", () => {
     expect(
       getItemSubtotal({
         quantity: 2,
@@ -79,19 +115,7 @@ describe("order receipt service", () => {
     ).toBe(100)
   })
 
-  it("multiplies legacy raw detail unit subtotal by quantity", () => {
-    const item = {
-      detail: {
-        raw_quantity: { precision: 20, value: "2" },
-        raw_unit_price: { precision: 20, value: "1652.06612" },
-      },
-      subtotal: { precision: 20, value: "1652.06612" },
-    }
-
-    expect(getItemSubtotal(item)).toBeCloseTo(3304.132_24)
-  })
-
-  it("treats explicit zero line subtotal and total as authoritative", () => {
+  it("treats explicit zero subtotal and total as authoritative", () => {
     expect(
       getItemSubtotal({
         quantity: 2,
@@ -162,7 +186,7 @@ describe("order receipt service", () => {
     ).toBe(21)
   })
 
-  it("does not add discount again when item subtotal is already discounted", () => {
+  it("does not discount already-discounted line subtotals again", () => {
     expect(
       getTaxTotal({
         discount_total: 100,
@@ -176,6 +200,7 @@ describe("order receipt service", () => {
             unit_price: 100,
           },
         ],
+        shipping_methods: [],
         summary: {
           current_order_total: 100,
         },
@@ -183,57 +208,342 @@ describe("order receipt service", () => {
     ).toBe(0)
   })
 
-  it("does not render discount row when item subtotal is already discounted", async () => {
-    const service = new OrderReceiptModuleService()
-    const receipt = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      discount_total: 100,
-      id: "order_discounted_line_subtotal",
-      items: [
-        {
-          is_tax_inclusive: false,
-          quantity: 2,
-          subtotal: 100,
-          tax_lines: [{ rate: 0 }],
-          title: "Discounted product",
-          unit_price: 100,
+  it("uses stored order tax totals when receipt is not discounted", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 0,
+        id: "order_stored_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        summary: {
+          current_order_total: 150,
         },
-      ],
-      summary: {
-        current_order_total: 100,
-      },
-    })
-
-    expect(receipt.content.toString("utf8")).not.toContain("Sleva")
-    expect(receipt.content.toString("utf8")).not.toContain("-100")
+        tax_total: 11,
+      })
+    ).toBe(11)
   })
 
-  it("tracks reflected discounts when rendering legacy raw detail rows", async () => {
-    const service = new OrderReceiptModuleService()
-    const discountedRawItem = {
-      detail: {
-        raw_quantity: { precision: 20, value: "2" },
-        raw_unit_price: { precision: 20, value: "100" },
-      },
-      is_tax_inclusive: false,
-      subtotal: { precision: 20, value: "100" },
-      tax_lines: [{ rate: 0 }],
-      title: "Raw detail product",
-    }
-    const receipt = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      discount_total: 100,
-      id: "order_discounted_raw_detail_rows",
-      items: [discountedRawItem, discountedRawItem],
-      shipping_methods: [],
-      summary: {
-        current_order_total: 300,
-      },
-    })
-    const pdf = receipt.content.toString("utf8")
+  it("sums mixed stored item and shipping tax totals before discounted balance arithmetic", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 20,
+        id: "order_stored_line_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 0,
+          },
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 30,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 6.3,
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 1.2,
+          },
+        ],
+        summary: {
+          current_order_total: 100,
+        },
+      })
+    ).toBe(7.5)
+  })
 
-    expect(pdf).toContain("100,00")
-    expect(pdf).toContain("200,00")
+  it("clamps negative stored shipping tax totals", () => {
+    expect(
+      getTaxTotal({
+        id: "order_negative_shipping_method_tax",
+        item_tax_total: 21,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: -5,
+          },
+        ],
+      })
+    ).toBe(21)
+
+    expect(
+      getTaxTotal({
+        id: "order_negative_shipping_tax",
+        item_tax_total: 0,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: -5,
+      })
+    ).toBe(0)
+  })
+
+  it("uses order-level item tax total with stored shipping tax total", () => {
+    expect(
+      getTaxTotal({
+        id: "order_level_item_tax",
+        item_tax_total: 15,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 3,
+          },
+        ],
+        summary: {
+          current_order_total: 999,
+        },
+      })
+    ).toBe(18)
+  })
+
+  it("uses order-level shipping tax total with stored item tax total", () => {
+    expect(
+      getTaxTotal({
+        id: "order_level_shipping_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 15,
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_tax_total: 3,
+        summary: {
+          current_order_total: 999,
+        },
+      })
+    ).toBe(18)
+  })
+
+  it("uses side stored tax totals before order tax total on discounted receipts", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_discounted_side_tax",
+        item_tax_total: 12.32,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: 0,
+        summary: {
+          current_order_total: 62.32,
+        },
+        tax_total: 21,
+      })
+    ).toBe(12.32)
+  })
+
+  it("nets discounts from stored tax totals on discounted receipts", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_discounted_pre_discount_tax",
+        item_tax_total: 21,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: 0,
+        summary: {
+          current_order_total: 62.32,
+        },
+        tax_total: 21,
+      })
+    ).toBe(12.32)
+  })
+
+  it("treats explicit zero tax totals as present when relations are loaded", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 1,
+        id: "order_zero_side_tax",
+        item_tax_total: 0,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: 0,
+        summary: {
+          current_order_total: 999,
+        },
+        tax_total: 99,
+      })
+    ).toBe(0)
+  })
+
+  it("keeps discount-aware fallback when explicit tax totals are partial", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_partial_stored_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 1,
+          },
+        ],
+        summary: {
+          current_order_total: 61,
+        },
+      })
+    ).toBe(1)
+  })
+
+  it("keeps discount-aware fallback when shipping methods relation is missing", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_missing_shipping_relation",
+        item_tax_total: 21,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        summary: {
+          current_order_total: 51,
+        },
+      })
+    ).toBe(1)
+  })
+
+  it("keeps discount-aware fallback when items relation is missing", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 5,
+        id: "order_missing_items_relation",
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_tax_total: 2,
+        summary: {
+          current_order_total: 6,
+        },
+      })
+    ).toBe(1)
+  })
+
+  it("keeps discount-aware fallback when stored item tax totals are partial", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_partial_line_tax",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 4,
+          },
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 40,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: 1,
+          },
+        ],
+        summary: {
+          current_order_total: 101,
+        },
+      })
+    ).toBe(1)
   })
 
   it("clamps derived tax totals at zero", () => {
@@ -250,28 +560,6 @@ describe("order receipt service", () => {
         ],
         summary: {
           current_order_total: 10,
-        },
-      })
-    ).toBe(0)
-  })
-
-  it("tracks reflected discounts across legacy raw detail subtotals", () => {
-    const discountedRawItem = {
-      detail: {
-        raw_quantity: { precision: 20, value: "2" },
-        raw_unit_price: { precision: 20, value: "100" },
-      },
-      subtotal: { precision: 20, value: "100" },
-    }
-
-    expect(
-      getTaxTotal({
-        discount_total: 100,
-        id: "order_discounted_raw_detail_subtotals",
-        items: [discountedRawItem, discountedRawItem],
-        shipping_methods: [],
-        summary: {
-          current_order_total: 300,
         },
       })
     ).toBe(0)
@@ -312,6 +600,52 @@ describe("order receipt service", () => {
 
     expect(getTotal(order)).toBe(26.98)
     expect(subtotal + shipping + tax).toBeCloseTo(26.98)
+  })
+
+  it.each([
+    [8, 1],
+    [9, 2],
+    [36, 2],
+    [37, 3],
+    [51, 3],
+  ])("paginates %i receipt items into %i PDF pages without dropping rows", async (itemCount, expectedPageCount) => {
+    const service = new OrderReceiptModuleService()
+    const order = buildPaginationOrder(itemCount)
+
+    const attachment = await service.generateOrderReceiptAttachment(order)
+    const pdf = attachment.content.toString("utf8")
+
+    expect(getPdfPageCount(pdf)).toBe(expectedPageCount)
+    for (const item of order.items) {
+      expect(pdf).toContain(item.title)
+    }
+  })
+
+  it("does not render a discount row when line subtotals already include it", async () => {
+    const service = new OrderReceiptModuleService()
+    const receipt = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      discount_total: 100,
+      id: "order_discounted_line_subtotal_pdf",
+      items: [
+        {
+          is_tax_inclusive: false,
+          quantity: 2,
+          subtotal: 100,
+          tax_lines: [{ rate: 0 }],
+          title: "Discounted product",
+          unit_price: 100,
+        },
+      ],
+      shipping_methods: [],
+      summary: {
+        current_order_total: 100,
+      },
+    })
+    const pdf = receipt.content.toString("utf8")
+
+    expect(pdf).not.toContain("Sleva")
+    expect(pdf).not.toContain("-100")
   })
 
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {
