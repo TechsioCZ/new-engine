@@ -6,6 +6,7 @@ import {
 type StorefrontRecord = Record<string, unknown>
 
 const DEFAULT_STOCK_LOCATION_NAME = "Default stock"
+const DEFAULT_STOCK_LOCATION_KEY = DEFAULT_STOCK_LOCATION_NAME.toLowerCase()
 
 const asQuantity = (value: unknown): number | null => {
   const parsed = asStorefrontNumber(value)
@@ -46,7 +47,10 @@ const hasDefaultStockLocation = (level: StorefrontRecord): boolean => {
 
   return locations.some((location) => {
     const locationRecord = asStorefrontRecord(location)
-    return locationRecord?.name === DEFAULT_STOCK_LOCATION_NAME
+    return (
+      typeof locationRecord?.name === "string" &&
+      locationRecord.name.trim().toLowerCase() === DEFAULT_STOCK_LOCATION_KEY
+    )
   })
 }
 
@@ -71,14 +75,22 @@ export const resolveDefaultStockInventoryQuantity = (
       ? inventory.location_levels
       : []
 
-    const availableQuantity = locationLevels.reduce((sum, level) => {
+    let hasDefaultStockLevel = false
+    let availableQuantity = 0
+
+    for (const level of locationLevels) {
       const levelRecord = asStorefrontRecord(level)
       if (!(levelRecord && hasDefaultStockLocation(levelRecord))) {
-        return sum
+        continue
       }
 
-      return sum + (resolveLevelAvailableQuantity(levelRecord) ?? 0)
-    }, 0)
+      hasDefaultStockLevel = true
+      availableQuantity += resolveLevelAvailableQuantity(levelRecord) ?? 0
+    }
+
+    if (!hasDefaultStockLevel) {
+      return null
+    }
 
     const requiredQuantity = Math.max(
       1,

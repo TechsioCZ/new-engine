@@ -77,7 +77,6 @@ const nextConfig: NextConfig = {
 
   experimental: {
     typedEnv: true,
-    turbopackRustReactCompiler: true,
   },
 }
 
