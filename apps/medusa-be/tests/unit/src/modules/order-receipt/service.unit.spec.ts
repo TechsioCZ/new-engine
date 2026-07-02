@@ -309,6 +309,30 @@ describe("order receipt service", () => {
     ).toBe(12.32)
   })
 
+  it("nets discounts from stored tax totals on discounted receipts", () => {
+    expect(
+      getTaxTotal({
+        discount_total: 50,
+        id: "order_discounted_pre_discount_tax",
+        item_tax_total: 21,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: 0,
+        summary: {
+          current_order_total: 62.32,
+        },
+        tax_total: 21,
+      })
+    ).toBe(12.32)
+  })
+
   it("treats explicit zero tax totals as present when relations are loaded", () => {
     expect(
       getTaxTotal({

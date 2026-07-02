@@ -507,6 +507,30 @@ function hasCompleteRelationTaxSignal(
   )
 }
 
+function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
+  if (
+    order.summary?.current_order_total === null ||
+    order.summary?.current_order_total === undefined
+  ) {
+    return null
+  }
+
+  return roundMoney(
+    toNumber(order.summary.current_order_total) +
+      toNumber(order.discount_total) -
+      getSubtotal(order) -
+      getShippingSubtotalTotal(order)
+  )
+}
+
+function getCurrentOrderTaxTotal(order: OrderReceiptOrder) {
+  const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
+
+  return currentOrderTaxBalance === null
+    ? null
+    : Math.max(0, currentOrderTaxBalance)
+}
+
 function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
   const hasItemsRelation = Array.isArray(order.items)
   const hasShippingMethodsRelation = Array.isArray(order.shipping_methods)
@@ -528,10 +552,23 @@ function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
   )
 
   if (hasItemTaxSignal && hasShippingTaxSignal) {
-    return roundMoney(
+    const explicitTaxTotal = roundMoney(
       (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
         (clampedShippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
     )
+    const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
+    const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
+
+    if (
+      toNumber(order.discount_total) > 0 &&
+      currentOrderTaxBalance !== null &&
+      currentOrderTaxBalance >= 0 &&
+      currentOrderTaxTotal !== null
+    ) {
+      return Math.min(explicitTaxTotal, currentOrderTaxTotal)
+    }
+
+    return explicitTaxTotal
   }
 
   const taxTotal = getExplicitMoneyTotal(order.tax_total)
@@ -548,19 +585,9 @@ export function getTaxTotal(order: OrderReceiptOrder) {
     return explicitTaxTotal
   }
 
-  if (
-    order.summary?.current_order_total !== null &&
-    order.summary?.current_order_total !== undefined
-  ) {
-    return Math.max(
-      0,
-      roundMoney(
-        toNumber(order.summary.current_order_total) +
-          toNumber(order.discount_total) -
-          getSubtotal(order) -
-          getShippingSubtotalTotal(order)
-      )
-    )
+  const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
+  if (currentOrderTaxTotal !== null) {
+    return currentOrderTaxTotal
   }
 
   const itemTaxTotal = getLineItemsTaxTotal(order.items ?? [])
