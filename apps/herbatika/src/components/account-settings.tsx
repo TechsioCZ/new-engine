@@ -8,6 +8,7 @@ import {
   AccountSkeletonSurface,
   AccountSurface,
 } from "@/components/account/account-surface"
+import { normalizePhoneNumberToSupportedE164 } from "@/lib/forms/address/phone"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import {
   accountSettingsValidators,
@@ -32,10 +33,13 @@ export function AccountSettings() {
       setSubmitSuccess(null)
 
       try {
+        const normalizedPhone =
+          normalizePhoneNumberToSupportedE164(value.phone, "SK") ??
+          value.phone.trim()
         const payload = {
           first_name: value.first_name.trim(),
           last_name: value.last_name.trim(),
-          phone: value.phone.trim() || undefined,
+          phone: normalizedPhone || undefined,
           company_name: value.company_name.trim() || undefined,
         }
 
@@ -173,15 +177,16 @@ export function AccountSettings() {
           validators={accountSettingsValidators.phone}
         >
           {(field) => (
-            <field.TextField
+            <field.PhoneField
+              defaultCountry="SK"
               id="account-settings-phone"
               label="Telefón"
               onValueChange={() => {
                 setSubmitError(null)
                 setSubmitSuccess(null)
               }}
-              type="tel"
               validationMode="blur"
+              valueMode="e164WhenValid"
             />
           )}
         </form.AppField>

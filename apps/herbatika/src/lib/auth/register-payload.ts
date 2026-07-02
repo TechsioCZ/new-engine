@@ -2,6 +2,7 @@ import {
   isWholesaleRegistration,
   type RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
+import { formatPostalCodeForCountry } from "@/lib/forms/address/postal-code"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
 import type { AuthRegisterInput } from "@/lib/storefront/auth"
 
@@ -10,6 +11,12 @@ type BuildAuthRegisterInputOptions = {
 }
 
 const trimValue = (value: string) => value.trim()
+
+const normalizeRegisterPostalCode = (values: RegisterFormValues) =>
+  formatPostalCodeForCountry(
+    values.billing_postal_code,
+    values.billing_country_code
+  ) ?? trimValue(values.billing_postal_code)
 
 export const buildAuthRegisterInput = (
   values: RegisterFormValues,
@@ -29,7 +36,7 @@ export const buildAuthRegisterInput = (
             address_1: trimValue(values.billing_address_1),
             address_2: trimValue(values.billing_address_2) || undefined,
             city: trimValue(values.billing_city),
-            postal_code: trimValue(values.billing_postal_code),
+            postal_code: normalizeRegisterPostalCode(values),
             country_code:
               normalizeCountryCode(values.billing_country_code) ??
               trimValue(values.billing_country_code),
