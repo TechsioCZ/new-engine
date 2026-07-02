@@ -53,6 +53,34 @@ function getPdfPageCount(pdf: string) {
   return match ? Number(match[1]) : 0
 }
 
+function buildPaginationItems(count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const amount = 100 + index
+
+    return {
+      quantity: 1,
+      subtotal: amount,
+      tax_total: 0,
+      title: `Receipt pagination item ${String(index + 1).padStart(2, "0")}`,
+      total: amount,
+      unit_price: amount,
+    }
+  })
+}
+
+function buildPaginationOrder(itemCount: number) {
+  const items = buildPaginationItems(itemCount)
+  const total = items.reduce((sum, item) => sum + item.total, 0)
+
+  return {
+    ...baseOrder,
+    items,
+    subtotal: total,
+    tax_total: 0,
+    total,
+  }
+}
+
 describe("order receipt service", () => {
   it("uses detail quantity when calculating line subtotal", () => {
     const item = {
@@ -187,33 +215,21 @@ describe("order receipt service", () => {
     expect(subtotal + shipping + tax).toBeCloseTo(26.98)
   })
 
-  it("paginates more than 12 receipt items without dropping rows", async () => {
+  it.each([
+    [8, 1],
+    [9, 2],
+    [36, 2],
+    [37, 3],
+    [51, 3],
+  ])("paginates %i receipt items into %i PDF pages without dropping rows", async (itemCount, expectedPageCount) => {
     const service = new OrderReceiptModuleService()
-    const items = Array.from({ length: 13 }, (_, index) => {
-      const amount = 100 + index
+    const order = buildPaginationOrder(itemCount)
 
-      return {
-        quantity: 1,
-        subtotal: amount,
-        tax_total: 0,
-        title: `Receipt pagination item ${String(index + 1).padStart(2, "0")}`,
-        total: amount,
-        unit_price: amount,
-      }
-    })
-    const total = items.reduce((sum, item) => sum + item.total, 0)
-
-    const attachment = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      items,
-      subtotal: total,
-      tax_total: 0,
-      total,
-    })
+    const attachment = await service.generateOrderReceiptAttachment(order)
     const pdf = attachment.content.toString("utf8")
 
-    expect(getPdfPageCount(pdf)).toBe(2)
-    for (const item of items) {
+    expect(getPdfPageCount(pdf)).toBe(expectedPageCount)
+    for (const item of order.items) {
       expect(pdf).toContain(item.title)
     }
   })

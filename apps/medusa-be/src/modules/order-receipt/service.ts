@@ -295,17 +295,6 @@ function renderContinuationHeader(commands: PdfCommand[], orderNumber: string) {
 }
 
 function paginateTableRows(tableRows: ReceiptTableRow[]): ReceiptTablePage[] {
-  if (tableRows.length <= FIRST_PAGE_ROWS_WITH_SUMMARY) {
-    return [
-      {
-        includeSummary: true,
-        isFirstPage: true,
-        rows: tableRows,
-        tableTop: FIRST_PAGE_TABLE_TOP,
-      },
-    ]
-  }
-
   const pages: ReceiptTablePage[] = []
   let offset = 0
   let tableTop = FIRST_PAGE_TABLE_TOP
