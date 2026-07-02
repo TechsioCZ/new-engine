@@ -23,6 +23,7 @@ import {
   type PdfCommand,
   pdfLine,
   pdfText,
+  toNumber,
   truncate,
 } from "./helpers"
 
@@ -133,14 +134,28 @@ function buildPdf(order: OrderReceiptOrder) {
   )
   commands.push(pdfLine({ x1: LEFT, x2: RIGHT, y1: tableTop, y2: tableTop }))
 
+  let remainingDiscountTotal = Math.max(0, toNumber(order.discount_total))
   const tableRows = (order.items ?? [])
-    .map((item) => ({
-      quantity: getItemQuantity(item),
-      taxLabel: getItemTaxLabel(item),
-      title: getItemTitle(item) || "Položka",
-      total: getItemSubtotal(item, { discountTotal: order.discount_total }),
-      unitPriceNet: getItemUnitPrice(item),
-    }))
+    .map((item) => {
+      const quantity = getItemQuantity(item)
+      const unitPriceNet = getItemUnitPrice(item)
+      const rowTotal = getItemSubtotal(item, {
+        discountTotal: remainingDiscountTotal,
+      })
+      const reflectedDiscount = Math.max(0, unitPriceNet * quantity - rowTotal)
+      remainingDiscountTotal = Math.max(
+        0,
+        Math.round((remainingDiscountTotal - reflectedDiscount) * 100) / 100
+      )
+
+      return {
+        quantity,
+        taxLabel: getItemTaxLabel(item),
+        title: getItemTitle(item) || "Položka",
+        total: rowTotal,
+        unitPriceNet,
+      }
+    })
     .slice(0, 12)
 
   if (!tableRows.length) {

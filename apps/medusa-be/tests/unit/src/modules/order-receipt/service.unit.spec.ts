@@ -208,6 +208,34 @@ describe("order receipt service", () => {
     expect(receipt.content.toString("utf8")).not.toContain("-100")
   })
 
+  it("tracks reflected discounts when rendering legacy raw detail rows", async () => {
+    const service = new OrderReceiptModuleService()
+    const discountedRawItem = {
+      detail: {
+        raw_quantity: { precision: 20, value: "2" },
+        raw_unit_price: { precision: 20, value: "100" },
+      },
+      is_tax_inclusive: false,
+      subtotal: { precision: 20, value: "100" },
+      tax_lines: [{ rate: 0 }],
+      title: "Raw detail product",
+    }
+    const receipt = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      discount_total: 100,
+      id: "order_discounted_raw_detail_rows",
+      items: [discountedRawItem, discountedRawItem],
+      shipping_methods: [],
+      summary: {
+        current_order_total: 300,
+      },
+    })
+    const pdf = receipt.content.toString("utf8")
+
+    expect(pdf).toContain("100,00")
+    expect(pdf).toContain("200,00")
+  })
+
   it("clamps derived tax totals at zero", () => {
     expect(
       getTaxTotal({
