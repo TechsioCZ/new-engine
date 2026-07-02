@@ -35,7 +35,8 @@ type AddProductToCartInput = {
   variantId?: string | null
 }
 
-export const ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE = "Produkt bol pridaný do košíka."
+export const ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE =
+  "Produkt bol pridaný do košíka."
 
 const DEFAULT_MESSAGES = {
   insufficientQuantity: "Nedostatočné množstvo produktu.",
@@ -95,7 +96,10 @@ const resolveProductVariant = (
     return null
   }
 
-  return product.variants?.find((variant) => variant.id === resolvedVariantId) ?? null
+  return (
+    product.variants?.find((variant) => variant.id === resolvedVariantId) ??
+    null
+  )
 }
 
 const resolveLineItemMetadata = (product: AddProductToCartInput["product"]) => {
@@ -104,7 +108,9 @@ const resolveLineItemMetadata = (product: AddProductToCartInput["product"]) => {
   return topOffer ? { top_offer: topOffer } : undefined
 }
 
-const resolveLineItemVariantId = (item: HttpTypes.StoreCartLineItem): string | null => {
+const resolveLineItemVariantId = (
+  item: HttpTypes.StoreCartLineItem
+): string | null => {
   const itemRecord = asStorefrontRecord(item)
 
   if (typeof itemRecord?.variant_id === "string") {

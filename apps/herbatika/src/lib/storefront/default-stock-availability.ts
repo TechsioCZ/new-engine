@@ -1,7 +1,4 @@
-import {
-  asStorefrontNumber,
-  asStorefrontRecord,
-} from "./product-pricing"
+import { asStorefrontNumber, asStorefrontRecord } from "./product-pricing"
 
 type StorefrontRecord = Record<string, unknown>
 
@@ -54,6 +51,40 @@ const hasDefaultStockLocation = (level: StorefrontRecord): boolean => {
   })
 }
 
+const resolveInventoryItemDefaultStockQuantity = (
+  inventoryItem: unknown
+): number | null => {
+  const inventoryItemRecord = asStorefrontRecord(inventoryItem)
+  const inventory = asStorefrontRecord(inventoryItemRecord?.inventory)
+  const locationLevels = Array.isArray(inventory?.location_levels)
+    ? inventory.location_levels
+    : []
+
+  let hasDefaultStockLevel = false
+  let availableQuantity = 0
+
+  for (const level of locationLevels) {
+    const levelRecord = asStorefrontRecord(level)
+    if (!(levelRecord && hasDefaultStockLocation(levelRecord))) {
+      continue
+    }
+
+    hasDefaultStockLevel = true
+    availableQuantity += resolveLevelAvailableQuantity(levelRecord) ?? 0
+  }
+
+  if (!hasDefaultStockLevel) {
+    return null
+  }
+
+  const requiredQuantity = Math.max(
+    1,
+    Math.floor(asStorefrontNumber(inventoryItemRecord?.required_quantity) ?? 1)
+  )
+
+  return Math.floor(availableQuantity / requiredQuantity)
+}
+
 export const resolveDefaultStockInventoryQuantity = (
   variant: unknown
 ): number | null => {
@@ -67,39 +98,25 @@ export const resolveDefaultStockInventoryQuantity = (
   }
 
   const quantities: number[] = []
+  let hasUnknownInventoryItem = false
 
   for (const inventoryItem of inventoryItems) {
-    const inventoryItemRecord = asStorefrontRecord(inventoryItem)
-    const inventory = asStorefrontRecord(inventoryItemRecord?.inventory)
-    const locationLevels = Array.isArray(inventory?.location_levels)
-      ? inventory.location_levels
-      : []
+    const itemQuantity = resolveInventoryItemDefaultStockQuantity(inventoryItem)
 
-    let hasDefaultStockLevel = false
-    let availableQuantity = 0
-
-    for (const level of locationLevels) {
-      const levelRecord = asStorefrontRecord(level)
-      if (!(levelRecord && hasDefaultStockLocation(levelRecord))) {
-        continue
-      }
-
-      hasDefaultStockLevel = true
-      availableQuantity += resolveLevelAvailableQuantity(levelRecord) ?? 0
+    if (itemQuantity === null) {
+      hasUnknownInventoryItem = true
+      continue
     }
 
-    if (!hasDefaultStockLevel) {
-      return null
-    }
+    quantities.push(itemQuantity)
+  }
 
-    const requiredQuantity = Math.max(
-      1,
-      Math.floor(
-        asStorefrontNumber(inventoryItemRecord?.required_quantity) ?? 1
-      )
-    )
+  if (quantities.some((quantity) => quantity === 0)) {
+    return 0
+  }
 
-    quantities.push(Math.floor(availableQuantity / requiredQuantity))
+  if (hasUnknownInventoryItem) {
+    return null
   }
 
   return quantities.length > 0 ? Math.min(...quantities) : null
