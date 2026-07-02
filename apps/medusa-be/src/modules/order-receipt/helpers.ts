@@ -399,7 +399,7 @@ function getItemsUndiscountedSubtotal(items: OrderReceiptLineItem[]) {
   return items.reduce((sum, item) => sum + getItemUndiscountedSubtotal(item), 0)
 }
 
-function getTaxDiscountTotal(order: OrderReceiptOrder) {
+export function getDiscountTotal(order: OrderReceiptOrder) {
   const discountTotal = toNumber(order.discount_total)
   if (discountTotal <= 0) {
     return 0
@@ -493,7 +493,7 @@ export function getTaxTotal(order: OrderReceiptOrder) {
       0,
       roundMoney(
         toNumber(order.summary.current_order_total) +
-          getTaxDiscountTotal(order) -
+          getDiscountTotal(order) -
           getSubtotal(order) -
           getShippingSubtotalTotal(order)
       )

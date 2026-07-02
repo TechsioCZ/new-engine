@@ -171,6 +171,31 @@ describe("order receipt service", () => {
     ).toBe(0)
   })
 
+  it("does not render discount row when item subtotal is already discounted", async () => {
+    const service = new OrderReceiptModuleService()
+    const receipt = await service.generateOrderReceiptAttachment({
+      ...baseOrder,
+      discount_total: 100,
+      id: "order_discounted_line_subtotal",
+      items: [
+        {
+          is_tax_inclusive: false,
+          quantity: 2,
+          subtotal: 100,
+          tax_lines: [{ rate: 0 }],
+          title: "Discounted product",
+          unit_price: 100,
+        },
+      ],
+      summary: {
+        current_order_total: 100,
+      },
+    })
+
+    expect(receipt.content.toString("utf8")).not.toContain("Sleva")
+    expect(receipt.content.toString("utf8")).not.toContain("-100")
+  })
+
   it("clamps derived tax totals at zero", () => {
     expect(
       getTaxTotal({
