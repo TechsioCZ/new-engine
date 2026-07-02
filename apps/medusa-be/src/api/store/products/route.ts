@@ -7,6 +7,11 @@ import {
 } from "@medusajs/framework/utils"
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+import {
+  decorateProductsWithMeasurements,
+  getMeasurementDecorationOptions,
+  getMeasurementDecorationQueryFields,
+} from "../../../utils/measurement-units"
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 type ProductRecord = {
@@ -23,13 +28,18 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const context: Record<string, unknown> = {}
   const fields = req.queryConfig.fields ?? []
+  const measurementDecorationOptions = getMeasurementDecorationOptions(fields)
   const withInventoryQuantity = fields.some((field) =>
     field.includes("variants.inventory_quantity")
   )
 
-  const productFields = withInventoryQuantity
+  const productFieldsBeforeDecoration = withInventoryQuantity
     ? fields.filter((field) => !field.includes("variants.inventory_quantity"))
     : fields
+  const productFields = getMeasurementDecorationQueryFields(
+    productFieldsBeforeDecoration,
+    measurementDecorationOptions
+  )
 
   if (isPresent(req.pricingContext)) {
     context.variants ??= {}
@@ -75,6 +85,11 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   await wrapProductsWithTaxPrices(
     req as Parameters<typeof wrapProductsWithTaxPrices>[0],
     products
+  )
+  await decorateProductsWithMeasurements(
+    req.scope,
+    products as Parameters<typeof decorateProductsWithMeasurements>[1],
+    measurementDecorationOptions
   )
 
   res.json({
