@@ -558,15 +558,13 @@ export function truncateToEstimatedWidth(
     return textValue
   }
 
-  for (let maxLength = textValue.length - 1; maxLength > 1; maxLength -= 1) {
-    const truncatedText = truncate(textValue, maxLength)
+  const averageCharacterWidth = fontSize * 0.52
+  const maxFittingLength = Math.max(
+    1,
+    Math.min(textValue.length - 1, Math.floor(maxWidth / averageCharacterWidth))
+  )
 
-    if (estimateTextWidth(truncatedText, fontSize) <= maxWidth) {
-      return truncatedText
-    }
-  }
-
-  return truncate(textValue, 1)
+  return truncate(textValue, maxFittingLength)
 }
 
 export type PdfFont = "F1" | "F2"

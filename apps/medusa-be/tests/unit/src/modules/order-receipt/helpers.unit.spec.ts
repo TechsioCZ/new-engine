@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { estimateTextWidth, truncateToEstimatedWidth } from "../helpers"
+import {
+  estimateTextWidth,
+  truncateToEstimatedWidth,
+} from "../../../../../src/modules/order-receipt/helpers"
 
 const CUSTOMER_X = 322
 const RIGHT = 531
