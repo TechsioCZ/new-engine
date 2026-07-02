@@ -46,13 +46,12 @@ const qrPaymentCollections = [
 ]
 
 describe("order receipt service", () => {
-  it("uses detail quantity when calculating line subtotal", () => {
+  it("derives detail unit price line subtotal when subtotal is absent", () => {
     const item = {
       detail: {
         raw_quantity: { value: "2", precision: 20 },
         raw_unit_price: { value: "1652.06612", precision: 20 },
       },
-      subtotal: 1652.066_12,
       title: "Pánská mikina Capita SKULL HOODIE",
     }
 
@@ -68,6 +67,16 @@ describe("order receipt service", () => {
         unit_price: 100,
       })
     ).toBe(160)
+  })
+
+  it("keeps discounted multi-quantity line subtotal equal to unit price", () => {
+    expect(
+      getItemSubtotal({
+        quantity: 2,
+        subtotal: 100,
+        unit_price: 100,
+      })
+    ).toBe(100)
   })
 
   it("keeps tax-exclusive item prices as net amounts", () => {

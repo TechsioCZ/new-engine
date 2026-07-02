@@ -365,25 +365,18 @@ export function getItemSubtotal(item: OrderReceiptLineItem) {
 }
 
 function getItemSubtotalAmount(item: OrderReceiptLineItem) {
+  if (item.subtotal !== null && item.subtotal !== undefined) {
+    return toNumber(item.subtotal)
+  }
+
+  if (item.total !== null && item.total !== undefined) {
+    return toNumber(item.total)
+  }
+
   const quantity = getItemQuantity(item)
   const unitPrice = getItemGrossUnitPrice(item)
-  const unitPriceSubtotal = unitPrice * quantity
-  const subtotal = toNumber(item.subtotal)
 
-  if (subtotal > 0) {
-    if (quantity > 1 && subtotal === unitPrice) {
-      return unitPriceSubtotal
-    }
-
-    return subtotal
-  }
-
-  const total = toNumber(item.total)
-  if (total > 0) {
-    return total
-  }
-
-  return unitPriceSubtotal
+  return unitPrice * quantity
 }
 
 function getItemsSubtotal(items: OrderReceiptLineItem[]) {
