@@ -84,6 +84,7 @@ export type OrderReceiptOrder = {
   payment_collections?: OrderReceiptPaymentCollection[] | null
   shipping_methods?: OrderReceiptShippingMethod[] | null
   shipping_total?: OrderReceiptMoney
+  shipping_tax_total?: OrderReceiptMoney
   shipping_address?: OrderReceiptAddress | null
   subtotal?: OrderReceiptMoney
   summary?: OrderReceiptSummary | null
@@ -131,6 +132,14 @@ export function toNumber(value: OrderReceiptMoney | undefined): number {
   const number = typeof value === "string" ? Number(value) : value
 
   return Number.isFinite(number) ? number : 0
+}
+
+function hasExplicitMoney(value: OrderReceiptMoney | undefined) {
+  return value !== null && value !== undefined
+}
+
+function getExplicitMoneyTotal(value: OrderReceiptMoney | undefined) {
+  return hasExplicitMoney(value) ? toNumber(value) : null
 }
 
 export function ascii(value: unknown) {
@@ -391,19 +400,23 @@ function getItemsSubtotal(items: OrderReceiptLineItem[]) {
 }
 
 function getItemTaxTotal(item: OrderReceiptLineItem) {
+  const taxTotal = getExplicitMoneyTotal(item.tax_total)
+  if (taxTotal !== null) {
+    return taxTotal
+  }
+
   const subtotal = getItemSubtotalAmount(item)
   const rate = getTaxRate(item)
 
   if (rate <= 0) {
-    return toNumber(item.tax_total)
+    return 0
   }
 
   if (item.is_tax_inclusive === true) {
     return roundMoney(subtotal - getNetFromGross(subtotal, rate))
   }
 
-  const taxTotal = toNumber(item.tax_total)
-  return taxTotal > 0 ? taxTotal : roundMoney((subtotal * rate) / 100)
+  return roundMoney((subtotal * rate) / 100)
 }
 
 export function getShippingSubtotal(
@@ -435,6 +448,11 @@ export function getShippingTaxTotal(
     return 0
   }
 
+  const taxTotal = getExplicitMoneyTotal(shippingMethod.tax_total)
+  if (taxTotal !== null) {
+    return Math.max(0, taxTotal)
+  }
+
   const grossSubtotal = toNumber(
     shippingMethod.subtotal ??
       shippingMethod.total ??
@@ -444,44 +462,137 @@ export function getShippingTaxTotal(
   const rate = getTaxRate(shippingMethod)
 
   if (rate <= 0) {
-    return toNumber(shippingMethod.tax_total)
+    return 0
   }
 
   if (shippingMethod.is_tax_inclusive === true) {
     return roundMoney(grossSubtotal - getNetFromGross(grossSubtotal, rate))
   }
 
-  const taxTotal = toNumber(shippingMethod.tax_total)
-  return taxTotal > 0 ? taxTotal : roundMoney((grossSubtotal * rate) / 100)
+  return roundMoney((grossSubtotal * rate) / 100)
 }
 
 export function getSubtotal(order: OrderReceiptOrder) {
   return getItemsSubtotal(order.items ?? [])
 }
 
-export function getTaxTotal(order: OrderReceiptOrder) {
-  if (
-    order.summary?.current_order_total !== null &&
-    order.summary?.current_order_total !== undefined
-  ) {
-    return Math.max(
-      0,
-      roundMoney(
-        toNumber(order.summary.current_order_total) +
-          toNumber(order.discount_total) -
-          getSubtotal(order) -
-          getShippingSubtotalTotal(order)
-      )
-    )
-  }
+function getLineItemsTaxTotal(items: OrderReceiptLineItem[]) {
+  return items.reduce((sum, item) => sum + getItemTaxTotal(item), 0)
+}
 
-  const itemTaxTotal = (order.items ?? []).reduce(
-    (sum, item) => sum + getItemTaxTotal(item),
-    0
-  )
-  const shippingTaxTotal = (order.shipping_methods ?? []).reduce(
+function getShippingMethodsTaxTotal(
+  shippingMethods: OrderReceiptShippingMethod[]
+) {
+  return shippingMethods.reduce(
     (sum, shippingMethod) => sum + getShippingTaxTotal(shippingMethod),
     0
+  )
+}
+
+function hasCompleteRelationTaxSignal(
+  relation: Array<{ tax_total?: OrderReceiptMoney }> | null | undefined,
+  taxTotal: number | null
+) {
+  if (!Array.isArray(relation)) {
+    return false
+  }
+
+  if (taxTotal !== null) {
+    return true
+  }
+
+  return (
+    relation.length > 0 &&
+    relation.every((entry) => hasExplicitMoney(entry.tax_total))
+  )
+}
+
+function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
+  if (
+    order.summary?.current_order_total === null ||
+    order.summary?.current_order_total === undefined
+  ) {
+    return null
+  }
+
+  return roundMoney(
+    toNumber(order.summary.current_order_total) +
+      toNumber(order.discount_total) -
+      getSubtotal(order) -
+      getShippingSubtotalTotal(order)
+  )
+}
+
+function getCurrentOrderTaxTotal(order: OrderReceiptOrder) {
+  const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
+
+  return currentOrderTaxBalance === null
+    ? null
+    : Math.max(0, currentOrderTaxBalance)
+}
+
+function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
+  const hasItemsRelation = Array.isArray(order.items)
+  const hasShippingMethodsRelation = Array.isArray(order.shipping_methods)
+  const items = hasItemsRelation ? (order.items ?? []) : []
+  const shippingMethods = hasShippingMethodsRelation
+    ? (order.shipping_methods ?? [])
+    : []
+  const itemTaxTotal = getExplicitMoneyTotal(order.item_tax_total)
+  const shippingTaxTotal = getExplicitMoneyTotal(order.shipping_tax_total)
+  const clampedShippingTaxTotal =
+    shippingTaxTotal === null ? null : Math.max(0, shippingTaxTotal)
+  const hasItemTaxSignal = hasCompleteRelationTaxSignal(
+    order.items,
+    itemTaxTotal
+  )
+  const hasShippingTaxSignal = hasCompleteRelationTaxSignal(
+    order.shipping_methods,
+    clampedShippingTaxTotal
+  )
+
+  if (hasItemTaxSignal && hasShippingTaxSignal) {
+    const explicitTaxTotal = roundMoney(
+      (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
+        (clampedShippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
+    )
+    const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
+    const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
+
+    if (
+      toNumber(order.discount_total) > 0 &&
+      currentOrderTaxBalance !== null &&
+      currentOrderTaxBalance >= 0 &&
+      currentOrderTaxTotal !== null
+    ) {
+      return Math.min(explicitTaxTotal, currentOrderTaxTotal)
+    }
+
+    return explicitTaxTotal
+  }
+
+  const taxTotal = getExplicitMoneyTotal(order.tax_total)
+  if (taxTotal !== null && toNumber(order.discount_total) <= 0) {
+    return roundMoney(taxTotal)
+  }
+
+  return null
+}
+
+export function getTaxTotal(order: OrderReceiptOrder) {
+  const explicitTaxTotal = getExplicitOrderTaxTotal(order)
+  if (explicitTaxTotal !== null) {
+    return explicitTaxTotal
+  }
+
+  const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
+  if (currentOrderTaxTotal !== null) {
+    return currentOrderTaxTotal
+  }
+
+  const itemTaxTotal = getLineItemsTaxTotal(order.items ?? [])
+  const shippingTaxTotal = getShippingMethodsTaxTotal(
+    order.shipping_methods ?? []
   )
 
   return roundMoney(itemTaxTotal + shippingTaxTotal)
