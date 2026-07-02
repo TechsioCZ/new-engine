@@ -187,6 +187,48 @@ describe("order receipt service", () => {
     ).toBe(7.5)
   })
 
+  it("clamps negative stored shipping tax totals", () => {
+    expect(
+      getTaxTotal({
+        id: "order_negative_shipping_method_tax",
+        item_tax_total: 21,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [
+          {
+            amount: 10,
+            is_tax_inclusive: false,
+            tax_lines: [{ rate: 21 }],
+            tax_total: -5,
+          },
+        ],
+      })
+    ).toBe(21)
+
+    expect(
+      getTaxTotal({
+        id: "order_negative_shipping_tax",
+        item_tax_total: 0,
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+          },
+        ],
+        shipping_methods: [],
+        shipping_tax_total: -5,
+      })
+    ).toBe(0)
+  })
+
   it("uses order-level item tax total with stored shipping tax total", () => {
     expect(
       getTaxTotal({

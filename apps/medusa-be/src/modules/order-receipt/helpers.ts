@@ -450,7 +450,7 @@ export function getShippingTaxTotal(
 
   const taxTotal = getExplicitMoneyTotal(shippingMethod.tax_total)
   if (taxTotal !== null) {
-    return taxTotal
+    return Math.max(0, taxTotal)
   }
 
   const grossSubtotal = toNumber(
@@ -516,19 +516,21 @@ function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
     : []
   const itemTaxTotal = getExplicitMoneyTotal(order.item_tax_total)
   const shippingTaxTotal = getExplicitMoneyTotal(order.shipping_tax_total)
+  const clampedShippingTaxTotal =
+    shippingTaxTotal === null ? null : Math.max(0, shippingTaxTotal)
   const hasItemTaxSignal = hasCompleteRelationTaxSignal(
     order.items,
     itemTaxTotal
   )
   const hasShippingTaxSignal = hasCompleteRelationTaxSignal(
     order.shipping_methods,
-    shippingTaxTotal
+    clampedShippingTaxTotal
   )
 
   if (hasItemTaxSignal && hasShippingTaxSignal) {
     return roundMoney(
       (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
-        (shippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
+        (clampedShippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
     )
   }
 
