@@ -32,11 +32,16 @@ type UseCatalogProductsOptions = Parameters<
   typeof catalogHooks.useCatalogProducts
 >[1]
 
+const variantNeedsInventorySnapshot = (
+  variant: HttpTypes.StoreProductVariant
+) =>
+  Boolean(variant.id) &&
+  variant.manage_inventory !== false &&
+  variant.allow_backorder !== true &&
+  !hasDefaultStockInventoryQuantity(variant)
+
 const productNeedsInventorySnapshot = (product: HttpTypes.StoreProduct) =>
-  (product.variants ?? []).some(
-    (variant) =>
-      Boolean(variant.id) && !hasDefaultStockInventoryQuantity(variant)
-  )
+  (product.variants ?? []).some(variantNeedsInventorySnapshot)
 
 const resolveInventorySnapshotHandles = (
   products: HttpTypes.StoreProduct[]
