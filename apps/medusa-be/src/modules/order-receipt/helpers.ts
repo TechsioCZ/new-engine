@@ -545,6 +545,30 @@ export function estimateTextWidth(textValue: string, fontSize: number) {
   return ascii(textValue).length * fontSize * 0.52
 }
 
+export function truncateToEstimatedWidth(
+  value: unknown,
+  maxWidth: number,
+  fontSize: number
+) {
+  const textValue = String(value ?? "")
+    .replace(/\u00a0/g, " ")
+    .trim()
+
+  if (estimateTextWidth(textValue, fontSize) <= maxWidth) {
+    return textValue
+  }
+
+  for (let maxLength = textValue.length - 1; maxLength > 1; maxLength -= 1) {
+    const truncatedText = truncate(textValue, maxLength)
+
+    if (estimateTextWidth(truncatedText, fontSize) <= maxWidth) {
+      return truncatedText
+    }
+  }
+
+  return truncate(textValue, 1)
+}
+
 export type PdfFont = "F1" | "F2"
 export type PdfCommand = string
 
