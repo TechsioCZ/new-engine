@@ -227,6 +227,28 @@ describe("order receipt service", () => {
     ).toBe(0)
   })
 
+  it("tracks reflected discounts across legacy raw detail subtotals", () => {
+    const discountedRawItem = {
+      detail: {
+        raw_quantity: { precision: 20, value: "2" },
+        raw_unit_price: { precision: 20, value: "100" },
+      },
+      subtotal: { precision: 20, value: "100" },
+    }
+
+    expect(
+      getTaxTotal({
+        discount_total: 100,
+        id: "order_discounted_raw_detail_subtotals",
+        items: [discountedRawItem, discountedRawItem],
+        shipping_methods: [],
+        summary: {
+          current_order_total: 300,
+        },
+      })
+    ).toBe(0)
+  })
+
   it("keeps receipt total aligned with QR/manual payment amount", () => {
     const order = {
       currency_code: "EUR",

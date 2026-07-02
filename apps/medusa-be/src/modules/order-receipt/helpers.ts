@@ -448,7 +448,32 @@ function getItemsSubtotal(
   items: OrderReceiptLineItem[],
   options: ItemSubtotalOptions = {}
 ) {
-  return items.reduce((sum, item) => sum + getItemSubtotal(item, options), 0)
+  let remainingDiscountTotal = Math.max(0, toNumber(options.discountTotal))
+
+  return items.reduce((sum, item) => {
+    const subtotal = getItemSubtotalAmount(item, {
+      discountTotal: remainingDiscountTotal,
+    })
+    const explicitSubtotal =
+      item.subtotal === null || item.subtotal === undefined
+        ? null
+        : toNumber(item.subtotal)
+
+    if (explicitSubtotal !== null && subtotal === explicitSubtotal) {
+      remainingDiscountTotal = Math.max(
+        0,
+        roundMoney(
+          remainingDiscountTotal -
+            getReflectedItemDiscount(item, explicitSubtotal)
+        )
+      )
+    }
+
+    return (
+      sum +
+      getTaxExclusiveAmount(subtotal, getTaxRate(item), item.is_tax_inclusive)
+    )
+  }, 0)
 }
 
 function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
