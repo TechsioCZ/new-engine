@@ -84,4 +84,3 @@ for inputs such as `K`, `Lo`, `Lou`, and locality-only text.
   Smart Suggest ranking, and live-provider baselines with provider calls
   disabled by default.
 - The compact-prefix prototype remains a contingency, not the default.
-
