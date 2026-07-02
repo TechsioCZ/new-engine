@@ -1,3 +1,5 @@
+import { validatePostalCode as validateSmartSuggestPostalCode } from "@techsio/smart-suggest-validation"
+import { validatePhoneNumber as validateStrictPhoneNumber } from "@techsio/smart-suggest-validation/phone-strict"
 import type {
   CheckoutAddressValues,
   CheckoutDetailsValues,
@@ -7,13 +9,27 @@ import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validat
 import {
   validateCustomerName,
   validateEmailAddress,
-  validateOptionalPhoneNumber,
 } from "@/lib/forms/validators/shared"
 
 type CheckoutAddressField = keyof CheckoutAddressValues
 type CheckoutAddressFieldValidator = (value: string) => string | undefined
+type CheckoutAddressValidationScope = "billing" | "shipping"
+type CheckoutScopedValueValidationContext<TValue> = {
+  fieldApi: {
+    form: {
+      state: {
+        values: CheckoutDetailsValues
+      }
+    }
+  }
+  value: TValue
+}
 
-const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
+const CHECKOUT_COUNTRIES = ["SK", "CZ", "AT", "HU"] as const
+type CheckoutCountryCode = (typeof CHECKOUT_COUNTRIES)[number]
+
+const isCheckoutCountryCode = (value: string): value is CheckoutCountryCode =>
+  CHECKOUT_COUNTRIES.includes(value as CheckoutCountryCode)
 
 const validateBillingFields = (values: CheckoutDetailsValues) =>
   !values.useSameAddress
@@ -44,32 +60,130 @@ const createRequiredTextValidator =
     return
   }
 
-const validateRequiredPhoneNumber: CheckoutAddressFieldValidator = (value) => {
+const validateRequiredPhoneNumberForCountry = (
+  value: string,
+  countryCodeValue: string
+) => {
   if (!value.trim()) {
     return "Zadajte telefón."
   }
 
-  return validateOptionalPhoneNumber(value)
+  const normalizedCountryCode = normalizeCountryCode(countryCodeValue)
+
+  if (
+    !(normalizedCountryCode && isCheckoutCountryCode(normalizedCountryCode))
+  ) {
+    return "Vyberte krajinu pre overenie telefónu."
+  }
+
+  const validation = validateStrictPhoneNumber({
+    allowedCountries: CHECKOUT_COUNTRIES,
+    defaultCountry: normalizedCountryCode,
+    rawInput: value,
+    requireCountryMatch: false,
+  })
+
+  return validation.isValid ? undefined : "Zadajte platné telefónne číslo."
 }
 
-const validatePostalCode: CheckoutAddressFieldValidator = (value) => {
+const validatePostalCodeForSupportedCountry: CheckoutAddressFieldValidator = (
+  value
+) => {
   const normalized = value.trim()
 
   if (!normalized) {
     return "Zadajte PSČ."
   }
 
-  if (!POSTAL_CODE_ALLOWED_REGEX.test(normalized)) {
-    return "Zadajte platné PSČ."
+  const supportedCountryResults = CHECKOUT_COUNTRIES.map((countryCode) =>
+    validateSmartSuggestPostalCode({ countryCode, rawInput: normalized })
+  )
+
+  if (
+    supportedCountryResults.some(
+      (result) => result.isValid === true || result.isValid === "unknown"
+    )
+  ) {
+    return
   }
 
-  const digitCount = normalized.replace(/\D/g, "").length
+  return "Zadajte platné PSČ."
+}
 
-  if (digitCount < 4) {
-    return "PSČ musí obsahovať aspoň 4 číslice."
+const validatePostalCodeForCountry = (
+  value: string,
+  countryCodeValue: string
+) => {
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return "Zadajte PSČ."
   }
 
-  return
+  const normalizedCountryCode = normalizeCountryCode(countryCodeValue)
+
+  if (
+    !(normalizedCountryCode && isCheckoutCountryCode(normalizedCountryCode))
+  ) {
+    return "Vyberte krajinu pre overenie PSČ."
+  }
+
+  const result = validateSmartSuggestPostalCode({
+    countryCode: normalizedCountryCode,
+    rawInput: normalized,
+  })
+
+  return result.isValid === true || result.isValid === "unknown"
+    ? undefined
+    : "Zadajte platné PSČ."
+}
+
+const createCheckoutPostalCodeValidators = (
+  scope: CheckoutAddressValidationScope,
+  shouldValidate?: (values: CheckoutDetailsValues) => boolean
+) => {
+  const validateWhenActive =
+    shouldValidate ?? ((_values: CheckoutDetailsValues) => true)
+  const validate = ({
+    fieldApi,
+    value,
+  }: CheckoutScopedValueValidationContext<string>) => {
+    const values = fieldApi.form.state.values
+
+    return validateWhenActive(values)
+      ? validatePostalCodeForCountry(value, values[scope].countryCode)
+      : undefined
+  }
+
+  return {
+    onBlur: validate,
+    onChange: validate,
+    onSubmit: validate,
+  }
+}
+
+const createCheckoutPhoneValidators = (
+  scope: CheckoutAddressValidationScope,
+  shouldValidate?: (values: CheckoutDetailsValues) => boolean
+) => {
+  const validateWhenActive =
+    shouldValidate ?? ((_values: CheckoutDetailsValues) => true)
+  const validate = ({
+    fieldApi,
+    value,
+  }: CheckoutScopedValueValidationContext<string>) => {
+    const values = fieldApi.form.state.values
+
+    return validateWhenActive(values)
+      ? validateRequiredPhoneNumberForCountry(value, values[scope].countryCode)
+      : undefined
+  }
+
+  return {
+    onBlur: validate,
+    onChange: validate,
+    onSubmit: validate,
+  }
 }
 
 const validateCountryCode: CheckoutAddressFieldValidator = (value) => {
@@ -118,8 +232,7 @@ export const checkoutAddressFieldValidators = {
   email: validateEmailAddress,
   firstName: (value: string) => validateCustomerName(value, "Meno"),
   lastName: (value: string) => validateCustomerName(value, "Priezvisko"),
-  phone: validateRequiredPhoneNumber,
-  postalCode: validatePostalCode,
+  postalCode: validatePostalCodeForSupportedCountry,
   taxId: (value: string) => validateCompanyIdentifier(value, "DIČ"),
 } as const satisfies Partial<
   Record<CheckoutAddressField, CheckoutAddressFieldValidator>
@@ -152,12 +265,8 @@ const shippingFieldValidators = {
   lastName: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.lastName
   ),
-  phone: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.phone
-  ),
-  postalCode: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.postalCode
-  ),
+  phone: createCheckoutPhoneValidators("shipping"),
+  postalCode: createCheckoutPostalCodeValidators("shipping"),
   taxId: createChangeBlurSubmitScopedFieldValidators(
     checkoutAddressFieldValidators.taxId,
     validateShippingCompanyFields
@@ -193,8 +302,8 @@ const billingFieldValidators = {
     checkoutAddressFieldValidators.lastName,
     validateBillingFields
   ),
-  postalCode: createChangeBlurSubmitScopedFieldValidators(
-    checkoutAddressFieldValidators.postalCode,
+  postalCode: createCheckoutPostalCodeValidators(
+    "billing",
     validateBillingFields
   ),
   taxId: createChangeBlurSubmitScopedFieldValidators(

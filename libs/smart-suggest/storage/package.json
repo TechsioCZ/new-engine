@@ -1,0 +1,41 @@
+{
+  "name": "@techsio/smart-suggest-storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/storage.d.ts",
+      "import": "./dist/storage.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "rslib build --tsconfig tsconfig.build.json",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "dev": "rslib build --watch",
+    "test": "vitest run --config vitest.config.ts --typecheck",
+    "test:runtime": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@effect/vitest": "4.0.0-beta.92",
+    "@rslib/core": "^0.18.0",
+    "@techsio/smart-suggest-tooling": "workspace:^",
+    "drizzle-kit": "1.0.0-rc.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "@effect/sql-d1": "4.0.0-beta.92",
+    "@techsio/smart-suggest-core": "workspace:^",
+    "@techsio/smart-suggest-indexing": "workspace:^",
+    "drizzle-orm": "1.0.0-rc.4",
+    "effect": "4.0.0-beta.92"
+  }
+}

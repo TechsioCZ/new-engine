@@ -1,7 +1,6 @@
 import {
   type ComponentPropsWithoutRef,
   createContext,
-  type FormEvent,
   type ReactNode,
   type Ref,
   useContext,
@@ -148,7 +147,7 @@ export function SearchForm({
     setInputValue("")
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit: NonNullable<SearchFormProps["onSubmit"]> = (e) => {
     e.preventDefault()
     onSubmit?.(e)
   }

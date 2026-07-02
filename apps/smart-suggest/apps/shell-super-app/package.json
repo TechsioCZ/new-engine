@@ -1,0 +1,70 @@
+{
+  "private": true,
+  "name": "@smart-suggest/shell-super-app",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "node ../../scripts/prepare-smart-suggest-sdk.mjs --app shell-super-app && modern dev",
+    "build": "node ../../scripts/prepare-smart-suggest-sdk.mjs --app shell-super-app && ULTRAMODERN_ZEPHYR=false modern build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target dist",
+    "cloudflare:build": "node ../../scripts/prepare-smart-suggest-sdk.mjs --app shell-super-app && ULTRAMODERN_ZEPHYR=false MODERNJS_DEPLOY=cloudflare modern build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target dist && ULTRAMODERN_ZEPHYR=false MODERNJS_DEPLOY=cloudflare modern deploy --skip-build && node ../../scripts/generate-public-surface-assets.mjs --app shell-super-app --target cloudflare && node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app",
+    "cloudflare:deploy": "ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS=true pnpm run cloudflare:build && node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app --require-d1 --apply-migrations && wrangler deploy --config .output/wrangler.json",
+    "cloudflare:deploy:artifact-static": "ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS=true pnpm run cloudflare:build && node ../../scripts/stage-smart-suggest-cloudflare-artifacts.mjs --app shell-super-app && node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app --artifact-static && wrangler deploy --config .output/wrangler.json",
+    "cloudflare:migrations": "node ../../scripts/apply-smart-suggest-cloudflare-bindings.mjs --app shell-super-app --require-d1 --apply-migrations",
+    "cloudflare:preview": "pnpm run cloudflare:build && wrangler dev --config .output/wrangler.json",
+    "cloudflare:proof": "node ../../scripts/proof-cloudflare-version.mjs --app shell-super-app",
+    "serve": "modern serve",
+    "test:smoke": "vitest run --config vitest.config.ts --typecheck",
+    "typecheck": "node ../../scripts/ultramodern-typecheck.mjs --project tsconfig.json"
+  },
+  "modernjs": {
+    "preset": "presetUltramodern",
+    "role": "shell",
+    "appId": "shell-super-app",
+    "topology": "../../topology/reference-topology.json"
+  },
+  "zephyr:dependencies": {},
+  "dependencies": {
+    "@modern-js/plugin-bff": "npm:@bleedingdev/modern-js-plugin-bff@3.5.0-ultramodern.23",
+    "@modern-js/plugin-i18n": "npm:@bleedingdev/modern-js-plugin-i18n@3.5.0-ultramodern.23",
+    "@modern-js/plugin-tanstack": "npm:@bleedingdev/modern-js-plugin-tanstack@3.5.0-ultramodern.23",
+    "@modern-js/runtime": "npm:@bleedingdev/modern-js-runtime@3.5.0-ultramodern.23",
+    "@module-federation/bridge-react": "2.6.0",
+    "@module-federation/modern-js-v3": "2.6.0",
+    "@module-federation/runtime": "2.6.0",
+    "@smart-suggest/shared-design-tokens": "workspace:*",
+    "@tanstack/react-router": "1.170.16",
+    "@techsio/smart-suggest-core": "workspace:^",
+    "@techsio/smart-suggest-datasets": "workspace:^",
+    "@techsio/smart-suggest-indexing": "workspace:^",
+    "@techsio/smart-suggest-integrations": "workspace:^",
+    "@techsio/smart-suggest-storage": "workspace:^",
+    "@techsio/smart-suggest-validation": "workspace:^",
+    "@techsio/ui-kit": "workspace:^",
+    "effect": "4.0.0-beta.92",
+    "i18next": "26.3.1",
+    "node-fetch": "^3.3.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router": "7.18.0"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.14.6",
+    "@effect/vitest": "4.0.0-beta.92",
+    "@modern-js/app-tools": "npm:@bleedingdev/modern-js-app-tools@3.5.0-ultramodern.23",
+    "@tailwindcss/postcss": "^4.3.1",
+    "@types/node": "^20",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@typescript/native-preview": "7.0.0-dev.20260628.1",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.1",
+    "typescript": "6.0.3",
+    "vitest": "^4.1.9",
+    "wrangler": "4.102.0",
+    "zephyr-rspack-plugin": "1.1.1"
+  },
+  "exports": {
+    "./api": "./shared/api.ts",
+    "./api/client": "./src/api/smart-suggest-client.ts",
+    "./api/clients": "./src/api/vertical-clients.ts"
+  }
+}

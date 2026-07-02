@@ -1,0 +1,13 @@
+diff --git a/compiled/sass-loader/index.d.ts b/compiled/sass-loader/index.d.ts
+index 623462f4976968b8eb0e7c9c0fcc5bc75fbea7b1..60696a9bf9740f3de26a82b76c0fa93c63cc67dc 100644
+--- a/compiled/sass-loader/index.d.ts
++++ b/compiled/sass-loader/index.d.ts
+@@ -943,7 +943,7 @@ interface LoaderOptions {
+ }
+
+ declare namespace LoaderOptions {
+-    type Callback<T> = (content: string | Buffer, loaderContext: Webpack.loader.LoaderContext) => T;
++    type Callback<T> = (content: string | Buffer, loaderContext: Webpack.LoaderContext<LoaderOptions>) => T;
+
+     type SassOptions = Options | Sass.LegacyOptions<"sync">;
+ }

@@ -1,0 +1,47 @@
+{
+  "graphId": "smart-suggest-owned-data-production-v1",
+  "selectionHash": "344308f484",
+  "planGlob": "smart-suggest-*.plan.md",
+  "edges": [
+    "smart-suggest-source-governance -> smart-suggest-owned-dataset-ingestion",
+    "smart-suggest-source-governance -> smart-suggest-provider-fallback-cache",
+    "smart-suggest-source-governance -> smart-suggest-ruian-replication",
+    "smart-suggest-phone-validation-modes -> smart-suggest-operational-proof",
+    "smart-suggest-owned-dataset-ingestion -> smart-suggest-offline-search-quality",
+    "smart-suggest-owned-dataset-ingestion -> smart-suggest-operational-proof",
+    "smart-suggest-owned-dataset-ingestion -> smart-suggest-ruian-replication",
+    "smart-suggest-provider-fallback-cache -> smart-suggest-benchmark-suite",
+    "smart-suggest-provider-fallback-cache -> smart-suggest-operational-proof",
+    "smart-suggest-offline-search-quality -> smart-suggest-benchmark-suite",
+    "smart-suggest-offline-search-quality -> smart-suggest-operational-proof",
+    "smart-suggest-ruian-replication -> smart-suggest-d1-sharded-storage",
+    "smart-suggest-compact-search-index -> smart-suggest-d1-sharded-storage",
+    "smart-suggest-ruian-replication -> smart-suggest-benchmark-suite",
+    "smart-suggest-compact-search-index -> smart-suggest-benchmark-suite",
+    "smart-suggest-d1-sharded-storage -> smart-suggest-benchmark-suite",
+    "smart-suggest-d1-sharded-storage -> smart-suggest-operational-proof",
+    "smart-suggest-benchmark-suite -> smart-suggest-operational-proof",
+    "smart-suggest-benchmark-suite -> smart-suggest-production-rollout",
+    "smart-suggest-operational-proof -> smart-suggest-production-rollout"
+  ],
+  "frontier": [
+    {
+      "plan": "smart-suggest-owned-dataset-ingestion",
+      "state": "ready",
+      "activeTodo": "seed-cz-production-dataset",
+      "blockedBy": []
+    },
+    {
+      "plan": "smart-suggest-offline-search-quality",
+      "state": "blocked",
+      "activeTodo": "benchmark-owned-search",
+      "blockedBy": ["smart-suggest-owned-dataset-ingestion"]
+    },
+    {
+      "plan": "smart-suggest-benchmark-suite",
+      "state": "blocked",
+      "activeTodo": "produce-comparison-report",
+      "blockedBy": ["smart-suggest-offline-search-quality"]
+    }
+  ]
+}

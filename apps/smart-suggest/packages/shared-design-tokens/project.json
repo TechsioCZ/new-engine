@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "name": "@smart-suggest/shared-design-tokens",
+  "projectType": "library",
+  "sourceRoot": "apps/smart-suggest/packages/shared-design-tokens/src",
+  "tags": ["type:lib", "platform:web", "framework:agnostic"]
+}

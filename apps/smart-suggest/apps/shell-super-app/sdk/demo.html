@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smart Suggest Checkout Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f6f7f9;
+        color: #171b22;
+      }
+
+      main {
+        inline-size: min(100% - 32px, 520px);
+        margin-inline: auto;
+        padding-block: 32px;
+      }
+
+      .demo-header {
+        display: grid;
+        gap: 10px;
+        margin-block-end: 16px;
+      }
+
+      .demo-kicker {
+        margin: 0;
+        color: #0f766e;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 0;
+        color: #111827;
+        font-size: clamp(28px, 8vw, 36px);
+        line-height: 1.1;
+      }
+
+      .demo-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-block-start: 2px;
+      }
+
+      .demo-nav :where(a, span) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 38px;
+        box-sizing: border-box;
+        padding-inline: 12px;
+        border: 1px solid #d8dde6;
+        border-radius: 6px;
+        background: #fff;
+        color: #334155;
+        font-size: 14px;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .demo-nav [aria-current='page'] {
+        border-color: #111827;
+        background: #111827;
+        color: #fff;
+      }
+
+      .demo-nav a:hover {
+        border-color: #0f766e;
+        color: #0f766e;
+      }
+
+      .demo-nav a:focus-visible {
+        outline: 3px solid rgb(4 120 87 / 40%);
+        outline-offset: 2px;
+      }
+
+      form {
+        display: grid;
+        gap: 14px;
+        padding: 20px;
+        border: 1px solid #d8dde6;
+        background: #fff;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      label {
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      input,
+      select,
+      button {
+        min-height: 42px;
+        border: 1px solid #aeb7c4;
+        border-radius: 4px;
+        background: #fff;
+        color: inherit;
+        font: inherit;
+      }
+
+      input,
+      select,
+      button {
+        box-sizing: border-box;
+        inline-size: 100%;
+      }
+
+      input,
+      select {
+        padding-inline: 10px;
+      }
+
+      form > button {
+        cursor: pointer;
+        background: #1f2937;
+        color: #fff;
+        font-weight: 700;
+      }
+
+      [data-smart-suggest-list] {
+        display: grid;
+        gap: 2px;
+        position: fixed;
+        position-area: block-end span-inline-end;
+        position-try-fallbacks: flip-block, flip-inline;
+        inset: auto;
+        inline-size: anchor-size(width);
+        max-block-size: min(24rem, 70dvb);
+        box-sizing: border-box;
+        margin: 4px 0 0;
+        padding: 4px;
+        border: 1px solid #aeb7c4;
+        border-radius: 4px;
+        background: #fff;
+        box-shadow: 0 18px 44px rgb(15 23 42 / 18%);
+        color: #171b22;
+        list-style: none;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+
+      [data-smart-suggest-list][hidden] {
+        display: none;
+      }
+
+      [data-smart-suggest-option] {
+        min-block-size: 38px;
+        padding: 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-weight: 650;
+        line-height: 1.25;
+        text-align: left;
+      }
+
+      [data-smart-suggest-option]:hover,
+      [data-smart-suggest-option][aria-selected='true'] {
+        background: #edf4ff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="demo-header">
+        <p class="demo-kicker">Standalone SDK</p>
+        <h1>Smart Suggest checkout demo</h1>
+        <nav aria-label="Demo versions" class="demo-nav">
+          <a href="/en/smart-suggest-demo">React / JSX demo</a>
+          <span aria-current="page">HTML demo</span>
+        </nav>
+      </header>
+      <form method="post" action="/checkout">
+        <div class="field">
+          <label for="address-line">Address line</label>
+          <input id="address-line" name="address_line" autocomplete="address-line1" />
+        </div>
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" autocomplete="address-level2" />
+        </div>
+        <div class="field">
+          <label for="postal-code">Postal code</label>
+          <input id="postal-code" name="postal_code" autocomplete="postal-code" />
+        </div>
+        <div class="field">
+          <label for="country">Country</label>
+          <select id="country" name="country" autocomplete="country">
+            <option value="CZ">Czechia</option>
+            <option value="SK">Slovakia</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" />
+        </div>
+        <button type="submit">Continue</button>
+      </form>
+    </main>
+    <script type="module" src="./techsio-smart-suggest.js"></script>
+    <script type="module">
+      window.TechsioSmartSuggest?.attach({
+        addressLine: '#address-line',
+        city: '#city',
+        country: '#country',
+        phone: '#phone',
+        postalCode: '#postal-code',
+      });
+    </script>
+  </body>
+</html>

@@ -1,5 +1,11 @@
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as select from "@zag-js/select"
+import {
+  connect as connectSelect,
+  collection as createSelectCollection,
+  type Props as SelectMachineProps,
+  type Service as SelectService,
+  machine as selectMachine,
+} from "@zag-js/select"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -142,7 +148,7 @@ const selectVariants = tv({
 })
 
 type SelectContextValue = {
-  api: ReturnType<typeof select.connect>
+  api: ReturnType<typeof connectSelect>
   size: SelectSize
   items: SelectItem[]
   validateStatus: "default" | "error" | "success" | "warning"
@@ -176,9 +182,10 @@ function useSelectItemContext() {
 // === ROOT COMPONENT ===
 export interface SelectProps
   extends VariantProps<typeof selectVariants>,
-    Omit<select.Props, "collection" | "id" | "invalid"> {
+    Omit<SelectMachineProps, "collection" | "id" | "invalid"> {
   items: SelectItem[]
   id?: string
+  autoComplete?: string
   className?: string
   children: ReactNode
   ref?: Ref<HTMLDivElement>
@@ -188,6 +195,7 @@ export interface SelectProps
 export function Select({
   items,
   id: providedId,
+  autoComplete,
   size = "md",
   // Zag.js props
   value,
@@ -215,14 +223,14 @@ export function Select({
   // Derive invalid from validateStatus for Zag.js accessibility
   const invalid = validateStatus === "error"
 
-  const collection = select.collection({
+  const collection = createSelectCollection({
     items,
     itemToString: (item) => item.displayValue || item.value,
     itemToValue: (item) => item.value,
     isItemDisabled: (item) => !!item.disabled,
   })
 
-  const service = useMachine(select.machine, {
+  const service = useMachine(selectMachine, {
     id,
     collection,
     name,
@@ -241,13 +249,13 @@ export function Select({
     onHighlightChange,
   })
 
-  const api = select.connect(service as select.Service, normalizeProps)
+  const api = connectSelect(service as SelectService, normalizeProps)
   const styles = selectVariants({ size })
 
   return (
     <SelectContext.Provider value={{ api, size, items, validateStatus }}>
       {/* Hidden form select for native form submission */}
-      <select {...api.getHiddenSelectProps()}>
+      <select {...api.getHiddenSelectProps()} autoComplete={autoComplete}>
         {items.map((item) => (
           <option disabled={item.disabled} key={item.value} value={item.value}>
             {item.displayValue || item.value}
@@ -536,7 +544,7 @@ interface SelectItemProps extends ComponentPropsWithoutRef<"li"> {
   ref?: Ref<HTMLLIElement>
 }
 
-Select.Item = function SelectItem({
+Select.Item = function SelectOptionItem({
   item,
   children,
   className,

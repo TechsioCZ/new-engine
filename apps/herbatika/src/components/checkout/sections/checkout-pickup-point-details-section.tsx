@@ -60,6 +60,7 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.TextField
+                  autoComplete="given-name"
                   id="checkout-pickup-first-name"
                   label="Meno"
                   required
@@ -74,6 +75,7 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.TextField
+                  autoComplete="family-name"
                   id="checkout-pickup-last-name"
                   label="Priezvisko"
                   required
@@ -129,6 +131,7 @@ export function CheckoutPickupPointDetailsSection({
                   >
                     {(field) => (
                       <field.TextField
+                        autoComplete="organization"
                         id="checkout-pickup-company"
                         label="Názov firmy"
                         required
@@ -148,6 +151,7 @@ export function CheckoutPickupPointDetailsSection({
                   >
                     {(field) => (
                       <field.TextField
+                        autoComplete="off"
                         id="checkout-pickup-company-id"
                         label="IČO"
                         required
@@ -162,6 +166,7 @@ export function CheckoutPickupPointDetailsSection({
                   >
                     {(field) => (
                       <field.TextField
+                        autoComplete="off"
                         id="checkout-pickup-tax-id"
                         label="DIČ"
                         required
@@ -175,6 +180,7 @@ export function CheckoutPickupPointDetailsSection({
                   >
                     {(field) => (
                       <field.TextField
+                        autoComplete="off"
                         id="checkout-pickup-vat-id"
                         label="IČ DPH"
                         validationMode="blur"
@@ -191,6 +197,7 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.SelectField
+                  autoComplete="country"
                   id="checkout-pickup-billing-country"
                   items={countryItems}
                   label="Krajina"
@@ -207,6 +214,7 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.TextField
+                  autoComplete="address-line1"
                   id="checkout-pickup-billing-address-1"
                   label="Ulica a číslo domu"
                   required
@@ -221,6 +229,7 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.TextField
+                  autoComplete="address-level2"
                   id="checkout-pickup-billing-city"
                   label="Mesto"
                   required
@@ -235,6 +244,7 @@ export function CheckoutPickupPointDetailsSection({
             >
               {(field) => (
                 <field.TextField
+                  autoComplete="postal-code"
                   id="checkout-pickup-billing-postal-code"
                   label="PSČ"
                   required

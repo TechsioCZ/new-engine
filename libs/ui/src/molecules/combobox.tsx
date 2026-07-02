@@ -4,7 +4,7 @@ import {
   collection as createComboboxCollection,
 } from "@zag-js/combobox"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -69,8 +69,10 @@ const comboboxVariants = tv({
       "flex items-center",
       "text-combobox-item-fg",
       "cursor-pointer",
-      "data-highlighted:bg-combobox-item-bg-hover",
-      "data-[state=checked]:bg-combobox-item-bg-selected",
+      "data-highlighted:bg-combobox-item-state-bg",
+      "data-highlighted:text-combobox-item-state-fg",
+      "data-[state=checked]:bg-combobox-item-state-bg",
+      "data-[state=checked]:text-combobox-item-state-fg",
       "data-disabled:cursor-not-allowed data-disabled:text-combobox-fg-disabled",
     ],
     emptyState: ["text-combobox-fg-placeholder"],
@@ -144,16 +146,45 @@ export type ComboboxItem<T = unknown> = {
   data?: T
 }
 
-export interface ComboboxProps<T = unknown>
-  extends VariantProps<typeof comboboxVariants> {
+export type ComboboxItemDetails<TItem> = {
+  item: TItem
+  label: string
+  value: string
+}
+
+export type ComboboxStateDetails = {
+  inputValue: string
+}
+
+type DefaultComboboxItem = ComboboxItem<unknown>
+
+type ComboboxStateContentProps = {
+  className: string
+  error?: ReactNode
+  loading: boolean
+  loadingMessage: ReactNode
+  inputValue: string
+  hasOptions: boolean
+  noResultsMessage: string
+  renderEmptyState?: (details: ComboboxStateDetails) => ReactNode
+  renderLoadingState?: (details: ComboboxStateDetails) => ReactNode
+  renderErrorState?: (
+    details: ComboboxStateDetails & { error: ReactNode }
+  ) => ReactNode
+}
+
+export type ComboboxProps<TItem = DefaultComboboxItem> = VariantProps<
+  typeof comboboxVariants
+> & {
   id?: string
   name?: string
   label?: string
   placeholder?: string
+  autoComplete?: string
   disabled?: boolean
   readOnly?: boolean
   required?: boolean
-  items: ComboboxItem<T>[]
+  items: TItem[]
   value?: string | string[]
   defaultValue?: string | string[]
   inputValue?: string
@@ -161,7 +192,20 @@ export interface ComboboxProps<T = unknown>
   validateStatus?: "default" | "error" | "success" | "warning"
   helpText?: string
   showHelpTextIcon?: boolean
+  filterMode?: "local" | "remote"
+  loading?: boolean
+  loadingMessage?: ReactNode
+  error?: ReactNode
   noResultsMessage?: string
+  renderItem?: (details: ComboboxItemDetails<TItem>) => ReactNode
+  renderEmptyState?: (details: ComboboxStateDetails) => ReactNode
+  renderLoadingState?: (details: ComboboxStateDetails) => ReactNode
+  renderErrorState?: (
+    details: ComboboxStateDetails & { error: ReactNode }
+  ) => ReactNode
+  itemToString?: (item: TItem) => string
+  itemToValue?: (item: TItem) => string
+  isItemDisabled?: (item: TItem) => boolean
   clearable?: boolean
   selectionBehavior?: "replace" | "clear" | "preserve"
   closeOnSelect?: boolean
@@ -177,12 +221,90 @@ export interface ComboboxProps<T = unknown>
   inputBehavior?: "autohighlight" | "autocomplete" | "none"
 }
 
-export function Combobox<T = unknown>({
+function defaultItemToString<TItem>(item: TItem) {
+  return typeof item === "object" && item !== null && "label" in item
+    ? String(item.label)
+    : ""
+}
+
+function defaultItemToValue<TItem>(item: TItem) {
+  return typeof item === "object" && item !== null && "value" in item
+    ? String(item.value)
+    : ""
+}
+
+function defaultIsItemDisabled<TItem>(item: TItem) {
+  return typeof item === "object" && item !== null && "disabled" in item
+    ? Boolean(item.disabled)
+    : false
+}
+
+function filterComboboxItems<TItem>(
+  items: TItem[],
+  currentInputValue: string,
+  itemToString: (item: TItem) => string
+) {
+  const normalizedInputValue = currentInputValue.toLowerCase()
+
+  if (!normalizedInputValue) {
+    return items
+  }
+
+  return items.filter((item) =>
+    itemToString(item).toLowerCase().includes(normalizedInputValue)
+  )
+}
+
+function ComboboxStateContent({
+  className,
+  error,
+  loading,
+  loadingMessage,
+  inputValue,
+  hasOptions,
+  noResultsMessage,
+  renderEmptyState,
+  renderLoadingState,
+  renderErrorState,
+}: ComboboxStateContentProps) {
+  const details = { inputValue }
+
+  if (error) {
+    return (
+      <output aria-live="polite" className={className}>
+        {renderErrorState ? renderErrorState({ ...details, error }) : error}
+      </output>
+    )
+  }
+
+  if (loading) {
+    return (
+      <output aria-live="polite" className={className}>
+        {renderLoadingState ? renderLoadingState(details) : loadingMessage}
+      </output>
+    )
+  }
+
+  if (!hasOptions && inputValue) {
+    return (
+      <output aria-live="polite" className={className}>
+        {renderEmptyState
+          ? renderEmptyState(details)
+          : noResultsMessage.replace("{inputValue}", inputValue)}
+      </output>
+    )
+  }
+
+  return null
+}
+
+export function Combobox<TItem = DefaultComboboxItem>({
   id,
   name,
   label,
   size,
   placeholder = "Select option",
+  autoComplete,
   disabled = false,
   readOnly = false,
   required = false,
@@ -194,7 +316,18 @@ export function Combobox<T = unknown>({
   validateStatus,
   helpText,
   showHelpTextIcon = true,
+  filterMode = "local",
+  loading = false,
+  loadingMessage = "Loading results...",
+  error,
   noResultsMessage = 'No results found for "{inputValue}"',
+  renderItem,
+  renderEmptyState,
+  renderLoadingState,
+  renderErrorState,
+  itemToString = defaultItemToString,
+  itemToValue = defaultItemToValue,
+  isItemDisabled = defaultIsItemDisabled,
   clearable = true,
   selectionBehavior = "replace",
   closeOnSelect = true,
@@ -208,19 +341,26 @@ export function Combobox<T = unknown>({
   onChange,
   onInputValueChange,
   onOpenChange,
-}: ComboboxProps<T>) {
+}: ComboboxProps<TItem>) {
   const generatedId = useId()
   const uniqueId = id || generatedId
 
-  const [options, setOptions] = useState(items)
+  const [currentInputValue, setCurrentInputValue] = useState(inputValue ?? "")
   useEffect(() => {
-    setOptions(items)
-  }, [items])
+    if (inputValue !== undefined) {
+      setCurrentInputValue(inputValue)
+    }
+  }, [inputValue])
+
+  const collectionItems =
+    filterMode === "remote"
+      ? items
+      : filterComboboxItems(items, currentInputValue, itemToString)
   const collection = createComboboxCollection({
-    items: options,
-    itemToString: (item) => item.label,
-    itemToValue: (item) => item.value,
-    isItemDisabled: (item) => !!item.disabled,
+    items: collectionItems,
+    itemToString,
+    itemToValue,
+    isItemDisabled,
   })
 
   const service = useMachine(comboboxMachine, {
@@ -248,14 +388,10 @@ export function Combobox<T = unknown>({
       onChange?.(selectedValue)
     },
     onInputValueChange: ({ inputValue: newItemInputValue }) => {
-      const filtered = items.filter((item) =>
-        item.label.toLowerCase().includes(newItemInputValue.toLowerCase())
-      )
-      setOptions(filtered)
+      setCurrentInputValue(newItemInputValue)
       onInputValueChange?.(newItemInputValue)
     },
     onOpenChange: ({ open }) => {
-      setOptions(items)
       onOpenChange?.(open)
     },
   })
@@ -280,7 +416,6 @@ export function Combobox<T = unknown>({
   } = comboboxVariants({ size })
 
   const hasOptions = api.collection.size > 0
-  const showEmptyState = !hasOptions && Boolean(api.inputValue)
 
   return (
     <div className={root()}>
@@ -302,6 +437,7 @@ export function Combobox<T = unknown>({
         <Input
           className={input()}
           {...restInputProps}
+          autoComplete={autoComplete}
           name={name}
           placeholder={placeholder}
           required={required}
@@ -336,22 +472,42 @@ export function Combobox<T = unknown>({
           <div {...api.getContentProps()} className={content()}>
             {hasOptions && (
               <ul {...api.getListProps()} className={list()}>
-                {options.map((item) => (
-                  <li
-                    key={item.value}
-                    {...api.getItemProps({ item })}
-                    className={itemSlot()}
-                  >
-                    <span className="flex-1">{item.label}</span>
-                  </li>
-                ))}
+                {collectionItems.map((item) => {
+                  const itemLabel = itemToString(item)
+                  const itemValue = itemToValue(item)
+
+                  return (
+                    <li
+                      key={itemValue}
+                      {...api.getItemProps({ item })}
+                      className={itemSlot()}
+                    >
+                      <span className="flex-1">
+                        {renderItem
+                          ? renderItem({
+                              item,
+                              label: itemLabel,
+                              value: itemValue,
+                            })
+                          : itemLabel}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
             )}
-            {showEmptyState && (
-              <div className={emptyState()}>
-                {noResultsMessage.replace("{inputValue}", api.inputValue)}
-              </div>
-            )}
+            <ComboboxStateContent
+              className={emptyState()}
+              error={error}
+              hasOptions={hasOptions}
+              inputValue={api.inputValue}
+              loading={loading}
+              loadingMessage={loadingMessage}
+              noResultsMessage={noResultsMessage}
+              renderEmptyState={renderEmptyState}
+              renderErrorState={renderErrorState}
+              renderLoadingState={renderLoadingState}
+            />
           </div>
         </div>
       </Portal>

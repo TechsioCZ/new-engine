@@ -1,0 +1,403 @@
+{
+  "schemaVersion": "smart-suggest-correctness-scenarios/v1",
+  "id": "smart-suggest-production-correctness-proof-v1",
+  "name": "Smart Suggest production correctness proof scenarios",
+  "publicSafety": {
+    "safeToCommit": true,
+    "containsRawCustomerQueries": false,
+    "containsPrivateProviderPayloads": false,
+    "dataPolicy": "Public-safe authored benchmark prompts only. Scenario queries are deterministic fixture literals, not captured traffic."
+  },
+  "apiDefaults": {
+    "pathPrefix": "/api/v1",
+    "countryCode": "CZ",
+    "language": "cs-CZ",
+    "limit": 5
+  },
+  "benchmarkCorpus": {
+    "path": "apps/smart-suggest/scripts/fixtures/smart-suggest-benchmark-corpus-v1.json",
+    "schemaVersion": "smart-suggest-benchmark-corpus/v1"
+  },
+  "scenarios": [
+    {
+      "id": "correctness-address-full-k-louzi-diacritic",
+      "description": "Full address with Czech diacritics must keep the canonical address as top result.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "benchmarkScenarioId": "addr-k-louzi-slash-diacritic-exact",
+      "targetModes": ["local-benchmark", "http"],
+      "query": "K Louži 1258/12, Praha 10",
+      "labels": ["full-address", "diacritics", "cold-cache"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 5
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "full": 1
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["disabled", "miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-address-full-k-louzi-no-diacritic",
+      "description": "Full address without diacritics must normalize to the same canonical address.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "benchmarkScenarioId": "addr-k-louzi-slash-no-diacritic",
+      "targetModes": ["local-benchmark", "http"],
+      "query": "K Louzi 1258/12 Praha 10",
+      "labels": ["full-address", "no-diacritics"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 5
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 1,
+          "max": 5,
+          "full": 1
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["disabled", "miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-street-fragment-k-louzi",
+      "description": "Street fragment should return the bounded K Louzi cluster without duplicates.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "benchmarkScenarioId": "addr-k-louzi-street-only-volume",
+      "targetModes": ["local-benchmark", "http"],
+      "query": "K Louži",
+      "labels": ["street-fragment", "diacritics", "result-volume"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 5
+      },
+      "expected": {
+        "topResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "top5ResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "requiredResultIds": [
+          "ruian-cz:1203603",
+          "ruian-cz:1203604",
+          "ruian-cz:1203605",
+          "ruian-cz:1203606"
+        ],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 4,
+          "max": 8,
+          "full": 5
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["disabled", "miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-house-number-variants-k-louzi",
+      "description": "Street plus house number must keep both known orientation variants in the result set.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "benchmarkScenarioId": "addr-k-louzi-house-only-volume",
+      "targetModes": ["local-benchmark", "http"],
+      "query": "K Louži 1258",
+      "labels": ["house-number-variants", "result-volume"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 5
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "top5ResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "requiredResultIds": ["ruian-cz:1203603", "ruian-cz:1203604"],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 2,
+          "max": 5,
+          "full": 3
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["disabled", "miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-house-orientation-number-first",
+      "description": "Orientation-number-first input must still rank the matching K Louzi address.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "benchmarkScenarioId": "addr-k-louzi-orientation-number-first",
+      "targetModes": ["local-benchmark", "http"],
+      "query": "12 K Louži",
+      "labels": ["house-number-variants", "orientation-number"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 5
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:1203603"],
+        "top5ResultIds": ["ruian-cz:1203603"],
+        "requiredResultIds": ["ruian-cz:1203603"],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 1,
+          "max": 5
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["disabled", "miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-no-result-unreachable-house",
+      "description": "Valid-looking nonexistent house/orientation input must return no owned result.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "benchmarkScenarioId": "addr-no-match-unreachable-number",
+      "targetModes": ["local-benchmark", "http"],
+      "query": "K Louzi 9999/99 Praha 10",
+      "labels": ["no-result", "no-diacritics"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 5
+      },
+      "expected": {
+        "topResultIds": [],
+        "top5ResultIds": [],
+        "requiredResultIds": [],
+        "sourceIds": [],
+        "resultCount": {
+          "min": 0,
+          "max": 0,
+          "full": 0
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["disabled", "miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-zip-only-10100",
+      "description": "ZIP-only postal suggest must cover every seeded locality for 10100 when production data is seeded.",
+      "endpoint": "suggest",
+      "kind": "postal",
+      "targetModes": ["http"],
+      "query": "10100",
+      "labels": ["zip-only", "zip-locality-coverage", "requires-seeded-production-data"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 50
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:postal:10100:praha-10"],
+        "top5ResultIds": [
+          "ruian-cz:postal:10100:praha-10",
+          "ruian-cz:postal:10100:jina-obec",
+          "ruian-cz:postal:10100:obec-25"
+        ],
+        "requiredResultIds": [
+          "ruian-cz:postal:10100:praha-10",
+          "ruian-cz:postal:10100:jina-obec",
+          "ruian-cz:postal:10100:obec-25"
+        ],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 3,
+          "max": 50,
+          "full": 27,
+          "requiresSeededProductionData": true
+        },
+        "zipLocalityCoverage": {
+          "postalCode": "10100",
+          "fullResultCount": 27,
+          "requiresSeededProductionData": true
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-zip-city-10100-praha",
+      "description": "ZIP plus city must keep the Praha locality in the top result and preserve full ZIP coverage when seeded.",
+      "endpoint": "suggest",
+      "kind": "postal",
+      "targetModes": ["http"],
+      "query": "10100 Praha",
+      "labels": ["zip-plus-city", "zip-locality-coverage", "requires-seeded-production-data"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 50
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:postal:10100:praha-10"],
+        "top5ResultIds": ["ruian-cz:postal:10100:praha-10"],
+        "requiredResultIds": ["ruian-cz:postal:10100:praha-10"],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 1,
+          "max": 50,
+          "full": 27,
+          "requiresSeededProductionData": true
+        },
+        "zipLocalityCoverage": {
+          "postalCode": "10100",
+          "fullResultCount": 27,
+          "requiresSeededProductionData": true
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "maxTotal": 0
+        },
+        "cache": {
+          "allowedStatuses": ["miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-provider-timeout-owned-resilience",
+      "description": "Provider timeout fixture label proves the runner can assert owned results survive provider timeout events when provider fixtures are configured.",
+      "endpoint": "suggest",
+      "kind": "address",
+      "targetModes": ["http"],
+      "query": "vaclavske",
+      "labels": ["provider-timeout", "owned-resilience", "requires-provider-fixture"],
+      "request": {
+        "countryCode": "CZ",
+        "language": "cs-CZ",
+        "limit": 2,
+        "tenantId": "tenant-provider-timeout-test"
+      },
+      "expected": {
+        "topResultIds": ["ruian-cz:3300832"],
+        "top5ResultIds": ["ruian-cz:3300832"],
+        "requiredResultIds": ["ruian-cz:3300832"],
+        "sourceIds": ["ruian-cz"],
+        "resultCount": {
+          "min": 1,
+          "max": 2
+        },
+        "duplicateRate": {
+          "max": 0
+        },
+        "providerEvents": {
+          "allowedStatuses": ["timeout", "skipped", "success"],
+          "requiresProviderFixture": true,
+          "requiredStatusWhenFixtureEnabled": "timeout"
+        },
+        "cache": {
+          "allowedStatuses": ["miss", "written", "hit", "stale"]
+        }
+      }
+    },
+    {
+      "id": "correctness-validate-postal-cz",
+      "description": "Postal validation endpoint must normalize a CZ ZIP without calling providers.",
+      "endpoint": "validate-postal",
+      "targetModes": ["http"],
+      "labels": ["zip-only", "postal-validation"],
+      "payload": {
+        "countryCode": "CZ",
+        "rawInput": "10100"
+      },
+      "expected": {
+        "postalValidation": {
+          "countryCode": "CZ",
+          "displayValue": "101 00",
+          "isValid": true,
+          "normalizedValue": "10100"
+        }
+      }
+    },
+    {
+      "id": "correctness-status-source-policy",
+      "description": "Status endpoint must expose public operational health without raw-query storage.",
+      "endpoint": "status",
+      "targetModes": ["http"],
+      "labels": ["status", "cold-cache"],
+      "expected": {
+        "status": {
+          "service": "smart-suggest",
+          "rawQueryStorage": "disabled"
+        }
+      }
+    }
+  ]
+}

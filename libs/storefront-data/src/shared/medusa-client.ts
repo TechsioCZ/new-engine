@@ -72,7 +72,36 @@ const patchStorageMethod = <
   }
 }
 
-const createSafeStorage = (storage: Storage): Storage => {
+const createMemoryStorage = (): Storage => {
+  const values = new Map<string, string>()
+
+  return {
+    get length() {
+      return values.size
+    },
+    clear() {
+      values.clear()
+    },
+    getItem(key: string) {
+      return values.get(key) ?? null
+    },
+    key(index: number) {
+      return Array.from(values.keys()).at(index) ?? null
+    },
+    removeItem(key: string) {
+      values.delete(key)
+    },
+    setItem(key: string, value: string) {
+      values.set(key, value)
+    },
+  } as Storage
+}
+
+const createSafeStorage = (storage: Storage | null | undefined): Storage => {
+  if (!storage) {
+    return createMemoryStorage()
+  }
+
   const safeStorage = Object.create(storage) as Storage
 
   Object.defineProperties(safeStorage, {
@@ -121,11 +150,11 @@ const withSafeLocalStorageMethods = <TValue>(
     return callback()
   }
 
-  let storage: Storage
+  let storage: Storage | null | undefined
   try {
     storage = window.localStorage
   } catch {
-    return callback()
+    storage = null
   }
 
   const localStorageDescriptor = Object.getOwnPropertyDescriptor(
@@ -155,6 +184,10 @@ const withSafeLocalStorageMethods = <TValue>(
         Reflect.deleteProperty(window, "localStorage")
       }
     }
+  }
+
+  if (!storage) {
+    return callback()
   }
 
   const restoreGetItem = patchStorageMethod(

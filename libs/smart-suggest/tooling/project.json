@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-tooling",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/tooling/src",
+  "tags": [
+    "type:lib",
+    "area:smart-suggest",
+    "platform:shared",
+    "framework:agnostic"
+  ]
+}
