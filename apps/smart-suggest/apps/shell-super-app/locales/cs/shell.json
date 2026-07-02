@@ -43,7 +43,12 @@
       "submit": "Potvrdit doručovací údaje",
       "subtitle": "Vyberte adresu, zkontrolujte PSČ a nechte kurýrovi telefonní číslo.",
       "summaryTitle": "Doručovací adresa",
-      "title": "Kam máme objednávku doručit?"
+      "title": "Kam máme objednávku doručit?",
+      "variant": {
+        "html": "HTML ukázka",
+        "label": "Verze ukázek",
+        "react": "React / JSX ukázka"
+      }
     },
     "language": {
       "cs": "Čeština",

@@ -292,6 +292,23 @@ export default function SmartSuggestDemoPage() {
             <p className="shell:max-w-2xl shell:text-base shell:font-semibold shell:leading-7 shell:text-stone-600">
               {t('shell.demo.subtitle')}
             </p>
+            <nav
+              aria-label={t('shell.demo.variant.label')}
+              className="shell:flex shell:flex-wrap shell:gap-2 shell:pt-2"
+            >
+              <span
+                aria-current="page"
+                className="shell:rounded-md shell:bg-stone-950 shell:px-3 shell:py-2 shell:text-sm shell:font-black shell:text-white"
+              >
+                {t('shell.demo.variant.react')}
+              </span>
+              <a
+                className="shell:rounded-md shell:border shell:border-stone-900/15 shell:bg-white shell:px-3 shell:py-2 shell:text-sm shell:font-black shell:text-stone-800 shell:shadow-sm shell:shadow-stone-900/5 shell:hover:border-teal-700/40 shell:hover:text-teal-800 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40"
+                href="/sdk/demo.html"
+              >
+                {t('shell.demo.variant.html')}
+              </a>
+            </nav>
           </div>
 
           <div className="shell:grid shell:gap-4 shell:md:grid-cols-2">

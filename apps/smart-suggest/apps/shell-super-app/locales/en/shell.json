@@ -43,7 +43,12 @@
       "submit": "Confirm delivery details",
       "subtitle": "Choose an address, check the postal code, and leave a phone number for the courier.",
       "summaryTitle": "Delivery address",
-      "title": "Where should we deliver your order?"
+      "title": "Where should we deliver your order?",
+      "variant": {
+        "html": "HTML demo",
+        "label": "Demo versions",
+        "react": "React / JSX demo"
+      }
     },
     "language": {
       "cs": "Czech",
