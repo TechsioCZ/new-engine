@@ -12,7 +12,7 @@ import {
   useLeadhubAdapter,
 } from "@techsio/analytics/leadhub"
 import { useMetaAdapter } from "@techsio/analytics/meta"
-import { createContext, type ReactNode, useContext, useMemo } from "react"
+import { createContext, type ReactNode, useContext } from "react"
 
 /**
  * Extended analytics interface with Leadhub-specific methods
@@ -71,19 +71,15 @@ export function AnalyticsProvider({
     debug,
   })
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const value = useMemo<AnalyticsContextValue>(
-    () => ({
-      // Unified methods (sends to all adapters)
-      ...analytics,
-      // Leadhub-specific methods
-      trackViewCategory: leadhubAdapter.trackViewCategory,
-      trackIdentify: leadhubAdapter.trackIdentify,
-      trackSetCart: leadhubAdapter.trackSetCart,
-      trackPageview: leadhubAdapter.trackPageview,
-    }),
-    [analytics, leadhubAdapter]
-  )
+  const value: AnalyticsContextValue = {
+    // Unified methods (sends to all adapters)
+    ...analytics,
+    // Leadhub-specific methods
+    trackViewCategory: leadhubAdapter.trackViewCategory,
+    trackIdentify: leadhubAdapter.trackIdentify,
+    trackSetCart: leadhubAdapter.trackSetCart,
+    trackPageview: leadhubAdapter.trackPageview,
+  }
 
   return (
     <AnalyticsContext.Provider value={value}>

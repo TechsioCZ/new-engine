@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   type CheckoutDetailsValues,
   resolveEffectiveCheckoutAddressDetails,
@@ -166,15 +166,11 @@ export function useCheckoutController() {
     )
   }, [activeRegionId, queryClient])
 
-  const countryItems = useMemo(
-    () =>
-      resolveCheckoutCountryItemsForRegion({
-        activeCountryCode: region?.country_code,
-        regionId: activeRegionId,
-        regions: regionsQuery.regions,
-      }),
-    [activeRegionId, region?.country_code, regionsQuery.regions]
-  )
+  const countryItems = resolveCheckoutCountryItemsForRegion({
+    activeCountryCode: region?.country_code,
+    regionId: activeRegionId,
+    regions: regionsQuery.regions,
+  })
 
   const actions = useCheckoutActions({
     cart: cartQuery.cart,
@@ -405,61 +401,28 @@ export function useCheckoutController() {
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId)
   const hasPayment = Boolean(effectiveSelectedPaymentProviderId)
 
-  const selectedShippingOptionPrice = useMemo(() => {
-    if (!checkoutShippingQuery.selectedShippingMethodId) {
-      return 0
-    }
-
-    return (
-      checkoutShippingQuery.shippingPrices[
-        checkoutShippingQuery.selectedShippingMethodId
-      ] ?? 0
-    )
-  }, [
-    checkoutShippingQuery.selectedShippingMethodId,
-    checkoutShippingQuery.shippingPrices,
-  ])
-
-  const cartItemsTotalAmount = useMemo(
-    () => resolveCartItemsTotalAmount(cartQuery.cart),
-    [cartQuery.cart]
+  const selectedShippingOptionPrice =
+    checkoutShippingQuery.selectedShippingMethodId
+      ? (checkoutShippingQuery.shippingPrices[
+          checkoutShippingQuery.selectedShippingMethodId
+        ] ?? 0)
+      : 0
+  const hasCartShippingMethods = Boolean(
+    cartQuery.cart?.shipping_methods?.length
   )
-
-  const cartShippingTotalAmount = useMemo(() => {
-    if (cartQuery.cart?.shipping_methods?.length) {
-      return resolveCartShippingTotalAmount(cartQuery.cart)
-    }
-
-    return selectedShippingOptionPrice
-  }, [cartQuery.cart, selectedShippingOptionPrice])
-
-  const cartShippingSubtotalAmount = useMemo(() => {
-    if (cartQuery.cart?.shipping_methods?.length) {
-      return resolveCartShippingSubtotalAmount(cartQuery.cart)
-    }
-
-    return selectedShippingOptionPrice
-  }, [cartQuery.cart, selectedShippingOptionPrice])
-
-  const cartTaxAmount = useMemo(
-    () => resolveCartTaxAmount(cartQuery.cart),
-    [cartQuery.cart]
+  const cartItemsTotalAmount = resolveCartItemsTotalAmount(cartQuery.cart)
+  const cartShippingTotalAmount = hasCartShippingMethods
+    ? resolveCartShippingTotalAmount(cartQuery.cart)
+    : selectedShippingOptionPrice
+  const cartShippingSubtotalAmount = hasCartShippingMethods
+    ? resolveCartShippingSubtotalAmount(cartQuery.cart)
+    : selectedShippingOptionPrice
+  const cartTaxAmount = resolveCartTaxAmount(cartQuery.cart)
+  const cartTotalAmount = resolveCartTotalAmount(cartQuery.cart)
+  const cartTotalWithoutTaxAmount = resolveCartTotalWithoutTaxAmount(
+    cartQuery.cart
   )
-
-  const cartTotalAmount = useMemo(
-    () => resolveCartTotalAmount(cartQuery.cart),
-    [cartQuery.cart]
-  )
-
-  const cartTotalWithoutTaxAmount = useMemo(
-    () => resolveCartTotalWithoutTaxAmount(cartQuery.cart),
-    [cartQuery.cart]
-  )
-
-  const cartItemsSubtotalAmount = useMemo(
-    () => resolveCartItemsSubtotalAmount(cartQuery.cart),
-    [cartQuery.cart]
-  )
+  const cartItemsSubtotalAmount = resolveCartItemsSubtotalAmount(cartQuery.cart)
 
   const isBusy =
     cartQuery.isFetching ||

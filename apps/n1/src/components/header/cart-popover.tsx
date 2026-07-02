@@ -1,7 +1,7 @@
 "use client"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Popover } from "@techsio/ui-kit/molecules/popover"
+import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useSuspenseCart } from "@/hooks/use-cart"

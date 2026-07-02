@@ -8,7 +8,7 @@ import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { createParser, createSerializer, useQueryState } from "nuqs"
-import { useCallback, useEffect } from "react"
+import { useEffect } from "react"
 import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog"
 import {
   formatReviewCount,
@@ -168,17 +168,14 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     REVIEW_PAGE_PARAM,
     reviewPageParser
   )
-  const getReviewPageUrl = useCallback(
-    ({ page }: { page: number }) => {
-      const query = searchParams.toString()
-      const baseHref = query ? `${pathname}?${query}` : pathname
-      const href = serializeReviewPage(baseHref, {
-        reviews_page: page <= 1 ? null : page,
-      })
-      return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
-    },
-    [pathname, searchParams]
-  )
+  const getReviewPageUrl = ({ page }: { page: number }) => {
+    const query = searchParams.toString()
+    const baseHref = query ? `${pathname}?${query}` : pathname
+    const href = serializeReviewPage(baseHref, {
+      reviews_page: page <= 1 ? null : page,
+    })
+    return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+  }
 
   const reviewsQuery = useProductReviews({
     productId: productId ?? undefined,

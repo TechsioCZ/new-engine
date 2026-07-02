@@ -1,7 +1,7 @@
 "use client"
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   getStoredRegionPreference,
   persistRegionPreference,
@@ -66,25 +66,12 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     persistRegionPreference(toRegionInfo(resolvedRegion))
   }, [regions, selectedRegionId])
 
-  const selectedRegion = useMemo(() => {
-    if (!selectedRegionId) {
-      return null
-    }
-
-    return (
-      regions.find(
+  const selectedRegion = selectedRegionId
+    ? (regions.find(
         (candidateRegion) => candidateRegion.id === selectedRegionId
-      ) ?? null
-    )
-  }, [regions, selectedRegionId])
-
-  const region = useMemo(() => {
-    if (selectedRegion) {
-      return toRegionInfo(selectedRegion)
-    }
-
-    return initialRegion
-  }, [initialRegion, selectedRegion])
+      ) ?? null)
+    : null
+  const region = selectedRegion ? toRegionInfo(selectedRegion) : initialRegion
 
   const setRegionById = (regionId: string) => {
     const nextRegion = regions.find(

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { useLogout } from "./auth"
 import { cartStorage } from "./cart-storage"
 import { resolveErrorMessage } from "./error-utils"
@@ -23,11 +23,11 @@ export const useLogoutAction = (options?: UseLogoutActionOptions) => {
   const [logoutError, setLogoutError] = useState<string | null>(null)
   const onSuccess = options?.onSuccess
 
-  const clearLogoutError = useCallback(() => {
+  const clearLogoutError = () => {
     setLogoutError(null)
-  }, [])
+  }
 
-  const handleLogout = useCallback(async (): Promise<LogoutActionResult> => {
+  const handleLogout = async (): Promise<LogoutActionResult> => {
     clearLogoutError()
 
     try {
@@ -45,7 +45,7 @@ export const useLogoutAction = (options?: UseLogoutActionOptions) => {
         error: resolvedError,
       }
     }
-  }, [clearLogoutError, logoutMutation, onSuccess])
+  }
 
   return {
     clearLogoutError,

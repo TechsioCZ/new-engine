@@ -2,7 +2,6 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
-import { useMemo } from "react"
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
@@ -28,38 +27,30 @@ export function useSearchListingController() {
   const query = queryState.q.trim()
   const isSearchQueryEnabled = Boolean(region?.region_id && query.length > 0)
 
-  const catalogProductsInput = useMemo(
-    () =>
-      buildCatalogProductsParams({
-        queryState,
-        limit: PLP_PAGE_SIZE,
-      }),
-    [queryState]
-  )
+  const catalogProductsInput = buildCatalogProductsParams({
+    queryState,
+    limit: PLP_PAGE_SIZE,
+  })
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
     enabled: isSearchQueryEnabled,
   })
 
-  const catalogFacetSeedInput = useMemo(
-    () =>
-      buildCatalogProductsParams({
-        queryState: {
-          ...queryState,
-          page: 1,
-          sort: "recommended",
-          status: [],
-          form: [],
-          brand: [],
-          ingredient: [],
-          price_min: null,
-          price_max: null,
-        },
-        limit: 1,
-      }),
-    [queryState]
-  )
+  const catalogFacetSeedInput = buildCatalogProductsParams({
+    queryState: {
+      ...queryState,
+      page: 1,
+      sort: "recommended",
+      status: [],
+      form: [],
+      brand: [],
+      ingredient: [],
+      price_min: null,
+      price_max: null,
+    },
+    limit: 1,
+  })
 
   const catalogFacetSeedQuery = useCatalogProducts({
     ...catalogFacetSeedInput,

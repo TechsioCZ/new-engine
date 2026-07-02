@@ -8,13 +8,7 @@ import {
   Label,
   Text,
 } from "@medusajs/ui"
-import {
-  type ChangeEvent,
-  type FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
 import { CoolSwitch } from "../../../../components"
@@ -59,6 +53,22 @@ type CustomerOption = Pick<
 const getCurrencySymbol = (currencyCode: string) =>
   currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
   currencyCode.toUpperCase()
+
+const toCustomerOption = (
+  customer: HttpTypes.AdminCustomer
+): CustomerOption | null => {
+  if (!customer.id) {
+    return null
+  }
+
+  return {
+    email: customer.email,
+    first_name: customer.first_name,
+    id: customer.id,
+    last_name: customer.last_name,
+    phone: customer.phone,
+  }
+}
 
 const RequiredLabel = ({
   children,
@@ -169,6 +179,7 @@ const CustomerSelection = ({
   )
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: existing employee form branching is outside this compiler cleanup.
 export function EmployeesCreateForm({
   handleSubmit,
   loading,
@@ -201,19 +212,17 @@ export function EmployeesCreateForm({
     })
 
   const currencyCode = company.currency_code?.toLowerCase() || "usd"
-  const customerOptions = useMemo(
-    () => (customerSearch?.customers ?? []) as CustomerOption[],
-    [customerSearch?.customers]
+  const customerOptions = (customerSearch?.customers ?? []).flatMap(
+    (customer) => {
+      const customerOption = toCustomerOption(customer)
+      return customerOption ? [customerOption] : []
+    }
   )
-  const exactCustomer = useMemo(() => {
-    const normalizedEmail = emailInput.toLowerCase()
-
-    return (
-      customerOptions.find(
-        (customer) => customer.email?.toLowerCase() === normalizedEmail
-      ) ?? null
-    )
-  }, [customerOptions, emailInput])
+  const normalizedEmail = emailInput.toLowerCase()
+  const exactCustomer =
+    customerOptions.find(
+      (customer) => customer.email?.toLowerCase() === normalizedEmail
+    ) ?? null
   const selectedCustomer =
     customerOptions.find((customer) => customer.id === formData.customer_id) ??
     null

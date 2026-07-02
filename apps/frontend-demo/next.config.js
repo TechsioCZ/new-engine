@@ -3,6 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["ui"],
   reactCompiler: true,
+  experimental: {
+    turbopackRustReactCompiler: true,
+  },
   // Removed 'output: export' to enable SSG with dynamic functions
   images: {
     remotePatterns: [

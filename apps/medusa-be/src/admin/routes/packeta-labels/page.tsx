@@ -12,7 +12,7 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { sdk } from "../../lib/sdk"
 
 type PacketaFulfillmentData = {
@@ -144,9 +144,8 @@ const PacketaLabelsPage = () => {
   })
 
   const orders = data?.orders ?? []
-  const printableOrders = useMemo(
-    () => orders.filter((order) => getPacketaLabels(order).length > 0),
-    [orders]
+  const printableOrders = orders.filter(
+    (order) => getPacketaLabels(order).length > 0
   )
   const selectedPrintableOrderIds = printableOrders
     .map((order) => order.id)

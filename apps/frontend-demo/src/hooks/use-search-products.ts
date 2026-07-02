@@ -1,9 +1,9 @@
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { getProducts } from "@/services"
 import type { Product } from "@/types/product"
 import { useRegions } from "./use-region"
 
-interface UseSearchProductsOptions {
+type UseSearchProductsOptions = {
   limit?: number
   fields?: string
 }
@@ -14,46 +14,43 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const searchProducts = useCallback(
-    async (query: string) => {
-      // Clear results if query is empty
-      if (!query.trim()) {
-        setSearchResults([])
-        setError(null)
-        return []
-      }
-
-      setIsSearching(true)
+  const searchProducts = async (query: string) => {
+    // Clear results if query is empty
+    if (!query.trim()) {
+      setSearchResults([])
       setError(null)
+      return []
+    }
 
-      try {
-        const response = await getProducts({
-          q: query,
-          fields: options?.fields || "id, handle, title",
-          limit: options?.limit || 10,
-          sort: "newest",
-          region_id: selectedRegion?.id,
-        })
+    setIsSearching(true)
+    setError(null)
 
-        setSearchResults(response.products)
-        return response.products
-      } catch (err) {
-        const error = err as Error
-        console.error("Search error:", error)
-        setError(error)
-        setSearchResults([])
-        return []
-      } finally {
-        setIsSearching(false)
-      }
-    },
-    [options?.fields, options?.limit]
-  )
+    try {
+      const response = await getProducts({
+        q: query,
+        fields: options?.fields || "id, handle, title",
+        limit: options?.limit || 10,
+        sort: "newest",
+        region_id: selectedRegion?.id,
+      })
 
-  const clearResults = useCallback(() => {
+      setSearchResults(response.products)
+      return response.products
+    } catch (err) {
+      const searchError = err as Error
+      console.error("Search error:", searchError)
+      setError(searchError)
+      setSearchResults([])
+      return []
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const clearResults = () => {
     setSearchResults([])
     setError(null)
-  }, [])
+  }
 
   return {
     searchResults,
