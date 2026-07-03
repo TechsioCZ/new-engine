@@ -498,6 +498,7 @@ type HouseNumberMatch = {
 
 type HouseNumberMatchOptions = {
   allowOrientationOnly: boolean;
+  minPrefixLength: number;
 };
 
 const createCandidateAddressNumbers = (): CandidateAddressNumbers => ({
@@ -553,8 +554,12 @@ const collectCandidateAddressNumbers = (
   return numbers;
 };
 
-const findMatchingHouseNumberPrefix = (queryNumber: string, houseNumbers: ReadonlySet<string>) => {
-  if (queryNumber.length < MIN_HOUSE_NUMBER_PREFIX_LENGTH) {
+const findMatchingHouseNumberPrefix = (
+  queryNumber: string,
+  houseNumbers: ReadonlySet<string>,
+  minPrefixLength = MIN_HOUSE_NUMBER_PREFIX_LENGTH,
+) => {
+  if (queryNumber.length < minPrefixLength) {
     return;
   }
 
@@ -601,6 +606,7 @@ const findHouseNumberMatch = (
   const prefixHouseNumber = findMatchingHouseNumberPrefix(
     queryCandidate.houseNumber,
     candidateNumbers.houseNumbers,
+    options.minPrefixLength,
   );
 
   if (prefixHouseNumber !== undefined) {
@@ -609,6 +615,16 @@ const findHouseNumberMatch = (
 
   return;
 };
+
+const shouldAllowSingleDigitHousePrefix = (
+  queryHouseNumbers: readonly HouseNumberCandidate[],
+  strongStreetTextMatch: boolean,
+) =>
+  strongStreetTextMatch &&
+  queryHouseNumbers.some(
+    (houseNumber) =>
+      houseNumber.orientationNumber === undefined && houseNumber.houseNumber.length === 1,
+  );
 
 const scoreConfidence = (confidence: number | undefined) => {
   if (confidence === undefined || !Number.isFinite(confidence)) {
@@ -815,10 +831,15 @@ const applyHouseNumberScore = (
   }
 
   const candidateHouseNumbers = collectCandidateAddressNumbers(candidate);
+  const queryHouseNumbers = extractHouseNumberCandidates(query);
+  const strongStreetTextMatch = hasStrongStreetTextMatch(query, candidate);
   const matchOptions = {
-    allowOrientationOnly: hasStrongStreetTextMatch(query, candidate),
+    allowOrientationOnly: strongStreetTextMatch,
+    minPrefixLength: shouldAllowSingleDigitHousePrefix(queryHouseNumbers, strongStreetTextMatch)
+      ? 1
+      : MIN_HOUSE_NUMBER_PREFIX_LENGTH,
   };
-  const matchedHouseNumbers = extractHouseNumberCandidates(query)
+  const matchedHouseNumbers = queryHouseNumbers
     .map((houseNumber) => findHouseNumberMatch(houseNumber, candidateHouseNumbers, matchOptions))
     .filter((match): match is HouseNumberMatch => match !== undefined);
 
@@ -935,8 +956,12 @@ const hasNumericQueryMatch = (query: string, candidate: AddressRankingCandidate)
   const hasPostalMatch =
     queryPostalCodes.length === 0 ||
     queryPostalCodes.some((postalCode) => candidatePostalCodes.has(postalCode.value));
+  const strongStreetTextMatch = hasStrongStreetTextMatch(query, candidate);
   const matchOptions = {
-    allowOrientationOnly: hasStrongStreetTextMatch(query, candidate),
+    allowOrientationOnly: strongStreetTextMatch,
+    minPrefixLength: shouldAllowSingleDigitHousePrefix(queryHouseNumbers, strongStreetTextMatch)
+      ? 1
+      : MIN_HOUSE_NUMBER_PREFIX_LENGTH,
   };
   const hasHouseNumberMatch =
     queryHouseNumbers.length === 0 ||

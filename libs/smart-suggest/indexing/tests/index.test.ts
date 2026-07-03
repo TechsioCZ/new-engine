@@ -358,6 +358,68 @@ it('prefers larger street clusters for ambiguous typed street prefixes', () => {
   ]);
 });
 
+it('keeps street suggestions while typing first house-number digit', () => {
+  const ranked = rankAddressCandidates('K Louži 1', [
+    {
+      address: {
+        city: 'Praha',
+        countryCode: 'CZ',
+        houseNumber: '466',
+        orientationNumber: '9',
+        postalCode: '101 00',
+        street: 'K louži',
+      },
+      confidence: 0.98,
+      displayLabel: 'K louži 466/9, 101 00 Praha, Vršovice, CZ',
+      id: 'k-louzi-466-9',
+    },
+    {
+      address: {
+        city: 'Praha',
+        countryCode: 'CZ',
+        houseNumber: '1256',
+        orientationNumber: '6',
+        postalCode: '101 00',
+        street: 'K louži',
+      },
+      confidence: 0.98,
+      displayLabel: 'K louži 1256/6, 101 00 Praha, Vršovice, CZ',
+      id: 'k-louzi-1256-6',
+    },
+    {
+      address: {
+        city: 'Praha',
+        countryCode: 'CZ',
+        houseNumber: '1258',
+        orientationNumber: '12',
+        postalCode: '101 00',
+        street: 'K louži',
+      },
+      confidence: 0.98,
+      displayLabel: 'K louži 1258/12, 101 00 Praha, Vršovice, CZ',
+      id: 'k-louzi-1258-12',
+    },
+    {
+      address: {
+        city: 'Cernolice',
+        countryCode: 'CZ',
+        houseNumber: '157',
+        postalCode: '252 10',
+        street: 'K Louce',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louce 157, 252 10 Cernolice, CZ',
+      id: 'k-louce-157',
+    },
+  ]);
+
+  expect(ranked.map(({ candidate }) => candidate.id)).toEqual([
+    'k-louzi-1256-6',
+    'k-louzi-1258-12',
+  ]);
+  expect(ranked[0]?.reasons).toContain('house-number:house-prefix:1256');
+});
+
 it('ranks slash pairs above same-street house and orientation decoys', () => {
   const kLouziCandidates = [
       {
@@ -566,7 +628,7 @@ it('ranks slash pairs above same-street house and orientation decoys', () => {
     expect(numberFirstRanked[0]?.reasons).toContain('house-number:orientation-exact:12');
     expect(
       rankAddressCandidates('K Louži 1', kLouziCandidates).map(({ candidate }) => candidate.id),
-    ).toEqual(['k-louzi-1312-1']);
+    ).toEqual(['k-louzi-1312-1', 'k-louzi-1258-12', 'k-louzi-1258-7']);
   });
 
   it('matches house and orientation numbers only by compatible shape', () => {

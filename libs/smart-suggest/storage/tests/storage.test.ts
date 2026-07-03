@@ -870,6 +870,13 @@ describe("smart suggest storage", () => {
           query: "K Louzi",
         }),
       );
+      const oneDigitHousePrefixSuggestions = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          limit: 10,
+          query: "K Louzi 1",
+        }),
+      );
       const source = yield* resolveStorageEffect(
         repositories.dataSources.getDataSource("ruian-cz"),
       );
@@ -883,6 +890,11 @@ describe("smart suggest storage", () => {
         "ruian-cz:1203604",
         "ruian-cz:1203605",
         "ruian-cz:1203606",
+      ]);
+      expect(oneDigitHousePrefixSuggestions.map((record) => record.id)).toEqual([
+        "ruian-cz:1203606",
+        "ruian-cz:1203603",
+        "ruian-cz:1203604",
       ]);
       expect(source).toMatchObject({
         datasetVersion: "ruian-cz-2026-05-31",
