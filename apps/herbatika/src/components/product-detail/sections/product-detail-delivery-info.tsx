@@ -1,11 +1,18 @@
 "use client"
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
+import {
+  formatLocationAvailability,
+  type ProductLocationAvailabilityState,
+} from "@/lib/storefront/product-location-availability"
 
 type ProductDetailDeliveryInfoProps = {
   freeShippingThresholdLabel: string | null
+  locationAvailabilityState: ProductLocationAvailabilityState
   offerState: ProductOfferState
 }
 
@@ -13,8 +20,10 @@ const DELIVERY_DATE_LABEL_PATTERN = /^u vás do\s+(.+)$/i
 
 export function ProductDetailDeliveryInfo({
   freeShippingThresholdLabel,
+  locationAvailabilityState,
   offerState,
 }: ProductDetailDeliveryInfoProps) {
+  const { error, isLoading, items } = locationAvailabilityState
   const availabilityToneClass = offerState.isInStock
     ? "text-primary"
     : "text-warning"
@@ -23,7 +32,7 @@ export function ProductDetailDeliveryInfo({
   )
 
   return (
-    <div className="rounded-lg bg-surface p-550">
+    <div className="space-y-400 rounded-lg bg-surface p-550">
       <div className="flex flex-nowrap items-center gap-650 lg:max-lg:flex lg:max-lg:flex-col">
         <div className="flex items-start gap-200">
           <Icon
@@ -64,6 +73,45 @@ export function ProductDetailDeliveryInfo({
           </div>
         ) : null}
       </div>
+
+      {isLoading ? (
+        <Skeleton aria-label="Načítavam dostupnosť podľa skladov">
+          <div className="grid gap-250 border-border-secondary border-t pt-400 sm:grid-cols-2">
+            <Skeleton.Rectangle className="h-500 rounded-sm" />
+            <Skeleton.Rectangle className="h-500 rounded-sm" />
+          </div>
+        </Skeleton>
+      ) : null}
+
+      {!isLoading && items?.length ? (
+        <dl className="grid gap-250 border-border-secondary border-t pt-400 sm:grid-cols-2">
+          {items.map((location) => {
+            const isAvailable = location.available_quantity > 0
+
+            return (
+              <div
+                className="flex min-w-0 items-center justify-between gap-250"
+                key={location.location_code}
+              >
+                <dt className="min-w-0 text-fg-secondary text-sm leading-snug">
+                  {location.location_name}
+                </dt>
+                <dd
+                  className={`shrink-0 text-right font-semibold text-sm ${isAvailable ? "text-primary" : "text-warning"}`}
+                >
+                  {formatLocationAvailability(location.available_quantity)}
+                </dd>
+              </div>
+            )
+          })}
+        </dl>
+      ) : null}
+
+      {!isLoading && error ? (
+        <StatusText showIcon size="sm" status="warning">
+          Dostupnosť podľa skladov sa nepodarilo načítať.
+        </StatusText>
+      ) : null}
     </div>
   )
 }
