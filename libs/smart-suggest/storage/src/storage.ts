@@ -2149,7 +2149,6 @@ export const createArtifactSmartSuggestRepositories = ({
     string,
     SmartSuggestOwnedDataArtifactTokenManifest | undefined
   >();
-  const tokenBucketCache = new Map<string, SmartSuggestOwnedDataArtifactTokenBucket | undefined>();
   const tokenBucketEntryCache = new Map<
     string,
     SmartSuggestOwnedDataArtifactTokenBucketEntry | undefined
@@ -2262,18 +2261,6 @@ export const createArtifactSmartSuggestRepositories = ({
       }),
     );
 
-  const readCanonicalRecordShard = (
-    manifest: SmartSuggestOwnedDataArtifactManifest,
-    recordBucket: string,
-  ) =>
-    readRecordShard(
-      manifest,
-      renderArtifactPath(manifest.indexes.addressRecords.pathTemplate, {
-        countryCode: manifest.dataset.countryCode,
-        recordBucket,
-      }),
-    );
-
   const readRecordShardByIds = (
     manifest: SmartSuggestOwnedDataArtifactManifest,
     recordBucket: string,
@@ -2358,50 +2345,6 @@ export const createArtifactSmartSuggestRepositories = ({
         return record === undefined ? [] : [record];
       });
     });
-  };
-
-  const readTokenBucket = (
-    manifest: SmartSuggestOwnedDataArtifactManifest,
-    token: string,
-  ): SmartSuggestStorageEffect<SmartSuggestOwnedDataArtifactTokenBucket | undefined> => {
-    const { bucketCount, bucketPathTemplate } = manifest.indexes.addressTokens;
-
-    if (bucketCount === undefined || bucketPathTemplate === undefined) {
-      return Effect.succeed(undefined);
-    }
-
-    const tokenBucket = artifactBucketForKey(token, bucketCount);
-    const cacheKey = `${manifest.dataset.countryCode}:${tokenBucket}`;
-
-    if (tokenBucketCache.has(cacheKey)) {
-      return Effect.succeed(tokenBucketCache.get(cacheKey));
-    }
-
-    const path = renderArtifactPath(bucketPathTemplate, {
-      countryCode: manifest.dataset.countryCode,
-      tokenBucket,
-    });
-
-    return fetchArtifactJson({
-      allowMissing: true,
-      fetchImpl,
-      schema: SmartSuggestOwnedDataArtifactTokenBucketSchema,
-      url: artifactUrlForPath(manifestUrl, path),
-    }).pipe(
-      Effect.map((bucket) => {
-        const usableBucket =
-          bucket === undefined ||
-          bucket.countryCode !== manifest.dataset.countryCode ||
-          bucket.bucket !== Number(tokenBucket) ||
-          (!allowIncomplete && !bucket.complete)
-            ? undefined
-            : bucket;
-
-        tokenBucketCache.set(cacheKey, usableBucket);
-
-        return usableBucket;
-      }),
-    );
   };
 
   const readTokenBucketEntry = (

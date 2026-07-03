@@ -56,13 +56,13 @@ const smartSuggestArtifactPublicPath = 'smart-suggest-owned-data';
 const smartSuggestArtifactManifestUrl =
   envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL') ||
   `${siteUrl.replace(/\/+$/u, '')}/${smartSuggestArtifactPublicPath}/manifest.json`;
-type CloudflareD1Database = {
+interface CloudflareD1Database {
   binding: string;
   databaseId: string;
   databaseName: string;
   previewDatabaseId?: string;
   remote?: boolean;
-};
+}
 const envFlag = (name: string) => {
   const value = envValue(name)?.toLowerCase();
 
@@ -137,7 +137,7 @@ const parseSmartSuggestShardD1Databases = (): CloudflareD1Database[] => {
   const parsed = JSON.parse(rawJson) as unknown;
 
   if (!Array.isArray(parsed)) {
-    throw new Error('SMART_SUGGEST_D1_SHARDS_JSON must be a JSON array.');
+    throw new TypeError('SMART_SUGGEST_D1_SHARDS_JSON must be a JSON array.');
   }
 
   return parsed.map((entry, index) => {
@@ -146,25 +146,25 @@ const parseSmartSuggestShardD1Databases = (): CloudflareD1Database[] => {
     }
 
     const record = entry as Record<string, unknown>;
-    const binding = typeof record['binding'] === 'string' ? record['binding'] : undefined;
-    const databaseName =
-      typeof record['databaseName'] === 'string'
-        ? record['databaseName']
-        : typeof record['database_name'] === 'string'
-          ? record['database_name']
-          : undefined;
-    const databaseId =
-      typeof record['databaseId'] === 'string'
-        ? record['databaseId']
-        : typeof record['database_id'] === 'string'
-          ? record['database_id']
-          : undefined;
-    const previewDatabaseId =
-      typeof record['previewDatabaseId'] === 'string'
-        ? record['previewDatabaseId']
-        : typeof record['preview_database_id'] === 'string'
-          ? record['preview_database_id']
-          : undefined;
+    const readStringProperty = (primaryKey: string, fallbackKey?: string) => {
+      const primaryValue = record[primaryKey];
+
+      if (typeof primaryValue === 'string') {
+        return primaryValue;
+      }
+
+      if (fallbackKey === undefined) {
+        return;
+      }
+
+      const fallbackValue = record[fallbackKey];
+
+      return typeof fallbackValue === 'string' ? fallbackValue : undefined;
+    };
+    const binding = readStringProperty('binding');
+    const databaseName = readStringProperty('databaseName', 'database_name');
+    const databaseId = readStringProperty('databaseId', 'database_id');
+    const previewDatabaseId = readStringProperty('previewDatabaseId', 'preview_database_id');
 
     if (binding === undefined || databaseName === undefined || databaseId === undefined) {
       throw new Error(
@@ -311,6 +311,7 @@ export default defineConfig(
               worker: {
                 compatibilityDate: '2026-06-02',
                 name: cloudflareWorkerName,
+                publicAssetExcludes: ['api', 'shared'],
                 publicAssets: [
                   {
                     from: smartSuggestArtifactPublicPath,
@@ -321,7 +322,6 @@ export default defineConfig(
                     to: '.',
                   },
                 ],
-                publicAssetExcludes: ['api', 'shared'],
                 ...(smartSuggestD1Databases.length === 0
                   ? {}
                   : { d1Databases: smartSuggestD1Databases }),

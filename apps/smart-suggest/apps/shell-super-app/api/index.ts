@@ -565,9 +565,8 @@ const parseRuntimeList = (value: string | undefined) =>
 const readNamedD1Binding = (
   env: SmartSuggestWorkerEnv | undefined,
   bindingName: string,
-): SmartSuggestD1Binding | undefined => {
-  return (env as Record<string, SmartSuggestD1Binding | undefined> | undefined)?.[bindingName];
-};
+): SmartSuggestD1Binding | undefined =>
+  (env as Record<string, SmartSuggestD1Binding | undefined> | undefined)?.[bindingName];
 
 const maxShardSearchFanout = 14;
 const shardHashModulus = 2_147_483_647;
@@ -895,15 +894,15 @@ export const createShardedRepositories = ({
               query: input.query,
             };
 
-        if (input.countryCode !== undefined) {
-          searchInput.countryCode = input.countryCode;
-        }
-        if (input.countryCodes !== undefined) {
-          searchInput.countryCodes = input.countryCodes;
-        }
+            if (input.countryCode !== undefined) {
+              searchInput.countryCode = input.countryCode;
+            }
+            if (input.countryCodes !== undefined) {
+              searchInput.countryCodes = input.countryCodes;
+            }
 
-        return repository.addressRecords.searchAddressRecords(searchInput);
-      }),
+            return repository.addressRecords.searchAddressRecords(searchInput);
+          }),
         );
 
         return rankShardAddressRecordResults(input.query, shardResults.flat(), limit);
@@ -2562,6 +2561,24 @@ const countryCodeScopesForRequest = (request: SmartSuggestRequest) => {
   }
 };
 
+const suggestionMergeKey = (suggestion: SmartSuggestSuggestion) => {
+  const { address } = suggestion;
+  const structuredKey = [
+    address?.countryCode,
+    normalizeSuggestionPostalCode(address?.postalCode),
+    address?.city,
+    address?.street ?? address?.line1,
+    address?.houseNumber,
+    address?.orientationNumber,
+  ]
+    .filter((value) => value !== undefined && value.trim() !== '')
+    .join('|');
+
+  return normalizeSuggestionMergeText(
+    structuredKey === '' ? `${suggestion.source.id}|${suggestion.displayLabel}` : structuredKey,
+  );
+};
+
 const mergeScopedOwnedResponses = (
   request: SmartSuggestRequest,
   responses: readonly SmartSuggestResponse[],
@@ -2632,16 +2649,16 @@ const suggestFromOwnedDataForSingleCountry = (
           query: request.query,
         };
 
-      if (request.countryCode !== undefined) {
-        searchInput.countryCode = request.countryCode;
-      }
-      const effectiveCountryCodes = effectiveCountryCodesForSearch(request);
-      if (effectiveCountryCodes !== undefined) {
-        searchInput.countryCodes = effectiveCountryCodes;
-      }
-      if (request.limit !== undefined) {
-        searchInput.limit = request.limit;
-      }
+        if (request.countryCode !== undefined) {
+          searchInput.countryCode = request.countryCode;
+        }
+        const effectiveCountryCodes = effectiveCountryCodesForSearch(request);
+        if (effectiveCountryCodes !== undefined) {
+          searchInput.countryCodes = effectiveCountryCodes;
+        }
+        if (request.limit !== undefined) {
+          searchInput.limit = request.limit;
+        }
 
         const records = yield* repositories.addressRecords.searchAddressRecords(searchInput);
         const addressSuggestions = yield* Effect.all(
@@ -2693,16 +2710,16 @@ const suggestFromOwnedDataForSingleCountry = (
       query: request.query,
     };
 
-  if (request.countryCode !== undefined) {
-    searchInput.countryCode = request.countryCode;
-  }
-  const effectiveCountryCodes = effectiveCountryCodesForSearch(request);
-  if (effectiveCountryCodes !== undefined) {
-    searchInput.countryCodes = effectiveCountryCodes;
-  }
-  if (request.limit !== undefined) {
-    searchInput.limit = request.limit;
-  }
+    if (request.countryCode !== undefined) {
+      searchInput.countryCode = request.countryCode;
+    }
+    const effectiveCountryCodes = effectiveCountryCodesForSearch(request);
+    if (effectiveCountryCodes !== undefined) {
+      searchInput.countryCodes = effectiveCountryCodes;
+    }
+    if (request.limit !== undefined) {
+      searchInput.limit = request.limit;
+    }
 
     const records = yield* repositories.addressRecords.searchAddressRecords(searchInput);
     const addressSuggestions = yield* Effect.all(
@@ -3307,24 +3324,6 @@ const filterSuggestionsForRequest = (
     : { ...response, suggestions: scopedSuggestions };
 };
 
-const suggestionMergeKey = (suggestion: SmartSuggestSuggestion) => {
-  const { address } = suggestion;
-  const structuredKey = [
-    address?.countryCode,
-    normalizeSuggestionPostalCode(address?.postalCode),
-    address?.city,
-    address?.street ?? address?.line1,
-    address?.houseNumber,
-    address?.orientationNumber,
-  ]
-    .filter((value) => value !== undefined && value.trim() !== '')
-    .join('|');
-
-  return normalizeSuggestionMergeText(
-    structuredKey === '' ? `${suggestion.source.id}|${suggestion.displayLabel}` : structuredKey,
-  );
-};
-
 const mergeSuggestionResponses = (
   ownedResponse: SmartSuggestResponse,
   providerResponse: SmartSuggestResponse,
@@ -3679,15 +3678,15 @@ const providerEnrichmentResponseFor = ({
       return;
     }
 
-  if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
-    return;
-  }
+    if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
+      return;
+    }
 
-  if (!providerEnrichmentEnabledForRequest(request, env)) {
-    return;
-  }
+    if (!providerEnrichmentEnabledForRequest(request, env)) {
+      return;
+    }
 
-  const enrichment = yield* suggestFromProviderEnrichment({
+    const enrichment = yield* suggestFromProviderEnrichment({
       cacheKey,
       env,
       ownedResponse,

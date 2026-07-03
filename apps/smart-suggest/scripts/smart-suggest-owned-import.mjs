@@ -260,7 +260,7 @@ function defaultArgs(command) {
     artifactPageSize: 50,
     artifactRecordShardCount: 2048,
     artifactTokenBucketCount: 4096,
-  artifactTokenPreviewLimit: 64,
+    artifactTokenPreviewLimit: 64,
     artifactTokenRecordIdLimit: 4096,
     chunkSize: 500,
     command,
@@ -2744,12 +2744,12 @@ function writeLocalityCityArtifacts({ args, datasetVersion, localities, outDir }
       continue;
     }
 
-  addTokenPrefixes(
-    prefixRecords,
-    city,
-    artifactAddressCountRecord(record, addressCount),
-    args.artifactLocalityMaxPrefixLength,
-  );
+    addTokenPrefixes(
+      prefixRecords,
+      city,
+      artifactAddressCountRecord(record, addressCount),
+      args.artifactLocalityMaxPrefixLength,
+    );
   }
 
   return writePrefixRecordArtifacts({
@@ -3033,12 +3033,12 @@ function shouldWriteTokenPreview(token, sequence, limit) {
     return false;
   }
 
- const isSequenceToken = token.includes(' ');
- const sequenceParts = isSequenceToken ? token.split(' ') : [];
+  const isSequenceToken = token.includes(' ');
+  const sequenceParts = isSequenceToken ? token.split(' ') : [];
 
- if (token.length <= 2) {
- return false;
- }
+  if (token.length <= 2) {
+    return false;
+  }
 
   if (isSequenceToken) {
     if (sequenceParts.length !== 2) {
@@ -3052,15 +3052,15 @@ function shouldWriteTokenPreview(token, sequence, limit) {
     return (isShortLeadingParticle || isNamedNumberQualifier) && sequence <= limit;
   }
 
- if (!isSequenceToken && token.length > 4) {
- return false;
- }
+  if (!isSequenceToken && token.length > 4) {
+    return false;
+  }
 
   if (token.length === 1 && /^\d$/u.test(token)) {
     return false;
   }
 
- return sequence <= Math.min(limit, 8) || sequence % 2048 === 0;
+  return sequence <= Math.min(limit, 8) || sequence % 2048 === 0;
 }
 
 function addCityPreviewCandidate(cityPreviewStats, record, recordLine, args) {
@@ -3256,10 +3256,10 @@ function writePagedTokenBucketArtifacts({
     tokens: tokenReferences,
   });
 
- return {
- pageCount: pages.length,
- path: relativePath,
- };
+  return {
+    pageCount: pages.length,
+    path: relativePath,
+  };
 }
 
 function tokenPreviewCandidateLimit(_token, limit) {
@@ -3267,76 +3267,78 @@ function tokenPreviewCandidateLimit(_token, limit) {
 }
 
 function tokenPreviewEmbedLimit(token, limit) {
- return token.includes(' ') ? Math.min(limit, 8) : limit;
+  return token.includes(' ') ? Math.min(limit, 8) : limit;
 }
 
 function tokenPreviewStreetText(record) {
- return normalizeArtifactSearchText([record.parts?.street, record.parts?.line1].filter(Boolean).join(' '));
+  return normalizeArtifactSearchText(
+    [record.parts?.street, record.parts?.line1].filter(Boolean).join(' '),
+  );
 }
 
 function tokenPreviewLabel(record) {
- return normalizeArtifactSearchText(record.displayLabel ?? record.searchLabel ?? record.id ?? '');
+  return normalizeArtifactSearchText(record.displayLabel ?? record.searchLabel ?? record.id ?? '');
 }
 
 function tokenPreviewScore(token, record) {
- const normalizedToken = normalizeArtifactSearchText(token);
- const streetText = tokenPreviewStreetText(record);
- const label = tokenPreviewLabel(record);
- let score = 0;
+  const normalizedToken = normalizeArtifactSearchText(token);
+  const streetText = tokenPreviewStreetText(record);
+  const label = tokenPreviewLabel(record);
+  let score = 0;
 
- if (streetText.startsWith(normalizedToken)) {
- score += 1000 + Math.max(0, 64 - (streetText.length - normalizedToken.length));
- }
- if (label.startsWith(normalizedToken)) {
- score += 100;
- }
+  if (streetText.startsWith(normalizedToken)) {
+    score += 1000 + Math.max(0, 64 - (streetText.length - normalizedToken.length));
+  }
+  if (label.startsWith(normalizedToken)) {
+    score += 100;
+  }
 
- const quality = Number(record.quality ?? 0);
- if (Number.isFinite(quality)) {
- score += quality * 10;
- }
+  const quality = Number(record.quality ?? 0);
+  if (Number.isFinite(quality)) {
+    score += quality * 10;
+  }
 
- const addressCount = Number(record.ranking?.addressCount ?? 0);
- if (Number.isFinite(addressCount)) {
- score += Math.min(addressCount, 1000) / 1000;
- }
+  const addressCount = Number(record.ranking?.addressCount ?? 0);
+  if (Number.isFinite(addressCount)) {
+    score += Math.min(addressCount, 1000) / 1000;
+  }
 
- return score;
+  return score;
 }
 
 function rankTokenPreviewRecords(token, records, limit) {
- return records
- .toSorted(
- (left, right) =>
- tokenPreviewScore(token, right) - tokenPreviewScore(token, left) ||
- tokenPreviewLabel(left).localeCompare(tokenPreviewLabel(right), 'cs-CZ') ||
- String(left.id ?? '').localeCompare(String(right.id ?? ''), 'cs-CZ'),
- )
- .slice(0, tokenPreviewEmbedLimit(token, limit));
+  return records
+    .toSorted(
+      (left, right) =>
+        tokenPreviewScore(token, right) - tokenPreviewScore(token, left) ||
+        tokenPreviewLabel(left).localeCompare(tokenPreviewLabel(right), 'cs-CZ') ||
+        String(left.id ?? '').localeCompare(String(right.id ?? ''), 'cs-CZ'),
+    )
+    .slice(0, tokenPreviewEmbedLimit(token, limit));
 }
 
 async function readTokenPreviewRecords({ limit, previewPath }) {
- const recordsByToken = new Map();
+  const recordsByToken = new Map();
 
   if (limit <= 0 || !fs.existsSync(previewPath)) {
     return recordsByToken;
   }
 
- for await (const line of readNonEmptyLines(previewPath)) {
- const preview = parseArtifactTokenPreview(line);
- const records = recordsByToken.get(preview.token) ?? [];
+  for await (const line of readNonEmptyLines(previewPath)) {
+    const preview = parseArtifactTokenPreview(line);
+    const records = recordsByToken.get(preview.token) ?? [];
 
- if (records.length < tokenPreviewCandidateLimit(preview.token, limit)) {
- records.push(preview.record);
- recordsByToken.set(preview.token, records);
- }
- }
+    if (records.length < tokenPreviewCandidateLimit(preview.token, limit)) {
+      records.push(preview.record);
+      recordsByToken.set(preview.token, records);
+    }
+  }
 
- for (const [token, records] of recordsByToken) {
- recordsByToken.set(token, rankTokenPreviewRecords(token, records, limit));
- }
+  for (const [token, records] of recordsByToken) {
+    recordsByToken.set(token, rankTokenPreviewRecords(token, records, limit));
+  }
 
- return recordsByToken;
+  return recordsByToken;
 }
 
 async function writeTokenArtifactsFromTemp({
@@ -3600,11 +3602,11 @@ async function buildOwnedDataArtifacts(args, modules) {
           pagePathTemplate: 'token/{countryCode}/{token}/{page}.json',
           pageSize: args.artifactPageSize,
         },
-      localityCities: {
-        complete,
-        maxPrefixLength: args.artifactLocalityMaxPrefixLength,
-        pathTemplate: 'locality/{countryCode}/{prefix}.json',
-      },
+        localityCities: {
+          complete,
+          maxPrefixLength: args.artifactLocalityMaxPrefixLength,
+          pathTemplate: 'locality/{countryCode}/{prefix}.json',
+        },
         postalLocalities: {
           complete,
           pathTemplate: 'postal/{countryCode}/{postalCode}.json',

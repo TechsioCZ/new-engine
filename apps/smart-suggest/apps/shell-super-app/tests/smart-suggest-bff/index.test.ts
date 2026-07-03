@@ -114,7 +114,7 @@ const createSmartSuggestHandlerFromEnv = (
 };
 const requestPath = (request: Request) => new URL(request.url).pathname;
 
-const disposeTestHandlers: Array<() => Promise<void>> = [];
+const disposeTestHandlers: (() => Promise<void>)[] = [];
 
 const createSmartSuggestHandlerFromWorkerEnv = (
   repositories: SmartSuggestRepositories,
@@ -136,13 +136,13 @@ const createSmartSuggestHandlerFromWorkerEnv = (
 
   return (request) => {
     const path = requestPath(request);
-    return runtime.then((handler) => {
-      return handler.handler(request, {
+    return runtime.then((handler) =>
+      handler.handler(request, {
         env: runtimeEnv,
         method: request.method,
         path,
-      });
-    });
+      }),
+    );
   };
 };
 const createSmartSuggestHandler = (
@@ -475,7 +475,7 @@ describe('Smart Suggest effect API', () => {
       const searchInputs: Parameters<
         SmartSuggestRepositories['addressRecords']['searchAddressRecords']
       >[0][] = [];
-      const searchAddressRecords = repositories.addressRecords.searchAddressRecords;
+      const { searchAddressRecords } = repositories.addressRecords;
       repositories.addressRecords.searchAddressRecords = (input) => {
         searchInputs.push(input);
 
@@ -1014,7 +1014,7 @@ describe('Smart Suggest effect API', () => {
   );
 
   it.effect('routes place and short postal owned-data searches to dedicated storage kinds', () =>
-    Effect.gen(function* () {
+    Effect.gen(function* routePlaceShortPostalOwnedDataSearchesProgram() {
       const repositories = createInMemorySmartSuggestRepositories();
       const source = yield* resolveEffect(
         repositories.dataSources.registerDataSource({
@@ -1105,7 +1105,7 @@ describe('Smart Suggest effect API', () => {
   );
 
   it.effect('ranks multi-country owned-data responses globally before slicing', () =>
-    Effect.gen(function* () {
+    Effect.gen(function* rankMultiCountryOwnedDataResponsesProgram() {
       const repositories = createInMemorySmartSuggestRepositories();
       const czSource = yield* resolveEffect(
         repositories.dataSources.registerDataSource({
