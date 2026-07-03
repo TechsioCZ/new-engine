@@ -11,7 +11,6 @@ export type DemoAddressSuggestState =
 
 export interface CheckoutStateCopy {
   addressError: string;
-  addressLoading: string;
   addressManual: string;
   addressManualAction: string;
   addressScopeBlocked: string;
@@ -31,7 +30,6 @@ export interface AddressStatus {
 const checkoutStateCopy = {
   cs: {
     addressError: 'Našeptávání teď není dostupné. Adresu můžete zadat ručně.',
-    addressLoading: 'Hledáme odpovídající adresy...',
     addressManual: 'Ručně zadaná adresa',
     addressManualAction: 'Zadat adresu ručně',
     addressScopeBlocked: 'Vybraný stát není pro toto pole podporovaný.',
@@ -44,7 +42,6 @@ const checkoutStateCopy = {
   },
   en: {
     addressError: 'Suggestions are unavailable. You can enter the address manually.',
-    addressLoading: 'Looking up matching addresses...',
     addressManual: 'Manual address entry',
     addressManualAction: 'Enter address manually',
     addressScopeBlocked: 'The selected country is not supported for this field.',
@@ -133,7 +130,7 @@ export const getAddressStatus = ({
     }
 
     if (addressSuggestState.status === 'loading') {
-      return { status: 'default', text: copy.addressLoading };
+      return;
     }
 
     if (addressSuggestState.status === 'error') {

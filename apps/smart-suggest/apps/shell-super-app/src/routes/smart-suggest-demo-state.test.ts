@@ -8,7 +8,6 @@ import type { CheckoutStateCopy, DemoAddressSuggestState } from './smart-suggest
 
 const checkoutCopy = {
   addressError: 'Suggestions are unavailable. You can enter the address manually.',
-  addressLoading: 'Looking up matching addresses...',
   addressManual: 'Manual address entry',
   addressManualAction: 'Enter address manually',
   addressScopeBlocked: 'The selected country is not supported for this field.',
@@ -32,6 +31,19 @@ describe('smart suggest demo state', () => {
     expect(resolveDeliverySuggestKind('101 00')).toBe('postal');
     expect(resolveDeliverySuggestKind('10100')).toBe('postal');
     expect(resolveDeliverySuggestKind('Vinohradska 12 Praha')).toBe('address');
+  });
+
+  it('keeps address lookup loading state visually quiet', () => {
+    expect(
+      getAddressStatus({
+        addressInput: 'Javo',
+        addressSuggestState: { status: 'loading' },
+        copy: checkoutCopy,
+        manualAddress: false,
+        postalLocalitySelected: false,
+        selectedAddress: undefined,
+      }),
+    ).toBeUndefined();
   });
 
   it('keeps empty suggestion results quiet until manual entry is selected', () => {
