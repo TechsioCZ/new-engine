@@ -3,6 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@techsio/smart-suggest-client": ["./client/src/client.ts"],
+      "@techsio/smart-suggest-client/api": ["./client/src/api.ts"],
       "@techsio/smart-suggest-core": ["./core/src/core.ts"],
       "@techsio/smart-suggest-datasets": ["./datasets/src/datasets.ts"],
       "@techsio/smart-suggest-indexing": ["./indexing/src/indexing.ts"],

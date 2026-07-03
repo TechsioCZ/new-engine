@@ -33,6 +33,9 @@ const packageSources: Record<SmartSuggestPackage, string> = {
 };
 
 const packageSubpathSources: Partial<Record<SmartSuggestPackage, Record<string, string>>> = {
+  client: {
+    api: '../../client/src/api.ts',
+  },
   validation: {
     'phone-lite': '../../validation/src/phone-lite.ts',
     'phone-strict': '../../validation/src/phone-strict.ts',
