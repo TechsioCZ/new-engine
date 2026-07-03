@@ -354,6 +354,17 @@ function htmlHasSdkModuleScript(html) {
   );
 }
 
+function htmlAdvertisesOnlyOwnedDemoCountries(html) {
+  return (
+    html.includes('data-smart-suggest-countries="CZ"') &&
+    html.includes("countryCodes: ['CZ']") &&
+    html.includes('<option value="CZ">') &&
+    !html.includes('<option value="SK">') &&
+    !html.includes("countryCodes: ['CZ', 'SK']") &&
+    !html.includes('data-smart-suggest-countries="CZ,SK"')
+  );
+}
+
 function validateRootLocaleRedirect(report, root) {
   check(
     report,
@@ -431,6 +442,13 @@ function validateDemoHtml(report, demo, source) {
     `${source}-demo-form-fields`,
     'Demo exposes address, country, postal, and phone fields.',
     'Demo form fields are incomplete.',
+  );
+  check(
+    report,
+    htmlAdvertisesOnlyOwnedDemoCountries(demo.body),
+    `${source}-demo-owned-country-allowlist`,
+    'Demo advertises only countries backed by deployed owned data.',
+    'Demo advertises a country outside the deployed owned data.',
   );
   check(
     report,

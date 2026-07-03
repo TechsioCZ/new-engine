@@ -7,7 +7,6 @@ import {
 import type { CheckoutStateCopy, DemoAddressSuggestState } from './smart-suggest-demo-state';
 
 const checkoutCopy = {
-  addressEmpty: 'No match found. Check the text or enter the address manually.',
   addressError: 'Suggestions are unavailable. You can enter the address manually.',
   addressLoading: 'Looking up matching addresses...',
   addressManual: 'Manual address entry',
@@ -35,7 +34,7 @@ describe('smart suggest demo state', () => {
     expect(resolveDeliverySuggestKind('Vinohradska 12 Praha')).toBe('address');
   });
 
-  it('offers and labels manual entry after an unseeded lookup has no match', () => {
+  it('keeps empty suggestion results quiet until manual entry is selected', () => {
     expect(
       shouldOfferManualEntry({
         addressInput: 'Unseededova 404',
@@ -43,7 +42,7 @@ describe('smart suggest demo state', () => {
         manualAddress: false,
         selectedAddress: undefined,
       }),
-    ).toBe(true);
+    ).toBe(false);
 
     expect(
       getAddressStatus({
@@ -54,10 +53,7 @@ describe('smart suggest demo state', () => {
         postalLocalitySelected: false,
         selectedAddress: undefined,
       }),
-    ).toEqual({
-      status: 'warning',
-      text: checkoutCopy.addressEmpty,
-    });
+    ).toBeUndefined();
 
     expect(
       getAddressStatus({

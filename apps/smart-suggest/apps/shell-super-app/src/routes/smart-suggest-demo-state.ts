@@ -10,7 +10,6 @@ export type DemoAddressSuggestState =
   | { status: 'success'; data: { suggestions: readonly unknown[] } };
 
 export interface CheckoutStateCopy {
-  addressEmpty: string;
   addressError: string;
   addressLoading: string;
   addressManual: string;
@@ -31,7 +30,6 @@ export interface AddressStatus {
 
 const checkoutStateCopy = {
   cs: {
-    addressEmpty: 'Nenašli jsme shodu. Zkontrolujte text nebo adresu zadejte ručně.',
     addressError: 'Našeptávání teď není dostupné. Adresu můžete zadat ručně.',
     addressLoading: 'Hledáme odpovídající adresy...',
     addressManual: 'Ručně zadaná adresa',
@@ -45,7 +43,6 @@ const checkoutStateCopy = {
     saved: 'Doručovací údaje jsou připravené pro další krok.',
   },
   en: {
-    addressEmpty: 'No match found. Check the text or enter the address manually.',
     addressError: 'Suggestions are unavailable. You can enter the address manually.',
     addressLoading: 'Looking up matching addresses...',
     addressManual: 'Manual address entry',
@@ -104,9 +101,7 @@ export const shouldOfferManualEntry = ({
     return (
       manualAddress ||
       addressSuggestState.status === 'blocked' ||
-      addressSuggestState.status === 'error' ||
-      (addressSuggestState.status === 'success' &&
-        addressSuggestState.data.suggestions.length === 0)
+      addressSuggestState.status === 'error'
     );
   }
 
@@ -147,14 +142,6 @@ export const getAddressStatus = ({
 
     if (addressSuggestState.status === 'blocked') {
       return { status: 'warning', text: copy.addressScopeBlocked };
-    }
-
-    if (
-      addressSuggestState.status === 'success' &&
-      addressSuggestState.data.suggestions.length === 0 &&
-      addressInput.trim().length >= 3
-    ) {
-      return { status: 'warning', text: copy.addressEmpty };
     }
 
     return undefined;

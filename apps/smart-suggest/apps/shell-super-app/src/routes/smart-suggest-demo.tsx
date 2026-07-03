@@ -57,7 +57,7 @@ interface SmartSuggestBrowserGlobal {
     readonly language: string;
     readonly limit: number;
     readonly minQueryLength: number;
-    readonly onError: (error: unknown) => void;
+    readonly onError?: (error: unknown) => void;
     readonly onSuggestStateChange: (state: SmartSuggestBrowserSuggestState) => void;
     readonly onSuggestionSelect: (selection: SmartSuggestBrowserSelection) => void;
     readonly optionClassName: string;
@@ -74,7 +74,9 @@ declare global {
 }
 
 const ADDRESS_SUGGESTION_LIMIT = 20;
-const supportedCountries: readonly SupportedDemoCountry[] = ['CZ', 'SK'];
+const SDK_ATTACH_MAX_ATTEMPTS = 100;
+const SDK_ATTACH_RETRY_DELAY_MS = 25;
+const supportedCountries: readonly SupportedDemoCountry[] = ['CZ'];
 const smartSuggestOptionClassName =
   'shell:block shell:min-w-0 shell:whitespace-normal shell:break-words';
 
@@ -174,14 +176,41 @@ export default function SmartSuggestDemoPage() {
   useEffect(() => {
     let isActive = true;
     let sdkInstance: SmartSuggestBrowserInstance | undefined;
+    let sdkAttachRetryId: number | undefined;
+    let sdkAttachAttempts = 0;
+    const attachSdkRef: { current?: () => void } = {};
     let sdkScript: HTMLScriptElement | null = document.querySelector(
       'script[data-smart-suggest-sdk]',
     );
+
+    const clearSdkAttachRetry = () => {
+      if (sdkAttachRetryId !== undefined) {
+        window.clearTimeout(sdkAttachRetryId);
+        sdkAttachRetryId = undefined;
+      }
+    };
 
     const handleSdkLoadError = () => {
       if (isActive) {
         setAddressSuggestState({ status: 'error' });
       }
+    };
+
+    const scheduleSdkAttachRetry = () => {
+      if (!isActive || sdkInstance !== undefined) {
+        return;
+      }
+
+      if (sdkAttachAttempts >= SDK_ATTACH_MAX_ATTEMPTS) {
+        handleSdkLoadError();
+        return;
+      }
+
+      sdkAttachAttempts += 1;
+      clearSdkAttachRetry();
+      sdkAttachRetryId = window.setTimeout(() => {
+        attachSdkRef.current?.();
+      }, SDK_ATTACH_RETRY_DELAY_MS);
     };
 
     const attachSdk = () => {
@@ -191,10 +220,11 @@ export default function SmartSuggestDemoPage() {
 
       const smartSuggest = window.TechsioSmartSuggest;
       if (smartSuggest === undefined) {
-        handleSdkLoadError();
+        scheduleSdkAttachRetry();
         return;
       }
 
+      clearSdkAttachRetry();
       sdkInstance = smartSuggest.attach({
         addressLine: '#address-line',
         apiBaseUrl: '/api',
@@ -205,9 +235,6 @@ export default function SmartSuggestDemoPage() {
         language,
         limit: ADDRESS_SUGGESTION_LIMIT,
         minQueryLength: 1,
-        onError: () => {
-          setAddressSuggestState({ status: 'error' });
-        },
         onSuggestStateChange: (state) => {
           setAddressSuggestState(mapSdkSuggestState(state));
         },
@@ -222,6 +249,7 @@ export default function SmartSuggestDemoPage() {
         postalCode: '#postal-code',
       });
     };
+    attachSdkRef.current = attachSdk;
 
     if (window.TechsioSmartSuggest === undefined) {
       if (sdkScript === null) {
@@ -229,17 +257,21 @@ export default function SmartSuggestDemoPage() {
         sdkScript.dataset['smartSuggestSdk'] = 'true';
         sdkScript.src = '/sdk/techsio-smart-suggest.js';
         sdkScript.type = 'module';
-        document.head.append(sdkScript);
       }
 
       sdkScript.addEventListener('load', attachSdk);
       sdkScript.addEventListener('error', handleSdkLoadError);
+      if (!sdkScript.isConnected) {
+        document.head.append(sdkScript);
+      }
+      scheduleSdkAttachRetry();
     } else {
       attachSdk();
     }
 
     return () => {
       isActive = false;
+      clearSdkAttachRetry();
       sdkInstance?.destroy();
       sdkScript?.removeEventListener('load', attachSdk);
       sdkScript?.removeEventListener('error', handleSdkLoadError);
