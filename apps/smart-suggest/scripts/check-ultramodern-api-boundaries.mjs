@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
 const workspaceRoot = process.env.ULTRAMODERN_WORKSPACE_ROOT ?? process.cwd();
+const driftOnly = process.argv.includes('--drift-only');
 const failures = [];
 
 const ignoredDirectories = new Set([
@@ -26,6 +28,250 @@ const assert = (condition, message) => {
     fail(message);
   }
 };
+
+const resolveWorkspacePath = (relativePath) => path.resolve(workspaceRoot, relativePath);
+const displayPath = (relativePath) =>
+  normalize(path.relative(workspaceRoot, resolveWorkspacePath(relativePath)));
+const requireFromWorkspace = createRequire(path.join(workspaceRoot, 'package.json'));
+
+const omittedTypeScriptNodeKeys = new Set([
+  'amdDependencies',
+  'ambientModuleNames',
+  'bindDiagnostics',
+  'checkJsDirective',
+  'classifiableNames',
+  'commentDirectives',
+  'emitNode',
+  'end',
+  'endFlowNode',
+  'externalModuleIndicator',
+  'fileName',
+  'hasExtendedUnicodeEscape',
+  'id',
+  'identifiers',
+  'impliedNodeFormat',
+  'imports',
+  'isDeclarationFile',
+  'jsDoc',
+  'languageVariant',
+  'languageVersion',
+  'libReferenceDirectives',
+  'localSymbol',
+  'locals',
+  'maybeBind',
+  'modifierFlagsCache',
+  'moduleAugmentations',
+  'nextContainer',
+  'nodeCount',
+  'original',
+  'originalFileName',
+  'packageJsonLocations',
+  'packageJsonScope',
+  'parent',
+  'parseDiagnostics',
+  'path',
+  'pos',
+  'pragmas',
+  'referencedFiles',
+  'resolvedPath',
+  'scriptKind',
+  'setExternalModuleIndicator',
+  'singleQuote',
+  'symbol',
+  'symbolCount',
+  'transformFlags',
+  'typeReferenceDirectives',
+]);
+
+const loadTypeScript = () => {
+  try {
+    return requireFromWorkspace('typescript');
+  } catch (error) {
+    fail(
+      `Unable to load TypeScript for structured API drift checks (${error instanceof Error ? error.message : String(error)}).`,
+    );
+    return undefined;
+  }
+};
+
+const isTypeScriptNode = (value) =>
+  value !== null &&
+  typeof value === 'object' &&
+  typeof value.kind === 'number' &&
+  typeof value.pos === 'number' &&
+  typeof value.end === 'number';
+
+const serializeTypeScriptValue = (typescript, value) => {
+  if (value === undefined || typeof value === 'function') {
+    return undefined;
+  }
+
+  if (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return value;
+  }
+
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => serializeTypeScriptValue(typescript, item))
+      .filter((item) => item !== undefined);
+  }
+
+  if (!isTypeScriptNode(value)) {
+    return undefined;
+  }
+
+  const serialized = {
+    kind: typescript.SyntaxKind[value.kind] ?? String(value.kind),
+  };
+
+  for (const key of Object.keys(value).sort()) {
+    if (omittedTypeScriptNodeKeys.has(key)) {
+      continue;
+    }
+
+    if (key === 'text' && value.kind === typescript.SyntaxKind.SourceFile) {
+      continue;
+    }
+
+    const item = serializeTypeScriptValue(typescript, value[key]);
+    if (item !== undefined) {
+      serialized[key] = item;
+    }
+  }
+
+  return serialized;
+};
+
+const canonicalTypeScriptAst = (typescript, relativePath) => {
+  const absolutePath = resolveWorkspacePath(relativePath);
+  const label = displayPath(relativePath);
+
+  if (!fs.existsSync(absolutePath)) {
+    fail(`${label}: API contract drift check target is missing.`);
+    return undefined;
+  }
+
+  const source = fs.readFileSync(absolutePath, 'utf8');
+  const sourceFile = typescript.createSourceFile(
+    label,
+    source,
+    typescript.ScriptTarget.Latest,
+    true,
+    typescript.ScriptKind.TS,
+  );
+
+  if (sourceFile.parseDiagnostics.length > 0) {
+    for (const diagnostic of sourceFile.parseDiagnostics) {
+      const position =
+        diagnostic.start === undefined
+          ? undefined
+          : sourceFile.getLineAndCharacterOfPosition(diagnostic.start);
+      const location =
+        position === undefined ? '' : `:${position.line + 1}:${position.character + 1}`;
+      const message = typescript.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+      fail(
+        `${label}${location}: TypeScript parse error during API contract drift check: ${message}`,
+      );
+    }
+    return undefined;
+  }
+
+  return JSON.stringify(serializeTypeScriptValue(typescript, sourceFile));
+};
+
+const astHash = (canonicalAst) =>
+  createHash('sha256').update(canonicalAst).digest('hex').slice(0, 16);
+
+const assertSameTypeScriptAst = (typescript, leftPath, rightPath) => {
+  const leftAst = canonicalTypeScriptAst(typescript, leftPath);
+  const rightAst = canonicalTypeScriptAst(typescript, rightPath);
+
+  if (leftAst === undefined || rightAst === undefined) {
+    return;
+  }
+
+  assert(
+    leftAst === rightAst,
+    `${displayPath(leftPath)} must stay structurally in sync with ${displayPath(rightPath)} (AST hashes ${astHash(leftAst)} != ${astHash(rightAst)}).`,
+  );
+};
+
+const listTypeScriptFiles = (relativeDirectory) => {
+  const absoluteDirectory = resolveWorkspacePath(relativeDirectory);
+
+  if (!fs.existsSync(absoluteDirectory)) {
+    fail(`${displayPath(relativeDirectory)}: API contract drift check directory is missing.`);
+    return [];
+  }
+
+  return fs
+    .readdirSync(absoluteDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.ts'))
+    .map((entry) => path.posix.join(normalize(relativeDirectory), entry.name))
+    .sort();
+};
+
+const assertSameTypeScriptDirectoryAst = (typescript, leftDirectory, rightDirectory) => {
+  const leftFiles = listTypeScriptFiles(leftDirectory);
+  const rightFiles = listTypeScriptFiles(rightDirectory);
+  const leftNames = leftFiles.map((file) => path.posix.basename(file));
+  const rightNames = rightFiles.map((file) => path.posix.basename(file));
+
+  assert(
+    JSON.stringify(leftNames) === JSON.stringify(rightNames),
+    `${displayPath(leftDirectory)} must contain the same TypeScript files as ${displayPath(rightDirectory)}.`,
+  );
+
+  for (const fileName of leftNames.filter((name) => rightNames.includes(name))) {
+    assertSameTypeScriptAst(
+      typescript,
+      path.posix.join(normalize(leftDirectory), fileName),
+      path.posix.join(normalize(rightDirectory), fileName),
+    );
+  }
+};
+
+const assertSmartSuggestApiContractDriftGate = () => {
+  const typescript = loadTypeScript();
+  if (typescript === undefined) {
+    return;
+  }
+
+  assertSameTypeScriptAst(
+    typescript,
+    'apps/shell-super-app/shared/api.ts',
+    '../../libs/smart-suggest/client/src/api.ts',
+  );
+  assertSameTypeScriptDirectoryAst(
+    typescript,
+    'apps/shell-super-app/shared/smart-suggest-api-errors',
+    '../../libs/smart-suggest/client/src/smart-suggest-api-errors',
+  );
+};
+
+assertSmartSuggestApiContractDriftGate();
+
+if (driftOnly) {
+  if (failures.length > 0) {
+    console.error('Smart Suggest API contract drift check failed:');
+    for (const failure of failures) {
+      console.error(`- ${failure}`);
+    }
+    process.exit(1);
+  }
+
+  console.log('Smart Suggest API contract drift check passed.');
+  process.exit(0);
+}
 
 const publicEffectServerExports = [
   'createEffectBffEdgeHandler',

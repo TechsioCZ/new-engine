@@ -182,8 +182,7 @@ const meta: Meta<typeof Combobox> = {
     },
     loadingMessage: {
       control: 'text',
-      description: 'Loading state content',
-      table: { defaultValue: { summary: 'Loading results...' } },
+      description: 'Loading state content. Omit for a quiet (no-copy) loading state.',
     },
     error: {
       control: 'text',
@@ -191,7 +190,8 @@ const meta: Meta<typeof Combobox> = {
     },
     noResultsMessage: {
       control: 'text',
-      description: 'Empty state content. {inputValue} is interpolated.',
+      description:
+        'Empty state content. {inputValue} is interpolated. Omit for a quiet (no-copy) empty state.',
     },
     renderItem: { table: { disable: true } },
     renderEmptyState: { table: { disable: true } },

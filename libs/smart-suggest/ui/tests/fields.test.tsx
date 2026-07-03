@@ -26,9 +26,14 @@ const addressSuggestState = vi.hoisted(
       current: { status: "idle" },
     }) as {
       current:
-        | { status: "idle" | "loading" }
+        | { status: "idle" }
+        | { data?: { requestId: string; suggestions: SmartSuggestSuggestion[] }; status: "loading" }
         | { data: { requestId: string; suggestions: SmartSuggestSuggestion[] }; status: "success" }
-        | { error: unknown; status: "error" };
+        | {
+            data?: { requestId: string; suggestions: SmartSuggestSuggestion[] };
+            error: unknown;
+            status: "error";
+          };
     },
 );
 
@@ -282,6 +287,77 @@ describe("smart suggest UI wrappers", () => {
     expect(comboboxProps.at(-1)).toMatchObject({
       error: "Návrhy adries nie sú dostupné",
     });
+  });
+
+  it("stays quiet by default: no loading copy, no empty-results copy, no unavailable CTA", () => {
+    addressSuggestState.current = { status: "loading" };
+
+    renderToStaticMarkup(
+      createElement(AddressSuggestField, {
+        client: createMockSmartSuggestClient(),
+        inputValue: "P",
+      }),
+    );
+
+    expect(comboboxProps.at(-1)?.["loadingMessage"]).toBeUndefined();
+    expect(comboboxProps.at(-1)?.["noResultsMessage"]).toBeUndefined();
+    expect(comboboxProps.at(-1)?.["error"]).toBeUndefined();
+    expect(comboboxProps.at(-1)).toMatchObject({ items: [], loading: true });
+  });
+
+  it("keeps previous suggestions visible while a new request is loading", () => {
+    const suggestion: SmartSuggestSuggestion = {
+      confidence: 0.9,
+      displayLabel: "Praha",
+      id: "address-1",
+      kind: "address",
+      source: { id: "ruian", kind: "owned-dataset", name: "RUIAN" },
+    };
+
+    addressSuggestState.current = {
+      data: { requestId: "request-1", suggestions: [suggestion] },
+      status: "loading",
+    };
+
+    renderToStaticMarkup(
+      createElement(AddressSuggestField, {
+        client: createMockSmartSuggestClient(),
+        inputValue: "Pra",
+      }),
+    );
+
+    expect(comboboxProps.at(-1)).toMatchObject({
+      items: [suggestion],
+      loading: true,
+    });
+    expect(comboboxProps.at(-1)?.["error"]).toBeUndefined();
+  });
+
+  it("does not surface unavailable UX on a transient error while previous suggestions exist", () => {
+    const suggestion: SmartSuggestSuggestion = {
+      confidence: 0.9,
+      displayLabel: "Praha",
+      id: "address-1",
+      kind: "address",
+      source: { id: "ruian", kind: "owned-dataset", name: "RUIAN" },
+    };
+
+    addressSuggestState.current = {
+      data: { requestId: "request-1", suggestions: [suggestion] },
+      error: new Error("transient"),
+      status: "error",
+    };
+
+    renderToStaticMarkup(
+      createElement(AddressSuggestField, {
+        client: createMockSmartSuggestClient(),
+        inputValue: "Pra",
+        suggestUnavailableMessage: "Návrhy adries nie sú dostupné",
+      }),
+    );
+
+    expect(comboboxProps.at(-1)).toMatchObject({ items: [suggestion] });
+    expect(comboboxProps.at(-1)?.["error"]).toBeUndefined();
   });
 
   it("uses the shared postal fallback for local postal validation", async () => {

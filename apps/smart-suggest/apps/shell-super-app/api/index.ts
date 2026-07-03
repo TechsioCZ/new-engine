@@ -125,6 +125,8 @@ interface SmartSuggestWorkerEnv {
   SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS?: string;
   SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS?: string;
   SMART_SUGGEST_PROVIDER_ENRICHMENT_ENABLED?: string;
+  SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_MAX?: string;
+  SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_WINDOW_MS?: string;
   SMART_SUGGEST_PROVIDER_PRIORITY?: string;
   SMART_SUGGEST_PROVIDER_TIMEOUT_MS?: string;
   SMART_SUGGEST_QUERY_HASH_SECRET?: string;
@@ -147,14 +149,23 @@ const workerSuggestCaches = new WeakMap<
   SmartSuggestRepositories,
   Map<string, SmartSuggestLayerCacheEntry>
 >();
+// These in-memory limiters are per Worker isolate/process. They are burst guards,
+// not hard global quotas; use a Durable Object or shared store for cross-isolate limits.
 const inboundRateLimitBucketsByRepository = new WeakMap<
+  SmartSuggestRepositories,
+  Map<string, InboundRateLimitBucket>
+>();
+const providerOutboundBudgetBucketsByRepository = new WeakMap<
   SmartSuggestRepositories,
   Map<string, InboundRateLimitBucket>
 >();
 const maxWorkerSuggestCacheEntries = 500;
 const maxInboundRateLimitBuckets = 2000;
+const maxProviderOutboundBudgetBuckets = 2000;
 const defaultInboundRateLimitMax = 600;
 const defaultInboundRateLimitWindowMs = 60_000;
+const defaultProviderOutboundBudgetMax = 0;
+const defaultProviderOutboundBudgetWindowMs = 86_400_000;
 const defaultEdgeCacheTtlSeconds = 3600;
 const secondsPerDay = 86_400;
 
@@ -1410,6 +1421,21 @@ const readInboundRateLimitConfig = (env?: SmartSuggestWorkerEnv) => ({
   ),
 });
 
+const readProviderOutboundBudgetConfig = (env?: SmartSuggestWorkerEnv) => ({
+  max: boundedPositiveInt(
+    runtimeEnvNumber(env, 'SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_MAX'),
+    defaultProviderOutboundBudgetMax,
+    0,
+    1_000_000,
+  ),
+  windowMs: boundedPositiveInt(
+    runtimeEnvNumber(env, 'SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_WINDOW_MS'),
+    defaultProviderOutboundBudgetWindowMs,
+    1000,
+    86_400_000,
+  ),
+});
+
 const configuredCorsOrigins = (env?: SmartSuggestWorkerEnv) =>
   runtimeEnvStringArray(env, 'SMART_SUGGEST_ALLOWED_ORIGINS') ?? [];
 
@@ -1627,7 +1653,20 @@ const inboundRateLimitBucketsFor = (repositories: SmartSuggestRepositories) => {
   return buckets;
 };
 
-const requestClientIdentity = (request: HttpServerRequest.HttpServerRequest) => {
+const providerOutboundBudgetBucketsFor = (repositories: SmartSuggestRepositories) => {
+  const existingBuckets = providerOutboundBudgetBucketsByRepository.get(repositories);
+
+  if (existingBuckets !== undefined) {
+    return existingBuckets;
+  }
+
+  const buckets = new Map<string, InboundRateLimitBucket>();
+  providerOutboundBudgetBucketsByRepository.set(repositories, buckets);
+
+  return buckets;
+};
+
+const requestClientIp = (request: HttpServerRequest.HttpServerRequest) => {
   const forwardedFor = requestHeaderValue(request.headers, 'x-forwarded-for')
     ?.split(',')[0]
     ?.trim();
@@ -1636,8 +1675,7 @@ const requestClientIdentity = (request: HttpServerRequest.HttpServerRequest) => 
     requestHeaderValue(request.headers, 'cf-connecting-ip') ??
     envString(forwardedFor) ??
     Option.getOrUndefined(request.remoteAddress) ??
-    requestOrigin(request) ??
-    'anonymous'
+    'unknown-client-ip'
   );
 };
 
@@ -1648,13 +1686,33 @@ const rateLimitKeyFor = (
 ) =>
   [
     endpoint,
+    `ip:${requestClientIp(request)}`,
     authorization.tenantId ?? 'public',
     authorization.apiKeyHash === undefined ? 'no-api-key' : `api-key:${authorization.apiKeyHash}`,
-    authorization.origin ?? requestClientIdentity(request),
   ].join(':');
 
-const trimExpiredRateLimitBuckets = (buckets: Map<string, InboundRateLimitBucket>, now: number) => {
-  if (buckets.size < maxInboundRateLimitBuckets) {
+const evictEarliestResetRateLimitBucket = (buckets: Map<string, InboundRateLimitBucket>) => {
+  let earliestResetAt = Number.POSITIVE_INFINITY;
+  let earliestResetKey: string | undefined;
+
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt < earliestResetAt) {
+      earliestResetAt = bucket.resetAt;
+      earliestResetKey = key;
+    }
+  }
+
+  if (earliestResetKey !== undefined) {
+    buckets.delete(earliestResetKey);
+  }
+};
+
+const trimRateLimitBuckets = (
+  buckets: Map<string, InboundRateLimitBucket>,
+  now: number,
+  maxBuckets: number,
+) => {
+  if (buckets.size < maxBuckets) {
     return;
   }
 
@@ -1664,12 +1722,8 @@ const trimExpiredRateLimitBuckets = (buckets: Map<string, InboundRateLimitBucket
     }
   }
 
-  for (const key of buckets.keys()) {
-    if (buckets.size < maxInboundRateLimitBuckets) {
-      return;
-    }
-
-    buckets.delete(key);
+  while (buckets.size >= maxBuckets) {
+    evictEarliestResetRateLimitBucket(buckets);
   }
 };
 
@@ -1691,10 +1745,10 @@ const consumeInboundRateLimit = ({
     const config = readInboundRateLimitConfig(env);
     const buckets = inboundRateLimitBucketsFor(repositories);
     const key = rateLimitKeyFor(request, endpoint, authorization);
-    const existing = buckets.get(key);
 
     const allowed = yield* Effect.sync(() => {
-      trimExpiredRateLimitBuckets(buckets, now);
+      trimRateLimitBuckets(buckets, now, maxInboundRateLimitBuckets);
+      const existing = buckets.get(key);
 
       if (existing === undefined || existing.resetAt <= now) {
         buckets.set(key, {
@@ -3087,6 +3141,76 @@ const readProviderRuntimeConfig = (
   return config;
 };
 
+const paidProviderRuntimeConfigKeys = [
+  ['mapyCz', 'mapy-cz'],
+  ['radarAutocomplete', 'radar-autocomplete'],
+  ['hereDiscover', 'here-discover'],
+  ['nominatim', 'nominatim'],
+] as const satisfies readonly (readonly [keyof SmartSuggestProviderRuntimeConfig, string])[];
+
+const paidProviderSourceIdsForRuntimeConfig = (config: SmartSuggestProviderRuntimeConfig) =>
+  paidProviderRuntimeConfigKeys
+    .filter(([key]) => config[key] !== undefined)
+    .map(([, sourceId]) => sourceId);
+
+const providerOutboundBudgetKeyFor = (
+  request: SmartSuggestRequest,
+  paidProviderSourceIds: readonly string[],
+) =>
+  [
+    request.tenant?.tenantId ?? 'public',
+    request.countryCode ?? 'global',
+    request.kind,
+    paidProviderSourceIds.join(','),
+  ].join(':');
+
+const consumeProviderOutboundBudget = ({
+  env,
+  paidProviderSourceIds,
+  repositories,
+  request,
+}: {
+  env: SmartSuggestWorkerEnv | undefined;
+  paidProviderSourceIds: readonly string[];
+  repositories: SmartSuggestRepositories;
+  request: SmartSuggestRequest;
+}): Effect.Effect<boolean, never, never> =>
+  Effect.gen(function* consumeProviderOutboundBudgetProgram() {
+    if (paidProviderSourceIds.length === 0) {
+      return true;
+    }
+
+    const config = readProviderOutboundBudgetConfig(env);
+
+    if (config.max <= 0) {
+      return false;
+    }
+
+    const now = yield* Clock.currentTimeMillis;
+    const buckets = providerOutboundBudgetBucketsFor(repositories);
+    const key = providerOutboundBudgetKeyFor(request, paidProviderSourceIds);
+
+    return yield* Effect.sync(() => {
+      trimRateLimitBuckets(buckets, now, maxProviderOutboundBudgetBuckets);
+      const existing = buckets.get(key);
+
+      if (existing === undefined || existing.resetAt <= now) {
+        buckets.set(key, {
+          count: 1,
+          resetAt: now + config.windowMs,
+        });
+        return true;
+      }
+
+      if (existing.count >= config.max) {
+        return false;
+      }
+
+      existing.count += 1;
+      return true;
+    });
+  });
+
 const providerRegistryKey = (
   tenant: TenantRecord | undefined,
   request: SmartSuggestRequest,
@@ -3103,8 +3227,9 @@ const getProviderRegistry = (
   tenant: TenantRecord | undefined,
   request: SmartSuggestRequest,
   env?: SmartSuggestWorkerEnv,
+  runtimeConfig?: SmartSuggestProviderRuntimeConfig,
 ) => {
-  const config = readProviderRuntimeConfig(tenant, request, env);
+  const config = runtimeConfig ?? readProviderRuntimeConfig(tenant, request, env);
   const key = providerRegistryKey(tenant, request, config);
   const existingRegistry = providerRegistries.get(key);
 
@@ -3438,9 +3563,25 @@ const suggestFromProviderEnrichment = ({
       tenantId === undefined ? undefined : yield* repositories.tenants.getTenant(tenantId);
     const scopedConfig = readScopedProviderConfig(tenant, request, env);
     const providerCacheTtlSeconds = readProviderCacheTtlSeconds(scopedConfig.scopeConfigs, env);
-    const result = yield* getProviderRegistry(tenant, request, env).suggest(request, {
-      requestId: `provider-${queryHash.slice(0, 16)}`,
+    const providerRuntimeConfig = readProviderRuntimeConfig(tenant, request, env);
+    const paidProviderSourceIds = paidProviderSourceIdsForRuntimeConfig(providerRuntimeConfig);
+    const providerBudgetAllowed = yield* consumeProviderOutboundBudget({
+      env,
+      paidProviderSourceIds,
+      repositories,
+      request,
     });
+
+    if (!providerBudgetAllowed) {
+      return { kind: 'miss', providerAttempted: false };
+    }
+
+    const result = yield* getProviderRegistry(tenant, request, env, providerRuntimeConfig).suggest(
+      request,
+      {
+        requestId: `provider-${queryHash.slice(0, 16)}`,
+      },
+    );
 
     yield* recordProviderEvents({
       events: result.providerEvents,

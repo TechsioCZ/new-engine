@@ -683,7 +683,9 @@ export const SmartSuggestQueryTextSchema = Schema.String.check(
 const SmartSuggestQueryStructSchema = Schema.Struct({
   cartId: Schema.optionalKey(SmartSuggestIdSchema),
   countryCode: Schema.optionalKey(SmartSuggestCountryCodeSchema),
-  countryCodes: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(256))),
+  countryCodes: Schema.optionalKey(
+    Schema.String.check(nonBlankString('countryCodes'), Schema.isMaxLength(256)),
+  ),
   kind: SmartSuggestKindSchema,
   language: Schema.optionalKey(
     Schema.String.check(nonBlankString('language'), Schema.isMaxLength(16)),

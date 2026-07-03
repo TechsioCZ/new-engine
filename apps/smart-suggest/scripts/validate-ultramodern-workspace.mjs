@@ -1044,6 +1044,11 @@ assert(
   'Root must expose contract:check',
 );
 assert(
+  rootPackage.scripts?.['api:drift:check'] ===
+    'node ./scripts/check-ultramodern-api-boundaries.mjs --drift-only',
+  'Root must expose api:drift:check',
+);
+assert(
   rootPackage.scripts?.['i18n:boundaries'] ===
     'node ./scripts/check-ultramodern-i18n-boundaries.mjs',
   'Root must expose i18n:boundaries',
@@ -1123,9 +1128,8 @@ assert(
   'Root must expose skills:check',
 );
 assert(
-  rootPackage.scripts?.postinstall ===
-    "oxfmt . '!repos/**' && node ./scripts/bootstrap-agent-skills.mjs --postinstall",
-  'Root postinstall must only format and run the clone-free skills bootstrap; repository clones are explicit opt-in steps',
+  rootPackage.scripts?.postinstall === 'node ./scripts/bootstrap-agent-skills.mjs --postinstall',
+  'Root postinstall only runs clone-free skills bootstrap and never formats source',
 );
 assert(
   rootPackage.scripts?.['agents:refs:install'] === 'node ./scripts/setup-agent-reference-repos.mjs',

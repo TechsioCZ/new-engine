@@ -74,9 +74,10 @@
     "mf:types:assert": "node ./scripts/assert-mf-types.mjs",
     "performance:readiness": "node ./scripts/ultramodern-performance-readiness.mjs",
     "contract:check": "node ./scripts/validate-ultramodern-workspace.mjs",
+    "api:drift:check": "node ./scripts/check-ultramodern-api-boundaries.mjs --drift-only",
     "api:check": "node ./scripts/check-ultramodern-api-boundaries.mjs",
     "i18n:boundaries": "node ./scripts/check-ultramodern-i18n-boundaries.mjs",
-    "postinstall": "oxfmt . '!repos/**' && node ./scripts/bootstrap-agent-skills.mjs --postinstall",
+    "postinstall": "node ./scripts/bootstrap-agent-skills.mjs --postinstall",
     "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm api:check && pnpm contract:check && pnpm test:smoke && pnpm mf:types && pnpm performance:readiness"
   },
   "engines": {

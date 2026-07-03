@@ -76,13 +76,13 @@ export function AddressSuggestField({
   language,
   limit,
   minQueryLength,
-  noResultsMessage = "No matching address",
+  noResultsMessage,
   onAddressSelect,
   onInputValueChange,
   onSuggestStateChange,
   onSuggestionSelect,
   renderSuggestion = defaultRenderAddressSuggestion,
-  suggestUnavailableMessage = "Address suggestions are unavailable",
+  suggestUnavailableMessage,
   tenant,
   ...props
 }: AddressSuggestFieldProps) {
@@ -135,7 +135,10 @@ export function AddressSuggestField({
     onSuggestStateChange?.(suggestState);
   }, [onSuggestStateChange, suggestState]);
 
-  const suggestions = suggestState.status === "success" ? suggestState.data.suggestions : [];
+  // Keep previous suggestions visible while a new request is debouncing or in
+  // flight, and even across a single transient fetch error, so the list stays
+  // stable instead of collapsing during normal typing.
+  const suggestions = suggestState.data?.suggestions ?? [];
   const selectedById = useMemo(
     () => new Map(suggestions.map((suggestion) => [suggestion.id, suggestion])),
     [suggestions],
@@ -145,7 +148,7 @@ export function AddressSuggestField({
       return;
     }
 
-    const requestId = suggestState.status === "success" ? suggestState.data.requestId : "unknown";
+    const requestId = suggestState.data?.requestId ?? "unknown";
 
     detachSmartSuggestEffectAtBrowserEdge(
       resolvedClient.accept({
@@ -177,12 +180,20 @@ export function AddressSuggestField({
     acceptSuggestion(suggestion);
   };
 
+  // A transient fetch error while typing must not surface unavailable or
+  // manual-entry UX as long as previous suggestions are still shown. Only when
+  // there is no data to fall back on do we honor the opt-in unavailable message.
+  const transientUnavailable =
+    suggestState.status === "error" && suggestState.data === undefined
+      ? suggestUnavailableMessage
+      : undefined;
+
   return (
     <Combobox
       {...props}
       allowCustomValue
       closeOnSelect
-      error={suggestState.status === "error" ? suggestUnavailableMessage : error}
+      error={transientUnavailable ?? error}
       filterMode="remote"
       inputValue={currentInputValue}
       items={suggestions}

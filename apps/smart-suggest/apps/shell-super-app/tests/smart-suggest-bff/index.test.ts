@@ -94,6 +94,8 @@ const sha256HexForTest = (value: string) =>
   );
 const defaultTestEnv = {
   RUIAN_GEOCODE_DISABLED: 'true',
+  SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_MAX: '100000',
+  SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_WINDOW_MS: '60000',
 } satisfies SmartSuggestTestEnv;
 const testEnvFor = (env?: SmartSuggestTestEnv): SmartSuggestTestEnv => ({
   ...defaultTestEnv,
@@ -589,7 +591,10 @@ describe('Smart Suggest effect API', () => {
       });
       const request = () =>
         requestFor('/v1/suggest?kind=address&countryCode=CZ&q=vinohradska&limit=1', {
-          headers: { origin: 'https://rate-limit.example' },
+          headers: {
+            'cf-connecting-ip': '203.0.113.10',
+            origin: 'https://rate-limit.example',
+          },
         });
 
       const allowedResponse = yield* handlerCallEffect(testHandler, request());
@@ -602,6 +607,110 @@ describe('Smart Suggest effect API', () => {
       expect(allowedResponse.status).toBe(200);
       expect(limitedResponse.status).toBe(429);
       expect(limitedBody.errors[0]).toMatchObject({ code: 'rate-limit', retryable: true });
+    }),
+  );
+
+  it.effect('rate limits same client IP even when Origin rotates', () =>
+    Effect.gen(function* inboundRateLimitOriginRotationProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = yield* createSeededSmartSuggestHandler(repositories, {
+        SMART_SUGGEST_BFF_RATE_LIMIT_MAX: '1',
+        SMART_SUGGEST_BFF_RATE_LIMIT_WINDOW_MS: '60000',
+      });
+      const request = (origin: string) =>
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=vinohradska&limit=1', {
+          headers: {
+            'cf-connecting-ip': '203.0.113.11',
+            origin,
+          },
+        });
+
+      const allowedResponse = yield* handlerCallEffect(
+        testHandler,
+        request('https://shop-one.example'),
+      );
+      const limitedResponse = yield* handlerCallEffect(
+        testHandler,
+        request('https://shop-two.example'),
+      );
+      const limitedBody = yield* decodeJsonResponse(
+        limitedResponse,
+        SmartSuggestRateLimitErrorBodySchema,
+      );
+
+      expect(allowedResponse.status).toBe(200);
+      expect(limitedResponse.status).toBe(429);
+      expect(limitedBody.errors[0]).toMatchObject({ code: 'rate-limit', retryable: true });
+    }),
+  );
+
+  it.effect('keeps distinct client IPs behind the same Origin isolated', () =>
+    Effect.gen(function* inboundRateLimitSharedOriginProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = yield* createSeededSmartSuggestHandler(repositories, {
+        SMART_SUGGEST_BFF_RATE_LIMIT_MAX: '1',
+        SMART_SUGGEST_BFF_RATE_LIMIT_WINDOW_MS: '60000',
+      });
+      const request = (clientIp: string) =>
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=vinohradska&limit=1', {
+          headers: {
+            'cf-connecting-ip': clientIp,
+            origin: 'https://shared-origin.example',
+          },
+        });
+
+      const firstClientResponse = yield* handlerCallEffect(testHandler, request('203.0.113.12'));
+      const secondClientResponse = yield* handlerCallEffect(testHandler, request('203.0.113.13'));
+      const firstClientLimitedResponse = yield* handlerCallEffect(
+        testHandler,
+        request('203.0.113.12'),
+      );
+
+      expect(firstClientResponse.status).toBe(200);
+      expect(secondClientResponse.status).toBe(200);
+      expect(firstClientLimitedResponse.status).toBe(429);
+    }),
+  );
+
+  it.effect('evicts inbound limiter buckets by earliest reset time', () =>
+    Effect.gen(function* inboundRateLimitEvictionProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const longWindowHandler = createSmartSuggestHandler(repositories, {
+        SMART_SUGGEST_BFF_RATE_LIMIT_MAX: '1',
+        SMART_SUGGEST_BFF_RATE_LIMIT_WINDOW_MS: '3600000',
+      });
+      const shortWindowHandler = createSmartSuggestHandler(repositories, {
+        SMART_SUGGEST_BFF_RATE_LIMIT_MAX: '1',
+        SMART_SUGGEST_BFF_RATE_LIMIT_WINDOW_MS: '60000',
+      });
+      const liveRequest = () =>
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=live-bucket&limit=1', {
+          headers: {
+            'cf-connecting-ip': '203.0.113.250',
+            origin: 'https://live-bucket.example',
+          },
+        });
+
+      const liveResponse = yield* handlerCallEffect(longWindowHandler, liveRequest());
+      expect(liveResponse.status).toBe(200);
+
+      for (let index = 0; index < 2000; index += 1) {
+        const fillResponse = yield* handlerCallEffect(
+          shortWindowHandler,
+          requestFor(`/v1/suggest?kind=address&countryCode=CZ&q=evict-${index}&limit=1`, {
+            headers: {
+              'cf-connecting-ip': `198.51.${Math.floor(index / 250)}.${index % 250}`,
+              origin: 'https://fill-buckets.example',
+            },
+          }),
+        );
+
+        expect(fillResponse.status).toBe(200);
+      }
+
+      const limitedLiveResponse = yield* handlerCallEffect(longWindowHandler, liveRequest());
+
+      expect(limitedLiveResponse.status).toBe(429);
     }),
   );
 
@@ -2117,6 +2226,62 @@ describe('Smart Suggest effect API', () => {
         suggestions: [],
       });
       expect(fetchMock).not.toHaveBeenCalled();
+    }),
+  );
+
+  it.effect('stops paid provider calls when outbound budget is exhausted', () =>
+    Effect.gen(function* shellEffectProviderBudgetExhaustedProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = createSmartSuggestHandler(repositories, {
+        MAPY_CZ_API_KEY: 'env-mapy-key',
+        MAPY_CZ_ENDPOINT_URL: 'https://mapy-budget.test/suggest',
+        SMART_SUGGEST_PROVIDER_ENRICHMENT_ENABLED: 'true',
+        SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_MAX: '1',
+        SMART_SUGGEST_PROVIDER_OUTBOUND_BUDGET_WINDOW_MS: '60000',
+        SMART_SUGGEST_PROVIDER_PRIORITY: 'mapy-cz',
+        SMART_SUGGEST_PROVIDER_TIMEOUT_MS: '100',
+      });
+      const fetchMock = vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          Response.json({
+            items: [
+              {
+                id: 'mapy-budget-address-1',
+                label: 'Budget Provider 1, Praha',
+                name: 'Budget Provider 1',
+                regionalStructure: [
+                  { isoCode: 'CZ', name: 'Česko', type: 'country' },
+                  { name: 'Praha', type: 'municipality' },
+                ],
+                type: 'regional.address',
+                zip: '110 00',
+              },
+            ],
+          }),
+        ),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      const firstResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=budget-first&limit=1'),
+      );
+      const secondResponse = yield* handlerCallEffect(
+        testHandler,
+        requestFor('/v1/suggest?kind=address&countryCode=CZ&q=budget-second&limit=1'),
+      );
+      const firstBody = yield* decodeJsonResponse(firstResponse, SmartSuggestResponseSchema);
+      const secondBody = yield* decodeJsonResponse(secondResponse, SmartSuggestResponseSchema);
+
+      expect(firstBody).toMatchObject({
+        cacheStatus: 'written',
+        suggestions: [{ id: 'mapy-budget-address-1', source: { kind: 'live-provider' } }],
+      });
+      expect(secondBody).toMatchObject({
+        cacheStatus: 'miss',
+        suggestions: [],
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     }),
   );
 

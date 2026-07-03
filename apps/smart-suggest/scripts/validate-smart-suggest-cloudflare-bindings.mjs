@@ -128,21 +128,67 @@ function envValue(name) {
   return value === undefined || value === '' ? undefined : value;
 }
 
-function normalizeArtifactManifestUrl(args) {
-  const explicitUrl =
-    args.artifactManifestUrl ?? envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL');
+function normalizeAbsoluteHttpUrl(value, label) {
+  if (!/^https?:\/\//u.test(value)) {
+    throw new Error(`${label} must be an absolute HTTP(S) URL.`);
+  }
 
-  if (explicitUrl === undefined) {
+  return value;
+}
+
+function normalizePublicOrigin(value, label) {
+  if (value === undefined) {
     return undefined;
   }
 
-  if (!/^https?:\/\//u.test(explicitUrl)) {
-    throw new Error(
-      '--artifact-static --artifact-manifest-url must be an absolute HTTP(S) URL when provided.',
+  try {
+    const url = new URL(normalizeAbsoluteHttpUrl(value, label));
+
+    return url.origin;
+  } catch {
+    throw new Error(`${label} must be a valid absolute HTTP(S) URL.`);
+  }
+}
+
+function appPublicUrlEnvName(app) {
+  return `ULTRAMODERN_PUBLIC_URL_${app
+    .replaceAll(/[^a-zA-Z0-9]+/gu, '_')
+    .replace(/^_+|_+$/gu, '')
+    .toUpperCase()}`;
+}
+
+function artifactManifestUrlFromOrigin(origin) {
+  return `${origin.replace(/\/+$/u, '')}/smart-suggest-owned-data/manifest.json`;
+}
+
+function normalizeArtifactManifestUrl(args, config) {
+  const explicitUrl =
+    args.artifactManifestUrl ?? envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL');
+
+  if (explicitUrl !== undefined) {
+    return normalizeAbsoluteHttpUrl(explicitUrl, '--artifact-static --artifact-manifest-url');
+  }
+
+  const publicUrlEnv = appPublicUrlEnvName(args.app);
+  const publicOrigin =
+    normalizePublicOrigin(envValue(publicUrlEnv), publicUrlEnv) ??
+    normalizePublicOrigin(envValue('MODERN_PUBLIC_SITE_URL'), 'MODERN_PUBLIC_SITE_URL');
+
+  if (publicOrigin !== undefined) {
+    return artifactManifestUrlFromOrigin(publicOrigin);
+  }
+
+  const workersDevSubdomain = envValue('ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN');
+
+  if (workersDevSubdomain !== undefined && typeof config.name === 'string') {
+    return artifactManifestUrlFromOrigin(
+      `https://${config.name}.${workersDevSubdomain}.workers.dev`,
     );
   }
 
-  return explicitUrl;
+  throw new Error(
+    `--artifact-static needs SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL, ${publicUrlEnv}, MODERN_PUBLIC_SITE_URL, or ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN so generated artifact URLs are environment-derived.`,
+  );
 }
 
 function printCzVuscEnvTemplate() {
@@ -221,6 +267,34 @@ function assertSdkDemoOutput(appRoot) {
   }
 }
 
+function assertArtifactStaticWorkerUsesAssetsFetch(appRoot, config) {
+  const outputRoot = path.join(appRoot, '.output');
+  const mainEntry = typeof config.main === 'string' ? config.main : 'server/index.mjs';
+  const mainPath = path.resolve(outputRoot, mainEntry);
+
+  assertInside(outputRoot, mainPath);
+
+  if (!fs.existsSync(mainPath)) {
+    throw new Error(`Generated Cloudflare worker entry missing: ${mainPath}`);
+  }
+
+  const workerSource = fs.readFileSync(mainPath, 'utf8');
+  const readsAssetsBinding =
+    workerSource.includes('env?.[ASSETS_BINDING]') ||
+    workerSource.includes('env[ASSETS_BINDING]') ||
+    workerSource.includes('env?.ASSETS') ||
+    workerSource.includes('env.ASSETS') ||
+    workerSource.includes("env['ASSETS']") ||
+    workerSource.includes('env["ASSETS"]');
+  const fetchesAssetsBinding = /\b(?:assets|ASSETS)\.fetch\s*\(/u.test(workerSource);
+
+  if (!readsAssetsBinding || !fetchesAssetsBinding) {
+    throw new Error(
+      `Generated Cloudflare worker entry ${path.relative(appRoot, mainPath)} does not prefer env.ASSETS.fetch() for static assets. Rebuild with a fixed framework output; this validator does not patch .output/server or .output/worker files.`,
+    );
+  }
+}
+
 function readD1Databases(config) {
   return Array.isArray(config.d1_databases) ? config.d1_databases : [];
 }
@@ -247,15 +321,21 @@ function assertD1Config(config) {
   }
 }
 
-function assertArtifactStaticConfig({ args, config }) {
+function assertArtifactStaticConfig({ appRoot, args, config }) {
   const vars = config.vars ?? {};
-  const expectedManifestUrl = normalizeArtifactManifestUrl(args);
+  const expectedManifestUrl = normalizeArtifactManifestUrl(args, config);
+
+  if (config.assets?.binding !== 'ASSETS') {
+    throw new Error('Cloudflare static assets must expose the ASSETS binding.');
+  }
 
   if (config.assets?.html_handling !== 'none') {
     throw new Error(
       'Cloudflare static asset html_handling must be none for explicit SDK demo URLs.',
     );
   }
+
+  assertArtifactStaticWorkerUsesAssetsFetch(appRoot, config);
 
   if (vars.SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE !== 'false') {
     throw new Error('SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE must be false.');
@@ -265,10 +345,7 @@ function assertArtifactStaticConfig({ args, config }) {
     throw new Error('SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS must be false.');
   }
 
-  if (
-    expectedManifestUrl !== undefined &&
-    vars.SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL !== expectedManifestUrl
-  ) {
+  if (vars.SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL !== expectedManifestUrl) {
     throw new Error(
       `SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL mismatch. Expected ${expectedManifestUrl}, generated ${vars.SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL}.`,
     );
@@ -311,7 +388,7 @@ function main(argv = process.argv.slice(2)) {
   assertNoServerOnlyPublicOutput(appRoot);
 
   if (args.artifactStatic) {
-    assertArtifactStaticConfig({ args, config });
+    assertArtifactStaticConfig({ appRoot, args, config });
   }
 
   if (args.requireD1) {

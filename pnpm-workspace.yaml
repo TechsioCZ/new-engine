@@ -84,6 +84,7 @@ patchedDependencies:
   medusa-plugin-content@0.2.0: patches/medusa-plugin-content@0.2.0.patch
   '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
   object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
+  'effect@4.0.0-beta.92': patches/effect-schema-error-type-id.patch
 
 packages:
   - packages/**

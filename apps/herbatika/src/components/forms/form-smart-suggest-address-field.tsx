@@ -16,6 +16,7 @@ type FormSmartSuggestAddressFieldProps = {
   id: string
   label?: ReactNode
   countryCode?: string
+  countryCodes?: readonly Uppercase<string>[]
   required?: boolean
   validationMode?: "none" | "blur"
   onAddressSelect?: (address: SmartSuggestAddressParts) => void
@@ -55,6 +56,7 @@ const formatAddressLine = (
 
 export function FormSmartSuggestAddressField({
   countryCode,
+  countryCodes,
   id,
   label,
   onAddressSelect,
@@ -82,6 +84,7 @@ export function FormSmartSuggestAddressField({
         autoComplete="address-line1"
         client={herbatikaSmartSuggestClient}
         countryCode={toCountryCode(countryCode)}
+        countryCodes={countryCodes}
         helpText={fieldFeedback.errorText}
         id={id}
         inputValue={value}
@@ -105,7 +108,7 @@ export function FormSmartSuggestAddressField({
           }
           field.handleChange(nextValue)
         }}
-        placeholder="Začnite písať ulicu"
+        placeholder="Začněte psát ulici"
         required={required}
         validateStatus={fieldFeedback.validateStatus}
       />

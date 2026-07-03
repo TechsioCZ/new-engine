@@ -805,10 +805,18 @@ export class SmartSuggestStorageError extends Schema.TaggedErrorClass<SmartSugge
 }
 
 const rawSqlFailureDetailPattern = /Failed query:|params:/u;
+const addressSearchFtsUnavailableStorageMessage =
+  "Smart Suggest address search FTS index unavailable.";
+const addressSearchFtsUnavailableDetailPattern =
+  /smart_suggest_address_search_fts|no such table|no such module|no such tokenizer/iu;
 
 function sanitizeStorageErrorMessage(error: unknown): string {
   const message =
     error instanceof Error ? error.message : "Smart Suggest storage operation failed.";
+
+  if (addressSearchFtsUnavailableDetailPattern.test(message)) {
+    return addressSearchFtsUnavailableStorageMessage;
+  }
 
   if (rawSqlFailureDetailPattern.test(message)) {
     return "Smart Suggest storage operation failed during D1 SQL execution.";
@@ -1381,7 +1389,7 @@ const D1_ADDRESS_IMPORT_SUBCHUNK_SIZE = 10;
 const D1_TOKEN_INSERT_SUBCHUNK_SIZE = 1000;
 const numericTokenPattern = /^\d+$/u;
 const addressSearchFtsUnavailablePattern =
-  /smart_suggest_address_search_fts|no such table|no such module|no such tokenizer/iu;
+  /smart_suggest_address_search_fts|no such table|no such module|no such tokenizer|Smart Suggest address search FTS index unavailable/iu;
 const importRunUniqueConstraintPattern =
   /smart_suggest_import_runs_active_source_shard_idx|UNIQUE constraint failed/u;
 

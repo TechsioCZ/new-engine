@@ -45,17 +45,16 @@ const inferredCloudflareUrl =
   cloudflareDeployEnabled && cloudflareWorkersDevSubdomain !== undefined
     ? `https://${cloudflareWorkerName}.${cloudflareWorkersDevSubdomain}.workers.dev`
     : undefined;
-// Site origin (SEO: canonical/hreflang URLs) prefers the site-wide public URL;
-// the per-app deployment URL only fills in when no site origin is configured.
-const siteUrl =
-  configuredSiteUrl ||
-  configuredCloudflareUrl ||
-  inferredCloudflareUrl ||
-  `http://localhost:${port}`;
+// Canonical/hreflang metadata only uses the site-wide public URL. Deployment
+// URLs stay separate so staging artifact-static config does not inherit a
+// production canonical hostname.
+const siteUrl = configuredSiteUrl || `http://localhost:${port}`;
+const deploymentPublicUrl = configuredCloudflareUrl || configuredSiteUrl || inferredCloudflareUrl;
 const smartSuggestArtifactPublicPath = 'smart-suggest-owned-data';
+const smartSuggestArtifactManifestBaseUrl = deploymentPublicUrl || siteUrl;
 const smartSuggestArtifactManifestUrl =
   envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL') ||
-  `${siteUrl.replace(/\/+$/u, '')}/${smartSuggestArtifactPublicPath}/manifest.json`;
+  `${smartSuggestArtifactManifestBaseUrl.replace(/\/+$/u, '')}/${smartSuggestArtifactPublicPath}/manifest.json`;
 interface CloudflareD1Database {
   binding: string;
   databaseId: string;
@@ -293,12 +292,10 @@ const buildCacheDirectory = `node_modules/.cache/rspack-${appId}-${buildTarget}`
 if (
   cloudflareDeployEnabled &&
   process.env['ULTRAMODERN_CLOUDFLARE_REQUIRE_PUBLIC_URLS'] === 'true' &&
-  configuredCloudflareUrl === undefined &&
-  configuredSiteUrl === undefined &&
-  inferredCloudflareUrl === undefined
+  deploymentPublicUrl === undefined
 ) {
   throw new Error(
-    `Cloudflare deploy for ${appId} needs ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP, MODERN_PUBLIC_SITE_URL, or ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN.`,
+    `Cloudflare deploy for ${appId} needs ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP, MODERN_PUBLIC_SITE_URL, or ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN for deployment URL derivation.`,
   );
 }
 

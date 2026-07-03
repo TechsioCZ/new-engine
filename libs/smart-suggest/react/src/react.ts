@@ -5,7 +5,7 @@ import type {
   SmartSuggestResponse,
 } from '@techsio/smart-suggest-core';
 import type { Effect } from 'effect/Effect';
-import { flatMap, runCallback, sleep, succeed, suspend } from 'effect/Effect';
+import { flatMap, runCallback, sleep, succeed, suspend, sync } from 'effect/Effect';
 import { isFailure } from 'effect/Exit';
 import { squash } from 'effect/Cause';
 import type {
@@ -30,7 +30,12 @@ export type SmartSuggestAsyncState<TData> =
   | {
       data?: undefined;
       error?: undefined;
-      status: 'idle' | 'loading';
+      status: 'idle';
+    }
+  | {
+      data?: TData;
+      error?: undefined;
+      status: 'loading';
     }
   | {
       data: TData;
@@ -38,7 +43,7 @@ export type SmartSuggestAsyncState<TData> =
       status: 'success';
     }
   | {
-      data?: undefined;
+      data?: TData;
       error: unknown;
       status: 'error';
     };
@@ -169,10 +174,26 @@ const useAbortableRequest = <TRequest, TResponse>(
 
     const activeRequest = request;
     let isActive = true;
-    setState({ status: 'loading' });
+
+    // Keep previous data visible while a new request is debouncing or in flight.
+    // Loading is announced only once the debounce window has elapsed, never before.
+    const announceLoading = sync(() => {
+      setState((previous) => {
+        if (previous.status === 'loading') {
+          return previous;
+        }
+
+        return previous.data === undefined
+          ? { status: 'loading' }
+          : { data: previous.data, status: 'loading' };
+      });
+    });
 
     const startRequest = suspend(() => requestFn(client, activeRequest, {}));
-    const program = delayMs > 0 ? sleep(delayMs).pipe(flatMap(() => startRequest)) : startRequest;
+    const program =
+      delayMs > 0
+        ? sleep(delayMs).pipe(flatMap(() => announceLoading), flatMap(() => startRequest))
+        : announceLoading.pipe(flatMap(() => startRequest));
     const interrupt = runCallback(program, {
       onExit: (result) => {
         if (!isActive) {
@@ -180,7 +201,15 @@ const useAbortableRequest = <TRequest, TResponse>(
         }
 
         if (isFailure(result)) {
-          setState({ error: toUnknownError(result.cause), status: 'error' });
+          setState((previous) =>
+            previous.data === undefined
+              ? { error: toUnknownError(result.cause), status: 'error' }
+              : {
+                  data: previous.data,
+                  error: toUnknownError(result.cause),
+                  status: 'error',
+                },
+          );
           return;
         }
 

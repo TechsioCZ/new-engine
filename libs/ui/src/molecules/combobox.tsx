@@ -162,10 +162,10 @@ type ComboboxStateContentProps = {
   className: string
   error?: ReactNode
   loading: boolean
-  loadingMessage: ReactNode
+  loadingMessage?: ReactNode | undefined
   inputValue: string
   hasOptions: boolean
-  noResultsMessage: string
+  noResultsMessage?: string | undefined
   renderEmptyState?: (details: ComboboxStateDetails) => ReactNode
   renderLoadingState?: (details: ComboboxStateDetails) => ReactNode
   renderErrorState?: (
@@ -194,9 +194,9 @@ export type ComboboxProps<TItem = DefaultComboboxItem> = VariantProps<
   showHelpTextIcon?: boolean
   filterMode?: "local" | "remote"
   loading?: boolean
-  loadingMessage?: ReactNode
+  loadingMessage?: ReactNode | undefined
   error?: ReactNode
-  noResultsMessage?: string
+  noResultsMessage?: string | undefined
   renderItem?: (details: ComboboxItemDetails<TItem>) => ReactNode
   renderEmptyState?: (details: ComboboxStateDetails) => ReactNode
   renderLoadingState?: (details: ComboboxStateDetails) => ReactNode
@@ -277,7 +277,7 @@ function ComboboxStateContent({
     )
   }
 
-  if (loading) {
+  if (loading && (loadingMessage || renderLoadingState)) {
     return (
       <output aria-live="polite" className={className}>
         {renderLoadingState ? renderLoadingState(details) : loadingMessage}
@@ -285,12 +285,16 @@ function ComboboxStateContent({
     )
   }
 
-  if (!hasOptions && inputValue) {
+  if (
+    !hasOptions &&
+    inputValue &&
+    (noResultsMessage || renderEmptyState)
+  ) {
     return (
       <output aria-live="polite" className={className}>
         {renderEmptyState
           ? renderEmptyState(details)
-          : noResultsMessage.replace("{inputValue}", inputValue)}
+          : noResultsMessage?.replace("{inputValue}", inputValue)}
       </output>
     )
   }
@@ -318,9 +322,9 @@ export function Combobox<TItem = DefaultComboboxItem>({
   showHelpTextIcon = true,
   filterMode = "local",
   loading = false,
-  loadingMessage = "Loading results...",
+  loadingMessage,
   error,
-  noResultsMessage = 'No results found for "{inputValue}"',
+  noResultsMessage,
   renderItem,
   renderEmptyState,
   renderLoadingState,

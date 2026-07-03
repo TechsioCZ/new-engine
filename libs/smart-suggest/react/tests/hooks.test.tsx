@@ -98,7 +98,7 @@ describe('Smart Suggest React hooks', () => {
     expect(suggest).toHaveBeenCalledTimes(1);
   });
 
-  it('clears stale address suggestions while a debounced request is waiting', async () => {
+  it('keeps previous address suggestions and stays quiet while a debounced request is waiting', async () => {
     let request = {
       kind: 'address',
       query: 'Praha',
@@ -119,7 +119,9 @@ describe('Smart Suggest React hooks', () => {
     };
 
     await render(createElement(Probe));
-    expect(states.at(-1)).toMatchObject({ status: 'loading' });
+    // During the debounce window, loading must not announce: state stays idle
+    // and no request has fired yet.
+    expect(states.at(-1)).toMatchObject({ status: 'idle' });
     expect(suggest).toHaveBeenCalledTimes(0);
 
     await advanceTimers(20);
@@ -135,12 +137,20 @@ describe('Smart Suggest React hooks', () => {
     };
     await render(createElement(Probe));
 
-    expect(states.at(-1)).toEqual({ status: 'loading' });
+    // Previous data stays visible; status does not flip to loading before the
+    // debounce fires.
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      status: 'success',
+    });
     expect(suggest).toHaveBeenCalledTimes(1);
 
     await advanceTimers(19);
 
-    expect(states.at(-1)).toEqual({ status: 'loading' });
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      status: 'success',
+    });
     expect(suggest).toHaveBeenCalledTimes(1);
 
     await advanceTimers(1);
@@ -150,6 +160,101 @@ describe('Smart Suggest React hooks', () => {
       status: 'success',
     });
     expect(suggest).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps previous suggestions visible while a new request is in flight', async () => {
+    let request = {
+      kind: 'address',
+      query: 'Praha',
+    } satisfies SmartSuggestRequest;
+    const states: SmartSuggestAsyncState<SmartSuggestResponse>[] = [];
+    const resolvePendingResponses: Array<(response: SmartSuggestResponse) => void> = [];
+    const suggest = vi.fn<SmartSuggestEffectClient['suggest']>(() =>
+      callback<SmartSuggestResponse, Error>((resume) => {
+        resolvePendingResponses.push((response) => {
+          resume(succeed(response));
+        });
+      }),
+    );
+    const client = createMockSmartSuggestClient({ suggest });
+
+    const Probe = () => {
+      states.push(useAddressSuggest({ client, debounceMs: 0, request }));
+      return null;
+    };
+
+    await render(createElement(Probe));
+    await advanceTimers(0);
+
+    await act(() => {
+      resolvePendingResponses[0]!({
+        cacheStatus: 'miss',
+        requestId: 'Praha',
+        suggestions: [],
+      });
+    });
+
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      status: 'success',
+    });
+
+    request = { kind: 'address', query: 'Brno' };
+    await render(createElement(Probe));
+    await advanceTimers(0);
+
+    // New request is in flight, but previous Praha data is retained so the
+    // consumer can keep the suggestion list stable.
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      status: 'loading',
+    });
+    expect(suggest).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps previous suggestions visible after a single transient fetch error', async () => {
+    let request = {
+      kind: 'address',
+      query: 'Praha',
+    } satisfies SmartSuggestRequest;
+    const states: SmartSuggestAsyncState<SmartSuggestResponse>[] = [];
+    let shouldFail = false;
+    const suggest = vi.fn<SmartSuggestEffectClient['suggest']>((activeRequest) =>
+      shouldFail
+        ? fail(new Error('transient'))
+        : succeed({
+            cacheStatus: 'miss',
+            requestId: activeRequest.query,
+            suggestions: [],
+          }),
+    );
+    const client = createMockSmartSuggestClient({ suggest });
+
+    const Probe = () => {
+      states.push(useAddressSuggest({ client, debounceMs: 0, request }));
+      return null;
+    };
+
+    await render(createElement(Probe));
+    await advanceTimers(0);
+
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      status: 'success',
+    });
+
+    shouldFail = true;
+    request = { kind: 'address', query: 'Brno' };
+    await render(createElement(Probe));
+    await advanceTimers(0);
+
+    // Transient failure surfaces the error but keeps previous data so the UI
+    // does not collapse into an unavailable state mid-typing.
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Praha' },
+      error: expect.any(Error),
+      status: 'error',
+    });
   });
 
   it('aborts an in-flight address request when the query changes', async () => {

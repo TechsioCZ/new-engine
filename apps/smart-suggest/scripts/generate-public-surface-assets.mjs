@@ -49,8 +49,8 @@ function printHelp() {
   process.stdout.write(`Usage:
     node scripts/generate-public-surface-assets.mjs --app shell-super-app [--target source|dist|cloudflare] [--require-public-origin]
 
-Set each app's production URL using the contract env key, for example:
-  ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP=https://example.com
+Set the site-wide SEO origin for sitemap and robots output:
+  MODERN_PUBLIC_SITE_URL=https://example.com
 
 Dynamic public routes can opt into sitemap expansion by adding a route-owned
 route.sitemap.mjs provider beside route metadata, or by adding an
@@ -69,26 +69,13 @@ function normalizeOrigin(value) {
 }
 
 function resolveOrigin(app, requirePublicOrigin) {
-  const cloudflare = app.deploy?.cloudflare ?? {};
-  const publicUrlEnv = cloudflare.publicUrlEnv;
-  const fromAppEnv =
-    typeof publicUrlEnv === 'string' ? normalizeOrigin(process.env[publicUrlEnv]) : undefined;
-  const fromGlobalEnv = normalizeOrigin(process.env.MODERN_PUBLIC_SITE_URL);
-  const workersDevSubdomain = process.env.ULTRAMODERN_CLOUDFLARE_WORKERS_DEV_SUBDOMAIN;
-  const fromWorkersDev =
-    typeof workersDevSubdomain === 'string' && workersDevSubdomain.trim() !== ''
-      ? normalizeOrigin(`https://${cloudflare.workerName}.${workersDevSubdomain}.workers.dev`)
-      : undefined;
-
-  // SEO output (sitemap <loc>, robots Sitemap:) uses the site-wide origin
-  // first; the per-app deployment URL is only a fallback.
-  const configuredOrigin = fromGlobalEnv ?? fromAppEnv ?? fromWorkersDev;
+  const configuredOrigin = normalizeOrigin(process.env.MODERN_PUBLIC_SITE_URL);
   if (configuredOrigin) {
     return configuredOrigin;
   }
   if (requirePublicOrigin) {
     throw new Error(
-      `${app.id} has public routes but no production public URL. Set ${publicUrlEnv ?? 'ULTRAMODERN_PUBLIC_URL_<APP>'} or MODERN_PUBLIC_SITE_URL.`,
+      `${app.id} has public routes but no SEO public URL. Set MODERN_PUBLIC_SITE_URL.`,
     );
   }
   return;
