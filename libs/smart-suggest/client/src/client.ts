@@ -8,6 +8,7 @@ import {
   SmartSuggestProviderTimeoutError,
   SmartSuggestProviderUnavailableError,
   SmartSuggestRateLimitError,
+  SmartSuggestErrorBodySchema,
   SmartSuggestStorageUnavailableError,
   SmartSuggestUnauthorizedError,
   SmartSuggestValidationError,
@@ -18,12 +19,14 @@ import type {
   SmartSuggestRequest,
   SmartSuggestResponse,
 } from "@techsio/smart-suggest-core";
+import { canonicalizeSmartSuggestCountryCodes } from "@techsio/smart-suggest-core";
 import type {
   PhoneValidationRequest,
   PhoneValidationResult,
   PostalValidationRequest,
   PostalValidationResult,
 } from "@techsio/smart-suggest-validation";
+import { Option, Schema } from "effect";
 import { type Cause, isDieReason, isFailReason, squash } from "effect/Cause";
 import {
   catchCause,
@@ -222,30 +225,19 @@ const createHttpClient = (
 const isNamedAbortError = (value: unknown): value is Error =>
   value instanceof Error && (value.name === "AbortError" || value.name === "TimeoutError");
 
-const isSmartSuggestErrorPayload = (value: unknown): value is SmartSuggestError =>
-  typeof value === "object" &&
-  value !== null &&
-  typeof Reflect.get(value, "code") === "string" &&
-  typeof Reflect.get(value, "message") === "string";
-
 const extractClientErrorPayload = (value: unknown): SmartSuggestClientErrorPayload => {
-  if (typeof value !== "object" || value === null) {
+  const decoded = Option.getOrUndefined(
+    Schema.decodeUnknownOption(SmartSuggestErrorBodySchema)(value),
+  );
+
+  if (decoded === undefined) {
     return {};
   }
 
-  const message = Reflect.get(value, "message");
-  const errors = Reflect.get(value, "errors");
-  const payload: SmartSuggestClientErrorPayload = {};
-
-  if (typeof message === "string") {
-    payload.message = message;
-  }
-
-  if (Array.isArray(errors)) {
-    payload.errors = errors.filter(isSmartSuggestErrorPayload);
-  }
-
-  return payload;
+  return {
+    errors: decoded.errors,
+    message: decoded.message,
+  };
 };
 
 const abortCauseFromClientError = (error: HttpClientError.HttpClientError) => {
@@ -368,19 +360,24 @@ const createApiClientEffect = (
     httpClient: createHttpClient(fetchImpl, requestSignal, publicUrlTransform),
   });
 
-const toSuggestQuery = (request: SmartSuggestRequest) => ({
-  kind: request.kind,
-  q: request.query,
-  ...(request.countryCode === undefined ? {} : { countryCode: request.countryCode }),
-  ...(request.language === undefined ? {} : { language: request.language }),
-  ...(request.limit === undefined ? {} : { limit: request.limit }),
-  ...(request.tenant?.tenantId === undefined ? {} : { tenantId: request.tenant.tenantId }),
-  ...(request.tenant?.salesChannelId === undefined
-    ? {}
-    : { salesChannelId: request.tenant.salesChannelId }),
-  ...(request.tenant?.cartId === undefined ? {} : { cartId: request.tenant.cartId }),
-  ...(request.tenant?.sessionId === undefined ? {} : { sessionId: request.tenant.sessionId }),
-});
+const toSuggestQuery = (request: SmartSuggestRequest) => {
+  const countryCodes = canonicalizeSmartSuggestCountryCodes(request.countryCodes);
+
+  return {
+    kind: request.kind,
+    q: request.query,
+    ...(request.countryCode === undefined ? {} : { countryCode: request.countryCode }),
+    ...(countryCodes.length === 0 ? {} : { countryCodes: countryCodes.join(",") }),
+    ...(request.language === undefined ? {} : { language: request.language }),
+    ...(request.limit === undefined ? {} : { limit: request.limit }),
+    ...(request.tenant?.tenantId === undefined ? {} : { tenantId: request.tenant.tenantId }),
+    ...(request.tenant?.salesChannelId === undefined
+      ? {}
+      : { salesChannelId: request.tenant.salesChannelId }),
+    ...(request.tenant?.cartId === undefined ? {} : { cartId: request.tenant.cartId }),
+    ...(request.tenant?.sessionId === undefined ? {} : { sessionId: request.tenant.sessionId }),
+  };
+};
 
 const toAcceptUrlTransform = (
   event: SmartSuggestAcceptEvent,

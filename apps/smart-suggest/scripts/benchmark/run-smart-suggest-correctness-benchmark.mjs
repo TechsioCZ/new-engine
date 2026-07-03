@@ -240,12 +240,9 @@ const canonicalSourceMap = (corpus) =>
 const sourceIdsForResultIds = (resultIds, sourceByResultId) =>
   unique(
     resultIds
-      .map((resultId) => sourceByResultId.get(resultId) ?? postalSourceId(resultId))
+      .map((resultId) => sourceByResultId.get(resultId))
       .filter((sourceId) => sourceId !== undefined),
   );
-
-const postalSourceId = (resultId) =>
-  resultId.startsWith('ruian-cz:postal:') ? 'ruian-cz' : undefined;
 
 const fixtureCoverageAssertions = (fixture) => {
   const labels = new Set(fixture.scenarios.flatMap((scenario) => scenario.labels ?? []));

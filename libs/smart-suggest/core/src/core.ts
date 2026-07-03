@@ -33,6 +33,32 @@ export type ProviderCachePolicy =
 
 export type SmartSuggestCountryCode = Uppercase<string>;
 
+export type SmartSuggestCountryCodeListParseErrorReason = "empty-allowlist" | "malformed-token";
+
+export type SmartSuggestCountryCodeListParseResult =
+  | {
+      ok: true;
+      countryCodes: readonly SmartSuggestCountryCode[];
+    }
+  | {
+      ok: false;
+      invalidTokens: readonly string[];
+      reason: SmartSuggestCountryCodeListParseErrorReason;
+    };
+
+export type SmartSuggestCountryScopeStatus = "allowlist" | "blocked" | "global" | "single";
+
+export type SmartSuggestCountryScopeBlockReason =
+  | "empty-allowlist"
+  | "selected-country-not-allowed";
+
+export type SmartSuggestCountryScope = {
+  countryCode?: SmartSuggestCountryCode | undefined;
+  countryCodes?: readonly SmartSuggestCountryCode[] | undefined;
+  reason?: SmartSuggestCountryScopeBlockReason | undefined;
+  status: SmartSuggestCountryScopeStatus;
+};
+
 export type SmartSuggestTenantContext = {
   tenantId?: string;
   salesChannelId?: string;
@@ -44,6 +70,8 @@ export type SmartSuggestRequest = {
   query: string;
   kind: SmartSuggestKind;
   countryCode?: SmartSuggestCountryCode;
+  countryCodes?: readonly SmartSuggestCountryCode[];
+  countryScope?: SmartSuggestCountryScope;
   language?: string;
   limit?: number;
   tenant?: SmartSuggestTenantContext;
@@ -96,6 +124,7 @@ export type SmartSuggestResponse = {
   suggestions: SmartSuggestSuggestion[];
   cacheStatus: SmartSuggestCacheStatus;
   cacheLevels?: SmartSuggestCacheLevels;
+  countryScope?: SmartSuggestCountryScope;
   providerEvents?: ProviderEventSummary[];
 };
 
@@ -240,6 +269,175 @@ export const isSerializableSuggestion = (suggestion: SmartSuggestSuggestion) => 
   } catch {
     return false;
   }
+};
+
+const smartSuggestCountryCodePattern = /^[A-Z]{2,3}$/u;
+
+const alpha2ByAlpha3: Record<string, SmartSuggestCountryCode> = {
+  AUT: "AT" as SmartSuggestCountryCode,
+  CZE: "CZ" as SmartSuggestCountryCode,
+  DEU: "DE" as SmartSuggestCountryCode,
+  ESP: "ES" as SmartSuggestCountryCode,
+  FRA: "FR" as SmartSuggestCountryCode,
+  GBR: "GB" as SmartSuggestCountryCode,
+  HUN: "HU" as SmartSuggestCountryCode,
+  ITA: "IT" as SmartSuggestCountryCode,
+  POL: "PL" as SmartSuggestCountryCode,
+  SVK: "SK" as SmartSuggestCountryCode,
+  USA: "US" as SmartSuggestCountryCode,
+};
+
+export const normalizeSmartSuggestCountryCode = (
+  value: string | undefined,
+): SmartSuggestCountryCode | undefined => {
+  const normalizedCountryCode = value?.trim().toUpperCase();
+
+  if (
+    normalizedCountryCode === undefined ||
+    normalizedCountryCode === "" ||
+    !smartSuggestCountryCodePattern.test(normalizedCountryCode)
+  ) {
+    return;
+  }
+
+  return (
+    alpha2ByAlpha3[normalizedCountryCode] ?? (normalizedCountryCode as SmartSuggestCountryCode)
+  );
+};
+
+export const canonicalizeSmartSuggestCountryCodes = (
+  countryCodes: readonly (SmartSuggestCountryCode | undefined)[] | undefined,
+): readonly SmartSuggestCountryCode[] =>
+  [
+    ...new Set(
+      (countryCodes ?? [])
+        .map((countryCode) => normalizeSmartSuggestCountryCode(countryCode))
+        .filter((countryCode): countryCode is SmartSuggestCountryCode => countryCode !== undefined),
+    ),
+  ].toSorted();
+
+export const parseSmartSuggestCountryCodeList = (
+  value: string | undefined,
+): SmartSuggestCountryCodeListParseResult => {
+  if (value === undefined) {
+    return { countryCodes: [], ok: true };
+  }
+
+  const tokens = value.split(",");
+  const trimmedTokens = tokens.map((token) => token.trim());
+  const hasNonEmptyToken = trimmedTokens.some((token) => token !== "");
+
+  if (!hasNonEmptyToken) {
+    return { countryCodes: [], ok: true };
+  }
+
+  if (trimmedTokens.some((token) => token === "")) {
+    return {
+      invalidTokens: [""],
+      ok: false,
+      reason: "malformed-token",
+    };
+  }
+
+  const invalidTokens = trimmedTokens.filter(
+    (token) => normalizeSmartSuggestCountryCode(token) === undefined,
+  );
+
+  if (invalidTokens.length > 0) {
+    return {
+      invalidTokens,
+      ok: false,
+      reason: "malformed-token",
+    };
+  }
+
+  return {
+    countryCodes: canonicalizeSmartSuggestCountryCodes(
+      trimmedTokens.map((token) => normalizeSmartSuggestCountryCode(token)),
+    ),
+    ok: true,
+  };
+};
+
+export const resolveSmartSuggestCountryScope = ({
+  countryCode,
+  countryCodes,
+}: {
+  countryCode?: SmartSuggestCountryCode;
+  countryCodes?: readonly SmartSuggestCountryCode[];
+}): SmartSuggestCountryScope => {
+  const selectedCountryCode = normalizeSmartSuggestCountryCode(countryCode);
+  const canonicalCountryCodes = canonicalizeSmartSuggestCountryCodes(countryCodes);
+
+  if (countryCodes !== undefined && canonicalCountryCodes.length === 0) {
+    return {
+      countryCode: selectedCountryCode,
+      countryCodes: [],
+      reason: "empty-allowlist",
+      status: "blocked",
+    };
+  }
+
+  if (
+    selectedCountryCode !== undefined &&
+    canonicalCountryCodes.length > 0 &&
+    !canonicalCountryCodes.includes(selectedCountryCode)
+  ) {
+    return {
+      countryCode: selectedCountryCode,
+      countryCodes: canonicalCountryCodes,
+      reason: "selected-country-not-allowed",
+      status: "blocked",
+    };
+  }
+
+  if (selectedCountryCode !== undefined) {
+    return {
+      countryCode: selectedCountryCode,
+      countryCodes:
+        canonicalCountryCodes.length > 0 ? canonicalCountryCodes : [selectedCountryCode],
+      status: "single",
+    };
+  }
+
+  if (canonicalCountryCodes.length === 1) {
+    const [singleCountryCode] = canonicalCountryCodes;
+
+    return {
+      countryCode: singleCountryCode,
+      countryCodes: canonicalCountryCodes,
+      status: "single",
+    };
+  }
+
+  if (canonicalCountryCodes.length > 1) {
+    return {
+      countryCodes: canonicalCountryCodes,
+      status: "allowlist",
+    };
+  }
+
+  return { status: "global" };
+};
+
+export const smartSuggestCountryScopeIdentity = ({
+  countryCode,
+  countryCodes,
+}: {
+  countryCode?: SmartSuggestCountryCode;
+  countryCodes?: readonly SmartSuggestCountryCode[];
+}) => {
+  const selectedCountryCode = normalizeSmartSuggestCountryCode(countryCode);
+  const canonicalCountryCodes = canonicalizeSmartSuggestCountryCodes(countryCodes);
+
+  if (canonicalCountryCodes.length > 0) {
+    return [
+      selectedCountryCode === undefined ? "any" : selectedCountryCode,
+      canonicalCountryCodes.join(","),
+    ].join("|");
+  }
+
+  return selectedCountryCode ?? "global";
 };
 
 export const normalizeSuggestLimit = (limit: number | undefined) => {

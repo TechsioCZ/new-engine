@@ -3,6 +3,7 @@ import {
   type SmartSuggestEffectClient,
   type SmartSuggestFetch,
 } from "@techsio/smart-suggest-client";
+import { SmartSuggestValidationErrorBodySchema } from "@techsio/smart-suggest-client/api";
 import type {
   AddressParts,
   SmartSuggestAcceptEvent,
@@ -18,6 +19,7 @@ import {
   type PhoneValidationRequest,
   validatePhoneNumberLite,
 } from "@techsio/smart-suggest-validation/phone-lite";
+import { Option, Schema } from "effect";
 import { squash } from "effect/Cause";
 import { type Effect, runCallback } from "effect/Effect";
 import { isFailure } from "effect/Exit";
@@ -27,6 +29,10 @@ export type SmartSuggestVanillaFetch = SmartSuggestFetch;
 type TextControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 export type SmartSuggestVanillaField = TextControl | null | string | undefined;
+export type SmartSuggestVanillaSupportedCountries =
+  | readonly SmartSuggestCountryCode[]
+  | string
+  | undefined;
 
 export type SmartSuggestVanillaValidationResult = {
   displayValue?: string;
@@ -59,6 +65,12 @@ export type SmartSuggestVanillaAddressSelection = {
 export type SmartSuggestVanillaSuggestState =
   | { status: "idle" }
   | { status: "loading" }
+  | {
+      countryCode?: SmartSuggestCountryCode;
+      countryCodes: readonly SmartSuggestCountryCode[];
+      reason: "country-scope";
+      status: "blocked";
+    }
   | { error: unknown; status: "error" }
   | {
       requestId: string;
@@ -72,6 +84,7 @@ export type SmartSuggestVanillaConfig = {
   city?: SmartSuggestVanillaField;
   country?: SmartSuggestVanillaField;
   countryCode?: SmartSuggestCountryCode;
+  countryCodes?: SmartSuggestVanillaSupportedCountries;
   debounceMs?: number;
   fetch?: SmartSuggestVanillaFetch;
   language?: string;
@@ -193,11 +206,60 @@ const getControlForm = (control: TextControl | undefined) => control?.form ?? un
 
 const getSuggestQuerySignalLength = (value: string) => [...value.matchAll(/[\p{L}\p{N}]/gu)].length;
 
-const resolveSuggestKind = (query: string): SmartSuggestRequest["kind"] => {
+type SmartSuggestVanillaSuggestFieldKind = "address" | "place" | "postal";
+
+const resolveSuggestKind = (
+  query: string,
+  fieldKind: SmartSuggestVanillaSuggestFieldKind,
+): SmartSuggestRequest["kind"] => {
+  if (fieldKind === "place") {
+    return "place";
+  }
+  if (fieldKind === "postal") {
+    return "postal";
+  }
+
   const postalDigits = query.replaceAll(/\D/gu, "");
   const postalOnly = /^\s*\d[\d\s-]*\s*$/u.test(query);
 
-  return postalOnly && postalDigits.length >= 5 ? "postal" : "address";
+  return postalOnly && postalDigits.length > 0 ? "postal" : "address";
+};
+
+const countryCodeListAttributeNames = [
+  "data-smart-suggest-countries",
+  "data-smart-suggest-country-codes",
+  "data-supported-countries",
+] as const;
+
+const normalizeSupportedCountryCodes = (
+  value: SmartSuggestVanillaSupportedCountries,
+): readonly SmartSuggestCountryCode[] => {
+  const rawValues =
+    typeof value === "string" ? value.split(/[\s,;|]+/u) : Array.isArray(value) ? [...value] : [];
+
+  return [
+    ...new Set(
+      rawValues
+        .map((entry) => toCountryCode(String(entry)))
+        .filter((entry): entry is SmartSuggestCountryCode => entry !== undefined),
+    ),
+  ];
+};
+
+const readSupportedCountryCodesAttribute = (element: Element | undefined) => {
+  if (element === undefined) {
+    return [];
+  }
+
+  for (const attributeName of countryCodeListAttributeNames) {
+    const value = element.getAttribute(attributeName);
+
+    if (value !== null) {
+      return normalizeSupportedCountryCodes(value);
+    }
+  }
+
+  return [];
 };
 
 const createPhoneValidationRequest = (
@@ -349,71 +411,60 @@ const reportBlockingValidationResult = (
   control.reportValidity();
 };
 
-type SmartSuggestVanillaValidationIssue = NonNullable<
-  SmartSuggestVanillaValidationResult["errors"]
->[number];
-
-const isVanillaValidationIssue = (value: unknown): value is SmartSuggestVanillaValidationIssue => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const code = Reflect.get(value, "code");
-  const field = Reflect.get(value, "field");
-  const message = Reflect.get(value, "message");
-
-  return (
-    typeof code === "string" &&
-    (field === undefined || typeof field === "string") &&
-    typeof message === "string"
-  );
-};
+const VanillaValidationErrorLikeSchema = Schema.Struct({
+  _tag: Schema.optionalKey(Schema.String),
+  message: Schema.optionalKey(Schema.String),
+  name: Schema.optionalKey(Schema.String),
+  status: Schema.optionalKey(Schema.Number),
+});
 
 const toPostalValidationResultFromError = (
   error: unknown,
   rawInput: string,
 ): SmartSuggestVanillaValidationResult | undefined => {
-  if (typeof error !== "object" || error === null) {
+  const validationBody = Option.getOrUndefined(
+    Schema.decodeUnknownOption(SmartSuggestValidationErrorBodySchema)(error),
+  );
+
+  if (validationBody !== undefined) {
+    return {
+      displayValue: rawInput,
+      errors: validationBody.errors,
+      isValid: false,
+    };
+  }
+
+  const errorLike = Option.getOrUndefined(
+    Schema.decodeUnknownOption(VanillaValidationErrorLikeSchema)(error),
+  );
+  if (errorLike === undefined) {
     return;
   }
 
-  const status = Reflect.get(error, "status");
-  const errorTag = Reflect.get(error, "_tag");
-  const errorName = Reflect.get(error, "name");
   const isValidationError =
-    status === 422 ||
-    errorTag === "SmartSuggestValidationError" ||
-    errorName === "SmartSuggestValidationError";
+    errorLike.status === 422 ||
+    errorLike._tag === "SmartSuggestValidationError" ||
+    errorLike.name === "SmartSuggestValidationError";
 
   if (!isValidationError) {
     return;
   }
 
-  const errors = Reflect.get(error, "errors");
-  const validationErrors = Array.isArray(errors) ? errors.filter(isVanillaValidationIssue) : [];
-  if (validationErrors.length === 0) {
-    const message = Reflect.get(error, "message");
+  const message = errorLike.message;
 
-    if (typeof message !== "string" || message.trim().length === 0) {
-      return;
-    }
-
-    return {
-      displayValue: rawInput,
-      errors: [
-        {
-          code: "validation-error",
-          field: "postalCode",
-          message,
-        },
-      ],
-      isValid: false,
-    };
+  if (message === undefined || message.trim().length === 0) {
+    return;
   }
 
   return {
     displayValue: rawInput,
-    errors: validationErrors,
+    errors: [
+      {
+        code: "validation-error",
+        field: "postalCode",
+        message,
+      },
+    ],
     isValid: false,
   };
 };
@@ -650,6 +701,13 @@ const createSuggestionList = (input: TextControl, optionClassName: string | unde
   };
 };
 
+type SmartSuggestVanillaSuggestTarget = {
+  control: TextControl;
+  countryCodes: readonly SmartSuggestCountryCode[];
+  kind: SmartSuggestVanillaSuggestFieldKind;
+  list: ReturnType<typeof createSuggestionList>;
+};
+
 export const attachSmartSuggest = (
   config: SmartSuggestVanillaConfig,
 ): SmartSuggestVanillaInstance => {
@@ -670,7 +728,7 @@ export const attachSmartSuggest = (
   const debounceMs = config.debounceMs ?? 180;
   const fetchImpl = config.fetch ?? defaultFetch;
   const limit = config.limit ?? DEFAULT_SUGGEST_LIMIT;
-  const minQueryLength = config.minQueryLength ?? 3;
+  const minQueryLength = config.minQueryLength ?? 1;
   const timeoutMs = config.timeoutMs ?? 3000;
   const smartSuggestClient: SmartSuggestEffectClient = createSmartSuggestEffectClient({
     apiBaseUrl,
@@ -679,10 +737,45 @@ export const attachSmartSuggest = (
   });
   const phoneValidationMode = config.phoneValidationMode ?? DEFAULT_PHONE_VALIDATION_MODE;
   const phoneValidatorLoader = config.phoneValidatorLoader ?? defaultPhoneValidatorLoader;
-  const suggestionList =
+  const configuredCountryCodes = normalizeSupportedCountryCodes(config.countryCodes);
+  const countryCodesForControl = (control: TextControl | undefined) => {
+    const controlCountryCodes = readSupportedCountryCodesAttribute(control);
+
+    if (controlCountryCodes.length > 0) {
+      return controlCountryCodes;
+    }
+
+    const formCountryCodes = readSupportedCountryCodesAttribute(getControlForm(control));
+
+    return formCountryCodes.length > 0 ? formCountryCodes : configuredCountryCodes;
+  };
+  const suggestTargets: SmartSuggestVanillaSuggestTarget[] = [
     controls.addressLine === undefined
       ? undefined
-      : createSuggestionList(controls.addressLine, config.optionClassName);
+      : {
+          control: controls.addressLine,
+          countryCodes: countryCodesForControl(controls.addressLine),
+          kind: "address" as const,
+          list: createSuggestionList(controls.addressLine, config.optionClassName),
+        },
+    controls.city === undefined
+      ? undefined
+      : {
+          control: controls.city,
+          countryCodes: countryCodesForControl(controls.city),
+          kind: "place" as const,
+          list: createSuggestionList(controls.city, config.optionClassName),
+        },
+    controls.postalCode === undefined
+      ? undefined
+      : {
+          control: controls.postalCode,
+          countryCodes: countryCodesForControl(controls.postalCode),
+          kind: "postal" as const,
+          list: createSuggestionList(controls.postalCode, config.optionClassName),
+        },
+  ].filter((target): target is SmartSuggestVanillaSuggestTarget => target !== undefined);
+  const addressSuggestTarget = suggestTargets.find((target) => target.kind === "address");
   const restorePhoneInputSemantics = configurePhoneInputSemantics(controls.phone);
   const phoneForm =
     controls.phone instanceof HTMLInputElement ? getControlForm(controls.phone) : undefined;
@@ -693,6 +786,7 @@ export const attachSmartSuggest = (
 
   let activeSuggestController: AbortController | undefined;
   let currentRequestId: string | undefined;
+  let currentSuggestTarget = addressSuggestTarget;
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
   let didPhoneValidatorLoadFail = false;
   let isApplyingSuggestion = false;
@@ -702,10 +796,29 @@ export const attachSmartSuggest = (
     | undefined;
   let phoneValidationSequence = 0;
   let postalValidationSequence = 0;
+  let suggestInputSequence = 0;
   let suggestSequence = 0;
 
   const readCountryCode = () =>
     toCountryCode(getControlValue(controls.country)) ?? config.countryCode;
+  const countryCodesForTarget = (target = currentSuggestTarget) =>
+    target?.countryCodes.length === 0 ? configuredCountryCodes : (target?.countryCodes ?? []);
+  const readRequestCountryScope = (target = currentSuggestTarget) => {
+    const selectedCountryCode = readCountryCode();
+    const countryCodes = countryCodesForTarget(target);
+
+    if (selectedCountryCode !== undefined) {
+      return countryCodes.length === 0 || countryCodes.includes(selectedCountryCode)
+        ? { blocked: false, countryCode: selectedCountryCode, countryCodes }
+        : { blocked: true, countryCode: selectedCountryCode, countryCodes };
+    }
+
+    if (countryCodes.length === 1) {
+      return { blocked: false, countryCode: countryCodes[0], countryCodes };
+    }
+
+    return { blocked: false, countryCodes };
+  };
 
   const clearDebounceTimer = () => {
     if (debounceTimer !== undefined) {
@@ -728,26 +841,34 @@ export const attachSmartSuggest = (
     detachVanillaEffect(smartSuggestClient.accept(event), config.onError);
   };
 
-  const selectSuggestion = (suggestion: SmartSuggestSuggestion) => {
+  const selectSuggestion = (suggestion: SmartSuggestSuggestion, target = currentSuggestTarget) => {
     const address = suggestion.address;
     clearDebounceTimer();
     activeSuggestController?.abort(createAbortReason());
     isApplyingSuggestion = true;
     try {
-      setControlValue(controls.addressLine, buildAddressLine(suggestion, address));
+      if (target?.kind === "address" && suggestion.kind === "address") {
+        setControlValue(controls.addressLine, buildAddressLine(suggestion, address));
+      }
+      setControlValue(controls.city, address?.city);
+      setControlValue(controls.postalCode, address?.postalCode);
+      setControlValue(controls.country, address?.countryCode);
     } finally {
       isApplyingSuggestion = false;
     }
-    setControlValue(controls.city, address?.city);
-    setControlValue(controls.postalCode, address?.postalCode);
-    setControlValue(controls.country, address?.countryCode);
     acceptSuggestion(suggestion);
 
     if (currentRequestId !== undefined) {
       config.onSuggestionSelect?.({ requestId: currentRequestId, suggestion });
     }
 
-    suggestionList?.render([], selectSuggestion);
+    renderEmptySuggestionLists();
+  };
+
+  const renderEmptySuggestionLists = () => {
+    for (const target of suggestTargets) {
+      target.list.render([], (suggestion) => selectSuggestion(suggestion, target));
+    }
   };
 
   const abortActiveSuggestRequest = () => {
@@ -761,17 +882,17 @@ export const attachSmartSuggest = (
 
   const clearSuggestResults = () => {
     currentRequestId = undefined;
-    suggestionList?.render([], selectSuggestion);
+    renderEmptySuggestionLists();
     config.onSuggestStateChange?.({ status: "idle" });
   };
 
-  const createSuggestRequest = (query: string) => {
+  const createSuggestRequest = (query: string, target = currentSuggestTarget) => {
+    const { countryCode, countryCodes } = readRequestCountryScope(target);
     const request: SmartSuggestRequest = {
-      kind: resolveSuggestKind(query),
+      kind: resolveSuggestKind(query, target?.kind ?? "address"),
       limit,
       query,
     };
-    const countryCode = readCountryCode();
 
     if (config.language !== undefined) {
       request.language = config.language;
@@ -779,6 +900,9 @@ export const attachSmartSuggest = (
 
     if (countryCode !== undefined) {
       request.countryCode = countryCode;
+    }
+    if (countryCodes.length > 0) {
+      request.countryCodes = countryCodes;
     }
 
     return request;
@@ -799,14 +923,37 @@ export const attachSmartSuggest = (
     reportError(config.onError, error);
   };
 
-  const suggest = async (query = getControlValue(controls.addressLine)) => {
+  const suggest = async (
+    query = getControlValue(addressSuggestTarget?.control),
+    target = addressSuggestTarget,
+  ) => {
     const trimmedQuery = query.trim();
     const requestSequence = suggestSequence + 1;
     suggestSequence = requestSequence;
+    currentSuggestTarget = target;
 
     abortActiveSuggestRequest();
 
-    if (getSuggestQuerySignalLength(trimmedQuery) < minQueryLength) {
+    const countryScope = readRequestCountryScope(target);
+
+    if (countryScope.blocked) {
+      currentRequestId = undefined;
+      renderEmptySuggestionLists();
+      const blockedState: SmartSuggestVanillaSuggestState = {
+        countryCodes: countryScope.countryCodes,
+        reason: "country-scope",
+        status: "blocked",
+      };
+
+      if (countryScope.countryCode !== undefined) {
+        blockedState.countryCode = countryScope.countryCode;
+      }
+
+      config.onSuggestStateChange?.(blockedState);
+      return;
+    }
+
+    if (target === undefined || getSuggestQuerySignalLength(trimmedQuery) < minQueryLength) {
       clearSuggestResults();
       return;
     }
@@ -817,7 +964,7 @@ export const attachSmartSuggest = (
 
     try {
       const response = await runVanillaEffectAsPromise(
-        smartSuggestClient.suggest(createSuggestRequest(trimmedQuery), {
+        smartSuggestClient.suggest(createSuggestRequest(trimmedQuery, target), {
           signal: requestController.signal,
         }),
       );
@@ -827,7 +974,9 @@ export const attachSmartSuggest = (
       }
 
       currentRequestId = response.requestId;
-      suggestionList?.render(response.suggestions, selectSuggestion);
+      target.list.render(response.suggestions, (suggestion) =>
+        selectSuggestion(suggestion, target),
+      );
       config.onSuggestStateChange?.({
         requestId: response.requestId,
         status: "success",
@@ -975,29 +1124,42 @@ export const attachSmartSuggest = (
     await validatePostalInternal();
   };
 
-  const onAddressInput = () => {
+  const onSuggestTargetInput = (target: NonNullable<(typeof suggestTargets)[number]>) => {
     clearDebounceTimer();
 
     if (isApplyingSuggestion) {
       return;
     }
 
-    abortActiveSuggestRequest();
-    clearSuggestResults();
+    const inputSequence = suggestInputSequence + 1;
+    suggestInputSequence = inputSequence;
 
     debounceTimer = setTimeout(() => {
-      const pending = suggest();
-      pending.catch((error: unknown) => reportError(config.onError, error));
-    }, debounceMs);
+      if (inputSequence !== suggestInputSequence || isApplyingSuggestion) {
+        return;
+      }
+
+      abortActiveSuggestRequest();
+      clearSuggestResults();
+      currentSuggestTarget = target;
+
+      debounceTimer = setTimeout(() => {
+        const pending = suggest(getControlValue(target.control), target);
+        pending.catch((error: unknown) => reportError(config.onError, error));
+      }, debounceMs);
+    }, 0);
   };
-  const onAddressKeyDown = (event: Event) => {
+  const onSuggestTargetKeyDown = (
+    target: NonNullable<(typeof suggestTargets)[number]>,
+    event: Event,
+  ) => {
     if (event instanceof KeyboardEvent) {
-      suggestionList?.handleKeyDown(event);
+      target.list.handleKeyDown(event);
     }
   };
-  const onAddressBlur = () => {
+  const onSuggestTargetBlur = (target: NonNullable<(typeof suggestTargets)[number]>) => {
     setTimeout(() => {
-      suggestionList?.close();
+      target.list.close();
     }, 0);
   };
   const onPhoneBlur = () => {
@@ -1099,9 +1261,18 @@ export const attachSmartSuggest = (
     clearControlValidation(controls.postalCode);
   };
 
-  controls.addressLine?.addEventListener("input", onAddressInput);
-  controls.addressLine?.addEventListener("keydown", onAddressKeyDown);
-  controls.addressLine?.addEventListener("blur", onAddressBlur);
+  const suggestTargetListeners = suggestTargets.map((target) => ({
+    target,
+    onBlur: () => onSuggestTargetBlur(target),
+    onInput: () => onSuggestTargetInput(target),
+    onKeyDown: (event: Event) => onSuggestTargetKeyDown(target, event),
+  }));
+
+  for (const listener of suggestTargetListeners) {
+    listener.target.control.addEventListener("input", listener.onInput);
+    listener.target.control.addEventListener("keydown", listener.onKeyDown);
+    listener.target.control.addEventListener("blur", listener.onBlur);
+  }
   controls.phone?.addEventListener("blur", onPhoneBlur);
   controls.phone?.addEventListener("focus", onPhoneFocus);
   controls.phone?.addEventListener("input", onPhoneInput);
@@ -1118,9 +1289,11 @@ export const attachSmartSuggest = (
       postalValidationSequence += 1;
       suggestSequence += 1;
       activeSuggestController?.abort(createAbortReason());
-      controls.addressLine?.removeEventListener("input", onAddressInput);
-      controls.addressLine?.removeEventListener("keydown", onAddressKeyDown);
-      controls.addressLine?.removeEventListener("blur", onAddressBlur);
+      for (const listener of suggestTargetListeners) {
+        listener.target.control.removeEventListener("input", listener.onInput);
+        listener.target.control.removeEventListener("keydown", listener.onKeyDown);
+        listener.target.control.removeEventListener("blur", listener.onBlur);
+      }
       controls.phone?.removeEventListener("blur", onPhoneBlur);
       controls.phone?.removeEventListener("focus", onPhoneFocus);
       controls.phone?.removeEventListener("input", onPhoneInput);
@@ -1129,8 +1302,10 @@ export const attachSmartSuggest = (
       }
       controls.postalCode?.removeEventListener("blur", onPostalBlur);
       controls.postalCode?.removeEventListener("input", onPostalInput);
+      for (const target of suggestTargets) {
+        target.list.destroy();
+      }
       restorePhoneInputSemantics();
-      suggestionList?.destroy();
     },
     suggest,
     validatePhone,

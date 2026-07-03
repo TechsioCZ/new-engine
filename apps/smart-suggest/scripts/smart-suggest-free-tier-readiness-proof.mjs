@@ -10,7 +10,7 @@ const defaultReportRoot = '.codex/reports/smart-suggest-free-tier-readiness';
 const defaultJsonOut = `${defaultReportRoot}/summary.json`;
 const defaultProductionArtifactReport =
   '.codex/reports/smart-suggest-owned-artifacts/production.json';
-const defaultArtifactStageReport = '.codex/reports/smart-suggest-cloudflare-artifacts/stage.json';
+const defaultArtifactPublicAssetsDir = 'apps/shell-super-app/smart-suggest-owned-data';
 const staticAssetLimits = {
   fileMaxBytes: 25 * 1024 * 1024,
   fileMaxCount: 20_000,
@@ -59,7 +59,11 @@ function readOption(argv, optionName, defaultValue) {
 function parseArgs(argv) {
   return {
     artifactReport: readOption(argv, '--artifact-report', defaultProductionArtifactReport),
-    artifactStageReport: readOption(argv, '--artifact-stage-report', defaultArtifactStageReport),
+    artifactPublicAssetsDir: readOption(
+      argv,
+      '--artifact-public-assets-dir',
+      defaultArtifactPublicAssetsDir,
+    ),
     cloudflareAccountAudit: argv.includes('--cloudflare-account-audit'),
     jsonOut: readOption(argv, '--json-out', defaultJsonOut),
     production: argv.includes('--production'),
@@ -85,6 +89,41 @@ function writeJson(filePath, value) {
 
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
   fs.writeFileSync(absolutePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function summarizePublicAssetFiles(directoryPath) {
+  const root = resolveAppPath(directoryPath);
+  let fileCount = 0;
+  let totalSizeBytes = 0;
+  let largestFile = { path: undefined, sizeBytes: 0 };
+
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        visit(entryPath);
+        continue;
+      }
+
+      if (!entry.isFile()) {
+        continue;
+      }
+
+      const sizeBytes = fs.statSync(entryPath).size;
+      const relativePath = path.relative(root, entryPath).split(path.sep).join('/');
+      fileCount += 1;
+      totalSizeBytes += sizeBytes;
+
+      if (sizeBytes > largestFile.sizeBytes) {
+        largestFile = { path: relativePath, sizeBytes };
+      }
+    }
+  };
+
+  visit(root);
+
+  return { fileCount, largestFile, totalSizeBytes };
 }
 
 function assert(condition, message, details = {}) {
@@ -196,45 +235,54 @@ function assertArtifactStaticWranglerConfig(wranglerConfig) {
   );
 }
 
-function readArtifactStageReport(args, artifactStaticProfile) {
+function readArtifactPublicAssetsReport(args, artifactStaticProfile, _artifactReport) {
   if (!artifactStaticProfile) {
     return null;
   }
 
+  const manifestPath = path.join(args.artifactPublicAssetsDir, 'manifest.json');
   assert(
-    fs.existsSync(resolveAppPath(args.artifactStageReport)),
-    'Artifact-static staging report is missing.',
+    fs.existsSync(resolveAppPath(manifestPath)),
+    'Artifact-static public asset manifest is missing.',
     {
-      artifactStageReport: args.artifactStageReport,
-      remediation: 'Run pnpm cloudflare:stage:artifacts first.',
+      artifactPublicAssetsDir: args.artifactPublicAssetsDir,
+      remediation: 'Run pnpm smart-suggest:artifacts:build:production before Cloudflare build.',
     },
   );
 
-  const report = readJson(args.artifactStageReport);
+  const manifest = readJson(manifestPath);
+  const assetSummary = summarizePublicAssetFiles(args.artifactPublicAssetsDir);
 
-  assert(report.status === 'ok', 'Artifact-static staging report must pass.', {
-    status: report.status,
-  });
-  assert(report.artifact?.complete === true, 'Staged owned-data artifact must be complete.', {
-    artifact: report.artifact,
-  });
   assert(
-    report.artifact?.fileCount <= staticAssetLimits.fileMaxCount,
-    'Staged owned-data artifact file count must fit Worker Static Assets.',
-    { actual: report.artifact?.fileCount, max: staticAssetLimits.fileMaxCount },
+    manifest.dataset?.complete === true,
+    'Artifact-static public asset manifest must be complete.',
+    {
+      manifest: manifest.dataset,
+    },
   );
   assert(
-    (report.artifact?.largestFile?.sizeBytes ?? 0) <= staticAssetLimits.fileMaxBytes,
-    'Staged owned-data artifact file size must fit Worker Static Assets.',
-    { actual: report.artifact?.largestFile, max: staticAssetLimits.fileMaxBytes },
+    assetSummary.fileCount <= staticAssetLimits.fileMaxCount,
+    'Owned-data artifact file count must fit Worker Static Assets.',
+    { actual: assetSummary.fileCount, max: staticAssetLimits.fileMaxCount },
   );
   assert(
-    report.stagedManifest?.complete === true,
-    'Artifact-static staged manifest must be complete.',
-    { stagedManifest: report.stagedManifest },
+    assetSummary.largestFile.sizeBytes <= staticAssetLimits.fileMaxBytes,
+    'Owned-data artifact file size must fit Worker Static Assets.',
+    { actual: assetSummary.largestFile, max: staticAssetLimits.fileMaxBytes },
   );
 
-  return report;
+  return {
+    artifact: {
+      complete: manifest.dataset.complete,
+      fileCount: assetSummary.fileCount,
+      largestFile: assetSummary.largestFile,
+      rowCount: manifest.dataset.rowCount,
+      totalSizeBytes: assetSummary.totalSizeBytes,
+    },
+    manifestPath,
+    publicPath: 'smart-suggest-owned-data/manifest.json',
+    status: 'ok',
+  };
 }
 
 function readProductionArtifactReport(args) {
@@ -255,8 +303,10 @@ function readProductionArtifactReport(args) {
 }
 
 function runWorkerSizeProof(args) {
-  const outDir = 'apps/shell-super-app/.output/wrangler-minify-proof';
+  const outDir = '.codex/reports/smart-suggest-free-tier-readiness/wrangler-minify-proof';
   const metaFile = `${outDir}/meta.json`;
+  const absoluteOutDir = resolveAppPath(outDir);
+  const absoluteMetaFile = resolveAppPath(metaFile);
   const result = run(
     'pnpm',
     [
@@ -270,9 +320,9 @@ function runWorkerSizeProof(args) {
       '--dry-run',
       '--minify',
       '--outdir',
-      '.output/wrangler-minify-proof',
+      absoluteOutDir,
       '--metafile',
-      '.output/wrangler-minify-proof/meta.json',
+      absoluteMetaFile,
     ],
     'Cloudflare Worker size dry-run',
   );
@@ -417,7 +467,7 @@ function runSeedReadinessPlan(args) {
 function readPaidTemplateProof() {
   const result = run(
     process.execPath,
-    ['./scripts/apply-smart-suggest-cloudflare-bindings.mjs', '--print-cz-vusc-env-template'],
+    ['./scripts/validate-smart-suggest-cloudflare-bindings.mjs', '--print-cz-vusc-env-template'],
     'Paid CZ VUSC D1 template proof',
   );
   const missingCodes = expectedCzVuscCodes.filter(
@@ -560,7 +610,7 @@ function assertSeedReadiness(report) {
 
 function summarizeReadiness({
   accountAudit,
-  artifactStageReport,
+  artifactPublicAssetsReport,
   artifactStaticProfile,
   artifactReport,
   d1Preflight,
@@ -588,15 +638,17 @@ function summarizeReadiness({
             sourceChecksumSha256: artifactReport.officialSnapshot?.checksumSha256 ?? null,
             status: 'ok',
           },
-    artifactStage:
-      artifactStageReport === null
+    artifactPublicAssets:
+      artifactPublicAssetsReport === null
         ? null
         : {
-            fileCount: artifactStageReport.artifact?.fileCount ?? null,
-            largestFile: artifactStageReport.artifact?.largestFile ?? null,
-            rowCount: artifactStageReport.artifact?.rowCount ?? null,
-            status: artifactStageReport.status,
-            totalSizeBytes: artifactStageReport.artifact?.totalSizeBytes ?? null,
+            fileCount: artifactPublicAssetsReport.artifact?.fileCount ?? null,
+            largestFile: artifactPublicAssetsReport.artifact?.largestFile ?? null,
+            manifestPath: artifactPublicAssetsReport.manifestPath,
+            publicPath: artifactPublicAssetsReport.publicPath,
+            rowCount: artifactPublicAssetsReport.artifact?.rowCount ?? null,
+            status: artifactPublicAssetsReport.status,
+            totalSizeBytes: artifactPublicAssetsReport.artifact?.totalSizeBytes ?? null,
           },
     deployProfile: artifactStaticProfile ? 'artifact-static' : 'd1',
     d1: {
@@ -646,8 +698,7 @@ function main(argv = process.argv.slice(2)) {
 
   const wranglerConfig = readJson(args.wranglerConfig);
   const artifactStaticProfile =
-    wranglerConfig?.vars?.SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL !== undefined ||
-    wranglerConfig?.vars?.SMART_SUGGEST_OWNED_ARTIFACT_PUBLIC_ORIGIN !== undefined;
+    wranglerConfig?.vars?.SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL !== undefined;
 
   if (artifactStaticProfile) {
     assertArtifactStaticWranglerConfig(wranglerConfig);
@@ -660,7 +711,11 @@ function main(argv = process.argv.slice(2)) {
   const paidTemplate = readPaidTemplateProof();
   const accountAudit = args.cloudflareAccountAudit ? runOptionalCloudflareAccountAudit() : null;
   const artifactReport = readProductionArtifactReport(args);
-  const artifactStageReport = readArtifactStageReport(args, artifactStaticProfile);
+  const artifactPublicAssetsReport = readArtifactPublicAssetsReport(
+    args,
+    artifactStaticProfile,
+    artifactReport,
+  );
 
   assertIndexCapacity(indexCapacity);
   if (d1Preflight !== null) {
@@ -681,7 +736,8 @@ function main(argv = process.argv.slice(2)) {
     generatedAt: new Date().toISOString(),
     mode: args.production ? 'production' : 'review',
     reports: {
-      artifactStage: artifactStageReport === null ? null : appRelative(args.artifactStageReport),
+      artifactPublicAssetsDir:
+        artifactPublicAssetsReport === null ? null : appRelative(args.artifactPublicAssetsDir),
       d1Preflight:
         d1Preflight === null
           ? null
@@ -698,7 +754,7 @@ function main(argv = process.argv.slice(2)) {
     status,
     summary: summarizeReadiness({
       accountAudit,
-      artifactStageReport,
+      artifactPublicAssetsReport,
       artifactStaticProfile,
       artifactReport,
       d1Preflight,

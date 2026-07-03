@@ -559,6 +559,7 @@ function canonicalCandidate(result) {
   const houseNumber = normalizeText(address.houseNumber);
   const orientationNumber = normalizeText(address.orientationNumber);
   const postalDigits = digitsOnly(address.postalCode);
+  const districtTokens = tokenize(address.district);
   const requiredTokens = [
     ...streetTokens.filter((token) => token.length > 1),
     houseNumber,
@@ -570,9 +571,13 @@ function canonicalCandidate(result) {
     addressKey: normalizeText(addressText(address)),
     id: result.id,
     labelKey: normalizeText(result.label),
+    houseNumber,
+    orientationNumber,
     postalDigits,
     requiredTokens,
     sourceId: result.sourceId,
+    streetTokens: streetTokens.filter((token) => token.length > 1),
+    localityTokens: [...cityTokens, ...districtTokens].filter((token) => token.length > 1),
   };
 }
 
@@ -602,6 +607,27 @@ function matchesCandidate(candidate, suggestion) {
 
   if (candidate.postalDigits.length > 0 && !textDigits.includes(candidate.postalDigits)) {
     return false;
+  }
+
+  const hasStreet = candidate.streetTokens.every((token) => textTokens.has(token));
+  const hasHouse = candidate.houseNumber.length === 0 || textTokens.has(candidate.houseNumber);
+  const hasOrientation =
+    candidate.orientationNumber.length === 0 || textTokens.has(candidate.orientationNumber);
+
+  if (
+    hasStreet &&
+    hasHouse &&
+    hasOrientation &&
+    (candidate.houseNumber.length > 0 ||
+      candidate.orientationNumber.length > 0 ||
+      candidate.postalDigits.length > 0)
+  ) {
+    return true;
+  }
+
+  const hasLocality = candidate.localityTokens.some((token) => textTokens.has(token));
+  if (hasStreet && hasLocality && candidate.postalDigits.length > 0) {
+    return true;
   }
 
   return candidate.requiredTokens.every((token) => textTokens.has(token));

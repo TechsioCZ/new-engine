@@ -13,7 +13,12 @@ import type {
   SuggestionSource,
   SuggestionSourceKind,
 } from '@techsio/smart-suggest-core';
-import { normalizeSuggestLimit } from '@techsio/smart-suggest-core';
+import {
+  normalizeSmartSuggestCountryCode,
+  normalizeSuggestLimit,
+  parseSmartSuggestCountryCodeList,
+  resolveSmartSuggestCountryScope,
+} from '@techsio/smart-suggest-core';
 import {
   getSmartSuggestSourcePolicy,
   SMART_SUGGEST_PROVIDER_SOURCE_ID_ALIASES,
@@ -119,6 +124,7 @@ interface SmartSuggestWorkerEnv {
   SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES?: string;
   SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS?: string;
   SMART_SUGGEST_PROVIDER_CACHE_TTL_SECONDS?: string;
+  SMART_SUGGEST_PROVIDER_ENRICHMENT_ENABLED?: string;
   SMART_SUGGEST_PROVIDER_PRIORITY?: string;
   SMART_SUGGEST_PROVIDER_TIMEOUT_MS?: string;
   SMART_SUGGEST_QUERY_HASH_SECRET?: string;
@@ -328,11 +334,19 @@ const workerSuggestCacheFor = (repositories: SmartSuggestRepositories) => {
   return cache;
 };
 
-const responseForLayerCache = (response: SmartSuggestResponse): SmartSuggestResponse => ({
-  cacheStatus: response.cacheStatus,
-  requestId: response.requestId,
-  suggestions: response.suggestions,
-});
+const responseForLayerCache = (response: SmartSuggestResponse): SmartSuggestResponse => {
+  const publicResponse: SmartSuggestResponse = {
+    cacheStatus: response.cacheStatus,
+    requestId: response.requestId,
+    suggestions: response.suggestions,
+  };
+
+  if (response.countryScope !== undefined) {
+    publicResponse.countryScope = response.countryScope;
+  }
+
+  return publicResponse;
+};
 
 const responseForPublicDto = (response: SmartSuggestResponse): SmartSuggestResponse =>
   responseForLayerCache(response);
@@ -548,15 +562,11 @@ const parseRuntimeList = (value: string | undefined) =>
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0) ?? [];
 
-const isSmartSuggestD1Binding = (value: unknown): value is SmartSuggestD1Binding =>
-  value !== null &&
-  typeof value === 'object' &&
-  typeof (value as { prepare?: unknown }).prepare === 'function';
-
-const readNamedD1Binding = (env: SmartSuggestWorkerEnv | undefined, bindingName: string) => {
-  const value = (env as Record<string, unknown> | undefined)?.[bindingName];
-
-  return isSmartSuggestD1Binding(value) ? value : undefined;
+const readNamedD1Binding = (
+  env: SmartSuggestWorkerEnv | undefined,
+  bindingName: string,
+): SmartSuggestD1Binding | undefined => {
+  return (env as Record<string, SmartSuggestD1Binding | undefined> | undefined)?.[bindingName];
 };
 
 const maxShardSearchFanout = 14;
@@ -885,12 +895,15 @@ export const createShardedRepositories = ({
               query: input.query,
             };
 
-            if (input.countryCode !== undefined) {
-              searchInput.countryCode = input.countryCode;
-            }
+        if (input.countryCode !== undefined) {
+          searchInput.countryCode = input.countryCode;
+        }
+        if (input.countryCodes !== undefined) {
+          searchInput.countryCodes = input.countryCodes;
+        }
 
-            return repository.addressRecords.searchAddressRecords(searchInput);
-          }),
+        return repository.addressRecords.searchAddressRecords(searchInput);
+      }),
         );
 
         return rankShardAddressRecordResults(input.query, shardResults.flat(), limit);
@@ -1705,29 +1718,7 @@ const consumeInboundRateLimit = ({
     }
   });
 
-const alpha2ByAlpha3: Record<string, string> = {
-  AUT: 'AT',
-  CZE: 'CZ',
-  DEU: 'DE',
-  ESP: 'ES',
-  FRA: 'FR',
-  GBR: 'GB',
-  HUN: 'HU',
-  ITA: 'IT',
-  POL: 'PL',
-  SVK: 'SK',
-  USA: 'US',
-};
-
-const toCountryCode = (value: string | undefined) => {
-  const normalizedCountryCode = value?.trim().toUpperCase();
-  const alpha2 =
-    normalizedCountryCode === undefined ? undefined : alpha2ByAlpha3[normalizedCountryCode];
-
-  return normalizedCountryCode === undefined || normalizedCountryCode === ''
-    ? undefined
-    : ((alpha2 ?? normalizedCountryCode) as SmartSuggestCountryCode);
-};
+const toCountryCode = normalizeSmartSuggestCountryCode;
 
 const readOptionalRecord = (value: unknown) => (isRecord(value) ? value : undefined);
 
@@ -2093,7 +2084,49 @@ const readTenantContext = (query: SmartSuggestQuery) => {
   return tenantContext;
 };
 
-const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | undefined => {
+type ParsedSuggestRequest =
+  | {
+      status: 'blocked';
+      request: SmartSuggestRequest;
+    }
+  | {
+      status: 'invalid';
+      field: string;
+      message: string;
+    }
+  | {
+      status: 'valid';
+      request: SmartSuggestRequest;
+    };
+
+const readCountryCodeAllowlist = (
+  query: SmartSuggestQuery,
+): ParsedSuggestRequest | readonly SmartSuggestCountryCode[] | undefined => {
+  const rawCountryCodes = query.countryCodes?.trim();
+
+  if (rawCountryCodes === undefined || rawCountryCodes === '') {
+    return;
+  }
+
+  const parseResult = parseSmartSuggestCountryCodeList(rawCountryCodes);
+
+  if (!parseResult.ok) {
+    return {
+      field: 'countryCodes',
+      message:
+        parseResult.reason === 'empty-allowlist'
+          ? 'Expected countryCodes to contain at least one country code.'
+          : `Expected countryCodes to contain comma-separated alpha country codes: ${parseResult.invalidTokens.join(
+              ', ',
+            )}`,
+      status: 'invalid',
+    };
+  }
+
+  return parseResult.countryCodes;
+};
+
+const parseSuggestRequest = (query: SmartSuggestQuery): ParsedSuggestRequest | undefined => {
   const rawQuery = query.q ?? query.query;
 
   if (rawQuery === undefined || rawQuery.trim().length === 0 || !/[\p{L}\p{N}]/u.test(rawQuery)) {
@@ -2105,11 +2138,27 @@ const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | un
     query: rawQuery,
   };
   const countryCode = toCountryCode(query.countryCode);
+  const countryCodes = readCountryCodeAllowlist(query);
   const tenant = readTenantContext(query);
+
+  if (countryCodes !== undefined && !Array.isArray(countryCodes)) {
+    return countryCodes;
+  }
 
   request.limit = normalizeSuggestLimit(query.limit);
   if (countryCode !== undefined) {
     request.countryCode = countryCode;
+  }
+  if (countryCodes !== undefined) {
+    request.countryCodes = countryCodes;
+  }
+  const countryScope = resolveSmartSuggestCountryScope({
+    countryCode: request.countryCode,
+    countryCodes: request.countryCodes,
+  });
+  request.countryScope = countryScope;
+  if (request.countryCode === undefined && countryScope.countryCode !== undefined) {
+    request.countryCode = countryScope.countryCode;
   }
   if (query.language !== undefined) {
     request.language = query.language;
@@ -2118,7 +2167,9 @@ const parseSuggestRequest = (query: SmartSuggestQuery): SmartSuggestRequest | un
     request.tenant = tenant;
   }
 
-  return request;
+  return countryScope.status === 'blocked'
+    ? { request, status: 'blocked' }
+    : { request, status: 'valid' };
 };
 
 interface SuggestionSourceRecord {
@@ -2204,6 +2255,13 @@ const toSuggestion = (
       searchLabel: record.searchLabel,
       source,
     };
+
+    if (record.ranking?.addressCount !== undefined) {
+      suggestion.metadata = {
+        ...suggestion.metadata,
+        addressCount: record.ranking.addressCount,
+      };
+    }
 
     if (record.attribution !== undefined) {
       suggestion.attribution = record.attribution;
@@ -2313,14 +2371,249 @@ const createPostalLocalitySuggestions = ({
   return postalSuggestions;
 };
 
-const suggestFromOwnedData = (
+const readSuggestionMetadataNumber = (
+  metadata: SmartSuggestSuggestion['metadata'] | undefined,
+  keys: readonly string[],
+) => {
+  for (const key of keys) {
+    const value = metadata?.[key];
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return 0;
+};
+
+interface PlaceSuggestionAccumulator {
+  addressCount: number;
+  count: number;
+  maxConfidence: number;
+  suggestion: SmartSuggestSuggestion;
+}
+
+const placeAddressCountMetadataKeys = ['addressCount', 'sourceRecordCount'] as const;
+
+const createLocalityAddress = (
+  address: AddressParts | undefined,
+  city: string,
+  countryCode: SmartSuggestCountryCode,
+): AddressParts => {
+  const localityAddress: AddressParts = { city, countryCode };
+
+  if (address?.region !== undefined) {
+    localityAddress.region = address.region;
+  }
+  if (address?.district !== undefined) {
+    localityAddress.district = address.district;
+  }
+  if (address?.postalCode !== undefined) {
+    localityAddress.postalCode = address.postalCode;
+  }
+
+  return localityAddress;
+};
+
+const createPlaceSuggestion = ({
+  addressCount,
+  cacheStatus,
+  city,
+  countryCode,
+  suggestion,
+}: {
+  addressCount: number;
+  cacheStatus?: SmartSuggestCacheStatus;
+  city: string;
+  countryCode: SmartSuggestCountryCode;
+  suggestion: SmartSuggestSuggestion;
+}): SmartSuggestSuggestion => {
+  const { address } = suggestion;
+
+  const placeSuggestion: SmartSuggestSuggestion = {
+    address: createLocalityAddress(address, city, countryCode),
+    cacheStatus: cacheStatus ?? suggestion.cacheStatus,
+    confidence: Math.min(suggestion.confidence, 0.95),
+    displayLabel: compactPostalTextParts([city, address?.region, countryCode]),
+    id: `${suggestion.source.id}:place:${countryCode}:${normalizePostalLocalityIdPart(city)}`,
+    kind: 'place',
+    metadata: {
+      ...(addressCount > 0 ? { addressCount } : {}),
+      matchKind: 'city',
+      rankingScore: suggestion.confidence,
+    },
+    searchLabel: compactPostalTextParts([city, address?.district, address?.region, countryCode]),
+    source: suggestion.source,
+  };
+
+  if (suggestion.attribution !== undefined) {
+    placeSuggestion.attribution = suggestion.attribution;
+  }
+
+  return placeSuggestion;
+};
+
+const mergePlaceSuggestion = (
+  places: Map<string, PlaceSuggestionAccumulator>,
+  suggestion: SmartSuggestSuggestion,
+  city: string,
+  countryCode: SmartSuggestCountryCode,
+  addressCount: number,
+  cacheStatus: SmartSuggestCacheStatus | undefined,
+) => {
+  const key = [countryCode, normalizeSuggestionMergeText(city)].join('|');
+  const existing = places.get(key);
+
+  if (existing !== undefined) {
+    existing.count += 1;
+    existing.maxConfidence = Math.max(existing.maxConfidence, suggestion.confidence);
+    existing.addressCount = Math.max(existing.addressCount, addressCount);
+    return;
+  }
+
+  places.set(key, {
+    addressCount,
+    count: 1,
+    maxConfidence: suggestion.confidence,
+    suggestion: createPlaceSuggestion({ addressCount, cacheStatus, city, countryCode, suggestion }),
+  });
+};
+
+const createPlaceSuggestions = ({
+  cacheStatus,
+  request,
+  suggestions,
+}: {
+  cacheStatus?: SmartSuggestCacheStatus;
+  request: SmartSuggestRequest;
+  suggestions: readonly SmartSuggestSuggestion[];
+}) => {
+  const places = new Map<string, PlaceSuggestionAccumulator>();
+  const normalizedCityPrefix = normalizeSuggestionMergeText(request.query);
+
+  for (const suggestion of suggestions) {
+    const { address } = suggestion;
+    const city = address?.city?.trim();
+    const countryCode = address?.countryCode ?? request.countryCode;
+
+    if (
+      city === undefined ||
+      city.length === 0 ||
+      countryCode === undefined ||
+      !normalizeSuggestionMergeText(city).startsWith(normalizedCityPrefix)
+    ) {
+      continue;
+    }
+
+    mergePlaceSuggestion(
+      places,
+      suggestion,
+      city,
+      countryCode,
+      readSuggestionMetadataNumber(suggestion.metadata, placeAddressCountMetadataKeys),
+      cacheStatus,
+    );
+  }
+
+  return [...places.values()]
+    .toSorted(
+      (left, right) =>
+        right.addressCount - left.addressCount ||
+        right.count - left.count ||
+        right.maxConfidence - left.maxConfidence ||
+        left.suggestion.displayLabel.localeCompare(right.suggestion.displayLabel, 'cs-CZ'),
+    )
+    .map((entry) => ({
+      ...entry.suggestion,
+      confidence: Math.min(0.99, entry.suggestion.confidence + Math.min(entry.count, 20) / 100),
+      metadata: {
+        ...entry.suggestion.metadata,
+        sourceRecordCount: entry.count,
+      },
+    }))
+    .slice(0, normalizeSuggestLimit(request.limit));
+};
+
+const effectiveCountryCodesForSearch = (request: SmartSuggestRequest) =>
+  request.countryCodes ?? request.countryScope?.countryCodes;
+
+const countryCodeScopesForRequest = (request: SmartSuggestRequest) => {
+  if (request.countryCode !== undefined) {
+    if (
+      request.countryCodes !== undefined &&
+      request.countryCodes.length > 0 &&
+      !request.countryCodes.includes(request.countryCode)
+    ) {
+      return [];
+    }
+
+    return [request.countryCode];
+  }
+
+  if (request.countryCodes !== undefined && request.countryCodes.length > 0) {
+    return [...new Set(request.countryCodes)];
+  }
+};
+
+const mergeScopedOwnedResponses = (
+  request: SmartSuggestRequest,
+  responses: readonly SmartSuggestResponse[],
+): SmartSuggestResponse => {
+  const suggestionsByKey = new Map<string, SmartSuggestSuggestion>();
+
+  for (const response of responses) {
+    for (const suggestion of response.suggestions) {
+      const key = suggestionMergeKey(suggestion);
+      const existing = suggestionsByKey.get(key);
+
+      if (
+        existing === undefined ||
+        suggestion.confidence > existing.confidence ||
+        (suggestion.confidence === existing.confidence &&
+          readSuggestionMetadataNumber(suggestion.metadata, placeAddressCountMetadataKeys) >
+            readSuggestionMetadataNumber(existing.metadata, placeAddressCountMetadataKeys))
+      ) {
+        suggestionsByKey.set(key, suggestion);
+      }
+    }
+  }
+
+  const [firstResponse] = responses;
+  const suggestions = [...suggestionsByKey.values()]
+    .toSorted(
+      (left, right) =>
+        readSuggestionMetadataNumber(right.metadata, placeAddressCountMetadataKeys) -
+          readSuggestionMetadataNumber(left.metadata, placeAddressCountMetadataKeys) ||
+        right.confidence - left.confidence ||
+        left.displayLabel.localeCompare(right.displayLabel, 'cs-CZ'),
+    )
+    .slice(0, normalizeSuggestLimit(request.limit));
+
+  return {
+    cacheStatus: responses.some((response) => response.cacheStatus === 'miss')
+      ? 'miss'
+      : 'disabled',
+    countryScope: request.countryScope,
+    requestId: firstResponse?.requestId ?? 'owned-empty',
+    suggestions,
+  };
+};
+
+const suggestFromOwnedDataForSingleCountry = (
   request: SmartSuggestRequest,
   queryHash: string,
   repositories: SmartSuggestRepositories,
   cacheStatus: SmartSuggestCacheStatus = 'miss',
 ): Effect.Effect<SmartSuggestResponse, SmartSuggestStorageError, never> =>
   Effect.gen(function* suggestFromOwnedDataProgram() {
-    if (request.kind !== 'address' && request.kind !== 'postal') {
+    if (request.kind !== 'address' && request.kind !== 'place' && request.kind !== 'postal') {
       return {
         cacheStatus: 'disabled',
         requestId: `owned-${queryHash.slice(0, 16)}`,
@@ -2329,6 +2622,43 @@ const suggestFromOwnedData = (
     }
 
     if (request.kind === 'postal') {
+      const postalDigits = normalizeSuggestionPostalCode(request.query);
+
+      if (postalDigits.length < 5) {
+        const searchInput: Parameters<
+          SmartSuggestRepositories['addressRecords']['searchAddressRecords']
+        >[0] = {
+          kind: 'postal',
+          query: request.query,
+        };
+
+      if (request.countryCode !== undefined) {
+        searchInput.countryCode = request.countryCode;
+      }
+      const effectiveCountryCodes = effectiveCountryCodesForSearch(request);
+      if (effectiveCountryCodes !== undefined) {
+        searchInput.countryCodes = effectiveCountryCodes;
+      }
+      if (request.limit !== undefined) {
+        searchInput.limit = request.limit;
+      }
+
+        const records = yield* repositories.addressRecords.searchAddressRecords(searchInput);
+        const addressSuggestions = yield* Effect.all(
+          records.map((record) => toSuggestion(repositories, record, cacheStatus)),
+        );
+
+        return {
+          cacheStatus,
+          requestId: `owned-${queryHash.slice(0, 16)}`,
+          suggestions: createPostalLocalitySuggestions({
+            cacheStatus,
+            request,
+            suggestions: addressSuggestions,
+          }).slice(0, normalizeSuggestLimit(request.limit)),
+        };
+      }
+
       const postalInput: Parameters<
         SmartSuggestRepositories['addressRecords']['listPostalLocalityAddressRecords']
       >[0] = {
@@ -2359,20 +2689,37 @@ const suggestFromOwnedData = (
     const searchInput: Parameters<
       SmartSuggestRepositories['addressRecords']['searchAddressRecords']
     >[0] = {
+      kind: request.kind === 'place' ? 'place' : 'address',
       query: request.query,
     };
 
-    if (request.countryCode !== undefined) {
-      searchInput.countryCode = request.countryCode;
-    }
-    if (request.limit !== undefined) {
-      searchInput.limit = request.limit;
-    }
+  if (request.countryCode !== undefined) {
+    searchInput.countryCode = request.countryCode;
+  }
+  const effectiveCountryCodes = effectiveCountryCodesForSearch(request);
+  if (effectiveCountryCodes !== undefined) {
+    searchInput.countryCodes = effectiveCountryCodes;
+  }
+  if (request.limit !== undefined) {
+    searchInput.limit = request.limit;
+  }
 
     const records = yield* repositories.addressRecords.searchAddressRecords(searchInput);
     const addressSuggestions = yield* Effect.all(
       records.map((record) => toSuggestion(repositories, record, cacheStatus)),
     );
+
+    if (request.kind === 'place') {
+      return {
+        cacheStatus,
+        requestId: `owned-${queryHash.slice(0, 16)}`,
+        suggestions: createPlaceSuggestions({
+          cacheStatus,
+          request,
+          suggestions: addressSuggestions,
+        }),
+      };
+    }
 
     return {
       cacheStatus,
@@ -2380,6 +2727,40 @@ const suggestFromOwnedData = (
       suggestions: addressSuggestions,
     };
   });
+
+const suggestFromOwnedData = (
+  request: SmartSuggestRequest,
+  queryHash: string,
+  repositories: SmartSuggestRepositories,
+  cacheStatus: SmartSuggestCacheStatus = 'miss',
+): Effect.Effect<SmartSuggestResponse, SmartSuggestStorageError, never> => {
+  const countryScopes = countryCodeScopesForRequest(request);
+
+  if (countryScopes !== undefined) {
+    if (countryScopes.length === 0) {
+      return Effect.succeed({
+        cacheStatus,
+        requestId: `owned-${queryHash.slice(0, 16)}`,
+        suggestions: [],
+      });
+    }
+
+    if (countryScopes.length > 1) {
+      return Effect.all(
+        countryScopes.map((countryCode) =>
+          suggestFromOwnedDataForSingleCountry(
+            { ...request, countryCode, countryCodes: undefined },
+            queryHash,
+            repositories,
+            cacheStatus,
+          ),
+        ),
+      ).pipe(Effect.map((responses) => mergeScopedOwnedResponses(request, responses)));
+    }
+  }
+
+  return suggestFromOwnedDataForSingleCountry(request, queryHash, repositories, cacheStatus);
+};
 
 const readScopedProviderConfig = (
   tenant: TenantRecord | undefined,
@@ -2875,21 +3256,56 @@ const addressNumberPattern = /\d/u;
 const hasAddressNumberSignal = (address: NonNullable<SmartSuggestSuggestion['address']>) =>
   address.houseNumber !== undefined || addressNumberPattern.test(address.line1 ?? '');
 
-const isCompleteAddressSuggestion = (suggestion: SmartSuggestSuggestion) =>
-  suggestion.address !== undefined &&
-  hasAddressNumberSignal(suggestion.address) &&
-  (suggestion.address.street !== undefined || suggestion.address.line1 !== undefined);
+const isAddressSuggestionForRequest = (suggestion: SmartSuggestSuggestion) => {
+  const { address } = suggestion;
+
+  if (address === undefined) {
+    return false;
+  }
+
+  const hasAddressLine =
+    address.street !== undefined || address.line1 !== undefined || hasAddressNumberSignal(address);
+  const hasLocalityContext =
+    address.city !== undefined ||
+    address.postalCode !== undefined ||
+    hasAddressNumberSignal(address);
+
+  return hasAddressLine && hasLocalityContext;
+};
+
+const isSuggestionInCountryScope = (
+  request: SmartSuggestRequest,
+  suggestion: SmartSuggestSuggestion,
+) => {
+  const countryCodes = countryCodeScopesForRequest(request);
+
+  if (countryCodes === undefined) {
+    return true;
+  }
+  if (countryCodes.length === 0) {
+    return false;
+  }
+
+  const countryCode = suggestion.address?.countryCode;
+
+  return countryCode !== undefined && countryCodes.includes(countryCode);
+};
 
 const filterSuggestionsForRequest = (
   request: SmartSuggestRequest,
   response: SmartSuggestResponse,
-): SmartSuggestResponse =>
-  request.kind === 'address'
+): SmartSuggestResponse => {
+  const scopedSuggestions = response.suggestions.filter((suggestion) =>
+    isSuggestionInCountryScope(request, suggestion),
+  );
+
+  return request.kind === 'address'
     ? {
         ...response,
-        suggestions: response.suggestions.filter(isCompleteAddressSuggestion),
+        suggestions: scopedSuggestions.filter(isAddressSuggestionForRequest),
       }
-    : response;
+    : { ...response, suggestions: scopedSuggestions };
+};
 
 const suggestionMergeKey = (suggestion: SmartSuggestSuggestion) => {
   const { address } = suggestion;
@@ -2971,6 +3387,9 @@ const writeProviderCache = ({
 
   if (request.countryCode !== undefined) {
     cacheWrite.countryCode = request.countryCode;
+  }
+  if (request.countryCodes !== undefined) {
+    cacheWrite.countryCodes = request.countryCodes;
   }
   if (request.language !== undefined) {
     cacheWrite.language = request.language;
@@ -3107,6 +3526,9 @@ const writeOwnedCache = ({
   if (request.countryCode !== undefined) {
     cacheWrite.countryCode = request.countryCode;
   }
+  if (request.countryCodes !== undefined) {
+    cacheWrite.countryCodes = request.countryCodes;
+  }
   if (request.language !== undefined) {
     cacheWrite.language = request.language;
   }
@@ -3125,6 +3547,9 @@ const createSuggestCacheKeyForRequest = (request: SmartSuggestRequest, queryHash
 
   if (request.countryCode !== undefined) {
     cacheKeyInput.countryCode = request.countryCode;
+  }
+  if (request.countryCodes !== undefined) {
+    cacheKeyInput.countryCodes = request.countryCodes;
   }
   if (request.language !== undefined) {
     cacheKeyInput.language = request.language;
@@ -3229,6 +3654,13 @@ type ProviderEnrichmentResponseResult =
       providerAttempted: boolean;
     };
 
+const providerEnrichmentEnabledForRequest = (
+  request: SmartSuggestRequest,
+  env?: SmartSuggestWorkerEnv,
+) =>
+  request.tenant?.tenantId !== undefined ||
+  runtimeEnvBoolean(env, 'SMART_SUGGEST_PROVIDER_ENRICHMENT_ENABLED') === true;
+
 const providerEnrichmentResponseFor = ({
   cacheKey,
   cacheLevels,
@@ -3247,11 +3679,15 @@ const providerEnrichmentResponseFor = ({
       return;
     }
 
-    if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
-      return;
-    }
+  if (ownedResponse.suggestions.length >= normalizeSuggestLimit(request.limit)) {
+    return;
+  }
 
-    const enrichment = yield* suggestFromProviderEnrichment({
+  if (!providerEnrichmentEnabledForRequest(request, env)) {
+    return;
+  }
+
+  const enrichment = yield* suggestFromProviderEnrichment({
       cacheKey,
       env,
       ownedResponse,
@@ -3283,16 +3719,32 @@ const providerEnrichmentResponseFor = ({
     };
   });
 
+const blockedCountryScopeResponse = (request: SmartSuggestRequest): SmartSuggestResponse => ({
+  cacheStatus: 'disabled',
+  countryScope: request.countryScope,
+  requestId: `blocked-country-scope-${request.kind}`,
+  suggestions: [],
+});
+
 const suggest = (
   query: SmartSuggestQuery,
   repositories: SmartSuggestRepositories,
   env?: SmartSuggestWorkerEnv,
 ): Effect.Effect<SmartSuggestResponse, SmartSuggestSuggestError, never> => {
   const startedAt = performance.now();
-  const suggestRequest = parseSuggestRequest(query);
+  const parsedSuggestRequest = parseSuggestRequest(query);
 
-  if (suggestRequest === undefined) {
+  if (parsedSuggestRequest === undefined) {
     return Effect.fail(badRequestError('Missing or invalid suggest query parameters.'));
+  }
+  if (parsedSuggestRequest.status === 'invalid') {
+    return Effect.fail(badRequestError(parsedSuggestRequest.message, parsedSuggestRequest.field));
+  }
+
+  const suggestRequest = parsedSuggestRequest.request;
+
+  if (parsedSuggestRequest.status === 'blocked') {
+    return Effect.succeed(responseForPublicDto(blockedCountryScopeResponse(suggestRequest)));
   }
 
   return Effect.gen(function* suggestProgram() {

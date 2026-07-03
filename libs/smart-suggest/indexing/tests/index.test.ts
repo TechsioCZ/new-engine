@@ -230,8 +230,136 @@ describe('address ranking', () => {
     expect(ranked.map(({ candidate }) => candidate.id)).toEqual(['k-louzi']);
   });
 
-  it('ranks slash pairs above same-street house and orientation decoys', () => {
-    const kLouziCandidates = [
+  it('ranks closer street-prefix completions first while typing', () => {
+    const ranked = rankAddressCandidates('K Lou', [
+      {
+        address: {
+          city: 'Tmaň',
+          countryCode: 'CZ',
+          houseNumber: '24',
+          postalCode: '267 21',
+          street: 'K Lounínu',
+        },
+        confidence: 0.98,
+        displayLabel: 'K Lounínu 24, 267 21 Tmaň, CZ',
+        id: 'k-louninu-24',
+      },
+      {
+        address: {
+          city: 'Vonoklasy',
+          countryCode: 'CZ',
+          houseNumber: '125',
+          postalCode: '252 28',
+          street: 'K Louži',
+        },
+        confidence: 0.98,
+        displayLabel: 'K Louži 125, 252 28 Vonoklasy, CZ',
+        id: 'k-louzi-125',
+      },
+    ]);
+
+  expect(ranked.map(({ candidate }) => candidate.id)).toEqual(['k-louzi-125', 'k-louninu-24']);
+  expect(ranked[0]?.reasons).toContain('street:prefix');
+});
+
+it('prefers larger street clusters for ambiguous typed street prefixes', () => {
+  const ranked = rankAddressCandidates('K Lou', [
+    {
+      address: {
+        city: 'Cernolice',
+        countryCode: 'CZ',
+        houseNumber: '157',
+        postalCode: '252 10',
+        street: 'K Louce',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louce 157, 252 10 Cernolice, CZ',
+      id: 'k-louce-157',
+    },
+    {
+      address: {
+        city: 'Cernolice',
+        countryCode: 'CZ',
+        houseNumber: '166',
+        postalCode: '252 10',
+        street: 'K Louce',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louce 166, 252 10 Cernolice, CZ',
+      id: 'k-louce-166',
+    },
+    {
+      address: {
+        city: 'Cernolice',
+        countryCode: 'CZ',
+        houseNumber: '518',
+        postalCode: '252 10',
+        street: 'K Louce',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louce 518, 252 10 Cernolice, CZ',
+      id: 'k-louce-518',
+    },
+    {
+      address: {
+        city: 'Vonoklasy',
+        countryCode: 'CZ',
+        houseNumber: '125',
+        postalCode: '252 28',
+        street: 'K Louzi',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louzi 125, 252 28 Vonoklasy, CZ',
+      id: 'k-louzi-125',
+    },
+    {
+      address: {
+        city: 'Vonoklasy',
+        countryCode: 'CZ',
+        houseNumber: '126',
+        postalCode: '252 28',
+        street: 'K Louzi',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louzi 126, 252 28 Vonoklasy, CZ',
+      id: 'k-louzi-126',
+    },
+    {
+      address: {
+        city: 'Vonoklasy',
+        countryCode: 'CZ',
+        houseNumber: '130',
+        postalCode: '252 28',
+        street: 'K Louzi',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louzi 130, 252 28 Vonoklasy, CZ',
+      id: 'k-louzi-130',
+    },
+    {
+      address: {
+        city: 'Vonoklasy',
+        countryCode: 'CZ',
+        houseNumber: '132',
+        postalCode: '252 28',
+        street: 'K Louzi',
+      },
+      confidence: 0.98,
+      displayLabel: 'K Louzi 132, 252 28 Vonoklasy, CZ',
+      id: 'k-louzi-132',
+    },
+  ]);
+
+  expect(ranked.slice(0, 4).map(({ candidate }) => candidate.id)).toEqual([
+    'k-louzi-125',
+    'k-louzi-126',
+    'k-louzi-130',
+    'k-louzi-132',
+  ]);
+});
+
+it('ranks slash pairs above same-street house and orientation decoys', () => {
+  const kLouziCandidates = [
       {
         address: {
           city: 'Praha 10',

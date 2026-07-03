@@ -1,18 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { createServer } from 'node:http';
-import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const repositoryRoot = path.resolve(workspaceRoot, '../..');
 const defaultReportPath = '.codex/reports/smart-suggest-public-demo-proof/public-demo-proof.json';
 const defaultLocalUrl = 'http://localhost:3020';
-const productionArtifactManifestPath = path.join(
-  workspaceRoot,
-  '.codex/artifacts/smart-suggest-owned-data-production/manifest.json',
-);
 const phoneValidationModes = ['server-only', 'frontend-lazy', 'frontend-immediate'];
 const expectedKLouziAddress = {
   countryCode: 'CZ',
@@ -339,14 +332,6 @@ async function fetchJson(url, init, timeoutMs) {
   );
 }
 
-function readSource(relativePath) {
-  return fs.readFileSync(path.join(workspaceRoot, relativePath), 'utf8');
-}
-
-function readRepositorySource(relativePath) {
-  return fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
-}
-
 function htmlHasDemoForm(html) {
   return (
     html.includes('id="address-line"') &&
@@ -360,23 +345,6 @@ function htmlHasManualEntryFallback(html) {
   return (
     /<form\b[^>]*\bmethod=["']post["'][^>]*\baction=["']\/checkout["']/iu.test(html) ||
     /<form\b[^>]*\baction=["']\/checkout["'][^>]*\bmethod=["']post["']/iu.test(html)
-  );
-}
-
-function sourceRendersCheckoutDemo() {
-  const localizedRootSource = readSource('apps/shell-super-app/src/routes/[lang]/page.tsx');
-  const demoSource = readSource('apps/shell-super-app/src/routes/smart-suggest-demo.tsx');
-
-  return (
-    localizedRootSource.includes('smart-suggest-demo') &&
-    demoSource.includes('TechsioSmartSuggest') &&
-    demoSource.includes('/sdk/techsio-smart-suggest.js') &&
-    demoSource.includes("apiBaseUrl: '/api'") &&
-    demoSource.includes("addressLine: '#address-line'") &&
-    demoSource.includes("postalCode: '#postal-code'") &&
-    demoSource.includes("phone: '#phone'") &&
-    demoSource.includes("phoneValidationMode: 'server-only'") &&
-    demoSource.includes('action="/checkout"')
   );
 }
 
@@ -487,6 +455,51 @@ function validateDemoHtml(report, demo, source) {
   );
 }
 
+function validateDemoEntrypoint(report, demo, source) {
+  const contentType = demo.contentType ?? '';
+  const isHtml = contentType.toLowerCase().includes('text/html') || demo.body.includes('<html');
+  const servesDemo =
+    htmlHasDemoForm(demo.body) &&
+    (demo.body.includes('/sdk/techsio-smart-suggest.js') || htmlHasSdkModuleScript(demo.body));
+  const linksCanonicalDemo = demo.body.includes('/sdk/demo.html');
+  const redirectsToCanonicalDemo =
+    linksCanonicalDemo &&
+    (demo.body.includes('http-equiv') || demo.body.includes('window.location.replace'));
+
+  check(
+    report,
+    demo.ok,
+    `${source}-demo-entrypoint-http`,
+    'Extensionless demo entrypoint returned HTTP success.',
+    'Extensionless demo entrypoint did not return HTTP success.',
+    {
+      statusCode: demo.status,
+    },
+  );
+  check(
+    report,
+    isHtml,
+    `${source}-demo-entrypoint-html`,
+    'Extensionless demo entrypoint is HTML.',
+    'Extensionless demo entrypoint was not recognizable HTML.',
+    {
+      contentType,
+    },
+  );
+  check(
+    report,
+    servesDemo || redirectsToCanonicalDemo,
+    `${source}-demo-entrypoint-target`,
+    'Extensionless demo entrypoint exposes the SDK demo.',
+    'Extensionless demo entrypoint does not expose the SDK demo.',
+    {
+      linksCanonicalDemo,
+      redirectsToCanonicalDemo,
+      servesDemo,
+    },
+  );
+}
+
 function validateSdk(report, sdk, source) {
   const hasGlobal =
     sdk.body.includes('TechsioSmartSuggest') || sdk.body.includes('installSmartSuggestGlobal');
@@ -580,141 +593,6 @@ function staticContentType(filePath) {
   return 'application/octet-stream';
 }
 
-async function createLocalArtifactServer(rootDir) {
-  const artifactRoot = path.resolve(rootDir);
-  const server = createServer((request, response) => {
-    if (request.method !== 'GET' && request.method !== 'HEAD') {
-      response.writeHead(405, { allow: 'GET, HEAD' });
-      response.end();
-      return;
-    }
-
-    const url = new URL(request.url ?? '/', 'http://127.0.0.1');
-    const decodedPath = decodeURIComponent(url.pathname).replace(/^\/+/u, '');
-    const filePath = path.resolve(artifactRoot, decodedPath);
-
-    if (filePath !== artifactRoot && !filePath.startsWith(`${artifactRoot}${path.sep}`)) {
-      response.writeHead(403);
-      response.end();
-      return;
-    }
-
-    fs.stat(filePath, (statError, stat) => {
-      if (statError !== null || !stat.isFile()) {
-        response.writeHead(404);
-        response.end();
-        return;
-      }
-
-      response.writeHead(200, {
-        'cache-control': 'public, max-age=31536000, immutable',
-        'content-length': String(stat.size),
-        'content-type': staticContentType(filePath),
-      });
-
-      if (request.method === 'HEAD') {
-        response.end();
-        return;
-      }
-
-      const stream = fs.createReadStream(filePath);
-      stream.on('error', () => {
-        response.destroy();
-      });
-      stream.pipe(response);
-    });
-  });
-
-  const { manifestUrl } = await new Promise((resolve, reject) => {
-    const onError = (error) => {
-      server.off('listening', onListening);
-      reject(error);
-    };
-    const onListening = () => {
-      server.off('error', onError);
-      const address = server.address();
-
-      if (address === null || typeof address === 'string') {
-        reject(new Error('Local artifact server did not expose a TCP address.'));
-        return;
-      }
-
-      resolve({
-        manifestUrl: `http://127.0.0.1:${address.port}/manifest.json`,
-      });
-    };
-
-    server.once('error', onError);
-    server.once('listening', onListening);
-    server.listen(0, '127.0.0.1');
-  });
-
-  return {
-    manifestUrl,
-    async close() {
-      await new Promise((resolve, reject) => {
-        server.close((error) => {
-          if (error !== undefined) {
-            reject(error);
-            return;
-          }
-          resolve();
-        });
-      });
-    },
-  };
-}
-
-async function createDirectArtifactManifest(report) {
-  const explicitManifestUrl =
-    envValue('SMART_SUGGEST_PUBLIC_DEMO_ARTIFACT_MANIFEST_URL') ??
-    envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL');
-
-  if (explicitManifestUrl !== undefined) {
-    pass(
-      report,
-      'direct-api-production-artifacts',
-      'Direct API fallback uses the configured owned artifact manifest URL.',
-      {
-        manifestUrl: explicitManifestUrl,
-      },
-    );
-    return {
-      manifestUrl: explicitManifestUrl,
-      async close() {},
-    };
-  }
-
-  if (!fs.existsSync(productionArtifactManifestPath)) {
-    fail(
-      report,
-      'direct-api-production-artifacts',
-      'Production owned artifact manifest is missing for direct API fallback.',
-      {
-        expectedManifestPath: relativeWorkspacePath(productionArtifactManifestPath),
-        remediation:
-          'Run pnpm smart-suggest:artifacts:build:production or set SMART_SUGGEST_PUBLIC_DEMO_ARTIFACT_MANIFEST_URL.',
-      },
-    );
-    return;
-  }
-
-  const artifactServer = await createLocalArtifactServer(
-    path.dirname(productionArtifactManifestPath),
-  );
-  pass(
-    report,
-    'direct-api-production-artifacts',
-    'Direct API fallback serves the local production owned artifact tree.',
-    {
-      manifestPath: relativeWorkspacePath(productionArtifactManifestPath),
-      manifestUrl: artifactServer.manifestUrl,
-    },
-  );
-
-  return artifactServer;
-}
-
 function isSmartSuggestStatus(value) {
   return value?.service === 'smart-suggest';
 }
@@ -755,102 +633,6 @@ async function detectApiBase(report, baseUrl, args) {
     },
   );
   return;
-}
-
-async function createDirectApiTransport(report) {
-  const distHandlerPath = path.join(workspaceRoot, 'apps/shell-super-app/dist/api/index.js');
-
-  if (!fs.existsSync(distHandlerPath)) {
-    skip(
-      report,
-      'direct-api-fallback',
-      'Built API handler is missing, so direct API fallback was skipped.',
-      {
-        distHandlerPath: relativeWorkspacePath(distHandlerPath),
-      },
-    );
-    return;
-  }
-
-  try {
-    const module = await import(pathToFileURL(distHandlerPath).href);
-    const runtime = module.default ?? module;
-    const createdHandler =
-      typeof runtime.createHandler === 'function'
-        ? runtime.createHandler({ openapi: false })
-        : undefined;
-    const handler = createdHandler?.handler;
-
-    if (typeof handler !== 'function') {
-      throw new Error('dist Effect runtime createHandler export is missing.');
-    }
-
-    const shellAppRequire = createRequire(
-      pathToFileURL(path.join(workspaceRoot, 'apps/shell-super-app/package.json')).href,
-    );
-    const effectServerPath = shellAppRequire.resolve('@modern-js/plugin-bff/effect-server');
-    const { createEffectOperationContext, runWithEffectContext } = await import(
-      pathToFileURL(effectServerPath).href
-    );
-    const artifactManifest = await createDirectArtifactManifest(report);
-
-    if (artifactManifest === undefined) {
-      return;
-    }
-
-    pass(report, 'direct-api-fallback', 'Loaded built API handler for direct fallback checks.', {
-      distHandlerPath: relativeWorkspacePath(distHandlerPath),
-    });
-
-    return {
-      apiBase: 'dist-api-handler',
-      close: artifactManifest.close,
-      kind: 'direct-dist',
-      async requestJson(routePath, init) {
-        const request = new Request(`https://smart-suggest.local${routePath}`, {
-          ...init,
-          headers: {
-            accept: 'application/json',
-            ...(init?.body === undefined ? {} : { 'content-type': 'application/json' }),
-            ...init?.headers,
-          },
-        });
-        const env = {
-          HERE_API_KEY: '',
-          MAPY_CZ_API_KEY: '',
-          NOMINATIM_USER_AGENT: '',
-          RADAR_API_KEY: '',
-          RUIAN_GEOCODE_DISABLED: 'true',
-          SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE: 'false',
-          SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL: artifactManifest.manifestUrl,
-          SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS: 'false',
-          SMART_SUGGEST_PROVIDER_PRIORITY: '',
-        };
-        const context = {
-          request,
-          env,
-          path: routePath,
-          method: request.method,
-          operationContext: createEffectOperationContext({
-            request,
-            env,
-            path: routePath,
-            method: request.method,
-          }),
-        };
-        const response = await runWithEffectContext(context, () =>
-          handler.length > 1 ? handler(request, context) : handler(request),
-        );
-
-        return responseToJson(response);
-      },
-    };
-  } catch (error) {
-    fail(report, 'direct-api-fallback', 'Built API handler could not be loaded.', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return;
-  }
 }
 
 function normalizeText(value) {
@@ -910,6 +692,26 @@ function isOwnedKLouziStreetSuggestion(suggestion) {
     suggestion?.source?.kind === 'owned-dataset' &&
     address.countryCode === expectedKLouziAddress.countryCode &&
     streetText.includes('k louzi')
+  );
+}
+
+function isOwnedJavorovaSuggestion(suggestion) {
+  const address = suggestion?.address ?? {};
+  const streetText = normalizeText(address.street ?? address.line1 ?? suggestion?.displayLabel);
+
+  return (
+    suggestion?.source?.kind === 'owned-dataset' &&
+    address.countryCode === 'CZ' &&
+    streetText.includes('javorova')
+  );
+}
+
+function isOwnedPostal101Suggestion(suggestion) {
+  return (
+    suggestion?.source?.kind === 'owned-dataset' &&
+    suggestion?.kind === 'postal' &&
+    suggestion?.address?.countryCode === 'CZ' &&
+    normalizeText(suggestion?.address?.postalCode ?? suggestion?.displayLabel).includes('101 00')
   );
 }
 
@@ -975,8 +777,8 @@ async function getStatus(report, transport, checkId) {
 
 async function runSuggestScenario(report, transport, scenario) {
   const params = new URLSearchParams();
-  params.set('countryCode', 'CZ');
-  params.set('kind', 'address');
+  params.set('countryCode', scenario.countryCode ?? 'CZ');
+  params.set('kind', scenario.kind ?? 'address');
   params.set('language', 'cs-CZ');
   params.set('limit', String(scenario.limit ?? 5));
   params.set('q', scenario.query);
@@ -1201,27 +1003,6 @@ async function findAcceptCandidate(report, transport, preferredResults) {
       };
     }
   }
-
-  const fallback = await runSuggestScenario(report, transport, {
-    expect: 'owned-address',
-    failSummary: 'Fallback owned sample was not available for accept-event proof.',
-    id: 'accept-candidate-owned-sample',
-    limit: 1,
-    matches: (suggestion) => suggestion?.source?.kind === 'owned-dataset',
-    passSummary: 'Fallback owned sample is available for accept-event proof.',
-    query: 'vaclavske namesti',
-  });
-  const candidate = fallback.matchingSuggestion ?? fallback.suggestions[0];
-
-  if (candidate === undefined || sourceForAccept(candidate.source) === undefined) {
-    return;
-  }
-
-  return {
-    requestId: fallback.body?.requestId,
-    scenarioId: fallback.scenarioId,
-    suggestion: candidate,
-  };
 }
 
 async function runAcceptMatrix(report, transport, beforeStatus, preferredResults) {
@@ -1345,6 +1126,34 @@ async function runApiMatrix(report, transport) {
     query: 'K Lou',
   });
   await runSuggestScenario(report, transport, {
+    expect: 'owned-address',
+    failSummary: 'Javo prefix did not return real owned Javorova suggestions.',
+    id: 'javo-prefix-owned-suggestion',
+    limit: 5,
+    matches: isOwnedJavorovaSuggestion,
+    passSummary: 'Javo prefix returned real owned Javorova suggestions.',
+    query: 'Javo',
+  });
+  await runSuggestScenario(report, transport, {
+    expect: 'owned-address',
+    failSummary: 'Javorova diacritic query did not return real owned suggestions.',
+    id: 'javorova-diacritic-owned-suggestion',
+    limit: 5,
+    matches: isOwnedJavorovaSuggestion,
+    passSummary: 'Javorova diacritic query returned real owned suggestions.',
+    query: 'Javorová',
+  });
+  await runSuggestScenario(report, transport, {
+    expect: 'owned-address',
+    failSummary: 'Postal prefix 101 did not return owned postal suggestions.',
+    id: 'postal-101-prefix-owned-suggestion',
+    kind: 'postal',
+    limit: 5,
+    matches: isOwnedPostal101Suggestion,
+    passSummary: 'Postal prefix 101 returned owned postal suggestions.',
+    query: '101',
+  });
+  await runSuggestScenario(report, transport, {
     expect: 'empty',
     id: 'weak-query-collapse',
     limit: 5,
@@ -1396,6 +1205,9 @@ async function runHttpProof(report, args) {
   const demo = await fetchText(joinOriginRoute(baseUrl, '/sdk/demo.html'), args.timeoutMs);
   validateDemoHtml(report, demo, 'public');
 
+  const demoEntrypoint = await fetchText(joinOriginRoute(baseUrl, '/sdk/demo'), args.timeoutMs);
+  validateDemoEntrypoint(report, demoEntrypoint, 'public-extensionless');
+
   const sdk = await fetchText(
     joinOriginRoute(baseUrl, '/sdk/techsio-smart-suggest.js'),
     args.timeoutMs,
@@ -1406,72 +1218,6 @@ async function runHttpProof(report, args) {
 
   if (transport !== undefined) {
     await runApiMatrix(report, transport);
-  }
-}
-
-function runStaticSourceProof(report) {
-  const demoSource = readSource('apps/shell-super-app/sdk/demo.html');
-  const sdkSource = readSource('apps/shell-super-app/sdk/techsio-smart-suggest.js');
-  const vanillaSource = readRepositorySource('libs/smart-suggest/vanilla/src/vanilla.ts');
-  const validationPhoneSource = readRepositorySource(
-    'libs/smart-suggest/validation/src/phone-lite.ts',
-  );
-
-  report.target.mode = 'static-source';
-  check(
-    report,
-    sourceRendersCheckoutDemo(),
-    'static-localized-demo-entry',
-    'Source localized route renders the checkout demo.',
-    'Source localized route does not render the checkout demo.',
-  );
-  validateDemoHtml(
-    report,
-    {
-      body: demoSource,
-      contentType: 'text/html; charset=utf-8',
-      ok: true,
-      status: 200,
-    },
-    'static',
-  );
-  validateSdk(
-    report,
-    {
-      body: sdkSource,
-      contentType: 'text/javascript; charset=utf-8',
-      ok: true,
-      status: 200,
-    },
-    'static-public',
-  );
-
-  const missingSourceModes = phoneValidationModes.filter(
-    (mode) => !validationPhoneSource.includes(mode),
-  );
-  check(
-    report,
-    vanillaSource.includes('phoneValidationMode') &&
-      vanillaSource.includes('DEFAULT_PHONE_VALIDATION_MODE') &&
-      validationPhoneSource.includes('PHONE_VALIDATION_MODES') &&
-      missingSourceModes.length === 0,
-    'static-vanilla-phone-validation-modes',
-    'Vanilla source uses the validation package phone mode contract.',
-    'Vanilla or validation source does not expose the full phone validation mode contract.',
-    { missingPhoneModes: missingSourceModes },
-  );
-}
-
-async function runFallbackProof(report) {
-  runStaticSourceProof(report);
-  const directTransport = await createDirectApiTransport(report);
-
-  if (directTransport !== undefined) {
-    try {
-      await runApiMatrix(report, directTransport);
-    } finally {
-      await directTransport.close?.();
-    }
   }
 }
 
@@ -1499,13 +1245,12 @@ async function main(argv = process.argv.slice(2)) {
       skip(
         report,
         'http-target-reachable',
-        'Default localhost demo URL was not reachable; running static/direct fallback proof.',
+        'Default localhost demo URL was not reachable; HTTP/browser proof skipped.',
         {
           error: error instanceof Error ? error.message : String(error),
           url: args.url,
         },
       );
-      await runFallbackProof(report);
     }
   }
 

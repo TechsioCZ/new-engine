@@ -5,6 +5,7 @@ export type DeliveryValidationStatus = 'idle' | 'valid' | 'invalid' | 'unknown';
 export type DemoAddressSuggestState =
   | { status: 'idle' }
   | { status: 'loading' }
+  | { status: 'blocked' }
   | { status: 'error' }
   | { status: 'success'; data: { suggestions: readonly unknown[] } };
 
@@ -14,6 +15,7 @@ export interface CheckoutStateCopy {
   addressLoading: string;
   addressManual: string;
   addressManualAction: string;
+  addressScopeBlocked: string;
   addressSelected: string;
   formInvalid: string;
   phoneInvalid: string;
@@ -34,6 +36,7 @@ const checkoutStateCopy = {
     addressLoading: 'Hledáme odpovídající adresy...',
     addressManual: 'Ručně zadaná adresa',
     addressManualAction: 'Zadat adresu ručně',
+    addressScopeBlocked: 'Vybraný stát není pro toto pole podporovaný.',
     addressSelected: 'Adresa vybraná z našeptávání.',
     formInvalid: 'Zkontrolujte zvýrazněná pole a pokračujte znovu.',
     phoneInvalid: 'Zkontrolujte telefonní číslo pro kurýra.',
@@ -47,6 +50,7 @@ const checkoutStateCopy = {
     addressLoading: 'Looking up matching addresses...',
     addressManual: 'Manual address entry',
     addressManualAction: 'Enter address manually',
+    addressScopeBlocked: 'The selected country is not supported for this field.',
     addressSelected: 'Address selected from suggestions.',
     formInvalid: 'Check the highlighted fields before continuing.',
     phoneInvalid: 'Check the courier phone number.',
@@ -99,6 +103,7 @@ export const shouldOfferManualEntry = ({
   if (selectedAddress === undefined && addressInput.trim().length > 0) {
     return (
       manualAddress ||
+      addressSuggestState.status === 'blocked' ||
       addressSuggestState.status === 'error' ||
       (addressSuggestState.status === 'success' &&
         addressSuggestState.data.suggestions.length === 0)
@@ -138,6 +143,10 @@ export const getAddressStatus = ({
 
     if (addressSuggestState.status === 'error') {
       return { status: 'warning', text: copy.addressError };
+    }
+
+    if (addressSuggestState.status === 'blocked') {
+      return { status: 'warning', text: copy.addressScopeBlocked };
     }
 
     if (

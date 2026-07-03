@@ -38,7 +38,7 @@ function parseArgs(argv) {
   if (!(parsed.appId || parsed.help)) {
     throw new Error('Missing required --app argument');
   }
-  if (!['dist', 'cloudflare'].includes(parsed.target)) {
+  if (!['source', 'dist', 'cloudflare'].includes(parsed.target)) {
     throw new Error(`Unsupported public surface target: ${parsed.target}`);
   }
 
@@ -47,7 +47,7 @@ function parseArgs(argv) {
 
 function printHelp() {
   process.stdout.write(`Usage:
-  node scripts/generate-public-surface-assets.mjs --app shell-super-app [--target dist|cloudflare] [--require-public-origin]
+    node scripts/generate-public-surface-assets.mjs --app shell-super-app [--target source|dist|cloudflare] [--require-public-origin]
 
 Set each app's production URL using the contract env key, for example:
   ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP=https://example.com
@@ -96,9 +96,11 @@ function resolveOrigin(app, requirePublicOrigin) {
 
 function ensureOutputDir(app, target) {
   const relativeDir =
-    target === 'cloudflare'
-      ? app.routes?.publicSurface?.cloudflareOutputRoot
-      : app.routes?.publicSurface?.outputRoot;
+    target === 'source'
+      ? 'public'
+      : target === 'cloudflare'
+        ? app.routes?.publicSurface?.cloudflareOutputRoot
+        : app.routes?.publicSurface?.outputRoot;
   if (typeof relativeDir !== 'string') {
     throw new Error(`${app.id} public surface contract is missing outputRoot for ${target}`);
   }

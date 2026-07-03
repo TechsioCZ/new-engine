@@ -32,6 +32,7 @@ export type AddressSuggestFieldProps = Omit<
 > & {
   client?: SmartSuggestEffectClient;
   countryCode?: Uppercase<string>;
+  countryCodes?: readonly Uppercase<string>[];
   language?: string;
   tenant?: SmartSuggestTenantContext;
   limit?: number;
@@ -68,6 +69,7 @@ export function AddressSuggestField({
   acceptSelection = true,
   client,
   countryCode,
+  countryCodes,
   debounceMs,
   error,
   inputValue,
@@ -97,6 +99,10 @@ export function AddressSuggestField({
       nextRequest.countryCode = countryCode;
     }
 
+    if (countryCodes !== undefined) {
+      nextRequest.countryCodes = countryCodes;
+    }
+
     if (language !== undefined) {
       nextRequest.language = language;
     }
@@ -110,7 +116,7 @@ export function AddressSuggestField({
     }
 
     return nextRequest;
-  }, [countryCode, currentInputValue, language, limit, tenant]);
+  }, [countryCode, countryCodes, currentInputValue, language, limit, tenant]);
   const suggestOptions: Parameters<typeof useAddressSuggest>[0] = {
     client: resolvedClient,
     request,

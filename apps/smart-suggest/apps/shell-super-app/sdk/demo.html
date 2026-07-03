@@ -187,7 +187,7 @@
           <span aria-current="page">HTML demo</span>
         </nav>
       </header>
-      <form method="post" action="/checkout">
+      <form method="post" action="/checkout" data-smart-suggest-countries="CZ,SK">
         <div class="field">
           <label for="address-line">Address line</label>
           <input id="address-line" name="address_line" autocomplete="address-line1" />
@@ -219,9 +219,11 @@
       window.TechsioSmartSuggest?.attach({
         addressLine: '#address-line',
         city: '#city',
+        countryCodes: ['CZ', 'SK'],
         country: '#country',
         phone: '#phone',
         postalCode: '#postal-code',
+        minQueryLength: 1,
       });
     </script>
   </body>

@@ -188,6 +188,7 @@ describe("smart suggest UI wrappers", () => {
         createElement(AddressSuggestField, {
           client: createMockSmartSuggestClient(),
           countryCode: "CZ",
+          countryCodes: ["CZ", "SK"],
           inputValue: "Vinohradska",
           limit: 20,
           onSuggestStateChange,
@@ -197,6 +198,7 @@ describe("smart suggest UI wrappers", () => {
 
     expect(addressSuggestOptions.at(-1)?.request).toMatchObject({
       countryCode: "CZ",
+      countryCodes: ["CZ", "SK"],
       kind: "address",
       limit: 20,
       query: "Vinohradska",

@@ -3,7 +3,7 @@
 Generated UltraModern SuperApp workspace.
 
 This workspace keeps `presetUltramodern(...)` as the single public
-UltraModern.js 3.0 SuperApp surface and starts with an explicit shell:
+UltraModern.js 3.5.0-ultramodern.28 SuperApp surface and starts with an explicit shell:
 
 - `apps/shell-super-app` owns shell route assembly, Module Federation host
   wiring, shared SSR/i18n runtime setup, and the boundary debugger.
@@ -144,30 +144,32 @@ pnpm cloudflare:proof -- --require-public-urls
 
 ## Smart Suggest Runtime Config
 
-The shell app exposes Smart Suggest through `/api/v1/*` and uses Cloudflare D1
-when the Worker provides the `SMART_SUGGEST_D1` binding. Local builds and
-previews keep an in-memory fallback so API smoke tests can run without live
-Cloudflare resources.
+The shell app exposes Smart Suggest through `/api/v1/*`. The default
+Cloudflare deploy is artifact-static: real owned RUIAN artifacts are built into
+`apps/shell-super-app/smart-suggest-owned-data`, copied by UltraModern
+`deploy.worker.publicAssets`, and read through
+`SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL`.
 
-| Variable                               | Role                                                    |
-| -------------------------------------- | ------------------------------------------------------- |
-| `SMART_SUGGEST_D1_BINDING`             | Wrangler binding name; defaults to `SMART_SUGGEST_D1`   |
-| `SMART_SUGGEST_D1_DATABASE_NAME`       | D1 database name; defaults to `smart-suggest`           |
-| `SMART_SUGGEST_D1_DATABASE_ID`         | D1 database id; required by `pnpm cloudflare:deploy`    |
-| `SMART_SUGGEST_D1_PREVIEW_DATABASE_ID` | Optional preview D1 id; falls back to the production id |
-| `SMART_SUGGEST_ALLOWED_ORIGINS`        | Deployment-owned CORS origin allowlist contract         |
-| `SMART_SUGGEST_PROVIDER_PRIORITY`      | Deployment-owned provider priority contract             |
-| `SMART_SUGGEST_PROVIDER_TIMEOUT_MS`    | Provider fallback timeout override                      |
-| `MAPY_CZ_API_KEY`                      | Provider secret contract; server/Worker only            |
-| `MAPY_CZ_ENDPOINT_URL`                 | Optional Mapy-compatible endpoint override for testing  |
+| Variable                                                     | Role                                                       |
+| ------------------------------------------------------------ | ---------------------------------------------------------- |
+| `SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL`                  | HTTPS manifest URL for the owned artifact index            |
+| `SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE`              | Must stay `false` in production                            |
+| `SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS` | Must stay `false` for artifact-static deploys              |
+| `SMART_SUGGEST_ALLOWED_ORIGINS`                              | Deployment-owned CORS origin allowlist contract            |
+| `SMART_SUGGEST_PROVIDER_PRIORITY`                            | Deployment-owned provider fallback order                   |
+| `SMART_SUGGEST_PROVIDER_TIMEOUT_MS`                          | Provider fallback timeout override                         |
+| `MAPY_CZ_API_KEY`                                            | Optional live fallback provider secret; server/Worker only |
+| `MAPY_CZ_ENDPOINT_URL`                                       | Optional Mapy-compatible endpoint override testing         |
 
-`pnpm cloudflare:build` post-processes the generated `.output/wrangler.json`
-with the D1 binding shape, copies the generated D1 migrations into `.output`,
-and removes server-only API/shared files from the public asset directory.
-`pnpm cloudflare:deploy` reruns that post-process in strict mode, applies D1
-migrations with Wrangler, and fails if `SMART_SUGGEST_D1_DATABASE_ID` is
-missing. Provider secrets, provider priority, timeout, and CORS origins are
-intentionally deployment/runtime configuration, not browser configuration.
+D1 topology remains an explicit operator path under `cloudflare:deploy:d1` and
+`smart-suggest:d1:*` scripts. Validate generated Wrangler D1/public-asset config
+with `pnpm smart-suggest:d1:validate-config`; that command is validation-only
+and must not rewrite `.output`. Provider secrets, provider priority, timeout,
+and CORS origins are deployment/runtime configuration, not browser
+configuration.
+Anonymous/public live provider enrichment also requires
+`SMART_SUGGEST_PROVIDER_ENRICHMENT_ENABLED=true`; tenant-configured provider
+enrichment is explicit through the tenant configuration.
 
 ## Smart Suggest Provider Runtime Configuration
 

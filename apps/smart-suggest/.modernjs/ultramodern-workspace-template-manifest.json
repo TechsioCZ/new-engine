@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "template": {
     "id": "modernjs-ultramodern-superapp-workspace",
-    "version": "3.5.0-ultramodern.23",
+    "version": "3.5.0-ultramodern.28",
     "displayName": "Modern.js UltraModern SuperApp Workspace",
     "description": "Growable SuperApp shell, shared packages, and topology skeleton.",
     "compatibilityLane": "ultramodern-mv",
-    "minimumModernVersion": "3.5.0-ultramodern.23"
+    "minimumModernVersion": "3.5.0-ultramodern.28"
   },
   "source": {
     "type": "builtin",
@@ -71,7 +71,7 @@
   "packageSource": {
     "strategy": "install",
     "config": ".modernjs/ultramodern-package-source.json",
-    "modernPackageSpecifier": "3.5.0-ultramodern.23",
+    "modernPackageSpecifier": "3.5.0-ultramodern.28",
     "generatedWorkspacePackageSpecifier": "workspace:*"
   },
   "agentSkills": {

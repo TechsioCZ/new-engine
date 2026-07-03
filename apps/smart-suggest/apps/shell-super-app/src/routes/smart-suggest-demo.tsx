@@ -34,6 +34,7 @@ interface SmartSuggestBrowserSelection {
 type SmartSuggestBrowserSuggestState =
   | { readonly status: 'idle' }
   | { readonly status: 'loading' }
+  | { readonly reason: 'country-scope'; readonly status: 'blocked' }
   | { readonly error: unknown; readonly status: 'error' }
   | {
       readonly requestId: string;
@@ -52,6 +53,7 @@ interface SmartSuggestBrowserGlobal {
     readonly city: string;
     readonly country: string;
     readonly countryCode: SupportedDemoCountry;
+    readonly countryCodes: readonly SupportedDemoCountry[];
     readonly language: string;
     readonly limit: number;
     readonly minQueryLength: number;
@@ -102,6 +104,9 @@ const mapSdkSuggestState = (state: SmartSuggestBrowserSuggestState): DemoAddress
     }
     case 'loading': {
       return { status: 'loading' };
+    }
+    case 'blocked': {
+      return { status: 'blocked' };
     }
     case 'idle': {
       return { status: 'idle' };
@@ -157,7 +162,9 @@ export default function SmartSuggestDemoPage() {
     );
     setManualAddress(false);
     setCountryCode(nextCountryCode);
-    setAddressInput(hasAddressLine ? nextLine : '');
+    if (hasAddressLine) {
+      setAddressInput(nextLine);
+    }
     setCity(address.city?.trim() ?? '');
     setPostalCode(address.postalCode?.trim() ?? '');
     setDeliveryConfirmed(false);
@@ -194,9 +201,10 @@ export default function SmartSuggestDemoPage() {
         city: '#city',
         country: '#country',
         countryCode,
+        countryCodes: supportedCountries,
         language,
         limit: ADDRESS_SUGGESTION_LIMIT,
-        minQueryLength: 3,
+        minQueryLength: 1,
         onError: () => {
           setAddressSuggestState({ status: 'error' });
         },
@@ -276,6 +284,7 @@ export default function SmartSuggestDemoPage() {
         <form
           action="/checkout"
           className="shell:grid shell:min-w-0 shell:gap-5 shell:rounded-lg shell:border shell:border-stone-900/10 shell:bg-white shell:p-5 shell:shadow-xl shell:shadow-stone-900/10 shell:sm:p-6"
+          data-smart-suggest-countries={supportedCountries.join(',')}
           method="post"
           onSubmit={handleSubmit}
         >
@@ -304,7 +313,7 @@ export default function SmartSuggestDemoPage() {
               </span>
               <a
                 className="shell:rounded-md shell:border shell:border-stone-900/15 shell:bg-white shell:px-3 shell:py-2 shell:text-sm shell:font-black shell:text-stone-800 shell:shadow-sm shell:shadow-stone-900/5 shell:hover:border-teal-700/40 shell:hover:text-teal-800 shell:focus-visible:outline-3 shell:focus-visible:outline-offset-2 shell:focus-visible:outline-emerald-700/40"
-                href="/sdk/demo.html"
+                href="/sdk/demo"
               >
                 {t('shell.demo.variant.html')}
               </a>

@@ -610,9 +610,9 @@ Environment fallbacks:
   SMART_SUGGEST_D1_SHARD_BINDINGS
   SMART_SUGGEST_D1_ROUTER_BINDING or SMART_SUGGEST_ROUTER_D1_BINDING
 
-If --shard-bindings and SMART_SUGGEST_D1_SHARD_BINDINGS are absent, the wrapper
-uses SMART_SUGGEST_D1_SHARD_BINDINGS from the generated Wrangler vars, then
-falls back to D1 bindings matching --shard-binding-prefix.
+Production seeding requires explicit --shard-bindings or
+SMART_SUGGEST_D1_SHARD_BINDINGS. Generated Wrangler config is validated but not
+used to infer address shard bindings.
 `);
 }
 
@@ -883,31 +883,6 @@ function readConfigVar(config, name) {
     : undefined;
 }
 
-function inferShardBindingsFromConfig(config, args) {
-  const configured = readConfigVar(config, 'SMART_SUGGEST_D1_SHARD_BINDINGS');
-
-  if (configured !== undefined) {
-    return {
-      shardBindings: configured,
-      source: 'wrangler-config-var',
-    };
-  }
-
-  const inferredBindings = databaseEntries(config)
-    .map((entry) => entry.binding)
-    .filter((binding) => typeof binding === 'string' && binding.startsWith(args.shardBindingPrefix))
-    .toSorted((left, right) => left.localeCompare(right));
-
-  if (inferredBindings.length === 0) {
-    return undefined;
-  }
-
-  return {
-    shardBindings: inferredBindings.join(','),
-    source: 'wrangler-d1-bindings',
-  };
-}
-
 function inferShardRegionMapFromConfig(config, args) {
   if (args.shardRouteStrategy === 'hash') {
     return undefined;
@@ -945,8 +920,6 @@ function resolveD1BindingsFromConfig(args) {
     (readConfigVar(config, 'SMART_SUGGEST_D1_ROUTER_BINDING') === undefined
       ? 'default'
       : 'wrangler-config-var');
-  const inferredShardBindings =
-    args.shardBindings === undefined ? inferShardBindingsFromConfig(config, args) : undefined;
   const inferredShardRegionMap =
     args.shardRegionMapJson === undefined ? inferShardRegionMapFromConfig(config, args) : undefined;
 
@@ -954,8 +927,6 @@ function resolveD1BindingsFromConfig(args) {
     ...args,
     routerD1Binding,
     routerD1BindingSource,
-    shardBindings: args.shardBindings ?? inferredShardBindings?.shardBindings,
-    shardBindingsSource: args.shardBindingsSource ?? inferredShardBindings?.source,
     shardRegionMapJson: args.shardRegionMapJson ?? inferredShardRegionMap?.shardRegionMapJson,
     shardRegionMapSource: args.shardRegionMapSource ?? inferredShardRegionMap?.source,
   };
@@ -1356,8 +1327,7 @@ function validateShardBindings(args) {
   if (bindings.length === 0) {
     return {
       id: 'missing-shard-bindings',
-      message:
-        '--shard-bindings, SMART_SUGGEST_D1_SHARD_BINDINGS, or generated Wrangler shard config is required.',
+      message: '--shard-bindings or SMART_SUGGEST_D1_SHARD_BINDINGS required.',
       status: 'error',
     };
   }

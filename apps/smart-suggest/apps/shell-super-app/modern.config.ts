@@ -52,6 +52,235 @@ const siteUrl =
   configuredCloudflareUrl ||
   inferredCloudflareUrl ||
   `http://localhost:${port}`;
+const smartSuggestArtifactPublicPath = 'smart-suggest-owned-data';
+const smartSuggestArtifactManifestUrl =
+  envValue('SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL') ||
+  `${siteUrl.replace(/\/+$/u, '')}/${smartSuggestArtifactPublicPath}/manifest.json`;
+type CloudflareD1Database = {
+  binding: string;
+  databaseId: string;
+  databaseName: string;
+  previewDatabaseId?: string;
+  remote?: boolean;
+};
+const envFlag = (name: string) => {
+  const value = envValue(name)?.toLowerCase();
+
+  return value === '1' || value === 'true' || value === 'yes';
+};
+const smartSuggestFreeTierShardGroups = [
+  { index: '01', regionCodes: ['19'] },
+  { index: '02', regionCodes: ['27'] },
+  { index: '03', regionCodes: ['35', '43'] },
+  { index: '04', regionCodes: ['51', '78'] },
+  { index: '05', regionCodes: ['60'] },
+  { index: '06', regionCodes: ['86', '94', '108'] },
+  { index: '07', regionCodes: ['116'] },
+  { index: '08', regionCodes: ['124', '132'] },
+  { index: '09', regionCodes: ['141'] },
+] as const;
+const smartSuggestCzVuscCodes = [
+  '19',
+  '27',
+  '35',
+  '43',
+  '51',
+  '60',
+  '78',
+  '86',
+  '94',
+  '108',
+  '116',
+  '124',
+  '132',
+  '141',
+] as const;
+const d1DatabaseFromEnv = ({
+  binding,
+  databaseIdEnv,
+  databaseName,
+  previewDatabaseIdEnv,
+}: {
+  binding: string;
+  databaseIdEnv: string;
+  databaseName: string;
+  previewDatabaseIdEnv?: string;
+}): CloudflareD1Database | undefined => {
+  const databaseId = envValue(databaseIdEnv);
+
+  if (databaseId === undefined) {
+    return;
+  }
+
+  const database: CloudflareD1Database = {
+    binding,
+    databaseId,
+    databaseName,
+    remote: true,
+  };
+  const previewDatabaseId =
+    previewDatabaseIdEnv === undefined ? undefined : envValue(previewDatabaseIdEnv);
+
+  if (previewDatabaseId !== undefined) {
+    database.previewDatabaseId = previewDatabaseId;
+  }
+
+  return database;
+};
+const parseSmartSuggestShardD1Databases = (): CloudflareD1Database[] => {
+  const rawJson = envValue('SMART_SUGGEST_D1_SHARDS_JSON');
+
+  if (rawJson === undefined) {
+    return [];
+  }
+
+  const parsed = JSON.parse(rawJson) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    throw new Error('SMART_SUGGEST_D1_SHARDS_JSON must be a JSON array.');
+  }
+
+  return parsed.map((entry, index) => {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+      throw new Error(`SMART_SUGGEST_D1_SHARDS_JSON[${index}] must be an object.`);
+    }
+
+    const record = entry as Record<string, unknown>;
+    const binding = typeof record['binding'] === 'string' ? record['binding'] : undefined;
+    const databaseName =
+      typeof record['databaseName'] === 'string'
+        ? record['databaseName']
+        : typeof record['database_name'] === 'string'
+          ? record['database_name']
+          : undefined;
+    const databaseId =
+      typeof record['databaseId'] === 'string'
+        ? record['databaseId']
+        : typeof record['database_id'] === 'string'
+          ? record['database_id']
+          : undefined;
+    const previewDatabaseId =
+      typeof record['previewDatabaseId'] === 'string'
+        ? record['previewDatabaseId']
+        : typeof record['preview_database_id'] === 'string'
+          ? record['preview_database_id']
+          : undefined;
+
+    if (binding === undefined || databaseName === undefined || databaseId === undefined) {
+      throw new Error(
+        `SMART_SUGGEST_D1_SHARDS_JSON[${index}] needs binding, databaseName/database_name, and databaseId/database_id.`,
+      );
+    }
+
+    return {
+      binding,
+      databaseId,
+      databaseName,
+      ...(previewDatabaseId === undefined ? {} : { previewDatabaseId }),
+      remote: true,
+    };
+  });
+};
+const uniqueD1Databases = (databases: readonly (CloudflareD1Database | undefined)[]) => {
+  const byBinding = new Map<string, CloudflareD1Database>();
+
+  for (const database of databases) {
+    if (database !== undefined) {
+      byBinding.set(database.binding, database);
+    }
+  }
+
+  return [...byBinding.values()];
+};
+const smartSuggestPrimaryD1Binding = envValue('SMART_SUGGEST_D1_BINDING') ?? 'SMART_SUGGEST_D1';
+const smartSuggestRouterD1Binding =
+  envValue('SMART_SUGGEST_D1_ROUTER_BINDING') ?? 'SMART_SUGGEST_ROUTER_D1';
+const createSmartSuggestD1Databases = () => {
+  const topology = envValue('SMART_SUGGEST_D1_TOPOLOGY');
+  const freeTierEnabled =
+    topology === 'free-tier' || envFlag('SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED');
+  const czVuscEnabled =
+    topology === 'paid-vusc' || envFlag('SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED');
+  const primaryDatabase = d1DatabaseFromEnv({
+    binding: smartSuggestPrimaryD1Binding,
+    databaseIdEnv: 'SMART_SUGGEST_D1_DATABASE_ID',
+    databaseName: envValue('SMART_SUGGEST_D1_DATABASE_NAME') ?? 'smart-suggest',
+    previewDatabaseIdEnv: 'SMART_SUGGEST_D1_PREVIEW_DATABASE_ID',
+  });
+  const routerDatabase = d1DatabaseFromEnv({
+    binding: smartSuggestRouterD1Binding,
+    databaseIdEnv: 'SMART_SUGGEST_ROUTER_D1_DATABASE_ID',
+    databaseName: envValue('SMART_SUGGEST_ROUTER_D1_DATABASE_NAME') ?? 'smart-suggest-router',
+    previewDatabaseIdEnv: 'SMART_SUGGEST_ROUTER_D1_PREVIEW_DATABASE_ID',
+  });
+  const freeTierBindingPrefix =
+    envValue('SMART_SUGGEST_D1_FREE_TIER_SHARD_BINDING_PREFIX') ?? 'SMART_SUGGEST_FREE_TIER_';
+  const freeTierDatabaseNamePrefix =
+    envValue('SMART_SUGGEST_D1_FREE_TIER_SHARD_DATABASE_NAME_PREFIX') ?? 'smart-suggest-free-tier-';
+  const freeTierDatabases = freeTierEnabled
+    ? smartSuggestFreeTierShardGroups.map((group) =>
+        d1DatabaseFromEnv({
+          binding: `${freeTierBindingPrefix}${group.index}`,
+          databaseIdEnv: `${freeTierBindingPrefix}${group.index}_DATABASE_ID`,
+          databaseName: `${freeTierDatabaseNamePrefix}${group.index}`,
+          previewDatabaseIdEnv: `${freeTierBindingPrefix}${group.index}_PREVIEW_DATABASE_ID`,
+        }),
+      )
+    : [];
+  const czVuscBindingPrefix =
+    envValue('SMART_SUGGEST_D1_CZ_VUSC_SHARD_BINDING_PREFIX') ?? 'SMART_SUGGEST_CZ_VUSC_';
+  const czVuscDatabaseNamePrefix =
+    envValue('SMART_SUGGEST_D1_CZ_VUSC_SHARD_DATABASE_NAME_PREFIX') ?? 'smart-suggest-cz-vusc-';
+  const czVuscDatabases = czVuscEnabled
+    ? smartSuggestCzVuscCodes.map((code) =>
+        d1DatabaseFromEnv({
+          binding: `${czVuscBindingPrefix}${code}`,
+          databaseIdEnv: `${czVuscBindingPrefix}${code}_DATABASE_ID`,
+          databaseName: `${czVuscDatabaseNamePrefix}${code}`,
+          previewDatabaseIdEnv: `${czVuscBindingPrefix}${code}_PREVIEW_DATABASE_ID`,
+        }),
+      )
+    : [];
+
+  return uniqueD1Databases([
+    primaryDatabase,
+    routerDatabase,
+    ...parseSmartSuggestShardD1Databases(),
+    ...freeTierDatabases,
+    ...czVuscDatabases,
+  ]);
+};
+const smartSuggestD1Databases = createSmartSuggestD1Databases();
+const smartSuggestD1ShardBindings =
+  envValue('SMART_SUGGEST_D1_SHARD_BINDINGS') ??
+  smartSuggestD1Databases
+    .map((database) => database.binding)
+    .filter(
+      (binding) =>
+        binding !== smartSuggestPrimaryD1Binding && binding !== smartSuggestRouterD1Binding,
+    )
+    .join(',');
+const optionalSmartSuggestWorkerVars = Object.fromEntries(
+  [
+    'SMART_SUGGEST_D1_BINDING',
+    'SMART_SUGGEST_D1_ROUTER_BINDING',
+    'SMART_SUGGEST_D1_SHARD_REGION_MAP_JSON',
+    'SMART_SUGGEST_D1_SHARDS_JSON',
+    'SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY',
+    'SMART_SUGGEST_D1_TOPOLOGY',
+  ].flatMap((name) => {
+    const value = envValue(name);
+
+    return value === undefined ? [] : [[name, value]];
+  }),
+);
+const smartSuggestD1WorkerVars =
+  smartSuggestD1Databases.length === 0
+    ? {}
+    : {
+        ...optionalSmartSuggestWorkerVars,
+        SMART_SUGGEST_D1_SHARD_BINDINGS: smartSuggestD1ShardBindings,
+      };
 // Asset loading is intentionally independent from the canonical site URL.
 // Module Federation remotes must publish an absolute publicPath so browsers
 // load remoteEntry.js and exposed chunks from the remote origin, not the host.
@@ -82,6 +311,20 @@ export default defineConfig(
               worker: {
                 compatibilityDate: '2026-06-02',
                 name: cloudflareWorkerName,
+                publicAssets: [
+                  {
+                    from: smartSuggestArtifactPublicPath,
+                    to: smartSuggestArtifactPublicPath,
+                  },
+                  {
+                    from: 'public',
+                    to: '.',
+                  },
+                ],
+                publicAssetExcludes: ['api', 'shared'],
+                ...(smartSuggestD1Databases.length === 0
+                  ? {}
+                  : { d1Databases: smartSuggestD1Databases }),
                 security: {
                   contentSecurityPolicy: {
                     directives: {
@@ -116,6 +359,17 @@ export default defineConfig(
                   },
                 },
                 ssr: true,
+                wrangler: {
+                  assets: {
+                    html_handling: 'none',
+                  },
+                  vars: {
+                    SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE: 'false',
+                    SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL: smartSuggestArtifactManifestUrl,
+                    SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS: 'false',
+                    ...smartSuggestD1WorkerVars,
+                  },
+                },
               },
             },
           }

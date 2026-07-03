@@ -11,7 +11,7 @@
       "@modern-js/plugin-tanstack",
       "@modern-js/runtime"
     ],
-    "specifier": "3.5.0-ultramodern.23",
+    "specifier": "3.5.0-ultramodern.28",
     "aliases": {
       "@modern-js/create": "@bleedingdev/modern-js-create",
       "@modern-js/code-tools": "@bleedingdev/modern-js-code-tools",

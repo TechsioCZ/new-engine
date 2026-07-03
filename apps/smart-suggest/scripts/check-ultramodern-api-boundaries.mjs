@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 const workspaceRoot = process.env.ULTRAMODERN_WORKSPACE_ROOT ?? process.cwd();
@@ -23,6 +24,36 @@ const fail = (message) => failures.push(message);
 const assert = (condition, message) => {
   if (!condition) {
     fail(message);
+  }
+};
+
+const publicEffectServerExports = [
+  'createEffectBffEdgeHandler',
+  'createEffectBffTestHandler',
+  'dispatchEffectBffRequest',
+];
+
+const assertPublicEffectBffServerApi = (ownerPath) => {
+  const packageJsonPath = `${ownerPath}/package.json`;
+  if (!exists(packageJsonPath)) {
+    return;
+  }
+
+  const requireFromOwner = createRequire(path.join(workspaceRoot, packageJsonPath));
+
+  try {
+    requireFromOwner.resolve('@modern-js/plugin-bff/effect-server');
+    const effectServer = requireFromOwner('@modern-js/plugin-bff/effect-server');
+    for (const exportName of publicEffectServerExports) {
+      assert(
+        typeof effectServer[exportName] === 'function',
+        `${ownerPath}: @modern-js/plugin-bff/effect-server must expose ${exportName}.`,
+      );
+    }
+  } catch (error) {
+    fail(
+      `${ownerPath}: @modern-js/plugin-bff/effect-server must be a public package export (${error instanceof Error ? error.message : String(error)}).`,
+    );
   }
 };
 
@@ -160,6 +191,8 @@ for (const ownerPath of apiOwners) {
   const srcApiDirectory = `${ownerPath}/src/api`;
   const modernConfig = `${ownerPath}/modern.config.ts`;
   const packageJsonPath = `${ownerPath}/package.json`;
+
+  assertPublicEffectBffServerApi(ownerPath);
 
   assert(exists(apiEntry), `${apiEntry} is required.`);
   assert(exists(sharedApi), `${sharedApi} is required.`);

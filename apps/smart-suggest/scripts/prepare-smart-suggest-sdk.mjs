@@ -70,7 +70,7 @@ function copySdkBundle(bundleOutputDir, sdkOutputDir, sdkOutput) {
   fs.rmSync(sdkOutput, { force: true });
 
   for (const entry of fs.readdirSync(sdkOutputDir)) {
-    if (entry.endsWith('.js') && entry !== 'demo.html') {
+    if ((entry.endsWith('.js') && entry !== 'demo.html') || entry === 'demo') {
       fs.rmSync(path.join(sdkOutputDir, entry), { force: true });
     }
   }
@@ -86,6 +86,10 @@ function copySdkBundle(bundleOutputDir, sdkOutputDir, sdkOutput) {
       entry === 'index.js' ? 'techsio-smart-suggest.js' : entry,
     );
     fs.copyFileSync(sourcePath, targetPath);
+  }
+  const demoHtmlPath = path.join(sdkOutputDir, 'demo.html');
+  if (fs.existsSync(demoHtmlPath)) {
+    fs.copyFileSync(demoHtmlPath, path.join(sdkOutputDir, 'demo'));
   }
 }
 

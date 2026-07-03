@@ -15,6 +15,7 @@ const ignoredDirectories = new Set([
   '.output',
   'coverage',
   'dist',
+  'dist-cloudflare',
   'node_modules',
   'repos',
 ]);
@@ -180,6 +181,9 @@ const governedFiles = unique([
 );
 
 const testFiles = governedFiles.filter((file) => testFilePattern.test(file));
+const scriptFiles = listFiles('apps/smart-suggest/scripts').filter((file) =>
+  codeFilePattern.test(file),
+);
 const cssFiles = unique([
   ...listFiles('apps/smart-suggest/apps/shell-super-app/src').filter((file) =>
     file.endsWith('.css'),
@@ -188,6 +192,44 @@ const cssFiles = unique([
 ]);
 
 const ruleGroups = [
+  {
+    files: scriptFiles,
+    rules: [
+      {
+        id: 'cloudflare-generated-worker-output-mutation',
+        message:
+          'Smart Suggest scripts must not rewrite generated Cloudflare server or worker bundles; fix the UltraModern framework output and keep scripts as validation-only consumers.',
+        regex:
+          /\bfs\.writeFileSync\s*\(\s*(?:workerPath|path\.join\([^)]*\.output\/(?:server|worker))/u,
+      },
+      {
+        id: 'cloudflare-generated-worker-source-inspection',
+        message:
+          'Smart Suggest scripts must not read generated Cloudflare server or worker bundles to detect framework behavior; fix and test the framework contract in UltraModern.',
+        regex:
+          /\bfs\.readFileSync\s*\([^;\n]*(?:\.output\/(?:server|worker)|workerPath)[^;\n]*,\s*['"]utf8['"]\s*\)/u,
+      },
+      {
+        id: 'cloudflare-drizzle-entitykind-postbuild-patch',
+        message:
+          'Smart Suggest must not post-build patch Drizzle entityKind bundle markers; fix the UltraModern Cloudflare worker toolchain.',
+        regex: /\.replaceAll\s*\(\s*['"];entityKind(?:,entityKind)?;['"]/u,
+      },
+      {
+        id: 'effect-bff-runtime-shape-probe',
+        message:
+          'Smart Suggest scripts must not probe Effect BFF runtime object shape; use public @modern-js/plugin-bff/effect-server test handlers.',
+        regex:
+          /\b(?:typeof\s+\w+\.createHandler\s*===\s*['"]function['"]|\w+\.createHandler\s*\()/u,
+      },
+      {
+        id: 'manual-effect-bff-dispatch-context',
+        message:
+          'Smart Suggest scripts must not hand-roll Effect BFF dispatch context; use createEffectBffTestHandler from @modern-js/plugin-bff/effect-server.',
+        regex: /\brunWithEffectContext\s*\(/u,
+      },
+    ],
+  },
   {
     files: bffRuntimeFiles,
     rules: [

@@ -12,6 +12,7 @@ const checkoutCopy = {
   addressLoading: 'Looking up matching addresses...',
   addressManual: 'Manual address entry',
   addressManualAction: 'Enter address manually',
+  addressScopeBlocked: 'The selected country is not supported for this field.',
   addressSelected: 'Address selected from suggestions.',
   formInvalid: 'Check the highlighted fields before continuing.',
   phoneInvalid: 'Check the courier phone number.',
@@ -70,6 +71,33 @@ describe('smart suggest demo state', () => {
     ).toEqual({
       status: 'warning',
       text: checkoutCopy.addressManual,
+    });
+  });
+
+  it('surfaces blocked supported-country scope as a warning', () => {
+    const blockedState = { status: 'blocked' } satisfies DemoAddressSuggestState;
+
+    expect(
+      shouldOfferManualEntry({
+        addressInput: 'B',
+        addressSuggestState: blockedState,
+        manualAddress: false,
+        selectedAddress: undefined,
+      }),
+    ).toBe(true);
+
+    expect(
+      getAddressStatus({
+        addressInput: 'B',
+        addressSuggestState: blockedState,
+        copy: checkoutCopy,
+        manualAddress: false,
+        postalLocalitySelected: false,
+        selectedAddress: undefined,
+      }),
+    ).toEqual({
+      status: 'warning',
+      text: checkoutCopy.addressScopeBlocked,
     });
   });
 

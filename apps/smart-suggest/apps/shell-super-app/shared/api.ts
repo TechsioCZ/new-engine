@@ -298,6 +298,25 @@ export const SmartSuggestCountryCodeSchema = Schema.String.pipe(
   }),
 );
 
+export const SmartSuggestCountryScopeStatusSchema = Schema.Literals([
+  'allowlist',
+  'blocked',
+  'global',
+  'single',
+]);
+
+export const SmartSuggestCountryScopeBlockReasonSchema = Schema.Literals([
+  'empty-allowlist',
+  'selected-country-not-allowed',
+]);
+
+export const SmartSuggestCountryScopeSchema = Schema.Struct({
+  countryCode: Schema.optionalKey(SmartSuggestCountryCodeSchema),
+  countryCodes: Schema.optionalKey(Schema.mutable(Schema.Array(SmartSuggestCountryCodeSchema))),
+  reason: Schema.optionalKey(SmartSuggestCountryScopeBlockReasonSchema),
+  status: SmartSuggestCountryScopeStatusSchema,
+});
+
 export const SmartSuggestMetadataValueSchema = Schema.Union([
   Schema.String,
   Schema.Finite,
@@ -380,6 +399,7 @@ export const ProviderEventSummarySchema = Schema.Struct({
 export const SmartSuggestResponseSchema = Schema.Struct({
   cacheLevels: Schema.optionalKey(SmartSuggestCacheLevelsSchema),
   cacheStatus: SmartSuggestCacheStatusSchema,
+  countryScope: Schema.optionalKey(SmartSuggestCountryScopeSchema),
   providerEvents: Schema.optionalKey(Schema.mutable(Schema.Array(ProviderEventSummarySchema))),
   requestId: SmartSuggestIdSchema,
   suggestions: Schema.mutable(Schema.Array(SmartSuggestSuggestionSchema)),
@@ -663,6 +683,7 @@ export const SmartSuggestQueryTextSchema = Schema.String.check(
 const SmartSuggestQueryStructSchema = Schema.Struct({
   cartId: Schema.optionalKey(SmartSuggestIdSchema),
   countryCode: Schema.optionalKey(SmartSuggestCountryCodeSchema),
+  countryCodes: Schema.optionalKey(Schema.String.check(Schema.isMaxLength(256))),
   kind: SmartSuggestKindSchema,
   language: Schema.optionalKey(
     Schema.String.check(nonBlankString('language'), Schema.isMaxLength(16)),
@@ -743,6 +764,10 @@ export type ProviderEventStatus = typeof ProviderEventStatusSchema.Type;
 export type PostalValidationStatus = typeof PostalValidationStatusSchema.Type;
 export type PhoneNumberType = typeof PhoneNumberTypeSchema.Type;
 export type SmartSuggestCountryCode = typeof SmartSuggestCountryCodeSchema.Type;
+export type SmartSuggestCountryScopeStatus = typeof SmartSuggestCountryScopeStatusSchema.Type;
+export type SmartSuggestCountryScopeBlockReason =
+  typeof SmartSuggestCountryScopeBlockReasonSchema.Type;
+export type SmartSuggestCountryScope = typeof SmartSuggestCountryScopeSchema.Type;
 export type SmartSuggestMetadataValue = typeof SmartSuggestMetadataValueSchema.Type;
 export type SmartSuggestMetadata = typeof SmartSuggestMetadataSchema.Type;
 export type SmartSuggestTenantContext = typeof SmartSuggestTenantContextSchema.Type;

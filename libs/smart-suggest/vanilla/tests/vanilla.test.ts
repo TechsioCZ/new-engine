@@ -183,6 +183,197 @@ describe("attachSmartSuggest", () => {
     ).toBe("20");
   });
 
+  it("keeps controlled inputs editable before delegated framework handlers run", async () => {
+    const form = document.createElement("form");
+    document.body.append(form);
+
+    const address = addInput("address");
+    form.append(address);
+
+    let controlledValue = "";
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>((input) => {
+      if (String(input).includes("/v1/suggest")) {
+        return Promise.resolve(
+          jsonResponse({
+            cacheStatus: "miss",
+            requestId: "request-controlled-input",
+            suggestions: [],
+          }),
+        );
+      }
+
+      return Promise.resolve(jsonResponse({ accepted: true }));
+    });
+
+    attachSmartSuggest({
+      addressLine: address,
+      debounceMs: 0,
+      fetch: fetchMock,
+      minQueryLength: 1,
+      onSuggestStateChange: () => {
+        address.value = controlledValue;
+      },
+    });
+
+    form.addEventListener("input", (event) => {
+      if (event.target !== address) {
+        return;
+      }
+
+      controlledValue = address.value;
+      address.value = controlledValue;
+    });
+
+    address.value = "J";
+    address.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(address.value).toBe("J");
+
+    await waitFor(() => {
+      const suggestCall = fetchMock.mock.calls.find(([input]) =>
+        String(input).includes("/v1/suggest"),
+      );
+      expect(suggestCall).toBeDefined();
+      expect(new URL(String(suggestCall?.[0]), "https://shop.example").searchParams.get("q")).toBe(
+        "J",
+      );
+    });
+  });
+
+  it("requests and applies field-specific city and postal suggestions without overwriting address line", async () => {
+    const form = document.createElement("form");
+    form.setAttribute("data-smart-suggest-countries", "CZ,SK");
+    document.body.append(form);
+    const address = addInput("address", "Javorová 1");
+    const city = addInput("city");
+    const postalCode = addInput("postal-code");
+    const country = addInput("country", "CZ");
+    form.append(address, city, postalCode, country);
+    const suggestUrls: URL[] = [];
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>((input) => {
+      const url = String(input);
+
+      if (url.includes("/v1/suggest")) {
+        const suggestUrl = new URL(url, "https://shop.example");
+        suggestUrls.push(suggestUrl);
+        const kind = suggestUrl.searchParams.get("kind");
+
+        return Promise.resolve(
+          jsonResponse({
+            cacheStatus: "miss",
+            requestId: `request-${kind}`,
+            suggestions:
+              kind === "postal"
+                ? [
+                    {
+                      address: { city: "Brno", countryCode: "CZ", postalCode: "602 00" },
+                      confidence: 0.92,
+                      displayLabel: "602 00 Brno",
+                      id: "ruian-cz:postal:60200",
+                      kind: "postal",
+                      source: { id: "ruian-cz", kind: "owned-dataset", name: "RUIAN" },
+                    },
+                  ]
+                : [
+                    {
+                      address: { city: "Brno", countryCode: "CZ" },
+                      confidence: 0.94,
+                      displayLabel: "Brno CZ",
+                      id: "ruian-cz:city:brno",
+                      kind: "place",
+                      source: { id: "ruian-cz", kind: "owned-dataset", name: "RUIAN" },
+                    },
+                  ],
+          }),
+        );
+      }
+
+      return Promise.resolve(jsonResponse({ accepted: true }));
+    });
+
+    attachSmartSuggest({
+      addressLine: address,
+      city,
+      country,
+      debounceMs: 0,
+      fetch: fetchMock,
+      minQueryLength: 1,
+      postalCode,
+    });
+
+    city.value = "B";
+    city.dispatchEvent(new Event("input", { bubbles: true }));
+    let option = await waitFor(() => {
+      const listOption = document.querySelector('[role="option"]');
+      expect(listOption).toBeInstanceOf(HTMLElement);
+      return listOption as HTMLElement;
+    });
+    option.click();
+
+    expect(address.value).toBe("Javorová 1");
+    expect(city.value).toBe("Brno");
+    expect(postalCode.value).toBe("");
+    expect(country.value).toBe("CZ");
+
+    postalCode.value = "602";
+    postalCode.dispatchEvent(new Event("input", { bubbles: true }));
+    option = await waitFor(() => {
+      const listOption = document.querySelector('[role="option"]');
+      expect(listOption).toBeInstanceOf(HTMLElement);
+      return listOption as HTMLElement;
+    });
+    option.click();
+
+    expect(address.value).toBe("Javorová 1");
+    expect(city.value).toBe("Brno");
+    expect(postalCode.value).toBe("602 00");
+    expect(country.value).toBe("CZ");
+    expect(suggestUrls.map((url) => url.searchParams.get("kind"))).toEqual(["place", "postal"]);
+    expect(suggestUrls.map((url) => url.searchParams.get("countryCode"))).toEqual(["CZ", "CZ"]);
+    expect(suggestUrls.map((url) => url.searchParams.get("countryCodes"))).toEqual([
+      "CZ,SK",
+      "CZ,SK",
+    ]);
+  });
+
+  it("surfaces blocked field country scope without issuing a suggest request", async () => {
+    const form = document.createElement("form");
+    form.setAttribute("data-smart-suggest-countries", "CZ,SK");
+    document.body.append(form);
+    const address = addInput("address");
+    const city = addInput("city");
+    const country = addInput("country", "CZ");
+    form.append(address, city, country);
+    city.setAttribute("data-smart-suggest-countries", "SK");
+    const onSuggestStateChange = vi.fn();
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(() =>
+      Promise.resolve(jsonResponse({ cacheStatus: "miss", requestId: "unused", suggestions: [] })),
+    );
+
+    attachSmartSuggest({
+      addressLine: address,
+      city,
+      country,
+      debounceMs: 0,
+      fetch: fetchMock,
+      minQueryLength: 1,
+      onSuggestStateChange,
+    });
+
+    city.value = "B";
+    city.dispatchEvent(new Event("input", { bubbles: true }));
+
+    await waitFor(() =>
+      expect(onSuggestStateChange).toHaveBeenLastCalledWith({
+        countryCode: "CZ",
+        countryCodes: ["SK"],
+        reason: "country-scope",
+        status: "blocked",
+      }),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("does not bind document fields when the configured root selector is missing", async () => {
     const address = addInput("address", "Praha");
     const phone = addInput("phone", "+420777123456");
@@ -355,6 +546,7 @@ describe("attachSmartSuggest", () => {
 
     address.value = "Brno";
     address.dispatchEvent(new Event("input", { bubbles: true }));
+    await nextTick();
     address.dispatchEvent(
       new KeyboardEvent("keydown", {
         bubbles: true,

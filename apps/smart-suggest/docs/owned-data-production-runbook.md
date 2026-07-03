@@ -101,13 +101,16 @@ pnpm build:packages
 pnpm smart-suggest:artifacts:build:production
 ```
 
-The artifact builder reads the same source env values as the paid D1 seed:
-snapshot path, checksum, source URI, retained snapshot URI, dataset version,
-source version, generated/valid timestamps, Atom entry id, CSV encoding, CSV
-delimiter, and the Smart Suggest modification note. It hashes the modification
-note before writing public-safe metadata. The production report is written to
+The artifact builder reads the same source env values as the paid D1 seed and
+fails before reading rows unless production lineage is complete: retained RUIAN
+snapshot path, checksum, official source URI, retained snapshot URI, non-proof
+dataset version, source id `ruian-cz`, source name, source version,
+generated/valid timestamps, feed id, Atom entry id, CSV encoding, CSV delimiter,
+and Smart Suggest modification note hash. It refuses fixture URIs, `--max-rows`,
+and `--allow-partial-artifact` in production mode. The production report is
+written to
 `.codex/reports/smart-suggest-owned-artifacts/production.json`; the artifact
-directory defaults to `.codex/artifacts/smart-suggest-owned-data-production`.
+directory defaults to `apps/shell-super-app/smart-suggest-owned-data`.
 Neither the raw snapshot nor generated production artifacts are committed.
 
 The generated `manifest.json` is the runtime contract. Reviewers must verify:
@@ -131,17 +134,19 @@ The generated `manifest.json` is the runtime contract. Reviewers must verify:
 - no raw provider payloads, customer queries, secrets, or source snapshots are
   present.
 
-Publish the generated artifact directory to the same Worker static-asset
-deployment, Cloudflare Pages project, or equivalent CDN path. Configure the BFF
-to read the manifest and keep D1 address fallback off on the no-pay path:
+Build the generated artifact directory under the shell app before Cloudflare
+build. UltraModern copies it through `deploy.worker.publicAssets`; Smart Suggest
+does not stage or patch generated `.output` files after build. Configure the
+BFF to read the manifest and keep D1 address fallback off on the no-pay path:
 
 ```bash
-pnpm cloudflare:build
-pnpm cloudflare:stage:artifacts
+pnpm smart-suggest:artifacts:build:production
+export ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP="https://<public-origin>"
 export SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL="https://<public-origin>/smart-suggest-owned-data/manifest.json"
 export SMART_SUGGEST_OWNED_ARTIFACT_ALLOW_INCOMPLETE=false
 export SMART_SUGGEST_OWNED_ARTIFACT_READ_FALLBACK_ADDRESS_RECORDS=false
 export SMART_SUGGEST_OWNED_ARTIFACT_MAX_TOKEN_PAGES=8
+pnpm cloudflare:build
 pnpm --filter @smart-suggest/shell-super-app exec wrangler deploy --config .output/wrangler.json --dry-run
 ```
 
@@ -156,13 +161,11 @@ before deploy:
 
 ```bash
 export ULTRAMODERN_PUBLIC_URL_SHELL_SUPER_APP="https://<public-origin>"
-export SMART_SUGGEST_ARTIFACT_PUBLIC_ORIGIN="https://<public-origin>"
 pnpm cloudflare:deploy:artifact-static
 ```
 
-Use `SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL` instead of
-`SMART_SUGGEST_ARTIFACT_PUBLIC_ORIGIN` when the manifest is hosted on a
-different static origin.
+Set `SMART_SUGGEST_OWNED_ARTIFACT_MANIFEST_URL` explicitly when the manifest is
+hosted on a different static origin.
 
 - keep artifact serving enabled and add D1 for durable deltas/cache;
 - enable D1 address fallback only after the bounded D1 data is proven;
@@ -179,23 +182,65 @@ This proof is not production evidence. Production evidence is the complete
 full-snapshot artifact report plus runtime API/status/search proof against the
 published manifest.
 
+### Production vs Proof Guardrail
+
+`build-artifacts` has two explicit modes:
+
+- Production mode starts only when `--snapshot-path` is present through CLI or
+  `SMART_SUGGEST_RUIAN_SNAPSHOT_PATH`. It must use real RUIAN metadata listed
+  above and cannot inherit fixture defaults.
+- Local proof mode starts only when `--fixture` is passed explicitly. It must
+  use a proof-marked dataset version such as `synthetic-proof` and a
+  `fixture://` snapshot URI. It is reviewer smoke proof only and must never be
+  used as production evidence.
+
+The package scripts mirror that split:
+`smart-suggest:artifacts:build:production` is production-only after sourcing the
+RUIAN env file; `smart-suggest:artifacts:proof` is local proof-only. Generated
+artifact directories and reports under `.codex/` remain uncommitted.
+
+### Locality and Postal-Prefix Contract
+
+Follow-up runtime implementation should add these derived indexes without
+changing the existing address-record and token contracts:
+
+- City/locality index:
+  - manifest key `indexes.localityCities`;
+  - country scope `countryCode: "CZ"` and path template
+    `locality/{countryCode}/city/{cityKey}.json`;
+  - artifact schema `smart-suggest-locality-city-index/v1`;
+  - query key `cityKey` is the normalized Czech locality/city token;
+  - each entry includes `city`, optional `municipalityCode`, optional
+    `districtCode`, optional `regionCode`, `postalCodes`, `recordIds`, and
+    `ranking.addressCount`;
+  - if no trusted population metadata is present, do not expose or infer city
+    size. The ranking metric name is `addressCount`.
+
+- Postal-prefix index:
+  - manifest key `indexes.postalPrefixes`;
+  - country scope `countryCode: "CZ"` and path template
+    `postal-prefix/{countryCode}/{prefix}.json`;
+  - artifact schema `smart-suggest-postal-prefix-index/v1`;
+  - supported prefixes are normalized postal digits, length 1 through 5;
+  - each entry includes `prefix`, matching `postalCodes`, top city/locality
+    candidates, `recordIds`, and `ranking.addressCount`.
+
+Both new indexes must carry `complete`, `sourceDatasetVersion`, `generatedAt`,
+and ranking metadata in their manifest entries. Production runtime must treat a
+missing or `complete: false` city/postal-prefix index as unavailable and fall
+back to address-token/postal exact lookup, not D1 full-corpus reads.
+
 ## D1 Creation
 
-### Free-tier default
+### Free-Tier Default
 
-For the no-pay artifact-first path, create or reuse only the router database
-when metadata, health, or bounded deltas/cache are needed. Create free-tier
-address databases only for a reviewed bounded fallback/delta plan, not for the
-full baseline.
+For the no-pay artifact-first path, create only the router database when metadata, health, bounded deltas, or cache writes are needed. The full RUIAN baseline stays in owned artifacts, not in D1.
 
 ```bash
 wrangler d1 create smart-suggest-router
 ```
 
-The legacy full-D1 free-tier topology remains as a capacity proof and paid-readiness
-guardrail. It creates the router database plus up to nine free-tier address
-databases. Capture the returned database ids in deployment-owned configuration,
-not in git.
+The legacy full-D1 free-tier topology remains a capacity proof and paid-readiness guardrail. Use it only for a reviewed bounded fallback/delta plan, not as the default production baseline. It creates the router database plus up to nine address databases. Capture returned database ids in deployment-owned configuration, not in git.
 
 ```bash
 wrangler d1 create smart-suggest-free-tier-01
@@ -219,26 +264,19 @@ The generated template sets:
 
 ```bash
 export SMART_SUGGEST_D1_TOPOLOGY=free-tier
-export SMART_SUGGEST_ROUTER_D1_ENABLED=true
 export SMART_SUGGEST_ROUTER_D1_DATABASE_ID="<router-database-id>"
 export SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED=true
 export SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY=hash
-export SMART_SUGGEST_FREE_TIER_01_DATABASE_ID="<smart_suggest_free_tier_01-database-id>"
+export SMART_SUGGEST_FREE_TIER_01_DATABASE_ID="<smart-suggest-free-tier-01-database-id>"
 # ...repeat through SMART_SUGGEST_FREE_TIER_09_DATABASE_ID...
 export SMART_SUGGEST_D1_SHARD_BINDINGS="SMART_SUGGEST_FREE_TIER_01,...,SMART_SUGGEST_FREE_TIER_09"
 ```
 
-If the Cloudflare account already uses one or more free D1 slots for other
-systems, keep the same `free-tier` topology but provide
-`SMART_SUGGEST_D1_SHARDS_JSON` with the address databases that actually exist.
-The strict gates allow fewer than nine physical address D1s only when
-the full route plan proves the retained RUIAN snapshot fits the configured
-physical shards and the total planned D1 count remains at or below 10.
-
-After the env is present, build and run the strict free-tier D1 gates:
+Cloudflare account limits may require fewer physical address databases. Keep `SMART_SUGGEST_D1_TOPOLOGY=free-tier`, provide the existing databases through `SMART_SUGGEST_D1_SHARDS_JSON`, and run the strict gates before any mutating D1 import:
 
 ```bash
 pnpm cloudflare:build
+pnpm smart-suggest:d1:validate-config
 pnpm smart-suggest:d1:provision-plan
 pnpm smart-suggest:d1:preflight:production
 pnpm smart-suggest:proof:index-capacity
@@ -246,34 +284,15 @@ pnpm smart-suggest:seed:production:route-plan
 pnpm smart-suggest:proof:free-tier-readiness:production
 ```
 
-`smart-suggest:proof:free-tier-readiness` is the CI-safe reviewer proof. It
-checks the generated free-tier topology, the FTS-only index-capacity projection,
-the free-tier production seed defaults, and the paid VUSC env-template switch.
-`smart-suggest:proof:free-tier-readiness:production` adds real Cloudflare D1 id
-validation, the full retained-snapshot route plan, and an account-level D1 slot
-count. Its JSON summary is written to
-`.codex/reports/smart-suggest-free-tier-readiness/production-summary.json`.
+`smart-suggest:d1:validate-config` is validation-only. It must never rewrite `.output`, copy migrations, or patch worker/server bundles.
 
-Free-tier D1 seed execution is deliberately capacity-guarded and is not the
-default no-pay baseline path. The production seed wrapper defaults free-tier
-imports to `--search-index-mode fts-only` and `--shard-route-strategy hash`,
-then passes `--shard-max-rows 400000` and
-`--shard-max-estimated-size-bytes 500000000` to the sharded importer. That is
-not sampling and does not create a partial production dataset. It aborts before
-D1 writes if any free-tier address shard would exceed the reviewed row or byte
-ceiling, and the free one-shot write budget can still block a full baseline
-seed even when the route plan fits. If the operator explicitly uses
-`--search-index-mode fts-and-prefix`, the legacy guard remains
-`--shard-max-rows 125000` because the prefix-token table is the storage-heavy
-path. The local `smart-suggest:proof:index-capacity` proof keeps the FTS-only
-strategy measured under the free-tier database budget on deterministic
-RUIAN-like rows; `smart-suggest:seed:production:route-plan` proves the retained
-RUIAN snapshot distribution before any mutating D1 import is allowed.
+`smart-suggest:proof:free-tier-readiness` is the CI-safe reviewer proof for free-tier topology, FTS-only index-capacity projection, free-tier production seed defaults, and the paid VUSC env-template switch. `smart-suggest:proof:free-tier-readiness:production` adds real Cloudflare D1 id validation, full retained-snapshot route plan, and account-level D1 slot count. JSON summary is written to `.codex/reports/smart-suggest-free-tier-readiness/production-summary.json`.
 
-### Paid expansion
+Free-tier D1 seed execution is deliberately capacity-guarded and is not the default no-pay baseline path. The production seed wrapper defaults free-tier imports to `--search-index-mode fts-only` and `--shard-route-strategy hash`, then passes `--shard-max-rows 400000` and `--shard-max-estimated-size-bytes 500000000` to the sharded importer. This is not sampling: it aborts before D1 writes if a free-tier address shard would exceed the reviewed row or byte ceiling. If an operator explicitly uses `--search-index-mode fts-and-prefix`, the legacy storage-heavy guard remains `--shard-max-rows 125000`. Local `smart-suggest:proof:index-capacity` keeps the FTS-only strategy measured under the free-tier database budget on deterministic RUIAN-like rows. `smart-suggest:seed:production:route-plan` proves retained RUIAN snapshot distribution before any mutating D1 import is allowed.
 
-After switching to Workers Paid, create every VUSC shard explicitly. Capture
-the returned database ids in deployment-owned configuration, not in git.
+### Paid Expansion
+
+After switching Workers Paid, create every VUSC shard explicitly. Capture returned database ids in deployment-owned configuration, not in git.
 
 ```bash
 wrangler d1 create smart-suggest-router
@@ -293,87 +312,64 @@ wrangler d1 create smart-suggest-cz-vusc-132
 wrangler d1 create smart-suggest-cz-vusc-141
 ```
 
-Generate the paid deployment env template for the router plus all 14 VUSC shard
-database ids:
+Generate the paid deployment env template for router plus 14 VUSC shard database ids:
 
 ```bash
 pnpm smart-suggest:d1:paid:cz-shards:template
 ```
 
-After `pnpm cloudflare:build` has produced the generated Wrangler config, emit
-the exact non-mutating D1 creation plan for the router and every VUSC shard:
+After `pnpm cloudflare:build` produces the generated Wrangler config, emit the exact non-mutating D1 creation plan for router plus VUSC shards:
 
 ```bash
 pnpm smart-suggest:d1:provision-plan:paid
 ```
 
-Run the emitted `wrangler d1 create ...` commands in the deployment-owned
-Cloudflare account, then paste the returned database ids into the emitted env
-template. The provision plan intentionally does not execute remote creation by
-itself; it is a reviewed operator handoff artifact.
-
-The Cloudflare build post-processor can then generate every CZ VUSC D1 binding:
+Run the emitted `wrangler d1 create ...` commands in the deployment-owned Cloudflare account, then paste returned database ids into the emitted env template:
 
 ```bash
-export SMART_SUGGEST_ROUTER_D1_ENABLED=true
+export SMART_SUGGEST_D1_TOPOLOGY=paid-vusc
+export SMART_SUGGEST_D1_SHARD_ROUTE_STRATEGY=vusc
 export SMART_SUGGEST_ROUTER_D1_DATABASE_ID="<router-database-id>"
 export SMART_SUGGEST_D1_CZ_VUSC_SHARDS_ENABLED=true
 export SMART_SUGGEST_CZ_VUSC_19_DATABASE_ID="<cz-vusc-19-database-id>"
-# ...repeat the generated SMART_SUGGEST_CZ_VUSC_<code>_DATABASE_ID exports...
-
-pnpm cloudflare:build
-pnpm smart-suggest:d1:preflight:production:paid
+# ...repeat SMART_SUGGEST_CZ_VUSC_<code>_DATABASE_ID for every VUSC code...
 ```
 
-Local generated configs may use deterministic placeholder ids so Wrangler can
-run local D1 commands. Production preflight rejects those placeholder ids when
-`--require-cloudflare-ids` is enabled; passing production preflight requires the
-real Cloudflare database ids from D1 creation.
-
-Use active/standby shard versions for destructive rebuilds in both topologies:
-
-1. Keep current active shard bindings serving traffic.
-2. Create or reuse standby databases for the new baseline.
-3. Apply migrations and import into standby databases.
-4. Validate row counts, source metadata, FTS rebuild, size headroom, and offline
-   search proof.
-5. Flip router metadata to the validated standby version.
-6. Keep the previous active version until the rollback window closes.
-
-The current generated Cloudflare deploy path wires the router plus nine
-free-tier address D1s by default. Production rollout still requires
-deployment-owned Cloudflare D1 database ids and the external retained RUIAN
-snapshot metadata before the strict seed command can execute. Paid expansion
-removes the free-tier row guard and is a config/script switch, not a storage
-schema rewrite.
-
-## Migrations
-
-Build the Cloudflare output before remote migration work so generated Wrangler
-configuration and copied Smart Suggest migrations are current:
+The provision plan intentionally does not execute remote creation. It is a reviewed operator handoff artifact. Validate the paid topology before import:
 
 ```bash
 pnpm cloudflare:build
+pnpm smart-suggest:d1:validate-config
+pnpm smart-suggest:d1:preflight:production:paid
 ```
 
-Apply the Smart Suggest storage migrations to the router and every physical
-address database before import. On the free tier that means
-`smart-suggest-router` plus every configured `smart-suggest-free-tier-*` or
-custom address database in `SMART_SUGGEST_D1_SHARDS_JSON`:
+Paid expansion removes free-tier row guard configuration. It is a config/script switch, not a storage schema rewrite. Use active/standby rollout for new baselines:
+
+1. Create standby router and shard databases.
+2. Apply migrations and import into standby databases.
+3. Validate row counts, source metadata, FTS rebuild, size headroom, and search proof.
+4. Flip router metadata to the validated standby version.
+5. Keep the previous active version until the rollback window closes.
+
+## Migrations
+
+Build Cloudflare output before remote migration work so the generated Wrangler config reflects source-owned D1 bindings:
+
+```bash
+pnpm cloudflare:build
+pnpm smart-suggest:d1:validate-config
+```
+
+Apply Smart Suggest storage migrations to the router and every configured physical address database before import. On free tier this means `smart-suggest-router` plus configured `smart-suggest-free-tier-*` databases, or the custom address databases listed in `SMART_SUGGEST_D1_SHARDS_JSON`:
 
 ```bash
 wrangler d1 migrations apply smart-suggest-router --remote --config apps/shell-super-app/.output/wrangler.json
 wrangler d1 migrations apply smart-suggest-free-tier-01 --remote --config apps/shell-super-app/.output/wrangler.json
 ```
 
-On paid expansion, repeat for all VUSC shard database names. If the generated
-config does not yet contain the intended bindings, apply migrations through the
-operator-owned Wrangler config that does contain them. Do not patch generated
-deploy config in this runbook step.
+On paid expansion, repeat for every VUSC shard database name. If the generated config does not yet contain the intended binding, apply migrations through an operator-owned Wrangler config that does contain it. Do not patch generated deploy output in the runbook.
 
-After migrations, verify each database responds to a storage health check and
-has the expected ordinary tables before importing data. FTS tables may be empty
-until the baseline import rebuilds them.
+After migrations, verify that each database responds to storage health checks and contains expected ordinary tables before importing data. FTS tables may be empty until baseline import rebuilds them.
 
 ## Baseline Import
 
@@ -737,7 +733,7 @@ Reviewers should separate these surfaces:
 | Code                       | `libs/smart-suggest/datasets`, `libs/smart-suggest/storage`, `libs/smart-suggest/indexing`, `libs/smart-suggest/integrations`, `apps/smart-suggest/scripts`                                               | Verify package boundaries, source policy checks, import behavior, D1 migrations, status output, and provider fallback handling.                            |
 | Synthetic fixtures         | `libs/smart-suggest/datasets/src/sample-fixtures.ts`, `apps/smart-suggest/scripts/fixtures/synthetic-k-louzi-1258-12.jsonl`, `apps/smart-suggest/scripts/fixtures/smart-suggest-benchmark-corpus-v1.json` | Allowed in git only because they are tiny, public-safe, synthetic or RUIAN-like scenarios. They are not production snapshots or runtime BFF seed behavior. |
 | Generated or deploy output | `apps/smart-suggest/apps/shell-super-app/.output`, `dist`, `.codex/reports`                                                                                                                               | Do not treat generated output as source of truth. Reports committed to git must be public-safe and contain counts/ids only.                                |
-| Generated static artifacts | `.codex/artifacts/smart-suggest-owned-data-production`, deployed static asset object paths                                                                                                                | Full generated production address artifacts stay outside git. Review their public-safe manifest/report, completeness, file count, and size.                |
+| Generated static artifacts | `apps/shell-super-app/smart-suggest-owned-data`, deployed static asset object paths                                                                                                                       | Full generated production address artifacts stay outside git. Review their public-safe manifest/report, completeness, file count, and size.                |
 | External snapshots         | RUIAN baseline and delta artifacts retained in R2 or equivalent storage                                                                                                                                   | Required for production import and rollback. They must stay outside git and be referenced by URI/checksum/source metadata only.                            |
 | Production D1 data         | Router plus free-tier hash shard databases, or router plus paid VUSC shard databases                                                                                                                      | Contains normalized runtime rows and metadata only. Raw snapshots and provider payloads must not be stored there.                                          |
 

@@ -11,7 +11,11 @@ import type {
   SuggestionAttribution,
   SuggestionSourceKind,
 } from "@techsio/smart-suggest-core";
-import { normalizeSuggestLimit } from "@techsio/smart-suggest-core";
+import {
+  canonicalizeSmartSuggestCountryCodes,
+  normalizeSuggestLimit,
+  smartSuggestCountryScopeIdentity,
+} from "@techsio/smart-suggest-core";
 import {
   createPrefixTokens,
   extractPostalCodeCandidates,
@@ -198,6 +202,10 @@ export type AddressRecordVisibility = {
   validTo?: string;
 };
 
+export type AddressRecordRanking = {
+  addressCount?: number;
+};
+
 export type AddressRecord = {
   id: string;
   sourceId: string;
@@ -214,6 +222,7 @@ export type AddressRecord = {
   ruian?: AddressRecordRuianIdentifiers;
   sourceLineage?: AddressRecordSourceLineage;
   visibility?: AddressRecordVisibility;
+  ranking?: AddressRecordRanking;
   createdAt: string;
   updatedAt: string;
 };
@@ -251,6 +260,7 @@ export type SuggestCacheRecord = {
   queryHash: string;
   kind: SmartSuggestKind;
   countryCode?: SmartSuggestCountryCode;
+  countryCodes?: readonly SmartSuggestCountryCode[];
   tenantId?: string;
   language?: string;
   status: SmartSuggestCacheStatus;
@@ -290,6 +300,7 @@ export type SuggestQueryHashInput = {
   query: string;
   kind: SmartSuggestKind;
   countryCode?: SmartSuggestCountryCode;
+  countryCodes?: readonly SmartSuggestCountryCode[];
   tenantId?: string;
   language?: string;
   limit?: number;
@@ -387,6 +398,7 @@ export type SmartSuggestRepositories = {
     }) => SmartSuggestStorageEffect<readonly AddressRecord[]>;
     searchAddressRecords: (input: {
       countryCode?: SmartSuggestCountryCode;
+      kind?: "address" | "place" | "postal";
       limit?: number;
       query: string;
     }) => SmartSuggestStorageEffect<readonly AddressRecord[]>;
@@ -575,6 +587,10 @@ const ArtifactAddressVisibilitySchema = Schema.Struct({
   validTo: Schema.optionalKey(Schema.String),
 });
 
+const ArtifactAddressRankingSchema = Schema.Struct({
+  addressCount: Schema.optionalKey(ArtifactNonNegativeIntSchema),
+});
+
 const ArtifactAddressRecordSchema = Schema.Struct({
   attribution: Schema.optionalKey(ArtifactAttributionSchema),
   countryCode: ArtifactCountryCodeSchema,
@@ -591,12 +607,14 @@ const ArtifactAddressRecordSchema = Schema.Struct({
   searchVisible: Schema.Boolean,
   sourceId: Schema.NonEmptyString,
   sourceLineage: Schema.optionalKey(ArtifactSourceLineageSchema),
+  ranking: Schema.optionalKey(ArtifactAddressRankingSchema),
   updatedAt: ArtifactIsoStringSchema,
   visibility: Schema.optionalKey(ArtifactAddressVisibilitySchema),
 });
 
-const ArtifactPostalLocalityIndexSchema = Schema.Struct({
+const ArtifactAddressRecordPrefixIndexSchema = Schema.Struct({
   complete: Schema.Boolean,
+  maxPrefixLength: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThan(0))),
   pathTemplate: Schema.NonEmptyString,
 });
 
@@ -634,7 +652,9 @@ export const SmartSuggestOwnedDataArtifactManifestSchema = Schema.Struct({
   indexes: Schema.Struct({
     addressRecords: ArtifactAddressRecordIndexSchema,
     addressTokens: ArtifactAddressTokenIndexSchema,
-    postalLocalities: ArtifactPostalLocalityIndexSchema,
+    localityCities: ArtifactAddressRecordPrefixIndexSchema,
+    postalLocalities: ArtifactAddressRecordPrefixIndexSchema,
+    postalPrefixes: ArtifactAddressRecordPrefixIndexSchema,
   }),
   schemaVersion: Schema.Literal("smart-suggest-owned-artifacts/v1"),
   shards: Schema.Array(ArtifactShardMetadataSchema),
@@ -645,7 +665,13 @@ export const SmartSuggestOwnedDataArtifactAddressRecordsSchema = Schema.Struct({
   countryCode: ArtifactCountryCodeSchema,
   datasetVersion: Schema.optionalKey(Schema.String),
   query: Schema.Struct({
-    kind: Schema.Literals(["address-record-bucket", "address-token", "postal-code"]),
+    kind: Schema.Literals([
+      "address-record-bucket",
+      "address-token",
+      "locality-city-prefix",
+      "postal-code",
+      "postal-prefix",
+    ]),
     value: Schema.NonEmptyString,
   }),
   records: Schema.Array(ArtifactAddressRecordSchema),
@@ -667,6 +693,7 @@ export const SmartSuggestOwnedDataArtifactAddressRecordIdsSchema = Schema.Struct
 const ArtifactTokenBucketEntrySchema = Schema.Struct({
   recordCount: ArtifactNonNegativeIntSchema,
   recordIds: Schema.Array(Schema.NonEmptyString),
+  records: Schema.optionalKey(Schema.Array(ArtifactAddressRecordSchema)),
 });
 
 export const SmartSuggestOwnedDataArtifactTokenBucketSchema = Schema.Struct({
@@ -737,6 +764,9 @@ export type SmartSuggestOwnedDataArtifactAddressRecords = Schema.Schema.Type<
 >;
 export type SmartSuggestOwnedDataArtifactAddressRecordIds = Schema.Schema.Type<
   typeof SmartSuggestOwnedDataArtifactAddressRecordIdsSchema
+>;
+type SmartSuggestOwnedDataArtifactTokenBucketEntry = Schema.Schema.Type<
+  typeof ArtifactTokenBucketEntrySchema
 >;
 export type SmartSuggestOwnedDataArtifactTokenBucket = Schema.Schema.Type<
   typeof SmartSuggestOwnedDataArtifactTokenBucketSchema
@@ -1282,7 +1312,7 @@ const nowIso = () => new Date().toISOString();
 const normalizeQueryForHash = (input: SuggestQueryHashInput) =>
   [
     input.kind,
-    input.countryCode ?? "",
+    smartSuggestCountryScopeIdentity(input),
     input.tenantId ?? "",
     input.language ?? "",
     input.limit === undefined ? "" : String(normalizeSuggestLimit(input.limit)),
@@ -1330,9 +1360,9 @@ export const createSuggestQueryHashEffect = (
 export const createSuggestCacheKey = (input: SuggestCacheKeyInput) =>
   [
     "smart-suggest",
-    "v1",
+    "v3-owned-sequence-prefix",
     input.kind,
-    input.countryCode ?? "global",
+    smartSuggestCountryScopeIdentity(input),
     input.tenantId ?? "public",
     input.language ?? "default",
     input.queryHash,
@@ -1342,8 +1372,11 @@ const SEARCH_INDEX_PREFIX_OPTIONS = {
   maxLength: 16,
   minLength: 1,
 } as const;
-const ADDRESS_SEARCH_PREFIX_MIN_QUERY_TOKEN_LENGTH = 2;
+const ADDRESS_SEARCH_PREFIX_MIN_QUERY_TOKEN_LENGTH = 3;
 const ADDRESS_SEARCH_FTS_MIN_TEXT_TOKEN_LENGTH = 3;
+const ARTIFACT_MAX_RECORD_ID_FANOUT_WITHOUT_PREVIEW = 256;
+const ARTIFACT_MAX_SEQUENCE_RECORD_ID_FANOUT_WITHOUT_PREVIEW = 1024;
+const ARTIFACT_SEQUENCE_RECORD_ID_PREFIX_READ_LIMIT = 16;
 const D1_ADDRESS_IMPORT_SUBCHUNK_SIZE = 10;
 const D1_TOKEN_INSERT_SUBCHUNK_SIZE = 1000;
 const numericTokenPattern = /^\d+$/u;
@@ -1475,7 +1508,7 @@ const selectPostalLocalityAddressRecords = (
       city === undefined ||
       city.length === 0 ||
       (input.countryCode !== undefined && record.countryCode !== input.countryCode) ||
-      recordPostalCodeDigits(record) !== targetPostalDigits
+      !recordPostalCodeDigits(record).startsWith(targetPostalDigits)
     ) {
       continue;
     }
@@ -1525,12 +1558,14 @@ const rankAddressRecordResults = (
     confidence: record.quality,
   }));
 
-  return rankAddressCandidates(query, candidates, { limit }).map((result) => {
-    const { candidate } = result;
-    const { confidence: _confidence, ...record } = candidate;
+  return rankAddressCandidates<RankedAddressRecordCandidate>(query, candidates, { limit }).map(
+    (result) => {
+      const { candidate } = result;
+      const { confidence: _confidence, ...record } = candidate;
 
-    return record;
-  });
+      return record;
+    },
+  );
 };
 
 const missingArtifactJsonBody = { _tag: "MissingArtifactJsonBody" } as const;
@@ -1612,6 +1647,137 @@ const fetchArtifactJson = <TSchema extends Schema.Constraint>({
         : decodeArtifactJson(schema, body),
     ),
   );
+
+const fetchArtifactText = ({
+  allowMissing,
+  fetchImpl,
+  url,
+}: {
+  allowMissing: boolean;
+  fetchImpl: SmartSuggestArtifactFetch;
+  url: string;
+}) =>
+  Effect.tryPromise({
+    catch: toSmartSuggestStorageError,
+    try: async (signal): Promise<string | typeof missingArtifactJsonBody> => {
+      const response = await fetchImpl(url, { signal });
+
+      if (allowMissing && response.status === 404) {
+        return missingArtifactJsonBody;
+      }
+
+      if (!response.ok) {
+        return Promise.reject(
+          artifactStorageError(`Smart Suggest artifact ${url} failed with ${response.status}.`),
+        );
+      }
+
+      return response.text();
+    },
+  });
+
+const extractJsonObjectAt = (text: string, objectStart: number): string | undefined => {
+  if (text[objectStart] !== "{") {
+    return undefined;
+  }
+
+  let depth = 0;
+  let escaped = false;
+  let inString = false;
+
+  for (let index = objectStart; index < text.length; index += 1) {
+    const character = text[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (character === "\\") {
+      escaped = inString;
+      continue;
+    }
+
+    if (character === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (character === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (character === "}") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return text.slice(objectStart, index + 1);
+      }
+    }
+  }
+
+  return undefined;
+};
+
+const extractTokenBucketEntryJson = (text: string, token: string): string | undefined => {
+  const tokensPropertyIndex = text.indexOf('"tokens"');
+
+  if (tokensPropertyIndex < 0) {
+    return undefined;
+  }
+
+  const tokenKeyIndex = text.indexOf(`${JSON.stringify(token)}:{`, tokensPropertyIndex);
+
+  if (tokenKeyIndex < 0) {
+    return undefined;
+  }
+
+  const objectStart = tokenKeyIndex + JSON.stringify(token).length + 1;
+
+  return extractJsonObjectAt(text, objectStart);
+};
+
+const extractJsonObjectArrayPrefix = (
+  text: string,
+  property: string,
+  limit: number,
+): readonly unknown[] | undefined => {
+  const propertyPrefix = `${JSON.stringify(property)}:[`;
+  const propertyIndex = text.indexOf(propertyPrefix);
+
+  if (propertyIndex < 0) {
+    return undefined;
+  }
+
+  const values: unknown[] = [];
+  let index = propertyIndex + propertyPrefix.length;
+
+  while (values.length < limit && index < text.length) {
+    while (/[\s,]/u.test(text[index] ?? "")) {
+      index += 1;
+    }
+
+    if (text[index] === "]") {
+      return values;
+    }
+
+    const objectText = extractJsonObjectAt(text, index);
+
+    if (objectText === undefined) {
+      return undefined;
+    }
+
+    values.push(JSON.parse(objectText) as unknown);
+    index += objectText.length;
+  }
+
+  return values;
+};
 
 const toArtifactCountryCode = (value: string): SmartSuggestCountryCode =>
   value as SmartSuggestCountryCode;
@@ -1794,6 +1960,9 @@ const toArtifactAddressRecord = (
   if (input.longitude !== undefined) {
     record.longitude = input.longitude;
   }
+  if (input.ranking !== undefined) {
+    record.ranking = input.ranking;
+  }
   if (input.ruian !== undefined) {
     record.ruian = input.ruian;
   }
@@ -1815,7 +1984,9 @@ const artifactManifestComplete = (
   (manifest.dataset.complete &&
     manifest.indexes.addressRecords.complete &&
     manifest.indexes.addressTokens.complete &&
-    manifest.indexes.postalLocalities.complete);
+    manifest.indexes.localityCities.complete &&
+    manifest.indexes.postalLocalities.complete &&
+    manifest.indexes.postalPrefixes.complete);
 
 const incompleteArtifactError = () =>
   artifactStorageError(
@@ -1838,7 +2009,80 @@ const mergeRankedAddressRecords = (
   records: readonly AddressRecord[],
 ) => rankAddressRecordResults(query, mergeUniqueAddressRecords(records), limit);
 
+const addressCountForRecord = (record: AddressRecord) => record.ranking?.addressCount ?? 0;
+
+const rankLocalityCityRecords = (limit: number, records: readonly AddressRecord[]) =>
+  mergeUniqueAddressRecords(records)
+    .toSorted(
+      (left, right) =>
+        addressCountForRecord(right) - addressCountForRecord(left) ||
+        right.quality - left.quality ||
+        (left.parts.city ?? left.displayLabel).localeCompare(
+          right.parts.city ?? right.displayLabel,
+          "cs-CZ",
+        ) ||
+        left.id.localeCompare(right.id, "cs-CZ"),
+    )
+    .slice(0, limit);
+
+const artifactFirstTokenPrefixForQuery = (query: string, maxLength = 64) => {
+  const [token] = tokenizeAddressText(query);
+
+  return token === undefined ? "" : token.slice(0, maxLength);
+};
+
+const artifactPrefixCandidates = (prefix: string) =>
+  Array.from({ length: prefix.length }, (_, index) => prefix.slice(0, prefix.length - index));
+
+const localityRecordMatchesQueryPrefix = (queryPrefix: string, record: AddressRecord) =>
+  tokenizeAddressText(
+    [record.parts.city, record.searchLabel, record.displayLabel]
+      .filter((part) => part !== undefined)
+      .join(" "),
+  ).some((token) => token.startsWith(queryPrefix));
+
+const rankPostalPrefixRecords = (
+  postalPrefix: string,
+  limit: number,
+  records: readonly AddressRecord[],
+) =>
+  mergeUniqueAddressRecords(records)
+    .filter((record) =>
+      normalizePostalCodeDigits(record.parts.postalCode ?? record.ruian?.postalCode).startsWith(
+        postalPrefix,
+      ),
+    )
+    .toSorted((left, right) => {
+      const leftPostalCode = normalizePostalCodeDigits(
+        left.parts.postalCode ?? left.ruian?.postalCode,
+      );
+      const rightPostalCode = normalizePostalCodeDigits(
+        right.parts.postalCode ?? right.ruian?.postalCode,
+      );
+
+      return (
+        leftPostalCode.localeCompare(rightPostalCode, "cs-CZ") ||
+        addressCountForRecord(right) - addressCountForRecord(left) ||
+        right.quality - left.quality ||
+        (left.parts.city ?? left.displayLabel).localeCompare(
+          right.parts.city ?? right.displayLabel,
+          "cs-CZ",
+        ) ||
+        left.id.localeCompare(right.id, "cs-CZ")
+      );
+    })
+    .slice(0, limit);
+
 const artifactSequenceToken = (left: string, right: string) => `${left} ${right}`;
+const artifactRecordIdFanoutLimit = (token: string) =>
+  token.includes(" ")
+    ? ARTIFACT_MAX_SEQUENCE_RECORD_ID_FANOUT_WITHOUT_PREVIEW
+    : ARTIFACT_MAX_RECORD_ID_FANOUT_WITHOUT_PREVIEW;
+
+const artifactRecordIdsForLookup = (token: string, recordIds: readonly string[], _limit: number) =>
+  token.includes(" ")
+    ? recordIds.slice(0, ARTIFACT_SEQUENCE_RECORD_ID_PREFIX_READ_LIMIT)
+    : recordIds;
 
 const artifactTokensForQuery = (
   query: string,
@@ -1847,6 +2091,14 @@ const artifactTokensForQuery = (
   const queryTokens = tokenizeAddressText(query);
   const singleTokens = new Set(queryTokens);
   const sequenceTokens = new Set<string>();
+
+  for (const token of queryTokens) {
+    const clippedToken = token.slice(0, index.maxTokenLength);
+
+    if (clippedToken.length > 4) {
+      singleTokens.add(clippedToken.slice(0, 4));
+    }
+  }
 
   for (let indexOfToken = 1; indexOfToken < queryTokens.length; indexOfToken += 1) {
     const left = queryTokens[indexOfToken - 1]?.slice(0, index.maxTokenLength);
@@ -1898,6 +2150,10 @@ export const createArtifactSmartSuggestRepositories = ({
     SmartSuggestOwnedDataArtifactTokenManifest | undefined
   >();
   const tokenBucketCache = new Map<string, SmartSuggestOwnedDataArtifactTokenBucket | undefined>();
+  const tokenBucketEntryCache = new Map<
+    string,
+    SmartSuggestOwnedDataArtifactTokenBucketEntry | undefined
+  >();
   const tokenBucketManifestCache = new Map<
     string,
     SmartSuggestOwnedDataArtifactTokenBucketManifest | undefined
@@ -1974,6 +2230,38 @@ export const createArtifactSmartSuggestRepositories = ({
     );
   };
 
+  const readRecordShardPrefix = (
+    manifest: SmartSuggestOwnedDataArtifactManifest,
+    artifactPath: string,
+    recordLimit: number,
+  ): SmartSuggestStorageEffect<readonly AddressRecord[]> =>
+    fetchArtifactText({
+      allowMissing: true,
+      fetchImpl,
+      url: artifactUrlForPath(manifestUrl, artifactPath),
+    }).pipe(
+      Effect.flatMap((body) => {
+        if (typeof body !== "string") {
+          return Effect.succeed([]);
+        }
+
+        return Effect.try({
+          catch: toSmartSuggestStorageError,
+          try: () => extractJsonObjectArrayPrefix(body, "records", recordLimit) ?? [],
+        }).pipe(
+          Effect.flatMap((records) =>
+            Effect.all(
+              records.map((record) =>
+                decodeArtifactJson(ArtifactAddressRecordSchema, record).pipe(
+                  Effect.map(toArtifactAddressRecord),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+
   const readCanonicalRecordShard = (
     manifest: SmartSuggestOwnedDataArtifactManifest,
     recordBucket: string,
@@ -1985,6 +2273,47 @@ export const createArtifactSmartSuggestRepositories = ({
         recordBucket,
       }),
     );
+
+  const readRecordShardByIds = (
+    manifest: SmartSuggestOwnedDataArtifactManifest,
+    recordBucket: string,
+    recordIds: readonly string[],
+  ): SmartSuggestStorageEffect<readonly AddressRecord[]> => {
+    const recordIdSet = new Set(recordIds);
+
+    if (recordIdSet.size === 0) {
+      return Effect.succeed([]);
+    }
+
+    const url = artifactUrlForPath(
+      manifestUrl,
+      renderArtifactPath(manifest.indexes.addressRecords.pathTemplate, {
+        countryCode: manifest.dataset.countryCode,
+        recordBucket,
+      }),
+    );
+
+    return fetchArtifactJson({
+      allowMissing: true,
+      fetchImpl,
+      schema: SmartSuggestOwnedDataArtifactAddressRecordsSchema,
+      url,
+    }).pipe(
+      Effect.map((shard) => {
+        if (
+          shard === undefined ||
+          (!allowIncomplete && !shard.complete) ||
+          shard.countryCode !== manifest.dataset.countryCode
+        ) {
+          return [];
+        }
+
+        return shard.records
+          .filter((record) => recordIdSet.has(record.id))
+          .map(toArtifactAddressRecord);
+      }),
+    );
+  };
 
   const readAddressRecordsById = (
     manifest: SmartSuggestOwnedDataArtifactManifest,
@@ -2014,7 +2343,7 @@ export const createArtifactSmartSuggestRepositories = ({
 
       for (const [bucket, bucketRecordIds] of idsByBucket) {
         const bucketRecordIdSet = new Set(bucketRecordIds);
-        const records = yield* readCanonicalRecordShard(manifest, bucket);
+        const records = yield* readRecordShardByIds(manifest, bucket, bucketRecordIds);
 
         for (const record of records) {
           if (bucketRecordIdSet.has(record.id)) {
@@ -2071,6 +2400,61 @@ export const createArtifactSmartSuggestRepositories = ({
         tokenBucketCache.set(cacheKey, usableBucket);
 
         return usableBucket;
+      }),
+    );
+  };
+
+  const readTokenBucketEntry = (
+    manifest: SmartSuggestOwnedDataArtifactManifest,
+    token: string,
+  ): SmartSuggestStorageEffect<SmartSuggestOwnedDataArtifactTokenBucketEntry | undefined> => {
+    const { bucketCount, bucketPathTemplate } = manifest.indexes.addressTokens;
+
+    if (bucketCount === undefined || bucketPathTemplate === undefined) {
+      return Effect.succeed(undefined);
+    }
+
+    const tokenBucket = artifactBucketForKey(token, bucketCount);
+    const cacheKey = `${manifest.dataset.countryCode}:${tokenBucket}:${token}`;
+
+    if (tokenBucketEntryCache.has(cacheKey)) {
+      return Effect.succeed(tokenBucketEntryCache.get(cacheKey));
+    }
+
+    const path = renderArtifactPath(bucketPathTemplate, {
+      countryCode: manifest.dataset.countryCode,
+      tokenBucket,
+    });
+
+    return fetchArtifactText({
+      allowMissing: true,
+      fetchImpl,
+      url: artifactUrlForPath(manifestUrl, path),
+    }).pipe(
+      Effect.flatMap((body) => {
+        if (typeof body !== "string") {
+          tokenBucketEntryCache.set(cacheKey, undefined);
+          return Effect.succeed(undefined);
+        }
+
+        const entryJson = extractTokenBucketEntryJson(body, token);
+
+        if (entryJson === undefined) {
+          tokenBucketEntryCache.set(cacheKey, undefined);
+          return Effect.succeed(undefined);
+        }
+
+        return Effect.try({
+          catch: toSmartSuggestStorageError,
+          try: () => JSON.parse(entryJson) as unknown,
+        }).pipe(
+          Effect.flatMap((entry) => decodeArtifactJson(ArtifactTokenBucketEntrySchema, entry)),
+          Effect.map((entry) => {
+            tokenBucketEntryCache.set(cacheKey, entry);
+
+            return entry;
+          }),
+        );
       }),
     );
   };
@@ -2167,11 +2551,11 @@ export const createArtifactSmartSuggestRepositories = ({
     );
   };
 
-  const readPagedTokenBucketCandidateIds = (
+  const readPagedTokenBucketCandidateEntry = (
     manifest: SmartSuggestOwnedDataArtifactManifest,
     token: string,
     tokenBucket: string,
-  ): SmartSuggestStorageEffect<readonly string[] | undefined> =>
+  ): SmartSuggestStorageEffect<SmartSuggestOwnedDataArtifactTokenBucketEntry | undefined> =>
     readTokenBucketManifest(manifest, tokenBucket).pipe(
       Effect.flatMap((bucketManifest) => {
         const tokenReference = bucketManifest?.tokens[token];
@@ -2189,26 +2573,26 @@ export const createArtifactSmartSuggestRepositories = ({
         }
 
         return readTokenBucketPage(manifest, bucketManifest, pageReference).pipe(
-          Effect.map((page) => page?.tokens[token]?.recordIds),
+          Effect.map((page) => page?.tokens[token]),
         );
       }),
     );
 
-  const readBucketedTokenCandidateIds = (
+  const readBucketedTokenCandidateEntry = (
     manifest: SmartSuggestOwnedDataArtifactManifest,
     token: string,
-  ): SmartSuggestStorageEffect<readonly string[] | undefined> =>
-    readTokenBucket(manifest, token).pipe(
-      Effect.flatMap((bucket) => {
-        if (bucket !== undefined) {
-          return Effect.succeed(bucket.tokens[token]?.recordIds);
+  ): SmartSuggestStorageEffect<SmartSuggestOwnedDataArtifactTokenBucketEntry | undefined> =>
+    readTokenBucketEntry(manifest, token).pipe(
+      Effect.flatMap((entry) => {
+        if (entry !== undefined) {
+          return Effect.succeed(entry);
         }
 
         const bucketCount = manifest.indexes.addressTokens.bucketCount;
 
         return bucketCount === undefined
           ? Effect.succeed(undefined)
-          : readPagedTokenBucketCandidateIds(
+          : readPagedTokenBucketCandidateEntry(
               manifest,
               token,
               artifactBucketForKey(token, bucketCount),
@@ -2305,24 +2689,35 @@ export const createArtifactSmartSuggestRepositories = ({
       }),
     );
 
-  const readTokenCandidateIds = (
+  const readTokenCandidateEntry = (
     manifest: SmartSuggestOwnedDataArtifactManifest,
     token: string,
-  ): SmartSuggestStorageEffect<readonly string[] | undefined> =>
-    readBucketedTokenCandidateIds(manifest, token).pipe(
-      Effect.flatMap((recordIds) =>
-        recordIds === undefined
-          ? readLegacyTokenCandidateIds(manifest, token)
-          : Effect.succeed(recordIds),
+  ): SmartSuggestStorageEffect<SmartSuggestOwnedDataArtifactTokenBucketEntry | undefined> =>
+    readBucketedTokenCandidateEntry(manifest, token).pipe(
+      Effect.flatMap((entry) =>
+        entry === undefined
+          ? readLegacyTokenCandidateIds(manifest, token).pipe(
+              Effect.map((recordIds) =>
+                recordIds === undefined
+                  ? undefined
+                  : {
+                      recordCount: recordIds.length,
+                      recordIds,
+                    },
+              ),
+            )
+          : Effect.succeed(entry),
       ),
     );
 
   const searchArtifactAddressRecords = ({
     countryCode,
+    kind = "address",
     limit = 10,
     query,
   }: {
     countryCode?: SmartSuggestCountryCode;
+    kind?: "address" | "place" | "postal";
     limit?: number;
     query: string;
   }): SmartSuggestStorageEffect<readonly AddressRecord[]> =>
@@ -2335,6 +2730,73 @@ export const createArtifactSmartSuggestRepositories = ({
 
       const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
 
+      if (kind === "place") {
+        const queryPrefix = artifactFirstTokenPrefixForQuery(query, 64);
+        const prefix = artifactFirstTokenPrefixForQuery(
+          query,
+          manifest.indexes.localityCities.maxPrefixLength ?? 64,
+        );
+
+      if (prefix.length === 0) {
+        return [];
+      }
+
+    if (prefix.length === 1) {
+      const path = renderArtifactPath(manifest.indexes.localityCities.pathTemplate, {
+        countryCode: manifest.dataset.countryCode,
+        prefix,
+      });
+      const records = yield* readRecordShardPrefix(manifest, path, 128);
+      const matchedRecords = records.filter((record) =>
+        localityRecordMatchesQueryPrefix(queryPrefix, record),
+      );
+
+        if (matchedRecords.length > 0) {
+          return rankLocalityCityRecords(normalizedLimit, matchedRecords);
+        }
+      }
+
+      for (const candidatePrefix of artifactPrefixCandidates(prefix)) {
+        const path = renderArtifactPath(manifest.indexes.localityCities.pathTemplate, {
+          countryCode: manifest.dataset.countryCode,
+            prefix: candidatePrefix,
+          });
+          const records = yield* readRecordShard(manifest, path);
+          const matchedRecords = records.filter((record) =>
+            localityRecordMatchesQueryPrefix(queryPrefix, record),
+          );
+
+          if (matchedRecords.length > 0) {
+            return rankLocalityCityRecords(normalizedLimit, matchedRecords);
+          }
+        }
+
+        return [];
+      }
+
+      if (kind === "postal") {
+        const prefix = normalizePostalCodeDigits(query).slice(0, 5);
+
+        if (prefix.length === 0) {
+          return [];
+        }
+
+        for (const candidatePrefix of artifactPrefixCandidates(prefix)) {
+          const path = renderArtifactPath(manifest.indexes.postalPrefixes.pathTemplate, {
+            countryCode: manifest.dataset.countryCode,
+            prefix: candidatePrefix,
+          });
+          const records = yield* readRecordShard(manifest, path);
+          const rankedRecords = rankPostalPrefixRecords(prefix, normalizedLimit, records);
+
+          if (rankedRecords.length > 0) {
+            return rankedRecords;
+          }
+        }
+
+        return [];
+      }
+
       if (!hasAddressSearchPrefixToken(query)) {
         return [];
       }
@@ -2345,39 +2807,72 @@ export const createArtifactSmartSuggestRepositories = ({
         return [];
       }
 
-      let selected:
-        | {
-            recordIds: readonly string[];
-            token: string;
-          }
-        | undefined;
+    const collectedRecords = new Map<string, AddressRecord>();
+    const sparseTokenEntries: {
+      readonly entry: SmartSuggestOwnedDataArtifactTokenBucketEntry;
+      readonly token: string;
+    }[] = [];
+    const sparseSequenceTokenEntries: {
+      readonly entry: SmartSuggestOwnedDataArtifactTokenBucketEntry;
+      readonly token: string;
+    }[] = [];
 
-      for (const token of tokens) {
-        const recordIds = yield* readTokenCandidateIds(manifest, token);
+    for (const token of tokens) {
+      const entry = yield* readTokenCandidateEntry(manifest, token);
 
-        if (recordIds !== undefined && recordIds.length > 0) {
-          selected = { recordIds, token };
+      if (entry === undefined || entry.recordIds.length === 0) {
+        continue;
+      }
+
+      if (entry.records !== undefined && entry.records.length > 0) {
+        for (const record of entry.records.map(toArtifactAddressRecord)) {
+          collectedRecords.set(record.id, record);
+        }
+
+        if (collectedRecords.size >= normalizedLimit) {
           break;
         }
+
+        continue;
       }
 
-      if (selected === undefined) {
-        return [];
+      if (entry.recordIds.length <= artifactRecordIdFanoutLimit(token)) {
+        if (token.includes(" ")) {
+          sparseSequenceTokenEntries.push({ entry, token });
+        } else {
+          sparseTokenEntries.push({ entry, token });
+        }
       }
+    }
 
-      const pageBudget =
-        maxAddressTokenPages ?? manifest.indexes.addressTokens.maxPagesPerQuery ?? undefined;
-      const maxCandidateIds =
-        pageBudget === undefined
-          ? selected.recordIds.length
-          : Math.max(1, pageBudget * manifest.indexes.addressTokens.pageSize);
+    for (const { entry, token } of sparseSequenceTokenEntries) {
       const records = yield* readAddressRecordsById(
         manifest,
-        selected.recordIds.slice(0, maxCandidateIds),
+        artifactRecordIdsForLookup(token, entry.recordIds, normalizedLimit),
       );
 
-      return mergeRankedAddressRecords(query, normalizedLimit, records);
-    });
+      for (const record of records) {
+        collectedRecords.set(record.id, record);
+      }
+    }
+
+    if (collectedRecords.size > 0) {
+      return mergeRankedAddressRecords(query, normalizedLimit, [...collectedRecords.values()]);
+    }
+
+    for (const { entry, token } of sparseTokenEntries) {
+      const records = yield* readAddressRecordsById(
+        manifest,
+        artifactRecordIdsForLookup(token, entry.recordIds, normalizedLimit),
+      );
+
+      for (const record of records) {
+        collectedRecords.set(record.id, record);
+      }
+    }
+
+    return mergeRankedAddressRecords(query, normalizedLimit, [...collectedRecords.values()]);
+  });
 
   const listArtifactPostalLocalityAddressRecords = (input: {
     countryCode?: SmartSuggestCountryCode;
@@ -2472,11 +2967,23 @@ export const createArtifactSmartSuggestRepositories = ({
             searchArtifactAddressRecords(input).pipe(Effect.catch(() => Effect.succeed([]))),
             fallbackAddressSearch(input),
           ]);
+          const records = mergeUniqueAddressRecords([...artifactRecords, ...fallbackRecords]);
 
-          return mergeRankedAddressRecords(input.query, normalizedLimit, [
-            ...artifactRecords,
-            ...fallbackRecords,
-          ]);
+          if (input.kind === "place") {
+            return rankLocalityCityRecords(normalizedLimit, records);
+          }
+
+          if (input.kind === "postal") {
+            const postalPrefix = normalizePostalCodeDigits(input.query).slice(0, 5);
+
+            return postalPrefix.length === 0
+              ? []
+              : rankPostalPrefixRecords(postalPrefix, normalizedLimit, records);
+          }
+
+          const rankedRecords = mergeRankedAddressRecords(input.query, normalizedLimit, records);
+
+          return rankedRecords.length > 0 ? rankedRecords : records.slice(0, normalizedLimit);
         }),
     },
     dataSources: {
@@ -3529,6 +4036,23 @@ const toAddressTombstoneUpdateSet = (row: AddressTombstoneRow) => ({
   updatedAt: row.updatedAt,
 });
 
+const countryCodesFromSuggestCacheKey = (cacheKey: string): readonly SmartSuggestCountryCode[] => {
+  const [, version, , countryScope] = cacheKey.split(":");
+
+  if (
+    (version !== "v2" && version !== "v3-owned-sequence-prefix") ||
+    countryScope === undefined ||
+    countryScope === "global"
+  ) {
+    return [];
+  }
+
+  const [, allowlist] = countryScope.split("|");
+  const scopeCountryCodes = allowlist === undefined ? [countryScope] : allowlist.split(",");
+
+  return canonicalizeSmartSuggestCountryCodes(scopeCountryCodes as SmartSuggestCountryCode[]);
+};
+
 const toSuggestCacheRecord = (
   row: typeof smartSuggestCacheEntries.$inferSelect,
 ): SuggestCacheRecord => {
@@ -3547,6 +4071,10 @@ const toSuggestCacheRecord = (
 
   if (row.countryCode !== null) {
     record.countryCode = row.countryCode as SmartSuggestCountryCode;
+  }
+  const countryCodes = countryCodesFromSuggestCacheKey(row.cacheKey);
+  if (countryCodes.length > 0) {
+    record.countryCodes = countryCodes;
   }
   if (row.expiresAt !== null) {
     record.expiresAt = row.expiresAt;
@@ -4621,9 +5149,95 @@ export const createD1SmartSuggestRepositories = (
 
           return selectPostalLocalityAddressRecords(rows.map(toAddressRecord), input);
         }),
-      searchAddressRecords: ({ countryCode, limit = 10, query }) =>
+      searchAddressRecords: ({ countryCode, kind = "address", limit = 10, query }) =>
         Effect.gen(function* () {
           const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
+
+          if (kind === "postal") {
+            const postalDigits = normalizePostalCodeDigits(query).slice(0, 5);
+
+            if (postalDigits.length === 0) {
+              return [];
+            }
+
+            const postalFilter = or(
+              sql`replace(${smartSuggestAddressRecords.postalCode}, ' ', '') like ${`${postalDigits}%`}`,
+              sql`replace(${smartSuggestAddressRecords.ruianPostalCode}, ' ', '') like ${`${postalDigits}%`}`,
+            );
+
+            if (postalFilter === undefined) {
+              return [];
+            }
+
+            const filters = [
+              postalFilter,
+              eq(smartSuggestAddressRecords.searchVisible, true),
+              eq(smartSuggestAddressRecords.replicationStatus, "active"),
+            ];
+
+            if (countryCode !== undefined) {
+              filters.push(eq(smartSuggestAddressRecords.countryCode, countryCode));
+            }
+
+            const rows = yield* withD1Database((db) =>
+              db
+                .select()
+                .from(smartSuggestAddressRecords)
+                .where(and(...filters))
+                .orderBy(
+                  sql`replace(${smartSuggestAddressRecords.postalCode}, ' ', '') asc`,
+                  desc(smartSuggestAddressRecords.quality),
+                  sql`${smartSuggestAddressRecords.city} asc`,
+                  sql`${smartSuggestAddressRecords.displayLabel} asc`,
+                )
+                .limit(Math.max(normalizedLimit * 20, 50)),
+            );
+
+            return selectPostalLocalityAddressRecords(
+              rows.map(toAddressRecord),
+              countryCode === undefined
+                ? { postalCode: postalDigits }
+                : { countryCode, postalCode: postalDigits },
+            ).slice(0, normalizedLimit);
+          }
+
+          if (kind === "place") {
+            const prefix = artifactFirstTokenPrefixForQuery(query, 64);
+
+            if (prefix.length === 0) {
+              return [];
+            }
+
+            const rows = yield* withD1Database((db) =>
+              db
+                .select()
+                .from(smartSuggestAddressRecords)
+                .where(
+                  and(
+                    like(smartSuggestAddressRecords.searchLabel, `%${prefix}%`),
+                    eq(smartSuggestAddressRecords.searchVisible, true),
+                    eq(smartSuggestAddressRecords.replicationStatus, "active"),
+                    ...(countryCode === undefined
+                      ? []
+                      : [eq(smartSuggestAddressRecords.countryCode, countryCode)]),
+                  ),
+                )
+                .orderBy(
+                  desc(smartSuggestAddressRecords.quality),
+                  sql`${smartSuggestAddressRecords.city} asc`,
+                  sql`${smartSuggestAddressRecords.displayLabel} asc`,
+                )
+                .limit(Math.max(normalizedLimit * 20, 50)),
+            );
+
+            return rankLocalityCityRecords(
+              normalizedLimit,
+              rows
+                .map(toAddressRecord)
+                .filter((record) => localityRecordMatchesQueryPrefix(prefix, record)),
+            );
+          }
+
           const ftsQuery = createAddressSearchFtsQuery(query);
           const canUsePrefixIndex = hasAddressSearchPrefixToken(query);
 
@@ -5126,10 +5740,41 @@ export const createInMemorySmartSuggestRepositories = (): SmartSuggestRepositori
         storageEffect(() =>
           selectPostalLocalityAddressRecords([...addressRecords.values()], input),
         ),
-      searchAddressRecords: ({ countryCode, limit = 10, query }) =>
+      searchAddressRecords: ({ countryCode, kind = "address", limit = 10, query }) =>
         storageEffect(() => {
           const normalizedQuery = normalizeSearchText(query);
           const normalizedLimit = Math.max(1, Math.min(Math.trunc(limit), 50));
+
+          if (kind === "postal") {
+            const postalPrefix = normalizePostalCodeDigits(query).slice(0, 5);
+
+            return postalPrefix.length === 0
+              ? []
+              : selectPostalLocalityAddressRecords(
+                  [...addressRecords.values()],
+                  countryCode === undefined
+                    ? { postalCode: postalPrefix }
+                    : { countryCode, postalCode: postalPrefix },
+                ).slice(0, normalizedLimit);
+          }
+
+          if (kind === "place") {
+            const prefix = artifactFirstTokenPrefixForQuery(query, 64);
+
+            return prefix.length === 0
+              ? []
+              : rankLocalityCityRecords(
+                  normalizedLimit,
+                  [...addressRecords.values()].filter(
+                    (record) =>
+                      record.searchVisible &&
+                      record.replicationStatus === "active" &&
+                      (countryCode === undefined || record.countryCode === countryCode) &&
+                      localityRecordMatchesQueryPrefix(prefix, record),
+                  ),
+                );
+          }
+
           const ftsQuery = createAddressSearchFtsQuery(query);
           const canUsePrefixIndex = hasAddressSearchPrefixToken(query);
 

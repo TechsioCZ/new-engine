@@ -1,25 +1,25 @@
-import { Schema } from 'effect';
-import { HttpApi, HttpApiEndpoint, HttpApiGroup } from 'effect/unstable/httpapi';
+import { Schema } from "effect";
+import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
 import {
   SmartSuggestBadRequestError as InternalSmartSuggestBadRequestError,
   SmartSuggestBadRequestErrorSchema as InternalSmartSuggestBadRequestErrorSchema,
-} from './smart-suggest-api-errors/bad-request';
+} from "./smart-suggest-api-errors/bad-request";
 import {
   SmartSuggestCachePolicyViolationError as InternalSmartSuggestCachePolicyViolationError,
   SmartSuggestCachePolicyViolationErrorSchema as InternalSmartSuggestCachePolicyViolationErrorSchema,
-} from './smart-suggest-api-errors/cache-policy-violation';
+} from "./smart-suggest-api-errors/cache-policy-violation";
 import {
   SmartSuggestForbiddenError as InternalSmartSuggestForbiddenError,
   SmartSuggestForbiddenErrorSchema as InternalSmartSuggestForbiddenErrorSchema,
-} from './smart-suggest-api-errors/forbidden';
+} from "./smart-suggest-api-errors/forbidden";
 import {
   SmartSuggestInternalError as InternalSmartSuggestInternalError,
   SmartSuggestInternalErrorSchema as InternalSmartSuggestInternalErrorSchema,
-} from './smart-suggest-api-errors/internal-error';
+} from "./smart-suggest-api-errors/internal-error";
 import {
   SmartSuggestNotFoundError as InternalSmartSuggestNotFoundError,
   SmartSuggestNotFoundErrorSchema as InternalSmartSuggestNotFoundErrorSchema,
-} from './smart-suggest-api-errors/not-found';
+} from "./smart-suggest-api-errors/not-found";
 import {
   SmartSuggestBadRequestErrorBodySchema as InternalSmartSuggestBadRequestErrorBodySchema,
   SmartSuggestBadRequestErrorPayloadSchema as InternalSmartSuggestBadRequestErrorPayloadSchema,
@@ -48,31 +48,31 @@ import {
   SmartSuggestUnauthorizedErrorPayloadSchema as InternalSmartSuggestUnauthorizedErrorPayloadSchema,
   SmartSuggestValidationErrorBodySchema as InternalSmartSuggestValidationErrorBodySchema,
   SmartSuggestValidationErrorPayloadSchema as InternalSmartSuggestValidationErrorPayloadSchema,
-} from './smart-suggest-api-errors/payloads';
+} from "./smart-suggest-api-errors/payloads";
 import {
   SmartSuggestProviderTimeoutError as InternalSmartSuggestProviderTimeoutError,
   SmartSuggestProviderTimeoutErrorSchema as InternalSmartSuggestProviderTimeoutErrorSchema,
-} from './smart-suggest-api-errors/provider-timeout';
+} from "./smart-suggest-api-errors/provider-timeout";
 import {
   SmartSuggestProviderUnavailableError as InternalSmartSuggestProviderUnavailableError,
   SmartSuggestProviderUnavailableErrorSchema as InternalSmartSuggestProviderUnavailableErrorSchema,
-} from './smart-suggest-api-errors/provider-unavailable';
+} from "./smart-suggest-api-errors/provider-unavailable";
 import {
   SmartSuggestRateLimitError as InternalSmartSuggestRateLimitError,
   SmartSuggestRateLimitErrorSchema as InternalSmartSuggestRateLimitErrorSchema,
-} from './smart-suggest-api-errors/rate-limit';
+} from "./smart-suggest-api-errors/rate-limit";
 import {
   SmartSuggestStorageUnavailableError as InternalSmartSuggestStorageUnavailableError,
   SmartSuggestStorageUnavailableErrorSchema as InternalSmartSuggestStorageUnavailableErrorSchema,
-} from './smart-suggest-api-errors/storage-unavailable';
+} from "./smart-suggest-api-errors/storage-unavailable";
 import {
   SmartSuggestUnauthorizedError as InternalSmartSuggestUnauthorizedError,
   SmartSuggestUnauthorizedErrorSchema as InternalSmartSuggestUnauthorizedErrorSchema,
-} from './smart-suggest-api-errors/unauthorized';
+} from "./smart-suggest-api-errors/unauthorized";
 import {
   SmartSuggestValidationError as InternalSmartSuggestValidationError,
   SmartSuggestValidationErrorSchema as InternalSmartSuggestValidationErrorSchema,
-} from './smart-suggest-api-errors/validation-error';
+} from "./smart-suggest-api-errors/validation-error";
 
 export const SmartSuggestBadRequestError = InternalSmartSuggestBadRequestError;
 export const SmartSuggestBadRequestErrorBodySchema = InternalSmartSuggestBadRequestErrorBodySchema;
@@ -204,20 +204,20 @@ const integerFilter = (fieldName: string) =>
     Number.isInteger(value) ? undefined : `Expected an integer ${fieldName}.`,
   );
 
-export const SmartSuggestNonBlankStringSchema = Schema.String.check(nonBlankString('string'));
+export const SmartSuggestNonBlankStringSchema = Schema.String.check(nonBlankString("string"));
 
 export const SmartSuggestIdSchema = Schema.String.check(
-  nonBlankString('identifier'),
+  nonBlankString("identifier"),
   Schema.isMaxLength(256),
 );
 
 export const SmartSuggestShortTextSchema = Schema.String.check(
-  nonBlankString('text'),
+  nonBlankString("text"),
   Schema.isMaxLength(512),
 );
 
 export const SmartSuggestLongTextSchema = Schema.String.check(
-  nonBlankString('text'),
+  nonBlankString("text"),
   Schema.isMaxLength(2048),
 );
 
@@ -237,54 +237,54 @@ export const SmartSuggestNonNegativeNumberSchema = Schema.Finite.check(
 
 export const SmartSuggestNonNegativeIntSchema = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
-export const SmartSuggestKindSchema = Schema.Literals(['address', 'place', 'postal']);
+export const SmartSuggestKindSchema = Schema.Literals(["address", "place", "postal"]);
 
 export const SmartSuggestCacheStatusSchema = Schema.Literals([
-  'disabled',
-  'hit',
-  'miss',
-  'stale',
-  'written',
+  "disabled",
+  "hit",
+  "miss",
+  "stale",
+  "written",
 ]);
 
 export const SmartSuggestCacheLevelNameSchema = Schema.Literals([
-  'browserMemory',
-  'workerMemory',
-  'edgeCache',
-  'd1ReadThrough',
-  'ownedDb',
+  "browserMemory",
+  "workerMemory",
+  "edgeCache",
+  "d1ReadThrough",
+  "ownedDb",
 ]);
 
 export const SuggestionSourceKindSchema = Schema.Literals([
-  'owned-dataset',
-  'live-provider',
-  'cache',
+  "owned-dataset",
+  "live-provider",
+  "cache",
 ]);
 
 export const ProviderEventStatusSchema = Schema.Literals([
-  'success',
-  'timeout',
-  'error',
-  'skipped',
+  "success",
+  "timeout",
+  "error",
+  "skipped",
 ]);
 
 export const PostalValidationStatusSchema = Schema.Union([
   Schema.Boolean,
-  Schema.Literal('unknown'),
+  Schema.Literal("unknown"),
 ]);
 
 export const PhoneNumberTypeSchema = Schema.Literals([
-  'PREMIUM_RATE',
-  'TOLL_FREE',
-  'SHARED_COST',
-  'VOIP',
-  'PERSONAL_NUMBER',
-  'PAGER',
-  'UAN',
-  'VOICEMAIL',
-  'FIXED_LINE_OR_MOBILE',
-  'FIXED_LINE',
-  'MOBILE',
+  "PREMIUM_RATE",
+  "TOLL_FREE",
+  "SHARED_COST",
+  "VOIP",
+  "PERSONAL_NUMBER",
+  "PAGER",
+  "UAN",
+  "VOICEMAIL",
+  "FIXED_LINE_OR_MOBILE",
+  "FIXED_LINE",
+  "MOBILE",
 ]);
 
 const isSmartSuggestCountryCode = (value: string): value is Uppercase<string> =>
@@ -293,10 +293,29 @@ const isSmartSuggestCountryCode = (value: string): value is Uppercase<string> =>
 export const SmartSuggestCountryCodeSchema = Schema.String.pipe(
   Schema.check(Schema.isPattern(smartSuggestCountryCodePattern)),
   Schema.refine(isSmartSuggestCountryCode, {
-    identifier: 'SmartSuggestCountryCode',
-    message: 'Expected an uppercase ISO alpha-2 or alpha-3 country code.',
+    identifier: "SmartSuggestCountryCode",
+    message: "Expected an uppercase ISO alpha-2 or alpha-3 country code.",
   }),
 );
+
+export const SmartSuggestCountryScopeStatusSchema = Schema.Literals([
+  "allowlist",
+  "blocked",
+  "global",
+  "single",
+]);
+
+export const SmartSuggestCountryScopeBlockReasonSchema = Schema.Literals([
+  "empty-allowlist",
+  "selected-country-not-allowed",
+]);
+
+export const SmartSuggestCountryScopeSchema = Schema.Struct({
+  countryCode: Schema.optionalKey(SmartSuggestCountryCodeSchema),
+  countryCodes: Schema.optionalKey(Schema.mutable(Schema.Array(SmartSuggestCountryCodeSchema))),
+  reason: Schema.optionalKey(SmartSuggestCountryScopeBlockReasonSchema),
+  status: SmartSuggestCountryScopeStatusSchema,
+});
 
 export const SmartSuggestMetadataValueSchema = Schema.Union([
   Schema.String,
@@ -380,6 +399,7 @@ export const ProviderEventSummarySchema = Schema.Struct({
 export const SmartSuggestResponseSchema = Schema.Struct({
   cacheLevels: Schema.optionalKey(SmartSuggestCacheLevelsSchema),
   cacheStatus: SmartSuggestCacheStatusSchema,
+  countryScope: Schema.optionalKey(SmartSuggestCountryScopeSchema),
   providerEvents: Schema.optionalKey(Schema.mutable(Schema.Array(ProviderEventSummarySchema))),
   requestId: SmartSuggestIdSchema,
   suggestions: Schema.mutable(Schema.Array(SmartSuggestSuggestionSchema)),
@@ -425,8 +445,8 @@ export const PhoneValidationResultSchema = Schema.Struct({
 });
 
 export const PostalInputHintsSchema = Schema.Struct({
-  autoComplete: Schema.Literal('postal-code'),
-  inputMode: Schema.Literals(['numeric', 'text']),
+  autoComplete: Schema.Literal("postal-code"),
+  inputMode: Schema.Literals(["numeric", "text"]),
 });
 
 export const PostalValidationRequestSchema = Schema.Struct({
@@ -455,17 +475,17 @@ export const SmartSuggestHealthResponseSchema = Schema.Struct({
   db: SmartSuggestHealthStorageSchema,
   deployProfile: SmartSuggestIdSchema,
   environment: SmartSuggestIdSchema,
-  service: Schema.Literal('smart-suggest'),
+  service: Schema.Literal("smart-suggest"),
   timestamp: SmartSuggestIsoDateTimeStringSchema,
   version: SmartSuggestIdSchema,
 });
 
-export const SmartSuggestStatusImportKindSchema = Schema.Literals(['baseline', 'delta', 'manual']);
+export const SmartSuggestStatusImportKindSchema = Schema.Literals(["baseline", "delta", "manual"]);
 
 export const SmartSuggestStatusImportRunStatusSchema = Schema.Literals([
-  'completed',
-  'failed',
-  'running',
+  "completed",
+  "failed",
+  "running",
 ]);
 
 export const SmartSuggestStatusImportRunSummarySchema = Schema.Struct({
@@ -503,7 +523,7 @@ export const SmartSuggestStatusFreshnessRunSchema = Schema.Struct({
     Schema.Union([SmartSuggestIsoDateStringSchema, SmartSuggestIsoDateTimeStringSchema]),
   ),
   sourceVersion: Schema.optionalKey(SmartSuggestIdSchema),
-  status: Schema.Literal('completed'),
+  status: Schema.Literal("completed"),
   tombstonedRows: SmartSuggestNonNegativeIntSchema,
   totalRows: SmartSuggestNonNegativeIntSchema,
   upsertedRows: SmartSuggestNonNegativeIntSchema,
@@ -521,7 +541,7 @@ export const SmartSuggestStatusFreshnessSlaSchema = Schema.Struct({
   ageHours: Schema.optionalKey(SmartSuggestNonNegativeNumberSchema),
   maxDeltaAgeHours: SmartSuggestNonNegativeNumberSchema,
   measuredAt: SmartSuggestIsoDateTimeStringSchema,
-  status: Schema.Literals(['fresh', 'stale', 'unknown']),
+  status: Schema.Literals(["fresh", "stale", "unknown"]),
 });
 
 export const SmartSuggestStatusImportsSchema = Schema.Struct({
@@ -561,13 +581,13 @@ export const SmartSuggestStatusMetricsSchema = Schema.Struct({
   }),
 });
 
-export const SmartSuggestShardStateSchema = Schema.Literals(['active', 'disabled', 'standby']);
+export const SmartSuggestShardStateSchema = Schema.Literals(["active", "disabled", "standby"]);
 
 export const SmartSuggestShardRegionKindSchema = Schema.Literals([
-  'country',
-  'municipality',
-  'postal-prefix',
-  'vusc',
+  "country",
+  "municipality",
+  "postal-prefix",
+  "vusc",
 ]);
 
 export const SmartSuggestStatusShardSummarySchema = Schema.Struct({
@@ -589,7 +609,7 @@ export const SmartSuggestStatusShardSummarySchema = Schema.Struct({
 
 export const SmartSuggestStatusShardSizeGuardSchema = Schema.Struct({
   blockBytes: SmartSuggestNonNegativeIntSchema,
-  status: Schema.Literals(['blocked', 'ok', 'warning']),
+  status: Schema.Literals(["blocked", "ok", "warning"]),
   warnBytes: SmartSuggestNonNegativeIntSchema,
 });
 
@@ -620,7 +640,7 @@ export const SmartSuggestStatusSourcePolicySchema = Schema.Struct({
       ),
     ),
   }),
-  rawQueryStorage: Schema.Literal('disabled'),
+  rawQueryStorage: Schema.Literal("disabled"),
 });
 
 export const SmartSuggestStatusSourceProvenanceSchema = Schema.Struct({
@@ -642,7 +662,7 @@ export const SmartSuggestStatusResponseSchema = Schema.Struct({
   db: Schema.NullOr(SmartSuggestHealthStorageSchema),
   imports: SmartSuggestStatusImportsSchema,
   metrics: SmartSuggestStatusMetricsSchema,
-  service: Schema.Literal('smart-suggest'),
+  service: Schema.Literal("smart-suggest"),
   shards: SmartSuggestStatusShardsSchema,
   sourcePolicy: SmartSuggestStatusSourcePolicySchema,
   sourceProvenance: SmartSuggestStatusSourceProvenanceSchema,
@@ -650,22 +670,25 @@ export const SmartSuggestStatusResponseSchema = Schema.Struct({
 });
 
 export const SmartSuggestLimitSchema = Schema.FiniteFromString.check(
-  integerFilter('limit'),
+  integerFilter("limit"),
   Schema.isGreaterThanOrEqualTo(1),
   Schema.isLessThanOrEqualTo(20),
 );
 
 export const SmartSuggestQueryTextSchema = Schema.String.check(
-  nonBlankString('suggest query'),
+  nonBlankString("suggest query"),
   Schema.isMaxLength(512),
 );
 
 const SmartSuggestQueryStructSchema = Schema.Struct({
   cartId: Schema.optionalKey(SmartSuggestIdSchema),
   countryCode: Schema.optionalKey(SmartSuggestCountryCodeSchema),
+  countryCodes: Schema.optionalKey(
+    Schema.String.check(nonBlankString("countryCodes"), Schema.isMaxLength(256)),
+  ),
   kind: SmartSuggestKindSchema,
   language: Schema.optionalKey(
-    Schema.String.check(nonBlankString('language'), Schema.isMaxLength(16)),
+    Schema.String.check(nonBlankString("language"), Schema.isMaxLength(16)),
   ),
   limit: Schema.optionalKey(SmartSuggestLimitSchema),
   q: Schema.optionalKey(SmartSuggestQueryTextSchema),
@@ -683,13 +706,13 @@ const requireConsistentSuggestQueryAlias = Schema.makeFilter<SmartSuggestQuerySt
 
   if (shortAlias === undefined && longAlias === undefined) {
     return [
-      { issue: 'Expected q or query.', path: ['q'] },
-      { issue: 'Expected q or query.', path: ['query'] },
+      { issue: "Expected q or query.", path: ["q"] },
+      { issue: "Expected q or query.", path: ["query"] },
     ];
   }
 
   if (shortAlias !== undefined && longAlias !== undefined && shortAlias !== longAlias) {
-    return { issue: 'Expected query to match q.', path: ['query'] };
+    return { issue: "Expected query to match q.", path: ["query"] };
   }
 
   return true;
@@ -699,40 +722,40 @@ export const SmartSuggestQuerySchema = SmartSuggestQueryStructSchema.check(
   requireConsistentSuggestQueryAlias,
 );
 
-export const SmartSuggestApiGroup = HttpApiGroup.make('smartSuggest', {
+export const SmartSuggestApiGroup = HttpApiGroup.make("smartSuggest", {
   topLevel: true,
 }).add(
-  HttpApiEndpoint.get('getHealth', '/v1/health', {
+  HttpApiEndpoint.get("getHealth", "/v1/health", {
     error: SmartSuggestEndpointErrors,
     success: SmartSuggestHealthResponseSchema,
   }),
-  HttpApiEndpoint.get('getStatus', '/v1/status', {
+  HttpApiEndpoint.get("getStatus", "/v1/status", {
     error: SmartSuggestEndpointErrors,
     success: SmartSuggestStatusResponseSchema,
   }),
-  HttpApiEndpoint.get('suggest', '/v1/suggest', {
+  HttpApiEndpoint.get("suggest", "/v1/suggest", {
     error: SmartSuggestEndpointErrors,
     query: SmartSuggestQuerySchema,
     success: SmartSuggestResponseSchema,
   }),
-  HttpApiEndpoint.post('accept', '/v1/accept', {
+  HttpApiEndpoint.post("accept", "/v1/accept", {
     error: SmartSuggestEndpointErrors,
     payload: SmartSuggestAcceptEventSchema,
     success: SmartSuggestAcceptResponseSchema,
   }),
-  HttpApiEndpoint.post('validatePhone', '/v1/validate/phone', {
+  HttpApiEndpoint.post("validatePhone", "/v1/validate/phone", {
     error: SmartSuggestEndpointErrors,
     payload: PhoneValidationRequestSchema,
     success: PhoneValidationResultSchema,
   }),
-  HttpApiEndpoint.post('validatePostal', '/v1/validate/postal', {
+  HttpApiEndpoint.post("validatePostal", "/v1/validate/postal", {
     error: SmartSuggestEndpointErrors,
     payload: PostalValidationRequestSchema,
     success: PostalValidationResultSchema,
   }),
 );
 
-export const SmartSuggestHttpApi = HttpApi.make('SmartSuggestHttpApi').add(SmartSuggestApiGroup);
+export const SmartSuggestHttpApi = HttpApi.make("SmartSuggestHttpApi").add(SmartSuggestApiGroup);
 
 export type SmartSuggestKind = typeof SmartSuggestKindSchema.Type;
 export type SmartSuggestCacheStatus = typeof SmartSuggestCacheStatusSchema.Type;
@@ -743,6 +766,10 @@ export type ProviderEventStatus = typeof ProviderEventStatusSchema.Type;
 export type PostalValidationStatus = typeof PostalValidationStatusSchema.Type;
 export type PhoneNumberType = typeof PhoneNumberTypeSchema.Type;
 export type SmartSuggestCountryCode = typeof SmartSuggestCountryCodeSchema.Type;
+export type SmartSuggestCountryScopeStatus = typeof SmartSuggestCountryScopeStatusSchema.Type;
+export type SmartSuggestCountryScopeBlockReason =
+  typeof SmartSuggestCountryScopeBlockReasonSchema.Type;
+export type SmartSuggestCountryScope = typeof SmartSuggestCountryScopeSchema.Type;
 export type SmartSuggestMetadataValue = typeof SmartSuggestMetadataValueSchema.Type;
 export type SmartSuggestMetadata = typeof SmartSuggestMetadataSchema.Type;
 export type SmartSuggestTenantContext = typeof SmartSuggestTenantContextSchema.Type;

@@ -159,9 +159,17 @@ const createArtifactManifest = ({ rowCount }: { rowCount: number }) => ({
       pagePathTemplate: "token/{countryCode}/{token}/{page}.json",
       pageSize: 50,
     },
+    localityCities: {
+      complete: true,
+      pathTemplate: "locality/{countryCode}/{prefix}.json",
+    },
     postalLocalities: {
       complete: true,
       pathTemplate: "postal/{countryCode}/{postalCode}.json",
+    },
+    postalPrefixes: {
+      complete: true,
+      pathTemplate: "postal-prefix/{countryCode}/{prefix}.json",
     },
   },
   schemaVersion: "smart-suggest-owned-artifacts/v1",
@@ -298,52 +306,54 @@ describe("smart suggest storage", () => {
     }),
   );
 
-  it.effect("orders prefix-token address candidates before applying the candidate window limit", () =>
-    Effect.gen(function* () {
-      const preparedQueries: string[] = [];
-      const binding = {
-        prepare: (query: string) => {
-          preparedQueries.push(query);
+  it.effect(
+    "orders prefix-token address candidates before applying the candidate window limit",
+    () =>
+      Effect.gen(function* () {
+        const preparedQueries: string[] = [];
+        const binding = {
+          prepare: (query: string) => {
+            preparedQueries.push(query);
 
-          return {
-            bind: () => ({
-              all: async () => ({ results: [] }),
-              raw: async () => [],
-            }),
-          };
-        },
-      } as unknown as SmartSuggestD1Binding;
-      const repositories = createD1SmartSuggestRepositories(binding);
+            return {
+              bind: () => ({
+                all: async () => ({ results: [] }),
+                raw: async () => [],
+              }),
+            };
+          },
+        } as unknown as SmartSuggestD1Binding;
+        const repositories = createD1SmartSuggestRepositories(binding);
 
-      yield* resolveStorageEffect(
-        repositories.addressRecords.searchAddressRecords({
-          countryCode: "CZ",
-          limit: 1,
-          query: "Lo",
-        }),
-      );
+        yield* resolveStorageEffect(
+          repositories.addressRecords.searchAddressRecords({
+            countryCode: "CZ",
+            limit: 1,
+            query: "Lou",
+          }),
+        );
 
-      const tokenQuery = preparedQueries.find(
-        (query) =>
-          query.toLowerCase().includes("select") &&
-          query.includes("smart_suggest_address_search_tokens"),
-      );
-      const normalizedTokenQuery = tokenQuery?.replaceAll(/\s+/g, " ").toLowerCase();
+        const tokenQuery = preparedQueries.find(
+          (query) =>
+            query.toLowerCase().includes("select") &&
+            query.includes("smart_suggest_address_search_tokens"),
+        );
+        const normalizedTokenQuery = tokenQuery?.replaceAll(/\s+/g, " ").toLowerCase();
 
-      expect(normalizedTokenQuery).toBeDefined();
-      if (normalizedTokenQuery === undefined) {
-        return;
-      }
+        expect(normalizedTokenQuery).toBeDefined();
+        if (normalizedTokenQuery === undefined) {
+          return;
+        }
 
-      expect(normalizedTokenQuery).toContain("inner join");
-      expect(normalizedTokenQuery).toContain("group by");
-      expect(normalizedTokenQuery).toContain("order by sum(");
-      expect(normalizedTokenQuery).toContain("quality");
-      expect(normalizedTokenQuery).toContain("display_label");
-      expect(normalizedTokenQuery.indexOf("order by")).toBeLessThan(
-        normalizedTokenQuery.lastIndexOf("limit"),
-      );
-    }),
+        expect(normalizedTokenQuery).toContain("inner join");
+        expect(normalizedTokenQuery).toContain("group by");
+        expect(normalizedTokenQuery).toContain("order by sum(");
+        expect(normalizedTokenQuery).toContain("quality");
+        expect(normalizedTokenQuery).toContain("display_label");
+        expect(normalizedTokenQuery.indexOf("order by")).toBeLessThan(
+          normalizedTokenQuery.lastIndexOf("limit"),
+        );
+      }),
   );
 
   it.effect("uses conflict-safe deterministic address search token writes", () =>
@@ -993,6 +1003,199 @@ describe("smart suggest storage", () => {
     }),
   );
 
+  it.effect("uses selective artifact sequence tokens before broad token previews", () =>
+    Effect.gen(function* () {
+      const kLouziRecords = [
+        createArtifactAddressRecord({
+          city: "Praha 10",
+          houseNumber: "1258",
+          id: "ruian-cz:1203603",
+          orientationNumber: "12",
+          searchLabel: "k louzi 1258 12 101 00 praha 10 vrsovice cz",
+          street: "K Louži",
+        }),
+        createArtifactAddressRecord({
+          city: "Praha 10",
+          houseNumber: "1258",
+          id: "ruian-cz:1203604",
+          orientationNumber: "7",
+          searchLabel: "k louzi 1258 7 101 00 praha 10 vrsovice cz",
+          street: "K Louži",
+        }),
+        createArtifactAddressRecord({
+          city: "Praha 10",
+          houseNumber: "784",
+          id: "ruian-cz:1203605",
+          orientationNumber: "3",
+          searchLabel: "k louzi 784 3 101 00 praha 10 vrsovice cz",
+          street: "K Louži",
+        }),
+        createArtifactAddressRecord({
+          city: "Praha 10",
+          houseNumber: "1312",
+          id: "ruian-cz:1203606",
+          orientationNumber: "1",
+          searchLabel: "k louzi 1312 1 101 00 praha 10 vrsovice cz",
+          street: "K Louži",
+        }),
+      ];
+      const sequenceFillerRecords = Array.from({ length: 257 }, (_, index) => ({
+        ...createArtifactAddressRecord({
+          city: "Praha 10",
+          houseNumber: String(2000 + index),
+          id: `ruian-cz:k-lou-filler-${index}`,
+          orientationNumber: String(index + 1),
+          searchLabel: `k loutce ${2000 + index} ${index + 1} 101 00 praha 10 cz`,
+          street: "K Loutce",
+        }),
+        quality: 0.2,
+      }));
+      const broadLouPreview = [
+        createArtifactAddressRecord({
+          city: "Teplice",
+          houseNumber: "1542",
+          id: "ruian-cz:lounska-preview",
+          orientationNumber: "3",
+          postalCode: "415 01",
+          searchLabel: "lounska 1542 3 415 01 teplice cz",
+          street: "Lounská",
+        }),
+      ];
+      const sequenceRecords = [...kLouziRecords, ...sequenceFillerRecords];
+      const records = [...sequenceRecords, ...broadLouPreview];
+      const artifacts = new Map<string, unknown>([
+        [artifactManifestUrl, createArtifactManifest({ rowCount: records.length })],
+        [
+          "https://static.example.test/smart-suggest/token/CZ/bucket-0000.json",
+          {
+            bucket: 0,
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            schemaVersion: "smart-suggest-address-token-bucket/v1",
+            tokens: {
+              "k lou": {
+                recordCount: sequenceRecords.length,
+                recordIds: sequenceRecords.map((record) => record.id),
+              },
+              lou: {
+                recordCount: records.length,
+                recordIds: records.map((record) => record.id),
+                records: broadLouPreview,
+              },
+            },
+          },
+        ],
+        [
+          "https://static.example.test/smart-suggest/records/CZ/0000.json",
+          {
+            bucket: "0000",
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            query: { kind: "address-record-bucket", value: "0000" },
+            records,
+            schemaVersion: "smart-suggest-address-records/v1",
+          },
+        ],
+      ]);
+      const repositories = createArtifactSmartSuggestRepositories({
+        fallback: createInMemorySmartSuggestRepositories(),
+        fetch: createArtifactFetch(artifacts),
+        manifestUrl: artifactManifestUrl,
+      });
+
+      const suggestions = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          limit: 4,
+          query: "K Lou",
+        }),
+      );
+
+      expect(suggestions.map((record) => record.id)).toEqual([
+        "ruian-cz:1203603",
+        "ruian-cz:1203604",
+        "ruian-cz:1203606",
+        "ruian-cz:1203605",
+      ]);
+    }),
+  );
+
+  it.effect("ranks specific artifact sequence tokens after broad token truncation", () =>
+    Effect.gen(function* () {
+      const target = createArtifactAddressRecord({
+        city: "Praha 10",
+        houseNumber: "1258",
+        id: "ruian-cz:1203603",
+        orientationNumber: "12",
+        searchLabel: "k louzi 1258 12 101 00 praha 10 vrsovice cz",
+        street: "K Louži",
+      });
+      const broadFillerRecords = Array.from({ length: 24 }, (_, index) =>
+        createArtifactAddressRecord({
+          city: "Praha 10",
+          houseNumber: String(3000 + index),
+          id: `ruian-cz:broad-filler-${index}`,
+          orientationNumber: String(index + 1),
+          searchLabel: `louzi 1258 ${3000 + index} ${index + 1} 101 00 praha 10 cz`,
+          street: "K Louži",
+        }),
+      );
+      const records = [...broadFillerRecords, target];
+      const artifacts = new Map<string, unknown>([
+        [artifactManifestUrl, createArtifactManifest({ rowCount: records.length })],
+        [
+          "https://static.example.test/smart-suggest/token/CZ/bucket-0000.json",
+          {
+            bucket: 0,
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            schemaVersion: "smart-suggest-address-token-bucket/v1",
+            tokens: {
+              "1258 12": {
+                recordCount: 1,
+                recordIds: [target.id],
+              },
+              "louzi 1258": {
+                recordCount: records.length,
+                recordIds: records.map((record) => record.id),
+              },
+            },
+          },
+        ],
+        [
+          "https://static.example.test/smart-suggest/records/CZ/0000.json",
+          {
+            bucket: "0000",
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            query: { kind: "address-record-bucket", value: "0000" },
+            records,
+            schemaVersion: "smart-suggest-address-records/v1",
+          },
+        ],
+      ]);
+      const repositories = createArtifactSmartSuggestRepositories({
+        fallback: createInMemorySmartSuggestRepositories(),
+        fetch: createArtifactFetch(artifacts),
+        manifestUrl: artifactManifestUrl,
+      });
+
+      const suggestions = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          limit: 1,
+          query: "K Louži 1258/12",
+        }),
+      );
+
+      expect(suggestions.map((record) => record.id)).toEqual([target.id]);
+    }),
+  );
+
   it.effect("serves every exact ZIP locality from owned data artifacts", () =>
     Effect.gen(function* () {
       const records = Array.from({ length: 55 }, (_, index) => {
@@ -1039,6 +1242,153 @@ describe("smart suggest storage", () => {
 
       expect(localities).toHaveLength(55);
       expect(localities.map((record) => record.parts.city)).toContain("Obec 55");
+    }),
+  );
+
+  it.effect("serves city and postal prefix suggestions from dedicated owned-data indexes", () =>
+    Effect.gen(function* () {
+      const javorova = {
+        ...createArtifactAddressRecord({
+          city: "Javorová",
+          houseNumber: "1",
+          id: "ruian-cz:city:javorova",
+          postalCode: "463 48",
+          searchLabel: "javorova 46348",
+          street: "Javorova",
+        }),
+        ranking: { addressCount: 42 },
+      };
+      const brno = {
+        ...createArtifactAddressRecord({
+          city: "Brno",
+          houseNumber: "10",
+          id: "ruian-cz:city:brno",
+          postalCode: "602 00",
+          searchLabel: "brno 60200",
+          street: "Masarykova",
+        }),
+        ranking: { addressCount: 300_000 },
+      };
+      const blansko = {
+        ...createArtifactAddressRecord({
+          city: "Blansko",
+          houseNumber: "20",
+          id: "ruian-cz:city:blansko",
+          postalCode: "678 01",
+          searchLabel: "blansko 67801",
+          street: "Sadova",
+        }),
+        ranking: { addressCount: 25_000 },
+      };
+      const artifacts = new Map<string, unknown>([
+        [artifactManifestUrl, createArtifactManifest({ rowCount: 3 })],
+        [
+          "https://static.example.test/smart-suggest/locality/CZ/javo.json",
+          {
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            query: {
+              kind: "locality-city-prefix",
+              value: "javo",
+            },
+            records: [javorova],
+            schemaVersion: "smart-suggest-address-records/v1",
+          },
+        ],
+        [
+          "https://static.example.test/smart-suggest/locality/CZ/b.json",
+          {
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            query: {
+              kind: "locality-city-prefix",
+              value: "b",
+            },
+            records: [blansko, brno],
+            schemaVersion: "smart-suggest-address-records/v1",
+          },
+        ],
+        [
+          "https://static.example.test/smart-suggest/postal-prefix/CZ/602.json",
+          {
+            complete: true,
+            countryCode: "CZ",
+            datasetVersion: "ruian-cz-2026-05-31",
+            query: {
+              kind: "postal-prefix",
+              value: "602",
+            },
+            records: [brno],
+            schemaVersion: "smart-suggest-address-records/v1",
+          },
+        ],
+      ]);
+      const repositories = createArtifactSmartSuggestRepositories({
+        fallback: createInMemorySmartSuggestRepositories(),
+        fetch: createArtifactFetch(artifacts),
+        manifestUrl: artifactManifestUrl,
+      });
+
+      const javo = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "place",
+          limit: 5,
+          query: "Javo",
+        }),
+      );
+      const javorovaAscii = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "place",
+          limit: 5,
+          query: "Javorova",
+        }),
+      );
+      const javorovaDiacritics = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "place",
+          limit: 5,
+          query: "Javorová",
+        }),
+      );
+      const bCities = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "place",
+          limit: 5,
+          query: "B",
+        }),
+      );
+      const postalPrefix = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "postal",
+          limit: 5,
+          query: "602",
+        }),
+      );
+      const fullPostalPrefix = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "postal",
+          limit: 5,
+          query: "60200",
+        }),
+      );
+
+      expect(javo.map((record) => record.id)).toEqual(["ruian-cz:city:javorova"]);
+      expect(javorovaAscii.map((record) => record.id)).toEqual(["ruian-cz:city:javorova"]);
+      expect(javorovaDiacritics.map((record) => record.id)).toEqual(["ruian-cz:city:javorova"]);
+      expect(bCities.map((record) => record.id)).toEqual([
+        "ruian-cz:city:brno",
+        "ruian-cz:city:blansko",
+      ]);
+      expect(postalPrefix.map((record) => record.id)).toEqual(["ruian-cz:city:brno"]);
+      expect(fullPostalPrefix.map((record) => record.id)).toEqual(["ruian-cz:city:brno"]);
     }),
   );
 
@@ -1316,11 +1666,109 @@ describe("smart suggest storage", () => {
             query: "Lo",
           }),
         );
+        const louResults = yield* resolveStorageEffect(
+          repositories.addressRecords.searchAddressRecords({
+            countryCode: "CZ",
+            limit: 5,
+            query: "Lou",
+          }),
+        );
 
         expect(kLouziResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })]);
         expect(shortKResults).toEqual([]);
-        expect(shortLoResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })]);
+        expect(shortLoResults).toEqual([]);
+        expect(louResults).toEqual([expect.objectContaining({ id: "cz-k-louzi" })]);
       }),
+  );
+
+  it.effect("honors suggest kind before generic address ranking", () =>
+    Effect.gen(function* () {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const source = yield* resolveStorageEffect(
+        repositories.dataSources.registerDataSource({
+          attribution: {
+            label: "RUIAN synthetic kind rows",
+          },
+          cachePolicy: { kind: "permanent" },
+          countryCode: "CZ",
+          id: "ruian-cz-kind-proof",
+          name: "RUIAN CZ kind proof rows",
+          sourceKind: "owned-dataset",
+        }),
+      );
+
+      yield* resolveStorageEffect(
+        repositories.addressRecords.upsertAddressRecords([
+          {
+            countryCode: "CZ",
+            displayLabel: "Hlavni 101, 392 01 Sobeslav, CZ",
+            id: "ruian-cz:house-number-101",
+            parts: {
+              city: "Sobeslav",
+              countryCode: "CZ",
+              houseNumber: "101",
+              postalCode: "392 01",
+              street: "Hlavni",
+            },
+            quality: 0.99,
+            searchLabel: "hlavni 101 392 01 sobeslav cz",
+            sourceId: source.id,
+          },
+          {
+            countryCode: "CZ",
+            displayLabel: "K Louzi 1258/12, 101 00 Praha 10, CZ",
+            id: "ruian-cz:postal-10100",
+            parts: {
+              city: "Praha 10",
+              countryCode: "CZ",
+              houseNumber: "1258",
+              orientationNumber: "12",
+              postalCode: "101 00",
+              street: "K Louzi",
+            },
+            quality: 0.95,
+            searchLabel: "k louzi 1258 12 101 00 praha 10 cz",
+            sourceId: source.id,
+          },
+          {
+            countryCode: "CZ",
+            displayLabel: "Masarykova 1, 602 00 Brno, CZ",
+            id: "ruian-cz:city-brno",
+            parts: {
+              city: "Brno",
+              countryCode: "CZ",
+              houseNumber: "1",
+              postalCode: "602 00",
+              street: "Masarykova",
+            },
+            quality: 0.98,
+            ranking: { addressCount: 300_000 },
+            searchLabel: "masarykova 1 602 00 brno cz",
+            sourceId: source.id,
+          },
+        ]),
+      );
+
+      const postalPrefix = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "postal",
+          limit: 5,
+          query: "101",
+        }),
+      );
+      const cityPrefix = yield* resolveStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          kind: "place",
+          limit: 5,
+          query: "B",
+        }),
+      );
+
+      expect(postalPrefix.map((record) => record.id)).toEqual(["ruian-cz:postal-10100"]);
+      expect(cityPrefix.map((record) => record.id)).toEqual(["ruian-cz:city-brno"]);
+    }),
   );
 
   it.effect("keeps K Louži typo, weak-query, number-order, and wrong-city behavior bounded", () =>
@@ -1662,6 +2110,67 @@ describe("smart suggest storage", () => {
     }),
   );
 
+  it.effect("restores v3 cache country allowlists from D1 cache keys", () =>
+    Effect.gen(function* () {
+      const queryHash = yield* resolveStorageEffect(
+        createSuggestQueryHashEffect({
+          countryCodes: ["CZ", "SK"],
+          kind: "address",
+          query: "Javorova",
+          tenantId: "tenant-scope-test",
+        }),
+      );
+      const cacheKey = createSuggestCacheKey({
+        countryCodes: ["CZ", "SK"],
+        kind: "address",
+        queryHash,
+        tenantId: "tenant-scope-test",
+      });
+      const now = "2026-06-26T12:00:00.000Z";
+      const row = {
+        cacheKey,
+        cachePolicyJson: '{"kind":"permanent"}',
+        cache_key: cacheKey,
+        cache_policy_json: '{"kind":"permanent"}',
+        countryCode: null,
+        country_code: null,
+        createdAt: now,
+        created_at: now,
+        expiresAt: null,
+        expires_at: null,
+        kind: "address",
+        language: null,
+        payloadJson: "[]",
+        payload_json: "[]",
+        queryHash,
+        query_hash: queryHash,
+        status: "written",
+        tenantId: "tenant-scope-test",
+        tenant_id: "tenant-scope-test",
+        updatedAt: now,
+        updated_at: now,
+      };
+      const binding = {
+        prepare: () => ({
+          bind: () => ({
+            all: async () => ({ results: [row] }),
+            raw: async () => [Object.values(row)],
+          }),
+        }),
+      } as unknown as SmartSuggestD1Binding;
+      const repositories = createD1SmartSuggestRepositories(binding);
+
+      const cacheRecord = yield* resolveStorageEffect(
+        repositories.suggestCache.readSuggestCache(cacheKey),
+      );
+
+      expect(cacheRecord).toMatchObject({
+        countryCodes: ["CZ", "SK"],
+        status: "hit",
+      });
+    }),
+  );
+
   it.effect("lists recent import runs for operational status without raw query data", () =>
     Effect.gen(function* () {
       const repositories = createInMemorySmartSuggestRepositories();
@@ -1961,6 +2470,53 @@ describe("smart suggest storage", () => {
 
       expect(providerEvents).toHaveLength(1);
       expect(acceptEvents).toHaveLength(1);
+    }),
+  );
+
+  it.effect("separates suggest cache identity by canonical country scope", () =>
+    Effect.gen(function* () {
+      const baseInput = {
+        kind: "address" as const,
+        query: "Narodni",
+        tenantId: "tenant-scope-test",
+      };
+      const czHash = yield* resolveStorageEffect(
+        createSuggestQueryHashEffect({ ...baseInput, countryCode: "CZ" }),
+      );
+      const skHash = yield* resolveStorageEffect(
+        createSuggestQueryHashEffect({ ...baseInput, countryCode: "SK" }),
+      );
+      const czSkHash = yield* resolveStorageEffect(
+        createSuggestQueryHashEffect({ ...baseInput, countryCodes: ["CZ", "SK"] }),
+      );
+      const skCzHash = yield* resolveStorageEffect(
+        createSuggestQueryHashEffect({ ...baseInput, countryCodes: ["SK", "CZ"] }),
+      );
+      const invalidAlphaHash = yield* resolveStorageEffect(
+        createSuggestQueryHashEffect({ ...baseInput, countryCodes: ["ZZ"] }),
+      );
+      const globalHash = yield* resolveStorageEffect(createSuggestQueryHashEffect(baseInput));
+
+      expect(new Set([czHash, skHash, czSkHash, invalidAlphaHash, globalHash]).size).toBe(5);
+      expect(skCzHash).toBe(czSkHash);
+
+      const cacheKeys = [
+        createSuggestCacheKey({ ...baseInput, countryCode: "CZ", queryHash: czHash }),
+        createSuggestCacheKey({ ...baseInput, countryCode: "SK", queryHash: skHash }),
+        createSuggestCacheKey({ ...baseInput, countryCodes: ["CZ", "SK"], queryHash: czSkHash }),
+        createSuggestCacheKey({ ...baseInput, countryCodes: ["SK", "CZ"], queryHash: skCzHash }),
+        createSuggestCacheKey({
+          ...baseInput,
+          countryCodes: ["ZZ"],
+          queryHash: invalidAlphaHash,
+        }),
+        createSuggestCacheKey({ ...baseInput, queryHash: globalHash }),
+      ];
+
+      expect(
+        new Set([cacheKeys[0], cacheKeys[1], cacheKeys[2], cacheKeys[4], cacheKeys[5]]).size,
+      ).toBe(5);
+      expect(cacheKeys[3]).toBe(cacheKeys[2]);
     }),
   );
 });

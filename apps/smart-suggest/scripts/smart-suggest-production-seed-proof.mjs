@@ -279,40 +279,39 @@ function runProductionSeedProof() {
     },
   });
 
-  assert(result.status === 1, 'Production seed proof must stop at strict D1 preflight.', {
+  assert(result.status === 1, 'Production seed proof must require explicit shard bindings.', {
     exitCode: result.status,
     stderr: result.stderr,
     stdout: result.stdout,
   });
 
   const seedReport = readJson(seedReportPath);
-  const preflightReport = readJson(preflightReportPath);
-
   assert(seedReport.status === 'blocked', 'Seed report must be blocked.');
-  assert(seedReport.stage === 'd1-preflight-failed', 'Seed report must name D1 preflight failure.');
+  assert(seedReport.stage === 'planned', 'Seed report must stop before D1 preflight.');
+  assert(
+    (seedReport.checks ?? []).some((check) => check.id === 'missing-shard-bindings'),
+    'Seed report must name missing explicit shard bindings.',
+  );
   assert(
     seedReport.operatorReadiness?.profile === 'smart-suggest-production-seed-readiness-v1',
-    'Seed report must include the operator readiness contract.',
+    'Seed report must include operator readiness contract.',
   );
   assert(seedReport.operatorReadiness?.status === 'blocked', 'Readiness must be blocked.');
   assert(
     seedReport.operatorReadiness?.commandMatrix?.seedExecute ===
       'pnpm smart-suggest:seed:production:execute',
-    'Readiness must include the production seed execute command.',
+    'Readiness must include production seed execute command.',
   );
   assert(
     seedReport.operatorReadiness?.commandMatrix?.strictD1Preflight ===
       'pnpm smart-suggest:d1:preflight:production',
-    'Readiness must include the strict production D1 preflight command.',
+    'Readiness must include strict production D1 preflight command.',
   );
   assert(
-    (seedReport.operatorReadiness?.blockingStages ?? []).some(
-      (stage) =>
-        stage.id === 'd1-preflight-failed' &&
-        stage.reportPath ===
-          '.codex/reports/smart-suggest-d1-operations/preflight-production-seed-proof.json',
+    (seedReport.operatorReadiness?.missingInputs ?? []).some(
+      (entry) => entry.id === 'missing-shard-bindings',
     ),
-    'Readiness must point operators at the failed D1 preflight report.',
+    'Readiness must point operators at missing explicit shard bindings.',
   );
   assert(
     (seedReport.operatorReadiness?.requiredEnvironment?.d1GeneratedConfig ?? []).some(
@@ -320,7 +319,7 @@ function runProductionSeedProof() {
         entry.env ===
         'SMART_SUGGEST_D1_SHARDS_JSON or SMART_SUGGEST_D1_FREE_TIER_MAX_SHARDS_ENABLED',
     ),
-    'Readiness must list the free-tier shard configuration env contract.',
+    'Readiness must list free-tier shard configuration env contract.',
   );
   assert(seedReport.snapshot?.checksumVerified === true, 'Snapshot checksum must be verified.');
   assert(seedReport.snapshot?.pathRedacted === true, 'Snapshot path must be redacted.');
@@ -347,67 +346,48 @@ function runProductionSeedProof() {
   );
   assert(
     seedReport.commands?.import?.includes('--modification-note-sha256'),
-    'Seed import command must pass the modification-note hash into the mutating importer.',
+    'Seed import command must pass modification-note hash into mutating importer.',
   );
   assert(
     seedReport.commands?.import?.includes('--shard-max-rows 400000'),
-    'Free-tier seed import command must keep the address D1 row guard.',
+    'Free-tier seed import command must keep address D1 row guard.',
   );
   assert(
     seedReport.commands?.import?.includes('--search-index-mode fts-only'),
-    'Free-tier seed import command must avoid the legacy prefix-token index by default.',
+    'Free-tier seed import command must use FTS-only index mode by default.',
   );
   assert(
     seedReport.searchIndexMode === 'fts-only',
-    'Free-tier seed report must expose the FTS-only index mode.',
+    'Free-tier seed report must expose FTS-only index mode.',
   );
-  assert(
-    seedReport.freeTierCapacityGuard?.enabled === true,
-    'Free-tier seed report must expose the capacity guard.',
-  );
+  assert(seedReport.freeTierCapacityGuard?.enabled === true, 'Capacity guard must be enabled.');
   assert(
     seedReport.freeTierCapacityGuard?.effectiveMaxAddressShardRows === 400000,
-    'Free-tier capacity guard must default to the reviewed address D1 row ceiling.',
+    'Free-tier capacity guard must default reviewed address D1 row ceiling.',
   );
   assert(
     seedReport.freeTierCapacityGuard?.defaultFtsOnlyMaxAddressShardRows === 400000,
-    'Free-tier capacity guard must document the FTS-only row ceiling.',
+    'Free-tier capacity guard must document FTS-only row ceiling.',
   );
   assert(
     seedReport.freeTierCapacityGuard?.defaultLegacyPrefixMaxAddressShardRows === 125000,
-    'Free-tier capacity guard must document the legacy prefix row ceiling.',
+    'Free-tier capacity guard must document legacy prefix row ceiling.',
   );
   assert(seedReport.d1Topology === 'free-tier', 'Seed proof must use free-tier D1 topology.');
-  assert(seedReport.shardBindingCount === 9, 'Seed proof must resolve nine free-tier shards.');
+  assert(seedReport.shardBindingCount === 0, 'Seed proof must not infer free-tier shards.');
   assert(
     seedReport.shardLogicalCzVuscCount === 14,
     'Seed proof must cover all 14 logical CZ VUSC regions.',
   );
-  assert(
-    seedReport.shardBindingsSource === 'wrangler-config-var',
-    'Seed proof must use generated Wrangler shard binding resolution.',
-  );
-  assert(seedReport.execution?.preflight?.ok === false, 'Preflight execution must fail.');
-  assert(
-    seedReport.execution?.preflight?.reportPath === preflightReportPath,
-    'Seed report must point at the D1 preflight report.',
-  );
-  assert(preflightReport.status !== 'ok', 'D1 preflight report must fail.');
-  assert(
-    (preflightReport.checks ?? []).some(
-      (check) => check.reason === 'deterministic-local-placeholder-id',
-    ),
-    'D1 preflight must fail because placeholder local database ids are not production ids.',
-  );
+  assert(seedReport.shardBindingsSource === null, 'Seed proof must require operator shard input.');
+  assert(seedReport.execution?.preflight === undefined, 'Preflight must not run without shards.');
   assertNoUnsafeReportPaths('seed report', seedReport);
-  assertNoUnsafeReportPaths('D1 preflight report', preflightReport);
 
   process.stdout.write(
     [
       'Smart Suggest production seed proof passed:',
       `- seed report: ${seedReportPath}`,
-      `- D1 preflight report: ${preflightReportPath}`,
-      '- strict production mode rejects placeholder local D1 ids before import',
+      '- strict production mode requires explicit shard bindings before import',
     ].join('\n'),
   );
   process.stdout.write('\n');

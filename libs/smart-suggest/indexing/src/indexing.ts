@@ -693,8 +693,8 @@ const textAddressTokens = (value: string) =>
   );
 
 const hasStrongStreetTextMatch = (query: string, candidate: AddressRankingCandidate) => {
-  const parts = addressPartsFromCandidate(candidate);
-  const candidateStreetText = joinNonEmpty([parts.street, parts.line1], ' ');
+ const parts = addressPartsFromCandidate(candidate);
+ const candidateStreetText = joinNonEmpty([parts.street, parts.line1], ' ');
   const candidateStreetTokens = textAddressTokens(candidateStreetText);
 
   if (candidateStreetTokens.length === 0) {
@@ -707,13 +707,34 @@ const hasStrongStreetTextMatch = (query: string, candidate: AddressRankingCandid
     queryTextTokens.some(
       (queryToken) => streetToken === queryToken || streetToken.startsWith(queryToken),
     ),
-  );
+ );
+};
+
+const applyStreetPrefixScore = (
+ state: ScoreState,
+ normalizedQuery: string,
+ candidate: AddressRankingCandidate,
+) => {
+ if (normalizedQuery.length === 0) {
+ return;
+ }
+
+ const parts = addressPartsFromCandidate(candidate);
+ const normalizedStreetText = normalizeSearchText(joinNonEmpty([parts.street, parts.line1], ' '));
+
+ if (!normalizedStreetText.startsWith(normalizedQuery)) {
+ return;
+ }
+
+ const completionLength = normalizedStreetText.length - normalizedQuery.length;
+ state.score += 24 + Math.max(0, 12 - completionLength);
+ state.reasons.push('street:prefix');
 };
 
 const applyLabelScore = (
-  state: ScoreState,
-  normalizedQuery: string,
-  normalizedCandidateLabel: string,
+ state: ScoreState,
+ normalizedQuery: string,
+ normalizedCandidateLabel: string,
 ) => {
   if (normalizedQuery.length > 0 && normalizedCandidateLabel === normalizedQuery) {
     state.score += 100;
@@ -1002,8 +1023,9 @@ export const scoreAddressCandidate = <TCandidate extends AddressRankingCandidate
     state.reasons.push(`confidence:${state.score.toFixed(2)}`);
   }
 
-  applyLabelScore(state, normalizedQuery, normalizedCandidateLabel);
-  applyTokenScore(state, queryTokens, candidateTokenSet, candidatePrefixSet);
+ applyLabelScore(state, normalizedQuery, normalizedCandidateLabel);
+ applyStreetPrefixScore(state, normalizedQuery, candidate);
+ applyTokenScore(state, queryTokens, candidateTokenSet, candidatePrefixSet);
   applyPostalScore(state, query, candidate);
   applyHouseNumberScore(state, query, candidate);
 
@@ -1018,6 +1040,19 @@ export const scoreAddressCandidate = <TCandidate extends AddressRankingCandidate
   };
 };
 
+const streetClusterKeyFromCandidate = (candidate: AddressRankingCandidate) => {
+  const parts = addressPartsFromCandidate(candidate);
+  return normalizeSearchText(joinNonEmpty([parts.street, parts.line1], ' '));
+};
+
+const streetClusterCountForCandidate = (
+  streetClusterCounts: ReadonlyMap<string, number>,
+  candidate: AddressRankingCandidate,
+) => {
+  const key = streetClusterKeyFromCandidate(candidate);
+  return key.length === 0 ? 0 : (streetClusterCounts.get(key) ?? 0);
+};
+
 export const rankAddressCandidates = <TCandidate extends AddressRankingCandidate>(
   query: string,
   candidates: readonly TCandidate[],
@@ -1026,10 +1061,27 @@ export const rankAddressCandidates = <TCandidate extends AddressRankingCandidate
   const ranked = candidates
     .map((candidate) => scoreAddressCandidate(query, candidate))
     .filter((candidate) => isQueryRelevantCandidate(query, candidate));
+  const streetClusterCounts = new Map<string, number>();
+
+  for (const { candidate } of ranked) {
+    const key = streetClusterKeyFromCandidate(candidate);
+
+    if (key.length > 0) {
+      streetClusterCounts.set(key, (streetClusterCounts.get(key) ?? 0) + 1);
+    }
+  }
 
   ranked.sort((left, right) => {
     if (right.score !== left.score) {
       return right.score - left.score;
+    }
+
+    const streetClusterComparison =
+      streetClusterCountForCandidate(streetClusterCounts, right.candidate) -
+      streetClusterCountForCandidate(streetClusterCounts, left.candidate);
+
+    if (streetClusterComparison !== 0) {
+      return streetClusterComparison;
     }
 
     const leftLabel = labelTextFromCandidate(left.candidate);

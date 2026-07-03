@@ -117,11 +117,14 @@ const stringOptionFields = {
 };
 const numberOptionFields = {
   '--artifact-max-file-size-bytes': 'artifactMaxFileSizeBytes',
+  '--artifact-locality-max-prefix-length': 'artifactLocalityMaxPrefixLength',
   '--artifact-max-token-length': 'artifactMaxTokenLength',
   '--artifact-min-token-length': 'artifactMinTokenLength',
   '--artifact-page-size': 'artifactPageSize',
   '--artifact-record-shard-count': 'artifactRecordShardCount',
+  '--artifact-token-preview-limit': 'artifactTokenPreviewLimit',
   '--artifact-token-bucket-count': 'artifactTokenBucketCount',
+  '--artifact-token-record-id-limit': 'artifactTokenRecordIdLimit',
   '--chunk-size': 'chunkSize',
   '--limit': 'limit',
   '--max-rows': 'maxRows',
@@ -241,17 +244,24 @@ function envModificationNoteSha256() {
   return note === undefined ? undefined : hashTextSha256(note);
 }
 
+function defaultFixtureForCommand(command) {
+  return command === 'import-local' || command === 'proof-offline' ? defaultFixturePath : undefined;
+}
+
 function defaultArgs(command) {
   return {
     allowPartialArtifact: false,
     applyMigrations: false,
     artifactMaxFileSizeBytes: 25 * 1024 * 1024,
+    artifactLocalityMaxPrefixLength: 64,
     artifactMaxTokenLength: 8,
     artifactMinTokenLength: 2,
     artifactOutDir: '.codex/artifacts/smart-suggest-owned-data',
     artifactPageSize: 50,
     artifactRecordShardCount: 2048,
     artifactTokenBucketCount: 4096,
+  artifactTokenPreviewLimit: 64,
+    artifactTokenRecordIdLimit: 4096,
     chunkSize: 500,
     command,
     country: 'CZ',
@@ -260,7 +270,7 @@ function defaultArgs(command) {
     datasetVersion: envValue('SMART_SUGGEST_RUIAN_DATASET_VERSION') ?? 'local-proof',
     expectedChecksumSha256: envValue('SMART_SUGGEST_RUIAN_SNAPSHOT_CHECKSUM_SHA256'),
     expectedLabel: defaultExpectedLabel,
-    fixture: defaultFixturePath,
+    fixture: defaultFixtureForCommand(command),
     atomEntryId: envValue('SMART_SUGGEST_RUIAN_ATOM_ENTRY_ID'),
     csvDelimiter: envValue('SMART_SUGGEST_RUIAN_CSV_DELIMITER') ?? ';',
     csvEncoding: envValue('SMART_SUGGEST_RUIAN_CSV_ENCODING') ?? 'utf-8',
@@ -350,7 +360,9 @@ function applyOption(parsed, arg, next) {
       parsed.expectedChecksumSha256 = undefined;
       parsed.feedId = undefined;
       parsed.modificationNoteSha256 = undefined;
+      parsed.snapshotUri = undefined;
       parsed.snapshotPath = undefined;
+      parsed.sourceName = undefined;
       parsed.sourceGeneratedAt = undefined;
       parsed.sourceUri = undefined;
       parsed.sourceValidAt = undefined;
@@ -362,6 +374,105 @@ function applyOption(parsed, arg, next) {
   }
 
   return true;
+}
+
+function isFixtureUri(value) {
+  return value?.startsWith('fixture://') ?? false;
+}
+
+function missingProductionOption(parsed, field, optionName, missing) {
+  const value = parsed[field];
+
+  if (value === undefined || value === '') {
+    missing.push(optionName);
+  }
+}
+
+function assertProductionRuianArtifactArgs(parsed) {
+  const missing = [];
+
+  missingProductionOption(parsed, 'snapshotPath', '--snapshot-path', missing);
+  missingProductionOption(parsed, 'expectedChecksumSha256', '--expected-checksum-sha256', missing);
+  missingProductionOption(parsed, 'sourceUri', '--source-uri', missing);
+  missingProductionOption(parsed, 'snapshotUri', '--snapshot-uri', missing);
+  missingProductionOption(parsed, 'datasetVersion', '--dataset-version', missing);
+  missingProductionOption(parsed, 'sourceId', '--source-id', missing);
+  missingProductionOption(parsed, 'sourceName', '--source-name', missing);
+  missingProductionOption(parsed, 'sourceVersion', '--source-version', missing);
+  missingProductionOption(parsed, 'sourceGeneratedAt', '--source-generated-at', missing);
+  missingProductionOption(parsed, 'sourceValidAt', '--source-valid-at', missing);
+  missingProductionOption(parsed, 'feedId', '--feed-id', missing);
+  missingProductionOption(parsed, 'atomEntryId', '--atom-entry-id', missing);
+  missingProductionOption(parsed, 'modificationNoteSha256', '--modification-note-sha256', missing);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Production build-artifacts requires real RUIAN source metadata: ${missing.join(', ')}.`,
+    );
+  }
+
+  if (parsed.fixture !== undefined) {
+    throw new Error('Production build-artifacts refuses --fixture; use the proof path explicitly.');
+  }
+
+  if (parsed.country !== 'CZ') {
+    throw new Error('Production RUIAN build-artifacts requires --country CZ.');
+  }
+
+  if (parsed.sourceId !== 'ruian-cz') {
+    throw new Error('Production RUIAN build-artifacts requires --source-id ruian-cz.');
+  }
+
+  if (/\b(?:fixture|local|proof|synthetic)\b/iu.test(parsed.datasetVersion)) {
+    throw new Error('Production build-artifacts requires a non-proof --dataset-version.');
+  }
+
+  if (isFixtureUri(parsed.sourceUri) || isFixtureUri(parsed.snapshotUri)) {
+    throw new Error('Production build-artifacts refuses fixture:// source or snapshot URIs.');
+  }
+
+  if (parsed.maxRows !== undefined || parsed.allowPartialArtifact) {
+    throw new Error('Production build-artifacts refuses --max-rows and --allow-partial-artifact.');
+  }
+}
+
+function assertLocalProofArtifactArgs(parsed) {
+  if (parsed.fixture === undefined) {
+    throw new Error(
+      'build-artifacts requires --snapshot-path for production or explicit --fixture for local proof.',
+    );
+  }
+
+  if (parsed.snapshotPath !== undefined) {
+    throw new Error('Local proof build-artifacts must not set --snapshot-path.');
+  }
+
+  if (!/\b(?:fixture|local|proof|synthetic)\b/iu.test(parsed.datasetVersion)) {
+    throw new Error('Local proof build-artifacts requires a proof-marked --dataset-version.');
+  }
+
+  if (!isFixtureUri(parsed.snapshotUri)) {
+    throw new Error('Local proof build-artifacts requires --snapshot-uri fixture://...');
+  }
+
+  if (parsed.sourceUri !== undefined && !isFixtureUri(parsed.sourceUri)) {
+    throw new Error('Local proof build-artifacts refuses non-fixture --source-uri.');
+  }
+}
+
+function assertBuildArtifactArgs(parsed) {
+  if (parsed.artifactMinTokenLength > parsed.artifactMaxTokenLength) {
+    throw new Error(
+      '--artifact-min-token-length must be less than or equal to --artifact-max-token-length.',
+    );
+  }
+
+  if (parsed.snapshotPath === undefined) {
+    assertLocalProofArtifactArgs(parsed);
+    return;
+  }
+
+  assertProductionRuianArtifactArgs(parsed);
 }
 
 function assertOfficialSnapshotArgs(parsed) {
@@ -455,20 +566,7 @@ function assertParsedArgs(parsed) {
     return;
   }
   if (parsed.command === 'build-artifacts') {
-    if (
-      parsed.snapshotPath !== undefined &&
-      parsed.maxRows !== undefined &&
-      !parsed.allowPartialArtifact
-    ) {
-      throw new Error(
-        'build-artifacts refuses --max-rows for official snapshots unless --allow-partial-artifact is set.',
-      );
-    }
-    if (parsed.artifactMinTokenLength > parsed.artifactMaxTokenLength) {
-      throw new Error(
-        '--artifact-min-token-length must be less than or equal to --artifact-max-token-length.',
-      );
-    }
+    assertBuildArtifactArgs(parsed);
     return;
   }
   if (parsed.repository !== 'memory') {
@@ -2314,10 +2412,16 @@ function artifactOrderedSearchTokens(value) {
   return tokens;
 }
 
+function artifactTokenMinLength(token, args) {
+  return /^\d+$/u.test(token)
+    ? Math.max(args.artifactMinTokenLength, 3)
+    : args.artifactMinTokenLength;
+}
+
 function addArtifactTokenPrefixes(tokens, token, args) {
   const maxLength = Math.min(token.length, args.artifactMaxTokenLength);
 
-  for (let length = args.artifactMinTokenLength; length <= maxLength; length += 1) {
+  for (let length = artifactTokenMinLength(token, args); length <= maxLength; length += 1) {
     tokens.add(token.slice(0, length));
   }
 }
@@ -2330,8 +2434,18 @@ function addArtifactSequenceTokenPrefixes(tokens, leftToken, rightToken, args) {
     return;
   }
 
-  for (let length = args.artifactMinTokenLength; length <= maxLength; length += 1) {
+  for (let length = artifactTokenMinLength(rightToken, args); length <= maxLength; length += 1) {
     tokens.add(`${left} ${rightToken.slice(0, length)}`);
+  }
+}
+
+function addArtifactCityTokenPrefixes(tokens, record, args) {
+  for (const cityToken of artifactOrderedSearchTokens(record.parts.city ?? '')) {
+    const maxLength = Math.min(cityToken.length, args.artifactMaxTokenLength);
+
+    for (let length = 1; length <= maxLength; length += 1) {
+      tokens.add(cityToken.slice(0, length));
+    }
   }
 }
 
@@ -2345,6 +2459,8 @@ function artifactTokensForRecord(record, args) {
     addArtifactTokenPrefixes(tokens, token, args);
   }
 
+  addArtifactCityTokenPrefixes(tokens, record, args);
+
   for (let index = 1; index < searchTokens.length; index += 1) {
     const left = searchTokens[index - 1];
     const right = searchTokens[index];
@@ -2354,10 +2470,10 @@ function artifactTokensForRecord(record, args) {
     }
   }
 
-  if (postalCode.length >= args.artifactMinTokenLength) {
+  if (postalCode.length >= artifactTokenMinLength(postalCode, args)) {
     const maxLength = Math.min(postalCode.length, args.artifactMaxTokenLength);
 
-    for (let length = args.artifactMinTokenLength; length <= maxLength; length += 1) {
+    for (let length = artifactTokenMinLength(postalCode, args); length <= maxLength; length += 1) {
       tokens.add(postalCode.slice(0, length));
     }
   }
@@ -2470,6 +2586,209 @@ function addArtifactPostalLocalityCandidate(bestByLocality, postalCode, record) 
   ) {
     bestByLocality.set(key, record);
   }
+}
+
+function compareArtifactRepresentativeRecords(left, right) {
+  return compareArtifactRecords(left, right);
+}
+
+function artifactAddressCountRecord(record, addressCount) {
+  return {
+    ...record,
+    ranking: {
+      ...record.ranking,
+      addressCount,
+    },
+  };
+}
+
+function artifactLocalityCityKey(record) {
+  const city = record.parts.city?.trim();
+
+  if (city === undefined || city.length === 0) {
+    return;
+  }
+
+  return [
+    record.parts.countryCode ?? record.countryCode,
+    normalizeArtifactSearchText(city),
+    normalizeArtifactSearchText(record.parts.district ?? ''),
+    normalizeArtifactSearchText(record.parts.region ?? ''),
+  ].join('|');
+}
+
+function addArtifactAggregateCandidate(aggregates, key, record) {
+  if (key === undefined) {
+    return;
+  }
+
+  const existing = aggregates.get(key);
+
+  if (existing === undefined) {
+    aggregates.set(key, { addressCount: 1, record });
+    return;
+  }
+
+  existing.addressCount += 1;
+
+  if (compareArtifactRepresentativeRecords(record, existing.record) < 0) {
+    existing.record = record;
+  }
+}
+
+function addArtifactLocalityCityCandidate(aggregates, record) {
+  addArtifactAggregateCandidate(aggregates, artifactLocalityCityKey(record), record);
+}
+
+function addArtifactPostalPrefixCandidate(aggregates, postalCode, record) {
+  addArtifactAggregateCandidate(aggregates, artifactPostalLocalityKey(record, postalCode), record);
+}
+
+function addPrefixRecord(prefixRecords, prefix, record) {
+  const records = prefixRecords.get(prefix);
+
+  if (records === undefined) {
+    prefixRecords.set(prefix, [record]);
+    return;
+  }
+
+  records.push(record);
+}
+
+function addTokenPrefixes(prefixRecords, token, record, maxLength = 64) {
+  const normalizedToken = normalizeArtifactSearchText(token);
+  const lastLength = Math.min(normalizedToken.length, maxLength);
+
+  for (let length = 1; length <= lastLength; length += 1) {
+    addPrefixRecord(prefixRecords, normalizedToken.slice(0, length), record);
+  }
+}
+
+function sortArtifactLocalityCityRecords(records) {
+  return records.toSorted(
+    (left, right) =>
+      (right.ranking?.addressCount ?? 0) - (left.ranking?.addressCount ?? 0) ||
+      right.quality - left.quality ||
+      (left.parts.city ?? left.displayLabel).localeCompare(
+        right.parts.city ?? right.displayLabel,
+        'cs-CZ',
+      ) ||
+      left.id.localeCompare(right.id, 'cs-CZ'),
+  );
+}
+
+function sortArtifactPostalPrefixRecords(records) {
+  return records.toSorted((left, right) => {
+    const leftPostalCode = postalDigits(left.parts.postalCode ?? left.ruian?.postalCode);
+    const rightPostalCode = postalDigits(right.parts.postalCode ?? right.ruian?.postalCode);
+
+    return (
+      leftPostalCode.localeCompare(rightPostalCode, 'cs-CZ') ||
+      (right.ranking?.addressCount ?? 0) - (left.ranking?.addressCount ?? 0) ||
+      right.quality - left.quality ||
+      (left.parts.city ?? left.displayLabel).localeCompare(
+        right.parts.city ?? right.displayLabel,
+        'cs-CZ',
+      ) ||
+      left.id.localeCompare(right.id, 'cs-CZ')
+    );
+  });
+}
+
+function writePrefixRecordArtifacts({
+  args,
+  datasetVersion,
+  outDir,
+  prefixRecords,
+  queryKind,
+  relativeDirectory,
+  sortRecords,
+}) {
+  const summaries = [];
+
+  for (const [prefix, records] of [...prefixRecords.entries()].toSorted((left, right) =>
+    left[0].localeCompare(right[0], 'cs-CZ'),
+  )) {
+    const sortedRecords = sortRecords(records);
+    const relativePath = `${relativeDirectory}/${args.country}/${prefix}.json`;
+
+    writeJsonArtifact(path.join(outDir, relativePath), {
+      complete: true,
+      countryCode: args.country,
+      datasetVersion,
+      query: {
+        kind: queryKind,
+        value: prefix,
+      },
+      records: sortedRecords,
+      schemaVersion: 'smart-suggest-address-records/v1',
+    });
+
+    summaries.push({
+      path: relativePath,
+      prefix,
+      recordCount: sortedRecords.length,
+    });
+  }
+
+  return summaries;
+}
+
+function writeLocalityCityArtifacts({ args, datasetVersion, localities, outDir }) {
+  const prefixRecords = new Map();
+
+  for (const { addressCount, record } of localities.values()) {
+    const city = record.parts.city?.trim();
+
+    if (city === undefined || city.length === 0) {
+      continue;
+    }
+
+  addTokenPrefixes(
+    prefixRecords,
+    city,
+    artifactAddressCountRecord(record, addressCount),
+    args.artifactLocalityMaxPrefixLength,
+  );
+  }
+
+  return writePrefixRecordArtifacts({
+    args,
+    datasetVersion,
+    outDir,
+    prefixRecords,
+    queryKind: 'locality-city-prefix',
+    relativeDirectory: 'locality',
+    sortRecords: sortArtifactLocalityCityRecords,
+  });
+}
+
+function writePostalPrefixArtifacts({ args, datasetVersion, outDir, postalLocalities }) {
+  const prefixRecords = new Map();
+
+  for (const { addressCount, record } of postalLocalities.values()) {
+    const postalCode = postalDigits(record.parts.postalCode ?? record.ruian?.postalCode);
+
+    if (postalCode.length === 0) {
+      continue;
+    }
+
+    const rankedRecord = artifactAddressCountRecord(record, addressCount);
+
+    for (let length = 1; length <= Math.min(postalCode.length, 5); length += 1) {
+      addPrefixRecord(prefixRecords, postalCode.slice(0, length), rankedRecord);
+    }
+  }
+
+  return writePrefixRecordArtifacts({
+    args,
+    datasetVersion,
+    outDir,
+    prefixRecords,
+    queryKind: 'postal-prefix',
+    relativeDirectory: 'postal-prefix',
+    sortRecords: sortArtifactPostalPrefixRecords,
+  });
 }
 
 function sortArtifactPostalLocalityRecords(records) {
@@ -2696,6 +3015,101 @@ function parseArtifactTokenReference(line) {
   };
 }
 
+function parseArtifactTokenPreview(line) {
+  const separatorIndex = line.indexOf('\t');
+
+  if (separatorIndex < 1 || separatorIndex === line.length - 1) {
+    throw new Error('Artifact token preview line malformed.');
+  }
+
+  return {
+    record: JSON.parse(line.slice(separatorIndex + 1)),
+    token: line.slice(0, separatorIndex),
+  };
+}
+
+function shouldWriteTokenPreview(token, sequence, limit) {
+  if (limit <= 0) {
+    return false;
+  }
+
+ const isSequenceToken = token.includes(' ');
+ const sequenceParts = isSequenceToken ? token.split(' ') : [];
+
+ if (token.length <= 2) {
+ return false;
+ }
+
+  if (isSequenceToken) {
+    if (sequenceParts.length !== 2) {
+      return false;
+    }
+
+    const [left, right] = sequenceParts;
+    const isShortLeadingParticle = left.length <= 2 && right.length >= 3;
+    const isNamedNumberQualifier = left.length >= 3 && /\d/u.test(right);
+
+    return (isShortLeadingParticle || isNamedNumberQualifier) && sequence <= limit;
+  }
+
+ if (!isSequenceToken && token.length > 4) {
+ return false;
+ }
+
+  if (token.length === 1 && /^\d$/u.test(token)) {
+    return false;
+  }
+
+ return sequence <= Math.min(limit, 8) || sequence % 2048 === 0;
+}
+
+function addCityPreviewCandidate(cityPreviewStats, record, recordLine, args) {
+  const city = record.parts.city ?? '';
+  const cityKey = normalizeArtifactSearchText(city);
+
+  if (cityKey.length === 0) {
+    return;
+  }
+
+  for (const cityToken of artifactOrderedSearchTokens(city)) {
+    const maxLength = Math.min(cityToken.length, args.artifactMaxTokenLength, 4);
+
+    for (let length = 1; length <= maxLength; length += 1) {
+      const token = cityToken.slice(0, length);
+      const tokenStats = cityPreviewStats.get(token) ?? new Map();
+      const cityStats = tokenStats.get(cityKey) ?? {
+        count: 0,
+        records: [],
+      };
+
+      cityStats.count += 1;
+      if (cityStats.records.length < 8) {
+        cityStats.records.push(recordLine);
+      }
+
+      tokenStats.set(cityKey, cityStats);
+      cityPreviewStats.set(token, tokenStats);
+    }
+  }
+}
+
+function appendCityPreviewCandidates({ args, cityPreviewStats, tokenPreviewBuckets }) {
+  for (const [token, cityStats] of cityPreviewStats) {
+    const tokenBucketName = artifactBucketName(
+      artifactBucketForKey(token, args.artifactTokenBucketCount),
+    );
+    const rankedCities = [...cityStats.values()]
+      .toSorted((left, right) => right.count - left.count)
+      .slice(0, 16);
+
+    for (const city of rankedCities) {
+      for (const recordLine of city.records) {
+        tokenPreviewBuckets.append(tokenBucketName, `${token}\t${recordLine}`);
+      }
+    }
+  }
+}
+
 function tokenBucketArtifact({ args, bucket, datasetVersion, tokens }) {
   return {
     bucket,
@@ -2723,15 +3137,21 @@ function artifactJsonSizeBytes(value) {
   return Buffer.byteLength(`${JSON.stringify(value)}\n`);
 }
 
-function tokenEntriesToObject(entries) {
+function tokenEntriesToObject(entries, previewRecordsByToken = new Map()) {
   return Object.fromEntries(
-    entries.map(([token, recordIds]) => [
-      token,
-      {
+    entries.map(([token, recordIds]) => {
+      const entry = {
         recordCount: recordIds.length,
         recordIds,
-      },
-    ]),
+      };
+      const previewRecords = previewRecordsByToken.get(token);
+
+      if (previewRecords !== undefined && previewRecords.length > 0) {
+        entry.records = previewRecords;
+      }
+
+      return [token, entry];
+    }),
   );
 }
 
@@ -2741,6 +3161,7 @@ function writePagedTokenBucketArtifacts({
   bucketName,
   datasetVersion,
   outDir,
+  previewRecordsByToken,
   sortedTokenEntries,
 }) {
   const pages = [];
@@ -2755,7 +3176,7 @@ function writePagedTokenBucketArtifacts({
     const page = pages.length;
     const pageName = String(page).padStart(4, '0');
     const relativePath = `token/${args.country}/bucket-${bucketName}/${pageName}.json`;
-    const tokens = tokenEntriesToObject(pageEntries);
+    const tokens = tokenEntriesToObject(pageEntries, previewRecordsByToken);
     const recordCount = pageEntries.reduce((count, [, recordIds]) => count + recordIds.length, 0);
 
     writeJsonArtifact(
@@ -2835,13 +3256,96 @@ function writePagedTokenBucketArtifacts({
     tokens: tokenReferences,
   });
 
-  return {
-    pageCount: pages.length,
-    path: relativePath,
-  };
+ return {
+ pageCount: pages.length,
+ path: relativePath,
+ };
 }
 
-async function writeTokenArtifactsFromTemp({ args, datasetVersion, outDir, tokenTempDir }) {
+function tokenPreviewCandidateLimit(_token, limit) {
+  return limit;
+}
+
+function tokenPreviewEmbedLimit(token, limit) {
+ return token.includes(' ') ? Math.min(limit, 8) : limit;
+}
+
+function tokenPreviewStreetText(record) {
+ return normalizeArtifactSearchText([record.parts?.street, record.parts?.line1].filter(Boolean).join(' '));
+}
+
+function tokenPreviewLabel(record) {
+ return normalizeArtifactSearchText(record.displayLabel ?? record.searchLabel ?? record.id ?? '');
+}
+
+function tokenPreviewScore(token, record) {
+ const normalizedToken = normalizeArtifactSearchText(token);
+ const streetText = tokenPreviewStreetText(record);
+ const label = tokenPreviewLabel(record);
+ let score = 0;
+
+ if (streetText.startsWith(normalizedToken)) {
+ score += 1000 + Math.max(0, 64 - (streetText.length - normalizedToken.length));
+ }
+ if (label.startsWith(normalizedToken)) {
+ score += 100;
+ }
+
+ const quality = Number(record.quality ?? 0);
+ if (Number.isFinite(quality)) {
+ score += quality * 10;
+ }
+
+ const addressCount = Number(record.ranking?.addressCount ?? 0);
+ if (Number.isFinite(addressCount)) {
+ score += Math.min(addressCount, 1000) / 1000;
+ }
+
+ return score;
+}
+
+function rankTokenPreviewRecords(token, records, limit) {
+ return records
+ .toSorted(
+ (left, right) =>
+ tokenPreviewScore(token, right) - tokenPreviewScore(token, left) ||
+ tokenPreviewLabel(left).localeCompare(tokenPreviewLabel(right), 'cs-CZ') ||
+ String(left.id ?? '').localeCompare(String(right.id ?? ''), 'cs-CZ'),
+ )
+ .slice(0, tokenPreviewEmbedLimit(token, limit));
+}
+
+async function readTokenPreviewRecords({ limit, previewPath }) {
+ const recordsByToken = new Map();
+
+  if (limit <= 0 || !fs.existsSync(previewPath)) {
+    return recordsByToken;
+  }
+
+ for await (const line of readNonEmptyLines(previewPath)) {
+ const preview = parseArtifactTokenPreview(line);
+ const records = recordsByToken.get(preview.token) ?? [];
+
+ if (records.length < tokenPreviewCandidateLimit(preview.token, limit)) {
+ records.push(preview.record);
+ recordsByToken.set(preview.token, records);
+ }
+ }
+
+ for (const [token, records] of recordsByToken) {
+ recordsByToken.set(token, rankTokenPreviewRecords(token, records, limit));
+ }
+
+ return recordsByToken;
+}
+
+async function writeTokenArtifactsFromTemp({
+  args,
+  datasetVersion,
+  outDir,
+  tokenPreviewTempDir,
+  tokenTempDir,
+}) {
   const tokenBucketSummaries = [];
   let tokenIdReferenceCount = 0;
   let tokenShardCount = 0;
@@ -2869,9 +3373,13 @@ async function writeTokenArtifactsFromTemp({ args, datasetVersion, outDir, token
         tokenIdReferenceCount += recordIds.length;
         tokenShardCount += 1;
 
-        return [token, recordIds];
+        return [token, recordIds.slice(0, args.artifactTokenRecordIdLimit)];
       });
-    const tokens = tokenEntriesToObject(sortedTokenEntries);
+    const previewRecordsByToken = await readTokenPreviewRecords({
+      limit: args.artifactTokenPreviewLimit,
+      previewPath: path.join(tokenPreviewTempDir, `${bucketName}.tsv`),
+    });
+    const tokens = tokenEntriesToObject(sortedTokenEntries, previewRecordsByToken);
     const relativePath = `token/${args.country}/bucket-${bucketName}.json`;
     const artifact = tokenBucketArtifact({
       args,
@@ -2895,6 +3403,7 @@ async function writeTokenArtifactsFromTemp({ args, datasetVersion, outDir, token
         bucketName,
         datasetVersion,
         outDir,
+        previewRecordsByToken,
         sortedTokenEntries,
       });
 
@@ -2925,7 +3434,15 @@ async function buildOwnedDataArtifacts(args, modules) {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smart-suggest-owned-artifacts-'));
   const recordBuckets = new ArtifactAppendBuckets(path.join(tempDir, 'records'), 'jsonl');
   const tokenBuckets = new ArtifactAppendBuckets(path.join(tempDir, 'tokens'), 'tsv');
+  const tokenPreviewBuckets = new ArtifactAppendBuckets(
+    path.join(tempDir, 'token-previews'),
+    'tsv',
+  );
   const postalBuckets = new ArtifactAppendBuckets(path.join(tempDir, 'postal'), 'jsonl');
+  const localityCityCandidates = new Map();
+  const postalPrefixCandidates = new Map();
+  const cityPreviewStats = new Map();
+  const tokenPreviewSequences = new Map();
   const errors = [];
   const totals = {
     addressRows: 0,
@@ -2973,6 +3490,8 @@ async function buildOwnedDataArtifacts(args, modules) {
       totals.addressRows += 1;
 
       const recordLine = JSON.stringify(record);
+      addArtifactLocalityCityCandidate(localityCityCandidates, record);
+      addCityPreviewCandidate(cityPreviewStats, record, recordLine, args);
       const recordBucketName = artifactBucketName(
         artifactBucketForKey(record.id, args.artifactRecordShardCount),
       );
@@ -2983,6 +3502,7 @@ async function buildOwnedDataArtifacts(args, modules) {
 
       if (recordPostalCode.length > 0) {
         postalBuckets.append(recordPostalCode, recordLine);
+        addArtifactPostalPrefixCandidate(postalPrefixCandidates, recordPostalCode, record);
       }
 
       for (const token of artifactTokensForRecord(record, args)) {
@@ -2991,17 +3511,37 @@ async function buildOwnedDataArtifacts(args, modules) {
         );
 
         tokenBuckets.append(tokenBucketName, `${token}\t${record.id}`);
+        const sequence = (tokenPreviewSequences.get(token) ?? 0) + 1;
+        tokenPreviewSequences.set(token, sequence);
+
+        if (shouldWriteTokenPreview(token, sequence, args.artifactTokenPreviewLimit)) {
+          tokenPreviewBuckets.append(tokenBucketName, `${token}\t${recordLine}`);
+        }
       }
     }
 
+    appendCityPreviewCandidates({ args, cityPreviewStats, tokenPreviewBuckets });
     recordBuckets.flushAll();
     tokenBuckets.flushAll();
+    tokenPreviewBuckets.flushAll();
     postalBuckets.flushAll();
 
     if (totals.failedRows > 0) {
       throw new Error(`Artifact build rejected ${totals.failedRows} address row(s).`);
     }
 
+    const localityCitySummaries = writeLocalityCityArtifacts({
+      args,
+      datasetVersion: args.datasetVersion,
+      localities: localityCityCandidates,
+      outDir,
+    });
+    const postalPrefixSummaries = writePostalPrefixArtifacts({
+      args,
+      datasetVersion: args.datasetVersion,
+      outDir,
+      postalLocalities: postalPrefixCandidates,
+    });
     const postalSummaries = await writePostalArtifactsFromTemp({
       args,
       datasetVersion: args.datasetVersion,
@@ -3019,6 +3559,7 @@ async function buildOwnedDataArtifacts(args, modules) {
         args,
         datasetVersion: args.datasetVersion,
         outDir,
+        tokenPreviewTempDir: path.join(tempDir, 'token-previews'),
         tokenTempDir: path.join(tempDir, 'tokens'),
       });
     const firstArtifactFileSummary = summarizeArtifactFiles(outDir, args.artifactMaxFileSizeBytes);
@@ -3059,9 +3600,18 @@ async function buildOwnedDataArtifacts(args, modules) {
           pagePathTemplate: 'token/{countryCode}/{token}/{page}.json',
           pageSize: args.artifactPageSize,
         },
+      localityCities: {
+        complete,
+        maxPrefixLength: args.artifactLocalityMaxPrefixLength,
+        pathTemplate: 'locality/{countryCode}/{prefix}.json',
+      },
         postalLocalities: {
           complete,
           pathTemplate: 'postal/{countryCode}/{postalCode}.json',
+        },
+        postalPrefixes: {
+          complete,
+          pathTemplate: 'postal-prefix/{countryCode}/{prefix}.json',
         },
       },
       schemaVersion: 'smart-suggest-owned-artifacts/v1',
@@ -3095,9 +3645,11 @@ async function buildOwnedDataArtifacts(args, modules) {
       complete,
       estimatedSizeBytes: artifactFileSummary.totalSizeBytes,
       largestArtifactFile: artifactFileSummary.largestFile,
+      localityCityPrefixShardCount: localityCitySummaries.length,
       manifestPath: path.relative(workspaceRoot, manifestPath),
       officialSnapshot: datasetInput.officialSnapshot,
       oversizedArtifactFiles: artifactFileSummary.oversizedFiles,
+      postalPrefixShardCount: postalPrefixSummaries.length,
       postalShardCount: postalSummaries.length,
       recordShardCount: recordShardSummaries.length,
       rowCount: totals.addressRows,
