@@ -2561,208 +2561,281 @@ const readProviderConfigRecord = (
     })
     .find((value) => value !== undefined);
 
-const assignDefined = <TTarget extends object, TKey extends keyof TTarget>(
-  target: TTarget,
+type ProviderRuntimeConfigKey =
+  | 'hereDiscover'
+  | 'mapyCz'
+  | 'nominatim'
+  | 'radarAutocomplete'
+  | 'ruianGeocode';
+
+type ProviderRuntimeConfigFor<TKey extends ProviderRuntimeConfigKey> = NonNullable<
+  SmartSuggestProviderRuntimeConfig[TKey]
+>;
+
+interface ProviderConfigReaderContext {
+  env: SmartSuggestWorkerEnv | undefined;
+  providerConfig: Record<string, unknown> | undefined;
+  request: SmartSuggestRequest;
+}
+
+type ProviderFieldDescriptor<TConfig extends object> = {
+  [TKey in keyof TConfig]-?: {
+    configKey: string;
+    envKey?: keyof SmartSuggestWorkerEnv;
+    fallback?: (context: ProviderConfigReaderContext) => TConfig[TKey] | undefined;
+    key: TKey;
+    readConfig: (value: unknown) => TConfig[TKey] | undefined;
+    readEnv?: (
+      env: SmartSuggestWorkerEnv | undefined,
+      envKey: keyof SmartSuggestWorkerEnv,
+    ) => TConfig[TKey] | undefined;
+  };
+}[keyof TConfig];
+
+interface ProviderConfigDescriptor<TConfig extends object> {
+  isEligible?: (context: ProviderConfigReaderContext) => boolean;
+  optionalFields: readonly ProviderFieldDescriptor<TConfig>[];
+  providerKeys: readonly string[];
+  requiredFields: readonly ProviderFieldDescriptor<TConfig>[];
+}
+
+const defineProviderConfigDescriptor = <TConfig extends object>(
+  descriptor: ProviderConfigDescriptor<TConfig>,
+) => descriptor;
+
+const assignProviderConfigField = <TConfig extends object, TKey extends keyof TConfig>(
+  target: Partial<TConfig>,
   key: TKey,
-  value: TTarget[TKey] | undefined,
+  value: TConfig[TKey] | undefined,
 ) => {
   if (value !== undefined) {
     target[key] = value;
   }
 };
 
-const readProviderString = (
-  providerConfig: Record<string, unknown> | undefined,
-  key: string,
-  env: SmartSuggestWorkerEnv | undefined,
-  envKey: keyof SmartSuggestWorkerEnv,
-) => optionalString(providerConfig?.[key]) ?? runtimeEnvString(env, envKey);
+const readProviderField = <TConfig extends object, TKey extends keyof TConfig>(
+  context: ProviderConfigReaderContext,
+  field: Extract<ProviderFieldDescriptor<TConfig>, { key: TKey }>,
+): TConfig[TKey] | undefined => {
+  const configValue = field.readConfig(context.providerConfig?.[field.configKey]);
 
-const readProviderNumber = (
-  providerConfig: Record<string, unknown> | undefined,
-  key: string,
-  env: SmartSuggestWorkerEnv | undefined,
-  envKey: keyof SmartSuggestWorkerEnv,
-) => optionalNumber(providerConfig?.[key]) ?? runtimeEnvNumber(env, envKey);
-
-const readMapyProviderConfig = (
-  providerScopes: readonly Record<string, unknown>[],
-  request: SmartSuggestRequest,
-  env?: SmartSuggestWorkerEnv,
-): SmartSuggestProviderRuntimeConfig['mapyCz'] => {
-  const mapyConfig = readProviderConfigRecord(providerScopes, ['mapy-cz', 'mapyCz']);
-  const apiKey = optionalString(mapyConfig?.['apiKey']) ?? runtimeEnvString(env, 'MAPY_CZ_API_KEY');
-
-  if (apiKey === undefined) {
-    return;
+  if (configValue !== undefined) {
+    return configValue;
   }
 
-  const config: NonNullable<SmartSuggestProviderRuntimeConfig['mapyCz']> = {
-    apiKey,
-  };
-  const endpointUrl =
-    optionalString(mapyConfig?.['endpointUrl']) ?? runtimeEnvString(env, 'MAPY_CZ_ENDPOINT_URL');
-  const language = optionalString(mapyConfig?.['language']) ?? request.language;
-  const limit = optionalNumber(mapyConfig?.['limit']);
+  if (field.envKey !== undefined && field.readEnv !== undefined) {
+    const envValue = field.readEnv(context.env, field.envKey);
 
-  assignDefined(config, 'endpointUrl', endpointUrl);
-  assignDefined(config, 'language', language);
-  assignDefined(config, 'limit', limit);
+    if (envValue !== undefined) {
+      return envValue;
+    }
+  }
 
-  return config;
+  return field.fallback?.(context);
 };
 
-const readRuianGeocodeProviderConfig = (
-  providerScopes: readonly Record<string, unknown>[],
-  request: SmartSuggestRequest,
-  env?: SmartSuggestWorkerEnv,
-): SmartSuggestProviderRuntimeConfig['ruianGeocode'] => {
-  if (request.kind !== 'address' && request.kind !== 'postal') {
-    return;
-  }
+type ProviderFieldKey<TConfig extends object, TValue> = {
+  [TKey in keyof TConfig]-?: NonNullable<TConfig[TKey]> extends TValue ? TKey : never;
+}[keyof TConfig] &
+  string;
 
-  if (request.countryCode !== undefined && request.countryCode !== 'CZ') {
-    return;
-  }
+interface ProviderFieldOptions<TConfig extends object, TKey extends keyof TConfig> {
+  configKey?: string;
+  envKey?: keyof SmartSuggestWorkerEnv;
+  fallback?: (context: ProviderConfigReaderContext) => TConfig[TKey] | undefined;
+}
 
-  const ruianConfig = readProviderConfigRecord(providerScopes, [
-    'ruian',
-    'ruian-geocode',
-    'ruianGeocode',
-  ]);
-  const enabled = optionalBoolean(ruianConfig?.['enabled']);
-  const disabled =
-    optionalBoolean(ruianConfig?.['disabled']) ?? runtimeEnvBoolean(env, 'RUIAN_GEOCODE_DISABLED');
+const createProviderFieldFactory = <TConfig extends object>() => ({
+  countryCode<TKey extends ProviderFieldKey<TConfig, SmartSuggestCountryCode>>(
+    key: TKey,
+    options: ProviderFieldOptions<TConfig, TKey> = {},
+  ) {
+    const field = {
+      configKey: options.configKey ?? key,
+      key,
+      readConfig: (value: unknown) => toCountryCode(optionalString(value)),
+      readEnv: (env: SmartSuggestWorkerEnv | undefined, envKey: keyof SmartSuggestWorkerEnv) =>
+        toCountryCode(runtimeEnvString(env, envKey)),
+    } as ProviderFieldDescriptor<TConfig>;
 
-  if (enabled === false || disabled === true) {
-    return;
-  }
+    if (options.envKey !== undefined) {
+      field.envKey = options.envKey;
+    }
+    if (options.fallback !== undefined) {
+      field.fallback = options.fallback;
+    }
 
-  const config: NonNullable<SmartSuggestProviderRuntimeConfig['ruianGeocode']> = {};
-  const baseUrl =
-    optionalString(ruianConfig?.['baseUrl']) ?? runtimeEnvString(env, 'RUIAN_GEOCODE_BASE_URL');
-  const limit =
-    optionalNumber(ruianConfig?.['limit']) ?? runtimeEnvNumber(env, 'RUIAN_GEOCODE_DEFAULT_LIMIT');
+    return field;
+  },
+  number<TKey extends ProviderFieldKey<TConfig, number>>(
+    key: TKey,
+    options: ProviderFieldOptions<TConfig, TKey> = {},
+  ) {
+    const field = {
+      configKey: options.configKey ?? key,
+      key,
+      readConfig: optionalNumber,
+      readEnv: runtimeEnvNumber,
+    } as ProviderFieldDescriptor<TConfig>;
 
-  assignDefined(config, 'baseUrl', baseUrl);
-  assignDefined(config, 'limit', limit);
+    if (options.envKey !== undefined) {
+      field.envKey = options.envKey;
+    }
+    if (options.fallback !== undefined) {
+      field.fallback = options.fallback;
+    }
 
-  return config;
-};
+    return field;
+  },
+  string<TKey extends ProviderFieldKey<TConfig, string>>(
+    key: TKey,
+    options: ProviderFieldOptions<TConfig, TKey> = {},
+  ) {
+    const field = {
+      configKey: options.configKey ?? key,
+      key,
+      readConfig: optionalString,
+      readEnv: runtimeEnvString,
+    } as ProviderFieldDescriptor<TConfig>;
 
-const readRadarAutocompleteProviderConfig = (
-  providerScopes: readonly Record<string, unknown>[],
-  env?: SmartSuggestWorkerEnv,
-): SmartSuggestProviderRuntimeConfig['radarAutocomplete'] => {
-  const radarConfig = readProviderConfigRecord(providerScopes, [
-    'radar-autocomplete',
-    'radarAutocomplete',
-  ]);
-  const apiKey = optionalString(radarConfig?.['apiKey']) ?? runtimeEnvString(env, 'RADAR_API_KEY');
+    if (options.envKey !== undefined) {
+      field.envKey = options.envKey;
+    }
+    if (options.fallback !== undefined) {
+      field.fallback = options.fallback;
+    }
 
-  if (apiKey === undefined) {
-    return;
-  }
+    return field;
+  },
+});
 
-  const config: NonNullable<SmartSuggestProviderRuntimeConfig['radarAutocomplete']> = {
-    apiKey,
-  };
-  const baseUrl =
-    optionalString(radarConfig?.['baseUrl']) ??
-    runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_BASE_URL');
-  const countryCode =
-    toCountryCode(optionalString(radarConfig?.['countryCode'])) ??
-    toCountryCode(runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_COUNTRY_CODE'));
-  const layers =
-    optionalString(radarConfig?.['layers']) ?? runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_LAYERS');
-  const limit =
-    optionalNumber(radarConfig?.['limit']) ??
-    runtimeEnvNumber(env, 'RADAR_AUTOCOMPLETE_DEFAULT_LIMIT');
-  const near =
-    optionalString(radarConfig?.['near']) ?? runtimeEnvString(env, 'RADAR_AUTOCOMPLETE_NEAR');
-
-  assignDefined(config, 'baseUrl', baseUrl);
-  assignDefined(config, 'countryCode', countryCode);
-  assignDefined(config, 'layers', layers);
-  assignDefined(config, 'limit', limit);
-  assignDefined(config, 'near', near);
-
-  return config;
-};
-
-const readHereFallbackAt = (
-  hereConfig: Record<string, unknown> | undefined,
-  env?: SmartSuggestWorkerEnv,
-) => {
-  const defaultLat = readProviderNumber(hereConfig, 'defaultLat', env, 'HERE_DEFAULT_LAT');
-  const defaultLng = readProviderNumber(hereConfig, 'defaultLng', env, 'HERE_DEFAULT_LNG');
+const readHereFallbackAt = ({ env, providerConfig }: ProviderConfigReaderContext) => {
+  const defaultLat =
+    optionalNumber(providerConfig?.['defaultLat']) ?? runtimeEnvNumber(env, 'HERE_DEFAULT_LAT');
+  const defaultLng =
+    optionalNumber(providerConfig?.['defaultLng']) ?? runtimeEnvNumber(env, 'HERE_DEFAULT_LNG');
 
   return defaultLat === undefined || defaultLng === undefined
     ? undefined
     : `${defaultLat},${defaultLng}`;
 };
 
-const readHereDiscoverProviderConfig = (
-  providerScopes: readonly Record<string, unknown>[],
-  env?: SmartSuggestWorkerEnv,
-): SmartSuggestProviderRuntimeConfig['hereDiscover'] => {
-  const hereConfig = readProviderConfigRecord(providerScopes, ['here-discover', 'hereDiscover']);
-  const apiKey = optionalString(hereConfig?.['apiKey']) ?? runtimeEnvString(env, 'HERE_API_KEY');
+const hereDiscoverField = createProviderFieldFactory<ProviderRuntimeConfigFor<'hereDiscover'>>();
+const mapyCzField = createProviderFieldFactory<ProviderRuntimeConfigFor<'mapyCz'>>();
+const nominatimField = createProviderFieldFactory<ProviderRuntimeConfigFor<'nominatim'>>();
+const radarAutocompleteField =
+  createProviderFieldFactory<ProviderRuntimeConfigFor<'radarAutocomplete'>>();
+const ruianGeocodeField = createProviderFieldFactory<ProviderRuntimeConfigFor<'ruianGeocode'>>();
 
-  if (apiKey === undefined) {
-    return;
-  }
+const providerConfigDescriptors = {
+  hereDiscover: defineProviderConfigDescriptor<ProviderRuntimeConfigFor<'hereDiscover'>>({
+    optionalFields: [
+      hereDiscoverField.string('at', {
+        envKey: 'HERE_DISCOVER_AT',
+        fallback: readHereFallbackAt,
+      }),
+      hereDiscoverField.string('baseUrl', { envKey: 'HERE_DISCOVER_BASE_URL' }),
+      hereDiscoverField.string('inArea', { envKey: 'HERE_DISCOVER_IN_AREA' }),
+      hereDiscoverField.string('language', { envKey: 'HERE_DISCOVER_LANGUAGE' }),
+      hereDiscoverField.number('limit', { envKey: 'HERE_DISCOVER_DEFAULT_LIMIT' }),
+    ],
+    providerKeys: ['here-discover', 'hereDiscover'],
+    requiredFields: [hereDiscoverField.string('apiKey', { envKey: 'HERE_API_KEY' })],
+  }),
+  mapyCz: defineProviderConfigDescriptor<ProviderRuntimeConfigFor<'mapyCz'>>({
+    optionalFields: [
+      mapyCzField.string('endpointUrl', { envKey: 'MAPY_CZ_ENDPOINT_URL' }),
+      mapyCzField.string('language', { fallback: ({ request }) => request.language }),
+      mapyCzField.number('limit'),
+    ],
+    providerKeys: ['mapy-cz', 'mapyCz'],
+    requiredFields: [mapyCzField.string('apiKey', { envKey: 'MAPY_CZ_API_KEY' })],
+  }),
+  nominatim: defineProviderConfigDescriptor<ProviderRuntimeConfigFor<'nominatim'>>({
+    optionalFields: [
+      nominatimField.string('baseUrl', { envKey: 'NOMINATIM_BASE_URL' }),
+      nominatimField.string('email', { envKey: 'NOMINATIM_EMAIL' }),
+      nominatimField.number('limit', { envKey: 'NOMINATIM_DEFAULT_LIMIT' }),
+      nominatimField.string('referer', { envKey: 'NOMINATIM_REFERER' }),
+    ],
+    providerKeys: ['nominatim'],
+    requiredFields: [nominatimField.string('userAgent', { envKey: 'NOMINATIM_USER_AGENT' })],
+  }),
+  radarAutocomplete: defineProviderConfigDescriptor<ProviderRuntimeConfigFor<'radarAutocomplete'>>({
+    optionalFields: [
+      radarAutocompleteField.string('baseUrl', { envKey: 'RADAR_AUTOCOMPLETE_BASE_URL' }),
+      radarAutocompleteField.countryCode('countryCode', {
+        envKey: 'RADAR_AUTOCOMPLETE_COUNTRY_CODE',
+      }),
+      radarAutocompleteField.string('layers', { envKey: 'RADAR_AUTOCOMPLETE_LAYERS' }),
+      radarAutocompleteField.number('limit', { envKey: 'RADAR_AUTOCOMPLETE_DEFAULT_LIMIT' }),
+      radarAutocompleteField.string('near', { envKey: 'RADAR_AUTOCOMPLETE_NEAR' }),
+    ],
+    providerKeys: ['radar-autocomplete', 'radarAutocomplete'],
+    requiredFields: [radarAutocompleteField.string('apiKey', { envKey: 'RADAR_API_KEY' })],
+  }),
+  ruianGeocode: defineProviderConfigDescriptor<ProviderRuntimeConfigFor<'ruianGeocode'>>({
+    isEligible: ({ env, providerConfig, request }) => {
+      if (request.kind !== 'address' && request.kind !== 'postal') {
+        return false;
+      }
+      if (request.countryCode !== undefined && request.countryCode !== 'CZ') {
+        return false;
+      }
 
-  const config: NonNullable<SmartSuggestProviderRuntimeConfig['hereDiscover']> = {
-    apiKey,
-  };
-  const baseUrl = readProviderString(hereConfig, 'baseUrl', env, 'HERE_DISCOVER_BASE_URL');
-  const at =
-    readProviderString(hereConfig, 'at', env, 'HERE_DISCOVER_AT') ??
-    readHereFallbackAt(hereConfig, env);
-  const inArea = readProviderString(hereConfig, 'inArea', env, 'HERE_DISCOVER_IN_AREA');
-  const language = readProviderString(hereConfig, 'language', env, 'HERE_DISCOVER_LANGUAGE');
-  const limit = readProviderNumber(hereConfig, 'limit', env, 'HERE_DISCOVER_DEFAULT_LIMIT');
+      const enabled = optionalBoolean(providerConfig?.['enabled']);
+      const disabled =
+        optionalBoolean(providerConfig?.['disabled']) ??
+        runtimeEnvBoolean(env, 'RUIAN_GEOCODE_DISABLED');
 
-  assignDefined(config, 'at', at);
-  assignDefined(config, 'baseUrl', baseUrl);
-  assignDefined(config, 'inArea', inArea);
-  assignDefined(config, 'language', language);
-  assignDefined(config, 'limit', limit);
-
-  return config;
+      return enabled !== false && disabled !== true;
+    },
+    optionalFields: [
+      ruianGeocodeField.string('baseUrl', { envKey: 'RUIAN_GEOCODE_BASE_URL' }),
+      ruianGeocodeField.number('limit', { envKey: 'RUIAN_GEOCODE_DEFAULT_LIMIT' }),
+    ],
+    providerKeys: ['ruian', 'ruian-geocode', 'ruianGeocode'],
+    requiredFields: [],
+  }),
 };
 
-const readNominatimProviderConfig = (
+const readDeclarativeProviderConfig = <TConfig extends object>(
   providerScopes: readonly Record<string, unknown>[],
-  env?: SmartSuggestWorkerEnv,
-): SmartSuggestProviderRuntimeConfig['nominatim'] => {
-  const nominatimConfig = readProviderConfigRecord(providerScopes, ['nominatim']);
-  const userAgent =
-    optionalString(nominatimConfig?.['userAgent']) ?? runtimeEnvString(env, 'NOMINATIM_USER_AGENT');
+  request: SmartSuggestRequest,
+  env: SmartSuggestWorkerEnv | undefined,
+  descriptor: ProviderConfigDescriptor<TConfig>,
+): TConfig | undefined => {
+  const providerConfig = readProviderConfigRecord(providerScopes, descriptor.providerKeys);
+  const context: ProviderConfigReaderContext = {
+    env,
+    providerConfig,
+    request,
+  };
 
-  if (userAgent === undefined) {
+  if (descriptor.isEligible?.(context) === false) {
     return;
   }
 
-  const config: NonNullable<SmartSuggestProviderRuntimeConfig['nominatim']> = {
-    userAgent,
-  };
-  const baseUrl =
-    optionalString(nominatimConfig?.['baseUrl']) ?? runtimeEnvString(env, 'NOMINATIM_BASE_URL');
-  const email =
-    optionalString(nominatimConfig?.['email']) ?? runtimeEnvString(env, 'NOMINATIM_EMAIL');
-  const limit =
-    optionalNumber(nominatimConfig?.['limit']) ?? runtimeEnvNumber(env, 'NOMINATIM_DEFAULT_LIMIT');
-  const referer =
-    optionalString(nominatimConfig?.['referer']) ?? runtimeEnvString(env, 'NOMINATIM_REFERER');
+  const requiredValues = descriptor.requiredFields.map((field) => ({
+    field,
+    value: readProviderField(context, field),
+  }));
 
-  assignDefined(config, 'baseUrl', baseUrl);
-  assignDefined(config, 'email', email);
-  assignDefined(config, 'limit', limit);
-  assignDefined(config, 'referer', referer);
+  if (requiredValues.some(({ value }) => value === undefined)) {
+    return;
+  }
 
-  return config;
+  const config: Partial<TConfig> = {};
+
+  for (const { field, value } of requiredValues) {
+    assignProviderConfigField(config, field.key, value);
+  }
+
+  for (const field of descriptor.optionalFields) {
+    assignProviderConfigField(config, field.key, readProviderField(context, field));
+  }
+
+  return config as TConfig;
 };
 
 const readProviderTimeoutMs = (providerScopes: readonly Record<string, unknown>[]) =>
@@ -2792,11 +2865,36 @@ const readProviderRuntimeConfig = (
   const scopedConfig = readScopedProviderConfig(tenant, request, env);
   const config: SmartSuggestProviderRuntimeConfig = {};
   const { priority } = scopedConfig;
-  const ruianGeocode = readRuianGeocodeProviderConfig(scopedConfig.scopeConfigs, request, env);
-  const mapyCz = readMapyProviderConfig(scopedConfig.scopeConfigs, request, env);
-  const radarAutocomplete = readRadarAutocompleteProviderConfig(scopedConfig.scopeConfigs, env);
-  const hereDiscover = readHereDiscoverProviderConfig(scopedConfig.scopeConfigs, env);
-  const nominatim = readNominatimProviderConfig(scopedConfig.scopeConfigs, env);
+  const ruianGeocode = readDeclarativeProviderConfig(
+    scopedConfig.scopeConfigs,
+    request,
+    env,
+    providerConfigDescriptors.ruianGeocode,
+  );
+  const mapyCz = readDeclarativeProviderConfig(
+    scopedConfig.scopeConfigs,
+    request,
+    env,
+    providerConfigDescriptors.mapyCz,
+  );
+  const radarAutocomplete = readDeclarativeProviderConfig(
+    scopedConfig.scopeConfigs,
+    request,
+    env,
+    providerConfigDescriptors.radarAutocomplete,
+  );
+  const hereDiscover = readDeclarativeProviderConfig(
+    scopedConfig.scopeConfigs,
+    request,
+    env,
+    providerConfigDescriptors.hereDiscover,
+  );
+  const nominatim = readDeclarativeProviderConfig(
+    scopedConfig.scopeConfigs,
+    request,
+    env,
+    providerConfigDescriptors.nominatim,
+  );
   const timeoutMs =
     readProviderTimeoutMs(scopedConfig.scopeConfigs) ??
     runtimeEnvNumber(env, 'SMART_SUGGEST_PROVIDER_TIMEOUT_MS');

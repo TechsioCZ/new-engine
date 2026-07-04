@@ -1,0 +1,2 @@
+{"id":"fixture-1","quality":0.95,"latitude":50.087,"longitude":14.421,"parts":{"city":"Praha","countryCode":"CZ","district":"Praha","houseNumber":"1258","line1":"K Louzi 1258/12","orientationNumber":"12","postalCode":"110 00","region":"Praha","street":"K Louzi"}}
+{"id":"fixture-2","quality":0.72,"latitude":49.195,"longitude":16.608,"parts":{"city":"Brno","countryCode":"CZ","district":"Brno-mesto","houseNumber":"10","line1":"Dvorakova 10","postalCode":"602 00","region":"Jihomoravsky","street":"Dvorakova"}}

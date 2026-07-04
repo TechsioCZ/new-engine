@@ -78,7 +78,8 @@
     "api:check": "node ./scripts/check-ultramodern-api-boundaries.mjs",
     "i18n:boundaries": "node ./scripts/check-ultramodern-i18n-boundaries.mjs",
     "postinstall": "node ./scripts/bootstrap-agent-skills.mjs --postinstall",
-    "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm api:check && pnpm contract:check && pnpm test:smoke && pnpm mf:types && pnpm performance:readiness"
+    "check": "pnpm format:check && pnpm lint && pnpm build:packages && pnpm typecheck && pnpm skills:check && pnpm i18n:boundaries && pnpm api:check && pnpm contract:check && pnpm test:smoke && pnpm mf:types && pnpm performance:readiness",
+    "test:scripts": "vitest run --config vitest.config.ts"
   },
   "engines": {
     "node": ">=26",
@@ -115,6 +116,7 @@
     "oxlint": "1.71.0",
     "prettier": "2.8.8",
     "ultracite": "7.8.3",
+    "vitest": "^4.1.9",
     "wrangler": "4.102.0",
     "zephyr-agent": "1.1.1"
   }

@@ -320,4 +320,36 @@ describe('Smart Suggest BFF provider configuration', () => {
       );
     }),
   );
+
+  it.effect('prefers HERE_DISCOVER_AT over HERE default coordinates', () =>
+    Effect.gen(function* hereAtFallbackPrecedenceProgram() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = createSmartSuggestHandler(repositories, {
+        HERE_API_KEY: 'here-key',
+        HERE_DEFAULT_LAT: '50.1',
+        HERE_DEFAULT_LNG: '14.4',
+        HERE_DISCOVER_AT: '49.1,16.2',
+        HERE_DISCOVER_BASE_URL: 'https://here.test',
+        SMART_SUGGEST_PROVIDER_ENRICHMENT_ENABLED: 'true',
+        SMART_SUGGEST_PROVIDER_PRIORITY: 'here-discover',
+        SMART_SUGGEST_PROVIDER_TIMEOUT_MS: '100',
+      });
+      const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(Response.json({ items: [] })));
+      vi.stubGlobal('fetch', fetchMock);
+
+      const response = yield* Effect.promise(() =>
+        testHandler(
+          requestFor('/v1/suggest?kind=address&countryCode=CZ&q=here-at-fallback-order&limit=1'),
+        ),
+      );
+
+      expect(response.status).toBe(200);
+      expect(providerRegistryCreations.at(-1)?.hereDiscover).toMatchObject({
+        apiKey: 'here-key',
+        at: '49.1,16.2',
+        baseUrl: 'https://here.test',
+      });
+      expect(providerRegistryCreations.at(-1)?.hereDiscover?.at).not.toBe('50.1,14.4');
+    }),
+  );
 });
