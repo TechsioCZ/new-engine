@@ -801,6 +801,149 @@ describe("attachSmartSuggest", () => {
     await waitFor(() => expect(postalCode.value).toBe("123 45"));
   });
 
+  it("discards stale phone validation responses after rapid input change", async () => {
+    const phone = addInput("phone", "+420777111111");
+    const country = addInput("country", "CZ");
+    const pendingPhoneResponses: Array<{
+      init: RequestInit | undefined;
+      resolve: (response: Response) => void;
+    }> = [];
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(
+      (_input, init) =>
+        new Promise<Response>((resolve) => {
+          pendingPhoneResponses.push({ init, resolve });
+        }),
+    );
+    const instance = attachSmartSuggest({
+      country,
+      fetch: fetchMock,
+      phone,
+    });
+
+    const firstValidation = instance.validatePhone();
+    phone.value = "+420777222222";
+    const secondValidation = instance.validatePhone();
+
+    expect(pendingPhoneResponses).toHaveLength(2);
+    expect(pendingPhoneResponses[0]?.init?.signal?.aborted).toBe(true);
+
+    pendingPhoneResponses[1]?.resolve(
+      jsonResponse({
+        ...validPhoneResponse("+420777222222"),
+        displayValue: "+420 777 222 222",
+        e164: "+420777222222",
+        nationalNumber: "777222222",
+      }),
+    );
+    await secondValidation;
+
+    expect(phone.value).toBe("+420 777 222 222");
+
+    pendingPhoneResponses[0]?.resolve(
+      jsonResponse({
+        ...validPhoneResponse("+420777111111"),
+        displayValue: "+420 777 111 111",
+        e164: "+420777111111",
+        nationalNumber: "777111111",
+      }),
+    );
+    await firstValidation;
+
+    expect(phone.value).toBe("+420 777 222 222");
+  });
+
+  it("discards stale postal validation responses after rapid input change", async () => {
+    const postalCode = addInput("postal-code", "11111");
+    const country = addInput("country", "CZ");
+    const pendingPostalResponses: Array<{
+      init: RequestInit | undefined;
+      resolve: (response: Response) => void;
+    }> = [];
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(
+      (_input, init) =>
+        new Promise<Response>((resolve) => {
+          pendingPostalResponses.push({ init, resolve });
+        }),
+    );
+    const instance = attachSmartSuggest({
+      country,
+      fetch: fetchMock,
+      postalCode,
+    });
+
+    const firstValidation = instance.validatePostal();
+    postalCode.value = "22222";
+    const secondValidation = instance.validatePostal();
+
+    expect(pendingPostalResponses).toHaveLength(2);
+    expect(pendingPostalResponses[0]?.init?.signal?.aborted).toBe(true);
+
+    pendingPostalResponses[1]?.resolve(
+      jsonResponse({
+        ...validPostalResponse("22222"),
+        displayValue: "222 22",
+        normalizedValue: "22222",
+      }),
+    );
+    await secondValidation;
+
+    expect(postalCode.value).toBe("222 22");
+
+    pendingPostalResponses[0]?.resolve(
+      jsonResponse({
+        ...validPostalResponse("11111"),
+        displayValue: "111 11",
+        normalizedValue: "11111",
+      }),
+    );
+    await firstValidation;
+
+    expect(postalCode.value).toBe("222 22");
+  });
+
+  it("aborts in-flight validation on destroy without surfacing errors", async () => {
+    const phone = addInput("phone", "+420777123456");
+    const postalCode = addInput("postal-code", "12345");
+    const country = addInput("country", "CZ");
+    const onError = vi.fn();
+    const pendingSignals: AbortSignal[] = [];
+    const fetchMock = vi.fn<SmartSuggestVanillaFetch>(
+      (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+
+          if (signal !== undefined && signal !== null) {
+            pendingSignals.push(signal);
+            signal.addEventListener(
+              "abort",
+              () => reject(signal.reason),
+              { once: true },
+            );
+          }
+        }),
+    );
+    const instance = attachSmartSuggest({
+      country,
+      fetch: fetchMock,
+      onError,
+      phone,
+      postalCode,
+    });
+
+    const phoneValidation = instance.validatePhone();
+    const postalValidation = instance.validatePostal();
+
+    await waitFor(() => expect(pendingSignals).toHaveLength(2));
+    instance.destroy();
+
+    await expect(phoneValidation).resolves.toBeUndefined();
+    await expect(postalValidation).resolves.toBeUndefined();
+    expect(pendingSignals.every((signal) => signal.aborted)).toBe(true);
+    expect(onError).not.toHaveBeenCalled();
+    expect(phone.validationMessage).toBe("");
+    expect(postalCode.validationMessage).toBe("");
+  });
+
   it("applies invalid postal validation to the postal control", async () => {
     const postalCode = addInput("postal-code", "12a345");
     const country = addInput("country", "CZ");

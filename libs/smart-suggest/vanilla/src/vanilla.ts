@@ -2,6 +2,7 @@ import {
   createSmartSuggestEffectClient,
   type SmartSuggestEffectClient,
   type SmartSuggestFetch,
+  type SmartSuggestRequestOptions,
 } from "@techsio/smart-suggest-client";
 import { SmartSuggestValidationErrorBodySchema } from "@techsio/smart-suggest-client/api";
 import type {
@@ -784,6 +785,8 @@ export const attachSmartSuggest = (
     ...new Set([phoneForm, postalForm].filter((form) => form !== undefined)),
   ];
 
+  let activePhoneValidationController: AbortController | undefined;
+  let activePostalValidationController: AbortController | undefined;
   let activeSuggestController: AbortController | undefined;
   let currentRequestId: string | undefined;
   let currentSuggestTarget = addressSuggestTarget;
@@ -878,6 +881,24 @@ export const attachSmartSuggest = (
 
     activeSuggestController.abort(createAbortReason());
     activeSuggestController = undefined;
+  };
+
+  const abortActivePhoneValidationRequest = () => {
+    if (activePhoneValidationController === undefined) {
+      return;
+    }
+
+    activePhoneValidationController.abort(createAbortReason());
+    activePhoneValidationController = undefined;
+  };
+
+  const abortActivePostalValidationRequest = () => {
+    if (activePostalValidationController === undefined) {
+      return;
+    }
+
+    activePostalValidationController.abort(createAbortReason());
+    activePostalValidationController = undefined;
   };
 
   const clearSuggestResults = () => {
@@ -1024,11 +1045,19 @@ export const attachSmartSuggest = (
     const defaultCountry = readCountryCode();
     const validationSequence = phoneValidationSequence + 1;
     phoneValidationSequence = validationSequence;
+    abortActivePhoneValidationRequest();
 
     if (rawInput === "") {
       clearControlValidation(controls.phone);
       return;
     }
+
+    let requestController: AbortController | undefined;
+    const shouldIgnorePhoneValidationResult = () =>
+      requestController?.signal.aborted === true ||
+      validationSequence !== phoneValidationSequence ||
+      rawInput !== getControlValue(controls.phone) ||
+      defaultCountry !== readCountryCode();
 
     try {
       const request = createPhoneValidationRequest(rawInput, defaultCountry);
@@ -1047,17 +1076,28 @@ export const attachSmartSuggest = (
         };
       }
 
-      const result =
-        (phoneValidationMode === "server-only"
+      const frontendResult =
+        phoneValidationMode === "server-only"
           ? undefined
-          : await validatePhoneWithFrontend(request)) ??
-        (await runVanillaEffectAsPromise(smartSuggestClient.validatePhone(request)));
+          : await validatePhoneWithFrontend(request);
 
-      if (
-        validationSequence !== phoneValidationSequence ||
-        rawInput !== getControlValue(controls.phone) ||
-        defaultCountry !== readCountryCode()
-      ) {
+      if (frontendResult === undefined && shouldIgnorePhoneValidationResult()) {
+        return;
+      }
+
+      const result = frontendResult ?? (await (async () => {
+        requestController = new AbortController();
+        activePhoneValidationController = requestController;
+        const requestOptions: SmartSuggestRequestOptions = {
+          signal: requestController.signal,
+        };
+
+        return runVanillaEffectAsPromise(
+          smartSuggestClient.validatePhone(request, requestOptions),
+        );
+      })());
+
+      if (shouldIgnorePhoneValidationResult()) {
         return;
       }
 
@@ -1065,8 +1105,19 @@ export const attachSmartSuggest = (
       applyControlValidationResult(controls.phone, result);
       return result;
     } catch (error) {
+      if (isAbortError(error) || shouldIgnorePhoneValidationResult()) {
+        return;
+      }
+
       reportError(config.onError, error);
       return;
+    } finally {
+      if (
+        requestController !== undefined &&
+        activePhoneValidationController === requestController
+      ) {
+        activePhoneValidationController = undefined;
+      }
     }
   };
 
@@ -1079,21 +1130,29 @@ export const attachSmartSuggest = (
     const countryCode = readCountryCode();
     const validationSequence = postalValidationSequence + 1;
     postalValidationSequence = validationSequence;
+    abortActivePostalValidationRequest();
 
     if (rawInput === "" || countryCode === undefined) {
       return;
     }
 
+    const requestController = new AbortController();
+    activePostalValidationController = requestController;
+    const requestOptions: SmartSuggestRequestOptions = {
+      signal: requestController.signal,
+    };
+    const shouldIgnorePostalValidationResult = () =>
+      requestController.signal.aborted ||
+      validationSequence !== postalValidationSequence ||
+      rawInput !== getControlValue(controls.postalCode) ||
+      countryCode !== readCountryCode();
+
     try {
       const result = await runVanillaEffectAsPromise(
-        smartSuggestClient.validatePostal({ countryCode, rawInput }),
+        smartSuggestClient.validatePostal({ countryCode, rawInput }, requestOptions),
       );
 
-      if (
-        validationSequence !== postalValidationSequence ||
-        rawInput !== getControlValue(controls.postalCode) ||
-        countryCode !== readCountryCode()
-      ) {
+      if (shouldIgnorePostalValidationResult()) {
         return;
       }
 
@@ -1101,22 +1160,24 @@ export const attachSmartSuggest = (
       applyControlValidationResult(controls.postalCode, result, "Enter a valid postal code.");
       return result;
     } catch (error) {
-      if (
-        validationSequence === postalValidationSequence &&
-        rawInput === getControlValue(controls.postalCode) &&
-        countryCode === readCountryCode()
-      ) {
-        const result = toPostalValidationResultFromError(error, rawInput);
+      if (isAbortError(error) || shouldIgnorePostalValidationResult()) {
+        return;
+      }
 
-        if (result !== undefined) {
-          applyControlValidationResult(controls.postalCode, result, "Enter a valid postal code.");
-          reportError(config.onError, error);
-          return result;
-        }
+      const result = toPostalValidationResultFromError(error, rawInput);
+
+      if (result !== undefined) {
+        applyControlValidationResult(controls.postalCode, result, "Enter a valid postal code.");
+        reportError(config.onError, error);
+        return result;
       }
 
       reportError(config.onError, error);
       return;
+    } finally {
+      if (activePostalValidationController === requestController) {
+        activePostalValidationController = undefined;
+      }
     }
   };
 
@@ -1288,6 +1349,8 @@ export const attachSmartSuggest = (
       phoneValidationSequence += 1;
       postalValidationSequence += 1;
       suggestSequence += 1;
+      abortActivePhoneValidationRequest();
+      abortActivePostalValidationRequest();
       activeSuggestController?.abort(createAbortReason());
       for (const listener of suggestTargetListeners) {
         listener.target.control.removeEventListener("input", listener.onInput);

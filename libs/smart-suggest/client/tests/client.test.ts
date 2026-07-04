@@ -392,6 +392,41 @@ describe("createSmartSuggestEffectClient", () => {
     }),
   );
 
+  it.live("lets per-request timeoutMs override client default", () =>
+    Effect.gen(function* requestTimeoutOverrideProgram() {
+      vi.useFakeTimers();
+
+      try {
+        const client = createSmartSuggestEffectClient({
+          fetch: (_input, init) =>
+            new Promise((_resolve, reject) => {
+              init?.signal?.addEventListener("abort", () => {
+                reject(init.signal?.reason);
+              });
+            }),
+          timeoutMs: 1000,
+        });
+        const fiber = yield* client
+          .validatePhone({ rawInput: "+420777123456" }, { timeoutMs: 10 })
+          .pipe(Effect.forkChild({ startImmediately: true }));
+
+        yield* Effect.promise(() => vi.advanceTimersByTimeAsync(11));
+
+        const exit = yield* Effect.exit(Fiber.join(fiber));
+
+        expect(isFailure(exit)).toBe(true);
+
+        if (!isFailure(exit)) {
+          return;
+        }
+
+        expect(squash(exit.cause)).toMatchObject({ name: "TimeoutError" });
+      } finally {
+        vi.useRealTimers();
+      }
+    }),
+  );
+
   it.effect("propagates external aborts through the Effect client", () =>
     Effect.gen(function* externalAbortProgram() {
       const abortReason = new DOMException("User aborted.", "AbortError");
