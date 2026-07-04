@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { useEffect, useState } from 'react'
 import { VariantContainer } from '../../.storybook/decorator'
 import { Combobox, type ComboboxItem } from '../../src/molecules/combobox'
@@ -315,6 +316,52 @@ export const MultipleSelection: Story = {
         />
       </div>
     )
+  },
+}
+
+export const ControlledSingleStringValue: Story = {
+  tags: ['interaction-test'],
+  render: () => (
+    <div className="w-xs">
+      <Combobox
+        items={countries}
+        label="Controlled Country"
+        placeholder="Choose a country..."
+        value="cz"
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('combobox', {
+      name: 'Controlled Country',
+    })
+
+    await expect(input).toHaveValue('Czech Republic')
+
+    const trigger = canvas.getAllByRole('button').at(-1)
+
+    if (trigger === undefined) {
+      throw new Error('Combobox trigger was not rendered')
+    }
+
+    await userEvent.click(trigger)
+
+    const documentBody = canvasElement.ownerDocument.body
+
+    await waitFor(() => {
+      expect(
+        documentBody.querySelectorAll(
+          '[data-scope="combobox"][data-part="item"][data-state="checked"], [role="option"][aria-selected="true"]'
+        )
+      ).toHaveLength(1)
+    })
+
+    expect(
+      documentBody.querySelector(
+        '[data-scope="combobox"][data-part="item"][data-state="checked"], [role="option"][aria-selected="true"]'
+      )
+    ).toHaveTextContent('Czech Republic')
   },
 }
 

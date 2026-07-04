@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { wranglerExecuteArgs } from './lib/wrangler-d1.mjs';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultWranglerConfigPath = 'apps/shell-super-app/.output/wrangler.json';
@@ -831,26 +832,6 @@ function optimizeQueryPlans(databases) {
   });
 }
 
-function wranglerExecuteArgs(args, configPath, database, sql) {
-  const commandArgs = [
-    'd1',
-    'execute',
-    database.databaseName,
-    '--config',
-    relativeWorkspacePath(configPath),
-    args.d1Target === 'remote' ? '--remote' : '--local',
-    '--json',
-    '--command',
-    sql,
-  ];
-
-  if (args.d1Target === 'local' && args.persistTo !== undefined) {
-    commandArgs.splice(6, 0, '--persist-to', args.persistTo);
-  }
-
-  return commandArgs;
-}
-
 function publicOperationPlan(query) {
   return {
     binding: query.database.binding,
@@ -866,7 +847,12 @@ function runOptimizeQueries(args, configPath, databases) {
   const results = [];
 
   for (const query of optimizeQueryPlans(databases)) {
-    const commandArgs = wranglerExecuteArgs(args, configPath, query.database, query.sql);
+    const commandArgs = wranglerExecuteArgs(
+      args,
+      relativeWorkspacePath(configPath),
+      query.database,
+      query.sql,
+    );
     const result = spawnSync('wrangler', commandArgs, {
       cwd: workspaceRoot,
       encoding: 'utf8',
@@ -905,7 +891,12 @@ function runReadonlyQueries(args, configPath, databases) {
   const results = [];
 
   for (const query of readonlyQueryPlans(databases)) {
-    const commandArgs = wranglerExecuteArgs(args, configPath, query.database, query.sql);
+    const commandArgs = wranglerExecuteArgs(
+      args,
+      relativeWorkspacePath(configPath),
+      query.database,
+      query.sql,
+    );
     const result = spawnSync('wrangler', commandArgs, {
       cwd: workspaceRoot,
       encoding: 'utf8',

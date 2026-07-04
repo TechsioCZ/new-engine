@@ -12,6 +12,17 @@ import {
 } from "../src/storage";
 
 type SQLiteValue = string | number | bigint | Uint8Array | null;
+type SQLiteD1BindingOptions = {
+  readonly failBatchQuery?: (query: string) => boolean;
+};
+type SQLiteD1Result = {
+  readonly results: Record<string, unknown>[];
+  readonly success: true;
+};
+type SQLiteD1Statement = ReturnType<SmartSuggestD1Binding["prepare"]>;
+type SQLiteD1BatchStatement = SQLiteD1Statement & {
+  readonly executeBatch: () => SQLiteD1Result;
+};
 
 const testDatabases: DatabaseSync[] = [];
 
@@ -44,40 +55,61 @@ const normalizeD1Parameter = (value: unknown): SQLiteValue => {
 const bindStatement = (statement: StatementSync, params: readonly unknown[]) =>
   params.map((param) => normalizeD1Parameter(param));
 
-const createSQLiteD1Binding = (database: DatabaseSync): SmartSuggestD1Binding =>
+const createSQLiteD1Statement = (
+  database: DatabaseSync,
+  query: string,
+  params: readonly unknown[] = [],
+  options: SQLiteD1BindingOptions = {},
+): SQLiteD1BatchStatement => {
+  const statement = database.prepare(query);
+  const boundParams = bindStatement(statement, params);
+  const executeBatch = (): SQLiteD1Result => {
+    if (options.failBatchQuery?.(query)) {
+      throw new Error("Injected SQLite D1 batch failure.");
+    }
+
+    return {
+      results: statement.all(...boundParams) as Record<string, unknown>[],
+      success: true,
+    };
+  };
+
+  return {
+    all: async () => executeBatch(),
+    bind: (...nextParams: readonly unknown[]) =>
+      createSQLiteD1Statement(database, query, nextParams, options),
+    executeBatch,
+    first: async () => statement.get(...boundParams),
+    raw: async () => statement.all(...boundParams).map((row) => Object.values(row)),
+    run: async () => {
+      statement.run(...boundParams);
+
+      return { success: true };
+    },
+  } as unknown as SQLiteD1BatchStatement;
+};
+
+const createSQLiteD1Binding = (
+  database: DatabaseSync,
+  options: SQLiteD1BindingOptions = {},
+): SmartSuggestD1Binding =>
   ({
-    prepare: (query: string) => ({
-      bind: (...params: readonly unknown[]) => {
-        const statement = database.prepare(query);
-        const boundParams = bindStatement(statement, params);
+    batch: async (statements: readonly SQLiteD1Statement[]) => {
+      database.exec("BEGIN");
 
-        return {
-          all: async () => ({
-            results: statement.all(...boundParams),
-            success: true,
-          }),
-          first: async () => statement.get(...boundParams),
-          raw: async () => statement.all(...boundParams).map((row) => Object.values(row)),
-          run: async () => {
-            statement.run(...boundParams);
-
-            return { success: true };
-          },
-        };
-      },
-      first: async () => database.prepare(query).get(),
-      raw: async () =>
-        database
-          .prepare(query)
-          .all()
-          .map((row) => Object.values(row)),
-      run: async () => {
-        database.prepare(query).run();
-
-        return { success: true };
-      },
-    }),
-  }) as SmartSuggestD1Binding;
+      try {
+        const results = statements.map((statement) =>
+          (statement as SQLiteD1BatchStatement).executeBatch(),
+        );
+        database.exec("COMMIT");
+        return results;
+      } catch (error) {
+        database.exec("ROLLBACK");
+        throw error;
+      }
+    },
+    prepare: (query: string) => createSQLiteD1Statement(database, query, [], options),
+  }) as unknown as SmartSuggestD1Binding;
 
 const runStorageMigrations = (database: DatabaseSync) => {
   const migrationFiles = readdirSync(migrationDirectory)
@@ -109,6 +141,7 @@ const runStorageMigrations = (database: DatabaseSync) => {
 
 const createMigratedRepositories = (
   options: Parameters<typeof createD1SmartSuggestRepositories>[1] = {},
+  bindingOptions: SQLiteD1BindingOptions = {},
 ) => {
   const database = new DatabaseSync(":memory:");
   testDatabases.push(database);
@@ -117,7 +150,10 @@ const createMigratedRepositories = (
 
   return {
     database,
-    repositories: createD1SmartSuggestRepositories(createSQLiteD1Binding(database), options),
+    repositories: createD1SmartSuggestRepositories(
+      createSQLiteD1Binding(database, bindingOptions),
+      options,
+    ),
   };
 };
 
@@ -349,6 +385,141 @@ describe("smart suggest storage SQLite integration", () => {
         }),
       ),
     ).resolves.toEqual([]);
+  });
+
+  it("rolls back address upsert when batched search index refresh fails", async () => {
+    const { database, repositories } = createMigratedRepositories(
+      {},
+      {
+        failBatchQuery: (query) =>
+          /insert\s+into\s+"?smart_suggest_address_search_fts"?/iu.test(query),
+      },
+    );
+    const source = await registerRuianSource(repositories);
+    const record = createCzAddress(
+      {
+        city: "Praha",
+        displayLabel: "K Louži 1258/12, Vršovice, Praha 10, 101 00 Praha",
+        houseNumber: "1258",
+        id: "ruian-cz:1203603",
+        municipalityCode: "554782",
+        orientationNumber: "12",
+        postalCode: "101 00",
+        regionCode: "CZ010",
+        searchLabel: "k louzi 1258 12 vrsovice praha 10 101 00 praha",
+        street: "K Louži",
+      },
+      source.id,
+    );
+
+    await expect(
+      runStorageEffect(repositories.addressRecords.upsertAddressRecords([record])),
+    ).rejects.toMatchObject({ code: "storage-unavailable" });
+
+    expect(
+      database.prepare("select count(*) count from smart_suggest_address_records").get(),
+    ).toMatchObject({ count: 0 });
+    expect(
+      database.prepare("select count(*) count from smart_suggest_address_search_tokens").get(),
+    ).toMatchObject({ count: 0 });
+    expect(
+      database.prepare("select count(*) count from smart_suggest_address_search_fts").get(),
+    ).toMatchObject({ count: 0 });
+  });
+
+  it("rolls back tombstone visibility changes when the batched tombstone update fails", async () => {
+    const { database, repositories } = createMigratedRepositories();
+    await seedRepresentativeCzAddresses(repositories);
+
+    const failingRepositories = createD1SmartSuggestRepositories(
+      createSQLiteD1Binding(database, {
+        failBatchQuery: (query) => /update\s+"?smart_suggest_address_records"?/iu.test(query),
+      }),
+    );
+
+    await expect(
+      runStorageEffect(
+        failingRepositories.addressTombstones.upsertAddressTombstones([
+          {
+            countryCode: "CZ",
+            deletedAt: "2026-06-27",
+            id: "ruian-cz:1203603",
+            reason: "removed by RUIAN delta",
+            ruian: {
+              addressPlaceCode: "1203603",
+              regionCode: "CZ010",
+            },
+            sourceId: "ruian-cz",
+            sourceLineage: {
+              feedId: "RUIAN-S-ZA-Z",
+              fileKind: "delta",
+              sourceId: "ruian-cz",
+              sourceRecordId: "1203603",
+              sourceRowId: "1203603",
+            },
+          },
+        ]),
+      ),
+    ).rejects.toMatchObject({ code: "storage-unavailable" });
+
+    expect(
+      database
+        .prepare(
+          "select replication_status replicationStatus, search_visible searchVisible from smart_suggest_address_records where id = ?",
+        )
+        .get("ruian-cz:1203603"),
+    ).toMatchObject({ replicationStatus: "active", searchVisible: 1 });
+    await expect(
+      runStorageEffect(
+        repositories.addressRecords.searchAddressRecords({
+          countryCode: "CZ",
+          limit: 5,
+          query: "Lou",
+        }),
+      ),
+    ).resolves.toEqual([expect.objectContaining({ id: "ruian-cz:1203603" })]);
+  });
+
+  it("parses malformed and legacy suggest cache country scopes defensively", async () => {
+    const { database, repositories } = createMigratedRepositories();
+    const now = "2026-06-30T00:00:00.000Z";
+    const insertCacheRecord = (cacheKey: string, queryHash: string) => {
+      database
+        .prepare(`
+          insert into smart_suggest_cache_entries (
+            cache_key,
+            query_hash,
+            kind,
+            country_code,
+            tenant_id,
+            language,
+            status,
+            payload_json,
+            cache_policy_json,
+            expires_at,
+            created_at,
+            updated_at
+          )
+          values (?, ?, 'address', null, null, null, 'written', '[]', '{"kind":"none"}', null, ?, ?)
+        `)
+        .run(cacheKey, queryHash, now, now);
+    };
+    const legacyKey = "smart-suggest:v2:address:CZE:public:default:legacy-hash";
+    const malformedKey =
+      "smart-suggest:v3-owned-sequence-prefix:address:CZ|CZ,not-a-code:public:default:bad-hash";
+    const invalidKey =
+      "smart-suggest:v3-owned-sequence-prefix:address:not-a-code:public:default:invalid-hash";
+
+    insertCacheRecord(legacyKey, "legacy-hash");
+    insertCacheRecord(malformedKey, "bad-hash");
+    insertCacheRecord(invalidKey, "invalid-hash");
+
+    await expect(runStorageEffect(repositories.suggestCache.readSuggestCache(legacyKey))).resolves
+      .toMatchObject({ countryCodes: ["CZ"] });
+    await expect(runStorageEffect(repositories.suggestCache.readSuggestCache(malformedKey))).resolves
+      .toMatchObject({ countryCodes: ["CZ"] });
+    await expect(runStorageEffect(repositories.suggestCache.readSuggestCache(invalidKey))).resolves
+      .not.toHaveProperty("countryCodes");
   });
 
   it("supports postal and postal-locality CZ queries from migrated columns", async () => {

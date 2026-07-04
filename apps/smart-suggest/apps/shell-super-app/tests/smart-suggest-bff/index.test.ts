@@ -214,6 +214,7 @@ describe('Smart Suggest effect API', () => {
     await Promise.all(disposeTestHandlers.splice(0).map((dispose) => dispose()));
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it.effect('reports health with storage connectivity', () =>
@@ -2090,6 +2091,131 @@ describe('Smart Suggest effect API', () => {
         expect(edgeCache.put).toHaveBeenCalledOnce();
         expect(edgeCacheControlHeaders).toEqual(['public, max-age=120']);
       }),
+  );
+
+  it.effect('expires short-TTL provider responses from Worker memory and revalidates', () =>
+    Effect.gen(function* shellEffectTestProgram17() {
+      const repositories = createInMemorySmartSuggestRepositories();
+      const testHandler = createSmartSuggestHandler(repositories);
+
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+      yield* resolveEffect(
+        repositories.tenants.upsertTenant({
+          allowedOrigins: [],
+          countryConfig: {
+            countries: {
+              CZ: {
+                kinds: {
+                  address: {
+                    providerCacheTtlSeconds: 60,
+                    providerPriority: ['radar-autocomplete'],
+                    providerTimeoutMs: 100,
+                    providers: {
+                      'radar-autocomplete': {
+                        apiKey: 'radar-key',
+                        baseUrl: 'https://radar.test',
+                        layers: 'address',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          id: 'tenant-worker-ttl-test',
+          name: 'Tenant Worker TTL Test',
+          providerPriority: ['radar-autocomplete'],
+          status: 'active',
+        }),
+      );
+
+      let providerCall = 0;
+      const fetchMock = vi.fn<typeof fetch>(() => {
+        providerCall += 1;
+
+        return Promise.resolve(
+          Response.json({
+            addresses: [
+              {
+                city: 'Praha',
+                countryCode: 'CZ',
+                formattedAddress: `Radarova ${providerCall}, Praha`,
+                number: String(providerCall),
+                postalCode: '101 00',
+                street: 'Radarova',
+              },
+            ],
+          }),
+        );
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const path =
+        '/v1/suggest?kind=address&countryCode=CZ&q=radar-worker-ttl&tenantId=tenant-worker-ttl-test&limit=1';
+      const firstResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+      const firstBody = yield* decodeJsonResponse(firstResponse, SmartSuggestResponseSchema);
+
+      expect(firstBody).toMatchObject({
+        cacheStatus: 'written',
+        suggestions: [{ displayLabel: 'Radarova 1, Praha' }],
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      const queryHash = yield* resolveEffect(
+        createSuggestQueryHashEffect({
+          countryCode: 'CZ',
+          kind: 'address',
+          limit: 1,
+          query: 'radar-worker-ttl',
+        }),
+      );
+      const cacheKey = createSuggestCacheKey({
+        countryCode: 'CZ',
+        kind: 'address',
+        queryHash,
+        tenantId: 'tenant-worker-ttl-test',
+      });
+      yield* resolveEffect(
+        repositories.suggestCache.writeSuggestCache({
+          cacheKey,
+          cachePolicy: { kind: 'ttl', ttlSeconds: 60 },
+          countryCode: 'CZ',
+          expiresAt: '2025-12-31T23:59:59.000Z',
+          kind: 'address',
+          payload: [],
+          queryHash,
+          tenantId: 'tenant-worker-ttl-test',
+        }),
+      );
+
+      const workerHitResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+      const workerHitBody = yield* decodeJsonResponse(
+        workerHitResponse,
+        SmartSuggestResponseSchema,
+      );
+
+      expect(workerHitBody).toMatchObject({
+        cacheStatus: 'hit',
+        suggestions: [{ displayLabel: 'Radarova 1, Praha' }],
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(60_001);
+
+      const revalidatedResponse = yield* handlerCallEffect(testHandler, requestFor(path));
+      const revalidatedBody = yield* decodeJsonResponse(
+        revalidatedResponse,
+        SmartSuggestResponseSchema,
+      );
+
+      expect(revalidatedBody).toMatchObject({
+        cacheStatus: 'written',
+        suggestions: [{ displayLabel: 'Radarova 2, Praha' }],
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    }),
   );
 
   it.effect('caches street-level provider fallback addresses with locality context', () =>

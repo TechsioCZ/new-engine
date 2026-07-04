@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { smartSuggestD1ScriptArgs } from './lib/wrangler-d1.mjs';
 
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const defaultWranglerConfigPath = 'apps/shell-super-app/.output/wrangler.json';
@@ -1444,29 +1445,7 @@ function hasErrors(checks) {
   return checks.some((check) => check.status === 'error');
 }
 
-function commonD1Args(args) {
-  const command = [
-    '--d1-target',
-    args.d1Target,
-    '--wrangler-config',
-    args.wranglerConfig,
-    '--router-d1-binding',
-    args.routerD1Binding,
-    '--shard-bindings',
-    args.shardBindings,
-    '--shard-route-strategy',
-    args.shardRouteStrategy,
-  ];
-
-  if (args.shardRouteStrategy !== 'hash' && args.shardRegionMapJson !== undefined) {
-    command.push('--shard-region-map-json', args.shardRegionMapJson);
-  }
-  if (args.persistTo !== undefined) {
-    command.push('--persist-to', args.persistTo);
-  }
-
-  return command;
-}
+const commonD1Args = smartSuggestD1ScriptArgs;
 
 function strictD1RequirementArgs(args) {
   const command = ['--require-cloudflare-ids'];

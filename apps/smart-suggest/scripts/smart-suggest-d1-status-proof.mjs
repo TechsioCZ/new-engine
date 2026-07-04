@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { wranglerExecuteArgs } from './lib/wrangler-d1.mjs';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = path.resolve(appRoot, '../..');
@@ -176,19 +177,12 @@ function writeProofWranglerConfig() {
 }
 
 function wranglerD1ExecuteArgs(databaseName, sql) {
-  return [
-    'd1',
-    'execute',
-    databaseName,
-    '--config',
+  return wranglerExecuteArgs(
+    { d1Target: 'local', persistTo: appRelative(persistPath) },
     appRelative(wranglerConfigPath),
-    '--local',
-    '--persist-to',
-    appRelative(persistPath),
-    '--json',
-    '--command',
+    databaseName,
     sql,
-  ];
+  );
 }
 
 function d1ResultRows(stdout) {

@@ -226,3 +226,44 @@ export const validatePhoneNumberLite = (
 
   return createLiteResult(request, "strict_validation_required", [])
 }
+
+export type LiteResultToPhoneValidationResultOptions = {
+  // When true, returns undefined for `strict_validation_required` so callers
+  // that defer strict validation to a server/strict validator can suppress the
+  // lite result entirely. Defaults to false (always return a result).
+  omitWhenStrictValidationRequired?: boolean
+}
+
+// Single canonical converter from a lite phone result to the public
+// PhoneValidationResult shape. `isPossible` mirrors the lite result's
+// `canAttemptStrictValidation` flag, and `isValid` is always false because the
+// lite pass never confirms validity.
+export function liteResultToPhoneValidationResult(
+  liteResult: PhoneLiteValidationResult,
+  options: LiteResultToPhoneValidationResultOptions & {
+    omitWhenStrictValidationRequired: true
+  }
+): PhoneValidationResult | undefined
+export function liteResultToPhoneValidationResult(
+  liteResult: PhoneLiteValidationResult,
+  options?: LiteResultToPhoneValidationResultOptions
+): PhoneValidationResult
+export function liteResultToPhoneValidationResult(
+  liteResult: PhoneLiteValidationResult,
+  options?: LiteResultToPhoneValidationResultOptions
+): PhoneValidationResult | undefined {
+  if (
+    options?.omitWhenStrictValidationRequired === true &&
+    liteResult.status === "strict_validation_required"
+  ) {
+    return
+  }
+
+  return {
+    rawInput: liteResult.rawInput,
+    displayValue: liteResult.displayValue,
+    isPossible: liteResult.canAttemptStrictValidation,
+    isValid: false,
+    errors: liteResult.errors,
+  }
+}

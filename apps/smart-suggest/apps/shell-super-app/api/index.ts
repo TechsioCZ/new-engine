@@ -6,7 +6,6 @@ import type {
   SmartSuggestCacheLevels,
   SmartSuggestCacheStatus,
   SmartSuggestCountryCode,
-  SmartSuggestError,
   SmartSuggestRequest,
   SmartSuggestResponse,
   SmartSuggestSuggestion,
@@ -26,7 +25,6 @@ import {
   smartSuggestSourceAllowsWrite,
   smartSuggestSourceMaxTtlDays,
 } from '@techsio/smart-suggest-datasets/source-catalog';
-import { rankAddressCandidates } from '@techsio/smart-suggest-indexing';
 import type {
   SmartSuggestProviderRegistry,
   SmartSuggestProviderRuntimeConfig,
@@ -64,25 +62,36 @@ import {
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 import type {
   SmartSuggestHealthResponse,
+  SmartSuggestForbiddenError,
+  SmartSuggestInternalError,
   SmartSuggestQuery,
   SmartSuggestStatusResponse,
+  SmartSuggestUnauthorizedError,
 } from '../shared/api.ts';
 import {
-  SmartSuggestBadRequestError,
-  SmartSuggestBadRequestErrorSchema,
-  SmartSuggestForbiddenError,
-  SmartSuggestForbiddenErrorSchema,
   SmartSuggestHttpApi,
-  SmartSuggestInternalError,
-  SmartSuggestInternalErrorSchema,
-  SmartSuggestRateLimitError,
-  SmartSuggestRateLimitErrorSchema,
   SmartSuggestResponseSchema,
-  SmartSuggestUnauthorizedError,
-  SmartSuggestUnauthorizedErrorSchema,
+  SmartSuggestStatusResponseSchema,
 } from '../shared/api.ts';
 import { createSmartSuggestEdgeCacheResponse } from '../shared/edge-cache';
 import { getHealthPayload } from '../shared/health';
+import type { SmartSuggestSuggestError } from '../shared/bff-errors.ts';
+import {
+  badRequestError,
+  forbiddenError,
+  normalizeApiError,
+  normalizeSuggestError,
+  rateLimitError,
+  serverError,
+  unauthorizedError,
+} from '../shared/bff-errors.ts';
+import {
+  boundedShardCandidates,
+  rankShardAddressRecordResults,
+  shardCandidatesForAddressRecord,
+  shardCandidatesForAddressTombstone,
+  uniqueShardMetadataByBindingName,
+} from '../shared/bff-shard-routing.ts';
 
 interface SmartSuggestWorkerEnv {
   CF_PAGES_BRANCH?: string;
@@ -160,6 +169,7 @@ const providerOutboundBudgetBucketsByRepository = new WeakMap<
   Map<string, InboundRateLimitBucket>
 >();
 const maxWorkerSuggestCacheEntries = 500;
+const maxProviderRegistries = 500;
 const maxInboundRateLimitBuckets = 2000;
 const maxProviderOutboundBudgetBuckets = 2000;
 const defaultInboundRateLimitMax = 600;
@@ -180,6 +190,7 @@ interface SmartSuggestCacheStorage {
 
 interface SmartSuggestLayerCacheEntry {
   edgeTtlSeconds?: number;
+  expiresAtMs?: number;
   response: SmartSuggestResponse;
 }
 
@@ -378,6 +389,7 @@ const rememberWorkerSuggestResponse = (
 
   if (edgeTtlSeconds !== undefined) {
     cacheEntry.edgeTtlSeconds = edgeTtlSeconds;
+    cacheEntry.expiresAtMs = Date.now() + edgeTtlSeconds * 1000;
   }
 
   cache.set(cacheKey, cacheEntry);
@@ -408,18 +420,6 @@ const edgeCacheRequestFor = (cacheKey: string) =>
 const missingEdgeSuggestResponse: SmartSuggestResponse | undefined = undefined;
 
 const recoverMissingEdgeSuggestResponse = () => missingEdgeSuggestResponse;
-
-const serverError = () =>
-  new SmartSuggestInternalError({
-    errors: [
-      {
-        code: 'internal-error',
-        message: 'Smart Suggest request failed.',
-        retryable: true,
-      } satisfies SmartSuggestError,
-    ],
-    message: 'Smart Suggest request failed.',
-  });
 
 const readCachedEdgeSuggestResponseBody = (
   cached: Response,
@@ -573,253 +573,34 @@ const parseRuntimeList = (value: string | undefined) =>
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0) ?? [];
 
+class SmartSuggestD1BindingConfigError extends Error {
+  readonly _tag = 'SmartSuggestD1BindingConfigError';
+
+  constructor(bindingName: string) {
+    super(`Smart Suggest D1 binding "${bindingName}" must be an object with a prepare function.`);
+    this.name = 'SmartSuggestD1BindingConfigError';
+  }
+}
+
 const readNamedD1Binding = (
   env: SmartSuggestWorkerEnv | undefined,
   bindingName: string,
-): SmartSuggestD1Binding | undefined =>
-  (env as Record<string, SmartSuggestD1Binding | undefined> | undefined)?.[bindingName];
+): SmartSuggestD1Binding | undefined => {
+  const binding = (env as Record<string, unknown> | undefined)?.[bindingName];
 
-const maxShardSearchFanout = 14;
-const shardHashModulus = 2_147_483_647;
-const shardAddressNumberPattern = /\d/u;
-
-const hashStringToPositiveInteger = (value: string) => {
-  let hash = 0;
-
-  for (const character of value) {
-    hash = (Math.imul(hash, 131) + (character.codePointAt(0) ?? 0)) % shardHashModulus;
-
-    if (hash < 0) {
-      hash += shardHashModulus;
-    }
-  }
-
-  return hash;
-};
-
-const deterministicShardBindingForRouteKey = (
-  routeKey: string,
-  shardBindingNames: readonly string[],
-) => {
-  if (shardBindingNames.length === 0 || shardBindingNames.length > maxShardSearchFanout) {
+  if (binding === undefined) {
     return;
   }
 
-  return shardBindingNames[hashStringToPositiveInteger(routeKey) % shardBindingNames.length];
-};
-
-const deterministicShardBindingForRecord = (
-  record: AddressSearchRecordInput,
-  shardBindingNames: readonly string[],
-) =>
-  deterministicShardBindingForRouteKey(
-    record.ruian?.stableAddressId ?? record.ruian?.addressPlaceCode ?? record.id,
-    shardBindingNames,
-  );
-
-const deterministicShardBindingForTombstone = (
-  tombstone: AddressTombstoneRecordInput,
-  shardBindingNames: readonly string[],
-) =>
-  deterministicShardBindingForRouteKey(
-    tombstone.ruian?.stableAddressId ?? tombstone.ruian?.addressPlaceCode ?? tombstone.id,
-    shardBindingNames,
-  );
-
-const extractPostalRouteHint = (query: string) => {
-  const match = /\b\d{3}\s?\d{2}\b/u.exec(query);
-
-  return match?.[0];
-};
-
-const isStrongShardSearchQuery = (query: string) =>
-  shardAddressNumberPattern.test(query) || extractPostalRouteHint(query) !== undefined;
-
-const activeShardCandidatesForFanout = (
-  router: SmartSuggestRepositories,
-  input: {
-    countryCode?: SmartSuggestCountryCode;
-  },
-  shardBindingNames: readonly string[],
-) =>
-  Effect.gen(function* activeShardCandidatesForFanoutProgram() {
-    const listInput: Parameters<typeof router.shardRegistry.listShardMetadata>[0] =
-      input.countryCode === undefined
-        ? { state: 'active' }
-        : { countryCode: input.countryCode, state: 'active' };
-    const listed = yield* router.shardRegistry.listShardMetadata(listInput);
-    const activeCandidates = listed.filter((candidate) =>
-      shardBindingNames.includes(candidate.bindingName),
-    );
-
-    return activeCandidates.length > 0
-      ? activeCandidates
-      : shardBindingNames.map((bindingName) => ({ bindingName }));
-  });
-
-const boundedShardCandidates = (
-  router: SmartSuggestRepositories,
-  input: {
-    countryCode?: SmartSuggestCountryCode;
-    query: string;
-  },
-  shardBindingNames: readonly string[],
-) =>
-  Effect.gen(function* boundedShardCandidatesProgram() {
-    if (input.countryCode === undefined) {
-      return isStrongShardSearchQuery(input.query)
-        ? yield* activeShardCandidatesForFanout(router, input, shardBindingNames)
-        : [];
-    }
-
-    const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
-      countryCode: input.countryCode,
-      states: ['active'],
-    };
-    const postalCode = extractPostalRouteHint(input.query);
-
-    if (postalCode !== undefined) {
-      routeInput.postalCode = postalCode;
-    }
-
-    const routed = yield* router.shardRegistry.resolveShardMetadata(routeInput);
-
-    if (routed.length > 0) {
-      return routed;
-    }
-
-    if (shardBindingNames.length > maxShardSearchFanout) {
-      return isStrongShardSearchQuery(input.query)
-        ? yield* activeShardCandidatesForFanout(router, input, shardBindingNames)
-        : [];
-    }
-
-    return yield* router.shardRegistry.listShardMetadata({
-      countryCode: input.countryCode,
-      state: 'active',
-    });
-  });
-
-const shardCandidatesForAddressRecord = (
-  router: SmartSuggestRepositories,
-  record: AddressSearchRecordInput,
-  shardBindingNames: readonly string[],
-) =>
-  Effect.gen(function* shardCandidatesForAddressRecordProgram() {
-    const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
-      countryCode: record.countryCode,
-      states: ['active'],
-    };
-    const postalCode = record.parts.postalCode ?? record.ruian?.postalCode;
-    const municipalityHint = record.parts.city;
-
-    if (postalCode !== undefined) {
-      routeInput.postalCode = postalCode;
-    }
-    if (municipalityHint !== undefined) {
-      routeInput.municipalityHint = municipalityHint;
-    }
-    if (record.ruian?.regionCode !== undefined) {
-      routeInput.regionCode = record.ruian.regionCode;
-    }
-    if (record.ruian?.municipalityCode !== undefined) {
-      routeInput.municipalityCode = record.ruian.municipalityCode;
-    }
-
-    const activeCandidates = yield* router.shardRegistry.resolveShardMetadata(routeInput);
-    const routedCandidates = activeCandidates.filter((candidate) =>
-      shardBindingNames.includes(candidate.bindingName),
-    );
-
-    if (routedCandidates.length > 0) {
-      return routedCandidates;
-    }
-
-    const fallbackBindingName = deterministicShardBindingForRecord(record, shardBindingNames);
-
-    return fallbackBindingName === undefined ? [] : [{ bindingName: fallbackBindingName }];
-  });
-
-const shardCandidatesForAddressTombstone = (
-  router: SmartSuggestRepositories,
-  tombstone: AddressTombstoneRecordInput,
-  shardBindingNames: readonly string[],
-) =>
-  Effect.gen(function* shardCandidatesForAddressTombstoneProgram() {
-    const routeInput: Parameters<typeof router.shardRegistry.resolveShardMetadata>[0] = {
-      countryCode: tombstone.countryCode,
-      states: ['active'],
-    };
-
-    if (tombstone.ruian?.postalCode !== undefined) {
-      routeInput.postalCode = tombstone.ruian.postalCode;
-    }
-    if (tombstone.ruian?.regionCode !== undefined) {
-      routeInput.regionCode = tombstone.ruian.regionCode;
-    }
-    if (tombstone.ruian?.municipalityCode !== undefined) {
-      routeInput.municipalityCode = tombstone.ruian.municipalityCode;
-    }
-
-    const activeCandidates = yield* router.shardRegistry.resolveShardMetadata(routeInput);
-    const routedCandidates = activeCandidates.filter((candidate) =>
-      shardBindingNames.includes(candidate.bindingName),
-    );
-
-    if (routedCandidates.length > 0) {
-      return routedCandidates;
-    }
-
-    const fallbackBindingName = deterministicShardBindingForTombstone(tombstone, shardBindingNames);
-
-    return fallbackBindingName === undefined ? [] : [{ bindingName: fallbackBindingName }];
-  });
-
-const uniqueShardMetadataByBindingName = <
-  T extends {
-    bindingName: string;
-  },
->(
-  candidates: readonly T[],
-) => {
-  const unique = new Map<string, T>();
-
-  for (const candidate of candidates) {
-    if (!unique.has(candidate.bindingName)) {
-      unique.set(candidate.bindingName, candidate);
-    }
+  if (
+    typeof binding === 'object' &&
+    binding !== null &&
+    typeof (binding as { prepare?: unknown }).prepare === 'function'
+  ) {
+    return binding as SmartSuggestD1Binding;
   }
 
-  return [...unique.values()];
-};
-
-type RankedShardAddressRecordCandidate = AddressRecord & {
-  confidence: number;
-};
-
-const rankShardAddressRecordResults = (
-  query: string,
-  records: readonly AddressRecord[],
-  limit: number,
-): AddressRecord[] => {
-  const byRecordId = new Map<string, AddressRecord>();
-
-  for (const record of records) {
-    byRecordId.set(record.id, record);
-  }
-
-  const candidates: RankedShardAddressRecordCandidate[] = [...byRecordId.values()].map(
-    (record) => ({
-      ...record,
-      confidence: record.quality,
-    }),
-  );
-
-  return rankAddressCandidates(query, candidates, { limit }).map(({ candidate }) => {
-    const { confidence: _confidence, ...record } = candidate;
-
-    return byRecordId.get(record.id) ?? record;
-  });
+  throw new SmartSuggestD1BindingConfigError(bindingName);
 };
 
 export const createShardedRepositories = ({
@@ -1136,106 +917,6 @@ const createTelemetryId = (...parts: readonly string[]) =>
       ].join(':'),
     ),
   );
-
-const badRequestError = (message: string, field?: string) => {
-  const error =
-    field === undefined
-      ? {
-          code: 'bad-request' as const,
-          message,
-        }
-      : {
-          code: 'bad-request' as const,
-          field,
-          message,
-        };
-
-  return new SmartSuggestBadRequestError({
-    errors: [error],
-    message,
-  });
-};
-
-const unauthorizedError = (message: string) =>
-  new SmartSuggestUnauthorizedError({
-    errors: [
-      {
-        code: 'unauthorized',
-        message,
-        retryable: false,
-      },
-    ],
-    message,
-  });
-
-const forbiddenError = (message: string) =>
-  new SmartSuggestForbiddenError({
-    errors: [
-      {
-        code: 'forbidden',
-        message,
-        retryable: false,
-      },
-    ],
-    message,
-  });
-
-const rateLimitError = (message = 'Smart Suggest request rate limit exceeded.') =>
-  new SmartSuggestRateLimitError({
-    errors: [
-      {
-        code: 'rate-limit',
-        message,
-        retryable: true,
-      },
-    ],
-    message,
-  });
-
-const isSmartSuggestBadRequestError = Schema.is(SmartSuggestBadRequestErrorSchema);
-const isSmartSuggestForbiddenError = Schema.is(SmartSuggestForbiddenErrorSchema);
-const isSmartSuggestInternalError = Schema.is(SmartSuggestInternalErrorSchema);
-const isSmartSuggestRateLimitError = Schema.is(SmartSuggestRateLimitErrorSchema);
-const isSmartSuggestUnauthorizedError = Schema.is(SmartSuggestUnauthorizedErrorSchema);
-
-type SmartSuggestApiError =
-  | SmartSuggestBadRequestError
-  | SmartSuggestForbiddenError
-  | SmartSuggestInternalError
-  | SmartSuggestRateLimitError
-  | SmartSuggestUnauthorizedError;
-
-type SmartSuggestSuggestError = SmartSuggestBadRequestError | SmartSuggestInternalError;
-
-const isSmartSuggestApiError = (error: unknown): error is SmartSuggestApiError =>
-  isSmartSuggestBadRequestError(error) ||
-  isSmartSuggestForbiddenError(error) ||
-  isSmartSuggestInternalError(error) ||
-  isSmartSuggestRateLimitError(error) ||
-  isSmartSuggestUnauthorizedError(error);
-
-const normalizeApiError = (error: unknown): SmartSuggestApiError =>
-  isSmartSuggestApiError(error) ? error : serverError();
-
-const normalizeSuggestError = (error: unknown): SmartSuggestSuggestError => {
-  const badRequest = Option.getOrUndefined(
-    Schema.decodeUnknownOption(SmartSuggestBadRequestErrorSchema)(error),
-  );
-
-  if (badRequest !== undefined) {
-    return badRequest;
-  }
-
-  const internal = Option.getOrUndefined(
-    Schema.decodeUnknownOption(SmartSuggestInternalErrorSchema)(error),
-  );
-
-  if (internal !== undefined) {
-    return internal;
-  }
-
-  return serverError();
-};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -2081,7 +1762,7 @@ const toJsonCompatible = (value: unknown): unknown => {
 
 const status = (
   repositories: SmartSuggestRepositories,
-): Effect.Effect<SmartSuggestStatusResponse, never, never> =>
+): Effect.Effect<SmartSuggestStatusResponse, SmartSuggestInternalError, never> =>
   Effect.gen(function* statusProgram() {
     const timestamp = nowIso();
     const [storage, importRuns, shardMetadata, sourceProvenance] = yield* Effect.all([
@@ -2092,7 +1773,7 @@ const status = (
     ]);
     const safeImportRuns = importRuns.map(toSafeImportRunSummary);
 
-    return toJsonCompatible({
+    const response = toJsonCompatible({
       db: storage,
       imports: {
         freshness: summarizeImportFreshness(safeImportRuns, timestamp),
@@ -2104,7 +1785,11 @@ const status = (
       sourcePolicy: summarizeSourcePolicies(),
       sourceProvenance,
       timestamp,
-    }) as SmartSuggestStatusResponse;
+    });
+
+    return yield* Schema.decodeUnknownEffect(SmartSuggestStatusResponseSchema)(response).pipe(
+      Effect.mapError(() => serverError()),
+    );
   });
 
 const readTenantContext = (query: SmartSuggestQuery) => {
@@ -3239,6 +2924,17 @@ const getProviderRegistry = (
 
   const registry = createSmartSuggestProviderRegistryFromConfig(config);
   providerRegistries.set(key, registry);
+
+  while (providerRegistries.size > maxProviderRegistries) {
+    const oldestKey = providerRegistries.keys().next().value;
+
+    if (typeof oldestKey !== 'string') {
+      break;
+    }
+
+    providerRegistries.delete(oldestKey);
+  }
+
   return registry;
 };
 
@@ -3859,10 +3555,13 @@ const providerEnrichmentResponseFor = ({
     };
   });
 
-const blockedCountryScopeResponse = (request: SmartSuggestRequest): SmartSuggestResponse => ({
+const blockedCountryScopeResponse = (
+  request: SmartSuggestRequest,
+  requestId: string,
+): SmartSuggestResponse => ({
   cacheStatus: 'disabled',
   countryScope: request.countryScope,
-  requestId: `blocked-country-scope-${request.kind}`,
+  requestId,
   suggestions: [],
 });
 
@@ -3884,7 +3583,11 @@ const suggest = (
   const suggestRequest = parsedSuggestRequest.request;
 
   if (parsedSuggestRequest.status === 'blocked') {
-    return Effect.succeed(responseForPublicDto(blockedCountryScopeResponse(suggestRequest)));
+    return createTelemetryId('blocked-country-scope', suggestRequest.kind).pipe(
+      Effect.map((requestId) =>
+        responseForPublicDto(blockedCountryScopeResponse(suggestRequest, requestId)),
+      ),
+    );
   }
 
   return Effect.gen(function* suggestProgram() {
@@ -3916,7 +3619,12 @@ const suggest = (
       return responseForPublicDto(response);
     }
 
-    const workerCached = workerCache.get(cacheKey);
+    let workerCached = workerCache.get(cacheKey);
+
+    if (workerCached?.expiresAtMs !== undefined && workerCached.expiresAtMs <= Date.now()) {
+      workerCache.delete(cacheKey);
+      workerCached = undefined;
+    }
 
     if (workerCached !== undefined) {
       cacheLevels.workerMemory = cacheLevel(true, 'hit');
@@ -4138,20 +3846,18 @@ const applyPublicBffRateLimit = (
 const suggestEffect = (
   query: Parameters<typeof suggest>[0],
   repositories: SmartSuggestRepositories,
-  env?: SmartSuggestWorkerEnv,
-  request?: HttpServerRequest.HttpServerRequest,
+  env: SmartSuggestWorkerEnv | undefined,
+  request: HttpServerRequest.HttpServerRequest,
 ) =>
   Effect.gen(function* suggestEffectProgram() {
-    if (request !== undefined) {
-      yield* protectBffRequest({
-        endpoint: 'suggest',
-        env,
-        repositories,
-        request,
-        requireKnownTenant: query.tenantId !== undefined,
-        tenantId: query.tenantId,
-      });
-    }
+    yield* protectBffRequest({
+      endpoint: 'suggest',
+      env,
+      repositories,
+      request,
+      requireKnownTenant: query.tenantId !== undefined,
+      tenantId: query.tenantId,
+    });
 
     return yield* suggest(query, repositories, env);
   }).pipe(Effect.mapError(normalizeApiError));
@@ -4159,22 +3865,20 @@ const suggestEffect = (
 const recordAcceptEventEffect = (
   repositories: SmartSuggestRepositories,
   input: Parameters<typeof normalizeAcceptEvent>[0],
-  env?: SmartSuggestWorkerEnv,
-  request?: HttpServerRequest.HttpServerRequest,
+  env: SmartSuggestWorkerEnv | undefined,
+  request: HttpServerRequest.HttpServerRequest,
 ) =>
   Effect.gen(function* recordAcceptEventEffectProgram() {
     const event = normalizeAcceptEvent(input);
 
-    if (request !== undefined) {
-      yield* protectBffRequest({
-        endpoint: 'accept',
-        env,
-        repositories,
-        request,
-        requireKnownTenant: false,
-        tenantId: event.tenant?.tenantId,
-      });
-    }
+    yield* protectBffRequest({
+      endpoint: 'accept',
+      env,
+      repositories,
+      request,
+      requireKnownTenant: false,
+      tenantId: event.tenant?.tenantId,
+    });
 
     const id = yield* createTelemetryId('accept', event.requestId, event.suggestionId);
 

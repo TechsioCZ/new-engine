@@ -398,6 +398,108 @@ describe("smart suggest UI wrappers", () => {
     );
   });
 
+  it("emits cleared postal validation for empty local input when empty validation is disabled", async () => {
+    const onValidationChange = vi.fn();
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    document.body.append(container);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        createElement(PostalValidationField, {
+          countryCode: "CZ",
+          defaultValue: "12345",
+          id: "postal-code",
+          label: "Postal code",
+          onValidationChange,
+        }),
+      );
+
+      await Promise.resolve();
+    });
+
+    expect(onValidationChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isValid: true }),
+    );
+
+    onValidationChange.mockClear();
+
+    const onChange = formInputProps.at(-1)?.["onChange"];
+
+    expect(onChange).toBeTypeOf("function");
+    await act(async () => {
+      if (typeof onChange === "function") {
+        onChange({ target: { value: "" } });
+      }
+
+      await Promise.resolve();
+    });
+
+    expect(onValidationChange).toHaveBeenLastCalledWith(undefined);
+    expect(onValidationChange).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        errors: [expect.objectContaining({ code: "postal.required" })],
+      }),
+    );
+  });
+
+  it("emits cleared postal validation for empty server input when empty validation is disabled", async () => {
+    const onValidationChange = vi.fn();
+    const validatePostalCode = vi.fn(createServerPostalValidationResult);
+    const container = document.createElement("div");
+    const root = createRoot(container);
+
+    document.body.append(container);
+    roots.push(root);
+
+    await act(async () => {
+      root.render(
+        createElement(PostalValidationField, {
+          countryCode: "CZ",
+          defaultValue: "12345",
+          id: "postal-code",
+          label: "Postal code",
+          onValidationChange,
+          validatePostalCode,
+        }),
+      );
+    });
+
+    const onBlur = formInputProps.at(-1)?.["onBlur"];
+
+    expect(onBlur).toBeTypeOf("function");
+    await act(async () => {
+      if (typeof onBlur === "function") {
+        onBlur({});
+      }
+
+      await Promise.resolve();
+    });
+
+    expect(validatePostalCode).toHaveBeenCalledTimes(1);
+    expect(onValidationChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isValid: true }),
+    );
+
+    onValidationChange.mockClear();
+
+    const onChange = formInputProps.at(-1)?.["onChange"];
+
+    expect(onChange).toBeTypeOf("function");
+    await act(async () => {
+      if (typeof onChange === "function") {
+        onChange({ target: { value: "" } });
+      }
+
+      await Promise.resolve();
+    });
+
+    expect(validatePostalCode).toHaveBeenCalledTimes(1);
+    expect(onValidationChange).toHaveBeenLastCalledWith(undefined);
+  });
+
   it("clears stale server postal validation when the country changes", async () => {
     const validatePostalCode = vi.fn(createServerPostalValidationResult);
     const container = document.createElement("div");

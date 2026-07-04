@@ -195,6 +195,24 @@ describe("PhoneValidationField validation modes", () => {
     )
   })
 
+  it("emits undefined when a visible phone validation result is cleared", async () => {
+    const onValidationChange = vi.fn()
+
+    await renderPhoneValidationField({ onValidationChange })
+    await changePhoneValue("not a phone")
+    await blurPhoneField()
+    await flushAsync()
+
+    expect(onValidationChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isValid: false })
+    )
+
+    await changePhoneValue("")
+
+    expect(latestPhoneInputProps().validateStatus).toBe("default")
+    expect(onValidationChange).toHaveBeenLastCalledWith(undefined)
+  })
+
   it("defers server-only validation to a provided async validator", async () => {
     const serverValidatePhoneNumber = vi.fn(
       async (request: PhoneValidationRequest) =>

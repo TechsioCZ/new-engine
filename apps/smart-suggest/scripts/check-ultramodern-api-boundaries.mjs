@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { testFilePattern } from './lib/file-patterns.mjs';
 
 const workspaceRoot = process.env.ULTRAMODERN_WORKSPACE_ROOT ?? process.cwd();
 const driftOnly = process.argv.includes('--drift-only');
@@ -23,6 +24,15 @@ const relative = (filePath) => normalize(path.relative(workspaceRoot, filePath))
 const exists = (relativePath) => fs.existsSync(path.join(workspaceRoot, relativePath));
 const readText = (relativePath) => fs.readFileSync(path.join(workspaceRoot, relativePath), 'utf8');
 const fail = (message) => failures.push(message);
+const readJson = (relativePath) => {
+  try {
+    return JSON.parse(readText(relativePath));
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    fail(`${relativePath}: invalid JSON (${details}).`);
+    return {};
+  }
+};
 const assert = (condition, message) => {
   if (!condition) {
     fail(message);
@@ -385,7 +395,7 @@ const textFiles = generatedFiles.filter((file) =>
 for (const file of textFiles) {
   const content = readText(file);
 
-  if (/\/api\//u.test(file) && !/\.test\.[cm]?[jt]sx?$/u.test(file)) {
+  if (/\/api\//u.test(file) && !testFilePattern.test(file)) {
     assertNotContains(
       file,
       content,
@@ -513,7 +523,7 @@ for (const ownerPath of apiOwners) {
   }
 
   if (exists(packageJsonPath)) {
-    const packageJson = JSON.parse(readText(packageJsonPath));
+    const packageJson = readJson(packageJsonPath);
     assert(
       packageJson.exports?.['./api'] === './shared/api.ts',
       `${packageJsonPath}: package must export ./api from shared/api.ts.`,
@@ -532,7 +542,7 @@ for (const ownerPath of apiOwners) {
 }
 
 if (exists('apps/shell-super-app/package.json')) {
-  const shellPackageJson = JSON.parse(readText('apps/shell-super-app/package.json'));
+  const shellPackageJson = readJson('apps/shell-super-app/package.json');
   assert(
     shellPackageJson.exports?.['./api/clients'] === './src/api/vertical-clients.ts',
     'apps/shell-super-app/package.json must export ./api/clients.',
@@ -540,7 +550,7 @@ if (exists('apps/shell-super-app/package.json')) {
 }
 
 if (exists('package.json')) {
-  const rootPackageJson = JSON.parse(readText('package.json'));
+  const rootPackageJson = readJson('package.json');
   assert(
     rootPackageJson.scripts?.['api:check'] ===
       'node ./scripts/check-ultramodern-api-boundaries.mjs',
@@ -553,8 +563,8 @@ if (exists('package.json')) {
 }
 
 if (exists('.modernjs/ultramodern.json')) {
-  const config = JSON.parse(readText('.modernjs/ultramodern.json'));
-  const rootPackageJson = exists('package.json') ? JSON.parse(readText('package.json')) : {};
+  const config = readJson('.modernjs/ultramodern.json');
+  const rootPackageJson = exists('package.json') ? readJson('package.json') : {};
   const modernCreateSpecifier =
     rootPackageJson.devDependencies?.['@modern-js/create'] ??
     rootPackageJson.dependencies?.['@modern-js/create'];

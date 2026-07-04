@@ -19,6 +19,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { getStatusText } from './validation-status-text';
 
 type FormInputProps = ComponentPropsWithoutRef<typeof FormInput>;
 
@@ -33,7 +34,8 @@ export type PostalValidationFieldProps = Omit<
   countryCode: Uppercase<string>;
   helpText?: ReactNode;
   onChange?: ChangeEventHandler<HTMLInputElement>;
-  onValidationChange?: (result: PostalValidationResult) => void;
+  /** Called when validation changes; undefined means the result was cleared. */
+  onValidationChange?: (result: PostalValidationResult | undefined) => void;
   statusText?: ReactNode;
   validatePostalCode?: PostalValidationFieldValidator;
   validateEmpty?: boolean;
@@ -51,22 +53,6 @@ const getValidationStatus = (
   }
 
   return status ? 'success' : 'error';
-};
-
-const getStatusText = (
-  helpText: ReactNode,
-  result: PostalValidationResult | undefined,
-  statusText: ReactNode,
-) => {
-  if (helpText !== undefined) {
-    return helpText;
-  }
-
-  if (statusText !== undefined) {
-    return statusText;
-  }
-
-  return result?.errors[0]?.message;
 };
 
 const ignorePostalValidationError = () => null;
@@ -121,6 +107,10 @@ export function PostalValidationField({
     clearServerValidationResult();
   }, [clearServerValidationResult, normalizedCountryCode]);
 
+  useEffect(() => {
+    onValidationChange?.(resolvedValidationResult);
+  }, [onValidationChange, resolvedValidationResult]);
+
   const validateCurrentValue = useCallback(
     async (nextRawInput = rawInput) => {
       const shouldValidateCurrent = validateEmpty || nextRawInput.trim().length > 0;
@@ -150,9 +140,8 @@ export function PostalValidationField({
       }
 
       setServerValidationResult(nextResult);
-      onValidationChange?.(nextResult);
     },
-    [normalizedCountryCode, onValidationChange, providedValidatePostalCode, rawInput, validateEmpty],
+    [normalizedCountryCode, providedValidatePostalCode, rawInput, validateEmpty],
   );
 
   const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
@@ -176,15 +165,6 @@ export function PostalValidationField({
         }
 
         clearServerValidationResult();
-
-        if (providedValidatePostalCode === undefined) {
-          onValidationChange?.(
-            validatePostalCodeFallback({
-              countryCode: normalizedCountryCode,
-              rawInput: nextValue,
-            }),
-          );
-        }
 
         onChange?.(event);
 

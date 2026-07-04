@@ -8,6 +8,7 @@ import type {
 import {
   DEFAULT_PHONE_VALIDATION_MODE,
   getPhoneInputHints,
+  liteResultToPhoneValidationResult,
   validatePhoneNumberLite,
 } from "@techsio/smart-suggest-validation/phone-lite"
 import {
@@ -25,6 +26,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { getStatusText } from "./validation-status-text"
 
 export type PhoneValidationFieldValidator = (
   request: PhoneValidationRequest
@@ -41,7 +43,8 @@ export type PhoneValidationFieldProps = Omit<
     label: ReactNode
     helpText?: ReactNode
     onCountryChange?: (details: PhoneInputCountryChangeDetails) => void
-    onValidationChange?: (result: PhoneValidationResult) => void
+    /** Called when validation changes; undefined means the result was cleared. */
+    onValidationChange?: (result: PhoneValidationResult | undefined) => void
     onValueChange?: (details: PhoneInputValueChangeDetails) => void
     statusText?: ReactNode
     validatePhoneNumber?: PhoneValidationFieldValidator
@@ -69,19 +72,9 @@ const toSmartSuggestCountryCode = (countryCode: string | undefined) =>
 const createLitePhoneValidationResult = (
   request: PhoneValidationRequest
 ): PhoneValidationResult | undefined => {
-  const liteResult = validatePhoneNumberLite(request)
-
-  if (liteResult.status === "strict_validation_required") {
-    return
-  }
-
-  return {
-    rawInput: liteResult.rawInput,
-    displayValue: liteResult.displayValue,
-    isPossible: false,
-    isValid: false,
-    errors: liteResult.errors,
-  }
+  return liteResultToPhoneValidationResult(validatePhoneNumberLite(request), {
+    omitWhenStrictValidationRequired: true,
+  })
 }
 
 const getValidationStatus = (
@@ -92,22 +85,6 @@ const getValidationStatus = (
   }
 
   return result.isValid ? "success" : "error"
-}
-
-const getStatusText = (
-  helpText: ReactNode,
-  result: PhoneValidationResult | undefined,
-  statusText: ReactNode
-) => {
-  if (helpText !== undefined) {
-    return helpText
-  }
-
-  if (statusText !== undefined) {
-    return statusText
-  }
-
-  return result?.errors[0]?.message
 }
 
 const createPhoneValidationRequest = (
@@ -198,7 +175,8 @@ export function PhoneValidationField({
   const clearValidationResult = useCallback(() => {
     validationRequestIdRef.current += 1
     setValidationResult(undefined)
-  }, [])
+    onValidationChange?.(undefined)
+  }, [onValidationChange])
 
   const validateCurrentValue = useCallback(
     async (
@@ -211,6 +189,7 @@ export function PhoneValidationField({
 
       if (!shouldValidate) {
         setValidationResult(undefined)
+        onValidationChange?.(undefined)
         return
       }
 
@@ -233,10 +212,7 @@ export function PhoneValidationField({
       }
 
       setValidationResult(nextResult)
-
-      if (nextResult !== undefined) {
-        onValidationChange?.(nextResult)
-      }
+      onValidationChange?.(nextResult)
     },
     [
       allowedCountries,

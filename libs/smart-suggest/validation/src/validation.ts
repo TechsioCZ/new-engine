@@ -24,7 +24,9 @@ export type {
   PhoneValidationRequest,
   PhoneValidationResult,
   ValidationIssue,
+  LiteResultToPhoneValidationResultOptions,
 } from "./phone-lite"
+export { liteResultToPhoneValidationResult } from "./phone-lite"
 
 export const validatePhoneNumber = validatePhoneNumberLite
 

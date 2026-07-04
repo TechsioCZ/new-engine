@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { testFilePattern } from './lib/file-patterns.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const appRoot = path.resolve(path.dirname(scriptPath), '..');
@@ -22,7 +23,6 @@ const ignoredDirectories = new Set([
 
 const textFilePattern = /\.(?:[cm]?[jt]sx?|json|css|html|mjs|mts|cts|ya?ml)$/u;
 const codeFilePattern = /\.(?:[cm]?[jt]sx?|mjs|mts|cts)$/u;
-const testFilePattern = /(?:^|\/)(?:tests?\/.*|.*\.(?:test|spec)\.[cm]?[jt]sx?)$/u;
 const generatedFilePattern = /(?:^|\/)(?:router\.gen\.ts|.*\.gen\.[cm]?[jt]sx?)$/u;
 
 const parseArgs = () => {
@@ -312,7 +312,7 @@ const ruleGroups = [
         id: 'static-suggestion-array-in-app',
         message:
           'App runtime must not hardcode local suggestion arrays; use API-backed Smart Suggest clients.',
-        regex: /\b(?:suggestions|addressSuggestions)\s*(?::\s*[^=;]+)?=\s*\[/u,
+        regex: /\b(?:suggestions|addressSuggestions)\s*(?::\s*[^=;]+)?=\s*\[\s*(?!\])/u,
       },
       {
         id: 'sample-suggestion-source-in-app',

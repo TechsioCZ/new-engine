@@ -10,6 +10,7 @@ import {
   getPhoneInputHints,
   getPhoneValidationModeContract,
   isPhoneValidationMode,
+  liteResultToPhoneValidationResult,
   validatePhoneNumberLite,
 } from "../src/phone-lite"
 import { validatePhoneNumber } from "../src/phone-strict"
@@ -289,5 +290,35 @@ describe("phone validation mode contract", () => {
     expect(result.errors).toContainEqual(
       expect.objectContaining({ code: "phone.invalid_shape" })
     )
+  })
+
+  it("converts lite validation results through the canonical public result mapper", () => {
+    const strictRequired = validatePhoneNumberLite({
+      rawInput: "+420 777 123 456",
+      defaultCountry: "CZ",
+    })
+    const malformed = validatePhoneNumberLite({ rawInput: "not a phone" })
+
+    expect(liteResultToPhoneValidationResult(strictRequired)).toMatchObject({
+      displayValue: "+420 777 123 456",
+      errors: [],
+      isPossible: true,
+      isValid: false,
+      rawInput: "+420 777 123 456",
+    })
+    expect(
+      liteResultToPhoneValidationResult(strictRequired, {
+        omitWhenStrictValidationRequired: true,
+      })
+    ).toBeUndefined()
+    expect(
+      liteResultToPhoneValidationResult(malformed, {
+        omitWhenStrictValidationRequired: true,
+      })
+    ).toMatchObject({
+      errors: [expect.objectContaining({ code: "phone.invalid_shape" })],
+      isPossible: false,
+      isValid: false,
+    })
   })
 })

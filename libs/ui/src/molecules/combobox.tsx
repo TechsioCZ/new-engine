@@ -239,6 +239,19 @@ function defaultIsItemDisabled<TItem>(item: TItem) {
     : false
 }
 
+// Zag expects value/defaultValue as string[] even for single-select. The public
+// prop allows `string | string[]`; normalize at the boundary so a controlled
+// single-select `value="cz"` is not fed to Zag as an array-like raw string.
+const toArrayValue = (
+  value: string | string[] | undefined
+): string[] | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+
+  return Array.isArray(value) ? value : [value]
+}
+
 function filterComboboxItems<TItem>(
   items: TItem[],
   currentInputValue: string,
@@ -384,8 +397,8 @@ export function Combobox<TItem = DefaultComboboxItem>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: value as string[] | undefined,
-    defaultValue: defaultValue as string[] | undefined,
+    value: toArrayValue(value),
+    defaultValue: toArrayValue(defaultValue),
     multiple,
     inputValue,
     onValueChange: ({ value: selectedValue }) => {
@@ -403,7 +416,6 @@ export function Combobox<TItem = DefaultComboboxItem>({
   const api = connectCombobox(service, normalizeProps)
 
   const inputProps = api.getInputProps()
-  const { ...restInputProps } = inputProps
 
   const {
     root,
@@ -440,7 +452,7 @@ export function Combobox<TItem = DefaultComboboxItem>({
       >
         <Input
           className={input()}
-          {...restInputProps}
+          {...inputProps}
           autoComplete={autoComplete}
           name={name}
           placeholder={placeholder}

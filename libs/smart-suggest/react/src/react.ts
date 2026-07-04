@@ -13,7 +13,10 @@ import type {
   PhoneValidationResult,
   ValidationIssue,
 } from '@techsio/smart-suggest-validation/phone-lite';
-import { validatePhoneNumberLite } from '@techsio/smart-suggest-validation/phone-lite';
+import {
+  liteResultToPhoneValidationResult,
+  validatePhoneNumberLite,
+} from '@techsio/smart-suggest-validation/phone-lite';
 import {
   createContext,
   createElement,
@@ -292,15 +295,7 @@ export const useMockSmartSuggestClient = (overrides: Partial<SmartSuggestEffectC
 const createLitePhoneValidationResult = (
   request: PhoneValidationRequest,
 ): PhoneValidationResult => {
-  const liteResult = validatePhoneNumberLite(request);
-
-  return {
-    rawInput: liteResult.rawInput,
-    displayValue: liteResult.displayValue,
-    isPossible: liteResult.canAttemptStrictValidation,
-    isValid: false,
-    errors: liteResult.errors,
-  };
+  return liteResultToPhoneValidationResult(validatePhoneNumberLite(request));
 };
 
 const createMockPostalValidationResult = (

@@ -2166,7 +2166,22 @@ describe("smart suggest storage", () => {
         prepare: () => ({
           bind: () => ({
             all: async () => ({ results: [row] }),
-            raw: async () => [Object.values(row)],
+            raw: async () => [
+              [
+                row.cacheKey,
+                row.queryHash,
+                row.kind,
+                row.countryCode,
+                row.tenantId,
+                row.language,
+                row.status,
+                row.payloadJson,
+                row.cachePolicyJson,
+                row.expiresAt,
+                row.createdAt,
+                row.updatedAt,
+              ],
+            ],
           }),
         }),
       } as unknown as SmartSuggestD1Binding;
