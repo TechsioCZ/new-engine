@@ -40,6 +40,19 @@ const addressSuggestState = vi.hoisted(
 vi.mock("@techsio/ui-kit/molecules/combobox", () => ({
   Combobox: (props: Record<string, unknown>) => {
     comboboxProps.push(props);
+    const items = Array.isArray(props.items) ? props.items : [];
+    const renderLoadingState = props.renderLoadingState;
+
+    if (
+      props.loading === true &&
+      items.length === 0 &&
+      typeof renderLoadingState === "function"
+    ) {
+      return renderLoadingState({
+        inputValue: typeof props.inputValue === "string" ? props.inputValue : "",
+      });
+    }
+
     return null;
   },
 }));
@@ -211,6 +224,26 @@ describe("smart suggest UI wrappers", () => {
     expect(onSuggestStateChange).toHaveBeenCalledWith(addressSuggestState.current);
   });
 
+  it("passes both countryCode and countryCodes to address suggestions without rewriting them", () => {
+    const countryCodes = ["SK", "CZ"] as const;
+
+    renderToStaticMarkup(
+      createElement(AddressSuggestField, {
+        client: createMockSmartSuggestClient(),
+        countryCode: "SK",
+        countryCodes,
+        inputValue: "Namestie",
+      }),
+    );
+
+    expect(addressSuggestOptions.at(-1)?.request).toMatchObject({
+      countryCode: "SK",
+      kind: "address",
+      query: "Namestie",
+    });
+    expect(addressSuggestOptions.at(-1)?.request?.countryCodes).toBe(countryCodes);
+  });
+
   it("selects structured address suggestions and keeps accept telemetry non-blocking", () => {
     const suggestion: SmartSuggestSuggestion = {
       address: {
@@ -305,6 +338,25 @@ describe("smart suggest UI wrappers", () => {
     expect(comboboxProps.at(-1)).toMatchObject({ items: [], loading: true });
   });
 
+  it("renders explicit loading state overrides even when default loading copy stays quiet", () => {
+    addressSuggestState.current = { status: "loading" };
+
+    const markup = renderToStaticMarkup(
+      createElement(AddressSuggestField, {
+        client: createMockSmartSuggestClient(),
+        inputValue: "Pra",
+        renderLoadingState: ({ inputValue }) =>
+          createElement("strong", null, `Searching ${inputValue}`),
+      }),
+    );
+
+    expect(markup).toContain("Searching Pra");
+    expect(comboboxProps.at(-1)?.["loadingMessage"]).toBeUndefined();
+    expect(comboboxProps.at(-1)?.["noResultsMessage"]).toBeUndefined();
+    expect(comboboxProps.at(-1)?.["error"]).toBeUndefined();
+    expect(comboboxProps.at(-1)).toMatchObject({ items: [], loading: true });
+  });
+
   it("keeps previous suggestions visible while a new request is loading", () => {
     const suggestion: SmartSuggestSuggestion = {
       confidence: 0.9,
@@ -358,6 +410,30 @@ describe("smart suggest UI wrappers", () => {
 
     expect(comboboxProps.at(-1)).toMatchObject({ items: [suggestion] });
     expect(comboboxProps.at(-1)?.["error"]).toBeUndefined();
+  });
+
+  it("keeps explicit unavailable message across consecutive errors before any data arrives", () => {
+    const unavailableMessage = "Návrhy adries nie sú dostupné";
+
+    for (const inputValue of ["Pra", "Brn"]) {
+      addressSuggestState.current = {
+        error: new Error(`network unavailable for ${inputValue}`),
+        status: "error",
+      };
+
+      renderToStaticMarkup(
+        createElement(AddressSuggestField, {
+          client: createMockSmartSuggestClient(),
+          inputValue,
+          suggestUnavailableMessage: unavailableMessage,
+        }),
+      );
+
+      expect(comboboxProps.at(-1)).toMatchObject({
+        error: unavailableMessage,
+        items: [],
+      });
+    }
   });
 
   it("uses the shared postal fallback for local postal validation", async () => {

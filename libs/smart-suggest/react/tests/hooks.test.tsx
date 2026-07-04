@@ -257,6 +257,71 @@ describe('Smart Suggest React hooks', () => {
     });
   });
 
+  it('discards a stale address response when request changes before it resolves', async () => {
+    let request = {
+      kind: 'address',
+      query: 'Praha',
+    } satisfies SmartSuggestRequest;
+    const states: SmartSuggestAsyncState<SmartSuggestResponse>[] = [];
+    const resolvePendingResponses: Array<(response: SmartSuggestResponse) => void> = [];
+    const suggest = vi.fn<SmartSuggestEffectClient['suggest']>(() =>
+      callback<SmartSuggestResponse, Error>((resume) => {
+        resolvePendingResponses.push((response) => {
+          resume(succeed(response));
+        });
+      }),
+    );
+    const client = createMockSmartSuggestClient({ suggest });
+
+    const Probe = () => {
+      states.push(useAddressSuggest({ client, debounceMs: 0, request }));
+      return null;
+    };
+
+    await render(createElement(Probe));
+    await advanceTimers(0);
+
+    expect(suggest).toHaveBeenCalledTimes(1);
+
+    request = { kind: 'address', query: 'Brno' };
+    await render(createElement(Probe));
+    await advanceTimers(0);
+
+    expect(suggest).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolvePendingResponses[0]!({
+        cacheStatus: 'miss',
+        requestId: 'Praha-stale',
+        suggestions: [],
+      });
+      await Promise.resolve();
+    });
+
+    expect(states.at(-1)).toMatchObject({ status: 'loading' });
+    expect(states).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({ requestId: 'Praha-stale' }),
+        }),
+      ]),
+    );
+
+    await act(async () => {
+      resolvePendingResponses[1]!({
+        cacheStatus: 'miss',
+        requestId: 'Brno-current',
+        suggestions: [],
+      });
+      await Promise.resolve();
+    });
+
+    expect(states.at(-1)).toMatchObject({
+      data: { requestId: 'Brno-current' },
+      status: 'success',
+    });
+  });
+
   it('aborts an in-flight address request when the query changes', async () => {
     let request = {
       kind: 'address',
