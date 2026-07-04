@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "name": "smart-suggest-core",
+  "projectType": "library",
+  "sourceRoot": "libs/smart-suggest/core/src",
+  "tags": ["type:lib", "area:smart-suggest", "platform:shared", "framework:agnostic"]
+}

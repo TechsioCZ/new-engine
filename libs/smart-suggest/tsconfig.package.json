@@ -1,0 +1,7 @@
+{
+  "extends": "../../apps/smart-suggest/tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": []
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/shared-contracts"
+    },
+    {
+      "path": "packages/shared-design-tokens"
+    },
+    {
+      "path": "apps/shell-super-app"
+    }
+  ]
+}

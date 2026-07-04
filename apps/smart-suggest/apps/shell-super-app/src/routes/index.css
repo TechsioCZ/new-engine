@@ -1,0 +1,41 @@
+@import 'tailwindcss' prefix(shell) source(none);
+@import '@smart-suggest/shared-design-tokens/tokens.css';
+@source '..';
+
+[data-app-id='shell-super-app'] [data-smart-suggest-list] {
+  background: var(--color-select-content-bg, var(--color-bg-base, #fff));
+  border: var(--border-width-form-control, 1px) solid
+    var(--color-select-content-border, var(--color-border-primary));
+  border-radius: var(--radius-select, var(--radius-form-control-md));
+  box-shadow: var(--shadow-select-content, 0 1rem 2rem rgb(15 23 42 / 18%));
+  color: var(--color-select-item-fg-base, var(--color-fg-primary));
+  display: grid;
+  gap: var(--spacing-50);
+  inset: auto;
+  margin-block-start: var(--spacing-50);
+  max-block-size: min(24rem, 60vh);
+  overflow: auto;
+  padding: var(--spacing-50);
+  position: fixed;
+  position-area: block-end span-inline-end;
+  width: anchor-size(width);
+  z-index: var(--z-content, 50);
+}
+
+[data-app-id='shell-super-app'] [data-smart-suggest-option] {
+  background: var(--color-select-item-bg-base, transparent);
+  border-radius: var(--radius-select-sm, var(--radius-form-control-sm));
+  color: var(--color-select-item-fg-base, var(--color-fg-primary));
+  cursor: pointer;
+  font-size: var(--font-size-select-item-md, 0.875rem);
+  font-weight: 700;
+  line-height: 1.35;
+  min-block-size: var(--size-form-control-sm, 2.25rem);
+  padding: var(--spacing-150) var(--spacing-200);
+}
+
+[data-app-id='shell-super-app'] [data-smart-suggest-option]:hover,
+[data-app-id='shell-super-app'] [data-smart-suggest-option][aria-selected='true'] {
+  background: var(--color-select-item-bg-hover, var(--color-fill-hover));
+  color: var(--color-select-item-fg-base, var(--color-fg-primary));
+}

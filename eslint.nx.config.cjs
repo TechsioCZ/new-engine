@@ -13,6 +13,7 @@ module.exports = [
       "**/coverage/**",
       "**/*.d.ts",
       "**/eslint.config.*",
+      "apps/smart-suggest/apps/shell-super-app/src/modern-tanstack/**/router.gen.ts",
       "apps/payload/src/payload-types.ts",
       "apps/payload/src/app/(payload)/importMap.js",
     ],

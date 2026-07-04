@@ -18,6 +18,7 @@ figma.connect(
         success: "success",
         warning: "warning",
         disabled: "default",
+        loading: "default",
       }),
       disabled: figma.enum("state", {
         default: false,
@@ -25,14 +26,25 @@ figma.connect(
         success: false,
         warning: false,
         disabled: true,
+        loading: false,
+      }),
+      loading: figma.enum("state", {
+        default: false,
+        error: false,
+        success: false,
+        warning: false,
+        disabled: false,
+        loading: true,
       }),
       required: figma.boolean("required"),
     },
-    example: ({ size, validateStatus, disabled, required }) => (
+    example: ({ size, validateStatus, disabled, loading, required }) => (
       <Combobox
+        autoComplete="off"
         disabled={disabled}
         items={[]}
         label="Label"
+        loading={loading}
         required={required}
         size={size}
         validateStatus={validateStatus}

@@ -1,0 +1,24 @@
+{
+  "private": true,
+  "name": "@smart-suggest/shared-design-tokens",
+  "version": "0.1.0",
+  "description": "Generated design tokens consumed by shell and verticals.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "scripts": {
+    "check": "pnpm lint && pnpm typecheck && pnpm i18n:boundaries && pnpm contract:check && pnpm mf:types",
+    "contract:check": "cd ../.. && node ./scripts/validate-ultramodern-workspace.mjs",
+    "format": "oxfmt .",
+    "i18n:boundaries": "node ../../scripts/check-ultramodern-i18n-boundaries.mjs",
+    "lint": "oxlint src package.json tsconfig.json",
+    "mf:types": "cd ../.. && pnpm mf:types",
+    "typecheck": "node ../../scripts/ultramodern-typecheck.mjs --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.14.6",
+    "@typescript/native-preview": "7.0.0-dev.20260628.1"
+  }
+}

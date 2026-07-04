@@ -1,0 +1,720 @@
+diff --git a/arktype/column.d.cts b/arktype/column.d.cts
+index 57e9c3ccd06ffab539806c91b495ce551d2d56f5..7261476e6fbe93d4236e5e9e1fdf0520c6d5dbf4 100644
+--- a/arktype/column.d.cts
++++ b/arktype/column.d.cts
+@@ -5,6 +5,7 @@ import * as arktype_internal_variants_object_ts0 from "arktype/internal/variants
+ import * as arktype_internal_variants_string_ts0 from "arktype/internal/variants/string.ts";
+
+ //#region src/arktype/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: arktype.BaseType<string | number | boolean | null, {}>;
+ declare const jsonSchema: arktype.BaseType<string | number | boolean | any[] | Record<string, any> | null, {}>;
+ declare const bufferSchema: arktype_internal_variants_object_ts0.ObjectType<Buffer<ArrayBufferLike>, {}>;
+diff --git a/arktype/column.d.ts b/arktype/column.d.ts
+index 6ee3575276864124efe2b329358e72d5ebf59f84..e8a2d8545ec5d8409ad4a4d7a9551fbb0106bcf7 100644
+--- a/arktype/column.d.ts
++++ b/arktype/column.d.ts
+@@ -5,6 +5,7 @@ import * as arktype_internal_variants_object_ts0 from "arktype/internal/variants
+ import * as arktype_internal_variants_string_ts0 from "arktype/internal/variants/string.ts";
+
+ //#region src/arktype/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: arktype.BaseType<string | number | boolean | null, {}>;
+ declare const jsonSchema: arktype.BaseType<string | number | boolean | any[] | Record<string, any> | null, {}>;
+ declare const bufferSchema: arktype_internal_variants_object_ts0.ObjectType<Buffer<ArrayBufferLike>, {}>;
+diff --git a/better-sqlite3/driver.d.cts b/better-sqlite3/driver.d.cts
+index fd080a19e01ac2ea7253e8d7b26d7cc6a98f2c31..5fe2a56bd8761ae594c03462e639ca635d7bc566 100644
+--- a/better-sqlite3/driver.d.cts
++++ b/better-sqlite3/driver.d.cts
+@@ -6,6 +6,7 @@ import { Database, Options } from "better-sqlite3";
+ import { SQLiteAsyncDatabase } from "../sqlite-core/async/db.cjs";
+
+ //#region src/better-sqlite3/driver.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type DrizzleBetterSQLite3DatabaseConfig = ({
+   source?: string | Buffer;
+ } & Options) | string | undefined;
+diff --git a/better-sqlite3/driver.d.ts b/better-sqlite3/driver.d.ts
+index 02ff3eeb2f873396a9adc5b66c5ddf0f4c572993..e34fc01c750652c3b22a182d25976db08b2fef1f 100644
+--- a/better-sqlite3/driver.d.ts
++++ b/better-sqlite3/driver.d.ts
+@@ -6,6 +6,7 @@ import { AnyRelations, EmptyRelations } from "../relations.js";
+ import { DrizzleSQLiteConfig } from "../sqlite-core/utils.js";
+
+ //#region src/better-sqlite3/driver.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type DrizzleBetterSQLite3DatabaseConfig = ({
+   source?: string | Buffer;
+ } & Options) | string | undefined;
+diff --git a/cockroach-core/policies.d.cts b/cockroach-core/policies.d.cts
+index b45ab02b7fe66eb1cc43907a6a7d939b802d0629..a05393fb8b37e554661c9b73e02ae222d2da682a 100644
+--- a/cockroach-core/policies.d.cts
++++ b/cockroach-core/policies.d.cts
+@@ -12,7 +12,7 @@ interface CockroachPolicyConfig {
+   using?: SQL;
+   withCheck?: SQL;
+ }
+-declare class CockroachPolicy implements CockroachPolicyConfig {
++declare class CockroachPolicy {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   readonly as: CockroachPolicyConfig['as'];
+diff --git a/cockroach-core/policies.d.ts b/cockroach-core/policies.d.ts
+index 3d000078a7c7eb9e1fbf6663079d34cc4f065692..c322076be2295b57148e6433c06b4f5777372e57 100644
+--- a/cockroach-core/policies.d.ts
++++ b/cockroach-core/policies.d.ts
+@@ -12,7 +12,7 @@ interface CockroachPolicyConfig {
+   using?: SQL;
+   withCheck?: SQL;
+ }
+-declare class CockroachPolicy implements CockroachPolicyConfig {
++declare class CockroachPolicy {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   readonly as: CockroachPolicyConfig['as'];
+diff --git a/cockroach-core/roles.d.cts b/cockroach-core/roles.d.cts
+index d34865246b0ab0a682d5cfe1edae3684bf85a97b..53692a0351d6dc64faa67ac31eb66e90730eacad 100644
+--- a/cockroach-core/roles.d.cts
++++ b/cockroach-core/roles.d.cts
+@@ -5,7 +5,7 @@ interface CockroachRoleConfig {
+   createDb?: boolean;
+   createRole?: boolean;
+ }
+-declare class CockroachRole implements CockroachRoleConfig {
++declare class CockroachRole {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   constructor(name: string, config?: CockroachRoleConfig);
+diff --git a/cockroach-core/roles.d.ts b/cockroach-core/roles.d.ts
+index d797efaf8f50f14db7d812cbb75ab3d52a372c0f..cf4560c001bd9f90adafd3b29fe06667c5c0e0d2 100644
+--- a/cockroach-core/roles.d.ts
++++ b/cockroach-core/roles.d.ts
+@@ -5,7 +5,7 @@ interface CockroachRoleConfig {
+   createDb?: boolean;
+   createRole?: boolean;
+ }
+-declare class CockroachRole implements CockroachRoleConfig {
++declare class CockroachRole {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   constructor(name: string, config?: CockroachRoleConfig);
+diff --git a/column-builder.d.cts b/column-builder.d.cts
+index f56639be963250b7e0a145146cbf5d190d9397f1..6f030b0ddb378a2cb02a9eac7c6123e067a5f403 100644
+--- a/column-builder.d.cts
++++ b/column-builder.d.cts
+@@ -146,9 +146,10 @@ type IsIdentity<T, TType extends 'always' | 'byDefault'> = T & {
+ interface ColumnBuilderBase<out T extends ColumnBuilderBaseConfig<ColumnType> = ColumnBuilderBaseConfig<ColumnType>> {
+   _: T;
+ }
+-declare abstract class ColumnBuilder<out T extends ColumnBuilderBaseConfig<ColumnType>, TRuntimeConfig extends object = object, TExtraConfig extends ColumnBuilderExtraConfig = ColumnBuilderExtraConfig> implements ColumnBuilderBase<T> {
++declare abstract class ColumnBuilder<T extends ColumnBuilderBaseConfig<ColumnType>, TRuntimeConfig extends object = object, TExtraConfig extends ColumnBuilderExtraConfig = ColumnBuilderExtraConfig> implements ColumnBuilderBase<T> {
+   static readonly [entityKind]: string;
+   _: T;
++  protected config: ColumnBuilderRuntimeConfig<T['data']> & TRuntimeConfig;
+   constructor(name: string, dataType: ColumnType, columnType: string);
+   /**
+    * Changes the data type of the column. Commonly used with `json` columns. Also, useful for branded types.
+diff --git a/column-builder.d.ts b/column-builder.d.ts
+index ef98a22a0071256c6f1035cfead21ce8e3c78d8d..08c03c224d140315bc19e8e1924f6f40b2eea5f7 100644
+--- a/column-builder.d.ts
++++ b/column-builder.d.ts
+@@ -146,9 +146,10 @@ type IsIdentity<T, TType extends 'always' | 'byDefault'> = T & {
+ interface ColumnBuilderBase<out T extends ColumnBuilderBaseConfig<ColumnType> = ColumnBuilderBaseConfig<ColumnType>> {
+   _: T;
+ }
+-declare abstract class ColumnBuilder<out T extends ColumnBuilderBaseConfig<ColumnType>, TRuntimeConfig extends object = object, TExtraConfig extends ColumnBuilderExtraConfig = ColumnBuilderExtraConfig> implements ColumnBuilderBase<T> {
++declare abstract class ColumnBuilder<T extends ColumnBuilderBaseConfig<ColumnType>, TRuntimeConfig extends object = object, TExtraConfig extends ColumnBuilderExtraConfig = ColumnBuilderExtraConfig> implements ColumnBuilderBase<T> {
+   static readonly [entityKind]: string;
+   _: T;
++  protected config: ColumnBuilderRuntimeConfig<T['data']> & TRuntimeConfig;
+   constructor(name: string, dataType: ColumnType, columnType: string);
+   /**
+    * Changes the data type of the column. Commonly used with `json` columns. Also, useful for branded types.
+diff --git a/effect-schema/column.d.cts b/effect-schema/column.d.cts
+index d10308b9d7e81b459911bd11b5284a519d000b2d..fd7c824360b423466d6c71a076130218242ee9fa 100644
+--- a/effect-schema/column.d.cts
++++ b/effect-schema/column.d.cts
+@@ -3,6 +3,7 @@ import { Schema, Top } from "effect/Schema";
+ import { Schema as Schema$1 } from "effect";
+
+ //#region src/effect-schema/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: Schema$1.Union<readonly [Schema$1.String, Schema$1.Number, Schema$1.Boolean, Schema$1.Null]>;
+ declare const jsonSchema: Schema$1.Union<readonly [Schema$1.Union<readonly [Schema$1.String, Schema$1.Number, Schema$1.Boolean, Schema$1.Null]>, Schema$1.$Record<Schema$1.String, Schema$1.Any>, Schema$1.$Array<Schema$1.Any>]>;
+ declare const bufferSchema: Schema<Buffer>;
+diff --git a/effect-schema/column.d.ts b/effect-schema/column.d.ts
+index 11aa6de3b97569583d7bd590b25c2932c6b3dfd3..edabd931768dacfc673d9e9b113e2245d43eafb8 100644
+--- a/effect-schema/column.d.ts
++++ b/effect-schema/column.d.ts
+@@ -3,6 +3,7 @@ import { Schema, Top } from "effect/Schema";
+ import { Schema as Schema$1 } from "effect";
+
+ //#region src/effect-schema/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: Schema$1.Union<readonly [Schema$1.String, Schema$1.Number, Schema$1.Boolean, Schema$1.Null]>;
+ declare const jsonSchema: Schema$1.Union<readonly [Schema$1.Union<readonly [Schema$1.String, Schema$1.Number, Schema$1.Boolean, Schema$1.Null]>, Schema$1.$Record<Schema$1.String, Schema$1.Any>, Schema$1.$Array<Schema$1.Any>]>;
+ declare const bufferSchema: Schema<Buffer>;
+diff --git a/mssql-core/columns/binary.d.cts b/mssql-core/columns/binary.d.cts
+index 5e153b532cc8bc400e201a30acb7ce0d41d006e1..ee7a132a16cec6007f8eff80f17b7cf5c2507237 100644
+--- a/mssql-core/columns/binary.d.cts
++++ b/mssql-core/columns/binary.d.cts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/mssql-core/columns/binary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class MsSqlBinaryBuilder extends MsSqlColumnBuilder<{
+   dataType: 'object buffer';
+   data: Buffer;
+diff --git a/mssql-core/columns/binary.d.ts b/mssql-core/columns/binary.d.ts
+index 926d12bf1805581e150fb127c6a25b90f1697228..7ea9cf4907fcb09c4fbd5f83d6226d4f3e31c7bd 100644
+--- a/mssql-core/columns/binary.d.ts
++++ b/mssql-core/columns/binary.d.ts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/mssql-core/columns/binary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class MsSqlBinaryBuilder extends MsSqlColumnBuilder<{
+   dataType: 'object buffer';
+   data: Buffer;
+diff --git a/mssql-core/columns/varbinary.d.cts b/mssql-core/columns/varbinary.d.cts
+index 9cb8c6fec84d2746ca13c09eaf377c3e5d5b43e9..42cb33148d700f5e96b4b4774e2e95cc0f10d0ba 100644
+--- a/mssql-core/columns/varbinary.d.cts
++++ b/mssql-core/columns/varbinary.d.cts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/mssql-core/columns/varbinary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class MsSqlVarBinaryBuilder extends MsSqlColumnBuilder<{
+   dataType: 'object buffer';
+   data: Buffer;
+diff --git a/mssql-core/columns/varbinary.d.ts b/mssql-core/columns/varbinary.d.ts
+index 86cf734597c9753b3d662c0d23aa044a042bdd5d..cb4025efcb99ff8f1a4bb15ce8a8a71a650e9335 100644
+--- a/mssql-core/columns/varbinary.d.ts
++++ b/mssql-core/columns/varbinary.d.ts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/mssql-core/columns/varbinary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class MsSqlVarBinaryBuilder extends MsSqlColumnBuilder<{
+   dataType: 'object buffer';
+   data: Buffer;
+diff --git a/mysql-core/codecs.d.cts b/mysql-core/codecs.d.cts
+index 892cae91324f4a704f69e9548ad91a3fb9376b99..3e7a90ca83e0856bcd2ebf846986ed27c245f158 100644
+--- a/mysql-core/codecs.d.cts
++++ b/mysql-core/codecs.d.cts
+@@ -3,6 +3,7 @@ import { PartialWithUndefined } from "../utils.cjs";
+ import { CastCodec, Codecs } from "../codecs.cjs";
+
+ //#region src/mysql-core/codecs.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type MySqlType = 'tinyint' | 'smallint' | 'mediumint' | 'int' | 'bigint' | 'bigint:number' | 'bigint:string' | 'serial' | 'decimal' | 'decimal:number' | 'decimal:bigint' | 'float' | 'double' | 'real' | 'bit' | 'boolean' | 'char' | 'varchar' | 'tinytext' | 'text' | 'mediumtext' | 'longtext' | 'enum' | 'set' | 'binary' | 'varbinary' | 'tinyblob' | 'tinyblob:buffer' | 'blob' | 'blob:buffer' | 'mediumblob' | 'mediumblob:buffer' | 'longblob' | 'longblob:buffer' | 'date' | 'date:string' | 'datetime' | 'datetime:string' | 'time' | 'timestamp' | 'timestamp:string' | 'year' | 'json' | 'geometry' | 'point' | 'linestring' | 'polygon' | 'multipoint' | 'multilinestring' | 'multipolygon' | 'geometrycollection';
+ type MySqlAliasType = 'integer' | 'int1' | 'int2' | 'int3' | 'middleint' | 'int4' | 'int8' | 'dec' | 'fixed' | 'numeric' | 'double precision' | 'bool' | 'character' | 'nchar' | 'national char' | 'national character' | 'character varying' | 'char varying' | 'nvarchar' | 'national varchar' | 'national character varying' | 'long varchar' | 'long' | 'long varbinary';
+ type MySqlColumnType = MySqlType | MySqlAliasType;
+diff --git a/mysql-core/codecs.d.ts b/mysql-core/codecs.d.ts
+index 82688dc78e90257f8ff0bf773995657eb0c565bc..685452cd5438cdcc8df6020810543911c462ccf6 100644
+--- a/mysql-core/codecs.d.ts
++++ b/mysql-core/codecs.d.ts
+@@ -3,6 +3,7 @@ import { CastCodec, Codecs } from "../codecs.js";
+ import * as __sql_sql_ts0 from "../sql/sql.js";
+
+ //#region src/mysql-core/codecs.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type MySqlType = 'tinyint' | 'smallint' | 'mediumint' | 'int' | 'bigint' | 'bigint:number' | 'bigint:string' | 'serial' | 'decimal' | 'decimal:number' | 'decimal:bigint' | 'float' | 'double' | 'real' | 'bit' | 'boolean' | 'char' | 'varchar' | 'tinytext' | 'text' | 'mediumtext' | 'longtext' | 'enum' | 'set' | 'binary' | 'varbinary' | 'tinyblob' | 'tinyblob:buffer' | 'blob' | 'blob:buffer' | 'mediumblob' | 'mediumblob:buffer' | 'longblob' | 'longblob:buffer' | 'date' | 'date:string' | 'datetime' | 'datetime:string' | 'time' | 'timestamp' | 'timestamp:string' | 'year' | 'json' | 'geometry' | 'point' | 'linestring' | 'polygon' | 'multipoint' | 'multilinestring' | 'multipolygon' | 'geometrycollection';
+ type MySqlAliasType = 'integer' | 'int1' | 'int2' | 'int3' | 'middleint' | 'int4' | 'int8' | 'dec' | 'fixed' | 'numeric' | 'double precision' | 'bool' | 'character' | 'nchar' | 'national char' | 'national character' | 'character varying' | 'char varying' | 'nvarchar' | 'national varchar' | 'national character varying' | 'long varchar' | 'long' | 'long varbinary';
+ type MySqlColumnType = MySqlType | MySqlAliasType;
+diff --git a/mysql-core/columns/blob.d.cts b/mysql-core/columns/blob.d.cts
+index 48ee9158667cf228370911d463cf45c3067fd4ca..6680cc1493e7f01a564cb89f1ab94c56ca2737b8 100644
+--- a/mysql-core/columns/blob.d.cts
++++ b/mysql-core/columns/blob.d.cts
+@@ -4,6 +4,7 @@ import { Equal } from "../../utils.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/mysql-core/columns/blob.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type MySqlBlobColumnType = 'tinyblob' | 'blob' | 'mediumblob' | 'longblob';
+ declare class MySqlStringBlobBuilder extends MySqlColumnBuilder<{
+   dataType: 'string';
+diff --git a/mysql-core/columns/blob.d.ts b/mysql-core/columns/blob.d.ts
+index b351f03abbf474e7061a8931446057c147392e77..2dcb6afe4e0a757e9276218d286885264ff389c9 100644
+--- a/mysql-core/columns/blob.d.ts
++++ b/mysql-core/columns/blob.d.ts
+@@ -4,6 +4,7 @@ import { Equal } from "../../utils.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/mysql-core/columns/blob.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type MySqlBlobColumnType = 'tinyblob' | 'blob' | 'mediumblob' | 'longblob';
+ declare class MySqlStringBlobBuilder extends MySqlColumnBuilder<{
+   dataType: 'string';
+diff --git a/pg-core/codecs.d.cts b/pg-core/codecs.d.cts
+index 3dd4e5d5ea5b42ac01c7c84e77af2efcad25731e..9fbcb1a401aec94ee1f4fbb0dd4713956c3c34ce 100644
+--- a/pg-core/codecs.d.cts
++++ b/pg-core/codecs.d.cts
+@@ -5,6 +5,7 @@ import { PartialWithUndefined } from "../utils.cjs";
+ import { CastArrayCodec, CastCodec, Codecs, NormalizeArrayCodec, NormalizeCodec } from "../codecs.cjs";
+
+ //#region src/pg-core/codecs.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type PostGISType = 'geometry(point)' | 'geometry(pointz)' | 'geometry(pointm)' | 'geometry(pointzm)' | 'geometry(linestring)' | 'geometry(linestringz)' | 'geometry(linestringm)' | 'geometry(linestringzm)' | 'geometry(polygon)' | 'geometry(polygonz)' | 'geometry(polygonm)' | 'geometry(polygonzm)' | 'geometry(multipoint)' | 'geometry(multipointz)' | 'geometry(multipointm)' | 'geometry(multipointzm)' | 'geometry(multilinestring)' | 'geometry(multilinestringz)' | 'geometry(multilinestringm)' | 'geometry(multilinestringzm)' | 'geometry(multipolygon)' | 'geometry(multipolygonz)' | 'geometry(multipolygonm)' | 'geometry(multipolygonzm)' | 'geometry(geometrycollection)' | 'geometry(geometrycollectionz)' | 'geometry(geometrycollectionm)' | 'geometry(geometrycollectionzm)' | 'geometry(circularstring)' | 'geometry(circularstringz)' | 'geometry(circularstringm)' | 'geometry(circularstringzm)' | 'geometry(compoundcurve)' | 'geometry(compoundcurvez)' | 'geometry(compoundcurvem)' | 'geometry(compoundcurvezm)' | 'geometry(curvepolygon)' | 'geometry(curvepolygonz)' | 'geometry(curvepolygonm)' | 'geometry(curvepolygonzm)' | 'geometry(multicurve)' | 'geometry(multicurvez)' | 'geometry(multicurvem)' | 'geometry(multicurvezm)' | 'geometry(multisurface)' | 'geometry(multisurfacez)' | 'geometry(multisurfacem)' | 'geometry(multisurfacezm)' | 'geometry(polyhedralsurface)' | 'geometry(polyhedralsurfacez)' | 'geometry(polyhedralsurfacem)' | 'geometry(polyhedralsurfacezm)' | 'geometry(tin)' | 'geometry(tinz)' | 'geometry(tinm)' | 'geometry(tinzm)' | 'geometry(triangle)' | 'geometry(trianglez)' | 'geometry(trianglem)' | 'geometry(trianglezm)' | 'geography(point)' | 'geography(linestring)' | 'geography(polygon)' | 'geography(multipoint)' | 'geography(multilinestring)' | 'geography(multipolygon)' | 'geography(geometrycollection)' | 'box2d' | 'box3d' | 'raster';
+ type PostgresType = 'smallint' | 'int' | 'bigint' | 'bigint:number' | 'bigint:string' | 'numeric' | 'numeric:number' | 'numeric:bigint' | 'float4' | 'float8' | 'money' | 'smallserial' | 'serial' | 'bigserial' | 'bigserial:number' | 'char' | 'varchar' | 'text' | 'bytea' | 'date' | 'date:string' | 'time' | 'timetz' | 'timestamp' | 'timestamptz' | 'timestamp:string' | 'timestamptz:string' | 'interval' | 'interval:tuple' | 'bool' | 'enum' | 'point' | 'point:tuple' | 'line' | 'line:tuple' | 'lseg' | 'box' | 'path' | 'polygon' | 'circle' | 'cidr' | 'inet' | 'macaddr' | 'macaddr8' | 'bit' | 'varbit' | 'tsvector' | 'tsquery' | 'uuid' | 'xml' | 'json' | 'jsonb' | 'int4range' | 'int8range' | 'numrange' | 'tsrange' | 'tstzrange' | 'daterange' | 'int4multirange' | 'int8multirange' | 'nummultirange' | 'tsmultirange' | 'tstzmultirange' | 'datemultirange' | 'oid' | 'regproc' | 'regprocedure' | 'regoper' | 'regoperator' | 'regclass' | 'regtype' | 'regrole' | 'regnamespace' | 'regconfig' | 'regdictionary' | PostGISType | `${PostGISType}:tuple` | 'halfvec' | 'sparsevec' | 'vector';
+ type PostgresAliasType = 'int2' | 'integer' | 'int4' | 'int8' | 'decimal' | 'real' | 'double' | 'double precision' | 'serial2' | 'serial4' | 'serial8' | 'character' | 'character varying' | 'time with time zone' | 'time without time zone' | 'timestamp with time zone' | 'timestamp without time zone' | 'boolean' | 'bit varying';
+diff --git a/pg-core/codecs.d.ts b/pg-core/codecs.d.ts
+index 4cade447e6a4930b3c59ed2ff38f132f70765881..5eaa8487012012fd69d8b56e3bb351056afd23cf 100644
+--- a/pg-core/codecs.d.ts
++++ b/pg-core/codecs.d.ts
+@@ -5,6 +5,7 @@ import * as __sql_sql_ts0 from "../sql/sql.js";
+ import { SQLChunk } from "../sql/sql.js";
+
+ //#region src/pg-core/codecs.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type PostGISType = 'geometry(point)' | 'geometry(pointz)' | 'geometry(pointm)' | 'geometry(pointzm)' | 'geometry(linestring)' | 'geometry(linestringz)' | 'geometry(linestringm)' | 'geometry(linestringzm)' | 'geometry(polygon)' | 'geometry(polygonz)' | 'geometry(polygonm)' | 'geometry(polygonzm)' | 'geometry(multipoint)' | 'geometry(multipointz)' | 'geometry(multipointm)' | 'geometry(multipointzm)' | 'geometry(multilinestring)' | 'geometry(multilinestringz)' | 'geometry(multilinestringm)' | 'geometry(multilinestringzm)' | 'geometry(multipolygon)' | 'geometry(multipolygonz)' | 'geometry(multipolygonm)' | 'geometry(multipolygonzm)' | 'geometry(geometrycollection)' | 'geometry(geometrycollectionz)' | 'geometry(geometrycollectionm)' | 'geometry(geometrycollectionzm)' | 'geometry(circularstring)' | 'geometry(circularstringz)' | 'geometry(circularstringm)' | 'geometry(circularstringzm)' | 'geometry(compoundcurve)' | 'geometry(compoundcurvez)' | 'geometry(compoundcurvem)' | 'geometry(compoundcurvezm)' | 'geometry(curvepolygon)' | 'geometry(curvepolygonz)' | 'geometry(curvepolygonm)' | 'geometry(curvepolygonzm)' | 'geometry(multicurve)' | 'geometry(multicurvez)' | 'geometry(multicurvem)' | 'geometry(multicurvezm)' | 'geometry(multisurface)' | 'geometry(multisurfacez)' | 'geometry(multisurfacem)' | 'geometry(multisurfacezm)' | 'geometry(polyhedralsurface)' | 'geometry(polyhedralsurfacez)' | 'geometry(polyhedralsurfacem)' | 'geometry(polyhedralsurfacezm)' | 'geometry(tin)' | 'geometry(tinz)' | 'geometry(tinm)' | 'geometry(tinzm)' | 'geometry(triangle)' | 'geometry(trianglez)' | 'geometry(trianglem)' | 'geometry(trianglezm)' | 'geography(point)' | 'geography(linestring)' | 'geography(polygon)' | 'geography(multipoint)' | 'geography(multilinestring)' | 'geography(multipolygon)' | 'geography(geometrycollection)' | 'box2d' | 'box3d' | 'raster';
+ type PostgresType = 'smallint' | 'int' | 'bigint' | 'bigint:number' | 'bigint:string' | 'numeric' | 'numeric:number' | 'numeric:bigint' | 'float4' | 'float8' | 'money' | 'smallserial' | 'serial' | 'bigserial' | 'bigserial:number' | 'char' | 'varchar' | 'text' | 'bytea' | 'date' | 'date:string' | 'time' | 'timetz' | 'timestamp' | 'timestamptz' | 'timestamp:string' | 'timestamptz:string' | 'interval' | 'interval:tuple' | 'bool' | 'enum' | 'point' | 'point:tuple' | 'line' | 'line:tuple' | 'lseg' | 'box' | 'path' | 'polygon' | 'circle' | 'cidr' | 'inet' | 'macaddr' | 'macaddr8' | 'bit' | 'varbit' | 'tsvector' | 'tsquery' | 'uuid' | 'xml' | 'json' | 'jsonb' | 'int4range' | 'int8range' | 'numrange' | 'tsrange' | 'tstzrange' | 'daterange' | 'int4multirange' | 'int8multirange' | 'nummultirange' | 'tsmultirange' | 'tstzmultirange' | 'datemultirange' | 'oid' | 'regproc' | 'regprocedure' | 'regoper' | 'regoperator' | 'regclass' | 'regtype' | 'regrole' | 'regnamespace' | 'regconfig' | 'regdictionary' | PostGISType | `${PostGISType}:tuple` | 'halfvec' | 'sparsevec' | 'vector';
+ type PostgresAliasType = 'int2' | 'integer' | 'int4' | 'int8' | 'decimal' | 'real' | 'double' | 'double precision' | 'serial2' | 'serial4' | 'serial8' | 'character' | 'character varying' | 'time with time zone' | 'time without time zone' | 'timestamp with time zone' | 'timestamp without time zone' | 'boolean' | 'bit varying';
+diff --git a/pg-core/columns/bytea.d.cts b/pg-core/columns/bytea.d.cts
+index 2ef8a26009b9320e2ef67f079e8c555f54cff444..cf8d253f0d4a1c55a6fcdd2f0739dd84649d1acf 100644
+--- a/pg-core/columns/bytea.d.cts
++++ b/pg-core/columns/bytea.d.cts
+@@ -2,6 +2,7 @@ import { PgColumn, PgColumnBuilder } from "./common.cjs";
+ import { entityKind } from "../../entity.cjs";
+
+ //#region src/pg-core/columns/bytea.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class PgByteaBuilder extends PgColumnBuilder<{
+   dataType: 'object buffer';
+   data: Buffer;
+diff --git a/pg-core/columns/bytea.d.ts b/pg-core/columns/bytea.d.ts
+index bb1dd837877d0884489a195960e06893fcfb6761..6923bb4142dcbedba2761ed3542a5a0c605e0fb6 100644
+--- a/pg-core/columns/bytea.d.ts
++++ b/pg-core/columns/bytea.d.ts
+@@ -2,6 +2,7 @@ import { PgColumn, PgColumnBuilder } from "./common.js";
+ import { entityKind } from "../../entity.js";
+
+ //#region src/pg-core/columns/bytea.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class PgByteaBuilder extends PgColumnBuilder<{
+   dataType: 'object buffer';
+   data: Buffer;
+diff --git a/pg-core/columns/common.d.cts b/pg-core/columns/common.d.cts
+index b88d07cd952cb164c81202aaadddba566cf16e62..4932c8da59443308d62b2a5a2d5fd61bee3642ad 100644
+--- a/pg-core/columns/common.d.cts
++++ b/pg-core/columns/common.d.cts
+@@ -143,7 +143,7 @@ interface ReferenceConfig {
+     onDelete?: UpdateDeleteAction;
+   };
+ }
+-declare abstract class PgColumnBuilder<out T extends PgColumnBuilderConfig = PgColumnBuilderConfig, out TRuntimeConfig extends object = object> {
++declare abstract class PgColumnBuilder<T extends PgColumnBuilderConfig = PgColumnBuilderConfig, TRuntimeConfig extends object = object> {
+   static readonly [entityKind]: string;
+   readonly _: T;
+   private foreignKeyConfigs;
+diff --git a/pg-core/columns/common.d.ts b/pg-core/columns/common.d.ts
+index 440bc5c5dd3337e94eca788e0117f2577faf8619..0bdb867022b92fa315751c58bcc739d046bb63d2 100644
+--- a/pg-core/columns/common.d.ts
++++ b/pg-core/columns/common.d.ts
+@@ -143,7 +143,7 @@ interface ReferenceConfig {
+     onDelete?: UpdateDeleteAction;
+   };
+ }
+-declare abstract class PgColumnBuilder<out T extends PgColumnBuilderConfig = PgColumnBuilderConfig, out TRuntimeConfig extends object = object> {
++declare abstract class PgColumnBuilder<T extends PgColumnBuilderConfig = PgColumnBuilderConfig, TRuntimeConfig extends object = object> {
+   static readonly [entityKind]: string;
+   readonly _: T;
+   private foreignKeyConfigs;
+diff --git a/pg-core/columns/date.common.d.cts b/pg-core/columns/date.common.d.cts
+index 4df75624e70bc054e0813880c03cf51baa14e41d..f5ddc605fd10533ec52d0eefe3c7664a70ccfb5f 100644
+--- a/pg-core/columns/date.common.d.cts
++++ b/pg-core/columns/date.common.d.cts
+@@ -2,7 +2,7 @@ import { PgColumnBuilder, PgColumnBuilderConfig, SetHasDefault } from "./common.
+ import { entityKind } from "../../entity.cjs";
+
+ //#region src/pg-core/columns/date.common.d.ts
+-declare abstract class PgDateColumnBuilder<out T extends PgColumnBuilderConfig = PgColumnBuilderConfig, out TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
++declare abstract class PgDateColumnBuilder<T extends PgColumnBuilderConfig = PgColumnBuilderConfig, TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
+   static readonly [entityKind]: string;
+   /**
+    * Adds a `default now()` clause to the column definition.
+diff --git a/pg-core/columns/date.common.d.ts b/pg-core/columns/date.common.d.ts
+index ac7d730e241a42dbaaac91a672415aa11146462c..afc01b2a39388bbadd7458efac347dc25d10d868 100644
+--- a/pg-core/columns/date.common.d.ts
++++ b/pg-core/columns/date.common.d.ts
+@@ -2,7 +2,7 @@ import { PgColumnBuilder, PgColumnBuilderConfig, SetHasDefault } from "./common.
+ import { entityKind } from "../../entity.js";
+
+ //#region src/pg-core/columns/date.common.d.ts
+-declare abstract class PgDateColumnBuilder<out T extends PgColumnBuilderConfig = PgColumnBuilderConfig, out TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
++declare abstract class PgDateColumnBuilder<T extends PgColumnBuilderConfig = PgColumnBuilderConfig, TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
+   static readonly [entityKind]: string;
+   /**
+    * Adds a `default now()` clause to the column definition.
+diff --git a/pg-core/columns/int.common.d.cts b/pg-core/columns/int.common.d.cts
+index 804e2a816487cf5d4071e5ab466a39da798e44bd..6b405c77d82a9858c25d327299a3feca4f86c02a 100644
+--- a/pg-core/columns/int.common.d.cts
++++ b/pg-core/columns/int.common.d.cts
+@@ -3,7 +3,7 @@ import { HasIdentity, PgColumnBuilder, PgColumnBuilderConfig } from "./common.cj
+ import { entityKind } from "../../entity.cjs";
+
+ //#region src/pg-core/columns/int.common.d.ts
+-declare abstract class PgIntColumnBuilder<out T extends PgColumnBuilderConfig = PgColumnBuilderConfig, out TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
++declare abstract class PgIntColumnBuilder<T extends PgColumnBuilderConfig = PgColumnBuilderConfig, TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
+   static readonly [entityKind]: string;
+   /**
+    * Adds an `ALWAYS AS IDENTITY` clause to the column definition.
+diff --git a/pg-core/columns/int.common.d.ts b/pg-core/columns/int.common.d.ts
+index 1f84a02cfa61416a07cbfc93f7c5133c03d37806..f0cb757498fb691cf9e3340aaa3819b241b2c538 100644
+--- a/pg-core/columns/int.common.d.ts
++++ b/pg-core/columns/int.common.d.ts
+@@ -3,7 +3,7 @@ import { HasIdentity, PgColumnBuilder, PgColumnBuilderConfig } from "./common.js
+ import { entityKind } from "../../entity.js";
+
+ //#region src/pg-core/columns/int.common.d.ts
+-declare abstract class PgIntColumnBuilder<out T extends PgColumnBuilderConfig = PgColumnBuilderConfig, out TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
++declare abstract class PgIntColumnBuilder<T extends PgColumnBuilderConfig = PgColumnBuilderConfig, TRuntimeConfig extends object = object> extends PgColumnBuilder<T, TRuntimeConfig> {
+   static readonly [entityKind]: string;
+   /**
+    * Adds an `ALWAYS AS IDENTITY` clause to the column definition.
+diff --git a/pg-core/policies.d.cts b/pg-core/policies.d.cts
+index 7229cdd896f19cefc544f755eddf7c9b99912a2d..05c739a62aa7633f7f39103c3c71b3ad7f83d95f 100644
+--- a/pg-core/policies.d.cts
++++ b/pg-core/policies.d.cts
+@@ -12,7 +12,7 @@ interface PgPolicyConfig {
+   using?: SQL;
+   withCheck?: SQL;
+ }
+-declare class PgPolicy implements PgPolicyConfig {
++declare class PgPolicy {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   readonly as: PgPolicyConfig['as'];
+diff --git a/pg-core/policies.d.ts b/pg-core/policies.d.ts
+index 8dddf4ca5865abfcd754bfcc793d16272aeecf13..25ca1ffefd1780568d87c7051c42ad8bae6cc5c3 100644
+--- a/pg-core/policies.d.ts
++++ b/pg-core/policies.d.ts
+@@ -12,7 +12,7 @@ interface PgPolicyConfig {
+   using?: SQL;
+   withCheck?: SQL;
+ }
+-declare class PgPolicy implements PgPolicyConfig {
++declare class PgPolicy {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   readonly as: PgPolicyConfig['as'];
+diff --git a/pg-core/roles.d.cts b/pg-core/roles.d.cts
+index 3a072b6008fb3fb9dec39bf1735be4355fe691af..b081390f687a3f0c5ae703db1ded9e3d53df2a43 100644
+--- a/pg-core/roles.d.cts
++++ b/pg-core/roles.d.cts
+@@ -6,7 +6,7 @@ interface PgRoleConfig {
+   createRole?: boolean;
+   inherit?: boolean;
+ }
+-declare class PgRole implements PgRoleConfig {
++declare class PgRole {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   constructor(name: string, config?: PgRoleConfig);
+diff --git a/pg-core/roles.d.ts b/pg-core/roles.d.ts
+index 24534dbf0f583d5533333ae80d9ae9c0d193b49c..c74ff9a06251c2ab7616e71b3223dd978f684798 100644
+--- a/pg-core/roles.d.ts
++++ b/pg-core/roles.d.ts
+@@ -6,7 +6,7 @@ interface PgRoleConfig {
+   createRole?: boolean;
+   inherit?: boolean;
+ }
+-declare class PgRole implements PgRoleConfig {
++declare class PgRole {
+   readonly name: string;
+   static readonly [entityKind]: string;
+   constructor(name: string, config?: PgRoleConfig);
+diff --git a/singlestore-core/columns/binary.d.cts b/singlestore-core/columns/binary.d.cts
+index 8cfc5f1e18acff2e4c72b063bdea2b3a8537f746..1ce19baeb069b2d18dc5219d2d8272e66169586f 100644
+--- a/singlestore-core/columns/binary.d.cts
++++ b/singlestore-core/columns/binary.d.cts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/singlestore-core/columns/binary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class SingleStoreBinaryBuilder extends SingleStoreColumnBuilder<{
+   dataType: 'string binary';
+   data: string;
+diff --git a/singlestore-core/columns/binary.d.ts b/singlestore-core/columns/binary.d.ts
+index dd01a909394584db46ad44b5a0ac9c86299c2e9e..4702a2809f39d840d7965d5a44af59ea2ff38867 100644
+--- a/singlestore-core/columns/binary.d.ts
++++ b/singlestore-core/columns/binary.d.ts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/singlestore-core/columns/binary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class SingleStoreBinaryBuilder extends SingleStoreColumnBuilder<{
+   dataType: 'string binary';
+   data: string;
+diff --git a/singlestore-core/columns/varbinary.d.cts b/singlestore-core/columns/varbinary.d.cts
+index aa34c27589b603366bb7490867004e7f0554806b..c5a7a23f9df831498868cafccfd3f1151e464343 100644
+--- a/singlestore-core/columns/varbinary.d.cts
++++ b/singlestore-core/columns/varbinary.d.cts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/singlestore-core/columns/varbinary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class SingleStoreVarBinaryBuilder extends SingleStoreColumnBuilder<{
+   dataType: 'string binary';
+   data: string;
+diff --git a/singlestore-core/columns/varbinary.d.ts b/singlestore-core/columns/varbinary.d.ts
+index 785000956f9d31dc298d99ba6f1893fe291ecb46..02e8b7670b246f65367f43ce38887405ac3823e0 100644
+--- a/singlestore-core/columns/varbinary.d.ts
++++ b/singlestore-core/columns/varbinary.d.ts
+@@ -3,6 +3,7 @@ import { entityKind } from "../../entity.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/singlestore-core/columns/varbinary.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class SingleStoreVarBinaryBuilder extends SingleStoreColumnBuilder<{
+   dataType: 'string binary';
+   data: string;
+diff --git a/singlestore-core/columns/vector.d.cts b/singlestore-core/columns/vector.d.cts
+index 824c76baccbfbc697568c4b85c3c7b500a161029..5d6d5ebf933b864d013db8cc298174dcc2d93849 100644
+--- a/singlestore-core/columns/vector.d.cts
++++ b/singlestore-core/columns/vector.d.cts
+@@ -4,6 +4,7 @@ import { Equal } from "../../utils.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/singlestore-core/columns/vector.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class SingleStoreVectorBuilder extends SingleStoreColumnBuilder<{
+   dataType: 'array vector';
+   data: Array<number>;
+diff --git a/singlestore-core/columns/vector.d.ts b/singlestore-core/columns/vector.d.ts
+index d129b9868508074a06833070059946ffd330d4d3..80b6c4ce8e86ade843fe3d5d6985a67dd913a6ef 100644
+--- a/singlestore-core/columns/vector.d.ts
++++ b/singlestore-core/columns/vector.d.ts
+@@ -4,6 +4,7 @@ import { Equal } from "../../utils.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/singlestore-core/columns/vector.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class SingleStoreVectorBuilder extends SingleStoreColumnBuilder<{
+   dataType: 'array vector';
+   data: Array<number>;
+diff --git a/sqlite-core/columns/blob.d.cts b/sqlite-core/columns/blob.d.cts
+index 7bc7d6ac3afe75a016cbdfe2d8450a4116fb9c0c..59bf9e53c6d1b318943ab736ad968227a33c06bd 100644
+--- a/sqlite-core/columns/blob.d.cts
++++ b/sqlite-core/columns/blob.d.cts
+@@ -4,6 +4,7 @@ import { Equal } from "../../utils.cjs";
+ import { ColumnBaseConfig } from "../../column.cjs";
+
+ //#region src/sqlite-core/columns/blob.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type BlobMode = 'buffer' | 'json' | 'bigint';
+ declare class SQLiteBigIntBuilder extends SQLiteColumnBuilder<{
+   dataType: 'bigint int64';
+diff --git a/sqlite-core/columns/blob.d.ts b/sqlite-core/columns/blob.d.ts
+index aaf8ade06d85c0cd44e65ae7cf50d5c454fa52a0..af89a98b9d2f959cf0ee7eca2f5a5f539b0ab819 100644
+--- a/sqlite-core/columns/blob.d.ts
++++ b/sqlite-core/columns/blob.d.ts
+@@ -4,6 +4,7 @@ import { Equal } from "../../utils.js";
+ import { ColumnBaseConfig } from "../../column.js";
+
+ //#region src/sqlite-core/columns/blob.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type BlobMode = 'buffer' | 'json' | 'bigint';
+ declare class SQLiteBigIntBuilder extends SQLiteColumnBuilder<{
+   dataType: 'bigint int64';
+diff --git a/sqlite-core/columns/custom.d.cts b/sqlite-core/columns/custom.d.cts
+index bbd0ab1c8868d97af1bf201d53d8b581f2086194..b90a07150ecd3ed72aad138016bdcc50c7740235 100644
+--- a/sqlite-core/columns/custom.d.cts
++++ b/sqlite-core/columns/custom.d.cts
+@@ -7,6 +7,7 @@ import { ColumnBuilderBaseConfig } from "../../column-builder.cjs";
+ import { AnySQLiteTable } from "../table.cjs";
+
+ //#region src/sqlite-core/columns/custom.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type ConvertCustomConfig<T extends Partial<CustomTypeValues>> = {
+   dataType: 'custom';
+   data: T['data'];
+diff --git a/sqlite-core/columns/custom.d.ts b/sqlite-core/columns/custom.d.ts
+index c9b5ae93b50b71b5fda14c79e5d5a30c3336aee7..fa4467d5f5600d6da198561888f55afce3fb54a4 100644
+--- a/sqlite-core/columns/custom.d.ts
++++ b/sqlite-core/columns/custom.d.ts
+@@ -7,6 +7,7 @@ import { ColumnBuilderBaseConfig } from "../../column-builder.js";
+ import { AnySQLiteTable } from "../table.js";
+
+ //#region src/sqlite-core/columns/custom.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type ConvertCustomConfig<T extends Partial<CustomTypeValues>> = {
+   dataType: 'custom';
+   data: T['data'];
+diff --git a/sqlite-core/query-builders/select.types.d.cts b/sqlite-core/query-builders/select.types.d.cts
+index 80c66766631588bc964daa4e4e1e480e995a99c6..60242a8e9bc0f6c8bf48ff65b3359c07e4b5c78f 100644
+--- a/sqlite-core/query-builders/select.types.d.cts
++++ b/sqlite-core/query-builders/select.types.d.cts
+@@ -77,7 +77,7 @@ type SQLiteSelectKind<T extends SQLiteSelectHKTBase, TTableName extends string |
+ interface SQLiteSelectQueryBuilderHKT extends SQLiteSelectHKTBase {
+   _type: SQLiteSelectBase<SQLiteSelectQueryBuilderHKT, this['tableName'], this['runResult'], Assume<this['selection'], ColumnsSelection>, this['selectMode'], Assume<this['nullabilityMap'], Record<string, JoinNullability>>, this['dynamic'], this['excludedMethods'], Assume<this['result'], any[]>, Assume<this['selectedFields'], ColumnsSelection>>;
+ }
+-type SQLiteSetOperatorExcludedMethods = 'config' | 'leftJoin' | 'rightJoin' | 'innerJoin' | 'fullJoin' | 'where' | 'having' | 'groupBy';
++type SQLiteSetOperatorExcludedMethods = 'leftJoin' | 'rightJoin' | 'innerJoin' | 'fullJoin' | 'where' | 'having' | 'groupBy';
+ type CreateSQLiteSelectFromBuilderMode<TBuilderMode extends 'db' | 'qb', THKT extends SQLiteSelectHKTBase, TTableName extends string | undefined, TRunResult, TSelection extends ColumnsSelection, TSelectMode extends SelectMode> = TBuilderMode extends 'db' ? SQLiteSelectKind<THKT, TTableName, TRunResult, TSelection, TSelectMode, TTableName extends string ? Record<TTableName, 'not-null'> : {}, false, never> : SQLiteSelectBase<SQLiteSelectQueryBuilderHKT, TTableName, TRunResult, TSelection, TSelectMode>;
+ type SQLiteSelectWithout<T extends AnySQLiteSelectQueryBuilder, TDynamic extends boolean, K extends keyof T & string, TResetExcluded extends boolean = false> = TDynamic extends true ? T : Omit<SQLiteSelectKind<T['_']['hkt'], T['_']['tableName'], T['_']['runResult'], T['_']['selection'], T['_']['selectMode'], T['_']['nullabilityMap'], TDynamic, TResetExcluded extends true ? K : T['_']['excludedMethods'] | K, T['_']['result'], T['_']['selectedFields']>, TResetExcluded extends true ? K : T['_']['excludedMethods'] | K>;
+ type SQLiteSelectExecute<T extends AnySQLiteSelect> = T['_']['result'];
+diff --git a/sqlite-core/query-builders/select.types.d.ts b/sqlite-core/query-builders/select.types.d.ts
+index d427f70021a61071abfa3de6102a48c369acea16..61af90890ad093ebc76b63cc87fffc4aaf847496 100644
+--- a/sqlite-core/query-builders/select.types.d.ts
++++ b/sqlite-core/query-builders/select.types.d.ts
+@@ -77,7 +77,7 @@ type SQLiteSelectKind<T extends SQLiteSelectHKTBase, TTableName extends string |
+ interface SQLiteSelectQueryBuilderHKT extends SQLiteSelectHKTBase {
+   _type: SQLiteSelectBase<SQLiteSelectQueryBuilderHKT, this['tableName'], this['runResult'], Assume<this['selection'], ColumnsSelection>, this['selectMode'], Assume<this['nullabilityMap'], Record<string, JoinNullability>>, this['dynamic'], this['excludedMethods'], Assume<this['result'], any[]>, Assume<this['selectedFields'], ColumnsSelection>>;
+ }
+-type SQLiteSetOperatorExcludedMethods = 'config' | 'leftJoin' | 'rightJoin' | 'innerJoin' | 'fullJoin' | 'where' | 'having' | 'groupBy';
++type SQLiteSetOperatorExcludedMethods = 'leftJoin' | 'rightJoin' | 'innerJoin' | 'fullJoin' | 'where' | 'having' | 'groupBy';
+ type CreateSQLiteSelectFromBuilderMode<TBuilderMode extends 'db' | 'qb', THKT extends SQLiteSelectHKTBase, TTableName extends string | undefined, TRunResult, TSelection extends ColumnsSelection, TSelectMode extends SelectMode> = TBuilderMode extends 'db' ? SQLiteSelectKind<THKT, TTableName, TRunResult, TSelection, TSelectMode, TTableName extends string ? Record<TTableName, 'not-null'> : {}, false, never> : SQLiteSelectBase<SQLiteSelectQueryBuilderHKT, TTableName, TRunResult, TSelection, TSelectMode>;
+ type SQLiteSelectWithout<T extends AnySQLiteSelectQueryBuilder, TDynamic extends boolean, K extends keyof T & string, TResetExcluded extends boolean = false> = TDynamic extends true ? T : Omit<SQLiteSelectKind<T['_']['hkt'], T['_']['tableName'], T['_']['runResult'], T['_']['selection'], T['_']['selectMode'], T['_']['nullabilityMap'], TDynamic, TResetExcluded extends true ? K : T['_']['excludedMethods'] | K, T['_']['result'], T['_']['selectedFields']>, TResetExcluded extends true ? K : T['_']['excludedMethods'] | K>;
+ type SQLiteSelectExecute<T extends AnySQLiteSelect> = T['_']['result'];
+diff --git a/typebox/column.d.cts b/typebox/column.d.cts
+index f080350dea11426af7272c44e14518744ea231dd..675aa9bcab670a89b4e64ad657f6acea5080a873 100644
+--- a/typebox/column.d.cts
++++ b/typebox/column.d.cts
+@@ -3,6 +3,7 @@ import { Column } from "../column.cjs";
+ import Type, { TSchema } from "typebox";
+
+ //#region src/typebox/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class TBuffer extends Type.Base<Buffer> {
+   Check(value: unknown): value is Buffer;
+   Errors(value: unknown): object[];
+diff --git a/typebox/column.d.ts b/typebox/column.d.ts
+index 966a89a0198a5430522bec129a868905d118ae6a..892ca5e6856bded19dc6ffce461f33027ec5e144 100644
+--- a/typebox/column.d.ts
++++ b/typebox/column.d.ts
+@@ -3,6 +3,7 @@ import { Column } from "../column.js";
+ import Type, { TSchema } from "typebox";
+
+ //#region src/typebox/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare class TBuffer extends Type.Base<Buffer> {
+   Check(value: unknown): value is Buffer;
+   Errors(value: unknown): object[];
+diff --git a/typebox-legacy/column.types.d.cts b/typebox-legacy/column.types.d.cts
+index 82383034a5babd753dece6e57e8045647c411d77..a8873bb9c2a53d25580d8753e57e59a727d6c46f 100644
+--- a/typebox-legacy/column.types.d.cts
++++ b/typebox-legacy/column.types.d.cts
+@@ -6,6 +6,7 @@ import { ColumnTypeData, ExtractColumnTypeData } from "../column-builder.cjs";
+ import * as t from "@sinclair/typebox";
+
+ //#region src/typebox-legacy/column.types.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ interface GenericSchema<T> extends t.TSchema {
+   static: T;
+ }
+diff --git a/typebox-legacy/column.types.d.ts b/typebox-legacy/column.types.d.ts
+index 7d0414c1b0461c57709989fa34acb80e860564d9..92d5d5f69a8077d206a41615a059bac1ae0474c9 100644
+--- a/typebox-legacy/column.types.d.ts
++++ b/typebox-legacy/column.types.d.ts
+@@ -6,6 +6,7 @@ import { ColumnTypeData, ExtractColumnTypeData } from "../column-builder.js";
+ import * as t from "@sinclair/typebox";
+
+ //#region src/typebox-legacy/column.types.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ interface GenericSchema<T> extends t.TSchema {
+   static: T;
+ }
+diff --git a/valibot/column.d.cts b/valibot/column.d.cts
+index e2a46bb1147f5ed28eec61382151afe07b352a8d..cc994e8881d6ab9f7707c4c8e0e1eeac643a54e0 100644
+--- a/valibot/column.d.cts
++++ b/valibot/column.d.cts
+@@ -3,6 +3,7 @@ import { Column } from "../column.cjs";
+ import * as v from "valibot";
+
+ //#region src/valibot/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: v.UnionSchema<[v.StringSchema<undefined>, v.NumberSchema<undefined>, v.BooleanSchema<undefined>, v.NullSchema<undefined>], undefined>;
+ declare const jsonSchema: v.GenericSchema<Json>;
+ declare const bufferSchema: v.GenericSchema<Buffer>;
+diff --git a/valibot/column.d.ts b/valibot/column.d.ts
+index f7c9d94e09e37e18c67980be84ff87ca5221804d..e895c7ae7f1f63292b058cafd1b99c2b68b1fe7b 100644
+--- a/valibot/column.d.ts
++++ b/valibot/column.d.ts
+@@ -3,6 +3,7 @@ import { Column } from "../column.js";
+ import * as v from "valibot";
+
+ //#region src/valibot/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: v.UnionSchema<[v.StringSchema<undefined>, v.NumberSchema<undefined>, v.BooleanSchema<undefined>, v.NullSchema<undefined>], undefined>;
+ declare const jsonSchema: v.GenericSchema<Json>;
+ declare const bufferSchema: v.GenericSchema<Buffer>;
+diff --git a/valibot/column.types.d.cts b/valibot/column.types.d.cts
+index b66ff3b60fccfeccda19027854adbd413d7f5501..373064331ed7034298273a3591031cd8c82f4b47 100644
+--- a/valibot/column.types.d.cts
++++ b/valibot/column.types.d.cts
+@@ -6,6 +6,7 @@ import { ColumnDataConstraint, ColumnDataType, ColumnTypeData, ExtractColumnType
+ import * as v from "valibot";
+
+ //#region src/valibot/column.types.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type ExtractAdditionalProperties<TColumn extends Column> = {
+   max: TColumn['length'];
+   fixedLength: TColumn['isLengthExact'] extends true ? true : false;
+diff --git a/valibot/column.types.d.ts b/valibot/column.types.d.ts
+index cab604517e6bccecc06076b01820e7b978978933..c88aee4f15e6e9cf55f921c21239ff8f1d2bc2d7 100644
+--- a/valibot/column.types.d.ts
++++ b/valibot/column.types.d.ts
+@@ -6,6 +6,7 @@ import { ColumnDataConstraint, ColumnDataType, ColumnTypeData, ExtractColumnType
+ import * as v from "valibot";
+
+ //#region src/valibot/column.types.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type ExtractAdditionalProperties<TColumn extends Column> = {
+   max: TColumn['length'];
+   fixedLength: TColumn['isLengthExact'] extends true ? true : false;
+diff --git a/zod/column.d.cts b/zod/column.d.cts
+index 778799a03e4613f72bbb6b6d62f45858a187940f..809a7cab48097c7dc64483774d47fb2f1d7c3db6 100644
+--- a/zod/column.d.cts
++++ b/zod/column.d.cts
+@@ -4,6 +4,7 @@ import { Column } from "../column.cjs";
+ import { z } from "zod/v4";
+
+ //#region src/zod/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>;
+ declare const jsonSchema: z.ZodType<Json>;
+ declare const bufferSchema: z.ZodType<Buffer>;
+diff --git a/zod/column.d.ts b/zod/column.d.ts
+index a8b81821b18870ab55ce9d0aff4729f92866dd33..9c497cd6fae5fbb8de46b3941b6170a638a29eaa 100644
+--- a/zod/column.d.ts
++++ b/zod/column.d.ts
+@@ -4,6 +4,7 @@ import { Column } from "../column.js";
+ import { z } from "zod/v4";
+
+ //#region src/zod/column.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ declare const literalSchema: z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>;
+ declare const jsonSchema: z.ZodType<Json>;
+ declare const bufferSchema: z.ZodType<Buffer>;
+diff --git a/zod/column.types.d.cts b/zod/column.types.d.cts
+index c44012f49c483403370d17412b184ec45715a6e7..64f944860989a087102354d88a689dcc4905b02c 100644
+--- a/zod/column.types.d.cts
++++ b/zod/column.types.d.cts
+@@ -7,6 +7,7 @@ import { ColumnTypeData, ExtractColumnTypeData } from "../column-builder.cjs";
+ import { z } from "zod/v4";
+
+ //#region src/zod/column.types.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type GetArrayDepth<T, Depth extends number = 0> = Depth extends 5 ? 5 : T extends readonly (infer U)[] ? GetArrayDepth<U, [1, 2, 3, 4, 5][Depth]> : Depth;
+ type WrapInZodArray<TSchema extends z.ZodType, TDepth extends number> = TDepth extends 0 ? TSchema : TDepth extends 1 ? z.ZodArray<TSchema> : TDepth extends 2 ? z.ZodArray<z.ZodArray<TSchema>> : TDepth extends 3 ? z.ZodArray<z.ZodArray<z.ZodArray<TSchema>>> : TDepth extends 4 ? z.ZodArray<z.ZodArray<z.ZodArray<z.ZodArray<TSchema>>>> : TDepth extends 5 ? z.ZodArray<z.ZodArray<z.ZodArray<z.ZodArray<z.ZodArray<TSchema>>>>> : z.ZodArray<z.ZodAny>;
+ type IsPgArrayColumn<TColumn extends Column<any>, TType extends ColumnTypeData> = TType['type'] extends 'array' ? false : GetArrayDepth<TColumn['_']['data']> extends 0 ? false : true;
+diff --git a/zod/column.types.d.ts b/zod/column.types.d.ts
+index b542477b3241229a82631d8883f62447019c8f37..dcba1eef6cfbd37bda23227f95de60f158d23f47 100644
+--- a/zod/column.types.d.ts
++++ b/zod/column.types.d.ts
+@@ -7,6 +7,7 @@ import { ColumnTypeData, ExtractColumnTypeData } from "../column-builder.js";
+ import { z } from "zod/v4";
+
+ //#region src/zod/column.types.d.ts
++type Buffer<TArrayBuffer extends ArrayBufferLike = ArrayBufferLike> = Uint8Array;
+ type GetArrayDepth<T, Depth extends number = 0> = Depth extends 5 ? 5 : T extends readonly (infer U)[] ? GetArrayDepth<U, [1, 2, 3, 4, 5][Depth]> : Depth;
+ type WrapInZodArray<TSchema extends z.ZodType, TDepth extends number> = TDepth extends 0 ? TSchema : TDepth extends 1 ? z.ZodArray<TSchema> : TDepth extends 2 ? z.ZodArray<z.ZodArray<TSchema>> : TDepth extends 3 ? z.ZodArray<z.ZodArray<z.ZodArray<TSchema>>> : TDepth extends 4 ? z.ZodArray<z.ZodArray<z.ZodArray<z.ZodArray<TSchema>>>> : TDepth extends 5 ? z.ZodArray<z.ZodArray<z.ZodArray<z.ZodArray<z.ZodArray<TSchema>>>>> : z.ZodArray<z.ZodAny>;
+ type IsPgArrayColumn<TColumn extends Column<any>, TType extends ColumnTypeData> = TType['type'] extends 'array' ? false : GetArrayDepth<TColumn['_']['data']> extends 0 ? false : true;

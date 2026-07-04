@@ -30,7 +30,15 @@ const resolvePayloadImageRemotePattern = () =>
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
+  transpilePackages: [
+    "@techsio/smart-suggest-client",
+    "@techsio/smart-suggest-core",
+    "@techsio/smart-suggest-react",
+    "@techsio/smart-suggest-ui",
+    "@techsio/smart-suggest-validation",
+    "@techsio/storefront-data",
+    "@techsio/ui-kit",
+  ],
   reactCompiler: true,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),

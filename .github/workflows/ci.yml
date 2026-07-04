@@ -48,6 +48,18 @@ jobs:
           projects="$(printf '%s' "$projects_json" | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const projects = input.trim() ? JSON.parse(input) : []; if (!Array.isArray(projects)) { throw new Error("Expected an array from nx show projects --json"); } process.stdout.write(projects.join(",")); });')"
           echo "projects=${projects}" >> "$GITHUB_OUTPUT"
           echo "projects_csv=,${projects}," >> "$GITHUB_OUTPUT"
+      - name: Install mise for Smart Suggest
+        if: contains(steps.determine_affected.outputs.projects_csv, ',smart-suggest,')
+        uses: jdx/mise-action@v4
+        with:
+          install: false
+      - name: Install Smart Suggest toolchain
+        if: contains(steps.determine_affected.outputs.projects_csv, ',smart-suggest,')
+        working-directory: apps/smart-suggest
+        run: |
+          mise trust .mise.toml
+          mise install
+          mise exec -- pnpm install --frozen-lockfile --ignore-scripts
       - name: Generate Next.js types (n1)
         id: generate_next_types_n1
         if: contains(steps.determine_affected.outputs.projects_csv, ',n1,')

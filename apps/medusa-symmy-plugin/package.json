@@ -55,6 +55,7 @@
     "@medusajs/admin-sdk": "^2.16.0",
     "@medusajs/admin-shared": "^2.16.0",
     "@medusajs/cli": "^2.16.0",
+    "@medusajs/core-flows": "^2.16.0",
     "@medusajs/framework": "^2.16.0",
     "@medusajs/icons": "^2.16.0",
     "@medusajs/medusa": "^2.16.0",

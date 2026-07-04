@@ -22,6 +22,12 @@ const previewBaselineCompleteFlagPattern =
   /--preview-baseline-complete "\$PREVIEW_BASELINE_COMPLETE"/
 const node24Pattern = /node-version: 24/
 const ciCtlTestPattern = /nubx --node nx run new-engine-ctl:test/
+const smartSuggestAffectedPattern =
+  /contains\(steps\.determine_affected\.outputs\.projects_csv, ',smart-suggest,'\)/
+const smartSuggestMiseActionPattern =
+  /Install mise for Smart Suggest[\s\S]*jdx\/mise-action@v4[\s\S]*install: false/
+const smartSuggestToolchainPattern =
+  /Install Smart Suggest toolchain[\s\S]*working-directory: apps\/smart-suggest[\s\S]*mise trust \.mise\.toml[\s\S]*mise install[\s\S]*mise exec -- pnpm install --frozen-lockfile --ignore-scripts/
 const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
 const mainVerifySummaryEnvironmentFallbackPattern =
@@ -116,4 +122,12 @@ test("main CI runs new-engine-ctl tests on the supported Node version", async ()
 
   expect(raw).toMatch(node24Pattern)
   expect(raw).toMatch(ciCtlTestPattern)
+})
+
+test("main CI installs Smart Suggest's UltraModern toolchain when affected", async () => {
+  const raw = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8")
+
+  expect(raw).toMatch(smartSuggestAffectedPattern)
+  expect(raw).toMatch(smartSuggestMiseActionPattern)
+  expect(raw).toMatch(smartSuggestToolchainPattern)
 })

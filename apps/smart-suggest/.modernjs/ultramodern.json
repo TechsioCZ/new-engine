@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "profile": "cloudflare-ssr-mf-effect-v1",
+  "generator": {
+    "name": "@modern-js/create",
+    "version": "3.5.0-ultramodern.28"
+  },
+  "packageSource": {
+    "strategy": "install",
+    "modernPackageVersion": "3.5.0-ultramodern.28",
+    "aliasScope": "bleedingdev",
+    "aliasPackageNamePrefix": "modern-js-"
+  },
+  "workspace": {
+    "packageScope": "smart-suggest"
+  },
+  "topology": {
+    "apps": [
+      {
+        "id": "shell-super-app",
+        "kind": "shell",
+        "path": "apps/shell-super-app",
+        "package": "@smart-suggest/shell-super-app",
+        "packageSuffix": "shell-super-app",
+        "displayName": "Shell Super App",
+        "port": 3020,
+        "portEnv": "SHELL_SUPER_APP_PORT",
+        "moduleFederation": {
+          "role": "host",
+          "name": "shellSuperApp",
+          "exposes": [],
+          "verticalRefs": [],
+          "dts": {
+            "compilerInstance": "tsgo",
+            "tsConfigPath": "./tsconfig.mf-types.json"
+          }
+        },
+        "api": {
+          "runtime": "effect",
+          "bff": {
+            "prefix": "/api",
+            "openapi": "/openapi.json",
+            "strictEffectApproach": true
+          },
+          "contract": {
+            "export": "./api",
+            "path": "apps/shell-super-app/shared/api.ts"
+          },
+          "client": {
+            "export": "./api/client",
+            "path": "apps/shell-super-app/src/api/smart-suggest-client.ts"
+          },
+          "serverEntry": "apps/shell-super-app/api/index.ts",
+          "basePath": "/api/v1",
+          "consumedBy": [
+            "shell-super-app"
+          ]
+        }
+      }
+    ]
+  }
+}

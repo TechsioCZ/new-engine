@@ -1,0 +1,863 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://techsio.local/smart-suggest/benchmark/metrics-report-v1.schema.json",
+  "title": "Smart Suggest Benchmark Metrics Report v1",
+  "description": "Public-safe report contract for comparing naive no-cache live-provider calls against the optimized owned DB plus cache-level path. This schema describes benchmark outputs only; it does not define provider adapters or secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "run",
+    "corpus",
+    "comparisonPaths",
+    "scenarioResults",
+    "aggregateMetrics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "smart-suggest-benchmark-metrics/v1"
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "startedAt",
+        "completedAt",
+        "environmentLabel",
+        "operator",
+        "liveProvidersEnabled",
+        "fairnessControls"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "environmentLabel": {
+          "type": "string",
+          "description": "Redacted environment label such as local, preview, staging, or production-shadow."
+        },
+        "operator": {
+          "type": "string",
+          "description": "Human or automation label. Do not store personal access tokens, endpoint URLs with secrets, or customer identifiers."
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "branch": {
+              "type": "string"
+            },
+            "commit": {
+              "type": "string"
+            },
+            "dirty": {
+              "type": "boolean"
+            }
+          }
+        },
+        "liveProvidersEnabled": {
+          "type": "boolean",
+          "description": "Must be false for default local or CI-safe runs. True is allowed only for explicit operator benchmark runs."
+        },
+        "fairnessControls": {
+          "$ref": "#/$defs/fairnessControls"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "corpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "schemaVersion", "scenarioCount"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "schemaVersion": {
+          "const": "smart-suggest-benchmark-corpus/v1"
+        },
+        "scenarioCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fixturePath": {
+          "type": "string"
+        },
+        "selection": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional scenario-id subset."
+        }
+      }
+    },
+    "comparisonPaths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/comparisonPath"
+      }
+    },
+    "scenarioResults": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenarioResult"
+      }
+    },
+    "aggregateMetrics": {
+      "$ref": "#/$defs/aggregateMetrics"
+    }
+  },
+  "$defs": {
+    "fairnessControls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cacheMode",
+        "externalProviderConcurrency",
+        "externalProviderDelayMs",
+        "liveProviderOptIn",
+        "measuredIterations",
+        "missingProviderBehavior",
+        "noCache",
+        "providerRateLimitMs",
+        "providerRateLimitMsById",
+        "timeoutMs",
+        "warmupIterations"
+      ],
+      "properties": {
+        "cacheMode": {
+          "type": "string",
+          "enum": ["none", "mixed", "all-levels"]
+        },
+        "externalProviderConcurrency": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "externalProviderDelayMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "liveProviderOptIn": {
+          "type": "boolean"
+        },
+        "measuredIterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "missingProviderBehavior": {
+          "const": "skipped"
+        },
+        "noCache": {
+          "type": "boolean"
+        },
+        "providerRateLimitMs": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "providerRateLimitMsById": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "warmupIterations": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "pathBenchmarkControls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cacheMode",
+        "concurrency",
+        "delayMs",
+        "liveProviderCallsAllowed",
+        "noCache",
+        "rateLimitMs",
+        "timeoutMs",
+        "warmupIterations"
+      ],
+      "properties": {
+        "cacheMode": {
+          "type": "string",
+          "enum": ["none", "browser-memory", "worker-memory", "edge-cache", "all-levels"]
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "delayMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "liveProviderCallsAllowed": {
+          "type": "boolean"
+        },
+        "noCache": {
+          "type": "boolean"
+        },
+        "rateLimitMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "warmupIterations": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "comparisonPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pathId",
+        "label",
+        "kind",
+        "cacheMode",
+        "ownedDataMode",
+        "benchmarkControls"
+      ],
+      "properties": {
+        "pathId": {
+          "type": "string",
+          "pattern": "^(naive-live-provider-no-cache|owned-db-all-caches|owned-db-no-cache|owned-db-edge-cache|owned-memory-no-cache|owned-sqlite-local-no-cache|external-live-baseline:[a-z0-9-]+)$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["owned", "live-provider", "hybrid"]
+        },
+        "cacheMode": {
+          "type": "string",
+          "enum": ["none", "browser-memory", "worker-memory", "edge-cache", "all-levels"]
+        },
+        "ownedDataMode": {
+          "type": "string",
+          "enum": ["disabled", "in-memory", "sqlite-local", "d1-preview", "d1-deployed"]
+        },
+        "providerIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Redacted provider ids only, for example mapy, here, or managed-nominatim. No secrets or raw endpoints."
+        },
+        "benchmarkControls": {
+          "$ref": "#/$defs/pathBenchmarkControls"
+        }
+      }
+    },
+    "scenarioResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenarioId",
+        "pathId",
+        "status",
+        "latencyMs",
+        "resultCount",
+        "correctness",
+        "providerEvents",
+        "cache",
+        "storage",
+        "network",
+        "freshness"
+      ],
+      "properties": {
+        "scenarioId": {
+          "type": "string"
+        },
+        "pathId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "timeout", "error", "skipped"]
+        },
+        "latencyMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "resultCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topResultIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Normalized ids only. Do not store raw provider payloads."
+        },
+        "correctness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "top1Correct",
+            "top5Correct",
+            "requiredResultRecall",
+            "resultVolumeMatches",
+            "forbiddenTop1Violated"
+          ],
+          "properties": {
+            "top1Correct": {
+              "type": "boolean"
+            },
+            "top5Correct": {
+              "type": "boolean"
+            },
+            "requiredResultRecall": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "resultVolumeMatches": {
+              "type": "boolean"
+            },
+            "forbiddenTop1Violated": {
+              "type": "boolean"
+            },
+            "failureReasons": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "missing-required-result",
+                  "top1-mismatch",
+                  "top5-mismatch",
+                  "forbidden-top1",
+                  "wrong-source",
+                  "result-volume-too-low",
+                  "result-volume-too-high",
+                  "timeout",
+                  "provider-error",
+                  "storage-error"
+                ]
+              }
+            }
+          }
+        },
+        "providerEvents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/providerEvent"
+          }
+        },
+        "cache": {
+          "$ref": "#/$defs/cacheMetrics"
+        },
+        "storage": {
+          "$ref": "#/$defs/storageMetrics"
+        },
+        "network": {
+          "$ref": "#/$defs/networkMetrics"
+        },
+        "freshness": {
+          "$ref": "#/$defs/freshnessMetrics"
+        },
+        "errorCode": {
+          "type": "string"
+        }
+      }
+    },
+    "providerEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerId", "status"],
+      "properties": {
+        "providerId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "timeout", "error", "skipped"]
+        },
+        "latencyMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "bytesTransferred": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "costEstimateUsd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "errorCode": {
+          "type": "string"
+        }
+      }
+    },
+    "cacheMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "levels"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["disabled", "hit", "miss", "stale", "written"]
+        },
+        "levels": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "browserMemory": {
+              "$ref": "#/$defs/cacheLevel"
+            },
+            "workerMemory": {
+              "$ref": "#/$defs/cacheLevel"
+            },
+            "edgeCache": {
+              "$ref": "#/$defs/cacheLevel"
+            },
+            "d1ReadThrough": {
+              "$ref": "#/$defs/cacheLevel"
+            },
+            "ownedDb": {
+              "$ref": "#/$defs/cacheLevel"
+            }
+          }
+        }
+      }
+    },
+    "cacheLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "status"],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["disabled", "hit", "miss", "stale", "written"]
+        },
+        "ageMs": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "storageMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["d1QueryCount", "d1Fanout", "rowsRead"],
+      "properties": {
+        "d1QueryCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "d1Fanout": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rowsRead": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "indexStrategy": {
+          "type": "string",
+          "enum": ["none", "fts5", "compact-prefix", "prefix-token", "provider-only"]
+        }
+      }
+    },
+    "networkMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bytesTransferred", "requestCount"],
+      "properties": {
+        "bytesTransferred": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requestCount": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "freshnessMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["freshnessDeltaSeconds", "datasetVersion"],
+      "properties": {
+        "freshnessDeltaSeconds": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "datasetVersion": {
+          "type": ["string", "null"]
+        },
+        "sourceUpdatedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "aggregateMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths", "comparison"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pathAggregate"
+          }
+        },
+        "comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["baselinePathId", "candidatePathId", "deltas"],
+          "properties": {
+            "baselinePathId": {
+              "type": "string",
+              "description": "Expected baseline for final-boss comparison: naive-live-provider-no-cache."
+            },
+            "candidatePathId": {
+              "type": "string",
+              "description": "Expected optimized path: owned-db-all-caches."
+            },
+            "deltas": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "number"
+              },
+              "description": "Numeric differences keyed by aggregate metric name. Positive or negative direction must be documented by the report renderer."
+            }
+          }
+        }
+      }
+    },
+    "pathAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathId", "metrics"],
+      "properties": {
+        "pathId": {
+          "type": "string"
+        },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requestCount",
+            "scenarioCount",
+            "latencyMs",
+            "timeoutRate",
+            "errorRate",
+            "emptyResponseRate",
+            "top1CorrectRate",
+            "top5CorrectRate",
+            "requiredResultRecallRate",
+            "forbiddenTop1ViolationRate",
+            "expectedResultVolumePassRate",
+            "resultCount",
+            "providerEvents",
+            "d1Fanout",
+            "d1QueryCount",
+            "bytesTransferred",
+            "costEstimateUsd",
+            "freshnessDeltaSeconds",
+            "staleResultRate",
+            "cacheHitRate"
+          ],
+          "properties": {
+            "requestCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "scenarioCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "latencyMs": {
+              "$ref": "#/$defs/distribution"
+            },
+            "timeoutRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "errorRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "emptyResponseRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "top1CorrectRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "top5CorrectRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "requiredResultRecallRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "forbiddenTop1ViolationRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "expectedResultVolumePassRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "resultCount": {
+              "$ref": "#/$defs/distribution"
+            },
+            "providerEvents": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["total", "success", "timeout", "error", "skipped"],
+              "properties": {
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "success": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "timeout": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "error": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "skipped": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "d1Fanout": {
+              "$ref": "#/$defs/distribution"
+            },
+            "d1QueryCount": {
+              "$ref": "#/$defs/distribution"
+            },
+            "bytesTransferred": {
+              "$ref": "#/$defs/byteAggregate"
+            },
+            "costEstimateUsd": {
+              "$ref": "#/$defs/costAggregate"
+            },
+            "freshnessDeltaSeconds": {
+              "$ref": "#/$defs/distribution"
+            },
+            "staleResultRate": {
+              "$ref": "#/$defs/rate"
+            },
+            "cacheHitRate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "overall",
+                "browserMemory",
+                "workerMemory",
+                "edgeCache",
+                "d1ReadThrough",
+                "ownedDb"
+              ],
+              "properties": {
+                "overall": {
+                  "$ref": "#/$defs/rate"
+                },
+                "browserMemory": {
+                  "$ref": "#/$defs/rate"
+                },
+                "workerMemory": {
+                  "$ref": "#/$defs/rate"
+                },
+                "edgeCache": {
+                  "$ref": "#/$defs/rate"
+                },
+                "d1ReadThrough": {
+                  "$ref": "#/$defs/rate"
+                },
+                "ownedDb": {
+                  "$ref": "#/$defs/rate"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "p50", "p95", "p99", "max", "mean"],
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p50": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p99": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mean": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "byteAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "mean", "p95"],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mean": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "costAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalUsd", "per1kRequestsUsd"],
+      "properties": {
+        "totalUsd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "per1kRequestsUsd": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "x-smartSuggestMetricContract": {
+    "aggregateMetricNames": [
+      "requestCount",
+      "scenarioCount",
+      "latencyMs.min",
+      "latencyMs.p50",
+      "latencyMs.p95",
+      "latencyMs.p99",
+      "latencyMs.max",
+      "latencyMs.mean",
+      "timeoutRate",
+      "errorRate",
+      "emptyResponseRate",
+      "top1CorrectRate",
+      "top5CorrectRate",
+      "requiredResultRecallRate",
+      "forbiddenTop1ViolationRate",
+      "expectedResultVolumePassRate",
+      "resultCount.min",
+      "resultCount.p50",
+      "resultCount.p95",
+      "resultCount.p99",
+      "resultCount.max",
+      "resultCount.mean",
+      "providerEvents.total",
+      "providerEvents.success",
+      "providerEvents.timeout",
+      "providerEvents.error",
+      "providerEvents.skipped",
+      "d1Fanout.mean",
+      "d1Fanout.p95",
+      "d1Fanout.p99",
+      "d1QueryCount.mean",
+      "d1QueryCount.p95",
+      "d1QueryCount.p99",
+      "bytesTransferred.total",
+      "bytesTransferred.mean",
+      "bytesTransferred.p95",
+      "costEstimateUsd.totalUsd",
+      "costEstimateUsd.per1kRequestsUsd",
+      "freshnessDeltaSeconds.p50",
+      "freshnessDeltaSeconds.p95",
+      "freshnessDeltaSeconds.p99",
+      "freshnessDeltaSeconds.max",
+      "staleResultRate",
+      "cacheHitRate.overall",
+      "cacheHitRate.browserMemory",
+      "cacheHitRate.workerMemory",
+      "cacheHitRate.edgeCache",
+      "cacheHitRate.d1ReadThrough",
+      "cacheHitRate.ownedDb"
+    ],
+    "comparisonPathIds": [
+      "naive-live-provider-no-cache",
+      "owned-db-all-caches",
+      "owned-memory-no-cache",
+      "owned-sqlite-local-no-cache",
+      "external-live-baseline:fake-noop",
+      "external-live-baseline:ruian-geocode",
+      "external-live-baseline:mapy-cz",
+      "external-live-baseline:here-discover",
+      "external-live-baseline:managed-nominatim",
+      "external-live-baseline:radar-autocomplete"
+    ],
+    "privacyRules": [
+      "Store scenario ids and normalized result ids only.",
+      "Do not store raw customer queries.",
+      "Do not store provider payloads, secret-bearing URLs, API keys, or private endpoint labels.",
+      "Do not store operator absolute filesystem paths; use app-relative fixture paths or stable public-safe corpus labels."
+    ],
+    "fairnessRules": [
+      "External live-provider baselines are opt-in only.",
+      "Default local and CI-safe runs make zero live provider network calls.",
+      "Reports record warmup, measured iterations, timeout, concurrency, delay, rate-limit, and no-cache controls."
+    ]
+  }
+}

@@ -34,6 +34,27 @@ const patchBlockedLocalStorage = () => {
   }
 }
 
+const patchMissingLocalStorage = () => {
+  const originalDescriptor = Object.getOwnPropertyDescriptor(
+    window,
+    "localStorage"
+  )
+
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: undefined,
+  })
+
+  return () => {
+    if (originalDescriptor) {
+      Object.defineProperty(window, "localStorage", originalDescriptor)
+      return
+    }
+
+    Reflect.deleteProperty(window, "localStorage")
+  }
+}
+
 describe("createMedusaSdk degraded localStorage", () => {
   it("constructs the sdk without crashing when localStorage access throws", () => {
     const restore = patchBlockedLocalStorage()
@@ -59,6 +80,20 @@ describe("createMedusaSdk degraded localStorage", () => {
 
       expect(() => sdk.setLocale("sk")).not.toThrow()
       expect(sdk.getLocale()).toBe("sk")
+    } finally {
+      restore()
+    }
+  })
+
+  it("constructs the sdk without crashing when localStorage is missing", () => {
+    const restore = patchMissingLocalStorage()
+
+    try {
+      expect(() =>
+        createMedusaSdk({
+          baseUrl: "https://example.com",
+        })
+      ).not.toThrow()
     } finally {
       restore()
     }
