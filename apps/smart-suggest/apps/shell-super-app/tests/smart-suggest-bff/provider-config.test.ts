@@ -4,6 +4,7 @@ import type {
   SmartSuggestProviderRegistry,
   SmartSuggestProviderRuntimeConfig,
 } from '@techsio/smart-suggest-integrations';
+import type * as SmartSuggestIntegrations from '@techsio/smart-suggest-integrations';
 import type { SmartSuggestRepositories } from '@techsio/smart-suggest-storage';
 import { createInMemorySmartSuggestRepositories } from '@techsio/smart-suggest-storage';
 import { Context, Effect, Schema } from 'effect';
@@ -14,7 +15,7 @@ import { SmartSuggestResponseSchema } from '../../shared/api';
 const providerRegistryCreations = vi.hoisted(() => [] as SmartSuggestProviderRuntimeConfig[]);
 
 vi.mock('@techsio/smart-suggest-integrations', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@techsio/smart-suggest-integrations')>();
+  const original = await importOriginal<typeof SmartSuggestIntegrations>();
 
   return {
     ...original,

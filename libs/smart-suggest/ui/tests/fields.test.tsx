@@ -40,16 +40,16 @@ const addressSuggestState = vi.hoisted(
 vi.mock("@techsio/ui-kit/molecules/combobox", () => ({
   Combobox: (props: Record<string, unknown>) => {
     comboboxProps.push(props);
-    const items = Array.isArray(props.items) ? props.items : [];
-    const renderLoadingState = props.renderLoadingState;
+    const items = Array.isArray(props["items"]) ? props["items"] : [];
+    const renderLoadingState = props["renderLoadingState"];
 
     if (
-      props.loading === true &&
+      props["loading"] === true &&
       items.length === 0 &&
       typeof renderLoadingState === "function"
     ) {
       return renderLoadingState({
-        inputValue: typeof props.inputValue === "string" ? props.inputValue : "",
+        inputValue: typeof props["inputValue"] === "string" ? props["inputValue"] : "",
       });
     }
 
