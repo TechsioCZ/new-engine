@@ -24,6 +24,8 @@ type ProductContentSection = {
 }
 
 type UpdateProductContentInput = {
+  changeVersion: number
+  productId: string
   sectionsHtml: ProductContentSectionHtml
 }
 
@@ -331,13 +333,29 @@ const ProductDescriptionEditor = ({
     getProductSectionHtml(product)
   )
   const sectionHtmlRef = useRef(savedSectionHtml)
+  const sectionHtmlDirtyRef = useRef(false)
+  const sectionHtmlChangeVersionRef = useRef(0)
+  const productIdRef = useRef(product?.id ?? null)
 
   useEffect(() => {
+    const nextProductId = product?.id ?? null
+    const productChanged = productIdRef.current !== nextProductId
+
+    if (productChanged) {
+      productIdRef.current = nextProductId
+      sectionHtmlDirtyRef.current = false
+      sectionHtmlChangeVersionRef.current = 0
+    }
+
+    if (sectionHtmlDirtyRef.current) {
+      return
+    }
+
     const nextSectionHtml = getProductSectionHtml(product)
 
     sectionHtmlRef.current = nextSectionHtml
     setSavedSectionHtml(nextSectionHtml)
-  }, [product?.description, product?.metadata])
+  }, [product?.id, product?.description, product?.metadata])
 
   useEffect(() => {
     let animationFrameId: number | null = null
@@ -373,9 +391,9 @@ const ProductDescriptionEditor = ({
   }, [])
 
   const mutation = useMutation({
-    mutationFn: ({ sectionsHtml }: UpdateProductContentInput) =>
+    mutationFn: ({ productId, sectionsHtml }: UpdateProductContentInput) =>
       sdk.client.fetch<UpdateProductResponse>(
-        `/admin/products/${product?.id}`,
+        `/admin/products/${productId}`,
         {
           body: {
             description:
@@ -383,7 +401,6 @@ const ProductDescriptionEditor = ({
                 ? sectionsHtml.description
                 : null,
             metadata: {
-              ...(product?.metadata ?? {}),
               [CONTENT_SECTIONS_METADATA_KEY]:
                 buildContentSections(sectionsHtml),
               [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
@@ -403,21 +420,40 @@ const ProductDescriptionEditor = ({
       )
     },
     onSuccess: (response, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["product", variables.productId],
+      })
+      queryClient.invalidateQueries({ queryKey: ["products"] })
+
+      if (productIdRef.current !== variables.productId) {
+        return
+      }
+
+      if (sectionHtmlChangeVersionRef.current !== variables.changeVersion) {
+        toast.success("Product descriptions saved")
+        return
+      }
+
       const nextSectionHtml = getSavedSectionHtml(
         response.product,
         variables.sectionsHtml
       )
 
+      sectionHtmlDirtyRef.current = false
       sectionHtmlRef.current = nextSectionHtml
       setSavedSectionHtml(nextSectionHtml)
-      queryClient.invalidateQueries({ queryKey: ["product", product?.id] })
-      queryClient.invalidateQueries({ queryKey: ["products"] })
       toast.success("Product descriptions saved")
     },
   })
 
   const handleSave = () => {
+    if (!product?.id) {
+      return
+    }
+
     mutation.mutate({
+      changeVersion: sectionHtmlChangeVersionRef.current,
+      productId: product.id,
       sectionsHtml: sectionHtmlRef.current,
     })
   }
@@ -450,6 +486,8 @@ const ProductDescriptionEditor = ({
             <RichHtmlEditor
               ariaLabel={section.ariaLabel}
               onChangeHtml={(html) => {
+                sectionHtmlDirtyRef.current = true
+                sectionHtmlChangeVersionRef.current += 1
                 sectionHtmlRef.current = {
                   ...sectionHtmlRef.current,
                   [section.key]: html,
