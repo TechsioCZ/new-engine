@@ -85,7 +85,6 @@ export function CategoryListing({ slug }: CategoryListingProps) {
         results={
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
-            addToCartError={controller.addToCartError}
             catalogError={controller.catalogError}
             categoriesError={controller.categoriesError}
             isEmpty={controller.products.length === 0}

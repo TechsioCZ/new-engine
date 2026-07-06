@@ -56,7 +56,6 @@ export function SearchResults() {
           results={
             <CategoryResultsSection
               activeSort={controller.queryState.sort}
-              addToCartError={controller.addToCartError}
               catalogError={controller.catalogError}
               categoriesError={null}
               isEmpty={controller.products.length === 0}

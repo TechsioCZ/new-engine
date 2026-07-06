@@ -6,11 +6,13 @@ import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
-import { useState } from "react"
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
-import { SupportingText } from "@/components/text/supporting-text"
 import { useAppToast } from "@/hooks/use-app-toast"
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+import {
+  ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE,
+  resolveAddProductToCartErrorMessage,
+  useAddProductToCart,
+} from "@/lib/storefront/use-add-product-to-cart"
 
 type InlineProductsCarouselProps = {
   products: HttpTypes.StoreProduct[]
@@ -65,7 +67,6 @@ export function InlineProductsCarousel({
   slidesLg = 4,
 }: InlineProductsCarouselProps) {
   const region = useRegionContext()
-  const [addToCartError, setAddToCartError] = useState<string | null>(null)
   const addToCart = useAddProductToCart({
     regionId: region?.region_id,
     countryCode: region?.country_code,
@@ -73,18 +74,14 @@ export function InlineProductsCarousel({
   const toast = useAppToast()
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
-    setAddToCartError(null)
-
     try {
       await addToCart.addProductToCart({
         product,
         quantity: 1,
       })
-      toast.success({ title: "Produkt bol pridaný do košíka." })
+      toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
     } catch (error) {
-      setAddToCartError(
-        error instanceof Error ? error.message : "Pridanie do košíka zlyhalo."
-      )
+      toast.error({ title: resolveAddProductToCartErrorMessage(error) })
     }
   }
 
@@ -116,12 +113,6 @@ export function InlineProductsCarousel({
       <div className="hidden xl:block">
         <InlineProductsSlides slides={slides} slidesPerPage={slidesLg} />
       </div>
-
-      {addToCartError ? (
-        <SupportingText className="text-danger text-sm">
-          {addToCartError}
-        </SupportingText>
-      ) : null}
     </section>
   )
 }
