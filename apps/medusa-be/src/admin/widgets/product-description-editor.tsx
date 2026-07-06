@@ -430,7 +430,6 @@ const ProductDescriptionEditor = ({
       }
 
       if (sectionHtmlChangeVersionRef.current !== variables.changeVersion) {
-        toast.success("Product descriptions saved")
         return
       }
 
