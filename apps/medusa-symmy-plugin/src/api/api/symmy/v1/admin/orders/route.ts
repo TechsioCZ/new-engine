@@ -1,4 +1,4 @@
-import { getOrdersListWorkflow } from "@medusajs/core-flows"
+import { getOrdersListWorkflow } from "@medusajs/medusa/core-flows"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 
