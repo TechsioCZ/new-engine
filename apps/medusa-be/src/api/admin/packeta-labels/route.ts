@@ -36,6 +36,12 @@ type PrintablePacketaLabel = {
   barcode?: string
 }
 
+const A4_WIDTH = 595.28
+const A4_HEIGHT = 841.89
+const A4_LABEL_COLUMNS = 2
+const A4_LABEL_ROWS = 2
+const A4_LABELS_PER_PAGE = A4_LABEL_COLUMNS * A4_LABEL_ROWS
+
 export async function POST(
   req: MedusaRequest<PostAdminPacketaLabelsSchemaType>,
   res: MedusaResponse
@@ -71,30 +77,17 @@ export async function POST(
     orders as OrderWithFulfillments[]
   )
 
-  const mergedPdf = await PDFDocument.create()
-
   const labelPdfs = await Promise.all(
     labels.map((label) =>
       packetaClient.downloadLabelPdf(
         label.packet_id,
         labelFormat as PacketaLabelFormat | undefined,
-        label_offset
+        0
       )
     )
   )
 
-  for (const labelPdf of labelPdfs) {
-    const sourcePdf = await PDFDocument.load(labelPdf)
-    const copiedPages = await mergedPdf.copyPages(
-      sourcePdf,
-      sourcePdf.getPageIndices()
-    )
-    for (const page of copiedPages) {
-      mergedPdf.addPage(page)
-    }
-  }
-
-  const pdfBytes = await mergedPdf.save()
+  const pdfBytes = await composeLabelsOnA4(labelPdfs, label_offset ?? 0)
   const buffer = Buffer.from(pdfBytes)
   const filename = buildFilename(labels)
 
@@ -171,6 +164,52 @@ function collectPrintableLabels(
   }
 
   return labels
+}
+
+async function composeLabelsOnA4(
+  labelPdfs: Buffer[],
+  labelOffset: number
+): Promise<Uint8Array> {
+  const mergedPdf = await PDFDocument.create()
+  const cellWidth = A4_WIDTH / A4_LABEL_COLUMNS
+  const cellHeight = A4_HEIGHT / A4_LABEL_ROWS
+  let currentPage = mergedPdf.addPage([A4_WIDTH, A4_HEIGHT])
+  let slot = labelOffset
+
+  for (const labelPdf of labelPdfs) {
+    if (slot >= A4_LABELS_PER_PAGE) {
+      currentPage = mergedPdf.addPage([A4_WIDTH, A4_HEIGHT])
+      slot = 0
+    }
+
+    const sourcePdf = await PDFDocument.load(labelPdf)
+    const sourcePage = sourcePdf.getPages()[0]
+
+    if (!sourcePage) {
+      continue
+    }
+
+    const embeddedPage = await mergedPdf.embedPage(sourcePage)
+    const { height: sourceHeight, width: sourceWidth } = sourcePage.getSize()
+    const scale = Math.min(cellWidth / sourceWidth, cellHeight / sourceHeight)
+    const width = sourceWidth * scale
+    const height = sourceHeight * scale
+    const column = slot % A4_LABEL_COLUMNS
+    const row = Math.floor(slot / A4_LABEL_COLUMNS)
+    const x = column * cellWidth + (cellWidth - width) / 2
+    const y = A4_HEIGHT - (row + 1) * cellHeight + (cellHeight - height) / 2
+
+    currentPage.drawPage(embeddedPage, {
+      height,
+      width,
+      x,
+      y,
+    })
+
+    slot += 1
+  }
+
+  return mergedPdf.save()
 }
 
 function buildFilename(labels: PrintablePacketaLabel[]): string {

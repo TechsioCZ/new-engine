@@ -20,7 +20,13 @@ import {
   toast,
   useDataTable,
 } from "@medusajs/ui"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
@@ -95,6 +101,15 @@ type TranslationFunction = (
 type StatusBadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
 
 const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
+const packetaLabelStartPositions = [1, 2, 3, 4] as const
+const orderDashboardQueryClient = new QueryClient()
+
+type PacketaLabelStartPosition = (typeof packetaLabelStartPositions)[number]
+type PendingPacketaLabelsDownload = {
+  labelFormat: OrderDashboardLabelFormat
+  orderIds: string[]
+}
+
 const fulfillmentStatusColors = {
   canceled: "red",
   delivered: "green",
@@ -137,6 +152,14 @@ const OrderDashboardPage = () => {
   const [isFulfillmentModalOpen, setIsFulfillmentModalOpen] = useState(false)
   const [labelFormat, setLabelFormat] =
     useState<OrderDashboardLabelFormat>("A6")
+  const [packetaLabelStartPosition, setPacketaLabelStartPosition] =
+    useState<PacketaLabelStartPosition>(1)
+  const [pendingPacketaLabelsDownload, setPendingPacketaLabelsDownload] =
+    useState<PendingPacketaLabelsDownload | null>(null)
+  const [
+    isPacketaLabelPositionPromptOpen,
+    setIsPacketaLabelPositionPromptOpen,
+  ] = useState(false)
   const [isPreparingPacketaLabels, setIsPreparingPacketaLabels] =
     useState(false)
   const [blockingOrders, setBlockingOrders] = useState<
@@ -537,6 +560,9 @@ const OrderDashboardPage = () => {
 
   const packetaLabelsMutation = useMutation({
     mutationFn: downloadOrderDashboardPacketaLabels,
+    onError: (error) => {
+      toast.error(getErrorMessage(error, t("toast.requestFailed")))
+    },
     onSuccess: () => {
       toast.success(t("toast.packetaLabelsReady"))
     },
@@ -653,15 +679,29 @@ const OrderDashboardPage = () => {
         return
       }
 
-      await packetaLabelsMutation.mutateAsync({
+      setPendingPacketaLabelsDownload({
         labelFormat: labelFormatSnapshot,
         orderIds: packetaLabelPreparation.orderIds,
       })
+      setIsPacketaLabelPositionPromptOpen(true)
     } catch (error) {
       toast.error(getErrorMessage(error, t("toast.requestFailed")))
     } finally {
       setIsPreparingPacketaLabels(false)
     }
+  }
+
+  const handlePacketaLabelPositionConfirm = () => {
+    if (!pendingPacketaLabelsDownload) {
+      return
+    }
+
+    packetaLabelsMutation.mutate({
+      ...pendingPacketaLabelsDownload,
+      labelOffset: packetaLabelStartPosition - 1,
+    })
+    setIsPacketaLabelPositionPromptOpen(false)
+    setPendingPacketaLabelsDownload(null)
   }
 
   const handleFulfillmentOpen = () => {
@@ -862,6 +902,63 @@ const OrderDashboardPage = () => {
               onClick={handleManualStatusConfirm}
             >
               {t("actions.apply")}
+            </Prompt.Action>
+          </Prompt.Footer>
+        </Prompt.Content>
+      </Prompt>
+
+      <Prompt
+        onOpenChange={(open) => {
+          setIsPacketaLabelPositionPromptOpen(open)
+          if (!open) {
+            setPendingPacketaLabelsDownload(null)
+          }
+        }}
+        open={isPacketaLabelPositionPromptOpen}
+        variant="confirmation"
+      >
+        <Prompt.Content>
+          <Prompt.Header>
+            <Prompt.Title>{t("packetaLabelPositionPrompt.title")}</Prompt.Title>
+            <Prompt.Description>
+              {t("packetaLabelPositionPrompt.description")}
+            </Prompt.Description>
+          </Prompt.Header>
+          <div className="flex flex-col gap-3 px-6 py-4">
+            <Text className="text-ui-fg-subtle" leading="compact" size="small">
+              {t("packetaLabelPositionPrompt.selected", {
+                count: pendingPacketaLabelsDownload?.orderIds.length ?? 0,
+              })}
+            </Text>
+            <Select
+              onValueChange={(value) =>
+                setPacketaLabelStartPosition(
+                  Number(value) as PacketaLabelStartPosition
+                )
+              }
+              value={String(packetaLabelStartPosition)}
+            >
+              <Select.Trigger>
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                {packetaLabelStartPositions.map((position) => (
+                  <Select.Item key={position} value={String(position)}>
+                    {t("packetaLabelPositionPrompt.position", { position })}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+          </div>
+          <Prompt.Footer>
+            <Prompt.Cancel>{t("actions.cancel")}</Prompt.Cancel>
+            <Prompt.Action
+              disabled={
+                !pendingPacketaLabelsDownload || packetaLabelsMutation.isPending
+              }
+              onClick={handlePacketaLabelPositionConfirm}
+            >
+              {t("packetaLabelPositionPrompt.print")}
             </Prompt.Action>
           </Prompt.Footer>
         </Prompt.Content>
@@ -1764,4 +1861,10 @@ export const config = defineRouteConfig({
   translationNs: "orderDashboard",
 })
 
-export default OrderDashboardPage
+const OrderDashboardRoute = () => (
+  <QueryClientProvider client={orderDashboardQueryClient}>
+    <OrderDashboardPage />
+  </QueryClientProvider>
+)
+
+export default OrderDashboardRoute
