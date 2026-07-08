@@ -144,6 +144,20 @@ import type {
   ProductListService,
 } from "../product-lists/types"
 import {
+  type CreateProductLocationAvailabilityHooksConfig,
+  createProductLocationAvailabilityHooks,
+  type ProductLocationAvailabilityHooks,
+} from "../product-location-availability/hooks"
+import {
+  type MedusaProductLocationAvailabilityInput,
+  type MedusaProductLocationAvailabilityServiceConfig,
+} from "../product-location-availability/medusa-service"
+import type {
+  ProductLocationAvailabilityQueryKeys,
+  ProductLocationAvailabilityResponse,
+  ProductLocationAvailabilityService,
+} from "../product-location-availability/types"
+import {
   type CreateProductReviewHooksConfig,
   createProductReviewHooks,
   type ProductReviewHooks,
@@ -283,6 +297,14 @@ type MedusaProductReviewHooksConfig = OmitFactoryConfig<
   >
 >
 
+type MedusaProductLocationAvailabilityHooksConfig = OmitFactoryConfig<
+  CreateProductLocationAvailabilityHooksConfig<
+    ProductLocationAvailabilityResponse,
+    MedusaProductLocationAvailabilityInput,
+    MedusaProductLocationAvailabilityInput
+  >
+>
+
 type MedusaOrderHooksConfig = OmitFactoryConfig<
   CreateOrderHooksConfig<
     HttpTypes.StoreOrder,
@@ -311,6 +333,12 @@ type MedusaProductReviewService = ProductReviewService<
   ReviewBase,
   MedusaProductReviewListInput
 >
+
+type MedusaProductLocationAvailabilityService =
+  ProductLocationAvailabilityService<
+    ProductLocationAvailabilityResponse,
+    MedusaProductLocationAvailabilityInput
+  >
 
 type MedusaCustomerAddressUpdateHookInput = MedusaCustomerAddressUpdateInput & {
   addressId?: string
@@ -472,6 +500,14 @@ type CreateMedusaStorefrontPresetConfigBase<
       MedusaProductListDetailKeyInput
     >
   }
+  productLocationAvailability?: {
+    service?: MedusaProductLocationAvailabilityService
+    serviceConfig?: MedusaProductLocationAvailabilityServiceConfig
+    hooks?: MedusaProductLocationAvailabilityHooksConfig
+    queryKeys?: ProductLocationAvailabilityQueryKeys<
+      MedusaProductLocationAvailabilityInput
+    >
+  }
   reviews?: {
     service?: MedusaProductReviewService
     serviceConfig?: MedusaProductReviewServiceConfig<ReviewBase>
@@ -563,6 +599,7 @@ type MedusaStorefrontServices<
     >
   >
   productLists: MedusaProductListService
+  productLocationAvailability: MedusaProductLocationAvailabilityService
   reviews: MedusaProductReviewService
   orders: MedusaOrderService
   customers: MedusaCustomerService
@@ -642,6 +679,10 @@ type MedusaStorefrontHooks<
     HttpTypes.StoreCart,
     MedusaProductListListHookInput,
     MedusaProductListDetailHookInput
+  >
+  productLocationAvailability: ProductLocationAvailabilityHooks<
+    ProductLocationAvailabilityResponse,
+    MedusaProductLocationAvailabilityInput
   >
   reviews: ProductReviewHooks<
     ReviewBase,
@@ -800,6 +841,9 @@ export function createMedusaStorefrontPreset<
     products: config.products?.queryKeys ?? defaultQueryKeys.products,
     productLists:
       config.productLists?.queryKeys ?? defaultQueryKeys.productLists,
+    productLocationAvailability:
+      config.productLocationAvailability?.queryKeys ??
+      defaultQueryKeys.productLocationAvailability,
     reviews: config.reviews?.queryKeys ?? defaultQueryKeys.reviews,
     orders: config.orders?.queryKeys ?? defaultQueryKeys.orders,
     customers: config.customers?.queryKeys ?? defaultQueryKeys.customers,
@@ -830,6 +874,11 @@ export function createMedusaStorefrontPreset<
       serviceConfig: config.productLists?.serviceConfig,
       hooks: config.productLists?.hooks,
       queryKeys: queryKeys.productLists,
+    },
+    productLocationAvailability: {
+      service: config.productLocationAvailability?.service,
+      serviceConfig: config.productLocationAvailability?.serviceConfig,
+      queryKeys: queryKeys.productLocationAvailability,
     },
     reviews: {
       service: config.reviews?.service,
@@ -875,6 +924,8 @@ export function createMedusaStorefrontPreset<
     ),
     products: serverRead.services.products,
     productLists: serverRead.services.productLists,
+    productLocationAvailability:
+      serverRead.services.productLocationAvailability,
     reviews: serverRead.services.reviews,
     orders: serverRead.services.orders,
     customers:
@@ -1007,6 +1058,13 @@ export function createMedusaStorefrontPreset<
       cartQueryKeys: queryKeys.cart,
       cartStorage: cartHookOverrides?.cartStorage,
       isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+    }),
+    productLocationAvailability: createProductLocationAvailabilityHooks({
+      ...(config.productLocationAvailability?.hooks ?? {}),
+      service: services.productLocationAvailability,
+      queryKeys: queryKeys.productLocationAvailability,
+      queryKeyNamespace: namespace,
+      cacheConfig: resolvedCacheConfig,
     }),
     reviews: createProductReviewHooks<
       ReviewBase,

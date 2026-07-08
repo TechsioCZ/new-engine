@@ -31,13 +31,11 @@ import {
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
-import {
-  resolveProductLocationAvailabilityState,
-  useProductLocationAvailability,
-} from "@/lib/storefront/product-location-availability"
+import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { storefront } from "@/lib/storefront/storefront"
 
 type UseProductDetailDataProps = { handle: string }
 
@@ -62,9 +60,12 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const productCategories = product?.categories ?? []
 
   const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
-  const productLocationAvailabilityQuery = useProductLocationAvailability(
-    product?.id ?? null
-  )
+  const productLocationAvailabilityQuery =
+    storefront.hooks.productLocationAvailability.useProductLocationAvailability(
+      {
+        productId: product?.id ?? null,
+      }
+    )
   const locationAvailabilityState = resolveProductLocationAvailabilityState(
     productLocationAvailabilityQuery,
     selectedVariant?.id ?? null

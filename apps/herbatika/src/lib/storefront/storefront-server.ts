@@ -50,6 +50,9 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
   productLists: {
     queryKeys: storefrontCoreDefinition.productLists.queryKeys,
   },
+  productLocationAvailability: {
+    queryKeys: storefrontCoreDefinition.productLocationAvailability.queryKeys,
+  },
   reviews: {
     queryKeys: storefrontCoreDefinition.reviews.queryKeys,
   },

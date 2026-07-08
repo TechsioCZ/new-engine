@@ -1,66 +1,18 @@
-"use client"
-
-import { useQuery } from "@tanstack/react-query"
-import { toErrorMessage } from "@techsio/storefront-data/shared/error-utils"
-import { storefrontSdk } from "@/lib/storefront/sdk"
-
-export type ProductBusinessLocationCode = "store" | "makov_main_warehouse"
-
-export type ProductLocationAvailability = {
-  location_code: ProductBusinessLocationCode
-  location_name: string
-  available_quantity: number
-}
-
-export type ProductVariantLocationAvailability = {
-  variant_id: string
-  location_availability: ProductLocationAvailability[]
-}
+import type {
+  ProductLocationAvailabilityLocation,
+  ProductLocationAvailabilityResponse,
+} from "@techsio/storefront-data/product-location-availability/types"
 
 export type ProductLocationAvailabilityState = {
-  items: ProductLocationAvailability[] | null
+  items: ProductLocationAvailabilityLocation[] | null
   isLoading: boolean
   error: string | null
 }
 
-export type ProductLocationAvailabilityResponse = {
-  product_id: string
-  variants: ProductVariantLocationAvailability[]
-}
-
-const productLocationAvailabilityQueryKey = (productId: string | null) =>
-  ["herbatika", "product-location-availability", productId] as const
-
-const fetchProductLocationAvailability = (
-  productId: string,
-  signal?: AbortSignal
-) =>
-  storefrontSdk.client.fetch<ProductLocationAvailabilityResponse>(
-    `/store/products/${encodeURIComponent(productId)}/location-availability`,
-    { signal }
-  )
-
-export function useProductLocationAvailability(productId: string | null) {
-  const query = useQuery({
-    queryKey: productLocationAvailabilityQueryKey(productId),
-    queryFn: ({ signal }) => {
-      if (!productId) {
-        throw new Error("Product id is required for location availability.")
-      }
-
-      return fetchProductLocationAvailability(productId, signal)
-    },
-    enabled: Boolean(productId),
-  })
-
-  return {
-    productLocationAvailability: query.data ?? null,
-    isLoading: query.isLoading,
-    isFetching: query.isFetching,
-    isSuccess: query.isSuccess,
-    error: toErrorMessage(query.error),
-    query,
-  }
+export type ProductLocationAvailabilityQueryState = {
+  productLocationAvailability: ProductLocationAvailabilityResponse | null
+  isLoading: boolean
+  error: string | null
 }
 
 export const resolveSelectedVariantLocationAvailability = (
@@ -78,10 +30,7 @@ export const resolveSelectedVariantLocationAvailability = (
 }
 
 export const resolveProductLocationAvailabilityState = (
-  availabilityQuery: Pick<
-    ReturnType<typeof useProductLocationAvailability>,
-    "error" | "isLoading" | "productLocationAvailability"
-  >,
+  availabilityQuery: ProductLocationAvailabilityQueryState,
   variantId: string | null
 ): ProductLocationAvailabilityState => ({
   items: resolveSelectedVariantLocationAvailability(

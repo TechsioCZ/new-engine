@@ -24,6 +24,9 @@ export function ProductDetailDeliveryInfo({
   offerState,
 }: ProductDetailDeliveryInfoProps) {
   const { error, isLoading, items } = locationAvailabilityState
+  const showLocationAvailability =
+    !isLoading && !error && Boolean(items?.length)
+  const showLocationAvailabilityError = !isLoading && Boolean(error)
   const availabilityToneClass = offerState.isInStock
     ? "text-primary"
     : "text-warning"
@@ -83,15 +86,15 @@ export function ProductDetailDeliveryInfo({
         </Skeleton>
       ) : null}
 
-      {!isLoading && items?.length ? (
-        <dl className="grid gap-250 border-border-secondary border-t pt-400 sm:grid-cols-2">
+      {showLocationAvailability && items ? (
+        <dl className="grid gap-250 border-border-secondary border-t pt-400">
           {items.map((location) => {
             const isAvailable = location.available_quantity > 0
 
             return (
               <div
                 className="flex min-w-0 items-center justify-between gap-250"
-                key={location.location_code}
+                key={location.location_id}
               >
                 <dt className="min-w-0 text-fg-secondary text-sm leading-snug">
                   {location.location_name}
@@ -107,7 +110,7 @@ export function ProductDetailDeliveryInfo({
         </dl>
       ) : null}
 
-      {!isLoading && error ? (
+      {showLocationAvailabilityError ? (
         <StatusText showIcon size="sm" status="warning">
           Dostupnosť podľa skladov sa nepodarilo načítať.
         </StatusText>

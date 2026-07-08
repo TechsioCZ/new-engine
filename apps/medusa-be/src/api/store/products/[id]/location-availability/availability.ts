@@ -1,9 +1,6 @@
-export type BusinessLocationCode = "store" | "makov_main_warehouse"
-
-type BusinessLocation = {
-  code: BusinessLocationCode
+export type StockLocationRecord = {
+  id: string
   name: string
-  stockLocationNames: readonly string[]
 }
 
 export type VariantInventoryItemLink = {
@@ -15,6 +12,7 @@ export type VariantInventoryItemLink = {
 export type InventoryLevel = {
   available_quantity?: number | string | null
   inventory_item_id: string
+  location_id?: string | null
   reserved_quantity?: number | string | null
   stock_locations?: unknown
   stocked_quantity?: number | string | null
@@ -22,7 +20,7 @@ export type InventoryLevel = {
 
 export type LocationAvailability = {
   available_quantity: number
-  location_code: BusinessLocationCode
+  location_id: string
   location_name: string
 }
 
@@ -36,40 +34,17 @@ export type ProductLocationAvailability = {
   variants: VariantLocationAvailability[]
 }
 
-export const BUSINESS_LOCATIONS = [
-  {
-    code: "store",
-    name: "Prodejna",
-    stockLocationNames: ["Pobočka Čadca"],
-  },
-  {
-    code: "makov_main_warehouse",
-    name: "Hlavní sklad Makov",
-    stockLocationNames: ["Default stock", "European Warehouse"],
-  },
-] as const satisfies readonly BusinessLocation[]
-
-const businessLocationCodeByStockLocationName = new Map<
-  string,
-  BusinessLocationCode
->(
-  BUSINESS_LOCATIONS.flatMap((location) =>
-    location.stockLocationNames.map((stockLocationName) => [
-      normalizeStockLocationName(stockLocationName),
-      location.code,
-    ])
-  )
-)
-
 export function buildProductLocationAvailability({
   inventoryItemLinks,
   inventoryLevels,
   productId,
+  stockLocations,
   variantIds,
 }: {
   inventoryItemLinks: VariantInventoryItemLink[]
   inventoryLevels: InventoryLevel[]
   productId: string
+  stockLocations: StockLocationRecord[]
   variantIds: string[]
 }): ProductLocationAvailability {
   const levelsByInventoryItemId = groupBy(
@@ -86,7 +61,8 @@ export function buildProductLocationAvailability({
     variants: variantIds.map((variantId) => ({
       location_availability: buildVariantLocationAvailability(
         linksByVariantId.get(variantId) ?? [],
-        levelsByInventoryItemId
+        levelsByInventoryItemId,
+        stockLocations
       ),
       variant_id: variantId,
     })),
@@ -107,35 +83,45 @@ export function isInventoryLevel(value: unknown): value is InventoryLevel {
   return isRecord(value) && typeof value.inventory_item_id === "string"
 }
 
+export function isStockLocationRecord(
+  value: unknown
+): value is StockLocationRecord {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string"
+  )
+}
+
 function buildVariantLocationAvailability(
   links: VariantInventoryItemLink[],
-  levelsByInventoryItemId: Map<string, InventoryLevel[]>
+  levelsByInventoryItemId: Map<string, InventoryLevel[]>,
+  stockLocations: StockLocationRecord[]
 ): LocationAvailability[] {
   const quantitiesByLocation = new Map(
-    BUSINESS_LOCATIONS.map(
-      (location) => [location.code, [] as number[]] as const
-    )
+    stockLocations.map((location) => [location.id, [] as number[]] as const)
   )
 
   for (const link of links) {
     const availableByLocation = buildAvailableQuantityByLocation(
       link,
-      levelsByInventoryItemId.get(link.inventory_item_id) ?? []
+      levelsByInventoryItemId.get(link.inventory_item_id) ?? [],
+      stockLocations
     )
 
-    for (const location of BUSINESS_LOCATIONS) {
+    for (const location of stockLocations) {
       quantitiesByLocation
-        .get(location.code)
-        ?.push(availableByLocation.get(location.code) ?? 0)
+        .get(location.id)
+        ?.push(availableByLocation.get(location.id) ?? 0)
     }
   }
 
-  return BUSINESS_LOCATIONS.map((location) => {
-    const quantities = quantitiesByLocation.get(location.code) ?? []
+  return stockLocations.map((location) => {
+    const quantities = quantitiesByLocation.get(location.id) ?? []
 
     return {
       available_quantity: quantities.length > 0 ? Math.min(...quantities) : 0,
-      location_code: location.code,
+      location_id: location.id,
       location_name: location.name,
     }
   })
@@ -143,12 +129,14 @@ function buildVariantLocationAvailability(
 
 function buildAvailableQuantityByLocation(
   link: VariantInventoryItemLink,
-  levels: InventoryLevel[]
-): Map<BusinessLocationCode, number> {
+  levels: InventoryLevel[],
+  stockLocations: StockLocationRecord[]
+): Map<string, number> {
   const requiredQuantity = toRequiredQuantity(link.required_quantity)
-  const availableByLocation = new Map<BusinessLocationCode, number>(
-    BUSINESS_LOCATIONS.map((location) => [location.code, 0] as const)
+  const availableByLocation = new Map<string, number>(
+    stockLocations.map((location) => [location.id, 0] as const)
   )
+  const allowedLocationIds = new Set(availableByLocation.keys())
 
   for (const level of levels) {
     const availableQuantity = getLevelAvailableQuantity(level)
@@ -157,19 +145,23 @@ function buildAvailableQuantityByLocation(
       continue
     }
 
-    for (const locationCode of resolveBusinessLocationCodes(level)) {
+    for (const locationId of resolveStockLocationIds(level)) {
+      if (!allowedLocationIds.has(locationId)) {
+        continue
+      }
+
       availableByLocation.set(
-        locationCode,
-        (availableByLocation.get(locationCode) ?? 0) + availableQuantity
+        locationId,
+        (availableByLocation.get(locationId) ?? 0) + availableQuantity
       )
     }
   }
 
-  for (const location of BUSINESS_LOCATIONS) {
+  for (const location of stockLocations) {
     availableByLocation.set(
-      location.code,
+      location.id,
       Math.floor(
-        (availableByLocation.get(location.code) ?? 0) / requiredQuantity
+        (availableByLocation.get(location.id) ?? 0) / requiredQuantity
       )
     )
   }
@@ -195,26 +187,20 @@ function getLevelAvailableQuantity(level: InventoryLevel): number | undefined {
   return Math.max(0, stockedQuantity - reservedQuantity)
 }
 
-function resolveBusinessLocationCodes(
-  level: InventoryLevel
-): BusinessLocationCode[] {
-  const codes = new Set<BusinessLocationCode>()
+function resolveStockLocationIds(level: InventoryLevel): string[] {
+  const locationIds = new Set<string>()
+
+  if (typeof level.location_id === "string") {
+    locationIds.add(level.location_id)
+  }
 
   for (const stockLocation of getStockLocationRecords(level.stock_locations)) {
-    if (typeof stockLocation.name !== "string") {
-      continue
-    }
-
-    const code = businessLocationCodeByStockLocationName.get(
-      normalizeStockLocationName(stockLocation.name)
-    )
-
-    if (code) {
-      codes.add(code)
+    if (typeof stockLocation.id === "string") {
+      locationIds.add(stockLocation.id)
     }
   }
 
-  return [...codes]
+  return [...locationIds]
 }
 
 function getStockLocationRecords(value: unknown): Record<string, unknown>[] {
@@ -269,10 +255,6 @@ function toNonNegativeNumber(value: unknown): number | undefined {
   }
 
   return Math.max(0, Math.floor(numericValue))
-}
-
-function normalizeStockLocationName(value: string): string {
-  return value.trim().toLocaleLowerCase("cs-CZ")
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
