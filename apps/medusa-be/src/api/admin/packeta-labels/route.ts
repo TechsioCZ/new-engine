@@ -87,7 +87,11 @@ export async function POST(
     )
   )
 
-  const pdfBytes = await composeLabelsOnA4(labelPdfs, label_offset ?? 0)
+  const pdfBytes = await composeLabelsOnA4(
+    labelPdfs,
+    label_offset ?? 0,
+    labelFormat
+  )
   const buffer = Buffer.from(pdfBytes)
   const filename = buildFilename(labels)
 
@@ -168,7 +172,8 @@ function collectPrintableLabels(
 
 async function composeLabelsOnA4(
   labelPdfs: Buffer[],
-  labelOffset: number
+  labelOffset: number,
+  labelFormat: PacketaLabelFormat | undefined
 ): Promise<Uint8Array> {
   const mergedPdf = await PDFDocument.create()
   const cellWidth = A4_WIDTH / A4_LABEL_COLUMNS
@@ -189,11 +194,21 @@ async function composeLabelsOnA4(
       continue
     }
 
-    const embeddedPage = await mergedPdf.embedPage(sourcePage)
     const { height: sourceHeight, width: sourceWidth } = sourcePage.getSize()
-    const scale = Math.min(cellWidth / sourceWidth, cellHeight / sourceHeight)
-    const width = sourceWidth * scale
-    const height = sourceHeight * scale
+    const sourceBox = getSourceLabelBox(sourceWidth, sourceHeight, labelFormat)
+    const embeddedPage = await mergedPdf.embedPage(sourcePage, sourceBox)
+    const sourceLabelWidth = sourceBox
+      ? sourceBox.right - sourceBox.left
+      : sourceWidth
+    const sourceLabelHeight = sourceBox
+      ? sourceBox.top - sourceBox.bottom
+      : sourceHeight
+    const scale = Math.min(
+      cellWidth / sourceLabelWidth,
+      cellHeight / sourceLabelHeight
+    )
+    const width = sourceLabelWidth * scale
+    const height = sourceLabelHeight * scale
     const column = slot % A4_LABEL_COLUMNS
     const row = Math.floor(slot / A4_LABEL_COLUMNS)
     const x = column * cellWidth + (cellWidth - width) / 2
@@ -210,6 +225,32 @@ async function composeLabelsOnA4(
   }
 
   return mergedPdf.save()
+}
+
+function getSourceLabelBox(
+  sourceWidth: number,
+  sourceHeight: number,
+  labelFormat: PacketaLabelFormat | undefined
+) {
+  if (labelFormat !== "A7" || !isA4LikePage(sourceWidth, sourceHeight)) {
+    return
+  }
+
+  return {
+    bottom: sourceHeight / 2,
+    left: 0,
+    right: sourceWidth / 2,
+    top: sourceHeight,
+  }
+}
+
+function isA4LikePage(width: number, height: number) {
+  const tolerance = 2
+
+  return (
+    Math.abs(width - A4_WIDTH) <= tolerance &&
+    Math.abs(height - A4_HEIGHT) <= tolerance
+  )
 }
 
 function buildFilename(labels: PrintablePacketaLabel[]): string {

@@ -20,13 +20,7 @@ import {
   toast,
   useDataTable,
 } from "@medusajs/ui"
-import {
-  QueryClient,
-  QueryClientProvider,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
@@ -102,7 +96,6 @@ type StatusBadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
 
 const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
 const packetaLabelStartPositions = [1, 2, 3, 4] as const
-const orderDashboardQueryClient = new QueryClient()
 
 type PacketaLabelStartPosition = (typeof packetaLabelStartPositions)[number]
 type PendingPacketaLabelsDownload = {
@@ -1861,10 +1854,4 @@ export const config = defineRouteConfig({
   translationNs: "orderDashboard",
 })
 
-const OrderDashboardRoute = () => (
-  <QueryClientProvider client={orderDashboardQueryClient}>
-    <OrderDashboardPage />
-  </QueryClientProvider>
-)
-
-export default OrderDashboardRoute
+export default OrderDashboardPage
