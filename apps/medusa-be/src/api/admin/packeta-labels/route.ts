@@ -41,6 +41,7 @@ const A4_HEIGHT = 841.89
 const A4_LABEL_COLUMNS = 2
 const A4_LABEL_ROWS = 2
 const A4_LABELS_PER_PAGE = A4_LABEL_COLUMNS * A4_LABEL_ROWS
+const PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE = 10
 
 export async function POST(
   req: MedusaRequest<PostAdminPacketaLabelsSchemaType>,
@@ -77,14 +78,10 @@ export async function POST(
     orders as OrderWithFulfillments[]
   )
 
-  const labelPdfs = await Promise.all(
-    labels.map((label) =>
-      packetaClient.downloadLabelPdf(
-        label.packet_id,
-        labelFormat as PacketaLabelFormat | undefined,
-        0
-      )
-    )
+  const labelPdfs = await downloadLabelPdfsInChunks(
+    labels,
+    packetaClient,
+    labelFormat as PacketaLabelFormat | undefined
   )
 
   const pdfBytes = await composeLabelsOnA4(
@@ -168,6 +165,31 @@ function collectPrintableLabels(
   }
 
   return labels
+}
+
+async function downloadLabelPdfsInChunks(
+  labels: PrintablePacketaLabel[],
+  packetaClient: PacketaClientModuleService,
+  labelFormat: PacketaLabelFormat | undefined
+): Promise<Buffer[]> {
+  const labelPdfs: Buffer[] = []
+
+  for (
+    let index = 0;
+    index < labels.length;
+    index += PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE
+  ) {
+    const chunk = labels.slice(index, index + PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE)
+    const chunkPdfs = await Promise.all(
+      chunk.map((label) =>
+        packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0)
+      )
+    )
+
+    labelPdfs.push(...chunkPdfs)
+  }
+
+  return labelPdfs
 }
 
 async function composeLabelsOnA4(
