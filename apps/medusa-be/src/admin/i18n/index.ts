@@ -15,6 +15,7 @@ import {
   quoteAdminI18n,
 } from "../../modules/quote/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
+import type { ProductContentSectionKey } from "../lib/product-content-sections"
 
 type AdminLocale = "cs" | "en"
 
@@ -43,6 +44,17 @@ type OrderCommercialValuesNamespace = {
   status: Record<"confirmed" | "loading" | "locked" | "requested", string>
   title: string
   totals: Record<"delta" | "new" | "orderDiscount" | "original", string>
+}
+
+type ProductContentSectionsNamespace = {
+  actions: Record<"save", string>
+  errors: Record<"saveFailed", string>
+  sections: Record<
+    ProductContentSectionKey,
+    Record<"ariaLabel" | "title", string>
+  >
+  title: string
+  toasts: Record<"saved", string>
 }
 
 type AdminDefaultTranslationNamespace = {
@@ -77,6 +89,7 @@ type AdminDefaultTranslationNamespace = {
     string
   >
   orderCommercialValues: OrderCommercialValuesNamespace
+  productContentSections: ProductContentSectionsNamespace
   routeModal: Record<
     "cancel" | "continue" | "leaveDescription" | "leaveTitle",
     string
@@ -306,6 +319,77 @@ const orderCommercialValues = {
   },
 } satisfies Record<AdminLocale, OrderCommercialValuesNamespace>
 
+const productContentSections = {
+  cs: {
+    actions: {
+      save: "Uložit",
+    },
+    errors: {
+      saveFailed: "Sekce produktu se nepodařilo uložit.",
+    },
+    sections: {
+      composition: {
+        ariaLabel: "Složení produktu",
+        title: "Zloženie",
+      },
+      description: {
+        ariaLabel: "Popis produktu",
+        title: "Popis",
+      },
+      other: {
+        ariaLabel: "Ostatní informace o produktu",
+        title: "Ostatné informácie",
+      },
+      usage: {
+        ariaLabel: "Použití produktu",
+        title: "Použitie",
+      },
+      warning: {
+        ariaLabel: "Upozornění k produktu",
+        title: "Upozornenie",
+      },
+    },
+    title: "Produktové sekce",
+    toasts: {
+      saved: "Produktové sekce byly uloženy.",
+    },
+  },
+  en: {
+    actions: {
+      save: "Save",
+    },
+    errors: {
+      saveFailed: "Failed to save product sections.",
+    },
+    sections: {
+      composition: {
+        ariaLabel: "Product composition",
+        title: "Composition",
+      },
+      description: {
+        ariaLabel: "Product description",
+        title: "Description",
+      },
+      other: {
+        ariaLabel: "Product other information",
+        title: "Other information",
+      },
+      usage: {
+        ariaLabel: "Product usage",
+        title: "Usage",
+      },
+      warning: {
+        ariaLabel: "Product warning",
+        title: "Warning",
+      },
+    },
+    title: "Product sections",
+    toasts: {
+      saved: "Product sections saved.",
+    },
+  },
+} satisfies Record<AdminLocale, ProductContentSectionsNamespace>
+
 const defaultTranslation = {
   cs: {
     fields: {
@@ -340,6 +424,7 @@ const defaultTranslation = {
       results: "výsledků",
     },
     orderCommercialValues: orderCommercialValues.cs,
+    productContentSections: productContentSections.cs,
     routeModal: {
       cancel: "Zrušit",
       continue: "Pokračovat",
@@ -381,6 +466,7 @@ const defaultTranslation = {
       results: "results",
     },
     orderCommercialValues: orderCommercialValues.en,
+    productContentSections: productContentSections.en,
     routeModal: {
       cancel: "Cancel",
       continue: "Continue",

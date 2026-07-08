@@ -3,25 +3,21 @@ import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { RichHtmlEditor } from "../components/rich-html-editor"
+import {
+  buildContentSections,
+  buildContentSectionsMap,
+  CONTENT_SECTIONS_MAP_METADATA_KEY,
+  CONTENT_SECTIONS_METADATA_KEY,
+  getProductSectionHtml,
+  getSavedSectionHtml,
+  PRODUCT_CONTENT_SECTIONS,
+  type ProductContentSectionHtml,
+} from "../lib/product-content-sections"
 import { sdk } from "../lib/sdk"
 
 type ProductDescriptionEditorProps = Partial<DetailWidgetProps<AdminProduct>>
-
-type ProductContentSectionKey =
-  | "description"
-  | "usage"
-  | "composition"
-  | "warning"
-  | "other"
-
-type ProductContentSectionHtml = Record<ProductContentSectionKey, string>
-
-type ProductContentSection = {
-  ariaLabel: string
-  key: ProductContentSectionKey
-  title: string
-}
 
 type UpdateProductContentInput = {
   changeVersion: number
@@ -33,36 +29,6 @@ type UpdateProductResponse = {
   product: AdminProduct
 }
 
-const PRODUCT_CONTENT_SECTIONS: ProductContentSection[] = [
-  {
-    ariaLabel: "Product description",
-    key: "description",
-    title: "Popis",
-  },
-  {
-    ariaLabel: "Product usage",
-    key: "usage",
-    title: "Použitie",
-  },
-  {
-    ariaLabel: "Product composition",
-    key: "composition",
-    title: "Zloženie",
-  },
-  {
-    ariaLabel: "Product warning",
-    key: "warning",
-    title: "Upozornenie",
-  },
-  {
-    ariaLabel: "Product other information",
-    key: "other",
-    title: "Ostatné informácie",
-  },
-]
-
-const CONTENT_SECTIONS_METADATA_KEY = "content_sections"
-const CONTENT_SECTIONS_MAP_METADATA_KEY = "content_sections_map"
 const PRODUCT_DETAIL_ROUTE_PATTERN = /\/products\/[^/]+(?:\/edit)?\/?$/
 const PRODUCT_EDIT_ROUTE_PATTERN = /\/products\/[^/]+\/edit\/?$/
 const PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR = "div.grid.grid-cols-2"
@@ -79,148 +45,6 @@ const NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE =
   "data-product-description-editor-display"
 const PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS =
   "product-description-editor-modal-open"
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const getMetadataValue = (
-  metadata: AdminProduct["metadata"] | undefined,
-  key: string
-) => (isRecord(metadata) ? metadata[key] : undefined)
-
-const getMetadataRecord = (
-  metadata: AdminProduct["metadata"] | undefined,
-  key: string
-) => {
-  const value = getMetadataValue(metadata, key)
-
-  return isRecord(value) ? value : null
-}
-
-const getContentSectionsListHtml = (
-  metadata: AdminProduct["metadata"] | undefined,
-  key: ProductContentSectionKey
-) => {
-  const value = getMetadataValue(metadata, CONTENT_SECTIONS_METADATA_KEY)
-
-  if (!Array.isArray(value)) {
-    return ""
-  }
-
-  const section = value.find((item) => {
-    const sectionRecord = isRecord(item) ? item : null
-
-    return sectionRecord?.key === key
-  })
-
-  if (!isRecord(section)) {
-    return ""
-  }
-
-  const html = section.html
-
-  return typeof html === "string" ? html : ""
-}
-
-const getMetadataSectionHtml = (
-  metadata: AdminProduct["metadata"] | undefined,
-  key: ProductContentSectionKey
-) => {
-  const contentSectionsMap = getMetadataRecord(
-    metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY
-  )
-  const value = contentSectionsMap?.[key]
-
-  if (typeof value === "string") {
-    return value
-  }
-
-  return getContentSectionsListHtml(metadata, key)
-}
-
-const createEmptySectionHtml = () => {
-  const sectionsHtml: ProductContentSectionHtml = {
-    description: "",
-    usage: "",
-    composition: "",
-    warning: "",
-    other: "",
-  }
-
-  return sectionsHtml
-}
-
-const getProductSectionHtml = (product?: AdminProduct | null) => {
-  const sectionsHtml = createEmptySectionHtml()
-
-  for (const section of PRODUCT_CONTENT_SECTIONS) {
-    sectionsHtml[section.key] =
-      section.key === "description"
-        ? product?.description ?? ""
-        : getMetadataSectionHtml(product?.metadata, section.key)
-  }
-
-  return sectionsHtml
-}
-
-const buildContentSections = (sectionsHtml: ProductContentSectionHtml) =>
-  PRODUCT_CONTENT_SECTIONS.map(({ key, title }) => ({
-    html: sectionsHtml[key],
-    key,
-    title,
-  }))
-
-const buildContentSectionsMap = (
-  metadata: AdminProduct["metadata"] | undefined,
-  sectionsHtml: ProductContentSectionHtml
-) => {
-  const contentSectionsMap: Record<string, string> = {}
-  const existingContentSectionsMap = getMetadataRecord(
-    metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY
-  )
-
-  if (existingContentSectionsMap) {
-    for (const [key, value] of Object.entries(existingContentSectionsMap)) {
-      if (typeof value === "string") {
-        contentSectionsMap[key] = value
-      }
-    }
-  }
-
-  for (const section of PRODUCT_CONTENT_SECTIONS) {
-    contentSectionsMap[section.key] = sectionsHtml[section.key]
-  }
-
-  return contentSectionsMap
-}
-
-const getSavedSectionHtml = (
-  responseProduct: AdminProduct,
-  submittedSectionsHtml: ProductContentSectionHtml
-) => {
-  const responseHasContentMetadata =
-    getMetadataRecord(
-      responseProduct.metadata,
-      CONTENT_SECTIONS_MAP_METADATA_KEY
-    ) !== null ||
-    Array.isArray(
-      getMetadataValue(responseProduct.metadata, CONTENT_SECTIONS_METADATA_KEY)
-    )
-
-  if (responseHasContentMetadata) {
-    return getProductSectionHtml(responseProduct)
-  }
-
-  return {
-    ...submittedSectionsHtml,
-    description:
-      typeof responseProduct.description === "string"
-        ? responseProduct.description
-        : submittedSectionsHtml.description,
-  }
-}
 
 const setStoredDisplay = (
   element: HTMLElement,
@@ -328,6 +152,7 @@ const syncNativeProductDescriptionUi = () => {
 const ProductDescriptionEditor = ({
   data: product,
 }: ProductDescriptionEditorProps) => {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [savedSectionHtml, setSavedSectionHtml] = useState(() =>
     getProductSectionHtml(product)
@@ -355,7 +180,7 @@ const ProductDescriptionEditor = ({
 
     sectionHtmlRef.current = nextSectionHtml
     setSavedSectionHtml(nextSectionHtml)
-  }, [product?.id, product?.description, product?.metadata])
+  }, [product])
 
   useEffect(() => {
     let animationFrameId: number | null = null
@@ -392,31 +217,27 @@ const ProductDescriptionEditor = ({
 
   const mutation = useMutation({
     mutationFn: ({ productId, sectionsHtml }: UpdateProductContentInput) =>
-      sdk.client.fetch<UpdateProductResponse>(
-        `/admin/products/${productId}`,
-        {
-          body: {
-            description:
-              sectionsHtml.description.length > 0
-                ? sectionsHtml.description
-                : null,
-            metadata: {
-              [CONTENT_SECTIONS_METADATA_KEY]:
-                buildContentSections(sectionsHtml),
-              [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
-                product?.metadata,
-                sectionsHtml
-              ),
-            },
+      sdk.client.fetch<UpdateProductResponse>(`/admin/products/${productId}`, {
+        body: {
+          description:
+            sectionsHtml.description.length > 0
+              ? sectionsHtml.description
+              : null,
+          metadata: {
+            [CONTENT_SECTIONS_METADATA_KEY]: buildContentSections(sectionsHtml),
+            [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
+              product?.metadata,
+              sectionsHtml
+            ),
           },
-          method: "POST",
-        }
-      ),
+        },
+        method: "POST",
+      }),
     onError: (error) => {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to save product descriptions"
+          : t("productContentSections.errors.saveFailed")
       )
     },
     onSuccess: (response, variables) => {
@@ -441,7 +262,7 @@ const ProductDescriptionEditor = ({
       sectionHtmlDirtyRef.current = false
       sectionHtmlRef.current = nextSectionHtml
       setSavedSectionHtml(nextSectionHtml)
-      toast.success("Product descriptions saved")
+      toast.success(t("productContentSections.toasts.saved"))
     },
   })
 
@@ -464,14 +285,14 @@ const ProductDescriptionEditor = ({
   return (
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
-        <Heading level="h2">Product descriptions</Heading>
+        <Heading level="h2">{t("productContentSections.title")}</Heading>
         <Button
           isLoading={mutation.isPending}
           onClick={handleSave}
           size="small"
           type="button"
         >
-          Save
+          {t("productContentSections.actions.save")}
         </Button>
       </div>
       <div className="divide-y">
@@ -479,11 +300,13 @@ const ProductDescriptionEditor = ({
           <section key={section.key}>
             <div className="px-6 py-4">
               <Text leading="compact" size="small" weight="plus">
-                {section.title}
+                {t(`productContentSections.sections.${section.key}.title`)}
               </Text>
             </div>
             <RichHtmlEditor
-              ariaLabel={section.ariaLabel}
+              ariaLabel={t(
+                `productContentSections.sections.${section.key}.ariaLabel`
+              )}
               onChangeHtml={(html) => {
                 sectionHtmlDirtyRef.current = true
                 sectionHtmlChangeVersionRef.current += 1
