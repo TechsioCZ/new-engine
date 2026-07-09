@@ -57,9 +57,13 @@ const roboto = Roboto({
   display: "swap",
 })
 
-export const metadata: Metadata = {
-  title: DEFAULT_MARKET_CONTEXT.metadata.title,
-  description: DEFAULT_MARKET_CONTEXT.metadata.description,
+export async function generateMetadata(): Promise<Metadata> {
+  const marketContext = await getMarketServerContext()
+
+  return {
+    title: marketContext.metadata.title,
+    description: marketContext.metadata.description,
+  }
 }
 
 type LayoutShellProps = Readonly<{

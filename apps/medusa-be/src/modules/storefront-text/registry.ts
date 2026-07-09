@@ -53,6 +53,27 @@ export const STOREFRONT_TEXT_LOCALES = [
   "ro-RO",
 ] as const
 
+type EqualTypes<Left, Right> =
+  (<Value>() => Value extends Left ? 1 : 2) extends <
+    Value,
+  >() => Value extends Right ? 1 : 2
+    ? true
+    : false
+
+type ExpectTrue<Value extends true> = Value
+
+export type StorefrontTextRegistryAssertions = [
+  ExpectTrue<
+    EqualTypes<
+      StorefrontTextMarket,
+      (typeof STOREFRONT_TEXT_MARKET_IDS)[number]
+    >
+  >,
+  ExpectTrue<
+    EqualTypes<StorefrontTextLocale, (typeof STOREFRONT_TEXT_LOCALES)[number]>
+  >,
+]
+
 export type StorefrontTextDefinition = {
   description: string
   key: string
@@ -76,6 +97,8 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
 
 export type StorefrontTextKey =
   (typeof STOREFRONT_TEXT_DEFINITIONS)[number]["key"]
+
+export type StorefrontTextMessages = Partial<Record<StorefrontTextKey, string>>
 
 export type StorefrontTextSeedRow = {
   country: string
@@ -103,3 +126,23 @@ export const getStorefrontTextSeedRows = (): StorefrontTextSeedRow[] =>
       value: definition.values[market.market],
     }))
   )
+
+export const getStorefrontTextDefaultMessages = ({
+  market,
+  namespace,
+}: {
+  market: StorefrontTextMarket
+  namespace?: StorefrontTextNamespace
+}): StorefrontTextMessages => {
+  const messages: StorefrontTextMessages = {}
+
+  for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
+    if (namespace && definition.namespace !== namespace) {
+      continue
+    }
+
+    messages[definition.key] = definition.values[market]
+  }
+
+  return messages
+}

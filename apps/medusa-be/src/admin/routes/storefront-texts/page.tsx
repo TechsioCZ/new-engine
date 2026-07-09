@@ -41,6 +41,19 @@ const STATUS_BADGE_COLOR: Record<StorefrontTextStatus, "green" | "orange"> = {
   draft: "orange",
 }
 
+const STOREFRONT_TEXT_NAMESPACE_VALUES = new Set<string>(
+  STOREFRONT_TEXT_NAMESPACES
+)
+const STOREFRONT_TEXT_STATUS_VALUES = new Set<string>(STOREFRONT_TEXT_STATUSES)
+
+const isStorefrontTextNamespace = (
+  value: string
+): value is StorefrontTextNamespace =>
+  STOREFRONT_TEXT_NAMESPACE_VALUES.has(value)
+
+const isStorefrontTextStatus = (value: string): value is StorefrontTextStatus =>
+  STOREFRONT_TEXT_STATUS_VALUES.has(value)
+
 export const handle = {
   breadcrumb: () => "Jazyky",
 }
@@ -249,9 +262,11 @@ const StorefrontTextEditDrawer = ({
           <div className="flex flex-col gap-2">
             <Label>Status</Label>
             <Select
-              onValueChange={(nextStatus) =>
-                setStatus(nextStatus as StorefrontTextStatus)
-              }
+              onValueChange={(nextStatus) => {
+                if (isStorefrontTextStatus(nextStatus)) {
+                  setStatus(nextStatus)
+                }
+              }}
               value={status}
             >
               <Select.Trigger>
@@ -385,9 +400,9 @@ const StorefrontTextsPage = () => {
             onValueChange={(value) => {
               resetPage()
               setNamespace(
-                value === ALL_VALUE
-                  ? undefined
-                  : (value as StorefrontTextNamespace)
+                value !== ALL_VALUE && isStorefrontTextNamespace(value)
+                  ? value
+                  : undefined
               )
             }}
             value={namespace ?? ALL_VALUE}
@@ -408,9 +423,9 @@ const StorefrontTextsPage = () => {
             onValueChange={(value) => {
               resetPage()
               setStatus(
-                value === ALL_VALUE
-                  ? undefined
-                  : (value as StorefrontTextStatus)
+                value !== ALL_VALUE && isStorefrontTextStatus(value)
+                  ? value
+                  : undefined
               )
             }}
             value={status ?? ALL_VALUE}

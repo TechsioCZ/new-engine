@@ -28,6 +28,12 @@ const resolvePayloadImageRemotePattern = () =>
   resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: [
+    "herbatica.sk",
+    "herbatica.cz",
+    "herbatica.hu",
+    "herbatica.ro",
+  ],
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],

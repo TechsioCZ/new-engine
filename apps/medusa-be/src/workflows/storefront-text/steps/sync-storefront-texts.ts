@@ -1,18 +1,100 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
+import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import {
   getStorefrontTextSeedRows,
   type StorefrontTextSeedRow,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 
-type StorefrontTextRecord = StorefrontTextSeedRow & {
-  id: string
-}
+const SYNC_STOREFRONT_TEXT_CHUNK_SIZE = 25
 
 type SyncStorefrontTextsCompensation = {
   createdIds: string[]
-  previousRecords: StorefrontTextRecord[]
+  previousRecords: StorefrontTextRestoreRecord[]
+}
+
+type StorefrontTextRestoreRecord = Pick<
+  StorefrontTextRecord,
+  "country" | "description" | "domain" | "id" | "namespace"
+>
+
+type SyncSeedRowResult =
+  | {
+      createdId: string
+      previousRecord?: never
+      updated: false
+    }
+  | {
+      createdId?: never
+      previousRecord: StorefrontTextRestoreRecord
+      updated: true
+    }
+  | {
+      createdId?: never
+      previousRecord?: never
+      updated: false
+    }
+
+const chunkItems = <Item>(items: Item[], size: number) => {
+  const chunks: Item[][] = []
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+
+  return chunks
+}
+
+const syncSeedRow = async (
+  service: StorefrontTextModuleService,
+  seedRow: StorefrontTextSeedRow
+): Promise<SyncSeedRowResult> => {
+  const [existing] = await service.listStorefrontTexts({
+    key: seedRow.key,
+    locale: seedRow.locale,
+    market: seedRow.market,
+  })
+
+  if (!existing) {
+    const created = await service.createStorefrontTexts(seedRow)
+
+    return {
+      createdId: created.id,
+      updated: false,
+    }
+  }
+
+  const needsMetadataUpdate =
+    existing.country !== seedRow.country ||
+    existing.description !== seedRow.description ||
+    existing.domain !== seedRow.domain ||
+    existing.namespace !== seedRow.namespace
+
+  if (!needsMetadataUpdate) {
+    return { updated: false }
+  }
+
+  const previousRecord: StorefrontTextRestoreRecord = {
+    country: existing.country,
+    description: existing.description,
+    domain: existing.domain,
+    id: existing.id,
+    namespace: existing.namespace,
+  }
+
+  await service.updateStorefrontTexts({
+    id: existing.id,
+    country: seedRow.country,
+    description: seedRow.description,
+    domain: seedRow.domain,
+    namespace: seedRow.namespace,
+  })
+
+  return {
+    previousRecord,
+    updated: true,
+  }
 }
 
 export const syncStorefrontTextsStep = createStep(
@@ -23,41 +105,27 @@ export const syncStorefrontTextsStep = createStep(
     )
     const seedRows = getStorefrontTextSeedRows()
     const createdIds: string[] = []
-    const previousRecords: StorefrontTextRecord[] = []
+    const previousRecords: StorefrontTextRestoreRecord[] = []
     let updatedCount = 0
 
-    for (const seedRow of seedRows) {
-      const [existing] = await service.listStorefrontTexts({
-        key: seedRow.key,
-        locale: seedRow.locale,
-        market: seedRow.market,
-      })
+    for (const seedRowChunk of chunkItems(
+      seedRows,
+      SYNC_STOREFRONT_TEXT_CHUNK_SIZE
+    )) {
+      const results = await Promise.all(
+        seedRowChunk.map((seedRow) => syncSeedRow(service, seedRow))
+      )
 
-      if (!existing) {
-        const created = await service.createStorefrontTexts(seedRow)
-        createdIds.push(created.id)
-        continue
+      for (const result of results) {
+        if (result.createdId) {
+          createdIds.push(result.createdId)
+        }
+
+        if (result.updated) {
+          previousRecords.push(result.previousRecord)
+          updatedCount += 1
+        }
       }
-
-      const needsMetadataUpdate =
-        existing.country !== seedRow.country ||
-        existing.description !== seedRow.description ||
-        existing.domain !== seedRow.domain ||
-        existing.namespace !== seedRow.namespace
-
-      if (!needsMetadataUpdate) {
-        continue
-      }
-
-      previousRecords.push(existing as StorefrontTextRecord)
-      await service.updateStorefrontTexts({
-        id: existing.id,
-        country: seedRow.country,
-        description: seedRow.description,
-        domain: seedRow.domain,
-        namespace: seedRow.namespace,
-      })
-      updatedCount += 1
     }
 
     return new StepResponse(
