@@ -7,6 +7,7 @@ export type ProductLocationAvailabilityState = {
   items: ProductLocationAvailabilityLocation[] | null
   isLoading: boolean
   error: string | null
+  isInventoryManaged: boolean
 }
 
 export type ProductLocationAvailabilityQueryState = {
@@ -31,7 +32,8 @@ export const resolveSelectedVariantLocationAvailability = (
 
 export const resolveProductLocationAvailabilityState = (
   availabilityQuery: ProductLocationAvailabilityQueryState,
-  variantId: string | null
+  variantId: string | null,
+  options: { isInventoryManaged?: boolean | null } = {}
 ): ProductLocationAvailabilityState => ({
   items: resolveSelectedVariantLocationAvailability(
     availabilityQuery.productLocationAvailability,
@@ -39,9 +41,17 @@ export const resolveProductLocationAvailabilityState = (
   ),
   isLoading: availabilityQuery.isLoading,
   error: availabilityQuery.error,
+  isInventoryManaged: options.isInventoryManaged !== false,
 })
 
-export const formatLocationAvailability = (availableQuantity: number) => {
+export const formatLocationAvailability = (
+  availableQuantity: number,
+  options: { isInventoryManaged?: boolean | null } = {}
+) => {
+  if (options.isInventoryManaged === false) {
+    return "Skladem"
+  }
+
   const finiteQuantity = Number.isFinite(availableQuantity)
     ? availableQuantity
     : 0

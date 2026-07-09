@@ -23,7 +23,8 @@ export function ProductDetailDeliveryInfo({
   locationAvailabilityState,
   offerState,
 }: ProductDetailDeliveryInfoProps) {
-  const { error, isLoading, items } = locationAvailabilityState
+  const { error, isInventoryManaged, isLoading, items } =
+    locationAvailabilityState
   const showLocationAvailability =
     !isLoading && !error && Boolean(items?.length)
   const showLocationAvailabilityError = !isLoading && Boolean(error)
@@ -89,7 +90,8 @@ export function ProductDetailDeliveryInfo({
       {showLocationAvailability && items ? (
         <dl className="grid gap-250 border-border-secondary border-t pt-400">
           {items.map((location) => {
-            const isAvailable = location.available_quantity > 0
+            const isAvailable =
+              !isInventoryManaged || location.available_quantity > 0
 
             return (
               <div
@@ -102,7 +104,9 @@ export function ProductDetailDeliveryInfo({
                 <dd
                   className={`shrink-0 text-right font-semibold text-sm ${isAvailable ? "text-primary" : "text-warning"}`}
                 >
-                  {formatLocationAvailability(location.available_quantity)}
+                  {formatLocationAvailability(location.available_quantity, {
+                    isInventoryManaged,
+                  })}
                 </dd>
               </div>
             )

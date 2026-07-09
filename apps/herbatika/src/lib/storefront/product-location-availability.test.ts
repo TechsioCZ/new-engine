@@ -37,6 +37,12 @@ describe("formatLocationAvailability", () => {
   ])("formats %s as %s", (quantity, expected) => {
     expect(formatLocationAvailability(quantity)).toBe(expected)
   })
+
+  it("formats unmanaged inventory as generally in stock", () => {
+    expect(
+      formatLocationAvailability(0, { isInventoryManaged: false })
+    ).toBe("Skladem")
+  })
 })
 
 describe("resolveSelectedVariantLocationAvailability", () => {
@@ -86,6 +92,23 @@ describe("resolveProductLocationAvailabilityState", () => {
       items: availability.variants[0].location_availability,
       isLoading: false,
       error: null,
+      isInventoryManaged: true,
+    })
+  })
+
+  it("keeps selected variant inventory management state", () => {
+    expect(
+      resolveProductLocationAvailabilityState(
+        {
+          productLocationAvailability: availability,
+          isLoading: false,
+          error: null,
+        },
+        "variant_1",
+        { isInventoryManaged: false }
+      )
+    ).toMatchObject({
+      isInventoryManaged: false,
     })
   })
 })

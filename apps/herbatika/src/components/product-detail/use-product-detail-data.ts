@@ -68,7 +68,10 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     )
   const locationAvailabilityState = resolveProductLocationAvailabilityState(
     productLocationAvailabilityQuery,
-    selectedVariant?.id ?? null
+    selectedVariant?.id ?? null,
+    {
+      isInventoryManaged: selectedVariant?.manage_inventory,
+    }
   )
   const optionTitlesById = resolveOptionTitlesById(product)
   const variantItems = resolveVariantItems(variants, optionTitlesById)
