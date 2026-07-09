@@ -13,6 +13,8 @@ import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
+import { useRequiredStorefrontText } from "@/lib/storefront/storefront-text-provider"
+import { STOREFRONT_TEXT_KEYS } from "@/lib/storefront/storefront-texts"
 
 export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
   isAdding: boolean
@@ -25,6 +27,9 @@ export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
 export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
   const { product, onProductHoverStart, onProductHoverEnd } = props
   const { descriptionOverride, isAdding, onAddToCart } = props
+  const addToCartLabel = useRequiredStorefrontText(
+    STOREFRONT_TEXT_KEYS.cartAddToCart
+  )
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product)
   const defaultVariant = product.variants?.[0] ?? null
@@ -128,7 +133,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               type="button"
               variant="primary"
             >
-              Do košíka
+              {addToCartLabel}
             </Button>
           </ProductCard.Actions>
         </div>

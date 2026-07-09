@@ -14,8 +14,15 @@ import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
+import {
+  DEFAULT_MARKET_CONTEXT,
+  type HerbatikaMarketContext,
+} from "@/lib/storefront/market-context"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
+import type { StorefrontTextMessages } from "@/lib/storefront/storefront-texts"
+import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
 import "./globals.css"
 import { Providers } from "./providers"
 
@@ -62,23 +69,31 @@ const roboto = Roboto({
 })
 
 export const metadata: Metadata = {
-  title: "Herbatica",
-  description: "Herbatica e-shop - prírodné produkty",
+  title: DEFAULT_MARKET_CONTEXT.metadata.title,
+  description: DEFAULT_MARKET_CONTEXT.metadata.description,
 }
 
 type LayoutShellProps = Readonly<{
   children: React.ReactNode
   dehydratedState: DehydratedState
   initialRegion?: RegionInfo | null
+  marketContext: HerbatikaMarketContext
+  storefrontTextMessages: StorefrontTextMessages
 }>
 
 function LayoutShell({
   children,
   dehydratedState,
   initialRegion = null,
+  marketContext,
+  storefrontTextMessages,
 }: LayoutShellProps) {
   return (
-    <Providers initialRegion={initialRegion}>
+    <Providers
+      initialMarketContext={marketContext}
+      initialRegion={initialRegion}
+      storefrontTextMessages={storefrontTextMessages}
+    >
       <HydrationBoundary state={dehydratedState}>
         <Suspense fallback={<div className="min-h-dvh bg-base" />}>
           <AppShell>{children}</AppShell>
@@ -93,7 +108,12 @@ async function ResolvedLayoutShell({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const { queryClient, region } = await getRegionServerContext()
+  const marketContext = await getMarketServerContext()
+  const [{ queryClient, region }, storefrontTextMessages] = await Promise.all([
+    getRegionServerContext(),
+    fetchStorefrontTextMessages(marketContext),
+  ])
+
   try {
     await fetchServerCategories(
       queryClient,
@@ -111,6 +131,8 @@ async function ResolvedLayoutShell({
     <LayoutShell
       dehydratedState={dehydrate(queryClient)}
       initialRegion={region}
+      marketContext={marketContext}
+      storefrontTextMessages={storefrontTextMessages}
     >
       {children}
     </LayoutShell>
@@ -125,7 +147,7 @@ export default function RootLayout({
   return (
     <html
       className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
-      lang="sk"
+      lang={DEFAULT_MARKET_CONTEXT.htmlLang}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Suspense
