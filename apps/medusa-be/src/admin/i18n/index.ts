@@ -330,7 +330,7 @@ const productContentSections = {
     sections: {
       composition: {
         ariaLabel: "Složení produktu",
-        title: "Zloženie",
+        title: "Složení",
       },
       description: {
         ariaLabel: "Popis produktu",
@@ -338,15 +338,15 @@ const productContentSections = {
       },
       other: {
         ariaLabel: "Ostatní informace o produktu",
-        title: "Ostatné informácie",
+        title: "Ostatní informace",
       },
       usage: {
         ariaLabel: "Použití produktu",
-        title: "Použitie",
+        title: "Použití",
       },
       warning: {
         ariaLabel: "Upozornění k produktu",
-        title: "Upozornenie",
+        title: "Upozornění",
       },
     },
     title: "Produktové sekce",
