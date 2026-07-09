@@ -1,3 +1,4 @@
+import type { InferTypeOf } from "@medusajs/framework/types"
 import { model } from "@medusajs/framework/utils"
 
 const StorefrontText = model
@@ -37,5 +38,7 @@ const StorefrontText = model
       expression: (columns) => `${columns.status} IN ('active', 'draft')`,
     },
   ])
+
+export type StorefrontTextRecord = InferTypeOf<typeof StorefrontText>
 
 export default StorefrontText

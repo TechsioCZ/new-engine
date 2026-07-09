@@ -5,9 +5,10 @@ import {
   useContext,
   type PropsWithChildren,
 } from "react"
-import type {
-  StorefrontTextKey,
-  StorefrontTextMessages,
+import {
+  DEFAULT_STOREFRONT_TEXT_MESSAGES,
+  type StorefrontTextKey,
+  type StorefrontTextMessages,
 } from "./storefront-texts"
 
 type StorefrontTextContextValue = {
@@ -26,8 +27,13 @@ export function StorefrontTextProvider({
   children,
   messages,
 }: StorefrontTextProviderProps) {
+  const resolvedMessages = {
+    ...DEFAULT_STOREFRONT_TEXT_MESSAGES,
+    ...messages,
+  }
+
   return (
-    <StorefrontTextContext.Provider value={{ messages }}>
+    <StorefrontTextContext.Provider value={{ messages: resolvedMessages }}>
       {children}
     </StorefrontTextContext.Provider>
   )
@@ -51,12 +57,5 @@ export const useStorefrontTextValue = (key: StorefrontTextKey) => {
 }
 
 export const useRequiredStorefrontText = (key: StorefrontTextKey) => {
-  const value = useStorefrontTextValue(key)
-
-  if (!value) {
-    throw new Error(`Missing storefront text: ${key}`)
-  }
-
-  return value
+  return useStorefrontTextValue(key) ?? DEFAULT_STOREFRONT_TEXT_MESSAGES[key]
 }
-

@@ -1,17 +1,35 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
+import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import {
+  getStorefrontTextDefaultMessages,
+  STOREFRONT_TEXT_DEFINITIONS,
   STOREFRONT_TEXT_LOCALES,
+  type StorefrontTextKey,
   type StorefrontTextLocale,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import type { StoreGetStorefrontTextsSchemaType } from "./validators"
 
-type StorefrontTextRecord = {
-  key: string
-  value: string
-}
+const STOREFRONT_TEXT_LOCALE_VALUES = new Set<string>(STOREFRONT_TEXT_LOCALES)
+const STOREFRONT_TEXT_KEY_VALUES = new Set<string>(
+  STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key)
+)
+
+const isStorefrontTextLocale = (
+  locale: string
+): locale is StorefrontTextLocale => STOREFRONT_TEXT_LOCALE_VALUES.has(locale)
+
+const isStorefrontTextKey = (key: string): key is StorefrontTextKey =>
+  STOREFRONT_TEXT_KEY_VALUES.has(key)
+
+const hasStorefrontTextMessage = (
+  item: StorefrontTextRecord
+): item is StorefrontTextRecord & { key: StorefrontTextKey; value: string } =>
+  typeof item.key === "string" &&
+  isStorefrontTextKey(item.key) &&
+  typeof item.value === "string"
 
 const resolveLocale = (locale?: string): StorefrontTextLocale => {
   if (!locale) {
@@ -21,8 +39,8 @@ const resolveLocale = (locale?: string): StorefrontTextLocale => {
     )
   }
 
-  if (STOREFRONT_TEXT_LOCALES.includes(locale as StorefrontTextLocale)) {
-    return locale as StorefrontTextLocale
+  if (isStorefrontTextLocale(locale)) {
+    return locale
   }
 
   throw new MedusaError(
@@ -40,15 +58,20 @@ export async function GET(
   const service = req.scope.resolve<StorefrontTextModuleService>(
     STOREFRONT_TEXT_MODULE
   )
-  const storefrontTexts = (await service.listStorefrontTexts({
+  const storefrontTexts = await service.listStorefrontTexts({
     locale,
     market,
     ...(namespace ? { namespace } : {}),
     status: "active",
-  })) as StorefrontTextRecord[]
-  const messages = Object.fromEntries(
-    storefrontTexts.map((item) => [item.key, item.value])
-  )
+  })
+  const messages = {
+    ...getStorefrontTextDefaultMessages({ market, namespace }),
+    ...Object.fromEntries(
+      storefrontTexts
+        .filter(hasStorefrontTextMessage)
+        .map((item) => [item.key, item.value])
+    ),
+  }
 
   res.json({
     locale,
