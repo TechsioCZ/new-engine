@@ -2,6 +2,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
+import { normalizeCountryCode } from "../../utils/country-code"
 import { sdk } from "../lib/sdk"
 
 type ProductSalesRegionsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
@@ -44,16 +45,6 @@ function formatPercent(rate: number) {
     maximumFractionDigits: 2,
     minimumFractionDigits: Number.isInteger(rate) ? 0 : 2,
   }).format(rate)}%`
-}
-
-function normalizeCountryCode(value: unknown) {
-  if (typeof value !== "string") {
-    return
-  }
-
-  const normalized = value.trim().toLowerCase()
-
-  return normalized.length === 2 ? normalized : undefined
 }
 
 function getCountryName(
@@ -180,7 +171,11 @@ const ProductSalesRegionsWidget = ({
 }: ProductSalesRegionsWidgetProps) => {
   const productId = product?.id
 
-  const { data: regionsData, isLoading: regionsLoading } = useQuery({
+  const {
+    data: regionsData,
+    error: regionsError,
+    isLoading: regionsLoading,
+  } = useQuery({
     enabled: !!productId,
     queryFn: () => sdk.admin.region.list() as Promise<RegionsResponse>,
     queryKey: ["product-sales-regions", "regions"],
@@ -218,7 +213,7 @@ const ProductSalesRegionsWidget = ({
       </div>
       <div className="flex flex-col gap-2 px-6 py-4">
         <SalesRegionsContent
-          error={error}
+          error={error ?? regionsError}
           isLoading={isLoading || regionsLoading}
           rows={rows}
         />
