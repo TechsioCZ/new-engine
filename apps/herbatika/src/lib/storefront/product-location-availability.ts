@@ -49,7 +49,7 @@ export const formatLocationAvailability = (
   options: { isInventoryManaged?: boolean | null } = {}
 ) => {
   if (options.isInventoryManaged === false) {
-    return "Skladem"
+    return "Skladom"
   }
 
   const finiteQuantity = Number.isFinite(availableQuantity)
@@ -58,7 +58,7 @@ export const formatLocationAvailability = (
   const normalizedQuantity = Math.max(0, Math.floor(finiteQuantity))
 
   if (normalizedQuantity > 10) {
-    return "Skladem (>10 ks)"
+    return "Skladom (>10 ks)"
   }
 
   return `${normalizedQuantity} ks`

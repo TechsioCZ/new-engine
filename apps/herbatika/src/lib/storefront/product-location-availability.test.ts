@@ -33,7 +33,7 @@ describe("formatLocationAvailability", () => {
     [1, "1 ks"],
     [10, "10 ks"],
     [10.9, "10 ks"],
-    [11, "Skladem (>10 ks)"],
+    [11, "Skladom (>10 ks)"],
   ])("formats %s as %s", (quantity, expected) => {
     expect(formatLocationAvailability(quantity)).toBe(expected)
   })
@@ -41,7 +41,7 @@ describe("formatLocationAvailability", () => {
   it("formats unmanaged inventory as generally in stock", () => {
     expect(
       formatLocationAvailability(0, { isInventoryManaged: false })
-    ).toBe("Skladem")
+    ).toBe("Skladom")
   })
 })
 
