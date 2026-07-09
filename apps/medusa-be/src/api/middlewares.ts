@@ -24,6 +24,7 @@ import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewa
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
+import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
@@ -33,6 +34,7 @@ import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middle
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
 
 const originalErrorHandler = errorHandler()
 
@@ -76,6 +78,7 @@ export default defineMiddlewares({
     ...adminProductAttributeRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
+    ...adminStorefrontTextRoutesMiddlewares,
     ...storeMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
@@ -84,5 +87,6 @@ export default defineMiddlewares({
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
+    ...storeStorefrontTextRoutesMiddlewares,
   ],
 })
