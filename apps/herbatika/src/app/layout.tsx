@@ -4,7 +4,14 @@ import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
+import {
+  DEFAULT_MARKET_CONTEXT,
+  type HerbatikaMarketContext,
+} from "@/lib/storefront/market-context"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
+import type { StorefrontTextMessages } from "@/lib/storefront/storefront-texts"
+import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
 import "./globals.css"
 import { Providers } from "./providers"
 
@@ -51,18 +58,29 @@ const roboto = Roboto({
 })
 
 export const metadata: Metadata = {
-  title: "Herbatica",
-  description: "Herbatica e-shop - prírodné produkty",
+  title: DEFAULT_MARKET_CONTEXT.metadata.title,
+  description: DEFAULT_MARKET_CONTEXT.metadata.description,
 }
 
 type LayoutShellProps = Readonly<{
   children: React.ReactNode
   initialRegion?: RegionInfo | null
+  marketContext: HerbatikaMarketContext
+  storefrontTextMessages: StorefrontTextMessages
 }>
 
-function LayoutShell({ children, initialRegion = null }: LayoutShellProps) {
+function LayoutShell({
+  children,
+  initialRegion = null,
+  marketContext,
+  storefrontTextMessages,
+}: LayoutShellProps) {
   return (
-    <Providers initialRegion={initialRegion}>
+    <Providers
+      initialMarketContext={marketContext}
+      initialRegion={initialRegion}
+      storefrontTextMessages={storefrontTextMessages}
+    >
       <Suspense fallback={<div className="min-h-dvh bg-base" />}>
         <AppShell>{children}</AppShell>
       </Suspense>
@@ -75,9 +93,21 @@ async function ResolvedLayoutShell({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const { region } = await getRegionServerContext()
+  const marketContext = await getMarketServerContext()
+  const [{ region }, storefrontTextMessages] = await Promise.all([
+    getRegionServerContext(),
+    fetchStorefrontTextMessages(marketContext),
+  ])
 
-  return <LayoutShell initialRegion={region}>{children}</LayoutShell>
+  return (
+    <LayoutShell
+      initialRegion={region}
+      marketContext={marketContext}
+      storefrontTextMessages={storefrontTextMessages}
+    >
+      {children}
+    </LayoutShell>
+  )
 }
 
 export default function RootLayout({
@@ -88,7 +118,7 @@ export default function RootLayout({
   return (
     <html
       className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
-      lang="sk"
+      lang={DEFAULT_MARKET_CONTEXT.htmlLang}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Suspense
