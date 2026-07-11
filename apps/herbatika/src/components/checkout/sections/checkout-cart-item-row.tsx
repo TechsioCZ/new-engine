@@ -20,6 +20,10 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
+  formatCartStorefrontText,
+  useCartStorefrontTexts,
+} from "@/lib/storefront/use-cart-storefront-texts"
+import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,
 } from "../utils/resolve-availability-text"
@@ -70,6 +74,7 @@ export function CheckoutCartItemRow({
   onUpdateQuantity,
   product,
 }: CheckoutCartItemRowProps) {
+  const cartTexts = useCartStorefrontTexts()
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
@@ -170,7 +175,9 @@ export function CheckoutCartItemRow({
             </span>
           </p>
           <Button
-            aria-label={`Odstrániť ${itemName} z košíka`}
+            aria-label={formatCartStorefrontText(cartTexts.removeItemAria, {
+              itemName,
+            })}
             className="text-2xl text-fg-secondary hover:text-fg-primary"
             disabled={isPending}
             icon="token-icon-trash"

@@ -3,13 +3,11 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
-import { useAppToast } from "@/hooks/use-app-toast"
-import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products"
+import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
 import { useCartProductsByHandle } from "../use-cart-products-by-handle"
 import { CheckoutCartItemRow } from "./checkout-cart-item-row"
 
@@ -26,16 +24,12 @@ export function CheckoutCartStepSection({
   cartItemsTotalAmount,
   currencyCode,
 }: CheckoutCartStepSectionProps) {
-  const toast = useAppToast()
-  const updateLineItemMutation = useUpdateLineItem()
-  const removeLineItemMutation = useRemoveLineItem()
+  const lineItemActions = useCartLineItemActions({ cartId })
   const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
     cartItems,
     PRODUCT_DETAIL_FIELDS
   )
 
-  const isPending =
-    updateLineItemMutation.isPending || removeLineItemMutation.isPending
   const supportedCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const freeShippingThresholdAmount = resolveFreeShippingThresholdAmount(
     supportedCurrencyCode
@@ -63,40 +57,6 @@ export function CheckoutCartStepSection({
           supportedCurrencyCode,
           { minimumFractionDigits: 0, maximumFractionDigits: 0 }
         )
-
-  const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
-    if (!cartId) {
-      return
-    }
-
-    updateLineItemMutation.mutate(
-      { cartId, lineItemId, quantity },
-      {
-        onError: (error) => {
-          toast.error({
-            title: resolveErrorMessage(error, "Úprava košíka zlyhala."),
-          })
-        },
-      }
-    )
-  }
-
-  const handleRemove = (lineItemId: string) => {
-    if (!cartId) {
-      return
-    }
-
-    removeLineItemMutation.mutate(
-      { cartId, lineItemId },
-      {
-        onError: (error) => {
-          toast.error({
-            title: resolveErrorMessage(error, "Odstránenie položky zlyhalo."),
-          })
-        },
-      }
-    )
-  }
 
   return (
     <section className="space-y-300">
@@ -152,10 +112,10 @@ export function CheckoutCartStepSection({
           >
             <CheckoutCartItemRow
               currencyCode={supportedCurrencyCode}
-              isPending={isPending}
+              isPending={lineItemActions.isPending}
               item={item}
-              onRemove={handleRemove}
-              onUpdateQuantity={handleUpdateQuantity}
+              onRemove={lineItemActions.removeItem}
+              onUpdateQuantity={lineItemActions.updateQuantity}
               product={cartProductsByHandle.get(
                 resolveLineItemProductHandle(item) ?? ""
               )}

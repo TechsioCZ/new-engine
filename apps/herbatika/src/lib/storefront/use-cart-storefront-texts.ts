@@ -45,6 +45,46 @@ export function useCartStorefrontTexts() {
     unavailableInRegion: useRequiredStorefrontText(
       STOREFRONT_TEXT_KEYS.cartUnavailableInRegion
     ),
+    additionalItems: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartAdditionalItems
+    ),
+    continueToCheckout: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartContinueToCheckout
+    ),
+    discount: useRequiredStorefrontText(STOREFRONT_TEXT_KEYS.cartDiscount),
+    emptyDescription: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartEmptyDescription
+    ),
+    emptyTitle: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartEmptyTitle
+    ),
+    lowStock: useRequiredStorefrontText(STOREFRONT_TEXT_KEYS.cartLowStock),
+    productsSubtotalExclTax: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartProductsSubtotalExclTax
+    ),
+    quantityAria: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartQuantityAria
+    ),
+    removeFailed: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartRemoveFailed
+    ),
+    removeItemAria: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartRemoveItemAria
+    ),
+    shippingExclTax: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartShippingExclTax
+    ),
+    tax: useRequiredStorefrontText(STOREFRONT_TEXT_KEYS.cartTax),
+    title: useRequiredStorefrontText(STOREFRONT_TEXT_KEYS.cartTitle),
+    titleWithCount: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartTitleWithCount
+    ),
+    totalInclTax: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartTotalInclTax
+    ),
+    updateFailed: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.cartUpdateFailed
+    ),
   }
 }
 

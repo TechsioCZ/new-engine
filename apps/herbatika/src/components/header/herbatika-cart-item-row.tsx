@@ -13,6 +13,10 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
+  formatCartStorefrontText,
+  useCartStorefrontTexts,
+} from "@/lib/storefront/use-cart-storefront-texts"
+import {
   FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
   resolveLineItemInventory,
@@ -34,6 +38,7 @@ export function CartItemRow({
   onRemove,
   onUpdateQuantity,
 }: CartItemRowProps) {
+  const cartTexts = useCartStorefrontTexts()
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
@@ -76,7 +81,11 @@ export function CartItemRow({
         <p className="font-semibold text-sm">{itemUnitAmountLabel}</p>
 
         {itemInventory !== null && itemInventory > 0 && itemInventory <= 2 ? (
-          <p className="text-danger text-xs">{`Zbývá pouze ${itemInventory} ks`}</p>
+          <p className="text-danger text-xs">
+            {formatCartStorefrontText(cartTexts.lowStock, {
+              quantity: itemInventory,
+            })}
+          </p>
         ) : null}
       </div>
 
@@ -94,7 +103,9 @@ export function CartItemRow({
         />
 
         <Button
-          aria-label={`Odstrániť ${itemName} z košíka`}
+          aria-label={formatCartStorefrontText(cartTexts.removeItemAria, {
+            itemName,
+          })}
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"
           disabled={isPending}
           icon="token-icon-trash"
