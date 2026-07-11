@@ -20,6 +20,7 @@ import {
 } from "@/components/product-detail/utils/value-utils"
 import { ProductListPickerPopover } from "@/components/product-lists/product-list-picker-popover"
 import { createBrandSlug } from "@/lib/storefront/brands"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 type ProductInfoLink = {
   href: string | null
@@ -94,6 +95,7 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
+  const cartTexts = useCartStorefrontTexts()
   const primaryCategory = productCategories[0]
   const productInfoLink = resolveProductInfoLink(product, primaryCategory)
   const flags = resolveFlags(product, Boolean(displayOriginalLabel))
@@ -265,11 +267,11 @@ export function ProductDetailPurchasePanel({
             icon="token-icon-cart"
             iconSize="xl"
             isLoading={isAdding}
-            loadingText="Pridávam..."
+            loadingText={cartTexts.addingToCart}
             onClick={onAddToCart}
             variant="primary"
           >
-            Pridať do košíka
+            {cartTexts.addToCart}
           </Button>
         </div>
       </section>

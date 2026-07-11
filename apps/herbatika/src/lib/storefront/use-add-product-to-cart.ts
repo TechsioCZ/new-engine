@@ -10,23 +10,18 @@ import {
   asStorefrontRecord,
   resolveProductTopOffer,
 } from "./product-pricing"
+import {
+  type CartStorefrontTexts,
+  formatCartStorefrontText,
+  useCartStorefrontTexts,
+} from "./use-cart-storefront-texts"
 
-type AddToCartMessages = {
-  insufficientQuantity?: string
-  missingRegion?: string
-  missingVariant?: string
-  outOfStock?: string
-  unavailableInRegion?: string
-  failed?: string
-}
-
-type UseAddProductToCartProps = {
+export type UseAddProductToCartProps = {
   regionId?: string
   countryCode?: string
-  messages?: AddToCartMessages
 }
 
-type AddProductToCartInput = {
+export type AddProductToCartInput = {
   product: Pick<
     HttpTypes.StoreProduct,
     "id" | "metadata" | "title" | "variants"
@@ -35,17 +30,9 @@ type AddProductToCartInput = {
   variantId?: string | null
 }
 
-export const ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE =
-  "Produkt bol pridaný do košíka."
-
-const DEFAULT_MESSAGES = {
-  insufficientQuantity: "Nedostatočné množstvo produktu.",
-  missingRegion: "Región sa ešte načítava. Skúste to prosím o chvíľu.",
-  missingVariant: "Produkt nemá dostupnú variantu na pridanie do košíka.",
-  outOfStock: "Produkt momentálne nie je skladom.",
-  unavailableInRegion: "Produkt nie je momentálne dostupný pre vybraný región.",
-  failed: "Pridanie do košíka zlyhalo.",
-} satisfies Required<AddToCartMessages>
+class AddProductToCartError extends Error {
+  override readonly name = "AddProductToCartError"
+}
 
 const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
   /insufficient_inventory|required inventory|does not have the required inventory/i
@@ -53,27 +40,35 @@ const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
 const isInsufficientInventoryError = (message: string) =>
   INSUFFICIENT_INVENTORY_ERROR_PATTERN.test(message)
 
-export const resolveAddProductToCartErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : DEFAULT_MESSAGES.failed
+export const resolveAddProductToCartErrorMessage = (
+  error: unknown,
+  fallbackMessage: string
+) =>
+  error instanceof AddProductToCartError ? error.message : fallbackMessage
 
 const resolveInsufficientQuantityMessage = ({
   availableQuantity,
   cartQuantity,
-  fallbackMessage,
+  messages,
 }: {
   availableQuantity: number | null
   cartQuantity: number
-  fallbackMessage: string
+  messages: CartStorefrontTexts
 }) => {
   if (availableQuantity === null || availableQuantity < 1) {
-    return fallbackMessage
+    return messages.insufficientQuantity
   }
 
   if (cartQuantity > 0) {
-    return `${fallbackMessage} V košíku už máte ${cartQuantity} ks, dostupné množstvo je ${availableQuantity} ks.`
+    return formatCartStorefrontText(messages.insufficientQuantityInCart, {
+      availableQuantity,
+      cartQuantity,
+    })
   }
 
-  return `${fallbackMessage} Dostupné množstvo: ${availableQuantity} ks.`
+  return formatCartStorefrontText(messages.insufficientQuantityAvailable, {
+    availableQuantity,
+  })
 }
 
 const resolveProductVariantId = (
@@ -146,7 +141,7 @@ const assertAddProductToCartVariant = ({
   variantId,
 }: {
   cartQuantity: number
-  messages: Required<AddToCartMessages>
+  messages: CartStorefrontTexts
   product: AddProductToCartInput["product"]
   quantity: number
   variantId?: string | null
@@ -155,11 +150,11 @@ const assertAddProductToCartVariant = ({
   const resolvedVariantId = resolvedVariant?.id ?? null
 
   if (!(resolvedVariantId && resolvedVariant)) {
-    throw new Error(messages.missingVariant)
+    throw new AddProductToCartError(messages.missingVariant)
   }
 
   if (typeof resolvedVariant.calculated_price?.calculated_amount !== "number") {
-    throw new Error(messages.unavailableInRegion)
+    throw new AddProductToCartError(messages.unavailableInRegion)
   }
 
   const requestedTotalQuantity = cartQuantity + quantity
@@ -169,15 +164,15 @@ const assertAddProductToCartVariant = ({
   )
 
   if (!inventoryState.isInStock) {
-    throw new Error(messages.outOfStock)
+    throw new AddProductToCartError(messages.outOfStock)
   }
 
   if (!inventoryState.isPurchasable) {
-    throw new Error(
+    throw new AddProductToCartError(
       resolveInsufficientQuantityMessage({
         availableQuantity: inventoryState.availableQuantity,
         cartQuantity,
-        fallbackMessage: messages.insufficientQuantity,
+        messages,
       })
     )
   }
@@ -188,12 +183,8 @@ const assertAddProductToCartVariant = ({
 export function useAddProductToCart({
   regionId,
   countryCode,
-  messages,
 }: UseAddProductToCartProps) {
-  const resolvedMessages = {
-    ...DEFAULT_MESSAGES,
-    ...messages,
-  }
+  const messages = useCartStorefrontTexts()
   const [activeProductId, setActiveProductId] = useState<string | null>(null)
 
   const addLineItemMutation = useAddLineItem()
@@ -215,7 +206,7 @@ export function useAddProductToCart({
     variantId,
   }: AddProductToCartInput) => {
     if (!regionId) {
-      throw new Error(resolvedMessages.missingRegion)
+      throw new AddProductToCartError(messages.missingRegion)
     }
 
     const resolvedProductVariantId = resolveProductVariantId(product, variantId)
@@ -224,7 +215,7 @@ export function useAddProductToCart({
         cartQuery.cart,
         resolvedProductVariantId
       ),
-      messages: resolvedMessages,
+      messages,
       product,
       quantity,
       variantId,
@@ -242,11 +233,11 @@ export function useAddProductToCart({
         country_code: countryCode,
       })
     } catch (error) {
-      const errorMessage = resolveErrorMessage(error, resolvedMessages.failed)
-      throw new Error(
+      const errorMessage = resolveErrorMessage(error, messages.failed)
+      throw new AddProductToCartError(
         isInsufficientInventoryError(errorMessage)
-          ? resolvedMessages.insufficientQuantity
-          : errorMessage
+          ? messages.insufficientQuantity
+          : messages.failed
       )
     } finally {
       setActiveProductId(null)

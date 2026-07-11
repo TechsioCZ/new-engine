@@ -25,7 +25,11 @@ import {
   useProducts,
 } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+import {
+  resolveAddProductToCartErrorMessage,
+  useAddProductToCart,
+} from "@/lib/storefront/use-add-product-to-cart"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -76,6 +80,7 @@ const showPartialListCartResult = ({
 }
 
 export function useAccountProductLists() {
+  const cartTexts = useCartStorefrontTexts()
   const authQuery = useAuth()
   const region = useRegionContext()
   const router = useRouter()
@@ -253,7 +258,7 @@ export function useAccountProductLists() {
       })
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(error, "Pridanie do košíka zlyhalo."),
+        title: resolveAddProductToCartErrorMessage(error, cartTexts.failed),
       })
     } finally {
       setActiveProductId(null)

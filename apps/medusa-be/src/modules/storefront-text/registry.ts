@@ -93,6 +93,118 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
       sk: "Do košíka",
     },
   },
+  {
+    description: "Text tlačítka během přidávání produktu do košíku.",
+    key: "cart.adding_to_cart",
+    namespace: "cart",
+    values: {
+      cz: "Přidávám...",
+      hu: "Hozzáadás...",
+      ro: "Se adaugă...",
+      sk: "Pridávam...",
+    },
+  },
+  {
+    description: "Toast po úspěšném přidání produktu do košíku.",
+    key: "cart.added_to_cart",
+    namespace: "cart",
+    values: {
+      cz: "Produkt byl přidán do košíku.",
+      hu: "A termék a kosárba került.",
+      ro: "Produsul a fost adăugat în coș.",
+      sk: "Produkt bol pridaný do košíka.",
+    },
+  },
+  {
+    description: "Chybová hláška při neúspěšném přidání do košíku.",
+    key: "cart.failed",
+    namespace: "cart",
+    values: {
+      cz: "Přidání do košíku selhalo.",
+      hu: "A kosárba helyezés nem sikerült.",
+      ro: "Adăugarea în coș a eșuat.",
+      sk: "Pridanie do košíka zlyhalo.",
+    },
+  },
+  {
+    description: "Chybová hláška pro nedostatečné skladové množství.",
+    key: "cart.insufficient_quantity",
+    namespace: "cart",
+    values: {
+      cz: "Nedostatečné množství produktu.",
+      hu: "Nincs elegendő mennyiség a termékből.",
+      ro: "Cantitate insuficientă pentru produs.",
+      sk: "Nedostatočné množstvo produktu.",
+    },
+  },
+  {
+    description:
+      "Chybová hláška pro nedostatečné množství s dostupným množstvím.",
+    key: "cart.insufficient_quantity_available",
+    namespace: "cart",
+    values: {
+      cz: "Nedostatečné množství produktu. Dostupné množství: {availableQuantity} ks.",
+      hu: "Nincs elegendő mennyiség a termékből. Elérhető mennyiség: {availableQuantity} db.",
+      ro: "Cantitate insuficientă pentru produs. Cantitate disponibilă: {availableQuantity} buc.",
+      sk: "Nedostatočné množstvo produktu. Dostupné množstvo: {availableQuantity} ks.",
+    },
+  },
+  {
+    description:
+      "Chybová hláška pro nedostatečné množství s množstvím v košíku.",
+    key: "cart.insufficient_quantity_in_cart",
+    namespace: "cart",
+    values: {
+      cz: "Nedostatečné množství produktu. V košíku už máte {cartQuantity} ks, dostupné množství je {availableQuantity} ks.",
+      hu: "Nincs elegendő mennyiség a termékből. A kosárban már {cartQuantity} db van, elérhető mennyiség: {availableQuantity} db.",
+      ro: "Cantitate insuficientă pentru produs. Ai deja {cartQuantity} buc. în coș, cantitatea disponibilă este {availableQuantity} buc.",
+      sk: "Nedostatočné množstvo produktu. V košíku už máte {cartQuantity} ks, dostupné množstvo je {availableQuantity} ks.",
+    },
+  },
+  {
+    description: "Chybová hláška při načítání regionu košíku.",
+    key: "cart.missing_region",
+    namespace: "cart",
+    values: {
+      cz: "Region se ještě načítá. Zkuste to prosím za chvíli.",
+      hu: "A régió még betöltődik. Kérjük, próbáld újra később.",
+      ro: "Regiunea încă se încarcă. Te rugăm să încerci din nou în câteva momente.",
+      sk: "Región sa ešte načítava. Skúste to prosím o chvíľu.",
+    },
+  },
+  {
+    description: "Chybová hláška pro produkt bez dostupné varianty.",
+    key: "cart.missing_variant",
+    namespace: "cart",
+    values: {
+      cz: "Produkt nemá dostupnou variantu pro přidání do košíku.",
+      hu: "A terméknek nincs kosárba tehető elérhető változata.",
+      ro: "Produsul nu are o variantă disponibilă pentru adăugare în coș.",
+      sk: "Produkt nemá dostupnú variantu na pridanie do košíka.",
+    },
+  },
+  {
+    description: "Chybová hláška pro produkt bez skladové dostupnosti.",
+    key: "cart.out_of_stock",
+    namespace: "cart",
+    values: {
+      cz: "Produkt momentálně není skladem.",
+      hu: "A termék jelenleg nincs készleten.",
+      ro: "Produsul nu este momentan în stoc.",
+      sk: "Produkt momentálne nie je skladom.",
+    },
+  },
+  {
+    description: "Chybová hláška pro produkt nedostupný ve vybraném regionu.",
+    key: "cart.unavailable_in_region",
+    namespace: "cart",
+    values: {
+      cz: "Produkt momentálně není dostupný pro vybraný region.",
+      hu: "A termék jelenleg nem elérhető a kiválasztott régióban.",
+      ro: "Produsul nu este momentan disponibil pentru regiunea selectată.",
+      sk: "Produkt nie je momentálne dostupný pre vybraný región.",
+    },
+  },
 ] as const satisfies readonly StorefrontTextDefinition[]
 
 export type StorefrontTextKey =

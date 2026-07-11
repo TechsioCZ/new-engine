@@ -11,8 +11,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import type { StoreProductListItem } from "@/lib/storefront/product-lists"
-import { useRequiredStorefrontText } from "@/lib/storefront/storefront-text-provider"
-import { STOREFRONT_TEXT_KEYS } from "@/lib/storefront/storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,
@@ -44,9 +43,7 @@ export function AccountProductListItemRow({
   onQuantitySet,
   product,
 }: AccountProductListItemRowProps) {
-  const addToCartLabel = useRequiredStorefrontText(
-    STOREFRONT_TEXT_KEYS.cartAddToCart
-  )
+  const cartTexts = useCartStorefrontTexts()
   const itemProduct = product ?? item.product ?? null
   const productTitle = itemProduct?.title ?? item.product_id ?? "Produkt"
   const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
@@ -166,6 +163,7 @@ export function AccountProductListItemRow({
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
+          loadingText={cartTexts.addingToCart}
           onClick={() => {
             if (itemProduct) {
               onAddToCart(item, itemProduct)
@@ -174,7 +172,7 @@ export function AccountProductListItemRow({
           size="sm"
           variant="primary"
         >
-          {addToCartLabel}
+          {cartTexts.addToCart}
         </Button>
         <Button
           aria-label={`Odstrániť ${productTitle} zo zoznamu`}

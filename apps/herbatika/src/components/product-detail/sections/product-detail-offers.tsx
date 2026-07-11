@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 type ProductDetailOffersProps = {
   isAdding: boolean
@@ -20,6 +21,8 @@ export function ProductDetailOffers({
   options,
   selectedOptionId,
 }: ProductDetailOffersProps) {
+  const cartTexts = useCartStorefrontTexts()
+
   if (options.length === 0) {
     return null
   }
@@ -88,11 +91,11 @@ export function ProductDetailOffers({
           disabled={!selectedOptionId}
           icon="token-icon-cart"
           isLoading={isAdding}
-          loadingText="Pridávam..."
+          loadingText={cartTexts.addingToCart}
           onClick={onAddToCart}
           variant="primary"
         >
-          Pridať do košíka
+          {cartTexts.addToCart}
         </Button>
       </div>
     </section>
