@@ -7,16 +7,18 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
 import { useEffect, useRef, useState } from "react"
-import { useAppToast } from "@/hooks/use-app-toast"
-import { useRemoveLineItem, useUpdateLineItem } from "@/lib/storefront/cart"
 import {
   asFiniteNumber,
   resolveCartItemsSubtotalAmount,
   resolveCartTaxAmount,
 } from "@/lib/storefront/cart-calculations"
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
+import {
+  formatCartStorefrontText,
+  useCartStorefrontTexts,
+} from "@/lib/storefront/use-cart-storefront-texts"
 import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {
@@ -43,36 +45,42 @@ function CartTotals({
   shippingAmount,
   taxAmount,
 }: CartTotalsProps) {
+  const cartTexts = useCartStorefrontTexts()
+
   return (
     <div className="space-y-150 border-border-secondary border-t pt-250">
       <div className="flex items-center justify-between gap-200">
-        <span className="text-fg-secondary">Cena produktov bez DPH:</span>
+        <span className="text-fg-secondary">
+          {cartTexts.productsSubtotalExclTax}:
+        </span>
         <span>{cartItemsTotalLabel}</span>
       </div>
 
       {shippingAmount !== null && shippingAmount > 0 ? (
         <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">Doprava bez DPH:</span>
+          <span className="text-fg-secondary">
+            {cartTexts.shippingExclTax}:
+          </span>
           <span>{formatCurrencyAmount(shippingAmount, currencyCode)}</span>
         </div>
       ) : null}
 
       {taxAmount > 0 ? (
         <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">DPH:</span>
+          <span className="text-fg-secondary">{cartTexts.tax}:</span>
           <span>{formatCurrencyAmount(taxAmount, currencyCode)}</span>
         </div>
       ) : null}
 
       {discountAmount !== null && discountAmount > 0 ? (
         <div className="flex items-center justify-between gap-200 text-success">
-          <span>Zľava:</span>
+          <span>{cartTexts.discount}:</span>
           <span>-{formatCurrencyAmount(discountAmount, currencyCode)}</span>
         </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-200 border-border-secondary border-t pt-200 font-bold text-lg">
-        <span>Spolu s DPH:</span>
+        <span>{cartTexts.totalInclTax}:</span>
         <span>{cartTotalLabel}</span>
       </div>
     </div>
@@ -80,15 +88,19 @@ function CartTotals({
 }
 
 function EmptyCartPreview() {
+  const cartTexts = useCartStorefrontTexts()
+
   return (
     <output className="flex flex-col items-center gap-200 py-400 text-center">
       <span aria-hidden="true" className="grid place-items-center text-primary">
         <Icon className="text-icon-cart" icon="token-icon-cart" />
       </span>
       <div className="space-y-50">
-        <p className="font-semibold text-fg-primary">Váš košík je prázdny</p>
+        <p className="font-semibold text-fg-primary">
+          {cartTexts.emptyTitle}
+        </p>
         <p className="text-fg-secondary text-sm">
-          Produkty môžete pridať z katalógu.
+          {cartTexts.emptyDescription}
         </p>
       </div>
     </output>
@@ -101,13 +113,12 @@ export function HerbatikaCartPopover({
   currencyCode,
   itemCount,
 }: HerbatikaCartPopoverProps) {
+  const cartTexts = useCartStorefrontTexts()
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   )
-  const toast = useAppToast()
-  const updateLineItemMutation = useUpdateLineItem()
-  const removeLineItemMutation = useRemoveLineItem()
+  const lineItemActions = useCartLineItemActions({ cartId: cart?.id })
   const cartItems = cart?.items ?? []
   const cartItemsTotalLabel = formatCurrencyAmount(
     resolveCartItemsSubtotalAmount(cart),
@@ -121,8 +132,6 @@ export function HerbatikaCartPopover({
   const discountAmount = asFiniteNumber(cart?.discount_total)
   const hiddenItemCount = Math.max(cartItems.length - 4, 0)
   const visibleItems = cartItems.slice(0, 4)
-  const isPending =
-    updateLineItemMutation.isPending || removeLineItemMutation.isPending
 
   const clearHoverCloseTimeout = () => {
     if (!hoverCloseTimeoutRef.current) {
@@ -159,47 +168,6 @@ export function HerbatikaCartPopover({
     },
     []
   )
-
-  const handleUpdateQuantity = (lineItemId: string, quantity: number) => {
-    if (!cart?.id) {
-      return
-    }
-
-    updateLineItemMutation.mutate(
-      {
-        cartId: cart.id,
-        lineItemId,
-        quantity,
-      },
-      {
-        onError: (error) => {
-          toast.error({
-            title: resolveErrorMessage(error, "Úprava košíka zlyhala."),
-          })
-        },
-      }
-    )
-  }
-
-  const handleRemove = (lineItemId: string) => {
-    if (!cart?.id) {
-      return
-    }
-
-    removeLineItemMutation.mutate(
-      {
-        cartId: cart.id,
-        lineItemId,
-      },
-      {
-        onError: (error) => {
-          toast.error({
-            title: resolveErrorMessage(error, "Odstránenie položky zlyhalo."),
-          })
-        },
-      }
-    )
-  }
 
   return (
     <Popover.Root
@@ -250,7 +218,11 @@ export function HerbatikaCartPopover({
         >
           <Popover.Arrow />
           <Popover.Title>
-            {itemCount > 0 ? `Košík (${itemCount})` : "Košík"}
+            {itemCount > 0
+              ? formatCartStorefrontText(cartTexts.titleWithCount, {
+                  count: itemCount,
+                })
+              : cartTexts.title}
           </Popover.Title>
           {visibleItems.length > 0 ? (
             <>
@@ -258,17 +230,21 @@ export function HerbatikaCartPopover({
                 {visibleItems.map((item) => (
                   <CartItemRow
                     currencyCode={currencyCode}
-                    isPending={isPending}
+                    isPending={lineItemActions.isPending}
                     item={item}
                     key={item.id}
-                    onRemove={handleRemove}
-                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemove={lineItemActions.removeItem}
+                    onUpdateQuantity={lineItemActions.updateQuantity}
                   />
                 ))}
               </div>
 
               {hiddenItemCount > 0 ? (
-                <p className="text-fg-secondary text-xs">{`+ ${hiddenItemCount} ďalších položiek v košíku`}</p>
+                <p className="text-fg-secondary text-xs">
+                  {formatCartStorefrontText(cartTexts.additionalItems, {
+                    count: hiddenItemCount,
+                  })}
+                </p>
               ) : null}
 
               <CartTotals
@@ -289,7 +265,7 @@ export function HerbatikaCartPopover({
                   size="md"
                   variant="primary"
                 >
-                  Pokračovať k pokladni
+                  {cartTexts.continueToCheckout}
                 </LinkButton>
               </div>
             </>

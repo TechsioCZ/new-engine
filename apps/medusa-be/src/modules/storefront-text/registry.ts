@@ -205,6 +205,182 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
       sk: "Produkt nie je momentálne dostupný pre vybraný región.",
     },
   },
+  {
+    description: "Text počtu dalších položek skrytých v mini košíku.",
+    key: "cart.additional_items",
+    namespace: "cart",
+    values: {
+      cz: "Další položky v košíku: {count}",
+      hu: "További tételek a kosárban: {count}",
+      ro: "Alte articole în coș: {count}",
+      sk: "Ďalšie položky v košíku: {count}",
+    },
+  },
+  {
+    description: "Label tlačítka pro pokračování z mini košíku k pokladně.",
+    key: "cart.continue_to_checkout",
+    namespace: "cart",
+    values: {
+      cz: "Pokračovat k pokladně",
+      hu: "Tovább a pénztárhoz",
+      ro: "Continuă la finalizarea comenzii",
+      sk: "Pokračovať k pokladni",
+    },
+  },
+  {
+    description: "Label slevy v souhrnu košíku.",
+    key: "cart.discount",
+    namespace: "cart",
+    values: {
+      cz: "Sleva",
+      hu: "Kedvezmény",
+      ro: "Reducere",
+      sk: "Zľava",
+    },
+  },
+  {
+    description: "Doplňující text prázdného mini košíku.",
+    key: "cart.empty_description",
+    namespace: "cart",
+    values: {
+      cz: "Produkty můžete přidat z katalogu.",
+      hu: "A katalógusból adhatsz hozzá termékeket.",
+      ro: "Poți adăuga produse din catalog.",
+      sk: "Produkty môžete pridať z katalógu.",
+    },
+  },
+  {
+    description: "Titulek prázdného mini košíku.",
+    key: "cart.empty_title",
+    namespace: "cart",
+    values: {
+      cz: "Váš košík je prázdný",
+      hu: "A kosarad üres",
+      ro: "Coșul tău este gol",
+      sk: "Váš košík je prázdny",
+    },
+  },
+  {
+    description: "Upozornění na nízké skladové množství položky.",
+    key: "cart.low_stock",
+    namespace: "cart",
+    values: {
+      cz: "Zbývá už jen {quantity} ks",
+      hu: "Már csak {quantity} db maradt",
+      ro: "Au mai rămas doar {quantity} buc.",
+      sk: "Zostáva už len {quantity} ks",
+    },
+  },
+  {
+    description: "Label ceny produktů bez daně v souhrnu košíku.",
+    key: "cart.products_subtotal_excl_tax",
+    namespace: "cart",
+    values: {
+      cz: "Cena produktů bez DPH",
+      hu: "Termékek ára ÁFA nélkül",
+      ro: "Prețul produselor fără TVA",
+      sk: "Cena produktov bez DPH",
+    },
+  },
+  {
+    description: "Přístupný label pole pro množství položky.",
+    key: "cart.quantity_aria",
+    namespace: "cart",
+    values: {
+      cz: "Množství pro {itemName}",
+      hu: "Mennyiség ehhez: {itemName}",
+      ro: "Cantitate pentru {itemName}",
+      sk: "Množstvo pre {itemName}",
+    },
+  },
+  {
+    description: "Chybová hláška při odstranění položky z košíku.",
+    key: "cart.remove_failed",
+    namespace: "cart",
+    values: {
+      cz: "Odstranění položky selhalo.",
+      hu: "A tétel eltávolítása nem sikerült.",
+      ro: "Eliminarea articolului a eșuat.",
+      sk: "Odstránenie položky zlyhalo.",
+    },
+  },
+  {
+    description: "Přístupný label tlačítka pro odstranění položky.",
+    key: "cart.remove_item_aria",
+    namespace: "cart",
+    values: {
+      cz: "Odstranit {itemName} z košíku",
+      hu: "A(z) {itemName} eltávolítása a kosárból",
+      ro: "Elimină {itemName} din coș",
+      sk: "Odstrániť {itemName} z košíka",
+    },
+  },
+  {
+    description: "Label dopravy bez daně v souhrnu košíku.",
+    key: "cart.shipping_excl_tax",
+    namespace: "cart",
+    values: {
+      cz: "Doprava bez DPH",
+      hu: "Szállítás ÁFA nélkül",
+      ro: "Livrare fără TVA",
+      sk: "Doprava bez DPH",
+    },
+  },
+  {
+    description: "Label daně v souhrnu košíku.",
+    key: "cart.tax",
+    namespace: "cart",
+    values: {
+      cz: "DPH",
+      hu: "ÁFA",
+      ro: "TVA",
+      sk: "DPH",
+    },
+  },
+  {
+    description: "Titulek košíku bez počtu položek.",
+    key: "cart.title",
+    namespace: "cart",
+    values: {
+      cz: "Košík",
+      hu: "Kosár",
+      ro: "Coș",
+      sk: "Košík",
+    },
+  },
+  {
+    description: "Titulek košíku s počtem položek.",
+    key: "cart.title_with_count",
+    namespace: "cart",
+    values: {
+      cz: "Košík ({count})",
+      hu: "Kosár ({count})",
+      ro: "Coș ({count})",
+      sk: "Košík ({count})",
+    },
+  },
+  {
+    description: "Label celkové ceny s daní v souhrnu košíku.",
+    key: "cart.total_incl_tax",
+    namespace: "cart",
+    values: {
+      cz: "Celkem s DPH",
+      hu: "Összesen ÁFÁ-val",
+      ro: "Total cu TVA",
+      sk: "Spolu s DPH",
+    },
+  },
+  {
+    description: "Chybová hláška při úpravě množství v košíku.",
+    key: "cart.update_failed",
+    namespace: "cart",
+    values: {
+      cz: "Úprava košíku selhala.",
+      hu: "A kosár frissítése nem sikerült.",
+      ro: "Actualizarea coșului a eșuat.",
+      sk: "Úprava košíka zlyhala.",
+    },
+  },
 ] as const satisfies readonly StorefrontTextDefinition[]
 
 export type StorefrontTextKey =
