@@ -2,17 +2,12 @@
 
 import type { Product } from "@/components/product-detail/product-detail.types"
 import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
-import { useAppToast } from "@/hooks/use-app-toast"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products"
-import {
-  ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE,
-  resolveAddProductToCartErrorMessage,
-  useAddProductToCart,
-} from "@/lib/storefront/use-add-product-to-cart"
+import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
 type UseProductDetailActionsProps = {
   product: ProductDetailDataState["product"]
@@ -29,11 +24,10 @@ export function useProductDetailActions({
   selectedVariant,
   selectedVolumeDiscountOption,
 }: UseProductDetailActionsProps) {
-  const addToCart = useAddProductToCart({
+  const addToCart = useAddProductToCartAction({
     regionId: region?.region_id,
     countryCode: region?.country_code,
   })
-  const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 220,
     skipMode: "any",
@@ -44,16 +38,11 @@ export function useProductDetailActions({
     quantityToAdd: number,
     variantIdOverride?: string | null
   ) => {
-    try {
-      await addToCart.addProductToCart({
-        product: productToAdd,
-        quantity: quantityToAdd,
-        variantId: variantIdOverride,
-      })
-      toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
-    } catch (error) {
-      toast.error({ title: resolveAddProductToCartErrorMessage(error) })
-    }
+    await addToCart.addProductToCart({
+      product: productToAdd,
+      quantity: quantityToAdd,
+      variantId: variantIdOverride,
+    })
   }
 
   return {

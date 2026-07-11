@@ -4,7 +4,6 @@ import type { HttpTypes } from "@medusajs/types"
 import type { SetValues } from "nuqs"
 import { useEffect } from "react"
 import { toggleSelection } from "@/components/category/category-selection-utils"
-import { useAppToast } from "@/hooks/use-app-toast"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   type NuqsPlpQueryState,
@@ -16,11 +15,7 @@ import {
   PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,
 } from "@/lib/storefront/products"
-import {
-  ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE,
-  resolveAddProductToCartErrorMessage,
-  useAddProductToCart,
-} from "@/lib/storefront/use-add-product-to-cart"
+import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
 type CatalogMultiSelectKey = "status" | "form" | "brand" | "ingredient"
 
@@ -87,26 +82,20 @@ export function useCatalogListingInteractions({
   regionId,
   setQueryState,
 }: UseCatalogListingInteractionsInput) {
-  const addToCart = useAddProductToCart({
+  const addToCart = useAddProductToCartAction({
     regionId,
     countryCode,
   })
-  const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 180,
     skipMode: "any",
   })
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
-    try {
-      await addToCart.addProductToCart({
-        product,
-        quantity: 1,
-      })
-      toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
-    } catch (error) {
-      toast.error({ title: resolveAddProductToCartErrorMessage(error) })
-    }
+    await addToCart.addProductToCart({
+      product,
+      quantity: 1,
+    })
   }
 
   const patchMultiSelect = (key: CatalogMultiSelectKey, itemId: string) => {
