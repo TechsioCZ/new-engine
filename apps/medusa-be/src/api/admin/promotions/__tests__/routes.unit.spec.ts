@@ -104,6 +104,7 @@ describe("promotion custom rule value routes", () => {
       entity: "brand",
       fields: ["id", "title"],
       filters: {
+        deleted_at: null,
         id: ["brand_1"],
         title: { $ilike: "%50\\%\\_Sale%" },
       },
