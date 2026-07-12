@@ -17,12 +17,13 @@ export const resolveCheckoutCountryItemsForRegion = (
 ) => resolveCountryItemsForRegion(params)
 
 export const CHECKOUT_STEPS = [
-  { id: "cart", slug: "kosik", title: "Košík" },
-  { id: "shipping-payment", slug: "doprava-platba", title: "Doprava a platba" },
-  { id: "address", slug: "udaje", title: "Vaše údaje" },
-  { id: "summary", slug: "suhrn", title: "Súhrn" },
+  { id: "cart", slug: "kosik" },
+  { id: "shipping-payment", slug: "doprava-platba" },
+  { id: "address", slug: "udaje" },
+  { id: "summary", slug: "suhrn" },
 ] as const
 
+export type CheckoutStepId = (typeof CHECKOUT_STEPS)[number]["id"]
 export type CheckoutStepSlug = (typeof CHECKOUT_STEPS)[number]["slug"]
 
 export const DEFAULT_CHECKOUT_STEP_SLUG: CheckoutStepSlug = "kosik"

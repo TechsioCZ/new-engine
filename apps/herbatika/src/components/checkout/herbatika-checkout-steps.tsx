@@ -8,11 +8,13 @@ export type HerbatikaCheckoutStepItem = {
 }
 
 type HerbatikaCheckoutStepsProps = {
+  completedAriaLabel: string
   step: number
   steps: readonly HerbatikaCheckoutStepItem[]
 }
 
 export function HerbatikaCheckoutSteps({
+  completedAriaLabel,
   step,
   steps,
 }: HerbatikaCheckoutStepsProps) {
@@ -64,7 +66,7 @@ export function HerbatikaCheckoutSteps({
           key="completed"
         >
           <Steps.Trigger
-            aria-label="Dokončené"
+            aria-label={completedAriaLabel}
             className="min-h-750 min-w-750 justify-center"
             disabled
           >

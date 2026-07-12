@@ -37,6 +37,7 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import {
   buildAccountSetupRequestedMetadata,
   isRecord,
@@ -67,6 +68,7 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
 
 export function useCheckoutController() {
   const queryClient = useQueryClient()
+  const checkoutTexts = useCheckoutStorefrontTexts()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const authQuery = useAuth()
@@ -103,7 +105,7 @@ export function useCheckoutController() {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
         setCheckoutError(
-          resolveErrorMessage(error, "Nastavenie dopravy zlyhalo.")
+          resolveErrorMessage(error, checkoutTexts.shippingUpdateFailed)
         )
       },
     }
@@ -232,6 +234,7 @@ export function useCheckoutController() {
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
+    texts: checkoutTexts,
   })
 
   const checkoutDetailsForm = useCheckoutDetailsForm({
@@ -241,7 +244,7 @@ export function useCheckoutController() {
     isCustomerLoading: authQuery.isLoading,
     onSubmit: async (values) => {
       if (!cartQuery.cart?.id) {
-        setCheckoutError("Košík nie je pripravený.")
+        setCheckoutError(checkoutTexts.cartNotReady)
         return
       }
 
@@ -330,7 +333,7 @@ export function useCheckoutController() {
     const cart = cartQuery.cart
 
     if (!cart?.id) {
-      setCheckoutError("Košík nie je pripravený.")
+      setCheckoutError(checkoutTexts.cartNotReady)
       return false
     }
 

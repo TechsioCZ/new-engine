@@ -12,6 +12,8 @@ import {
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 
 type CheckoutCompleteSectionProps = {
   canCompleteOrder: boolean
@@ -105,34 +107,36 @@ export function CheckoutCompleteSection({
   shippingOptionId,
   shippingStepHref,
 }: CheckoutCompleteSectionProps) {
+  const cartTexts = useCartStorefrontTexts()
+  const checkoutTexts = useCheckoutStorefrontTexts()
   const shippingAddressRows = resolveAddressRows(shippingAddressForm)
   const shippingSummaryLabel = hasShipping
-    ? (shippingLabel ?? "Zvolená doprava")
-    : "Doprava nie je vybraná"
+    ? (shippingLabel ?? checkoutTexts.selectedShipping)
+    : checkoutTexts.shippingNotSelected
   const paymentSummaryLabel = hasPayment
-    ? (paymentLabel ?? "Zvolená platba")
-    : "Platba nie je vybraná"
+    ? (paymentLabel ?? checkoutTexts.selectedPayment)
+    : checkoutTexts.paymentNotSelected
 
   return (
     <section className="space-y-300 font-inter">
       <h2 className="font-medium font-rubik text-fg-primary text-xl">
-        Súhrn objednávky
+        {checkoutTexts.orderSummary}
       </h2>
 
       <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-400 sm:p-550">
         <div className="flex items-start justify-between gap-200 border-border-secondary border-b pb-250">
           <p className="mt-200 font-medium text-fg-primary text-sm">
-            Spolu s DPH
+            {cartTexts.totalInclTax}
           </p>
           <div className="space-y-200 text-right">
             <p className="font-bold font-rubik text-2xl text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
             <SupportingText className="text-fg-secondary">
-              {`bez DPH: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
+              {`${checkoutTexts.totalExclTax}: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
             </SupportingText>
             <SupportingText className="text-fg-secondary">
-              {`DPH: ${formatCurrencyAmount(cartTaxAmount, currencyCode)}`}
+              {`${cartTexts.tax}: ${formatCurrencyAmount(cartTaxAmount, currencyCode)}`}
             </SupportingText>
           </div>
         </div>
@@ -167,7 +171,7 @@ export function CheckoutCompleteSection({
             type="button"
             uppercase
           >
-            Dokončiť objednávku
+            {checkoutTexts.completeOrder}
           </Button>
 
           <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
@@ -192,6 +196,7 @@ export function CheckoutCompleteSection({
       </section>
 
       <SummaryRecapCard
+        editLabel={checkoutTexts.edit}
         href={shippingStepHref}
         icon={resolveShippingIcon({
           id: shippingOptionId,
@@ -202,6 +207,7 @@ export function CheckoutCompleteSection({
       />
 
       <SummaryRecapCard
+        editLabel={checkoutTexts.edit}
         href={shippingStepHref}
         icon={resolvePaymentIcon(paymentProviderId ?? "")}
         label={paymentSummaryLabel}
@@ -211,7 +217,7 @@ export function CheckoutCompleteSection({
       <section className={`${summaryCardClassName}`}>
         <div className="flex items-center justify-between gap-200">
           <p className="font-medium font-rubik text-fg-primary text-lg">
-            Vaše údaje
+            {checkoutTexts.customerDetails}
           </p>
           <LinkButton
             as={NextLink}
@@ -222,7 +228,7 @@ export function CheckoutCompleteSection({
             size="sm"
             theme="unstyled"
           >
-            Upraviť
+            {checkoutTexts.edit}
           </LinkButton>
         </div>
 
@@ -253,11 +259,13 @@ export function CheckoutCompleteSection({
 }
 
 function SummaryRecapCard({
+  editLabel,
   href,
   icon,
   label,
   tone = "default",
 }: {
+  editLabel: string
   href: string
   icon: IconType
   label: string
@@ -290,7 +298,7 @@ function SummaryRecapCard({
           size="sm"
           theme="unstyled"
         >
-          Upraviť
+          {editLabel}
         </LinkButton>
       </div>
     </div>

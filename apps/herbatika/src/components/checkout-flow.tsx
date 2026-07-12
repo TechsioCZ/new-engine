@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import {
   CHECKOUT_STEPS,
+  type CheckoutStepId,
   type CheckoutStepSlug,
 } from "@/components/checkout/checkout.constants"
 import {
@@ -18,6 +19,8 @@ import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkou
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section"
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 
 type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug
@@ -26,6 +29,18 @@ type CheckoutFlowProps = {
 export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const router = useRouter()
   const controller = useCheckoutController()
+  const cartTexts = useCartStorefrontTexts()
+  const checkoutTexts = useCheckoutStorefrontTexts()
+  const checkoutStepTitles = {
+    address: checkoutTexts.customerDetails,
+    cart: cartTexts.title,
+    "shipping-payment": checkoutTexts.shippingPayment,
+    summary: checkoutTexts.summary,
+  } satisfies Record<CheckoutStepId, string>
+  const checkoutSteps = CHECKOUT_STEPS.map((step) => ({
+    ...step,
+    title: checkoutStepTitles[step.id],
+  }))
   const requiredStep = resolveRequiredCheckoutStepSlug({
     hasItems: controller.hasItems,
     hasPayment: controller.hasPayment,
@@ -73,7 +88,8 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 pt-600 pb-850 font-rubik lg:px-550 xl:px-700">
       <CheckoutStepsSection
         checkoutStepIndex={checkoutStepIndex}
-        steps={CHECKOUT_STEPS}
+        completedAriaLabel={checkoutTexts.completedAria}
+        steps={checkoutSteps}
       />
 
       <CheckoutFeedbackSection

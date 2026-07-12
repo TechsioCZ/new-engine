@@ -8,6 +8,12 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
+import {
+  resolveCheckoutShippingExclTaxLabel,
+  useCheckoutStorefrontTexts,
+} from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { resolveAvailabilityText } from "../utils/resolve-availability-text"
 
@@ -34,12 +40,23 @@ export function CheckoutOrderSummarySection({
   shippingLabel,
   shippingAmount,
 }: CheckoutOrderSummarySectionProps) {
+  const cartTexts = useCartStorefrontTexts()
+  const checkoutTexts = useCheckoutStorefrontTexts()
   const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik"
+  const shippingExclTaxLabel = resolveCheckoutShippingExclTaxLabel({
+    fallback: cartTexts.shippingExclTax,
+    shippingName: shippingLabel,
+    template: checkoutTexts.shippingExclTaxWithName,
+  })
 
   return (
     <section className={`space-y-300 rounded-sm sm:p-550 ${detailsFontClass}`}>
       <header>
-        <h2 className="font-medium text-fg-primary text-xl leading-relaxed">{`Váš košík (${cartItems.length})`}</h2>
+        <h2 className="font-medium text-fg-primary text-xl leading-relaxed">
+          {formatStorefrontText(cartTexts.titleWithCount, {
+            count: cartItems.length,
+          })}
+        </h2>
       </header>
 
       <div className="space-y-250">
@@ -93,7 +110,11 @@ export function CheckoutOrderSummarySection({
                     <p className="shrink-0 font-semibold text-fg-primary text-lg">
                       {itemPrice}
                     </p>
-                    <SupportingText className="text-fg-secondary">{`${itemQuantity} ks`}</SupportingText>
+                    <SupportingText className="text-fg-secondary">
+                      {formatStorefrontText(checkoutTexts.itemQuantity, {
+                        quantity: itemQuantity,
+                      })}
+                    </SupportingText>
                   </div>
                 </div>
                 <p className="inline-flex 2xs:hidden w-full items-start gap-150 font-medium text-success-fg text-xs leading-normal">
@@ -111,7 +132,7 @@ export function CheckoutOrderSummarySection({
           })
         ) : (
           <SupportingText className="text-fg-secondary">
-            Košík je zatiaľ prázdny.
+            {cartTexts.emptyTitle}
           </SupportingText>
         )}
       </div>
@@ -119,7 +140,7 @@ export function CheckoutOrderSummarySection({
       <div className="space-y-200 border-border-primary border-t">
         <div className="flex items-center justify-between border-border-primary border-b">
           <span className="py-200 text-fg-secondary">
-            Cena produktov bez DPH
+            {cartTexts.productsSubtotalExclTax}
           </span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(cartItemsWithoutTaxAmount, currencyCode)}
@@ -127,25 +148,29 @@ export function CheckoutOrderSummarySection({
         </div>
         <div className="flex items-center justify-between border-border-primary border-b py-200">
           <span className="text-fg-secondary">
-            {shippingLabel ? `${shippingLabel} bez DPH` : "Doprava bez DPH"}
+            {shippingExclTaxLabel}
           </span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(shippingAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between border-border-primary border-b py-200">
-          <span className="text-fg-secondary">DPH</span>
+          <span className="text-fg-secondary">{cartTexts.tax}</span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(cartTaxAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between py-200">
-          <span className="text-fg-secondary">{paymentLabel || "Platba"}</span>
-          <p className="font-medium text-md text-success-fg">Zadarmo</p>
+          <span className="text-fg-secondary">
+            {paymentLabel || checkoutTexts.payment}
+          </span>
+          <p className="font-medium text-md text-success-fg">
+            {checkoutTexts.free}
+          </p>
         </div>
         <div className="flex items-start justify-between border-border-primary border-t pt-150">
           <span className="font-semibold text-fg-primary text-md md:mt-150">
-            Spolu s DPH
+            {cartTexts.totalInclTax}
           </span>
           <div className="flex flex-col items-end gap-200">
             <p className="font-bold text-2xl text-fg-primary">

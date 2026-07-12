@@ -10,6 +10,8 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section"
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
 type CheckoutStepContentProps = {
@@ -21,6 +23,7 @@ export function CheckoutStepContent({
   activeStep,
   controller,
 }: CheckoutStepContentProps) {
+  const cartTexts = useCartStorefrontTexts()
   const cartStepHref = resolveCheckoutStepHref("kosik")
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
   const detailsStepHref = resolveCheckoutStepHref("udaje")
@@ -69,7 +72,9 @@ export function CheckoutStepContent({
           cartItems={controller.cartItems}
           header={
             <h2 className="col-span-full font-inter font-semibold text-2xl text-fg-primary leading-tight">
-              {`Váš košík (${controller.cartItems.length})`}
+              {formatStorefrontText(cartTexts.titleWithCount, {
+                count: controller.cartItems.length,
+              })}
             </h2>
           }
         >

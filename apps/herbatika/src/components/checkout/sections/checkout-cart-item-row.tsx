@@ -19,10 +19,8 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import {
-  formatCartStorefrontText,
-  useCartStorefrontTexts,
-} from "@/lib/storefront/use-cart-storefront-texts"
+import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,
@@ -175,7 +173,7 @@ export function CheckoutCartItemRow({
             </span>
           </p>
           <Button
-            aria-label={formatCartStorefrontText(cartTexts.removeItemAria, {
+            aria-label={formatStorefrontText(cartTexts.removeItemAria, {
               itemName,
             })}
             className="text-2xl text-fg-secondary hover:text-fg-primary"

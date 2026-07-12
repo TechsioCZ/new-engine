@@ -12,9 +12,9 @@ import {
 } from "./product-pricing"
 import {
   type CartStorefrontTexts,
-  formatCartStorefrontText,
   useCartStorefrontTexts,
 } from "./use-cart-storefront-texts"
+import { formatStorefrontText } from "./storefront-texts"
 
 export type UseAddProductToCartProps = {
   regionId?: string
@@ -60,13 +60,13 @@ const resolveInsufficientQuantityMessage = ({
   }
 
   if (cartQuantity > 0) {
-    return formatCartStorefrontText(messages.insufficientQuantityInCart, {
+    return formatStorefrontText(messages.insufficientQuantityInCart, {
       availableQuantity,
       cartQuantity,
     })
   }
 
-  return formatCartStorefrontText(messages.insufficientQuantityAvailable, {
+  return formatStorefrontText(messages.insufficientQuantityAvailable, {
     availableQuantity,
   })
 }

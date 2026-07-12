@@ -2,7 +2,7 @@ export const STOREFRONT_TEXT_STATUSES = ["active", "draft"] as const
 
 export type StorefrontTextStatus = (typeof STOREFRONT_TEXT_STATUSES)[number]
 
-export const STOREFRONT_TEXT_NAMESPACES = ["cart"] as const
+export const STOREFRONT_TEXT_NAMESPACES = ["cart", "checkout"] as const
 
 export type StorefrontTextNamespace =
   (typeof STOREFRONT_TEXT_NAMESPACES)[number]
@@ -379,6 +379,380 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
       hu: "A kosár frissítése nem sikerült.",
       ro: "Actualizarea coșului a eșuat.",
       sk: "Úprava košíka zlyhala.",
+    },
+  },
+  {
+    description: "Navigace zpět do košíku.",
+    key: "checkout.back_to_cart",
+    namespace: "checkout",
+    values: {
+      cz: "Zpět do košíku",
+      hu: "Vissza a kosárhoz",
+      ro: "Înapoi la coș",
+      sk: "Späť na košík",
+    },
+  },
+  {
+    description: "Navigace zpět na dopravu a platbu.",
+    key: "checkout.back_to_shipping_payment",
+    namespace: "checkout",
+    values: {
+      cz: "Zpět k dopravě a platbě",
+      hu: "Vissza a szállításhoz és fizetéshez",
+      ro: "Înapoi la livrare și plată",
+      sk: "Späť na dopravu a platbu",
+    },
+  },
+  {
+    description: "Tlačítko pro dokončení objednávky.",
+    key: "checkout.complete_order",
+    namespace: "checkout",
+    values: {
+      cz: "Dokončit objednávku",
+      hu: "Rendelés befejezése",
+      ro: "Finalizează comanda",
+      sk: "Dokončiť objednávku",
+    },
+  },
+  {
+    description: "Přístupný popisek dokončeného kroku checkoutu.",
+    key: "checkout.completed_aria",
+    namespace: "checkout",
+    values: {
+      cz: "Dokončeno",
+      hu: "Befejezve",
+      ro: "Finalizat",
+      sk: "Dokončené",
+    },
+  },
+  {
+    description: "Navigace k zákaznickým údajům.",
+    key: "checkout.continue_to_customer_details",
+    namespace: "checkout",
+    values: {
+      cz: "Pokračovat k vašim údajům",
+      hu: "Tovább az adatokhoz",
+      ro: "Continuă la datele dvs.",
+      sk: "Pokračovať na vaše údaje",
+    },
+  },
+  {
+    description: "Navigace k dopravě a platbě.",
+    key: "checkout.continue_to_shipping_payment",
+    namespace: "checkout",
+    values: {
+      cz: "Pokračovat k dopravě a platbě",
+      hu: "Tovább a szállításhoz és fizetéshez",
+      ro: "Continuă la livrare și plată",
+      sk: "Pokračovať na dopravu a platbu",
+    },
+  },
+  {
+    description: "Navigace k souhrnu objednávky.",
+    key: "checkout.continue_to_summary",
+    namespace: "checkout",
+    values: {
+      cz: "Pokračovat k souhrnu",
+      hu: "Tovább az összegzéshez",
+      ro: "Continuă la sumar",
+      sk: "Pokračovať na súhrn",
+    },
+  },
+  {
+    description: "Název kroku a sekce zákaznických údajů.",
+    key: "checkout.customer_details",
+    namespace: "checkout",
+    values: {
+      cz: "Vaše údaje",
+      hu: "Az Ön adatai",
+      ro: "Datele dvs.",
+      sk: "Vaše údaje",
+    },
+  },
+  {
+    description: "Label akce pro úpravu části objednávky.",
+    key: "checkout.edit",
+    namespace: "checkout",
+    values: {
+      cz: "Upravit",
+      hu: "Szerkesztés",
+      ro: "Editează",
+      sk: "Upraviť",
+    },
+  },
+  {
+    description: "Label bezplatné dopravy nebo platby.",
+    key: "checkout.free",
+    namespace: "checkout",
+    values: {
+      cz: "Zdarma",
+      hu: "Ingyenes",
+      ro: "Gratuit",
+      sk: "Zadarmo",
+    },
+  },
+  {
+    description: "Formát množství položky v souhrnu objednávky.",
+    key: "checkout.item_quantity",
+    namespace: "checkout",
+    values: {
+      cz: "{quantity} ks",
+      hu: "{quantity} db",
+      ro: "{quantity} buc.",
+      sk: "{quantity} ks",
+    },
+  },
+  {
+    description: "Prázdný stav dostupných platebních metod.",
+    key: "checkout.no_payment_methods",
+    namespace: "checkout",
+    values: {
+      cz: "Nejsou dostupné žádné platební metody.",
+      hu: "Nincsenek elérhető fizetési módok.",
+      ro: "Nu există metode de plată disponibile.",
+      sk: "Nie sú dostupné žiadne platobné metódy.",
+    },
+  },
+  {
+    description: "Prázdný stav dostupných možností dopravy.",
+    key: "checkout.no_shipping_options",
+    namespace: "checkout",
+    values: {
+      cz: "Nejsou dostupné žádné možnosti dopravy.",
+      hu: "Nincsenek elérhető szállítási lehetőségek.",
+      ro: "Nu există opțiuni de livrare disponibile.",
+      sk: "Nie sú dostupné žiadne možnosti dopravy.",
+    },
+  },
+  {
+    description: "Nadpis finálního souhrnu objednávky.",
+    key: "checkout.order_summary",
+    namespace: "checkout",
+    values: {
+      cz: "Souhrn objednávky",
+      hu: "Rendelés összegzése",
+      ro: "Sumarul comenzii",
+      sk: "Súhrn objednávky",
+    },
+  },
+  {
+    description: "Label platby v checkoutu.",
+    key: "checkout.payment",
+    namespace: "checkout",
+    values: {
+      cz: "Platba",
+      hu: "Fizetés",
+      ro: "Plată",
+      sk: "Platba",
+    },
+  },
+  {
+    description: "Stav, kdy není vybraná platba.",
+    key: "checkout.payment_not_selected",
+    namespace: "checkout",
+    values: {
+      cz: "Platba není vybrána",
+      hu: "Nincs kiválasztva fizetési mód",
+      ro: "Plata nu este selectată",
+      sk: "Platba nie je vybraná",
+    },
+  },
+  {
+    description: "Instrukce k dokončení výběru výdejního místa.",
+    key: "checkout.pickup_selection_required",
+    namespace: "checkout",
+    values: {
+      cz: "Vyberte výdejní místo, aby se odemkla platba.",
+      hu: "Válasszon átvételi pontot a fizetés feloldásához.",
+      ro: "Selectați un punct de ridicare pentru a debloca plata.",
+      sk: "Vyberte výdajné miesto, aby sa odomkla platba.",
+    },
+  },
+  {
+    description: "Výzva k výběru výdejního místa před platbou.",
+    key: "checkout.select_pickup_before_payment",
+    namespace: "checkout",
+    values: {
+      cz: "Pro výběr platby nejprve vyberte výdejní místo.",
+      hu: "A fizetés kiválasztása előtt válasszon átvételi pontot.",
+      ro: "Pentru a selecta plata, alegeți mai întâi un punct de ridicare.",
+      sk: "Pre voľbu platby najprv vyberte výdajné miesto.",
+    },
+  },
+  {
+    description: "Výzva k výběru dopravy před platbou.",
+    key: "checkout.select_shipping_before_payment",
+    namespace: "checkout",
+    values: {
+      cz: "Pro výběr platby nejprve vyberte dopravu.",
+      hu: "A fizetés kiválasztása előtt válasszon szállítási módot.",
+      ro: "Pentru a selecta plata, alegeți mai întâi livrarea.",
+      sk: "Pre voľbu platby najprv vyberte dopravu.",
+    },
+  },
+  {
+    description: "Výchozí label zvolené platby.",
+    key: "checkout.selected_payment",
+    namespace: "checkout",
+    values: {
+      cz: "Vybraná platba",
+      hu: "Kiválasztott fizetés",
+      ro: "Plată selectată",
+      sk: "Zvolená platba",
+    },
+  },
+  {
+    description: "Výchozí label zvolené dopravy.",
+    key: "checkout.selected_shipping",
+    namespace: "checkout",
+    values: {
+      cz: "Vybraná doprava",
+      hu: "Kiválasztott szállítás",
+      ro: "Livrare selectată",
+      sk: "Zvolená doprava",
+    },
+  },
+  {
+    description: "Label dopravy v checkoutu.",
+    key: "checkout.shipping",
+    namespace: "checkout",
+    values: {
+      cz: "Doprava",
+      hu: "Szállítás",
+      ro: "Livrare",
+      sk: "Doprava",
+    },
+  },
+  {
+    description: "Label zvolené dopravy bez daně.",
+    key: "checkout.shipping_excl_tax_with_name",
+    namespace: "checkout",
+    values: {
+      cz: "{shippingName} bez DPH",
+      hu: "{shippingName} ÁFA nélkül",
+      ro: "{shippingName} fără TVA",
+      sk: "{shippingName} bez DPH",
+    },
+  },
+  {
+    description: "Stav, kdy není vybraná doprava.",
+    key: "checkout.shipping_not_selected",
+    namespace: "checkout",
+    values: {
+      cz: "Doprava není vybrána",
+      hu: "Nincs kiválasztva szállítási mód",
+      ro: "Livrarea nu este selectată",
+      sk: "Doprava nie je vybraná",
+    },
+  },
+  {
+    description: "Název kroku souhrnu checkoutu.",
+    key: "checkout.summary",
+    namespace: "checkout",
+    values: {
+      cz: "Souhrn",
+      hu: "Összegzés",
+      ro: "Sumar",
+      sk: "Súhrn",
+    },
+  },
+  {
+    description: "Label celkové ceny bez daně.",
+    key: "checkout.total_excl_tax",
+    namespace: "checkout",
+    values: {
+      cz: "bez DPH",
+      hu: "ÁFA nélkül",
+      ro: "fără TVA",
+      sk: "bez DPH",
+    },
+  },
+  {
+    description: "Název kroku dopravy a platby.",
+    key: "checkout.shipping_payment",
+    namespace: "checkout",
+    values: {
+      cz: "Doprava a platba",
+      hu: "Szállítás és fizetés",
+      ro: "Livrare și plată",
+      sk: "Doprava a platba",
+    },
+  },
+  {
+    description: "Chybová hláška pro prázdný košík v checkoutu.",
+    key: "checkout.cart_empty",
+    namespace: "checkout",
+    values: {
+      cz: "Košík je prázdný. Nejprve přidejte produkty.",
+      hu: "A kosár üres. Először adjon hozzá termékeket.",
+      ro: "Coșul este gol. Adăugați mai întâi produse.",
+      sk: "Košík je prázdny. Pridajte najprv produkty.",
+    },
+  },
+  {
+    description: "Chybová hláška pro nepřipravený košík.",
+    key: "checkout.cart_not_ready",
+    namespace: "checkout",
+    values: {
+      cz: "Košík ještě není připraven.",
+      hu: "A kosár még nem áll készen.",
+      ro: "Coșul nu este încă pregătit.",
+      sk: "Košík nie je pripravený.",
+    },
+  },
+  {
+    description: "Chybová hláška při neúspěšném dokončení objednávky.",
+    key: "checkout.complete_failed",
+    namespace: "checkout",
+    values: {
+      cz: "Dokončení objednávky selhalo.",
+      hu: "A rendelés befejezése sikertelen.",
+      ro: "Finalizarea comenzii a eșuat.",
+      sk: "Dokončenie objednávky zlyhalo.",
+    },
+  },
+  {
+    description: "Chybová hláška při neúspěšném nastavení platby.",
+    key: "checkout.payment_update_failed",
+    namespace: "checkout",
+    values: {
+      cz: "Nastavení platby selhalo.",
+      hu: "A fizetés beállítása sikertelen.",
+      ro: "Setarea plății a eșuat.",
+      sk: "Nastavenie platby zlyhalo.",
+    },
+  },
+  {
+    description: "Výzva k výběru platby před dokončením objednávky.",
+    key: "checkout.select_payment_before_completion",
+    namespace: "checkout",
+    values: {
+      cz: "Před dokončením objednávky vyberte platební metodu.",
+      hu: "A rendelés befejezése előtt válasszon fizetési módot.",
+      ro: "Selectați metoda de plată înainte de finalizarea comenzii.",
+      sk: "Vyberte platobnú metódu pred dokončením objednávky.",
+    },
+  },
+  {
+    description: "Výzva k výběru dopravy před dokončením objednávky.",
+    key: "checkout.select_shipping_before_completion",
+    namespace: "checkout",
+    values: {
+      cz: "Před dokončením objednávky vyberte dopravu.",
+      hu: "A rendelés befejezése előtt válasszon szállítási módot.",
+      ro: "Selectați livrarea înainte de finalizarea comenzii.",
+      sk: "Vyberte dopravu pred dokončením objednávky.",
+    },
+  },
+  {
+    description: "Chybová hláška při neúspěšném nastavení dopravy.",
+    key: "checkout.shipping_update_failed",
+    namespace: "checkout",
+    values: {
+      cz: "Nastavení dopravy selhalo.",
+      hu: "A szállítás beállítása sikertelen.",
+      ro: "Setarea livrării a eșuat.",
+      sk: "Nastavenie dopravy zlyhalo.",
     },
   },
 ] as const satisfies readonly StorefrontTextDefinition[]

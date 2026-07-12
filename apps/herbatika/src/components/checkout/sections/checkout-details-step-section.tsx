@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
 
@@ -33,6 +34,7 @@ export function CheckoutDetailsStepSection({
   nextStepHref,
 }: CheckoutDetailsStepSectionProps) {
   const router = useRouter()
+  const checkoutTexts = useCheckoutStorefrontTexts()
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
   const hasCarrierPickupShipping =
@@ -45,7 +47,7 @@ export function CheckoutDetailsStepSection({
     <section className="space-y-300">
       <header className="xl:pt-550">
         <h2 className="font-inter font-medium text-fg-primary text-xl leading-relaxed">
-          Vaše údaje
+          {checkoutTexts.customerDetails}
         </h2>
       </header>
 
@@ -149,7 +151,9 @@ export function CheckoutDetailsStepSection({
           theme="outlined"
           variant="tertiary"
         >
-          <span className="font-normal">Späť na dopravu a platbu</span>
+          <span className="font-normal">
+            {checkoutTexts.backToShippingPayment}
+          </span>
         </LinkButton>
         <Button
           className="w-full sm:w-auto sm:min-w-950"
@@ -161,7 +165,9 @@ export function CheckoutDetailsStepSection({
           size="lg"
           type="submit"
         >
-          <span className="font-normal uppercase">Pokračovať na súhrn</span>
+          <span className="font-normal uppercase">
+            {checkoutTexts.continueToSummary}
+          </span>
         </Button>
       </div>
     </section>

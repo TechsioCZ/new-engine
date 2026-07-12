@@ -14,11 +14,9 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
-import {
-  formatCartStorefrontText,
-  useCartStorefrontTexts,
-} from "@/lib/storefront/use-cart-storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {
@@ -219,7 +217,7 @@ export function HerbatikaCartPopover({
           <Popover.Arrow />
           <Popover.Title>
             {itemCount > 0
-              ? formatCartStorefrontText(cartTexts.titleWithCount, {
+              ? formatStorefrontText(cartTexts.titleWithCount, {
                   count: itemCount,
                 })
               : cartTexts.title}
@@ -241,7 +239,7 @@ export function HerbatikaCartPopover({
 
               {hiddenItemCount > 0 ? (
                 <p className="text-fg-secondary text-xs">
-                  {formatCartStorefrontText(cartTexts.additionalItems, {
+                  {formatStorefrontText(cartTexts.additionalItems, {
                     count: hiddenItemCount,
                   })}
                 </p>
