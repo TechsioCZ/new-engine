@@ -62,7 +62,8 @@ export type BrandAdminI18nNamespace = {
     | "restoreAttributeFailed"
     | "restoreBrandFailed"
     | "saveBrandFailed"
-    | "saveProductsFailed",
+    | "saveProductsFailed"
+    | "euResponsiblePersonRequired",
     string
   >
   fields: Record<
@@ -216,13 +217,15 @@ export const brandAdminI18n = {
       restoreBrandFailed: "Výrobce se nepodařilo obnovit",
       saveBrandFailed: "Výrobce se nepodařilo uložit",
       saveProductsFailed: "Produkty se nepodařilo uložit",
+      euResponsiblePersonRequired:
+        "Zodpovedná osoba v EÚ musí mať vyplnenú spoločnosť, adresu a e-mail.",
     },
     fields: {
       attribute: "Atribut",
       gpsrContactEmail: "E-mail výrobce pro GPSR",
-      gpsrEuropeanResellerContactEmail: "E-mail zástupce v EU",
-      gpsrEuropeanResellerManufacturingCompanyName: "Zástupce výrobce v EU",
-      gpsrEuropeanResellerPostalAddress: "Adresa zástupce v EU",
+      gpsrEuropeanResellerContactEmail: "E-mail zodpovedné osoby v EÚ",
+      gpsrEuropeanResellerManufacturingCompanyName: "Zodpovedná osoba v EÚ",
+      gpsrEuropeanResellerPostalAddress: "Adresa zodpovedné osoby v EÚ",
       gpsrManufacturedOutsideEu: "Vyrobeno mimo EU",
       gpsrManufacturingCompanyName: "Výrobce pro GPSR",
       gpsrPostalAddress: "Adresa výrobce pro GPSR",
@@ -393,13 +396,16 @@ export const brandAdminI18n = {
       restoreBrandFailed: "Failed to restore brand",
       saveBrandFailed: "Failed to save brand",
       saveProductsFailed: "Failed to save products",
+      euResponsiblePersonRequired:
+        "EU responsible person company, address, and email are required.",
     },
     fields: {
       attribute: "Attribute",
       gpsrContactEmail: "Manufacturer GPSR email",
-      gpsrEuropeanResellerContactEmail: "EU representative email",
-      gpsrEuropeanResellerManufacturingCompanyName: "EU representative company",
-      gpsrEuropeanResellerPostalAddress: "EU representative address",
+      gpsrEuropeanResellerContactEmail: "EU responsible person email",
+      gpsrEuropeanResellerManufacturingCompanyName:
+        "EU responsible person company",
+      gpsrEuropeanResellerPostalAddress: "EU responsible person address",
       gpsrManufacturedOutsideEu: "Manufactured outside the EU",
       gpsrManufacturingCompanyName: "Manufacturer GPSR company",
       gpsrPostalAddress: "Manufacturer GPSR address",

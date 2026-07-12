@@ -54,8 +54,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "gpsr_contact_email": {
-          "name": "gpsr_contact_email",
+        "gpsrContactEmail": {
+          "name": "gpsrContactEmail",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -70,8 +70,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "gpsr_european_reseller_contact_email": {
-          "name": "gpsr_european_reseller_contact_email",
+        "gpsrEuropeanResellerContactEmail": {
+          "name": "gpsrEuropeanResellerContactEmail",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -86,8 +86,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "gpsr_european_reseller_manufacturing_company_name": {
-          "name": "gpsr_european_reseller_manufacturing_company_name",
+        "gpsrEuropeanResellerManufacturingCompanyName": {
+          "name": "gpsrEuropeanResellerManufacturingCompanyName",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -102,8 +102,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "gpsr_european_reseller_postal_address": {
-          "name": "gpsr_european_reseller_postal_address",
+        "gpsrEuropeanResellerPostalAddress": {
+          "name": "gpsrEuropeanResellerPostalAddress",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -118,8 +118,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "gpsr_manufactured_outside_eu": {
-          "name": "gpsr_manufactured_outside_eu",
+        "gpsrManufacturedOutsideEu": {
+          "name": "gpsrManufacturedOutsideEu",
           "type": "boolean",
           "unsigned": false,
           "autoincrement": false,
@@ -134,8 +134,8 @@
           "enumItems": [],
           "mappedType": "boolean"
         },
-        "gpsr_manufacturing_company_name": {
-          "name": "gpsr_manufacturing_company_name",
+        "gpsrManufacturingCompanyName": {
+          "name": "gpsrManufacturingCompanyName",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -150,8 +150,8 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "gpsr_postal_address": {
-          "name": "gpsr_postal_address",
+        "gpsrPostalAddress": {
+          "name": "gpsrPostalAddress",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,

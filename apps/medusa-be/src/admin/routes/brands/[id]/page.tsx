@@ -295,8 +295,21 @@ const BrandEditDrawer = ({
         selectedAttributeNames.has(attributeType.name)
       )
   )
+  const isEuResponsiblePersonRequired = form.gpsrManufacturedOutsideEu
+  const hasMissingEuResponsiblePersonFields =
+    isEuResponsiblePersonRequired &&
+    !(
+      form.gpsrEuropeanResellerManufacturingCompanyName.trim() &&
+      form.gpsrEuropeanResellerPostalAddress.trim() &&
+      form.gpsrEuropeanResellerContactEmail.trim()
+    )
 
   const save = () => {
+    if (hasMissingEuResponsiblePersonFields) {
+      toast.error(t("errors.euResponsiblePersonRequired"))
+      return
+    }
+
     mutation.mutate({
       attributes: form.attributes
         .map((attribute) => ({
@@ -434,6 +447,7 @@ const BrandEditDrawer = ({
                         event.target.value,
                     }))
                   }
+                  required={isEuResponsiblePersonRequired}
                   value={form.gpsrEuropeanResellerManufacturingCompanyName}
                 />
               </div>
@@ -449,6 +463,7 @@ const BrandEditDrawer = ({
                       gpsrEuropeanResellerPostalAddress: event.target.value,
                     }))
                   }
+                  required={isEuResponsiblePersonRequired}
                   value={form.gpsrEuropeanResellerPostalAddress}
                 />
               </div>
@@ -464,6 +479,7 @@ const BrandEditDrawer = ({
                       gpsrEuropeanResellerContactEmail: event.target.value,
                     }))
                   }
+                  required={isEuResponsiblePersonRequired}
                   type="email"
                   value={form.gpsrEuropeanResellerContactEmail}
                 />

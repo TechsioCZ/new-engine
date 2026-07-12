@@ -393,8 +393,21 @@ const BrandFormDrawer = ({
         selectedAttributeNames.has(attributeType.name)
       )
   )
+  const isEuResponsiblePersonRequired = form.gpsrManufacturedOutsideEu
+  const hasMissingEuResponsiblePersonFields =
+    isEuResponsiblePersonRequired &&
+    !(
+      form.gpsrEuropeanResellerManufacturingCompanyName.trim() &&
+      form.gpsrEuropeanResellerPostalAddress.trim() &&
+      form.gpsrEuropeanResellerContactEmail.trim()
+    )
 
   const save = () => {
+    if (hasMissingEuResponsiblePersonFields) {
+      toast.error(t("errors.euResponsiblePersonRequired"))
+      return
+    }
+
     const attributes = form.attributes
       .map((attribute) => ({
         name: attribute.name.trim(),
@@ -537,6 +550,7 @@ const BrandFormDrawer = ({
                         event.target.value,
                     }))
                   }
+                  required={isEuResponsiblePersonRequired}
                   value={form.gpsrEuropeanResellerManufacturingCompanyName}
                 />
               </div>
@@ -552,6 +566,7 @@ const BrandFormDrawer = ({
                       gpsrEuropeanResellerPostalAddress: event.target.value,
                     }))
                   }
+                  required={isEuResponsiblePersonRequired}
                   value={form.gpsrEuropeanResellerPostalAddress}
                 />
               </div>
@@ -567,6 +582,7 @@ const BrandFormDrawer = ({
                       gpsrEuropeanResellerContactEmail: event.target.value,
                     }))
                   }
+                  required={isEuResponsiblePersonRequired}
                   type="email"
                   value={form.gpsrEuropeanResellerContactEmail}
                 />
