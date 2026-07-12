@@ -218,14 +218,14 @@ export const brandAdminI18n = {
       saveBrandFailed: "Výrobce se nepodařilo uložit",
       saveProductsFailed: "Produkty se nepodařilo uložit",
       euResponsiblePersonRequired:
-        "Zodpovedná osoba v EÚ musí mať vyplnenú spoločnosť, adresu a e-mail.",
+        "Odpovědná osoba v EU musí mít vyplněnou společnost, adresu a e-mail.",
     },
     fields: {
       attribute: "Atribut",
       gpsrContactEmail: "E-mail výrobce pro GPSR",
-      gpsrEuropeanResellerContactEmail: "E-mail zodpovedné osoby v EÚ",
-      gpsrEuropeanResellerManufacturingCompanyName: "Zodpovedná osoba v EÚ",
-      gpsrEuropeanResellerPostalAddress: "Adresa zodpovedné osoby v EÚ",
+      gpsrEuropeanResellerContactEmail: "E-mail odpovědné osoby v EU",
+      gpsrEuropeanResellerManufacturingCompanyName: "Odpovědná osoba v EU",
+      gpsrEuropeanResellerPostalAddress: "Adresa odpovědné osoby v EU",
       gpsrManufacturedOutsideEu: "Vyrobeno mimo EU",
       gpsrManufacturingCompanyName: "Výrobce pro GPSR",
       gpsrPostalAddress: "Adresa výrobce pro GPSR",
