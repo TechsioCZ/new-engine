@@ -370,8 +370,19 @@ class BrandModuleService extends MedusaService({
 
     return await this.withTransaction({}, async (context) => {
       let brand = (
-        await this.listBrands({ handle }, { take: 1 }, context)
+        await this.listBrands(
+          { handle },
+          { take: 1, withDeleted: true },
+          context
+        )
       ).shift()
+
+      if (brand && isDeleted(brand)) {
+        await this.restoreBrands([brand.id], {}, context)
+        brand = (
+          await this.listBrands({ id: brand.id }, { take: 1 }, context)
+        ).shift()
+      }
 
       if (!brand) {
         brand = await this.createBrands(
