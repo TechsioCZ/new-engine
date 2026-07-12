@@ -28,7 +28,7 @@ export async function GET(
   validateRuleType(ruleType)
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const filters: Record<string, unknown> = {}
+  const filters: Record<string, unknown> = { deleted_at: null }
   const searchQuery = req.validatedQuery.q
 
   if (searchQuery) {
