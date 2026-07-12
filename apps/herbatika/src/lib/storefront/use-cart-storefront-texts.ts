@@ -3,15 +3,6 @@
 import { useRequiredStorefrontText } from "./storefront-text-provider"
 import { STOREFRONT_TEXT_KEYS } from "./storefront-texts"
 
-export const formatCartStorefrontText = (
-  template: string,
-  values: Record<string, number | string>
-) =>
-  Object.entries(values).reduce(
-    (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
-    template
-  )
-
 export function useCartStorefrontTexts() {
   return {
     addToCart: useRequiredStorefrontText(

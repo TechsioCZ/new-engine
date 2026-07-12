@@ -2,10 +2,8 @@
 
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  formatCartStorefrontText,
-  useCartStorefrontTexts,
-} from "@/lib/storefront/use-cart-storefront-texts"
+import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 type CartLineItemQuantityInputProps = {
   className?: string
@@ -98,7 +96,7 @@ export function CartLineItemQuantityInput({
           disabled={isPending || localQuantity <= 0}
         />
         <NumericInput.Input
-          aria-label={formatCartStorefrontText(cartTexts.quantityAria, {
+          aria-label={formatStorefrontText(cartTexts.quantityAria, {
             itemName,
           })}
           className={inputClassName}

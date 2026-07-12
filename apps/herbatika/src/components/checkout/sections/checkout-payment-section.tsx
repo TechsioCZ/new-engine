@@ -7,6 +7,7 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
 type PaymentProvider = {
@@ -40,15 +41,19 @@ export function CheckoutPaymentSection({
   selectedPaymentProviderId,
   selectionMessage,
 }: CheckoutPaymentSectionProps) {
+  const checkoutTexts = useCheckoutStorefrontTexts()
+
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header>
-        <h2 className="font-medium text-fg-primary text-xl">Platba</h2>
+        <h2 className="font-medium text-fg-primary text-xl">
+          {checkoutTexts.payment}
+        </h2>
       </header>
       <div className="grid gap-150">
         {paymentProviders.length > 0 ? (
           <CheckoutOptionRadioCard
-            label="Platba"
+            label={checkoutTexts.payment}
             onValueChange={(value) => {
               runDetachedPromise(onSelectPaymentProvider(value))
             }}
@@ -65,7 +70,7 @@ export function CheckoutPaymentSection({
                 bodyText: resolvePaymentDescription(providerId),
                 hint: resolvePaymentHint(providerId),
                 icon: resolvePaymentIcon(providerId),
-                priceLabel: "Zadarmo",
+                priceLabel: checkoutTexts.free,
                 priceTone: "success" as const,
                 title: providerLabel,
                 value: providerId || `${providerLabel}-${index}`,
@@ -74,9 +79,7 @@ export function CheckoutPaymentSection({
             value={selectedPaymentProviderId ?? null}
           />
         ) : (
-          <SupportingText>
-            Nie sú dostupné žiadne platobné metódy.
-          </SupportingText>
+          <SupportingText>{checkoutTexts.noPaymentMethods}</SupportingText>
         )}
         {paymentProviders.length > 0 && selectionMessage ? (
           <PaymentSelectionMessage message={selectionMessage} />

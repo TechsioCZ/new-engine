@@ -4,6 +4,7 @@ import NextLink from "next/link"
 import { type ComponentProps, useState } from "react"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutPaymentSection } from "./checkout-payment-section"
 import { CheckoutShippingSection } from "./checkout-shipping-section"
 
@@ -34,6 +35,7 @@ export function CheckoutShippingPaymentStepSection({
   nextStepHref,
   selectedPaymentProviderId,
 }: CheckoutShippingPaymentStepSectionProps) {
+  const checkoutTexts = useCheckoutStorefrontTexts()
   const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
     string | null
   >(null)
@@ -47,8 +49,8 @@ export function CheckoutShippingPaymentStepSection({
   let paymentSelectionMessage: string | null = null
   if (!controller.checkoutPaymentQuery.canInitiatePayment) {
     paymentSelectionMessage = hasPendingPickupRequirement
-      ? "Pre voľbu platby najprv vyberte výdajné miesto."
-      : "Pre voľbu platby najprv vyberte dopravu."
+      ? checkoutTexts.selectPickupBeforePayment
+      : checkoutTexts.selectShippingBeforePayment
   }
 
   return (
@@ -87,7 +89,7 @@ export function CheckoutShippingPaymentStepSection({
           theme="outlined"
           variant="tertiary"
         >
-          <span className="font-normal">Späť na košík</span>
+          <span className="font-normal">{checkoutTexts.backToCart}</span>
         </LinkButton>
         {controller.hasShipping && controller.hasPayment ? (
           <LinkButton
@@ -99,13 +101,13 @@ export function CheckoutShippingPaymentStepSection({
             size="lg"
           >
             <span className="font-normal uppercase">
-              Pokračovať na vaše údaje
+              {checkoutTexts.continueToCustomerDetails}
             </span>
           </LinkButton>
         ) : (
           <Button className="w-full sm:ml-auto sm:w-auto" disabled size="lg">
             <span className="font-normal uppercase">
-              Pokračovať na vaše údaje
+              {checkoutTexts.continueToCustomerDetails}
             </span>
           </Button>
         )}

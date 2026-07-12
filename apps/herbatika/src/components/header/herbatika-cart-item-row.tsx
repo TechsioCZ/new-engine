@@ -12,10 +12,8 @@ import {
   resolveLineItemUnitAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import {
-  formatCartStorefrontText,
-  useCartStorefrontTexts,
-} from "@/lib/storefront/use-cart-storefront-texts"
+import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
+import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
@@ -82,7 +80,7 @@ export function CartItemRow({
 
         {itemInventory !== null && itemInventory > 0 && itemInventory <= 2 ? (
           <p className="text-danger text-xs">
-            {formatCartStorefrontText(cartTexts.lowStock, {
+            {formatStorefrontText(cartTexts.lowStock, {
               quantity: itemInventory,
             })}
           </p>
@@ -103,7 +101,7 @@ export function CartItemRow({
         />
 
         <Button
-          aria-label={formatCartStorefrontText(cartTexts.removeItemAria, {
+          aria-label={formatStorefrontText(cartTexts.removeItemAria, {
             itemName,
           })}
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"

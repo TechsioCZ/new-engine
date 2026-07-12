@@ -7,6 +7,7 @@ import { resolveShippingIcon } from "@/components/checkout/checkout-display.util
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
@@ -28,9 +29,6 @@ type CheckoutShippingSectionProps = {
   shippingPrices: Record<string, number>
 }
 
-const PICKUP_SELECTION_REQUIRED_TEXT =
-  "Vyberte výdajné miesto, aby sa odomkla platba."
-
 export function CheckoutShippingSection({
   currencyCode,
   isBusy,
@@ -41,6 +39,7 @@ export function CheckoutShippingSection({
   shippingOptions,
   shippingPrices,
 }: CheckoutShippingSectionProps) {
+  const checkoutTexts = useCheckoutStorefrontTexts()
   const pickupRequirements = new Map(
     shippingOptions.flatMap((option) => {
       const requirement = resolveCarrierPickupRequirement(option)
@@ -60,7 +59,7 @@ export function CheckoutShippingSection({
 
   const resolveShippingPriceLabel = (amount: number) => {
     if (amount <= 0) {
-      return "Zadarmo"
+      return checkoutTexts.free
     }
 
     return `+ ${formatCurrencyAmount(amount, currencyCode)}`
@@ -69,13 +68,15 @@ export function CheckoutShippingSection({
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header className="space-y-50">
-        <h2 className="font-medium text-fg-primary text-xl">Doprava</h2>
+        <h2 className="font-medium text-fg-primary text-xl">
+          {checkoutTexts.shipping}
+        </h2>
       </header>
       <div className="grid gap-150">
         {shippingOptions.length > 0 ? (
           <CheckoutOptionRadioCard
             expandedValue={pendingPickupOptionId}
-            label="Doprava"
+            label={checkoutTexts.shipping}
             onValueChange={(value) => {
               if (pickupRequirements.has(value)) {
                 onPendingPickupOptionIdChange(value)
@@ -107,7 +108,7 @@ export function CheckoutShippingSection({
                 ) : undefined,
                 disabled: isBusy,
                 bodyText: isAwaitingPickupSelection
-                  ? PICKUP_SELECTION_REQUIRED_TEXT
+                  ? checkoutTexts.pickupSelectionRequired
                   : undefined,
                 hint: pickupRequirement
                   ? resolveCarrierPickupHint(pickupRequirement)
@@ -122,9 +123,7 @@ export function CheckoutShippingSection({
             value={selectedShippingMethodId ?? null}
           />
         ) : (
-          <SupportingText>
-            Nie sú dostupné žiadne možnosti dopravy.
-          </SupportingText>
+          <SupportingText>{checkoutTexts.noShippingOptions}</SupportingText>
         )}
       </div>
     </section>
