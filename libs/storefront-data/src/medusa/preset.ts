@@ -148,9 +148,9 @@ import {
   createProductLocationAvailabilityHooks,
   type ProductLocationAvailabilityHooks,
 } from "../product-location-availability/hooks"
-import {
-  type MedusaProductLocationAvailabilityInput,
-  type MedusaProductLocationAvailabilityServiceConfig,
+import type {
+  MedusaProductLocationAvailabilityInput,
+  MedusaProductLocationAvailabilityServiceConfig,
 } from "../product-location-availability/medusa-service"
 import type {
   ProductLocationAvailabilityQueryKeys,

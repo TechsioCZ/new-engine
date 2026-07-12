@@ -26,7 +26,7 @@ export function ProductDetailDeliveryInfo({
   const { error, isInventoryManaged, isLoading, items } =
     locationAvailabilityState
   const showLocationAvailability =
-    !isLoading && !error && Boolean(items?.length)
+    !(isLoading || error) && Boolean(items?.length)
   const showLocationAvailabilityError = !isLoading && Boolean(error)
   const availabilityToneClass = offerState.isInStock
     ? "text-primary"

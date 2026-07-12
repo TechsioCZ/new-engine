@@ -39,9 +39,9 @@ describe("formatLocationAvailability", () => {
   })
 
   it("formats unmanaged inventory as generally in stock", () => {
-    expect(
-      formatLocationAvailability(0, { isInventoryManaged: false })
-    ).toBe("Skladom")
+    expect(formatLocationAvailability(0, { isInventoryManaged: false })).toBe(
+      "Skladom"
+    )
   })
 })
 
@@ -54,10 +54,7 @@ describe("resolveSelectedVariantLocationAvailability", () => {
 
   it("returns an empty array when the selected variant has no locations", () => {
     expect(
-      resolveSelectedVariantLocationAvailability(
-        availability,
-        "variant_empty"
-      )
+      resolveSelectedVariantLocationAvailability(availability, "variant_empty")
     ).toEqual([])
   })
 

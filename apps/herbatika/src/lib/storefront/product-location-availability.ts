@@ -20,7 +20,7 @@ export const resolveSelectedVariantLocationAvailability = (
   availability: ProductLocationAvailabilityResponse | null,
   variantId: string | null
 ) => {
-  if (!availability || !variantId) {
+  if (!(availability && variantId)) {
     return null
   }
 

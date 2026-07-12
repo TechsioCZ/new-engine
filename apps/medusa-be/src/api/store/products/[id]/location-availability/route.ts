@@ -96,9 +96,7 @@ async function queryStockLocationsForSalesChannels(
       fields: ["id", "name"],
       filters: { id: stockLocationIdChunk },
     })
-    const rawStockLocations: unknown[] = Array.isArray(
-      stockLocationResult.data
-    )
+    const rawStockLocations: unknown[] = Array.isArray(stockLocationResult.data)
       ? stockLocationResult.data
       : []
     stockLocations.push(...rawStockLocations.filter(isStockLocationRecord))
@@ -128,9 +126,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const salesChannelIds = asStringArray(
-    req.filterableFields?.sales_channel_id
-  )
+  const salesChannelIds = asStringArray(req.filterableFields?.sales_channel_id)
   const productFilters = await normalizeProductSalesChannelFilter(
     query,
     remoteQuery,

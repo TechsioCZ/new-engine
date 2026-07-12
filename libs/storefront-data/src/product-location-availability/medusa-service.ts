@@ -23,7 +23,7 @@ export function createMedusaProductLocationAvailabilityService(
   const productsPath = config?.productsPath ?? "/store/products"
 
   return {
-    getProductLocationAvailability: async (
+    getProductLocationAvailability: (
       params,
       signal?: AbortSignal
     ) => {

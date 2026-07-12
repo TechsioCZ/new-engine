@@ -160,9 +160,7 @@ function buildAvailableQuantityByLocation(
   for (const location of stockLocations) {
     availableByLocation.set(
       location.id,
-      Math.floor(
-        (availableByLocation.get(location.id) ?? 0) / requiredQuantity
-      )
+      Math.floor((availableByLocation.get(location.id) ?? 0) / requiredQuantity)
     )
   }
 
