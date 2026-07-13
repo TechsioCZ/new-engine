@@ -19,9 +19,12 @@ import { join } from "node:path";
  * Extract the remote and EVERY local ref being pushed from a `git push` command line.
  * `git push origin main feature` pushes both refs, so every one of them must be gated —
  * checking only the first would let an unvalidated branch ride along with a validated one.
- * Falls back to `origin` / `HEAD` when they are implicit (`git push`, `git push -u origin`).
+ * `--all` / `--mirror` push every local branch, so they expand to all of them.
+ * Falls back to `origin` / `HEAD` when refs are implicit (`git push`, `git push -u origin`).
+ *
+ * @param listAllBranches - returns every local branch name (injected so parsing stays pure)
  */
-function parsePushArgs(command) {
+function parsePushArgs(command, listAllBranches) {
   const tokens = command.trim().split(/\s+/);
   const pushIdx = tokens.findIndex((t) => t === "push");
   const rest = pushIdx === -1 ? [] : tokens.slice(pushIdx + 1);
@@ -29,6 +32,7 @@ function parsePushArgs(command) {
   const FLAGS_WITH_VALUE = new Set(["--repo", "--exec", "--receive-pack", "-o", "--push-option"]);
   const positional = [];
   let deleteMode = false;
+  let allMode = false;
   for (let i = 0; i < rest.length; i++) {
     const t = rest[i];
     if (FLAGS_WITH_VALUE.has(t)) {
@@ -39,6 +43,11 @@ function parsePushArgs(command) {
       deleteMode = true;
       continue;
     }
+    // `--all` / `--mirror` / `--branches` push every local branch, not just HEAD.
+    if (t === "--all" || t === "--mirror" || t === "--branches") {
+      allMode = true;
+      continue;
+    }
     if (t.startsWith("-")) continue; // -u, --force, --set-upstream, --force-with-lease=…, …
     positional.push(t);
   }
@@ -46,6 +55,13 @@ function parsePushArgs(command) {
   const remote = positional[0] ?? "origin";
   // `git push --delete origin foo` deletes a remote branch and uploads nothing — never gate it.
   if (deleteMode) return { remote, localRefs: [] };
+
+  // `git push --all` uploads every local branch, so every one of them must be gated. Fail
+  // closed: if the branch list can't be read, gate HEAD rather than waving the push through.
+  if (allMode) {
+    const branches = listAllBranches();
+    return { remote, localRefs: branches.length ? branches : ["HEAD"] };
+  }
 
   const refspecs = positional.slice(1);
   // Each refspec is `src`, `src:dst`, or `+src:dst`; gate the source side. A refspec with an
@@ -96,7 +112,18 @@ process.stdin.on("end", () => {
   // Resolve what is actually being pushed. `git push origin some-branch` from a different
   // checkout must be gated on `some-branch`, not on the current HEAD — and a multi-ref push
   // (`git push origin main feature`) must gate EVERY ref, or an unvalidated branch rides along.
-  const { remote, localRefs } = parsePushArgs(command);
+  const listAllBranches = () => {
+    try {
+      return git("for-each-ref", "--format=%(refname:short)", "refs/heads/")
+        .split("\n")
+        .map((b) => b.trim())
+        .filter(Boolean);
+    } catch {
+      return []; // caller falls back to HEAD (fail closed)
+    }
+  };
+
+  const { remote, localRefs } = parsePushArgs(command, listAllBranches);
 
   // Gate only pushes whose outgoing commits touch libs/ui (excluding this plugin's own files).
   const touchesUi = (...range) => {
