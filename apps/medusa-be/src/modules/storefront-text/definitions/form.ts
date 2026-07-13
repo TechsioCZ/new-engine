@@ -1,0 +1,404 @@
+import type { StorefrontTextDefinition } from "../registry"
+
+export const STOREFRONT_FORM_TEXT_DEFINITIONS = [
+  {
+    description: "Popisek pole pro jméno.",
+    key: "form.first_name",
+    namespace: "form",
+    values: {
+      cz: "Jméno",
+      hu: "Keresztnév",
+      ro: "Prenume",
+      sk: "Meno",
+    },
+  },
+  {
+    description: "Popisek pole pro příjmení.",
+    key: "form.last_name",
+    namespace: "form",
+    values: {
+      cz: "Příjmení",
+      hu: "Vezetéknév",
+      ro: "Nume de familie",
+      sk: "Priezvisko",
+    },
+  },
+  {
+    description: "Popisek pole pro název firmy.",
+    key: "form.company_name",
+    namespace: "form",
+    values: {
+      cz: "Název firmy",
+      hu: "Cégnév",
+      ro: "Denumirea companiei",
+      sk: "Názov firmy",
+    },
+  },
+  {
+    description: "Popisek pole pro identifikační číslo firmy.",
+    key: "form.company_id",
+    namespace: "form",
+    values: {
+      cz: "IČO",
+      hu: "Cégjegyzékszám",
+      ro: "Numărul de înregistrare al companiei",
+      sk: "IČO",
+    },
+  },
+  {
+    description: "Popisek pole pro daňové identifikační číslo.",
+    key: "form.tax_id",
+    namespace: "form",
+    values: {
+      cz: "DIČ",
+      hu: "Adószám",
+      ro: "Cod fiscal",
+      sk: "DIČ",
+    },
+  },
+  {
+    description: "Popisek pole pro identifikační číslo k DPH.",
+    key: "form.vat_id",
+    namespace: "form",
+    values: {
+      cz: "IČ DPH",
+      hu: "Közösségi adószám",
+      ro: "Cod TVA",
+      sk: "IČ DPH",
+    },
+  },
+  {
+    description: "Popisek pole pro e-mailovou adresu.",
+    key: "form.email",
+    namespace: "form",
+    values: {
+      cz: "E-mail",
+      hu: "E-mail-cím",
+      ro: "E-mail",
+      sk: "E-mail",
+    },
+  },
+  {
+    description: "Popisek pole pro telefonní číslo.",
+    key: "form.phone",
+    namespace: "form",
+    values: {
+      cz: "Telefon",
+      hu: "Telefonszám",
+      ro: "Telefon",
+      sk: "Telefón",
+    },
+  },
+  {
+    description: "Popisek pole pro výběr země.",
+    key: "form.country",
+    namespace: "form",
+    values: {
+      cz: "Země",
+      hu: "Ország",
+      ro: "Țară",
+      sk: "Krajina",
+    },
+  },
+  {
+    description: "Zástupný text pole pro výběr země.",
+    key: "form.country_placeholder",
+    namespace: "form",
+    values: {
+      cz: "Vyberte zemi",
+      hu: "Válasszon országot",
+      ro: "Selectați țara",
+      sk: "Vyberte krajinu",
+    },
+  },
+  {
+    description: "Popisek pole pro ulici a číslo domu.",
+    key: "form.address",
+    namespace: "form",
+    values: {
+      cz: "Ulice a číslo domu",
+      hu: "Utca és házszám",
+      ro: "Strada și numărul",
+      sk: "Ulica a číslo domu",
+    },
+  },
+  {
+    description: "Popisek pole pro město.",
+    key: "form.city",
+    namespace: "form",
+    values: {
+      cz: "Město",
+      hu: "Város",
+      ro: "Oraș",
+      sk: "Mesto",
+    },
+  },
+  {
+    description: "Popisek pole pro poštovní směrovací číslo.",
+    key: "form.postal_code",
+    namespace: "form",
+    values: {
+      cz: "PSČ",
+      hu: "Irányítószám",
+      ro: "Cod poștal",
+      sk: "PSČ",
+    },
+  },
+  {
+    description: "Popisek pole pro volitelnou poznámku zákazníka.",
+    key: "form.customer_note",
+    namespace: "form",
+    values: {
+      cz: "Volitelná poznámka pro zákaznickou podporu",
+      hu: "Opcionális megjegyzés az ügyfélszolgálat számára",
+      ro: "Notă opțională pentru serviciul de asistență clienți",
+      sk: "Voliteľná poznámka pre zákaznícku podporu",
+    },
+  },
+  {
+    description: "Validační hláška pro příliš krátké jméno.",
+    key: "form.validation.first_name_min_length",
+    namespace: "form",
+    values: {
+      cz: "Jméno musí mít alespoň 2 znaky.",
+      hu: "A keresztnévnek legalább 2 karakterből kell állnia.",
+      ro: "Prenumele trebuie să conțină cel puțin 2 caractere.",
+      sk: "Meno musí mať aspoň 2 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro příliš krátké příjmení.",
+    key: "form.validation.last_name_min_length",
+    namespace: "form",
+    values: {
+      cz: "Příjmení musí mít alespoň 2 znaky.",
+      hu: "A vezetéknévnek legalább 2 karakterből kell állnia.",
+      ro: "Numele de familie trebuie să conțină cel puțin 2 caractere.",
+      sk: "Priezvisko musí mať aspoň 2 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící název firmy.",
+    key: "form.validation.company_name_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte název firmy.",
+      hu: "Adja meg a cég nevét.",
+      ro: "Introduceți denumirea companiei.",
+      sk: "Zadajte názov firmy.",
+    },
+  },
+  {
+    description: "Validační hláška pro příliš krátký název firmy.",
+    key: "form.validation.company_name_min_length",
+    namespace: "form",
+    values: {
+      cz: "Název firmy musí mít alespoň 2 znaky.",
+      hu: "A cégnévnek legalább 2 karakterből kell állnia.",
+      ro: "Denumirea companiei trebuie să conțină cel puțin 2 caractere.",
+      sk: "Názov firmy musí mať aspoň 2 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící identifikační číslo firmy.",
+    key: "form.validation.company_id_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte IČO.",
+      hu: "Adja meg a cégjegyzékszámot.",
+      ro: "Introduceți numărul de înregistrare al companiei.",
+      sk: "Zadajte IČO.",
+    },
+  },
+  {
+    description:
+      "Validační hláška pro příliš krátké identifikační číslo firmy.",
+    key: "form.validation.company_id_min_length",
+    namespace: "form",
+    values: {
+      cz: "IČO musí mít alespoň 4 znaky.",
+      hu: "A cégjegyzékszámnak legalább 4 karakterből kell állnia.",
+      ro: "Numărul de înregistrare al companiei trebuie să conțină cel puțin 4 caractere.",
+      sk: "IČO musí mať aspoň 4 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící daňové identifikační číslo.",
+    key: "form.validation.tax_id_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte DIČ.",
+      hu: "Adja meg az adószámot.",
+      ro: "Introduceți codul fiscal.",
+      sk: "Zadajte DIČ.",
+    },
+  },
+  {
+    description:
+      "Validační hláška pro příliš krátké daňové identifikační číslo.",
+    key: "form.validation.tax_id_min_length",
+    namespace: "form",
+    values: {
+      cz: "DIČ musí mít alespoň 4 znaky.",
+      hu: "Az adószámnak legalább 4 karakterből kell állnia.",
+      ro: "Codul fiscal trebuie să conțină cel puțin 4 caractere.",
+      sk: "DIČ musí mať aspoň 4 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící e-mailovou adresu.",
+    key: "form.validation.email_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte e-mail.",
+      hu: "Adja meg az e-mail-címet.",
+      ro: "Introduceți adresa de e-mail.",
+      sk: "Zadajte e-mail.",
+    },
+  },
+  {
+    description: "Validační hláška pro neplatnou e-mailovou adresu.",
+    key: "form.validation.email_invalid",
+    namespace: "form",
+    values: {
+      cz: "Zadejte platný e-mail.",
+      hu: "Adjon meg érvényes e-mail-címet.",
+      ro: "Introduceți o adresă de e-mail validă.",
+      sk: "Zadajte platný e-mail.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící telefonní číslo.",
+    key: "form.validation.phone_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte telefon.",
+      hu: "Adja meg a telefonszámot.",
+      ro: "Introduceți numărul de telefon.",
+      sk: "Zadajte telefón.",
+    },
+  },
+  {
+    description: "Validační hláška pro neplatné telefonní číslo.",
+    key: "form.validation.phone_invalid",
+    namespace: "form",
+    values: {
+      cz: "Zadejte platné telefonní číslo.",
+      hu: "Adjon meg érvényes telefonszámot.",
+      ro: "Introduceți un număr de telefon valid.",
+      sk: "Zadajte platné telefónne číslo.",
+    },
+  },
+  {
+    description:
+      "Validační hláška pro telefonní číslo s nedostatečným počtem číslic.",
+    key: "form.validation.phone_min_digits",
+    namespace: "form",
+    values: {
+      cz: "Telefonní číslo musí obsahovat alespoň 7 číslic.",
+      hu: "A telefonszámnak legalább 7 számjegyet kell tartalmaznia.",
+      ro: "Numărul de telefon trebuie să conțină cel puțin 7 cifre.",
+      sk: "Telefónne číslo musí obsahovať aspoň 7 číslic.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící zemi.",
+    key: "form.validation.country_required",
+    namespace: "form",
+    values: {
+      cz: "Vyberte zemi.",
+      hu: "Válasszon országot.",
+      ro: "Selectați țara.",
+      sk: "Vyberte krajinu.",
+    },
+  },
+  {
+    description: "Validační hláška pro neplatnou zemi.",
+    key: "form.validation.country_invalid",
+    namespace: "form",
+    values: {
+      cz: "Vyberte platnou zemi.",
+      hu: "Válasszon érvényes országot.",
+      ro: "Selectați o țară validă.",
+      sk: "Vyberte platnú krajinu.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící ulici a číslo domu.",
+    key: "form.validation.address_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte ulici a číslo domu.",
+      hu: "Adja meg az utcát és a házszámot.",
+      ro: "Introduceți strada și numărul.",
+      sk: "Zadajte ulicu a číslo domu.",
+    },
+  },
+  {
+    description: "Validační hláška pro příliš krátkou ulici a číslo domu.",
+    key: "form.validation.address_min_length",
+    namespace: "form",
+    values: {
+      cz: "Ulice a číslo domu musí mít alespoň 2 znaky.",
+      hu: "Az utcának és a házszámnak legalább 2 karakterből kell állnia.",
+      ro: "Strada și numărul trebuie să conțină cel puțin 2 caractere.",
+      sk: "Ulica a číslo domu musí mať aspoň 2 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící město.",
+    key: "form.validation.city_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte město.",
+      hu: "Adja meg a várost.",
+      ro: "Introduceți orașul.",
+      sk: "Zadajte mesto.",
+    },
+  },
+  {
+    description: "Validační hláška pro příliš krátký název města.",
+    key: "form.validation.city_min_length",
+    namespace: "form",
+    values: {
+      cz: "Město musí mít alespoň 2 znaky.",
+      hu: "A város nevének legalább 2 karakterből kell állnia.",
+      ro: "Numele orașului trebuie să conțină cel puțin 2 caractere.",
+      sk: "Mesto musí mať aspoň 2 znaky.",
+    },
+  },
+  {
+    description: "Validační hláška pro chybějící poštovní směrovací číslo.",
+    key: "form.validation.postal_code_required",
+    namespace: "form",
+    values: {
+      cz: "Zadejte PSČ.",
+      hu: "Adja meg az irányítószámot.",
+      ro: "Introduceți codul poștal.",
+      sk: "Zadajte PSČ.",
+    },
+  },
+  {
+    description: "Validační hláška pro neplatné poštovní směrovací číslo.",
+    key: "form.validation.postal_code_invalid",
+    namespace: "form",
+    values: {
+      cz: "Zadejte platné PSČ.",
+      hu: "Adjon meg érvényes irányítószámot.",
+      ro: "Introduceți un cod poștal valid.",
+      sk: "Zadajte platné PSČ.",
+    },
+  },
+  {
+    description:
+      "Validační hláška pro poštovní směrovací číslo s nedostatečným počtem číslic.",
+    key: "form.validation.postal_code_min_digits",
+    namespace: "form",
+    values: {
+      cz: "PSČ musí obsahovat alespoň 4 číslice.",
+      hu: "Az irányítószámnak legalább 4 számjegyet kell tartalmaznia.",
+      ro: "Codul poștal trebuie să conțină cel puțin 4 cifre.",
+      sk: "PSČ musí obsahovať aspoň 4 číslice.",
+    },
+  },
+] as const satisfies readonly StorefrontTextDefinition[]

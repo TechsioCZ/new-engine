@@ -6,7 +6,8 @@ import {
 import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
-import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
+import { useFormStorefrontTexts } from "@/lib/storefront/use-form-storefront-texts"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -24,6 +25,8 @@ export function CheckoutPickupPointDetailsSection({
   pickupAddress,
 }: CheckoutPickupPointDetailsSectionProps) {
   const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase
+  const formTexts = useFormStorefrontTexts()
+  const fieldValidators = useCheckoutFieldValidators(formTexts.validation)
 
   return (
     <>
@@ -56,12 +59,12 @@ export function CheckoutPickupPointDetailsSection({
           <div className="grid gap-250 md:grid-cols-2">
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("shipping", "firstName")}
-              validators={checkoutFieldValidators.shipping.firstName}
+              validators={fieldValidators.shipping.firstName}
             >
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-first-name"
-                  label="Meno"
+                  label={formTexts.firstName}
                   required
                   validationMode="blur"
                 />
@@ -70,12 +73,12 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("shipping", "lastName")}
-              validators={checkoutFieldValidators.shipping.lastName}
+              validators={fieldValidators.shipping.lastName}
             >
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-last-name"
-                  label="Priezvisko"
+                  label={formTexts.lastName}
                   required
                   validationMode="blur"
                 />
@@ -84,13 +87,13 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("shipping", "email")}
-              validators={checkoutFieldValidators.shipping.email}
+              validators={fieldValidators.shipping.email}
             >
               {(field) => (
                 <field.TextField
                   autoComplete="email"
                   id="checkout-pickup-email"
-                  label="E-mail"
+                  label={formTexts.email}
                   required
                   type="email"
                   validationMode="blur"
@@ -100,12 +103,12 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("shipping", "phone")}
-              validators={checkoutFieldValidators.shipping.phone}
+              validators={fieldValidators.shipping.phone}
             >
               {(field) => (
                 <field.PhoneField
                   id="checkout-pickup-phone"
-                  label="Telefón"
+                  label={formTexts.phone}
                   required
                   validationMode="blur"
                 />
@@ -125,12 +128,12 @@ export function CheckoutPickupPointDetailsSection({
                 <div className="md:col-span-2">
                   <checkoutDetailsForm.form.AppField
                     name={resolveCheckoutAddressFieldName("billing", "company")}
-                    validators={checkoutFieldValidators.billing.company}
+                    validators={fieldValidators.billing.company}
                   >
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-company"
-                        label="Názov firmy"
+                        label={formTexts.companyName}
                         required
                         validationMode="blur"
                       />
@@ -144,12 +147,12 @@ export function CheckoutPickupPointDetailsSection({
                       "billing",
                       "companyId"
                     )}
-                    validators={checkoutFieldValidators.billing.companyId}
+                    validators={fieldValidators.billing.companyId}
                   >
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-company-id"
-                        label="IČO"
+                        label={formTexts.companyId}
                         required
                         validationMode="blur"
                       />
@@ -158,12 +161,12 @@ export function CheckoutPickupPointDetailsSection({
 
                   <checkoutDetailsForm.form.AppField
                     name={resolveCheckoutAddressFieldName("billing", "taxId")}
-                    validators={checkoutFieldValidators.billing.taxId}
+                    validators={fieldValidators.billing.taxId}
                   >
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-tax-id"
-                        label="DIČ"
+                        label={formTexts.taxId}
                         required
                         validationMode="blur"
                       />
@@ -176,7 +179,7 @@ export function CheckoutPickupPointDetailsSection({
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-vat-id"
-                        label="IČ DPH"
+                        label={formTexts.vatId}
                         validationMode="blur"
                       />
                     )}
@@ -187,14 +190,14 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("billing", "countryCode")}
-              validators={checkoutFieldValidators.billing.countryCode}
+              validators={fieldValidators.billing.countryCode}
             >
               {(field) => (
                 <field.SelectField
                   id="checkout-pickup-billing-country"
                   items={countryItems}
-                  label="Krajina"
-                  placeholder="Vyberte krajinu"
+                  label={formTexts.country}
+                  placeholder={formTexts.countryPlaceholder}
                   required
                   validationMode="blur"
                 />
@@ -203,12 +206,12 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("billing", "address1")}
-              validators={checkoutFieldValidators.billing.address1}
+              validators={fieldValidators.billing.address1}
             >
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-billing-address-1"
-                  label="Ulica a číslo domu"
+                  label={formTexts.address}
                   required
                   validationMode="blur"
                 />
@@ -217,12 +220,12 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("billing", "city")}
-              validators={checkoutFieldValidators.billing.city}
+              validators={fieldValidators.billing.city}
             >
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-billing-city"
-                  label="Mesto"
+                  label={formTexts.city}
                   required
                   validationMode="blur"
                 />
@@ -231,12 +234,12 @@ export function CheckoutPickupPointDetailsSection({
 
             <checkoutDetailsForm.form.AppField
               name={resolveCheckoutAddressFieldName("billing", "postalCode")}
-              validators={checkoutFieldValidators.billing.postalCode}
+              validators={fieldValidators.billing.postalCode}
             >
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-billing-postal-code"
-                  label="PSČ"
+                  label={formTexts.postalCode}
                   required
                   validationMode="blur"
                 />
@@ -254,7 +257,7 @@ export function CheckoutPickupPointDetailsSection({
                   <field.TextareaField
                     className="min-h-14"
                     id="checkout-pickup-customer-note"
-                    label="Voliteľná poznámka pre zákaznícku podporu"
+                    label={formTexts.customerNote}
                     resize="auto"
                     rows={3}
                     size="sm"
