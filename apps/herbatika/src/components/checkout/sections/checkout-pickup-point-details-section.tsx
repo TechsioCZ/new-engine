@@ -6,6 +6,7 @@ import {
 import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
 import { useFormStorefrontTexts } from "@/lib/storefront/use-form-storefront-texts"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
@@ -24,6 +25,7 @@ export function CheckoutPickupPointDetailsSection({
   isAuthenticated,
   pickupAddress,
 }: CheckoutPickupPointDetailsSectionProps) {
+  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
   const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase
   const formTexts = useFormStorefrontTexts()
   const fieldValidators = useCheckoutFieldValidators(formTexts.validation)
@@ -33,7 +35,7 @@ export function CheckoutPickupPointDetailsSection({
       <section className="space-y-150 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
         <header>
           <h2 className="font-medium text-fg-primary text-xl">
-            Doručenie na výdajné miesto
+            {checkoutDetailsTexts.pickupDelivery}
           </h2>
         </header>
         <div className="space-y-50 rounded-sm bg-highlight p-300">
@@ -49,7 +51,7 @@ export function CheckoutPickupPointDetailsSection({
       <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
         <header>
           <h2 className="font-medium text-fg-primary text-xl">
-            Kontaktné a fakturačné údaje
+            {checkoutDetailsTexts.contactAndBillingDetails}
           </h2>
         </header>
 
@@ -117,9 +119,12 @@ export function CheckoutPickupPointDetailsSection({
           </div>
 
           <CheckoutPurchaseTypeToggle
+            companyLabel={checkoutDetailsTexts.companyPurchase}
+            groupLabel={checkoutDetailsTexts.purchaseType}
             id="checkout-pickup-purchase-type"
             isCompanyPurchase={isCompanyPurchase}
             onValueChange={checkoutDetailsForm.setCompanyPurchase}
+            privateLabel={checkoutDetailsTexts.privatePurchase}
           />
 
           <div className="grid gap-250 md:grid-cols-2">

@@ -1,3 +1,4 @@
+import { STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS } from "./definitions/checkout-details"
 import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
 
 export const STOREFRONT_TEXT_STATUSES = ["active", "draft"] as const
@@ -757,6 +758,7 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
       sk: "Nastavenie dopravy zlyhalo.",
     },
   },
+  ...STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS,
   ...STOREFRONT_FORM_TEXT_DEFINITIONS,
 ] as const satisfies readonly StorefrontTextDefinition[]
 

@@ -37,6 +37,7 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
+import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import {
   buildAccountSetupRequestedMetadata,
@@ -68,6 +69,7 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
 
 export function useCheckoutController() {
   const queryClient = useQueryClient()
+  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
   const checkoutTexts = useCheckoutStorefrontTexts()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
@@ -264,9 +266,7 @@ export function useCheckoutController() {
       })
 
       if (!(hasSupportedShippingCountry && hasSupportedBillingCountry)) {
-        setCheckoutError(
-          "Zvolena krajina nie je dostupna pre aktualny kosik. Zvolte krajinu z ponuky."
-        )
+        setCheckoutError(checkoutDetailsTexts.countryUnavailable)
         return
       }
 
@@ -309,7 +309,9 @@ export function useCheckoutController() {
 
         saveAddressSucceededRef.current = true
       } catch (error) {
-        setCheckoutError(resolveErrorMessage(error, "Uloženie adresy zlyhalo."))
+        setCheckoutError(
+          resolveErrorMessage(error, checkoutDetailsTexts.addressUpdateFailed)
+        )
       }
     },
     regionCountryCode: region?.country_code,
@@ -373,7 +375,10 @@ export function useCheckoutController() {
       return true
     } catch (error) {
       setCheckoutError(
-        resolveErrorMessage(error, "Uloženie registrácie zlyhalo.")
+        resolveErrorMessage(
+          error,
+          checkoutDetailsTexts.registrationUpdateFailed
+        )
       )
       return false
     }
