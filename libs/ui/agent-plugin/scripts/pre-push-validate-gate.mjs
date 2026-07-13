@@ -16,15 +16,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Extract the remote and EVERY local ref being pushed from a `git push` command line.
- * `git push origin main feature` pushes both refs, so every one of them must be gated —
- * checking only the first would let an unvalidated branch ride along with a validated one.
- * `--all` / `--mirror` push every local branch, so they expand to all of them.
- * Falls back to `origin` / `HEAD` when refs are implicit (`git push`, `git push -u origin`).
- *
- * @param listAllBranches - returns every local branch name (injected so parsing stays pure)
+ * Parse a `git push` command line into the remote, the explicit refspecs, and the modes that
+ * change WHICH refs git uploads. Ref expansion needs real repo state, so it is done by the
+ * caller (`resolvePushedRefs`); this function stays pure.
  */
-function parsePushArgs(command, listAllBranches) {
+function parsePushArgs(command) {
   const tokens = command.trim().split(/\s+/);
   const pushIdx = tokens.findIndex((t) => t === "push");
   const rest = pushIdx === -1 ? [] : tokens.slice(pushIdx + 1);
@@ -32,7 +28,9 @@ function parsePushArgs(command, listAllBranches) {
   const FLAGS_WITH_VALUE = new Set(["--repo", "--exec", "--receive-pack", "-o", "--push-option"]);
   const positional = [];
   let deleteMode = false;
-  let allMode = false;
+  let allMode = false; // --all / --branches: every local branch
+  let mirrorMode = false; // --mirror: EVERY ref under refs/ (branches AND tags)
+  let tagsMode = false; // --tags / --follow-tags: tags in addition to the refspecs
   for (let i = 0; i < rest.length; i++) {
     const t = rest[i];
     if (FLAGS_WITH_VALUE.has(t)) {
@@ -43,9 +41,16 @@ function parsePushArgs(command, listAllBranches) {
       deleteMode = true;
       continue;
     }
-    // `--all` / `--mirror` / `--branches` push every local branch, not just HEAD.
-    if (t === "--all" || t === "--mirror" || t === "--branches") {
+    if (t === "--mirror") {
+      mirrorMode = true;
+      continue;
+    }
+    if (t === "--all" || t === "--branches") {
       allMode = true;
+      continue;
+    }
+    if (t === "--tags" || t === "--follow-tags") {
+      tagsMode = true;
       continue;
     }
     if (t.startsWith("-")) continue; // -u, --force, --set-upstream, --force-with-lease=…, …
@@ -53,27 +58,80 @@ function parsePushArgs(command, listAllBranches) {
   }
 
   const remote = positional[0] ?? "origin";
-  // `git push --delete origin foo` deletes a remote branch and uploads nothing — never gate it.
-  if (deleteMode) return { remote, localRefs: [] };
+  const refspecs = positional.slice(1);
+  return { remote, refspecs, deleteMode, allMode, mirrorMode, tagsMode };
+}
 
-  // `git push --all` uploads every local branch, so every one of them must be gated. Fail
-  // closed: if the branch list can't be read, gate HEAD rather than waving the push through.
-  if (allMode) {
-    const branches = listAllBranches();
-    return { remote, localRefs: branches.length ? branches : ["HEAD"] };
+/**
+ * Work out every local ref the command will actually upload. Anything that cannot be
+ * determined resolves to a superset (fail closed) rather than being skipped.
+ */
+function resolvePushedRefs(parsed, git) {
+  const { remote, refspecs, deleteMode, allMode, mirrorMode, tagsMode } = parsed;
+
+  // Deletes a remote ref and uploads no commits — nothing to gate.
+  if (deleteMode) return [];
+
+  const listRefs = (...globs) => {
+    try {
+      return git("for-each-ref", "--format=%(refname:short)", ...globs)
+        .split("\n")
+        .map((r) => r.trim())
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  };
+
+  // --mirror uploads EVERY ref under refs/ — branches and tags alike. A tag can point at a
+  // commit that is on no local branch, so expanding to branches only would miss it.
+  if (mirrorMode) {
+    const refs = listRefs("refs/heads/", "refs/tags/");
+    return refs.length ? refs : ["HEAD"]; // fail closed
   }
 
-  const refspecs = positional.slice(1);
-  // Each refspec is `src`, `src:dst`, or `+src:dst`; gate the source side. A refspec with an
-  // empty source (`:foo`) is a deletion — it pushes no commits, so it must not be gated, and
-  // must NOT fall back to HEAD (that would block deleting an unrelated remote branch).
-  const localRefs = refspecs
-    .map((spec) => spec.replace(/^\+/, "").split(":")[0])
-    .filter((ref) => ref && ref !== "."); // `.` means "current branch" in some forms
+  const refs = new Set();
 
-  // Only fall back to HEAD when no refspec was supplied at all (`git push`, `git push origin`).
-  if (!refspecs.length) return { remote, localRefs: ["HEAD"] };
-  return { remote, localRefs };
+  if (allMode) {
+    const branches = listRefs("refs/heads/");
+    if (!branches.length) return ["HEAD"]; // fail closed
+    for (const b of branches) refs.add(b);
+  }
+
+  if (tagsMode) for (const t of listRefs("refs/tags/")) refs.add(t);
+
+  for (const spec of refspecs) {
+    // `src`, `src:dst`, `+src:dst`. An empty source (`:foo`) is a deletion — pushes nothing.
+    const src = spec.replace(/^\+/, "").split(":")[0];
+    if (src && src !== ".") refs.add(src);
+  }
+
+  if (refs.size) return [...refs];
+
+  // No explicit refspec and no expanding flag. What an implicit `git push` uploads depends on
+  // push.default: `matching` sends EVERY local branch that already exists on the remote, so
+  // gating HEAD alone would let other branches through.
+  let pushDefault = "simple";
+  try {
+    pushDefault = git("config", "--get", "push.default") || "simple";
+  } catch {
+    // unset → git's default (`simple`)
+  }
+
+  if (pushDefault === "matching") {
+    const matching = listRefs("refs/heads/").filter((b) => {
+      try {
+        git("rev-parse", "--verify", "--quiet", `${remote}/${b}^{commit}`);
+        return true; // branch exists on the remote → it is part of a matching push
+      } catch {
+        return false;
+      }
+    });
+    return matching.length ? matching : ["HEAD"];
+  }
+
+  // simple / current / upstream / nothing → at most the current branch.
+  return ["HEAD"];
 }
 
 let raw = "";
@@ -112,18 +170,9 @@ process.stdin.on("end", () => {
   // Resolve what is actually being pushed. `git push origin some-branch` from a different
   // checkout must be gated on `some-branch`, not on the current HEAD — and a multi-ref push
   // (`git push origin main feature`) must gate EVERY ref, or an unvalidated branch rides along.
-  const listAllBranches = () => {
-    try {
-      return git("for-each-ref", "--format=%(refname:short)", "refs/heads/")
-        .split("\n")
-        .map((b) => b.trim())
-        .filter(Boolean);
-    } catch {
-      return []; // caller falls back to HEAD (fail closed)
-    }
-  };
-
-  const { remote, localRefs } = parsePushArgs(command, listAllBranches);
+  const parsed = parsePushArgs(command);
+  const { remote } = parsed;
+  const localRefs = resolvePushedRefs(parsed, git);
 
   // Gate only pushes whose outgoing commits touch libs/ui (excluding this plugin's own files).
   const touchesUi = (...range) => {
