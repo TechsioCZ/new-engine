@@ -16,7 +16,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * Extract the remote and the local ref being pushed from a `git push` command line.
+ * Extract the remote and EVERY local ref being pushed from a `git push` command line.
+ * `git push origin main feature` pushes both refs, so every one of them must be gated —
+ * checking only the first would let an unvalidated branch ride along with a validated one.
  * Falls back to `origin` / `HEAD` when they are implicit (`git push`, `git push -u origin`).
  */
 function parsePushArgs(command) {
@@ -37,10 +39,12 @@ function parsePushArgs(command) {
   }
 
   const remote = positional[0] ?? "origin";
-  const refspec = positional[1];
-  // A refspec may be `src:dst`, `+src:dst`, or bare `src`. We gate on the source side.
-  const localRef = refspec ? refspec.replace(/^\+/, "").split(":")[0] || "HEAD" : "HEAD";
-  return { remote, localRef };
+  // Every remaining positional is a refspec: `src`, `src:dst`, or `+src:dst`. Gate the source side.
+  const localRefs = positional
+    .slice(1)
+    .map((spec) => spec.replace(/^\+/, "").split(":")[0])
+    .filter((ref) => ref && ref !== "."); // `.` means "current branch" in some forms
+  return { remote, localRefs: localRefs.length ? localRefs : ["HEAD"] };
 }
 
 let raw = "";
@@ -77,14 +81,9 @@ process.stdin.on("end", () => {
   }
 
   // Resolve what is actually being pushed. `git push origin some-branch` from a different
-  // checkout must be gated on `some-branch`, not on the current HEAD.
-  const { remote, localRef } = parsePushArgs(command);
-  let tip;
-  try {
-    tip = git("rev-parse", "--verify", localRef);
-  } catch {
-    process.exit(0); // unresolvable ref (e.g. --delete, tag, or typo) — do not block
-  }
+  // checkout must be gated on `some-branch`, not on the current HEAD — and a multi-ref push
+  // (`git push origin main feature`) must gate EVERY ref, or an unvalidated branch rides along.
+  const { remote, localRefs } = parsePushArgs(command);
 
   // Gate only pushes whose outgoing commits touch libs/ui (excluding this plugin's own files).
   const touchesUi = (...range) => {
@@ -94,8 +93,6 @@ process.stdin.on("end", () => {
       .some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
   };
 
-  // Resolve the base to diff the pushed ref against. Prefer the ref's own upstream, then the
-  // matching remote branch, then the remote's default branch.
   const resolves = (rev) => {
     try {
       git("rev-parse", "--verify", "--quiet", `${rev}^{commit}`);
@@ -105,27 +102,6 @@ process.stdin.on("end", () => {
     }
   };
 
-  const branch = localRef.replace(/^refs\/heads\//, "");
-  const candidates = [
-    `${localRef}@{upstream}`,
-    `${remote}/${branch}`,
-    `${remote}/HEAD`,
-    `${remote}/master`,
-    `${remote}/main`,
-  ];
-  const base = candidates.find((c) => resolves(c));
-
-  let uiChanged;
-  if (base) {
-    uiChanged = touchesUi(`${base}...${tip}`);
-  } else {
-    // No base to compare against (e.g. a brand-new repo with no remote refs). Fail closed:
-    // diff the whole tree against the empty tree rather than silently allowing the push.
-    const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-    uiChanged = touchesUi(EMPTY_TREE, tip);
-  }
-  if (!uiChanged) process.exit(0);
-
   let marker = "";
   try {
     marker = readFileSync(join(gitDir, "ui-validate-passed"), "utf8").trim();
@@ -133,14 +109,46 @@ process.stdin.on("end", () => {
     // no marker yet
   }
 
-  if (marker === tip) process.exit(0);
+  const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 
-  process.stderr.write(
-    [
-      `BLOCKED: this push contains libs/ui changes but the ui-kit quality gate has not passed for ${localRef} (${tip.slice(0, 8)}).`,
-      "Run the `ui-validate` skill (build, validate:tokens, biome on changed files, visual tests),",
-      `then mark it passed: git rev-parse ${localRef} > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`,
-    ].join("\n"),
-  );
-  process.exit(2);
+  for (const localRef of localRefs) {
+    let tip;
+    try {
+      tip = git("rev-parse", "--verify", localRef);
+    } catch {
+      continue; // unresolvable ref (e.g. a --delete target or a tag) — nothing to gate
+    }
+
+    // Base to diff against: the ref's own upstream, then the matching remote branch, then the
+    // remote's default branch.
+    const branch = localRef.replace(/^refs\/heads\//, "");
+    const base = [
+      `${localRef}@{upstream}`,
+      `${remote}/${branch}`,
+      `${remote}/HEAD`,
+      `${remote}/master`,
+      `${remote}/main`,
+    ].find((c) => resolves(c));
+
+    // No base (e.g. a fresh repo with no remote refs) → fail closed by diffing the whole tree.
+    const uiChanged = base ? touchesUi(`${base}...${tip}`) : touchesUi(EMPTY_TREE, tip);
+    if (!uiChanged) continue;
+    if (marker === tip) continue; // this ref has been validated
+
+    process.stderr.write(
+      [
+        `BLOCKED: this push contains libs/ui changes but the ui-kit quality gate has not passed for ${localRef} (${tip.slice(0, 8)}).`,
+        "Run the `ui-validate` skill (build, validate:tokens, biome on changed files, visual tests),",
+        `then mark it passed: git rev-parse ${localRef} > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`,
+        localRefs.length > 1
+          ? `Note: this command pushes ${localRefs.length} refs (${localRefs.join(", ")}); each UI-changing ref must be validated.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    );
+    process.exit(2);
+  }
+
+  process.exit(0); // every pushed ref is clean or validated
 });
