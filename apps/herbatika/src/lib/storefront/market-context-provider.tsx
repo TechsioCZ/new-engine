@@ -1,11 +1,6 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  type PropsWithChildren,
-} from "react"
+import { createContext, useContext, type PropsWithChildren } from "react"
 import {
   DEFAULT_MARKET_CONTEXT,
   type HerbatikaMarketContext,
@@ -23,10 +18,6 @@ export function MarketProvider({
   children,
   value = DEFAULT_MARKET_CONTEXT,
 }: MarketProviderProps) {
-  useEffect(() => {
-    document.documentElement.lang = value.htmlLang
-  }, [value.htmlLang])
-
   return (
     <MarketContext.Provider value={value}>{children}</MarketContext.Provider>
   )

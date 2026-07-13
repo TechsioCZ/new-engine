@@ -14,10 +14,7 @@ import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
-import {
-  DEFAULT_MARKET_CONTEXT,
-  type HerbatikaMarketContext,
-} from "@/lib/storefront/market-context"
+import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
@@ -109,10 +106,11 @@ function LayoutShell({
 
 async function ResolvedLayoutShell({
   children,
+  marketContext,
 }: Readonly<{
   children: React.ReactNode
+  marketContext: HerbatikaMarketContext
 }>) {
-  const marketContext = await getMarketServerContext()
   const [{ queryClient, region }, storefrontTextMessages] = await Promise.all([
     getRegionServerContext(),
     fetchStorefrontTextMessages(marketContext),
@@ -143,15 +141,17 @@ async function ResolvedLayoutShell({
   )
 }
 
-export default function RootLayout({
+async function ResolvedRootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const marketContext = await getMarketServerContext()
+
   return (
     <html
       className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
-      lang={DEFAULT_MARKET_CONTEXT.htmlLang}
+      lang={marketContext.htmlLang}
     >
       <body className={`text-fg-primary ${verdana.className}`}>
         <Suspense
@@ -159,9 +159,23 @@ export default function RootLayout({
           // coexist with the resolved shell and duplicate header popover ids.
           fallback={<div className="min-h-dvh bg-base" />}
         >
-          <ResolvedLayoutShell>{children}</ResolvedLayoutShell>
+          <ResolvedLayoutShell marketContext={marketContext}>
+            {children}
+          </ResolvedLayoutShell>
         </Suspense>
       </body>
     </html>
+  )
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <Suspense fallback={null}>
+      <ResolvedRootLayout>{children}</ResolvedRootLayout>
+    </Suspense>
   )
 }
