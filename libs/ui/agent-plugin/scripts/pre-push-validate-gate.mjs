@@ -30,7 +30,7 @@ function parsePushArgs(command) {
   let deleteMode = false;
   let allMode = false; // --all / --branches: every local branch
   let mirrorMode = false; // --mirror: EVERY ref under refs/ (branches AND tags)
-  let tagsMode = false; // --tags / --follow-tags: tags in addition to the refspecs
+  let tagsMode = false; // --tags: every local tag, in addition to the refspecs
   for (let i = 0; i < rest.length; i++) {
     const t = rest[i];
     if (FLAGS_WITH_VALUE.has(t)) {
@@ -49,10 +49,15 @@ function parsePushArgs(command) {
       allMode = true;
       continue;
     }
-    if (t === "--tags" || t === "--follow-tags") {
+    // `--tags` sends EVERY local tag, including tags on no pushed branch — those must be gated.
+    // `--follow-tags` is different: it only sends annotated tags *reachable from the refs being
+    // pushed*, so their commits are already covered by those refs' own diff. It adds no
+    // ungated content, and expanding it to all tags would falsely block on an unrelated tag.
+    if (t === "--tags") {
       tagsMode = true;
       continue;
     }
+    if (t === "--follow-tags") continue;
     if (t.startsWith("-")) continue; // -u, --force, --set-upstream, --force-with-lease=…, …
     positional.push(t);
   }
@@ -203,7 +208,9 @@ process.stdin.on("end", () => {
   for (const localRef of localRefs) {
     let tip;
     try {
-      tip = git("rev-parse", "--verify", localRef);
+      // Peel to the COMMIT. An annotated tag's own SHA is the tag object, not the commit it
+      // points at, so comparing it against the marker (which is a commit SHA) never matches.
+      tip = git("rev-parse", "--verify", `${localRef}^{commit}`);
     } catch {
       continue; // unresolvable ref (e.g. a --delete target or a tag) — nothing to gate
     }
@@ -228,7 +235,9 @@ process.stdin.on("end", () => {
       [
         `BLOCKED: this push contains libs/ui changes but the ui-kit quality gate has not passed for ${localRef} (${tip.slice(0, 8)}).`,
         "Run the `ui-validate` skill (build, validate:tokens, biome on changed files, visual tests),",
-        `then mark it passed: git rev-parse ${localRef} > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`,
+        // `^{commit}` matters for annotated tags: `git rev-parse <tag>` writes the tag object
+        // SHA, which would never match the commit SHA this gate compares against.
+        `then mark it passed: git rev-parse "${localRef}^{commit}" > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`,
         localRefs.length > 1
           ? `Note: this command pushes ${localRefs.length} refs (${localRefs.join(", ")}); each UI-changing ref must be validated.`
           : "",
