@@ -1,0 +1,33 @@
+{
+  "name": "@techsio/ui-kit-ai",
+  "version": "0.1.0",
+  "description": "Techsio UI Kit AI — agent plugin (skills + Codex subagents) for developing and consuming the @techsio/ui-kit design system.",
+  "author": {
+    "name": "Lukáš Chylík",
+    "email": "lukaschylik93@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechsioCZ/new-engine.git",
+    "directory": "libs/ui/agent-plugin"
+  },
+  "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills", "plugin"],
+  "license": "UNLICENSED",
+  "scripts": {
+    "sync-skills": "node scripts/sync-skills.mjs"
+  },
+  "files": [
+    ".codex-plugin",
+    ".claude-plugin",
+    ".mcp.json",
+    "AGENTS.md",
+    "README.md",
+    "agents",
+    "hooks",
+    "scripts",
+    "skills"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

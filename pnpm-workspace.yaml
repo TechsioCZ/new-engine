@@ -92,6 +92,8 @@ packages:
   - '!apps/demo/**'
   - '!apps/e2e/**'
   - '!apps/typesense-demo/**'
+  # agent plugin is published separately, not a workspace package
+  - '!libs/ui/agent-plugin/**'
 
 syncInjectedDepsAfterScripts:
   - build
