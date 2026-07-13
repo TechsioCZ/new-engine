@@ -28,10 +28,15 @@ function parsePushArgs(command) {
 
   const FLAGS_WITH_VALUE = new Set(["--repo", "--exec", "--receive-pack", "-o", "--push-option"]);
   const positional = [];
+  let deleteMode = false;
   for (let i = 0; i < rest.length; i++) {
     const t = rest[i];
     if (FLAGS_WITH_VALUE.has(t)) {
       i++; // skip its value
+      continue;
+    }
+    if (t === "--delete" || t === "-d") {
+      deleteMode = true;
       continue;
     }
     if (t.startsWith("-")) continue; // -u, --force, --set-upstream, --force-with-lease=…, …
@@ -39,12 +44,20 @@ function parsePushArgs(command) {
   }
 
   const remote = positional[0] ?? "origin";
-  // Every remaining positional is a refspec: `src`, `src:dst`, or `+src:dst`. Gate the source side.
-  const localRefs = positional
-    .slice(1)
+  // `git push --delete origin foo` deletes a remote branch and uploads nothing — never gate it.
+  if (deleteMode) return { remote, localRefs: [] };
+
+  const refspecs = positional.slice(1);
+  // Each refspec is `src`, `src:dst`, or `+src:dst`; gate the source side. A refspec with an
+  // empty source (`:foo`) is a deletion — it pushes no commits, so it must not be gated, and
+  // must NOT fall back to HEAD (that would block deleting an unrelated remote branch).
+  const localRefs = refspecs
     .map((spec) => spec.replace(/^\+/, "").split(":")[0])
     .filter((ref) => ref && ref !== "."); // `.` means "current branch" in some forms
-  return { remote, localRefs: localRefs.length ? localRefs : ["HEAD"] };
+
+  // Only fall back to HEAD when no refspec was supplied at all (`git push`, `git push origin`).
+  if (!refspecs.length) return { remote, localRefs: ["HEAD"] };
+  return { remote, localRefs };
 }
 
 let raw = "";
