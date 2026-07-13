@@ -2,7 +2,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "*",
+        "matcher": "Bash|shell|local_shell",
         "hooks": [
           {
             "type": "command",

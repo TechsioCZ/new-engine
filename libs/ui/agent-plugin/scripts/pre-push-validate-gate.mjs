@@ -15,6 +15,36 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+const shellQuote = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
+
+/**
+ * Extract the remote and the local ref being pushed from a `git push` command line.
+ * Falls back to `origin` / `HEAD` when they are implicit (`git push`, `git push -u origin`).
+ */
+function parsePushArgs(command) {
+  const tokens = command.trim().split(/\s+/);
+  const pushIdx = tokens.findIndex((t) => t === "push");
+  const rest = pushIdx === -1 ? [] : tokens.slice(pushIdx + 1);
+
+  const FLAGS_WITH_VALUE = new Set(["--repo", "--exec", "--receive-pack", "-o", "--push-option"]);
+  const positional = [];
+  for (let i = 0; i < rest.length; i++) {
+    const t = rest[i];
+    if (FLAGS_WITH_VALUE.has(t)) {
+      i++; // skip its value
+      continue;
+    }
+    if (t.startsWith("-")) continue; // -u, --force, --set-upstream, --force-with-lease=…, …
+    positional.push(t);
+  }
+
+  const remote = positional[0] ?? "origin";
+  const refspec = positional[1];
+  // A refspec may be `src:dst`, `+src:dst`, or bare `src`. We gate on the source side.
+  const localRef = refspec ? refspec.replace(/^\+/, "").split(":")[0] || "HEAD" : "HEAD";
+  return { remote, localRef };
+}
+
 let raw = "";
 process.stdin.on("data", (chunk) => {
   raw += chunk;
@@ -27,7 +57,10 @@ process.stdin.on("end", () => {
     process.exit(0);
   }
 
-  const command = input?.tool_input?.command ?? input?.tool_input?.cmd ?? "";
+  // Claude Code passes tool_input.command as a string; Codex's shell tool passes an
+  // argv array (e.g. ["bash", "-lc", "git push"]). Normalize both.
+  const rawCommand = input?.tool_input?.command ?? input?.tool_input?.cmd ?? "";
+  const command = Array.isArray(rawCommand) ? rawCommand.join(" ") : rawCommand;
   if (typeof command !== "string" || !/\bgit\b[\s\S]*\bpush\b/.test(command)) {
     process.exit(0);
   }
@@ -36,31 +69,62 @@ process.stdin.on("end", () => {
   const git = (args) =>
     execSync(`git ${args}`, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
-  let head;
   let gitDir;
   try {
-    head = git("rev-parse HEAD");
     gitDir = git("rev-parse --absolute-git-dir");
   } catch {
     process.exit(0); // not a git repo — nothing to gate
   }
 
-  // Gate only pushes whose outgoing commits touch libs/ui (excluding this plugin's own docs).
-  let touchesUi = false;
+  // Resolve what is actually being pushed. `git push origin some-branch` from a different
+  // checkout must be gated on `some-branch`, not on the current HEAD.
+  const { remote, localRef } = parsePushArgs(command);
+  let tip;
   try {
-    const upstream = git("rev-parse --abbrev-ref --symbolic-full-name @{upstream}");
-    const changed = git(`diff --name-only ${upstream}...HEAD`);
-    touchesUi = changed.split("\n").some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
+    tip = git(`rev-parse --verify ${shellQuote(localRef)}`);
   } catch {
-    // No upstream (first push) — fall back to comparing against origin/master.
-    try {
-      const changed = git("diff --name-only origin/master...HEAD");
-      touchesUi = changed.split("\n").some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
-    } catch {
-      process.exit(0); // cannot determine — do not block
-    }
+    process.exit(0); // unresolvable ref (e.g. --delete, tag, or typo) — do not block
   }
-  if (!touchesUi) process.exit(0);
+
+  // Gate only pushes whose outgoing commits touch libs/ui (excluding this plugin's own files).
+  const touchesUi = (range) => {
+    const changed = git(`diff --name-only ${range}`);
+    return changed
+      .split("\n")
+      .some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
+  };
+
+  // Resolve the base to diff the pushed ref against. Prefer the ref's own upstream, then the
+  // matching remote branch, then the remote's default branch.
+  const resolves = (rev) => {
+    try {
+      git(`rev-parse --verify --quiet ${shellQuote(`${rev}^{commit}`)}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const branch = localRef.replace(/^refs\/heads\//, "");
+  const candidates = [
+    `${localRef}@{upstream}`,
+    `${remote}/${branch}`,
+    `${remote}/HEAD`,
+    `${remote}/master`,
+    `${remote}/main`,
+  ];
+  const base = candidates.find((c) => resolves(c));
+
+  let uiChanged;
+  if (base) {
+    uiChanged = touchesUi(`${shellQuote(base)}...${tip}`);
+  } else {
+    // No base to compare against (e.g. a brand-new repo with no remote refs). Fail closed:
+    // diff the whole tree against the empty tree rather than silently allowing the push.
+    const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+    uiChanged = touchesUi(`${EMPTY_TREE} ${shellQuote(tip)}`);
+  }
+  if (!uiChanged) process.exit(0);
 
   let marker = "";
   try {
@@ -69,13 +133,13 @@ process.stdin.on("end", () => {
     // no marker yet
   }
 
-  if (marker === head) process.exit(0);
+  if (marker === tip) process.exit(0);
 
   process.stderr.write(
     [
-      "BLOCKED: this push contains libs/ui changes but the ui-kit quality gate has not passed for the current HEAD.",
+      `BLOCKED: this push contains libs/ui changes but the ui-kit quality gate has not passed for ${localRef} (${tip.slice(0, 8)}).`,
       "Run the `ui-validate` skill (build, validate:tokens, biome on changed files, visual tests),",
-      'then mark it passed: git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"',
+      `then mark it passed: git rev-parse ${localRef} > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`,
     ].join("\n"),
   );
   process.exit(2);
