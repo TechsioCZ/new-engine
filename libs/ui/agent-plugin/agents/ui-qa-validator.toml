@@ -23,8 +23,10 @@ token registration); send anything structural back with a precise finding.
    stories present, exports intact, figma.tsx present or explicitly deferred).
 
 ## On success
-Write the marker consumed by the pre-push hook:
+Write the marker consumed by the git pre-push hook (which rejects any push of libs/ui changes
+until it matches the pushed ref's tip):
 `git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"`
+Validate LAST — any new commit invalidates the marker.
 
 ## Known CI trap
 apps/herbatika has 9 pre-existing lint errors on master; any UI diff makes it "affected", so a

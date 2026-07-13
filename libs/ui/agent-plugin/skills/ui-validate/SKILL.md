@@ -40,7 +40,10 @@ so in the summary.
 git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"
 ```
 
-The plugin's pre-push hook blocks `git push` of libs/ui changes until this marker matches HEAD.
+The plugin installs a real git `pre-push` hook that rejects any push whose commits touch
+`libs/ui` until this marker matches the pushed ref's tip. Git gives that hook the exact refs and
+SHAs, so no form of `git push` (aliases, `--all`, `--mirror`, refspecs, config) evades it — and
+`--no-verify` is refused separately. Any new commit invalidates the marker, so validate last.
 
 ## Known CI trap
 

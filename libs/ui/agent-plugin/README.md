@@ -20,7 +20,7 @@ no spec-driven workflow.
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
 | Bundled deep skills | 58 | Synced 1:1 from `libs/ui/skills/`: per-component `*-usage` guides, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
 | Subagents (Codex TOML) | 6 | design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate |
-| Hooks | 1 | Pre-push gate: blocks `git push` of `libs/ui` changes until `ui-validate` passed for HEAD |
+| Hooks | 2 | Real git `pre-push` gate (auto-installed) + a `--no-verify` guard |
 | MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) |
 
 > **Note on slash commands:** Codex deprecated `~/.codex/prompts` custom prompts in favor of
@@ -111,18 +111,31 @@ The script copies every skill (except `_artifacts`) into `skills/` and fails on 
 collision with the 8 authored workflow skills. Never edit bundled skills inside the plugin —
 edit them in `libs/ui/skills/` and re-sync.
 
-## Hook: pre-push validate gate
+## The pre-push quality gate
 
-`hooks/hooks.json` registers a `PreToolUse` hook that blocks `git push` when outgoing commits
-touch `libs/ui/**` (excluding the plugin folder itself) and the quality gate hasn't passed for
-the current HEAD — so it is only active when working inside the `new-engine` repo. Passing
-`$ui-validate` writes the marker:
+Pushes carrying `libs/ui` changes are blocked until `$ui-validate` has passed for the ref being
+pushed. Enforcement is a real **git `pre-push` hook** (`hooks/pre-push`), installed into the
+repo by a `SessionStart` hook (`scripts/install-git-hook.mjs`).
+
+That matters: git invokes `pre-push` with the *resolved* push operation and hands it the exact
+refs and SHAs on stdin. There is nothing to infer, so no phrasing of the command gets around it
+— not `--all`, `--mirror`, glob refspecs, `push.default=matching`, `remote.<name>.push`, nor a
+git alias. An earlier agent-side version of this gate tried to derive the same information by
+parsing the `git push` command string and was bypassable **eleven** different ways; that
+approach is gone.
+
+A narrow `PreToolUse` hook remains, with one job: refusing `--no-verify`, the only way an agent
+could skip the git hook. It does no ref parsing.
+
+Passing `$ui-validate` records the marker:
 
 ```sh
 git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"
 ```
 
-Any new commit invalidates the marker.
+Any new commit invalidates it. The installer is idempotent, honours `core.hooksPath` (husky,
+lefthook), and **never overwrites a pre-push hook it did not write** — a pre-existing hook is
+left alone with a note on how to install manually.
 
 ## Layout
 
@@ -135,6 +148,8 @@ techsio-ui-kit-ai/
 ├── .mcp.json                    # context7, figma, chrome-devtools
 ├── agents/*.toml                # 6 Codex subagents
 ├── skills/                      # 8 authored workflow skills + 58 bundled deep skills
-├── hooks/hooks.json             # pre-push validate gate
-└── scripts/                     # pre-push-validate-gate.mjs, sync-skills.mjs
+├── hooks/
+│   ├── hooks.json               # SessionStart installer + --no-verify guard
+│   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)
+└── scripts/                     # install-git-hook.mjs, pre-push-validate-gate.mjs, sync-skills.mjs
 ```

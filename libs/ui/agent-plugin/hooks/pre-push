@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/**
+ * git pre-push hook — the REAL ui-kit quality gate.
+ *
+ * Git invokes this with the resolved push operation and feeds it, on stdin, one line per ref
+ * actually being pushed:
+ *
+ *   <local_ref> <local_sha> <remote_ref> <remote_sha>
+ *
+ * That is the whole point of this file. The agent-side PreToolUse hook that preceded it tried to
+ * work out the same information by parsing a `git push` command string, and got it wrong ten
+ * separate ways (wrong ref, multi-ref, deletions, --all, --mirror, --follow-tags, annotated tags,
+ * push.default=matching, glob/`:` refspecs, remote.<name>.push, git aliases). None of those are
+ * reachable here: git has already resolved aliases, config, refspecs and defaults before calling
+ * us, and it tells us the exact SHAs. There is nothing left to infer.
+ *
+ * Blocks the push when the commits being uploaded touch libs/ui (excluding the plugin itself)
+ * and the ui-validate gate has not been recorded for that ref's tip.
+ *
+ * Exit 0 = allow, non-zero = reject the push.
+ */
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const ZERO = /^0+$/;
+const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+
+const git = (...args) =>
+  execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+
+const touchesUi = (files) =>
+  files.some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
+
+let raw = "";
+process.stdin.on("data", (c) => {
+  raw += c;
+});
+process.stdin.on("end", () => {
+  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) process.exit(0); // nothing being pushed
+
+  let gitDir;
+  try {
+    gitDir = git("rev-parse", "--absolute-git-dir");
+  } catch {
+    process.exit(0);
+  }
+
+  let marker = "";
+  try {
+    marker = readFileSync(join(gitDir, "ui-validate-passed"), "utf8").trim();
+  } catch {
+    // not validated yet
+  }
+
+  for (const line of lines) {
+    const [localRef, localSha, , remoteSha] = line.split(/\s+/);
+
+    // A deletion: git sends an all-zero local sha. Nothing is uploaded, so nothing to gate.
+    if (!localSha || ZERO.test(localSha)) continue;
+
+    // Peel to a commit — an annotated tag's own sha is the tag object, not the commit.
+    let tip;
+    try {
+      tip = git("rev-parse", "--verify", `${localSha}^{commit}`);
+    } catch {
+      // Cannot resolve what is being pushed → fail closed rather than wave it through.
+      process.stderr.write(`\nBLOCKED: cannot resolve pushed ref ${localRef} (${localSha}).\n`);
+      process.exit(1);
+    }
+
+    // Which commits are actually new to the remote?
+    let files;
+    if (remoteSha && !ZERO.test(remoteSha)) {
+      files = git("diff", "--name-only", `${remoteSha}..${tip}`).split("\n").filter(Boolean);
+    } else {
+      // New ref on the remote. Everything reachable from the tip that the remote does not
+      // already have (via any remote-tracking ref) is new.
+      const newCommits = git("rev-list", tip, "--not", "--remotes").split("\n").filter(Boolean);
+      if (!newCommits.length) continue; // remote already has all of it
+      const oldest = newCommits[newCommits.length - 1];
+      let base;
+      try {
+        base = git("rev-parse", "--verify", `${oldest}^`); // parent of the oldest new commit
+      } catch {
+        base = EMPTY_TREE; // root commit
+      }
+      files = git("diff", "--name-only", base, tip).split("\n").filter(Boolean);
+    }
+
+    if (!touchesUi(files)) continue;
+    if (marker === tip) continue; // validated
+
+    process.stderr.write(
+      [
+        "",
+        `BLOCKED: ${localRef} (${tip.slice(0, 8)}) contains libs/ui changes that have not passed the ui-kit quality gate.`,
+        "",
+        "Run the `ui-validate` skill (build, validate:tokens, biome on changed files, visual tests),",
+        "then record it:",
+        '  git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"',
+        "",
+        "Any new commit invalidates the marker.",
+        "",
+      ].join("\n"),
+    );
+    process.exit(1);
+  }
+
+  process.exit(0);
+});
