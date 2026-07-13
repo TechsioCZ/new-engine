@@ -105,13 +105,50 @@ function resolvePushedRefs(parsed, git) {
 
   if (tagsMode) for (const t of listRefs("refs/tags/")) refs.add(t);
 
+  // Branches that already exist on the remote — the set a "matching" push uploads.
+  const matchingBranches = () =>
+    listRefs("refs/heads/").filter((b) => {
+      try {
+        git("rev-parse", "--verify", "--quiet", `${remote}/${b}^{commit}`);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+
+  let sawExplicitRefspec = false;
   for (const spec of refspecs) {
+    const bare = spec.replace(/^\+/, "");
+
+    // A lone `:` is an EXPLICIT matching push — it uploads every branch that exists on the
+    // remote, regardless of push.default. Dropping it as an "empty source" let those through.
+    if (bare === ":" || bare === "") {
+      sawExplicitRefspec = true;
+      const m = matchingBranches();
+      for (const b of (m.length ? m : listRefs("refs/heads/"))) refs.add(b); // fail closed
+      continue;
+    }
+
     // `src`, `src:dst`, `+src:dst`. An empty source (`:foo`) is a deletion — pushes nothing.
-    const src = spec.replace(/^\+/, "").split(":")[0];
-    if (src && src !== ".") refs.add(src);
+    const src = bare.split(":")[0];
+    if (!src || src === ".") continue;
+    sawExplicitRefspec = true;
+
+    // A glob refspec (`refs/heads/*:refs/heads/*`) is not a resolvable rev — it stands for
+    // every matching local ref. Expand it rather than letting rev-parse fail and skip it.
+    if (src.includes("*")) {
+      const pattern = src.startsWith("refs/") ? src : `refs/heads/${src}`;
+      const expanded = listRefs(pattern);
+      for (const r of (expanded.length ? expanded : listRefs("refs/heads/"))) refs.add(r); // fail closed
+      continue;
+    }
+
+    refs.add(src);
   }
 
   if (refs.size) return [...refs];
+  // An explicit refspec was given but resolved to nothing gateable (pure deletions) — allow.
+  if (sawExplicitRefspec) return [];
 
   // No explicit refspec and no expanding flag. What an implicit `git push` uploads depends on
   // push.default: `matching` sends EVERY local branch that already exists on the remote, so
@@ -212,7 +249,16 @@ process.stdin.on("end", () => {
       // points at, so comparing it against the marker (which is a commit SHA) never matches.
       tip = git("rev-parse", "--verify", `${localRef}^{commit}`);
     } catch {
-      continue; // unresolvable ref (e.g. a --delete target or a tag) — nothing to gate
+      // Fail CLOSED. Skipping here was fail-open: anything this gate could not resolve — a glob
+      // it did not expand, an odd refspec form — was waved through without inspection, which is
+      // exactly how a bypass hides. If we cannot see what a ref contains, we do not allow it.
+      process.stderr.write(
+        [
+          `BLOCKED: cannot resolve the pushed ref "${localRef}", so the ui-kit gate cannot verify what it contains.`,
+          "Push an explicit branch or refspec (e.g. `git push origin <branch>`), or resolve the ref and retry.",
+        ].join("\n"),
+      );
+      process.exit(2);
     }
 
     // Base to diff against: the ref's own upstream, then the matching remote branch, then the
