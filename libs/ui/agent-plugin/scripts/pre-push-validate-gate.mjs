@@ -116,23 +116,26 @@ function resolvePushedRefs(parsed, git) {
       }
     });
 
-  let sawExplicitRefspec = false;
-  for (const spec of refspecs) {
+  /**
+   * Expand one refspec into the local refs it uploads. Used for BOTH command-line refspecs and
+   * the ones configured in `remote.<name>.push` — git treats them identically, so they must not
+   * be parsed by two different code paths.
+   * @returns true if the spec contributed anything gateable
+   */
+  const addRefspec = (spec) => {
     const bare = spec.replace(/^\+/, "");
 
-    // A lone `:` is an EXPLICIT matching push — it uploads every branch that exists on the
-    // remote, regardless of push.default. Dropping it as an "empty source" let those through.
+    // A lone `:` is an EXPLICIT matching push — every branch that exists on the remote,
+    // regardless of push.default. Dropping it as an "empty source" let those through.
     if (bare === ":" || bare === "") {
-      sawExplicitRefspec = true;
       const m = matchingBranches();
       for (const b of (m.length ? m : listRefs("refs/heads/"))) refs.add(b); // fail closed
-      continue;
+      return true;
     }
 
     // `src`, `src:dst`, `+src:dst`. An empty source (`:foo`) is a deletion — pushes nothing.
     const src = bare.split(":")[0];
-    if (!src || src === ".") continue;
-    sawExplicitRefspec = true;
+    if (!src || src === ".") return false;
 
     // A glob refspec (`refs/heads/*:refs/heads/*`) is not a resolvable rev — it stands for
     // every matching local ref. Expand it rather than letting rev-parse fail and skip it.
@@ -140,19 +143,41 @@ function resolvePushedRefs(parsed, git) {
       const pattern = src.startsWith("refs/") ? src : `refs/heads/${src}`;
       const expanded = listRefs(pattern);
       for (const r of (expanded.length ? expanded : listRefs("refs/heads/"))) refs.add(r); // fail closed
-      continue;
+      return true;
     }
 
     refs.add(src);
-  }
+    return true;
+  };
+
+  // Any refspec on the command line means the user named the refs explicitly — even a pure
+  // deletion, which contributes nothing to gate but must not fall through to the implicit path.
+  const sawExplicitRefspec = refspecs.length > 0;
+  for (const spec of refspecs) addRefspec(spec);
 
   if (refs.size) return [...refs];
   // An explicit refspec was given but resolved to nothing gateable (pure deletions) — allow.
   if (sawExplicitRefspec) return [];
 
-  // No explicit refspec and no expanding flag. What an implicit `git push` uploads depends on
-  // push.default: `matching` sends EVERY local branch that already exists on the remote, so
-  // gating HEAD alone would let other branches through.
+  // Implicit push (`git push`, `git push origin`). Git does NOT necessarily send HEAD:
+  //   1. `remote.<name>.push` refspecs, when configured, decide what is pushed and OVERRIDE
+  //      push.default entirely (e.g. `refs/heads/*:refs/heads/*` uploads every branch).
+  //   2. otherwise push.default applies; `matching` sends every branch already on the remote.
+  let configured = [];
+  try {
+    configured = git("config", "--get-all", `remote.${remote}.push`)
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch {
+    // none configured
+  }
+
+  if (configured.length) {
+    for (const spec of configured) addRefspec(spec);
+    return refs.size ? [...refs] : ["HEAD"]; // fail closed
+  }
+
   let pushDefault = "simple";
   try {
     pushDefault = git("config", "--get", "push.default") || "simple";
@@ -161,14 +186,7 @@ function resolvePushedRefs(parsed, git) {
   }
 
   if (pushDefault === "matching") {
-    const matching = listRefs("refs/heads/").filter((b) => {
-      try {
-        git("rev-parse", "--verify", "--quiet", `${remote}/${b}^{commit}`);
-        return true; // branch exists on the remote → it is part of a matching push
-      } catch {
-        return false;
-      }
-    });
+    const matching = matchingBranches();
     return matching.length ? matching : ["HEAD"];
   }
 
