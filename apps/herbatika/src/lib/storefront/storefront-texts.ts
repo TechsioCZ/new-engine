@@ -88,7 +88,8 @@ export const formatStorefrontText = (
   values: Record<string, number | string>
 ) =>
   Object.entries(values).reduce(
-    (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
+    (message, [key, value]) =>
+      message.replaceAll(`{${key}}`, () => String(value)),
     template
   )
 
