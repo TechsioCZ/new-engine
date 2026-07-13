@@ -19,9 +19,9 @@
  *
  * Exit 0 = allow, non-zero = reject the push.
  */
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
 const ZERO = /^0+$/;
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
@@ -32,11 +32,32 @@ const git = (...args) =>
 const touchesUi = (files) =>
   files.some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
 
+/**
+ * If this repo already had a pre-push hook (husky, lefthook, a custom one), the installer moved
+ * it aside rather than deleting it. Run it FIRST and honour its verdict — the human's hook wins,
+ * and our gate is additive rather than a replacement that silently drops their checks.
+ * Both hooks need stdin, so we replay the buffered ref lines into it.
+ */
+function runChainedHook(stdinData) {
+  const chained = join(dirname(process.argv[1]), "pre-push.pre-ui-kit");
+  if (!existsSync(chained)) return;
+
+  const res = spawnSync(chained, process.argv.slice(2), {
+    input: stdinData,
+    stdio: ["pipe", "inherit", "inherit"],
+  });
+
+  if (res.error) return; // not executable / not runnable — do not block on our own plumbing
+  if (typeof res.status === "number" && res.status !== 0) process.exit(res.status);
+}
+
 let raw = "";
 process.stdin.on("data", (c) => {
   raw += c;
 });
 process.stdin.on("end", () => {
+  runChainedHook(raw);
+
   const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
   if (!lines.length) process.exit(0); // nothing being pushed
 

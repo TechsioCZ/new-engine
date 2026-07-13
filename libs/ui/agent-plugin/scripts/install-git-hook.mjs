@@ -8,7 +8,7 @@
  * Idempotent. Never clobbers a pre-push hook this plugin did not write: if a foreign hook is
  * present it warns and leaves it alone, so the human's own hook always wins.
  */
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -40,19 +40,33 @@ try {
 
 const target = join(hooksDir, "pre-push");
 
+const chained = `${target}.pre-ui-kit`;
+
 if (existsSync(target)) {
   const current = readFileSync(target, "utf8");
-  if (!current.includes(MARKER)) {
-    process.stderr.write(
-      [
-        "ui-kit: a pre-push hook already exists and was not installed by this plugin — leaving it alone.",
-        `Install manually if wanted: cp "${source}" "${target}" && chmod +x "${target}"`,
-        "",
-      ].join("\n"),
-    );
-    process.exit(0);
+
+  if (current.includes(MARKER)) {
+    // Ours already — refresh it if the plugin shipped a newer version.
+    if (current === readFileSync(source, "utf8")) process.exit(0);
+  } else {
+    // A foreign hook (husky, lefthook, hand-written). Do NOT skip installation — that would
+    // leave the gate unenforced in exactly the repos that already care about hooks. Move it
+    // aside instead; our hook runs it first and honours its exit code, so it still wins.
+    if (!existsSync(chained)) {
+      try {
+        renameSync(target, chained);
+        chmodSync(chained, 0o755);
+        process.stderr.write(
+          `ui-kit: existing pre-push hook preserved as "${chained}" and chained — it runs first.\n`,
+        );
+      } catch (err) {
+        process.stderr.write(
+          `ui-kit: could not preserve the existing pre-push hook (${err.message}) — leaving it untouched, gate NOT installed.\n`,
+        );
+        process.exit(0); // never destroy a hook we cannot back up
+      }
+    }
   }
-  if (current === readFileSync(source, "utf8")) process.exit(0); // already current
 }
 
 try {
