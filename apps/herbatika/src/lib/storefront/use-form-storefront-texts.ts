@@ -25,6 +25,9 @@ export function useFormStorefrontTexts() {
     postalCode: useRequiredStorefrontText(
       STOREFRONT_TEXT_KEYS.formPostalCode
     ),
+    requiredFields: useRequiredStorefrontText(
+      STOREFRONT_TEXT_KEYS.formRequiredFields
+    ),
     taxId: useRequiredStorefrontText(STOREFRONT_TEXT_KEYS.formTaxId),
     validation: {
       addressMinLength: useRequiredStorefrontText(

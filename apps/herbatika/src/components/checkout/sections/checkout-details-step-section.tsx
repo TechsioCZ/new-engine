@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
@@ -34,6 +35,7 @@ export function CheckoutDetailsStepSection({
   nextStepHref,
 }: CheckoutDetailsStepSectionProps) {
   const router = useRouter()
+  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
   const checkoutTexts = useCheckoutStorefrontTexts()
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
@@ -99,7 +101,7 @@ export function CheckoutDetailsStepSection({
                 {(field) => (
                   <field.CheckboxField
                     id="checkout-use-same-address"
-                    label="Fakturačná adresa je rovnaká ako doručovacia"
+                    label={checkoutDetailsTexts.billingSameAsShipping}
                     onValueChange={(nextUseSameAddress) => {
                       controller.checkoutDetailsForm.trackUseSameAddressIntent(
                         nextUseSameAddress
@@ -134,7 +136,7 @@ export function CheckoutDetailsStepSection({
                 showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
                 showCompanyPurchaseToggle
                 showContactFields={false}
-                title="Fakturačné údaje"
+                title={checkoutDetailsTexts.billingDetails}
               />
             )}
           </>

@@ -156,6 +156,17 @@ export const STOREFRONT_FORM_TEXT_DEFINITIONS = [
     },
   },
   {
+    description: "Označení povinných formulářových polí.",
+    key: "form.required_fields",
+    namespace: "form",
+    values: {
+      cz: "povinné",
+      hu: "kötelező",
+      ro: "obligatoriu",
+      sk: "povinné",
+    },
+  },
+  {
     description: "Validační hláška pro příliš krátké jméno.",
     key: "form.validation.first_name_min_length",
     namespace: "form",

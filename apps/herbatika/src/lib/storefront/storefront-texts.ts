@@ -1,4 +1,8 @@
 import {
+  CHECKOUT_DETAILS_DEFAULT_STOREFRONT_TEXT_MESSAGES,
+  CHECKOUT_DETAILS_STOREFRONT_TEXT_KEYS,
+} from "./checkout-details-storefront-texts"
+import {
   FORM_DEFAULT_STOREFRONT_TEXT_MESSAGES,
   FORM_STOREFRONT_TEXT_KEYS,
 } from "./form-storefront-texts"
@@ -73,6 +77,7 @@ export const STOREFRONT_TEXT_KEYS = {
   checkoutShippingUpdateFailed: "checkout.shipping_update_failed",
   checkoutSummary: "checkout.summary",
   checkoutTotalExclTax: "checkout.total_excl_tax",
+  ...CHECKOUT_DETAILS_STOREFRONT_TEXT_KEYS,
   ...FORM_STOREFRONT_TEXT_KEYS,
 } as const
 
@@ -191,5 +196,6 @@ export const DEFAULT_STOREFRONT_TEXT_MESSAGES = {
     "Nastavenie dopravy zlyhalo.",
   [STOREFRONT_TEXT_KEYS.checkoutSummary]: "Súhrn",
   [STOREFRONT_TEXT_KEYS.checkoutTotalExclTax]: "bez DPH",
+  ...CHECKOUT_DETAILS_DEFAULT_STOREFRONT_TEXT_MESSAGES,
   ...FORM_DEFAULT_STOREFRONT_TEXT_MESSAGES,
 } as const satisfies Record<StorefrontTextKey, string>

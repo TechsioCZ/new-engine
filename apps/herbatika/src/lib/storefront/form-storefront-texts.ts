@@ -13,6 +13,7 @@ export const FORM_STOREFRONT_TEXT_KEYS = {
   formLastName: "form.last_name",
   formPhone: "form.phone",
   formPostalCode: "form.postal_code",
+  formRequiredFields: "form.required_fields",
   formTaxId: "form.tax_id",
   formValidationAddressMinLength: "form.validation.address_min_length",
   formValidationAddressRequired: "form.validation.address_required",
@@ -64,6 +65,7 @@ export const FORM_DEFAULT_STOREFRONT_TEXT_MESSAGES = {
   [FORM_STOREFRONT_TEXT_KEYS.formLastName]: "Priezvisko",
   [FORM_STOREFRONT_TEXT_KEYS.formPhone]: "Telefón",
   [FORM_STOREFRONT_TEXT_KEYS.formPostalCode]: "PSČ",
+  [FORM_STOREFRONT_TEXT_KEYS.formRequiredFields]: "povinné",
   [FORM_STOREFRONT_TEXT_KEYS.formTaxId]: "DIČ",
   [FORM_STOREFRONT_TEXT_KEYS.formValidationAddressMinLength]:
     DEFAULT_ADDRESS_VALIDATION_MESSAGES.addressMinLength,

@@ -4,6 +4,7 @@ import {
   resolveCheckoutAddressFieldName,
 } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
+import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
 import { useFormStorefrontTexts } from "@/lib/storefront/use-form-storefront-texts"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
@@ -40,6 +41,7 @@ export function CheckoutAddressSection({
   showRequiredNote = false,
   title,
 }: CheckoutAddressSectionProps) {
+  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
   const formTexts = useFormStorefrontTexts()
   const fieldValidators = useCheckoutFieldValidators(formTexts.validation)
   const scopedValidators = fieldValidators[scope]
@@ -59,9 +61,12 @@ export function CheckoutAddressSection({
           <div className="flex flex-wrap items-center justify-between gap-150">
             {showCompanyPurchaseToggle ? (
               <CheckoutPurchaseTypeToggle
+                companyLabel={checkoutDetailsTexts.companyPurchase}
+                groupLabel={checkoutDetailsTexts.purchaseType}
                 id={`${fieldPrefix}-purchase-type`}
                 isCompanyPurchase={checkoutDetailsForm.values.isCompanyPurchase}
                 onValueChange={checkoutDetailsForm.setCompanyPurchase}
+                privateLabel={checkoutDetailsTexts.privatePurchase}
               />
             ) : (
               <span aria-hidden="true" />
@@ -69,7 +74,8 @@ export function CheckoutAddressSection({
 
             {showRequiredNote ? (
               <p className="text-fg-secondary text-sm">
-                <span className="text-label-fg-required">*</span> povinné
+                <span className="text-label-fg-required">*</span>{" "}
+                {formTexts.requiredFields}
               </p>
             ) : null}
           </div>
@@ -285,9 +291,9 @@ export function CheckoutAddressSection({
                     id={`${fieldPrefix}-registration-opt-in`}
                     label={
                       <>
-                        <span>Chcem sa registrovať</span>{" "}
+                        <span>{checkoutDetailsTexts.registrationOptIn}</span>{" "}
                         <span className="text-fg-secondary">
-                          (Informácie o registrácii Vám budú zaslané e-mailom)
+                          {checkoutDetailsTexts.registrationInfo}
                         </span>
                       </>
                     }
