@@ -27,5 +27,6 @@ Read first: the bundled `figma-sync-handoff` skill, the Figma Sync Rules section
 - Set explicit scopes (never ALL_SCOPES) and code syntax to the real CSS custom property,
   e.g. `var(--color-button-bg-primary)`.
 - Generated files `src/tokens/figma/variables.css` and `figma/brand-overrides.css` come from
-  the merge scripts in `.agents/skills/figma-token-binding/scripts/` — regenerate, don't edit.
+  the merge scripts in the new-engine repo at `.agents/skills/figma-token-binding/scripts/`
+  (`merge-figma-themes.mjs`, `split-figma-tokens.mjs`) — regenerate, don't edit by hand.
 """

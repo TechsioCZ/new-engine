@@ -13,6 +13,7 @@
   },
   "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills", "plugin"],
   "license": "UNLICENSED",
+  "private": true,
   "scripts": {
     "sync-skills": "node scripts/sync-skills.mjs"
   },
@@ -27,7 +28,5 @@
     "scripts",
     "skills"
   ],
-  "publishConfig": {
-    "access": "public"
-  }
+  "_publishing": "Distributed as a Codex/Claude plugin via a marketplace (git source), not via npm. To publish to npm instead, drop `private`, pick a license, and add `publishConfig.access`."
 }

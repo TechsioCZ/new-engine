@@ -11,11 +11,9 @@
  *
  * Exit codes: 0 = allow, 2 = block (stderr is fed back to the agent).
  */
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-
-const shellQuote = (s) => `'${String(s).replace(/'/g, "'\\''")}'`;
 
 /**
  * Extract the remote and the local ref being pushed from a `git push` command line.
@@ -66,12 +64,14 @@ process.stdin.on("end", () => {
   }
 
   const cwd = input?.cwd || process.cwd();
-  const git = (args) =>
-    execSync(`git ${args}`, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  // execFileSync (no shell) — refs come from an agent-supplied command line, so never
+  // interpolate them into a shell string.
+  const git = (...args) =>
+    execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
   let gitDir;
   try {
-    gitDir = git("rev-parse --absolute-git-dir");
+    gitDir = git("rev-parse", "--absolute-git-dir");
   } catch {
     process.exit(0); // not a git repo — nothing to gate
   }
@@ -81,14 +81,14 @@ process.stdin.on("end", () => {
   const { remote, localRef } = parsePushArgs(command);
   let tip;
   try {
-    tip = git(`rev-parse --verify ${shellQuote(localRef)}`);
+    tip = git("rev-parse", "--verify", localRef);
   } catch {
     process.exit(0); // unresolvable ref (e.g. --delete, tag, or typo) — do not block
   }
 
   // Gate only pushes whose outgoing commits touch libs/ui (excluding this plugin's own files).
-  const touchesUi = (range) => {
-    const changed = git(`diff --name-only ${range}`);
+  const touchesUi = (...range) => {
+    const changed = git("diff", "--name-only", ...range);
     return changed
       .split("\n")
       .some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
@@ -98,7 +98,7 @@ process.stdin.on("end", () => {
   // matching remote branch, then the remote's default branch.
   const resolves = (rev) => {
     try {
-      git(`rev-parse --verify --quiet ${shellQuote(`${rev}^{commit}`)}`);
+      git("rev-parse", "--verify", "--quiet", `${rev}^{commit}`);
       return true;
     } catch {
       return false;
@@ -117,12 +117,12 @@ process.stdin.on("end", () => {
 
   let uiChanged;
   if (base) {
-    uiChanged = touchesUi(`${shellQuote(base)}...${tip}`);
+    uiChanged = touchesUi(`${base}...${tip}`);
   } else {
     // No base to compare against (e.g. a brand-new repo with no remote refs). Fail closed:
     // diff the whole tree against the empty tree rather than silently allowing the push.
     const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-    uiChanged = touchesUi(`${EMPTY_TREE} ${shellQuote(tip)}`);
+    uiChanged = touchesUi(EMPTY_TREE, tip);
   }
   if (!uiChanged) process.exit(0);
 
