@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type CheckoutDetailsValues,
   resolveEffectiveCheckoutAddressDetails,
@@ -37,6 +37,7 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import {
@@ -71,6 +72,7 @@ export function useCheckoutController() {
   const queryClient = useQueryClient()
   const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
   const checkoutTexts = useCheckoutStorefrontTexts()
+  const marketContext = useMarketContext()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const authQuery = useAuth()
@@ -170,11 +172,21 @@ export function useCheckoutController() {
     )
   }, [activeRegionId, queryClient])
 
-  const countryItems = resolveCheckoutCountryItemsForRegion({
-    activeCountryCode: region?.country_code,
-    regionId: activeRegionId,
-    regions: regionsQuery.regions,
-  })
+  const countryItems = useMemo(
+    () =>
+      resolveCheckoutCountryItemsForRegion({
+        activeCountryCode: region?.country_code,
+        locale: marketContext.locale,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      }),
+    [
+      activeRegionId,
+      marketContext.locale,
+      region?.country_code,
+      regionsQuery.regions,
+    ]
+  )
 
   const actions = useCheckoutActions({
     cart: cartQuery.cart,

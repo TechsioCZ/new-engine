@@ -13,6 +13,7 @@ import {
   resolveCartTaxAmount,
 } from "@/lib/storefront/cart-calculations"
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
+import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
@@ -22,7 +23,7 @@ import { CartItemRow } from "./herbatika-cart-item-row"
 type HerbatikaCartPopoverProps = {
   cart: HttpTypes.StoreCart | null | undefined
   cartTotalLabel: string
-  currencyCode: "EUR" | "CZK"
+  currencyCode: HerbatikaCurrencyCode
   itemCount: number
 }
 

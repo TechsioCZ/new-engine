@@ -18,6 +18,7 @@ import {
   resolveLineItemQuantity,
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
+import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
 import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
@@ -27,7 +28,7 @@ import {
 } from "../utils/resolve-availability-text"
 
 type CheckoutCartItemRowProps = {
-  currencyCode: "EUR" | "CZK"
+  currencyCode: HerbatikaCurrencyCode
   isPending: boolean
   item: HttpTypes.StoreCartLineItem
   onRemove: (lineItemId: string) => void

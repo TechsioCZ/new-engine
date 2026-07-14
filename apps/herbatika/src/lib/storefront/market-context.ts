@@ -7,7 +7,6 @@ export type HerbatikaMarketContext = {
   locale: HerbatikaLocale
   htmlLang: HerbatikaLocale
   countryCode: HerbatikaCountryCode
-  currencyCode: string
   domain: string
   metadata: {
     title: string
@@ -26,7 +25,6 @@ const MARKET_CONFIG = {
     locale: "sk-SK",
     htmlLang: "sk-SK",
     countryCode: "sk",
-    currencyCode: "EUR",
     domain: "herbatica.sk",
     metadata: {
       title: "Herbatica",
@@ -38,7 +36,6 @@ const MARKET_CONFIG = {
     locale: "cs-CZ",
     htmlLang: "cs-CZ",
     countryCode: "cz",
-    currencyCode: "CZK",
     domain: "herbatica.cz",
     metadata: {
       title: "Herbatica",
@@ -50,7 +47,6 @@ const MARKET_CONFIG = {
     locale: "hu-HU",
     htmlLang: "hu-HU",
     countryCode: "hu",
-    currencyCode: "HUF",
     domain: "herbatica.hu",
     metadata: {
       title: "Herbatica",
@@ -62,7 +58,6 @@ const MARKET_CONFIG = {
     locale: "ro-RO",
     htmlLang: "ro-RO",
     countryCode: "ro",
-    currencyCode: "RON",
     domain: "herbatica.ro",
     metadata: {
       title: "Herbatica",

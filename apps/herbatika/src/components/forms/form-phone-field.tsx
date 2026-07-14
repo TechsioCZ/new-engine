@@ -1,5 +1,6 @@
 "use client"
 
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import {
   PhoneInput,
@@ -23,7 +24,7 @@ type FormPhoneFieldProps = {
   onValueChange?: (value: string) => void
 }
 
-const CHECKOUT_PHONE_COUNTRIES: PhoneInputCountry[] = [
+const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
   {
     value: "SK",
     label: "Slovensko",
@@ -72,11 +73,33 @@ const CHECKOUT_PHONE_COUNTRIES: PhoneInputCountry[] = [
       />
     ),
   },
+  {
+    value: "RO",
+    label: "Rumunsko",
+    name: "Rumunsko",
+    flag: (
+      <Icon
+        className="brightness-95"
+        icon="icon-[emojione--flag-for-romania]"
+        size="md"
+      />
+    ),
+  },
 ]
 
+const resolveRegionPhoneCountry = (
+  countryCode: string | null | undefined,
+  countries: PhoneInputCountry[]
+) => {
+  const normalizedCountryCode = countryCode?.trim().toUpperCase()
+
+  return countries.find((country) => country.value === normalizedCountryCode)
+    ?.value
+}
+
 export function FormPhoneField({
-  countries = CHECKOUT_PHONE_COUNTRIES,
-  defaultCountry = "SK",
+  countries = HERBATIKA_PHONE_COUNTRIES,
+  defaultCountry,
   id,
   label,
   onValueChange,
@@ -85,8 +108,13 @@ export function FormPhoneField({
   validationMode = "blur",
 }: FormPhoneFieldProps) {
   const field = useFieldContext<string>()
+  const region = useRegionContext()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
+  const resolvedDefaultCountry =
+    defaultCountry ??
+    resolveRegionPhoneCountry(region?.country_code, countries) ??
+    countries[0]?.value
   const fieldFeedback = resolveVisibleFieldFeedback({
     hasChangedSinceBlur,
     meta: field.state.meta,
@@ -97,7 +125,7 @@ export function FormPhoneField({
   return (
     <PhoneInput
       countries={countries}
-      defaultCountry={defaultCountry}
+      defaultCountry={resolvedDefaultCountry}
       id={id}
       name={field.name}
       onValueChange={(details) => {
