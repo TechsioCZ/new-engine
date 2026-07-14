@@ -3,128 +3,15 @@ import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
-import { normalizeCountryCode } from "../../utils/country-code"
 import { sdk } from "../lib/sdk"
+import {
+  formatPercent,
+  getCountriesByCode,
+  getSalesRegionRows,
+  type ProductSalesRegionsResponse,
+} from "../utils/product-sales-regions"
 
 type ProductSalesRegionsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
-
-type ProductSalesRegionsResponse = {
-  product: {
-    id: string
-    sales_channels: { id: string; name?: string | null }[]
-  }
-  country_rates: {
-    country_code: string
-    rate: number
-    tax_rate_id?: string
-    tax_rate_name?: string | null
-    tax_region_id: string
-  }[]
-}
-
-type RegionCountry = {
-  iso_2?: string | null
-  iso_3?: string | null
-  display_name?: string | null
-  name?: string | null
-}
-
-type AdminRegionWithCountries = {
-  id: string
-  name: string
-  countries?: RegionCountry[]
-}
-
-type RegionsResponse = {
-  regions: AdminRegionWithCountries[]
-}
-
-const REGION_PRIORITY = ["sk", "cz"]
-
-function formatPercent(rate: number, locale: string) {
-  return `${new Intl.NumberFormat(locale, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: Number.isInteger(rate) ? 0 : 2,
-  }).format(rate)}%`
-}
-
-function getCountryName(
-  country: RegionCountry | undefined,
-  countryCode: string,
-  locale: string
-) {
-  const explicitName = country?.display_name ?? country?.name
-
-  if (explicitName) {
-    return explicitName
-  }
-
-  try {
-    return (
-      new Intl.DisplayNames(locale, { type: "region" }).of(
-        countryCode.toUpperCase()
-      ) ?? countryCode.toUpperCase()
-    )
-  } catch {
-    return countryCode.toUpperCase()
-  }
-}
-
-function getCountriesByCode(regions: AdminRegionWithCountries[] = []) {
-  const countriesByCode = new Map<string, RegionCountry>()
-
-  for (const region of regions) {
-    for (const country of region.countries ?? []) {
-      const countryCode = normalizeCountryCode(country.iso_2 ?? country.iso_3)
-
-      if (countryCode) {
-        countriesByCode.set(countryCode, country)
-      }
-    }
-  }
-
-  return countriesByCode
-}
-
-function sortSalesRegionRows<
-  TRow extends { country_code: string; countryName: string },
->(first: TRow, second: TRow) {
-  const firstPriority = REGION_PRIORITY.indexOf(first.country_code)
-  const secondPriority = REGION_PRIORITY.indexOf(second.country_code)
-
-  if (firstPriority !== -1 || secondPriority !== -1) {
-    return (
-      (firstPriority === -1 ? REGION_PRIORITY.length : firstPriority) -
-      (secondPriority === -1 ? REGION_PRIORITY.length : secondPriority)
-    )
-  }
-
-  return first.countryName.localeCompare(second.countryName)
-}
-
-function getSalesRegionRows(
-  data: ProductSalesRegionsResponse | undefined,
-  countriesByCode: Map<string, RegionCountry>,
-  locale: string
-) {
-  const availableCountryCodes = new Set(countriesByCode.keys())
-
-  return (data?.country_rates ?? [])
-    .filter(
-      ({ country_code }) =>
-        availableCountryCodes.size === 0 ||
-        availableCountryCodes.has(country_code)
-    )
-    .map((countryRate) => ({
-      ...countryRate,
-      countryName: getCountryName(
-        countriesByCode.get(countryRate.country_code),
-        countryRate.country_code,
-        locale
-      ),
-    }))
-    .sort(sortSalesRegionRows)
-}
 
 function SalesRegionsContent({
   error,
@@ -184,7 +71,7 @@ const ProductSalesRegionsWidget = ({
     isLoading: regionsLoading,
   } = useQuery({
     enabled: !!productId,
-    queryFn: () => sdk.admin.region.list() as Promise<RegionsResponse>,
+    queryFn: () => sdk.admin.region.list(),
     queryKey: ["product-sales-regions", "regions"],
   })
 

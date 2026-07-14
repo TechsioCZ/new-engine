@@ -11,114 +11,19 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { normalizeCountryCode } from "../../../../../utils/country-code"
-
-type SalesRegionProduct = {
-  id: string
-  sales_channels?: { id: string; name?: string | null }[]
-}
-
-type RegionCountry = {
-  iso_2?: string | null
-}
-
-type RegionWithCountries = {
-  countries?: RegionCountry[]
-}
-
-type TaxRateRule = {
-  reference: string
-  reference_id: string
-  tax_rate_id: string
-}
+import {
+  getRegionCountryCodes,
+  isProductRule,
+  isTaxRateRule,
+  type RegionWithCountries,
+  type TaxRateRule,
+  toNumber,
+  toRegionWithCountries,
+  toSalesRegionProduct,
+} from "./utils"
 
 const CHUNK_SIZE = 100
 const PRODUCT_NOT_FOUND_MESSAGE = "Product not found"
-
-function toNumber(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value)
-
-    if (Number.isFinite(parsed)) {
-      return parsed
-    }
-  }
-
-  return
-}
-
-function isProductRule(rule: TaxRateRule, productId: string) {
-  return rule.reference === "product" && rule.reference_id === productId
-}
-
-function getStringField(value: unknown, field: string): string | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return
-  }
-
-  const fieldValue: unknown = Reflect.get(value, field)
-
-  return typeof fieldValue === "string" ? fieldValue : undefined
-}
-
-function getArrayField(value: unknown, field: string): unknown[] {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return []
-  }
-
-  const fieldValue: unknown = Reflect.get(value, field)
-
-  return Array.isArray(fieldValue) ? fieldValue : []
-}
-
-function isTaxRateRule(value: unknown): value is TaxRateRule {
-  return Boolean(
-    getStringField(value, "reference") &&
-      getStringField(value, "reference_id") &&
-      getStringField(value, "tax_rate_id")
-  )
-}
-
-function isRegionCountry(value: unknown): value is RegionCountry {
-  return Boolean(normalizeCountryCode(getStringField(value, "iso_2")))
-}
-
-function toRegionWithCountries(value: unknown): RegionWithCountries {
-  return {
-    countries: getArrayField(value, "countries").filter(isRegionCountry),
-  }
-}
-
-function toSalesRegionProduct(value: unknown): SalesRegionProduct | undefined {
-  const id = getStringField(value, "id")
-
-  if (!id) {
-    return
-  }
-
-  return {
-    id,
-    sales_channels: getArrayField(value, "sales_channels").flatMap(
-      (salesChannel) => {
-        const salesChannelId = getStringField(salesChannel, "id")
-
-        if (!salesChannelId) {
-          return []
-        }
-
-        return [
-          {
-            id: salesChannelId,
-            name: getStringField(salesChannel, "name") ?? null,
-          },
-        ]
-      }
-    ),
-  }
-}
 
 async function listAllRegions(regionService: IRegionModuleService) {
   const regions: RegionWithCountries[] = []
@@ -228,17 +133,6 @@ async function listAllTaxRateRules(
   }
 
   return taxRateRules
-}
-
-function getRegionCountryCodes(regions: RegionWithCountries[]) {
-  return [
-    ...new Set(
-      regions
-        .flatMap((region) => region.countries ?? [])
-        .map((country) => normalizeCountryCode(country.iso_2))
-        .filter((countryCode): countryCode is string => Boolean(countryCode))
-    ),
-  ]
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
