@@ -102,12 +102,22 @@ type OrderBusinessStatusesNamespace = {
   toast: Record<"saveError" | "saveSuccess", string>
 }
 
+type ProductSalesRegionsNamespace = {
+  badge: Record<"channel_few" | "channel_one" | "channel_other", string>
+  description: string
+  empty: string
+  loadFailed: string
+  loading: string
+  title: string
+}
+
 type AdminI18nResources = Record<
   AdminLocale,
   {
     approvals: ApprovalAdminI18nNamespace
     companies: CompanyAdminI18nNamespace
     orderBusinessStatuses: OrderBusinessStatusesNamespace
+    productSalesRegions: ProductSalesRegionsNamespace
     producers: ProducerAdminI18nNamespace
     quotes: QuoteAdminI18nNamespace
     translation: AdminDefaultTranslationNamespace
@@ -200,6 +210,35 @@ const orderBusinessStatuses = {
     },
   },
 } satisfies Record<AdminLocale, OrderBusinessStatusesNamespace>
+
+const productSalesRegions = {
+  cs: {
+    badge: {
+      channel_few: "{{count}} kanály",
+      channel_one: "{{count}} kanál",
+      channel_other: "{{count}} kanálů",
+    },
+    description:
+      "Regiony, ve kterých se tento produkt prodává, a jejich sazba DPH.",
+    empty:
+      "Pro prodejní regiony tohoto produktu nebyly nalezeny žádné sazby DPH.",
+    loadFailed: "Prodejní regiony se nepodařilo načíst.",
+    loading: "Načítám prodejní regiony…",
+    title: "Prodejní regiony",
+  },
+  en: {
+    badge: {
+      channel_few: "{{count}} channels",
+      channel_one: "{{count}} channel",
+      channel_other: "{{count}} channels",
+    },
+    description: "Regions where this product is sold and their VAT rate.",
+    empty: "No VAT rates found for this product's sales regions.",
+    loadFailed: "Failed to load sales regions.",
+    loading: "Loading sales regions…",
+    title: "Sales regions",
+  },
+} satisfies Record<AdminLocale, ProductSalesRegionsNamespace>
 
 const orderCommercialValues = {
   cs: {
@@ -396,6 +435,7 @@ const resources = {
     approvals: approvalAdminI18n.cs,
     companies: companyAdminI18n.cs,
     orderBusinessStatuses: orderBusinessStatuses.cs,
+    productSalesRegions: productSalesRegions.cs,
     producers: producerAdminI18n.cs,
     quotes: quoteAdminI18n.cs,
     translation: defaultTranslation.cs,
@@ -404,6 +444,7 @@ const resources = {
     approvals: approvalAdminI18n.en,
     companies: companyAdminI18n.en,
     orderBusinessStatuses: orderBusinessStatuses.en,
+    productSalesRegions: productSalesRegions.en,
     producers: producerAdminI18n.en,
     quotes: quoteAdminI18n.en,
     translation: defaultTranslation.en,

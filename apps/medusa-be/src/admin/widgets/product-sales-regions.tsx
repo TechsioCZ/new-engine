@@ -2,6 +2,7 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { normalizeCountryCode } from "../../utils/country-code"
 import { sdk } from "../lib/sdk"
 
@@ -40,8 +41,8 @@ type RegionsResponse = {
 
 const REGION_PRIORITY = ["sk", "cz"]
 
-function formatPercent(rate: number) {
-  return `${new Intl.NumberFormat(undefined, {
+function formatPercent(rate: number, locale: string) {
+  return `${new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
     minimumFractionDigits: Number.isInteger(rate) ? 0 : 2,
   }).format(rate)}%`
@@ -49,7 +50,8 @@ function formatPercent(rate: number) {
 
 function getCountryName(
   country: RegionCountry | undefined,
-  countryCode: string
+  countryCode: string,
+  locale: string
 ) {
   const explicitName = country?.display_name ?? country?.name
 
@@ -59,7 +61,7 @@ function getCountryName(
 
   try {
     return (
-      new Intl.DisplayNames(undefined, { type: "region" }).of(
+      new Intl.DisplayNames(locale, { type: "region" }).of(
         countryCode.toUpperCase()
       ) ?? countryCode.toUpperCase()
     )
@@ -102,7 +104,8 @@ function sortSalesRegionRows<
 
 function getSalesRegionRows(
   data: ProductSalesRegionsResponse | undefined,
-  countriesByCode: Map<string, RegionCountry>
+  countriesByCode: Map<string, RegionCountry>,
+  locale: string
 ) {
   const availableCountryCodes = new Set(countriesByCode.keys())
 
@@ -116,7 +119,8 @@ function getSalesRegionRows(
       ...countryRate,
       countryName: getCountryName(
         countriesByCode.get(countryRate.country_code),
-        countryRate.country_code
+        countryRate.country_code,
+        locale
       ),
     }))
     .sort(sortSalesRegionRows)
@@ -131,10 +135,12 @@ function SalesRegionsContent({
   isLoading: boolean
   rows: ReturnType<typeof getSalesRegionRows>
 }) {
+  const { i18n, t } = useTranslation("productSalesRegions")
+
   if (error) {
     return (
       <Text className="text-ui-fg-error" size="small">
-        Failed to load sales regions.
+        {t("loadFailed")}
       </Text>
     )
   }
@@ -142,7 +148,7 @@ function SalesRegionsContent({
   if (isLoading) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
-        Loading sales regions…
+        {t("loading")}
       </Text>
     )
   }
@@ -150,7 +156,7 @@ function SalesRegionsContent({
   if (!rows.length) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
-        No VAT rates found for this product's sales regions.
+        {t("empty")}
       </Text>
     )
   }
@@ -160,7 +166,7 @@ function SalesRegionsContent({
       <Text size="small">{row.countryName}</Text>
       <div className="mb-1 grow border-ui-border-base border-b border-dotted" />
       <Text className="text-ui-fg-subtle" size="small">
-        {formatPercent(row.rate)}
+        {formatPercent(row.rate, i18n.resolvedLanguage ?? i18n.language)}
       </Text>
     </div>
   ))
@@ -169,6 +175,7 @@ function SalesRegionsContent({
 const ProductSalesRegionsWidget = ({
   data: product,
 }: ProductSalesRegionsWidgetProps) => {
+  const { i18n, t } = useTranslation("productSalesRegions")
   const productId = product?.id
 
   const {
@@ -195,25 +202,26 @@ const ProductSalesRegionsWidget = ({
   }
 
   const countriesByCode = getCountriesByCode(regionsData?.regions)
-  const rows = getSalesRegionRows(data, countriesByCode)
+  const rows = getSalesRegionRows(
+    data,
+    countriesByCode,
+    i18n.resolvedLanguage ?? i18n.language
+  )
   const salesChannelCount = data?.product.sales_channels.length ?? 0
-  const salesChannelLabel = `${salesChannelCount} ${
-    salesChannelCount === 1 ? "channel" : "channels"
-  }`
 
   return (
     <Container className="divide-y p-0">
       <div className="flex items-start justify-between gap-3 px-6 py-4">
         <div className="min-w-0">
           <Text leading="compact" size="small" weight="plus">
-            Sales regions
+            {t("title")}
           </Text>
           <Text className="text-ui-fg-subtle" leading="compact" size="small">
-            Regions where this product is sold and their VAT rate.
+            {t("description")}
           </Text>
         </div>
         <Badge className="shrink-0 whitespace-nowrap" size="2xsmall">
-          {salesChannelLabel}
+          {t("badge.channel", { count: salesChannelCount })}
         </Badge>
       </div>
       <div className="flex flex-col gap-2 px-6 py-4">
