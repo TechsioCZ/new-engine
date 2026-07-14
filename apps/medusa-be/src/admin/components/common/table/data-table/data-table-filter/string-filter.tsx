@@ -4,8 +4,8 @@ import {
   Portal as PopoverPortal,
   Root as PopoverRoot,
 } from "@radix-ui/react-popover"
-import { debounce } from "lodash"
-import { type ChangeEvent, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { debounce } from "../../../../../utils/debounce"
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
@@ -34,9 +34,7 @@ export const StringFilter = ({
 
   const debouncedOnChange = useMemo(
     () =>
-      debounce((e: ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value
-
+      debounce((value: string) => {
         if (value) {
           selectedParams.add(value)
         } else {
@@ -116,7 +114,7 @@ export const StringFilter = ({
                 <Input
                   defaultValue={query?.[0] || undefined}
                   name={key}
-                  onChange={debouncedOnChange}
+                  onChange={(event) => debouncedOnChange(event.target.value)}
                   size="small"
                 />
               </div>

@@ -294,6 +294,7 @@ const createHeroCarouselSeed = async (
   await payload.create({
     collection: "hero-carousels",
     data: {
+      internalTitle: "Herbatica homepage hero",
       image: mediaId,
       heading: "Herbatica",
       subheading: "Starter CMS content",
