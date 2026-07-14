@@ -1,4 +1,3 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { AdminOrderPreview } from "@medusajs/framework/types"
 import { z } from "@medusajs/framework/zod"
 import {
@@ -10,7 +9,7 @@ import {
   Textarea,
   toast,
 } from "@medusajs/ui"
-import { useForm } from "react-hook-form"
+import { type Resolver, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 import type { QueryQuote } from "../../../../types"
@@ -22,6 +21,37 @@ export const CreateQuoteMessageForm = z.object({
   text: z.string().min(1),
   item_id: z.string().nullish(),
 })
+
+type CreateQuoteMessageFormValues = z.infer<typeof CreateQuoteMessageForm>
+
+const createQuoteMessageResolver: Resolver<
+  CreateQuoteMessageFormValues
+> = async (values) => {
+  const result = CreateQuoteMessageForm.safeParse(values)
+
+  if (result.success) {
+    return { errors: {}, values: result.data }
+  }
+
+  const textIssue = result.error.issues.find(
+    (issue) => issue.path[0] === "text"
+  )
+  const itemIdIssue = result.error.issues.find(
+    (issue) => issue.path[0] === "item_id"
+  )
+
+  return {
+    errors: {
+      ...(textIssue
+        ? { text: { message: textIssue.message, type: textIssue.code } }
+        : {}),
+      ...(itemIdIssue
+        ? { item_id: { message: itemIdIssue.message, type: itemIdIssue.code } }
+        : {}),
+    },
+    values: {},
+  }
+}
 
 export function QuoteMessages({
   quote,
@@ -40,13 +70,13 @@ export function QuoteMessages({
   /**
    * FORM
    */
-  const form = useForm<z.infer<typeof CreateQuoteMessageForm>>({
+  const form = useForm<CreateQuoteMessageFormValues>({
     defaultValues: () =>
       Promise.resolve({
         text: "",
         item_id: null,
       }),
-    resolver: zodResolver(CreateQuoteMessageForm),
+    resolver: createQuoteMessageResolver,
   })
 
   const { mutateAsync: createMessage, isPending: isCreatingMessage } =
