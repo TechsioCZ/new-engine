@@ -1,5 +1,6 @@
 import { z } from "@medusajs/framework/zod"
 import {
+  isStorefrontTextMarketLocalePair,
   STOREFRONT_TEXT_LOCALES,
   STOREFRONT_TEXT_MARKET_IDS,
   STOREFRONT_TEXT_NAMESPACES,
@@ -17,11 +18,20 @@ export const AdminGetStorefrontTextsSchema = z
     status: z.enum(STOREFRONT_TEXT_STATUSES).optional(),
   })
   .strict()
+  .superRefine(({ locale, market }, context) => {
+    if (locale && market && !isStorefrontTextMarketLocalePair(market, locale)) {
+      context.addIssue({
+        code: "custom",
+        message: `Locale "${locale}" does not belong to market "${market}"`,
+        path: ["locale"],
+      })
+    }
+  })
 
 export const AdminUpdateStorefrontTextSchema = z
   .object({
+    override_value: z.string().trim().min(1).nullable().optional(),
     status: z.enum(STOREFRONT_TEXT_STATUSES).optional(),
-    value: z.string().trim().min(1).optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, {

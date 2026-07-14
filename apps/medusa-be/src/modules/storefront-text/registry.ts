@@ -769,29 +769,40 @@ export type StorefrontTextMessages = Partial<Record<StorefrontTextKey, string>>
 
 export type StorefrontTextSeedRow = {
   country: string
+  default_value: string
   description: string
   domain: string
   key: StorefrontTextKey
   locale: StorefrontTextLocale
   market: StorefrontTextMarket
   namespace: StorefrontTextNamespace
+  override_value: null
   status: StorefrontTextStatus
-  value: string
 }
 
 export const getStorefrontTextSeedRows = (): StorefrontTextSeedRow[] =>
   STOREFRONT_TEXT_DEFINITIONS.flatMap((definition) =>
     STOREFRONT_TEXT_MARKETS.map((market) => ({
       country: market.country,
+      default_value: definition.values[market.market],
       description: definition.description,
       domain: market.domain,
       key: definition.key,
       locale: market.locale,
       market: market.market,
       namespace: definition.namespace,
+      override_value: null,
       status: "active",
-      value: definition.values[market.market],
     }))
+  )
+
+export const isStorefrontTextMarketLocalePair = (
+  market: StorefrontTextMarket,
+  locale: StorefrontTextLocale
+) =>
+  STOREFRONT_TEXT_MARKETS.some(
+    (candidate) =>
+      candidate.market === market && candidate.locale === locale
   )
 
 export const getStorefrontTextDefaultMessages = ({

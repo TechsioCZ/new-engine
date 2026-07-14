@@ -16,7 +16,13 @@ type SyncStorefrontTextsCompensation = {
 
 type StorefrontTextRestoreRecord = Pick<
   StorefrontTextRecord,
-  "country" | "description" | "domain" | "id" | "namespace"
+  | "country"
+  | "default_value"
+  | "description"
+  | "domain"
+  | "id"
+  | "namespace"
+  | "override_value"
 >
 
 type SyncSeedRowResult =
@@ -65,30 +71,40 @@ const syncSeedRow = async (
     }
   }
 
-  const needsMetadataUpdate =
+  const normalizedOverrideValue =
+    existing.override_value === seedRow.default_value
+      ? null
+      : existing.override_value
+  const needsUpdate =
     existing.country !== seedRow.country ||
+    existing.default_value !== seedRow.default_value ||
     existing.description !== seedRow.description ||
     existing.domain !== seedRow.domain ||
-    existing.namespace !== seedRow.namespace
+    existing.namespace !== seedRow.namespace ||
+    existing.override_value !== normalizedOverrideValue
 
-  if (!needsMetadataUpdate) {
+  if (!needsUpdate) {
     return { updated: false }
   }
 
   const previousRecord: StorefrontTextRestoreRecord = {
     country: existing.country,
+    default_value: existing.default_value,
     description: existing.description,
     domain: existing.domain,
     id: existing.id,
     namespace: existing.namespace,
+    override_value: existing.override_value,
   }
 
   await service.updateStorefrontTexts({
     id: existing.id,
     country: seedRow.country,
+    default_value: seedRow.default_value,
     description: seedRow.description,
     domain: seedRow.domain,
     namespace: seedRow.namespace,
+    override_value: normalizedOverrideValue,
   })
 
   return {

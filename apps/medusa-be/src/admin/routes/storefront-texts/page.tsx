@@ -27,6 +27,7 @@ import {
 import {
   listStorefrontTexts,
   type StorefrontText,
+  type StorefrontTextInput,
   storefrontTextQueryKeys,
   syncStorefrontTexts,
   updateStorefrontText,
@@ -136,7 +137,7 @@ const StorefrontTextRows = ({
       <Table.Cell>
         <div className="flex items-center justify-between gap-2">
           <Text className="line-clamp-2" size="small">
-            {getValuePreview(storefrontText.value)}
+            {getValuePreview(storefrontText.effective_value)}
           </Text>
           <IconButton
             aria-label="Upravit text"
@@ -166,35 +167,38 @@ const StorefrontTextEditDrawer = ({
   storefrontText: StorefrontText | null
 }) => {
   const queryClient = useQueryClient()
+  const [overrideValue, setOverrideValue] = useState("")
   const [status, setStatus] = useState<StorefrontTextStatus>("active")
-  const [value, setValue] = useState("")
 
   useEffect(() => {
     if (open && storefrontText) {
+      setOverrideValue(
+        storefrontText.override_value ?? storefrontText.default_value
+      )
       setStatus(storefrontText.status)
-      setValue(storefrontText.value)
     }
   }, [open, storefrontText])
 
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (input: StorefrontTextInput) => {
       if (!storefrontText) {
         throw new Error("Storefront text is required")
       }
 
-      return updateStorefrontText(storefrontText.id, {
-        status,
-        value,
-      })
+      return updateStorefrontText(storefrontText.id, input)
     },
     onError: () => {
       toast.error("Text se nepodařilo uložit.")
     },
-    onSuccess: async () => {
+    onSuccess: async (_, input) => {
       await queryClient.invalidateQueries({
         queryKey: storefrontTextQueryKeys.lists(),
       })
-      toast.success("Text uložen.")
+      toast.success(
+        input.override_value === null
+          ? "Text obnoven na výchozí hodnotu."
+          : "Text uložen."
+      )
       onOpenChange(false)
     },
   })
@@ -204,6 +208,9 @@ const StorefrontTextEditDrawer = ({
       <Drawer.Content>
         <Drawer.Header>
           <Drawer.Title>Upravit text</Drawer.Title>
+          <Drawer.Description className="sr-only">
+            Úprava storefront textu a jeho publikačního statusu.
+          </Drawer.Description>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto p-4">
           {storefrontText ? (
@@ -252,11 +259,19 @@ const StorefrontTextEditDrawer = ({
             </>
           ) : null}
           <div className="flex flex-col gap-2">
-            <Label>Hodnota</Label>
+            <Label>Výchozí hodnota</Label>
             <Textarea
-              onChange={(event) => setValue(event.target.value)}
+              readOnly
               rows={5}
-              value={value}
+              value={storefrontText?.default_value ?? ""}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Vlastní hodnota</Label>
+            <Textarea
+              onChange={(event) => setOverrideValue(event.target.value)}
+              rows={5}
+              value={overrideValue}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -283,21 +298,42 @@ const StorefrontTextEditDrawer = ({
           </div>
         </Drawer.Body>
         <Drawer.Footer>
-          <div className="flex items-center justify-end gap-2">
-            <Drawer.Close asChild>
-              <Button size="small" type="button" variant="secondary">
-                Zrušit
-              </Button>
-            </Drawer.Close>
+          <div className="flex w-full items-center justify-between gap-2">
             <Button
-              disabled={!value.trim()}
-              isLoading={mutation.isPending}
-              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !storefrontText?.has_override}
+              isLoading={
+                mutation.isPending && mutation.variables?.override_value === null
+              }
+              onClick={() => mutation.mutate({ override_value: null })}
               size="small"
               type="button"
+              variant="secondary"
             >
-              Uložit
+              Obnovit výchozí
             </Button>
+            <div className="flex items-center justify-end gap-2">
+              <Drawer.Close asChild>
+                <Button size="small" type="button" variant="secondary">
+                  Zrušit
+                </Button>
+              </Drawer.Close>
+              <Button
+                disabled={mutation.isPending || !overrideValue.trim()}
+                isLoading={
+                  mutation.isPending && mutation.variables?.override_value !== null
+                }
+                onClick={() =>
+                  mutation.mutate({
+                    override_value: overrideValue,
+                    status,
+                  })
+                }
+                size="small"
+                type="button"
+              >
+                Uložit
+              </Button>
+            </div>
           </div>
         </Drawer.Footer>
       </Drawer.Content>
