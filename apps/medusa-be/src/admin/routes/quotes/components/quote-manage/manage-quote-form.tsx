@@ -1,6 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { AdminOrder } from "@medusajs/framework/types"
-import { z } from "@medusajs/framework/zod"
 import { Button, Heading, toast } from "@medusajs/ui"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -11,10 +9,6 @@ import {
 import { useConfirmQuote, useOrderPreview } from "../../../../hooks/api"
 import { formatAmount } from "../../../../utils"
 import { ManageItemsSection } from "./manage-items-section"
-
-export const ManageQuoteFormSchema = z.object({})
-
-export type ManageQuoteFormSchemaType = z.infer<typeof ManageQuoteFormSchema>
 
 type ReturnCreateFormProps = {
   order: AdminOrder
@@ -36,9 +30,8 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
   /**
    * FORM
    */
-  const form = useForm<ManageQuoteFormSchemaType>({
+  const form = useForm({
     defaultValues: () => Promise.resolve({}),
-    resolver: zodResolver(ManageQuoteFormSchema),
   })
 
   const handleSubmit = form.handleSubmit(async () => {

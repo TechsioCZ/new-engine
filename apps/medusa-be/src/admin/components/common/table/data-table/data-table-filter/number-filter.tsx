@@ -11,9 +11,9 @@ import {
   Root as RadioGroupRoot,
 } from "@radix-ui/react-radio-group"
 import type { TFunction } from "i18next"
-import { debounce } from "lodash"
-import { type ChangeEvent, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { debounce } from "../../../../../utils/debounce"
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
@@ -53,52 +53,48 @@ export const NumberFilter = ({
 
   const debouncedOnChange = useMemo(
     () =>
-      debounce(
-        (e: ChangeEvent<HTMLInputElement>, selectedOperator: Operator) => {
-          const value = e.target.value
-          const curr = JSON.parse(currentValue?.join(",") || "{}")
-          const isCurrentNumber = !Number.isNaN(Number(curr))
+      debounce((value: string, selectedOperator: Operator) => {
+        const curr = JSON.parse(currentValue?.join(",") || "{}")
+        const isCurrentNumber = !Number.isNaN(Number(curr))
 
-          const handleValue = (valueOperator: Operator) => {
-            if (!value && isCurrentNumber) {
+        const handleValue = (valueOperator: Operator) => {
+          if (!value && isCurrentNumber) {
+            selectedParams.delete()
+            return
+          }
+
+          if (curr && !value) {
+            delete curr[valueOperator]
+            selectedParams.add(JSON.stringify(curr))
+            return
+          }
+
+          if (!curr) {
+            selectedParams.add(JSON.stringify({ [valueOperator]: value }))
+            return
+          }
+
+          selectedParams.add(
+            JSON.stringify({ ...curr, [valueOperator]: value })
+          )
+        }
+
+        switch (selectedOperator) {
+          case "eq":
+            if (value) {
+              selectedParams.add(value)
+            } else {
               selectedParams.delete()
-              return
             }
-
-            if (curr && !value) {
-              delete curr[valueOperator]
-              selectedParams.add(JSON.stringify(curr))
-              return
-            }
-
-            if (!curr) {
-              selectedParams.add(JSON.stringify({ [valueOperator]: value }))
-              return
-            }
-
-            selectedParams.add(
-              JSON.stringify({ ...curr, [valueOperator]: value })
-            )
-          }
-
-          switch (selectedOperator) {
-            case "eq":
-              if (value) {
-                selectedParams.add(value)
-              } else {
-                selectedParams.delete()
-              }
-              break
-            case "lt":
-            case "gt":
-              handleValue(selectedOperator)
-              break
-            default:
-              break
-          }
-        },
-        500
-      ),
+            break
+          case "lt":
+          case "gt":
+            handleValue(selectedOperator)
+            break
+          default:
+            break
+        }
+      }, 500),
     [selectedParams, currentValue]
   )
 
@@ -215,7 +211,9 @@ export const NumberFilter = ({
                     <Input
                       defaultValue={getValue(currentValue, "gt")}
                       name={GT_KEY}
-                      onChange={(e) => debouncedOnChange(e, "gt")}
+                      onChange={(event) =>
+                        debouncedOnChange(event.target.value, "gt")
+                      }
                       size="small"
                       type="number"
                     />
@@ -229,7 +227,9 @@ export const NumberFilter = ({
                     <Input
                       defaultValue={getValue(currentValue, "lt")}
                       name={LT_KEY}
-                      onChange={(e) => debouncedOnChange(e, "lt")}
+                      onChange={(event) =>
+                        debouncedOnChange(event.target.value, "lt")
+                      }
                       size="small"
                       type="number"
                     />
@@ -246,7 +246,9 @@ export const NumberFilter = ({
                     <Input
                       defaultValue={getValue(currentValue, "eq")}
                       name={EQ_KEY}
-                      onChange={(e) => debouncedOnChange(e, "eq")}
+                      onChange={(event) =>
+                        debouncedOnChange(event.target.value, "eq")
+                      }
                       size="small"
                       type="number"
                     />

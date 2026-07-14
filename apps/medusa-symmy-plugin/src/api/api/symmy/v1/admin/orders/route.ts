@@ -1,6 +1,6 @@
-import { getOrdersListWorkflow } from "@medusajs/core-flows"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { getOrdersListWorkflow } from "@medusajs/medusa/core-flows"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   const variables = {

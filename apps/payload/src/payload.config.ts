@@ -24,6 +24,7 @@ import { Media } from "./collections/media"
 import { PageCategories } from "./collections/page-categories"
 import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
+import { migrations } from "./migrations"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
 import { healthEndpoint } from "./lib/endpoints/health"
@@ -107,6 +108,7 @@ export default buildConfig({
     },
     schemaName: process.env.PAYLOAD_SCHEMA_NAME,
     push: false,
+    prodMigrations: migrations,
   }),
   sharp,
   plugins: [

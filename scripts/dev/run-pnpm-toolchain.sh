@@ -35,6 +35,10 @@ esac
 if [[ "${PNPM_TOOLCHAIN_TTY:-0}" == "1" ]]; then
   if [[ -t 0 && -t 1 ]]; then
     docker_args+=(-it)
+    docker_args+=(-e TERM="${TERM:-xterm-256color}")
+    if [[ -z "${NO_COLOR:-}" ]]; then
+      docker_args+=(-e FORCE_COLOR="${FORCE_COLOR:-1}")
+    fi
   else
     docker_args+=(-i)
   fi

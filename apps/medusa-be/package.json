@@ -140,6 +140,7 @@
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
     "cross-env": "^10.1.0",
+    "pg-god": "1.0.12",
     "ts-node": "10.9.2",
     "typescript": "^5.9.3",
     "vite": "8.1.3",

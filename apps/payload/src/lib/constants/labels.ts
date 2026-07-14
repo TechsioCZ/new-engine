@@ -107,6 +107,11 @@ export const collectionLabels = {
 
 /** Localized field labels shared across collections. */
 export const fieldLabels = {
+  internalTitle: {
+    en: "Internal title",
+    cs: "Interní název",
+    sk: "Interný názov",
+  },
   title: {
     en: "Title",
     cs: "Název",
