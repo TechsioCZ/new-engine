@@ -1,7 +1,7 @@
 "use client"
 import { BENEFITS } from "@/assets/benefits"
-import { BLOG_POSTS, HERO_BANNERS } from "@/components/homepage/homepage.data"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
+import { BLOG_POSTS, HERO_BANNERS } from "@/components/homepage/homepage.data"
 import { HomepageBlogSection } from "@/components/homepage/sections/homepage-blog-section"
 import { HomepageHeroCarouselSection } from "@/components/homepage/sections/homepage-hero-carousel-section"
 import { HomepageProductCollectionSection } from "@/components/homepage/sections/homepage-product-collection-section"
