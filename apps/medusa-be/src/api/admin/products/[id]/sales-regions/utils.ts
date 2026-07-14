@@ -19,6 +19,13 @@ export type TaxRateRule = {
   tax_rate_id: string
 }
 
+export type SalesRegionTaxRate = {
+  id: string
+  is_default?: boolean
+  name?: string | null
+  rate?: unknown
+}
+
 export function toNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value
@@ -37,6 +44,30 @@ export function toNumber(value: unknown): number | undefined {
 
 export function isProductRule(rule: TaxRateRule, productId: string) {
   return rule.reference === "product" && rule.reference_id === productId
+}
+
+export function resolveEffectiveRate(
+  regionRates: SalesRegionTaxRate[],
+  rulesByRateId: Map<string, TaxRateRule[]>,
+  productId: string
+) {
+  const productRate = regionRates.find((candidateRate) =>
+    (rulesByRateId.get(candidateRate.id) ?? []).some((rule) =>
+      isProductRule(rule, productId)
+    )
+  )
+  const defaultRate = regionRates.find(
+    (candidateRate) => candidateRate.is_default
+  )
+  const fallbackRate = regionRates.find(
+    (candidateRate) => (rulesByRateId.get(candidateRate.id) ?? []).length === 0
+  )
+  const selectedRate = productRate ?? defaultRate ?? fallbackRate
+  const rate = toNumber(selectedRate?.rate)
+
+  return rate === undefined || !selectedRate
+    ? undefined
+    : { rate, taxRate: selectedRate }
 }
 
 export function getStringField(

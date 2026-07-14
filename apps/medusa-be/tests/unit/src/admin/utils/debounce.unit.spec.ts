@@ -8,27 +8,33 @@ describe("admin debounce", () => {
     vi.useRealTimers()
   })
 
-  it("invokes the callback once with the latest arguments", () => {
+  it("invokes the callback once with the latest arguments", async () => {
     vi.useFakeTimers()
-    const callback = vi.fn()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"))
+    const callback = vi.fn(async () => {
+      await Promise.resolve()
+    })
     const debounced = debounce(callback, 500)
 
     debounced("first")
     debounced("second")
-    vi.advanceTimersByTime(500)
+    await vi.advanceTimersByTimeAsync(500)
 
     expect(callback).toHaveBeenCalledOnce()
     expect(callback).toHaveBeenCalledWith("second")
   })
 
-  it("cancels a pending invocation", () => {
+  it("cancels a pending invocation", async () => {
     vi.useFakeTimers()
-    const callback = vi.fn()
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"))
+    const callback = vi.fn(async () => {
+      await Promise.resolve()
+    })
     const debounced = debounce(callback, 500)
 
     debounced()
     debounced.cancel()
-    vi.advanceTimersByTime(500)
+    await vi.advanceTimersByTimeAsync(500)
 
     expect(callback).not.toHaveBeenCalled()
   })

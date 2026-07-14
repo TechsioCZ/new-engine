@@ -7,6 +7,7 @@ import {
   isProductRule,
   isRegionCountry,
   isTaxRateRule,
+  resolveEffectiveRate,
   toNumber,
   toRegionWithCountries,
   toSalesRegionProduct,
@@ -29,6 +30,95 @@ describe("product sales regions route utils", () => {
 
     expect(isProductRule(rule, "prod_1")).toBe(true)
     expect(isProductRule(rule, "prod_2")).toBe(false)
+  })
+
+  it("prefers a product-specific rate", () => {
+    const rulesByRateId = new Map([
+      [
+        "txrate_product",
+        [
+          {
+            reference: "product",
+            reference_id: "prod_1",
+            tax_rate_id: "txrate_product",
+          },
+        ],
+      ],
+    ])
+
+    expect(
+      resolveEffectiveRate(
+        [
+          { id: "txrate_fallback", rate: 10 },
+          { id: "txrate_default", is_default: true, rate: 20 },
+          { id: "txrate_product", rate: 30 },
+        ],
+        rulesByRateId,
+        "prod_1"
+      )
+    ).toMatchObject({ rate: 30, taxRate: { id: "txrate_product" } })
+  })
+
+  it("prefers a default rate when there is no product-specific rate", () => {
+    const rulesByRateId = new Map([
+      [
+        "txrate_default",
+        [
+          {
+            reference: "customer_group",
+            reference_id: "cusgrp_1",
+            tax_rate_id: "txrate_default",
+          },
+        ],
+      ],
+    ])
+
+    expect(
+      resolveEffectiveRate(
+        [
+          { id: "txrate_fallback", rate: 10 },
+          { id: "txrate_default", is_default: true, rate: "20" },
+        ],
+        rulesByRateId,
+        "prod_1"
+      )
+    ).toMatchObject({ rate: 20, taxRate: { id: "txrate_default" } })
+  })
+
+  it("uses a ruleless rate as the fallback", () => {
+    const rulesByRateId = new Map([
+      [
+        "txrate_ruled",
+        [
+          {
+            reference: "customer_group",
+            reference_id: "cusgrp_1",
+            tax_rate_id: "txrate_ruled",
+          },
+        ],
+      ],
+    ])
+
+    expect(
+      resolveEffectiveRate(
+        [
+          { id: "txrate_ruled", rate: 20 },
+          { id: "txrate_fallback", rate: 10 },
+        ],
+        rulesByRateId,
+        "prod_1"
+      )
+    ).toMatchObject({ rate: 10, taxRate: { id: "txrate_fallback" } })
+  })
+
+  it("returns undefined when the selected rate is not numeric", () => {
+    expect(
+      resolveEffectiveRate(
+        [{ id: "txrate_invalid", rate: "invalid" }],
+        new Map(),
+        "prod_1"
+      )
+    ).toBeUndefined()
   })
 
   it("reads only string and array fields from objects", () => {

@@ -13,17 +13,64 @@ import {
 import { normalizeCountryCode } from "../../../../../utils/country-code"
 import {
   getRegionCountryCodes,
-  isProductRule,
   isTaxRateRule,
   type RegionWithCountries,
+  resolveEffectiveRate,
   type TaxRateRule,
-  toNumber,
   toRegionWithCountries,
   toSalesRegionProduct,
 } from "./utils"
 
 const CHUNK_SIZE = 100
+const CONFIG_CACHE_TTL_MS = 30_000
 const PRODUCT_NOT_FOUND_MESSAGE = "Product not found"
+
+type CacheEntry<TValue> = {
+  expiresAt: number
+  value: Promise<TValue>
+}
+
+const regionsCache = new Map<string, CacheEntry<RegionWithCountries[]>>()
+const taxRegionsCache = new Map<string, CacheEntry<TaxRegionDTO[]>>()
+const taxRatesCache = new Map<string, CacheEntry<TaxRateDTO[]>>()
+const taxRateRulesCache = new Map<string, CacheEntry<TaxRateRule[]>>()
+
+function getCachedConfig<TValue>(
+  cache: Map<string, CacheEntry<TValue>>,
+  key: string,
+  load: () => Promise<TValue>
+) {
+  const cached = cache.get(key)
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value
+  }
+
+  const value = load()
+  cache.set(key, {
+    expiresAt: Date.now() + CONFIG_CACHE_TTL_MS,
+    value,
+  })
+  value.catch(() => {
+    if (cache.get(key)?.value === value) {
+      cache.delete(key)
+    }
+  })
+
+  return value
+}
+
+function getSetCacheKey(values: string[]) {
+  return [...new Set(values)].sort().join(",")
+}
+
+function getCountryCodeSetCacheKey(countryCodes: string[]) {
+  return getSetCacheKey(
+    countryCodes.flatMap(
+      (countryCode) => normalizeCountryCode(countryCode) ?? []
+    )
+  )
+}
 
 async function listAllRegions(regionService: IRegionModuleService) {
   const regions: RegionWithCountries[] = []
@@ -158,10 +205,18 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const salesChannels = product.sales_channels ?? []
   const countryCodes = salesChannels.length
-    ? getRegionCountryCodes(await listAllRegions(regionService))
+    ? getRegionCountryCodes(
+        await getCachedConfig(regionsCache, "all", () =>
+          listAllRegions(regionService)
+        )
+      )
     : []
   const taxRegions = countryCodes.length
-    ? await listAllTaxRegions(taxService, countryCodes)
+    ? await getCachedConfig(
+        taxRegionsCache,
+        getCountryCodeSetCacheKey(countryCodes),
+        () => listAllTaxRegions(taxService, countryCodes)
+      )
     : []
   const topLevelCountryTaxRegions = taxRegions.filter(
     (taxRegion) =>
@@ -171,11 +226,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     (taxRegion) => taxRegion.id
   )
   const taxRates = taxRegionIds.length
-    ? await listAllTaxRates(taxService, taxRegionIds)
+    ? await getCachedConfig(taxRatesCache, getSetCacheKey(taxRegionIds), () =>
+        listAllTaxRates(taxService, taxRegionIds)
+      )
     : []
   const taxRateIds = taxRates.map((taxRate) => taxRate.id)
   const taxRateRules = taxRateIds.length
-    ? await listAllTaxRateRules(taxService, taxRateIds)
+    ? await getCachedConfig(taxRateRulesCache, getSetCacheKey(taxRateIds), () =>
+        listAllTaxRateRules(taxService, taxRateIds)
+      )
     : []
 
   const rulesByRateId = new Map<string, TaxRateRule[]>()
@@ -196,28 +255,22 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const regionRates = taxRates.filter(
       (taxRate) => taxRate.tax_region_id === taxRegion.id
     )
-    const productRate = regionRates.find((taxRate) =>
-      (rulesByRateId.get(taxRate.id) ?? []).some((rule) =>
-        isProductRule(rule, productId)
-      )
+    const effectiveRate = resolveEffectiveRate(
+      regionRates,
+      rulesByRateId,
+      productId
     )
-    const defaultRate = regionRates.find((taxRate) => taxRate.is_default)
-    const fallbackRate = regionRates.find(
-      (taxRate) => (rulesByRateId.get(taxRate.id) ?? []).length === 0
-    )
-    const effectiveRate = productRate ?? defaultRate ?? fallbackRate
-    const rate = toNumber(effectiveRate?.rate)
 
-    if (rate === undefined) {
+    if (!effectiveRate) {
       return []
     }
 
     return [
       {
         country_code: countryCode,
-        rate,
-        tax_rate_id: effectiveRate?.id,
-        tax_rate_name: effectiveRate?.name,
+        rate: effectiveRate.rate,
+        tax_rate_id: effectiveRate.taxRate.id,
+        tax_rate_name: effectiveRate.taxRate.name,
         tax_region_id: taxRegion.id,
       },
     ]
