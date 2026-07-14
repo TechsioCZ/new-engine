@@ -8,6 +8,7 @@ import type {
   StorefrontTextStatus,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
+import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-text/value"
 import type { AdminGetStorefrontTextsSchemaType } from "./validators"
 
 type StorefrontTextFilters = {
@@ -20,11 +21,12 @@ type StorefrontTextFilters = {
 
 const SEARCH_FIELDS = [
   "description",
+  "default_value",
   "key",
   "locale",
   "market",
   "namespace",
-  "value",
+  "override_value",
 ] as const
 
 const escapeLikePattern = (value: string) =>
@@ -106,6 +108,13 @@ export async function GET(
     count,
     limit,
     offset,
-    storefront_texts: storefrontTexts satisfies StorefrontTextRecord[],
+    storefront_texts: storefrontTexts.map((storefrontText) => ({
+      ...storefrontText,
+      effective_value: getEffectiveStorefrontTextValue(storefrontText),
+      has_override: storefrontText.override_value !== null,
+    })) satisfies (StorefrontTextRecord & {
+      effective_value: string
+      has_override: boolean
+    })[],
   })
 }

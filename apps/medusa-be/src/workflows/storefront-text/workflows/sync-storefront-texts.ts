@@ -5,6 +5,8 @@ import {
 import { syncStorefrontTextsStep } from "../steps/sync-storefront-texts"
 
 export const syncStorefrontTextsWorkflow = createWorkflow(
-  "sync-storefront-texts-workflow",
-  () => new WorkflowResponse(syncStorefrontTextsStep())
+  "sync-storefront-texts",
+  function () {
+    return new WorkflowResponse(syncStorefrontTextsStep())
+  }
 )

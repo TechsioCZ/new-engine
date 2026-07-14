@@ -7,16 +7,19 @@ import { sdk } from "./sdk"
 export type StorefrontText = {
   country: string
   created_at?: string
+  default_value: string
   description?: null | string
   domain: string
+  effective_value: string
+  has_override: boolean
   id: string
   key: string
   locale: string
   market: string
   namespace: RegistryStorefrontTextNamespace
+  override_value: null | string
   status: RegistryStorefrontTextStatus
   updated_at?: string
-  value: string
 }
 
 export type StorefrontTextsResponse = {
@@ -37,8 +40,8 @@ export type StorefrontTextListParams = {
 }
 
 export type StorefrontTextInput = {
+  override_value?: null | string
   status?: RegistryStorefrontTextStatus
-  value?: string
 }
 
 export type StorefrontTextResponse = {

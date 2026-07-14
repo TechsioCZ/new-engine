@@ -4,12 +4,14 @@ import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import {
   getStorefrontTextDefaultMessages,
+  isStorefrontTextMarketLocalePair,
   STOREFRONT_TEXT_DEFINITIONS,
   STOREFRONT_TEXT_LOCALES,
   type StorefrontTextKey,
   type StorefrontTextLocale,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
+import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-text/value"
 import type { StoreGetStorefrontTextsSchemaType } from "./validators"
 
 const STOREFRONT_TEXT_LOCALE_VALUES = new Set<string>(STOREFRONT_TEXT_LOCALES)
@@ -26,10 +28,10 @@ const isStorefrontTextKey = (key: string): key is StorefrontTextKey =>
 
 const hasStorefrontTextMessage = (
   item: StorefrontTextRecord
-): item is StorefrontTextRecord & { key: StorefrontTextKey; value: string } =>
+): item is StorefrontTextRecord & { key: StorefrontTextKey } =>
   typeof item.key === "string" &&
   isStorefrontTextKey(item.key) &&
-  typeof item.value === "string"
+  typeof item.default_value === "string"
 
 const resolveLocale = (locale?: string): StorefrontTextLocale => {
   if (!locale) {
@@ -55,6 +57,14 @@ export async function GET(
 ) {
   const { market, namespace } = req.validatedQuery
   const locale = resolveLocale(req.locale)
+
+  if (!isStorefrontTextMarketLocalePair(market, locale)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Locale "${locale}" does not belong to market "${market}"`
+    )
+  }
+
   const service = req.scope.resolve<StorefrontTextModuleService>(
     STOREFRONT_TEXT_MODULE
   )
@@ -69,7 +79,7 @@ export async function GET(
     ...Object.fromEntries(
       storefrontTexts
         .filter(hasStorefrontTextMessage)
-        .map((item) => [item.key, item.value])
+        .map((item) => [item.key, getEffectiveStorefrontTextValue(item)])
     ),
   }
 

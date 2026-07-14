@@ -10,7 +10,8 @@ const StorefrontText = model
     market: model.text().searchable(),
     country: model.text(),
     domain: model.text(),
-    value: model.text(),
+    default_value: model.text(),
+    override_value: model.text().nullable(),
     description: model.text().nullable(),
     status: model.text().default("active"),
   })
