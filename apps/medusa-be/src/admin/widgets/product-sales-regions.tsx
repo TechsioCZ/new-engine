@@ -197,19 +197,24 @@ const ProductSalesRegionsWidget = ({
   const countriesByCode = getCountriesByCode(regionsData?.regions)
   const rows = getSalesRegionRows(data, countriesByCode)
   const salesChannelCount = data?.product.sales_channels.length ?? 0
+  const salesChannelLabel = `${salesChannelCount} ${
+    salesChannelCount === 1 ? "channel" : "channels"
+  }`
 
   return (
     <Container className="divide-y p-0">
-      <div className="flex items-center justify-between gap-3 px-6 py-4">
-        <div>
-          <Text size="small" weight="plus">
+      <div className="flex items-start justify-between gap-3 px-6 py-4">
+        <div className="min-w-0">
+          <Text leading="compact" size="small" weight="plus">
             Sales regions
           </Text>
-          <Text className="text-ui-fg-subtle" size="small">
+          <Text className="text-ui-fg-subtle" leading="compact" size="small">
             Regions where this product is sold and their VAT rate.
           </Text>
         </div>
-        <Badge size="2xsmall">{salesChannelCount} channels</Badge>
+        <Badge className="shrink-0 whitespace-nowrap" size="2xsmall">
+          {salesChannelLabel}
+        </Badge>
       </div>
       <div className="flex flex-col gap-2 px-6 py-4">
         <SalesRegionsContent
