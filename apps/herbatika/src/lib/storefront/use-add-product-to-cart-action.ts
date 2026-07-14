@@ -1,18 +1,18 @@
 "use client"
 
 import { useAppToast } from "@/hooks/use-app-toast"
+import { useTranslations } from "next-intl"
 import {
   type AddProductToCartInput,
   resolveAddProductToCartErrorMessage,
   useAddProductToCart,
   type UseAddProductToCartProps,
 } from "./use-add-product-to-cart"
-import { useCartStorefrontTexts } from "./use-cart-storefront-texts"
 
 export function useAddProductToCartAction(
   props: UseAddProductToCartProps
 ) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const toast = useAppToast()
   const {
     addProductToCart: mutateAddProductToCart,
@@ -22,10 +22,10 @@ export function useAddProductToCartAction(
   const addProductToCart = async (input: AddProductToCartInput) => {
     try {
       await mutateAddProductToCart(input)
-      toast.success({ title: cartTexts.addedToCart })
+      toast.success({ title: t("added_to_cart") })
     } catch (error) {
       toast.error({
-        title: resolveAddProductToCartErrorMessage(error, cartTexts.failed),
+        title: resolveAddProductToCartErrorMessage(error, t("failed")),
       })
     }
   }

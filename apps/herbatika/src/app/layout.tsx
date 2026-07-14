@@ -6,6 +6,11 @@ import {
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
+import {
+  type AbstractIntlMessages,
+  NextIntlClientProvider,
+} from "next-intl"
+import { getMessages } from "next-intl/server"
 import localFont from "next/font/local"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
@@ -18,8 +23,6 @@ import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
-import type { StorefrontTextMessages } from "@/lib/storefront/storefront-texts"
-import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
 import "./globals.css"
 import { Providers } from "./providers"
 
@@ -79,7 +82,7 @@ type LayoutShellProps = Readonly<{
   dehydratedState: DehydratedState
   initialRegion?: RegionInfo | null
   marketContext: HerbatikaMarketContext
-  storefrontTextMessages: StorefrontTextMessages
+  messages: AbstractIntlMessages
 }>
 
 function LayoutShell({
@@ -87,20 +90,21 @@ function LayoutShell({
   dehydratedState,
   initialRegion = null,
   marketContext,
-  storefrontTextMessages,
+  messages,
 }: LayoutShellProps) {
   return (
-    <Providers
-      initialMarketContext={marketContext}
-      initialRegion={initialRegion}
-      storefrontTextMessages={storefrontTextMessages}
-    >
-      <HydrationBoundary state={dehydratedState}>
-        <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-          <AppShell>{children}</AppShell>
-        </Suspense>
-      </HydrationBoundary>
-    </Providers>
+    <NextIntlClientProvider messages={messages}>
+      <Providers
+        initialMarketContext={marketContext}
+        initialRegion={initialRegion}
+      >
+        <HydrationBoundary state={dehydratedState}>
+          <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+            <AppShell>{children}</AppShell>
+          </Suspense>
+        </HydrationBoundary>
+      </Providers>
+    </NextIntlClientProvider>
   )
 }
 
@@ -111,9 +115,9 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
 }>) {
-  const [{ queryClient, region }, storefrontTextMessages] = await Promise.all([
+  const [{ queryClient, region }, messages] = await Promise.all([
     getRegionServerContext(),
-    fetchStorefrontTextMessages(marketContext),
+    getMessages(),
   ])
 
   try {
@@ -134,7 +138,7 @@ async function ResolvedLayoutShell({
       dehydratedState={dehydrate(queryClient)}
       initialRegion={region}
       marketContext={marketContext}
-      storefrontTextMessages={storefrontTextMessages}
+      messages={messages}
     >
       {children}
     </LayoutShell>

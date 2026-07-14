@@ -1,5 +1,8 @@
 import { join } from "node:path"
 import type { NextConfig } from "next"
+import createNextIntlPlugin from "next-intl/plugin"
+
+const withNextIntl = createNextIntlPlugin()
 
 type ImageRemotePattern = {
   protocol: "http" | "https"
@@ -60,7 +63,11 @@ const nextConfig: NextConfig = {
   ],
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
+  transpilePackages: [
+    "@techsio/ui-kit",
+    "@techsio/storefront-data",
+    "@techsio/storefront-i18n",
+  ],
   reactCompiler: true,
   cacheComponents: true,
   outputFileTracingRoot: join(__dirname, "../../"),
@@ -102,4 +109,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withNextIntl(nextConfig)

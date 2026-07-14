@@ -1,4 +1,5 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import {
   resolvePaymentDescription,
   resolvePaymentHint,
@@ -7,7 +8,6 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
 type PaymentProvider = {
@@ -41,19 +41,19 @@ export function CheckoutPaymentSection({
   selectedPaymentProviderId,
   selectionMessage,
 }: CheckoutPaymentSectionProps) {
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCheckout = useTranslations("checkout")
 
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header>
         <h2 className="font-medium text-fg-primary text-xl">
-          {checkoutTexts.payment}
+          {tCheckout("payment")}
         </h2>
       </header>
       <div className="grid gap-150">
         {paymentProviders.length > 0 ? (
           <CheckoutOptionRadioCard
-            label={checkoutTexts.payment}
+            label={tCheckout("payment")}
             onValueChange={(value) => {
               runDetachedPromise(onSelectPaymentProvider(value))
             }}
@@ -70,7 +70,7 @@ export function CheckoutPaymentSection({
                 bodyText: resolvePaymentDescription(providerId),
                 hint: resolvePaymentHint(providerId),
                 icon: resolvePaymentIcon(providerId),
-                priceLabel: checkoutTexts.free,
+                priceLabel: tCheckout("free"),
                 priceTone: "success" as const,
                 title: providerLabel,
                 value: providerId || `${providerLabel}-${index}`,
@@ -79,7 +79,7 @@ export function CheckoutPaymentSection({
             value={selectedPaymentProviderId ?? null}
           />
         ) : (
-          <SupportingText>{checkoutTexts.noPaymentMethods}</SupportingText>
+          <SupportingText>{tCheckout("no_payment_methods")}</SupportingText>
         )}
         {paymentProviders.length > 0 && selectionMessage ? (
           <PaymentSelectionMessage message={selectionMessage} />

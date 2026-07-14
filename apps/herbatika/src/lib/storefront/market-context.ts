@@ -1,3 +1,5 @@
+import { defineStorefrontMarkets } from "@techsio/storefront-i18n/core/markets"
+
 export type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
 export type HerbatikaCountryCode = "sk" | "cz" | "hu" | "ro"
@@ -94,77 +96,22 @@ const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
 }
 
 export const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"
-export const DEFAULT_MARKET_CONTEXT = MARKET_CONFIG[DEFAULT_MARKET_CODE]
+const marketResolver = defineStorefrontMarkets({
+  defaultMarketCode: DEFAULT_MARKET_CODE,
+  hostMarketMap: HOST_MARKET_MAP,
+  languageMarketMap: LANGUAGE_MARKET_MAP,
+  markets: MARKET_CONFIG,
+})
+
+export const DEFAULT_MARKET_CONTEXT = marketResolver.defaultMarket
 export const HERBATIKA_MARKETS = Object.values(MARKET_CONFIG)
 
 export const getHerbatikaMarketContext = (
   code: HerbatikaMarketCode
-): HerbatikaMarketContext => MARKET_CONFIG[code]
-
-export const normalizeHost = (host?: string | null) => {
-  const firstHost = host?.split(",")[0]?.trim().toLowerCase()
-
-  if (!firstHost) {
-    return null
-  }
-
-  return firstHost
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .replace(/:\d+$/, "")
-    .replace(/\.$/, "")
-}
-
-const resolveMarketCodeFromHost = (host?: string | null) => {
-  const normalizedHost = normalizeHost(host)
-
-  if (!normalizedHost) {
-    return null
-  }
-
-  return HOST_MARKET_MAP[normalizedHost] ?? null
-}
-
-const resolveMarketCodeFromAcceptLanguage = (
-  acceptLanguage?: string | null
-) => {
-  if (!acceptLanguage) {
-    return null
-  }
-
-  const languageItems = acceptLanguage
-    .split(",")
-    .map((item) => {
-      const [rawTag, rawQuality] = item.trim().split(";q=")
-      const quality = rawQuality ? Number.parseFloat(rawQuality) : 1
-
-      return {
-        primaryTag: rawTag?.split("-")[0]?.toLowerCase() ?? "",
-        quality: Number.isFinite(quality) ? quality : 1,
-      }
-    })
-    .filter((item) => item.primaryTag)
-    .sort((left, right) => right.quality - left.quality)
-
-  for (const item of languageItems) {
-    const marketCode = LANGUAGE_MARKET_MAP[item.primaryTag]
-
-    if (marketCode) {
-      return marketCode
-    }
-  }
-
-  return null
-}
+): HerbatikaMarketContext => marketResolver.getMarket(code)
 
 export const resolveMarketContext = ({
   acceptLanguage,
   host,
-}: ResolveMarketContextInput = {}): HerbatikaMarketContext => {
-  const marketCode =
-    resolveMarketCodeFromHost(host) ??
-    resolveMarketCodeFromAcceptLanguage(acceptLanguage) ??
-    DEFAULT_MARKET_CODE
-
-  return MARKET_CONFIG[marketCode]
-}
+}: ResolveMarketContextInput = {}): HerbatikaMarketContext =>
+  marketResolver.resolveMarket({ acceptLanguage, host })

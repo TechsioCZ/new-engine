@@ -1,4 +1,5 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+import { useTranslations } from "next-intl"
 import {
   type CarrierPickupAddress,
   formatCarrierPickupAddress,
@@ -6,9 +7,7 @@ import {
 import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
-import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
-import { useFormStorefrontTexts } from "@/lib/storefront/use-form-storefront-texts"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -25,17 +24,17 @@ export function CheckoutPickupPointDetailsSection({
   isAuthenticated,
   pickupAddress,
 }: CheckoutPickupPointDetailsSectionProps) {
-  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
+  const tCheckout = useTranslations("checkout")
   const isCompanyPurchase = checkoutDetailsForm.values.isCompanyPurchase
-  const formTexts = useFormStorefrontTexts()
-  const fieldValidators = useCheckoutFieldValidators(formTexts.validation)
+  const tForm = useTranslations("form")
+  const fieldValidators = useCheckoutFieldValidators()
 
   return (
     <>
       <section className="space-y-150 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
         <header>
           <h2 className="font-medium text-fg-primary text-xl">
-            {checkoutDetailsTexts.pickupDelivery}
+            {tCheckout("pickup_delivery")}
           </h2>
         </header>
         <div className="space-y-50 rounded-sm bg-highlight p-300">
@@ -51,7 +50,7 @@ export function CheckoutPickupPointDetailsSection({
       <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
         <header>
           <h2 className="font-medium text-fg-primary text-xl">
-            {checkoutDetailsTexts.contactAndBillingDetails}
+            {tCheckout("contact_and_billing_details")}
           </h2>
         </header>
 
@@ -66,7 +65,7 @@ export function CheckoutPickupPointDetailsSection({
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-first-name"
-                  label={formTexts.firstName}
+                  label={tForm("first_name")}
                   required
                   validationMode="blur"
                 />
@@ -80,7 +79,7 @@ export function CheckoutPickupPointDetailsSection({
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-last-name"
-                  label={formTexts.lastName}
+                  label={tForm("last_name")}
                   required
                   validationMode="blur"
                 />
@@ -95,7 +94,7 @@ export function CheckoutPickupPointDetailsSection({
                 <field.TextField
                   autoComplete="email"
                   id="checkout-pickup-email"
-                  label={formTexts.email}
+                  label={tForm("email")}
                   required
                   type="email"
                   validationMode="blur"
@@ -110,7 +109,7 @@ export function CheckoutPickupPointDetailsSection({
               {(field) => (
                 <field.PhoneField
                   id="checkout-pickup-phone"
-                  label={formTexts.phone}
+                  label={tForm("phone")}
                   required
                   validationMode="blur"
                 />
@@ -119,12 +118,12 @@ export function CheckoutPickupPointDetailsSection({
           </div>
 
           <CheckoutPurchaseTypeToggle
-            companyLabel={checkoutDetailsTexts.companyPurchase}
-            groupLabel={checkoutDetailsTexts.purchaseType}
+            companyLabel={tCheckout("company_purchase")}
+            groupLabel={tCheckout("purchase_type")}
             id="checkout-pickup-purchase-type"
             isCompanyPurchase={isCompanyPurchase}
             onValueChange={checkoutDetailsForm.setCompanyPurchase}
-            privateLabel={checkoutDetailsTexts.privatePurchase}
+            privateLabel={tCheckout("private_purchase")}
           />
 
           <div className="grid gap-250 md:grid-cols-2">
@@ -138,7 +137,7 @@ export function CheckoutPickupPointDetailsSection({
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-company"
-                        label={formTexts.companyName}
+                        label={tForm("company_name")}
                         required
                         validationMode="blur"
                       />
@@ -157,7 +156,7 @@ export function CheckoutPickupPointDetailsSection({
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-company-id"
-                        label={formTexts.companyId}
+                        label={tForm("company_id")}
                         required
                         validationMode="blur"
                       />
@@ -171,7 +170,7 @@ export function CheckoutPickupPointDetailsSection({
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-tax-id"
-                        label={formTexts.taxId}
+                        label={tForm("tax_id")}
                         required
                         validationMode="blur"
                       />
@@ -184,7 +183,7 @@ export function CheckoutPickupPointDetailsSection({
                     {(field) => (
                       <field.TextField
                         id="checkout-pickup-vat-id"
-                        label={formTexts.vatId}
+                        label={tForm("vat_id")}
                         validationMode="blur"
                       />
                     )}
@@ -201,8 +200,8 @@ export function CheckoutPickupPointDetailsSection({
                 <field.SelectField
                   id="checkout-pickup-billing-country"
                   items={countryItems}
-                  label={formTexts.country}
-                  placeholder={formTexts.countryPlaceholder}
+                  label={tForm("country")}
+                  placeholder={tForm("country_placeholder")}
                   readOnly
                   required
                   validationMode="blur"
@@ -217,7 +216,7 @@ export function CheckoutPickupPointDetailsSection({
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-billing-address-1"
-                  label={formTexts.address}
+                  label={tForm("address")}
                   required
                   validationMode="blur"
                 />
@@ -231,7 +230,7 @@ export function CheckoutPickupPointDetailsSection({
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-billing-city"
-                  label={formTexts.city}
+                  label={tForm("city")}
                   required
                   validationMode="blur"
                 />
@@ -245,7 +244,7 @@ export function CheckoutPickupPointDetailsSection({
               {(field) => (
                 <field.TextField
                   id="checkout-pickup-billing-postal-code"
-                  label={formTexts.postalCode}
+                  label={tForm("postal_code")}
                   required
                   validationMode="blur"
                 />
@@ -263,7 +262,7 @@ export function CheckoutPickupPointDetailsSection({
                   <field.TextareaField
                     className="min-h-14"
                     id="checkout-pickup-customer-note"
-                    label={formTexts.customerNote}
+                    label={tForm("customer_note")}
                     resize="auto"
                     rows={3}
                     size="sm"

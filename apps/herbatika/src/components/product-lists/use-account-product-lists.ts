@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -29,7 +30,6 @@ import {
   resolveAddProductToCartErrorMessage,
   useAddProductToCart,
 } from "@/lib/storefront/use-add-product-to-cart"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -80,7 +80,7 @@ const showPartialListCartResult = ({
 }
 
 export function useAccountProductLists() {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const authQuery = useAuth()
   const region = useRegionContext()
   const router = useRouter()
@@ -258,7 +258,7 @@ export function useAccountProductLists() {
       })
     } catch (error) {
       toast.error({
-        title: resolveAddProductToCartErrorMessage(error, cartTexts.failed),
+        title: resolveAddProductToCartErrorMessage(error, t("failed")),
       })
     } finally {
       setActiveProductId(null)

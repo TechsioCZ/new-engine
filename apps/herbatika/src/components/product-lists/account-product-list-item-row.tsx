@@ -6,12 +6,12 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import type { StoreProductListItem } from "@/lib/storefront/product-lists"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,
@@ -43,7 +43,7 @@ export function AccountProductListItemRow({
   onQuantitySet,
   product,
 }: AccountProductListItemRowProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const itemProduct = product ?? item.product ?? null
   const productTitle = itemProduct?.title ?? item.product_id ?? "Produkt"
   const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
@@ -163,7 +163,7 @@ export function AccountProductListItemRow({
           disabled={!canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
-          loadingText={cartTexts.addingToCart}
+          loadingText={t("adding_to_cart")}
           onClick={() => {
             if (itemProduct) {
               onAddToCart(item, itemProduct)
@@ -172,7 +172,7 @@ export function AccountProductListItemRow({
           size="sm"
           variant="primary"
         >
-          {cartTexts.addToCart}
+          {t("add_to_cart")}
         </Button>
         <Button
           aria-label={`Odstrániť ${productTitle} zo zoznamu`}

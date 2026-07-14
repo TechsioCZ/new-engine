@@ -3,6 +3,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import {
   type HerbatikaProductCardBaseProps,
@@ -13,7 +14,6 @@ import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
   isAdding: boolean
@@ -26,7 +26,7 @@ export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
 export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
   const { product, onProductHoverStart, onProductHoverEnd } = props
   const { descriptionOverride, isAdding, onAddToCart } = props
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product)
   const defaultVariant = product.variants?.[0] ?? null
@@ -123,7 +123,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               icon="token-icon-cart"
               iconSize="2xl"
               isLoading={isAdding}
-              loadingText={cartTexts.addingToCart}
+              loadingText={t("adding_to_cart")}
               onClick={() => {
                 runDetachedPromise(onAddToCart(product))
               }}
@@ -131,7 +131,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               type="button"
               variant="primary"
             >
-              {cartTexts.addToCart}
+              {t("add_to_cart")}
             </Button>
           </ProductCard.Actions>
         </div>

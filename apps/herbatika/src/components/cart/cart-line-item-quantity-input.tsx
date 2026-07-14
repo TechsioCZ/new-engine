@@ -1,9 +1,8 @@
 "use client"
 
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 type CartLineItemQuantityInputProps = {
   className?: string
@@ -32,7 +31,7 @@ export function CartLineItemQuantityInput({
   quantity,
   size = "md",
 }: CartLineItemQuantityInputProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const [localQuantity, setLocalQuantity] = useState(quantity)
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -96,7 +95,7 @@ export function CartLineItemQuantityInput({
           disabled={isPending || localQuantity <= 0}
         />
         <NumericInput.Input
-          aria-label={formatStorefrontText(cartTexts.quantityAria, {
+          aria-label={t("quantity_aria", {
             itemName,
           })}
           className={inputClassName}

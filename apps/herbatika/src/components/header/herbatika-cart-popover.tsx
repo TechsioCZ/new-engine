@@ -5,6 +5,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useEffect, useRef, useState } from "react"
 import {
@@ -15,9 +16,7 @@ import {
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {
@@ -44,13 +43,13 @@ function CartTotals({
   shippingAmount,
   taxAmount,
 }: CartTotalsProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
 
   return (
     <div className="space-y-150 border-border-secondary border-t pt-250">
       <div className="flex items-center justify-between gap-200">
         <span className="text-fg-secondary">
-          {cartTexts.productsSubtotalExclTax}:
+          {t("products_subtotal_excl_tax")}:
         </span>
         <span>{cartItemsTotalLabel}</span>
       </div>
@@ -58,7 +57,7 @@ function CartTotals({
       {shippingAmount !== null && shippingAmount > 0 ? (
         <div className="flex items-center justify-between gap-200">
           <span className="text-fg-secondary">
-            {cartTexts.shippingExclTax}:
+            {t("shipping_excl_tax")}:
           </span>
           <span>{formatCurrencyAmount(shippingAmount, currencyCode)}</span>
         </div>
@@ -66,20 +65,20 @@ function CartTotals({
 
       {taxAmount > 0 ? (
         <div className="flex items-center justify-between gap-200">
-          <span className="text-fg-secondary">{cartTexts.tax}:</span>
+          <span className="text-fg-secondary">{t("tax")}:</span>
           <span>{formatCurrencyAmount(taxAmount, currencyCode)}</span>
         </div>
       ) : null}
 
       {discountAmount !== null && discountAmount > 0 ? (
         <div className="flex items-center justify-between gap-200 text-success">
-          <span>{cartTexts.discount}:</span>
+          <span>{t("discount")}:</span>
           <span>-{formatCurrencyAmount(discountAmount, currencyCode)}</span>
         </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-200 border-border-secondary border-t pt-200 font-bold text-lg">
-        <span>{cartTexts.totalInclTax}:</span>
+        <span>{t("total_incl_tax")}:</span>
         <span>{cartTotalLabel}</span>
       </div>
     </div>
@@ -87,7 +86,7 @@ function CartTotals({
 }
 
 function EmptyCartPreview() {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
 
   return (
     <output className="flex flex-col items-center gap-200 py-400 text-center">
@@ -96,10 +95,10 @@ function EmptyCartPreview() {
       </span>
       <div className="space-y-50">
         <p className="font-semibold text-fg-primary">
-          {cartTexts.emptyTitle}
+          {t("empty_title")}
         </p>
         <p className="text-fg-secondary text-sm">
-          {cartTexts.emptyDescription}
+          {t("empty_description")}
         </p>
       </div>
     </output>
@@ -112,7 +111,7 @@ export function HerbatikaCartPopover({
   currencyCode,
   itemCount,
 }: HerbatikaCartPopoverProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
@@ -218,10 +217,10 @@ export function HerbatikaCartPopover({
           <Popover.Arrow />
           <Popover.Title>
             {itemCount > 0
-              ? formatStorefrontText(cartTexts.titleWithCount, {
+              ? t("title_with_count", {
                   count: itemCount,
                 })
-              : cartTexts.title}
+              : t("title")}
           </Popover.Title>
           {visibleItems.length > 0 ? (
             <>
@@ -240,7 +239,7 @@ export function HerbatikaCartPopover({
 
               {hiddenItemCount > 0 ? (
                 <p className="text-fg-secondary text-xs">
-                  {formatStorefrontText(cartTexts.additionalItems, {
+                  {t("additional_items", {
                     count: hiddenItemCount,
                   })}
                 </p>
@@ -264,7 +263,7 @@ export function HerbatikaCartPopover({
                   size="md"
                   variant="primary"
                 >
-                  {cartTexts.continueToCheckout}
+                  {t("continue_to_checkout")}
                 </LinkButton>
               </div>
             </>

@@ -10,8 +10,6 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { MarketProvider } from "@/lib/storefront/market-context-provider"
 import { useRegionBootstrap } from "@/lib/storefront/regions"
-import { StorefrontTextProvider } from "@/lib/storefront/storefront-text-provider"
-import type { StorefrontTextMessages } from "@/lib/storefront/storefront-texts"
 
 type RegionBootstrapProviderProps = PropsWithChildren<{
   initialRegion?: RegionInfo | null
@@ -29,7 +27,6 @@ function RegionBootstrapProvider({
 type ProvidersProps = PropsWithChildren<{
   initialMarketContext?: HerbatikaMarketContext
   initialRegion?: RegionInfo | null
-  storefrontTextMessages: StorefrontTextMessages
 }>
 
 function useDisableNextDevIndicator() {
@@ -53,7 +50,6 @@ export function Providers({
   children,
   initialMarketContext,
   initialRegion = null,
-  storefrontTextMessages,
 }: ProvidersProps) {
   useDisableNextDevIndicator()
 
@@ -61,11 +57,9 @@ export function Providers({
     <StorefrontDataProvider>
       <NuqsAdapter>
         <MarketProvider value={initialMarketContext}>
-          <StorefrontTextProvider messages={storefrontTextMessages}>
-            <RegionBootstrapProvider initialRegion={initialRegion}>
-              {children}
-            </RegionBootstrapProvider>
-          </StorefrontTextProvider>
+          <RegionBootstrapProvider initialRegion={initialRegion}>
+            {children}
+          </RegionBootstrapProvider>
         </MarketProvider>
       </NuqsAdapter>
     </StorefrontDataProvider>

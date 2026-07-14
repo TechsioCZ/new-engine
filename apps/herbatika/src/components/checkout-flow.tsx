@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useEffect } from "react"
 import {
   CHECKOUT_STEPS,
@@ -22,8 +23,6 @@ import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkou
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section"
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 
 type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug
@@ -32,13 +31,13 @@ type CheckoutFlowProps = {
 export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const router = useRouter()
   const controller = useCheckoutController()
-  const cartTexts = useCartStorefrontTexts()
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
   const checkoutStepTitles = {
-    address: checkoutTexts.customerDetails,
-    cart: cartTexts.title,
-    "shipping-payment": checkoutTexts.shippingPayment,
-    summary: checkoutTexts.summary,
+    address: tCheckout("customer_details"),
+    cart: tCart("title"),
+    "shipping-payment": tCheckout("shipping_payment"),
+    summary: tCheckout("summary"),
   } satisfies Record<CheckoutStepId, string>
   const requiredStep = resolveRequiredCheckoutStepSlug({
     hasItems: controller.hasItems,
@@ -109,7 +108,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 pt-600 pb-850 font-rubik lg:px-550 xl:px-700">
       <CheckoutStepsSection
         checkoutStepIndex={checkoutStepIndex}
-        completedAriaLabel={checkoutTexts.completedAria}
+        completedAriaLabel={tCheckout("completed_aria")}
         onStepChange={handleCheckoutStepChange}
         steps={checkoutSteps}
       />

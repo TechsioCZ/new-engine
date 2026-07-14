@@ -3,6 +3,7 @@ import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { AddressFormState } from "@/components/checkout/checkout.constants"
 import {
   resolveCountryLabel,
@@ -13,8 +14,6 @@ import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 
 type CheckoutCompleteSectionProps = {
   canCompleteOrder: boolean
@@ -111,40 +110,40 @@ export function CheckoutCompleteSection({
   shippingOptionId,
   shippingStepHref,
 }: CheckoutCompleteSectionProps) {
-  const cartTexts = useCartStorefrontTexts()
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
   const marketContext = useMarketContext()
   const shippingAddressRows = resolveAddressRows(
     shippingAddressForm,
     marketContext.locale
   )
   const shippingSummaryLabel = hasShipping
-    ? (shippingLabel ?? checkoutTexts.selectedShipping)
-    : checkoutTexts.shippingNotSelected
+    ? (shippingLabel ?? tCheckout("selected_shipping"))
+    : tCheckout("shipping_not_selected")
   const paymentSummaryLabel = hasPayment
-    ? (paymentLabel ?? checkoutTexts.selectedPayment)
-    : checkoutTexts.paymentNotSelected
+    ? (paymentLabel ?? tCheckout("selected_payment"))
+    : tCheckout("payment_not_selected")
 
   return (
     <section className="space-y-300 font-inter">
       <h2 className="font-medium font-rubik text-fg-primary text-xl">
-        {checkoutTexts.orderSummary}
+        {tCheckout("order_summary")}
       </h2>
 
       <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-400 sm:p-550">
         <div className="flex items-start justify-between gap-200 border-border-secondary border-b pb-250">
           <p className="mt-200 font-medium text-fg-primary text-sm">
-            {cartTexts.totalInclTax}
+            {tCart("total_incl_tax")}
           </p>
           <div className="space-y-200 text-right">
             <p className="font-bold font-rubik text-2xl text-fg-primary">
               {formatCurrencyAmount(cartTotalAmount, currencyCode)}
             </p>
             <SupportingText className="text-fg-secondary">
-              {`${checkoutTexts.totalExclTax}: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
+              {`${tCheckout("total_excl_tax")}: ${formatCurrencyAmount(cartTotalWithoutTaxAmount, currencyCode)}`}
             </SupportingText>
             <SupportingText className="text-fg-secondary">
-              {`${cartTexts.tax}: ${formatCurrencyAmount(cartTaxAmount, currencyCode)}`}
+              {`${tCart("tax")}: ${formatCurrencyAmount(cartTaxAmount, currencyCode)}`}
             </SupportingText>
           </div>
         </div>
@@ -179,7 +178,7 @@ export function CheckoutCompleteSection({
             type="button"
             uppercase
           >
-            {checkoutTexts.completeOrder}
+            {tCheckout("complete_order")}
           </Button>
 
           <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
@@ -204,7 +203,7 @@ export function CheckoutCompleteSection({
       </section>
 
       <SummaryRecapCard
-        editLabel={checkoutTexts.edit}
+        editLabel={tCheckout("edit")}
         href={shippingStepHref}
         icon={resolveShippingIcon({
           id: shippingOptionId,
@@ -215,7 +214,7 @@ export function CheckoutCompleteSection({
       />
 
       <SummaryRecapCard
-        editLabel={checkoutTexts.edit}
+        editLabel={tCheckout("edit")}
         href={shippingStepHref}
         icon={resolvePaymentIcon(paymentProviderId ?? "")}
         label={paymentSummaryLabel}
@@ -225,7 +224,7 @@ export function CheckoutCompleteSection({
       <section className={`${summaryCardClassName}`}>
         <div className="flex items-center justify-between gap-200">
           <p className="font-medium font-rubik text-fg-primary text-lg">
-            {checkoutTexts.customerDetails}
+            {tCheckout("customer_details")}
           </p>
           <LinkButton
             as={NextLink}
@@ -236,7 +235,7 @@ export function CheckoutCompleteSection({
             size="sm"
             theme="unstyled"
           >
-            {checkoutTexts.edit}
+            {tCheckout("edit")}
           </LinkButton>
         </div>
 

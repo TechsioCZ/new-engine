@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
@@ -13,8 +14,6 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
@@ -37,7 +36,7 @@ export function CartItemRow({
   onRemove,
   onUpdateQuantity,
 }: CartItemRowProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
@@ -81,7 +80,7 @@ export function CartItemRow({
 
         {itemInventory !== null && itemInventory > 0 && itemInventory <= 2 ? (
           <p className="text-danger text-xs">
-            {formatStorefrontText(cartTexts.lowStock, {
+            {t("low_stock", {
               quantity: itemInventory,
             })}
           </p>
@@ -102,7 +101,7 @@ export function CartItemRow({
         />
 
         <Button
-          aria-label={formatStorefrontText(cartTexts.removeItemAria, {
+          aria-label={t("remove_item_aria", {
             itemName,
           })}
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"

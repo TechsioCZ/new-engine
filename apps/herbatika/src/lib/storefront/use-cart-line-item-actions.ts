@@ -1,8 +1,8 @@
 "use client"
 
 import { useAppToast } from "@/hooks/use-app-toast"
+import { useTranslations } from "next-intl"
 import { useRemoveLineItem, useUpdateLineItem } from "./cart"
-import { useCartStorefrontTexts } from "./use-cart-storefront-texts"
 
 type UseCartLineItemActionsProps = {
   cartId?: string
@@ -11,7 +11,7 @@ type UseCartLineItemActionsProps = {
 export function useCartLineItemActions({
   cartId,
 }: UseCartLineItemActionsProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const toast = useAppToast()
   const updateLineItemMutation = useUpdateLineItem()
   const removeLineItemMutation = useRemoveLineItem()
@@ -25,7 +25,7 @@ export function useCartLineItemActions({
       { cartId, lineItemId, quantity },
       {
         onError: () => {
-          toast.error({ title: cartTexts.updateFailed })
+          toast.error({ title: t("update_failed") })
         },
       }
     )
@@ -40,7 +40,7 @@ export function useCartLineItemActions({
       { cartId, lineItemId },
       {
         onError: () => {
-          toast.error({ title: cartTexts.removeFailed })
+          toast.error({ title: t("remove_failed") })
         },
       }
     )

@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type CheckoutDetailsValues,
@@ -38,8 +39,6 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import {
   buildAccountSetupRequestedMetadata,
   isRecord,
@@ -70,8 +69,7 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
 
 export function useCheckoutController() {
   const queryClient = useQueryClient()
-  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCheckout = useTranslations("checkout")
   const marketContext = useMarketContext()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
@@ -109,7 +107,7 @@ export function useCheckoutController() {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
         setCheckoutError(
-          resolveErrorMessage(error, checkoutTexts.shippingUpdateFailed)
+          resolveErrorMessage(error, tCheckout("shipping_update_failed"))
         )
       },
     }
@@ -248,7 +246,6 @@ export function useCheckoutController() {
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
     selectedShippingMethodId: checkoutShippingQuery.selectedShippingMethodId,
     setShippingMethod: checkoutShippingQuery.setShipping,
-    texts: checkoutTexts,
   })
 
   const checkoutDetailsForm = useCheckoutDetailsForm({
@@ -258,7 +255,7 @@ export function useCheckoutController() {
     isCustomerLoading: authQuery.isLoading,
     onSubmit: async (values) => {
       if (!cartQuery.cart?.id) {
-        setCheckoutError(checkoutTexts.cartNotReady)
+        setCheckoutError(tCheckout("cart_not_ready"))
         return
       }
 
@@ -278,7 +275,7 @@ export function useCheckoutController() {
       })
 
       if (!(hasSupportedShippingCountry && hasSupportedBillingCountry)) {
-        setCheckoutError(checkoutDetailsTexts.countryUnavailable)
+        setCheckoutError(tCheckout("country_unavailable"))
         return
       }
 
@@ -322,7 +319,7 @@ export function useCheckoutController() {
         saveAddressSucceededRef.current = true
       } catch (error) {
         setCheckoutError(
-          resolveErrorMessage(error, checkoutDetailsTexts.addressUpdateFailed)
+          resolveErrorMessage(error, tCheckout("address_update_failed"))
         )
       }
     },
@@ -347,7 +344,7 @@ export function useCheckoutController() {
     const cart = cartQuery.cart
 
     if (!cart?.id) {
-      setCheckoutError(checkoutTexts.cartNotReady)
+      setCheckoutError(tCheckout("cart_not_ready"))
       return false
     }
 
@@ -389,7 +386,7 @@ export function useCheckoutController() {
       setCheckoutError(
         resolveErrorMessage(
           error,
-          checkoutDetailsTexts.registrationUpdateFailed
+          tCheckout("registration_update_failed")
         )
       )
       return false

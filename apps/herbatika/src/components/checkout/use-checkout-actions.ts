@@ -1,8 +1,8 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import { useTranslations } from "next-intl"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
-import type { CheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import {
   clearStoredCarrierPickupSelection,
   writeStoredCarrierPickupSelection,
@@ -32,7 +32,13 @@ type UseCheckoutActionsProps = {
   onCheckoutErrorChange: (message: string | null) => void
   onPaymentProviderSelect: (providerId: string) => void
   setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
-  texts: CheckoutStorefrontTexts
+}
+
+type OrderCompletionBlockerMessages = {
+  cartEmpty: string
+  cartNotReady: string
+  selectPaymentBeforeCompletion: string
+  selectShippingBeforeCompletion: string
 }
 
 const resolveOrderCompletionBlocker = ({
@@ -40,7 +46,7 @@ const resolveOrderCompletionBlocker = ({
   itemCount,
   selectedPaymentProviderId,
   selectedShippingMethodId,
-  texts,
+  messages,
 }: Pick<
   UseCheckoutActionsProps,
   | "cartId"
@@ -48,28 +54,22 @@ const resolveOrderCompletionBlocker = ({
   | "selectedPaymentProviderId"
   | "selectedShippingMethodId"
 > & {
-  texts: Pick<
-    CheckoutStorefrontTexts,
-    | "cartEmpty"
-    | "cartNotReady"
-    | "selectPaymentBeforeCompletion"
-    | "selectShippingBeforeCompletion"
-  >
+  messages: OrderCompletionBlockerMessages
 }) => {
   if (!cartId) {
-    return texts.cartNotReady
+    return messages.cartNotReady
   }
 
   if (itemCount < 1) {
-    return texts.cartEmpty
+    return messages.cartEmpty
   }
 
   if (!selectedShippingMethodId) {
-    return texts.selectShippingBeforeCompletion
+    return messages.selectShippingBeforeCompletion
   }
 
   if (!selectedPaymentProviderId) {
-    return texts.selectPaymentBeforeCompletion
+    return messages.selectPaymentBeforeCompletion
   }
 
   return null
@@ -93,8 +93,8 @@ export function useCheckoutActions({
   selectedPaymentProviderId,
   selectedShippingMethodId,
   setShippingMethod,
-  texts: checkoutTexts,
 }: UseCheckoutActionsProps) {
+  const tCheckout = useTranslations("checkout")
   const resetFeedback = () => {
     onCheckoutErrorChange(null)
     if (completedOrderId) {
@@ -118,7 +118,7 @@ export function useCheckoutActions({
       setShippingMethod(optionId, data)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, checkoutTexts.shippingUpdateFailed)
+        resolveErrorMessage(error, tCheckout("shipping_update_failed"))
       )
     }
   }
@@ -127,7 +127,7 @@ export function useCheckoutActions({
     resetFeedback()
 
     if (!canInitiatePayment) {
-      onCheckoutErrorChange(checkoutTexts.selectShippingBeforePayment)
+      onCheckoutErrorChange(tCheckout("select_shipping_before_payment"))
       return
     }
 
@@ -135,7 +135,7 @@ export function useCheckoutActions({
       onPaymentProviderSelect(providerId)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, checkoutTexts.paymentUpdateFailed)
+        resolveErrorMessage(error, tCheckout("payment_update_failed"))
       )
     }
   }
@@ -148,7 +148,16 @@ export function useCheckoutActions({
       itemCount,
       selectedPaymentProviderId,
       selectedShippingMethodId,
-      texts: checkoutTexts,
+      messages: {
+        cartEmpty: tCheckout("cart_empty"),
+        cartNotReady: tCheckout("cart_not_ready"),
+        selectPaymentBeforeCompletion: tCheckout(
+          "select_payment_before_completion"
+        ),
+        selectShippingBeforeCompletion: tCheckout(
+          "select_shipping_before_completion"
+        ),
+      },
     })
     if (blockerMessage) {
       onCheckoutErrorChange(blockerMessage)
@@ -156,7 +165,7 @@ export function useCheckoutActions({
     }
 
     if (!selectedPaymentProviderId) {
-      onCheckoutErrorChange(checkoutTexts.selectPaymentBeforeCompletion)
+      onCheckoutErrorChange(tCheckout("select_payment_before_completion"))
       return
     }
 
@@ -199,11 +208,11 @@ export function useCheckoutActions({
       }
 
       onOrderCompletionAbort()
-      onCheckoutErrorChange(checkoutTexts.completeFailed)
+      onCheckoutErrorChange(tCheckout("complete_failed"))
     } catch (error) {
       onOrderCompletionAbort()
       onCheckoutErrorChange(
-        resolveErrorMessage(error, checkoutTexts.completeFailed)
+        resolveErrorMessage(error, tCheckout("complete_failed"))
       )
     }
   }

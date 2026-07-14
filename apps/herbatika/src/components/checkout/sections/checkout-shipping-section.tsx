@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { useTranslations } from "next-intl"
 import {
   resolveCarrierPickupHint,
   resolveCarrierPickupRequirement,
@@ -7,7 +8,6 @@ import { resolveShippingIcon } from "@/components/checkout/checkout-display.util
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
@@ -39,7 +39,7 @@ export function CheckoutShippingSection({
   shippingOptions,
   shippingPrices,
 }: CheckoutShippingSectionProps) {
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCheckout = useTranslations("checkout")
   const pickupRequirements = new Map(
     shippingOptions.flatMap((option) => {
       const requirement = resolveCarrierPickupRequirement(option)
@@ -59,7 +59,7 @@ export function CheckoutShippingSection({
 
   const resolveShippingPriceLabel = (amount: number) => {
     if (amount <= 0) {
-      return checkoutTexts.free
+      return tCheckout("free")
     }
 
     return `+ ${formatCurrencyAmount(amount, currencyCode)}`
@@ -69,14 +69,14 @@ export function CheckoutShippingSection({
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header className="space-y-50">
         <h2 className="font-medium text-fg-primary text-xl">
-          {checkoutTexts.shipping}
+          {tCheckout("shipping")}
         </h2>
       </header>
       <div className="grid gap-150">
         {shippingOptions.length > 0 ? (
           <CheckoutOptionRadioCard
             expandedValue={pendingPickupOptionId}
-            label={checkoutTexts.shipping}
+            label={tCheckout("shipping")}
             onValueChange={(value) => {
               if (pickupRequirements.has(value)) {
                 onPendingPickupOptionIdChange(value)
@@ -108,7 +108,7 @@ export function CheckoutShippingSection({
                 ) : undefined,
                 disabled: isBusy,
                 bodyText: isAwaitingPickupSelection
-                  ? checkoutTexts.pickupSelectionRequired
+                  ? tCheckout("pickup_selection_required")
                   : undefined,
                 hint: pickupRequirement
                   ? resolveCarrierPickupHint(pickupRequirement)
@@ -123,7 +123,7 @@ export function CheckoutShippingSection({
             value={selectedShippingMethodId ?? null}
           />
         ) : (
-          <SupportingText>{checkoutTexts.noShippingOptions}</SupportingText>
+          <SupportingText>{tCheckout("no_shipping_options")}</SupportingText>
         )}
       </div>
     </section>
