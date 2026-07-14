@@ -4,11 +4,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
 
@@ -35,8 +34,7 @@ export function CheckoutDetailsStepSection({
   nextStepHref,
 }: CheckoutDetailsStepSectionProps) {
   const router = useRouter()
-  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCheckout = useTranslations("checkout")
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
   const hasCarrierPickupShipping =
@@ -49,7 +47,7 @@ export function CheckoutDetailsStepSection({
     <section className="space-y-300">
       <header className="xl:pt-550">
         <h2 className="font-inter font-medium text-fg-primary text-xl leading-relaxed">
-          {checkoutTexts.customerDetails}
+          {tCheckout("customer_details")}
         </h2>
       </header>
 
@@ -101,7 +99,7 @@ export function CheckoutDetailsStepSection({
                 {(field) => (
                   <field.CheckboxField
                     id="checkout-use-same-address"
-                    label={checkoutDetailsTexts.billingSameAsShipping}
+                    label={tCheckout("billing_same_as_shipping")}
                     onValueChange={(nextUseSameAddress) => {
                       controller.checkoutDetailsForm.trackUseSameAddressIntent(
                         nextUseSameAddress
@@ -136,7 +134,7 @@ export function CheckoutDetailsStepSection({
                 showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
                 showCompanyPurchaseToggle
                 showContactFields={false}
-                title={checkoutDetailsTexts.billingDetails}
+                title={tCheckout("billing_details")}
               />
             )}
           </>
@@ -154,7 +152,7 @@ export function CheckoutDetailsStepSection({
           variant="tertiary"
         >
           <span className="font-normal">
-            {checkoutTexts.backToShippingPayment}
+            {tCheckout("back_to_shipping_payment")}
           </span>
         </LinkButton>
         <Button
@@ -168,7 +166,7 @@ export function CheckoutDetailsStepSection({
           type="submit"
         >
           <span className="font-normal uppercase">
-            {checkoutTexts.continueToSummary}
+            {tCheckout("continue_to_summary")}
           </span>
         </Button>
       </div>

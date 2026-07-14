@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
 import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils"
@@ -10,8 +11,6 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section"
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
-import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
 type CheckoutStepContentProps = {
@@ -23,7 +22,7 @@ export function CheckoutStepContent({
   activeStep,
   controller,
 }: CheckoutStepContentProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const tCart = useTranslations("cart")
   const cartStepHref = resolveCheckoutStepHref("kosik")
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
   const detailsStepHref = resolveCheckoutStepHref("udaje")
@@ -72,7 +71,7 @@ export function CheckoutStepContent({
           cartItems={controller.cartItems}
           header={
             <h2 className="col-span-full font-inter font-semibold text-2xl text-fg-primary leading-tight">
-              {formatStorefrontText(cartTexts.titleWithCount, {
+              {tCart("title_with_count", {
                 count: controller.cartItems.length,
               })}
             </h2>

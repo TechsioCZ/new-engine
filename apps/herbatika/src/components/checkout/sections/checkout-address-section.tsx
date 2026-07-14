@@ -1,12 +1,11 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+import { useTranslations } from "next-intl"
 import {
   type CheckoutAddressScope,
   resolveCheckoutAddressFieldName,
 } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
-import { useCheckoutDetailsStorefrontTexts } from "@/lib/storefront/use-checkout-details-storefront-texts"
 import { useCheckoutFieldValidators } from "@/lib/storefront/use-checkout-field-validators"
-import { useFormStorefrontTexts } from "@/lib/storefront/use-form-storefront-texts"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -41,9 +40,9 @@ export function CheckoutAddressSection({
   showRequiredNote = false,
   title,
 }: CheckoutAddressSectionProps) {
-  const checkoutDetailsTexts = useCheckoutDetailsStorefrontTexts()
-  const formTexts = useFormStorefrontTexts()
-  const fieldValidators = useCheckoutFieldValidators(formTexts.validation)
+  const tCheckout = useTranslations("checkout")
+  const tForm = useTranslations("form")
+  const fieldValidators = useCheckoutFieldValidators()
   const scopedValidators = fieldValidators[scope]
 
   return (
@@ -61,12 +60,12 @@ export function CheckoutAddressSection({
           <div className="flex flex-wrap items-center justify-between gap-150">
             {showCompanyPurchaseToggle ? (
               <CheckoutPurchaseTypeToggle
-                companyLabel={checkoutDetailsTexts.companyPurchase}
-                groupLabel={checkoutDetailsTexts.purchaseType}
+                companyLabel={tCheckout("company_purchase")}
+                groupLabel={tCheckout("purchase_type")}
                 id={`${fieldPrefix}-purchase-type`}
                 isCompanyPurchase={checkoutDetailsForm.values.isCompanyPurchase}
                 onValueChange={checkoutDetailsForm.setCompanyPurchase}
-                privateLabel={checkoutDetailsTexts.privatePurchase}
+                privateLabel={tCheckout("private_purchase")}
               />
             ) : (
               <span aria-hidden="true" />
@@ -75,7 +74,7 @@ export function CheckoutAddressSection({
             {showRequiredNote ? (
               <p className="text-fg-secondary text-sm">
                 <span className="text-label-fg-required">*</span>{" "}
-                {formTexts.requiredFields}
+                {tForm("required_fields")}
               </p>
             ) : null}
           </div>
@@ -89,7 +88,7 @@ export function CheckoutAddressSection({
             {(field) => (
               <field.TextField
                 id={`${fieldPrefix}-first-name`}
-                label={formTexts.firstName}
+                label={tForm("first_name")}
                 required
                 validationMode="blur"
               />
@@ -103,7 +102,7 @@ export function CheckoutAddressSection({
             {(field) => (
               <field.TextField
                 id={`${fieldPrefix}-last-name`}
-                label={formTexts.lastName}
+                label={tForm("last_name")}
                 required
                 validationMode="blur"
               />
@@ -120,7 +119,7 @@ export function CheckoutAddressSection({
                   {(field) => (
                     <field.TextField
                       id={`${fieldPrefix}-company`}
-                      label={formTexts.companyName}
+                      label={tForm("company_name")}
                       required
                       validationMode="blur"
                     />
@@ -136,7 +135,7 @@ export function CheckoutAddressSection({
                   {(field) => (
                     <field.TextField
                       id={`${fieldPrefix}-company-id`}
-                      label={formTexts.companyId}
+                      label={tForm("company_id")}
                       required
                       validationMode="blur"
                     />
@@ -150,7 +149,7 @@ export function CheckoutAddressSection({
                   {(field) => (
                     <field.TextField
                       id={`${fieldPrefix}-tax-id`}
-                      label={formTexts.taxId}
+                      label={tForm("tax_id")}
                       required
                       validationMode="blur"
                     />
@@ -163,7 +162,7 @@ export function CheckoutAddressSection({
                   {(field) => (
                     <field.TextField
                       id={`${fieldPrefix}-vat-id`}
-                      label={formTexts.vatId}
+                      label={tForm("vat_id")}
                       validationMode="blur"
                     />
                   )}
@@ -182,7 +181,7 @@ export function CheckoutAddressSection({
                   <field.TextField
                     autoComplete="email"
                     id={`${fieldPrefix}-email`}
-                    label={formTexts.email}
+                    label={tForm("email")}
                     required
                     type="email"
                     validationMode="blur"
@@ -197,7 +196,7 @@ export function CheckoutAddressSection({
                 {(field) => (
                   <field.PhoneField
                     id={`${fieldPrefix}-phone`}
-                    label={formTexts.phone}
+                    label={tForm("phone")}
                     required
                     validationMode="blur"
                   />
@@ -214,8 +213,8 @@ export function CheckoutAddressSection({
               <field.SelectField
                 id={`${fieldPrefix}-country`}
                 items={countryItems}
-                label={formTexts.country}
-                placeholder={formTexts.countryPlaceholder}
+                label={tForm("country")}
+                placeholder={tForm("country_placeholder")}
                 readOnly
                 required
                 validationMode="blur"
@@ -230,7 +229,7 @@ export function CheckoutAddressSection({
             {(field) => (
               <field.TextField
                 id={`${fieldPrefix}-address-1`}
-                label={formTexts.address}
+                label={tForm("address")}
                 required
                 validationMode="blur"
               />
@@ -244,7 +243,7 @@ export function CheckoutAddressSection({
             {(field) => (
               <field.TextField
                 id={`${fieldPrefix}-city`}
-                label={formTexts.city}
+                label={tForm("city")}
                 required
                 validationMode="blur"
               />
@@ -258,7 +257,7 @@ export function CheckoutAddressSection({
             {(field) => (
               <field.TextField
                 id={`${fieldPrefix}-postal-code`}
-                label={formTexts.postalCode}
+                label={tForm("postal_code")}
                 required
                 validationMode="blur"
               />
@@ -273,7 +272,7 @@ export function CheckoutAddressSection({
                 {(field) => (
                   <field.TextareaField
                     id={`${fieldPrefix}-customer-note`}
-                    label={formTexts.customerNote}
+                    label={tForm("customer_note")}
                     resize="auto"
                     rows={3}
                     size="sm"
@@ -292,9 +291,9 @@ export function CheckoutAddressSection({
                     id={`${fieldPrefix}-registration-opt-in`}
                     label={
                       <>
-                        <span>{checkoutDetailsTexts.registrationOptIn}</span>{" "}
+                        <span>{tCheckout("registration_opt_in")}</span>{" "}
                         <span className="text-fg-secondary">
-                          {checkoutDetailsTexts.registrationInfo}
+                          {tCheckout("registration_info")}
                         </span>
                       </>
                     }

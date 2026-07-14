@@ -6,6 +6,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -20,8 +21,6 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,
@@ -73,7 +72,7 @@ export function CheckoutCartItemRow({
   onUpdateQuantity,
   product,
 }: CheckoutCartItemRowProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const tCart = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
@@ -174,7 +173,7 @@ export function CheckoutCartItemRow({
             </span>
           </p>
           <Button
-            aria-label={formatStorefrontText(cartTexts.removeItemAria, {
+            aria-label={tCart("remove_item_aria", {
               itemName,
             })}
             className="text-2xl text-fg-secondary hover:text-fg-primary"

@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { SupportingText } from "@/components/text/supporting-text"
 import {
@@ -8,12 +9,6 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { formatStorefrontText } from "@/lib/storefront/storefront-texts"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
-import {
-  resolveCheckoutShippingExclTaxLabel,
-  useCheckoutStorefrontTexts,
-} from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { resolveAvailabilityText } from "../utils/resolve-availability-text"
 
@@ -40,20 +35,18 @@ export function CheckoutOrderSummarySection({
   shippingLabel,
   shippingAmount,
 }: CheckoutOrderSummarySectionProps) {
-  const cartTexts = useCartStorefrontTexts()
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
   const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik"
-  const shippingExclTaxLabel = resolveCheckoutShippingExclTaxLabel({
-    fallback: cartTexts.shippingExclTax,
-    shippingName: shippingLabel,
-    template: checkoutTexts.shippingExclTaxWithName,
-  })
+  const shippingExclTaxLabel = shippingLabel
+    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
+    : tCart("shipping_excl_tax")
 
   return (
     <section className={`space-y-300 rounded-sm sm:p-550 ${detailsFontClass}`}>
       <header>
         <h2 className="font-medium text-fg-primary text-xl leading-relaxed">
-          {formatStorefrontText(cartTexts.titleWithCount, {
+          {tCart("title_with_count", {
             count: cartItems.length,
           })}
         </h2>
@@ -111,7 +104,7 @@ export function CheckoutOrderSummarySection({
                       {itemPrice}
                     </p>
                     <SupportingText className="text-fg-secondary">
-                      {formatStorefrontText(checkoutTexts.itemQuantity, {
+                      {tCheckout("item_quantity", {
                         quantity: itemQuantity,
                       })}
                     </SupportingText>
@@ -132,7 +125,7 @@ export function CheckoutOrderSummarySection({
           })
         ) : (
           <SupportingText className="text-fg-secondary">
-            {cartTexts.emptyTitle}
+            {tCart("empty_title")}
           </SupportingText>
         )}
       </div>
@@ -140,7 +133,7 @@ export function CheckoutOrderSummarySection({
       <div className="space-y-200 border-border-primary border-t">
         <div className="flex items-center justify-between border-border-primary border-b">
           <span className="py-200 text-fg-secondary">
-            {cartTexts.productsSubtotalExclTax}
+            {tCart("products_subtotal_excl_tax")}
           </span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(cartItemsWithoutTaxAmount, currencyCode)}
@@ -155,22 +148,22 @@ export function CheckoutOrderSummarySection({
           </p>
         </div>
         <div className="flex items-center justify-between border-border-primary border-b py-200">
-          <span className="text-fg-secondary">{cartTexts.tax}</span>
+          <span className="text-fg-secondary">{tCart("tax")}</span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(cartTaxAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between py-200">
           <span className="text-fg-secondary">
-            {paymentLabel || checkoutTexts.payment}
+            {paymentLabel || tCheckout("payment")}
           </span>
           <p className="font-medium text-md text-success-fg">
-            {checkoutTexts.free}
+            {tCheckout("free")}
           </p>
         </div>
         <div className="flex items-start justify-between border-border-primary border-t pt-150">
           <span className="font-semibold text-fg-primary text-md md:mt-150">
-            {cartTexts.totalInclTax}
+            {tCart("total_incl_tax")}
           </span>
           <div className="flex flex-col items-end gap-200">
             <p className="font-bold text-2xl text-fg-primary">

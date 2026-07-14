@@ -3,12 +3,8 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
-import {
-  resolveCheckoutShippingExclTaxLabel,
-  useCheckoutStorefrontTexts,
-} from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code"
 
@@ -33,13 +29,11 @@ export function CheckoutCartSidebarSection({
   shippingAmount,
   shippingLabel,
 }: CheckoutCartSidebarSectionProps) {
-  const cartTexts = useCartStorefrontTexts()
-  const checkoutTexts = useCheckoutStorefrontTexts()
-  const shippingExclTaxLabel = resolveCheckoutShippingExclTaxLabel({
-    fallback: cartTexts.shippingExclTax,
-    shippingName: shippingLabel,
-    template: checkoutTexts.shippingExclTaxWithName,
-  })
+  const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
+  const shippingExclTaxLabel = shippingLabel
+    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
+    : tCart("shipping_excl_tax")
 
   return (
     <section className="w-full space-y-300 xl:max-w-header-search">
@@ -50,7 +44,7 @@ export function CheckoutCartSidebarSection({
             <div className="space-y-150 pb-150">
               <div className="flex items-center justify-between">
                 <p className="font-normal text-fg-primary text-sm leading-relaxed">
-                  {cartTexts.productsSubtotalExclTax}
+                  {tCart("products_subtotal_excl_tax")}
                 </p>
                 <p className="font-normal text-fg-primary text-sm leading-relaxed">
                   {formatCurrencyAmount(cartItemsTotalAmount, currencyCode)}
@@ -70,7 +64,7 @@ export function CheckoutCartSidebarSection({
 
               <div className="flex items-center justify-between">
                 <p className="font-normal text-fg-primary text-sm leading-relaxed">
-                  {cartTexts.tax}
+                  {tCart("tax")}
                 </p>
                 <p className="font-normal text-fg-primary text-sm leading-relaxed">
                   {formatCurrencyAmount(cartTaxAmount, currencyCode)}
@@ -80,7 +74,7 @@ export function CheckoutCartSidebarSection({
 
             <div className="mt-150 flex items-start justify-between gap-300 border-border-secondary border-t pt-350">
               <p className="font-normal text-fg-primary text-sm leading-relaxed">
-                {cartTexts.totalInclTax}
+                {tCart("total_incl_tax")}
               </p>
               <div className="flex flex-col items-end gap-100">
                 <p className="font-bold text-2xl text-fg-primary leading-tight">
@@ -103,7 +97,7 @@ export function CheckoutCartSidebarSection({
             variant="primary"
           >
             <span className="font-normal text-xs sm:text-md">
-              {checkoutTexts.continueToShippingPayment}
+              {tCheckout("continue_to_shipping_payment")}
             </span>
           </LinkButton>
         </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { cartReadQueryOptions, useAddLineItem, useCart } from "./cart"
 import { resolveErrorMessage } from "./error-utils"
@@ -10,11 +11,6 @@ import {
   asStorefrontRecord,
   resolveProductTopOffer,
 } from "./product-pricing"
-import {
-  type CartStorefrontTexts,
-  useCartStorefrontTexts,
-} from "./use-cart-storefront-texts"
-import { formatStorefrontText } from "./storefront-texts"
 
 export type UseAddProductToCartProps = {
   regionId?: string
@@ -34,6 +30,8 @@ class AddProductToCartError extends Error {
   override readonly name = "AddProductToCartError"
 }
 
+type CartTranslator = ReturnType<typeof useTranslations<"cart">>
+
 const INSUFFICIENT_INVENTORY_ERROR_PATTERN =
   /insufficient_inventory|required inventory|does not have the required inventory/i
 
@@ -49,24 +47,24 @@ export const resolveAddProductToCartErrorMessage = (
 const resolveInsufficientQuantityMessage = ({
   availableQuantity,
   cartQuantity,
-  messages,
+  translateCart,
 }: {
   availableQuantity: number | null
   cartQuantity: number
-  messages: CartStorefrontTexts
+  translateCart: CartTranslator
 }) => {
   if (availableQuantity === null || availableQuantity < 1) {
-    return messages.insufficientQuantity
+    return translateCart("insufficient_quantity")
   }
 
   if (cartQuantity > 0) {
-    return formatStorefrontText(messages.insufficientQuantityInCart, {
+    return translateCart("insufficient_quantity_in_cart", {
       availableQuantity,
       cartQuantity,
     })
   }
 
-  return formatStorefrontText(messages.insufficientQuantityAvailable, {
+  return translateCart("insufficient_quantity_available", {
     availableQuantity,
   })
 }
@@ -135,13 +133,13 @@ const resolveExistingCartVariantQuantity = (
 
 const assertAddProductToCartVariant = ({
   cartQuantity,
-  messages,
+  translateCart,
   product,
   quantity,
   variantId,
 }: {
   cartQuantity: number
-  messages: CartStorefrontTexts
+  translateCart: CartTranslator
   product: AddProductToCartInput["product"]
   quantity: number
   variantId?: string | null
@@ -150,11 +148,11 @@ const assertAddProductToCartVariant = ({
   const resolvedVariantId = resolvedVariant?.id ?? null
 
   if (!(resolvedVariantId && resolvedVariant)) {
-    throw new AddProductToCartError(messages.missingVariant)
+    throw new AddProductToCartError(translateCart("missing_variant"))
   }
 
   if (typeof resolvedVariant.calculated_price?.calculated_amount !== "number") {
-    throw new AddProductToCartError(messages.unavailableInRegion)
+    throw new AddProductToCartError(translateCart("unavailable_in_region"))
   }
 
   const requestedTotalQuantity = cartQuantity + quantity
@@ -164,7 +162,7 @@ const assertAddProductToCartVariant = ({
   )
 
   if (!inventoryState.isInStock) {
-    throw new AddProductToCartError(messages.outOfStock)
+    throw new AddProductToCartError(translateCart("out_of_stock"))
   }
 
   if (!inventoryState.isPurchasable) {
@@ -172,7 +170,7 @@ const assertAddProductToCartVariant = ({
       resolveInsufficientQuantityMessage({
         availableQuantity: inventoryState.availableQuantity,
         cartQuantity,
-        messages,
+        translateCart,
       })
     )
   }
@@ -184,7 +182,7 @@ export function useAddProductToCart({
   regionId,
   countryCode,
 }: UseAddProductToCartProps) {
-  const messages = useCartStorefrontTexts()
+  const translateCart = useTranslations("cart")
   const [activeProductId, setActiveProductId] = useState<string | null>(null)
 
   const addLineItemMutation = useAddLineItem()
@@ -206,7 +204,7 @@ export function useAddProductToCart({
     variantId,
   }: AddProductToCartInput) => {
     if (!regionId) {
-      throw new AddProductToCartError(messages.missingRegion)
+      throw new AddProductToCartError(translateCart("missing_region"))
     }
 
     const resolvedProductVariantId = resolveProductVariantId(product, variantId)
@@ -215,7 +213,7 @@ export function useAddProductToCart({
         cartQuery.cart,
         resolvedProductVariantId
       ),
-      messages,
+      translateCart,
       product,
       quantity,
       variantId,
@@ -233,11 +231,11 @@ export function useAddProductToCart({
         country_code: countryCode,
       })
     } catch (error) {
-      const errorMessage = resolveErrorMessage(error, messages.failed)
+      const errorMessage = resolveErrorMessage(error, translateCart("failed"))
       throw new AddProductToCartError(
         isInsufficientInventoryError(errorMessage)
-          ? messages.insufficientQuantity
-          : messages.failed
+          ? translateCart("insufficient_quantity")
+          : translateCart("failed")
       )
     } finally {
       setActiveProductId(null)

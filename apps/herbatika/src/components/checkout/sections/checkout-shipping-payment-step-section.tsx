@@ -1,10 +1,10 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { type ComponentProps, useState } from "react"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
-import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 import { CheckoutPaymentSection } from "./checkout-payment-section"
 import { CheckoutShippingSection } from "./checkout-shipping-section"
 
@@ -35,7 +35,7 @@ export function CheckoutShippingPaymentStepSection({
   nextStepHref,
   selectedPaymentProviderId,
 }: CheckoutShippingPaymentStepSectionProps) {
-  const checkoutTexts = useCheckoutStorefrontTexts()
+  const tCheckout = useTranslations("checkout")
   const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
     string | null
   >(null)
@@ -49,8 +49,8 @@ export function CheckoutShippingPaymentStepSection({
   let paymentSelectionMessage: string | null = null
   if (!controller.checkoutPaymentQuery.canInitiatePayment) {
     paymentSelectionMessage = hasPendingPickupRequirement
-      ? checkoutTexts.selectPickupBeforePayment
-      : checkoutTexts.selectShippingBeforePayment
+      ? tCheckout("select_pickup_before_payment")
+      : tCheckout("select_shipping_before_payment")
   }
 
   return (
@@ -89,7 +89,7 @@ export function CheckoutShippingPaymentStepSection({
           theme="outlined"
           variant="tertiary"
         >
-          <span className="font-normal">{checkoutTexts.backToCart}</span>
+          <span className="font-normal">{tCheckout("back_to_cart")}</span>
         </LinkButton>
         {controller.hasShipping && controller.hasPayment ? (
           <LinkButton
@@ -101,13 +101,13 @@ export function CheckoutShippingPaymentStepSection({
             size="lg"
           >
             <span className="font-normal uppercase">
-              {checkoutTexts.continueToCustomerDetails}
+              {tCheckout("continue_to_customer_details")}
             </span>
           </LinkButton>
         ) : (
           <Button className="w-full sm:ml-auto sm:w-auto" disabled size="lg">
             <span className="font-normal uppercase">
-              {checkoutTexts.continueToCustomerDetails}
+              {tCheckout("continue_to_customer_details")}
             </span>
           </Button>
         )}

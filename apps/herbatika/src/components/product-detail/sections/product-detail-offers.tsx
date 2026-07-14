@@ -3,8 +3,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
+import { useTranslations } from "next-intl"
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 type ProductDetailOffersProps = {
   isAdding: boolean
@@ -21,7 +21,7 @@ export function ProductDetailOffers({
   options,
   selectedOptionId,
 }: ProductDetailOffersProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
 
   if (options.length === 0) {
     return null
@@ -91,11 +91,11 @@ export function ProductDetailOffers({
           disabled={!selectedOptionId}
           icon="token-icon-cart"
           isLoading={isAdding}
-          loadingText={cartTexts.addingToCart}
+          loadingText={t("adding_to_cart")}
           onClick={onAddToCart}
           variant="primary"
         >
-          {cartTexts.addToCart}
+          {t("add_to_cart")}
         </Button>
       </div>
     </section>

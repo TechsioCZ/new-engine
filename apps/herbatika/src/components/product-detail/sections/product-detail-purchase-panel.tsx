@@ -7,6 +7,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
@@ -20,7 +21,6 @@ import {
 } from "@/components/product-detail/utils/value-utils"
 import { ProductListPickerPopover } from "@/components/product-lists/product-list-picker-popover"
 import { createBrandSlug } from "@/lib/storefront/brands"
-import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 
 type ProductInfoLink = {
   href: string | null
@@ -95,7 +95,7 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
-  const cartTexts = useCartStorefrontTexts()
+  const t = useTranslations("cart")
   const primaryCategory = productCategories[0]
   const productInfoLink = resolveProductInfoLink(product, primaryCategory)
   const flags = resolveFlags(product, Boolean(displayOriginalLabel))
@@ -267,11 +267,11 @@ export function ProductDetailPurchasePanel({
             icon="token-icon-cart"
             iconSize="xl"
             isLoading={isAdding}
-            loadingText={cartTexts.addingToCart}
+            loadingText={t("adding_to_cart")}
             onClick={onAddToCart}
             variant="primary"
           >
-            {cartTexts.addToCart}
+            {t("add_to_cart")}
           </Button>
         </div>
       </section>

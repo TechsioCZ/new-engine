@@ -1,14 +1,17 @@
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
+import {
+  type AbstractIntlMessages,
+  NextIntlClientProvider,
+} from "next-intl"
+import { getMessages } from "next-intl/server"
 import localFont from "next/font/local"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
-import type { StorefrontTextMessages } from "@/lib/storefront/storefront-texts"
-import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
 import "./globals.css"
 import { Providers } from "./providers"
 
@@ -67,25 +70,26 @@ type LayoutShellProps = Readonly<{
   children: React.ReactNode
   initialRegion?: RegionInfo | null
   marketContext: HerbatikaMarketContext
-  storefrontTextMessages: StorefrontTextMessages
+  messages: AbstractIntlMessages
 }>
 
 function LayoutShell({
   children,
   initialRegion = null,
   marketContext,
-  storefrontTextMessages,
+  messages,
 }: LayoutShellProps) {
   return (
-    <Providers
-      initialMarketContext={marketContext}
-      initialRegion={initialRegion}
-      storefrontTextMessages={storefrontTextMessages}
-    >
-      <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-        <AppShell>{children}</AppShell>
-      </Suspense>
-    </Providers>
+    <NextIntlClientProvider messages={messages}>
+      <Providers
+        initialMarketContext={marketContext}
+        initialRegion={initialRegion}
+      >
+        <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+          <AppShell>{children}</AppShell>
+        </Suspense>
+      </Providers>
+    </NextIntlClientProvider>
   )
 }
 
@@ -96,16 +100,16 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
 }>) {
-  const [{ region }, storefrontTextMessages] = await Promise.all([
+  const [{ region }, messages] = await Promise.all([
     getRegionServerContext(),
-    fetchStorefrontTextMessages(marketContext),
+    getMessages(),
   ])
 
   return (
     <LayoutShell
       initialRegion={region}
       marketContext={marketContext}
-      storefrontTextMessages={storefrontTextMessages}
+      messages={messages}
     >
       {children}
     </LayoutShell>
