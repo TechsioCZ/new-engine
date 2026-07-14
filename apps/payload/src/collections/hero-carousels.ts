@@ -109,12 +109,21 @@ export const HeroCarousels: CollectionConfig = {
   ],
   hooks: {
     beforeValidate: [
-      ({ data, req }) => {
+      ({ data, operation, originalDoc, req }) => {
         if (!data) {
           return data
         }
 
-        data.internalTitle = resolveInternalTitle(data, req?.locale)
+        if (operation === "update" && data.internalTitle === undefined) {
+          return data
+        }
+
+        data.internalTitle = resolveInternalTitle(
+          operation === "update" && originalDoc
+            ? { ...originalDoc, ...data }
+            : data,
+          req?.locale
+        )
 
         return data
       },

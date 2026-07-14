@@ -29,6 +29,8 @@ const resetEnv = () => {
   }
 }
 
+const okResponse = () => new Response(null, { status: 204 })
+
 describe("medusaCache hooks", () => {
   let createMedusaCacheHook: typeof import("@/lib/hooks/medusa-cache").createMedusaCacheHook
   let getEnvString: ReturnType<typeof vi.fn>
@@ -79,8 +81,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 1, slug: "home" }
@@ -116,8 +118,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("articles")
       const doc = { id: 2, slug: "news" }
@@ -145,8 +147,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 3, slug: "about" }
@@ -169,7 +171,7 @@ describe("medusaCache hooks", () => {
     it("skips notification when MEDUSA_BACKEND_URL is not set", async () => {
       getEnvString.mockReturnValue(null)
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
+      const mockFetch = vi.mocked(globalThis.fetch)
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 1, slug: "test" }
       const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -227,7 +229,7 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
+      const mockFetch = vi.mocked(globalThis.fetch)
       mockFetch.mockRejectedValue(new Error("Network error"))
 
       const hook = createMedusaCacheHook("pages")
@@ -250,12 +252,10 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        text: vi.fn().mockResolvedValue("Internal Server Error"),
-      })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(
+        new Response("Internal Server Error", { status: 500 })
+      )
 
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 1, slug: "test" }
@@ -277,8 +277,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("articles")
       const doc = {
@@ -306,8 +306,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("hero-carousels")
       const doc = { id: 1 }
@@ -330,7 +330,7 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("test-secret")
 
       const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("media")
       const doc = { id: 1, filename: "image.png" }
@@ -358,8 +358,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 1, slug: { en: "home" } }
@@ -385,8 +385,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("pages")
       const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -408,8 +408,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test/")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 1, slug: "test" }
@@ -430,8 +430,8 @@ describe("medusaCache hooks", () => {
         .mockReturnValueOnce("http://medusa.test")
         .mockReturnValueOnce("test-secret")
 
-      const mockFetch = globalThis.fetch as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue({ ok: true })
+      const mockFetch = vi.mocked(globalThis.fetch)
+      mockFetch.mockResolvedValue(okResponse())
 
       const hook = createMedusaCacheHook("pages")
       const doc = { id: 1, slug: "test" }
