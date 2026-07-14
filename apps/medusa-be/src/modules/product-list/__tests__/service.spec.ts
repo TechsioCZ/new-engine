@@ -91,7 +91,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
     })
 
     describe("createProductListItemForList", () => {
-      it("normalizes favorite item quantity to one", async () => {
+      it("persists favorite item quantity", async () => {
         const list = await service.createFavoriteProductList()
 
         const item = await service.createProductListItemForList({
@@ -106,7 +106,7 @@ moduleIntegrationTestRunner<ProductListModuleService>({
         expect(item).toEqual(
           expect.objectContaining({
             list_id: list.id,
-            quantity: 1,
+            quantity: 9,
             sort_order: 3,
             note: "Already owned",
             metadata: { source: "favorite-test" },
