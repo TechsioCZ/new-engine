@@ -3,7 +3,9 @@ export type HeroBannerItem = {
   title?: string
   subtitle?: string
   badge?: string
+  ctaLabel?: string
   href: string
+  imageAlt?: string
   imageSrc: string
 }
 

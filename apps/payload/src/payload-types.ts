@@ -340,8 +340,9 @@ export interface Page {
  */
 export interface HeroCarousel {
   id: number;
+  internalTitle: string;
   image: number | Media;
-  heading: string;
+  heading?: string | null;
   subheading?: string | null;
   button?: string | null;
   buttonHref?: string | null;
@@ -614,6 +615,7 @@ export interface PagesSelect<T extends boolean = true> {
  * via the `definition` "hero-carousels_select".
  */
 export interface HeroCarouselsSelect<T extends boolean = true> {
+  internalTitle?: T;
   image?: T;
   heading?: T;
   subheading?: T;
