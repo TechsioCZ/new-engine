@@ -216,6 +216,7 @@ export function CheckoutAddressSection({
                 items={countryItems}
                 label={formTexts.country}
                 placeholder={formTexts.countryPlaceholder}
+                readOnly
                 required
                 validationMode="blur"
               />

@@ -59,7 +59,7 @@ export const buildRegisterDefaults = ({
   billing_address_2: "",
   billing_city: "",
   billing_postal_code: "",
-  billing_country_code: normalizeCountryCode(countryCode) ?? "SK",
+  billing_country_code: normalizeCountryCode(countryCode) ?? "",
   accept_terms: false,
 })
 

@@ -12,6 +12,7 @@ import {
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useCartStorefrontTexts } from "@/lib/storefront/use-cart-storefront-texts"
 import { useCheckoutStorefrontTexts } from "@/lib/storefront/use-checkout-storefront-texts"
 
@@ -51,7 +52,7 @@ const hasTextValue = (value: string) => value.trim().length > 0
 const resolveStreetValue = (form: AddressFormState) =>
   [form.address1.trim(), form.address2.trim()].filter(Boolean).join(", ")
 
-const resolveAddressRows = (form: AddressFormState) => {
+const resolveAddressRows = (form: AddressFormState, locale: string) => {
   const hasCompanyDetails = [
     form.company,
     form.companyId,
@@ -72,7 +73,10 @@ const resolveAddressRows = (form: AddressFormState) => {
       : []),
     { label: "E-mail", value: form.email },
     { label: "Telefón", value: form.phone },
-    { label: "Krajina", value: resolveCountryLabel(form.countryCode) },
+    {
+      label: "Krajina",
+      value: resolveCountryLabel(form.countryCode, locale),
+    },
     { label: "Ulica a číslo domu", value: resolveStreetValue(form) },
     { label: "Mesto", value: form.city },
     { label: "PSČ", value: form.postalCode },
@@ -109,7 +113,11 @@ export function CheckoutCompleteSection({
 }: CheckoutCompleteSectionProps) {
   const cartTexts = useCartStorefrontTexts()
   const checkoutTexts = useCheckoutStorefrontTexts()
-  const shippingAddressRows = resolveAddressRows(shippingAddressForm)
+  const marketContext = useMarketContext()
+  const shippingAddressRows = resolveAddressRows(
+    shippingAddressForm,
+    marketContext.locale
+  )
   const shippingSummaryLabel = hasShipping
     ? (shippingLabel ?? checkoutTexts.selectedShipping)
     : checkoutTexts.shippingNotSelected

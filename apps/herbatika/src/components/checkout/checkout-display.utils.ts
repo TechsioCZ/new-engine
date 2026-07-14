@@ -1,5 +1,5 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
-import { COUNTRY_SELECT_ITEMS } from "./checkout.constants"
+import { resolveCountryDisplayName } from "@/lib/forms/country-options"
 
 const normalizeProviderValue = (providerId: string) =>
   providerId.toLowerCase().replace(/[_-]+/g, " ")
@@ -171,17 +171,5 @@ export const resolveShippingIcon = (option: {
   return "token-icon-truck"
 }
 
-export const resolveCountryLabel = (countryCode: string) => {
-  const normalizedCountryCode = countryCode.trim().toUpperCase()
-  if (!normalizedCountryCode) {
-    return ""
-  }
-
-  const matchedCountry = COUNTRY_SELECT_ITEMS.find(
-    (item) => item.value?.toUpperCase() === normalizedCountryCode
-  )
-
-  return typeof matchedCountry?.label === "string"
-    ? matchedCountry.label
-    : normalizedCountryCode
-}
+export const resolveCountryLabel = (countryCode: string, locale: string) =>
+  resolveCountryDisplayName(countryCode, locale)

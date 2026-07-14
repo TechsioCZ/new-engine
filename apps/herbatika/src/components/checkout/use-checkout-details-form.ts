@@ -321,37 +321,43 @@ const resolveCheckoutHydratedValues = ({
     mapHerbatikaAddressFormStateFromMedusaAddress(shippingAddress)
   const resolvedBillingAddressValues =
     mapHerbatikaAddressFormStateFromMedusaAddress(billingAddress)
-  const shippingAddressValues = mergeCheckoutAddressValues(
-    {
-      email: cart?.email ?? customer?.email ?? "",
-      firstName: customer?.first_name ?? "",
-      lastName: customer?.last_name ?? "",
-      countryCode: regionCountryCode?.toUpperCase(),
-    },
-    resolvedShippingAddressValues,
-    carrierPickupAddress?.address
-  )
-  const billingAddressValues = mergeCheckoutAddressValues(
-    {
-      firstName: shippingAddressValues.firstName,
-      lastName: shippingAddressValues.lastName,
-      phone: shippingAddressValues.phone,
-      countryCode: shippingAddressValues.countryCode,
-      ...(hasCarrierPickupAddress
-        ? {}
-        : {
-            company: shippingAddressValues.company,
-            companyId: shippingAddressValues.companyId,
-            taxId: shippingAddressValues.taxId,
-            vatId: shippingAddressValues.vatId,
-            address1: shippingAddressValues.address1,
-            address2: shippingAddressValues.address2,
-            city: shippingAddressValues.city,
-            postalCode: shippingAddressValues.postalCode,
-          }),
-    },
-    resolvedBillingAddressValues
-  )
+  const marketCountryCode = regionCountryCode?.toUpperCase()
+  const shippingAddressValues = {
+    ...mergeCheckoutAddressValues(
+      {
+        email: cart?.email ?? customer?.email ?? "",
+        firstName: customer?.first_name ?? "",
+        lastName: customer?.last_name ?? "",
+      },
+      resolvedShippingAddressValues,
+      carrierPickupAddress?.address
+    ),
+    ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
+  }
+  const billingAddressValues = {
+    ...mergeCheckoutAddressValues(
+      {
+        firstName: shippingAddressValues.firstName,
+        lastName: shippingAddressValues.lastName,
+        phone: shippingAddressValues.phone,
+        countryCode: shippingAddressValues.countryCode,
+        ...(hasCarrierPickupAddress
+          ? {}
+          : {
+              company: shippingAddressValues.company,
+              companyId: shippingAddressValues.companyId,
+              taxId: shippingAddressValues.taxId,
+              vatId: shippingAddressValues.vatId,
+              address1: shippingAddressValues.address1,
+              address2: shippingAddressValues.address2,
+              city: shippingAddressValues.city,
+              postalCode: shippingAddressValues.postalCode,
+            }),
+      },
+      resolvedBillingAddressValues
+    ),
+    ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
+  }
   const hasHydratedAddress = Boolean(shippingAddress || billingAddress)
   let useSameAddress = true
   if (hasCarrierPickupAddress) {

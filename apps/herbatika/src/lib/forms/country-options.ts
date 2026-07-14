@@ -3,12 +3,7 @@ import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 
 const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
 
-export const COUNTRY_SELECT_ITEMS: SelectItem[] = [
-  { value: "SK", label: "Slovensko" },
-  { value: "CZ", label: "Česko" },
-  { value: "AT", label: "Rakúsko" },
-  { value: "HU", label: "Maďarsko" },
-]
+const countryDisplayNamesByLocale = new Map<string, Intl.DisplayNames>()
 
 export type CountryRegionInput = {
   activeCountryCode?: string | null
@@ -22,6 +17,34 @@ export const normalizeCountryCode = (
 ) => {
   const normalized = countryCode?.trim().toUpperCase()
   return normalized && COUNTRY_CODE_PATTERN.test(normalized) ? normalized : null
+}
+
+const getCountryDisplayNames = (locale: string) => {
+  const existing = countryDisplayNamesByLocale.get(locale)
+
+  if (existing) {
+    return existing
+  }
+
+  const displayNames = new Intl.DisplayNames([locale], { type: "region" })
+  countryDisplayNamesByLocale.set(locale, displayNames)
+  return displayNames
+}
+
+export const resolveCountryDisplayName = (
+  countryCode: string,
+  locale: string
+) => {
+  const normalizedCountryCode = normalizeCountryCode(countryCode)
+
+  if (!normalizedCountryCode) {
+    return countryCode
+  }
+
+  return (
+    getCountryDisplayNames(locale).of(normalizedCountryCode) ??
+    normalizedCountryCode
+  )
 }
 
 const findRegion = ({
@@ -53,10 +76,6 @@ const resolveCountryCodes = ({
   )
   const normalizedActiveCountryCode = normalizeCountryCode(activeCountryCode)
 
-  if (regionCountryCodes.size > 0) {
-    return regionCountryCodes
-  }
-
   if (normalizedActiveCountryCode) {
     return new Set([normalizedActiveCountryCode])
   }
@@ -66,27 +85,23 @@ const resolveCountryCodes = ({
 
 export const resolveCountryItemsForRegion = ({
   activeCountryCode,
+  locale,
   regionId,
   regions,
 }: Pick<
   CountryRegionInput,
   "activeCountryCode" | "regionId" | "regions"
->): SelectItem[] => {
+> & { locale: string }): SelectItem[] => {
   const countryCodes = resolveCountryCodes({
     activeCountryCode,
     regionId,
     regions,
   })
 
-  if (countryCodes.size === 0) {
-    return COUNTRY_SELECT_ITEMS
-  }
-
-  const regionItems = COUNTRY_SELECT_ITEMS.filter((item) =>
-    countryCodes.has(normalizeCountryCode(item.value) ?? "")
-  )
-
-  return regionItems.length > 0 ? regionItems : COUNTRY_SELECT_ITEMS
+  return [...countryCodes].map((countryCode) => ({
+    label: resolveCountryDisplayName(countryCode, locale),
+    value: countryCode,
+  }))
 }
 
 export const isCountryAvailableForRegion = ({

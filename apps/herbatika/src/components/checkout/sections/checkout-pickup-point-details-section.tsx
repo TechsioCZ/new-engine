@@ -203,6 +203,7 @@ export function CheckoutPickupPointDetailsSection({
                   items={countryItems}
                   label={formTexts.country}
                   placeholder={formTexts.countryPlaceholder}
+                  readOnly
                   required
                   validationMode="blur"
                 />

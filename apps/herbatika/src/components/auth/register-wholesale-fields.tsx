@@ -66,6 +66,7 @@ export function RegisterWholesaleFields({
             label="Krajina"
             onValueChange={onValueChange}
             placeholder="Vyberte krajinu"
+            readOnly
             required
             validationMode="blur"
           />
