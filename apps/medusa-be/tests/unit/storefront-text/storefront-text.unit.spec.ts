@@ -26,10 +26,16 @@ describe("storefront text registry", () => {
 
   it("keeps definition keys unique and aligned with their namespace", () => {
     const keys = STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key)
+    const sortedKeys = [...keys].sort()
 
     expect(new Set(keys).size).toBe(keys.length)
     for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
       expect(definition.key.startsWith(`${definition.namespace}.`)).toBe(true)
+    }
+    for (let index = 0; index < sortedKeys.length - 1; index += 1) {
+      expect(sortedKeys[index + 1]?.startsWith(`${sortedKeys[index]}.`)).toBe(
+        false
+      )
     }
   })
 
@@ -64,6 +70,23 @@ describe("storefront text registry", () => {
       hu: "Ajánlott",
       ro: "Recomandate",
       sk: "Odporúčame",
+    })
+  })
+
+  it("creates localized catalog facet defaults for every market", () => {
+    const inStockRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "catalog.filters.status.in_stock"
+    )
+
+    expect(
+      Object.fromEntries(
+        inStockRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Skladem",
+      hu: "Raktáron",
+      ro: "În stoc",
+      sk: "Na sklade",
     })
   })
 

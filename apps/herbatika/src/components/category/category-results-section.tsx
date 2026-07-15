@@ -126,6 +126,16 @@ export function CategoryResultsSection({
           page={page}
           pageSize={pageSize}
           size="sm"
+          translations={{
+            itemLabel: ({ page: itemPage, totalPages: itemTotalPages }) =>
+              t("pagination.page_aria", {
+                page: itemPage,
+                totalPages: itemTotalPages,
+              }),
+            nextTriggerLabel: t("pagination.next_aria"),
+            prevTriggerLabel: t("pagination.previous_aria"),
+            rootLabel: t("pagination.root_aria"),
+          }}
           variant="outlined"
         />
       )}

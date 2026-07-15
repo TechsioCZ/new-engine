@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { AsideFilterButton } from "@/components/aside-filter-button"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -18,6 +19,7 @@ type AsideFilterChipSectionProps = {
   items: AsideFilterChipItem[]
   onToggle: (itemId: string) => void
   emptyMessage?: string
+  loadingMessage?: string
   collapseAfter?: number
   isLoading?: boolean
 }
@@ -27,23 +29,26 @@ export function AsideFilterChipSection({
   items,
   onToggle,
   emptyMessage,
+  loadingMessage,
   collapseAfter,
   isLoading = false,
 }: AsideFilterChipSectionProps) {
+  const t = useTranslations("catalog")
   const [isExpanded, setIsExpanded] = useState(false)
 
   const visibleItems =
     !collapseAfter || collapseAfter <= 0 || isExpanded
       ? items
       : items.slice(0, collapseAfter)
+  const statusMessage = isLoading ? loadingMessage : emptyMessage
 
   return (
     <section className="space-y-250">
       {title && <h3 className="font-semibold text-xl leading-none">{title}</h3>}
 
-      {items.length === 0 && emptyMessage && (
+      {items.length === 0 && statusMessage && (
         <SupportingText className="text-fg-secondary text-sm">
-          {emptyMessage}
+          {statusMessage}
         </SupportingText>
       )}
 
@@ -73,7 +78,9 @@ export function AsideFilterChipSection({
                 type="button"
                 variant="secondary"
               >
-                {isExpanded ? "Zobraziť menej" : "Zobraziť viac"}
+                {isExpanded
+                  ? t("filters.show_less")
+                  : t("filters.show_more")}
               </Button>
             )}
         </>

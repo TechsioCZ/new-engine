@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import {
   type AsideFilterChipItem,
@@ -155,6 +156,7 @@ export function AsideFilter({
   onReset,
   showBrandFilter = true,
 }: AsideFilterProps) {
+  const t = useTranslations("catalog")
   const incomingPriceBounds = toSafeBounds(priceBounds)
   const hasActivePriceFilter =
     typeof selectedPriceRange.min === "number" ||
@@ -221,7 +223,9 @@ export function AsideFilter({
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
       <div className="scrollbar-primary space-y-400 p-400 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:space-y-500 xl:overflow-y-auto xl:overscroll-contain xl:p-500">
         <section className="space-y-300">
-          <h2 className="font-bold text-2xl uppercase leading-none">Cena</h2>
+          <h2 className="font-bold text-2xl uppercase leading-none">
+            {t("filters.price")}
+          </h2>
           <div className="flex items-center justify-between font-medium text-fg-secondary text-lg">
             <span>
               {formatWholeCurrencyAmount(sliderRangeForRender[0], currencyCode)}
@@ -274,11 +278,12 @@ export function AsideFilter({
 
         <div>
           <AsideFilterChipSection
-            emptyMessage="Formy sa načítavajú."
+            emptyMessage={t("filters.form_empty")}
             isLoading={isLoading}
             items={formItems}
+            loadingMessage={t("filters.form_loading")}
             onToggle={onFormToggle}
-            title="Forma"
+            title={t("filters.form")}
           />
         </div>
 
@@ -286,11 +291,12 @@ export function AsideFilter({
           <div>
             <AsideFilterChipSection
               collapseAfter={12}
-              emptyMessage="Značky zatiaľ nie sú dostupné."
+              emptyMessage={t("filters.brand_empty")}
               isLoading={isLoading}
               items={brandItems}
+              loadingMessage={t("filters.brand_loading")}
               onToggle={onBrandToggle}
-              title="Značka"
+              title={t("filters.brand")}
             />
           </div>
         ) : null}
@@ -298,11 +304,12 @@ export function AsideFilter({
         <div>
           <AsideFilterChipSection
             collapseAfter={12}
-            emptyMessage="Aktívne látky sa načítavajú."
+            emptyMessage={t("filters.ingredient_empty")}
             isLoading={isLoading}
             items={ingredientItems}
+            loadingMessage={t("filters.ingredient_loading")}
             onToggle={onIngredientToggle}
-            title="Aktívna látka"
+            title={t("filters.active_ingredient")}
           />
         </div>
 
@@ -316,7 +323,7 @@ export function AsideFilter({
             theme="outlined"
             variant="secondary"
           >
-            Vymazať filtre
+            {t("filters.clear")}
           </Button>
         </div>
       </div>
