@@ -1,5 +1,9 @@
+import { createHash } from "node:crypto"
+import { existsSync } from "node:fs"
+import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { gunzipSync } from "node:zlib"
 import ExcelJS from "exceljs"
 import { getPayload, type PayloadRequest } from "payload"
 import type { Article } from "../payload-types"
@@ -23,6 +27,7 @@ type ImportContext = {
   translate: boolean
   overwrite: boolean
   categoryCache: Map<string, PayloadId>
+  mediaUrlMap: Map<string, PayloadId>
 }
 
 const REQUIRED_COLUMNS = ["title", "content"]
@@ -36,6 +41,14 @@ const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
 const DEFAULT_LOCALES = ["en"]
+const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
+const MEDIA_URL_PREFIX = "payload-media-url:"
+
+type MediaManifestEntry = {
+  url: string
+  alt?: string
+  filename?: string
+}
 
 const debugLog = (...args: unknown[]) => {
   if (IS_DEBUG_IMPORT) {
@@ -48,7 +61,7 @@ const PLACEHOLDER_IMAGE = Buffer.from(
 )
 
 const usage = `Usage:
-  pnpm --filter @nmit/payload run import:articles -- <xlsx-file> [sheet-name] [--locale cs] [--status draft|published|archived] [--translate] [--overwrite] [--dry-run]
+  pnpm --filter @nmit/payload run import:articles -- <xlsx-file> [sheet-name] [--locale cs] [--status draft|published|archived] [--translate] [--overwrite] [--dry-run] [--media-manifest file.json]
 
 Expected columns:
   title, content, excerpt, slug, category, category_slug, tags, status, publishedDate, featured_image_path, author_email
@@ -57,7 +70,7 @@ Aliases:
   title: post_url, post_title
   content: body, text, article, article_text, post_content, post_content_html
   category: category_title, rubrika, kategorie
-  publishedDate: published_date, date, datum
+  publishedDate: published_date, date, datum, post_date
   featured_image_path: image, image_path, featuredImage, featured_image, post_img_src, post_img
 `
 
@@ -71,6 +84,7 @@ export type ArticleImportOptions = {
   overwrite?: boolean
   signal?: AbortSignal
   payload?: Payload
+  mediaManifestPath?: string
 }
 
 export type ArticleImportResult = {
@@ -117,6 +131,7 @@ const getArgs = () => {
   let translate = false
   let dryRun = false
   let overwrite = false
+  let mediaManifestPath: string | undefined
   const args = process.argv.slice(2)
 
   for (let i = 0; i < args.length; i++) {
@@ -139,6 +154,15 @@ const getArgs = () => {
         const value = getValueArg(args, i)
         if (value) {
           locale = value.toLowerCase()
+          i += 1
+        }
+        break
+      }
+
+      case "--media-manifest": {
+        const value = getValueArg(args, i)
+        if (value) {
+          mediaManifestPath = value
           i += 1
         }
         break
@@ -168,6 +192,7 @@ const getArgs = () => {
     status,
     translate,
     overwrite,
+    mediaManifestPath,
   }
 }
 
@@ -269,7 +294,221 @@ const getCliPayload = async () => {
   return getPayload({ config })
 }
 
-const toRichText = (value: string): ArticleContent => {
+const isRichTextJson = (value: unknown): value is ArticleContent =>
+  typeof value === "object" &&
+  value !== null &&
+  "root" in value &&
+  typeof (value as { root?: unknown }).root === "object"
+
+const decodeRichTextValue = (value: string) => {
+  if (!value.startsWith(RICH_TEXT_GZIP_PREFIX)) {
+    return value
+  }
+
+  return gunzipSync(
+    Buffer.from(value.slice(RICH_TEXT_GZIP_PREFIX.length), "base64")
+  ).toString("utf8")
+}
+
+const resolveDefaultMediaManifestPath = (filePath: string) => {
+  const parsed = path.parse(filePath)
+  return path.join(parsed.dir, `${parsed.name}.media.json`)
+}
+
+const sanitizeFilename = (value: string) =>
+  value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 180) || "image"
+
+const filenameFromUrl = (url: string) => {
+  try {
+    const parsed = new URL(url)
+    const basename = path.basename(decodeURIComponent(parsed.pathname))
+    return sanitizeFilename(basename || "image")
+  } catch {
+    return sanitizeFilename(path.basename(url) || "image")
+  }
+}
+
+const filenameWithUrlHash = (entry: MediaManifestEntry) => {
+  const hash = createHash("sha1").update(entry.url).digest("hex").slice(0, 12)
+  const filename = sanitizeFilename(
+    entry.filename || filenameFromUrl(entry.url)
+  )
+  return `imported-richtext-${hash}-${filename}`
+}
+
+const loadMediaManifest = async (filePath: string | undefined) => {
+  if (!(filePath && existsSync(filePath))) {
+    return []
+  }
+
+  const parsed = JSON.parse(await readFile(filePath, "utf8")) as unknown
+  const media = (parsed as { media?: unknown }).media
+  if (!Array.isArray(media)) {
+    return []
+  }
+
+  return media.filter(
+    (entry): entry is MediaManifestEntry =>
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as { url?: unknown }).url === "string"
+  )
+}
+
+const fetchMediaBuffer = async (url: string) => {
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`)
+  }
+
+  const contentType =
+    response.headers.get("content-type")?.split(";")[0] || "image/jpeg"
+  return {
+    data: Buffer.from(await response.arrayBuffer()),
+    mimetype: contentType,
+  }
+}
+
+const ensureMediaFromUrl = async (
+  payload: Payload,
+  entry: MediaManifestEntry,
+  dryRun: boolean
+): Promise<PayloadId | undefined> => {
+  const filename = filenameWithUrlHash(entry)
+  const existing = await payload.find({
+    collection: "media",
+    where: {
+      filename: {
+        equals: filename,
+      },
+    },
+    limit: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
+
+  if (existing.docs[0]) {
+    return existing.docs[0].id as PayloadId
+  }
+
+  if (dryRun) {
+    return 0
+  }
+
+  const file = await fetchMediaBuffer(entry.url)
+  const media = await payload.create({
+    collection: "media",
+    data: {
+      alt: entry.alt?.trim() || "Imported article image",
+    },
+    file: {
+      ...file,
+      name: filename,
+      size: file.data.length,
+    },
+    overrideAccess: true,
+  })
+
+  return media.id as PayloadId
+}
+
+const ensureMediaManifestUploads = async (
+  payload: Payload,
+  manifestPath: string | undefined,
+  dryRun: boolean
+) => {
+  const entries = await loadMediaManifest(manifestPath)
+  const mediaUrlMap = new Map<string, PayloadId>()
+
+  for (const entry of entries) {
+    try {
+      const mediaId = await ensureMediaFromUrl(payload, entry, dryRun)
+      if (mediaId !== undefined) {
+        mediaUrlMap.set(entry.url, mediaId)
+      }
+    } catch (error) {
+      console.warn(
+        `Failed to import rich text image ${entry.url}: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
+
+  if (entries.length > 0) {
+    console.log(
+      `Prepared ${mediaUrlMap.size}/${entries.length} rich text media uploads`
+    )
+  }
+
+  return mediaUrlMap
+}
+
+const hydrateRichTextMedia = (
+  node: unknown,
+  mediaUrlMap: Map<string, PayloadId>,
+  fallbackMediaId: PayloadId
+): unknown | undefined => {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return node
+  }
+
+  const record = node as Record<string, unknown>
+  if (record.type === "upload") {
+    const value = record.value
+    if (typeof value === "string" && value.startsWith(MEDIA_URL_PREFIX)) {
+      const url = value.slice(MEDIA_URL_PREFIX.length)
+      return {
+        ...record,
+        relationTo: "media",
+        value: mediaUrlMap.get(url) ?? fallbackMediaId,
+      }
+    }
+  }
+
+  const nextRecord = { ...record }
+  if (
+    record.root &&
+    typeof record.root === "object" &&
+    !Array.isArray(record.root)
+  ) {
+    nextRecord.root = hydrateRichTextMedia(
+      record.root,
+      mediaUrlMap,
+      fallbackMediaId
+    )
+  }
+
+  if (Array.isArray(record.children)) {
+    nextRecord.children = record.children
+      .map((child) => hydrateRichTextMedia(child, mediaUrlMap, fallbackMediaId))
+      .filter((child) => child !== undefined)
+  }
+
+  return nextRecord
+}
+
+const toRichText = (
+  value: string,
+  mediaUrlMap: Map<string, PayloadId>,
+  fallbackMediaId: PayloadId
+): ArticleContent => {
+  try {
+    const parsed = JSON.parse(decodeRichTextValue(value)) as unknown
+    if (isRichTextJson(parsed)) {
+      return hydrateRichTextMedia(
+        parsed,
+        mediaUrlMap,
+        fallbackMediaId
+      ) as ArticleContent
+    }
+  } catch {
+    // Treat non-JSON input as plain text.
+  }
+
   const lines = value
     .split(NEWLINE_PATTERN)
     .map((line) => line.trim())
@@ -809,8 +1048,14 @@ const processArticleRow = async (
   const status =
     statusOverride ?? parseStatus(getText(row, ["status", "state", "stav"]))
   const excerpt =
-    getText(row, ["excerpt", "perex", "summary", "description", "popis"]) ||
-    content.slice(0, 300)
+    getText(row, [
+      "excerpt",
+      "perex",
+      "summary",
+      "description",
+      "meta_description",
+      "popis",
+    ]) || content.slice(0, 300)
   const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
   const slug = rawSlug ? slugify(rawSlug) : slugify(title)
 
@@ -818,13 +1063,19 @@ const processArticleRow = async (
     title,
     slug,
     excerpt,
-    content: toRichText(content),
+    content: toRichText(content, context.mediaUrlMap, fallbackMediaId),
     featuredImage,
     category: categoryId,
     tags,
     ...(author ? { author } : {}),
     publishedDate: parseDate(
-      firstValue(row, ["publishedDate", "published_date", "date", "datum"])
+      firstValue(row, [
+        "publishedDate",
+        "published_date",
+        "date",
+        "datum",
+        "post_date",
+      ])
     ),
     status,
     translationSync: translate,
@@ -857,6 +1108,7 @@ export const runImportFromFile = async (
     overwrite = false,
     signal,
     payload: providedPayload,
+    mediaManifestPath,
   } = options
 
   throwIfAborted(signal)
@@ -880,6 +1132,15 @@ export const runImportFromFile = async (
   throwIfAborted(signal)
   const fallbackMediaId = await ensureFallbackMedia(payload, dryRun)
   debugLog(`Fallback media id: ${fallbackMediaId}`)
+  const resolvedMediaManifestPath = path.resolve(
+    process.cwd(),
+    mediaManifestPath ?? resolveDefaultMediaManifestPath(resolvedFilePath)
+  )
+  const mediaUrlMap = await ensureMediaManifestUploads(
+    payload,
+    resolvedMediaManifestPath,
+    dryRun
+  )
 
   let imported = 0
   let skipped = 0
@@ -901,6 +1162,7 @@ export const runImportFromFile = async (
       translate,
       overwrite,
       categoryCache,
+      mediaUrlMap,
     })
 
     if (result === "imported") {
@@ -935,6 +1197,7 @@ const runImportFromCli = async () => {
     status: statusOverride,
     translate,
     overwrite,
+    mediaManifestPath,
   } = getArgs()
   if (!filePath) {
     console.log(usage)
@@ -949,6 +1212,7 @@ const runImportFromCli = async () => {
     status: statusOverride,
     translate,
     overwrite,
+    mediaManifestPath,
   })
 
   console.log(

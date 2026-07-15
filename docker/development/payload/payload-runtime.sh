@@ -25,7 +25,7 @@ case "$mode" in
       pnpm --filter @nmit/payload run generate:importmap
     fi
 
-    if [ "${PAYLOAD_SEED_ON_STARTUP:-1}" = "1" ]; then
+    if [ "${PAYLOAD_SEED_ON_STARTUP:-0}" = "1" ]; then
       pnpm --filter @nmit/payload run seed
     fi
 

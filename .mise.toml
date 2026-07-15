@@ -267,7 +267,7 @@ run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} up -
 [tasks."dev:internal:backend:prepare"]
 description = "Run Medusa DB migrations before backend startup"
 hide = true
-run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} run --rm --build --no-deps medusa-be pnpm --filter medusa-be run migrate"
+run = "docker compose -f docker-compose.yaml -p ${PROJECT_NAME:-new-engine} run --rm --build --no-deps medusa-be pnpm --filter medusa-be run migrateProd"
 
 [tasks."dev:internal:backend:wait"]
 description = "Wait for manifest-defined backend phase services to become healthy"

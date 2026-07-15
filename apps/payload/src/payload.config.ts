@@ -24,10 +24,11 @@ import { Media } from "./collections/media"
 import { PageCategories } from "./collections/page-categories"
 import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
-import { migrations } from "./migrations"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
+import { articleOptionsEndpoint } from "./lib/endpoints/article-options"
 import { healthEndpoint } from "./lib/endpoints/health"
+import { medusaProductsEndpoint } from "./lib/endpoints/medusa-products"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
 import { pageCategoriesWithPagesEndpoint } from "./lib/endpoints/page-categories-with-pages"
 import {
@@ -36,6 +37,7 @@ import {
   isEnabled,
   resolveEnvLocales,
 } from "./lib/utils/env"
+import { migrations } from "./migrations"
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -78,6 +80,8 @@ export default buildConfig({
     ...(isPagesEnabled ? [pageCategoriesWithPagesEndpoint] : []),
     ...(isArticlesEnabled ? [articleCategoriesWithArticlesEndpoint] : []),
     ...(isArticlesEnabled ? [articleImportEndpoint] : []),
+    ...(isArticlesEnabled ? [articleOptionsEndpoint] : []),
+    ...(isArticlesEnabled ? [medusaProductsEndpoint] : []),
   ],
   routes: {
     admin: "/",

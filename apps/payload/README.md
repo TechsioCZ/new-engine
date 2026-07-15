@@ -59,8 +59,34 @@ pnpm --filter @nmit/payload payload migrate
 pnpm --filter @nmit/payload run seed
 ```
 
-The seed is idempotent. It creates or syncs the Payload admin user from the Medusa SSO email/key envs and one minimal
-record for each enabled content collection if that collection is empty.
+The seed is idempotent. It creates or syncs the Payload admin user from the Medusa SSO email/key envs and upserts the
+starter CMS records by slug/title so it can be run repeatedly without duplicating content.
+
+Optional Herbatica product article seed:
+
+```bash
+PAYLOAD_SEED_HERBATICA_PRODUCTS_ENABLED=1 \
+HERBATICA_XML_PATH=/path/to/productsComplete.xml \
+pnpm --filter @nmit/payload run seed
+```
+
+When enabled, product article seed reads `HERBATICA_XML_PATH` (or the committed Herbatica fixture if present), creates or
+updates Payload articles by deterministic `produkt-*` slugs, and upserts article categories by slug. Use
+`PAYLOAD_SEED_HERBATICA_PRODUCTS_LIMIT` to cap imported products during local/dev runs.
+
+Optional Herbatica blog article XLSX seed:
+
+```bash
+HERBATICA_BLOG_ARTICLES_XLSX_PATH=/home/tomas/Stažené/blog_clanky.xlsx \
+PAYLOAD_SEED_ARTICLES_LOCALE=sk \
+PAYLOAD_SEED_ARTICLES_STATUS=published \
+pnpm --filter @nmit/payload run seed
+```
+
+The XLSX import uses the same parser as the Payload admin import (`title` and `content` required, plus optional
+`excerpt`, `slug`, `category`, `category_slug`, `tags`, `status`, `publishedDate`, `featured_image_path`, and
+`author_email`). Re-running the seed will skip existing localized articles by slug; set
+`PAYLOAD_SEED_ARTICLES_OVERWRITE=1` to update already imported rows.
 
 ### 5) Start dev server
 
