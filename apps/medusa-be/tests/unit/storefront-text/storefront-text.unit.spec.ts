@@ -22,6 +22,23 @@ describe("storefront text registry", () => {
     expect(seedRow?.default_value).toBeTruthy()
     expect(seedRow?.override_value).toBeNull()
   })
+
+  it("creates localized search defaults for every market", () => {
+    const searchPlaceholderRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "search.input_placeholder"
+    )
+
+    expect(
+      Object.fromEntries(
+        searchPlaceholderRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Napište, co hledáte...",
+      hu: "Írja be, mit keres...",
+      ro: "Scrieți ce căutați...",
+      sk: "Napíšte, čo hľadáte...",
+    })
+  })
 })
 
 describe("storefront text values", () => {
