@@ -16,14 +16,19 @@ type BrandListingProps = {
 
 export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
   const t = useTranslations("catalog")
+  const tNavigation = useTranslations("navigation")
   const controller = useBrandListingController({ brandFacetId })
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-listing-page-gap p-brand-listing-page font-rubik 2xl:p-brand-listing-page-lg">
       <HerbatikaBreadcrumb
         items={[
-          { label: "Domů", href: "/", icon: "token-icon-home" },
-          { label: "Značky", href: "/znacka" },
+          {
+            label: tNavigation("breadcrumbs.home"),
+            href: "/",
+            icon: "token-icon-home",
+          },
+          { label: t("brands.label"), href: "/znacka" },
           { label: brandTitle },
         ]}
       />

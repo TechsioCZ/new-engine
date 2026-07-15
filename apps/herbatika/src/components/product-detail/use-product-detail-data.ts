@@ -1,6 +1,7 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
@@ -38,6 +39,7 @@ import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 type UseProductDetailDataProps = { handle: string }
 
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
+  const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
@@ -153,7 +155,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const breadcrumbItems = resolveProductBreadcrumbItems(
     productCategories,
     product,
-    handle
+    handle,
+    tNavigation("breadcrumbs.home")
   )
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)
