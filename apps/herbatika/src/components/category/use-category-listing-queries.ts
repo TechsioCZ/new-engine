@@ -26,7 +26,6 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   type NuqsPlpQueryState,
   PLP_PAGE_SIZE,
@@ -200,16 +199,7 @@ export function useCategoryListingQueries({
     asideIngredientItems,
     asideStatusItems,
     breadcrumbItems,
-    catalogError: catalogQuery.error
-      ? resolveErrorMessage(catalogQuery.error, "Načítanie produktov zlyhalo.")
-      : null,
     catalogQuery,
-    categoriesError: categoriesQuery.error
-      ? resolveErrorMessage(
-          categoriesQuery.error,
-          "Načítanie kategórií zlyhalo."
-        )
-      : null,
     categoriesQuery,
     categoryBottomHtml: resolveCategoryBottomHtml({
       activeCategory,

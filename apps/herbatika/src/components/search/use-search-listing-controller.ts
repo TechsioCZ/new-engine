@@ -9,7 +9,6 @@ import {
   resolveCatalogActiveFilterCount,
   resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   PLP_PAGE_SIZE,
   plpQueryParsers,
@@ -91,9 +90,6 @@ export function useSearchListingController() {
     asideFormItems,
     asideIngredientItems,
     asideStatusItems,
-    catalogError: catalogQuery.error
-      ? resolveErrorMessage(catalogQuery.error, "Načítanie produktov zlyhalo.")
-      : null,
     catalogQuery,
     isFiltersLoading:
       isSearchQueryEnabled &&

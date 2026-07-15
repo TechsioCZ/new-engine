@@ -3,7 +3,6 @@
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryContextPanel } from "@/components/category/category-context-panel"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
-import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
 import { normalizeCategoryName } from "@/components/category/category-product-utils"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { CategoryRichText } from "@/components/category/category-rich-text"
@@ -85,8 +84,8 @@ export function CategoryListing({ slug }: CategoryListingProps) {
         results={
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
-            catalogError={controller.catalogError}
-            categoriesError={controller.categoriesError}
+            catalogError={controller.catalogQuery.error}
+            categoriesError={controller.categoriesQuery.error}
             isEmpty={controller.products.length === 0}
             isLoading={isResultsLoading}
             isProductAdding={controller.isProductAdding}
@@ -99,7 +98,6 @@ export function CategoryListing({ slug }: CategoryListingProps) {
             pageSize={PLP_PAGE_SIZE}
             products={controller.products}
             showCategoryNotFound={controller.showCategoryNotFound}
-            sortItems={SORT_TAB_ITEMS}
             totalCount={controller.catalogQuery.totalCount}
             totalPages={controller.catalogQuery.totalPages}
             totalProducts={controller.catalogQuery.totalCount}
