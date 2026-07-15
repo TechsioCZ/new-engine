@@ -2,6 +2,39 @@ import type { StorefrontTextDefinition } from "../registry"
 
 export const STOREFRONT_CATALOG_TEXT_DEFINITIONS = [
   {
+    description: "Název odkazu na přehled značek.",
+    key: "catalog.brands.label",
+    namespace: "catalog",
+    values: {
+      cz: "Značky",
+      hu: "Márkák",
+      ro: "Mărci",
+      sk: "Značky",
+    },
+  },
+  {
+    description: "Nadpis abecedního přehledu všech značek.",
+    key: "catalog.brands.all_title",
+    namespace: "catalog",
+    values: {
+      cz: "Všechny značky A-Z",
+      hu: "Összes márka A-tól Z-ig",
+      ro: "Toate mărcile de la A la Z",
+      sk: "Všetky značky A-Z",
+    },
+  },
+  {
+    description: "Přístupný název abecedního seznamu značek.",
+    key: "catalog.brands.list_aria",
+    namespace: "catalog",
+    values: {
+      cz: "Seznam značek podle abecedy",
+      hu: "Márkák betűrend szerinti listája",
+      ro: "Lista mărcilor în ordine alfabetică",
+      sk: "Zoznam značiek podľa abecedy",
+    },
+  },
+  {
     description: "Label ovládání katalogových filtrů s počtem aktivních filtrů.",
     key: "catalog.filters.toggle",
     namespace: "catalog",

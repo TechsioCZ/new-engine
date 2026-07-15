@@ -1,5 +1,4 @@
 import type { HttpTypes } from "@medusajs/types"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { Product } from "@/components/product-detail/product-detail.types"
@@ -77,17 +76,18 @@ export const resolveProductSummaryText = (
 export const resolveProductBreadcrumbItems = (
   productCategories: HttpTypes.StoreProductCategory[],
   product: Product | null,
-  handle: string
+  handle: string,
+  homeLabel: string
 ): HerbatikaBreadcrumbItem[] => {
   const primaryCategory = productCategories[0]
 
   return [
+    { label: homeLabel, href: "/", icon: "token-icon-home" },
     ...(primaryCategory?.handle
       ? [
           {
             label: normalizeCategoryName(primaryCategory.name),
             href: `/c/${primaryCategory.handle}`,
-            icon: "token-icon-home" as IconType,
           },
         ]
       : []),

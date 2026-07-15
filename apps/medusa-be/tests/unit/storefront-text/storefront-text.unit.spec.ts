@@ -90,6 +90,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized navigation defaults for every market", () => {
+    const homeRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "navigation.breadcrumbs.home"
+    )
+
+    expect(
+      Object.fromEntries(
+        homeRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Domů",
+      hu: "Főoldal",
+      ro: "Acasă",
+      sk: "Domov",
+    })
+  })
+
   it("creates localized search-result defaults for every market", () => {
     const searchResultRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "search.results.title"
