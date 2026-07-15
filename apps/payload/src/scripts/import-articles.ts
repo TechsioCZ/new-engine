@@ -42,9 +42,11 @@ const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
-const DEFAULT_LOCALES = ["en"]
+const DEFAULT_LOCALES = ["cs", "sk", "en"]
 const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
 const MEDIA_URL_PREFIX = "payload-media-url:"
+const DATA_IMAGE_PATTERN =
+  /^data:(image\/(?:avif|gif|jpeg|png|webp));base64,(.+)$/i
 const MEDIA_FETCH_TIMEOUT_MS = 15_000
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024
 const MAX_MEDIA_REDIRECTS = 5
@@ -445,7 +447,28 @@ const readResponseWithLimit = async (response: Response) => {
   }
 }
 
+const fetchDataImageBuffer = (url: string) => {
+  const match = DATA_IMAGE_PATTERN.exec(url)
+  if (!match) {
+    throw new Error("Unsupported data image")
+  }
+
+  const data = Buffer.from(match[2] ?? "", "base64")
+  if (data.length > MAX_MEDIA_BYTES) {
+    throw new Error("Data image exceeds maximum size")
+  }
+
+  return {
+    data,
+    mimetype: match[1]?.toLowerCase() || "image/png",
+  }
+}
+
 const fetchMediaBuffer = async (url: string) => {
+  if (url.startsWith("data:")) {
+    return fetchDataImageBuffer(url)
+  }
+
   let currentUrl = url
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS)

@@ -70,7 +70,6 @@ const DIACRITIC_PATTERN = /[\u0300-\u036f]/g
 const SAFE_FILENAME_PATTERN = /[^a-zA-Z0-9._-]+/g
 const EDGE_DASH_PATTERN = /^-+|-+$/g
 const DEFAULT_MEDIA_BASE_URL = "https://www.herbatica.sk"
-const HTTP_URL_PATTERN = /^https?:\/\//i
 const PRODUCT_WIDGET_SCRIPT_PATTERN =
   /<script\b[^>]*\bsrc=["'](https:\/\/app\.productwidgets\.cz\/e\/\d+\.js)["'][^>]*><\/script>\s*<div\b[^>]*\bid=["']pwjsroot\d+["'][^>]*><\/div>/gi
 const PRODUCT_CAROUSEL_TOKEN_PREFIX = "__PAYLOAD_PRODUCT_CAROUSEL__"
@@ -327,10 +326,16 @@ const replaceProductWidgetEmbeds = async (
   return output
 }
 
+const DATA_IMAGE_PATTERN = /^data:image\/(?:avif|gif|jpeg|png|webp);base64,/i
+
 const normalizeMediaUrl = (value: string) => {
   const trimmed = value.trim()
-  if (!trimmed || trimmed.startsWith("data:")) {
+  if (!trimmed) {
     return
+  }
+
+  if (trimmed.startsWith("data:")) {
+    return DATA_IMAGE_PATTERN.test(trimmed) ? trimmed : undefined
   }
 
   try {
@@ -339,6 +344,9 @@ const normalizeMediaUrl = (value: string) => {
     return
   }
 }
+
+const filenameFromMediaUrl = (url: string) =>
+  url.startsWith("data:") ? "inline-image" : filenameFromUrl(url)
 
 const collectImageManifestEntries = (html: string): MediaManifestEntry[] => {
   const document = new JSDOM(html).window.document
@@ -349,7 +357,7 @@ const collectImageManifestEntries = (html: string): MediaManifestEntry[] => {
         ? {
             url,
             alt: img.getAttribute("alt")?.trim() || "Imported article image",
-            filename: filenameFromUrl(url),
+            filename: filenameFromMediaUrl(url),
           }
         : undefined
     })
@@ -366,14 +374,14 @@ const sanitizeUploadNode = (
   }
 
   const normalizedUrl = normalizeMediaUrl(sourceUrl)
-  if (!(normalizedUrl && HTTP_URL_PATTERN.test(normalizedUrl))) {
+  if (!normalizedUrl) {
     return record
   }
 
   const manifestEntry = mediaManifest.get(normalizedUrl) ?? {
     url: normalizedUrl,
     alt: "Imported article image",
-    filename: filenameFromUrl(normalizedUrl),
+    filename: filenameFromMediaUrl(normalizedUrl),
   }
   mediaManifest.set(normalizedUrl, manifestEntry)
 
