@@ -1,15 +1,16 @@
 "use client"
 
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { useTranslations } from "next-intl"
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
-import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
 export function SearchResults() {
+  const t = useTranslations("search")
   const controller = useSearchListingController()
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
 
@@ -17,18 +18,29 @@ export function SearchResults() {
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-search-page-gap p-search-page font-rubik 2xl:p-search-page-lg">
       <section className="space-y-300">
         <h1 className="font-bold text-4xl text-fg-primary leading-snug">
-          Vyhľadávanie
+          {t("results.title")}
         </h1>
         <p className="text-fg-secondary text-sm">
-          Vyhľadajte produkty v katalógu.
+          {t("results.description")}
         </p>
       </section>
 
       {controller.query ? (
         <div className="flex flex-wrap items-center gap-200">
-          <Badge variant="info">{`dotaz: ${controller.query}`}</Badge>
-          <Badge variant="secondary">{`nájdené: ${controller.catalogQuery.totalCount}`}</Badge>
-          <Badge variant="secondary">{`strana: ${controller.page}/${safeTotalPages}`}</Badge>
+          <Badge variant="info">
+            {t("results.query", { query: controller.query })}
+          </Badge>
+          <Badge variant="secondary">
+            {t("results.found", {
+              count: controller.catalogQuery.totalCount,
+            })}
+          </Badge>
+          <Badge variant="secondary">
+            {t("results.page", {
+              page: controller.page,
+              totalPages: safeTotalPages,
+            })}
+          </Badge>
         </div>
       ) : null}
 
@@ -56,8 +68,9 @@ export function SearchResults() {
           results={
             <CategoryResultsSection
               activeSort={controller.queryState.sort}
-              catalogError={controller.catalogError}
+              catalogError={controller.catalogQuery.error}
               categoriesError={null}
+              emptyMessage={t("results.empty", { query: controller.query })}
               isEmpty={controller.products.length === 0}
               isLoading={controller.isResultsLoading}
               isProductAdding={controller.isProductAdding}
@@ -71,7 +84,6 @@ export function SearchResults() {
               pageSize={PLP_PAGE_SIZE}
               products={controller.products}
               showCategoryNotFound={false}
-              sortItems={SORT_TAB_ITEMS}
               totalCount={controller.catalogQuery.totalCount}
               totalPages={controller.catalogQuery.totalPages}
               totalProducts={controller.catalogQuery.totalCount}
@@ -81,7 +93,7 @@ export function SearchResults() {
       ) : (
         <section className="rounded-lg border border-border-secondary bg-base p-400">
           <p className="text-fg-secondary text-sm">
-            Zadajte výraz do vyhľadávania v hornom paneli.
+            {t("results.enter_query")}
           </p>
         </section>
       )}

@@ -11,7 +11,6 @@ import {
   resolveCatalogPriceBounds,
 } from "@/lib/storefront/catalog-query-state"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   PLP_PAGE_SIZE,
   plpQueryParsers,
@@ -115,9 +114,6 @@ export function useBrandListingController({
     asideFormItems,
     asideIngredientItems,
     asideStatusItems,
-    catalogError: catalogQuery.error
-      ? resolveErrorMessage(catalogQuery.error, "Načítanie produktov zlyhalo.")
-      : null,
     catalogQuery,
     isFiltersLoading:
       isBrandQueryEnabled &&

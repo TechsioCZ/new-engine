@@ -5,6 +5,7 @@ import {
   AdminUpdateStorefrontTextSchema,
 } from "../../../src/api/admin/storefront-texts/validators"
 import {
+  STOREFRONT_TEXT_DEFINITIONS,
   getStorefrontTextSeedRows,
   isStorefrontTextMarketLocalePair,
 } from "../../../src/modules/storefront-text/registry"
@@ -23,6 +24,15 @@ describe("storefront text registry", () => {
     expect(seedRow?.override_value).toBeNull()
   })
 
+  it("keeps definition keys unique and aligned with their namespace", () => {
+    const keys = STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key)
+
+    expect(new Set(keys).size).toBe(keys.length)
+    for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
+      expect(definition.key.startsWith(`${definition.namespace}.`)).toBe(true)
+    }
+  })
+
   it("creates localized search defaults for every market", () => {
     const searchPlaceholderRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "search.input_placeholder"
@@ -37,6 +47,40 @@ describe("storefront text registry", () => {
       hu: "Írja be, mit keres...",
       ro: "Scrieți ce căutați...",
       sk: "Napíšte, čo hľadáte...",
+    })
+  })
+
+  it("creates localized catalog defaults for every market", () => {
+    const catalogSortRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "catalog.sort.recommended"
+    )
+
+    expect(
+      Object.fromEntries(
+        catalogSortRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Doporučujeme",
+      hu: "Ajánlott",
+      ro: "Recomandate",
+      sk: "Odporúčame",
+    })
+  })
+
+  it("creates localized search-result defaults for every market", () => {
+    const searchResultRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "search.results.title"
+    )
+
+    expect(
+      Object.fromEntries(
+        searchResultRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Vyhledávání",
+      hu: "Keresés",
+      ro: "Căutare",
+      sk: "Vyhľadávanie",
     })
   })
 })

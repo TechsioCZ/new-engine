@@ -1,8 +1,8 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
-import { SORT_TAB_ITEMS } from "@/components/category/category-listing.constants"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
@@ -15,6 +15,7 @@ type BrandListingProps = {
 }
 
 export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
+  const t = useTranslations("catalog")
   const controller = useBrandListingController({ brandFacetId })
 
   return (
@@ -57,9 +58,9 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
         results={
           <CategoryResultsSection
             activeSort={controller.queryState.sort}
-            catalogError={controller.catalogError}
+            catalogError={controller.catalogQuery.error}
             categoriesError={null}
-            emptyMessage="Táto značka zatiaľ nemá dostupné produkty pre zvolený filter."
+            emptyMessage={t("results.empty_brand")}
             isEmpty={controller.products.length === 0}
             isLoading={controller.isResultsLoading}
             isProductAdding={controller.isProductAdding}
@@ -73,7 +74,6 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             pageSize={PLP_PAGE_SIZE}
             products={controller.products}
             showCategoryNotFound={false}
-            sortItems={SORT_TAB_ITEMS}
             totalCount={controller.catalogQuery.totalCount}
             totalPages={controller.catalogQuery.totalPages}
             totalProducts={controller.catalogQuery.totalCount}
