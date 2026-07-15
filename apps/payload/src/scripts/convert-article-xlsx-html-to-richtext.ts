@@ -5,7 +5,7 @@ import path from "node:path"
 import { gzipSync } from "node:zlib"
 import { convertHTMLToLexical } from "@payloadcms/richtext-lexical"
 import ExcelJS from "exceljs"
-import { getPayload } from "payload"
+import { type Field, getPayload } from "payload"
 import { ARTICLE_CAROUSEL_BLOCK_SLUG } from "../lib/blocks/article-carousel"
 import { PRODUCT_CAROUSEL_BLOCK_SLUG } from "../lib/blocks/product-carousel"
 import config from "../payload.config"
@@ -13,15 +13,6 @@ import config from "../payload.config"
 const require = createRequire(import.meta.url)
 const { JSDOM } = require("jsdom") as {
   JSDOM: new (html: string) => { window: { document: Document } }
-}
-
-type FieldLike = {
-  name?: string
-  editor?: {
-    editorConfig?: unknown
-  }
-  fields?: FieldLike[]
-  tabs?: Array<{ fields?: FieldLike[] }>
 }
 
 const CONTENT_HEADER_ALIASES = new Set([
@@ -78,6 +69,7 @@ const HEADER_DASH_PATTERN = /-/g
 const DIACRITIC_PATTERN = /[\u0300-\u036f]/g
 const SAFE_FILENAME_PATTERN = /[^a-zA-Z0-9._-]+/g
 const EDGE_DASH_PATTERN = /^-+|-+$/g
+const DEFAULT_MEDIA_BASE_URL = "https://www.herbatica.sk"
 const HTTP_URL_PATTERN = /^https?:\/\//i
 const PRODUCT_WIDGET_SCRIPT_PATTERN =
   /<script\b[^>]*\bsrc=["'](https:\/\/app\.productwidgets\.cz\/e\/\d+\.js)["'][^>]*><\/script>\s*<div\b[^>]*\bid=["']pwjsroot\d+["'][^>]*><\/div>/gi
@@ -129,25 +121,42 @@ const getCellText = (cell: ExcelJS.Cell) => {
   return String(value)
 }
 
+const fieldAffectsData = (field: Field): field is Field & { name: string } =>
+  "name" in field && typeof field.name === "string"
+
+const fieldHasSubFields = (
+  field: Field
+): field is Field & { fields: Field[] } =>
+  "fields" in field && Array.isArray(field.fields)
+
+const findInSubFields = (field: Field, name: string) =>
+  fieldHasSubFields(field) ? findField(field.fields, name) : undefined
+
+const findInTabs = (field: Field, name: string) => {
+  if (field.type !== "tabs") {
+    return
+  }
+
+  for (const tab of field.tabs) {
+    const tabField = findField(tab.fields, name)
+    if (tabField) {
+      return tabField
+    }
+  }
+}
+
 const findField = (
-  fields: FieldLike[] | undefined,
+  fields: Field[] | undefined,
   name: string
-): FieldLike | undefined => {
+): Field | undefined => {
   for (const field of fields ?? []) {
-    if (field.name === name) {
+    if (fieldAffectsData(field) && field.name === name) {
       return field
     }
 
-    const nestedField = findField(field.fields, name)
+    const nestedField = findInSubFields(field, name) ?? findInTabs(field, name)
     if (nestedField) {
       return nestedField
-    }
-
-    for (const tab of field.tabs ?? []) {
-      const tabField = findField(tab.fields, name)
-      if (tabField) {
-        return tabField
-      }
     }
   }
 }
@@ -234,7 +243,9 @@ const isBlogUrl = (value: string) => {
 const fetchProductWidgetData = async (
   widgetUrl: string
 ): Promise<ProductWidgetData> => {
-  const response = await fetch(widgetUrl)
+  const response = await fetch(widgetUrl, {
+    signal: AbortSignal.timeout(10_000),
+  })
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`)
   }
@@ -309,22 +320,40 @@ const replaceProductWidgetEmbeds = async (
       console.warn(
         `Failed to import product widget ${widgetUrl}: ${error instanceof Error ? error.message : String(error)}`
       )
-      output = output.replace(match[0], "")
+      // Keep the original widget markup so the import can be retried later.
     }
   }
 
   return output
 }
 
+const normalizeMediaUrl = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed || trimmed.startsWith("data:")) {
+    return
+  }
+
+  try {
+    return new URL(trimmed, DEFAULT_MEDIA_BASE_URL).toString()
+  } catch {
+    return
+  }
+}
+
 const collectImageManifestEntries = (html: string): MediaManifestEntry[] => {
   const document = new JSDOM(html).window.document
   return Array.from(document.querySelectorAll("img[src]"))
-    .map((img) => ({
-      url: img.getAttribute("src")?.trim() ?? "",
-      alt: img.getAttribute("alt")?.trim() || "Imported article image",
-      filename: filenameFromUrl(img.getAttribute("src")?.trim() ?? ""),
-    }))
-    .filter((entry) => HTTP_URL_PATTERN.test(entry.url))
+    .map((img) => {
+      const url = normalizeMediaUrl(img.getAttribute("src") ?? "")
+      return url
+        ? {
+            url,
+            alt: img.getAttribute("alt")?.trim() || "Imported article image",
+            filename: filenameFromUrl(url),
+          }
+        : undefined
+    })
+    .filter((entry): entry is MediaManifestEntry => Boolean(entry))
 }
 
 const sanitizeUploadNode = (
@@ -332,16 +361,21 @@ const sanitizeUploadNode = (
   mediaManifest: Map<string, MediaManifestEntry>
 ) => {
   const sourceUrl = (record.pending as { src?: unknown } | undefined)?.src
-  if (typeof sourceUrl !== "string" || !HTTP_URL_PATTERN.test(sourceUrl)) {
-    return
+  if (typeof sourceUrl !== "string") {
+    return record
   }
 
-  const manifestEntry = mediaManifest.get(sourceUrl) ?? {
-    url: sourceUrl,
-    alt: "Imported article image",
-    filename: filenameFromUrl(sourceUrl),
+  const normalizedUrl = normalizeMediaUrl(sourceUrl)
+  if (!(normalizedUrl && HTTP_URL_PATTERN.test(normalizedUrl))) {
+    return record
   }
-  mediaManifest.set(sourceUrl, manifestEntry)
+
+  const manifestEntry = mediaManifest.get(normalizedUrl) ?? {
+    url: normalizedUrl,
+    alt: "Imported article image",
+    filename: filenameFromUrl(normalizedUrl),
+  }
+  mediaManifest.set(normalizedUrl, manifestEntry)
 
   const { pending: _pending, ...uploadNode } = record
   return {
@@ -350,7 +384,7 @@ const sanitizeUploadNode = (
       alt: manifestEntry.alt,
     },
     relationTo: "media",
-    value: `${MEDIA_URL_PREFIX}${sourceUrl}`,
+    value: `${MEDIA_URL_PREFIX}${normalizedUrl}`,
   }
 }
 
@@ -471,12 +505,6 @@ const sanitizeLexicalNode = (
 
   if (record.type === "link") {
     addLinkManifestEntry(record, context.linkManifest)
-    return Array.isArray(record.children)
-      ? record.children.flatMap((child) => {
-          const sanitized = sanitizeLexicalNode(child, context)
-          return sanitized === undefined ? [] : sanitized
-        })
-      : undefined
   }
 
   if (
@@ -514,11 +542,10 @@ const assertLexicalEditorConfig = async () => {
     const articlesCollection = payload.config.collections.find(
       (collection) => collection.slug === "articles"
     )
-    const contentField = findField(
-      articlesCollection?.fields as FieldLike[] | undefined,
-      "content"
-    )
-    const editorConfig = contentField?.editor?.editorConfig
+    const contentField = findField(articlesCollection?.fields, "content")
+    const editorConfig = (
+      contentField as { editor?: { editorConfig?: unknown } } | undefined
+    )?.editor?.editorConfig
 
     if (!editorConfig) {
       throw new Error(

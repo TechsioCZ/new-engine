@@ -44,7 +44,11 @@ const dirname = path.dirname(filename)
 
 const secret = getEnv("PAYLOAD_SECRET", true)
 const databaseUrl = getEnv("DATABASE_URL", true)
-const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", ["en"])
+const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", [
+  "cs",
+  "sk",
+  "en",
+])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(

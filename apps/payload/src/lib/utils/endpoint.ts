@@ -1,5 +1,8 @@
 import { headersWithCors, type PayloadRequest } from "payload"
 
+const DEFAULT_LIMIT = 20
+const MAX_LIMIT = 50
+
 type LocaleValue = PayloadRequest["locale"]
 
 /** Normalize query parameters that might be serialized as "null"/"undefined". */
@@ -40,6 +43,24 @@ export const getLocaleFromRequest = (req: PayloadRequest): LocaleValue => {
   return localeCodes.includes(localeParam)
     ? (localeParam as LocaleValue)
     : undefined
+}
+
+export const parseLimit = (value: string | undefined) => {
+  const parsed = Number.parseInt(value || "", 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_LIMIT
+  }
+
+  return Math.min(parsed, MAX_LIMIT)
+}
+
+export const isAuthorizedEndpointRequest = (req: PayloadRequest) => {
+  if (req.user) {
+    return true
+  }
+
+  const apiKey = process.env.PAYLOAD_API_KEY
+  return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
 }
 
 /** Build a JSON response with Payload CORS headers applied. */

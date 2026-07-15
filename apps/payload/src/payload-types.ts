@@ -98,14 +98,14 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: ('false' | 'none' | 'null') | false | null | 'en' | 'en'[];
+  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('cs' | 'sk' | 'en') | ('cs' | 'sk' | 'en')[];
   globals: {
     'translation-settings': TranslationSetting;
   };
   globalsSelect: {
     'translation-settings': TranslationSettingsSelect<false> | TranslationSettingsSelect<true>;
   };
-  locale: 'en';
+  locale: 'cs' | 'sk' | 'en';
   widgets: {
     collections: CollectionsWidget;
   };

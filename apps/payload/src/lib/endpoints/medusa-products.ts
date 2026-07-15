@@ -1,5 +1,10 @@
 import { APIError, type Endpoint } from "payload"
-import { buildJsonResponse, getQueryParam } from "../utils/endpoint"
+import {
+  buildJsonResponse,
+  getQueryParam,
+  isAuthorizedEndpointRequest,
+  parseLimit,
+} from "../utils/endpoint"
 
 type MedusaStoreProduct = {
   id?: string
@@ -12,9 +17,8 @@ type MedusaStoreProductsResponse = {
   products?: MedusaStoreProduct[]
 }
 
-const DEFAULT_LIMIT = 20
-const MAX_LIMIT = 50
 const TRAILING_SLASH_REGEX = /\/$/
+const PRODUCT_FETCH_TIMEOUT_MS = 10_000
 
 const resolveMedusaBackendUrl = () =>
   (process.env.MEDUSA_BACKEND_URL || "http://medusa-be:9000").replace(
@@ -28,23 +32,21 @@ const resolvePublishableKey = () =>
   process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ||
   ""
 
-const parseLimit = (value: string | undefined) => {
-  const parsed = Number.parseInt(value || "", 10)
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return DEFAULT_LIMIT
+const isAbortSignal = (value: unknown): value is AbortSignal =>
+  typeof AbortSignal !== "undefined" && value instanceof AbortSignal
+
+const createTimeoutSignal = (timeoutMs: number) => {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    return AbortSignal.timeout(timeoutMs)
   }
 
-  return Math.min(parsed, MAX_LIMIT)
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), timeoutMs).unref?.()
+  return controller.signal
 }
 
-const isAuthorized = (req: Parameters<Endpoint["handler"]>[0]) => {
-  if (req.user) {
-    return true
-  }
-
-  const apiKey = process.env.PAYLOAD_API_KEY
-  return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
-}
+const resolveFetchSignal = (signal: unknown) =>
+  isAbortSignal(signal) ? signal : createTimeoutSignal(PRODUCT_FETCH_TIMEOUT_MS)
 
 const fetchProducts = async ({
   search,
@@ -71,7 +73,7 @@ const fetchProducts = async ({
     headers: {
       "x-publishable-api-key": publishableKey,
     },
-    signal,
+    signal: resolveFetchSignal(signal),
   })
 
   if (!response.ok) {
@@ -97,7 +99,7 @@ export const medusaProductsEndpoint: Endpoint = {
   path: "/medusa-products",
   method: "get",
   handler: async (req) => {
-    if (!isAuthorized(req)) {
+    if (!isAuthorizedEndpointRequest(req)) {
       throw new APIError("Unauthorized", 401)
     }
 
@@ -106,7 +108,7 @@ export const medusaProductsEndpoint: Endpoint = {
     const products = await fetchProducts({
       search,
       limit,
-      signal: req.signal instanceof AbortSignal ? req.signal : undefined,
+      signal: resolveFetchSignal(req.signal),
     })
 
     return buildJsonResponse(req, { products })

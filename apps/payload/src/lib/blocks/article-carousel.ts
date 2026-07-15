@@ -1,4 +1,30 @@
-import type { Block } from "payload"
+import type { Block, TextFieldSingleValidation } from "payload"
+
+const validateArticleSlug: TextFieldSingleValidation = async (
+  value,
+  { req }
+) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return "Article slug is required"
+  }
+
+  const result = await req.payload.find({
+    collection: "articles",
+    where: {
+      slug: {
+        equals: value.trim(),
+      },
+    },
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
+
+  return result.docs.length > 0
+    ? true
+    : `Article with slug "${value.trim()}" does not exist`
+}
 
 export const ARTICLE_CAROUSEL_BLOCK_SLUG = "articleCarousel"
 
@@ -19,6 +45,7 @@ export const ArticleCarouselBlock: Block = {
           name: "articleSlug",
           type: "text",
           required: true,
+          validate: validateArticleSlug,
           admin: {
             components: {
               Field: "/components/admin/article-slug-field#ArticleSlugField",

@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto"
+import { lookup } from "node:dns/promises"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
+import { isIP } from "node:net"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { gunzipSync } from "node:zlib"
@@ -43,6 +45,16 @@ const MS_PER_DAY = 86_400_000
 const DEFAULT_LOCALES = ["en"]
 const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
 const MEDIA_URL_PREFIX = "payload-media-url:"
+const MEDIA_FETCH_TIMEOUT_MS = 15_000
+const MAX_MEDIA_BYTES = 10 * 1024 * 1024
+const MAX_MEDIA_REDIRECTS = 5
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/avif",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+])
 
 type MediaManifestEntry = {
   url: string
@@ -305,9 +317,15 @@ const decodeRichTextValue = (value: string) => {
     return value
   }
 
-  return gunzipSync(
-    Buffer.from(value.slice(RICH_TEXT_GZIP_PREFIX.length), "base64")
-  ).toString("utf8")
+  try {
+    return gunzipSync(
+      Buffer.from(value.slice(RICH_TEXT_GZIP_PREFIX.length), "base64")
+    ).toString("utf8")
+  } catch (error) {
+    throw new Error(
+      `Malformed rich text payload: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
 }
 
 const resolveDefaultMediaManifestPath = (filePath: string) => {
@@ -360,18 +378,121 @@ const loadMediaManifest = async (filePath: string | undefined) => {
   )
 }
 
-const fetchMediaBuffer = async (url: string) => {
-  const response = await fetch(url)
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+const isPrivateAddress = (address: string) => {
+  const normalizedAddress = address.toLowerCase()
+  if (
+    normalizedAddress === "::1" ||
+    normalizedAddress.startsWith("fc") ||
+    normalizedAddress.startsWith("fd") ||
+    normalizedAddress.startsWith("fe80:")
+  ) {
+    return true
   }
 
-  const contentType =
-    response.headers.get("content-type")?.split(";")[0] || "image/jpeg"
-  return {
-    data: Buffer.from(await response.arrayBuffer()),
-    mimetype: contentType,
+  if (
+    address.startsWith("0.") ||
+    address.startsWith("10.") ||
+    address.startsWith("127.")
+  ) {
+    return true
   }
+
+  const [first = 0, second = 0] = address.split(".").map(Number)
+  return (
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168)
+  )
+}
+
+const assertSafeMediaUrl = async (url: string) => {
+  const parsed = new URL(url)
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Unsupported media URL protocol")
+  }
+
+  if (parsed.hostname === "metadata.google.internal") {
+    throw new Error("Blocked cloud metadata host")
+  }
+
+  const addresses = isIP(parsed.hostname)
+    ? [{ address: parsed.hostname }]
+    : await lookup(parsed.hostname, { all: true })
+  if (addresses.some(({ address }) => isPrivateAddress(address))) {
+    throw new Error("Blocked private or link-local media host")
+  }
+}
+
+const readResponseWithLimit = async (response: Response) => {
+  const reader = response.body?.getReader()
+  if (!reader) {
+    return Buffer.from(await response.arrayBuffer())
+  }
+
+  const chunks: Buffer[] = []
+  let total = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) {
+      return Buffer.concat(chunks)
+    }
+
+    total += value.byteLength
+    if (total > MAX_MEDIA_BYTES) {
+      throw new Error("Media response exceeds maximum size")
+    }
+    chunks.push(Buffer.from(value))
+  }
+}
+
+const fetchMediaBuffer = async (url: string) => {
+  let currentUrl = url
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS)
+  timeout.unref?.()
+
+  try {
+    for (
+      let redirectCount = 0;
+      redirectCount <= MAX_MEDIA_REDIRECTS;
+      redirectCount += 1
+    ) {
+      await assertSafeMediaUrl(currentUrl)
+      const response = await fetch(currentUrl, {
+        redirect: "manual",
+        signal: controller.signal,
+      })
+
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get("location")
+        if (!location) {
+          throw new Error("Media redirect is missing Location header")
+        }
+        currentUrl = new URL(location, currentUrl).toString()
+        continue
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const contentType = response.headers.get("content-type")?.split(";")[0]
+      if (!(contentType && SUPPORTED_IMAGE_TYPES.has(contentType))) {
+        throw new Error(
+          `Unsupported media content type: ${contentType || "unknown"}`
+        )
+      }
+
+      return {
+        data: await readResponseWithLimit(response),
+        mimetype: contentType,
+      }
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+
+  throw new Error("Too many media redirects")
 }
 
 const ensureMediaFromUrl = async (
@@ -387,6 +508,7 @@ const ensureMediaFromUrl = async (
         equals: filename,
       },
     },
+    depth: 0,
     limit: 1,
     pagination: false,
     overrideAccess: true,
@@ -450,7 +572,7 @@ const ensureMediaManifestUploads = async (
 const hydrateRichTextMedia = (
   node: unknown,
   mediaUrlMap: Map<string, PayloadId>,
-  fallbackMediaId: PayloadId
+  unresolvedMediaUrls: Set<string>
 ): unknown | undefined => {
   if (!node || typeof node !== "object" || Array.isArray(node)) {
     return node
@@ -461,10 +583,16 @@ const hydrateRichTextMedia = (
     const value = record.value
     if (typeof value === "string" && value.startsWith(MEDIA_URL_PREFIX)) {
       const url = value.slice(MEDIA_URL_PREFIX.length)
+      const mediaId = mediaUrlMap.get(url)
+      if (mediaId === undefined) {
+        unresolvedMediaUrls.add(url)
+        return
+      }
+
       return {
         ...record,
         relationTo: "media",
-        value: mediaUrlMap.get(url) ?? fallbackMediaId,
+        value: mediaId,
       }
     }
   }
@@ -478,35 +606,78 @@ const hydrateRichTextMedia = (
     nextRecord.root = hydrateRichTextMedia(
       record.root,
       mediaUrlMap,
-      fallbackMediaId
+      unresolvedMediaUrls
     )
   }
 
   if (Array.isArray(record.children)) {
     nextRecord.children = record.children
-      .map((child) => hydrateRichTextMedia(child, mediaUrlMap, fallbackMediaId))
+      .map((child) =>
+        hydrateRichTextMedia(child, mediaUrlMap, unresolvedMediaUrls)
+      )
       .filter((child) => child !== undefined)
   }
 
   return nextRecord
 }
 
+const getRichTextPlainText = (node: unknown): string => {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return ""
+  }
+
+  const record = node as Record<string, unknown>
+  const ownText = typeof record.text === "string" ? record.text : ""
+  const childText = Array.isArray(record.children)
+    ? record.children.map(getRichTextPlainText).join("")
+    : ""
+  const rootText = record.root ? getRichTextPlainText(record.root) : ""
+  return `${ownText}${childText}${rootText}`
+}
+
+const decodeRichTextJson = (value: string) => {
+  const decoded = decodeRichTextValue(value)
+  return JSON.parse(decoded) as unknown
+}
+
+const excerptFromContent = (content: string) => {
+  if (!content.startsWith(RICH_TEXT_GZIP_PREFIX)) {
+    return content.slice(0, 300)
+  }
+
+  const parsed = decodeRichTextJson(content)
+  if (!isRichTextJson(parsed)) {
+    return ""
+  }
+
+  return getRichTextPlainText(parsed).trim().slice(0, 300)
+}
+
 const toRichText = (
   value: string,
-  mediaUrlMap: Map<string, PayloadId>,
-  fallbackMediaId: PayloadId
+  mediaUrlMap: Map<string, PayloadId>
 ): ArticleContent => {
-  try {
-    const parsed = JSON.parse(decodeRichTextValue(value)) as unknown
-    if (isRichTextJson(parsed)) {
-      return hydrateRichTextMedia(
-        parsed,
-        mediaUrlMap,
-        fallbackMediaId
-      ) as ArticleContent
+  if (value.startsWith(RICH_TEXT_GZIP_PREFIX)) {
+    const parsed = decodeRichTextJson(value)
+    if (!isRichTextJson(parsed)) {
+      throw new Error(
+        "Malformed rich text payload: JSON is not Lexical rich text"
+      )
     }
-  } catch {
-    // Treat non-JSON input as plain text.
+
+    const unresolvedMediaUrls = new Set<string>()
+    const hydrated = hydrateRichTextMedia(
+      parsed,
+      mediaUrlMap,
+      unresolvedMediaUrls
+    )
+    if (unresolvedMediaUrls.size > 0) {
+      throw new Error(
+        `Unresolved rich text media URLs: ${Array.from(unresolvedMediaUrls).join(", ")}`
+      )
+    }
+
+    return hydrated as ArticleContent
   }
 
   const lines = value
@@ -1055,7 +1226,7 @@ const processArticleRow = async (
       "description",
       "meta_description",
       "popis",
-    ]) || content.slice(0, 300)
+    ]) || excerptFromContent(content)
   const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
   const slug = rawSlug ? slugify(rawSlug) : slugify(title)
 
@@ -1063,7 +1234,7 @@ const processArticleRow = async (
     title,
     slug,
     excerpt,
-    content: toRichText(content, context.mediaUrlMap, fallbackMediaId),
+    content: toRichText(content, context.mediaUrlMap),
     featuredImage,
     category: categoryId,
     tags,

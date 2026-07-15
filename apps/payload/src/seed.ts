@@ -2,7 +2,11 @@ import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
-import { getPayload } from "payload"
+import {
+  type CollectionSlug,
+  getPayload,
+  type RequiredDataFromCollectionSlug,
+} from "payload"
 import config from "./payload.config"
 import type { Article } from "./payload-types"
 import {
@@ -259,12 +263,13 @@ const textToRichText = (text: string): SeedRichText => {
 
 const findOne = async (
   payload: SeedPayload,
-  collection: string,
+  collection: CollectionSlug,
   where: Record<string, unknown>
 ) => {
   const result = await payload.find({
-    collection: collection as never,
+    collection,
     where: where as never,
+    depth: 0,
     limit: 1,
     pagination: false,
     overrideAccess: true,
@@ -273,23 +278,27 @@ const findOne = async (
   return result.docs[0] as SeedDoc | undefined
 }
 
-const findBySlug = (payload: SeedPayload, collection: string, slug: string) =>
+const findBySlug = (
+  payload: SeedPayload,
+  collection: CollectionSlug,
+  slug: string
+) =>
   findOne(payload, collection, {
     slug: {
       equals: slug,
     },
   })
 
-const upsertBySlug = async <TData extends Record<string, unknown>>(
+const upsertBySlug = async <TCollection extends CollectionSlug>(
   payload: SeedPayload,
-  collection: string,
+  collection: TCollection,
   slug: string,
-  data: TData
+  data: RequiredDataFromCollectionSlug<TCollection>
 ) => {
   const existing = await findBySlug(payload, collection, slug)
   if (existing?.id !== undefined) {
     await payload.update({
-      collection: collection as never,
+      collection,
       id: existing.id,
       data: data as never,
       overrideAccess: true,
@@ -299,8 +308,8 @@ const upsertBySlug = async <TData extends Record<string, unknown>>(
   }
 
   return payload.create({
-    collection: collection as never,
-    data: data as never,
+    collection,
+    data,
     overrideAccess: true,
   })
 }
@@ -361,6 +370,7 @@ const findSeedMedia = async (payload: SeedPayload) => {
         equals: "Seed placeholder image",
       },
     },
+    depth: 0,
     limit: 1,
     pagination: false,
     overrideAccess: true,
@@ -555,8 +565,8 @@ const resolveHerbaticaProductSeedLimit = () => {
 }
 
 const getProductDescription = (shopItem: string) =>
-  decodeHtmlToText(extractFirstElementContent(shopItem, "DESCRIPTION")) ??
-  decodeHtmlToText(extractFirstElementContent(shopItem, "SHORT_DESCRIPTION")) ??
+  decodeHtmlToText(extractFirstElementContent(shopItem, "DESCRIPTION")) ||
+  decodeHtmlToText(extractFirstElementContent(shopItem, "SHORT_DESCRIPTION")) ||
   ""
 
 const getProductExcerpt = (shopItem: string, content: string) => {
