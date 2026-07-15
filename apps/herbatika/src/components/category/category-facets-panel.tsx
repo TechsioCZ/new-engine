@@ -1,3 +1,6 @@
+"use client"
+
+import { useTranslations } from "next-intl"
 import { AsideFilter } from "@/components/aside-filter"
 import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
 
@@ -38,6 +41,7 @@ export function CategoryFacetsPanel({
   showBrandFilter = true,
   statusItems,
 }: CategoryFacetsPanelProps) {
+  const t = useTranslations("catalog")
   const filterProps = {
     activeFilterCount,
     brandItems,
@@ -65,7 +69,7 @@ export function CategoryFacetsPanel({
 
       <details className="space-y-300 xl:hidden">
         <summary className="cursor-pointer rounded-2xl border border-border-secondary bg-surface px-400 py-300 font-medium text-fg-primary text-sm">
-          {activeFilterCount > 0 ? `Filtr (${activeFilterCount})` : "Filtr"}
+          {t("filters.toggle", { count: activeFilterCount })}
         </summary>
         <AsideFilter {...filterProps} />
       </details>
