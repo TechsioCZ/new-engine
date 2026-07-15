@@ -1,18 +1,19 @@
 import type { SearchAutocompleteResponse } from "@/lib/search-autocomplete/search-autocomplete-types"
 import type { SearchAutocompletePanelSection } from "./search-autocomplete-panel"
 
-const SECTION_TITLES = {
-  products: "Produkty",
-  categories: "Kategórie",
-  brands: "Značky",
-} as const
+type SearchAutocompleteSectionTitles = {
+  brands: string
+  categories: string
+  products: string
+}
 
 export const createSearchAutocompleteSections = (
-  data: SearchAutocompleteResponse
+  data: SearchAutocompleteResponse,
+  titles: SearchAutocompleteSectionTitles
 ): SearchAutocompletePanelSection[] => [
-  { key: "product", title: SECTION_TITLES.products, items: data.products },
-  { key: "category", title: SECTION_TITLES.categories, items: data.categories },
-  { key: "brand", title: SECTION_TITLES.brands, items: data.brands },
+  { key: "product", title: titles.products, items: data.products },
+  { key: "category", title: titles.categories, items: data.categories },
+  { key: "brand", title: titles.brands, items: data.brands },
 ]
 
 export const clampSearchAutocompleteIndex = (

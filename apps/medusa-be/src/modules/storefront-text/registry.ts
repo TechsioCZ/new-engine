@@ -1,11 +1,17 @@
 import { STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS } from "./definitions/checkout-details"
 import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
+import { STOREFRONT_SEARCH_TEXT_DEFINITIONS } from "./definitions/search"
 
 export const STOREFRONT_TEXT_STATUSES = ["active", "draft"] as const
 
 export type StorefrontTextStatus = (typeof STOREFRONT_TEXT_STATUSES)[number]
 
-export const STOREFRONT_TEXT_NAMESPACES = ["cart", "checkout", "form"] as const
+export const STOREFRONT_TEXT_NAMESPACES = [
+  "cart",
+  "checkout",
+  "form",
+  "search",
+] as const
 
 export type StorefrontTextNamespace =
   (typeof STOREFRONT_TEXT_NAMESPACES)[number]
@@ -760,6 +766,7 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
   },
   ...STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS,
   ...STOREFRONT_FORM_TEXT_DEFINITIONS,
+  ...STOREFRONT_SEARCH_TEXT_DEFINITIONS,
 ] as const satisfies readonly StorefrontTextDefinition[]
 
 export type StorefrontTextKey =

@@ -13,7 +13,7 @@ export const normalizeComparable = (value: string) =>
 
 export const createHandleLabel = (handle: string) => {
   const label = handle.replaceAll(/[-_]+/g, " ").trim()
-  return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Kategória"
+  return label ? label.charAt(0).toUpperCase() + label.slice(1) : ""
 }
 
 export const resolveProducerSlug = (handle: string, title: string) => {
