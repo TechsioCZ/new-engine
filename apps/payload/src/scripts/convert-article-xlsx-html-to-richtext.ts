@@ -56,6 +56,7 @@ type SanitizeLexicalContext = {
   articleCarousels: Map<string, ArticleCarouselData>
   linkManifest: Map<string, LinkManifestEntry>
   mediaManifest: Map<string, MediaManifestEntry>
+  mediaTokens: Map<string, MediaManifestEntry>
   productCarousels: Map<string, ProductCarouselData>
 }
 
@@ -74,6 +75,7 @@ const PRODUCT_WIDGET_SCRIPT_PATTERN =
   /<script\b[^>]*\bsrc=["'](https:\/\/app\.productwidgets\.cz\/e\/\d+\.js)["'][^>]*><\/script>\s*<div\b[^>]*\bid=["']pwjsroot\d+["'][^>]*><\/div>/gi
 const PRODUCT_CAROUSEL_TOKEN_PREFIX = "__PAYLOAD_PRODUCT_CAROUSEL__"
 const ARTICLE_CAROUSEL_TOKEN_PREFIX = "__PAYLOAD_ARTICLE_CAROUSEL__"
+const MEDIA_TOKEN_PREFIX = "__PAYLOAD_MEDIA__"
 
 const normalizeHeader = (value: unknown) =>
   String(value ?? "")
@@ -348,20 +350,33 @@ const normalizeMediaUrl = (value: string) => {
 const filenameFromMediaUrl = (url: string) =>
   url.startsWith("data:") ? "inline-image" : filenameFromUrl(url)
 
-const collectImageManifestEntries = (html: string): MediaManifestEntry[] => {
+const replaceImageEmbeds = (
+  html: string,
+  mediaManifest: Map<string, MediaManifestEntry>,
+  mediaTokens: Map<string, MediaManifestEntry>
+) => {
   const document = new JSDOM(html).window.document
-  return Array.from(document.querySelectorAll("img[src]"))
-    .map((img) => {
-      const url = normalizeMediaUrl(img.getAttribute("src") ?? "")
-      return url
-        ? {
-            url,
-            alt: img.getAttribute("alt")?.trim() || "Imported article image",
-            filename: filenameFromMediaUrl(url),
-          }
-        : undefined
-    })
-    .filter((entry): entry is MediaManifestEntry => Boolean(entry))
+  for (const img of Array.from(document.querySelectorAll("img[src]"))) {
+    const url = normalizeMediaUrl(img.getAttribute("src") ?? "")
+    if (!url) {
+      continue
+    }
+
+    const entry = mediaManifest.get(url) ?? {
+      url,
+      alt: img.getAttribute("alt")?.trim() || "Imported article image",
+      filename: filenameFromMediaUrl(url),
+    }
+    mediaManifest.set(url, entry)
+
+    const token = `${MEDIA_TOKEN_PREFIX}:${mediaTokens.size}`
+    mediaTokens.set(token, entry)
+    const paragraph = document.createElement("p")
+    paragraph.textContent = token
+    img.replaceWith(paragraph)
+  }
+
+  return document.body.innerHTML
 }
 
 const sanitizeUploadNode = (
@@ -473,6 +488,26 @@ const addLinkManifestEntry = (
   linkManifest.set(`${words}\u0000${link}`, { words, link })
 }
 
+const createMediaUploadNode = (
+  token: string,
+  mediaTokens: Map<string, MediaManifestEntry>
+) => {
+  const entry = mediaTokens.get(token)
+  if (!entry) {
+    return
+  }
+
+  return {
+    type: "upload",
+    version: 3,
+    relationTo: "media",
+    value: `${MEDIA_URL_PREFIX}${entry.url}`,
+    fields: {
+      alt: entry.alt,
+    },
+  }
+}
+
 const createCarouselBlockNode = (
   record: Record<string, unknown>,
   context: SanitizeLexicalContext
@@ -488,6 +523,10 @@ const createCarouselBlockNode = (
 
   if (text.startsWith(ARTICLE_CAROUSEL_TOKEN_PREFIX)) {
     return createArticleCarouselBlockNode(text, context.articleCarousels)
+  }
+
+  if (text.startsWith(MEDIA_TOKEN_PREFIX)) {
+    return createMediaUploadNode(text, context.mediaTokens)
   }
 }
 
@@ -567,7 +606,6 @@ const assertLexicalEditorConfig = async () => {
   }
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Workbook conversion orchestrates XLSX, media, links, and product carousel manifests in one pass.
 const convertWorkbook = async () => {
   const sourcePath = path.resolve(process.cwd(), resolveSourcePath())
   const outputPath = path.resolve(process.cwd(), resolveOutputPath(sourcePath))
@@ -631,15 +669,16 @@ const convertWorkbook = async () => {
         productCarouselCount += productCarousels.size
         articleCarouselCount += articleCarousels.size
 
-        for (const entry of collectImageManifestEntries(
-          htmlWithCarouselTokens
-        )) {
-          mediaManifest.set(entry.url, entry)
-        }
+        const mediaTokens = new Map<string, MediaManifestEntry>()
+        const htmlWithMediaTokens = replaceImageEmbeds(
+          htmlWithCarouselTokens,
+          mediaManifest,
+          mediaTokens
+        )
 
         const richText = sanitizeLexicalRichText(
           convertHTMLToLexical({
-            html: htmlWithCarouselTokens,
+            html: htmlWithMediaTokens,
             editorConfig: editorConfig as never,
             JSDOM,
           }),
@@ -647,6 +686,7 @@ const convertWorkbook = async () => {
             articleCarousels,
             linkManifest,
             mediaManifest,
+            mediaTokens,
             productCarousels,
           }
         )
