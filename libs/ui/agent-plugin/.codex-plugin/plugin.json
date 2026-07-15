@@ -1,0 +1,16 @@
+{
+  "name": "techsio-ui-kit-ai",
+  "version": "0.1.0",
+  "description": "Techsio UI Kit AI — skills and subagents for developing the @techsio/ui-kit design system (libs/ui). Codex-first; the skill format is shared with Claude Code.",
+  "author": {
+    "name": "Lukáš Chylík",
+    "email": "lukaschylik93@gmail.com"
+  },
+  "homepage": "https://github.com/TechsioCZ/new-engine/tree/master/libs/ui/agent-plugin",
+  "repository": "https://github.com/TechsioCZ/new-engine",
+  "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills"],
+  "license": "UNLICENSED",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}
