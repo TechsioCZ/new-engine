@@ -1,11 +1,20 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Select } from "@techsio/ui-kit/molecules/select"
+import {
+  Select,
+  type SelectItem,
+} from "@techsio/ui-kit/molecules/select"
+import { useTranslations } from "next-intl"
+
+const PROMO_CODE_ITEMS: SelectItem[] = []
 
 export const CheckoutSelectPromoCode = () => {
-  const testItems = [{ label: "test", value: "test", role: "code" }]
+  const tCheckout = useTranslations("checkout")
+
   return (
-    <Select items={testItems}>
-      <Select.Label className="sr-only">Zlavový kód</Select.Label>
+    <Select items={PROMO_CODE_ITEMS} readOnly>
+      <Select.Label className="sr-only">
+        {tCheckout("promo_code_label")}
+      </Select.Label>
       <Select.Control>
         <Select.Trigger
           className="min-h-12 border-1 bg-base px-400"
@@ -14,21 +23,10 @@ export const CheckoutSelectPromoCode = () => {
           <Icon icon="token-icon-label" size="lg" />
           <Select.ValueText
             className="text-sm data-[placeholder]:text-fg-primary"
-            placeholder="Zadať zľavový kód"
+            placeholder={tCheckout("promo_code_placeholder")}
           />
         </Select.Trigger>
-        <Select.ClearTrigger />
       </Select.Control>
-      <Select.Positioner>
-        <Select.Content>
-          {testItems?.map((item) => (
-            <Select.Item item={item} key={item.value}>
-              <Select.ItemText />
-              <Select.ItemIndicator />
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Positioner>
     </Select>
   )
 }

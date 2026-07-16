@@ -107,26 +107,28 @@ export function CheckoutCartSidebarSection({
         <CheckoutSelectBenefits />
         <div className="flex flex-col gap-150">
           <Label className="font-medium text-sm">
-            Odložiť si košík na neskôr
+            {tCheckout("save_cart_for_later")}
           </Label>
           <div className="flex gap-300">
             <Button
               className="h-full border-2 border-border-primary px-400 py-300"
+              disabled
               size="sm"
               theme="outlined"
               variant="secondary"
             >
               <Icon icon="token-icon-copy" />
-              <span>Uložiť link</span>
+              <span>{tCheckout("save_cart_link")}</span>
             </Button>
             <Button
               className="h-full border-2 border-border-primary px-400 py-300"
+              disabled
               size="sm"
               theme="outlined"
               variant="secondary"
             >
               <Icon icon="token-icon-send" />
-              <span>Poslať na e-mail</span>
+              <span>{tCheckout("send_cart_email")}</span>
             </Button>
           </div>
         </div>
