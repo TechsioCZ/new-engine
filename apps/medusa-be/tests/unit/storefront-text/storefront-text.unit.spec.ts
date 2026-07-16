@@ -6,9 +6,11 @@ import {
 } from "../../../src/api/admin/storefront-texts/validators"
 import {
   STOREFRONT_TEXT_DEFINITIONS,
+  STOREFRONT_TEXT_MARKETS,
   getStorefrontTextSeedRows,
   isStorefrontTextMarketLocalePair,
 } from "../../../src/modules/storefront-text/registry"
+import { validateStorefrontTextOverride } from "../../../src/modules/storefront-text/message-validation"
 import { getEffectiveStorefrontTextValue } from "../../../src/modules/storefront-text/value"
 
 describe("storefront text registry", () => {
@@ -36,6 +38,23 @@ describe("storefront text registry", () => {
       expect(sortedKeys[index + 1]?.startsWith(`${sortedKeys[index]}.`)).toBe(
         false
       )
+    }
+  })
+
+  it("keeps every localized default ICU-compatible with its key contract", () => {
+    for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
+      const defaultValue = definition.values.sk
+
+      for (const market of STOREFRONT_TEXT_MARKETS) {
+        expect(
+          validateStorefrontTextOverride({
+            defaultValue,
+            locale: market.locale,
+            overrideValue: definition.values[market.market],
+          }),
+          `${definition.key} (${market.market})`
+        ).toEqual({ success: true })
+      }
     }
   })
 
@@ -151,6 +170,50 @@ describe("storefront text values", () => {
         status: "draft",
       })
     ).toBe("Default")
+  })
+})
+
+describe("storefront text ICU validation", () => {
+  const defaultValue =
+    "{count, plural, =0 {Filtr} other {Filtr (#)}}"
+
+  it("accepts a translated value with the same ICU contract", () => {
+    expect(
+      validateStorefrontTextOverride({
+        defaultValue,
+        locale: "hu-HU",
+        overrideValue:
+          "{count, plural, =0 {Szűrő} other {Szűrő (#)}}",
+      })
+    ).toEqual({ success: true })
+  })
+
+  it("rejects invalid ICU syntax", () => {
+    expect(
+      validateStorefrontTextOverride({
+        defaultValue,
+        locale: "cs-CZ",
+        overrideValue: "{count, plural, other {Filtr}",
+      })
+    ).toMatchObject({ code: "invalid_override", success: false })
+  })
+
+  it("rejects renamed or differently typed ICU arguments", () => {
+    expect(
+      validateStorefrontTextOverride({
+        defaultValue,
+        locale: "cs-CZ",
+        overrideValue:
+          "{quantity, plural, =0 {Filtr} other {Filtr (#)}}",
+      })
+    ).toMatchObject({ code: "incompatible_override", success: false })
+    expect(
+      validateStorefrontTextOverride({
+        defaultValue,
+        locale: "cs-CZ",
+        overrideValue: "Filtr ({count})",
+      })
+    ).toMatchObject({ code: "incompatible_override", success: false })
   })
 })
 
