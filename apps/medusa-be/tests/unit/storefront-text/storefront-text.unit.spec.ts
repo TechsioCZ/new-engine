@@ -143,6 +143,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized completed-order defaults for every market", () => {
+    const completedOrderTitleRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "checkout.completed_order_title"
+    )
+
+    expect(
+      Object.fromEntries(
+        completedOrderTitleRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Objednávka dokončena",
+      hu: "Rendelés befejezve",
+      ro: "Comandă finalizată",
+      sk: "Objednávka dokončená",
+    })
+  })
+
   it("creates localized navigation defaults for every market", () => {
     const homeRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "navigation.breadcrumbs.home"
