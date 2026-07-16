@@ -126,6 +126,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized payment-return defaults for every market", () => {
+    const verifyingPaymentRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "checkout.payment_return_verifying_title"
+    )
+
+    expect(
+      Object.fromEntries(
+        verifyingPaymentRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Ověřujeme platbu",
+      hu: "A fizetés ellenőrzése",
+      ro: "Verificăm plata",
+      sk: "Overujeme platbu",
+    })
+  })
+
   it("creates localized navigation defaults for every market", () => {
     const homeRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "navigation.breadcrumbs.home"
