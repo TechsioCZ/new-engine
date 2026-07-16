@@ -122,6 +122,10 @@ export type OrderDashboardAdminI18nNamespace = {
     string
   >
   packetaSkip: Record<"noActiveLabel" | "notPacketa" | "unchecked", string>
+  packetaLabelPositionPrompt: Record<
+    "description" | "position" | "print" | "selected" | "title",
+    string
+  >
   queues: Record<"action_required" | "all", string>
   sidebar: Record<"actionRequiredOrders", string>
   statuses: Record<
@@ -323,6 +327,14 @@ const englishOrderDashboardAdminI18n = {
     noActiveLabel: "No active Packeta packet label",
     notPacketa: "Carrier is {{carrier}}, not Packeta",
     unchecked: "Packeta label status could not be checked",
+  },
+  packetaLabelPositionPrompt: {
+    description:
+      "Labels will be placed on an A4 sheet with four positions. Choose where the first label should start.",
+    position: "Position {{position}}",
+    print: "Prepare labels",
+    selected: "{{count}} labels will be printed",
+    title: "Packeta label start position",
   },
   queues: {
     action_required: "Action required",
@@ -536,6 +548,14 @@ const czechOrderDashboardAdminI18n = {
     noActiveLabel: "Žádný aktivní štítek zásilky Packeta",
     notPacketa: "Dopravce je {{carrier}}, ne Packeta",
     unchecked: "Stav štítku Packeta se nepodařilo ověřit",
+  },
+  packetaLabelPositionPrompt: {
+    description:
+      "Štítky se připraví na A4 arch se čtyřmi pozicemi. Vyberte, od které pozice má začít první štítek.",
+    position: "Pozice {{position}}",
+    print: "Připravit štítky",
+    selected: "Bude vytištěno {{count}} štítků",
+    title: "Startovní pozice štítku Packeta",
   },
   queues: {
     action_required: "Vyžaduje akci",

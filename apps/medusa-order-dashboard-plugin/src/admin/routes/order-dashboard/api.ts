@@ -124,12 +124,14 @@ export function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
 
 export function downloadOrderDashboardPacketaLabels(input: {
   labelFormat: OrderDashboardLabelFormat
+  labelOffset?: number
   orderIds: string[]
 }) {
   return downloadPdf(
     "/admin/packeta-labels",
     {
       label_format: input.labelFormat,
+      label_offset: input.labelOffset,
       order_ids: input.orderIds,
     },
     `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`
