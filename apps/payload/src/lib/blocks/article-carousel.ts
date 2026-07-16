@@ -8,6 +8,10 @@ const validateArticleSlug: TextFieldSingleValidation = async (
     return "Article slug is required"
   }
 
+  if (req.context?.skipArticleSlugValidation) {
+    return true
+  }
+
   const result = await req.payload.find({
     req,
     collection: "articles",

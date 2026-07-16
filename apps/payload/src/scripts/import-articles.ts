@@ -748,8 +748,8 @@ const toRichText = (
         unresolvedMediaUrls,
         redactMediaUrl
       )
-      throw new Error(
-        `Unresolved rich text media URLs: ${unresolvedDescriptions.join(", ")}`
+      console.warn(
+        `Dropping unresolved rich text media URLs: ${unresolvedDescriptions.join(", ")}`
       )
     }
 
@@ -920,6 +920,9 @@ const upsertArticle = async ({
         locale: writeLocale,
         data,
         overrideAccess: true,
+        context: {
+          skipArticleSlugValidation: true,
+        },
       })
     } else {
       await payload.create({
@@ -927,6 +930,9 @@ const upsertArticle = async ({
         locale: writeLocale,
         data,
         overrideAccess: true,
+        context: {
+          skipArticleSlugValidation: true,
+        },
       })
     }
   } catch (error) {

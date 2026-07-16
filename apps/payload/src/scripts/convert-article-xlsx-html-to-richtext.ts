@@ -531,6 +531,21 @@ const createCarouselBlockNode = (
   }
 }
 
+const sanitizeLexicalRoot = (
+  record: Record<string, unknown>,
+  context: SanitizeLexicalContext
+) => {
+  if (
+    !record.root ||
+    typeof record.root !== "object" ||
+    Array.isArray(record.root)
+  ) {
+    return
+  }
+
+  return sanitizeLexicalNode(record.root, context)
+}
+
 const sanitizeLexicalNode = (
   node: unknown,
   context: SanitizeLexicalContext
@@ -551,16 +566,14 @@ const sanitizeLexicalNode = (
 
   const nextRecord = { ...record }
 
-  if (record.type === "link") {
+  const shouldStripLink = record.type === "link"
+  if (shouldStripLink) {
     addLinkManifestEntry(record, context.linkManifest)
   }
 
-  if (
-    record.root &&
-    typeof record.root === "object" &&
-    !Array.isArray(record.root)
-  ) {
-    nextRecord.root = sanitizeLexicalNode(record.root, context)
+  const root = sanitizeLexicalRoot(record, context)
+  if (root !== undefined) {
+    nextRecord.root = root
   }
 
   if (Array.isArray(record.children)) {
@@ -568,6 +581,10 @@ const sanitizeLexicalNode = (
       const sanitized = sanitizeLexicalNode(child, context)
       return sanitized === undefined ? [] : sanitized
     })
+
+    if (shouldStripLink) {
+      return children.length > 0 ? children : undefined
+    }
 
     if (children.length === 0 && record.type !== "root") {
       return
