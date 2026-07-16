@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useStore } from "@tanstack/react-form"
+import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   CHECKOUT_BILLING_ACTIVE_FIELD_NAMES,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/forms/checkout/address.form"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { readAccountSetupRequested } from "./account-setup-metadata"
 import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
@@ -496,6 +498,10 @@ export function useCheckoutDetailsForm({
   onSubmit,
   regionCountryCode,
 }: UseCheckoutDetailsFormProps) {
+  const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
+  const fallbackCountryCode = regionCountryCode ?? marketContext.countryCode
+  const fallbackPickupLabel = tCheckout("pickup_point_fallback")
   const selectedShippingMethod = cart?.shipping_methods?.[0]
   const storedCarrierPickupSelection = useMemo(
     () =>
@@ -509,16 +515,19 @@ export function useCheckoutDetailsForm({
     () =>
       resolveCarrierPickupAddress(
         selectedShippingMethod?.data,
-        regionCountryCode
+        fallbackCountryCode,
+        fallbackPickupLabel
       ) ??
       resolveCarrierPickupAddress(
         storedCarrierPickupSelection?.data,
-        regionCountryCode
+        fallbackCountryCode,
+        fallbackPickupLabel
       ),
     [
+      fallbackCountryCode,
+      fallbackPickupLabel,
       selectedShippingMethod?.data,
       storedCarrierPickupSelection?.data,
-      regionCountryCode,
     ]
   )
   const hasCarrierPickupShipping = Boolean(carrierPickupAddress)

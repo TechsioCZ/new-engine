@@ -1,7 +1,6 @@
 import { useEffect } from "react"
 import { useTranslations } from "next-intl"
 import {
-  resolveCarrierPickupHint,
   resolveCarrierPickupRequirement,
 } from "@/components/checkout/carrier-pickup.utils"
 import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils"
@@ -111,7 +110,7 @@ export function CheckoutShippingSection({
                   ? tCheckout("pickup_selection_required")
                   : undefined,
                 hint: pickupRequirement
-                  ? resolveCarrierPickupHint(pickupRequirement)
+                  ? tCheckout("pickup_delivery")
                   : undefined,
                 icon: resolveShippingIcon(option),
                 priceLabel: resolveShippingPriceLabel(optionPrice),
