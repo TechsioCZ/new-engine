@@ -109,6 +109,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized pickup-selector defaults for every market", () => {
+    const selectPickupPointRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "checkout.select_pickup_point"
+    )
+
+    expect(
+      Object.fromEntries(
+        selectPickupPointRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Vybrat výdejní místo",
+      hu: "Átvételi pont kiválasztása",
+      ro: "Alege punctul de ridicare",
+      sk: "Vybrať výdajné miesto",
+    })
+  })
+
   it("creates localized navigation defaults for every market", () => {
     const homeRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "navigation.breadcrumbs.home"
