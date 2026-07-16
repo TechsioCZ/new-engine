@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { Route } from "next"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useSearchParams } from "next/navigation"
 import { type ReactNode, useEffect, useRef, useState } from "react"
@@ -29,6 +30,16 @@ const MAX_PAYMENT_RETURN_ATTEMPTS = 8
 const PAYMENT_RETURN_RETRY_DELAY_MS = 1500
 
 export function CheckoutPaymentReturnPanel() {
+  const tCheckout = useTranslations("checkout")
+  const confirmationPendingMessage = tCheckout(
+    "payment_return_confirmation_pending"
+  )
+  const verificationFailedMessage = tCheckout(
+    "payment_return_verification_failed"
+  )
+  const paymentNotCompletedMessage = tCheckout(
+    "payment_return_not_completed"
+  )
   const searchParams = useSearchParams()
   const cartId = normalizeSearchParam(searchParams.get("cart_id"))
   const isCancelled = resolvePaymentCancelled(searchParams)
@@ -108,7 +119,7 @@ export function CheckoutPaymentReturnPanel() {
 
         const failureMessage =
           resolveCompleteCartFailure(completeResult) ??
-          "Platbu sa zatiaľ nepodarilo potvrdiť."
+          confirmationPendingMessage
         scheduleRetryOrFail(failureMessage)
       } catch (error) {
         if (didCancel) {
@@ -117,7 +128,7 @@ export function CheckoutPaymentReturnPanel() {
 
         const errorMessage = resolveErrorMessage(
           error,
-          "Overenie platby zlyhalo."
+          verificationFailedMessage
         )
         scheduleRetryOrFail(errorMessage)
       }
@@ -125,7 +136,12 @@ export function CheckoutPaymentReturnPanel() {
 
     const scheduleRetryOrFail = (message: string) => {
       if (attemptCount >= MAX_PAYMENT_RETURN_ATTEMPTS) {
-        setReturnError(resolvePaymentReturnFailureMessage(message))
+        setReturnError(
+          resolvePaymentReturnFailureMessage(
+            message,
+            paymentNotCompletedMessage
+          )
+        )
         return
       }
 
@@ -142,7 +158,16 @@ export function CheckoutPaymentReturnPanel() {
         window.clearTimeout(retryTimeout)
       }
     }
-  }, [cartId, completedOrderId, debugCartMetadata, isCancelled, returnError])
+  }, [
+    cartId,
+    completedOrderId,
+    confirmationPendingMessage,
+    debugCartMetadata,
+    isCancelled,
+    paymentNotCompletedMessage,
+    returnError,
+    verificationFailedMessage,
+  ])
 
   if (completedOrderId) {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
@@ -157,7 +182,7 @@ export function CheckoutPaymentReturnPanel() {
         actions={
           <>
             <LinkButton as={NextLink} href={summaryHref} size="md">
-              Späť na súhrn
+              {tCheckout("payment_return_back_to_summary")}
             </LinkButton>
             <LinkButton
               as={NextLink}
@@ -166,14 +191,14 @@ export function CheckoutPaymentReturnPanel() {
               theme="outlined"
               variant="secondary"
             >
-              Zmeniť platbu
+              {tCheckout("payment_return_change_payment")}
             </LinkButton>
           </>
         }
         status="warning"
-        title="Platba bola zrušená"
+        title={tCheckout("payment_return_cancelled_title")}
       >
-        Môžete sa vrátiť do súhrnu objednávky a skúsiť platbu znova.
+        {tCheckout("payment_return_cancelled_description")}
       </PaymentReturnStatusCard>
     )
   }
@@ -183,13 +208,13 @@ export function CheckoutPaymentReturnPanel() {
       <PaymentReturnStatusCard
         actions={
           <LinkButton as={NextLink} href={summaryHref} size="md">
-            Späť na súhrn
+            {tCheckout("payment_return_back_to_summary")}
           </LinkButton>
         }
         status="error"
-        title="Chýba košík platby"
+        title={tCheckout("payment_return_missing_cart_title")}
       >
-        Návrat z platobnej brány neobsahuje identifikátor košíka.
+        {tCheckout("payment_return_missing_cart_description")}
       </PaymentReturnStatusCard>
     )
   }
@@ -207,7 +232,7 @@ export function CheckoutPaymentReturnPanel() {
               size="md"
               type="button"
             >
-              Skúsiť znova
+              {tCheckout("payment_return_retry")}
             </Button>
             <LinkButton
               as={NextLink}
@@ -216,12 +241,12 @@ export function CheckoutPaymentReturnPanel() {
               theme="outlined"
               variant="secondary"
             >
-              Späť na súhrn
+              {tCheckout("payment_return_back_to_summary")}
             </LinkButton>
           </>
         }
         status="warning"
-        title="Platbu sa nepodarilo potvrdiť"
+        title={tCheckout("payment_return_failed_title")}
       >
         {returnError}
       </PaymentReturnStatusCard>
@@ -229,9 +254,11 @@ export function CheckoutPaymentReturnPanel() {
   }
 
   return (
-    <PaymentReturnStatusCard status="default" title="Overujeme platbu">
-      Po návrate z platobnej brány dokončujeme objednávku. Zvyčajne to trvá len
-      pár sekúnd.
+    <PaymentReturnStatusCard
+      status="default"
+      title={tCheckout("payment_return_verifying_title")}
+    >
+      {tCheckout("payment_return_verifying_description")}
     </PaymentReturnStatusCard>
   )
 }
@@ -247,6 +274,8 @@ function PaymentReturnStatusCard({
   status: "default" | "error" | "success" | "warning"
   title: string
 }) {
+  const tCheckout = useTranslations("checkout")
+
   return (
     <section className="mx-auto flex max-w-2xl flex-col gap-300 rounded-sm border border-border-primary bg-surface p-400 sm:p-550">
       <h1 className="font-rubik font-semibold text-fg-primary text-xl">
@@ -256,17 +285,19 @@ function PaymentReturnStatusCard({
         {children}
       </StatusText>
       <SupportingText>
-        Ak sa stav nezmení, objednávku môžete skontrolovať v účte alebo skúsiť
-        dokončenie znova.
+        {tCheckout("payment_return_help")}
       </SupportingText>
       {actions ? <div className="flex flex-wrap gap-200">{actions}</div> : null}
     </section>
   )
 }
 
-function resolvePaymentReturnFailureMessage(message: string) {
+function resolvePaymentReturnFailureMessage(
+  message: string,
+  authorizationFailureMessage: string
+) {
   if (isPaymentProviderAuthorizationFailure(message)) {
-    return "Platba nebola dokončená alebo bola zrušená."
+    return authorizationFailureMessage
   }
 
   return message
