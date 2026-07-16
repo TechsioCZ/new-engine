@@ -187,8 +187,12 @@ const StorefrontTextEditDrawer = ({
 
       return updateStorefrontText(storefrontText.id, input)
     },
-    onError: () => {
-      toast.error("Text se nepodařilo uložit.")
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Text se nepodařilo uložit."
+      )
     },
     onSuccess: async (_, input) => {
       await queryClient.invalidateQueries({
@@ -366,8 +370,12 @@ const StorefrontTextsPage = () => {
   })
   const syncMutation = useMutation({
     mutationFn: syncStorefrontTexts,
-    onError: () => {
-      toast.error("Synchronizace se nepodařila.")
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Synchronizace se nepodařila."
+      )
     },
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({
