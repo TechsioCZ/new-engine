@@ -125,7 +125,7 @@ export function CheckoutOrderSummarySection({
           })
         ) : (
           <SupportingText className="text-fg-secondary">
-            {tCart("empty_title")}
+            {tCheckout("empty_cart_title")}
           </SupportingText>
         )}
       </div>

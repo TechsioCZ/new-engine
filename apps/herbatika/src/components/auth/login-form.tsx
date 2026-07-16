@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useAppToast } from "@/hooks/use-app-toast"
 import {
   type LoginFormValues,
@@ -27,6 +28,7 @@ export const LoginForm = ({
   forgotPasswordHref,
   onSubmit,
 }: LoginFormProps) => {
+  const tAuth = useTranslations("auth")
   const toast = useAppToast()
 
   const form = useHerbatikaForm({
@@ -86,7 +88,7 @@ export const LoginForm = ({
         </div>
 
         <Button block isLoading={isBusy} size="md" type="submit">
-          Prihlásiť sa
+          {tAuth("sign_in")}
         </Button>
       </form>
       <AuthFooter

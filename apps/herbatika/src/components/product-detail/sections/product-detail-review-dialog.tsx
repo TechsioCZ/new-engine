@@ -6,6 +6,7 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { buildAuthRouteHref } from "@/components/auth/auth-helpers"
 import { PRODUCT_DETAIL_REVIEWS_SECTION_ID } from "@/components/product-detail/sections/product-detail-review-utils"
@@ -28,6 +29,7 @@ export function ProductReviewCreateDialog({
   productId,
   triggerLabel = "Napísať recenziu",
 }: ProductReviewCreateDialogProps) {
+  const tAuth = useTranslations("auth")
   const authQuery = useAuth()
   const pathname = usePathname()
   const [formResetKey, setFormResetKey] = useState(0)
@@ -130,7 +132,7 @@ export function ProductReviewCreateDialog({
             size="sm"
             variant="primary"
           >
-            Prihlásiť sa
+            {tAuth("sign_in")}
           </LinkButton>
         </>
       )

@@ -2,6 +2,17 @@ import type { StorefrontTextDefinition } from "../registry"
 
 export const STOREFRONT_NAVIGATION_TEXT_DEFINITIONS = [
   {
+    description: "Label odkazu pro spuštění zákaznického chatu.",
+    key: "navigation.start_chat",
+    namespace: "navigation",
+    values: {
+      cz: "Spustit chat",
+      hu: "Csevegés indítása",
+      ro: "Începe conversația",
+      sk: "Spustiť chat",
+    },
+  },
+  {
     description: "Přístupný název drobečkové navigace.",
     key: "navigation.breadcrumbs.root_aria",
     namespace: "navigation",

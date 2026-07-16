@@ -7,6 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -77,6 +78,7 @@ export function ProductListPickerPopover({
   quantity,
   selectedVariantId,
 }: ProductListPickerPopoverProps) {
+  const tAuth = useTranslations("auth")
   const picker = useProductListPicker({
     product,
     quantity,
@@ -97,7 +99,7 @@ export function ProductListPickerPopover({
           size="sm"
           variant="primary"
         >
-          Prihlásiť sa
+          {tAuth("sign_in")}
         </LinkButton>
       </div>
     )

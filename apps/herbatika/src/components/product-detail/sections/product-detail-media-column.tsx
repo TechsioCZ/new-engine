@@ -7,6 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types"
 import { ProductDetailGalleryLightbox } from "@/components/product-detail/sections/product-detail-gallery-lightbox"
 import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
@@ -24,6 +25,7 @@ export function ProductDetailMediaColumn({
   galleryItems,
   mediaFacts,
 }: ProductDetailMediaColumnProps) {
+  const tNavigation = useTranslations("navigation")
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"
   const {
@@ -147,7 +149,7 @@ export function ProductDetailMediaColumn({
           theme="outlined"
           variant="primary"
         >
-          Spustiť chat
+          {tNavigation("start_chat")}
         </LinkButton>
       </div>
     </div>
