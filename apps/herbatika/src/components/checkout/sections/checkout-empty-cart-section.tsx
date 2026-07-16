@@ -4,6 +4,7 @@ import { useRegionContext } from "@techsio/storefront-data/shared/region-context
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCategories } from "@/lib/storefront/categories"
@@ -20,6 +21,7 @@ const EMPTY_CART_RECOMMENDATIONS_LIMIT = 10
 const EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT = 32
 
 export function CheckoutEmptyCartSection() {
+  const tCheckout = useTranslations("checkout")
   const region = useRegionContext()
   const categoriesQuery = useCategories({
     page: 1,
@@ -69,11 +71,10 @@ export function CheckoutEmptyCartSection() {
           <div className="min-w-0 space-y-300">
             <div className="space-y-150">
               <h2 className="font-bold text-2xl text-fg-primary leading-tight">
-                Košík je prázdny
+                {tCheckout("empty_cart_title")}
               </h2>
               <SupportingText className="max-w-3xl">
-                Vyberte si z noviniek alebo pokračujte na domovskú stránku.
-                Objednávku dokončíte hneď po pridaní produktu.
+                {tCheckout("empty_cart_description")}
               </SupportingText>
             </div>
 
@@ -85,7 +86,7 @@ export function CheckoutEmptyCartSection() {
                 size="md"
                 variant="primary"
               >
-                Prezrieť novinky
+                {tCheckout("empty_cart_browse_new_products")}
               </LinkButton>
               <LinkButton
                 as={NextLink}
@@ -95,7 +96,7 @@ export function CheckoutEmptyCartSection() {
                 theme="outlined"
                 variant="secondary"
               >
-                Ísť na domovskú stránku
+                {tCheckout("empty_cart_home")}
               </LinkButton>
             </div>
           </div>
@@ -104,7 +105,7 @@ export function CheckoutEmptyCartSection() {
       {recommendedProducts.length > 0 ? (
         <section className="space-y-300">
           <h2 className="px-300 font-semibold text-2xl text-fg-primary leading-tight">
-            Novinky, ktoré si môžete pridať do košíka
+            {tCheckout("empty_cart_recommendations_title")}
           </h2>
 
           <InlineProductsCarousel products={recommendedProducts} slidesLg={4} />

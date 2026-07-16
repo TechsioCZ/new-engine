@@ -1,4 +1,6 @@
+import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
 import { STOREFRONT_CATALOG_TEXT_DEFINITIONS } from "./definitions/catalog"
+import { STOREFRONT_CHECKOUT_ENTRY_TEXT_DEFINITIONS } from "./definitions/checkout-entry"
 import { STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS } from "./definitions/checkout-details"
 import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
 import { STOREFRONT_NAVIGATION_TEXT_DEFINITIONS } from "./definitions/navigation"
@@ -10,6 +12,7 @@ export const STOREFRONT_TEXT_STATUSES = ["active", "draft"] as const
 export type StorefrontTextStatus = (typeof STOREFRONT_TEXT_STATUSES)[number]
 
 export const STOREFRONT_TEXT_NAMESPACES = [
+  "auth",
   "catalog",
   "cart",
   "checkout",
@@ -769,6 +772,8 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
       sk: "Nastavenie dopravy zlyhalo.",
     },
   },
+  ...STOREFRONT_AUTH_TEXT_DEFINITIONS,
+  ...STOREFRONT_CHECKOUT_ENTRY_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_DETAILS_TEXT_DEFINITIONS,
   ...STOREFRONT_FORM_TEXT_DEFINITIONS,
   ...STOREFRONT_CATALOG_TEXT_DEFINITIONS,

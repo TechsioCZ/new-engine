@@ -3,6 +3,7 @@
 import { useStore } from "@tanstack/react-form"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+import { useTranslations } from "next-intl"
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
@@ -30,6 +31,7 @@ export const RegisterForm = ({
   loginHref,
   onSubmit,
 }: RegisterFormProps) => {
+  const tAuth = useTranslations("auth")
   const toast = useAppToast()
 
   const form = useHerbatikaForm({
@@ -163,7 +165,7 @@ export const RegisterForm = ({
       <div className="md:col-span-2">
         <AuthFooter
           href={loginHref}
-          linkText="Prihlásiť sa"
+          linkText={tAuth("sign_in")}
           text="Už máte účet?"
         />
       </div>

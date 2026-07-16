@@ -6,6 +6,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
@@ -48,6 +49,7 @@ type AccountShellProps = {
 }
 
 export function AccountShell({ children }: AccountShellProps) {
+  const tAuth = useTranslations("auth")
   const router = useRouter()
   const pathname = usePathname()
   const authQuery = useAuth()
@@ -121,7 +123,7 @@ export function AccountShell({ children }: AccountShellProps) {
             size="sm"
             variant="secondary"
           >
-            Prihlásiť sa
+            {tAuth("sign_in")}
           </LinkButton>
         </section>
       </main>
