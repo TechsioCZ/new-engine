@@ -9,6 +9,7 @@ const validateArticleSlug: TextFieldSingleValidation = async (
   }
 
   const result = await req.payload.find({
+    req,
     collection: "articles",
     where: {
       slug: {

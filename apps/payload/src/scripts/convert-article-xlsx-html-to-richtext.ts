@@ -362,9 +362,10 @@ const replaceImageEmbeds = (
       continue
     }
 
+    const imageAlt = img.getAttribute("alt")?.trim()
     const entry = mediaManifest.get(url) ?? {
       url,
-      alt: img.getAttribute("alt")?.trim() || "Imported article image",
+      alt: imageAlt ? imageAlt : "Imported article image",
       filename: filenameFromMediaUrl(url),
     }
     mediaManifest.set(url, entry)

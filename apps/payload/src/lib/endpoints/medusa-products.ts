@@ -45,8 +45,20 @@ const createTimeoutSignal = (timeoutMs: number) => {
   return controller.signal
 }
 
-const resolveFetchSignal = (signal: unknown) =>
-  isAbortSignal(signal) ? signal : createTimeoutSignal(PRODUCT_FETCH_TIMEOUT_MS)
+const resolveFetchSignal = (signal: unknown) => {
+  const timeoutSignal = createTimeoutSignal(PRODUCT_FETCH_TIMEOUT_MS)
+  if (!isAbortSignal(signal)) {
+    return timeoutSignal
+  }
+
+  const abortSignal = AbortSignal as typeof AbortSignal & {
+    any?: (signals: AbortSignal[]) => AbortSignal
+  }
+
+  return typeof abortSignal.any === "function"
+    ? abortSignal.any([signal, timeoutSignal])
+    : signal
+}
 
 const fetchProducts = async ({
   search,

@@ -460,7 +460,7 @@ const fetchDataImageBuffer = (url: string) => {
 
   return {
     data,
-    mimetype: match[1]?.toLowerCase() || "image/png",
+    mimetype: match[1]?.toLowerCase() ?? "image/png",
   }
 }
 
@@ -644,6 +644,41 @@ const hydrateRichTextMedia = (
   return nextRecord
 }
 
+const RICH_TEXT_BLOCK_TYPES = new Set([
+  "block",
+  "heading",
+  "list",
+  "listitem",
+  "paragraph",
+  "quote",
+  "upload",
+])
+
+const isRichTextBlockNode = (node: unknown) => {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return false
+  }
+
+  const type = (node as Record<string, unknown>).type
+  return typeof type === "string" && RICH_TEXT_BLOCK_TYPES.has(type)
+}
+
+const joinRichTextChildText = (children: unknown[]) => {
+  let previousWasBlock = false
+
+  return children.reduce((text, child) => {
+    const childText = getRichTextPlainText(child)
+    if (!childText) {
+      return text
+    }
+
+    const childIsBlock = isRichTextBlockNode(child)
+    const separator = text && (previousWasBlock || childIsBlock) ? " " : ""
+    previousWasBlock = childIsBlock
+    return `${text}${separator}${childText}`
+  }, "")
+}
+
 const getRichTextPlainText = (node: unknown): string => {
   if (!node || typeof node !== "object" || Array.isArray(node)) {
     return ""
@@ -652,7 +687,7 @@ const getRichTextPlainText = (node: unknown): string => {
   const record = node as Record<string, unknown>
   const ownText = typeof record.text === "string" ? record.text : ""
   const childText = Array.isArray(record.children)
-    ? record.children.map(getRichTextPlainText).join("")
+    ? joinRichTextChildText(record.children)
     : ""
   const rootText = record.root ? getRichTextPlainText(record.root) : ""
   return `${ownText}${childText}${rootText}`
@@ -661,6 +696,20 @@ const getRichTextPlainText = (node: unknown): string => {
 const decodeRichTextJson = (value: string) => {
   const decoded = decodeRichTextValue(value)
   return JSON.parse(decoded) as unknown
+}
+
+const redactMediaUrl = (url: string) => {
+  if (url.startsWith("data:")) {
+    return "[inline data image]"
+  }
+
+  try {
+    const parsed = new URL(url)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    const hash = createHash("sha256").update(url).digest("hex").slice(0, 12)
+    return `[media-url:${hash}]`
+  }
 }
 
 const excerptFromContent = (content: string) => {
@@ -695,8 +744,12 @@ const toRichText = (
       unresolvedMediaUrls
     )
     if (unresolvedMediaUrls.size > 0) {
+      const unresolvedDescriptions = Array.from(
+        unresolvedMediaUrls,
+        redactMediaUrl
+      )
       throw new Error(
-        `Unresolved rich text media URLs: ${Array.from(unresolvedMediaUrls).join(", ")}`
+        `Unresolved rich text media URLs: ${unresolvedDescriptions.join(", ")}`
       )
     }
 
@@ -1241,15 +1294,17 @@ const processArticleRow = async (
   )
   const status =
     statusOverride ?? parseStatus(getText(row, ["status", "state", "stav"]))
-  const excerpt =
-    getText(row, [
-      "excerpt",
-      "perex",
-      "summary",
-      "description",
-      "meta_description",
-      "popis",
-    ]) || excerptFromContent(content)
+  const extractedExcerpt = getText(row, [
+    "excerpt",
+    "perex",
+    "summary",
+    "description",
+    "meta_description",
+    "popis",
+  ])
+  const excerpt = extractedExcerpt
+    ? extractedExcerpt
+    : excerptFromContent(content)
   const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
   const slug = rawSlug ? slugify(rawSlug) : slugify(title)
 

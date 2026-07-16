@@ -564,10 +564,20 @@ const resolveHerbaticaProductSeedLimit = () => {
   return Number.isFinite(value) && value > 0 ? value : undefined
 }
 
-const getProductDescription = (shopItem: string) =>
-  decodeHtmlToText(extractFirstElementContent(shopItem, "DESCRIPTION")) ||
-  decodeHtmlToText(extractFirstElementContent(shopItem, "SHORT_DESCRIPTION")) ||
-  ""
+const getProductDescription = (shopItem: string) => {
+  const description = decodeHtmlToText(
+    extractFirstElementContent(shopItem, "DESCRIPTION")
+  )
+  if (description) {
+    return description
+  }
+
+  return (
+    decodeHtmlToText(
+      extractFirstElementContent(shopItem, "SHORT_DESCRIPTION")
+    ) ?? ""
+  )
+}
 
 const getProductExcerpt = (shopItem: string, content: string) => {
   const shortDescription = decodeHtmlToText(

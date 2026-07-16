@@ -3527,17 +3527,6 @@ const PAYLOAD_SEED_ENV_MAPPINGS = [
   ["S3_SECRET_ACCESS_KEY", "PAYLOAD_SEED_S3_SECRET_ACCESS_KEY"],
 ] as const
 
-function getRequiredPayloadSeedEnv(name: string): string {
-  const value = process.env[name]
-  if (value === undefined) {
-    throw new Error(
-      `Missing required environment variable for Payload seed: ${name}`
-    )
-  }
-
-  return value
-}
-
 function buildPayloadSeedEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
@@ -3545,7 +3534,10 @@ function buildPayloadSeedEnv(): NodeJS.ProcessEnv {
   }
 
   for (const [targetName, sourceName] of PAYLOAD_SEED_ENV_MAPPINGS) {
-    env[targetName] = getRequiredPayloadSeedEnv(sourceName)
+    const value = process.env[sourceName]
+    if (value !== undefined) {
+      env[targetName] = value
+    }
   }
 
   return env
