@@ -7,6 +7,7 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { parseAsInteger, useQueryState } from "nuqs"
 import { useEffect, useTransition } from "react"
 import { AccountSurface } from "@/components/account/account-surface"
@@ -20,6 +21,7 @@ import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-bui
 const ORDER_PAGE_SIZE = 10
 
 export function AccountOrdersList() {
+  const tAuth = useTranslations("auth")
   const queryClient = useQueryClient()
   const authQuery = useAuth()
   const [isPageTransitionPending, startTransition] = useTransition()
@@ -79,7 +81,7 @@ export function AccountOrdersList() {
           }}
           variant="secondary"
         >
-          Skúsiť znova
+          {tAuth("account.orders.retry")}
         </Button>
       </AccountSurface>
     )
@@ -88,12 +90,14 @@ export function AccountOrdersList() {
   if (ordersQuery.orders.length === 0) {
     return (
       <AccountSurface className="space-y-400">
-        <h2 className="font-semibold text-lg">Objednávky</h2>
+        <h2 className="font-semibold text-lg">
+          {tAuth("account.navigation.orders")}
+        </h2>
         <p className="text-fg-secondary text-sm">
-          Zatiaľ nemáte žiadnu dokončenú objednávku.
+          {tAuth("account.orders.empty_description")}
         </p>
         <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
-          Prejsť na produkty
+          {tAuth("account.orders.browse_products")}
         </LinkButton>
       </AccountSurface>
     )
@@ -102,11 +106,19 @@ export function AccountOrdersList() {
   return (
     <AccountSurface className="space-y-500">
       <header className="space-y-200">
-        <h2 className="font-semibold text-lg">Objednávky</h2>
+        <h2 className="font-semibold text-lg">
+          {tAuth("account.navigation.orders")}
+        </h2>
         <p className="text-fg-secondary text-sm">
-          Prehľad dokončených objednávok s položkami a stavom doručenia.
+          {tAuth("account.orders.description")}
         </p>
-        <p className="text-fg-tertiary text-xs">{`Celkom: ${ordersQuery.totalCount} | Strana ${currentPage}/${ordersQuery.totalPages}`}</p>
+        <p className="text-fg-tertiary text-xs">
+          {tAuth("account.orders.pagination_summary", {
+            count: ordersQuery.totalCount,
+            currentPage,
+            totalPages: ordersQuery.totalPages,
+          })}
+        </p>
       </header>
 
       {isOrdersRefreshing ? (

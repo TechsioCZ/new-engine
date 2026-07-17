@@ -17,17 +17,33 @@ import { useLogoutAction } from "@/lib/storefront/use-logout-action"
 
 type AccountNavItemType = {
   href: string
-  label: string
+  labelKey:
+    | "account.navigation.lists"
+    | "account.navigation.orders"
+    | "account.navigation.overview"
+    | "account.navigation.settings"
   icon: IconType
 }
 
 const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
-  { href: "/account", label: "Prehľad", icon: "token-icon-user" },
-  { href: "/account/orders", label: "Objednávky", icon: "token-icon-order" },
-  { href: "/account/lists", label: "Zoznamy", icon: "token-icon-heart" },
+  {
+    href: "/account",
+    labelKey: "account.navigation.overview",
+    icon: "token-icon-user",
+  },
+  {
+    href: "/account/orders",
+    labelKey: "account.navigation.orders",
+    icon: "token-icon-order",
+  },
+  {
+    href: "/account/lists",
+    labelKey: "account.navigation.lists",
+    icon: "token-icon-heart",
+  },
   {
     href: "/account/settings",
-    label: "Nastavenia",
+    labelKey: "account.navigation.settings",
     icon: "token-icon-settings",
   },
 ] as const
@@ -63,6 +79,7 @@ export function AccountShell({ children }: AccountShellProps) {
     logoutError,
     logoutMutation,
   } = useLogoutAction({
+    fallbackErrorMessage: tAuth("account.logout_failed"),
     onSuccess: () => {
       router.replace("/")
     },
@@ -112,10 +129,10 @@ export function AccountShell({ children }: AccountShellProps) {
       <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
         <section className="space-y-300 rounded-lg border border-border-secondary bg-surface p-550">
           <h1 className="font-semibold text-lg">
-            Presmerovanie na prihlásenie
+            {tAuth("account.redirect.title")}
           </h1>
           <p className="text-fg-secondary text-sm">
-            Účet je dostupný iba pre prihlásených používateľov.
+            {tAuth("account.redirect.description")}
           </p>
           <LinkButton
             as={NextLink}
@@ -159,7 +176,7 @@ export function AccountShell({ children }: AccountShellProps) {
                   theme="unstyled"
                 >
                   <Icon icon={item.icon} size="2xl" />
-                  <span>{item.label}</span>
+                  <span>{tAuth(item.labelKey)}</span>
                 </LinkButton>
               )
             })}
@@ -183,7 +200,7 @@ export function AccountShell({ children }: AccountShellProps) {
             size="current"
             theme="unstyled"
           >
-            <span>Odhlásiť</span>
+            <span>{tAuth("account.logout")}</span>
           </Button>
         </aside>
 

@@ -3,9 +3,11 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 import {
   formatOrderAmount,
   formatOrderDate,
+  type OrderStatusTranslator,
   resolveOrderDisplayId,
   resolveOrderInvoiceUrl,
   resolveOrderItemQuantity,
@@ -23,10 +25,14 @@ export function AccountOrderGroup({
   order,
   onPrefetchOrderDetail,
 }: AccountOrderGroupProps) {
+  const locale = useLocale()
+  const tAuth = useTranslations("auth")
+  const translateOrderStatus: OrderStatusTranslator = (group, status) =>
+    tAuth(`account.orders.status.${group}`, { status })
   const detailHref = `/account/orders/${order.id}`
   const invoiceUrl = resolveOrderInvoiceUrl(order)
   const orderTotalAmount = resolveOrderTotalAmount(order)
-  const orderProgress = resolveOrderProgressState(order)
+  const orderProgress = resolveOrderProgressState(order, translateOrderStatus)
   const orderItems = order.items ?? []
   const orderItemCount = orderItems.reduce(
     (count, item) => count + resolveOrderItemQuantity(item),
@@ -50,7 +56,7 @@ export function AccountOrderGroup({
               {resolveOrderDisplayId(order)}
             </p>
             <p className="text-order-group-fg-secondary text-order-group-secondary-size">
-              {formatOrderDate(order.created_at)}
+              {formatOrderDate(order.created_at, locale)}
             </p>
             <Badge
               className="whitespace-nowrap px-150"
@@ -63,14 +69,14 @@ export function AccountOrderGroup({
 
           <div className="flex flex-wrap items-center">
             <p className="text-order-group-fg-secondary text-order-group-secondary-size">
-              {`${orderItemCount}ks položiek v objednávke`}
+              {tAuth("account.orders.item_count", { count: orderItemCount })}
             </p>
           </div>
         </section>
 
         <section className="leading-none lg:justify-self-end lg:text-start">
           <p className="font-medium text-order-group-fg-tertiary text-order-group-tertiary-size uppercase">
-            Celková suma
+            {tAuth("account.orders.total_amount")}
           </p>
           <p className="font-semibold">
             {formatOrderAmount(orderTotalAmount, order.currency_code)}
@@ -88,7 +94,7 @@ export function AccountOrderGroup({
               theme="outlined"
               variant="secondary"
             >
-              Zobraziť faktúru
+              {tAuth("account.orders.view_invoice")}
             </LinkButton>
           )}
           <LinkButton
@@ -103,7 +109,7 @@ export function AccountOrderGroup({
             size="sm"
             variant="secondary"
           >
-            Zobraziť objednávku
+            {tAuth("account.orders.view_order")}
           </LinkButton>
         </div>
       </header>
@@ -111,9 +117,9 @@ export function AccountOrderGroup({
       <div
         className={`hidden px-order-group-3xl py-order-group-lg text-order-group-fg-tertiary text-order-group-tertiary-size uppercase tracking-wide lg:col-span-3 lg:grid lg:items-center lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
       >
-        <p>Produkt</p>
-        <p className="text-start">Cena</p>
-        <p className="pr-500 text-end">Info</p>
+        <p>{tAuth("account.orders.product")}</p>
+        <p className="text-start">{tAuth("account.orders.price")}</p>
+        <p className="pr-500 text-end">{tAuth("account.orders.info")}</p>
       </div>
 
       {orderItems.length > 0 ? (
@@ -133,7 +139,9 @@ export function AccountOrderGroup({
                   <div className="flex items-center gap-order-group-lg">
                     {item.thumbnail ? (
                       <NextImage
-                        alt={item.title ?? "Produkt"}
+                        alt={
+                          item.title ?? tAuth("account.orders.product_fallback")
+                        }
                         className="object-cover"
                         height={32}
                         loading="lazy"
@@ -159,7 +167,11 @@ export function AccountOrderGroup({
                   <p className="font-medium text-order-group-fg-primary text-order-group-secondary-size">
                     {formatOrderAmount(lineTotal, order.currency_code)}
                   </p>
-                  <p className="text-order-group-fg-secondary text-order-group-secondary-size">{`Množstvo: ${itemQuantity}`}</p>
+                  <p className="text-order-group-fg-secondary text-order-group-secondary-size">
+                    {tAuth("account.orders.quantity_value", {
+                      count: itemQuantity,
+                    })}
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-end lg:justify-self-end">
@@ -176,7 +188,7 @@ export function AccountOrderGroup({
                     theme="outlined"
                     variant="secondary"
                   >
-                    Detail
+                    {tAuth("account.orders.product_detail")}
                   </LinkButton>
                 </div>
               </li>
@@ -185,7 +197,7 @@ export function AccountOrderGroup({
         </ul>
       ) : (
         <p className="hidden border-order-group-border border-t px-order-group-3xl py-order-group-3xl text-order-group-fg-secondary text-order-group-secondary-size lg:col-span-3 lg:block">
-          Objednávka neobsahuje položky.
+          {tAuth("account.orders.no_items")}
         </p>
       )}
 
@@ -203,7 +215,9 @@ export function AccountOrderGroup({
                 <div className="flex items-start gap-order-group-lg">
                   {item.thumbnail ? (
                     <NextImage
-                      alt={item.title ?? "Produkt"}
+                      alt={
+                        item.title ?? tAuth("account.orders.product_fallback")
+                      }
                       className="shrink-0 object-cover"
                       height={32}
                       loading="lazy"
@@ -230,7 +244,11 @@ export function AccountOrderGroup({
                       </p>
                     </div>
 
-                    <p className="text-order-group-fg-secondary text-order-group-tertiary-size">{`Množstvo: ${itemQuantity}`}</p>
+                    <p className="text-order-group-fg-secondary text-order-group-tertiary-size">
+                      {tAuth("account.orders.quantity_value", {
+                        count: itemQuantity,
+                      })}
+                    </p>
                   </div>
                 </div>
               </article>
@@ -238,7 +256,7 @@ export function AccountOrderGroup({
           })
         ) : (
           <p className="text-order-group-fg-secondary text-order-group-secondary-size">
-            Objednávka neobsahuje položky.
+            {tAuth("account.orders.no_items")}
           </p>
         )}
       </div>

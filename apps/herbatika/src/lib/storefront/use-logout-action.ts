@@ -6,6 +6,7 @@ import { cartStorage } from "./cart-storage"
 import { resolveErrorMessage } from "./error-utils"
 
 type UseLogoutActionOptions = {
+  fallbackErrorMessage?: string
   onSuccess?: () => void | Promise<void>
 }
 
@@ -21,6 +22,7 @@ type LogoutActionResult =
 export const useLogoutAction = (options?: UseLogoutActionOptions) => {
   const logoutMutation = useLogout()
   const [logoutError, setLogoutError] = useState<string | null>(null)
+  const fallbackErrorMessage = options?.fallbackErrorMessage
   const onSuccess = options?.onSuccess
 
   const clearLogoutError = () => {
@@ -37,7 +39,7 @@ export const useLogoutAction = (options?: UseLogoutActionOptions) => {
 
       return { ok: true }
     } catch (error) {
-      const resolvedError = resolveErrorMessage(error)
+      const resolvedError = resolveErrorMessage(error, fallbackErrorMessage)
       setLogoutError(resolvedError)
 
       return {
