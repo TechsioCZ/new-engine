@@ -1,7 +1,8 @@
 "use client"
 
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
-import { registerValidators } from "@/lib/auth/auth-form-validators"
+import { useTranslations } from "next-intl"
+import type { RegisterFormValidators } from "@/lib/auth/auth-form-validators"
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,
@@ -11,26 +12,28 @@ type RegisterWholesaleFieldsProps = {
   countryItems: SelectItem[]
   form: RegisterFormController
   onValueChange?: RegisterFieldChangeHandler
+  validators: RegisterFormValidators
 }
 
 export function RegisterWholesaleFields({
   countryItems,
   form,
   onValueChange,
+  validators,
 }: RegisterWholesaleFieldsProps) {
+  const tAuth = useTranslations("auth")
+  const tForm = useTranslations("form")
+
   return (
     <fieldset className="col-span-2 grid gap-250 rounded-sm md:grid-cols-2">
-      <legend className="sr-only">Firemné údaje</legend>
+      <legend className="sr-only">{tAuth("register.company_fields")}</legend>
       <div className="md:col-span-2">
-        <form.AppField
-          name="company_name"
-          validators={registerValidators.company_name}
-        >
+        <form.AppField name="company_name" validators={validators.company_name}>
           {(field) => (
             <field.TextField
               autoComplete="organization"
               id="auth-register-company-name"
-              label="Názov firmy"
+              label={tForm("company_name")}
               onValueChange={onValueChange}
               required
               validationMode="blur"
@@ -41,13 +44,13 @@ export function RegisterWholesaleFields({
 
       <form.AppField
         name="company_identifier"
-        validators={registerValidators.company_identifier}
+        validators={validators.company_identifier}
       >
         {(field) => (
           <field.TextField
             autoComplete="off"
             id="auth-register-company-identifier"
-            label="IČO / firemný identifikátor"
+            label={tForm("company_id")}
             onValueChange={onValueChange}
             required
             validationMode="blur"
@@ -57,15 +60,15 @@ export function RegisterWholesaleFields({
 
       <form.AppField
         name="billing_country_code"
-        validators={registerValidators.billing_country_code}
+        validators={validators.billing_country_code}
       >
         {(field) => (
           <field.SelectField
             id="auth-register-billing-country"
             items={countryItems}
-            label="Krajina"
+            label={tForm("country")}
             onValueChange={onValueChange}
-            placeholder="Vyberte krajinu"
+            placeholder={tForm("country_placeholder")}
             readOnly
             required
             validationMode="blur"
@@ -76,13 +79,13 @@ export function RegisterWholesaleFields({
       <div className="md:col-span-2">
         <form.AppField
           name="billing_address_1"
-          validators={registerValidators.billing_address_1}
+          validators={validators.billing_address_1}
         >
           {(field) => (
             <field.TextField
               autoComplete="billing street-address"
               id="auth-register-billing-address-1"
-              label="Ulica a číslo domu"
+              label={tForm("address")}
               onValueChange={onValueChange}
               required
               validationMode="blur"
@@ -97,7 +100,7 @@ export function RegisterWholesaleFields({
             <field.TextField
               autoComplete="billing address-line2"
               id="auth-register-billing-address-2"
-              label="Doplnenie adresy"
+              label={tForm("address_line_2")}
               onValueChange={onValueChange}
               validationMode="blur"
             />
@@ -107,13 +110,13 @@ export function RegisterWholesaleFields({
 
       <form.AppField
         name="billing_city"
-        validators={registerValidators.billing_city}
+        validators={validators.billing_city}
       >
         {(field) => (
           <field.TextField
             autoComplete="billing address-level2"
             id="auth-register-billing-city"
-            label="Mesto"
+            label={tForm("city")}
             onValueChange={onValueChange}
             required
             validationMode="blur"
@@ -123,13 +126,13 @@ export function RegisterWholesaleFields({
 
       <form.AppField
         name="billing_postal_code"
-        validators={registerValidators.billing_postal_code}
+        validators={validators.billing_postal_code}
       >
         {(field) => (
           <field.TextField
             autoComplete="billing postal-code"
             id="auth-register-billing-postal-code"
-            label="PSČ"
+            label={tForm("postal_code")}
             onValueChange={onValueChange}
             required
             validationMode="blur"

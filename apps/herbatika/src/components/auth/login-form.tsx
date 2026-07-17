@@ -4,10 +4,11 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import { useMemo } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
 import {
+  createLoginValidators,
   type LoginFormValues,
-  loginValidators,
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -29,7 +30,17 @@ export const LoginForm = ({
   onSubmit,
 }: LoginFormProps) => {
   const tAuth = useTranslations("auth")
+  const tForm = useTranslations("form")
   const toast = useAppToast()
+  const loginValidators = useMemo(
+    () =>
+      createLoginValidators({
+        emailInvalid: tForm("validation.email_invalid"),
+        emailRequired: tForm("validation.email_required"),
+        passwordRequired: tAuth("validation.password_required"),
+      }),
+    [tAuth, tForm]
+  )
 
   const form = useHerbatikaForm({
     defaultValues,
@@ -56,7 +67,7 @@ export const LoginForm = ({
             <field.TextField
               autoComplete="email"
               id="login-email"
-              label="E-mail"
+              label={tForm("email")}
               type="email"
               validationMode="blur"
             />
@@ -65,13 +76,13 @@ export const LoginForm = ({
 
         <div className="flex flex-col gap-form-field-gap">
           <div className="flex items-center justify-between gap-200">
-            <Label htmlFor="login-password">Heslo</Label>
+            <Label htmlFor="login-password">{tAuth("password")}</Label>
             <NextLink
               className="font-normal text-fg-secondary text-sm underline-offset-4 transition-colors hover:text-primary hover:underline"
               href={forgotPasswordHref}
               onMouseDown={(e) => e.preventDefault()}
             >
-              Zabudnuté heslo?
+              {tAuth("login.forgot_password")}
             </NextLink>
           </div>
           <form.AppField name="password" validators={loginValidators.password}>
@@ -79,7 +90,9 @@ export const LoginForm = ({
               <field.TextField
                 autoComplete="current-password"
                 id="login-password"
-                label={<span className="sr-only">Heslo</span>}
+                label={
+                  <span className="sr-only">{tAuth("password")}</span>
+                }
                 type="password"
                 validationMode="blur"
               />
@@ -93,8 +106,8 @@ export const LoginForm = ({
       </form>
       <AuthFooter
         href={registerHref}
-        linkText="Zaregistrujte sa"
-        text="Nemáte ešte účet?"
+        linkText={tAuth("login.register_link")}
+        text={tAuth("login.no_account")}
       />
     </div>
   )
