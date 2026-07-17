@@ -566,8 +566,8 @@ const sanitizeLexicalNode = (
 
   const nextRecord = { ...record }
 
-  const shouldStripLink = record.type === "link"
-  if (shouldStripLink) {
+  const shouldRecordLink = record.type === "link"
+  if (shouldRecordLink) {
     addLinkManifestEntry(record, context.linkManifest)
   }
 
@@ -581,10 +581,6 @@ const sanitizeLexicalNode = (
       const sanitized = sanitizeLexicalNode(child, context)
       return sanitized === undefined ? [] : sanitized
     })
-
-    if (shouldStripLink) {
-      return children.length > 0 ? children : undefined
-    }
 
     if (children.length === 0 && record.type !== "root") {
       return

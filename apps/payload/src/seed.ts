@@ -7,6 +7,7 @@ import {
   getPayload,
   type RequiredDataFromCollectionSlug,
 } from "payload"
+import { resolveEnvLocales } from "./lib/utils/env"
 import config from "./payload.config"
 import type { Article } from "./payload-types"
 import {
@@ -76,6 +77,7 @@ const PAYLOAD_SEED_ARTICLES_LOCALE_ENV = "PAYLOAD_SEED_ARTICLES_LOCALE"
 const PAYLOAD_SEED_ARTICLES_STATUS_ENV = "PAYLOAD_SEED_ARTICLES_STATUS"
 const PAYLOAD_SEED_ARTICLES_TRANSLATE_ENV = "PAYLOAD_SEED_ARTICLES_TRANSLATE"
 const PAYLOAD_SEED_ARTICLES_OVERWRITE_ENV = "PAYLOAD_SEED_ARTICLES_OVERWRITE"
+const DEFAULT_PAYLOAD_LOCALES = ["cs", "sk", "en"]
 const HTTP_SOURCE_PATTERN = /^https?:\/\//i
 const TAG_SEPARATOR_PATTERN = /[,;]+/
 const HTML_TAG_PATTERN = /<[^>]+>/g
@@ -672,6 +674,10 @@ const parseImportStatus = (
     : undefined
 }
 
+const resolveSeedArticlesLocale = () =>
+  normalizeInlineText(process.env[PAYLOAD_SEED_ARTICLES_LOCALE_ENV]) ??
+  resolveEnvLocales("PAYLOAD_LOCALES", DEFAULT_PAYLOAD_LOCALES).defaultLocale
+
 const createBlogArticlesXlsxSeed = async (payload: SeedPayload) => {
   if (!isEnabled(process.env.FEATURE_PAYLOAD_ARTICLES_ENABLED)) {
     return
@@ -698,9 +704,7 @@ const createBlogArticlesXlsxSeed = async (payload: SeedPayload) => {
     sheetName: normalizeInlineText(
       process.env[PAYLOAD_SEED_ARTICLES_SHEET_ENV]
     ),
-    locale:
-      normalizeInlineText(process.env[PAYLOAD_SEED_ARTICLES_LOCALE_ENV]) ??
-      "sk",
+    locale: resolveSeedArticlesLocale(),
     status: parseImportStatus(process.env[PAYLOAD_SEED_ARTICLES_STATUS_ENV]),
     translate: isExplicitlyEnabled(
       process.env[PAYLOAD_SEED_ARTICLES_TRANSLATE_ENV]
