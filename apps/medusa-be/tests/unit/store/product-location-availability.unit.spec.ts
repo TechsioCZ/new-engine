@@ -24,7 +24,7 @@ const STOCK_LOCATIONS = [
 const link = (
   variantId: string,
   inventoryItemId: string,
-  requiredQuantity: number | null = null
+  requiredQuantity = 1
 ): VariantInventoryItemLink => ({
   inventory_item_id: inventoryItemId,
   required_quantity: requiredQuantity,
@@ -39,7 +39,8 @@ const level = (
   available_quantity: availableQuantity,
   inventory_item_id: inventoryItemId,
   location_id: stockLocationId,
-  stock_locations: { id: stockLocationId },
+  reserved_quantity: 0,
+  stocked_quantity: availableQuantity,
 })
 
 describe("buildProductLocationAvailability", () => {
@@ -119,7 +120,7 @@ describe("buildProductLocationAvailability", () => {
     ])
   })
 
-  it("falls back to stocked minus reserved quantity when available_quantity is not returned", () => {
+  it("derives availability when Medusa does not initialize the computed field", () => {
     const response = buildProductLocationAvailability({
       inventoryItemLinks: [link("variant_1", "item_1")],
       inventoryLevels: [

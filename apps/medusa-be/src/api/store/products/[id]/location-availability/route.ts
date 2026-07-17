@@ -1,5 +1,12 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
+import type {
+  MedusaResponse,
+  MedusaStoreRequest,
+} from "@medusajs/framework/http"
+import type {
+  ProductDTO,
+  ProductVariantDTO,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -8,38 +15,24 @@ import { normalizeProductSalesChannelFilter } from "../../../../utils/product-fi
 import {
   buildProductLocationAvailability,
   type InventoryLevel,
-  isInventoryLevel,
-  isStockLocationRecord,
-  isVariantInventoryItemLink,
+  type ProductLocationAvailability,
   type StockLocationRecord,
   type VariantInventoryItemLink,
 } from "./availability"
-
-type ProductRecord = {
-  id: string
-  variants?: Array<{
-    id?: string
-  }>
-}
+import type { StoreProductLocationAvailabilityQuery } from "./middlewares"
 
 const QUERY_FILTER_CHUNK_SIZE = 100
 
+type QueryResult<T> = {
+  data: T[]
+}
+
+type ProductRecord = Pick<ProductDTO, "id"> & {
+  variants: Pick<ProductVariantDTO, "id">[]
+}
+
 type StockLocationLinkRecord = {
   stock_location_id: string
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function isProductRecord(value: unknown): value is ProductRecord {
-  return isRecord(value) && typeof value.id === "string"
-}
-
-function isStockLocationLinkRecord(
-  value: unknown
-): value is StockLocationLinkRecord {
-  return isRecord(value) && typeof value.stock_location_id === "string"
 }
 
 const chunkValues = <TValue>(
@@ -53,12 +46,14 @@ const chunkValues = <TValue>(
   return chunks
 }
 
-function asStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string")
+function asStringArray(
+  value: StoreProductLocationAvailabilityQuery["sales_channel_id"]
+): string[] {
+  if (!value) {
+    return []
   }
 
-  return typeof value === "string" ? [value] : []
+  return Array.isArray(value) ? value : [value]
 }
 
 async function queryStockLocationsForSalesChannels(
@@ -68,17 +63,15 @@ async function queryStockLocationsForSalesChannels(
   const stockLocationIds: string[] = []
 
   for (const salesChannelIdChunk of chunkValues(salesChannelIds)) {
-    const linkResult = await query.graph({
-      entity: "sales_channel_location",
-      fields: ["stock_location_id"],
-      filters: { sales_channel_id: salesChannelIdChunk },
-    })
-    const rawLinks: unknown[] = Array.isArray(linkResult.data)
-      ? linkResult.data
-      : []
+    const { data: links }: QueryResult<StockLocationLinkRecord> =
+      await query.graph({
+        entity: "sales_channel_location",
+        fields: ["stock_location_id"],
+        filters: { sales_channel_id: salesChannelIdChunk },
+      })
 
-    for (const linkRecord of rawLinks.filter(isStockLocationLinkRecord)) {
-      stockLocationIds.push(linkRecord.stock_location_id)
+    for (const link of links) {
+      stockLocationIds.push(link.stock_location_id)
     }
   }
 
@@ -91,15 +84,13 @@ async function queryStockLocationsForSalesChannels(
   const stockLocations: StockLocationRecord[] = []
 
   for (const stockLocationIdChunk of chunkValues(uniqueStockLocationIds)) {
-    const stockLocationResult = await query.graph({
-      entity: "stock_location",
-      fields: ["id", "name"],
-      filters: { id: stockLocationIdChunk },
-    })
-    const rawStockLocations: unknown[] = Array.isArray(stockLocationResult.data)
-      ? stockLocationResult.data
-      : []
-    stockLocations.push(...rawStockLocations.filter(isStockLocationRecord))
+    const { data: locations }: QueryResult<StockLocationRecord> =
+      await query.graph({
+        entity: "stock_location",
+        fields: ["id", "name"],
+        filters: { id: stockLocationIdChunk },
+      })
+    stockLocations.push(...locations)
   }
 
   const stockLocationById = new Map(
@@ -113,17 +104,11 @@ async function queryStockLocationsForSalesChannels(
   })
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const productId =
-    typeof req.params.id === "string" ? req.params.id : undefined
-
-  if (!productId) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Product id is required"
-    )
-  }
-
+export async function GET(
+  req: MedusaStoreRequest<unknown, StoreProductLocationAvailabilityQuery>,
+  res: MedusaResponse<ProductLocationAvailability>
+) {
+  const { id: productId } = req.params
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const salesChannelIds = asStringArray(req.filterableFields?.sales_channel_id)
@@ -135,16 +120,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       id: productId,
     }
   )
-  const productResult = await query.graph({
+  const { data: products }: QueryResult<ProductRecord> = await query.graph({
     entity: "product",
     fields: ["id", "variants.id"],
     filters: productFilters,
     pagination: { take: 1 },
   })
-  const products: unknown[] = Array.isArray(productResult.data)
-    ? productResult.data
-    : []
-  const product = products.find(isProductRecord)
+  const product = products[0]
 
   if (!product) {
     throw new MedusaError(
@@ -153,9 +135,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     )
   }
 
-  const variantIds = (product.variants ?? [])
-    .map((variant) => variant.id)
-    .filter((variantId): variantId is string => Boolean(variantId))
+  const variantIds = product.variants.map((variant) => variant.id)
 
   const stockLocations = await queryStockLocationsForSalesChannels(
     query,
@@ -173,15 +153,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const inventoryItemLinks: VariantInventoryItemLink[] = []
 
   for (const variantIdChunk of chunkValues(variantIds)) {
-    const linkResult = await query.graph({
-      entity: "product_variant_inventory_item",
-      fields: ["variant_id", "inventory_item_id", "required_quantity"],
-      filters: { variant_id: variantIdChunk },
-    })
-    const rawLinks: unknown[] = Array.isArray(linkResult.data)
-      ? linkResult.data
-      : []
-    inventoryItemLinks.push(...rawLinks.filter(isVariantInventoryItemLink))
+    const { data: links }: QueryResult<VariantInventoryItemLink> =
+      await query.graph({
+        entity: "product_variant_inventory_item",
+        fields: ["variant_id", "inventory_item_id", "required_quantity"],
+        filters: { variant_id: variantIdChunk },
+      })
+    inventoryItemLinks.push(...links)
   }
 
   const inventoryItemIds = [
@@ -220,7 +198,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   )
 
   for (const inventoryItemIdChunk of chunkValues(inventoryItemIds)) {
-    const levelResult = await query.graph({
+    const { data: levels }: QueryResult<InventoryLevel> = await query.graph({
       entity: "inventory_level",
       fields: [
         "inventory_item_id",
@@ -228,17 +206,13 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         "available_quantity",
         "stocked_quantity",
         "reserved_quantity",
-        "stock_locations.id",
       ],
       filters: {
         inventory_item_id: inventoryItemIdChunk,
         location_id: stockLocationIds,
       },
     })
-    const rawLevels: unknown[] = Array.isArray(levelResult.data)
-      ? levelResult.data
-      : []
-    inventoryLevels.push(...rawLevels.filter(isInventoryLevel))
+    inventoryLevels.push(...levels)
   }
 
   res.json(

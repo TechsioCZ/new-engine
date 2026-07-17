@@ -16,6 +16,10 @@ export const StoreProductLocationAvailabilityQuerySchema = z
   })
   .strict()
 
+export type StoreProductLocationAvailabilityQuery = z.infer<
+  typeof StoreProductLocationAvailabilityQuerySchema
+>
+
 export const storeProductLocationAvailabilityRoutesMiddlewares: MiddlewareRoute[] =
   [
     {
