@@ -35,6 +35,50 @@ export const STOREFRONT_CATALOG_TEXT_DEFINITIONS = [
     },
   },
   {
+    description: "SEO titulek abecedního přehledu všech značek.",
+    key: "catalog.brands.metadata.index_title",
+    namespace: "catalog",
+    values: {
+      cz: "Všechny značky A-Z | Herbatica",
+      hu: "Összes márka A-tól Z-ig | Herbatica",
+      ro: "Toate mărcile de la A la Z | Herbatica",
+      sk: "Všetky značky A-Z | Herbatica",
+    },
+  },
+  {
+    description: "SEO popis abecedního přehledu všech značek.",
+    key: "catalog.brands.metadata.index_description",
+    namespace: "catalog",
+    values: {
+      cz: "Přehled všech značek dostupných v e-shopu Herbatica seřazený podle abecedy.",
+      hu: "A Herbatica webáruházban elérhető összes márka betűrendben.",
+      ro: "Prezentarea tuturor mărcilor disponibile în magazinul online Herbatica, în ordine alfabetică.",
+      sk: "Prehľad všetkých značiek dostupných v e-shope Herbatica zoradený podľa abecedy.",
+    },
+  },
+  {
+    description: "SEO titulek detailu značky.",
+    key: "catalog.brands.metadata.detail_title",
+    namespace: "catalog",
+    values: {
+      cz: "{brandName} | Značky Herbatica",
+      hu: "{brandName} | Herbatica márkák",
+      ro: "{brandName} | Mărci Herbatica",
+      sk: "{brandName} | Značky Herbatica",
+    },
+  },
+  {
+    description: "SEO popis detailu značky.",
+    key: "catalog.brands.metadata.detail_description",
+    namespace: "catalog",
+    values: {
+      cz: "Produkty značky {brandName} dostupné v e-shopu Herbatica.",
+      hu: "A(z) {brandName} márka Herbatica webáruházban elérhető termékei.",
+      ro: "Produsele mărcii {brandName} disponibile în magazinul online Herbatica.",
+      sk: "Produkty značky {brandName} dostupné v e-shope Herbatica.",
+    },
+  },
+  {
     description: "Label ovládání katalogových filtrů s počtem aktivních filtrů.",
     key: "catalog.filters.toggle",
     namespace: "catalog",
