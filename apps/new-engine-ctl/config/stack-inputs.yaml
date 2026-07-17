@@ -225,7 +225,6 @@ runtime_providers:
             indexes:
               - products
               - categories
-              - producers
               - brands
 
         - output_id: frontend_key
@@ -243,7 +242,6 @@ runtime_providers:
             indexes:
               - products
               - categories
-              - producers
               - brands
 
     - provider_id: medusa_publishable_key
