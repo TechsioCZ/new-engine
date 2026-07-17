@@ -10,8 +10,8 @@ const checkboxVariants = tv({
     control: [
       "relative shrink-0 cursor-pointer",
       "size-checkbox",
-      "rounded-checkbox border border-checkbox-border",
-      "bg-checkbox-bg",
+      "rounded-checkbox border border-checkbox-border-base",
+      "bg-checkbox-bg-base",
       "flex items-center justify-center",
       "transition-all duration-200 motion-reduce:transition-none",
       "data-[state=checked]:bg-checkbox-bg-checked",
