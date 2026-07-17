@@ -2,7 +2,10 @@ import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
-import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils"
+import {
+  formatProviderLabel,
+  resolvePaymentDisplayTextKeys,
+} from "@/components/checkout/checkout-display.utils"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section"
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section"
@@ -23,6 +26,7 @@ export function CheckoutStepContent({
   controller,
 }: CheckoutStepContentProps) {
   const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
   const cartStepHref = resolveCheckoutStepHref("kosik")
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
   const detailsStepHref = resolveCheckoutStepHref("udaje")
@@ -32,11 +36,26 @@ export function CheckoutStepContent({
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined
   const selectedShippingOptionId =
     controller.checkoutShippingQuery.selectedShippingMethodId
-  const selectedPaymentLabel =
+  let selectedPaymentLabel: string | undefined
+  if (
     typeof selectedPaymentProviderId === "string" &&
     selectedPaymentProviderId.length > 0
-      ? resolvePaymentSummaryLabel(selectedPaymentProviderId)
-      : undefined
+  ) {
+    const displayTextKeys = resolvePaymentDisplayTextKeys(
+      selectedPaymentProviderId
+    )
+    selectedPaymentLabel =
+      displayTextKeys.providerName ??
+      formatProviderLabel(selectedPaymentProviderId)
+
+    if (displayTextKeys.summaryLabelKey) {
+      selectedPaymentLabel = displayTextKeys.providerName
+        ? tCheckout(displayTextKeys.summaryLabelKey, {
+            providerName: displayTextKeys.providerName,
+          })
+        : tCheckout(displayTextKeys.summaryLabelKey)
+    }
+  }
   const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter"
   const orderSummaryAside = (
     <CheckoutOrderSummarySection

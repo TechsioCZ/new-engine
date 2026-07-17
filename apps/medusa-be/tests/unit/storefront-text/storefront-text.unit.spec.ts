@@ -143,6 +143,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized payment-provider defaults for every market", () => {
+    const cardGatewayRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "checkout.payment_provider_card_gateway"
+    )
+
+    expect(
+      Object.fromEntries(
+        cardGatewayRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Platba kartou online ({providerName})",
+      hu: "Online bankkártyás fizetés ({providerName})",
+      ro: "Plată online cu cardul ({providerName})",
+      sk: "Platba kartou online ({providerName})",
+    })
+  })
+
   it("creates localized completed-order defaults for every market", () => {
     const completedOrderTitleRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "checkout.completed_order_title"
