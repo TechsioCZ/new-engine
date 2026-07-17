@@ -5,9 +5,9 @@ import {
   buildBrandWriteInput,
   getBrandService,
   setBrandAttributes,
-  validateBrandGpsrState,
   withBrandTransaction,
 } from "./helpers"
+import { validateBrandGpsrState } from "./validation"
 
 export const createBrandsStep = createStep(
   "create-brands",

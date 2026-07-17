@@ -8,7 +8,6 @@ import type {
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
-  kebabCase,
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
@@ -190,7 +189,13 @@ function normalizeSeedText(value?: string | null): string | undefined {
 }
 
 function normalizeBrandRegistryKey(title: string): string {
-  return kebabCase(title.trim())
+  return title
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
 }
 
 function mergeBrandScalar(

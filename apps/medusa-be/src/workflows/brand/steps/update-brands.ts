@@ -5,12 +5,11 @@ import {
   asArray,
   buildBrandWriteInput,
   getBrandService,
-  normalizeBrandWriteInput,
   setBrandAttributes,
   snapshotBrand,
-  validateBrandGpsrState,
   withBrandTransaction,
 } from "./helpers"
+import { normalizeBrandWriteInput, validateBrandGpsrState } from "./validation"
 
 export const updateBrandsStep = createStep(
   "update-brands",

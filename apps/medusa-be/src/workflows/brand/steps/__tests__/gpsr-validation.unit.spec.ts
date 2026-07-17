@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { normalizeBrandWriteInput, validateBrandGpsrState } from "../helpers"
+import { normalizeBrandWriteInput, validateBrandGpsrState } from "../validation"
 
 const validOutsideEuState = {
   handle: "outside-eu",

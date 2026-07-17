@@ -4,7 +4,24 @@ const PRODUCER_LINK_TABLE = "product_product_producer_producer"
 const BRAND_LINK_TABLE = "product_product_brand_brand"
 
 export class Migration20260622000000 extends Migration {
+  private addConfiguredSearchPath(): void {
+    const schema = this.config.get("schema")
+
+    if (
+      typeof schema !== "string" ||
+      !/^[A-Za-z_][A-Za-z0-9_$]*$/.test(schema)
+    ) {
+      throw new Error("Brand migration requires a valid configured schema")
+    }
+
+    // Medusa 2.16 applies its automatic SET LOCAL before MigrationRunner opens
+    // the transaction. Queue it so this migration's SQL uses the resolved schema
+    // on the same transaction and connection.
+    this.addSql(`SET LOCAL search_path TO "${schema}", pg_catalog;`)
+  }
+
   override async up(): Promise<void> {
+    this.addConfiguredSearchPath()
     this.addSql(`
 DO $$
 DECLARE
@@ -27,6 +44,8 @@ DECLARE
   old_tracker_count integer;
   new_tracker_count integer;
   tracked_descriptor jsonb;
+  not_null_mapping record;
+  actual_not_null_name text;
 BEGIN
   SELECT count(*) INTO legacy_table_count
   FROM (VALUES ('producer'), ('producer_attribute_type'), ('producer_attribute')) AS names(name)
@@ -316,6 +335,113 @@ BEGIN
     CREATE INDEX "IDX_brand_attribute_deleted_at"
       ON "brand_attribute" ("deleted_at") WHERE deleted_at IS NULL;
   END IF;
+
+  -- PostgreSQL 18 represents NOT NULL declarations as named constraints.
+  -- Table and column renames retain their old names, so canonicalize those
+  -- catalog objects as part of the semantic rename.
+  FOR not_null_mapping IN
+      SELECT *
+      FROM (
+        VALUES
+          ('brand', 'id', 'producer_id_not_null', 'brand_id_not_null', false, false),
+          ('brand', 'title', 'producer_title_not_null', 'brand_title_not_null', false, false),
+          ('brand', 'handle', 'producer_handle_not_null', 'brand_handle_not_null', false, false),
+          ('brand', 'created_at', 'producer_created_at_not_null', 'brand_created_at_not_null', false, false),
+          ('brand', 'updated_at', 'producer_updated_at_not_null', 'brand_updated_at_not_null', false, false),
+          (
+            'brand',
+            'gpsr_manufactured_outside_eu',
+            'producer_gpsr_manufactured_outside_eu_not_null',
+            'brand_gpsr_manufactured_outside_eu_not_null',
+            false,
+            true
+          ),
+          ('brand_attribute_type', 'id', 'producer_attribute_type_id_not_null', 'brand_attribute_type_id_not_null', false, false),
+          ('brand_attribute_type', 'name', 'producer_attribute_type_name_not_null', 'brand_attribute_type_name_not_null', false, false),
+          ('brand_attribute_type', 'created_at', 'producer_attribute_type_created_at_not_null', 'brand_attribute_type_created_at_not_null', false, false),
+          ('brand_attribute_type', 'updated_at', 'producer_attribute_type_updated_at_not_null', 'brand_attribute_type_updated_at_not_null', false, false),
+          ('brand_attribute', 'id', 'producer_attribute_id_not_null', 'brand_attribute_id_not_null', false, false),
+          ('brand_attribute', 'value', 'producer_attribute_value_not_null', 'brand_attribute_value_not_null', false, false),
+          ('brand_attribute', 'attribute_type_id', 'producer_attribute_attribute_type_id_not_null', 'brand_attribute_attribute_type_id_not_null', false, false),
+          ('brand_attribute', 'brand_id', 'producer_attribute_producer_id_not_null', 'brand_attribute_brand_id_not_null', false, false),
+          ('brand_attribute', 'created_at', 'producer_attribute_created_at_not_null', 'brand_attribute_created_at_not_null', false, false),
+          ('brand_attribute', 'updated_at', 'producer_attribute_updated_at_not_null', 'brand_attribute_updated_at_not_null', false, false),
+          ('${BRAND_LINK_TABLE}', 'product_id', '${PRODUCER_LINK_TABLE}_product_id_not_null', '${BRAND_LINK_TABLE}_product_id_not_null', true, false),
+          ('${BRAND_LINK_TABLE}', 'brand_id', '${PRODUCER_LINK_TABLE}_producer_id_not_null', '${BRAND_LINK_TABLE}_brand_id_not_null', true, false),
+          ('${BRAND_LINK_TABLE}', 'id', '${PRODUCER_LINK_TABLE}_id_not_null', '${BRAND_LINK_TABLE}_id_not_null', true, false),
+          ('${BRAND_LINK_TABLE}', 'created_at', '${PRODUCER_LINK_TABLE}_created_at_not_null', '${BRAND_LINK_TABLE}_created_at_not_null', true, false),
+          ('${BRAND_LINK_TABLE}', 'updated_at', '${PRODUCER_LINK_TABLE}_updated_at_not_null', '${BRAND_LINK_TABLE}_updated_at_not_null', true, false)
+      ) AS mappings(
+        table_name,
+        column_name,
+        legacy_name,
+        canonical_name,
+        optional_table,
+        optional_column
+      )
+    LOOP
+      IF to_regclass(
+        format('%I.%I', current_schema(), not_null_mapping.table_name)
+      ) IS NULL THEN
+        IF not_null_mapping.optional_table THEN
+          CONTINUE;
+        END IF;
+
+        RAISE EXCEPTION
+          'Producer to brand migration verification failed: table % is missing while canonicalizing NOT NULL constraints',
+          not_null_mapping.table_name;
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = not_null_mapping.table_name
+          AND column_name = not_null_mapping.column_name
+      ) THEN
+        IF not_null_mapping.optional_column THEN
+          CONTINUE;
+        END IF;
+
+        RAISE EXCEPTION
+          'Producer to brand migration verification failed: column %.% is missing while canonicalizing NOT NULL constraints',
+          not_null_mapping.table_name,
+          not_null_mapping.column_name;
+      END IF;
+
+      SELECT constraint_record.conname
+      INTO actual_not_null_name
+      FROM pg_constraint constraint_record
+      JOIN pg_class table_record
+        ON table_record.oid = constraint_record.conrelid
+      JOIN pg_namespace table_namespace
+        ON table_namespace.oid = table_record.relnamespace
+      JOIN pg_attribute column_record
+        ON column_record.attrelid = table_record.oid
+        AND constraint_record.conkey = ARRAY[column_record.attnum]::smallint[]
+      WHERE table_namespace.nspname = current_schema()
+        AND table_record.relname = not_null_mapping.table_name
+        AND column_record.attname = not_null_mapping.column_name
+        AND constraint_record.contype = 'n';
+
+      IF actual_not_null_name = not_null_mapping.legacy_name THEN
+        EXECUTE format(
+          'ALTER TABLE %I.%I RENAME CONSTRAINT %I TO %I',
+          current_schema(),
+          not_null_mapping.table_name,
+          actual_not_null_name,
+          not_null_mapping.canonical_name
+        );
+      ELSIF actual_not_null_name IS DISTINCT FROM not_null_mapping.canonical_name THEN
+        RAISE EXCEPTION
+          'Producer to brand migration verification failed: unexpected NOT NULL constraint for %.% (actual %, expected % or %)',
+          not_null_mapping.table_name,
+          not_null_mapping.column_name,
+          actual_not_null_name,
+          not_null_mapping.legacy_name,
+          not_null_mapping.canonical_name;
+      END IF;
+  END LOOP;
 
   IF EXISTS (
     SELECT 1
@@ -823,6 +949,7 @@ END $$;
   }
 
   override async down(): Promise<void> {
+    this.addConfiguredSearchPath()
     this.addSql(`
 DO $$
 DECLARE
@@ -833,6 +960,8 @@ DECLARE
   old_tracker_count integer;
   new_tracker_count integer;
   tracked_descriptor jsonb;
+  not_null_mapping record;
+  actual_not_null_name text;
 BEGIN
   SELECT count(*) INTO producer_table_count
   FROM (VALUES ('producer'), ('producer_attribute_type'), ('producer_attribute')) AS names(name)
@@ -984,6 +1113,110 @@ BEGIN
   ELSIF producer_table_count = 0 THEN
     RETURN;
   END IF;
+
+  FOR not_null_mapping IN
+      SELECT *
+      FROM (
+        VALUES
+          ('producer', 'id', 'brand_id_not_null', 'producer_id_not_null', false, false),
+          ('producer', 'title', 'brand_title_not_null', 'producer_title_not_null', false, false),
+          ('producer', 'handle', 'brand_handle_not_null', 'producer_handle_not_null', false, false),
+          ('producer', 'created_at', 'brand_created_at_not_null', 'producer_created_at_not_null', false, false),
+          ('producer', 'updated_at', 'brand_updated_at_not_null', 'producer_updated_at_not_null', false, false),
+          (
+            'producer',
+            'gpsr_manufactured_outside_eu',
+            'brand_gpsr_manufactured_outside_eu_not_null',
+            'producer_gpsr_manufactured_outside_eu_not_null',
+            false,
+            true
+          ),
+          ('producer_attribute_type', 'id', 'brand_attribute_type_id_not_null', 'producer_attribute_type_id_not_null', false, false),
+          ('producer_attribute_type', 'name', 'brand_attribute_type_name_not_null', 'producer_attribute_type_name_not_null', false, false),
+          ('producer_attribute_type', 'created_at', 'brand_attribute_type_created_at_not_null', 'producer_attribute_type_created_at_not_null', false, false),
+          ('producer_attribute_type', 'updated_at', 'brand_attribute_type_updated_at_not_null', 'producer_attribute_type_updated_at_not_null', false, false),
+          ('producer_attribute', 'id', 'brand_attribute_id_not_null', 'producer_attribute_id_not_null', false, false),
+          ('producer_attribute', 'value', 'brand_attribute_value_not_null', 'producer_attribute_value_not_null', false, false),
+          ('producer_attribute', 'attribute_type_id', 'brand_attribute_attribute_type_id_not_null', 'producer_attribute_attribute_type_id_not_null', false, false),
+          ('producer_attribute', 'producer_id', 'brand_attribute_brand_id_not_null', 'producer_attribute_producer_id_not_null', false, false),
+          ('producer_attribute', 'created_at', 'brand_attribute_created_at_not_null', 'producer_attribute_created_at_not_null', false, false),
+          ('producer_attribute', 'updated_at', 'brand_attribute_updated_at_not_null', 'producer_attribute_updated_at_not_null', false, false),
+          ('${PRODUCER_LINK_TABLE}', 'product_id', '${BRAND_LINK_TABLE}_product_id_not_null', '${PRODUCER_LINK_TABLE}_product_id_not_null', true, false),
+          ('${PRODUCER_LINK_TABLE}', 'producer_id', '${BRAND_LINK_TABLE}_brand_id_not_null', '${PRODUCER_LINK_TABLE}_producer_id_not_null', true, false),
+          ('${PRODUCER_LINK_TABLE}', 'id', '${BRAND_LINK_TABLE}_id_not_null', '${PRODUCER_LINK_TABLE}_id_not_null', true, false),
+          ('${PRODUCER_LINK_TABLE}', 'created_at', '${BRAND_LINK_TABLE}_created_at_not_null', '${PRODUCER_LINK_TABLE}_created_at_not_null', true, false),
+          ('${PRODUCER_LINK_TABLE}', 'updated_at', '${BRAND_LINK_TABLE}_updated_at_not_null', '${PRODUCER_LINK_TABLE}_updated_at_not_null', true, false)
+      ) AS mappings(
+        table_name,
+        column_name,
+        brand_name,
+        canonical_name,
+        optional_table,
+        optional_column
+      )
+    LOOP
+      IF to_regclass(
+        format('%I.%I', current_schema(), not_null_mapping.table_name)
+      ) IS NULL THEN
+        IF not_null_mapping.optional_table THEN
+          CONTINUE;
+        END IF;
+
+        RAISE EXCEPTION
+          'Brand to producer rollback verification failed: table % is missing while canonicalizing NOT NULL constraints',
+          not_null_mapping.table_name;
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = not_null_mapping.table_name
+          AND column_name = not_null_mapping.column_name
+      ) THEN
+        IF not_null_mapping.optional_column THEN
+          CONTINUE;
+        END IF;
+
+        RAISE EXCEPTION
+          'Brand to producer rollback verification failed: column %.% is missing while canonicalizing NOT NULL constraints',
+          not_null_mapping.table_name,
+          not_null_mapping.column_name;
+      END IF;
+
+      SELECT constraint_record.conname
+      INTO actual_not_null_name
+      FROM pg_constraint constraint_record
+      JOIN pg_class table_record
+        ON table_record.oid = constraint_record.conrelid
+      JOIN pg_namespace table_namespace
+        ON table_namespace.oid = table_record.relnamespace
+      JOIN pg_attribute column_record
+        ON column_record.attrelid = table_record.oid
+        AND constraint_record.conkey = ARRAY[column_record.attnum]::smallint[]
+      WHERE table_namespace.nspname = current_schema()
+        AND table_record.relname = not_null_mapping.table_name
+        AND column_record.attname = not_null_mapping.column_name
+        AND constraint_record.contype = 'n';
+
+      IF actual_not_null_name = not_null_mapping.brand_name THEN
+        EXECUTE format(
+          'ALTER TABLE %I.%I RENAME CONSTRAINT %I TO %I',
+          current_schema(),
+          not_null_mapping.table_name,
+          actual_not_null_name,
+          not_null_mapping.canonical_name
+        );
+      ELSIF actual_not_null_name IS DISTINCT FROM not_null_mapping.canonical_name THEN
+        RAISE EXCEPTION
+          'Brand to producer rollback verification failed: unexpected NOT NULL constraint for %.% (actual %, expected % or %)',
+          not_null_mapping.table_name,
+          not_null_mapping.column_name,
+          actual_not_null_name,
+          not_null_mapping.brand_name,
+          not_null_mapping.canonical_name;
+      END IF;
+  END LOOP;
 
   IF EXISTS (
     SELECT 1
