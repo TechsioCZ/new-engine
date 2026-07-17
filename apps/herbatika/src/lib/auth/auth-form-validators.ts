@@ -1,16 +1,15 @@
-import { checkoutAddressFieldValidators } from "@/lib/forms/checkout/address-validators"
+import {
+  createAddressFieldValidators,
+  type AddressValidationMessages,
+} from "@/lib/forms/validators/address"
 import {
   createChangeBlurContextualFieldValidators,
   createChangeBlurFieldValidators,
   createChangeBlurSubmitScopedFieldValidators,
 } from "@/lib/forms/validators/field-validator-factories"
 import {
+  createEmailAddressValidator,
   passwordHasNumber,
-  validateCustomerName,
-  validateEmailAddress,
-  validateLoginPassword,
-  validatePasswordConfirmation,
-  validateRegisterPassword,
   validateRequiredAgreement,
 } from "@/lib/forms/validators/shared"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -57,91 +56,153 @@ type ConfirmPasswordFieldApi = {
 export const isWholesaleRegistration = (values: RegisterFormValues) =>
   values.account_type === "wholesale"
 
-const validateRegisterAccountType = (value: string) =>
-  value === "retail" || value === "wholesale" ? undefined : "Vyberte typ účtu."
-
-const createWholesaleFieldValidators = (
-  validator: (value: string) => string | undefined
-) =>
-  createChangeBlurSubmitScopedFieldValidators(
-    validator,
-    isWholesaleRegistration
-  )
-
-export const loginValidators = {
-  email: createChangeBlurFieldValidators(validateEmailAddress),
-  password: createChangeBlurFieldValidators(validateLoginPassword),
+type PasswordValidationMessages = {
+  confirmPasswordRequired: string
+  passwordMismatch: string
+  passwordMinLength: string
+  passwordNumber: string
+  passwordRequired: string
 }
+
+export type AuthValidationMessages = AddressValidationMessages &
+  PasswordValidationMessages & {
+    accountTypeRequired: string
+    termsRequired: string
+  }
+
+type LoginSubmitErrorMessages = {
+  failed: string
+  invalidCredentials: string
+}
+
+type RegisterSubmitErrorMessages = {
+  emailExists: string
+  failed: string
+}
+
+const createWholesaleFieldValidators = <TFormValues>(
+  validator: (value: string) => string | undefined,
+  isWholesale: (values: TFormValues) => boolean
+) =>
+  createChangeBlurSubmitScopedFieldValidators(validator, isWholesale)
+
+const createPasswordValidator =
+  (messages: PasswordValidationMessages) => (value: string) => {
+    if (!value) {
+      return messages.passwordRequired
+    }
+
+    if (value.length < 8) {
+      return messages.passwordMinLength
+    }
+
+    if (!passwordHasNumber(value)) {
+      return messages.passwordNumber
+    }
+
+    return
+  }
+
+const createPasswordConfirmationValidator =
+  (messages: PasswordValidationMessages) =>
+  (password: string, confirmPassword: string) => {
+    if (!confirmPassword) {
+      return messages.confirmPasswordRequired
+    }
+
+    return password === confirmPassword ? undefined : messages.passwordMismatch
+  }
+
+const createEmailValidator = (
+  messages: Pick<AddressValidationMessages, "emailInvalid" | "emailRequired">
+) =>
+  createEmailAddressValidator({
+    invalid: messages.emailInvalid,
+    required: messages.emailRequired,
+  })
+
+export const createLoginValidators = (
+  messages: Pick<
+    AuthValidationMessages,
+    "emailInvalid" | "emailRequired" | "passwordRequired"
+  >
+) => ({
+  email: createChangeBlurFieldValidators(createEmailValidator(messages)),
+  password: createChangeBlurFieldValidators((value: string) =>
+    value ? undefined : messages.passwordRequired
+  ),
+})
 
 export const PASSWORD_REQUIREMENTS = [
   {
     id: "min-length",
-    label: "Aspoň 8 znakov",
     test: (password: string) => password.length >= 8,
   },
   {
     id: "has-number",
-    label: "Aspoň jedna číslica",
-    test: (password: string) => passwordHasNumber(password),
+    test: passwordHasNumber,
   },
 ] as const
 
-export const registerValidators = {
-  account_type: createChangeBlurFieldValidators(validateRegisterAccountType),
-  first_name: createChangeBlurFieldValidators((value: string) =>
-    validateCustomerName(value, "Meno")
-  ),
-  last_name: createChangeBlurFieldValidators((value: string) =>
-    validateCustomerName(value, "Priezvisko")
-  ),
-  email: createChangeBlurFieldValidators(validateEmailAddress),
-  password: createChangeBlurFieldValidators(validateRegisterPassword),
-  confirm_password: {
-    onChangeListenTo: ["password"] as Array<keyof RegisterFormValues>,
-    ...createChangeBlurContextualFieldValidators(
-      ({
-        value,
-        fieldApi,
-      }: {
-        value: string
-        fieldApi: ConfirmPasswordFieldApi
-      }) => {
-        const password =
-          (fieldApi.form.getFieldValue("password") as string | undefined) ?? ""
+export const createRegisterValidators = (
+  messages: AuthValidationMessages
+) => {
+  const addressValidators = createAddressFieldValidators(messages)
+  const validatePassword = createPasswordValidator(messages)
+  const validatePasswordConfirmation =
+    createPasswordConfirmationValidator(messages)
+  const createWholesaleValidator = (
+    validator: (value: string) => string | undefined
+  ) =>
+    createWholesaleFieldValidators(validator, isWholesaleRegistration)
 
-        return validatePasswordConfirmation(password, value)
-      }
+  return {
+    account_type: createChangeBlurFieldValidators((value: string) =>
+      value === "retail" || value === "wholesale"
+        ? undefined
+        : messages.accountTypeRequired
     ),
-  },
-  accept_terms: createChangeBlurFieldValidators((value: boolean) =>
-    validateRequiredAgreement(
-      value,
-      "Potrebujeme súhlas s obchodnými podmienkami."
-    )
-  ),
-  company_name: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.company
-  ),
-  company_identifier: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.companyId
-  ),
-  billing_address_1: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.address1
-  ),
-  billing_city: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.city
-  ),
-  billing_postal_code: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.postalCode
-  ),
-  billing_country_code: createWholesaleFieldValidators(
-    checkoutAddressFieldValidators.countryCode
-  ),
+    first_name: createChangeBlurFieldValidators(addressValidators.firstName),
+    last_name: createChangeBlurFieldValidators(addressValidators.lastName),
+    email: createChangeBlurFieldValidators(addressValidators.email),
+    password: createChangeBlurFieldValidators(validatePassword),
+    confirm_password: {
+      onChangeListenTo: ["password"] as Array<keyof RegisterFormValues>,
+      ...createChangeBlurContextualFieldValidators(
+        ({
+          value,
+          fieldApi,
+        }: {
+          value: string
+          fieldApi: ConfirmPasswordFieldApi
+        }) => {
+          const password =
+            (fieldApi.form.getFieldValue("password") as string | undefined) ??
+            ""
+
+          return validatePasswordConfirmation(password, value)
+        }
+      ),
+    },
+    accept_terms: createChangeBlurFieldValidators((value: boolean) =>
+      validateRequiredAgreement(value, messages.termsRequired)
+    ),
+    company_name: createWholesaleValidator(addressValidators.company),
+    company_identifier: createWholesaleValidator(addressValidators.companyId),
+    billing_address_1: createWholesaleValidator(addressValidators.address1),
+    billing_city: createWholesaleValidator(addressValidators.city),
+    billing_postal_code: createWholesaleValidator(
+      addressValidators.postalCode
+    ),
+    billing_country_code: createWholesaleValidator(
+      addressValidators.countryCode
+    ),
+  }
 }
 
-export const forgotPasswordValidators = {
-  email: createChangeBlurFieldValidators(validateEmailAddress),
-}
+export type RegisterFormValidators = ReturnType<
+  typeof createRegisterValidators
+>
 
 type ResetPasswordConfirmFieldApi = {
   form: {
@@ -149,28 +210,46 @@ type ResetPasswordConfirmFieldApi = {
   }
 }
 
-export const resetPasswordValidators = {
-  password: createChangeBlurFieldValidators(validateRegisterPassword),
-  confirm_password: {
-    onChangeListenTo: ["password"] as Array<keyof ResetPasswordFormValues>,
-    ...createChangeBlurContextualFieldValidators(
-      ({
-        value,
-        fieldApi,
-      }: {
-        value: string
-        fieldApi: ResetPasswordConfirmFieldApi
-      }) => {
-        const password =
-          (fieldApi.form.getFieldValue("password") as string | undefined) ?? ""
+export const createForgotPasswordValidators = (
+  messages: Pick<AuthValidationMessages, "emailInvalid" | "emailRequired">
+) => ({
+  email: createChangeBlurFieldValidators(createEmailValidator(messages)),
+})
 
-        return validatePasswordConfirmation(password, value)
-      }
-    ),
-  },
+export const createResetPasswordValidators = (
+  messages: PasswordValidationMessages
+) => {
+  const validatePassword = createPasswordValidator(messages)
+  const validatePasswordConfirmation =
+    createPasswordConfirmationValidator(messages)
+
+  return {
+    password: createChangeBlurFieldValidators(validatePassword),
+    confirm_password: {
+      onChangeListenTo: ["password"] as Array<keyof ResetPasswordFormValues>,
+      ...createChangeBlurContextualFieldValidators(
+        ({
+          value,
+          fieldApi,
+        }: {
+          value: string
+          fieldApi: ResetPasswordConfirmFieldApi
+        }) => {
+          const password =
+            (fieldApi.form.getFieldValue("password") as string | undefined) ??
+            ""
+
+          return validatePasswordConfirmation(password, value)
+        }
+      ),
+    },
+  }
 }
 
-export const resolveLoginSubmitError = (error: unknown) => {
+export const resolveLoginSubmitError = (
+  error: unknown,
+  messages: LoginSubmitErrorMessages
+) => {
   const message = resolveErrorMessage(error, "")
   const normalizedMessage = message.toLowerCase()
 
@@ -180,13 +259,16 @@ export const resolveLoginSubmitError = (error: unknown) => {
     normalizedMessage.includes("401") ||
     normalizedMessage.includes("403")
   ) {
-    return "Nesprávny e-mail alebo heslo."
+    return messages.invalidCredentials
   }
 
-  return message || "Prihlásenie sa nepodarilo. Skúste to prosím znovu."
+  return messages.failed
 }
 
-export const resolveRegisterSubmitError = (error: unknown) => {
+export const resolveRegisterSubmitError = (
+  error: unknown,
+  messages: RegisterSubmitErrorMessages
+) => {
   const message = resolveErrorMessage(error, "")
   const normalizedMessage = message.toLowerCase()
 
@@ -194,8 +276,8 @@ export const resolveRegisterSubmitError = (error: unknown) => {
     normalizedMessage.includes("identity with email already exists") ||
     normalizedMessage.includes("email already exists")
   ) {
-    return "Účet s týmto e-mailom už existuje. Prihláste sa alebo použite obnovu hesla."
+    return messages.emailExists
   }
 
-  return message || "Registrácia sa nepodarila. Skúste to prosím znovu."
+  return messages.failed
 }

@@ -123,6 +123,17 @@ export const STOREFRONT_FORM_TEXT_DEFINITIONS = [
     },
   },
   {
+    description: "Popisek volitelného druhého řádku adresy.",
+    key: "form.address_line_2",
+    namespace: "form",
+    values: {
+      cz: "Doplnění adresy",
+      hu: "Cím kiegészítése",
+      ro: "Completarea adresei",
+      sk: "Doplnenie adresy",
+    },
+  },
+  {
     description: "Popisek pole pro město.",
     key: "form.city",
     namespace: "form",

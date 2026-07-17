@@ -66,15 +66,12 @@ export const buildRegisterDefaults = ({
 export const buildRegisterSuccessNotice = ({
   isWholesale,
   transferNotice,
+  wholesaleNotice,
 }: {
   isWholesale: boolean
   transferNotice: string | null
+  wholesaleNotice: string
 }) =>
-  [
-    isWholesale
-      ? "Žiadosť o VO účet bola odoslaná na schválenie. Do rozhodnutia môžete nakupovať ako bežný zákazník."
-      : null,
-    transferNotice,
-  ]
+  [isWholesale ? wholesaleNotice : null, transferNotice]
     .filter((notice): notice is string => Boolean(notice))
     .join(" ") || null

@@ -7,7 +7,6 @@ type AuthShellProps = {
   description: string
   message?: string | null
   notice?: string | null
-  error?: string | null
   children: ReactNode
 }
 
@@ -16,7 +15,6 @@ export const AuthShell = ({
   description,
   message,
   notice,
-  error,
   children,
 }: AuthShellProps) => (
   <section className="mx-auto max-w-max-w space-y-400 p-400">
@@ -37,12 +35,6 @@ export const AuthShell = ({
     {notice && (
       <StatusText showIcon status="warning">
         {notice}
-      </StatusText>
-    )}
-
-    {error && (
-      <StatusText showIcon status="error">
-        {error}
       </StatusText>
     )}
 

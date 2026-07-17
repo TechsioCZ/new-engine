@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { ResetPasswordForm } from "@/components/auth/reset-password-form"
 import { requestPasswordUpdateProxy } from "@/lib/storefront/auth/proxy"
@@ -15,55 +16,40 @@ type ResetPasswordPanelProps = {
   flow: ResetPasswordFlow
 }
 
-const getResetPasswordCopy = ({
-  email,
-  flow,
-}: {
-  email: string | null
-  flow: ResetPasswordFlow
-}) => {
-  if (flow === "account-setup") {
-    return {
-      description: email
-        ? `Dokončite registráciu účtu ${email} nastavením hesla.`
-        : "Dokončite registráciu účtu nastavením hesla.",
-      expiredHref: FORGOT_PASSWORD_HREF,
-      expiredHelp:
-        "Na prihlasovacej stránke si môžete vyžiadať nový odkaz na nastavenie hesla.",
-      expiredLinkLabel: "Vyžiadať nový odkaz na nastavenie hesla",
-      expiredMessage:
-        "Tento odkaz na dokončenie registrácie je neplatný alebo už vypršal.",
-      submitError: "Nepodarilo sa nastaviť heslo.",
-      submitLabel: "Nastaviť heslo",
-      successMessage: "Heslo bolo úspešne nastavené. Môžete sa prihlásiť.",
-      title: "Nastavenie hesla",
-    }
-  }
-
-  return {
-    description: email
-      ? `Nastavte nové heslo pre účet ${email}.`
-      : "Zadajte nové heslo pre váš účet.",
-    expiredHref: FORGOT_PASSWORD_HREF,
-    expiredHelp: "Skúste si vyžiadať nový odkaz na obnovu hesla.",
-    expiredLinkLabel: "Vyžiadať nový odkaz",
-    expiredMessage: "Tento odkaz je neplatný alebo už vypršal.",
-    submitError: "Nepodarilo sa obnoviť heslo.",
-    submitLabel: "Obnoviť heslo",
-    successMessage:
-      "Heslo bolo úspešne zmenené. Môžete sa prihlásiť pomocou nového hesla.",
-    title: "Obnova hesla",
-  }
-}
-
 export const ResetPasswordPanel = ({
   token,
   email,
   flow,
 }: ResetPasswordPanelProps) => {
+  const tAuth = useTranslations("auth")
   const [isBusy, setIsBusy] = useState(false)
   const hasToken = Boolean(token)
-  const copy = getResetPasswordCopy({ email, flow })
+  const copy =
+    flow === "account-setup"
+      ? {
+          description: email
+            ? tAuth("account_setup.description_with_email", { email })
+            : tAuth("account_setup.description"),
+          expiredHelp: tAuth("account_setup.expired_help"),
+          expiredLinkLabel: tAuth("account_setup.expired_link"),
+          expiredMessage: tAuth("account_setup.expired_message"),
+          submitError: tAuth("account_setup.failed"),
+          submitLabel: tAuth("account_setup.submit"),
+          successMessage: tAuth("account_setup.success"),
+          title: tAuth("account_setup.title"),
+        }
+      : {
+          description: email
+            ? tAuth("reset.description_with_email", { email })
+            : tAuth("reset.description"),
+          expiredHelp: tAuth("reset.expired_help"),
+          expiredLinkLabel: tAuth("reset.expired_link"),
+          expiredMessage: tAuth("reset.expired_message"),
+          submitError: tAuth("reset.failed"),
+          submitLabel: tAuth("reset.submit"),
+          successMessage: tAuth("reset.success"),
+          title: tAuth("reset.title"),
+        }
 
   const handleSubmit = async (values: {
     password: string
@@ -80,8 +66,8 @@ export const ResetPasswordPanel = ({
         token,
       })
       return null
-    } catch (error) {
-      return error instanceof Error ? error.message : copy.submitError
+    } catch {
+      return copy.submitError
     } finally {
       setIsBusy(false)
     }
@@ -101,7 +87,7 @@ export const ResetPasswordPanel = ({
         loginHref={LOGIN_HREF}
         onSubmit={handleSubmit}
         text={{
-          expiredHref: copy.expiredHref,
+          expiredHref: FORGOT_PASSWORD_HREF,
           expiredHelp: copy.expiredHelp,
           expiredLinkLabel: copy.expiredLinkLabel,
           expiredMessage: copy.expiredMessage,
