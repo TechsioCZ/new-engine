@@ -29,9 +29,6 @@ ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-COPY apps/herbatika/package.json apps/herbatika/package.json
-COPY libs/ui/package.json libs/ui/package.json
-COPY libs/storefront-data/package.json libs/storefront-data/package.json
 
 RUN corepack install
 

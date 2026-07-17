@@ -52,7 +52,7 @@ overrides:
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
   # and x64 + arm64 are retained for the shared host/Docker store. Runtime
-  # images are Debian-based, so Linux optional dependencies only need glibc.
+  # images use both Debian/glibc and Alpine/musl.
   os:
     - current
     - darwin
@@ -63,6 +63,7 @@ supportedArchitectures:
     - arm64
   libc:
     - glibc
+    - musl
 
 # Manual dependency metadata extensions for packages with incomplete published metadata.
 packageExtensions:
