@@ -1,14 +1,12 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Buildings, PencilSquare, Trash } from "@medusajs/icons"
+import { Buildings, PencilSquare, Spinner, Trash } from "@medusajs/icons"
 import {
+  Alert,
   Button,
-  Checkbox,
   Container,
-  Drawer,
   Heading,
   IconButton,
   Input,
-  Label,
   Select,
   StatusBadge,
   Table,
@@ -22,16 +20,17 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import {
+  BrandCreateModal,
+  BrandEditDrawer,
+} from "../../components/brands/brand-form"
+import {
   type Brand,
-  type BrandAttribute,
   type BrandAttributeType,
-  type BrandInput,
   brandQueryKeys,
-  createBrand,
   createBrandAttributeType,
   deleteBrand,
   deleteBrandAttributeType,
@@ -40,7 +39,6 @@ import {
   restoreBrand,
   restoreBrandAttributeType,
   retrieveBrand,
-  updateBrand,
 } from "../../lib/brands"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { formatLocaleCode } from "../../lib/format-locale-code"
@@ -63,51 +61,6 @@ const ORDER_OPTIONS = [
   { labelKey: "orderOptions.newest", value: "-created_at" },
   { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
-
-const emptyAttribute = (
-  attributeTypes: BrandAttributeType[] = [],
-  selectedNames = new Set<string>()
-): BrandAttribute => ({
-  name:
-    attributeTypes.find(
-      (attributeType) =>
-        !(attributeType.deleted_at || selectedNames.has(attributeType.name))
-    )?.name ?? "",
-  value: "",
-})
-
-const toFormState = (brand?: Brand): BrandInput => ({
-  attributes: brand?.attributes.length
-    ? brand.attributes.filter(
-        (attribute) => !attribute.attribute_type_deleted_at
-      )
-    : [],
-  gpsrContactEmail: brand?.gpsrContactEmail ?? "",
-  gpsrEuropeanResellerContactEmail:
-    brand?.gpsrEuropeanResellerContactEmail ?? "",
-  gpsrEuropeanResellerManufacturingCompanyName:
-    brand?.gpsrEuropeanResellerManufacturingCompanyName ?? "",
-  gpsrEuropeanResellerPostalAddress:
-    brand?.gpsrEuropeanResellerPostalAddress ?? "",
-  gpsrManufacturedOutsideEu: brand?.gpsrManufacturedOutsideEu ?? false,
-  gpsrManufacturingCompanyName: brand?.gpsrManufacturingCompanyName ?? "",
-  gpsrPostalAddress: brand?.gpsrPostalAddress ?? "",
-  handle: brand?.handle ?? "",
-  title: brand?.title ?? "",
-})
-
-const optionalTrimmed = (value?: string) => {
-  const trimmed = value?.trim()
-
-  return trimmed ? trimmed : undefined
-}
-
-const toDefaultHandle = (title: string) =>
-  title
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
 
 const formatDate = (date: string | undefined, locale?: string) => {
   if (!date) {
@@ -143,7 +96,12 @@ const BrandRows = ({
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell>
+          <div className="flex items-center gap-2">
+            <Spinner className="animate-spin" />
+            <Text size="small">{t("status.loading")}</Text>
+          </div>
+        </Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -238,462 +196,6 @@ const BrandRows = ({
       </Table.Cell>
     </Table.Row>
   ))
-}
-
-const BrandFormDrawer = ({
-  attributeTypes,
-  onOpenChange,
-  open,
-  brand,
-}: {
-  attributeTypes: BrandAttributeType[]
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  brand?: Brand
-}) => {
-  const { t } = useTranslation("brands")
-  const queryClient = useQueryClient()
-  const prompt = usePrompt()
-  const [form, setForm] = useState<BrandInput>(() => toFormState(brand))
-
-  useEffect(() => {
-    if (open) {
-      setForm(toFormState(brand))
-    }
-  }, [brand, open])
-
-  const mutation = useMutation({
-    mutationFn: async (input: BrandInput) => {
-      if (brand) {
-        return updateBrand(brand.id, input)
-      }
-
-      const resolvedHandle = input.handle ?? toDefaultHandle(input.title)
-      const existingResponse = await listBrands({
-        handle: resolvedHandle,
-        include_deleted: true,
-        limit: 1,
-        offset: 0,
-        order_by: "title",
-      })
-      const existing = existingResponse.brands.find(
-        (candidate) => candidate.handle === resolvedHandle
-      )
-
-      if (existing?.deleted_at) {
-        const confirmed = await prompt({
-          cancelText: t("actions.cancel"),
-          confirmText: t("actions.restore"),
-          description: t("prompts.restoreBrandDescription", {
-            handle: resolvedHandle,
-            title: existing.title,
-          }),
-          title: t("prompts.restoreBrandTitle"),
-        })
-
-        if (!confirmed) {
-          return null
-        }
-
-        await restoreBrand(existing.id)
-
-        try {
-          const response = await updateBrand(existing.id, {
-            ...input,
-            handle: resolvedHandle,
-          })
-
-          return { ...response, action: "restored" as const }
-        } catch (error) {
-          await deleteBrand(existing.id)
-          throw error
-        }
-      }
-
-      if (existing) {
-        throw new Error(
-          t("toasts.brandExistsError", { handle: resolvedHandle })
-        )
-      }
-
-      const response = await createBrand({
-        ...input,
-        handle: resolvedHandle,
-      })
-
-      return { ...response, action: "created" as const }
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : t("errors.saveBrandFailed")
-      )
-    },
-    onSuccess: async (response) => {
-      if (!response) {
-        return
-      }
-
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.lists(),
-      })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.attributeTypesLists(),
-      })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.attributeTypeDetails(),
-      })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.detail(response.brand.id),
-      })
-      if (response.action === "restored") {
-        toast.success(t("toasts.brandReactivated"))
-      } else {
-        toast.success(
-          brand ? t("toasts.brandUpdated") : t("toasts.brandCreated")
-        )
-      }
-      onOpenChange(false)
-    },
-  })
-
-  const updateAttribute = (
-    index: number,
-    key: keyof BrandAttribute,
-    value: string
-  ) => {
-    setForm((current) => ({
-      ...current,
-      attributes: current.attributes.map((attribute, currentIndex) =>
-        currentIndex === index ? { ...attribute, [key]: value } : attribute
-      ),
-    }))
-  }
-
-  const getAttributeOptions = (selectedName: string) => {
-    const selectedNames = new Set(
-      form.attributes
-        .map((attribute) => attribute.name)
-        .filter((name) => name && name !== selectedName)
-    )
-
-    return attributeTypes.filter(
-      (attributeType) =>
-        !(attributeType.deleted_at || selectedNames.has(attributeType.name))
-    )
-  }
-  const selectedAttributeNames = new Set(
-    form.attributes
-      .map((attribute) => attribute.name)
-      .filter((name): name is string => !!name)
-  )
-  const canAddAttribute = attributeTypes.some(
-    (attributeType) =>
-      !(
-        attributeType.deleted_at ||
-        selectedAttributeNames.has(attributeType.name)
-      )
-  )
-  const isEuResponsiblePersonRequired = form.gpsrManufacturedOutsideEu
-  const hasMissingEuResponsiblePersonFields =
-    isEuResponsiblePersonRequired &&
-    !(
-      form.gpsrEuropeanResellerManufacturingCompanyName.trim() &&
-      form.gpsrEuropeanResellerPostalAddress.trim() &&
-      form.gpsrEuropeanResellerContactEmail.trim()
-    )
-
-  const save = () => {
-    if (hasMissingEuResponsiblePersonFields) {
-      toast.error(t("errors.euResponsiblePersonRequired"))
-      return
-    }
-
-    const attributes = form.attributes
-      .map((attribute) => ({
-        name: attribute.name.trim(),
-        value: attribute.value,
-      }))
-      .filter((attribute) => attribute.name.length > 0)
-
-    mutation.mutate({
-      attributes,
-      gpsrContactEmail: optionalTrimmed(form.gpsrContactEmail),
-      gpsrEuropeanResellerContactEmail: optionalTrimmed(
-        form.gpsrEuropeanResellerContactEmail
-      ),
-      gpsrEuropeanResellerManufacturingCompanyName: optionalTrimmed(
-        form.gpsrEuropeanResellerManufacturingCompanyName
-      ),
-      gpsrEuropeanResellerPostalAddress: optionalTrimmed(
-        form.gpsrEuropeanResellerPostalAddress
-      ),
-      gpsrManufacturedOutsideEu: form.gpsrManufacturedOutsideEu,
-      gpsrManufacturingCompanyName: optionalTrimmed(
-        form.gpsrManufacturingCompanyName
-      ),
-      gpsrPostalAddress: optionalTrimmed(form.gpsrPostalAddress),
-      handle: optionalTrimmed(form.handle),
-      title: form.title.trim(),
-    })
-  }
-
-  return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
-      <Drawer.Content>
-        <Drawer.Header>
-          <Drawer.Title>
-            {brand ? t("form.editBrand") : t("form.createBrand")}
-          </Drawer.Title>
-        </Drawer.Header>
-        <Drawer.Body className="flex flex-col gap-6 overflow-y-auto">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="brand-title">{t("fields.title")}</Label>
-            <Input
-              id="brand-title"
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              value={form.title}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="brand-handle">{t("fields.handle")}</Label>
-            <Input
-              id="brand-handle"
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  handle: event.target.value,
-                }))
-              }
-              placeholder={t("form.handlePlaceholder")}
-              value={form.handle}
-            />
-          </div>
-          <div className="flex flex-col gap-3">
-            <Heading level="h2">GPSR</Heading>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-gpsr-manufacturing-company-name">
-                  {t("fields.gpsrManufacturingCompanyName")}
-                </Label>
-                <Input
-                  id="brand-gpsr-manufacturing-company-name"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrManufacturingCompanyName: event.target.value,
-                    }))
-                  }
-                  value={form.gpsrManufacturingCompanyName}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-gpsr-postal-address">
-                  {t("fields.gpsrPostalAddress")}
-                </Label>
-                <Input
-                  id="brand-gpsr-postal-address"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrPostalAddress: event.target.value,
-                    }))
-                  }
-                  value={form.gpsrPostalAddress}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-gpsr-contact-email">
-                  {t("fields.gpsrContactEmail")}
-                </Label>
-                <Input
-                  id="brand-gpsr-contact-email"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrContactEmail: event.target.value,
-                    }))
-                  }
-                  type="email"
-                  value={form.gpsrContactEmail}
-                />
-              </div>
-              <div className="flex items-center gap-3 rounded-md border border-ui-border-base px-3 py-2">
-                <Checkbox
-                  checked={form.gpsrManufacturedOutsideEu}
-                  id="brand-gpsr-manufactured-outside-eu"
-                  onCheckedChange={(checked) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrManufacturedOutsideEu: checked === true,
-                    }))
-                  }
-                />
-                <Label htmlFor="brand-gpsr-manufactured-outside-eu">
-                  {t("fields.gpsrManufacturedOutsideEu")}
-                </Label>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-gpsr-eu-company-name">
-                  {t("fields.gpsrEuropeanResellerManufacturingCompanyName")}
-                </Label>
-                <Input
-                  id="brand-gpsr-eu-company-name"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrEuropeanResellerManufacturingCompanyName:
-                        event.target.value,
-                    }))
-                  }
-                  required={isEuResponsiblePersonRequired}
-                  value={form.gpsrEuropeanResellerManufacturingCompanyName}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="brand-gpsr-eu-address">
-                  {t("fields.gpsrEuropeanResellerPostalAddress")}
-                </Label>
-                <Input
-                  id="brand-gpsr-eu-address"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrEuropeanResellerPostalAddress: event.target.value,
-                    }))
-                  }
-                  required={isEuResponsiblePersonRequired}
-                  value={form.gpsrEuropeanResellerPostalAddress}
-                />
-              </div>
-              <div className="flex flex-col gap-2 md:col-span-2">
-                <Label htmlFor="brand-gpsr-eu-email">
-                  {t("fields.gpsrEuropeanResellerContactEmail")}
-                </Label>
-                <Input
-                  id="brand-gpsr-eu-email"
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      gpsrEuropeanResellerContactEmail: event.target.value,
-                    }))
-                  }
-                  required={isEuResponsiblePersonRequired}
-                  type="email"
-                  value={form.gpsrEuropeanResellerContactEmail}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <Heading level="h2">{t("attributes.title")}</Heading>
-              <Button
-                disabled={!canAddAttribute}
-                onClick={() =>
-                  setForm((current) => ({
-                    ...current,
-                    attributes: [
-                      ...current.attributes,
-                      emptyAttribute(attributeTypes, selectedAttributeNames),
-                    ],
-                  }))
-                }
-                size="small"
-                type="button"
-                variant="secondary"
-              >
-                {t("actions.add")}
-              </Button>
-            </div>
-            {form.attributes.length ? (
-              form.attributes.map((attribute, index) => (
-                <div
-                  className="grid grid-cols-[1fr_1fr_auto] gap-2"
-                  key={`${attribute.id ?? "new"}-${index}`}
-                >
-                  <Select
-                    onValueChange={(value) =>
-                      updateAttribute(index, "name", value)
-                    }
-                    value={attribute.name}
-                  >
-                    <Select.Trigger>
-                      <Select.Value placeholder={t("fields.attribute")} />
-                    </Select.Trigger>
-                    <Select.Content>
-                      {getAttributeOptions(attribute.name).map(
-                        (attributeType) => (
-                          <Select.Item
-                            key={attributeType.id}
-                            value={attributeType.name}
-                          >
-                            {attributeType.name}
-                          </Select.Item>
-                        )
-                      )}
-                    </Select.Content>
-                  </Select>
-                  <Input
-                    onChange={(event) =>
-                      updateAttribute(index, "value", event.target.value)
-                    }
-                    placeholder={t("fields.value")}
-                    value={attribute.value}
-                  />
-                  <IconButton
-                    aria-label={t("actions.remove")}
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        attributes: current.attributes.filter(
-                          (_, currentIndex) => currentIndex !== index
-                        ),
-                      }))
-                    }
-                    type="button"
-                    variant="transparent"
-                  >
-                    <Trash />
-                  </IconButton>
-                </div>
-              ))
-            ) : (
-              <Text className="text-ui-fg-subtle" size="small">
-                {t("attributes.empty")}
-              </Text>
-            )}
-          </div>
-        </Drawer.Body>
-        <Drawer.Footer>
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              onClick={() => onOpenChange(false)}
-              size="small"
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.cancel")}
-            </Button>
-            <Button
-              disabled={!form.title.trim()}
-              isLoading={mutation.isPending}
-              onClick={save}
-              size="small"
-              type="button"
-            >
-              {t("actions.save")}
-            </Button>
-          </div>
-        </Drawer.Footer>
-      </Drawer.Content>
-    </Drawer>
-  )
 }
 
 const AttributeTypesSection = () => {
@@ -883,7 +385,12 @@ const AttributeTypesSection = () => {
     if (isLoading) {
       return (
         <Table.Row>
-          <Table.Cell>{t("status.loading")}</Table.Cell>
+          <Table.Cell>
+            <div className="flex items-center gap-2">
+              <Spinner className="animate-spin" />
+              <Text size="small">{t("status.loading")}</Text>
+            </div>
+          </Table.Cell>
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
@@ -1250,9 +757,7 @@ const BrandsPage = () => {
 
           {listError ? (
             <div className="px-6 py-4">
-              <Text className="text-ui-fg-error">
-                {t("errors.loadBrandsFailed")}
-              </Text>
+              <Alert variant="error">{t("errors.loadBrandsFailed")}</Alert>
             </div>
           ) : (
             <>
@@ -1304,14 +809,14 @@ const BrandsPage = () => {
       </div>
 
       {createOpen ? (
-        <BrandFormDrawer
+        <BrandCreateModal
           attributeTypes={attributeTypes}
           onOpenChange={setCreateOpen}
           open={createOpen}
         />
       ) : null}
       {editingBrandId && editingBrand ? (
-        <BrandFormDrawer
+        <BrandEditDrawer
           attributeTypes={attributeTypes}
           brand={editingBrand}
           onOpenChange={(open) => {

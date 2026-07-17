@@ -22,11 +22,66 @@ const queryBoolean = z.preprocess((value) => {
   return value
 }, z.boolean().optional())
 
+const normalizeOptionalText = (value: unknown) => {
+  if (value === null) {
+    return null
+  }
+
+  if (typeof value !== "string") {
+    return value
+  }
+
+  const normalized = value.trim()
+  return normalized.length ? normalized : null
+}
+
 const optionalText = z.preprocess(
-  (value) =>
-    typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().optional()
+  normalizeOptionalText,
+  z.string().trim().nullable().optional()
 )
+
+const optionalEmail = z.preprocess(
+  normalizeOptionalText,
+  z.string().trim().email().nullable().optional()
+)
+
+const addGpsrConditionalIssues = (
+  value: {
+    gpsr_european_reseller_contact_email?: string | null
+    gpsr_european_reseller_manufacturing_company_name?: string | null
+    gpsr_european_reseller_postal_address?: string | null
+    gpsr_manufactured_outside_eu?: boolean
+  },
+  context: z.RefinementCtx
+) => {
+  const requiredFields = [
+    "gpsr_european_reseller_manufacturing_company_name",
+    "gpsr_european_reseller_postal_address",
+    "gpsr_european_reseller_contact_email",
+  ] as const
+
+  if (value.gpsr_manufactured_outside_eu) {
+    for (const field of requiredFields) {
+      if (!value[field]) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Required when the brand is manufactured outside the EU",
+          path: [field],
+        })
+      }
+    }
+  } else {
+    for (const field of requiredFields) {
+      if (value[field]) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Must be empty when the brand is manufactured inside the EU",
+          path: [field],
+        })
+      }
+    }
+  }
+}
 
 export const BrandAttributeSchema = z
   .object({
@@ -72,28 +127,29 @@ export const AdminGetBrandAttributeTypesSchema = z
 export const AdminCreateBrandSchema = z
   .object({
     attributes: z.array(BrandAttributeSchema).optional().default([]),
-    gpsrContactEmail: optionalText,
-    gpsrEuropeanResellerContactEmail: optionalText,
-    gpsrEuropeanResellerManufacturingCompanyName: optionalText,
-    gpsrEuropeanResellerPostalAddress: optionalText,
-    gpsrManufacturedOutsideEu: z.boolean().optional().default(false),
-    gpsrManufacturingCompanyName: optionalText,
-    gpsrPostalAddress: optionalText,
+    gpsr_contact_email: optionalEmail,
+    gpsr_european_reseller_contact_email: optionalEmail,
+    gpsr_european_reseller_manufacturing_company_name: optionalText,
+    gpsr_european_reseller_postal_address: optionalText,
+    gpsr_manufactured_outside_eu: z.boolean().optional().default(false),
+    gpsr_manufacturing_company_name: optionalText,
+    gpsr_postal_address: optionalText,
     handle: optionalHandle,
     title: z.string().trim().min(1),
   })
   .strict()
+  .superRefine(addGpsrConditionalIssues)
 
 export const AdminUpdateBrandSchema = z
   .object({
     attributes: z.array(BrandAttributeSchema).optional(),
-    gpsrContactEmail: optionalText,
-    gpsrEuropeanResellerContactEmail: optionalText,
-    gpsrEuropeanResellerManufacturingCompanyName: optionalText,
-    gpsrEuropeanResellerPostalAddress: optionalText,
-    gpsrManufacturedOutsideEu: z.boolean().optional(),
-    gpsrManufacturingCompanyName: optionalText,
-    gpsrPostalAddress: optionalText,
+    gpsr_contact_email: optionalEmail,
+    gpsr_european_reseller_contact_email: optionalEmail,
+    gpsr_european_reseller_manufacturing_company_name: optionalText,
+    gpsr_european_reseller_postal_address: optionalText,
+    gpsr_manufactured_outside_eu: z.boolean().optional(),
+    gpsr_manufacturing_company_name: optionalText,
+    gpsr_postal_address: optionalText,
     handle: optionalHandle,
     title: z.string().trim().min(1).optional(),
   })

@@ -61,6 +61,11 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
     middlewares: [validateAndTransformBody(AdminUpdateBrandSchema)],
   },
   {
+    methods: ["POST"],
+    matcher: "/admin/brands/:id/restore",
+    middlewares: [],
+  },
+  {
     methods: ["GET"],
     matcher: "/admin/brands/:id/products",
     middlewares: [

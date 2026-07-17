@@ -1,9 +1,9 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import {
-  createBrandAttributeTypesWorkflow,
-  restoreBrandAttributeTypesWorkflow,
-} from "../../../../workflows/brand"
+import { createBrandAttributeTypesWorkflow } from "../../../../workflows/brand"
 import {
   escapeLikePattern,
   getBrandAttributeTypeUsageCounts,
@@ -33,7 +33,10 @@ const parseOrder = (input?: string) => {
 }
 
 export async function GET(
-  req: MedusaRequest<unknown, AdminGetBrandAttributeTypesSchemaType>,
+  req: AuthenticatedMedusaRequest<
+    unknown,
+    AdminGetBrandAttributeTypesSchemaType
+  >,
   res: MedusaResponse
 ) {
   const service = getBrandService(req.scope)
@@ -79,62 +82,33 @@ export async function GET(
 }
 
 export async function POST(
-  req: MedusaRequest<AdminCreateBrandAttributeTypeSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminCreateBrandAttributeTypeSchemaType>,
   res: MedusaResponse
 ) {
-  const service = getBrandService(req.scope)
   const name = req.validatedBody.name
-  let action: "created" | "existing" | "restored" = "existing"
-  const existing = (
-    await service.listBrandAttributeTypes(
-      { name },
-      {
-        take: 1,
-        withDeleted: true,
-      }
-    )
-  )[0]
+  const { result } = await createBrandAttributeTypesWorkflow(req.scope).run({
+    input: {
+      attribute_types: [{ name }],
+    },
+  })
+  const ensured = result[0]
 
-  if (existing?.deleted_at) {
-    await restoreBrandAttributeTypesWorkflow(req.scope).run({
-      input: {
-        ids: [existing.id],
-      },
-    })
-    action = "restored"
-  } else if (!existing) {
-    await createBrandAttributeTypesWorkflow(req.scope).run({
-      input: {
-        attribute_types: [{ name }],
-      },
-    })
-    action = "created"
-  }
-
-  const [attributeType] = await service.listBrandAttributeTypes(
-    { name },
-    {
-      take: 1,
-      withDeleted: true,
-    }
-  )
-
-  if (!attributeType) {
+  if (!ensured) {
     throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      `Brand attribute type "${name}" was not found`
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Brand attribute type "${name}" was not returned by its workflow`
     )
   }
 
   const usageCounts = await getBrandAttributeTypeUsageCounts(req.scope, [
-    attributeType.id,
+    ensured.attribute_type.id,
   ])
 
   res.status(200).json({
-    action,
+    action: ensured.action,
     attribute_type: toBrandAttributeTypeResponse(
-      attributeType,
-      usageCounts.get(attributeType.id) ?? 0
+      ensured.attribute_type,
+      usageCounts.get(ensured.attribute_type.id) ?? 0
     ),
   })
 }

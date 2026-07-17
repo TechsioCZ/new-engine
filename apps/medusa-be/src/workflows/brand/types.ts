@@ -8,15 +8,15 @@ export type BrandAttributeTypeInput = {
 
 export type BrandInput = {
   title: string
-  handle: string
+  handle?: string
   attributes?: BrandAttributeInput[]
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
 }
 
 export type CreateBrandsWorkflowInput = {
@@ -41,6 +41,7 @@ export type RestoreBrandsWorkflowInput = {
 export type SetProductBrandsWorkflowInput = {
   product_id: string
   brand_ids: string[]
+  fail_on_conflict?: boolean
 }
 
 export type SetBrandProductsWorkflowInput = {

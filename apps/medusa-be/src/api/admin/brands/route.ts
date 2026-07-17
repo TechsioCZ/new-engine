@@ -1,5 +1,8 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { kebabCase, MedusaError } from "@medusajs/framework/utils"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 import { type BrandInput, createBrandsWorkflow } from "../../../workflows/brand"
 import {
   escapeLikePattern,
@@ -30,7 +33,7 @@ const parseOrder = (input?: string) => {
 }
 
 export async function GET(
-  req: MedusaRequest<unknown, AdminGetBrandsSchemaType>,
+  req: AuthenticatedMedusaRequest<unknown, AdminGetBrandsSchemaType>,
   res: MedusaResponse
 ) {
   const service = getBrandService(req.scope)
@@ -75,47 +78,25 @@ export async function GET(
 }
 
 export async function POST(
-  req: MedusaRequest<AdminCreateBrandSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminCreateBrandSchemaType>,
   res: MedusaResponse
 ) {
   const input: BrandInput = {
     attributes: req.validatedBody.attributes,
-    gpsrContactEmail: req.validatedBody.gpsrContactEmail,
-    gpsrEuropeanResellerContactEmail:
-      req.validatedBody.gpsrEuropeanResellerContactEmail,
-    gpsrEuropeanResellerManufacturingCompanyName:
-      req.validatedBody.gpsrEuropeanResellerManufacturingCompanyName,
-    gpsrEuropeanResellerPostalAddress:
-      req.validatedBody.gpsrEuropeanResellerPostalAddress,
-    gpsrManufacturedOutsideEu: req.validatedBody.gpsrManufacturedOutsideEu,
-    gpsrManufacturingCompanyName:
-      req.validatedBody.gpsrManufacturingCompanyName,
-    gpsrPostalAddress: req.validatedBody.gpsrPostalAddress,
-    handle: req.validatedBody.handle ?? kebabCase(req.validatedBody.title),
+    gpsr_contact_email: req.validatedBody.gpsr_contact_email,
+    gpsr_european_reseller_contact_email:
+      req.validatedBody.gpsr_european_reseller_contact_email,
+    gpsr_european_reseller_manufacturing_company_name:
+      req.validatedBody.gpsr_european_reseller_manufacturing_company_name,
+    gpsr_european_reseller_postal_address:
+      req.validatedBody.gpsr_european_reseller_postal_address,
+    gpsr_manufactured_outside_eu:
+      req.validatedBody.gpsr_manufactured_outside_eu,
+    gpsr_manufacturing_company_name:
+      req.validatedBody.gpsr_manufacturing_company_name,
+    gpsr_postal_address: req.validatedBody.gpsr_postal_address,
+    handle: req.validatedBody.handle,
     title: req.validatedBody.title,
-  }
-  const [existing] = await getBrandService(req.scope).listBrands(
-    {
-      handle: input.handle,
-    },
-    {
-      take: 1,
-      withDeleted: true,
-    }
-  )
-
-  if (existing?.deleted_at) {
-    throw new MedusaError(
-      MedusaError.Types.DUPLICATE_ERROR,
-      `Brand with handle "${input.handle}" already exists as a deleted record. Restore it instead of creating a new brand.`
-    )
-  }
-
-  if (existing) {
-    throw new MedusaError(
-      MedusaError.Types.DUPLICATE_ERROR,
-      `Brand with handle "${input.handle}" already exists.`
-    )
   }
 
   const { result } = await createBrandsWorkflow(req.scope).run({

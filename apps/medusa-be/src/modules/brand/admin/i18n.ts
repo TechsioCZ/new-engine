@@ -68,13 +68,14 @@ export type BrandAdminI18nNamespace = {
   >
   fields: Record<
     | "attribute"
-    | "gpsrContactEmail"
-    | "gpsrEuropeanResellerContactEmail"
-    | "gpsrEuropeanResellerManufacturingCompanyName"
-    | "gpsrEuropeanResellerPostalAddress"
-    | "gpsrManufacturedOutsideEu"
-    | "gpsrManufacturingCompanyName"
-    | "gpsrPostalAddress"
+    | "gpsr"
+    | "gpsr_contact_email"
+    | "gpsr_european_reseller_contact_email"
+    | "gpsr_european_reseller_manufacturing_company_name"
+    | "gpsr_european_reseller_postal_address"
+    | "gpsr_manufactured_outside_eu"
+    | "gpsr_manufacturing_company_name"
+    | "gpsr_postal_address"
     | "handle"
     | "supplier"
     | "title"
@@ -129,7 +130,7 @@ export type BrandAdminI18nNamespace = {
   brands: Record<"count" | "empty" | "title" | "widgetTitle", string>
   search: Record<"attributes" | "brands" | "products", string>
   status: Record<
-    "active" | "deleted" | "inactive" | "loading" | "selected",
+    "active" | "deleted" | "inactive" | "loading" | "no" | "selected" | "yes",
     string
   >
   toasts: Record<
@@ -150,7 +151,17 @@ export type BrandAdminI18nNamespace = {
     string
   >
   widget: Record<
-    "empty" | "loadFailed" | "manageTitle" | "none" | "selectedBrand" | "title",
+    | "empty"
+    | "inactiveSelectionWarning"
+    | "loadFailed"
+    | "manageTitle"
+    | "none"
+    | "selectedBrand"
+    | "title",
+    string
+  >
+  validation: Record<
+    "invalidEmail" | "mustBeEmpty" | "required" | "summary",
     string
   >
 }
@@ -222,13 +233,14 @@ export const brandAdminI18n = {
     },
     fields: {
       attribute: "Atribut",
-      gpsrContactEmail: "E-mail výrobce pro GPSR",
-      gpsrEuropeanResellerContactEmail: "E-mail odpovědné osoby v EU",
-      gpsrEuropeanResellerManufacturingCompanyName: "Odpovědná osoba v EU",
-      gpsrEuropeanResellerPostalAddress: "Adresa odpovědné osoby v EU",
-      gpsrManufacturedOutsideEu: "Vyrobeno mimo EU",
-      gpsrManufacturingCompanyName: "Výrobce pro GPSR",
-      gpsrPostalAddress: "Adresa výrobce pro GPSR",
+      gpsr: "GPSR",
+      gpsr_contact_email: "E-mail výrobce pro GPSR",
+      gpsr_european_reseller_contact_email: "E-mail odpovědné osoby v EU",
+      gpsr_european_reseller_manufacturing_company_name: "Odpovědná osoba v EU",
+      gpsr_european_reseller_postal_address: "Adresa odpovědné osoby v EU",
+      gpsr_manufactured_outside_eu: "Vyrobeno mimo EU",
+      gpsr_manufacturing_company_name: "Výrobce pro GPSR",
+      gpsr_postal_address: "Adresa výrobce pro GPSR",
       handle: "Handle",
       supplier: "Dodavatel",
       title: "Název",
@@ -308,7 +320,9 @@ export const brandAdminI18n = {
       deleted: "Smazáno",
       inactive: "Neaktivní",
       loading: "Načítání...",
+      no: "Ne",
       selected: "Vybráno",
+      yes: "Ano",
     },
     toasts: {
       attributeAlreadyExists: "Atribut už existuje",
@@ -328,11 +342,19 @@ export const brandAdminI18n = {
     },
     widget: {
       empty: "Žádný výrobce není propojen.",
+      inactiveSelectionWarning:
+        "Aktuálně propojený výrobce je neaktivní. Uložení bez nového výběru toto propojení odstraní.",
       loadFailed: "Výrobce se nepodařilo načíst.",
       manageTitle: "Spravovat výrobce",
       none: "Žádný",
       selectedBrand: "Vybraný výrobce",
       title: "Výrobce",
+    },
+    validation: {
+      invalidEmail: "Zadejte platnou e-mailovou adresu.",
+      mustBeEmpty: "Pro výrobce z EU musí toto pole zůstat prázdné.",
+      required: "Toto pole je povinné.",
+      summary: "Opravte označená pole.",
     },
   },
   en: {
@@ -401,14 +423,15 @@ export const brandAdminI18n = {
     },
     fields: {
       attribute: "Attribute",
-      gpsrContactEmail: "Manufacturer GPSR email",
-      gpsrEuropeanResellerContactEmail: "EU responsible person email",
-      gpsrEuropeanResellerManufacturingCompanyName:
+      gpsr: "GPSR",
+      gpsr_contact_email: "Manufacturer GPSR email",
+      gpsr_european_reseller_contact_email: "EU responsible person email",
+      gpsr_european_reseller_manufacturing_company_name:
         "EU responsible person company",
-      gpsrEuropeanResellerPostalAddress: "EU responsible person address",
-      gpsrManufacturedOutsideEu: "Manufactured outside the EU",
-      gpsrManufacturingCompanyName: "Manufacturer GPSR company",
-      gpsrPostalAddress: "Manufacturer GPSR address",
+      gpsr_european_reseller_postal_address: "EU responsible person address",
+      gpsr_manufactured_outside_eu: "Manufactured outside the EU",
+      gpsr_manufacturing_company_name: "Manufacturer GPSR company",
+      gpsr_postal_address: "Manufacturer GPSR address",
       handle: "Handle",
       supplier: "Supplier",
       title: "Title",
@@ -488,7 +511,9 @@ export const brandAdminI18n = {
       deleted: "Deleted",
       inactive: "Inactive",
       loading: "Loading...",
+      no: "No",
       selected: "Selected",
+      yes: "Yes",
     },
     toasts: {
       attributeAlreadyExists: "Attribute already exists",
@@ -508,11 +533,19 @@ export const brandAdminI18n = {
     },
     widget: {
       empty: "No brand linked.",
+      inactiveSelectionWarning:
+        "The currently linked brand is inactive. Saving without a new selection will clear this link.",
       loadFailed: "Failed to load brand.",
       manageTitle: "Manage Brand",
       none: "None",
       selectedBrand: "Selected brand",
       title: "Brand",
+    },
+    validation: {
+      invalidEmail: "Enter a valid email address.",
+      mustBeEmpty: "This field must be empty for an EU manufacturer.",
+      required: "This field is required.",
+      summary: "Correct the highlighted fields.",
     },
   },
 } satisfies Record<"cs" | "en", BrandAdminI18nNamespace>

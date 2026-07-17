@@ -10,6 +10,8 @@
     "declaration": false,
     "declarationMap": false,
     "composite": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     "incremental": true,
     "tsBuildInfoFile": "./.medusa/tsconfig.tsbuildinfo"
   },

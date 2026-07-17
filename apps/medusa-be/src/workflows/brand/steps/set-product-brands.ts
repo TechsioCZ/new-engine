@@ -3,94 +3,76 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { SetProductBrandsWorkflowInput } from "../types"
 import {
   brandProductLink,
+  diffIds,
   getActiveBrandIds,
   getCurrentProductBrandIds,
-  getProductBrandIdsToReplace,
-  replaceProductBrandLinks,
+  getExistingProductIds,
 } from "./helpers"
 
-export const setProductBrandsStep = createStep(
-  "set-product-brands",
+export const prepareSetProductBrandsStep = createStep(
+  "prepare-set-product-brands",
   async (input: SetProductBrandsWorkflowInput, { container }) => {
+    if (input.brand_ids.length > 1) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "A product can be linked to at most one brand"
+      )
+    }
+
+    const existingProductIds = await getExistingProductIds(container, [
+      input.product_id,
+    ])
+
+    if (!existingProductIds.has(input.product_id)) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Product "${input.product_id}" was not found`
+      )
+    }
+
     const currentIds = await getCurrentProductBrandIds(
       container,
       input.product_id
     )
 
-    if (!input.brand_ids.length) {
-      const { add: added, remove: removed } = await replaceProductBrandLinks(
-        container,
-        currentIds,
-        [],
-        (brandId) => brandProductLink(input.product_id, brandId)
-      )
-
-      return new StepResponse(
-        {
-          added,
-          removed,
-        },
-        {
-          product_id: input.product_id,
-          brand_ids: currentIds,
-        }
+    if (
+      input.fail_on_conflict &&
+      input.brand_ids.length &&
+      currentIds.some((brandId) => brandId !== input.brand_ids[0])
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Product "${input.product_id}" is already linked to another brand`
       )
     }
 
-    const activeBrandIds = await getActiveBrandIds(container, input.brand_ids)
-    const nextActiveBrandIds = input.brand_ids.filter((brandId) =>
-      activeBrandIds.has(brandId)
-    )
-
-    if (nextActiveBrandIds.length !== input.brand_ids.length) {
+    if (input.brand_ids.length) {
+      const activeBrandIds = await getActiveBrandIds(container, input.brand_ids)
       const inactiveBrandIds = input.brand_ids.filter(
         (brandId) => !activeBrandIds.has(brandId)
       )
 
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `Brands are inactive or deleted: ${inactiveBrandIds.join(", ")}`
-      )
+      if (inactiveBrandIds.length) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Brands are inactive or deleted: ${inactiveBrandIds.join(", ")}`
+        )
+      }
     }
 
-    const currentIdsToReplace = getProductBrandIdsToReplace(
-      currentIds,
-      activeBrandIds,
-      nextActiveBrandIds
-    )
-    const { add, remove } = await replaceProductBrandLinks(
-      container,
-      currentIdsToReplace,
-      nextActiveBrandIds,
-      (brandId) => brandProductLink(input.product_id, brandId)
-    )
+    const { add, remove } = diffIds(currentIds, input.brand_ids)
 
-    return new StepResponse(
-      {
+    return new StepResponse({
+      links_to_create: add.map((brandId) =>
+        brandProductLink(input.product_id, brandId)
+      ),
+      links_to_dismiss: remove.map((brandId) =>
+        brandProductLink(input.product_id, brandId)
+      ),
+      result: {
         added: add,
         removed: remove,
       },
-      {
-        product_id: input.product_id,
-        brand_ids: currentIds,
-      }
-    )
-  },
-  async (previous, { container }) => {
-    if (!previous) {
-      return
-    }
-
-    const currentIds = await getCurrentProductBrandIds(
-      container,
-      previous.product_id
-    )
-
-    await replaceProductBrandLinks(
-      container,
-      currentIds,
-      previous.brand_ids,
-      (brandId) => brandProductLink(previous.product_id, brandId)
-    )
+    })
   }
 )

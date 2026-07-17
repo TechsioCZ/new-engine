@@ -1,8 +1,9 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import { setBrandProductsWorkflow } from "../../../../../workflows/brand"
 import {
-  ensureProductIdsExist,
-  ensureProductsAssignableToBrand,
   listAndCountProductsByIds,
   listProductIdsForBrand,
   listProductsByIds,
@@ -37,7 +38,7 @@ const getProductOrder = (field: string, direction: "ASC" | "DESC") => ({
 })
 
 export async function GET(
-  req: MedusaRequest<unknown, AdminGetBrandProductsSchemaType>,
+  req: AuthenticatedMedusaRequest<unknown, AdminGetBrandProductsSchemaType>,
   res: MedusaResponse
 ) {
   const brandId = req.params.id ?? ""
@@ -70,21 +71,15 @@ export async function GET(
 }
 
 export async function POST(
-  req: MedusaRequest<AdminSetBrandProductsSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminSetBrandProductsSchemaType>,
   res: MedusaResponse
 ) {
   const brandId = req.params.id ?? ""
-  const productIds = await ensureProductIdsExist(
-    req.scope,
-    req.validatedBody.product_ids
-  )
 
-  await retrieveBrandOrThrow(req.scope, brandId)
-  await ensureProductsAssignableToBrand(req.scope, brandId, productIds)
   await setBrandProductsWorkflow(req.scope).run({
     input: {
       brand_id: brandId,
-      product_ids: productIds,
+      product_ids: req.validatedBody.product_ids,
     },
   })
 

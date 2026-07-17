@@ -12,12 +12,7 @@ export class Migration20260622000002 extends Migration {
   }
 
   override async down(): Promise<void> {
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_postal_address";`)
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_manufacturing_company_name";`)
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_manufactured_outside_eu";`)
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_european_reseller_postal_address";`)
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_european_reseller_manufacturing_company_name";`)
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_european_reseller_contact_email";`)
-    this.addSql(`alter table if exists "brand" drop column if exists "gpsr_contact_email";`)
+    // Preserve GPSR data during code rollback. The transition migration renames
+    // the complete brand table back to producer after newer migrations revert.
   }
 }

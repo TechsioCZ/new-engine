@@ -1,11 +1,14 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { UpdateBrandsWorkflowInput } from "../types"
 import {
   asArray,
   buildBrandWriteInput,
   getBrandService,
+  normalizeBrandWriteInput,
   setBrandAttributes,
   snapshotBrand,
+  validateBrandGpsrState,
   withBrandTransaction,
 } from "./helpers"
 
@@ -14,13 +17,51 @@ export const updateBrandsStep = createStep(
   async (input: UpdateBrandsWorkflowInput, { container }) => {
     const service = getBrandService(container)
     const previous = await snapshotBrand(service, input.selector.id)
+    const normalizedUpdate = normalizeBrandWriteInput(input.update)
+    const effectiveState = {
+      ...previous,
+      ...normalizedUpdate,
+    }
+
+    if (!(effectiveState.title && effectiveState.handle)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Brand title and handle must not be empty"
+      )
+    }
+
+    validateBrandGpsrState(effectiveState, effectiveState.handle)
+
+    if (effectiveState.handle !== previous.handle) {
+      const collisions = await service.listBrands(
+        {
+          handle: effectiveState.handle,
+        },
+        {
+          take: 2,
+          withDeleted: true,
+        }
+      )
+      const collision = collisions.find(
+        (brand) => brand.id !== input.selector.id
+      )
+
+      if (collision) {
+        const suffix = collision.deleted_at ? " as a deleted record" : ""
+
+        throw new MedusaError(
+          MedusaError.Types.DUPLICATE_ERROR,
+          `Brand with handle "${effectiveState.handle}" already exists${suffix}.`
+        )
+      }
+    }
 
     const brands = await withBrandTransaction(service, async (context) => {
       const updatedBrands = asArray(
         await service.updateBrands(
           {
             id: input.selector.id,
-            ...buildBrandWriteInput(input.update),
+            ...buildBrandWriteInput(normalizedUpdate),
           },
           context
         )

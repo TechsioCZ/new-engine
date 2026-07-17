@@ -1,9 +1,11 @@
+import { kebabCase, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { CreateBrandsWorkflowInput } from "../types"
 import {
   buildBrandWriteInput,
   getBrandService,
   setBrandAttributes,
+  validateBrandGpsrState,
   withBrandTransaction,
 } from "./helpers"
 
@@ -11,21 +13,83 @@ export const createBrandsStep = createStep(
   "create-brands",
   async (input: CreateBrandsWorkflowInput, { container }) => {
     const service = getBrandService(container)
+    const normalizedBrands = input.brands.map((brand) => {
+      const title = brand.title.trim()
+      const handle = brand.handle?.trim() || kebabCase(title)
+
+      if (!(title && handle)) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Brand title and handle must not be empty"
+        )
+      }
+
+      return {
+        ...brand,
+        ...validateBrandGpsrState(
+          {
+            ...brand,
+            handle,
+            title,
+          },
+          handle
+        ),
+        handle,
+        title,
+      }
+    })
+    const handles = normalizedBrands.map((brand) => brand.handle)
+
+    if (new Set(handles).size !== handles.length) {
+      throw new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        "The create request contains duplicate brand handles"
+      )
+    }
+
+    const existingBrands = await service.listBrands(
+      {
+        handle: { $in: handles },
+      },
+      {
+        take: Math.max(handles.length * 2, 1),
+        withDeleted: true,
+      }
+    )
+
+    if (existingBrands.length) {
+      const existing = existingBrands[0]
+      if (!existing) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "Brand lookup returned an empty record"
+        )
+      }
+      const suffix = existing.deleted_at
+        ? " as a deleted record. Restore it through the explicit restore action"
+        : ""
+
+      throw new MedusaError(
+        MedusaError.Types.DUPLICATE_ERROR,
+        `Brand with handle "${existing.handle}" already exists${suffix}.`
+      )
+    }
 
     const brands = await withBrandTransaction(service, async (context) => {
       const createdBrands = (await service.createBrands(
-        input.brands.map((brand) =>
+        normalizedBrands.map((brand) =>
           buildBrandWriteInput({
-            gpsrContactEmail: brand.gpsrContactEmail,
-            gpsrEuropeanResellerContactEmail:
-              brand.gpsrEuropeanResellerContactEmail,
-            gpsrEuropeanResellerManufacturingCompanyName:
-              brand.gpsrEuropeanResellerManufacturingCompanyName,
-            gpsrEuropeanResellerPostalAddress:
-              brand.gpsrEuropeanResellerPostalAddress,
-            gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu,
-            gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName,
-            gpsrPostalAddress: brand.gpsrPostalAddress,
+            gpsr_contact_email: brand.gpsr_contact_email,
+            gpsr_european_reseller_contact_email:
+              brand.gpsr_european_reseller_contact_email,
+            gpsr_european_reseller_manufacturing_company_name:
+              brand.gpsr_european_reseller_manufacturing_company_name,
+            gpsr_european_reseller_postal_address:
+              brand.gpsr_european_reseller_postal_address,
+            gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu,
+            gpsr_manufacturing_company_name:
+              brand.gpsr_manufacturing_company_name,
+            gpsr_postal_address: brand.gpsr_postal_address,
             handle: brand.handle,
             title: brand.title,
           })
@@ -38,7 +102,7 @@ export const createBrandsStep = createStep(
       )
 
       await Promise.all(
-        input.brands.map(async (brand) => {
+        normalizedBrands.map(async (brand) => {
           const createdBrand = createdBrandsByHandle.get(brand.handle)
 
           if (!createdBrand) {

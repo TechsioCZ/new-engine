@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ProductBrandLink } from "../../../../../links/product-brand"
@@ -110,7 +113,10 @@ const listRankedProductPage = async (
 }
 
 export async function GET(
-  req: MedusaRequest<unknown, AdminGetBrandProductOptionsSchemaType>,
+  req: AuthenticatedMedusaRequest<
+    unknown,
+    AdminGetBrandProductOptionsSchemaType
+  >,
   res: MedusaResponse
 ) {
   const brandId = req.params.id ?? ""

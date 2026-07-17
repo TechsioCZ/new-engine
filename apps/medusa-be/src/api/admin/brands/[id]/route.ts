@@ -1,7 +1,9 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import {
   deleteBrandsWorkflow,
-  restoreBrandsWorkflow,
   updateBrandsWorkflow,
 } from "../../../../workflows/brand"
 import {
@@ -11,7 +13,10 @@ import {
 } from "../utils"
 import type { AdminUpdateBrandSchemaType } from "../validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) {
   const brandId = req.params.id ?? ""
   const brand = await retrieveBrandOrThrow(req.scope, brandId, {
     withDeleted: true,
@@ -26,12 +31,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function POST(
-  req: MedusaRequest<AdminUpdateBrandSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminUpdateBrandSchemaType>,
   res: MedusaResponse
 ) {
   const brandId = req.params.id ?? ""
-
-  await retrieveBrandOrThrow(req.scope, brandId)
 
   const { result } = await updateBrandsWorkflow(req.scope).run({
     input: {
@@ -53,10 +56,12 @@ export async function POST(
   })
 }
 
-export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
+export async function DELETE(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) {
   const id = req.params.id ?? ""
 
-  await retrieveBrandOrThrow(req.scope, id)
   await deleteBrandsWorkflow(req.scope).run({
     input: {
       ids: [id],
@@ -67,25 +72,5 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     deleted: true,
     id,
     object: "brand",
-  })
-}
-
-export async function PUT(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
-
-  await retrieveBrandOrThrow(req.scope, id, { withDeleted: true })
-  await restoreBrandsWorkflow(req.scope).run({
-    input: {
-      ids: [id],
-    },
-  })
-
-  const brand = await retrieveBrandOrThrow(req.scope, id)
-  const activeProductCounts = await getBrandActiveProductCounts(req.scope, [
-    brand.id,
-  ])
-
-  res.status(200).json({
-    brand: toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
   })
 }

@@ -1,3 +1,4 @@
+import { queryKeysFactory } from "./query-key-factory"
 import { sdk } from "./sdk"
 
 export type BrandAttribute = {
@@ -27,13 +28,13 @@ export type Brand = {
   attributes: BrandAttribute[]
   created_at?: string
   deleted_at?: string | null
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
   updated_at?: string
 }
 
@@ -41,14 +42,16 @@ export type BrandInput = {
   title: string
   handle?: string
   attributes: BrandAttribute[]
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
 }
+
+export type BrandUpdateInput = Partial<BrandInput>
 
 export type ProductSummary = {
   id: string
@@ -137,34 +140,59 @@ const toSearch = (
   return search.toString()
 }
 
+const brandsQueryKeys = queryKeysFactory("brands")
+const brandAttributeTypesQueryKeys = queryKeysFactory("brand-attribute-types")
+const brandProductsQueryKeys = queryKeysFactory<
+  "brand-products",
+  Record<string, unknown>,
+  string | undefined
+>("brand-products")
+const brandProductOptionsQueryKeys = queryKeysFactory<
+  "brand-product-options",
+  Record<string, unknown>,
+  string | undefined
+>("brand-product-options")
+const productBrandsQueryKeys = queryKeysFactory<
+  "product-brands",
+  unknown,
+  string | undefined
+>("product-brands")
+
 export const brandQueryKeys = {
   attributeTypeDetail: (
     id: string | undefined,
     params: Record<string, unknown>
-  ) => ["brand-attribute-type", id, params] as const,
+  ) => brandAttributeTypesQueryKeys.detail(id ?? "", params),
   attributeTypeDetailPrefix: (id: string | undefined) =>
-    ["brand-attribute-type", id] as const,
-  attributeTypeDetails: () => ["brand-attribute-type"] as const,
+    ["brand-attribute-types", "detail", id ?? ""] as const,
+  attributeTypeDetails: () => brandAttributeTypesQueryKeys.details(),
   attributeTypes: (params: Record<string, unknown>) =>
-    ["brand-attribute-types", params] as const,
-  attributeTypesLists: () => ["brand-attribute-types"] as const,
-  detail: (id: string | undefined) => ["brand", id] as const,
-  details: () => ["brand"] as const,
-  list: (params: Record<string, unknown>) => ["brands", params] as const,
-  lists: () => ["brands"] as const,
+    brandAttributeTypesQueryKeys.list(params),
+  attributeTypesLists: () => brandAttributeTypesQueryKeys.lists(),
+  detail: (id: string | undefined) => brandsQueryKeys.detail(id ?? ""),
+  details: () => brandsQueryKeys.details(),
+  list: (params: Record<string, unknown>) => brandsQueryKeys.list(params),
+  lists: () => brandsQueryKeys.lists(),
   productLinks: (productId: string | undefined) =>
-    ["product-brands", productId] as const,
+    productBrandsQueryKeys.detail(productId),
+  productLinksDetails: () => productBrandsQueryKeys.details(),
   productOptions: (id: string | undefined, params: Record<string, unknown>) =>
-    ["brand-product-options", id, params] as const,
-  productOptionsLists: () => ["brand-product-options"] as const,
+    brandProductOptionsQueryKeys.detail(id, params),
+  productOptionsLists: () => brandProductOptionsQueryKeys.details(),
   products: (id: string | undefined, params: Record<string, unknown>) =>
-    ["brand-products", id, params] as const,
+    brandProductsQueryKeys.detail(id, params),
   productsLists: (id?: string) =>
-    id ? (["brand-products", id] as const) : (["brand-products"] as const),
+    id
+      ? (["brand-products", "detail", id] as const)
+      : brandProductsQueryKeys.details(),
 }
 
 export const productQueryKeys = {
-  list: (params: Record<string, unknown>) => ["products", params] as const,
+  detail: (id: string) => ["products", "detail", id] as const,
+  details: () => ["products", "detail"] as const,
+  list: (params: Record<string, unknown>) =>
+    ["products", "list", { query: params }] as const,
+  lists: () => ["products", "list"] as const,
 }
 
 export const listBrands = (params: {
@@ -185,7 +213,7 @@ export const createBrand = (input: BrandInput) =>
     method: "POST",
   })
 
-export const updateBrand = (id: string, input: BrandInput) =>
+export const updateBrand = (id: string, input: BrandUpdateInput) =>
   sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`, {
     body: input,
     method: "POST",
@@ -197,8 +225,8 @@ export const deleteBrand = (id: string) =>
   })
 
 export const restoreBrand = (id: string) =>
-  sdk.client.fetch<BrandResponse>(`/admin/brands/${id}`, {
-    method: "PUT",
+  sdk.client.fetch<BrandResponse>(`/admin/brands/${id}/restore`, {
+    method: "POST",
   })
 
 export const listBrandAttributeTypes = (params: {

@@ -1,5 +1,6 @@
-import { ArrowLeft } from "@medusajs/icons"
+import { ArrowLeft, Spinner } from "@medusajs/icons"
 import {
+  Alert,
   Button,
   Container,
   Heading,
@@ -94,7 +95,12 @@ const BrandRows = ({
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell>
+          <div className="flex items-center gap-2">
+            <Spinner className="animate-spin" />
+            <Text size="small">{t("status.loading")}</Text>
+          </div>
+        </Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -207,17 +213,16 @@ const BrandAttributeDetailPage = () => {
   if (error) {
     return (
       <Container>
-        <Text className="text-ui-fg-error">
-          {t("errors.loadAttributeFailed")}
-        </Text>
+        <Alert variant="error">{t("errors.loadAttributeFailed")}</Alert>
       </Container>
     )
   }
 
   if (isLoading || !attributeType) {
     return (
-      <Container>
-        <Text>{t("status.loading")}</Text>
+      <Container className="flex items-center justify-center gap-2 py-8">
+        <Spinner className="animate-spin" />
+        <Text size="small">{t("status.loading")}</Text>
       </Container>
     )
   }

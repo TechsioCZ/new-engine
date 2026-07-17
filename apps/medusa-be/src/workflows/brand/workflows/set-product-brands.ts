@@ -3,8 +3,13 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
-import { getProductBrandLockKeys, setProductBrandsStep } from "../steps"
+import {
+  acquireLockStep,
+  createRemoteLinkStep,
+  dismissRemoteLinkStep,
+  releaseLockStep,
+} from "@medusajs/medusa/core-flows"
+import { getProductBrandLockKeys, prepareSetProductBrandsStep } from "../steps"
 import type { SetProductBrandsWorkflowInput } from "../types"
 
 export const setProductBrandsWorkflow = createWorkflow(
@@ -24,13 +29,16 @@ export const setProductBrandsWorkflow = createWorkflow(
       ttl: 10,
     })
 
-    const result = setProductBrandsStep(input)
+    const prepared = prepareSetProductBrandsStep(input)
+
+    dismissRemoteLinkStep(prepared.links_to_dismiss)
+    createRemoteLinkStep(prepared.links_to_create)
 
     releaseLockStep({
       executeOnSubWorkflow: true,
       key: lockKey,
     })
 
-    return new WorkflowResponse(result)
+    return new WorkflowResponse(prepared.result)
   }
 )

@@ -40,13 +40,13 @@ export type BrandResponse = {
   attributes: BrandAttributeResponse[]
   created_at?: string | Date
   deleted_at?: string | Date | null
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
   updated_at?: string | Date
 }
 
@@ -86,13 +86,13 @@ type BrandRecord = {
   attributes?: BrandAttributeRecord[]
   created_at?: string | Date
   deleted_at?: string | Date | null
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
   updated_at?: string | Date
 }
 
@@ -158,6 +158,17 @@ type RetrieveBrandOptions = {
 }
 
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
+const QUERY_CHUNK_SIZE = 500
+
+const chunkArray = <T>(items: T[], size = QUERY_CHUNK_SIZE) => {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+
+  return chunks
+}
 
 export const getBrandService = (scope: MedusaContainer) =>
   scope.resolve<BrandService>(BRAND_MODULE)
@@ -190,16 +201,17 @@ export const toBrandResponse = (
   }),
   created_at: brand.created_at,
   deleted_at: brand.deleted_at ?? null,
-  gpsrContactEmail: brand.gpsrContactEmail ?? null,
-  gpsrEuropeanResellerContactEmail:
-    brand.gpsrEuropeanResellerContactEmail ?? null,
-  gpsrEuropeanResellerManufacturingCompanyName:
-    brand.gpsrEuropeanResellerManufacturingCompanyName ?? null,
-  gpsrEuropeanResellerPostalAddress:
-    brand.gpsrEuropeanResellerPostalAddress ?? null,
-  gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? false,
-  gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName ?? null,
-  gpsrPostalAddress: brand.gpsrPostalAddress ?? null,
+  gpsr_contact_email: brand.gpsr_contact_email ?? null,
+  gpsr_european_reseller_contact_email:
+    brand.gpsr_european_reseller_contact_email ?? null,
+  gpsr_european_reseller_manufacturing_company_name:
+    brand.gpsr_european_reseller_manufacturing_company_name ?? null,
+  gpsr_european_reseller_postal_address:
+    brand.gpsr_european_reseller_postal_address ?? null,
+  gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu ?? false,
+  gpsr_manufacturing_company_name:
+    brand.gpsr_manufacturing_company_name ?? null,
+  gpsr_postal_address: brand.gpsr_postal_address ?? null,
   handle: brand.handle,
   id: brand.id,
   title: brand.title,
@@ -285,15 +297,21 @@ export const getBrandActiveProductCounts = async (
   }
 
   const query = scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { data: links } = await query.graph({
-    entity: ProductBrandLink.entryPoint,
-    fields: ["brand_id", "product_id"],
-    filters: {
-      brand_id: { $in: brandIds },
-    },
-  })
+  const links: LinkRecord[] = []
+
+  for (const brandIdChunk of chunkArray(uniqueIds(brandIds))) {
+    const { data } = await query.graph({
+      entity: ProductBrandLink.entryPoint,
+      fields: ["brand_id", "product_id"],
+      filters: {
+        brand_id: { $in: brandIdChunk },
+      },
+    })
+    links.push(...(data as LinkRecord[]))
+  }
+
   const productIds = uniqueIds(
-    (links as LinkRecord[])
+    links
       .map((link) => link.product_id)
       .filter((productId): productId is string => !!productId)
   )
@@ -302,20 +320,24 @@ export const getBrandActiveProductCounts = async (
     return new Map<string, number>()
   }
 
-  const { data: products } = await query.graph({
-    entity: "product",
-    fields: ["id"],
-    filters: {
-      id: { $in: productIds },
-      status: ProductStatus.PUBLISHED,
-    },
-  })
-  const activeProductIds = new Set(
-    (products as ProductRecord[]).map((product) => product.id)
-  )
+  const products: ProductRecord[] = []
+
+  for (const productIdChunk of chunkArray(productIds)) {
+    const { data } = await query.graph({
+      entity: "product",
+      fields: ["id"],
+      filters: {
+        id: { $in: productIdChunk },
+        status: ProductStatus.PUBLISHED,
+      },
+    })
+    products.push(...(data as ProductRecord[]))
+  }
+
+  const activeProductIds = new Set(products.map((product) => product.id))
   const activeProductIdsByBrandId = new Map<string, Set<string>>()
 
-  for (const link of links as LinkRecord[]) {
+  for (const link of links) {
     if (!(link.brand_id && link.product_id)) {
       continue
     }

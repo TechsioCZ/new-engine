@@ -1,18 +1,10 @@
-import type {
-  Context,
-  LinkDefinition,
-  MedusaContainer,
-  Query,
-} from "@medusajs/framework/types"
+import type { Context, MedusaContainer, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import {
-  createLinksWorkflow,
-  dismissLinksWorkflow,
-} from "@medusajs/medusa/core-flows"
+import { z } from "@medusajs/framework/zod"
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
@@ -31,13 +23,25 @@ type BrandSnapshot = {
   title: string
   handle: string
   attributes: BrandAttributeInput[]
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
+}
+
+export type BrandScalarWriteInput = {
+  handle?: string
+  title?: string
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
 }
 
 type BrandSnapshotRecord = {
@@ -52,13 +56,13 @@ type BrandSnapshotRecord = {
       }
     }
   >
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean | null
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean | null
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
 }
 
 type ProductBrandLinkRecord = {
@@ -70,15 +74,21 @@ type BrandIdRecord = {
   id: string
 }
 
-type BrandServiceWithTransaction = BrandModuleService & {
-  baseRepository_: {
-    transaction: <T>(
-      task: (transactionManager: unknown) => Promise<T>
-    ) => Promise<T>
-  }
-}
-
 const CHUNK_SIZE = 500
+const emailSchema = z.string().email()
+const GPSR_TEXT_FIELDS = [
+  "gpsr_contact_email",
+  "gpsr_european_reseller_contact_email",
+  "gpsr_european_reseller_manufacturing_company_name",
+  "gpsr_european_reseller_postal_address",
+  "gpsr_manufacturing_company_name",
+  "gpsr_postal_address",
+] as const
+const REQUIRED_OUTSIDE_EU_FIELDS = [
+  "gpsr_european_reseller_manufacturing_company_name",
+  "gpsr_european_reseller_postal_address",
+  "gpsr_european_reseller_contact_email",
+] as const
 
 const chunkArray = <T>(items: T[], size: number): T[][] => {
   const chunks: T[][] = []
@@ -90,32 +100,13 @@ const chunkArray = <T>(items: T[], size: number): T[][] => {
   return chunks
 }
 
-const hasBrandTransaction = (
-  service: BrandModuleService
-): service is BrandServiceWithTransaction => {
-  const candidate = service as Partial<BrandServiceWithTransaction>
-
-  return typeof candidate.baseRepository_?.transaction === "function"
-}
-
 export const getBrandService = (container: MedusaContainer) =>
   container.resolve<BrandModuleService>(BRAND_MODULE)
 
 export const withBrandTransaction = <T>(
   service: BrandModuleService,
   task: (sharedContext: Context) => Promise<T>
-) => {
-  if (!hasBrandTransaction(service)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Brand service is missing transaction support"
-    )
-  }
-
-  return service.baseRepository_.transaction((transactionManager) =>
-    task({ transactionManager } as Context)
-  )
-}
+) => service.runInTransaction(task)
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -133,9 +124,9 @@ const isBrandSnapshotRecord = (
     typeof brand.handle !== "string" ||
     !Array.isArray(brand.attributes) ||
     !(
-      brand.gpsrManufacturedOutsideEu === undefined ||
-      brand.gpsrManufacturedOutsideEu === null ||
-      typeof brand.gpsrManufacturedOutsideEu === "boolean"
+      brand.gpsr_manufactured_outside_eu === undefined ||
+      brand.gpsr_manufactured_outside_eu === null ||
+      typeof brand.gpsr_manufactured_outside_eu === "boolean"
     )
   ) {
     return false
@@ -193,61 +184,132 @@ export const snapshotBrand = async (
       name: attribute.attributeType.name,
       value: attribute.value,
     })),
-    gpsrContactEmail: brand.gpsrContactEmail ?? null,
-    gpsrEuropeanResellerContactEmail:
-      brand.gpsrEuropeanResellerContactEmail ?? null,
-    gpsrEuropeanResellerManufacturingCompanyName:
-      brand.gpsrEuropeanResellerManufacturingCompanyName ?? null,
-    gpsrEuropeanResellerPostalAddress:
-      brand.gpsrEuropeanResellerPostalAddress ?? null,
-    gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? false,
-    gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName ?? null,
-    gpsrPostalAddress: brand.gpsrPostalAddress ?? null,
+    gpsr_contact_email: brand.gpsr_contact_email ?? null,
+    gpsr_european_reseller_contact_email:
+      brand.gpsr_european_reseller_contact_email ?? null,
+    gpsr_european_reseller_manufacturing_company_name:
+      brand.gpsr_european_reseller_manufacturing_company_name ?? null,
+    gpsr_european_reseller_postal_address:
+      brand.gpsr_european_reseller_postal_address ?? null,
+    gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu ?? false,
+    gpsr_manufacturing_company_name:
+      brand.gpsr_manufacturing_company_name ?? null,
+    gpsr_postal_address: brand.gpsr_postal_address ?? null,
   }
 }
 
-const pickBrandWriteFields = (brand: {
-  handle?: string
-  title?: string
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
-}) => ({
+export const normalizeBrandWriteInput = (
+  brand: BrandScalarWriteInput
+): BrandScalarWriteInput => {
+  const normalized: BrandScalarWriteInput = {
+    ...(brand.handle !== undefined ? { handle: brand.handle.trim() } : {}),
+    ...(brand.title !== undefined ? { title: brand.title.trim() } : {}),
+    ...(brand.gpsr_manufactured_outside_eu !== undefined
+      ? {
+          gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu,
+        }
+      : {}),
+  }
+
+  for (const field of GPSR_TEXT_FIELDS) {
+    const value = brand[field]
+    if (value === undefined) {
+      continue
+    }
+
+    normalized[field] =
+      value === null || value.trim().length === 0 ? null : value.trim()
+  }
+
+  return normalized
+}
+
+export const validateBrandGpsrState = (
+  brand: BrandScalarWriteInput,
+  identity = brand.handle ?? brand.title ?? "brand"
+) => {
+  const normalized = normalizeBrandWriteInput(brand)
+
+  for (const field of [
+    "gpsr_contact_email",
+    "gpsr_european_reseller_contact_email",
+  ] as const) {
+    const value = normalized[field]
+
+    if (value && !emailSchema.safeParse(value).success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Brand "${identity}" has an invalid ${field}`
+      )
+    }
+  }
+
+  const presentRepresentativeFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
+    (field) => !!normalized[field]
+  )
+
+  if (
+    presentRepresentativeFields.length !== 0 &&
+    presentRepresentativeFields.length !== REQUIRED_OUTSIDE_EU_FIELDS.length
+  ) {
+    const missingFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
+      (field) => !normalized[field]
+    )
+
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Brand "${identity}" must provide all EU representative fields or none; missing: ${missingFields.join(", ")}`
+    )
+  }
+
+  const hasEuropeanRepresentative =
+    presentRepresentativeFields.length === REQUIRED_OUTSIDE_EU_FIELDS.length
+
+  const isManufacturedOutsideEu =
+    normalized.gpsr_manufactured_outside_eu ?? false
+
+  if (isManufacturedOutsideEu !== hasEuropeanRepresentative) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Brand "${identity}" must set gpsr_manufactured_outside_eu to ${hasEuropeanRepresentative} when EU representative fields are ${hasEuropeanRepresentative ? "present" : "absent"}`
+    )
+  }
+
+  return normalized
+}
+
+const pickBrandWriteFields = (brand: BrandScalarWriteInput) => ({
   ...(brand.handle !== undefined ? { handle: brand.handle } : {}),
   ...(brand.title !== undefined ? { title: brand.title } : {}),
-  ...(brand.gpsrContactEmail !== undefined
-    ? { gpsrContactEmail: brand.gpsrContactEmail }
+  ...(brand.gpsr_contact_email !== undefined
+    ? { gpsr_contact_email: brand.gpsr_contact_email }
     : {}),
-  ...(brand.gpsrEuropeanResellerContactEmail !== undefined
+  ...(brand.gpsr_european_reseller_contact_email !== undefined
     ? {
-        gpsrEuropeanResellerContactEmail:
-          brand.gpsrEuropeanResellerContactEmail,
+        gpsr_european_reseller_contact_email:
+          brand.gpsr_european_reseller_contact_email,
       }
     : {}),
-  ...(brand.gpsrEuropeanResellerManufacturingCompanyName !== undefined
+  ...(brand.gpsr_european_reseller_manufacturing_company_name !== undefined
     ? {
-        gpsrEuropeanResellerManufacturingCompanyName:
-          brand.gpsrEuropeanResellerManufacturingCompanyName,
+        gpsr_european_reseller_manufacturing_company_name:
+          brand.gpsr_european_reseller_manufacturing_company_name,
       }
     : {}),
-  ...(brand.gpsrEuropeanResellerPostalAddress !== undefined
+  ...(brand.gpsr_european_reseller_postal_address !== undefined
     ? {
-        gpsrEuropeanResellerPostalAddress:
-          brand.gpsrEuropeanResellerPostalAddress,
+        gpsr_european_reseller_postal_address:
+          brand.gpsr_european_reseller_postal_address,
       }
     : {}),
-  ...(brand.gpsrManufacturedOutsideEu !== undefined
-    ? { gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu }
+  ...(brand.gpsr_manufactured_outside_eu !== undefined
+    ? { gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu }
     : {}),
-  ...(brand.gpsrManufacturingCompanyName !== undefined
-    ? { gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName }
+  ...(brand.gpsr_manufacturing_company_name !== undefined
+    ? { gpsr_manufacturing_company_name: brand.gpsr_manufacturing_company_name }
     : {}),
-  ...(brand.gpsrPostalAddress !== undefined
-    ? { gpsrPostalAddress: brand.gpsrPostalAddress }
+  ...(brand.gpsr_postal_address !== undefined
+    ? { gpsr_postal_address: brand.gpsr_postal_address }
     : {}),
 })
 
@@ -258,7 +320,8 @@ export const setBrandAttributes = async (
   sharedContext: Context = {}
 ) => service.setBrandAttributes(brandId, inputAttributes, sharedContext)
 
-export const buildBrandWriteInput = pickBrandWriteFields
+export const buildBrandWriteInput = (brand: BrandScalarWriteInput) =>
+  pickBrandWriteFields(normalizeBrandWriteInput(brand))
 
 export const brandProductLink = (productId: string, brandId: string) => ({
   [Modules.PRODUCT]: {
@@ -269,55 +332,32 @@ export const brandProductLink = (productId: string, brandId: string) => ({
   },
 })
 
-export const getProductBrandLockKeys = (productIds: string[]) =>
-  [...new Set(productIds)]
+export const getProductBrandLockKeys = (productIds: string[]) => [
+  "product-brand-relations",
+  ...[...new Set(productIds)]
     .sort()
-    .map((productId) => `product-brand:${productId}`)
+    .map((productId) => `product-brand:${productId}`),
+]
+
+export const getBrandMutationLockKeys = (brandIds: string[]) =>
+  [...new Set(brandIds)].sort().map((brandId) => `brand:${brandId}`)
+
+export const getBrandLifecycleLockKeys = (brandIds: string[]) => [
+  "product-brand-relations",
+  ...getBrandMutationLockKeys(brandIds),
+]
+
+export const getBrandAttributeTypeLockKeys = (namesOrIds: string[]) => [
+  "brand-attribute-types",
+  ...[...new Set(namesOrIds)]
+    .sort()
+    .map((value) => `brand-attribute-type:${value}`),
+]
 
 export const getBrandProductsLockKeys = (
   brandId: string,
   productIds: string[]
 ) => [`brand-products:${brandId}`, ...getProductBrandLockKeys(productIds)]
-
-export const replaceProductBrandLinks = async (
-  container: MedusaContainer,
-  currentIds: string[],
-  nextIds: string[],
-  toLinkDefinition: (id: string) => LinkDefinition
-) => {
-  const { add, remove } = diffIds(currentIds, nextIds)
-  const linksToDismiss = remove.map(toLinkDefinition)
-  const linksToCreate = add.map(toLinkDefinition)
-
-  if (linksToDismiss.length) {
-    await dismissLinksWorkflow(container).run({
-      input: linksToDismiss,
-    })
-  }
-
-  if (linksToCreate.length) {
-    await createLinksWorkflow(container).run({
-      input: linksToCreate,
-    })
-  }
-
-  return { add, remove }
-}
-
-export const dismissProductBrandLinks = async (
-  container: MedusaContainer,
-  links: Array<{ brand_id: string; product_id: string }>
-) => {
-  if (!links.length) {
-    return
-  }
-
-  await dismissLinksWorkflow(container).run({
-    input: links.map((link) =>
-      brandProductLink(link.product_id, link.brand_id)
-    ),
-  })
-}
 
 export const getCurrentProductBrandIds = async (
   container: MedusaContainer,
@@ -336,15 +376,6 @@ export const getCurrentProductBrandIds = async (
     .map((link) => link.brand_id)
     .filter((brandId): brandId is string => !!brandId)
 }
-
-export const getProductBrandIdsToReplace = (
-  currentIds: string[],
-  activeBrandIds: Set<string>,
-  nextIds: string[]
-) =>
-  nextIds.length
-    ? currentIds
-    : currentIds.filter((brandId) => activeBrandIds.has(brandId))
 
 export const getCurrentProductBrandLinks = async (
   container: MedusaContainer,
@@ -403,6 +434,33 @@ export const getActiveBrandIds = async (
   }
 
   return new Set(brands.map((brand) => brand.id))
+}
+
+export const getExistingProductIds = async (
+  container: MedusaContainer,
+  productIds: string[]
+) => {
+  const ids = [...new Set(productIds)]
+
+  if (!ids.length) {
+    return new Set<string>()
+  }
+
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const products: BrandIdRecord[] = []
+
+  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
+    const { data } = await query.graph({
+      entity: "product",
+      fields: ["id"],
+      filters: {
+        id: { $in: idChunk },
+      },
+    })
+    products.push(...(data as BrandIdRecord[]))
+  }
+
+  return new Set(products.map((product) => product.id))
 }
 
 export const getCurrentBrandProductIds = async (

@@ -32,7 +32,6 @@ import {
   HERBATICA_DEFAULT_STOCK_LOCATION,
   HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
   HERBATICA_MANUFACTURERS_CSV_ENV,
-  HERBATICA_MANUFACTURERS_CSV_URL,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
   HERBATICA_PRODUCTS_XML_ENV,
   HERBATICA_PRODUCTS_XML_PATHS,
@@ -2310,15 +2309,15 @@ function buildBrand(
   item: ParsedShopItem,
   manufacturersLookup: ManufacturerCsvLookup
 ): BrandSeedInput | undefined {
-  const title = item.manufacturer ?? item.supplier
+  const title = item.manufacturer
   if (!title) {
     return
   }
 
-  const manufacturerRow =
-    findManufacturerCsvRow(manufacturersLookup, item.manufacturer) ??
-    findManufacturerCsvRow(manufacturersLookup, item.supplier) ??
-    findManufacturerCsvRow(manufacturersLookup, title)
+  const manufacturerRow = findManufacturerCsvRow(
+    manufacturersLookup,
+    item.manufacturer
+  )
 
   const attributes = dedupeParameters(
     [
@@ -2333,20 +2332,18 @@ function buildBrand(
   return {
     title,
     attributes,
-    gpsrContactEmail: manufacturerRow?.contactEmail,
-    gpsrEuropeanResellerContactEmail:
-      manufacturerRow?.europeanResellerContactEmail,
-    gpsrEuropeanResellerManufacturingCompanyName:
-      manufacturerRow?.europeanResellerManufacturingCompanyName,
-    gpsrEuropeanResellerPostalAddress:
-      manufacturerRow?.europeanResellerPostalAddress,
-    gpsrManufacturedOutsideEu: !!(
-      manufacturerRow?.europeanResellerManufacturingCompanyName ||
-      manufacturerRow?.europeanResellerPostalAddress ||
-      manufacturerRow?.europeanResellerContactEmail
-    ),
-    gpsrManufacturingCompanyName: manufacturerRow?.manufacturingCompanyName,
-    gpsrPostalAddress: manufacturerRow?.postalAddress,
+    gpsr_contact_email: manufacturerRow?.gpsr_contact_email ?? undefined,
+    gpsr_european_reseller_contact_email:
+      manufacturerRow?.gpsr_european_reseller_contact_email ?? undefined,
+    gpsr_european_reseller_manufacturing_company_name:
+      manufacturerRow?.gpsr_european_reseller_manufacturing_company_name ??
+      undefined,
+    gpsr_european_reseller_postal_address:
+      manufacturerRow?.gpsr_european_reseller_postal_address ?? undefined,
+    gpsr_manufactured_outside_eu: manufacturerRow?.gpsr_manufactured_outside_eu,
+    gpsr_manufacturing_company_name:
+      manufacturerRow?.gpsr_manufacturing_company_name ?? undefined,
+    gpsr_postal_address: manufacturerRow?.gpsr_postal_address ?? undefined,
   }
 }
 
@@ -3545,7 +3542,9 @@ function resolveManufacturersCsvSource(args?: string[]): string {
     return envPath
   }
 
-  return HERBATICA_MANUFACTURERS_CSV_URL
+  throw new Error(
+    `Manufacturers CSV source is required. Pass it as the fourth seed argument or set ${HERBATICA_MANUFACTURERS_CSV_ENV} to an explicit local path or pinned/versioned URL. No mutable remote fallback is used.`
+  )
 }
 
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {

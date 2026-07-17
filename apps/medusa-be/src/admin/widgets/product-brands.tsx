@@ -1,6 +1,8 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
+import { Spinner } from "@medusajs/icons"
 import {
+  Alert,
   Badge,
   Button,
   Container,
@@ -12,13 +14,14 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import {
   type Brand,
   brandQueryKeys,
   listBrands,
+  productQueryKeys,
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
@@ -29,6 +32,17 @@ type ProductBrandsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
 const SUPPLIER_ATTRIBUTE_NAME = "supplier"
+
+const getBrandSelectionRowClassName = (
+  isDeleted: boolean,
+  isSelected: boolean
+) => {
+  if (isDeleted) {
+    return "cursor-not-allowed opacity-60"
+  }
+
+  return isSelected ? undefined : "cursor-pointer"
+}
 
 const getBrandAttributeValue = (
   brand: Brand | undefined,
@@ -41,12 +55,14 @@ const getBrandAttributeValue = (
 const BrandSelectionRows = ({
   currentBrandId,
   isLoading,
+  isPending,
   onClear,
   onSelect,
   brands,
 }: {
   currentBrandId?: string
   isLoading: boolean
+  isPending: boolean
   onClear: () => void
   onSelect: (brandId: string) => void
   brands: Brand[]
@@ -56,7 +72,12 @@ const BrandSelectionRows = ({
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell>
+          <div className="flex items-center gap-2">
+            <Spinner className="animate-spin" />
+            <Text size="small">{t("status.loading")}</Text>
+          </div>
+        </Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -77,13 +98,14 @@ const BrandSelectionRows = ({
 
   return brands.map((brand) => {
     const isSelected = brand.id === currentBrandId
+    const isDeleted = !!brand.deleted_at
 
     return (
       <Table.Row
-        className={isSelected ? undefined : "cursor-pointer"}
+        className={getBrandSelectionRowClassName(isDeleted, isSelected)}
         key={brand.id}
         onClick={() => {
-          if (!isSelected) {
+          if (!(isDeleted || isPending || isSelected)) {
             onSelect(brand.id)
           }
         }}
@@ -100,8 +122,12 @@ const BrandSelectionRows = ({
         <Table.Cell>
           <div className="flex justify-end">
             <Button
+              disabled={isDeleted || isPending}
               onClick={(event) => {
                 event.stopPropagation()
+                if (isDeleted || isPending) {
+                  return
+                }
                 if (isSelected) {
                   onClear()
                 } else {
@@ -133,15 +159,16 @@ const BrandLinkContent = ({
   const { t } = useTranslation("brands")
 
   if (error) {
-    return (
-      <Text className="text-ui-fg-error" size="small">
-        {t("widget.loadFailed")}
-      </Text>
-    )
+    return <Alert variant="error">{t("widget.loadFailed")}</Alert>
   }
 
   if (isLoading) {
-    return <Text size="small">{t("status.loading")}</Text>
+    return (
+      <div className="flex items-center gap-2">
+        <Spinner className="animate-spin" />
+        <Text size="small">{t("status.loading")}</Text>
+      </div>
+    )
   }
 
   if (!brands.length) {
@@ -183,6 +210,144 @@ const BrandLinkContent = ({
   )
 }
 
+const getActiveBrand = (brand: Brand | undefined) => {
+  if (brand?.deleted_at) {
+    return
+  }
+
+  return brand
+}
+
+const useBrandSelection = (currentBrand: Brand | undefined, open: boolean) => {
+  const activeCurrentBrand = getActiveBrand(currentBrand)
+  const [selectedId, setSelectedId] = useState<string | undefined>(
+    activeCurrentBrand?.id
+  )
+  const [selectedBrandSnapshot, setSelectedBrandSnapshot] = useState<
+    Brand | undefined
+  >(activeCurrentBrand)
+  const previous = useRef({
+    deletedAt: currentBrand?.deleted_at,
+    id: currentBrand?.id,
+    open: false,
+  })
+
+  useEffect(() => {
+    const current = {
+      deletedAt: currentBrand?.deleted_at,
+      id: currentBrand?.id,
+      open,
+    }
+    const shouldReset =
+      open &&
+      (!previous.current.open ||
+        previous.current.id !== current.id ||
+        previous.current.deletedAt !== current.deletedAt)
+
+    if (shouldReset) {
+      const activeBrand = getActiveBrand(currentBrand)
+      setSelectedId(activeBrand?.id)
+      setSelectedBrandSnapshot(activeBrand)
+    }
+    previous.current = current
+  }, [currentBrand, open])
+
+  return {
+    selectedBrandSnapshot,
+    selectedId,
+    setSelectedBrandSnapshot,
+    setSelectedId,
+  }
+}
+
+const findSelectedBrand = (
+  brands: Brand[],
+  selectedId: string | undefined,
+  selectedBrandSnapshot: Brand | undefined
+) => {
+  const listedBrand = brands.find((brand) => brand.id === selectedId)
+  if (listedBrand) {
+    return listedBrand
+  }
+  if (selectedBrandSnapshot?.id === selectedId) {
+    return selectedBrandSnapshot
+  }
+
+  return
+}
+
+const SelectedBrandGpsrDetails = ({ brand }: { brand: Brand | undefined }) => {
+  const { t } = useTranslation("brands")
+
+  if (!brand) {
+    return null
+  }
+
+  return (
+    <Container className="px-4 py-3">
+      <Text size="small" weight="plus">
+        {t("fields.gpsr")}
+      </Text>
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        <div>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_manufacturing_company_name")}
+          </Text>
+          <Text size="small">
+            {brand.gpsr_manufacturing_company_name ?? "-"}
+          </Text>
+        </div>
+        <div>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_postal_address")}
+          </Text>
+          <Text size="small">{brand.gpsr_postal_address ?? "-"}</Text>
+        </div>
+        <div>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_contact_email")}
+          </Text>
+          <Text size="small">{brand.gpsr_contact_email ?? "-"}</Text>
+        </div>
+        <div>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_manufactured_outside_eu")}
+          </Text>
+          <Text size="small">
+            {brand.gpsr_manufactured_outside_eu
+              ? t("status.yes")
+              : t("status.no")}
+          </Text>
+        </div>
+        <div>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_european_reseller_manufacturing_company_name")}
+          </Text>
+          <Text size="small">
+            {brand.gpsr_european_reseller_manufacturing_company_name ?? "-"}
+          </Text>
+        </div>
+        <div>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_european_reseller_postal_address")}
+          </Text>
+          <Text size="small">
+            {brand.gpsr_european_reseller_postal_address ?? "-"}
+          </Text>
+        </div>
+        <div className="md:col-span-2">
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("fields.gpsr_european_reseller_contact_email")}
+          </Text>
+          <Text size="small">
+            {brand.gpsr_european_reseller_contact_email ?? "-"}
+          </Text>
+        </div>
+      </div>
+    </Container>
+  )
+}
+
 const BrandAssignmentDrawer = ({
   currentBrand,
   onOpenChange,
@@ -199,71 +364,89 @@ const BrandAssignmentDrawer = ({
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
   const debouncedQ = useDebouncedValue(q)
-  const [selectedId, setSelectedId] = useState<string | undefined>(
-    () => currentBrand?.id
-  )
-
-  useEffect(() => {
-    if (open) {
-      setSelectedId(currentBrand?.id)
-    }
-  }, [currentBrand?.id, open])
+  const {
+    selectedBrandSnapshot,
+    selectedId,
+    setSelectedBrandSnapshot,
+    setSelectedId,
+  } = useBrandSelection(currentBrand, open)
 
   const params = {
+    include_deleted: false,
     limit: PAGE_SIZE,
     offset: pageIndex * PAGE_SIZE,
     order_by: "title",
     q: debouncedQ,
   }
 
-  const { data, isLoading } = useQuery({
+  const { data, error, isLoading } = useQuery({
     enabled: open,
     queryFn: () => listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
 
   const mutation = useMutation({
-    mutationFn: () => setProductBrands(productId, selectedId),
-    onError: (error) => {
+    mutationFn: (submittedBrandId: string | undefined) =>
+      setProductBrands(productId, submittedBrandId),
+    onError: (mutationError) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveBrandFailed")
+        mutationError instanceof Error
+          ? mutationError.message
+          : t("errors.saveBrandFailed")
       )
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.productLinks(productId),
-      })
-      await queryClient.invalidateQueries({ queryKey: ["product", productId] })
-      await queryClient.invalidateQueries({ queryKey: ["products"] })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.details(),
-      })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.lists(),
-      })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.attributeTypeDetails(),
-      })
-      await queryClient.invalidateQueries({
-        queryKey: brandQueryKeys.productOptionsLists(),
-      })
+    onSuccess: async (_, submittedBrandId) => {
+      const affectedBrandIds = new Set(
+        [currentBrand?.id, submittedBrandId].filter(
+          (id): id is string => id !== undefined
+        )
+      )
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: brandQueryKeys.productLinks(productId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.detail(productId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: productQueryKeys.lists(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: brandQueryKeys.lists(),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: brandQueryKeys.productOptionsLists(),
+        }),
+        ...[...affectedBrandIds].map((brandId) =>
+          queryClient.invalidateQueries({
+            queryKey: brandQueryKeys.detail(brandId),
+          })
+        ),
+      ])
       toast.success(t("toasts.productBrandUpdated"))
       onOpenChange(false)
     },
   })
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!mutation.isPending) {
+      onOpenChange(nextOpen)
+    }
+  }
 
   const brands = [...(data?.brands ?? [])].sort(
     (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
   )
-  const selectedBrand =
-    brands.find((brand) => brand.id === selectedId) ??
-    (currentBrand?.id === selectedId ? currentBrand : undefined)
-  const selectedBrandDetails = selectedBrand ?? currentBrand
+  const selectedBrand = findSelectedBrand(
+    brands,
+    selectedId,
+    selectedBrandSnapshot
+  )
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
 
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
+    <Drawer onOpenChange={handleOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
           <Drawer.Title>{t("widget.manageTitle")}</Drawer.Title>
@@ -279,8 +462,11 @@ const BrandAssignmentDrawer = ({
               </Text>
             </div>
             <Button
-              disabled={!selectedId}
-              onClick={() => setSelectedId(undefined)}
+              disabled={!selectedId || mutation.isPending}
+              onClick={() => {
+                setSelectedId(undefined)
+                setSelectedBrandSnapshot(undefined)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -288,77 +474,14 @@ const BrandAssignmentDrawer = ({
               {t("actions.clear")}
             </Button>
           </Container>
-          {selectedBrandDetails ? (
-            <Container className="px-4 py-3">
-              <Text size="small" weight="plus">
-                GPSR
-              </Text>
-              <div className="mt-2 grid gap-2 md:grid-cols-2">
-                <div>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrManufacturingCompanyName")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrManufacturingCompanyName ?? "-"}
-                  </Text>
-                </div>
-                <div>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrPostalAddress")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrPostalAddress ?? "-"}
-                  </Text>
-                </div>
-                <div>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrContactEmail")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrContactEmail ?? "-"}
-                  </Text>
-                </div>
-                <div>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrManufacturedOutsideEu")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrManufacturedOutsideEu
-                      ? t("status.selected")
-                      : "-"}
-                  </Text>
-                </div>
-                <div>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrEuropeanResellerManufacturingCompanyName")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrEuropeanResellerManufacturingCompanyName ??
-                      "-"}
-                  </Text>
-                </div>
-                <div>
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrEuropeanResellerPostalAddress")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrEuropeanResellerPostalAddress ??
-                      "-"}
-                  </Text>
-                </div>
-                <div className="md:col-span-2">
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.gpsrEuropeanResellerContactEmail")}
-                  </Text>
-                  <Text size="small">
-                    {selectedBrandDetails.gpsrEuropeanResellerContactEmail ??
-                      "-"}
-                  </Text>
-                </div>
-              </div>
-            </Container>
+          {currentBrand?.deleted_at ? (
+            <Alert variant="warning">
+              {t("widget.inactiveSelectionWarning")}
+            </Alert>
           ) : null}
+          <SelectedBrandGpsrDetails brand={selectedBrand} />
           <Input
+            disabled={mutation.isPending}
             onChange={(event) => {
               setPageIndex(0)
               setQ(event.target.value)
@@ -366,30 +489,43 @@ const BrandAssignmentDrawer = ({
             placeholder={t("search.brands")}
             value={q}
           />
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell>{t("columns.brand")}</Table.HeaderCell>
-                <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
-                <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
-                <Table.HeaderCell className="w-[1%] text-right">
-                  {t("columns.actions")}
-                </Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              <BrandSelectionRows
-                brands={brands}
-                currentBrandId={selectedId}
-                isLoading={isLoading}
-                onClear={() => setSelectedId(undefined)}
-                onSelect={setSelectedId}
-              />
-            </Table.Body>
-          </Table>
+          {error ? (
+            <Alert variant="error">{t("errors.loadBrandsFailed")}</Alert>
+          ) : (
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>{t("columns.brand")}</Table.HeaderCell>
+                  <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
+                  <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
+                  <Table.HeaderCell className="w-[1%] text-right">
+                    {t("columns.actions")}
+                  </Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                <BrandSelectionRows
+                  brands={brands}
+                  currentBrandId={selectedId}
+                  isLoading={isLoading}
+                  isPending={mutation.isPending}
+                  onClear={() => {
+                    setSelectedId(undefined)
+                    setSelectedBrandSnapshot(undefined)
+                  }}
+                  onSelect={(brandId) => {
+                    setSelectedId(brandId)
+                    setSelectedBrandSnapshot(
+                      brands.find((brand) => brand.id === brandId)
+                    )
+                  }}
+                />
+              </Table.Body>
+            </Table>
+          )}
           <Table.Pagination
-            canNextPage={pageIndex + 1 < pageCount}
-            canPreviousPage={pageIndex > 0}
+            canNextPage={!mutation.isPending && pageIndex + 1 < pageCount}
+            canPreviousPage={!mutation.isPending && pageIndex > 0}
             count={count}
             nextPage={() => setPageIndex((current) => current + 1)}
             pageCount={pageCount}
@@ -404,7 +540,8 @@ const BrandAssignmentDrawer = ({
         <Drawer.Footer>
           <div className="flex justify-end gap-2">
             <Button
-              onClick={() => onOpenChange(false)}
+              disabled={mutation.isPending}
+              onClick={() => handleOpenChange(false)}
               size="small"
               type="button"
               variant="secondary"
@@ -412,8 +549,9 @@ const BrandAssignmentDrawer = ({
               {t("actions.cancel")}
             </Button>
             <Button
+              disabled={mutation.isPending}
               isLoading={mutation.isPending}
-              onClick={() => mutation.mutate()}
+              onClick={() => mutation.mutate(selectedId)}
               size="small"
               type="button"
             >
@@ -510,7 +648,7 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
         </div>
       </Container>
       <BrandAssignmentDrawer
-        currentBrand={activeBrand}
+        currentBrand={activeBrand ?? brands[0]}
         onOpenChange={setOpen}
         open={open}
         productId={product.id}

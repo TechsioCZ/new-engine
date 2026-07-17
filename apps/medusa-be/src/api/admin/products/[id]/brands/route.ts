@@ -1,7 +1,9 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import { setProductBrandsWorkflow } from "../../../../../workflows/brand"
 import {
-  ensureBrandIdsExist,
   getBrandActiveProductCounts,
   listBrandIdsForProduct,
   listBrandsByIds,
@@ -10,7 +12,10 @@ import {
 } from "../../../brands/utils"
 import type { AdminSetProductBrandsSchemaType } from "../../../brands/validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) {
   const productId = req.params.id ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
@@ -31,21 +36,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function POST(
-  req: MedusaRequest<AdminSetProductBrandsSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminSetProductBrandsSchemaType>,
   res: MedusaResponse
 ) {
   const productId = req.params.id ?? ""
-  const brandIds = await ensureBrandIdsExist(
-    req.scope,
-    req.validatedBody.brand_ids
-  )
 
-  await retrieveProductOrThrow(req.scope, productId)
   // Product-side assignment is an explicit replacement operation for one product.
   // Brand-side batch assignment rejects products owned by another brand.
   await setProductBrandsWorkflow(req.scope).run({
     input: {
-      brand_ids: brandIds,
+      brand_ids: req.validatedBody.brand_ids,
       product_id: productId,
     },
   })

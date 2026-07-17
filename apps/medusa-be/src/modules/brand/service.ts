@@ -1,7 +1,8 @@
 import type { Context } from "@medusajs/framework/types"
 import {
-  kebabCase,
-  MedusaError,
+  InjectManager,
+  InjectTransactionManager,
+  MedusaContext,
   MedusaService,
 } from "@medusajs/framework/utils"
 import Brand from "./models/brand"
@@ -11,19 +12,6 @@ import BrandAttributeType from "./models/brand-attribute-type"
 export type BrandAttributeInput = {
   name: string
   value: string
-}
-
-export type UpsertBrandDTO = {
-  name: string
-  handle?: string
-  attributes: BrandAttributeInput[]
-  gpsrContactEmail?: string | null
-  gpsrEuropeanResellerContactEmail?: string | null
-  gpsrEuropeanResellerManufacturingCompanyName?: string | null
-  gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean
-  gpsrManufacturingCompanyName?: string | null
-  gpsrPostalAddress?: string | null
 }
 
 type BrandAttributeRecord = {
@@ -40,22 +28,6 @@ type BrandAttributeTypeRecord = {
   deleted_at?: string | Date | null
   id: string
   name: string
-}
-
-type ServiceWithTransaction = {
-  baseRepository_: {
-    transaction: <T>(
-      task: (transactionManager: unknown) => Promise<T>
-    ) => Promise<T>
-  }
-}
-
-const hasTransaction = (
-  service: BrandModuleService
-): service is BrandModuleService & ServiceWithTransaction => {
-  const candidate = service as Partial<ServiceWithTransaction>
-
-  return typeof candidate.baseRepository_?.transaction === "function"
 }
 
 const normalizeAttributes = (attributes: BrandAttributeInput[] = []) => {
@@ -79,74 +51,31 @@ const normalizeAttributes = (attributes: BrandAttributeInput[] = []) => {
 const isDeleted = (record: { deleted_at?: string | Date | null }) =>
   !!record.deleted_at
 
-const pickBrandScalarFields = (
-  input: Partial<UpsertBrandDTO> & { name?: string }
-) => ({
-  ...(input.handle !== undefined ? { handle: input.handle } : {}),
-  ...(input.gpsrContactEmail !== undefined
-    ? { gpsrContactEmail: input.gpsrContactEmail }
-    : {}),
-  ...(input.gpsrEuropeanResellerContactEmail !== undefined
-    ? {
-        gpsrEuropeanResellerContactEmail:
-          input.gpsrEuropeanResellerContactEmail,
-      }
-    : {}),
-  ...(input.gpsrEuropeanResellerManufacturingCompanyName !== undefined
-    ? {
-        gpsrEuropeanResellerManufacturingCompanyName:
-          input.gpsrEuropeanResellerManufacturingCompanyName,
-      }
-    : {}),
-  ...(input.gpsrEuropeanResellerPostalAddress !== undefined
-    ? {
-        gpsrEuropeanResellerPostalAddress:
-          input.gpsrEuropeanResellerPostalAddress,
-      }
-    : {}),
-  ...(input.gpsrManufacturedOutsideEu !== undefined
-    ? { gpsrManufacturedOutsideEu: input.gpsrManufacturedOutsideEu }
-    : {}),
-  ...(input.gpsrManufacturingCompanyName !== undefined
-    ? { gpsrManufacturingCompanyName: input.gpsrManufacturingCompanyName }
-    : {}),
-  ...(input.gpsrPostalAddress !== undefined
-    ? { gpsrPostalAddress: input.gpsrPostalAddress }
-    : {}),
-  ...(input.name !== undefined ? { title: input.name } : {}),
-})
-
 class BrandModuleService extends MedusaService({
   Brand,
   BrandAttribute,
   BrandAttributeType,
 }) {
-  private async withTransaction<T>(
-    sharedContext: Context,
-    task: (context: Context) => Promise<T>
+  @InjectManager()
+  async runInTransaction<T>(
+    task: (context: Context) => Promise<T>,
+    @MedusaContext() sharedContext: Context = {}
   ) {
-    if (!hasTransaction(this)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Brand service is missing transaction support"
-      )
-    }
-
-    const transactionalService = this as BrandModuleService &
-      ServiceWithTransaction
-
-    return await transactionalService.baseRepository_.transaction(
-      async (transactionManager) =>
-        task({
-          ...sharedContext,
-          transactionManager,
-        })
-    )
+    return await this.runInTransaction_(task, sharedContext)
   }
 
-  private async getAttributeTypeIdsByName(
+  @InjectTransactionManager()
+  protected async runInTransaction_<T>(
+    task: (context: Context) => Promise<T>,
+    @MedusaContext() sharedContext: Context = {}
+  ) {
+    return await task(sharedContext)
+  }
+
+  @InjectTransactionManager()
+  protected async getAttributeTypeIdsByName(
     names: string[],
-    sharedContext: Context
+    @MedusaContext() sharedContext: Context = {}
   ) {
     const existingAttributeTypes = names.length
       ? ((await this.listBrandAttributeTypes(
@@ -217,17 +146,19 @@ class BrandModuleService extends MedusaService({
     return attributeTypeIdsByName
   }
 
-  private async getReusableAttributesByName({
-    attributeTypeIdsByName,
-    attributes,
-    brandId,
-    sharedContext,
-  }: {
-    attributeTypeIdsByName: Map<string, string>
-    attributes: BrandAttributeInput[]
-    brandId: string
-    sharedContext: Context
-  }) {
+  @InjectTransactionManager()
+  protected async getReusableAttributesByName(
+    {
+      attributeTypeIdsByName,
+      attributes,
+      brandId,
+    }: {
+      attributeTypeIdsByName: Map<string, string>
+      attributes: BrandAttributeInput[]
+      brandId: string
+    },
+    @MedusaContext() sharedContext: Context = {}
+  ) {
     const existingAttributes = (await this.listBrandAttributes(
       { brand_id: brandId },
       {
@@ -286,10 +217,24 @@ class BrandModuleService extends MedusaService({
     return { existingAttributes, existingByName }
   }
 
+  @InjectManager()
   async setBrandAttributes(
     brandId: string,
     inputAttributes: BrandAttributeInput[] = [],
-    sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {}
+  ) {
+    return await this.setBrandAttributes_(
+      brandId,
+      inputAttributes,
+      sharedContext
+    )
+  }
+
+  @InjectTransactionManager()
+  protected async setBrandAttributes_(
+    brandId: string,
+    inputAttributes: BrandAttributeInput[] = [],
+    @MedusaContext() sharedContext: Context = {}
   ) {
     const attributes = normalizeAttributes(inputAttributes)
     const names = attributes.map((attribute) => attribute.name)
@@ -298,12 +243,14 @@ class BrandModuleService extends MedusaService({
       sharedContext
     )
     const { existingAttributes, existingByName } =
-      await this.getReusableAttributesByName({
-        attributeTypeIdsByName,
-        attributes,
-        brandId,
-        sharedContext,
-      })
+      await this.getReusableAttributesByName(
+        {
+          attributeTypeIdsByName,
+          attributes,
+          brandId,
+        },
+        sharedContext
+      )
 
     const toCreate = attributes.flatMap((attribute) => {
       if (existingByName.has(attribute.name)) {
@@ -361,85 +308,6 @@ class BrandModuleService extends MedusaService({
     if (toDelete.length) {
       await this.deleteBrandAttributes(toDelete, sharedContext)
     }
-  }
-
-  async upsertBrand(
-    input: UpsertBrandDTO
-  ): Promise<Awaited<ReturnType<typeof this.createBrands>>[number]> {
-    const handle = input.handle ?? kebabCase(input.name)
-
-    return await this.withTransaction({}, async (context) => {
-      let brand = (
-        await this.listBrands(
-          { handle },
-          { take: 1, withDeleted: true },
-          context
-        )
-      ).shift()
-
-      if (brand && isDeleted(brand)) {
-        await this.restoreBrands([brand.id], {}, context)
-        brand = (
-          await this.listBrands({ id: brand.id }, { take: 1 }, context)
-        ).shift()
-      }
-
-      if (!brand) {
-        brand = await this.createBrands(
-          {
-            handle,
-            title: input.name,
-            gpsrContactEmail: input.gpsrContactEmail,
-            gpsrEuropeanResellerContactEmail:
-              input.gpsrEuropeanResellerContactEmail,
-            gpsrEuropeanResellerManufacturingCompanyName:
-              input.gpsrEuropeanResellerManufacturingCompanyName,
-            gpsrEuropeanResellerPostalAddress:
-              input.gpsrEuropeanResellerPostalAddress,
-            gpsrManufacturedOutsideEu: input.gpsrManufacturedOutsideEu,
-            gpsrManufacturingCompanyName: input.gpsrManufacturingCompanyName,
-            gpsrPostalAddress: input.gpsrPostalAddress,
-          },
-          context
-        )
-      }
-
-      const nextScalarFields = pickBrandScalarFields(input)
-      const currentScalarFields = pickBrandScalarFields({
-        handle: brand.handle,
-        gpsrContactEmail: brand.gpsrContactEmail,
-        gpsrEuropeanResellerContactEmail:
-          brand.gpsrEuropeanResellerContactEmail,
-        gpsrEuropeanResellerManufacturingCompanyName:
-          brand.gpsrEuropeanResellerManufacturingCompanyName,
-        gpsrEuropeanResellerPostalAddress:
-          brand.gpsrEuropeanResellerPostalAddress,
-        gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu,
-        gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName,
-        gpsrPostalAddress: brand.gpsrPostalAddress,
-        name: brand.title,
-      })
-
-      const hasScalarFieldChanges = Object.entries(nextScalarFields).some(
-        ([key, value]) =>
-          currentScalarFields[key as keyof typeof currentScalarFields] !== value
-      )
-
-      if (brand.title !== input.name || hasScalarFieldChanges) {
-        brand = await this.updateBrands(
-          {
-            ...currentScalarFields,
-            ...nextScalarFields,
-            id: brand.id,
-          },
-          context
-        )
-      }
-
-      await this.setBrandAttributes(brand.id, input.attributes, context)
-
-      return brand
-    })
   }
 }
 
