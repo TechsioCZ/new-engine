@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { useTranslations } from "next-intl"
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
@@ -24,6 +25,7 @@ export function CheckoutCartStepSection({
   cartItemsTotalAmount,
   currencyCode,
 }: CheckoutCartStepSectionProps) {
+  const tCheckout = useTranslations("checkout")
   const lineItemActions = useCartLineItemActions({ cartId })
   const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
     cartItems,
@@ -64,18 +66,20 @@ export function CheckoutCartStepSection({
         <div className="min-h-900 rounded-sm border border-border-primary bg-surface px-400 pt-400 pb-650 md:px-550">
           <p className="text-center font-light text-fg-primary text-sm leading-relaxed">
             {missingAmount > 0 ? (
-              <>
-                {`Nakúpte ešte za ${missingAmountLabel} a získajte `}
-                <span className="font-semibold">dopravu zadarmo.</span>
-              </>
+              tCheckout.rich("free_shipping_remaining", {
+                missingAmount: missingAmountLabel ?? "",
+                strong: (chunks) => (
+                  <span className="font-semibold">{chunks}</span>
+                ),
+              })
             ) : (
-              "Dopravu zadarmo už máte v košíku."
+              tCheckout("free_shipping_qualified")
             )}
           </p>
 
           <div className="relative mt-400 flex items-start">
             <div
-              aria-label="Priebeh do dopravy zadarmo"
+              aria-label={tCheckout("free_shipping_progress_aria")}
               aria-valuemax={100}
               aria-valuemin={0}
               aria-valuenow={Math.round(progressValue)}
