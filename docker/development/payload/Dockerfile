@@ -36,7 +36,7 @@ COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
 RUN --mount=type=cache,id=pnpm-store-payload-ci-dev,target=/pnpm/store \
     corepack install && \
-    pnpm install --store-dir=/pnpm/store --frozen-lockfile --filter @nmit/payload...
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=@nmit/payload...
 COPY apps/payload apps/payload
 
 EXPOSE 8083
@@ -78,7 +78,7 @@ COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
 RUN --mount=type=cache,id=pnpm-store-payload,target=/pnpm/store \
     corepack install && \
-    pnpm install --store-dir=/pnpm/store --frozen-lockfile --filter @nmit/payload...
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=@nmit/payload...
 COPY apps/payload apps/payload
 RUN mkdir -p apps/payload/public
 RUN pnpm --filter @nmit/payload run generate:importmap && \

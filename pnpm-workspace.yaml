@@ -12,6 +12,9 @@ disallowWorkspaceCycles: true
 dedupeDirectDeps: true
 injectWorkspacePackages: true
 verifyDepsBeforeRun: false
+# Keep registry request fan-out stable across developer and CI machines.
+# pnpm otherwise derives this from the available CPU count.
+networkConcurrency: 16
 storeDir: .pnpm-store
 publicHoistPattern:
   - eslint
@@ -47,19 +50,19 @@ overrides:
   vite: 8.1.3
 
 supportedArchitectures:
+  # `current` still covers Windows when it is the active host. Darwin + Linux
+  # and x64 + arm64 are retained for the shared host/Docker store. Runtime
+  # images are Debian-based, so Linux optional dependencies only need glibc.
   os:
     - current
     - darwin
     - linux
-    - win32
   cpu:
     - current
     - x64
     - arm64
   libc:
-    - current
     - glibc
-    - musl
 
 # Manual dependency metadata extensions for packages with incomplete published metadata.
 packageExtensions:

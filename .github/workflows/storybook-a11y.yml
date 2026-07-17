@@ -90,7 +90,7 @@ jobs:
       # `timeout` is a safety net so a future regression fails fast instead of
       # hanging. ubuntu-latest already ships Chromium's system libs (no
       # --with-deps needed).
-      install-command: pnpm install --frozen-lockfile && timeout 420 pnpm -C {{workdir}} exec playwright install --only-shell chromium
+      install-command: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit... && timeout 420 pnpm -C {{workdir}} exec playwright install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook

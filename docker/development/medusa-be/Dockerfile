@@ -34,9 +34,7 @@ ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN corepack install
 
 COPY tsconfig.base.json eslint.config.ts ./
 COPY apps/medusa-be ./apps/medusa-be
@@ -45,7 +43,7 @@ COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
 
 RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=medusa-be...
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=medusa-be...
 
 WORKDIR /var/www/apps/medusa-be
 
@@ -57,12 +55,10 @@ CMD ["npm", "run", "start:ci-dev"]
 FROM base AS build
 ENV CI=true
 
-# Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
+# Pin pnpm before copying the narrowed service source.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN corepack install
 
 # Copy only the files needed for the Medusa production build so unrelated repo changes
 # don't invalidate the expensive install/build layers.
@@ -78,6 +74,7 @@ ARG FEATURE_PAYLOAD_ENABLED=0
 ARG FEATURE_PACKETA_ENABLED=0
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
+    pnpm_config_prefer_offline=true \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} \
     FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED} \
