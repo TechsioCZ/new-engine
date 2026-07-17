@@ -1,10 +1,9 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
 import {
-  resolvePaymentDescription,
-  resolvePaymentHint,
+  formatProviderLabel,
+  resolvePaymentDisplayTextKeys,
   resolvePaymentIcon,
-  resolveProviderLabel,
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -59,7 +58,30 @@ export function CheckoutPaymentSection({
             }}
             options={paymentProviders.map((provider, index) => {
               const providerId = resolveProviderId(provider)
-              const providerLabel = resolveProviderLabel(providerId)
+              const displayTextKeys =
+                resolvePaymentDisplayTextKeys(providerId)
+              let providerLabel =
+                displayTextKeys.providerName ?? formatProviderLabel(providerId)
+              if (displayTextKeys.labelKey) {
+                providerLabel = displayTextKeys.providerName
+                  ? tCheckout(displayTextKeys.labelKey, {
+                      providerName: displayTextKeys.providerName,
+                    })
+                  : tCheckout(displayTextKeys.labelKey)
+              }
+
+              let paymentDescription: string | undefined
+              if (displayTextKeys.descriptionKey) {
+                paymentDescription = displayTextKeys.providerName
+                  ? tCheckout(displayTextKeys.descriptionKey, {
+                      providerName: displayTextKeys.providerName,
+                    })
+                  : tCheckout(displayTextKeys.descriptionKey)
+              }
+
+              const paymentHint = displayTextKeys.hintKey
+                ? tCheckout(displayTextKeys.hintKey)
+                : displayTextKeys.hintValue
               const isProviderSelectable = Boolean(
                 providerId && canInitiatePayment
               )
@@ -67,8 +89,8 @@ export function CheckoutPaymentSection({
               return {
                 disabled:
                   isBusy || isInitiatingPayment || !isProviderSelectable,
-                bodyText: resolvePaymentDescription(providerId),
-                hint: resolvePaymentHint(providerId),
+                bodyText: paymentDescription,
+                hint: paymentHint,
                 icon: resolvePaymentIcon(providerId),
                 priceLabel: tCheckout("free"),
                 priceTone: "success" as const,
