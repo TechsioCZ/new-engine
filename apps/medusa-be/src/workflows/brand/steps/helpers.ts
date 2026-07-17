@@ -35,7 +35,7 @@ type BrandSnapshot = {
   gpsrEuropeanResellerContactEmail?: string | null
   gpsrEuropeanResellerManufacturingCompanyName?: string | null
   gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean | null
+  gpsrManufacturedOutsideEu?: boolean
   gpsrManufacturingCompanyName?: string | null
   gpsrPostalAddress?: string | null
 }
@@ -200,7 +200,7 @@ export const snapshotBrand = async (
       brand.gpsrEuropeanResellerManufacturingCompanyName ?? null,
     gpsrEuropeanResellerPostalAddress:
       brand.gpsrEuropeanResellerPostalAddress ?? null,
-    gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? null,
+    gpsrManufacturedOutsideEu: brand.gpsrManufacturedOutsideEu ?? false,
     gpsrManufacturingCompanyName: brand.gpsrManufacturingCompanyName ?? null,
     gpsrPostalAddress: brand.gpsrPostalAddress ?? null,
   }
@@ -213,7 +213,7 @@ const pickBrandWriteFields = (brand: {
   gpsrEuropeanResellerContactEmail?: string | null
   gpsrEuropeanResellerManufacturingCompanyName?: string | null
   gpsrEuropeanResellerPostalAddress?: string | null
-  gpsrManufacturedOutsideEu?: boolean | null
+  gpsrManufacturedOutsideEu?: boolean
   gpsrManufacturingCompanyName?: string | null
   gpsrPostalAddress?: string | null
 }) => ({

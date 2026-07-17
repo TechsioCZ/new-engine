@@ -3583,7 +3583,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   } catch (error) {
     logger.error(
       `Failed to load manufacturers CSV from ${manufacturersCsvSource}`,
-      error instanceof Error ? (error.stack ?? error.message) : error
+      error instanceof Error ? error : new Error(String(error))
     )
     throw error
   }
