@@ -51,7 +51,27 @@ const hasTextValue = (value: string) => value.trim().length > 0
 const resolveStreetValue = (form: AddressFormState) =>
   [form.address1.trim(), form.address2.trim()].filter(Boolean).join(", ")
 
-const resolveAddressRows = (form: AddressFormState, locale: string) => {
+type AddressRowLabels = {
+  address: string
+  city: string
+  companyId: string
+  companyName: string
+  country: string
+  customerNote: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  postalCode: string
+  taxId: string
+  vatId: string
+}
+
+const resolveAddressRows = (
+  form: AddressFormState,
+  locale: string,
+  labels: AddressRowLabels
+) => {
   const hasCompanyDetails = [
     form.company,
     form.companyId,
@@ -60,27 +80,34 @@ const resolveAddressRows = (form: AddressFormState, locale: string) => {
   ].some(hasTextValue)
 
   return [
-    { label: "Meno", value: form.firstName },
-    { label: "Priezvisko", value: form.lastName },
+    { id: "first-name", label: labels.firstName, value: form.firstName },
+    { id: "last-name", label: labels.lastName, value: form.lastName },
     ...(hasCompanyDetails
       ? [
-          { label: "Názov firmy", value: form.company },
-          { label: "IČO", value: form.companyId },
-          { label: "DIČ", value: form.taxId },
-          { label: "IČ DPH", value: form.vatId },
+          { id: "company-name", label: labels.companyName, value: form.company },
+          { id: "company-id", label: labels.companyId, value: form.companyId },
+          { id: "tax-id", label: labels.taxId, value: form.taxId },
+          { id: "vat-id", label: labels.vatId, value: form.vatId },
         ]
       : []),
-    { label: "E-mail", value: form.email },
-    { label: "Telefón", value: form.phone },
+    { id: "email", label: labels.email, value: form.email },
+    { id: "phone", label: labels.phone, value: form.phone },
     {
-      label: "Krajina",
+      id: "country",
+      label: labels.country,
       value: resolveCountryLabel(form.countryCode, locale),
     },
-    { label: "Ulica a číslo domu", value: resolveStreetValue(form) },
-    { label: "Mesto", value: form.city },
-    { label: "PSČ", value: form.postalCode },
+    { id: "address", label: labels.address, value: resolveStreetValue(form) },
+    { id: "city", label: labels.city, value: form.city },
+    { id: "postal-code", label: labels.postalCode, value: form.postalCode },
     ...(hasTextValue(form.customerNote)
-      ? [{ label: "Poznámka", value: form.customerNote }]
+      ? [
+          {
+            id: "customer-note",
+            label: labels.customerNote,
+            value: form.customerNote,
+          },
+        ]
       : []),
   ]
 }
@@ -112,10 +139,26 @@ export function CheckoutCompleteSection({
 }: CheckoutCompleteSectionProps) {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
+  const tForm = useTranslations("form")
   const marketContext = useMarketContext()
   const shippingAddressRows = resolveAddressRows(
     shippingAddressForm,
-    marketContext.locale
+    marketContext.locale,
+    {
+      address: tForm("address"),
+      city: tForm("city"),
+      companyId: tForm("company_id"),
+      companyName: tForm("company_name"),
+      country: tForm("country"),
+      customerNote: tCheckout("review_customer_note"),
+      email: tForm("email"),
+      firstName: tForm("first_name"),
+      lastName: tForm("last_name"),
+      phone: tForm("phone"),
+      postalCode: tForm("postal_code"),
+      taxId: tForm("tax_id"),
+      vatId: tForm("vat_id"),
+    }
   )
   const shippingSummaryLabel = hasShipping
     ? (shippingLabel ?? tCheckout("selected_shipping"))
@@ -151,13 +194,13 @@ export function CheckoutCompleteSection({
         <div className="space-y-100 px-150">
           <FormCheckbox
             checked={marketingConsent}
-            label="Súhlasím so zasielaním marketingových informácií"
+            label={tCheckout("review_marketing_consent")}
             onCheckedChange={onMarketingConsentChange}
             size="sm"
           />
           <FormCheckbox
             checked={heurekaConsent}
-            label="Súhlasím so zaslaním dotazníka spokojnosti Heureka"
+            label={tCheckout("review_heureka_consent")}
             onCheckedChange={onHeurekaConsentChange}
             size="sm"
           />
@@ -182,22 +225,24 @@ export function CheckoutCompleteSection({
           </Button>
 
           <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
-            Potvrdzujem, že som sa oboznámil s{" "}
-            <NextLink
-              className={summaryInlineLinkClassName}
-              href="/#obchodne-podmienky"
-            >
-              obchodnými podmienkami
-            </NextLink>
-            , porozumel som ich obsahu a v celom rozsahu s nimi súhlasím.
-            Oboznámil som sa so{" "}
-            <NextLink
-              className={summaryInlineLinkClassName}
-              href="/#ochrana-osobnych-udajov"
-            >
-              zásadami ochrany osobných údajov
-            </NextLink>
-            .
+            {tCheckout.rich("review_legal_confirmation", {
+              privacy: (chunks) => (
+                <NextLink
+                  className={summaryInlineLinkClassName}
+                  href="/#ochrana-osobnych-udajov"
+                >
+                  {chunks}
+                </NextLink>
+              ),
+              terms: (chunks) => (
+                <NextLink
+                  className={summaryInlineLinkClassName}
+                  href="/#obchodne-podmienky"
+                >
+                  {chunks}
+                </NextLink>
+              ),
+            })}
           </p>
         </div>
       </section>
@@ -221,7 +266,7 @@ export function CheckoutCompleteSection({
         tone={hasPayment ? "default" : "warning"}
       />
 
-      <section className={`${summaryCardClassName}`}>
+      <section className={summaryCardClassName}>
         <div className="flex items-center justify-between gap-200">
           <p className="font-medium font-rubik text-fg-primary text-lg">
             {tCheckout("customer_details")}
@@ -244,7 +289,7 @@ export function CheckoutCompleteSection({
             {shippingAddressRows.map((row) => (
               <div
                 className="min-w-0 space-y-50 px-150 py-100"
-                key={`shipping-${row.label}`}
+                key={`shipping-${row.id}`}
               >
                 <p className="text-fg-tertiary text-sm">{row.label}</p>
                 <p className="text-fg-primary text-sm leading-relaxed [overflow-wrap:anywhere]">
@@ -257,7 +302,7 @@ export function CheckoutCompleteSection({
 
         {hasStoredAddress ? null : (
           <SupportingText className="text-warning">
-            Niektoré povinné údaje ešte nie sú uložené.
+            {tCheckout("review_missing_required_details")}
           </SupportingText>
         )}
       </section>
@@ -279,7 +324,7 @@ function SummaryRecapCard({
   tone?: "default" | "warning"
 }) {
   return (
-    <div className={`${summaryCardClassName}`}>
+    <div className={summaryCardClassName}>
       <div className="flex items-center justify-between gap-200">
         <div className="flex min-w-0 items-center gap-450">
           <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">
