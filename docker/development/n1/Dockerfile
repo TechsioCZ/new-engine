@@ -48,7 +48,7 @@ COPY libs/ui ./libs/ui
 COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
-RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \

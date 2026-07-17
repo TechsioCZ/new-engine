@@ -85,7 +85,9 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
 
       - name: Install Playwright browsers
-        run: timeout 420 pnpm --filter='.' exec playwright install --only-shell chromium
+        # Storybook's test runner can use a different Playwright version than
+        # the workspace root. Install its exact matching browser revision.
+        run: timeout 420 node scripts/install-storybook-playwright.mjs libs/ui install --only-shell chromium
 
       - name: Download Storybook static
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4

@@ -34,7 +34,7 @@ ENV CI=true
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/payload/package.json apps/payload/package.json
-RUN --mount=type=cache,id=pnpm-store-payload-ci-dev,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm-store-payload,target=/pnpm/store \
     corepack install && \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=@nmit/payload...
 COPY apps/payload apps/payload

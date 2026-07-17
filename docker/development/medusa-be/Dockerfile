@@ -41,7 +41,7 @@ COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
 
-RUN --mount=type=cache,id=pnpm-store-medusa-ci-dev,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=medusa-be...
 
