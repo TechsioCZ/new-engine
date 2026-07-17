@@ -160,6 +160,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized checkout-review defaults for every market", () => {
+    const marketingConsentRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "checkout.review_marketing_consent"
+    )
+
+    expect(
+      Object.fromEntries(
+        marketingConsentRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Souhlasím se zasíláním marketingových sdělení",
+      hu: "Hozzájárulok marketinginformációk küldéséhez",
+      ro: "Sunt de acord să primesc comunicări de marketing",
+      sk: "Súhlasím so zasielaním marketingových informácií",
+    })
+  })
+
   it("creates localized navigation defaults for every market", () => {
     const homeRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "navigation.breadcrumbs.home"
