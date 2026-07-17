@@ -160,6 +160,23 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized free-shipping defaults for every market", () => {
+    const freeShippingRows = getStorefrontTextSeedRows().filter(
+      (row) => row.key === "checkout.free_shipping_remaining"
+    )
+
+    expect(
+      Object.fromEntries(
+        freeShippingRows.map((row) => [row.market, row.default_value])
+      )
+    ).toEqual({
+      cz: "Nakupte ještě za {missingAmount} a získejte <strong>dopravu zdarma.</strong>",
+      hu: "Vásároljon még {missingAmount} értékben, és kapjon <strong>ingyenes szállítást.</strong>",
+      ro: "Mai adăugați produse în valoare de {missingAmount} și beneficiați de <strong>transport gratuit.</strong>",
+      sk: "Nakúpte ešte za {missingAmount} a získajte <strong>dopravu zadarmo.</strong>",
+    })
+  })
+
   it("creates localized completed-order defaults for every market", () => {
     const completedOrderTitleRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "checkout.completed_order_title"
