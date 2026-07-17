@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
 import {
@@ -33,6 +34,8 @@ function CategoryIntro({
   sanitizedIntroHtml,
   shouldShowIntroToggle,
 }: CategoryIntroProps) {
+  const tCatalog = useTranslations("catalog")
+
   if (!(sanitizedIntroHtml || introText)) {
     return null
   }
@@ -64,7 +67,9 @@ function CategoryIntro({
           theme="unstyled"
           type="button"
         >
-          {isExpanded ? "Zobraziť menej" : "Zobraziť viac"}
+          {isExpanded
+            ? tCatalog("filters.show_less")
+            : tCatalog("filters.show_more")}
         </Button>
       ) : null}
     </div>
