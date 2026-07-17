@@ -3,14 +3,15 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import { useEffect, useRef, useState } from "react"
+import { useTranslations } from "next-intl"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   AccountSkeletonSurface,
   AccountSurface,
 } from "@/components/account/account-surface"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import {
-  accountSettingsValidators,
+  createAccountSettingsValidators,
   toAccountSettingsValues,
 } from "@/lib/storefront/account-settings-validators"
 import { useAuth } from "@/lib/storefront/auth"
@@ -19,11 +20,23 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
 export function AccountSettings() {
+  const tAuth = useTranslations("auth")
+  const tForm = useTranslations("form")
   const authQuery = useAuth()
   const updateCustomerMutation = useUpdateCustomer()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
   const hydratedCustomerIdRef = useRef<string | null>(null)
+  const accountSettingsValidators = useMemo(
+    () =>
+      createAccountSettingsValidators({
+        firstNameMinLength: tForm("validation.first_name_min_length"),
+        lastNameMinLength: tForm("validation.last_name_min_length"),
+        phoneInvalid: tForm("validation.phone_invalid"),
+        phoneMinDigits: tForm("validation.phone_min_digits"),
+      }),
+    [tForm]
+  )
 
   const form = useHerbatikaForm({
     defaultValues: toAccountSettingsValues(authQuery.customer),
@@ -46,9 +59,11 @@ export function AccountSettings() {
         form.setFieldValue("phone", payload.phone ?? "")
         form.setFieldValue("company_name", payload.company_name ?? "")
 
-        setSubmitSuccess("Údaje účtu boli uložené.")
+        setSubmitSuccess(tAuth("account.settings.saved"))
       } catch (error) {
-        setSubmitError(resolveErrorMessage(error))
+        setSubmitError(
+          resolveErrorMessage(error, tAuth("account.settings.update_failed"))
+        )
       }
     },
   })
@@ -82,9 +97,11 @@ export function AccountSettings() {
   if (!authQuery.customer) {
     return (
       <AccountSurface className="space-y-300">
-        <h2 className="font-semibold text-lg">Nastavenia účtu</h2>
+        <h2 className="font-semibold text-lg">
+          {tAuth("account.settings.title")}
+        </h2>
         <p className="text-fg-secondary text-sm">
-          Údaje účtu nie sú dostupné. Skúste stránku obnoviť.
+          {tAuth("account.settings.unavailable")}
         </p>
       </AccountSurface>
     )
@@ -93,9 +110,11 @@ export function AccountSettings() {
   return (
     <AccountSurface className="space-y-500">
       <header className="space-y-200">
-        <h2 className="font-semibold text-xl">Nastavenia účtu</h2>
+        <h2 className="font-semibold text-xl">
+          {tAuth("account.settings.title")}
+        </h2>
         <p className="text-fg-secondary text-sm">
-          Aktualizujte osobné údaje pre rýchlejší checkout.
+          {tAuth("account.settings.description")}
         </p>
       </header>
 
@@ -130,7 +149,7 @@ export function AccountSettings() {
           {(field) => (
             <field.TextField
               id="account-settings-first-name"
-              label="Meno"
+              label={tForm("first_name")}
               onValueChange={() => {
                 setSubmitError(null)
                 setSubmitSuccess(null)
@@ -148,7 +167,7 @@ export function AccountSettings() {
           {(field) => (
             <field.TextField
               id="account-settings-last-name"
-              label="Priezvisko"
+              label={tForm("last_name")}
               onValueChange={() => {
                 setSubmitError(null)
                 setSubmitSuccess(null)
@@ -163,7 +182,9 @@ export function AccountSettings() {
           <FormInput
             disabled
             id="account-settings-email"
-            label="E-mail (nemožno upraviť)"
+            label={tAuth("account.settings.email_read_only", {
+              label: tForm("email"),
+            })}
             value={authQuery.customer.email ?? ""}
           />
         </div>
@@ -175,7 +196,7 @@ export function AccountSettings() {
           {(field) => (
             <field.TextField
               id="account-settings-phone"
-              label="Telefón"
+              label={tForm("phone")}
               onValueChange={() => {
                 setSubmitError(null)
                 setSubmitSuccess(null)
@@ -190,7 +211,9 @@ export function AccountSettings() {
           {(field) => (
             <field.TextField
               id="account-settings-company"
-              label="Firma (voliteľné)"
+              label={tAuth("account.settings.company_optional", {
+                label: tForm("company_name"),
+              })}
               onValueChange={() => {
                 setSubmitError(null)
                 setSubmitSuccess(null)
@@ -202,7 +225,7 @@ export function AccountSettings() {
 
         <div className="flex justify-end md:col-span-2">
           <Button isLoading={updateCustomerMutation.isPending} type="submit">
-            Uložiť údaje
+            {tAuth("account.settings.save")}
           </Button>
         </div>
       </form>

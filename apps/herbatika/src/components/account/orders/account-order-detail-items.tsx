@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Table } from "@techsio/ui-kit/organisms/table"
+import { useTranslations } from "next-intl"
 import {
   formatOrderAmount,
   resolveOrderItemQuantity,
@@ -13,21 +14,34 @@ type AccountOrderDetailItemsProps = {
 export function AccountOrderDetailItems({
   order,
 }: AccountOrderDetailItemsProps) {
+  const tAuth = useTranslations("auth")
   const orderItems = order.items ?? []
 
   return (
     <section className="space-y-300 rounded-lg border border-border-secondary bg-surface p-550">
-      <h3 className="font-semibold text-lg">Položky objednávky</h3>
+      <h3 className="font-semibold text-lg">
+        {tAuth("account.orders.detail.items_title")}
+      </h3>
 
       <div className="hidden overflow-x-auto lg:block">
         <Table size="sm" variant="line">
           <Table.Header>
             <Table.Row>
-              <Table.ColumnHeader>Produkt</Table.ColumnHeader>
-              <Table.ColumnHeader>Varianta</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Množstvo</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Cena za kus</Table.ColumnHeader>
-              <Table.ColumnHeader numeric>Celkom</Table.ColumnHeader>
+              <Table.ColumnHeader>
+                {tAuth("account.orders.product")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader>
+                {tAuth("account.orders.variant")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader numeric>
+                {tAuth("account.orders.quantity")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader numeric>
+                {tAuth("account.orders.unit_price")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader numeric>
+                {tAuth("account.orders.total")}
+              </Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -58,7 +72,7 @@ export function AccountOrderDetailItems({
                   className="py-350 text-fg-secondary text-sm"
                   colSpan={5}
                 >
-                  Objednávka neobsahuje položky.
+                  {tAuth("account.orders.no_items")}
                 </Table.Cell>
               </Table.Row>
             )}
@@ -87,9 +101,18 @@ export function AccountOrderDetailItems({
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-150 text-xs">
-                  <p className="text-fg-secondary">{`Množstvo: ${quantity}`}</p>
+                  <p className="text-fg-secondary">
+                    {tAuth("account.orders.quantity_value", {
+                      count: quantity,
+                    })}
+                  </p>
                   <p className="text-end text-fg-secondary">
-                    {`Cena/ks: ${formatOrderAmount(unitPrice, order.currency_code)}`}
+                    {tAuth("account.orders.unit_price_value", {
+                      amount: formatOrderAmount(
+                        unitPrice,
+                        order.currency_code
+                      ),
+                    })}
                   </p>
                 </div>
                 <p className="font-semibold text-fg-primary text-sm">
@@ -100,7 +123,7 @@ export function AccountOrderDetailItems({
           })
         ) : (
           <p className="text-fg-secondary text-sm">
-            Objednávka neobsahuje položky.
+            {tAuth("account.orders.no_items")}
           </p>
         )}
       </div>
