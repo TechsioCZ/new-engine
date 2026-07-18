@@ -1,4 +1,7 @@
+"use client"
+
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import { REVIEW_TRUST_SOURCES } from "@/components/reviews/reviews.data"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 
@@ -35,6 +38,8 @@ export function ReviewTrustBadges({
   size = "sm",
   className,
 }: ReviewTrustBadgesProps) {
+  const tCatalog = useTranslations("catalog")
+
   if (sources.length === 0) {
     return null
   }
@@ -43,7 +48,7 @@ export function ReviewTrustBadges({
 
   return (
     <ul
-      aria-label="Hodnotenia obchodu"
+      aria-label={tCatalog("reviews.trust_badges_aria")}
       className={joinClassNames(
         ROOT_CLASS_NAME,
         sizeClassNames.root,

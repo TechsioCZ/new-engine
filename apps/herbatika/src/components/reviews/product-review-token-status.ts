@@ -6,20 +6,25 @@ export type ProductReviewTokenProductStatus =
   | "ready"
 
 export const resolveProductStatusMessage = (
-  status: ProductReviewTokenProductStatus
+  status: ProductReviewTokenProductStatus,
+  messages: {
+    loading: string
+    loadFailed: string
+    notFound: string
+  }
 ) => {
   switch (status) {
     case "loading":
-      return { status: "default" as const, text: "Načítavam produkt." }
+      return { status: "default" as const, text: messages.loading }
     case "error":
       return {
         status: "warning" as const,
-        text: "Produkt sa nepodarilo načítať. Recenziu môžete odoslať aj tak.",
+        text: messages.loadFailed,
       }
     case "not-found":
       return {
         status: "warning" as const,
-        text: "Produkt sa nepodarilo nájsť. Skontrolujte prosím odkaz z emailu.",
+        text: messages.notFound,
       }
     default:
       return null

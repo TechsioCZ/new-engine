@@ -5,6 +5,7 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useFormatter, useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
@@ -42,11 +43,15 @@ function resolveReviewInitial(author: string): string {
 function ReviewCard({
   review,
   sourceBadge,
+  sourceBadgeAlt,
   variant,
+  verifiedPurchaseLabel,
 }: {
   review: ReviewItem
   sourceBadge: StaticImageData
+  sourceBadgeAlt: string
   variant: ReviewsVariant
+  verifiedPurchaseLabel: string
 }) {
   const isHomepage = variant === "homepage"
   const shouldShowVerifiedPurchase = !isHomepage && review.verifiedPurchase
@@ -57,7 +62,7 @@ function ReviewCard({
         {isHomepage ? (
           <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center">
             <NextImage
-              alt="Overené zákazníkmi Heureka"
+              alt={sourceBadgeAlt}
               className="h-full w-full object-contain"
               src={sourceBadge}
             />
@@ -99,7 +104,7 @@ function ReviewCard({
         <div className="mt-auto flex items-center gap-150 text-primary">
           <Icon icon="token-icon-check" size="lg" />
           <span className="font-medium text-sm leading-relaxed">
-            Overený nákup
+            {verifiedPurchaseLabel}
           </span>
         </div>
       ) : null}
@@ -121,16 +126,23 @@ export function ReviewsSection({
   trustSources,
   sourceBadge = REVIEW_VERIFIED_CUSTOMER_BADGE,
 }: ReviewsSectionProps) {
+  const format = useFormatter()
+  const tCatalog = useTranslations("catalog")
   const isHomepage = variant === "homepage"
   const resolvedHeadingText =
-    headingText ?? (isHomepage ? "Overené zákazníkmi" : "Hodnotenia produktu")
+    headingText ??
+    (isHomepage
+      ? tCatalog("reviews.homepage_title")
+      : tCatalog("reviews.product_title"))
   const defaultLinkHref = isHomepage ? null : "#reviews"
-  const defaultLinkLabel = isHomepage ? null : "Všetky hodnotenia"
+  const defaultLinkLabel = isHomepage
+    ? null
+    : tCatalog("reviews.all_reviews")
   const resolvedLinkHref = linkHref === undefined ? defaultLinkHref : linkHref
   const resolvedLinkLabel =
     linkLabel === undefined ? defaultLinkLabel : linkLabel
   const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel)
-  const formattedRatingLabel = ratingValue.toLocaleString("sk-SK", {
+  const formattedRatingLabel = format.number(ratingValue, {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
   })
@@ -160,7 +172,10 @@ export function ReviewsSection({
           </div>
           {isHomepage ? null : (
             <FractionalRating
-              label={`Priemerné hodnotenie produktu ${ratingAriaLabel} z 5`}
+              label={tCatalog("reviews.rating_aria", {
+                max: 5,
+                rating: ratingAriaLabel,
+              })}
               value={ratingValue}
             />
           )}
@@ -188,7 +203,13 @@ export function ReviewsSection({
             key={review.id}
             review={review}
             sourceBadge={sourceBadge}
+            sourceBadgeAlt={tCatalog(
+              "reviews.verified_customer_badge_alt"
+            )}
             variant={variant}
+            verifiedPurchaseLabel={tCatalog(
+              "reviews.verified_purchase"
+            )}
           />
         ))}
       </div>

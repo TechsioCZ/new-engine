@@ -27,9 +27,27 @@ const REVIEW_FORM_ID = "product-detail-create-review-form"
 
 export function ProductReviewCreateDialog({
   productId,
-  triggerLabel = "Napísať recenziu",
+  triggerLabel,
 }: ProductReviewCreateDialogProps) {
   const tAuth = useTranslations("auth")
+  const tCatalog = useTranslations("catalog")
+  const resolvedTriggerLabel =
+    triggerLabel ?? tCatalog("reviews.write_action")
+  const reviewErrorMessages = {
+    authRequired: tCatalog("reviews.errors.auth_required"),
+    contentRequired: tCatalog("reviews.errors.content_required"),
+    duplicate: tCatalog("reviews.errors.duplicate"),
+    forbidden: tCatalog("reviews.errors.forbidden"),
+    generic: tCatalog("reviews.errors.generic"),
+    purchaseRequired: tCatalog("reviews.errors.purchase_required"),
+    ratingRequired: tCatalog("reviews.errors.rating_required"),
+    titleInvalid: tCatalog("reviews.errors.title_invalid"),
+    tokenExpired: tCatalog("reviews.errors.token_expired"),
+    tokenMismatch: tCatalog("reviews.errors.token_mismatch"),
+    tokenNotFound: tCatalog("reviews.errors.token_not_found"),
+    tokenUsed: tCatalog("reviews.errors.token_used"),
+    validation: tCatalog("reviews.errors.validation"),
+  }
   const authQuery = useAuth()
   const pathname = usePathname()
   const [formResetKey, setFormResetKey] = useState(0)
@@ -42,7 +60,9 @@ export function ProductReviewCreateDialog({
   )
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
-      setSubmitError(resolveProductReviewSubmitErrorMessage(error))
+      setSubmitError(
+        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages)
+      )
     },
     onSuccess: () => {
       setFormResetKey((current) => current + 1)
@@ -82,7 +102,7 @@ export function ProductReviewCreateDialog({
     if (authQuery.isLoading) {
       return (
         <StatusText showIcon status="default">
-          Overujem prihlásenie.
+          {tCatalog("reviews.auth_checking")}
         </StatusText>
       )
     }
@@ -90,7 +110,7 @@ export function ProductReviewCreateDialog({
     if (!isAuthenticated) {
       return (
         <StatusText showIcon status="warning">
-          Na napísanie recenzie sa prosím prihláste.
+          {tCatalog("reviews.sign_in_required")}
         </StatusText>
       )
     }
@@ -98,7 +118,7 @@ export function ProductReviewCreateDialog({
     if (isSubmitted) {
       return (
         <StatusText showIcon status="success">
-          Ďakujeme za recenziu. Po schválení sa zobrazí pri produkte.
+          {tCatalog("reviews.submit_success")}
         </StatusText>
       )
     }
@@ -124,7 +144,7 @@ export function ProductReviewCreateDialog({
             theme="outlined"
             variant="secondary"
           >
-            Zavrieť
+            {tCatalog("reviews.close")}
           </Button>
           <LinkButton
             as={NextLink}
@@ -141,7 +161,7 @@ export function ProductReviewCreateDialog({
     if (isSubmitted) {
       return (
         <Button onClick={() => setIsOpen(false)} size="sm" variant="primary">
-          Zavrieť
+          {tCatalog("reviews.close")}
         </Button>
       )
     }
@@ -156,17 +176,18 @@ export function ProductReviewCreateDialog({
           type="button"
           variant="secondary"
         >
-          Zrušiť
+          {tCatalog("reviews.cancel")}
         </Button>
         <Button
           disabled={!isAuthenticated || authQuery.isLoading || isBusy}
           form={REVIEW_FORM_ID}
           isLoading={isBusy}
+          loadingText={tCatalog("reviews.submitting")}
           size="sm"
           type="submit"
           variant="primary"
         >
-          Odoslať recenziu
+          {tCatalog("reviews.submit")}
         </Button>
       </>
     )
@@ -180,17 +201,17 @@ export function ProductReviewCreateDialog({
         type="button"
         variant="primary"
       >
-        {triggerLabel}
+        {resolvedTriggerLabel}
       </Button>
       <Dialog
         actions={renderActions()}
         className="shadow-md"
         customTrigger
-        description="Recenzia sa zobrazí po schválení."
+        description={tCatalog("reviews.pending_description")}
         onOpenChange={handleOpenChange}
         open={isOpen}
         size="md"
-        title="Napísať recenziu"
+        title={tCatalog("reviews.dialog_title")}
       >
         {renderContent()}
       </Dialog>
