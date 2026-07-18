@@ -1,8 +1,8 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseApplyEnvOverridesInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseApplyEnvOverridesInput } from "../zane-inputs"
 
 interface ApplyZaneEnvOverridesDeps {
   config: AppConfig
@@ -10,7 +10,7 @@ interface ApplyZaneEnvOverridesDeps {
 
 export async function handleApplyZaneEnvOverrides(
   request: Request,
-  deps: ApplyZaneEnvOverridesDeps,
+  deps: ApplyZaneEnvOverridesDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

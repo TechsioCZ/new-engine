@@ -1,14 +1,17 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseVerifyInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseVerifyInput } from "../zane-inputs"
 
 interface VerifyZaneDeployDeps {
   config: AppConfig
 }
 
-export async function handleVerifyZaneDeploy(request: Request, deps: VerifyZaneDeployDeps): Promise<Response> {
+export async function handleVerifyZaneDeploy(
+  request: Request,
+  deps: VerifyZaneDeployDeps
+): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {
       throw new BadRequestError("request body must be valid JSON")

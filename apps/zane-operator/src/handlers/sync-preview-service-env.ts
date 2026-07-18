@@ -1,8 +1,8 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseSyncPreviewServiceEnvInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseSyncPreviewServiceEnvInput } from "../zane-inputs"
 
 interface SyncPreviewServiceEnvDeps {
   config: AppConfig
@@ -10,7 +10,7 @@ interface SyncPreviewServiceEnvDeps {
 
 export async function handleSyncPreviewServiceEnv(
   request: Request,
-  deps: SyncPreviewServiceEnvDeps,
+  deps: SyncPreviewServiceEnvDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

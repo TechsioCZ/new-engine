@@ -49,7 +49,7 @@ export interface WritePreviewCommitStateInput {
   baselineComplete?: boolean
 }
 
-export interface PreviewRandomOnceSecretValueInput {
+interface PreviewRandomOnceSecretValueInput {
   secretId: string
   value?: string
   persistTo?: string
@@ -104,7 +104,7 @@ export interface SyncPreviewServiceEnvInput {
   }>
 }
 
-export interface MeiliApiCredentialsPolicy {
+interface MeiliApiCredentialsPolicy {
   uid: string
   description: string
   actions: string[]
@@ -140,7 +140,7 @@ export interface ProvisionMedusaPublishableKeyInput {
   frontendOutput: ProvisionMedusaPublishableKeyOutputInput
 }
 
-export type RuntimeProviderOutputPolicyInput = Record<string, unknown> & {
+type RuntimeProviderOutputPolicyInput = Record<string, unknown> & {
   kind: string
 }
 
@@ -159,7 +159,7 @@ export interface RuntimeProviderRunInput {
   outputs: RuntimeProviderOutputInput[]
 }
 
-export interface RuntimeProviderOutputResult {
+interface RuntimeProviderOutputResult {
   output_id: string
   env_var: string
   value: string
@@ -205,7 +205,7 @@ export interface PersistedEnvRequirement {
   env_keys: string[]
 }
 
-export interface SharedEnvRequirement {
+interface SharedEnvRequirement {
   key: string
 }
 
@@ -250,7 +250,7 @@ export interface ZaneEnvVariable {
   value: string
 }
 
-export interface ZaneEnvironmentReference {
+interface ZaneEnvironmentReference {
   id: string
   name: string
   variables?: ZaneEnvVariable[]
@@ -265,7 +265,7 @@ export interface ZaneServiceUrl {
   associated_port?: number | null
 }
 
-export interface ZaneGitAppRef {
+interface ZaneGitAppRef {
   id: string
 }
 
@@ -328,7 +328,7 @@ export interface ZaneServiceDetails {
   }>
 }
 
-export interface ZaneResolvedCurrentDeployment {
+interface ZaneResolvedCurrentDeployment {
   deployment_hash: string
   status: string
   commit_sha: string | null

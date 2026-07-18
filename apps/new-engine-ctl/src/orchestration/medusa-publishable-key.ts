@@ -4,7 +4,6 @@ import {
   getRuntimeProviderOutputPolicy,
   getRuntimeProviderReadinessPath,
   getRuntimeProviderSourceServiceId,
-  listRuntimeProviderConsumerServiceIds,
   listRuntimeProviderOutputTargets,
   type StackInputs,
 } from "../contracts/stack-inputs.js"
@@ -72,27 +71,6 @@ export function getMedusaPublishableKeyProviderSourceService(
   return {
     serviceId,
     serviceSlug: service.serviceSlug,
-  }
-}
-
-export function collectMedusaPublishableKeyOutputNeeds(input: {
-  services: Array<{ id: string }>
-  stackInputs: StackInputs
-  providerId: string
-}): {
-  consumerIds: string[]
-  needFrontendKey: boolean
-} {
-  const consumerIdSet = new Set(
-    listRuntimeProviderConsumerServiceIds(input.stackInputs, input.providerId)
-  )
-  const consumerIds = input.services
-    .filter((service) => consumerIdSet.has(service.id))
-    .map((service) => service.id)
-
-  return {
-    consumerIds,
-    needFrontendKey: consumerIds.length > 0,
   }
 }
 
@@ -189,8 +167,8 @@ export async function provisionMedusaPublishableKey(input: {
         output_id: "frontend_key",
         env_var: frontendEnvVar,
         policy: {
-          kind: "medusa_publishable_key",
           ...frontendPolicy,
+          kind: "medusa_publishable_key",
         },
       },
     ],

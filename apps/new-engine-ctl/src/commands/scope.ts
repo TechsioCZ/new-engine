@@ -34,17 +34,17 @@ export function createScopeCommand(): Command {
     .option(
       "--nx-isolate-plugins <true|false>",
       "",
-      process.env.NX_RESOLVE_AFFECTED_ISOLATE_PLUGINS ?? "true"
+      process.env["NX_RESOLVE_AFFECTED_ISOLATE_PLUGINS"] ?? "true"
     )
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = scopeCommandInputSchema.parse({

@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import { parseRuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import {
   parsePreviewRandomOnceSecrets,
@@ -35,12 +36,12 @@ export function createVerifyCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .option(
       "--dry-run",
@@ -60,7 +61,8 @@ export function createVerifyCommand(): Command {
       )
       const input = verifyCommandInputSchema.parse({
         lane: options.lane,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        projectSlug:
+          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         environmentName: options.environmentName,
         requestedServicesCsv: options.requestedServicesCsv,
         deployServicesCsv: options.deployServicesCsv,
@@ -74,8 +76,9 @@ export function createVerifyCommand(): Command {
         runtimeProviderOutputs,
         deployments,
         outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+        apiToken:
+          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
         dryRun: Boolean(options.dryRun),
         stackManifestPath: options.stackManifestPath,
         stackInputsPath: options.stackInputsPath,

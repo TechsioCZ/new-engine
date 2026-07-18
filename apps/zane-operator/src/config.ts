@@ -32,7 +32,11 @@ export interface AppConfig {
 
 type Environment = Record<string, string | undefined>
 
-function parsePort(rawValue: string | undefined, fallback: number, label: string): number {
+function parsePort(
+  rawValue: string | undefined,
+  fallback: number,
+  label: string
+): number {
   if (!rawValue) {
     return fallback
   }
@@ -65,8 +69,13 @@ function assertSafeIdentifier(value: string, label: string): void {
   }
 }
 
-function parseProtectedDatabaseNames(rawValue: string | undefined, requiredNames: string[]): Set<string> {
-  const protectedNames = new Set<string>(BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase()))
+function parseProtectedDatabaseNames(
+  rawValue: string | undefined,
+  requiredNames: string[]
+): Set<string> {
+  const protectedNames = new Set<string>(
+    BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase())
+  )
 
   for (const requiredName of requiredNames) {
     const normalized = requiredName.trim().toLowerCase()
@@ -94,11 +103,11 @@ function parseProtectedDatabaseNames(rawValue: string | undefined, requiredNames
 
 export function buildPostgresConnectionUrl(env: Environment): string {
   const host = readRequiredEnv(env, "PGHOST")
-  const port = parsePort(env.PGPORT, DEFAULT_PG_PORT, "PGPORT")
+  const port = parsePort(env["PGPORT"], DEFAULT_PG_PORT, "PGPORT")
   const user = readRequiredEnv(env, "PGUSER")
   const password = readRequiredEnv(env, "PGPASSWORD")
-  const database = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
-  const sslMode = env.PGSSLMODE?.trim() || DEFAULT_PG_SSL_MODE
+  const database = env["PGDATABASE"]?.trim() || DEFAULT_PG_DATABASE
+  const sslMode = env["PGSSLMODE"]?.trim() || DEFAULT_PG_SSL_MODE
 
   const url = new URL("postgresql://placeholder")
   url.hostname = host
@@ -114,15 +123,23 @@ export function buildPostgresConnectionUrl(env: Environment): string {
 export function loadConfig(env: Environment = process.env): AppConfig {
   const connectionUser = readRequiredEnv(env, "PGUSER")
 
-  const previewPrefix = env.DB_PREVIEW_PREFIX?.trim() || DEFAULT_DB_PREVIEW_PREFIX
-  const defaultTemplateName = env.DB_TEMPLATE_NAME?.trim() || DEFAULT_DB_TEMPLATE_NAME
+  const previewPrefix =
+    env["DB_PREVIEW_PREFIX"]?.trim() || DEFAULT_DB_PREVIEW_PREFIX
+  const defaultTemplateName =
+    env["DB_TEMPLATE_NAME"]?.trim() || DEFAULT_DB_TEMPLATE_NAME
   const previewOwner = connectionUser
-  const previewAppUserPrefix = env.DB_PREVIEW_APP_USER_PREFIX?.trim() || DEFAULT_DB_PREVIEW_APP_USER_PREFIX
-  const previewDevRole = env.DB_PREVIEW_DEV_ROLE?.trim() || DEFAULT_DB_PREVIEW_DEV_ROLE
-  const appSchema = env.DB_APP_SCHEMA?.trim() || DEFAULT_DB_APP_SCHEMA
+  const previewAppUserPrefix =
+    env["DB_PREVIEW_APP_USER_PREFIX"]?.trim() ||
+    DEFAULT_DB_PREVIEW_APP_USER_PREFIX
+  const previewDevRole =
+    env["DB_PREVIEW_DEV_ROLE"]?.trim() || DEFAULT_DB_PREVIEW_DEV_ROLE
+  const appSchema = env["DB_APP_SCHEMA"]?.trim() || DEFAULT_DB_APP_SCHEMA
   const apiAuthToken = readRequiredEnv(env, "API_AUTH_TOKEN")
-  const previewAppPasswordSecret = readRequiredEnv(env, "DB_PREVIEW_APP_PASSWORD_SECRET")
-  const connectionDatabase = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
+  const previewAppPasswordSecret = readRequiredEnv(
+    env,
+    "DB_PREVIEW_APP_PASSWORD_SECRET"
+  )
+  const connectionDatabase = env["PGDATABASE"]?.trim() || DEFAULT_PG_DATABASE
   const zaneBaseUrl = readOptionalEnv(env, "ZANE_BASE_URL")
   const zaneConnectBaseUrl = readOptionalEnv(env, "ZANE_CONNECT_BASE_URL")
   const zaneConnectHostHeader = readOptionalEnv(env, "ZANE_CONNECT_HOST_HEADER")
@@ -137,7 +154,7 @@ export function loadConfig(env: Environment = process.env): AppConfig {
   assertSafeIdentifier(appSchema, "DB_APP_SCHEMA")
 
   return {
-    port: parsePort(env.PORT, DEFAULT_PORT, "PORT"),
+    port: parsePort(env["PORT"], DEFAULT_PORT, "PORT"),
     apiAuthToken,
     databaseUrl: buildPostgresConnectionUrl(env),
     defaultTemplateName,
@@ -147,7 +164,10 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     previewDevRole,
     appSchema,
     previewAppPasswordSecret,
-    protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES, [connectionDatabase, defaultTemplateName]),
+    protectedDbNames: parseProtectedDatabaseNames(env["DB_PROTECTED_NAMES"], [
+      connectionDatabase,
+      defaultTemplateName,
+    ]),
     zaneBaseUrl,
     zaneConnectBaseUrl,
     zaneConnectHostHeader,

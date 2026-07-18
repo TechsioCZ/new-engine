@@ -1,8 +1,8 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseResolveEnvironmentInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseResolveEnvironmentInput } from "../zane-inputs"
 
 interface ResolveZaneEnvironmentDeps {
   config: AppConfig
@@ -10,7 +10,7 @@ interface ResolveZaneEnvironmentDeps {
 
 export async function handleResolveZaneEnvironment(
   request: Request,
-  deps: ResolveZaneEnvironmentDeps,
+  deps: ResolveZaneEnvironmentDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

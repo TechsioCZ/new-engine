@@ -1,8 +1,8 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseWritePreviewCommitStateInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseWritePreviewCommitStateInput } from "../zane-inputs"
 
 interface WritePreviewCommitStateDeps {
   config: AppConfig
@@ -10,7 +10,7 @@ interface WritePreviewCommitStateDeps {
 
 export async function handleWritePreviewCommitState(
   request: Request,
-  deps: WritePreviewCommitStateDeps,
+  deps: WritePreviewCommitStateDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

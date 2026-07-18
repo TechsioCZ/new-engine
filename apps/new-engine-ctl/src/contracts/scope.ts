@@ -2,8 +2,8 @@ import { z } from "zod"
 
 import { laneSchema } from "./stack-manifest.js"
 
-export const scopeModeSchema = z.enum(["git", "explicit"])
-export const nxStatusSchema = z.enum(["ok", "fallback", "explicit"])
+const scopeModeSchema = z.enum(["git", "explicit"])
+const nxStatusSchema = z.enum(["ok", "fallback", "explicit"])
 
 export const scopeCommandInputSchema = z
   .object({

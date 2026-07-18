@@ -1,5 +1,5 @@
-export const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
-export const MAX_IDENTIFIER_LENGTH = 63
+const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
+const MAX_IDENTIFIER_LENGTH = 63
 
 type ErrorFactory = (message: string) => Error
 
@@ -10,21 +10,23 @@ function defaultErrorFactory(message: string): Error {
 export function assertSafeIdentifier(
   value: string,
   label: string,
-  errorFactory: ErrorFactory = defaultErrorFactory,
+  errorFactory: ErrorFactory = defaultErrorFactory
 ): void {
   if (!IDENTIFIER_REGEX.test(value)) {
     throw errorFactory(`${label} must match ${IDENTIFIER_REGEX.source}`)
   }
 
   if (value.length > MAX_IDENTIFIER_LENGTH) {
-    throw errorFactory(`${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`)
+    throw errorFactory(
+      `${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`
+    )
   }
 }
 
 export function quoteIdentifier(
   identifier: string,
   label = "identifier",
-  errorFactory: ErrorFactory = defaultErrorFactory,
+  errorFactory: ErrorFactory = defaultErrorFactory
 ): string {
   assertSafeIdentifier(identifier, label, errorFactory)
   return `"${identifier}"`
@@ -34,7 +36,10 @@ export function quoteLiteral(value: string): string {
   return `'${value.replaceAll("'", "''")}'`
 }
 
-export async function roleExists(sql: Bun.SQL, roleName: string): Promise<boolean> {
+export async function roleExists(
+  sql: Bun.SQL,
+  roleName: string
+): Promise<boolean> {
   const rows = await sql<{ exists: boolean }[]>`
     SELECT EXISTS(
       SELECT 1
@@ -46,7 +51,10 @@ export async function roleExists(sql: Bun.SQL, roleName: string): Promise<boolea
   return rows[0]?.exists === true
 }
 
-export async function databaseExists(sql: Bun.SQL, databaseName: string): Promise<boolean> {
+export async function databaseExists(
+  sql: Bun.SQL,
+  databaseName: string
+): Promise<boolean> {
   const rows = await sql<{ exists: boolean }[]>`
     SELECT EXISTS(
       SELECT 1

@@ -169,14 +169,18 @@ function meiliKeyMatchesPolicy(
   actions: string[],
   indexes: string[]
 ): boolean {
-  const keyUid = typeof keyObj.uid === "string" ? keyObj.uid : null
+  const keyUid = typeof keyObj["uid"] === "string" ? keyObj["uid"] : null
   const keyDescription =
-    typeof keyObj.description === "string" ? keyObj.description : null
-  const keyActions = Array.isArray(keyObj.actions)
-    ? keyObj.actions.filter((item): item is string => typeof item === "string")
+    typeof keyObj["description"] === "string" ? keyObj["description"] : null
+  const keyActions = Array.isArray(keyObj["actions"])
+    ? keyObj["actions"].filter(
+        (item): item is string => typeof item === "string"
+      )
     : []
-  const keyIndexes = Array.isArray(keyObj.indexes)
-    ? keyObj.indexes.filter((item): item is string => typeof item === "string")
+  const keyIndexes = Array.isArray(keyObj["indexes"])
+    ? keyObj["indexes"].filter(
+        (item): item is string => typeof item === "string"
+      )
     : []
 
   return (
@@ -189,7 +193,7 @@ function meiliKeyMatchesPolicy(
   )
 }
 
-function sleep(ms: number): Promise<void> {
+function waitForRetry(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
@@ -355,12 +359,13 @@ export class ZaneMeiliApiCredentialsProvisioner {
       }
     }
 
-
     const backendKey =
-      backendKeyObj && typeof backendKeyObj.key === "string" ? backendKeyObj.key : ""
+      backendKeyObj && typeof backendKeyObj["key"] === "string"
+        ? backendKeyObj["key"]
+        : ""
     const frontendKey =
-      frontendKeyObj && typeof frontendKeyObj.key === "string"
-        ? frontendKeyObj.key
+      frontendKeyObj && typeof frontendKeyObj["key"] === "string"
+        ? frontendKeyObj["key"]
         : ""
     if (backendOutput && !backendKey) {
       throw new UpstreamHttpError(
@@ -421,7 +426,7 @@ export class ZaneMeiliApiCredentialsProvisioner {
         return
       }
 
-      await sleep(2000)
+      await waitForRetry(2000)
     }
 
     throw new UpstreamHttpError(

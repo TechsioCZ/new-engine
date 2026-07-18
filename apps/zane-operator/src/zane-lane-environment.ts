@@ -7,7 +7,7 @@ interface LaneEnvironment {
   name: string
 }
 
-export function isRepoPreviewEnvironmentName(environmentName: string): boolean {
+function isRepoPreviewEnvironmentName(environmentName: string): boolean {
   return REPO_PREVIEW_ENVIRONMENT_NAME.test(environmentName)
 }
 

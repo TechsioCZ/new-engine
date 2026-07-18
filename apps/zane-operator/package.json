@@ -2,19 +2,24 @@
   "name": "zane-operator",
   "version": "0.0.1",
   "private": true,
+  "bin": {
+    "zane-operator": "./src/cli.ts"
+  },
   "type": "module",
+  "main": "./src/main.ts",
   "scripts": {
     "dev": "bun --watch src/main.ts",
     "start": "bun src/main.ts",
     "create:dev-user": "bun src/cli.ts create-dev-user",
     "build": "bun build src/main.ts --compile --outfile dist/zane-operator",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/zane-operator/tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
-    "zod": "^4.1.13"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "vitest": "^4.0.18"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
   }
 }

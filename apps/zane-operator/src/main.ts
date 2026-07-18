@@ -7,9 +7,9 @@ import { handleCancelZaneDeploy } from "./handlers/cancel-zane-deploy"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
 import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
-import { handleRunRuntimeProvider } from "./handlers/run-runtime-provider"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
+import { handleRunRuntimeProvider } from "./handlers/run-runtime-provider"
 import { handleSyncPreviewRandomOnceSecrets } from "./handlers/sync-preview-random-once-secrets"
 import { handleSyncPreviewServiceEnv } from "./handlers/sync-preview-service-env"
 import { handleSyncPreviewSharedEnv } from "./handlers/sync-preview-shared-env"
@@ -281,7 +281,7 @@ const handleShutdown = async (signal: string): Promise<void> => {
   let exitCode = 0
 
   try {
-    server.stop(true)
+    await server.stop(true)
     await sql.close({ timeout: 10 })
   } catch (error: unknown) {
     exitCode = 1
