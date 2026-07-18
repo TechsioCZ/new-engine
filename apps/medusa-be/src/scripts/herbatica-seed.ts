@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process"
 import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
 import type {
@@ -3498,6 +3499,82 @@ function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
   }
 }
 
+const PAYLOAD_SEED_ENV_MAPPINGS = [
+  ["DATABASE_URL", "PAYLOAD_SEED_DATABASE_URL"],
+  ["PAYLOAD_SECRET", "PAYLOAD_SEED_SECRET"],
+  ["PAYLOAD_SCHEMA_NAME", "PAYLOAD_SEED_SCHEMA_NAME"],
+  ["PAYLOAD_LOCALES", "PAYLOAD_LOCALES"],
+  ["PAYLOAD_SSO_USER_EMAIL", "PAYLOAD_SEED_SSO_USER_EMAIL"],
+  ["PAYLOAD_API_KEY", "PAYLOAD_SEED_API_KEY"],
+  ["PAYLOAD_SSO_PRIVATE_KEY", "PAYLOAD_SEED_SSO_PRIVATE_KEY"],
+  ["PAYLOAD_SEED_ARTICLES_XLSX_PATH", "PAYLOAD_SEED_ARTICLES_XLSX_PATH"],
+  ["PAYLOAD_SEED_ARTICLES_LOCALE", "PAYLOAD_SEED_ARTICLES_LOCALE"],
+  ["PAYLOAD_SEED_ARTICLES_OVERWRITE", "PAYLOAD_SEED_ARTICLES_OVERWRITE"],
+  ["PAYLOAD_SEED_ARTICLES_SHEET", "PAYLOAD_SEED_ARTICLES_SHEET"],
+  ["PAYLOAD_SEED_ARTICLES_STATUS", "PAYLOAD_SEED_ARTICLES_STATUS"],
+  ["PAYLOAD_SEED_ARTICLES_TRANSLATE", "PAYLOAD_SEED_ARTICLES_TRANSLATE"],
+  [
+    "PAYLOAD_SEED_HERBATICA_PRODUCTS_ENABLED",
+    "PAYLOAD_SEED_HERBATICA_PRODUCTS_ENABLED",
+  ],
+  [
+    "PAYLOAD_SEED_HERBATICA_PRODUCTS_LIMIT",
+    "PAYLOAD_SEED_HERBATICA_PRODUCTS_LIMIT",
+  ],
+  ["S3_ENDPOINT", "PAYLOAD_SEED_S3_ENDPOINT"],
+  ["S3_REGION", "PAYLOAD_SEED_S3_REGION"],
+  ["S3_BUCKET", "PAYLOAD_SEED_S3_BUCKET"],
+  ["S3_ACCESS_KEY_ID", "PAYLOAD_SEED_S3_ACCESS_KEY_ID"],
+  ["S3_SECRET_ACCESS_KEY", "PAYLOAD_SEED_S3_SECRET_ACCESS_KEY"],
+] as const
+
+function buildPayloadSeedEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    HERBATICA_BLOG_ARTICLES_XLSX_PATH: "",
+  }
+
+  for (const [targetName, sourceName] of PAYLOAD_SEED_ENV_MAPPINGS) {
+    const value = process.env[sourceName]
+    if (value !== undefined) {
+      env[targetName] = value
+    }
+  }
+
+  return env
+}
+
+async function runPayloadSeed(logger: Logger): Promise<void> {
+  logger.info("Running Herbatica Payload seed...")
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("pnpm", ["--filter", "@nmit/payload", "run", "seed"], {
+      cwd: process.cwd(),
+      env: buildPayloadSeedEnv(),
+      shell: process.platform === "win32",
+      stdio: "inherit",
+    })
+
+    child.on("error", reject)
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve()
+        return
+      }
+
+      reject(
+        new Error(
+          `Herbatica Payload seed failed with ${
+            signal ? `signal ${signal}` : `exit code ${code ?? "unknown"}`
+          }`
+        )
+      )
+    })
+  })
+
+  logger.info("Herbatica Payload seed completed successfully")
+}
+
 export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
@@ -3613,6 +3690,10 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     })
   }
 
-  logger.info("Herbatica seed completed successfully")
+  logger.info("Herbatica Medusa seed completed successfully")
   logger.info(`Result: ${JSON.stringify(result, null, 2)}`)
+
+  await runPayloadSeed(logger)
+
+  logger.info("Herbatica seed completed successfully")
 }
