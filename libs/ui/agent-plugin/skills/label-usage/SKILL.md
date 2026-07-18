@@ -1,8 +1,7 @@
 ---
 name: label-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Label for
-  form-control labels with valid size, disabled, required, and htmlFor usage.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Label for form-control labels with valid size, disabled, required, and htmlFor usage.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -17,15 +16,14 @@ sources:
 
 # @techsio/ui-kit Label Usage
 
-Use Label for standalone form-control labels. Prefer form molecules when the
-whole field structure is available.
+Use Label for standalone form-control labels. Prefer form molecules when the whole field structure is available.
 
 ## Setup
 
 ```tsx
 import { Label } from "@techsio/ui-kit/atoms/label"
 
-<Label htmlFor="email" required>
+;<Label htmlFor="email" required>
   Email
 </Label>
 ```
@@ -92,13 +90,17 @@ Source: libs/ui/src/atoms/label.tsx
 Wrong:
 
 ```tsx
-<Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
+<Label htmlFor="email">
+  Email <span className="text-red-500">*</span>
+</Label>
 ```
 
 Correct:
 
 ```tsx
-<Label htmlFor="email" required>Email</Label>
+<Label htmlFor="email" required>
+  Email
+</Label>
 ```
 
 Source: libs/ui/src/tokens/components/atoms/_label.css

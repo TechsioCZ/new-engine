@@ -1,9 +1,7 @@
 ---
 name: checkbox-usage
 description: >
-  Use after component-usage-ux when an app needs the low-level
-  @techsio/ui-kit Checkbox atom, including invalid and indeterminate states,
-  while preferring form molecules for labeled form rows.
+  Use after component-usage-ux when an app needs the low-level @techsio/ui-kit Checkbox atom, including invalid and indeterminate states, while preferring form molecules for labeled form rows.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit Checkbox Usage
 
-Use `Checkbox` for the bare control. Use `FormCheckbox` when the UI includes a
-label, helper text, validation text, or a form-field layout.
+Use `Checkbox` for the bare control. Use `FormCheckbox` when the UI includes a label, helper text, validation text, or a form-field layout.
 
 ## Setup
 
 ```tsx
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 
-<Checkbox name="acceptTerms" required />
+;<Checkbox name="acceptTerms" required />
 ```
 
 Supported component-specific props:

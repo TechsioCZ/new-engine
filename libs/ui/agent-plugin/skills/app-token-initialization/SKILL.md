@@ -1,9 +1,7 @@
 ---
 name: app-token-initialization
 description: >
-  Use when adopting @techsio/ui-kit in a new or existing apps/* project and
-  setting up app semantic, typography, spacing, layout, radius, state, and
-  minimal component token override files after a focused design-token interview.
+  Use when adopting @techsio/ui-kit in a new or existing apps/* project and setting up app semantic, typography, spacing, layout, radius, state, and minimal component token override files after a focused design-token interview.
 type: lifecycle
 library: "@techsio/ui-kit"
 library_version: "0.3.2"

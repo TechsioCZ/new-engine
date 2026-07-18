@@ -23,6 +23,7 @@ import {
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import type { IconProps } from "../atoms/icon"
 import { Input, type InputProps } from "../atoms/input"
 import { Label, type LabelProps } from "../atoms/label"
@@ -40,11 +41,11 @@ export type PhoneInputValidateStatus =
 export type PhoneInputCountry = {
   value: CountryCode
   label: ReactNode
-  disabled?: boolean
-  displayValue?: string
-  name?: string
-  flag?: ReactNode
-  callingCode?: string
+  disabled?: boolean | undefined
+  displayValue?: string | undefined
+  name?: string | undefined
+  flag?: ReactNode | undefined
+  callingCode?: string | undefined
   [key: string]: unknown
 }
 
@@ -63,8 +64,8 @@ export type PhoneInputCountryChangeDetails = PhoneInputValueChangeDetails & {
 }
 
 type PhoneInputValueDetailsOptions = {
-  countries?: PhoneInputCountry[]
-  syncCountryFromValue?: boolean
+  countries?: PhoneInputCountry[] | undefined
+  syncCountryFromValue?: boolean | undefined
 }
 
 const defaultNativeValidationMessage = "Enter a valid phone number."
@@ -169,8 +170,8 @@ type PhoneInputContextValue = {
   selectedCountry: CountryCode
   selectedCountryItem: PhoneInputCountry
   setCountryValue: (country: CountryCode) => void
-  countryName?: string
-  form?: string
+  countryName?: string | undefined
+  form?: string | undefined
   size: PhoneInputSize
   inputId: string
   inputValue: string
@@ -214,23 +215,27 @@ function usePhoneInputItemContext() {
 
 export type PhoneInputProps = VariantProps<typeof phoneInputVariants> &
   Omit<ComponentPropsWithoutRef<"div">, "defaultValue" | "onChange"> & {
-    countries?: PhoneInputCountry[]
-    value?: string
-    defaultValue?: string
-    country?: CountryCode
-    defaultCountry?: CountryCode
-    name?: string
-    countryName?: string
-    form?: string
-    required?: boolean
-    disabled?: boolean
-    readOnly?: boolean
-    nativeValidation?: boolean
-    nativeValidationMessage?: string
-    validateStatus?: PhoneInputValidateStatus
-    onValueChange?: (details: PhoneInputValueChangeDetails) => void
-    onCountryChange?: (details: PhoneInputCountryChangeDetails) => void
-    ref?: Ref<HTMLDivElement>
+    countries?: PhoneInputCountry[] | undefined
+    value?: string | undefined
+    defaultValue?: string | undefined
+    country?: CountryCode | undefined
+    defaultCountry?: CountryCode | undefined
+    name?: string | undefined
+    countryName?: string | undefined
+    form?: string | undefined
+    required?: boolean | undefined
+    disabled?: boolean | undefined
+    readOnly?: boolean | undefined
+    nativeValidation?: boolean | undefined
+    nativeValidationMessage?: string | undefined
+    validateStatus?: PhoneInputValidateStatus | undefined
+    onValueChange?:
+      | ((details: PhoneInputValueChangeDetails) => void)
+      | undefined
+    onCountryChange?:
+      | ((details: PhoneInputCountryChangeDetails) => void)
+      | undefined
+    ref?: Ref<HTMLDivElement> | undefined
   }
 
 export function PhoneInput({
@@ -433,7 +438,7 @@ PhoneInput.Label = function PhoneInputLabel({
 }
 
 type PhoneInputControlProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 PhoneInput.Control = function PhoneInputControl({
@@ -463,8 +468,8 @@ PhoneInput.Control = function PhoneInputControl({
 
 type PhoneInputCountrySelectProps = {
   children: ReactNode
-  className?: string
-  closeOnSelect?: boolean
+  className?: string | undefined
+  closeOnSelect?: boolean | undefined
 }
 
 PhoneInput.CountrySelect = function PhoneInputCountrySelect({
@@ -508,12 +513,12 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
 }
 
 type PhoneInputCountryPickerProps = {
-  className?: string
-  selectProps?: Omit<PhoneInputCountrySelectProps, "children">
-  controlProps?: PhoneInputCountryControlProps
-  triggerProps?: PhoneInputCountryTriggerProps
-  positionerProps?: PhoneInputCountryPositionerProps
-  contentProps?: PhoneInputCountryContentProps
+  className?: string | undefined
+  selectProps?: Omit<PhoneInputCountrySelectProps, "children"> | undefined
+  controlProps?: PhoneInputCountryControlProps | undefined
+  triggerProps?: PhoneInputCountryTriggerProps | undefined
+  positionerProps?: PhoneInputCountryPositionerProps | undefined
+  contentProps?: PhoneInputCountryContentProps | undefined
 }
 
 PhoneInput.CountryPicker = function PhoneInputCountryPicker({
@@ -549,7 +554,7 @@ PhoneInput.CountryPicker = function PhoneInputCountryPicker({
 }
 
 type PhoneInputCountryControlProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 PhoneInput.CountryControl = function PhoneInputCountryControl({
@@ -573,8 +578,8 @@ PhoneInput.CountryControl = function PhoneInputCountryControl({
 }
 
 type PhoneInputCountryTriggerProps = ComponentPropsWithoutRef<"button"> & {
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLButtonElement>
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
@@ -603,7 +608,7 @@ PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
 }
 
 type PhoneInputCountryValueProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 PhoneInput.CountryValue = function PhoneInputCountryValue({
@@ -623,8 +628,8 @@ PhoneInput.CountryValue = function PhoneInputCountryValue({
 }
 
 type PhoneInputCountryFlagProps = ComponentPropsWithoutRef<"span"> & {
-  item?: PhoneInputCountry
-  ref?: Ref<HTMLSpanElement>
+  item?: PhoneInputCountry | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 PhoneInput.CountryFlag = function PhoneInputCountryFlag({
@@ -644,8 +649,8 @@ PhoneInput.CountryFlag = function PhoneInputCountryFlag({
 }
 
 type PhoneInputCountryCallingCodeProps = ComponentPropsWithoutRef<"span"> & {
-  item?: PhoneInputCountry
-  ref?: Ref<HTMLSpanElement>
+  item?: PhoneInputCountry | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 PhoneInput.CountryCallingCode = function PhoneInputCountryCallingCode({
@@ -685,7 +690,7 @@ type PhoneInputInputProps = Omit<
   | "value"
   | "variant"
 > & {
-  onChange?: ChangeEventHandler<HTMLInputElement>
+  onChange?: ChangeEventHandler<HTMLInputElement> | undefined
 }
 
 PhoneInput.Input = function PhoneInputInput({
@@ -773,7 +778,7 @@ PhoneInput.Input = function PhoneInputInput({
 }
 
 type PhoneInputCountryPositionerProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 PhoneInput.CountryPositioner = function PhoneInputCountryPositioner({
@@ -784,7 +789,7 @@ PhoneInput.CountryPositioner = function PhoneInputCountryPositioner({
 }
 
 type PhoneInputCountryContentProps = ComponentPropsWithoutRef<"ul"> & {
-  ref?: Ref<HTMLUListElement>
+  ref?: Ref<HTMLUListElement> | undefined
 }
 
 PhoneInput.CountryContent = function PhoneInputCountryContent({
@@ -796,7 +801,7 @@ PhoneInput.CountryContent = function PhoneInputCountryContent({
 
 type PhoneInputCountryItemProps = ComponentPropsWithoutRef<"li"> & {
   item: PhoneInputCountry
-  ref?: Ref<HTMLLIElement>
+  ref?: Ref<HTMLLIElement> | undefined
 }
 
 PhoneInput.CountryItem = function PhoneInputCountryItem({
@@ -814,7 +819,7 @@ PhoneInput.CountryItem = function PhoneInputCountryItem({
 }
 
 type PhoneInputCountryItemTextProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 PhoneInput.CountryItemText = function PhoneInputCountryItemText({
@@ -838,7 +843,7 @@ PhoneInput.CountryItemText = function PhoneInputCountryItemText({
 }
 
 type PhoneInputCountryItemMetaProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 PhoneInput.CountryItemMeta = function PhoneInputCountryItemMeta({
@@ -859,8 +864,8 @@ PhoneInput.CountryItemMeta = function PhoneInputCountryItemMeta({
 }
 
 type PhoneInputCountryItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLSpanElement>
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 PhoneInput.CountryItemIndicator = function PhoneInputCountryItemIndicator({
@@ -877,9 +882,9 @@ PhoneInput.ItemMeta = PhoneInput.CountryItemMeta
 PhoneInput.ItemIndicator = PhoneInput.CountryItemIndicator
 
 type PhoneInputStatusTextProps = ComponentPropsWithoutRef<"div"> & {
-  status?: PhoneInputValidateStatus
-  showIcon?: boolean
-  ref?: Ref<HTMLDivElement>
+  status?: PhoneInputValidateStatus | undefined
+  showIcon?: boolean | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 PhoneInput.StatusText = function PhoneInputStatusText({

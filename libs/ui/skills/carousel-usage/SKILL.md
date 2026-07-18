@@ -1,9 +1,7 @@
 ---
 name: carousel-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Carousel for
-  Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect
-  ratio, object fit, and framework image adapters.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Carousel for Zag.js-backed slides, images, controls, indicators, autoplay, sizing, aspect ratio, object fit, and framework image adapters.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -22,8 +20,7 @@ sources:
 
 # @techsio/ui-kit Carousel Usage
 
-Use Carousel for slide-based browsing. Use Gallery for product image galleries
-with thumbnails.
+Use Carousel for slide-based browsing. Use Gallery for product image galleries with thumbnails.
 
 ## Setup
 
@@ -31,9 +28,13 @@ with thumbnails.
 import NextImage from "next/image"
 import { Carousel } from "@techsio/ui-kit/molecules/carousel"
 
-<Carousel slideCount={slides.length} size="full" aspectRatio="landscape">
+;<Carousel slideCount={slides.length} size="full" aspectRatio="landscape">
   <Carousel.Slides slides={slides} imageAs={NextImage} />
-  <Carousel.Control><Carousel.Previous /><Carousel.Indicators /><Carousel.Next /></Carousel.Control>
+  <Carousel.Control>
+    <Carousel.Previous />
+    <Carousel.Indicators />
+    <Carousel.Next />
+  </Carousel.Control>
 </Carousel>
 ```
 
@@ -51,18 +52,15 @@ orientation, loop, autoplay, allowMouseDrag, slidesPerPage, slidesPerMove
 
 ### Use slides data or explicit slides
 
-`Carousel.Slides` accepts `{ id, content, src, alt, imageProps }[]`. In Next
-apps pass `imageAs={NextImage}` when rendering images.
+`Carousel.Slides` accepts `{ id, content, src, alt, imageProps }[]`. In Next apps pass `imageAs={NextImage}` when rendering images.
 
 ### Keep controls as Carousel parts
 
-Use `Carousel.Previous`, `Carousel.Next`, `Carousel.Indicators`, and
-`Carousel.Autoplay` so Zag props and disabled states stay wired.
+Use `Carousel.Previous`, `Carousel.Next`, `Carousel.Indicators`, and `Carousel.Autoplay` so Zag props and disabled states stay wired.
 
 ### Use Gallery for thumbnail product media
 
-If the UX includes selectable thumbnails, start with `gallery-usage`, which
-wraps Carousel correctly.
+If the UX includes selectable thumbnails, start with `gallery-usage`, which wraps Carousel correctly.
 
 ## Common Mistakes
 
@@ -77,7 +75,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Carousel slideCount={slides.length}><Carousel.Slides slides={slides} /></Carousel>
+<Carousel slideCount={slides.length}>
+  <Carousel.Slides slides={slides} />
+</Carousel>
 ```
 
 Source: libs/ui/src/molecules/carousel.tsx
@@ -87,13 +87,17 @@ Source: libs/ui/src/molecules/carousel.tsx
 Wrong:
 
 ```tsx
-<Carousel><Carousel.Slides slides={slides} /></Carousel>
+<Carousel>
+  <Carousel.Slides slides={slides} />
+</Carousel>
 ```
 
 Correct:
 
 ```tsx
-<Carousel slideCount={slides.length}><Carousel.Slides slides={slides} /></Carousel>
+<Carousel slideCount={slides.length}>
+  <Carousel.Slides slides={slides} />
+</Carousel>
 ```
 
 Source: https://zagjs.com/components/react/carousel
@@ -103,7 +107,9 @@ Source: https://zagjs.com/components/react/carousel
 Wrong:
 
 ```tsx
-<Carousel.Slide className="aspect-video"><img className="object-cover" /></Carousel.Slide>
+<Carousel.Slide className="aspect-video">
+  <img className="object-cover" />
+</Carousel.Slide>
 ```
 
 Correct:

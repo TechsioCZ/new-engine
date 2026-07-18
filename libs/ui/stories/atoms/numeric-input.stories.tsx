@@ -1,7 +1,11 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Label } from '../../src/atoms/label'
-import { NumericInput, type NumericInputProps } from '../../src/atoms/numeric-input'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { Label } from "../../src/atoms/label"
+import {
+  NumericInput,
+  type NumericInputProps,
+} from "../../src/atoms/numeric-input"
 
 type PlaygroundArgs = NumericInputProps & {
   showLabel?: boolean
@@ -11,18 +15,18 @@ type PlaygroundArgs = NumericInputProps & {
 }
 
 const meta: Meta<typeof NumericInput> = {
-  title: 'Atoms/NumericInput',
+  title: "Atoms/NumericInput",
   component: NumericInput,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component:
-          'A flexible numeric input component using compound pattern. Provides granular control over layout and behavior through composable subcomponents.',
+          "A flexible numeric input component using compound pattern. Provides granular control over layout and behavior through composable subcomponents.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 }
 
 export default meta
@@ -35,48 +39,58 @@ export const Playground: Story = {
     step: 0.1,
     disabled: false,
     invalid: false,
-    size: 'md',
-    locale: 'en-US',
+    size: "md",
+    locale: "en-US",
     allowMouseWheel: true,
     clampValueOnBlur: true,
     precision: 1,
     showLabel: false,
-    label: 'Quantity',
+    label: "Quantity",
     showControls: true,
     showScrubber: false,
   },
   argTypes: {
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the numeric input',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of the numeric input",
     },
     locale: {
-      control: 'select',
-      options: ['en-US', 'cs-CZ', 'de-DE', 'fr-FR'],
-      description: 'Locale for number formatting (decimal separator)',
+      control: "select",
+      options: ["en-US", "cs-CZ", "de-DE", "fr-FR"],
+      description: "Locale for number formatting (decimal separator)",
     },
-    min: { control: 'number', description: 'Minimum allowed value' },
-    max: { control: 'number', description: 'Maximum allowed value' },
-    step: { control: 'number', description: 'Step increment/decrement value' },
-    disabled: { control: 'boolean', description: 'Disable the input' },
-    invalid: { control: 'boolean', description: 'Show invalid/error state' },
-    allowMouseWheel: { control: 'boolean', description: 'Allow mouse wheel to change value' },
-    clampValueOnBlur: { control: 'boolean', description: 'Clamp value to min/max on blur' },
-    showLabel: { control: 'boolean', description: 'Show label above the input' },
-    label: { control: 'text', description: 'Label text' },
-    showControls: { control: 'boolean', description: 'Show increment/decrement buttons' },
-    showScrubber: { control: 'boolean', description: 'Enable scrubber overlay' },
+    min: { control: "number", description: "Minimum allowed value" },
+    max: { control: "number", description: "Maximum allowed value" },
+    step: { control: "number", description: "Step increment/decrement value" },
+    disabled: { control: "boolean", description: "Disable the input" },
+    invalid: { control: "boolean", description: "Show invalid/error state" },
+    allowMouseWheel: {
+      control: "boolean",
+      description: "Allow mouse wheel to change value",
+    },
+    clampValueOnBlur: {
+      control: "boolean",
+      description: "Clamp value to min/max on blur",
+    },
+    showLabel: {
+      control: "boolean",
+      description: "Show label above the input",
+    },
+    label: { control: "text", description: "Label text" },
+    showControls: {
+      control: "boolean",
+      description: "Show increment/decrement buttons",
+    },
+    showScrubber: {
+      control: "boolean",
+      description: "Enable scrubber overlay",
+    },
   },
   render: function Render(args) {
     const [value, setValue] = useState(50.5)
-    const {
-      showLabel,
-      label,
-      showControls,
-      showScrubber,
-      ...numericArgs
-    } = args
+    const { showLabel, label, showControls, showScrubber, ...numericArgs } =
+      args
     return (
       <div className="w-md flex flex-col gap-50">
         {showLabel && <Label htmlFor="numeric-playground">{label}</Label>}
@@ -199,15 +213,13 @@ export const WithoutControls: Story = {
           min={0}
           max={100}
           allowMouseWheel
-          size='md'
+          size="md"
         >
           <NumericInput.Control>
             <NumericInput.Input />
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">
-          Current value: {value}
-        </p>
+        <p className="text-fg-muted text-sm mt-50">Current value: {value}</p>
       </div>
     )
   },
@@ -239,9 +251,7 @@ export const WithScrubber: Story = {
             </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">
-          Current value: {value}
-        </p>
+        <p className="text-fg-muted text-sm mt-50">Current value: {value}</p>
       </div>
     )
   },
@@ -253,9 +263,7 @@ export const MinMax: Story = {
 
     return (
       <div className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-minmax">
-          Range: 0-10 (clamped on blur)
-        </Label>
+        <Label htmlFor="numeric-minmax">Range: 0-10 (clamped on blur)</Label>
         <NumericInput
           id="numeric-minmax"
           value={value}
@@ -322,10 +330,8 @@ export const WithPrecision: Story = {
     const [value, setValue] = useState(3.14)
 
     return (
-      <div lang='cs' className="w-md flex flex-col gap-50">
-        <Label htmlFor="numeric-precision">
-          Pi approximation (2 decimals)
-        </Label>
+      <div lang="cs" className="w-md flex flex-col gap-50">
+        <Label htmlFor="numeric-precision">Pi approximation (2 decimals)</Label>
         <NumericInput
           id="numeric-precision"
           value={value}
@@ -343,9 +349,7 @@ export const WithPrecision: Story = {
             </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">
-          Current value: {value}
-        </p>
+        <p className="text-fg-muted text-sm mt-50">Current value: {value}</p>
       </div>
     )
   },
@@ -366,11 +370,17 @@ export const CustomLayoutHorizontal: Story = {
           max={100}
         >
           <div className="flex gap-50">
-            <NumericInput.DecrementTrigger className='bg-overlay' icon='icon-[mdi--minus]'/>
+            <NumericInput.DecrementTrigger
+              className="bg-overlay"
+              icon="icon-[mdi--minus]"
+            />
             <NumericInput.Control className="flex-1">
               <NumericInput.Input />
             </NumericInput.Control>
-            <NumericInput.IncrementTrigger className='bg-overlay' icon='icon-[mdi--plus]'/>
+            <NumericInput.IncrementTrigger
+              className="bg-overlay"
+              icon="icon-[mdi--plus]"
+            />
           </div>
         </NumericInput>
       </div>
@@ -435,8 +445,11 @@ export const CustomButtonProps: Story = {
             <NumericInput.Control>
               <NumericInput.Input />
               <NumericInput.TriggerContainer>
-                <NumericInput.IncrementTrigger variant='primary' theme='solid' />
-                <NumericInput.DecrementTrigger variant='danger' theme='solid' />
+                <NumericInput.IncrementTrigger
+                  variant="primary"
+                  theme="solid"
+                />
+                <NumericInput.DecrementTrigger variant="danger" theme="solid" />
               </NumericInput.TriggerContainer>
             </NumericInput.Control>
           </NumericInput>
@@ -445,4 +458,3 @@ export const CustomButtonProps: Story = {
     )
   },
 }
-

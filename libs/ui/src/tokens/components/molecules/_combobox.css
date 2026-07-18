@@ -9,9 +9,12 @@
  */
 
 @theme static {
-  --padding-combobox-item-sm: var(--spacing-combobox-item-padding-y-sm) var(--spacing-combobox-item-padding-x);
-  --padding-combobox-item-md: var(--spacing-combobox-item-padding-y-md) var(--spacing-combobox-item-padding-x);
-  --padding-combobox-item-lg: var(--spacing-combobox-item-padding-y-lg) var(--spacing-combobox-item-padding-x);
+  --padding-combobox-item-sm: var(--spacing-combobox-item-padding-y-sm)
+    var(--spacing-combobox-item-padding-x);
+  --padding-combobox-item-md: var(--spacing-combobox-item-padding-y-md)
+    var(--spacing-combobox-item-padding-x);
+  --padding-combobox-item-lg: var(--spacing-combobox-item-padding-y-lg)
+    var(--spacing-combobox-item-padding-x);
 
   --padding-combobox-trigger: 0 var(--spacing-100);
 

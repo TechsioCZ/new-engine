@@ -1,4 +1,9 @@
-import { normalizeProps, useMachine } from "@zag-js/react"
+import {
+  mergeProps,
+  normalizeProps,
+  type PropTypes,
+  useMachine,
+} from "@zag-js/react"
 import * as tree from "@zag-js/tree-view"
 import {
   type ComponentPropsWithoutRef,
@@ -9,20 +14,21 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Icon, type IconType } from "../atoms/icon"
 import { tv } from "../utils"
 
 export interface TreeNode {
   id: string
   name: string
-  children?: TreeNode[]
+  children?: TreeNode[] | undefined
   icons?: {
-    branch?: IconType
-    leaf?: IconType
+    branch?: IconType | undefined
+    leaf?: IconType | undefined
   }
-  disabled?: boolean
-  selected?: boolean
-  selectable?: boolean // For 'custom' selection behavior
+  disabled?: boolean | undefined
+  selected?: boolean | undefined
+  selectable?: boolean | undefined // For 'custom' selection behavior
   [key: string]: unknown
 }
 
@@ -131,10 +137,10 @@ const treeViewVariants = tv({
 })
 
 interface TreeViewContextValue {
-  api: tree.Api
-  size?: "sm" | "md" | "lg"
+  api: tree.Api<PropTypes, TreeNode>
+  size?: "sm" | "md" | "lg" | undefined
   styles: ReturnType<typeof treeViewVariants>
-  selectionBehavior?: "all" | "leaf-only" | "custom"
+  selectionBehavior?: "all" | "leaf-only" | "custom" | undefined
 }
 
 const TreeViewContext = createContext<TreeViewContextValue | null>(null)
@@ -167,12 +173,13 @@ function useTreeViewNodeContext() {
 }
 
 interface TreeViewRootProps
-  extends VariantProps<typeof treeViewVariants>,
+  extends
+    VariantProps<typeof treeViewVariants>,
     Omit<tree.Props, "id" | "size">,
     Omit<ComponentPropsWithoutRef<"div">, "onChange" | "dir"> {
-  id?: string
+  id?: string | undefined
   data: TreeNode[]
-  selectionBehavior?: "all" | "leaf-only" | "custom"
+  selectionBehavior?: "all" | "leaf-only" | "custom" | undefined
 }
 
 export function TreeView({
@@ -212,27 +219,26 @@ export function TreeView({
     collection,
     dir,
     selectionMode,
-    expandedValue,
-    selectedValue,
-    focusedValue,
-    defaultExpandedValue,
-    defaultSelectedValue,
     expandOnClick,
     typeahead,
-    onExpandedChange,
-    onSelectionChange,
-    onFocusChange,
+    ...(expandedValue !== undefined && { expandedValue }),
+    ...(selectedValue !== undefined && { selectedValue }),
+    ...(focusedValue !== undefined && { focusedValue }),
+    ...(defaultExpandedValue !== undefined && { defaultExpandedValue }),
+    ...(defaultSelectedValue !== undefined && { defaultSelectedValue }),
+    ...(onExpandedChange !== undefined && { onExpandedChange }),
+    ...(onSelectionChange !== undefined && { onSelectionChange }),
+    ...(onFocusChange !== undefined && { onFocusChange }),
   })
 
-  const api = tree.connect(service as unknown as tree.Service, normalizeProps)
+  const api = tree.connect<PropTypes, TreeNode>(service, normalizeProps)
   const styles = treeViewVariants({ size })
 
   return (
     <TreeViewContext.Provider value={{ api, size, styles, selectionBehavior }}>
       <div
         className={styles.root({ className })}
-        {...api.getRootProps()}
-        {...props}
+        {...mergeProps(api.getRootProps(), props)}
       >
         {children}
       </div>
@@ -252,8 +258,7 @@ TreeView.Label = function TreeViewLabel({
   return (
     <h3
       className={styles.label({ className })}
-      {...api.getLabelProps()}
-      {...props}
+      {...mergeProps(api.getLabelProps(), props)}
     >
       {children}
     </h3>
@@ -272,8 +277,7 @@ TreeView.Tree = function TreeViewTree({
   return (
     <div
       className={styles.tree({ className })}
-      {...api.getTreeProps()}
-      {...props}
+      {...mergeProps(api.getTreeProps(), props)}
     >
       {children}
     </div>
@@ -317,8 +321,7 @@ TreeView.Branch = function TreeViewBranch({
   return (
     <div
       className={styles.branch({ className })}
-      {...api.getBranchProps(nodeProps)}
-      {...props}
+      {...mergeProps(api.getBranchProps(nodeProps), props)}
     >
       {children}
     </div>
@@ -398,8 +401,8 @@ TreeView.BranchControl = function TreeViewBranchControl({
 }
 
 interface TreeViewBranchTextProps {
-  children?: ReactNode
-  className?: string
+  children?: ReactNode | undefined
+  className?: string | undefined
 }
 
 TreeView.BranchText = function TreeViewBranchText({
@@ -420,8 +423,8 @@ TreeView.BranchText = function TreeViewBranchText({
 }
 
 interface TreeViewBranchIndicatorProps {
-  icon?: IconType
-  className?: string
+  icon?: IconType | undefined
+  className?: string | undefined
 }
 
 TreeView.BranchIndicator = function TreeViewBranchIndicator({
@@ -444,6 +447,7 @@ TreeView.BranchIndicator = function TreeViewBranchIndicator({
       className={styles.branchIndicator({ className })}
       icon={icon}
       {...api.getBranchIndicatorProps(nodeProps)}
+      color={undefined}
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -466,8 +470,7 @@ TreeView.BranchContent = function TreeViewBranchContent({
   return (
     <div
       className={styles.branchContent({ className })}
-      {...api.getBranchContentProps(nodeProps)}
-      {...props}
+      {...mergeProps(api.getBranchContentProps(nodeProps), props)}
     >
       {children}
     </div>
@@ -475,7 +478,7 @@ TreeView.BranchContent = function TreeViewBranchContent({
 }
 
 interface TreeViewIndentGuideProps {
-  className?: string
+  className?: string | undefined
 }
 
 TreeView.IndentGuide = function TreeViewIndentGuide({
@@ -541,8 +544,8 @@ TreeView.Item = function TreeViewItem({
 }
 
 interface TreeViewItemTextProps {
-  children?: ReactNode
-  className?: string
+  children?: ReactNode | undefined
+  className?: string | undefined
 }
 
 TreeView.ItemText = function TreeViewItemText({
@@ -563,7 +566,7 @@ TreeView.ItemText = function TreeViewItemText({
 }
 
 interface TreeViewNodeIconProps extends ComponentPropsWithoutRef<"span"> {
-  icon?: IconType
+  icon?: IconType | undefined
 }
 
 TreeView.NodeIcon = function TreeViewNodeIcon({
@@ -598,10 +601,10 @@ TreeView.NodeIcon = function TreeViewNodeIcon({
 interface TreeViewNodeProps {
   node: TreeNode
   indexPath: number[]
-  showIndentGuides?: boolean
-  showNodeIcons?: boolean
-  onNodeHover?: (node: TreeNode, indexPath: number[]) => void
-  onNodeLeave?: (node: TreeNode, indexPath: number[]) => void
+  showIndentGuides?: boolean | undefined
+  showNodeIcons?: boolean | undefined
+  onNodeHover?: ((node: TreeNode, indexPath: number[]) => void) | undefined
+  onNodeLeave?: ((node: TreeNode, indexPath: number[]) => void) | undefined
 }
 
 TreeView.Node = function TreeViewNode({

@@ -16,17 +16,24 @@
  *
  * Exit codes: 0 = allow, 2 = block (stderr is fed back to the agent).
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process"
 
 // Boundaries include quotes and `=`, not just whitespace: an alias definition inlined into the
 // command (`git -c alias.x='push --no-verify' x`) puts the tokens inside a quoted value, where
 // they are bounded by `'` and `=` rather than spaces.
-const B = "[\\s'\"=]";
-const SKIPS_HOOKS = new RegExp(`(^|${B})(--no-verify|-n)(${B}|$)`);
-const IS_PUSH = new RegExp(`(^|${B})push(${B}|$)`);
+const B = "[\\s'\"=]"
+const SKIPS_HOOKS = new RegExp(`(^|${B})(--no-verify|-n)(${B}|$)`)
+const IS_PUSH = new RegExp(`(^|${B})push(${B}|$)`)
 
 /** Flags that take a separate value, so the following token is not the subcommand. */
-const GIT_GLOBAL_WITH_VALUE = new Set(["-c", "-C", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+const GIT_GLOBAL_WITH_VALUE = new Set([
+  "-c",
+  "-C",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--exec-path",
+])
 
 const gitConfig = (key, cwd) => {
   try {
@@ -34,86 +41,91 @@ const gitConfig = (key, cwd) => {
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
+    }).trim()
   } catch {
-    return "";
+    return ""
   }
-};
+}
 
 /**
  * Expand git aliases in a command so the guard sees what git will actually run.
  * Bounded to a few rounds — aliases can chain, but we are not writing an interpreter.
  */
 function expandAliases(command, cwd) {
-  let expanded = command;
+  let expanded = command
 
   for (let round = 0; round < 5; round++) {
-    const tokens = expanded.trim().split(/\s+/);
-    const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"));
-    if (gitIdx === -1) return expanded;
+    const tokens = expanded.trim().split(/\s+/)
+    const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"))
+    if (gitIdx === -1) return expanded
 
     // Inline `-c alias.x=...` definitions are part of this very command — honour them.
-    const inline = new Map();
-    let i = gitIdx + 1;
+    const inline = new Map()
+    let i = gitIdx + 1
     for (; i < tokens.length; i++) {
-      const t = tokens[i];
+      const t = tokens[i]
       if (t === "-c" && tokens[i + 1]) {
-        const [k, ...v] = tokens[i + 1].split("=");
-        if (k.startsWith("alias.")) inline.set(k.slice("alias.".length), v.join("="));
-        i++;
-        continue;
+        const [k, ...v] = tokens[i + 1].split("=")
+        if (k.startsWith("alias."))
+          inline.set(k.slice("alias.".length), v.join("="))
+        i++
+        continue
       }
       if (GIT_GLOBAL_WITH_VALUE.has(t)) {
-        i++;
-        continue;
+        i++
+        continue
       }
-      if (t.startsWith("-")) continue;
-      break; // first non-flag token = the subcommand
+      if (t.startsWith("-")) continue
+      break // first non-flag token = the subcommand
     }
 
-    const sub = tokens[i];
-    if (!sub) return expanded;
+    const sub = tokens[i]
+    if (!sub) return expanded
 
-    const definition = inline.get(sub) ?? gitConfig(`alias.${sub}`, cwd);
-    if (!definition) return expanded; // not an alias — done
+    const definition = inline.get(sub) ?? gitConfig(`alias.${sub}`, cwd)
+    if (!definition) return expanded // not an alias — done
 
     // Replace the subcommand with its definition and go round again (aliases can nest).
-    const next = [...tokens.slice(0, i), definition, ...tokens.slice(i + 1)].join(" ");
-    if (next === expanded) return expanded;
-    expanded = next;
+    const next = [
+      ...tokens.slice(0, i),
+      definition,
+      ...tokens.slice(i + 1),
+    ].join(" ")
+    if (next === expanded) return expanded
+    expanded = next
   }
 
-  return expanded;
+  return expanded
 }
 
-let raw = "";
+let raw = ""
 process.stdin.on("data", (chunk) => {
-  raw += chunk;
-});
+  raw += chunk
+})
 process.stdin.on("end", () => {
-  let input;
+  let input
   try {
-    input = JSON.parse(raw);
+    input = JSON.parse(raw)
   } catch {
-    process.exit(0);
+    process.exit(0)
   }
 
   // Claude Code passes a string; Codex's shell tool passes an argv array.
-  const rawCommand = input?.tool_input?.command ?? input?.tool_input?.cmd ?? "";
-  const command = Array.isArray(rawCommand) ? rawCommand.join(" ") : rawCommand;
-  if (typeof command !== "string" || !/\bgit\b/.test(command)) process.exit(0);
+  const rawCommand = input?.tool_input?.command ?? input?.tool_input?.cmd ?? ""
+  const command = Array.isArray(rawCommand) ? rawCommand.join(" ") : rawCommand
+  if (typeof command !== "string" || !/\bgit\b/.test(command)) process.exit(0)
 
-  const cwd = input?.cwd || process.cwd();
-  const resolved = expandAliases(command, cwd);
+  const cwd = input?.cwd || process.cwd()
+  const resolved = expandAliases(command, cwd)
 
   // Check the raw text AND the alias-resolved text. The resolved form catches an alias stored in
   // config (`alias.publish = push --no-verify`, whose call site shows neither token); the raw form
   // catches a definition inlined into this very command (`git -c alias.x='push --no-verify' x`),
   // where the flags are inside a quoted value that no whitespace tokenizer can see into.
-  const hit = (re) => re.test(command) || re.test(resolved);
+  const hit = (re) => re.test(command) || re.test(resolved)
 
   if (hit(IS_PUSH) && hit(SKIPS_HOOKS)) {
-    const viaAlias = resolved !== command;
+    const viaAlias = resolved !== command
     process.stderr.write(
       [
         "BLOCKED: this command skips the pre-push hook that enforces the ui-kit quality gate.",
@@ -121,10 +133,10 @@ process.stdin.on("end", () => {
         "`--no-verify` is not permitted. Run the `ui-validate` skill and push normally.",
       ]
         .filter(Boolean)
-        .join("\n"),
-    );
-    process.exit(2);
+        .join("\n")
+    )
+    process.exit(2)
   }
 
-  process.exit(0);
-});
+  process.exit(0)
+})

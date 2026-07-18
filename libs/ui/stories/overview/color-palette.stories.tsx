@@ -1,12 +1,13 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import '../../src/tokens/_colors.css'
-import '../../src/tokens/_semantic.css'
-import {ColorSelect} from '../../src/molecules/color-select'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import "../../src/tokens/_colors.css"
+import "../../src/tokens/_semantic.css"
+import { ColorSelect } from "../../src/molecules/color-select"
 
 const meta: Meta = {
-  title: 'Overview/Color Palette',
+  title: "Overview/Color Palette",
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
 }
 
@@ -14,25 +15,25 @@ export default meta
 type Story = StoryObj
 
 const semanticColors = [
-  'primary',
-  'secondary',
-  'tertiary',
-  'info',
-  'success',
-  'warning',
-  'danger',
+  "primary",
+  "secondary",
+  "tertiary",
+  "info",
+  "success",
+  "warning",
+  "danger",
 ] as const
 
 const colorVariants = [
-  { suffix: '', label: 'Default' },
-  { suffix: '-light', label: 'Light' },
+  { suffix: "", label: "Default" },
+  { suffix: "-light", label: "Light" },
 ] as const
 
 const stateVariants = [
-  { state: '', label: 'Default' },
-  { state: 'hover', label: 'Hover' },
-  { state: 'active', label: 'Active' },
-  { state: 'disabled', label: 'Disabled' },
+  { state: "", label: "Default" },
+  { state: "hover", label: "Hover" },
+  { state: "active", label: "Active" },
+  { state: "disabled", label: "Disabled" },
 ] as const
 
 export const Default: Story = {
@@ -53,19 +54,19 @@ export const Default: Story = {
                       {label}
                     </h4>
                     <div className="grid grid-cols-4 gap-4">
-                      {stateVariants.map(({ state, label: stateLabel }) => {
+                      {stateVariants.map(({ state }) => {
                         const baseColorVar = `--color-${color}${suffix}`
                         const computedColor =
-                          state === 'disabled'
+                          state === "disabled"
                             ? `var(--color-${color}${suffix}-disabled)`
-                            : state !== ''
+                            : state !== ""
                               ? `oklch(from var(${baseColorVar}) calc(l + var(--state-${state})) c h)`
                               : `var(${baseColorVar})`
 
                         const colorTokenName =
-                          state === 'disabled'
+                          state === "disabled"
                             ? `--color-${color}${suffix}-disabled`
-                            : state !== ''
+                            : state !== ""
                               ? `--color-${color}${suffix}-${state}`
                               : `--color-${color}${suffix}`
 
@@ -84,7 +85,7 @@ export const Default: Story = {
                             </div>
                             <div className="w-full text-center">
                               <div className="truncate font-medium text-fg-primary text-xs">
-                                {state || 'Default'}
+                                {state || "Default"}
                               </div>
                               <div className="mt-1 break-all font-mono text-fg-secondary text-xs leading-tight">
                                 {colorTokenName}

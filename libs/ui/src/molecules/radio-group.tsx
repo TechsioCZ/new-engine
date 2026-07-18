@@ -1,5 +1,5 @@
 import * as zagRadioGroup from "@zag-js/radio-group"
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   type ComponentPropsWithoutRef,
   createContext,
@@ -9,6 +9,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
@@ -170,13 +171,16 @@ type RadioGroupItemContextValue = {
   itemProps: zagRadioGroup.ItemProps
 }
 
-const RadioGroupItemContext =
-  createContext<RadioGroupItemContextValue | null>(null)
+const RadioGroupItemContext = createContext<RadioGroupItemContextValue | null>(
+  null
+)
 
 function useRadioGroupItemContext() {
   const context = useContext(RadioGroupItemContext)
   if (!context) {
-    throw new Error("RadioGroup item components must be used within RadioGroup.Item")
+    throw new Error(
+      "RadioGroup item components must be used within RadioGroup.Item"
+    )
   }
   return context
 }
@@ -188,12 +192,12 @@ type RadioGroupMachineProps = Omit<
 
 export type RadioGroupProps = VariantProps<typeof radioGroupVariants> &
   RadioGroupMachineProps & {
-    id?: string
+    id?: string | undefined
     children: ReactNode
-    className?: string
-    ref?: Ref<HTMLDivElement>
-    validateStatus?: RadioGroupValidateStatus
-    onValueChange?: (value: string | null) => void
+    className?: string | undefined
+    ref?: Ref<HTMLDivElement> | undefined
+    validateStatus?: RadioGroupValidateStatus | undefined
+    onValueChange?: ((value: string | null) => void) | undefined
   }
 
 export function RadioGroup({
@@ -226,17 +230,26 @@ export function RadioGroup({
     },
   })
 
-  const api = zagRadioGroup.connect(
-    service,
-    normalizeProps,
-  )
+  const api = zagRadioGroup.connect(service, normalizeProps)
   const styles = radioGroupVariants({ size, variant })
 
   return (
     <RadioGroupContext.Provider
-      value={{ api, variant, size, orientation, disabled, required, validateStatus }}
+      value={{
+        api,
+        variant,
+        size,
+        orientation,
+        disabled,
+        required,
+        validateStatus,
+      }}
     >
-      <div className={styles.root({ className })} ref={ref} {...api.getRootProps()}>
+      <div
+        className={styles.root({ className })}
+        ref={ref}
+        {...api.getRootProps()}
+      >
         {children}
       </div>
     </RadioGroupContext.Provider>
@@ -247,9 +260,9 @@ type RadioGroupLabelProps = Omit<
   ComponentPropsWithoutRef<typeof Label>,
   "disabled" | "required"
 > & {
-  disabled?: boolean
-  required?: boolean
-  ref?: Ref<HTMLLabelElement>
+  disabled?: boolean | undefined
+  required?: boolean | undefined
+  ref?: Ref<HTMLLabelElement> | undefined
 }
 
 RadioGroup.Label = function RadioGroupLabel({
@@ -259,16 +272,19 @@ RadioGroup.Label = function RadioGroupLabel({
   size: sizeProp,
   ...props
 }: RadioGroupLabelProps) {
-  const { api, size, disabled: groupDisabled, required: groupRequired } =
-    useRadioGroupContext()
+  const {
+    api,
+    size,
+    disabled: groupDisabled,
+    required: groupRequired,
+  } = useRadioGroupContext()
 
   return (
     <Label
       disabled={disabled ?? groupDisabled}
       required={required ?? groupRequired}
       size={sizeProp ?? size}
-      {...api.getLabelProps()}
-      {...props}
+      {...mergeProps(api.getLabelProps(), props)}
     >
       {children}
     </Label>
@@ -276,7 +292,7 @@ RadioGroup.Label = function RadioGroupLabel({
 }
 
 type RadioGroupItemGroupProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioGroup.ItemGroup = function RadioGroupItemGroup({
@@ -300,9 +316,12 @@ RadioGroup.ItemGroup = function RadioGroupItemGroup({
   )
 }
 
-export type RadioGroupItemProps = Omit<ComponentPropsWithoutRef<"label">, "value"> &
+export type RadioGroupItemProps = Omit<
+  ComponentPropsWithoutRef<"label">,
+  "value"
+> &
   zagRadioGroup.ItemProps & {
-    ref?: Ref<HTMLLabelElement>
+    ref?: Ref<HTMLLabelElement> | undefined
   }
 
 RadioGroup.Item = function RadioGroupItem({
@@ -323,8 +342,7 @@ RadioGroup.Item = function RadioGroupItem({
       <label
         className={styles.item({ className })}
         ref={ref}
-        {...api.getItemProps(itemProps)}
-        {...props}
+        {...mergeProps(api.getItemProps(itemProps), props)}
       >
         {children}
       </label>
@@ -336,7 +354,7 @@ type RadioGroupItemHiddenInputProps = Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "value"
 > & {
-  ref?: Ref<HTMLInputElement>
+  ref?: Ref<HTMLInputElement> | undefined
 }
 
 RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
@@ -352,14 +370,13 @@ RadioGroup.ItemHiddenInput = function RadioGroupItemHiddenInput({
     <input
       className={styles.hiddenInput({ className })}
       ref={ref}
-      {...api.getItemHiddenInputProps(itemProps)}
-      {...props}
+      {...mergeProps(api.getItemHiddenInputProps(itemProps), props)}
     />
   )
 }
 
 type RadioGroupItemControlProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 RadioGroup.ItemControl = function RadioGroupItemControl({
@@ -377,8 +394,7 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
     <span
       className={styles.itemControl({ className })}
       ref={ref}
-      {...api.getItemControlProps(itemProps)}
-      {...props}
+      {...mergeProps(api.getItemControlProps(itemProps), props)}
     >
       <span
         aria-hidden="true"
@@ -392,7 +408,7 @@ RadioGroup.ItemControl = function RadioGroupItemControl({
 }
 
 type RadioGroupItemContentProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioGroup.ItemContent = function RadioGroupItemContent({
@@ -412,7 +428,7 @@ RadioGroup.ItemContent = function RadioGroupItemContent({
 }
 
 type RadioGroupItemTextProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 RadioGroup.ItemText = function RadioGroupItemText({
@@ -429,8 +445,7 @@ RadioGroup.ItemText = function RadioGroupItemText({
     <span
       className={styles.itemText({ className })}
       ref={ref}
-      {...api.getItemTextProps(itemProps)}
-      {...props}
+      {...mergeProps(api.getItemTextProps(itemProps), props)}
     >
       {children}
     </span>
@@ -438,7 +453,7 @@ RadioGroup.ItemText = function RadioGroupItemText({
 }
 
 type RadioGroupItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioGroup.ItemDescription = function RadioGroupItemDescription({
@@ -468,9 +483,9 @@ type RadioGroupStatusTextProps = Omit<
   ComponentPropsWithoutRef<typeof StatusText>,
   "status" | "size"
 > & {
-  status?: RadioGroupValidateStatus
-  size?: RadioGroupSize
-  ref?: Ref<HTMLDivElement>
+  status?: RadioGroupValidateStatus | undefined
+  size?: RadioGroupSize | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioGroup.StatusText = function RadioGroupStatusText({

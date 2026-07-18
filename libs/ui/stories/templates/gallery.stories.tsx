@@ -1,32 +1,37 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode } from 'react'
-import { GalleryTemplate } from '../../src/templates/gallery'
+import type { Meta, StoryObj } from "@storybook/react"
+import { type ReactNode } from "react"
 
-const shoes1 = new URL('../../assets/gallery/shoes-1.avif', import.meta.url).href
-const shoes2 = new URL('../../assets/gallery/shoes-2.avif', import.meta.url).href
-const shoes3 = new URL('../../assets/gallery/shoes-3.avif', import.meta.url).href
-const shoes4 = new URL('../../assets/gallery/shoes-4.avif', import.meta.url).href
+import { GalleryTemplate } from "../../src/templates/gallery"
+
+const shoes1 = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
+  .href
+const shoes2 = new URL("../../assets/gallery/shoes-2.avif", import.meta.url)
+  .href
+const shoes3 = new URL("../../assets/gallery/shoes-3.avif", import.meta.url)
+  .href
+const shoes4 = new URL("../../assets/gallery/shoes-4.avif", import.meta.url)
+  .href
 
 const baseItems = [
   {
-    id: 'gallery-1',
+    id: "gallery-1",
     src: shoes1,
-    alt: 'Product hero image',
+    alt: "Product hero image",
   },
   {
-    id: 'gallery-2',
+    id: "gallery-2",
     src: shoes2,
-    alt: 'Product detail image',
+    alt: "Product detail image",
   },
   {
-    id: 'gallery-3',
+    id: "gallery-3",
     src: shoes3,
-    alt: 'Product color variant',
+    alt: "Product color variant",
   },
   {
-    id: 'gallery-4',
+    id: "gallery-4",
     src: shoes4,
-    alt: 'Product lifestyle image',
+    alt: "Product lifestyle image",
   },
 ]
 
@@ -34,14 +39,10 @@ type StoryFrameProps = {
   children: ReactNode
 }
 
-function StoryFrame({
-  children,
-}: StoryFrameProps) {
+function StoryFrame({ children }: StoryFrameProps) {
   return (
     <div className="w-full bg-base p-300">
-      <div
-        className="mx-auto max-w-md w-full rounded-md border border-border-primary bg-surface p-200"
-      >
+      <div className="mx-auto max-w-md w-full rounded-md border border-border-primary bg-surface p-200">
         {children}
       </div>
     </div>
@@ -49,10 +50,10 @@ function StoryFrame({
 }
 
 const meta: Meta<typeof GalleryTemplate> = {
-  title: 'Templates/GalleryTemplate',
+  title: "Templates/GalleryTemplate",
   component: GalleryTemplate,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
     docs: {
       description: {
         component: `
@@ -62,80 +63,82 @@ Supports fixed dimensions and parent-fill layout via \`fitParent\`.
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-      description: 'Thumbnail orientation',
-      table: { category: 'Layout' },
+      control: "select",
+      options: ["horizontal", "vertical"],
+      description: "Thumbnail orientation",
+      table: { category: "Layout" },
     },
     aspectRatio: {
-      control: 'select',
-      options: ['square', 'portrait', 'landscape', 'wide', 'none'],
-      description: 'Main image aspect ratio',
-      table: { category: 'Appearance' },
+      control: "select",
+      options: ["square", "portrait", "landscape", "wide", "none"],
+      description: "Main image aspect ratio",
+      table: { category: "Appearance" },
     },
     objectFit: {
-      control: 'select',
-      options: ['cover', 'contain', 'fill', 'none'],
-      description: 'How images fit in the frame',
-      table: { category: 'Appearance' },
+      control: "select",
+      options: ["cover", "contain", "fill", "none"],
+      description: "How images fit in the frame",
+      table: { category: "Appearance" },
     },
     carouselWidth: {
-      control: 'number',
+      control: "number",
       description:
-        'Main image width in px. For full parent width use fitParent.',
-      table: { category: 'Layout' },
+        "Main image width in px. For full parent width use fitParent.",
+      table: { category: "Layout" },
     },
     carouselHeight: {
-      control: 'number',
+      control: "number",
       description:
-        'Main image height in px. Keep empty with fitParent to rely on aspect ratio.',
-      table: { category: 'Layout' },
+        "Main image height in px. Keep empty with fitParent to rely on aspect ratio.",
+      table: { category: "Layout" },
     },
     fitParent: {
-      control: 'boolean',
+      control: "boolean",
       description:
-        'When enabled, carousel width defaults to 100% of parent container.',
-      table: { category: 'Layout' },
+        "When enabled, carousel width defaults to 100% of parent container.",
+      table: { category: "Layout" },
     },
     thumbnailSize: {
-      control: 'number',
-      description: 'Thumbnail edge size',
-      table: { category: 'Layout' },
+      control: "number",
+      description: "Thumbnail edge size",
+      table: { category: "Layout" },
     },
     showThumbnails: {
-      control: 'boolean',
-      description: 'Toggle thumbnail rail',
-      table: { category: 'Behavior' },
+      control: "boolean",
+      description: "Toggle thumbnail rail",
+      table: { category: "Behavior" },
     },
     showControls: {
-      control: 'boolean',
-      description: 'Show carousel previous/next arrows',
-      table: { category: 'Behavior' },
+      control: "boolean",
+      description: "Show carousel previous/next arrows",
+      table: { category: "Behavior" },
     },
     showIndicators: {
-      control: 'boolean',
-      description: 'Show carousel indicators',
-      table: { category: 'Behavior' },
+      control: "boolean",
+      description: "Show carousel indicators",
+      table: { category: "Behavior" },
     },
     showAutoplay: {
-      control: 'boolean',
-      description: 'Show autoplay toggle',
-      table: { category: 'Behavior' },
+      control: "boolean",
+      description: "Show autoplay toggle",
+      table: { category: "Behavior" },
     },
   },
   args: {
     items: baseItems,
-    orientation: 'horizontal',
-    aspectRatio: 'square',
-    objectFit: 'cover',
+    orientation: "horizontal",
+    aspectRatio: "square",
+    objectFit: "cover",
     thumbnailSize: 72,
     showThumbnails: true,
-    mainClassName: 'overflow-hidden rounded-md border border-border-primary bg-base',
-    thumbnailsClassName: 'rounded-md border border-border-primary bg-base px-100',
-    thumbnailsListClassName: 'gap-100 py-100',
+    mainClassName:
+      "overflow-hidden rounded-md border border-border-primary bg-base",
+    thumbnailsClassName:
+      "rounded-md border border-border-primary bg-base px-100",
+    thumbnailsListClassName: "gap-100 py-100",
     fitParent: true,
   },
 }
@@ -151,7 +154,7 @@ export const Playground: Story = {
     </StoryFrame>
   ),
   args: {
-    orientation: 'vertical',
+    orientation: "vertical",
     thumbnailSize: 64,
   },
 }

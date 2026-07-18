@@ -1,50 +1,53 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { Image } from '../../src/atoms/image'
+import type { Meta, StoryObj } from "@storybook/react"
 
-const meta: Meta<typeof Image> = {
-  title: 'Atoms/Image',
-  component: Image,
+import { Image, type ImageProps } from "../../src/atoms/image"
+
+const NativeImage = (props: ImageProps) => <Image {...props} />
+
+const meta = {
+  title: "Atoms/Image",
+  component: NativeImage,
   parameters: {
     docs: {
       description: {
         component:
-          'Framework-agnostic image component that accepts any image component via the `as` prop',
+          "Framework-agnostic image component that accepts any image component via the `as` prop",
       },
     },
   },
   argTypes: {
     size: {
-      control: 'radio',
-      options: ['sm', 'md', 'lg', 'custom'],
-      description: 'Image size',
+      control: "radio",
+      options: ["sm", "md", "lg", "custom"],
+      description: "Image size",
     },
     src: {
-      control: 'text',
-      description: 'Image source URL',
-      type: { name: 'string', required: true },
+      control: "text",
+      description: "Image source URL",
+      type: { name: "string", required: true },
     },
     alt: {
-      control: 'text',
-      description: 'Alternative text for accessibility',
-      type: { name: 'string', required: true },
+      control: "text",
+      description: "Alternative text for accessibility",
+      type: { name: "string", required: true },
     },
     className: {
-      control: 'text',
-      description: 'Tailwind classes for styling (size, rounded, object-fit)',
+      control: "text",
+      description: "Tailwind classes for styling (size, rounded, object-fit)",
     },
   },
   args: {
     src: "https://images.unsplash.com/photo-1540206395-68808572332f?w=600&h=600&fit=crop",
-    alt: 'Mountain landscape',
-    className: 'max-w-md rounded-lg',
+    alt: "Mountain landscape",
+    className: "max-w-md rounded-lg",
   },
-}
+} satisfies Meta<ImageProps>
 
 export default meta
-type Story = StoryObj<typeof Image>
+type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  render: (args) => <Image {...args} />,
+  render: (args) => <NativeImage {...args} />,
 }
 
 export const Sizes: Story = {

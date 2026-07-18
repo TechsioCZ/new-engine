@@ -91,22 +91,22 @@ const colorSelectVariants = tv({
 })
 
 export interface ColorItem {
-  id?: string
+  id?: string | undefined
   color: string
-  selected?: boolean
-  label?: string
-  count?: number
-  disabled?: boolean
+  selected?: boolean | undefined
+  label?: string | undefined
+  count?: number | undefined
+  disabled?: boolean | undefined
 }
 
 interface ColorSelectProps {
   colors: ColorItem[]
-  layout?: "list" | "grid"
-  size?: "sm" | "md" | "lg" | "full"
-  radius?: "sm" | "md" | "lg" | "full"
-  disabled?: boolean
-  onColorClick?: (color: string) => void
-  selectionMode?: "single" | "multiple"
+  layout?: "list" | "grid" | undefined
+  size?: "sm" | "md" | "lg" | "full" | undefined
+  radius?: "sm" | "md" | "lg" | "full" | undefined
+  disabled?: boolean | undefined
+  onColorClick?: ((color: string) => void) | undefined
+  selectionMode?: "single" | "multiple" | undefined
 }
 
 export const ColorSelect = ({

@@ -1,10 +1,7 @@
 ---
 name: storybook-authoring
 description: >
-  Use when creating or editing Storybook CSF3 stories for @techsio/ui-kit in
-  libs/ui, including Playground stories, argTypes controls, VariantContainer
-  and VariantGroup matrices, fn() handlers, token-based story layout classes,
-  and UI-kit components instead of native HTML.
+  Use when creating or editing Storybook CSF3 stories for @techsio/ui-kit in libs/ui, including Playground stories, argTypes controls, VariantContainer and VariantGroup matrices, fn() handlers, token-based story layout classes, and UI-kit components instead of native HTML.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -88,15 +85,16 @@ argTypes: {
 }
 ```
 
-Controls should cover visible behavior. Avoid controls for `ref`, internal ids,
-or callbacks with no visible effect.
+Controls should cover visible behavior. Avoid controls for `ref`, internal ids, or callbacks with no visible effect.
 
 ### Use UI-kit components in examples
 
 ```tsx
 <VariantGroup title="Disabled states">
   <Button disabled>Disabled</Button>
-  <Button theme="outlined" disabled>Outlined</Button>
+  <Button theme="outlined" disabled>
+    Outlined
+  </Button>
 </VariantGroup>
 ```
 
@@ -114,8 +112,7 @@ export const Playground: Story = {
 }
 ```
 
-Story layout may use semantic/layout/spacing tokens. Avoid hardcoded palette or
-spacing utilities.
+Story layout may use semantic/layout/spacing tokens. Avoid hardcoded palette or spacing utilities.
 
 ## Common Mistakes
 
@@ -126,9 +123,7 @@ Wrong:
 ```tsx
 export const Example: Story = {
   render: () => (
-    <button className="rounded bg-blue-500 px-4 py-2 text-white">
-      Save
-    </button>
+    <button className="rounded bg-blue-500 px-4 py-2 text-white">Save</button>
   ),
 }
 ```
@@ -141,8 +136,7 @@ export const Default: Story = {
 }
 ```
 
-Stories are consumer-facing documentation; they should teach UI-kit usage and
-the token system.
+Stories are consumer-facing documentation; they should teach UI-kit usage and the token system.
 
 Source: libs/ui/AGENTS.md
 
@@ -165,8 +159,7 @@ export const Playground: Story = {
 }
 ```
 
-Every component should have an interactive Playground where visible props are
-driven through Controls.
+Every component should have an interactive Playground where visible props are driven through Controls.
 
 Source: libs/ui/stories/atoms/button.stories.tsx
 
@@ -224,4 +217,3 @@ bunx nx run ui:build
 pnpm --dir libs/ui build:storybook
 pnpm --dir libs/ui storybook:a11y
 ```
-

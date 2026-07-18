@@ -1,9 +1,7 @@
 ---
 name: status-text-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit StatusText
-  for inline validation, success, warning, or default status messages with
-  optional token icons and size/alignment props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit StatusText for inline validation, success, warning, or default status messages with optional token icons and size/alignment props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -19,15 +17,14 @@ sources:
 
 # @techsio/ui-kit StatusText Usage
 
-Use StatusText for short inline messages that describe a nearby field, section,
-or operation result.
+Use StatusText for short inline messages that describe a nearby field, section, or operation result.
 
 ## Setup
 
 ```tsx
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 
-<StatusText status="error" showIcon>
+;<StatusText status="error" showIcon>
   Email is required.
 </StatusText>
 ```
@@ -151,4 +148,3 @@ rg -n "<StatusText[^>]*status=\"(danger|info|primary)\"" apps
 rg -n "<StatusText[^>]*className=.*(text-|gap-|mt-|mb-)" apps
 rg -n "<Badge[^>]*>[^<]{30,}</Badge>" apps
 ```
-

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { Textarea, type TextareaProps } from "../atoms/textarea"
@@ -8,8 +9,8 @@ type ValidateStatus = "default" | "error" | "success" | "warning"
 interface FormTextareaRawProps extends TextareaProps {
   id: string
   label: ReactNode
-  validateStatus?: ValidateStatus
-  helpText?: ReactNode
+  validateStatus?: ValidateStatus | undefined
+  helpText?: ReactNode | undefined
 }
 
 export function FormTextareaRaw({
@@ -42,7 +43,7 @@ export function FormTextareaRaw({
 }
 
 type FormTextareaProps = FormTextareaRawProps & {
-  showHelpTextIcon?: boolean
+  showHelpTextIcon?: boolean | undefined
 }
 
 export function FormTextarea({

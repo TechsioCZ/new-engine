@@ -1,18 +1,19 @@
 import type * as React from "react"
 import type { Ref } from "react"
+
 import { Tabs, type TabsProps } from "../molecules/tabs"
 
 export interface TabItem {
   value: string
   label: string
   content: React.ReactNode
-  disabled?: boolean
+  disabled?: boolean | undefined
 }
 
 export interface TabsTemplateProps extends Omit<TabsProps, "children" | "ref"> {
   items: TabItem[]
-  showIndicator?: boolean
-  ref?: Ref<HTMLDivElement>
+  showIndicator?: boolean | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 export function TabsTemplate({

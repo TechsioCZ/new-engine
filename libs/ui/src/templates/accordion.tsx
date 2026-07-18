@@ -5,14 +5,16 @@ export interface AccordionItem {
   value: string
   title: string
   content: React.ReactNode
-  disabled?: boolean
+  disabled?: boolean | undefined
 }
 
-export interface AccordionTemplateProps
-  extends Omit<AccordionProps, "children"> {
+export interface AccordionTemplateProps extends Omit<
+  AccordionProps,
+  "children"
+> {
   items: AccordionItem[]
-  showIndicator?: boolean
-  indicatorIcon?: IconType
+  showIndicator?: boolean | undefined
+  indicatorIcon?: IconType | undefined
 }
 
 export function AccordionTemplate({

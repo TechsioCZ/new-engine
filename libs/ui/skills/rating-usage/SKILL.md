@@ -1,9 +1,7 @@
 ---
 name: rating-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Rating for
-  accessible rating capture or display using the Zag.js rating-group wrapper,
-  supported value/count/allowHalf/readOnly/disabled props, and token styling.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Rating for accessible rating capture or display using the Zag.js rating-group wrapper, supported value/count/allowHalf/readOnly/disabled props, and token styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit Rating Usage
 
-Use Rating for product reviews, satisfaction scores, and read-only rating
-display. Do not build custom star maps.
+Use Rating for product reviews, satisfaction scores, and read-only rating display. Do not build custom star maps.
 
 ## Setup
 
 ```tsx
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 
-<Rating name="score" defaultValue={4} count={5} allowHalf />
+;<Rating name="score" defaultValue={4} count={5} allowHalf />
 ```
 
 Supported props:
@@ -74,8 +71,7 @@ Use `disabled` when the control is unavailable, not for normal display.
 <Rating size="sm" value={3.5} readOnly />
 ```
 
-The rating token file owns checked, highlighted, half, disabled, and readonly
-visuals.
+The rating token file owns checked, highlighted, half, disabled, and readonly visuals.
 
 ## Common Mistakes
 
@@ -84,9 +80,13 @@ visuals.
 Wrong:
 
 ```tsx
-{[1, 2, 3, 4, 5].map((i) => (
-  <button className="text-yellow-500" key={i}>*</button>
-))}
+{
+  ;[1, 2, 3, 4, 5].map((i) => (
+    <button className="text-yellow-500" key={i}>
+      *
+    </button>
+  ))
+}
 ```
 
 Correct:

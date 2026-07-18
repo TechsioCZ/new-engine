@@ -6,6 +6,7 @@ import type {
   Ref,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { buttonVariants } from "./button"
 import { Icon, type IconProps, type IconType } from "./icon"
@@ -25,15 +26,15 @@ type LinkButtonHref<T extends ElementType> =
 export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   typeof linkButton
 > & {
-  href?: LinkButtonHref<T>
-  icon?: IconType
-  iconPosition?: "left" | "right"
-  iconSize?: IconProps["size"]
-  children?: ReactNode
-  disabled?: boolean
-  uppercase?: boolean
-  as?: T
-  ref?: Ref<HTMLAnchorElement>
+  href?: LinkButtonHref<T> | undefined
+  icon?: IconType | undefined
+  iconPosition?: "left" | "right" | undefined
+  iconSize?: IconProps["size"] | undefined
+  children?: ReactNode | undefined
+  disabled?: boolean | undefined
+  uppercase?: boolean | undefined
+  as?: T | undefined
+  ref?: Ref<HTMLAnchorElement> | undefined
 } & Omit<
     ComponentPropsWithoutRef<T>,
     "as" | "ref" | "children" | keyof VariantProps<typeof linkButton>

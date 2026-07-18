@@ -1,6 +1,7 @@
 import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"
+
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
 
@@ -10,8 +11,8 @@ const checkboxVariants = tv({
     control: [
       "relative shrink-0 cursor-pointer",
       "size-checkbox",
-      "rounded-checkbox border border-checkbox-border",
-      "bg-checkbox-bg",
+      "rounded-checkbox border border-checkbox-border-base",
+      "bg-checkbox-bg-base",
       "flex items-center justify-center",
       "transition-all duration-200 motion-reduce:transition-none",
       "data-[state=checked]:bg-checkbox-bg-checked",
@@ -57,23 +58,23 @@ const checkboxVariants = tv({
 })
 
 export type FormCheckboxProps = {
-  id?: string
-  name?: string
-  value?: string
-  checked?: boolean
-  defaultChecked?: boolean
-  indeterminate?: boolean
-  disabled?: boolean
-  required?: boolean
-  readOnly?: boolean
-  children?: ReactNode
-  label?: ReactNode
-  helpText?: ReactNode
-  validateStatus?: "default" | "error" | "success" | "warning"
-  showHelpTextIcon?: boolean
-  size?: "sm" | "md" | "lg"
-  className?: string
-  onCheckedChange?: (checked: boolean) => void
+  id?: string | undefined
+  name?: string | undefined
+  value?: string | undefined
+  checked?: boolean | undefined
+  defaultChecked?: boolean | undefined
+  indeterminate?: boolean | undefined
+  disabled?: boolean | undefined
+  required?: boolean | undefined
+  readOnly?: boolean | undefined
+  children?: ReactNode | undefined
+  label?: ReactNode | undefined
+  helpText?: ReactNode | undefined
+  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  showHelpTextIcon?: boolean | undefined
+  size?: "sm" | "md" | "lg" | undefined
+  className?: string | undefined
+  onCheckedChange?: ((checked: boolean) => void) | undefined
 }
 
 export function FormCheckbox({
@@ -100,10 +101,12 @@ export function FormCheckbox({
 
   const service = useMachine(machine, {
     id: uniqueId,
-    name,
-    value,
-    checked: indeterminate ? "indeterminate" : checked,
-    defaultChecked,
+    ...(name !== undefined && { name }),
+    ...(value !== undefined && { value }),
+    ...(indeterminate
+      ? { checked: "indeterminate" as const }
+      : checked !== undefined && { checked }),
+    ...(defaultChecked !== undefined && { defaultChecked }),
     disabled,
     invalid: validateStatus === "error",
     readOnly,

@@ -187,7 +187,10 @@ const runningCheck = runSilent("docker", [
   "--format",
   "{{.State.Running}}",
 ])
-if (runningCheck.status !== 0 || runningCheck.stdout?.toString().trim() !== "true") {
+if (
+  runningCheck.status !== 0 ||
+  runningCheck.stdout?.toString().trim() !== "true"
+) {
   console.error("Container is not running after start.")
   const logsResult = runSilent("docker", ["logs", containerName])
   if (logsResult.status === 0) {
@@ -237,7 +240,10 @@ try {
       dockerProjects.length > 0 ? dockerProjects : ["desktop", "mobile"]
     for (const project of projectsToRun) {
       const result = runPlaywright(project)
-      const outcome = getProcessOutcome(result, `Playwright project "${project}"`)
+      const outcome = getProcessOutcome(
+        result,
+        `Playwright project "${project}"`
+      )
       if (outcome.status !== 0 || outcome.signal) {
         testStatus = outcome.status
         testSignal = outcome.signal
@@ -265,7 +271,11 @@ try {
 
   const reportDir = path.resolve(uiRoot, "playwright-report")
   const resultsDir = path.resolve(uiRoot, "test-results")
-  copyArtifact("snapshots", "/app/test/visual.spec.ts-snapshots/.", snapshotsDir)
+  copyArtifact(
+    "snapshots",
+    "/app/test/visual.spec.ts-snapshots/.",
+    snapshotsDir
+  )
   copyArtifact("HTML report", "/app/playwright-report/.", reportDir)
   copyArtifact("test results", "/app/test-results/.", resultsDir)
 

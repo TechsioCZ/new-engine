@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const linkVariants = tv({
@@ -10,19 +11,20 @@ const linkVariants = tv({
 
 export interface BaseLinkProps extends VariantProps<typeof linkVariants> {
   children: ReactNode
-  external?: boolean
-  className?: string
+  external?: boolean | undefined
+  className?: string | undefined
 }
 
 export interface NativeLinkProps
-  extends BaseLinkProps,
+  extends
+    BaseLinkProps,
     Omit<ComponentPropsWithoutRef<"a">, keyof BaseLinkProps> {
-  as?: never
+  as?: never | undefined
 }
 
 export type LinkProps<T extends ElementType = "a"> = BaseLinkProps &
   Omit<ComponentPropsWithoutRef<T>, keyof BaseLinkProps> & {
-    as?: T
+    as?: T | undefined
   }
 
 export function Link<T extends ElementType = "a">({
@@ -33,8 +35,9 @@ export function Link<T extends ElementType = "a">({
   ...props
 }: LinkProps<T>) {
   const Component = (as || "a") as ElementType
-  const target = "target" in props ? props.target : undefined
-  const rel = "rel" in props ? props.rel : undefined
+  const anchorProps: Partial<ComponentPropsWithoutRef<"a">> = props
+  const target = anchorProps.target
+  const rel = anchorProps.rel
 
   const externalProps = external
     ? {

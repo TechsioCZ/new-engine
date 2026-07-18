@@ -7,6 +7,7 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Link, type LinkProps } from "../atoms/link"
 import { tv } from "../utils"
 
@@ -94,16 +95,15 @@ const footerVariants = tv({
 })
 
 interface FooterContextValue {
-  size?: "sm" | "md" | "lg"
-  sectionFlow?: "col" | "row"
-  layout?: "col" | "row"
+  size?: "sm" | "md" | "lg" | undefined
+  sectionFlow?: "col" | "row" | undefined
+  layout?: "col" | "row" | undefined
 }
 
 const FooterContext = createContext<FooterContextValue>({})
 
 interface FooterProps
-  extends HTMLAttributes<HTMLElement>,
-    VariantProps<typeof footerVariants> {
+  extends HTMLAttributes<HTMLElement>, VariantProps<typeof footerVariants> {
   children: ReactNode
 }
 
@@ -121,8 +121,8 @@ interface FooterTitleProps extends HTMLAttributes<HTMLElement> {
 
 type FooterLinkBaseProps = {
   children: ReactNode
-  external?: boolean
-  className?: string
+  external?: boolean | undefined
+  className?: string | undefined
 }
 
 type FooterNativeLinkProps = FooterLinkBaseProps &
@@ -130,7 +130,7 @@ type FooterNativeLinkProps = FooterLinkBaseProps &
     ComponentPropsWithoutRef<"a">,
     keyof FooterLinkBaseProps | "as" | "href"
   > & {
-    as?: never
+    as?: never | undefined
     href: NonNullable<ComponentPropsWithoutRef<"a">["href"]>
   }
 

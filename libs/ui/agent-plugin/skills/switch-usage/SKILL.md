@@ -1,10 +1,7 @@
 ---
 name: switch-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Switch for
-  boolean settings using Zag.js switch behavior, hidden input, label children,
-  checked/defaultChecked, validation status, help text, required, disabled, and
-  read-only state.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Switch for boolean settings using Zag.js switch behavior, hidden input, label children, checked/defaultChecked, validation status, help text, required, disabled, and read-only state.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +18,7 @@ sources:
 
 # @techsio/ui-kit Switch Usage
 
-Use Switch for immediate boolean settings. Use Checkbox for terms, multi-select
-lists, or non-immediate boolean form choices.
+Use Switch for immediate boolean settings. Use Checkbox for terms, multi-select lists, or non-immediate boolean form choices.
 
 ## Setup
 
@@ -68,7 +64,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Switch checked={enabled} onCheckedChange={setEnabled}>Enable notifications</Switch>
+<Switch checked={enabled} onCheckedChange={setEnabled}>
+  Enable notifications
+</Switch>
 ```
 
 Source: libs/ui/src/molecules/switch.tsx
@@ -112,4 +110,3 @@ rg -n "<Switch[^>]*onChange=|<Switch[^>]*className=.*(bg-|text-|data-\\[state|ro
 rg -n "<Checkbox[\\s\\S]{0,120}(Enable|Disable|notifications|toggle)" apps -U
 rg -n "<Switch[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
-

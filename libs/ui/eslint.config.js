@@ -1,5 +1,6 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+
 import tsParser from "@typescript-eslint/parser"
 import tailwind from "eslint-plugin-tailwindcss"
 

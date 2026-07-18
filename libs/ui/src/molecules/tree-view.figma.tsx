@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { TreeView } from "./tree-view"
 
 figma.connect(

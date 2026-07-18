@@ -8,7 +8,14 @@
   },
   "homepage": "https://github.com/TechsioCZ/new-engine/tree/master/libs/ui/agent-plugin",
   "repository": "https://github.com/TechsioCZ/new-engine",
-  "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills"],
+  "keywords": [
+    "techsio",
+    "ui-kit",
+    "design-system",
+    "codex",
+    "claude-code",
+    "agent-skills"
+  ],
   "license": "UNLICENSED",
   "hooks": "hooks/hooks.json",
   "mcpServers": ".mcp.json"

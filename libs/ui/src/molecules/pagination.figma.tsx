@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { Pagination } from "./pagination"
 
 figma.connect(

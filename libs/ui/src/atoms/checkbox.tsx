@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, Ref } from "react"
+
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
@@ -34,9 +35,9 @@ const checkboxVariants = tv({
 })
 
 export interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
-  ref?: Ref<HTMLInputElement>
-  indeterminate?: boolean
-  invalid?: boolean
+  ref?: Ref<HTMLInputElement> | undefined
+  indeterminate?: boolean | undefined
+  invalid?: boolean | undefined
 }
 
 export function Checkbox({

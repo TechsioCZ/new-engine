@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+
 import { Label } from "../atoms/label"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
@@ -8,9 +9,9 @@ type ValidateStatus = "default" | "error" | "success" | "warning"
 interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
   id: string
   label: ReactNode
-  validateStatus?: ValidateStatus
-  helpText?: ReactNode
-  showHelpTextIcon?: boolean
+  validateStatus?: ValidateStatus | undefined
+  helpText?: ReactNode | undefined
+  showHelpTextIcon?: boolean | undefined
   children: ReactNode
 }
 
@@ -27,9 +28,7 @@ export function FormNumericInput({
   ...numericInputProps
 }: FormNumericInputProps) {
   return (
-    <div
-      className="flex flex-col gap-form-field-gap"
-    >
+    <div className="flex flex-col gap-form-field-gap">
       <Label disabled={disabled} htmlFor={id} required={required} size={size}>
         {label}
       </Label>

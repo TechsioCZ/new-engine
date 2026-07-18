@@ -1,36 +1,37 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { NumericInput } from '../../src/atoms/numeric-input'
-import { Combobox } from '../../src/molecules/combobox'
-import { FormCheckbox } from '../../src/molecules/form-checkbox'
-import { FormInput } from '../../src/molecules/form-input'
-import { FormNumericInput } from '../../src/molecules/form-numeric-input'
-import { FormTextarea } from '../../src/molecules/form-textarea'
-import { Select } from '../../src/molecules/select'
-import { Switch } from '../../src/molecules/switch'
-import {Slider} from '../../src/molecules/slider'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { NumericInput } from "../../src/atoms/numeric-input"
+import { Combobox } from "../../src/molecules/combobox"
+import { FormCheckbox } from "../../src/molecules/form-checkbox"
+import { FormInput } from "../../src/molecules/form-input"
+import { FormNumericInput } from "../../src/molecules/form-numeric-input"
+import { FormTextarea } from "../../src/molecules/form-textarea"
+import { Select } from "../../src/molecules/select"
+import { Slider } from "../../src/molecules/slider"
+import { Switch } from "../../src/molecules/switch"
 
 const meta: Meta = {
-  title: 'Templates/Comprehensive Form',
+  title: "Templates/Comprehensive Form",
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
   argTypes: {
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size that propagates to all form components',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size that propagates to all form components",
     },
     validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation state that affects all form inputs',
+      control: "select",
+      options: ["default", "error", "success", "warning"],
+      description: "Validation state that affects all form inputs",
     },
   },
   args: {
-    size: 'md',
-    validateStatus: 'default',
+    size: "md",
+    validateStatus: "default",
   },
 }
 
@@ -38,16 +39,16 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const selectOptions = [
-  { label: 'Option 1', value: 'option1' },
-  { label: 'Option 2', value: 'option2' },
-  { label: 'Option 3', value: 'option3' },
+  { label: "Option 1", value: "option1" },
+  { label: "Option 2", value: "option2" },
+  { label: "Option 3", value: "option3" },
 ]
 
 const comboboxOptions = [
-  { label: 'Apple', value: 'apple' },
-  { label: 'Banana', value: 'banana' },
-  { label: 'Cherry', value: 'cherry' },
-  { label: 'Date', value: 'date' },
+  { label: "Apple", value: "apple" },
+  { label: "Banana", value: "banana" },
+  { label: "Cherry", value: "cherry" },
+  { label: "Date", value: "date" },
 ]
 
 /**
@@ -57,12 +58,12 @@ const comboboxOptions = [
 export const AllFormInputs: Story = {
   render: ({ size, validateStatus }) => {
     const [formData, setFormData] = useState({
-      textInput: '',
-      email: '',
-      password: '',
-      textarea: '',
-      select: '',
-      combobox: '',
+      textInput: "",
+      email: "",
+      password: "",
+      textarea: "",
+      select: "",
+      combobox: "",
       number: 0,
       checkbox: false,
       switch: false,
@@ -70,13 +71,13 @@ export const AllFormInputs: Story = {
     })
 
     const helpText =
-      validateStatus === 'error'
-        ? 'This field has an error'
-        : validateStatus === 'success'
-          ? 'This field is valid'
-          : validateStatus === 'warning'
-            ? 'This field has a warning'
-            : 'Helper text for this field'
+      validateStatus === "error"
+        ? "This field has an error"
+        : validateStatus === "success"
+          ? "This field is valid"
+          : validateStatus === "warning"
+            ? "This field has a warning"
+            : "Helper text for this field"
 
     return (
       <div className="w-full space-y-6 p-6">
@@ -256,8 +257,8 @@ export const AllFormInputs: Story = {
 export const SmallSize: Story = {
   ...AllFormInputs,
   args: {
-    size: 'sm',
-    validateStatus: 'default',
+    size: "sm",
+    validateStatus: "default",
   },
 }
 
@@ -267,8 +268,8 @@ export const SmallSize: Story = {
 export const LargeSize: Story = {
   ...AllFormInputs,
   args: {
-    size: 'lg',
-    validateStatus: 'default',
+    size: "lg",
+    validateStatus: "default",
   },
 }
 
@@ -278,8 +279,8 @@ export const LargeSize: Story = {
 export const ErrorState: Story = {
   ...AllFormInputs,
   args: {
-    size: 'md',
-    validateStatus: 'error',
+    size: "md",
+    validateStatus: "error",
   },
 }
 
@@ -289,7 +290,7 @@ export const ErrorState: Story = {
 export const SuccessState: Story = {
   ...AllFormInputs,
   args: {
-    size: 'md',
-    validateStatus: 'success',
+    size: "md",
+    validateStatus: "success",
   },
 }

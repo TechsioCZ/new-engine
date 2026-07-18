@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ElementType } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const imageVariants = tv({
@@ -20,7 +21,7 @@ const imageVariants = tv({
 export type BaseImageProps = {
   src: string
   alt: string
-  className?: string
+  className?: string | undefined
 }
 
 type HasImageProps<T extends ElementType> =

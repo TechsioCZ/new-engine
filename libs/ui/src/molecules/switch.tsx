@@ -2,6 +2,7 @@ import { normalizeProps, useMachine } from "@zag-js/react"
 import * as zagSwitch from "@zag-js/switch"
 import { type ReactNode, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
@@ -49,21 +50,21 @@ const switchVariants = tv({
 })
 
 export interface SwitchProps extends VariantProps<typeof switchVariants> {
-  id?: string
-  name?: string
-  value?: string | number
-  checked?: boolean
-  defaultChecked?: boolean
-  disabled?: boolean
-  readOnly?: boolean
-  required?: boolean
-  children?: ReactNode
-  onCheckedChange?: (checked: boolean) => void
-  className?: string
-  dir?: "ltr" | "rtl"
-  validateStatus?: "default" | "error" | "success" | "warning"
-  helpText?: ReactNode
-  showHelpTextIcon?: boolean
+  id?: string | undefined
+  name?: string | undefined
+  value?: string | number | undefined
+  checked?: boolean | undefined
+  defaultChecked?: boolean | undefined
+  disabled?: boolean | undefined
+  readOnly?: boolean | undefined
+  required?: boolean | undefined
+  children?: ReactNode | undefined
+  onCheckedChange?: ((checked: boolean) => void) | undefined
+  className?: string | undefined
+  dir?: "ltr" | "rtl" | undefined
+  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  helpText?: ReactNode | undefined
+  showHelpTextIcon?: boolean | undefined
 }
 
 export function Switch({
@@ -88,10 +89,10 @@ export function Switch({
 
   const service = useMachine(zagSwitch.machine, {
     id: uniqueId,
-    name,
-    value,
-    checked,
-    defaultChecked,
+    ...(name !== undefined && { name }),
+    ...(value !== undefined && { value }),
+    ...(checked !== undefined && { checked }),
+    ...(defaultChecked !== undefined && { defaultChecked }),
     dir,
     disabled,
     invalid: validateStatus === "error",

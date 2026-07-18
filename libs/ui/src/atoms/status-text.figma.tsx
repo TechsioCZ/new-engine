@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { StatusText } from "./status-text"
 
 figma.connect(

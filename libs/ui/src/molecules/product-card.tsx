@@ -1,6 +1,5 @@
 import {
   type ComponentPropsWithoutRef,
-  type ComponentPropsWithRef,
   createContext,
   type ElementType,
   type HTMLAttributes,
@@ -9,6 +8,7 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import type { IconProps, IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
@@ -74,64 +74,64 @@ const productCardVariants = tv({
 
 // === CONTEXT ===
 interface ProductCardContextValue {
-  layout?: "column" | "row"
+  layout?: "column" | "row" | undefined
 }
 
 const ProductCardContext = createContext<ProductCardContextValue>({})
 
 // === TYPE DEFINITIONS ===
 export interface ProductCardProps
-  extends HTMLAttributes<HTMLDivElement>,
+  extends
+    HTMLAttributes<HTMLDivElement>,
     Omit<VariantProps<typeof productCardVariants>, "buttonVariant"> {
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-type ProductCardImageProps<T extends ElementType = typeof Image> = {
-  as?: T
-  ref?: ComponentPropsWithRef<T>["ref"]
-  className?: string
-} & Partial<ComponentPropsWithoutRef<T>>
+type ProductCardImageProps = {
+  as?: ElementType | undefined
+  ref?: Ref<HTMLElement> | undefined
+} & ComponentPropsWithoutRef<"img">
 
 interface ProductCardNameProps extends HTMLAttributes<HTMLHeadingElement> {
   children: ReactNode
-  ref?: Ref<HTMLHeadingElement>
+  ref?: Ref<HTMLHeadingElement> | undefined
 }
 
 interface ProductCardPriceProps extends HTMLAttributes<HTMLParagraphElement> {
   children: ReactNode
-  ref?: Ref<HTMLParagraphElement>
+  ref?: Ref<HTMLParagraphElement> | undefined
 }
 
 interface ProductCardStockProps extends HTMLAttributes<HTMLParagraphElement> {
   children: ReactNode
-  status?: "in-stock" | "limited-stock" | "out-of-stock"
-  ref?: Ref<HTMLParagraphElement>
+  status?: "in-stock" | "limited-stock" | "out-of-stock" | undefined
+  ref?: Ref<HTMLParagraphElement> | undefined
 }
 
 interface ProductCardBadgesProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 interface ProductCardRatingProps extends HTMLAttributes<HTMLDivElement> {
-  children?: ReactNode
-  ref?: Ref<HTMLDivElement>
-  rating?: RatingProps
+  children?: ReactNode | undefined
+  ref?: Ref<HTMLDivElement> | undefined
+  rating?: RatingProps | undefined
 }
 
 interface ProductCardActionsProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 interface ProductCardButtonProps extends HTMLAttributes<HTMLButtonElement> {
-  children?: ReactNode
-  onClick?: () => void
-  buttonVariant?: "cart" | "detail" | "wishlist" | "custom"
-  icon?: IconType
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLButtonElement>
+  children?: ReactNode | undefined
+  onClick?: (() => void) | undefined
+  buttonVariant?: "cart" | "detail" | "wishlist" | "custom" | undefined
+  icon?: IconType | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
 // === ROOT COMPONENT ===
@@ -154,9 +154,12 @@ export function ProductCard({
 }
 
 // === SUB-COMPONENTS ===
-ProductCard.Image = function ProductCardImage<
-  T extends ElementType = typeof Image,
->({ as, className, ref, ...props }: ProductCardImageProps<T>) {
+ProductCard.Image = function ProductCardImage({
+  as,
+  className,
+  ref,
+  ...props
+}: ProductCardImageProps) {
   const context = useContext(ProductCardContext)
   const { imageSlot } = productCardVariants({ layout: context.layout })
   const ImageComponent = (as || Image) as ElementType

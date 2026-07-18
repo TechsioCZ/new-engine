@@ -1,12 +1,13 @@
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
 export const buttonVariants = tv({
   base: [
     "relative",
-    "inline-flex cursor-pointer items-center justify-center",
+    "inline-flex cursor-pointer items-center justify-center whitespace-nowrap",
     "font-medium",
     "transition-all duration-200 motion-reduce:transition-none",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
@@ -245,15 +246,16 @@ export const buttonVariants = tv({
 })
 
 export interface ButtonProps
-  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children">,
+  extends
+    Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children">,
     VariantProps<typeof buttonVariants> {
-  icon?: IconType
-  iconPosition?: "left" | "right"
-  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current"
-  uppercase?: boolean
-  isLoading?: boolean
-  loadingText?: string
-  children?: ReactNode
+  icon?: IconType | undefined
+  iconPosition?: "left" | "right" | undefined
+  iconSize?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "current" | undefined
+  uppercase?: boolean | undefined
+  isLoading?: boolean | undefined
+  loadingText?: string | undefined
+  children?: ReactNode | undefined
 }
 
 export function Button({
@@ -271,7 +273,7 @@ export function Button({
   className,
   disabled: disabledProp,
   ...props
-}: ButtonProps & { ref?: Ref<HTMLButtonElement> }) {
+}: ButtonProps & { ref?: Ref<HTMLButtonElement> | undefined }) {
   const disabled = isLoading || disabledProp
 
   return (

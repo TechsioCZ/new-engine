@@ -13,6 +13,8 @@
   --text-steps-title: var(--text-md);
   --text-steps-description: var(--text-sm);
   --text-steps-icon: var(--text-md);
+  --font-weight-steps-number: var(--font-weight-medium);
+  --font-weight-steps-title: var(--font-weight-medium);
 
   --height-steps-progress: var(--size-steps-progress-height);
   --width-steps-progress: var(--size-steps-progress-width);

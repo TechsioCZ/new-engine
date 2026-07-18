@@ -1,10 +1,7 @@
 ---
 name: table-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Table for
-  semantic tabular data with caption, header, body, footer, rows, column
-  headers, numeric cells, selected rows, variants, interactive rows, sticky
-  header/first column, column borders, and size props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Table for semantic tabular data with caption, header, body, footer, rows, column headers, numeric cells, selected rows, variants, interactive rows, sticky header/first column, column borders, and size props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -19,8 +16,7 @@ sources:
 
 # @techsio/ui-kit Table Usage
 
-Use Table for semantic tabular data. Do not use div grids for data tables when
-table semantics are needed.
+Use Table for semantic tabular data. Do not use div grids for data tables when table semantics are needed.
 
 ## Setup
 
@@ -28,10 +24,16 @@ table semantics are needed.
 <Table variant="line" size="md" stickyHeader>
   <Table.Caption>Orders</Table.Caption>
   <Table.Header>
-    <Table.Row><Table.ColumnHeader>Order</Table.ColumnHeader><Table.ColumnHeader numeric>Total</Table.ColumnHeader></Table.Row>
+    <Table.Row>
+      <Table.ColumnHeader>Order</Table.ColumnHeader>
+      <Table.ColumnHeader numeric>Total</Table.ColumnHeader>
+    </Table.Row>
   </Table.Header>
   <Table.Body>
-    <Table.Row selected={isSelected}><Table.Cell>#1001</Table.Cell><Table.Cell numeric>129 EUR</Table.Cell></Table.Row>
+    <Table.Row selected={isSelected}>
+      <Table.Cell>#1001</Table.Cell>
+      <Table.Cell numeric>129 EUR</Table.Cell>
+    </Table.Row>
   </Table.Body>
 </Table>
 ```
@@ -60,8 +62,7 @@ Use `numeric` on headers and cells for right alignment.
 
 ### Use selected/interactive props
 
-Use `selected` on rows and `interactive` on the root; do not add hover/selected
-classes to rows.
+Use `selected` on rows and `interactive` on the root; do not add hover/selected classes to rows.
 
 ## Common Mistakes
 
@@ -70,13 +71,22 @@ classes to rows.
 Wrong:
 
 ```tsx
-<div className="grid grid-cols-3"><div>Order</div><div>Total</div></div>
+<div className="grid grid-cols-3">
+  <div>Order</div>
+  <div>Total</div>
+</div>
 ```
 
 Correct:
 
 ```tsx
-<Table><Table.Header><Table.Row><Table.ColumnHeader>Order</Table.ColumnHeader></Table.Row></Table.Header></Table>
+<Table>
+  <Table.Header>
+    <Table.Row>
+      <Table.ColumnHeader>Order</Table.ColumnHeader>
+    </Table.Row>
+  </Table.Header>
+</Table>
 ```
 
 Source: libs/ui/src/organisms/table.tsx
@@ -92,7 +102,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Table interactive><Table.Row selected={selected} /></Table>
+<Table interactive>
+  <Table.Row selected={selected} />
+</Table>
 ```
 
 Source: libs/ui/src/tokens/components/organisms/_table.css
@@ -120,4 +132,3 @@ rg -n "grid-cols.*(Order|Total|Price)|<table\\b|<Table\\.(Row|Cell|ColumnHeader)
 rg -n "<Table\\.Cell[^>]*className=\"[^\"]*text-right|<Table\\.ColumnHeader[^>]*className=\"[^\"]*text-right" apps
 rg -n "<Table[^>]*variant=\"(default|bordered)\"|captionPlacement=\"(left|right)\"" apps
 ```
-

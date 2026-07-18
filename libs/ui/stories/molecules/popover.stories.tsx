@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { useState } from "react"
+
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
@@ -577,7 +578,11 @@ export const EdgePositioning: Story = {
       </div>
 
       <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
-        <PopoverTemplate id="center-popover" placement="bottom" trigger="Center">
+        <PopoverTemplate
+          id="center-popover"
+          placement="bottom"
+          trigger="Center"
+        >
           <div className="w-3xs">
             <p>Center positioned with default behavior.</p>
           </div>

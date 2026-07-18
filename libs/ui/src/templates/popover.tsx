@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from "react"
+
 import {
   Popover,
   type PopoverContentProps,
@@ -8,21 +9,22 @@ import {
 
 export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
   children: ReactNode
-  contentClassName?: string
-  contentProps?: Omit<PopoverContentProps, "children" | "className" | "ref">
-  contentRef?: Ref<HTMLDivElement>
-  description?: ReactNode
-  disabled?: boolean
-  showArrow?: boolean
-  showCloseButton?: boolean
-  title?: ReactNode
+  contentClassName?: string | undefined
+  contentProps?:
+    | Omit<PopoverContentProps, "children" | "className" | "ref">
+    | undefined
+  contentRef?: Ref<HTMLDivElement> | undefined
+  description?: ReactNode | undefined
+  disabled?: boolean | undefined
+  showArrow?: boolean | undefined
+  showCloseButton?: boolean | undefined
+  title?: ReactNode | undefined
   trigger: ReactNode
-  triggerClassName?: string
-  triggerProps?: Omit<
-    PopoverTriggerProps,
-    "children" | "className" | "disabled" | "ref"
-  >
-  triggerRef?: Ref<HTMLButtonElement>
+  triggerClassName?: string | undefined
+  triggerProps?:
+    | Omit<PopoverTriggerProps, "children" | "className" | "disabled" | "ref">
+    | undefined
+  triggerRef?: Ref<HTMLButtonElement> | undefined
 }
 
 export function PopoverTemplate({

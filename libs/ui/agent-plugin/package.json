@@ -1,7 +1,18 @@
 {
   "name": "@techsio/ui-kit-ai",
   "version": "0.1.0",
+  "private": true,
   "description": "Techsio UI Kit AI — agent plugin (skills + Codex subagents) for developing and consuming the @techsio/ui-kit design system.",
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "design-system",
+    "plugin",
+    "techsio",
+    "ui-kit"
+  ],
+  "license": "UNLICENSED",
   "author": {
     "name": "Lukáš Chylík",
     "email": "lukaschylik93@gmail.com"
@@ -10,12 +21,6 @@
     "type": "git",
     "url": "git+https://github.com/TechsioCZ/new-engine.git",
     "directory": "libs/ui/agent-plugin"
-  },
-  "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills", "plugin"],
-  "license": "UNLICENSED",
-  "private": true,
-  "scripts": {
-    "sync-skills": "node scripts/sync-skills.mjs"
   },
   "files": [
     ".codex-plugin",
@@ -28,5 +33,8 @@
     "scripts",
     "skills"
   ],
+  "scripts": {
+    "sync-skills": "node scripts/sync-skills.mjs"
+  },
   "_publishing": "Distributed as a Codex/Claude plugin via a marketplace (git source), not via npm. To publish to npm instead, drop `private`, pick a license, and add `publishConfig.access`."
 }

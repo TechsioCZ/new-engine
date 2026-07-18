@@ -1,43 +1,44 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Accordion } from '../../src/molecules/accordion'
-import { Button } from '../../src/atoms/button'
-import { Badge } from '../../src/atoms/badge'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { Badge } from "../../src/atoms/badge"
+import { Button } from "../../src/atoms/button"
+import { Accordion } from "../../src/molecules/accordion"
 
 const meta: Meta<typeof Accordion> = {
-  title: 'Molecules/Accordion',
+  title: "Molecules/Accordion",
   component: Accordion,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     size: {
-      control: { type: 'inline-radio' },
-      options: ['sm', 'md', 'lg'],
-      description: 'Sets the size of the accordion items',
+      control: { type: "inline-radio" },
+      options: ["sm", "md", "lg"],
+      description: "Sets the size of the accordion items",
     },
     shadow: {
-      control: { type: 'inline-radio' },
-      options: ['none', 'sm', 'md'],
-      description: 'Sets the shadow of the accordion',
+      control: { type: "inline-radio" },
+      options: ["none", "sm", "md"],
+      description: "Sets the shadow of the accordion",
     },
     variant: {
-    control: { type: 'inline-radio' },
-    options: ['default', 'borderless', 'child'],
-    description: 'Sets the visual variant of the accordion',
-  },
+      control: { type: "inline-radio" },
+      options: ["default", "borderless", "child"],
+      description: "Sets the visual variant of the accordion",
+    },
     multiple: {
-      control: 'boolean',
-      description: 'Allows expanding multiple items simultaneously',
+      control: "boolean",
+      description: "Allows expanding multiple items simultaneously",
     },
     collapsible: {
-      control: 'boolean',
-      description: 'Allows collapsing all items',
+      control: "boolean",
+      description: "Allows collapsing all items",
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disables interaction with the accordion',
+      control: "boolean",
+      description: "Disables interaction with the accordion",
     },
   },
 }
@@ -47,9 +48,9 @@ type Story = StoryObj<typeof Accordion>
 
 export const Playground: Story = {
   args: {
-    size: 'md',
-    shadow: 'none',
-    variant: 'default',
+    size: "md",
+    shadow: "none",
+    variant: "default",
     multiple: false,
     collapsible: true,
     disabled: false,
@@ -66,8 +67,9 @@ export const Playground: Story = {
             <Accordion.Indicator />
           </Accordion.Header>
           <Accordion.Content>
-            Accordion is a UI component that allows collapsing and expanding content, saving space
-            on the page and enabling users to view only the information they're interested in.
+            Accordion is a UI component that allows collapsing and expanding
+            content, saving space on the page and enabling users to view only
+            the information they're interested in.
           </Accordion.Content>
         </Accordion.Item>
 
@@ -77,9 +79,9 @@ export const Playground: Story = {
             <Accordion.Indicator />
           </Accordion.Header>
           <Accordion.Content>
-            By clicking on the accordion header, its content expands or collapses. You can have
-            either one or multiple accordions open simultaneously, depending on the component's
-            configuration.
+            By clicking on the accordion header, its content expands or
+            collapses. You can have either one or multiple accordions open
+            simultaneously, depending on the component's configuration.
           </Accordion.Content>
         </Accordion.Item>
 
@@ -89,9 +91,9 @@ export const Playground: Story = {
             <Accordion.Indicator />
           </Accordion.Header>
           <Accordion.Content>
-            Accordion is useful for organizing content that may be lengthy or complex. Users can
-            easily navigate through relevant sections without needing to scroll through the entire
-            page.
+            Accordion is useful for organizing content that may be lengthy or
+            complex. Users can easily navigate through relevant sections without
+            needing to scroll through the entire page.
           </Accordion.Content>
         </Accordion.Item>
       </Accordion>
@@ -112,7 +114,8 @@ export const Multiple: Story = {
             <Accordion.Indicator />
           </Accordion.Header>
           <Accordion.Content>
-            Accordion is a UI component that allows collapsing and expanding content.
+            Accordion is a UI component that allows collapsing and expanding
+            content.
           </Accordion.Content>
         </Accordion.Item>
 
@@ -164,7 +167,9 @@ export const ShadowVariants: Story = {
               <Accordion.Title>Item with small shadow</Accordion.Title>
               <Accordion.Indicator />
             </Accordion.Header>
-            <Accordion.Content>Content for small shadow variant</Accordion.Content>
+            <Accordion.Content>
+              Content for small shadow variant
+            </Accordion.Content>
           </Accordion.Item>
         </Accordion>
       </div>
@@ -177,7 +182,9 @@ export const ShadowVariants: Story = {
               <Accordion.Title>Item with medium shadow</Accordion.Title>
               <Accordion.Indicator />
             </Accordion.Header>
-            <Accordion.Content>Content for medium shadow variant</Accordion.Content>
+            <Accordion.Content>
+              Content for medium shadow variant
+            </Accordion.Content>
           </Accordion.Item>
         </Accordion>
       </div>
@@ -240,16 +247,14 @@ export const SizeVariants: Story = {
 }
 
 export const CustomContent: Story = {
-  name: 'Custom Content (Compound Pattern Benefit)',
+  name: "Custom Content (Compound Pattern Benefit)",
   render: () => (
     <div className="w-lg">
       <Accordion collapsible multiple>
         <Accordion.Item value="custom-1">
           <Accordion.Header>
             <span className="inline-flex items-center gap-200 flex-1">
-              <Badge variant="primary">
-                NEW
-              </Badge>
+              <Badge variant="primary">NEW</Badge>
               <Accordion.Title>Custom Header with Badge</Accordion.Title>
             </span>
             <Accordion.Indicator />
@@ -267,13 +272,15 @@ export const CustomContent: Story = {
         <Accordion.Item value="custom-2">
           <Accordion.Header>
             <span className="inline-flex flex-col p-200">
-              <Accordion.Title className='px-0 py-0'>Product Features</Accordion.Title>
-              <Accordion.Subtitle className='text-left'>Click to explore all features</Accordion.Subtitle>
+              <Accordion.Title className="px-0 py-0">
+                Product Features
+              </Accordion.Title>
+              <Accordion.Subtitle className="text-left">
+                Click to explore all features
+              </Accordion.Subtitle>
             </span>
             <span className="inline-flex items-center gap-100">
-              <Badge variant="tertiary">
-                5 items
-              </Badge>
+              <Badge variant="tertiary">5 items</Badge>
               <Accordion.Indicator />
             </span>
           </Accordion.Header>
@@ -349,17 +356,28 @@ export const AllVariants: Story = {
       </div>
 
       <div>
-        <h3 className="mb-150 text-sm font-medium">Nested comparison: default vs child</h3>
+        <h3 className="mb-150 text-sm font-medium">
+          Nested comparison: default vs child
+        </h3>
         <div className="flex flex-col gap-200">
           {/* Nested with default - has own styling */}
-          <Accordion variant="default" collapsible defaultValue={['parent-default']} className="flex-1">
+          <Accordion
+            variant="default"
+            collapsible
+            defaultValue={["parent-default"]}
+            className="flex-1"
+          >
             <Accordion.Item value="parent-default">
               <Accordion.Header>
                 <Accordion.Title>variant="default"</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
               <Accordion.Content>
-                <Accordion variant="default" collapsible defaultValue={['nested-default']}>
+                <Accordion
+                  variant="default"
+                  collapsible
+                  defaultValue={["nested-default"]}
+                >
                   <Accordion.Item value="nested-default">
                     <Accordion.Header>
                       <Accordion.Title>Nested (default)</Accordion.Title>
@@ -375,14 +393,23 @@ export const AllVariants: Story = {
           </Accordion>
 
           {/* Nested with child - inherits parent */}
-          <Accordion variant="default" collapsible defaultValue={['parent-child']} className="flex-1">
+          <Accordion
+            variant="default"
+            collapsible
+            defaultValue={["parent-child"]}
+            className="flex-1"
+          >
             <Accordion.Item value="parent-child">
               <Accordion.Header>
                 <Accordion.Title>variant="child"</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
               <Accordion.Content>
-                <Accordion variant="child" collapsible defaultValue={['nested-child']}>
+                <Accordion
+                  variant="child"
+                  collapsible
+                  defaultValue={["nested-child"]}
+                >
                   <Accordion.Item value="nested-child">
                     <Accordion.Header>
                       <Accordion.Title>Nested (child)</Accordion.Title>
@@ -404,23 +431,25 @@ export const AllVariants: Story = {
 
 export const ControlledAccordion: Story = {
   render: () => {
-    const [activeItems, setActiveItems] = useState<string[]>(['item-1'])
+    const [activeItems, setActiveItems] = useState<string[]>(["item-1"])
 
     return (
       <div className="w-md">
         <h2 className="mb-200 font-bold text-lg">Controlled Accordion</h2>
         <div className="mb-200">
-          <p className="text-sm">Active items: {activeItems.join(', ') || 'None'}</p>
+          <p className="text-sm">
+            Active items: {activeItems.join(", ") || "None"}
+          </p>
           <div className="mt-150 flex flex-wrap gap-100">
             <Button
               size="sm"
               variant="secondary"
               onClick={() => {
-                setActiveItems(prev => {
-                  const isActive = prev.includes('item-1')
+                setActiveItems((prev) => {
+                  const isActive = prev.includes("item-1")
                   return isActive
-                    ? prev.filter((i) => i !== 'item-1')
-                    : [...prev, 'item-1']
+                    ? prev.filter((i) => i !== "item-1")
+                    : [...prev, "item-1"]
                 })
               }}
             >
@@ -430,11 +459,11 @@ export const ControlledAccordion: Story = {
               size="sm"
               variant="secondary"
               onClick={() => {
-                setActiveItems(prev => {
-                  const isActive = prev.includes('item-2')
+                setActiveItems((prev) => {
+                  const isActive = prev.includes("item-2")
                   return isActive
-                    ? prev.filter((i) => i !== 'item-2')
-                    : [...prev, 'item-2']
+                    ? prev.filter((i) => i !== "item-2")
+                    : [...prev, "item-2"]
                 })
               }}
             >
@@ -444,17 +473,22 @@ export const ControlledAccordion: Story = {
               size="sm"
               variant="secondary"
               onClick={() => {
-                setActiveItems(prev => {
-                  const isActive = prev.includes('item-3')
+                setActiveItems((prev) => {
+                  const isActive = prev.includes("item-3")
                   return isActive
-                    ? prev.filter((i) => i !== 'item-3')
-                    : [...prev, 'item-3']
+                    ? prev.filter((i) => i !== "item-3")
+                    : [...prev, "item-3"]
                 })
               }}
             >
               Toggle Item 3
             </Button>
-            <Button size="sm" variant="tertiary" theme="borderless" onClick={() => setActiveItems([])}>
+            <Button
+              size="sm"
+              variant="tertiary"
+              theme="borderless"
+              onClick={() => setActiveItems([])}
+            >
               Close All
             </Button>
           </div>
@@ -472,7 +506,8 @@ export const ControlledAccordion: Story = {
               <Accordion.Indicator />
             </Accordion.Header>
             <Accordion.Content>
-              Accordion is a UI component that allows collapsing and expanding content.
+              Accordion is a UI component that allows collapsing and expanding
+              content.
             </Accordion.Content>
           </Accordion.Item>
 
@@ -488,7 +523,9 @@ export const ControlledAccordion: Story = {
 
           <Accordion.Item value="item-3" disabled>
             <Accordion.Header>
-              <Accordion.Title>Why use an Accordion? (Disabled)</Accordion.Title>
+              <Accordion.Title>
+                Why use an Accordion? (Disabled)
+              </Accordion.Title>
               <Accordion.Indicator />
             </Accordion.Header>
             <Accordion.Content>
@@ -502,15 +539,19 @@ export const ControlledAccordion: Story = {
 }
 
 export const ConditionalRendering: Story = {
-  name: 'Conditional Rendering (Compound Pattern Benefit)',
+  name: "Conditional Rendering (Compound Pattern Benefit)",
   render: () => {
     const [showExtra, setShowExtra] = useState(false)
 
     return (
       <div className="w-md">
         <div className="mb-200">
-          <Button size="sm" variant="primary" onClick={() => setShowExtra(!showExtra)}>
-            {showExtra ? 'Hide' : 'Show'} Extra Items
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => setShowExtra(!showExtra)}
+          >
+            {showExtra ? "Hide" : "Show"} Extra Items
           </Button>
         </div>
 
@@ -527,7 +568,9 @@ export const ConditionalRendering: Story = {
             <>
               <Accordion.Item value="item-2">
                 <Accordion.Header>
-                  <Accordion.Title>Conditionally Rendered Item 1</Accordion.Title>
+                  <Accordion.Title>
+                    Conditionally Rendered Item 1
+                  </Accordion.Title>
                   <Accordion.Indicator />
                 </Accordion.Header>
                 <Accordion.Content>
@@ -537,12 +580,14 @@ export const ConditionalRendering: Story = {
 
               <Accordion.Item value="item-3">
                 <Accordion.Header>
-                  <Accordion.Title>Conditionally Rendered Item 2</Accordion.Title>
+                  <Accordion.Title>
+                    Conditionally Rendered Item 2
+                  </Accordion.Title>
                   <Accordion.Indicator />
                 </Accordion.Header>
                 <Accordion.Content>
-                  Another conditionally rendered item demonstrating the flexibility of compound
-                  pattern.
+                  Another conditionally rendered item demonstrating the
+                  flexibility of compound pattern.
                 </Accordion.Content>
               </Accordion.Item>
             </>
@@ -553,7 +598,9 @@ export const ConditionalRendering: Story = {
               <Accordion.Title>Another Always Visible Item</Accordion.Title>
               <Accordion.Indicator />
             </Accordion.Header>
-            <Accordion.Content>This item is also always visible.</Accordion.Content>
+            <Accordion.Content>
+              This item is also always visible.
+            </Accordion.Content>
           </Accordion.Item>
         </Accordion>
       </div>

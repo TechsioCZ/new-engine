@@ -1,11 +1,12 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { CarouselTemplate } from '../../src/templates/carousel'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { CarouselTemplate } from "../../src/templates/carousel"
 
 const meta: Meta<typeof CarouselTemplate> = {
-  title: 'Templates/CarouselTemplate',
+  title: "Templates/CarouselTemplate",
   component: CarouselTemplate,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component: `
@@ -18,100 +19,101 @@ const meta: Meta<typeof CarouselTemplate> = {
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     slides: {
-      control: 'object',
-      description: 'Array of carousel slides with id, src, alt, and optional content',
+      control: "object",
+      description:
+        "Array of carousel slides with id, src, alt, and optional content",
       table: {
-        category: 'Content',
+        category: "Content",
       },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'full'],
-      description: 'Size variant',
+      control: "select",
+      options: ["sm", "md", "lg", "full"],
+      description: "Size variant",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     objectFit: {
-      control: 'select',
-      options: ['cover', 'contain', 'fill', 'none'],
-      description: 'How images fit within slides',
+      control: "select",
+      options: ["cover", "contain", "fill", "none"],
+      description: "How images fit within slides",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     aspectRatio: {
-      control: 'select',
-      options: ['square', 'landscape', 'portrait', 'wide', 'none'],
-      description: 'Aspect ratio of slides',
+      control: "select",
+      options: ["square", "landscape", "portrait", "wide", "none"],
+      description: "Aspect ratio of slides",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-      description: 'Carousel orientation',
+      control: "select",
+      options: ["horizontal", "vertical"],
+      description: "Carousel orientation",
       table: {
-        category: 'Layout',
+        category: "Layout",
       },
     },
     showControls: {
-      control: 'boolean',
-      description: 'Show previous/next navigation buttons',
+      control: "boolean",
+      description: "Show previous/next navigation buttons",
       table: {
-        category: 'Controls',
+        category: "Controls",
       },
     },
     showIndicators: {
-      control: 'boolean',
-      description: 'Show slide indicators',
+      control: "boolean",
+      description: "Show slide indicators",
       table: {
-        category: 'Controls',
+        category: "Controls",
       },
     },
     showAutoplay: {
-      control: 'boolean',
-      description: 'Show autoplay control button',
+      control: "boolean",
+      description: "Show autoplay control button",
       table: {
-        category: 'Controls',
+        category: "Controls",
       },
     },
     loop: {
-      control: 'boolean',
-      description: 'Enable infinite loop',
+      control: "boolean",
+      description: "Enable infinite loop",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     autoplay: {
-      control: 'boolean',
-      description: 'Enable autoplay',
+      control: "boolean",
+      description: "Enable autoplay",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     allowMouseDrag: {
-      control: 'boolean',
-      description: 'Allow mouse drag to navigate',
+      control: "boolean",
+      description: "Allow mouse drag to navigate",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     slidesPerPage: {
-      control: 'number',
-      description: 'Number of slides visible per page',
+      control: "number",
+      description: "Number of slides visible per page",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     onPageChange: {
-      action: 'page-changed',
+      action: "page-changed",
       table: {
-        category: 'Events',
+        category: "Events",
       },
     },
   },
@@ -122,34 +124,34 @@ type Story = StoryObj<typeof CarouselTemplate>
 
 const defaultSlides = [
   {
-    id: 'slide-1',
-    src: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800',
-    alt: 'Product 1',
+    id: "slide-1",
+    src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
+    alt: "Product 1",
   },
   {
-    id: 'slide-2',
-    src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400',
-    alt: 'Product 2',
+    id: "slide-2",
+    src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400",
+    alt: "Product 2",
   },
   {
-    id: 'slide-3',
-    src: 'https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    alt: 'Product 3',
+    id: "slide-3",
+    src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    alt: "Product 3",
   },
   {
-    id: 'slide-4',
-    src: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600',
-    alt: 'Product 4',
+    id: "slide-4",
+    src: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600",
+    alt: "Product 4",
   },
 ]
 
 export const Default: Story = {
   args: {
     slides: defaultSlides,
-    size: 'md',
-    objectFit: 'cover',
-    aspectRatio: 'square',
-    orientation: 'horizontal',
+    size: "md",
+    objectFit: "cover",
+    aspectRatio: "square",
+    orientation: "horizontal",
     loop: true,
     autoplay: false,
     showControls: true,
@@ -161,20 +163,20 @@ export const Default: Story = {
 }
 
 export const Playground: Story = {
-  name: '🎮 Interactive Playground',
+  name: "🎮 Interactive Playground",
   args: {
     slides: [
       ...defaultSlides,
       {
-        id: 'slide-5',
-        src: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600',
-        alt: 'Product 5',
+        id: "slide-5",
+        src: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600",
+        alt: "Product 5",
       },
     ],
-    size: 'lg',
-    objectFit: 'cover',
-    aspectRatio: 'landscape',
-    orientation: 'horizontal',
+    size: "lg",
+    objectFit: "cover",
+    aspectRatio: "landscape",
+    orientation: "horizontal",
     loop: true,
     autoplay: true,
     showControls: true,

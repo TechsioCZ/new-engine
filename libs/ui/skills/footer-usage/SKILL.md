@@ -1,10 +1,7 @@
 ---
 name: footer-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Footer for
-  site footer composition with container, section, title, list, link, text,
-  divider, bottom area, size, layout, direction, section flow, and framework
-  link adapters.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Footer for site footer composition with container, section, title, list, link, text, divider, bottom area, size, layout, direction, section flow, and framework link adapters.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,8 +17,7 @@ sources:
 
 # @techsio/ui-kit Footer Usage
 
-Use Footer for global footer layout. Do not build app footers from raw divs and
-anchors when this organism fits.
+Use Footer for global footer layout. Do not build app footers from raw divs and anchors when this organism fits.
 
 ## Setup
 
@@ -29,15 +25,21 @@ anchors when this organism fits.
 import NextLink from "next/link"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 
-<Footer size="md">
+;<Footer size="md">
   <Footer.Container>
     <Footer.Section>
       <Footer.Title>Shop</Footer.Title>
       <Footer.List>
-        <li><Footer.Link as={NextLink} href="/products">Products</Footer.Link></li>
+        <li>
+          <Footer.Link as={NextLink} href="/products">
+            Products
+          </Footer.Link>
+        </li>
       </Footer.List>
     </Footer.Section>
-    <Footer.Bottom><Footer.Text>(c) Techsio</Footer.Text></Footer.Bottom>
+    <Footer.Bottom>
+      <Footer.Text>(c) Techsio</Footer.Text>
+    </Footer.Bottom>
   </Footer.Container>
 </Footer>
 ```
@@ -74,13 +76,21 @@ Use `size`, `layout`, and `sectionFlow` instead of local gap/padding classes.
 Wrong:
 
 ```tsx
-<footer className="grid gap-8 p-8"><a href="/products">Products</a></footer>
+<footer className="grid gap-8 p-8">
+  <a href="/products">Products</a>
+</footer>
 ```
 
 Correct:
 
 ```tsx
-<Footer><Footer.Container><Footer.Section><Footer.Link href="/products">Products</Footer.Link></Footer.Section></Footer.Container></Footer>
+<Footer>
+  <Footer.Container>
+    <Footer.Section>
+      <Footer.Link href="/products">Products</Footer.Link>
+    </Footer.Section>
+  </Footer.Container>
+</Footer>
 ```
 
 Source: libs/ui/src/organisms/footer.tsx
@@ -96,7 +106,9 @@ Wrong:
 Correct in Next:
 
 ```tsx
-<Footer.Link as={NextLink} href="/products">Products</Footer.Link>
+<Footer.Link as={NextLink} href="/products">
+  Products
+</Footer.Link>
 ```
 
 Source: libs/ui/src/atoms/link.tsx
@@ -112,7 +124,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Footer layout="col" size="lg"><Footer.Container /></Footer>
+<Footer layout="col" size="lg">
+  <Footer.Container />
+</Footer>
 ```
 
 Source: libs/ui/src/tokens/components/organisms/_footer.css

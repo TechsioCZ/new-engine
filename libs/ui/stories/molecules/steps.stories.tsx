@@ -1,11 +1,12 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useEffect, useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Badge } from '../../src/atoms/badge'
-import { Button } from '../../src/atoms/button'
-import { Icon, type IconType } from '../../src/atoms/icon'
-import { Input } from '../../src/atoms/input'
-import { Steps } from '../../src/molecules/steps'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useEffect, useState } from "react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Badge } from "../../src/atoms/badge"
+import { Button } from "../../src/atoms/button"
+import { Icon, type IconType } from "../../src/atoms/icon"
+import { Input } from "../../src/atoms/input"
+import { Steps } from "../../src/molecules/steps"
 
 type DemoStep = {
   actionLabel: string
@@ -18,82 +19,83 @@ type DemoStep = {
 
 const demoSteps: DemoStep[] = [
   {
-    actionLabel: 'Assign owner',
-    badge: 'Planning',
+    actionLabel: "Assign owner",
+    badge: "Planning",
     content:
-      'Set the initial structure, clarify intent, and gather the small decisions that should not leak into later steps.',
-    description: 'Define scope and ownership.',
-    icon: 'token-icon-folder',
-    title: 'Brief',
+      "Set the initial structure, clarify intent, and gather the small decisions that should not leak into later steps.",
+    description: "Define scope and ownership.",
+    icon: "token-icon-folder",
+    title: "Brief",
   },
   {
-    actionLabel: 'Capture details',
-    badge: 'Execution',
+    actionLabel: "Capture details",
+    badge: "Execution",
     content:
-      'Move from outline to implementation details. This is where the stepper starts benefiting from a richer compound composition.',
-    description: 'Collect the important inputs.',
-    icon: 'token-icon-clipboard',
-    title: 'Inputs',
+      "Move from outline to implementation details. This is where the stepper starts benefiting from a richer compound composition.",
+    description: "Collect the important inputs.",
+    icon: "token-icon-clipboard",
+    title: "Inputs",
   },
   {
-    actionLabel: 'Confirm release',
-    badge: 'Approval',
+    actionLabel: "Confirm release",
+    badge: "Approval",
     content:
-      'Review the result, check open questions, and prepare the final handoff. Completion should feel visually distinct from the in-progress state.',
-    description: 'Review and publish.',
-    icon: 'token-icon-save',
-    title: 'Review',
+      "Review the result, check open questions, and prepare the final handoff. Completion should feel visually distinct from the in-progress state.",
+    description: "Review and publish.",
+    icon: "token-icon-save",
+    title: "Review",
   },
 ]
 
-const completedText = 'All steps are complete. This content lives outside the indexed step panels.'
+const completedText =
+  "All steps are complete. This content lives outside the indexed step panels."
 
 const meta: Meta<typeof Steps> = {
-  title: 'Molecules/Steps',
+  title: "Molecules/Steps",
   component: Steps,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component:
-          'Computed/compound stepper built on Zag.js. This version keeps the machine API close to Zag while exposing composable subcomponents similar to our other computed molecules.',
+          "Computed/compound stepper built on Zag.js. This version keeps the machine API close to Zag while exposing composable subcomponents similar to our other computed molecules.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     linear: {
-      control: 'boolean',
-      description: 'Whether users must progress sequentially.',
-      table: { category: 'Behavior', defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Whether users must progress sequentially.",
+      table: { category: "Behavior", defaultValue: { summary: "false" } },
     },
     orientation: {
-      control: 'radio',
-      options: ['horizontal', 'vertical'],
-      description: 'Stepper orientation.',
+      control: "radio",
+      options: ["horizontal", "vertical"],
+      description: "Stepper orientation.",
       table: {
-        category: 'Layout',
-        defaultValue: { summary: 'horizontal' },
+        category: "Layout",
+        defaultValue: { summary: "horizontal" },
       },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Visual size scale for indicators and content.',
-      table: { category: 'Appearance', defaultValue: { summary: 'md' } },
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Visual size scale for indicators and content.",
+      table: { category: "Appearance", defaultValue: { summary: "md" } },
     },
     step: {
-      control: { type: 'number', min: 0, max: demoSteps.length },
-      description: 'Controlled active step index.',
-      table: { category: 'Behavior', defaultValue: { summary: '0' } },
+      control: { type: "number", min: 0, max: demoSteps.length },
+      description: "Controlled active step index.",
+      table: { category: "Behavior", defaultValue: { summary: "0" } },
     },
     variant: {
-      control: 'radio',
-      options: ['subtle', 'solid'],
-      description: 'Visual emphasis style.',
+      control: "radio",
+      options: ["subtle", "solid"],
+      description: "Visual emphasis style.",
       table: {
-        category: 'Appearance',
-        defaultValue: { summary: 'subtle' },
+        category: "Appearance",
+        defaultValue: { summary: "subtle" },
       },
     },
     children: {
@@ -120,10 +122,10 @@ const meta: Meta<typeof Steps> = {
   },
   args: {
     linear: false,
-    orientation: 'horizontal',
-    size: 'md',
+    orientation: "horizontal",
+    size: "md",
     step: 0,
-    variant: 'subtle',
+    variant: "subtle",
   },
 }
 
@@ -208,7 +210,12 @@ export const Playground: Story = {
 export const Basic: Story = {
   render: () => (
     <div className="w-5xl">
-      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        size="md"
+        variant="subtle"
+      >
         <Steps.List>
           {demoSteps.map((item, index) => (
             <Steps.Item index={index} key={item.title}>
@@ -294,7 +301,12 @@ export const Variants: Story = {
     <VariantContainer>
       <VariantGroup fullWidth title="Subtle">
         <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+          <Steps
+            count={demoSteps.length}
+            defaultStep={1}
+            size="md"
+            variant="subtle"
+          >
             <Steps.List>
               {demoSteps.map((item, index) => (
                 <Steps.Item index={index} key={item.title}>
@@ -324,7 +336,12 @@ export const Variants: Story = {
 
       <VariantGroup fullWidth title="Solid">
         <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="solid">
+          <Steps
+            count={demoSteps.length}
+            defaultStep={1}
+            size="md"
+            variant="solid"
+          >
             <Steps.List>
               {demoSteps.map((item, index) => (
                 <Steps.Item index={index} key={item.title}>
@@ -360,7 +377,12 @@ export const Sizes: Story = {
     <VariantContainer>
       <VariantGroup fullWidth title="Small">
         <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="sm" variant="subtle">
+          <Steps
+            count={demoSteps.length}
+            defaultStep={1}
+            size="sm"
+            variant="subtle"
+          >
             <Steps.List>
               {demoSteps.map((item, index) => (
                 <Steps.Item index={index} key={item.title}>
@@ -390,7 +412,12 @@ export const Sizes: Story = {
 
       <VariantGroup fullWidth title="Medium">
         <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+          <Steps
+            count={demoSteps.length}
+            defaultStep={1}
+            size="md"
+            variant="subtle"
+          >
             <Steps.List>
               {demoSteps.map((item, index) => (
                 <Steps.Item index={index} key={item.title}>
@@ -420,7 +447,12 @@ export const Sizes: Story = {
 
       <VariantGroup fullWidth title="Large">
         <div className="w-5xl">
-          <Steps count={demoSteps.length} defaultStep={1} size="lg" variant="subtle">
+          <Steps
+            count={demoSteps.length}
+            defaultStep={1}
+            size="lg"
+            variant="subtle"
+          >
             <Steps.List>
               {demoSteps.map((item, index) => (
                 <Steps.Item index={index} key={item.title}>
@@ -454,7 +486,13 @@ export const Sizes: Story = {
 export const Validation: Story = {
   render: () => (
     <div className="w-5xl">
-      <Steps count={demoSteps.length} defaultStep={1} linear size="md" variant="subtle">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        linear
+        size="md"
+        variant="subtle"
+      >
         <Steps.List>
           {demoSteps.map((item, index) => (
             <Steps.Item index={index} key={item.title}>
@@ -486,7 +524,8 @@ export const Validation: Story = {
               <Badge variant="warning">Needs attention</Badge>
               <Input defaultValue="team@" readOnly variant="error" />
               <p className="text-sm text-danger">
-                Example only: this panel shows how an invalid state can be composed.
+                Example only: this panel shows how an invalid state can be
+                composed.
               </p>
             </div>
           </Steps.Content>
@@ -495,7 +534,8 @@ export const Validation: Story = {
             <div className="flex flex-col gap-150">
               <Badge variant="outline">Review</Badge>
               <p className="text-sm text-fg-secondary">
-                The final step can summarize the previous panels or show any review UI.
+                The final step can summarize the previous panels or show any
+                review UI.
               </p>
             </div>
           </Steps.Content>
@@ -642,7 +682,12 @@ export const ProgressVertical: Story = {
 export const Description: Story = {
   render: () => (
     <div className="w-5xl">
-      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        size="md"
+        variant="subtle"
+      >
         <Steps.List>
           {demoSteps.map((item, index) => (
             <Steps.Item index={index} key={item.title}>
@@ -680,7 +725,12 @@ export const Description: Story = {
 export const WithIcon: Story = {
   render: () => (
     <div className="w-5xl">
-      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        size="md"
+        variant="subtle"
+      >
         <Steps.List>
           {demoSteps.map((item, index) => (
             <Steps.Item index={index} key={item.title}>
@@ -723,7 +773,12 @@ export const WithIcon: Story = {
 export const Lines: Story = {
   render: () => (
     <div className="w-5xl">
-      <Steps count={demoSteps.length} defaultStep={1} size="md" variant="subtle">
+      <Steps
+        count={demoSteps.length}
+        defaultStep={1}
+        size="md"
+        variant="subtle"
+      >
         <Steps.List className="gap-200">
           {demoSteps.map((item, index) => (
             <Steps.Item
@@ -744,7 +799,9 @@ export const Lines: Story = {
         <Steps.Panels>
           {demoSteps.map((item, index) => (
             <Steps.Content index={index} key={item.title}>
-              <p className="text-sm text-fg-secondary">{item.title} panel content.</p>
+              <p className="text-sm text-fg-secondary">
+                {item.title} panel content.
+              </p>
             </Steps.Content>
           ))}
           <Steps.CompletedContent>
@@ -764,7 +821,8 @@ export const Trigger: Story = {
   render: () => (
     <div className="w-5xl">
       <p className="mb-150 text-sm text-fg-secondary">
-        Step headers are read-only in this example. Navigate only with Back/Continue.
+        Step headers are read-only in this example. Navigate only with
+        Back/Continue.
       </p>
       <Steps
         count={demoSteps.length}

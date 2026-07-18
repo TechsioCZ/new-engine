@@ -1,9 +1,7 @@
 ---
 name: input-usage
 description: >
-  Use after component-usage-ux when an app needs the low-level
-  @techsio/ui-kit Input atom, including valid size, variant, embedded button
-  spacing, and token-first validation styling.
+  Use after component-usage-ux when an app needs the low-level @techsio/ui-kit Input atom, including valid size, variant, embedded button spacing, and token-first validation styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit Input Usage
 
-Use Input for a bare text-like control. Use `FormInput` when the UI includes a
-label, helper text, validation text, or full form-field spacing.
+Use Input for a bare text-like control. Use `FormInput` when the UI includes a label, helper text, validation text, or full form-field spacing.
 
 ## Setup
 
 ```tsx
 import { Input } from "@techsio/ui-kit/atoms/input"
 
-<Input name="email" type="email" variant="default" size="md" />
+;<Input name="email" type="email" variant="default" size="md" />
 ```
 
 Supported component-specific props:
@@ -54,8 +51,7 @@ disabled: native boolean
 />
 ```
 
-Use Input directly only when layout/label/error is already handled by a parent
-component.
+Use Input directly only when layout/label/error is already handled by a parent component.
 
 ### Use variant for validation state
 
@@ -71,8 +67,7 @@ Do not style border or placeholder error colors in JSX.
 <Input withButtonInside="right" type="search" />
 ```
 
-This prop adjusts input spacing for an action inside the field. Do not fake it
-with arbitrary padding classes.
+This prop adjusts input spacing for an action inside the field. Do not fake it with arbitrary padding classes.
 
 ## Common Mistakes
 

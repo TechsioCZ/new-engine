@@ -1,113 +1,113 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '../../src/atoms/button'
-import { Link } from '../../src/atoms/link'
-import { Dialog } from '../../src/molecules/dialog'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { Link } from "../../src/atoms/link"
+import { Dialog } from "../../src/molecules/dialog"
 
 const meta: Meta<typeof Dialog> = {
-  title: 'Molecules/Dialog',
+  title: "Molecules/Dialog",
   component: Dialog,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component:
-          'A modal dialog component built with Zag.js that provides accessible dialog functionality with customizable content.',
+          "A modal dialog component built with Zag.js that provides accessible dialog functionality with customizable content.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     // Text inputs
     triggerText: {
-      control: 'text',
-      description: 'Text for trigger button',
+      control: "text",
+      description: "Text for trigger button",
     },
     title: {
-      control: 'text',
-      description: 'Dialog title',
+      control: "text",
+      description: "Dialog title",
     },
     description: {
-      control: 'text',
-      description: 'Dialog description/subtitle',
+      control: "text",
+      description: "Dialog description/subtitle",
     },
 
     // Appearance variants
     placement: {
-      control: 'select',
-      options: ['center', 'left', 'right', 'top', 'bottom'],
-      description: 'Dialog/drawer placement',
-      table: { defaultValue: { summary: 'center' } },
+      control: "select",
+      options: ["center", "left", "right", "top", "bottom"],
+      description: "Dialog/drawer placement",
+      table: { defaultValue: { summary: "center" } },
     },
     size: {
-      control: 'select',
-      options: ['xs', 'sm', 'md', 'lg', 'xl', 'full'],
-      description: 'Dialog size',
-      table: { defaultValue: { summary: 'md' } },
+      control: "select",
+      options: ["xs", "sm", "md", "lg", "xl", "full"],
+      description: "Dialog size",
+      table: { defaultValue: { summary: "md" } },
     },
     behavior: {
-      control: 'select',
-      options: ['modal', 'modeless'],
-      description: 'Modal blocks background, modeless allows interaction',
-      table: { defaultValue: { summary: 'modal' } },
+      control: "select",
+      options: ["modal", "modeless"],
+      description: "Modal blocks background, modeless allows interaction",
+      table: { defaultValue: { summary: "modal" } },
     },
     position: {
-      control: 'select',
-      options: ['fixed', 'absolute', 'sticky', 'relative'],
-      description: 'CSS position type',
-      table: { defaultValue: { summary: 'fixed' } },
+      control: "select",
+      options: ["fixed", "absolute", "sticky", "relative"],
+      description: "CSS position type",
+      table: { defaultValue: { summary: "fixed" } },
     },
     role: {
-      control: 'select',
-      options: ['dialog', 'alertdialog'],
-      description: 'Semantic role (alertdialog for destructive actions)',
-      table: { defaultValue: { summary: 'dialog' } },
+      control: "select",
+      options: ["dialog", "alertdialog"],
+      description: "Semantic role (alertdialog for destructive actions)",
+      table: { defaultValue: { summary: "dialog" } },
     },
 
     // Behavior toggles
     closeOnEscape: {
-      control: 'boolean',
-      description: 'Close on Escape key',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Close on Escape key",
+      table: { defaultValue: { summary: "true" } },
     },
     closeOnInteractOutside: {
-      control: 'boolean',
-      description: 'Close when clicking outside',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Close when clicking outside",
+      table: { defaultValue: { summary: "true" } },
     },
     preventScroll: {
-      control: 'boolean',
-      description: 'Prevent body scroll when open',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Prevent body scroll when open",
+      table: { defaultValue: { summary: "true" } },
     },
     trapFocus: {
-      control: 'boolean',
-      description: 'Trap focus inside dialog',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Trap focus inside dialog",
+      table: { defaultValue: { summary: "true" } },
     },
     portal: {
-      control: 'boolean',
-      description: 'Render in portal (escapes container)',
-      table: { defaultValue: { summary: 'true' } },
+      control: "boolean",
+      description: "Render in portal (escapes container)",
+      table: { defaultValue: { summary: "true" } },
     },
     hideCloseButton: {
-      control: 'boolean',
-      description: 'Hide the X close button',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Hide the X close button",
+      table: { defaultValue: { summary: "false" } },
     },
   },
   args: {
-    triggerText: 'Open Dialog',
-    title: 'Edit Profile',
-    description:
-      `This dialog includes both a title and a description for additional context. 
+    triggerText: "Open Dialog",
+    title: "Edit Profile",
+    description: `This dialog includes both a title and a description for additional context.
       The description provides more context about the dialog's purpose.`,
-    placement: 'center',
-    size: 'md',
-    behavior: 'modal',
-    position: 'fixed',
-    role: 'dialog',
+    placement: "center",
+    size: "md",
+    behavior: "modal",
+    position: "fixed",
+    role: "dialog",
     closeOnEscape: true,
     closeOnInteractOutside: true,
     preventScroll: true,
@@ -122,7 +122,7 @@ type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
   args: {
-    title: 'Playground Dialog',
+    title: "Playground Dialog",
   },
 }
 
@@ -335,9 +335,9 @@ export const AlertDialog: Story = {
 // Dialog with rich content
 export const RichContent: Story = {
   args: {
-    triggerText: 'View Details',
-    title: 'Product Information',
-    description: 'Complete details about the selected product.',
+    triggerText: "View Details",
+    title: "Product Information",
+    description: "Complete details about the selected product.",
     children: (
       <div className="space-y-300">
         <div className="flex gap-200">
@@ -389,8 +389,8 @@ export const RichContent: Story = {
 // Minimal dialog
 export const Minimal: Story = {
   args: {
-    triggerText: 'Simple Dialog',
-    title: 'Simple Message',
+    triggerText: "Simple Dialog",
+    title: "Simple Message",
     children: <p>This is a minimal dialog with just basic content.</p>,
   },
 }
@@ -733,12 +733,11 @@ export const PortalComparison: Story = {
     return (
       <div className="flex flex-col gap-600 p-400">
         <div className="space-y-200">
-          <h2 className="text-lg font-semibold">
-            Portal Behavior Comparison
-          </h2>
+          <h2 className="text-lg font-semibold">Portal Behavior Comparison</h2>
           <p className="text-sm text-fg-muted">
-            This example demonstrates the difference between using Portal (default) and not using Portal.
-            The container below has overflow:hidden and fixed height to simulate a real-world scenario
+            This example demonstrates the difference between using Portal
+            (default) and not using Portal. The container below has
+            overflow:hidden and fixed height to simulate a real-world scenario
             like a dropdown menu in a scrollable list.
           </p>
         </div>
@@ -813,12 +812,12 @@ export const PortalComparison: Story = {
           <h4 className="mb-100 font-medium">When to use each:</h4>
           <ul className="space-y-50 text-sm">
             <li>
-              <strong>Use portal (default):</strong> Modals, global notifications,
-              tooltips that need to escape container constraints
+              <strong>Use portal (default):</strong> Modals, global
+              notifications, tooltips that need to escape container constraints
             </li>
             <li>
-              <strong>Use portal={false}:</strong> Navigation submenus,
-              inline context menus, hover cards that should respect DOM hierarchy
+              <strong>Use portal={false}:</strong> Navigation submenus, inline
+              context menus, hover cards that should respect DOM hierarchy
             </li>
           </ul>
         </div>

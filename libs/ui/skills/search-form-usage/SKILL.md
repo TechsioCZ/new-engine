@@ -1,10 +1,7 @@
 ---
 name: search-form-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit SearchForm for
-  search landmarks, controlled or uncontrolled search text, label, control,
-  input, submit button, clear button, icon props, and token-backed field
-  layout.
+  Use after component-usage-ux when an app needs @techsio/ui-kit SearchForm for search landmarks, controlled or uncontrolled search text, label, control, input, submit button, clear button, icon props, and token-backed field layout.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,8 +17,7 @@ sources:
 
 # @techsio/ui-kit SearchForm Usage
 
-Use SearchForm for search input and submit/clear actions. It wraps a semantic
-`<search>` and `<form>`.
+Use SearchForm for search input and submit/clear actions. It wraps a semantic `<search>` and `<form>`.
 
 ## Setup
 
@@ -66,13 +62,21 @@ Do not place a native submit button inside the control.
 Wrong:
 
 ```tsx
-<form><input type="search" /><button>Search</button></form>
+<form>
+  <input type="search" />
+  <button>Search</button>
+</form>
 ```
 
 Correct:
 
 ```tsx
-<SearchForm><SearchForm.Control><SearchForm.Input /><SearchForm.Button /></SearchForm.Control></SearchForm>
+<SearchForm>
+  <SearchForm.Control>
+    <SearchForm.Input />
+    <SearchForm.Button />
+  </SearchForm.Control>
+</SearchForm>
 ```
 
 Source: libs/ui/src/molecules/search-form.tsx
@@ -82,7 +86,9 @@ Source: libs/ui/src/molecules/search-form.tsx
 Wrong:
 
 ```tsx
-{query && <button onClick={() => setQuery("")}>x</button>}
+{
+  query && <button onClick={() => setQuery("")}>x</button>
+}
 ```
 
 Correct:
@@ -104,7 +110,9 @@ Wrong:
 Correct:
 
 ```tsx
-<SearchForm size="md"><SearchForm.Control /></SearchForm>
+<SearchForm size="md">
+  <SearchForm.Control />
+</SearchForm>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_search-form.css

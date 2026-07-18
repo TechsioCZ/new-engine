@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { Icon, type IconType } from "./icon"
 
@@ -53,7 +54,7 @@ export type ActionIconProps = Omit<
 > &
   ActionIconVariants & {
     icon: IconType
-    ref?: Ref<HTMLButtonElement>
+    ref?: Ref<HTMLButtonElement> | undefined
   }
 
 export function ActionIcon({

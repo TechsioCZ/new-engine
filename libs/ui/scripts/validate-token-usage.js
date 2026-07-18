@@ -10,6 +10,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+
 import { globSync } from "glob"
 
 const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
@@ -127,7 +128,7 @@ const IGNORE_PATTERNS = [
   // Special edge cases
   /^max-h-\(--available-height\)$/, // Dynamic height references
   /^\*:max-h-\(--available-height\)$/, // Selector prefixes
-  /^left-(1\/2)$/, // Fractional positioning
+  /^(top|right|bottom|left)-(1\/2)$/, // Fractional positioning
 
   // Misc utilities
   /^(sr-only|not-sr-only|pointer-events|select|resize|appearance|cursor|outline|ring)-.+$/,
@@ -156,9 +157,15 @@ const CLASS_STRING_REGEX = /\S+/g
  */
 function extractTailwindClasses(content) {
   const classes = new Set()
+  const classContent = content.replace(
+    /figma\.enum\(\s*["'][^"']+["']\s*,\s*\{[\s\S]*?\}\s*\)/g,
+    ""
+  )
 
   // Match className props (string values)
-  const classNameMatches = content.matchAll(/className\s*=\s*["']([^"']+)["']/g)
+  const classNameMatches = classContent.matchAll(
+    /className\s*=\s*["']([^"']+)["']/g
+  )
   for (const match of classNameMatches) {
     const classString = match[1]
     for (const cls of classString.match(CLASS_STRING_REGEX) || []) {
@@ -167,7 +174,7 @@ function extractTailwindClasses(content) {
   }
 
   // Match className arrays: className: ['class1', 'class2'] or className={['class1', 'class2']}
-  const classNameArrayMatches = content.matchAll(
+  const classNameArrayMatches = classContent.matchAll(
     /className\s*[:=]\s*(?:\{)?\s*\[([^\]]+)\]/g
   )
   for (const match of classNameArrayMatches) {
@@ -183,7 +190,7 @@ function extractTailwindClasses(content) {
   }
 
   // Match template literals in className
-  const templateMatches = content.matchAll(/className\s*=\s*`([^`]+)`/g)
+  const templateMatches = classContent.matchAll(/className\s*=\s*`([^`]+)`/g)
   for (const match of templateMatches) {
     const classString = match[1]
     // Extract static classes, ignore interpolations
@@ -196,7 +203,7 @@ function extractTailwindClasses(content) {
   }
 
   // Match tailwind-variants tv() configurations
-  const tvMatches = content.matchAll(/tv\s*\(\s*\{[\s\S]*?\}\s*\)/g)
+  const tvMatches = classContent.matchAll(/tv\s*\(\s*\{[\s\S]*?\}\s*\)/g)
   for (const match of tvMatches) {
     const tvConfig = match[0]
 
@@ -222,7 +229,7 @@ function extractTailwindClasses(content) {
   }
 
   // Match clsx/cn utility calls
-  const clsxMatches = content.matchAll(/(?:clsx|cn)\s*\(\s*([^)]+)\)/g)
+  const clsxMatches = classContent.matchAll(/(?:clsx|cn)\s*\(\s*([^)]+)\)/g)
   for (const match of clsxMatches) {
     const args = match[1]
     const stringMatches = args.matchAll(/['"`]([^'"`]+)['"`]/g)
@@ -235,7 +242,7 @@ function extractTailwindClasses(content) {
   }
 
   // Match any quoted strings that might be CSS classes (broader approach)
-  const quotedStringMatches = content.matchAll(
+  const quotedStringMatches = classContent.matchAll(
     /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|w-|h-|flex|grid|rounded)[^'"`]*)['"`]/g
   )
   for (const match of quotedStringMatches) {

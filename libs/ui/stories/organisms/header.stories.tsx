@@ -1,18 +1,19 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Button } from '../../src/atoms/button'
-import { Icon, type IconType } from '../../src/atoms/icon'
-import { Link } from '../../src/atoms/link'
-import { Accordion } from '../../src/molecules/accordion'
-import { Dialog } from '../../src/molecules/dialog'
-import { Popover } from '../../src/molecules/popover'
-import { Header } from '../../src/organisms/header'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { Button } from "../../src/atoms/button"
+import { Icon, type IconType } from "../../src/atoms/icon"
+import { Link } from "../../src/atoms/link"
+import { Accordion } from "../../src/molecules/accordion"
+import { Dialog } from "../../src/molecules/dialog"
+import { Popover } from "../../src/molecules/popover"
+import { Header } from "../../src/organisms/header"
 
 const meta: Meta<typeof Header> = {
-  title: 'Organisms/Header',
+  title: "Organisms/Header",
   component: Header,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
     docs: {
       description: {
         component: `
@@ -43,7 +44,7 @@ The Desktop/Mobile wrapper approach provides flexibility for:
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 }
 
 export default meta
@@ -803,14 +804,14 @@ export const DrawerSubmenu: Story = {
     const [drawerOpen, setDrawerOpen] = useState(false)
 
     const categories = [
-      { name: 'Electronics', icon: 'icon-[mdi--laptop]', href: '/electronics' },
+      { name: "Electronics", icon: "icon-[mdi--laptop]", href: "/electronics" },
       {
-        name: 'Clothing',
-        icon: 'icon-[mdi--t-shirt-crew]',
-        href: '/clothing',
+        name: "Clothing",
+        icon: "icon-[mdi--t-shirt-crew]",
+        href: "/clothing",
       },
-      { name: 'Home & Garden', icon: 'icon-[mdi--home]', href: '/home' },
-      { name: 'Sports', icon: 'icon-[mdi--basketball]', href: '/sports' },
+      { name: "Home & Garden", icon: "icon-[mdi--home]", href: "/home" },
+      { name: "Sports", icon: "icon-[mdi--basketball]", href: "/sports" },
     ]
 
     const HeaderContent = () => (

@@ -1,8 +1,7 @@
 ---
 name: icon-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or
-  Iconify classes with the library's supported size and semantic color props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Icon tokens or Iconify classes with the library's supported size and semantic color props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -18,15 +17,14 @@ sources:
 
 # @techsio/ui-kit Icon Usage
 
-Use Icon for decorative or component-adjacent icons. The Icon atom renders
-`aria-hidden`, so it must not be the only accessible content for an action.
+Use Icon for decorative or component-adjacent icons. The Icon atom renders `aria-hidden`, so it must not be the only accessible content for an action.
 
 ## Setup
 
 ```tsx
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 
-<Icon icon="token-icon-status-text-success" size="md" color="success" />
+;<Icon icon="token-icon-status-text-success" size="md" color="success" />
 ```
 
 Supported props:
@@ -45,8 +43,7 @@ color: current | primary | secondary | danger | success | warning
 <Icon icon="token-icon-status-text-warning" color="warning" />
 ```
 
-Use `icon-[...]` for specific Iconify icons only when there is no token icon
-for that component state.
+Use `icon-[...]` for specific Iconify icons only when there is no token icon for that component state.
 
 ### Match icon size to component size
 
@@ -56,8 +53,7 @@ for that component state.
 </Button>
 ```
 
-When a component has an `icon` prop, use that prop instead of placing a
-separate Icon next to text.
+When a component has an `icon` prop, use that prop instead of placing a separate Icon next to text.
 
 ### Provide accessible text outside Icon
 
@@ -65,8 +61,7 @@ separate Icon next to text.
 <Button aria-label="Search" icon="icon-[mdi--magnify]" />
 ```
 
-Icon itself is decorative. The parent action or surrounding text carries the
-accessible name.
+Icon itself is decorative. The parent action or surrounding text carries the accessible name.
 
 ## Common Mistakes
 

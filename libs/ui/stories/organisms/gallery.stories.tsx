@@ -1,62 +1,71 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { type ReactNode } from 'react'
-import { Badge } from '../../src/atoms/badge'
-import { StatusText } from '../../src/atoms/status-text'
-import { Gallery, type GalleryItem } from '../../src/organisms/gallery'
-import { GalleryTemplate } from '../../src/templates/gallery'
+import type { Meta, StoryObj } from "@storybook/react"
+import { type ReactNode } from "react"
 
-const shoes1 = new URL('../../assets/gallery/shoes-1.avif', import.meta.url).href
-const shoes2 = new URL('../../assets/gallery/shoes-2.avif', import.meta.url).href
-const shoes3 = new URL('../../assets/gallery/shoes-3.avif', import.meta.url).href
-const shoes4 = new URL('../../assets/gallery/shoes-4.avif', import.meta.url).href
-const watch1 = new URL('../../assets/gallery/watch-1.avif', import.meta.url).href
-const watch2 = new URL('../../assets/gallery/watch-2.avif', import.meta.url).href
-const watch3 = new URL('../../assets/gallery/watch-3.avif', import.meta.url).href
-const watch4 = new URL('../../assets/gallery/watch-4.avif', import.meta.url).href
+import { Badge } from "../../src/atoms/badge"
+import { StatusText } from "../../src/atoms/status-text"
+import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
+import { GalleryTemplate } from "../../src/templates/gallery"
+
+const shoes1 = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
+  .href
+const shoes2 = new URL("../../assets/gallery/shoes-2.avif", import.meta.url)
+  .href
+const shoes3 = new URL("../../assets/gallery/shoes-3.avif", import.meta.url)
+  .href
+const shoes4 = new URL("../../assets/gallery/shoes-4.avif", import.meta.url)
+  .href
+const watch1 = new URL("../../assets/gallery/watch-1.avif", import.meta.url)
+  .href
+const watch2 = new URL("../../assets/gallery/watch-2.avif", import.meta.url)
+  .href
+const watch3 = new URL("../../assets/gallery/watch-3.avif", import.meta.url)
+  .href
+const watch4 = new URL("../../assets/gallery/watch-4.avif", import.meta.url)
+  .href
 
 const sneakerItems: GalleryItem[] = [
   {
-    id: 'sneaker-1',
+    id: "sneaker-1",
     src: shoes1,
-    alt: 'Pastel sneaker hero shot',
+    alt: "Pastel sneaker hero shot",
   },
   {
-    id: 'sneaker-2',
+    id: "sneaker-2",
     src: shoes2,
-    alt: 'Sneaker detail side profile',
+    alt: "Sneaker detail side profile",
   },
   {
-    id: 'sneaker-3',
+    id: "sneaker-3",
     src: shoes3,
-    alt: 'Red sneaker product variant',
+    alt: "Red sneaker product variant",
   },
   {
-    id: 'sneaker-4',
+    id: "sneaker-4",
     src: shoes4,
-    alt: 'Sneaker lifestyle frame',
+    alt: "Sneaker lifestyle frame",
   },
 ]
 
 const watchItems: GalleryItem[] = [
   {
-    id: 'watch-1',
+    id: "watch-1",
     src: watch1,
-    alt: 'Watch front product shot',
+    alt: "Watch front product shot",
   },
   {
-    id: 'watch-2',
+    id: "watch-2",
     src: watch2,
-    alt: 'Watch on wrist',
+    alt: "Watch on wrist",
   },
   {
-    id: 'watch-3',
+    id: "watch-3",
     src: watch3,
-    alt: 'Macro watch close-up',
+    alt: "Macro watch close-up",
   },
   {
-    id: 'watch-4',
+    id: "watch-4",
     src: watch4,
-    alt: 'Watch flatlay',
+    alt: "Watch flatlay",
   },
 ]
 
@@ -64,21 +73,21 @@ const chakraItems: GalleryItem[] = [
   ...sneakerItems,
   ...watchItems,
   {
-    id: 'chakra-9',
+    id: "chakra-9",
     src: shoes2,
-    alt: 'Sneaker sole detail',
+    alt: "Sneaker sole detail",
   },
   {
-    id: 'chakra-10',
+    id: "chakra-10",
     src: shoes3,
-    alt: 'Sneaker side detail',
+    alt: "Sneaker side detail",
   },
 ]
 
 const overlayControlsClassName =
-  'pointer-events-none absolute inset-x-100 top-1/2 z-20 flex -translate-y-1/2 items-center justify-between bg-transparent p-0'
+  "pointer-events-none absolute inset-x-100 top-1/2 z-20 flex -translate-y-1/2 items-center justify-between bg-transparent p-0"
 const overlayArrowClassName =
-  'pointer-events-auto rounded-full border border-border-primary bg-base text-fg-primary shadow-sm hover:bg-overlay'
+  "pointer-events-auto rounded-full border border-border-primary bg-base text-fg-primary shadow-sm hover:bg-overlay"
 
 type StoryFrameProps = {
   children: ReactNode
@@ -90,9 +99,7 @@ function StoryFrame({ children, mobile = false }: StoryFrameProps) {
     <div className="w-full bg-base p-400">
       <div
         className={
-          mobile
-            ? 'mx-auto w-full max-w-sm'
-            : 'mx-auto w-full max-w-lg'
+          mobile ? "mx-auto w-full max-w-sm" : "mx-auto w-full max-w-lg"
         }
       >
         <div className="rounded-lg border border-border-primary bg-surface p-250">
@@ -124,60 +131,60 @@ function StoryHeader({ label, title, note }: StoryHeaderProps) {
 }
 
 const meta = {
-  title: 'Organisms/Gallery',
+  title: "Organisms/Gallery",
   component: GalleryTemplate,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
   argTypes: {
     orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
+      control: "select",
+      options: ["horizontal", "vertical"],
     },
     aspectRatio: {
-      control: 'select',
-      options: ['square', 'portrait', 'landscape', 'wide', 'none'],
+      control: "select",
+      options: ["square", "portrait", "landscape", "wide", "none"],
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'full'],
+      control: "select",
+      options: ["sm", "md", "lg", "full"],
     },
     objectFit: {
-      control: 'select',
-      options: ['cover', 'contain', 'fill', 'none'],
+      control: "select",
+      options: ["cover", "contain", "fill", "none"],
     },
     carouselWidth: {
-      control: 'number',
+      control: "number",
     },
     carouselHeight: {
-      control: 'number',
+      control: "number",
     },
     fitParent: {
-      control: 'boolean',
+      control: "boolean",
     },
     thumbnailSize: {
-      control: 'number',
+      control: "number",
     },
     showThumbnails: {
-      control: 'boolean',
+      control: "boolean",
     },
     showControls: {
-      control: 'boolean',
+      control: "boolean",
     },
     showIndicators: {
-      control: 'boolean',
+      control: "boolean",
     },
     showAutoplay: {
-      control: 'boolean',
+      control: "boolean",
     },
   },
   args: {
     items: sneakerItems,
-    orientation: 'horizontal',
-    aspectRatio: 'square',
-    size: 'full',
-    objectFit: 'cover',
+    orientation: "horizontal",
+    aspectRatio: "square",
+    size: "full",
+    objectFit: "cover",
     fitParent: true,
     thumbnailSize: 72,
     showThumbnails: true,
@@ -237,9 +244,9 @@ export const SimpleVertical: Story = {
         orientation="vertical"
         thumbnailSize={68}
         carouselProps={{
-          aspectRatio: 'square',
-          objectFit: 'cover',
-          size: 'full',
+          aspectRatio: "square",
+          objectFit: "cover",
+          size: "full",
           width: 384,
           height: 384,
         }}
@@ -249,7 +256,10 @@ export const SimpleVertical: Story = {
           listClassName="gap-100"
         />
         <Gallery.Main className="overflow-hidden rounded-md border border-border-primary bg-base">
-          <Gallery.Carousel className="flex flex-row overflow-visible" orientation="vertical">
+          <Gallery.Carousel
+            className="flex flex-row overflow-visible"
+            orientation="vertical"
+          >
             <Gallery.Slides />
           </Gallery.Carousel>
         </Gallery.Main>
@@ -272,9 +282,9 @@ export const CompoundPattern: Story = {
         orientation="vertical"
         thumbnailSize={74}
         carouselProps={{
-          aspectRatio: 'square',
-          objectFit: 'cover',
-          size: 'full', 
+          aspectRatio: "square",
+          objectFit: "cover",
+          size: "full",
         }}
       >
         <Gallery.Thumbnails
@@ -283,14 +293,14 @@ export const CompoundPattern: Story = {
             <div
               className={
                 isActive
-                  ? 'relative rounded-sm border border-info p-50'
-                  : 'relative rounded-sm border border-border-primary p-50'
+                  ? "relative rounded-sm border border-info p-50"
+                  : "relative rounded-sm border border-border-primary p-50"
               }
             >
               {defaultThumbnail}
               <Badge
                 className="pointer-events-none absolute right-50 bottom-50"
-                variant={isActive ? 'info' : 'outline'}
+                variant={isActive ? "info" : "outline"}
               >
                 {String(index + 1)}
               </Badge>
@@ -382,8 +392,8 @@ export const HorizontalWithArrows: Story = {
           <div
             className={
               isActive
-                ? 'rounded-sm border border-info bg-info-light p-50'
-                : 'rounded-sm border border-border-primary bg-base p-50'
+                ? "rounded-sm border border-info bg-info-light p-50"
+                : "rounded-sm border border-border-primary bg-base p-50"
             }
           >
             {defaultThumbnail}

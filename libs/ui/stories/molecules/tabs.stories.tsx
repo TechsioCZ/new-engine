@@ -1,68 +1,69 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer } from '../../.storybook/decorator'
-import { Tabs } from '../../src/molecules/tabs'
-import { Badge } from '../../src/atoms/badge'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer } from "../../.storybook/decorator"
+import { Badge } from "../../src/atoms/badge"
+import { Tabs } from "../../src/molecules/tabs"
 
 const meta: Meta<typeof Tabs> = {
-  title: 'Molecules/Tabs',
+  title: "Molecules/Tabs",
   component: Tabs,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component:
-          'A flexible tabs component using compound pattern. Allows full control over tab structure and content with composition.',
+          "A flexible tabs component using compound pattern. Allows full control over tab structure and content with composition.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['default', 'line', 'solid', 'outline'],
-      description: 'Visual style variant',
-      table: { defaultValue: { summary: 'default' }, category: 'Appearance' },
+      control: "select",
+      options: ["default", "line", "solid", "outline"],
+      description: "Visual style variant",
+      table: { defaultValue: { summary: "default" }, category: "Appearance" },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the tabs',
-      table: { defaultValue: { summary: 'md' }, category: 'Appearance' },
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of the tabs",
+      table: { defaultValue: { summary: "md" }, category: "Appearance" },
     },
     orientation: {
-      control: 'radio',
-      options: ['horizontal', 'vertical'],
-      description: 'Tabs orientation',
-      table: { defaultValue: { summary: 'horizontal' }, category: 'Layout' },
+      control: "radio",
+      options: ["horizontal", "vertical"],
+      description: "Tabs orientation",
+      table: { defaultValue: { summary: "horizontal" }, category: "Layout" },
     },
     fitted: {
-      control: 'boolean',
-      description: 'Tabs fill full width',
-      table: { defaultValue: { summary: 'false' }, category: 'Layout' },
+      control: "boolean",
+      description: "Tabs fill full width",
+      table: { defaultValue: { summary: "false" }, category: "Layout" },
     },
     justify: {
-      control: 'select',
-      options: ['start', 'center', 'end'],
-      description: 'Tab list justification',
-      table: { defaultValue: { summary: 'start' }, category: 'Layout' },
+      control: "select",
+      options: ["start", "center", "end"],
+      description: "Tab list justification",
+      table: { defaultValue: { summary: "start" }, category: "Layout" },
     },
     dir: {
-      control: 'radio',
-      options: ['ltr', 'rtl'],
-      description: 'Text direction',
-      table: { defaultValue: { summary: 'ltr' }, category: 'Behavior' },
+      control: "radio",
+      options: ["ltr", "rtl"],
+      description: "Text direction",
+      table: { defaultValue: { summary: "ltr" }, category: "Behavior" },
     },
     activationMode: {
-      control: 'radio',
-      options: ['automatic', 'manual'],
-      description: 'Tab activation behavior',
-      table: { defaultValue: { summary: 'automatic' }, category: 'Behavior' },
+      control: "radio",
+      options: ["automatic", "manual"],
+      description: "Tab activation behavior",
+      table: { defaultValue: { summary: "automatic" }, category: "Behavior" },
     },
     loopFocus: {
-      control: 'boolean',
-      description: 'Loop keyboard focus',
-      table: { defaultValue: { summary: 'true' }, category: 'Behavior' },
+      control: "boolean",
+      description: "Loop keyboard focus",
+      table: { defaultValue: { summary: "true" }, category: "Behavior" },
     },
   },
 }
@@ -73,15 +74,15 @@ type Story = StoryObj<typeof Tabs>
 // Playground with interactive controls
 export const Playground: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
-    orientation: 'horizontal',
+    variant: "line",
+    size: "md",
+    orientation: "horizontal",
     fitted: false,
-    justify: 'start',
-    dir: 'ltr',
-    activationMode: 'automatic',
+    justify: "start",
+    dir: "ltr",
+    activationMode: "automatic",
     loopFocus: true,
-    defaultValue: 'tab1',
+    defaultValue: "tab1",
   },
   render: (args) => (
     <Tabs {...args} className="w-md">
@@ -93,7 +94,8 @@ export const Playground: Story = {
       </Tabs.List>
       <Tabs.Content value="tab1">
         <p className="text-fg-secondary">
-          Overview tab content. Try changing the controls to see different variants and sizes.
+          Overview tab content. Try changing the controls to see different
+          variants and sizes.
         </p>
       </Tabs.Content>
       <Tabs.Content value="tab2">
@@ -114,88 +116,88 @@ export const Playground: Story = {
 export const AllVariants: Story = {
   render: () => (
     <VariantContainer>
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-400'>
-      <div className="w-full max-w-2xl">
-        <h3 className="text-lg font-semibold mb-150">Default</h3>
-        <Tabs defaultValue="tab1" variant="default" fitted>
-          <Tabs.List>
-            <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
-            <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
-            <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
-          </Tabs.List>
-          <Tabs.Content value="tab1">
-            <div className="p-200">Default variant content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab2">
-            <div className="p-200">Details content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab3">
-            <div className="p-200">Settings content</div>
-          </Tabs.Content>
-        </Tabs>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-400">
+        <div className="w-full max-w-2xl">
+          <h3 className="text-lg font-semibold mb-150">Default</h3>
+          <Tabs defaultValue="tab1" variant="default" fitted>
+            <Tabs.List>
+              <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
+              <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
+              <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content value="tab1">
+              <div className="p-200">Default variant content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab2">
+              <div className="p-200">Details content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab3">
+              <div className="p-200">Settings content</div>
+            </Tabs.Content>
+          </Tabs>
+        </div>
 
-      <div className="w-full max-w-2xl">
-        <h3 className="text-lg font-semibold mb-150">Line</h3>
-        <Tabs defaultValue="tab1" variant="line" fitted>
-          <Tabs.List>
-            <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
-            <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
-            <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
-            <Tabs.Indicator />
-          </Tabs.List>
-          <Tabs.Content value="tab1">
-            <div className="p-200">Line variant content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab2">
-            <div className="p-200">Details content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab3">
-            <div className="p-200">Settings content</div>
-          </Tabs.Content>
-        </Tabs>
-      </div>
+        <div className="w-full max-w-2xl">
+          <h3 className="text-lg font-semibold mb-150">Line</h3>
+          <Tabs defaultValue="tab1" variant="line" fitted>
+            <Tabs.List>
+              <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
+              <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
+              <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
+              <Tabs.Indicator />
+            </Tabs.List>
+            <Tabs.Content value="tab1">
+              <div className="p-200">Line variant content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab2">
+              <div className="p-200">Details content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab3">
+              <div className="p-200">Settings content</div>
+            </Tabs.Content>
+          </Tabs>
+        </div>
 
-      <div className="w-full max-w-2xl">
-        <h3 className="text-lg font-semibold mb-150">Solid</h3>
-        <Tabs defaultValue="tab1" variant="solid" fitted>
-          <Tabs.List>
-            <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
-            <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
-            <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
-            <Tabs.Indicator />
-          </Tabs.List>
-          <Tabs.Content value="tab1">
-            <div className="p-200">Solid variant content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab2">
-            <div className="p-200">Details content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab3">
-            <div className="p-200">Settings content</div>
-          </Tabs.Content>
-        </Tabs>
-      </div>
+        <div className="w-full max-w-2xl">
+          <h3 className="text-lg font-semibold mb-150">Solid</h3>
+          <Tabs defaultValue="tab1" variant="solid" fitted>
+            <Tabs.List>
+              <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
+              <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
+              <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
+              <Tabs.Indicator />
+            </Tabs.List>
+            <Tabs.Content value="tab1">
+              <div className="p-200">Solid variant content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab2">
+              <div className="p-200">Details content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab3">
+              <div className="p-200">Settings content</div>
+            </Tabs.Content>
+          </Tabs>
+        </div>
 
-      <div className="w-full max-w-2xl">
-        <h3 className="text-lg font-semibold mb-150">Outline</h3>
-        <Tabs defaultValue="tab1" variant="outline" fitted>
-          <Tabs.List>
-            <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
-            <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
-            <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
-          </Tabs.List>
-          <Tabs.Content value="tab1">
-            <div className="p-200">Outline variant content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab2">
-            <div className="p-200">Details content</div>
-          </Tabs.Content>
-          <Tabs.Content value="tab3">
-            <div className="p-200">Settings content</div>
-          </Tabs.Content>
-        </Tabs>
-      </div>
+        <div className="w-full max-w-2xl">
+          <h3 className="text-lg font-semibold mb-150">Outline</h3>
+          <Tabs defaultValue="tab1" variant="outline" fitted>
+            <Tabs.List>
+              <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
+              <Tabs.Trigger value="tab2">Details</Tabs.Trigger>
+              <Tabs.Trigger value="tab3">Settings</Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content value="tab1">
+              <div className="p-200">Outline variant content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab2">
+              <div className="p-200">Details content</div>
+            </Tabs.Content>
+            <Tabs.Content value="tab3">
+              <div className="p-200">Settings content</div>
+            </Tabs.Content>
+          </Tabs>
+        </div>
       </div>
     </VariantContainer>
   ),
@@ -275,7 +277,12 @@ export const Sizes: Story = {
 export const VerticalOrientation: Story = {
   render: () => (
     <div className="flex h-96">
-      <Tabs defaultValue="tab1" orientation="vertical" variant="line" className="w-md">
+      <Tabs
+        defaultValue="tab1"
+        orientation="vertical"
+        variant="line"
+        className="w-md"
+      >
         <Tabs.List>
           <Tabs.Trigger value="tab1">Overview</Tabs.Trigger>
           <Tabs.Trigger value="tab2">Analytics</Tabs.Trigger>
@@ -321,18 +328,16 @@ export const VerticalOrientation: Story = {
 // Controlled state
 export const Controlled: Story = {
   render: () => {
-    const [selectedTab, setSelectedTab] = useState('tab2')
+    const [selectedTab, setSelectedTab] = useState("tab2")
 
     return (
       <div className="w-full max-w-2xl flex flex-col gap-200">
         <div className="flex items-center gap-200 bg-surface-secondary p-200 rounded-md">
-          <span className="text-sm font-medium">Current tab: {selectedTab}</span>
+          <span className="text-sm font-medium">
+            Current tab: {selectedTab}
+          </span>
         </div>
-        <Tabs
-          value={selectedTab}
-          onValueChange={setSelectedTab}
-          variant="line"
-        >
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} variant="line">
           <Tabs.List>
             <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
             <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
@@ -408,7 +413,12 @@ export const JustifyOptions: Story = {
     <VariantContainer>
       <div className="w-full max-w-2xl">
         <h3 className="text-lg font-semibold mb-150">Justify Start</h3>
-        <Tabs defaultValue="tab1" variant="line" justify="start" className="w-md">
+        <Tabs
+          defaultValue="tab1"
+          variant="line"
+          justify="start"
+          className="w-md"
+        >
           <Tabs.List>
             <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
             <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
@@ -425,7 +435,12 @@ export const JustifyOptions: Story = {
 
       <div className="w-full max-w-2xl">
         <h3 className="text-lg font-semibold mb-150">Justify Center</h3>
-        <Tabs defaultValue="tab1" variant="line" justify="center" className="w-md">
+        <Tabs
+          defaultValue="tab1"
+          variant="line"
+          justify="center"
+          className="w-md"
+        >
           <Tabs.List>
             <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
             <Tabs.Trigger value="tab2">Tab 2</Tabs.Trigger>
@@ -606,7 +621,8 @@ export const NestedTabs: Story = {
     <div className="w-full max-w-4xl">
       <div className="bg-surface-secondary p-200 rounded-md mb-200">
         <p className="text-sm text-fg-secondary">
-          Demonstrates nested tabs structure - useful for complex hierarchical content.
+          Demonstrates nested tabs structure - useful for complex hierarchical
+          content.
         </p>
       </div>
       <Tabs defaultValue="account" variant="line">
@@ -684,7 +700,9 @@ export const NestedTabs: Story = {
 
         <Tabs.Content value="notifications">
           <div className="p-200">
-            <h3 className="text-lg font-semibold mb-100">Notification Settings</h3>
+            <h3 className="text-lg font-semibold mb-100">
+              Notification Settings
+            </h3>
             <p className="text-fg-secondary">
               Configure how and when you receive notifications.
             </p>

@@ -11,6 +11,7 @@ import {
   useState,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import { Image } from "../atoms/image"
 import {
@@ -82,10 +83,10 @@ const galleryVariants = tv({
 })
 
 export type GalleryItem = CarouselSlide & {
-  thumbnailSrc?: string
-  thumbnailAlt?: string
-  thumbnailContent?: ReactNode
-  thumbnailImageProps?: Record<string, unknown>
+  thumbnailSrc?: string | undefined
+  thumbnailAlt?: string | undefined
+  thumbnailContent?: ReactNode | undefined
+  thumbnailImageProps?: Record<string, unknown> | undefined
 }
 
 export type GalleryValueChangeDetails = {
@@ -115,17 +116,19 @@ export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
 > &
   Omit<ComponentPropsWithoutRef<"div">, "children"> & {
     items: GalleryItem[]
-    children?: ReactNode
-    value?: number
-    defaultValue?: number
-    onValueChange?: (details: GalleryValueChangeDetails) => void
-    showThumbnails?: boolean
-    hideThumbnailsWhenSingle?: boolean
-    thumbnailSize?: number
-    thumbnailImageAs?: GalleryImageComponent<T>
-    getThumbnailAriaLabel?: (params: GalleryThumbnailAriaLabelParams) => string
-    carouselProps?: GalleryCarouselProps<T>
-    emptyState?: ReactNode
+    children?: ReactNode | undefined
+    value?: number | undefined
+    defaultValue?: number | undefined
+    onValueChange?: ((details: GalleryValueChangeDetails) => void) | undefined
+    showThumbnails?: boolean | undefined
+    hideThumbnailsWhenSingle?: boolean | undefined
+    thumbnailSize?: number | undefined
+    thumbnailImageAs?: GalleryImageComponent<T> | undefined
+    getThumbnailAriaLabel?:
+      | ((params: GalleryThumbnailAriaLabelParams) => string)
+      | undefined
+    carouselProps?: GalleryCarouselProps<T> | undefined
+    emptyState?: ReactNode | undefined
   }
 
 type GalleryContextValue = {
@@ -134,10 +137,10 @@ type GalleryContextValue = {
   setPage: (index: number) => void
   showThumbnails: boolean
   thumbnailSize: number
-  thumbnailImageAs?: ElementType
+  thumbnailImageAs?: ElementType | undefined
   getThumbnailAriaLabel: (params: GalleryThumbnailAriaLabelParams) => string
   styles: ReturnType<typeof galleryVariants>
-  carouselProps?: GalleryCarouselProps<ElementType>
+  carouselProps?: GalleryCarouselProps<ElementType> | undefined
 }
 
 const GalleryContext = createContext<GalleryContextValue | null>(null)
@@ -251,11 +254,13 @@ type GalleryThumbnailsProps = Omit<
   ComponentPropsWithoutRef<"div">,
   "children"
 > & {
-  children?: ReactNode
-  scrollAreaClassName?: string
-  listClassName?: string
-  thumbnailClassName?: string
-  renderThumbnail?: (params: GalleryRenderThumbnailParams) => ReactNode
+  children?: ReactNode | undefined
+  scrollAreaClassName?: string | undefined
+  listClassName?: string | undefined
+  thumbnailClassName?: string | undefined
+  renderThumbnail?:
+    | ((params: GalleryRenderThumbnailParams) => ReactNode)
+    | undefined
 }
 
 Gallery.Thumbnails = function GalleryThumbnails({
@@ -321,9 +326,9 @@ type GalleryThumbnailProps<T extends ElementType = typeof Image> = Omit<
   "children"
 > & {
   index: number
-  children?: ReactNode
-  imageAs?: GalleryImageComponent<T>
-  imageClassName?: string
+  children?: ReactNode | undefined
+  imageAs?: GalleryImageComponent<T> | undefined
+  imageClassName?: string | undefined
 }
 
 Gallery.Thumbnail = function GalleryThumbnail<
@@ -422,7 +427,7 @@ type GalleryCarouselComponentProps<T extends ElementType = typeof Image> = Omit<
   CarouselRootProps<T>,
   "children" | "slideCount" | "page"
 > & {
-  children?: ReactNode
+  children?: ReactNode | undefined
 }
 
 Gallery.Carousel = function GalleryCarousel<
@@ -460,10 +465,10 @@ Gallery.Carousel = function GalleryCarousel<
 }
 
 type GallerySlidesProps = {
-  slides?: GalleryItem[]
-  size?: "sm" | "md" | "lg" | "full"
-  imageAs?: ElementType
-  className?: string
+  slides?: GalleryItem[] | undefined
+  size?: "sm" | "md" | "lg" | "full" | undefined
+  imageAs?: ElementType | undefined
+  className?: string | undefined
 }
 
 Gallery.Slides = function GallerySlides({

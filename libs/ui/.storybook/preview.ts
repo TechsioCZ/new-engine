@@ -1,5 +1,6 @@
 import type { Decorator, Preview } from "@storybook/react"
 import { createElement, useEffect } from "react"
+
 import {
   type BrandKey,
   brandAttr,
@@ -8,6 +9,7 @@ import {
   getBrand,
   type ModeSetting,
 } from "../src/theme/theme-config"
+
 import "../src/tokens/index.css"
 
 const brandItems = brandKeys().map((key) => ({
@@ -28,8 +30,8 @@ const modeItems: { value: ModeSetting; title: string }[] = [
  * Light-only brands are forced to light regardless of the Mode toolbar.
  */
 const withTheme: Decorator = (Story, context) => {
-  const brand = context.globals.brand as BrandKey
-  const modeSetting = context.globals.mode as ModeSetting
+  const brand = context.globals["brand"] as BrandKey
+  const modeSetting = context.globals["mode"] as ModeSetting
 
   useEffect(() => {
     const root = document.documentElement

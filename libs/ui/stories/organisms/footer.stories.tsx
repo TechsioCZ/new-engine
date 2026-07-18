@@ -1,24 +1,25 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { Button } from '../../src/atoms/button'
-import { Icon } from '../../src/atoms/icon'
-import { Image } from '../../src/atoms/image'
-import { Input } from '../../src/atoms/input'
-import { Link } from '../../src/atoms/link'
-import { Footer } from '../../src/organisms/footer'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { Button } from "../../src/atoms/button"
+import { Icon } from "../../src/atoms/icon"
+import { Image } from "../../src/atoms/image"
+import { Input } from "../../src/atoms/input"
+import { Link } from "../../src/atoms/link"
+import { Footer } from "../../src/organisms/footer"
 
 const meta: Meta<typeof Footer> = {
-  title: 'Organisms/Footer',
+  title: "Organisms/Footer",
   component: Footer,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
     docs: {
       description: {
         component:
-          'A flexible compound footer component with context-based sizing.',
+          "A flexible compound footer component with context-based sizing.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 }
 
 export default meta

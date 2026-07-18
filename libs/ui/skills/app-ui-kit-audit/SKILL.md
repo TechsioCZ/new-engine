@@ -1,10 +1,7 @@
 ---
 name: app-ui-kit-audit
 description: >
-  Use when reviewing an apps/* UI for correct @techsio/ui-kit adoption:
-  existing component usage, native HTML replacement, nonexistent props,
-  duplicate className styling, token-first violations, framework adapter
-  mistakes, unnecessary wrappers, and UI-kit API gaps.
+  Use when reviewing an apps/* UI for correct @techsio/ui-kit adoption: existing component usage, native HTML replacement, nonexistent props, duplicate className styling, token-first violations, framework adapter mistakes, unnecessary wrappers, and UI-kit API gaps.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -33,9 +30,7 @@ Expected:
 import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
 ```
 
-Fail condition: custom tree, dialog, toast, button, input, or skeleton exists
-while UI-kit has the component.
-Fix: replace with UI-kit component or record the missing API gap.
+Fail condition: custom tree, dialog, toast, button, input, or skeleton exists while UI-kit has the component. Fix: replace with UI-kit component or record the missing API gap.
 
 ### Check: props exist
 
@@ -45,8 +40,7 @@ Expected:
 <Button variant="danger" theme="solid" size="md" />
 ```
 
-Fail condition: `variant="ghost"` or other props not in component source.
-Fix: load the per-component usage skill and inspect the source props.
+Fail condition: `variant="ghost"` or other props not in component source. Fix: load the per-component usage skill and inspect the source props.
 
 ### Check: appearance is token-first
 
@@ -56,9 +50,7 @@ Expected:
 <Button variant="primary" theme="solid" />
 ```
 
-Fail condition: `className` duplicates background, text color, padding, radius,
-or font weight already provided by props/tokens.
-Fix: move visual differences into app token overrides.
+Fail condition: `className` duplicates background, text color, padding, radius, or font weight already provided by props/tokens. Fix: move visual differences into app token overrides.
 
 ## Audit Commands
 
@@ -78,7 +70,13 @@ Wrong:
 
 ```tsx
 function CategoryTree() {
-  return <div>{items.map((item) => <button>{item.label}</button>)}</div>
+  return (
+    <div>
+      {items.map((item) => (
+        <button>{item.label}</button>
+      ))}
+    </div>
+  )
 }
 ```
 
@@ -123,7 +121,7 @@ Correct:
 ```tsx
 import { Input } from "@techsio/ui-kit/atoms/input"
 
-<Input />
+;<Input />
 ```
 
 Use UI-kit primitives where possible so props and tokens remain centralized.
@@ -143,11 +141,10 @@ Correct:
 ```tsx
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
-<Skeleton />
+;<Skeleton />
 ```
 
-Loading placeholders should use token-consistent Skeleton instead of ad-hoc
-animated divs.
+Loading placeholders should use token-consistent Skeleton instead of ad-hoc animated divs.
 
 Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 
@@ -158,4 +155,3 @@ bunx biome check --write apps/<app>/src
 ```
 
 Use the audit `rg` commands above before formatting.
-

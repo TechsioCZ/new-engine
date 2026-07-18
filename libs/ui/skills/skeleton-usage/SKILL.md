@@ -1,9 +1,7 @@
 ---
 name: skeleton-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Skeleton for
-  loading placeholders using Root, Circle, Text, and Rectangle compound parts
-  with token-backed variants, sizes, and animation speeds.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Skeleton for loading placeholders using Root, Circle, Text, and Rectangle compound parts with token-backed variants, sizes, and animation speeds.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -26,7 +24,7 @@ Use Skeleton for loading placeholders that preserve the final layout shape.
 ```tsx
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
-<Skeleton isLoaded={Boolean(product)}>
+;<Skeleton isLoaded={Boolean(product)}>
   <Skeleton.Text noOfLines={2} />
 </Skeleton>
 ```
@@ -71,8 +69,7 @@ The component returns children directly when loaded.
 <Skeleton.Rectangle className="h-1000 w-full" />
 ```
 
-Skeleton rectangle needs a box size from layout. Do not use className for
-colors/radius/animation when props/tokens already cover those.
+Skeleton rectangle needs a box size from layout. Do not use className for colors/radius/animation when props/tokens already cover those.
 
 ## Common Mistakes
 
