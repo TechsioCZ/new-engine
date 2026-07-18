@@ -3,6 +3,7 @@ import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
+import { omitUndefined } from "../shared/object-utils"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createSimpleListDetailQueryOptionsFactory } from "../shared/simple-list-detail-query-options"
 import { createOrderQueryKeys } from "./query-keys"
@@ -13,7 +14,6 @@ import type {
   OrderQueryKeys,
   OrderService,
 } from "./types"
-
 export type CreateOrderQueryOptionsFactoryConfig<
   TOrder,
   TListInput extends OrderListInputBase,
@@ -74,14 +74,16 @@ export function createOrderQueryOptionsFactory<
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getOrders,
-    getDetail: service.getOrder,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "userData",
-    missingDetailErrorMessage: "Order id is required for order queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      getList: service.getOrders,
+      getDetail: service.getOrder,
+      buildListParams,
+      buildDetailParams,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig,
+      defaultCacheStrategy: "userData" as const,
+      missingDetailErrorMessage: "Order id is required for order queries",
+    })
+  )
 }

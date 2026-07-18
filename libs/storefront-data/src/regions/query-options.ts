@@ -3,6 +3,7 @@ import type {
   QueryFactoryOptions,
   ReadQueryOptions,
 } from "../shared/hook-types"
+import { omitUndefined } from "../shared/object-utils"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createSimpleListDetailQueryOptionsFactory } from "../shared/simple-list-detail-query-options"
 import { createRegionQueryKeys } from "./query-keys"
@@ -13,7 +14,6 @@ import type {
   RegionQueryKeys,
   RegionService,
 } from "./types"
-
 export type CreateRegionQueryOptionsFactoryConfig<
   TRegion,
   TListInput extends RegionListInputBase,
@@ -74,14 +74,16 @@ export function createRegionQueryOptionsFactory<
     queryKeys ??
     createRegionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getRegions,
-    getDetail: service.getRegion,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage: "Region id is required for region queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      getList: service.getRegions,
+      getDetail: service.getRegion,
+      buildListParams,
+      buildDetailParams,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      missingDetailErrorMessage: "Region id is required for region queries",
+    })
+  )
 }

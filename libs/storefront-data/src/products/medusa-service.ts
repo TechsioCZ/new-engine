@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import type { ProductListResponse, ProductService } from "./types"
 
 type MedusaProductListQuery = HttpTypes.StoreProductListParams &
@@ -143,7 +144,8 @@ export function createMedusaProductService<
   } = config ?? {}
 
   const baseTransform =
-    transformProduct ?? ((product) => product as unknown as TProduct)
+    transformProduct ??
+    ((product) => ({ ...product }) as typeof product & TProduct)
 
   const mapListProduct: (
     product: HttpTypes.StoreProduct,
@@ -198,7 +200,10 @@ export function createMedusaProductService<
     const query = buildListQuery(params)
     const response = await sdk.client.fetch<HttpTypes.StoreProductListResponse>(
       listPath,
-      { query, signal }
+      {
+        query,
+        signal: signal ?? null,
+      }
     )
 
     const products = (response.products ?? []).map((product) =>
@@ -216,7 +221,7 @@ export function createMedusaProductService<
 
   return {
     getProducts,
-    getProductsGlobal,
+    ...(getProductsGlobal ? { getProductsGlobal } : {}),
     async getProductByHandle(
       params: TDetailParams,
       signal?: AbortSignal
@@ -225,7 +230,7 @@ export function createMedusaProductService<
       const response =
         await sdk.client.fetch<HttpTypes.StoreProductListResponse>(listPath, {
           query,
-          signal,
+          signal: signal ?? null,
         })
       const product = response.products?.[0]
       if (!product) {

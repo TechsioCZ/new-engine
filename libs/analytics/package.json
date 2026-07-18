@@ -2,48 +2,49 @@
   "name": "@techsio/analytics",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./meta": {
-      "types": "./dist/src/meta/index.d.ts",
-      "import": "./dist/meta/index.js"
-    },
-    "./google": {
-      "types": "./dist/src/google/index.d.ts",
-      "import": "./dist/google/index.js"
-    },
-    "./heureka": {
-      "types": "./dist/src/heureka/index.d.ts",
-      "import": "./dist/heureka/index.js"
-    },
-    "./leadhub": {
-      "types": "./dist/src/leadhub/index.d.ts",
-      "import": "./dist/leadhub/index.js"
-    },
-    "./core": {
-      "types": "./dist/src/core/index.d.ts",
-      "import": "./dist/core/index.js"
-    }
-  },
   "files": [
     "dist"
   ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./meta": {
+      "types": "./dist/meta/index.d.ts",
+      "import": "./dist/meta/index.js"
+    },
+    "./google": {
+      "types": "./dist/google/index.d.ts",
+      "import": "./dist/google/index.js"
+    },
+    "./heureka": {
+      "types": "./dist/heureka/index.d.ts",
+      "import": "./dist/heureka/index.js"
+    },
+    "./leadhub": {
+      "types": "./dist/leadhub/index.d.ts",
+      "import": "./dist/leadhub/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    }
+  },
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
-    "lint": "pnpm -w exec biome lint libs/analytics/src --diagnostic-level=error"
+    "lint": "pnpm -w exec oxlint libs/analytics/src --type-aware",
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/analytics/tsconfig.json"
   },
   "devDependencies": {
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rslib/core": "^0.18.0",
-    "@types/react": "^19.2.3",
-    "@types/react-dom": "^19.2.3",
+    "@rsbuild/plugin-react": "^2.1.0",
+    "@rslib/core": "^0.23.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "next": "16.3.0-preview.5",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "next": "^16.3.0-preview.5",

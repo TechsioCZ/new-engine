@@ -1,6 +1,7 @@
 "use client"
 
 import Script from "next/script"
+
 import type { GoogleAdsConfig } from "./types"
 
 /** Valid Google Ads ID format: AW-XXXXXXXXX or G-XXXXXXXXX */

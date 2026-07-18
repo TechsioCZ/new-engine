@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
+
 import type { CartQueryKeys } from "../cart/types"
 import { isPlainRecord } from "./object-utils"
 import {
@@ -10,7 +11,7 @@ import type { QueryKey } from "./query-keys"
 
 type CartLike = {
   id: string
-  region_id?: string | null
+  region_id?: string | null | undefined
 }
 
 export type ActiveCartQueryKeyMatcher = (
@@ -19,7 +20,7 @@ export type ActiveCartQueryKeyMatcher = (
 ) => boolean
 
 export type CartCacheSyncOptions = {
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type CartUpdater<TCart extends CartLike> = (cart: TCart) => TCart
@@ -111,13 +112,13 @@ const matchesActiveKeySegment = ({
 
 const hasCartId = <TCart extends CartLike>(
   value: unknown,
-  cartId?: string
+  cartId?: string | undefined
 ): value is TCart => {
   if (!isPlainRecord(value)) {
     return false
   }
 
-  const valueId = value.id
+  const valueId = value["id"]
   if (typeof valueId !== "string") {
     return false
   }
@@ -163,7 +164,7 @@ export const createDefaultActiveCartQueryMatcher = (
 
 const resolveActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 ): ActiveCartQueryKeyMatcher =>
   options?.isActiveCartQueryKey ??
   createDefaultActiveCartQueryMatcher(queryKeys)
@@ -172,7 +173,7 @@ export function syncCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cart: TCart,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 ): void {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
   const activeKey = queryKeys.active({
@@ -195,7 +196,7 @@ export function invalidateCartCaches(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 ): void {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
@@ -207,7 +208,7 @@ export function invalidateCartCaches(
 
 export type PatchCartCachesParams<TCart extends CartLike> = {
   patch: CartUpdater<TCart>
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 }
 
 export function patchCartCaches<TCart extends CartLike>(
@@ -240,7 +241,7 @@ export function getCachedCartById<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 ): TCart | null {
   const detailCart = queryClient.getQueryData<TCart>(queryKeys.detail(cartId))
   if (hasCartId<TCart>(detailCart, cartId)) {

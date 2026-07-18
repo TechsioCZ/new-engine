@@ -1,0 +1,86 @@
+{
+  "name": "@techsio/std",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    "./array": {
+      "types": "./dist/src/array.d.ts",
+      "import": "./dist/array.js",
+      "require": "./dist/array.cjs",
+      "default": "./dist/array.js"
+    },
+    "./async": {
+      "types": "./dist/src/async.d.ts",
+      "import": "./dist/async.js",
+      "require": "./dist/async.cjs",
+      "default": "./dist/async.js"
+    },
+    "./function": {
+      "types": "./dist/src/function.d.ts",
+      "import": "./dist/function.js",
+      "require": "./dist/function.cjs",
+      "default": "./dist/function.js"
+    },
+    "./number": {
+      "types": "./dist/src/number.d.ts",
+      "import": "./dist/number.js",
+      "require": "./dist/number.cjs",
+      "default": "./dist/number.js"
+    },
+    "./object": {
+      "types": "./dist/src/object.d.ts",
+      "import": "./dist/object.js",
+      "require": "./dist/object.cjs",
+      "default": "./dist/object.js"
+    },
+    "./string": {
+      "types": "./dist/src/string.d.ts",
+      "import": "./dist/string.js",
+      "require": "./dist/string.cjs",
+      "default": "./dist/string.js"
+    }
+  },
+  "scripts": {
+    "build": "rslib build",
+    "test": "pnpm build && vitest run",
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/std/tsconfig.json"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.23.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "nx": {
+    "tags": [
+      "type:lib",
+      "platform:shared",
+      "framework:agnostic"
+    ],
+    "targets": {
+      "test": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "outputs": [],
+        "options": {
+          "command": "pnpm test",
+          "cwd": "libs/std"
+        }
+      },
+      "typecheck": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "outputs": [
+          "{projectRoot}/tsconfig.tsbuildinfo"
+        ],
+        "options": {
+          "command": "pnpm typecheck",
+          "cwd": "libs/std"
+        }
+      }
+    }
+  }
+}

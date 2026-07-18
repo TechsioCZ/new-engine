@@ -1,11 +1,11 @@
 import {
+  type CheckoutAddressInput,
   buildCheckoutCartAddressInput,
   createCheckoutCartAddressAdapter,
   createCheckoutCustomerAddressAdapter,
   getCheckoutAddressValidationIssues,
   mapCheckoutAddressToMedusaCartAddress,
   mapMedusaAddressToCheckoutAddress,
-  type CheckoutAddressInput,
 } from "../src/checkout/address"
 
 describe("checkout address defaults", () => {

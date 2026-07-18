@@ -1,16 +1,18 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook } from "@testing-library/react"
+import type { ReactNode } from "react"
+
 import { createCheckoutCustomerAddressAdapter } from "../src/checkout/address"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
 import type { CustomerAddressAdapter } from "../src/customers/types"
-import type { ReactNode } from "react"
 import {
   StorefrontAddressValidationError,
   type StorefrontAddressValidationIssue,
 } from "../src/shared/address"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -42,7 +44,7 @@ describe("customer validation regression", () => {
       ...params,
     })),
     deleteAddress: vi.fn(async () => {}),
-    updateCustomer: vi.fn(async () => ({ id: "cus_1" } as Customer)),
+    updateCustomer: vi.fn(async () => ({ id: "cus_1" }) as Customer),
   })
 
   it("keeps addressId in the default customer adapter update input type", () => {
@@ -58,9 +60,9 @@ describe("customer validation regression", () => {
     type UpdateInput = { addressId?: string; city?: string }
 
     const service = createService()
-    const toUpdateParams = vi.fn((input: UpdateInput) => ({
-      city: input.city,
-    }))
+    const toUpdateParams = vi.fn((input: UpdateInput) =>
+      input.city ? { city: input.city } : {}
+    )
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
       Address,
@@ -82,10 +84,15 @@ describe("customer validation regression", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useUpdateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(
@@ -150,10 +157,15 @@ describe("customer validation regression", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useCreateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useCreateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(
@@ -187,10 +199,15 @@ describe("customer validation regression", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useCreateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useCreateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       const created = await result.current.mutateAsync({
@@ -227,11 +244,13 @@ describe("customer validation regression", () => {
     }
 
     const service = createService()
-    const updateAddress = vi.fn(async (id: string, params: SharedUpdateParams) => ({
-      id,
-      address_1: params.address_1,
-      city: params.city,
-    }))
+    const updateAddress = vi.fn(
+      async (id: string, params: SharedUpdateParams) => ({
+        id,
+        ...(params.address_1 ? { address_1: params.address_1 } : {}),
+        ...(params.city ? { city: params.city } : {}),
+      })
+    )
     const { useUpdateCustomerAddress } = createCustomerHooks<
       Customer,
       Address,
@@ -259,10 +278,15 @@ describe("customer validation regression", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
-    const { result } = renderHook(() => useUpdateCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useUpdateCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(

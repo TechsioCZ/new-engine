@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import {
   type CacheConfig,
   type CacheStrategy,
@@ -15,14 +16,15 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import { omitUndefined } from "../shared/object-utils"
+import { resolvePagination } from "../shared/pagination"
 import type { PrefetchSkipMode } from "../shared/prefetch"
 import { shouldSkipPrefetch } from "../shared/prefetch"
-import { resolvePagination } from "../shared/pagination"
 import type { QueryNamespace } from "../shared/query-keys"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
 import { createDefaultListParams } from "./input-utils"
-import { createProductReviewQueryOptionsFactory } from "./query-options"
 import { createProductReviewQueryKeys } from "./query-keys"
+import { createProductReviewQueryOptionsFactory } from "./query-options"
 import type {
   CreateProductReviewInput,
   ProductReviewListInputBase,
@@ -104,11 +106,11 @@ export function createProductReviewHooks<
     const limitFromParams = (params as { limit?: number }).limit
     const offsetFromParams = (params as { offset?: number }).offset
     const pagination = resolvePagination(
-      {
+      omitUndefined({
         page: input.page,
         limit: limitFromParams ?? input.limit,
         offset: offsetFromParams,
-      },
+      }),
       defaultPageSize
     )
     const totalCount = data?.count ?? 0
@@ -136,9 +138,10 @@ export function createProductReviewHooks<
     const enabled = input.enabled ?? Boolean(input.productId)
     const listParams = buildList(input)
     const query = useQuery({
-      ...getProductReviewsQueryOptions(input, {
-        queryOptions: options?.queryOptions,
-      }),
+      ...getProductReviewsQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions })
+      ),
       enabled,
     })
 
@@ -226,11 +229,7 @@ export function createProductReviewHooks<
       const listParams = buildList(input)
       const queryKey = resolvedQueryKeys.productList(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
-      return schedulePrefetch(
-        () => prefetchProductReviews(input),
-        id,
-        delay
-      )
+      return schedulePrefetch(() => prefetchProductReviews(input), id, delay)
     }
 
     return {
@@ -247,15 +246,15 @@ export function createProductReviewHooks<
 
     return useMutation<TReview, unknown, TCreateInput, TContext>({
       mutationFn: service.createProductReview,
-      onMutate: options?.onMutate,
-      onError: options?.onError,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      ...(options?.onError ? { onError: options.onError } : {}),
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
         options?.onSuccess?.(data, variables, context)
       },
-      onSettled: options?.onSettled,
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 

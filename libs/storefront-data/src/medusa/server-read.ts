@@ -1,60 +1,56 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import type {
-  CreateCatalogHooksConfig,
-} from "../catalog/hooks"
+
+import type { CreateCatalogHooksConfig } from "../catalog/hooks"
 import {
-  createCatalogQueryOptionsFactory,
-  type CatalogQueryOptionsFactory,
-} from "../catalog/query-options"
-import {
-  createMedusaCatalogService,
   type MedusaCatalogListInput,
   type MedusaCatalogServiceConfig,
+  createMedusaCatalogService,
 } from "../catalog/medusa-service"
+import {
+  type CatalogQueryOptionsFactory,
+  createCatalogQueryOptionsFactory,
+} from "../catalog/query-options"
 import type { CatalogFacets, CatalogQueryKeys } from "../catalog/types"
 import type { CreateCategoryHooksConfig } from "../categories/hooks"
 import {
-  createCategoryQueryOptionsFactory,
-  type CategoryQueryOptionsFactory,
-} from "../categories/query-options"
-import {
-  createMedusaCategoryService,
   type MedusaCategoryDetailInput,
   type MedusaCategoryListInput,
   type MedusaCategoryServiceConfig,
+  createMedusaCategoryService,
 } from "../categories/medusa-service"
+import {
+  type CategoryQueryOptionsFactory,
+  createCategoryQueryOptionsFactory,
+} from "../categories/query-options"
 import type { CategoryQueryKeys } from "../categories/types"
 import type { CreateCollectionHooksConfig } from "../collections/hooks"
 import {
-  createCollectionQueryOptionsFactory,
-  type CollectionQueryOptionsFactory,
-} from "../collections/query-options"
-import {
-  createMedusaCollectionService,
   type MedusaCollectionDetailInput,
   type MedusaCollectionListInput,
   type MedusaCollectionServiceConfig,
+  createMedusaCollectionService,
 } from "../collections/medusa-service"
+import {
+  type CollectionQueryOptionsFactory,
+  createCollectionQueryOptionsFactory,
+} from "../collections/query-options"
 import type { CollectionQueryKeys } from "../collections/types"
-import type {
-  CreateOrderHooksConfig,
-} from "../orders/hooks"
+import type { CreateOrderHooksConfig } from "../orders/hooks"
 import {
-  createOrderQueryOptionsFactory,
-  type OrderQueryOptionsFactory,
-} from "../orders/query-options"
-import {
-  createMedusaOrderService,
   type MedusaOrderDetailHookInput,
   type MedusaOrderDetailInput,
   type MedusaOrderListHookInput,
   type MedusaOrderListInput,
   type MedusaOrderServiceConfig,
+  createMedusaOrderService,
 } from "../orders/medusa-service"
+import {
+  type OrderQueryOptionsFactory,
+  createOrderQueryOptionsFactory,
+} from "../orders/query-options"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
 import {
-  createMedusaProductListService,
   type MedusaProductListDetailHookInput,
   type MedusaProductListDetailInput,
   type MedusaProductListDetailKeyInput,
@@ -62,11 +58,12 @@ import {
   type MedusaProductListListInput,
   type MedusaProductListListKeyInput,
   type MedusaProductListServiceConfig,
+  createMedusaProductListService,
 } from "../product-lists/medusa-service"
 import {
   type CreateProductListQueryOptionsFactoryConfig,
-  createProductListQueryOptionsFactory,
   type ProductListQueryOptionsFactory,
+  createProductListQueryOptionsFactory,
 } from "../product-lists/query-options"
 import type {
   ProductListBase,
@@ -74,46 +71,44 @@ import type {
   ProductListQueryKeys,
   ProductListService,
 } from "../product-lists/types"
+import type { CreateProductHooksConfig } from "../products/hooks"
 import {
-  createMedusaProductReviewService,
+  type MedusaProductDetailInput,
+  type MedusaProductListInput,
+  type MedusaProductServiceConfig,
+  createMedusaProductService,
+} from "../products/medusa-service"
+import {
+  type ProductQueryOptionsFactory,
+  createProductQueryOptionsFactory,
+} from "../products/query-options"
+import type { ProductQueryKeys } from "../products/types"
+import type { CreateRegionHooksConfig } from "../regions/hooks"
+import {
+  type MedusaRegionDetailInput,
+  type MedusaRegionListInput,
+  createMedusaRegionService,
+} from "../regions/medusa-service"
+import {
+  type RegionQueryOptionsFactory,
+  createRegionQueryOptionsFactory,
+} from "../regions/query-options"
+import type { RegionQueryKeys } from "../regions/types"
+import {
   type MedusaProductReviewListInput,
   type MedusaProductReviewServiceConfig,
+  createMedusaProductReviewService,
 } from "../reviews/medusa-service"
 import {
   type CreateProductReviewQueryOptionsFactoryConfig,
-  createProductReviewQueryOptionsFactory,
   type ProductReviewQueryOptionsFactory,
+  createProductReviewQueryOptionsFactory,
 } from "../reviews/query-options"
 import type {
   ProductReviewQueryKeys,
   ProductReviewService,
   ReviewBase,
 } from "../reviews/types"
-import type {
-  CreateProductHooksConfig,
-} from "../products/hooks"
-import {
-  createProductQueryOptionsFactory,
-  type ProductQueryOptionsFactory,
-} from "../products/query-options"
-import {
-  createMedusaProductService,
-  type MedusaProductDetailInput,
-  type MedusaProductListInput,
-  type MedusaProductServiceConfig,
-} from "../products/medusa-service"
-import type { ProductQueryKeys } from "../products/types"
-import type { CreateRegionHooksConfig } from "../regions/hooks"
-import {
-  createRegionQueryOptionsFactory,
-  type RegionQueryOptionsFactory,
-} from "../regions/query-options"
-import {
-  createMedusaRegionService,
-  type MedusaRegionDetailInput,
-  type MedusaRegionListInput,
-} from "../regions/medusa-service"
-import type { RegionQueryKeys } from "../regions/types"
 import type { CacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 import {
@@ -559,7 +554,10 @@ export function createMedusaStorefrontServerReadPreset<
     >(config.sdk, config.catalog?.serviceConfig),
     reviews:
       config.reviews?.service ??
-      createMedusaProductReviewService(config.sdk, config.reviews?.serviceConfig),
+      createMedusaProductReviewService(
+        config.sdk,
+        config.reviews?.serviceConfig
+      ),
   }
 
   const queries: MedusaStorefrontReadQueries<
@@ -574,56 +572,56 @@ export function createMedusaStorefrontServerReadPreset<
       queryKeys: queryKeys.products,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.products?.hooks ?? {}),
+      ...config.products?.hooks,
     }),
     productLists: createProductListQueryOptionsFactory({
       service: services.productLists,
       queryKeys: queryKeys.productLists,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.productLists?.hooks ?? {}),
+      ...config.productLists?.hooks,
     }),
     orders: createOrderQueryOptionsFactory({
       service: services.orders,
       queryKeys: queryKeys.orders,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.orders?.hooks ?? {}),
+      ...config.orders?.hooks,
     }),
     regions: createRegionQueryOptionsFactory({
       service: services.regions,
       queryKeys: queryKeys.regions,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.regions?.hooks ?? {}),
+      ...config.regions?.hooks,
     }),
     categories: createCategoryQueryOptionsFactory({
       service: services.categories,
       queryKeys: queryKeys.categories,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.categories?.hooks ?? {}),
+      ...config.categories?.hooks,
     }),
     collections: createCollectionQueryOptionsFactory({
       service: services.collections,
       queryKeys: queryKeys.collections,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.collections?.hooks ?? {}),
+      ...config.collections?.hooks,
     }),
     catalog: createCatalogQueryOptionsFactory({
       service: services.catalog,
       queryKeys: queryKeys.catalog,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.catalog?.hooks ?? {}),
+      ...config.catalog?.hooks,
     }),
     reviews: createProductReviewQueryOptionsFactory({
       service: services.reviews,
       queryKeys: queryKeys.reviews,
       queryKeyNamespace: namespace,
       cacheConfig,
-      ...(config.reviews?.hooks ?? {}),
+      ...config.reviews?.hooks,
     }),
   }
 

@@ -6,6 +6,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import type { CartQueryKeys } from "../cart/types"
 import {
   type CacheConfig,
@@ -24,6 +25,7 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import { omitUndefined } from "../shared/object-utils"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { StorageValueStore } from "../shared/storage-value-store"
@@ -395,12 +397,13 @@ export function createProductListHooks<
   ): QueryFactoryOptions<ProductListListResult<TProductList>> => {
     const listParams = buildList(input)
 
-    return {
+    return omitUndefined({
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
-      queryFn: ({ signal }) => service.listProductLists(listParams, signal),
+      queryFn: ({ signal }: { signal?: AbortSignal }) =>
+        service.listProductLists(listParams, signal),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
+      ...options?.queryOptions,
+    })
   }
 
   const getDetailQueryOptions = (
@@ -411,9 +414,9 @@ export function createProductListHooks<
   ): QueryFactoryOptions<TProductList | null> => {
     const detailParams = buildDetail(input)
 
-    return {
+    return omitUndefined({
       queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
-      queryFn: ({ signal }) => {
+      queryFn: ({ signal }: { signal?: AbortSignal }) => {
         if (!input.id) {
           throw new Error("Product list id is required")
         }
@@ -421,8 +424,8 @@ export function createProductListHooks<
         return service.getProductList(detailParams, signal)
       },
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
+      ...options?.queryOptions,
+    })
   }
 
   const createProductListsPrefetchQueryOptions = (
@@ -438,7 +441,7 @@ export function createProductListHooks<
       options?.cacheStrategy ?? "userData"
     )
 
-    return {
+    return omitUndefined({
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
       queryFn: ({ signal }: { signal?: AbortSignal }) =>
         service.listProductLists(listParams, signal),
@@ -446,7 +449,7 @@ export function createProductListHooks<
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }
         : undefined,
-    }
+    })
   }
 
   const createProductListPrefetchQueryOptions = (
@@ -462,7 +465,7 @@ export function createProductListHooks<
       options?.cacheStrategy ?? "userData"
     )
 
-    return {
+    return omitUndefined({
       queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
       queryFn: ({ signal }: { signal?: AbortSignal }) =>
         service.getProductList(detailParams, signal),
@@ -470,7 +473,7 @@ export function createProductListHooks<
       meta: options?.prefetchedBy
         ? { prefetchedBy: options.prefetchedBy }
         : undefined,
-    }
+    })
   }
 
   const invalidateProductLists = (
@@ -596,9 +599,10 @@ export function createProductListHooks<
 
     return useQueries({
       queries: inputs.map((input) => ({
-        ...getDetailQueryOptions(input, {
-          queryOptions: options?.queryOptions,
-        }),
+        ...getDetailQueryOptions(
+          input,
+          omitUndefined({ queryOptions: options?.queryOptions })
+        ),
         enabled: enabled && Boolean(input.id),
       })),
     })
@@ -620,10 +624,13 @@ export function createProductListHooks<
         prefetchOptions?.cacheStrategy ?? cacheStrategy
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
       const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
-      const queryOptions = createProductListsPrefetchQueryOptions(input, {
-        cacheStrategy: cacheStrategyResolved,
-        prefetchedBy: prefetchOptions?.prefetchedBy,
-      })
+      const queryOptions = createProductListsPrefetchQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy: cacheStrategyResolved,
+          prefetchedBy: prefetchOptions?.prefetchedBy,
+        })
+      )
       const prefetchCacheOptions = getPrefetchCacheOptions(
         resolvedCacheConfig,
         cacheStrategyResolved
@@ -649,9 +656,10 @@ export function createProductListHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const queryOptions = createProductListsPrefetchQueryOptions(input, {
-        cacheStrategy,
-      })
+      const queryOptions = createProductListsPrefetchQueryOptions(
+        input,
+        omitUndefined({ cacheStrategy })
+      )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
@@ -690,10 +698,13 @@ export function createProductListHooks<
         prefetchOptions?.cacheStrategy ?? cacheStrategy
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
       const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
-      const queryOptions = createProductListPrefetchQueryOptions(input, {
-        cacheStrategy: cacheStrategyResolved,
-        prefetchedBy: prefetchOptions?.prefetchedBy,
-      })
+      const queryOptions = createProductListPrefetchQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy: cacheStrategyResolved,
+          prefetchedBy: prefetchOptions?.prefetchedBy,
+        })
+      )
       const prefetchCacheOptions = getPrefetchCacheOptions(
         resolvedCacheConfig,
         cacheStrategyResolved
@@ -719,9 +730,10 @@ export function createProductListHooks<
       delay = defaultDelay,
       prefetchId?: string
     ) => {
-      const queryOptions = createProductListPrefetchQueryOptions(input, {
-        cacheStrategy,
-      })
+      const queryOptions = createProductListPrefetchQueryOptions(
+        input,
+        omitUndefined({ cacheStrategy })
+      )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
@@ -756,13 +768,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.createFavoriteProductList,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -782,13 +794,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.createCustomProductList,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -808,13 +820,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.updateProductList,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -834,13 +846,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.deleteProductList,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -860,13 +872,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.addProductListItem,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -886,13 +898,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.addFavoriteProductListItem,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -907,7 +919,7 @@ export function createProductListHooks<
 
     return useMutation<TCart, unknown, CreateProductListCartInput, TContext>({
       mutationFn: service.createProductListCart,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (cart, variables, context) => {
         if (cartQueryKeys) {
           syncCartCaches(queryClient, cartQueryKeys, cart, {
@@ -918,8 +930,8 @@ export function createProductListHooks<
         cartStorage?.set(cart.id)
         options?.onSuccess?.(cart, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -939,13 +951,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.updateProductListItem,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -965,13 +977,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.changeProductListItemQuantity,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -991,13 +1003,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.incrementProductListItem,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
@@ -1017,13 +1029,13 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.deleteProductListItem,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 

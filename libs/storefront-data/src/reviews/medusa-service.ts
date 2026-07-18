@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+
 import type {
   CreateProductReviewInput,
   ProductReviewListResponse,
@@ -61,22 +62,21 @@ const calculateReviewSummary = (reviews: ReviewBase[]) => {
   }
 }
 
-const hasCompleteReviewSet = (response: StoreProductReviewsResponse<ReviewBase>) =>
-  response.count === response.reviews.length
+const hasCompleteReviewSet = (
+  response: StoreProductReviewsResponse<ReviewBase>
+) => response.count === response.reviews.length
 
 const hasInconsistentSummary = (
   response: StoreProductReviewsResponse<ReviewBase>
 ) => response.summary.count !== response.count
 
-export function createMedusaProductReviewService<
-  TReview = ReviewBase,
->(
+export function createMedusaProductReviewService<TReview = ReviewBase>(
   sdk: Medusa,
   config?: MedusaProductReviewServiceConfig<TReview>
 ): ProductReviewService<TReview, MedusaProductReviewListInput> {
   const { listPath = "/store/products", transformReview } = config ?? {}
   const mapReview =
-    transformReview ?? ((review) => review as unknown as TReview)
+    transformReview ?? ((review) => ({ ...review }) as typeof review & TReview)
 
   return {
     async listProductReviews(
@@ -101,7 +101,7 @@ export function createMedusaProductReviewService<
         StoreProductReviewsResponse<ReviewBase>
       >(`${listPath}/${params.productId}/reviews`, {
         query,
-        signal,
+        signal: signal ?? null,
       })
       let summary = response.summary
 
@@ -119,7 +119,7 @@ export function createMedusaProductReviewService<
             limit: response.count,
             offset: 0,
           },
-          signal,
+          signal: signal ?? null,
         })
 
         if (hasCompleteReviewSet(summaryResponse)) {

@@ -1,8 +1,9 @@
 import {
+  QueryClient,
   defaultShouldDehydrateQuery,
   isServer,
-  QueryClient,
 } from "@tanstack/react-query"
+
 import { getErrorStatus } from "./medusa-errors"
 
 export type QueryClientConfig = NonNullable<
@@ -42,7 +43,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
  */
 const mergeQueryClientConfig = (
   baseConfig: QueryClientConfig,
-  overrides?: QueryClientConfig
+  overrides?: QueryClientConfig | undefined
 ): QueryClientConfig => {
   if (!overrides) {
     return baseConfig
@@ -75,7 +76,7 @@ const mergeQueryClientConfig = (
 }
 
 export function createQueryClientConfig(
-  overrides?: QueryClientConfig
+  overrides?: QueryClientConfig | undefined
 ): QueryClientConfig {
   return mergeQueryClientConfig(defaultQueryClientConfig, overrides)
 }
@@ -94,7 +95,7 @@ export function getQueryClient(overrides?: QueryClientConfig): QueryClient {
     browserQueryClient &&
     overrides &&
     typeof process !== "undefined" &&
-    process.env?.NODE_ENV !== "production"
+    process.env?.["NODE_ENV"] !== "production"
   ) {
     console.warn(
       "[getQueryClient] Browser QueryClient already exists; overrides will be ignored. " +

@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+
 import type { CategoryListResponse, CategoryService } from "./types"
 
 type MedusaCategoryListQuery = FindParams &
@@ -90,7 +91,8 @@ export function createMedusaCategoryService<
   } = config ?? {}
 
   const baseTransform =
-    transformCategory ?? ((category) => category as unknown as TCategory)
+    transformCategory ??
+    ((category) => ({ ...category }) as typeof category & TCategory)
 
   const mapListCategory: (
     category: HttpTypes.StoreProductCategory,
@@ -150,7 +152,7 @@ export function createMedusaCategoryService<
           listPath,
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
 
@@ -178,7 +180,7 @@ export function createMedusaCategoryService<
           `${listPath}/${params.id}`,
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
 

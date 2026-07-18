@@ -1,5 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
+import { omitUndefined } from "../shared/object-utils"
 import type { CheckoutService } from "./types"
 
 export type MedusaPaymentSessionDataInput = {
@@ -42,16 +44,20 @@ const buildCartSelectParams = (
  * })
  * ```
  */
+export type MedusaCheckoutService = Required<
+  CheckoutService<
+    HttpTypes.StoreCart,
+    HttpTypes.StoreCartShippingOption,
+    HttpTypes.StorePaymentProvider,
+    HttpTypes.StorePaymentCollection,
+    HttpTypes.StoreCompleteCartResponse
+  >
+>
+
 export function createMedusaCheckoutService(
   sdk: Medusa,
   config?: MedusaCheckoutServiceConfig
-): CheckoutService<
-  HttpTypes.StoreCart,
-  HttpTypes.StoreCartShippingOption,
-  HttpTypes.StorePaymentProvider,
-  HttpTypes.StorePaymentCollection,
-  HttpTypes.StoreCompleteCartResponse
-> {
+): MedusaCheckoutService {
   const cartQuery = buildCartSelectParams(config?.cartFields)
 
   return {
@@ -66,7 +72,7 @@ export function createMedusaCheckoutService(
             query: {
               cart_id: cartId,
             },
-            signal,
+            signal: signal ?? null,
           }
         )
       return response.shipping_options ?? []
@@ -86,7 +92,7 @@ export function createMedusaCheckoutService(
               cart_id: input.cart_id,
               data: input.data,
             },
-            signal,
+            signal: signal ?? null,
           }
         )
       return response.shipping_option
@@ -100,16 +106,13 @@ export function createMedusaCheckoutService(
       const response = cartQuery
         ? await sdk.store.cart.addShippingMethod(
             cartId,
-            {
-              option_id: optionId,
-              data,
-            },
+            omitUndefined({ option_id: optionId, data }),
             cartQuery
           )
-        : await sdk.store.cart.addShippingMethod(cartId, {
-            option_id: optionId,
-            data,
-          })
+        : await sdk.store.cart.addShippingMethod(
+            cartId,
+            omitUndefined({ option_id: optionId, data })
+          )
       if (!response.cart) {
         throw new Error("Failed to add shipping method")
       }
@@ -127,7 +130,7 @@ export function createMedusaCheckoutService(
             query: {
               region_id: regionId,
             },
-            signal,
+            signal: signal ?? null,
           }
         )
       return response.payment_providers ?? []

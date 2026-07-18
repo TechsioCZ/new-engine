@@ -1,6 +1,7 @@
 "use client"
 
 import Script from "next/script"
+
 import type { MetaPixelConfig } from "./types"
 
 /** Valid Meta Pixel ID format (numeric string) */

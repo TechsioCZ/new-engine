@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+
 import type { CollectionListResponse, CollectionService } from "./types"
 
 type MedusaCollectionListQuery = FindParams &
@@ -73,8 +74,8 @@ const stripEnabled = <TQuery extends Record<string, unknown>>(
 export function createMedusaCollectionService<
   TCollection = HttpTypes.StoreCollection,
   TListParams extends MedusaCollectionListInput = MedusaCollectionListInput,
-  TDetailParams extends
-    MedusaCollectionDetailInput = MedusaCollectionDetailInput,
+  TDetailParams extends MedusaCollectionDetailInput =
+    MedusaCollectionDetailInput,
 >(
   sdk: Medusa,
   config?: MedusaCollectionServiceConfig<
@@ -98,7 +99,7 @@ export function createMedusaCollectionService<
   // If not, provide transformCollection/transformListCollection/transformDetailCollection.
   const baseTransform =
     transformCollection ??
-    ((collection) => collection as unknown as TCollection)
+    ((collection) => ({ ...collection }) as typeof collection & TCollection)
 
   const mapListCollection: (
     collection: HttpTypes.StoreCollection,
@@ -158,7 +159,7 @@ export function createMedusaCollectionService<
           listPath,
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
 
@@ -186,7 +187,7 @@ export function createMedusaCollectionService<
           `${listPath}/${params.id}`,
           {
             query,
-            signal,
+            signal: signal ?? null,
           }
         )
 

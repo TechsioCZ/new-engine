@@ -1,10 +1,7 @@
 ---
 name: audit-storefront-before-release
 description: >
-  Load this skill before releasing a storefront that uses
-  @techsio/storefront-data. Use it to audit SSR hydration, query-key identity,
-  storage degradation, cart cache sync, and selected payment-session checkout
-  behavior so the storefront does not ship with a hidden split source of truth.
+  Load this skill before releasing a storefront that uses @techsio/storefront-data. Use it to audit SSR hydration, query-key identity, storage degradation, cart cache sync, and selected payment-session checkout behavior so the storefront does not ship with a hidden split source of truth.
 type: lifecycle
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -46,8 +43,7 @@ await queryClient.prefetchQuery(
 )
 ```
 
-Fail condition: the hydrated client immediately refetches the same data because the server and client query inputs differ.
-Fix: reuse the exact hook-owned query options and pass the same region-sensitive inputs on both sides.
+Fail condition: the hydrated client immediately refetches the same data because the server and client query inputs differ. Fix: reuse the exact hook-owned query options and pass the same region-sensitive inputs on both sides.
 
 ### Check: no client bundle imports `server/get-query-client`
 
@@ -59,8 +55,7 @@ Expected:
 import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider"
 ```
 
-Fail condition: a client component imports `@techsio/storefront-data/server/get-query-client`.
-Fix: keep server query-client work in Server Components and the provider in client code.
+Fail condition: a client component imports `@techsio/storefront-data/server/get-query-client`. Fix: keep server query-client work in Server Components and the provider in client code.
 
 ## Cache and storage checks
 
@@ -75,8 +70,7 @@ import { storefront } from "@/src/lib/storefront"
 syncCartCaches(queryClient, storefront.queryKeys.cart, cart)
 ```
 
-Fail condition: app code calls `setQueryData` or `invalidateQueries` with hand-written cart keys.
-Fix: reuse the shared cart-cache sync helpers and preset query keys.
+Fail condition: app code calls `setQueryData` or `invalidateQueries` with hand-written cart keys. Fix: reuse the shared cart-cache sync helpers and preset query keys.
 
 ### Check: cart persistence still behaves when storage is unavailable
 
@@ -90,8 +84,7 @@ const cartStorage = createLocalStorageValueStore({
 })
 ```
 
-Fail condition: the app assumes `localStorage` is always available or crashes when storage access fails.
-Fix: keep the shared storage seam and test the screen with storage disabled or unavailable.
+Fail condition: the app assumes `localStorage` is always available or crashes when storage access fails. Fix: keep the shared storage seam and test the screen with storage disabled or unavailable.
 
 ## Checkout checks
 
@@ -106,8 +99,7 @@ const completeCheckout = storefront.flows.checkout.useCompleteCheckout({
 })
 ```
 
-Fail condition: only the happy path is tested where the first payment session already matches the desired provider.
-Fix: exercise selected-session reuse, missing-session cases, and stage-specific checkout errors.
+Fail condition: only the happy path is tested where the first payment session already matches the desired provider. Fix: exercise selected-session reuse, missing-session cases, and stage-specific checkout errors.
 
 ### Check: the flow layer owns checkout completion
 
@@ -122,8 +114,7 @@ const completeCheckout = storefront.flows.checkout.useCompleteCheckout({
 await completeCheckout.mutateAsync()
 ```
 
-Fail condition: the app completes checkout through direct SDK calls or custom mutations.
-Fix: route checkout completion back through the shared flow wrappers.
+Fail condition: the app completes checkout through direct SDK calls or custom mutations. Fix: route checkout completion back through the shared flow wrappers.
 
 ## Common Mistakes
 

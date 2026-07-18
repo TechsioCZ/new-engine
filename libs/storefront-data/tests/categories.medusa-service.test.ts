@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
-  createMedusaCategoryService,
   type MedusaCategoryDetailInput,
   type MedusaCategoryListInput,
+  createMedusaCategoryService,
 } from "../src/categories/medusa-service"
 
 type SdkLike = {
@@ -16,9 +17,11 @@ const createCategory = (
   name = "Category",
   handle = id
 ): HttpTypes.StoreProductCategory =>
-  ({ id, name, handle } as HttpTypes.StoreProductCategory)
+  ({ id, name, handle }) as HttpTypes.StoreProductCategory
 
-function createSdkMock(response?: Partial<HttpTypes.StoreProductCategoryListResponse>): SdkLike {
+function createSdkMock(
+  response?: Partial<HttpTypes.StoreProductCategoryListResponse>
+): SdkLike {
   return {
     client: {
       fetch: vi.fn().mockResolvedValue({
@@ -69,7 +72,7 @@ describe("createMedusaCategoryService", () => {
     >(sdk as never, {
       normalizeListQuery: ({ parent, ...params }) => ({
         ...params,
-        parent_category_id: parent,
+        ...(parent ? { parent_category_id: parent } : {}),
       }),
       transformListCategory: (category) => ({
         id: category.id,
@@ -89,7 +92,7 @@ describe("createMedusaCategoryService", () => {
         offset: 0,
         parent_category_id: "pcat_root",
       },
-      signal: undefined,
+      signal: null,
     })
     expect(result.categories).toEqual([{ id: "pcat_2", label: "Hoodies" }])
     expect(result.count).toBe(1)
@@ -131,7 +134,7 @@ describe("createMedusaCategoryService", () => {
         query: {
           fields: "id,name,handle,parent_category_id",
         },
-        signal: undefined,
+        signal: null,
       }
     )
     expect(result).toEqual({ slug: "jackets", title: "Jackets" })

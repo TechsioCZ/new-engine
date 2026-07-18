@@ -1,32 +1,32 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   type AuthHooks,
   type CreateAuthHooksConfig,
   createAuthHooks,
 } from "../auth/hooks"
 import {
-  createMedusaAuthService,
   type MedusaAuthCredentials,
   type MedusaAuthServiceConfig,
   type MedusaRegisterData,
   type MedusaUpdateCustomerData,
+  createMedusaAuthService,
 } from "../auth/medusa-service"
 import type { AuthQueryKeys, AuthService } from "../auth/types"
-import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
 import {
   type CartHooks,
   type CreateCartHooksConfig,
   createCartHooks,
 } from "../cart/hooks"
 import {
-  createMedusaCartService,
   type MedusaCartAddItemParams,
   type MedusaCartCreateParams,
   type MedusaCartServiceConfig,
   type MedusaCartUpdateItemParams,
   type MedusaCartUpdateParams,
   type MedusaCompleteCartResult,
+  createMedusaCartService,
 } from "../cart/medusa-service"
 import type {
   AddLineItemInputBase,
@@ -41,9 +41,9 @@ import {
   createCatalogHooks,
 } from "../catalog/hooks"
 import type {
-  createMedusaCatalogService,
   MedusaCatalogListInput,
   MedusaCatalogServiceConfig,
+  createMedusaCatalogService,
 } from "../catalog/medusa-service"
 import type { CatalogFacets, CatalogQueryKeys } from "../catalog/types"
 import {
@@ -52,10 +52,10 @@ import {
   createCategoryHooks,
 } from "../categories/hooks"
 import type {
-  createMedusaCategoryService,
   MedusaCategoryDetailInput,
   MedusaCategoryListInput,
   MedusaCategoryServiceConfig,
+  createMedusaCategoryService,
 } from "../categories/medusa-service"
 import type { CategoryQueryKeys } from "../categories/types"
 import {
@@ -64,8 +64,8 @@ import {
   createCheckoutHooks,
 } from "../checkout/hooks"
 import {
-  createMedusaCheckoutService,
   type MedusaCheckoutServiceConfig,
+  createMedusaCheckoutService,
 } from "../checkout/medusa-service"
 import type { CheckoutQueryKeys } from "../checkout/types"
 import {
@@ -74,10 +74,10 @@ import {
   createCollectionHooks,
 } from "../collections/hooks"
 import type {
-  createMedusaCollectionService,
   MedusaCollectionDetailInput,
   MedusaCollectionListInput,
   MedusaCollectionServiceConfig,
+  createMedusaCollectionService,
 } from "../collections/medusa-service"
 import type { CollectionQueryKeys } from "../collections/types"
 import {
@@ -86,11 +86,11 @@ import {
   createCustomerHooks,
 } from "../customers/hooks"
 import {
-  createMedusaCustomerService,
   type MedusaCustomerAddressCreateInput,
   type MedusaCustomerAddressUpdateInput,
   type MedusaCustomerListInput,
   type MedusaCustomerProfileUpdateInput,
+  createMedusaCustomerService,
 } from "../customers/medusa-service"
 import type {
   CustomerAddressCreateInputBase,
@@ -100,8 +100,8 @@ import type {
 } from "../customers/types"
 import {
   type CreateOrderHooksConfig,
-  createOrderHooks,
   type OrderHooks,
+  createOrderHooks,
 } from "../orders/hooks"
 import type {
   MedusaOrderDetailHookInput,
@@ -112,21 +112,9 @@ import type {
 } from "../orders/medusa-service"
 import type { OrderQueryKeys, OrderService } from "../orders/types"
 import {
-  type CreateProductHooksConfig,
-  createProductHooks,
-  type ProductHooks,
-} from "../products/hooks"
-import type {
-  createMedusaProductService,
-  MedusaProductDetailInput,
-  MedusaProductListInput,
-  MedusaProductServiceConfig,
-} from "../products/medusa-service"
-import type { ProductQueryKeys } from "../products/types"
-import {
   type CreateProductListHooksConfig,
-  createProductListHooks,
   type ProductListHooks,
+  createProductListHooks,
 } from "../product-lists/hooks"
 import type {
   MedusaProductListDetailHookInput,
@@ -144,9 +132,32 @@ import type {
   ProductListService,
 } from "../product-lists/types"
 import {
+  type CreateProductHooksConfig,
+  type ProductHooks,
+  createProductHooks,
+} from "../products/hooks"
+import type {
+  MedusaProductDetailInput,
+  MedusaProductListInput,
+  MedusaProductServiceConfig,
+  createMedusaProductService,
+} from "../products/medusa-service"
+import type { ProductQueryKeys } from "../products/types"
+import {
+  type CreateRegionHooksConfig,
+  type RegionHooks,
+  createRegionHooks,
+} from "../regions/hooks"
+import type {
+  MedusaRegionDetailInput,
+  MedusaRegionListInput,
+  createMedusaRegionService,
+} from "../regions/medusa-service"
+import type { RegionQueryKeys } from "../regions/types"
+import {
   type CreateProductReviewHooksConfig,
-  createProductReviewHooks,
   type ProductReviewHooks,
+  createProductReviewHooks,
 } from "../reviews/hooks"
 import type {
   MedusaProductReviewListInput,
@@ -157,24 +168,15 @@ import type {
   ProductReviewService,
   ReviewBase,
 } from "../reviews/types"
-import {
-  type CreateRegionHooksConfig,
-  createRegionHooks,
-  type RegionHooks,
-} from "../regions/hooks"
-import type {
-  createMedusaRegionService,
-  MedusaRegionDetailInput,
-  MedusaRegionListInput,
-} from "../regions/medusa-service"
-import type { RegionQueryKeys } from "../regions/types"
 import type { CacheConfig } from "../shared/cache-config"
+import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
+import { omitUndefined } from "../shared/object-utils"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createMedusaCartFlow } from "./cart-flow"
 import { createMedusaCheckoutFlow } from "./checkout-flow"
 import {
-  createMedusaStorefrontQueryKeys as createMedusaStorefrontQueryKeysFromFoundation,
   type MedusaStorefrontQueryKeys as MedusaStorefrontQueryKeysFromFoundation,
+  createMedusaStorefrontQueryKeys as createMedusaStorefrontQueryKeysFromFoundation,
   resolveMedusaStorefrontFoundation,
 } from "./foundation"
 import { createMedusaStorefrontServerReadPreset } from "./server-read"
@@ -422,10 +424,10 @@ type CreateMedusaStorefrontPresetConfigBase<
   TCollection = HttpTypes.StoreCollection,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends
-    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends
-    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
 > = {
   sdk: Medusa
   queryKeyNamespace?: QueryNamespace
@@ -530,10 +532,10 @@ export type CreateMedusaStorefrontPresetConfig<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends
-    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends
-    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
 > = CreateMedusaStorefrontPresetConfigBase<
   TProduct,
   TCategory,
@@ -746,8 +748,7 @@ const createDefaultCatalogFacets = (): CatalogFacets => ({
 export const createMedusaStorefrontQueryKeys =
   createMedusaStorefrontQueryKeysFromFoundation
 
-export type MedusaStorefrontQueryKeys =
-  MedusaStorefrontQueryKeysFromFoundation
+export type MedusaStorefrontQueryKeys = MedusaStorefrontQueryKeysFromFoundation
 
 /**
  * Create a complete Medusa storefront data preset with shared namespace/cache config.
@@ -763,10 +764,10 @@ export function createMedusaStorefrontPreset<
   TCatalogFacets = CatalogFacets,
   TCartAddressInput = Record<string, unknown>,
   TCartAddressPayload = Record<string, unknown>,
-  TCustomerAddressCreateInput extends
-    CustomerAddressCreateInputBase = MedusaCustomerAddressCreateInput,
-  TCustomerAddressUpdateInput extends
-    CustomerAddressUpdateInputBase = MedusaCustomerAddressUpdateHookInput,
+  TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
+    MedusaCustomerAddressCreateInput,
+  TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
+    MedusaCustomerAddressUpdateHookInput,
 >(
   config: CreateMedusaStorefrontPresetConfig<
     TProduct,
@@ -790,8 +791,11 @@ export function createMedusaStorefrontPreset<
   TCustomerAddressCreateInput,
   TCustomerAddressUpdateInput
 > {
-  const { namespace, cacheConfig: resolvedCacheConfig, defaultQueryKeys } =
-    resolveMedusaStorefrontFoundation(config)
+  const {
+    namespace,
+    cacheConfig: resolvedCacheConfig,
+    defaultQueryKeys,
+  } = resolveMedusaStorefrontFoundation(config)
 
   const resolveQueryKeys = () => ({
     auth: config.auth?.queryKeys ?? defaultQueryKeys.auth,
@@ -820,48 +824,48 @@ export function createMedusaStorefrontPreset<
     sdk: config.sdk,
     queryKeyNamespace: namespace,
     cacheConfig: resolvedCacheConfig,
-    products: {
+    products: omitUndefined({
       serviceConfig: config.products?.serviceConfig,
       hooks: config.products?.hooks,
       queryKeys: queryKeys.products,
-    },
-    productLists: {
+    }),
+    productLists: omitUndefined({
       service: config.productLists?.service,
       serviceConfig: config.productLists?.serviceConfig,
       hooks: config.productLists?.hooks,
       queryKeys: queryKeys.productLists,
-    },
-    reviews: {
+    }),
+    reviews: omitUndefined({
       service: config.reviews?.service,
       serviceConfig: config.reviews?.serviceConfig,
       hooks: config.reviews?.hooks,
       queryKeys: queryKeys.reviews,
-    },
-    orders: {
+    }),
+    orders: omitUndefined({
       service: config.orders?.service,
       serviceConfig: config.orders?.serviceConfig,
       hooks: config.orders?.hooks,
       queryKeys: queryKeys.orders,
-    },
-    regions: {
+    }),
+    regions: omitUndefined({
       hooks: config.regions?.hooks,
       queryKeys: queryKeys.regions,
-    },
-    categories: {
+    }),
+    categories: omitUndefined({
       serviceConfig: config.categories?.serviceConfig,
       hooks: config.categories?.hooks,
       queryKeys: queryKeys.categories,
-    },
-    collections: {
+    }),
+    collections: omitUndefined({
       serviceConfig: config.collections?.serviceConfig,
       hooks: config.collections?.hooks,
       queryKeys: queryKeys.collections,
-    },
-    catalog: {
+    }),
+    catalog: omitUndefined({
       serviceConfig: config.catalog?.serviceConfig,
       hooks: config.catalog?.hooks,
       queryKeys: queryKeys.catalog,
-    },
+    }),
   })
 
   const resolveServices = () => ({
@@ -919,8 +923,7 @@ export function createMedusaStorefrontPreset<
       ],
     }
   }
-  const resolvedAuthInvalidateOnAuthChange =
-    resolveAuthInvalidateOnAuthChange()
+  const resolvedAuthInvalidateOnAuthChange = resolveAuthInvalidateOnAuthChange()
 
   // Safe: non-default facet shapes must provide catalog.fallbackFacets via
   // CreateMedusaStorefrontPresetConfig, so the default fallback is only used
@@ -937,7 +940,7 @@ export function createMedusaStorefrontPreset<
 
   const createHooks = () => ({
     auth: createAuthHooks({
-      ...(authHookOverrides ?? {}),
+      ...authHookOverrides,
       service: services.auth,
       queryKeys: queryKeys.auth,
       queryKeyNamespace: namespace,
@@ -958,7 +961,7 @@ export function createMedusaStorefrontPreset<
       TCartAddressInput,
       TCartAddressPayload
     >({
-      ...(cartHookOverrides ?? {}),
+      ...cartHookOverrides,
       service: services.cart,
       queryKeys: queryKeys.cart,
       buildAddParams:
@@ -966,15 +969,17 @@ export function createMedusaStorefrontPreset<
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
-    checkout: createCheckoutHooks({
-      ...(checkoutHookOverrides ?? {}),
-      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
-      service: services.checkout,
-      queryKeys: queryKeys.checkout,
-      cartQueryKeys: queryKeys.cart,
-      queryKeyNamespace: namespace,
-      cacheConfig: resolvedCacheConfig,
-    }),
+    checkout: createCheckoutHooks(
+      omitUndefined({
+        ...checkoutHookOverrides,
+        isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+        service: services.checkout,
+        queryKeys: queryKeys.checkout,
+        cartQueryKeys: queryKeys.cart,
+        queryKeyNamespace: namespace,
+        cacheConfig: resolvedCacheConfig,
+      })
+    ),
     products: createProductHooks<
       TProduct,
       MedusaProductListInput,
@@ -982,7 +987,7 @@ export function createMedusaStorefrontPreset<
       MedusaProductDetailInput,
       MedusaProductDetailInput
     >({
-      ...(config.products?.hooks ?? {}),
+      ...config.products?.hooks,
       service: services.products,
       queryKeys: queryKeys.products,
       queryKeyNamespace: namespace,
@@ -998,22 +1003,24 @@ export function createMedusaStorefrontPreset<
       MedusaProductListDetailInput,
       MedusaProductListListKeyInput,
       MedusaProductListDetailKeyInput
-    >({
-      ...(config.productLists?.hooks ?? {}),
-      service: services.productLists,
-      queryKeys: queryKeys.productLists,
-      queryKeyNamespace: namespace,
-      cacheConfig: resolvedCacheConfig,
-      cartQueryKeys: queryKeys.cart,
-      cartStorage: cartHookOverrides?.cartStorage,
-      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
-    }),
+    >(
+      omitUndefined({
+        ...config.productLists?.hooks,
+        service: services.productLists,
+        queryKeys: queryKeys.productLists,
+        queryKeyNamespace: namespace,
+        cacheConfig: resolvedCacheConfig,
+        cartQueryKeys: queryKeys.cart,
+        cartStorage: cartHookOverrides?.cartStorage,
+        isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+      })
+    ),
     reviews: createProductReviewHooks<
       ReviewBase,
       MedusaProductReviewListInput,
       MedusaProductReviewListInput
     >({
-      ...(config.reviews?.hooks ?? {}),
+      ...config.reviews?.hooks,
       service: services.reviews,
       queryKeys: queryKeys.reviews,
       queryKeyNamespace: namespace,
@@ -1026,7 +1033,7 @@ export function createMedusaStorefrontPreset<
       MedusaOrderDetailHookInput,
       MedusaOrderDetailInput
     >({
-      ...(config.orders?.hooks ?? {}),
+      ...config.orders?.hooks,
       service: services.orders,
       queryKeys: queryKeys.orders,
       queryKeyNamespace: namespace,
@@ -1044,7 +1051,7 @@ export function createMedusaStorefrontPreset<
       MedusaCustomerProfileUpdateInput,
       MedusaCustomerProfileUpdateInput
     >({
-      ...(customerHookOverrides ?? {}),
+      ...customerHookOverrides,
       service: services.customers,
       queryKeys: queryKeys.customers,
       authQueryKeys: customerHookOverrides?.authQueryKeys ?? queryKeys.auth,
@@ -1052,28 +1059,28 @@ export function createMedusaStorefrontPreset<
       cacheConfig: resolvedCacheConfig,
     }),
     regions: createRegionHooks({
-      ...(config.regions?.hooks ?? {}),
+      ...config.regions?.hooks,
       service: services.regions,
       queryKeys: queryKeys.regions,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
     categories: createCategoryHooks({
-      ...(config.categories?.hooks ?? {}),
+      ...config.categories?.hooks,
       service: services.categories,
       queryKeys: queryKeys.categories,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
     collections: createCollectionHooks({
-      ...(config.collections?.hooks ?? {}),
+      ...config.collections?.hooks,
       service: services.collections,
       queryKeys: queryKeys.collections,
       queryKeyNamespace: namespace,
       cacheConfig: resolvedCacheConfig,
     }),
     catalog: createCatalogHooks({
-      ...(config.catalog?.hooks ?? {}),
+      ...config.catalog?.hooks,
       service: services.catalog,
       queryKeys: queryKeys.catalog,
       fallbackFacets: fallbackCatalogFacets,
@@ -1092,16 +1099,20 @@ export function createMedusaStorefrontPreset<
   }
 
   const createFlows = () => ({
-    cart: createMedusaCartFlow({
-      storefront,
-      cartStorage: cartHookOverrides?.cartStorage,
-      isActiveCartQueryKey: cartFlowOverrides?.isActiveCartQueryKey,
-    }),
-    checkout: createMedusaCheckoutFlow({
-      storefront,
-      cartStorage: cartHookOverrides?.cartStorage,
-      isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
-    }),
+    cart: createMedusaCartFlow(
+      omitUndefined({
+        storefront,
+        cartStorage: cartHookOverrides?.cartStorage,
+        isActiveCartQueryKey: cartFlowOverrides?.isActiveCartQueryKey,
+      })
+    ),
+    checkout: createMedusaCheckoutFlow(
+      omitUndefined({
+        storefront,
+        cartStorage: cartHookOverrides?.cartStorage,
+        isActiveCartQueryKey: resolvedCheckoutActiveCartQueryKey,
+      })
+    ),
   })
   const flows = createFlows()
 

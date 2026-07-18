@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
+
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import type {
   AddLineItemInputBase,
@@ -22,6 +23,7 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import { omitUndefined } from "../shared/object-utils"
 import type { StorageValueStore } from "../shared/storage-value-store"
 
 type MedusaCartMutationHook<TInput> = (options?: {
@@ -295,7 +297,7 @@ export function createMedusaCartFlow({
       cartHooks.useCart({
         autoCreate: false,
         autoUpdateRegion: false,
-        ...(input ?? {}),
+        ...input,
       })
 
     return {
@@ -315,7 +317,7 @@ export function createMedusaCartFlow({
     const { cart, itemCount, isEmpty, hasItems } = cartHooks.useSuspenseCart({
       autoCreate: false,
       autoUpdateRegion: false,
-      ...(input ?? {}),
+      ...input,
     })
 
     return {
@@ -419,13 +421,15 @@ export function createMedusaCartFlow({
           return
         }
 
-        handleOrderCompletionSuccess({
-          queryClient,
-          order: result.order,
-          variables,
-          context,
-          onSuccess: options?.onSuccess,
-        })
+        handleOrderCompletionSuccess(
+          omitUndefined({
+            queryClient,
+            order: result.order,
+            variables,
+            context: context ?? null,
+            onSuccess: options?.onSuccess,
+          })
+        )
       },
       onError: (error: unknown) => {
         options?.onRequestError?.(error)

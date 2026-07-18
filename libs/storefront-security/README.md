@@ -3,6 +3,7 @@
 Shared Next.js storefront security config for this monorepo.
 
 The library is intentionally narrow:
+
 - it provides a reusable storefront security baseline
 - it exposes a preset-based API with overrides
 - it does not hardcode app-specific integrations like analytics or checkout vendors
@@ -10,18 +11,19 @@ The library is intentionally narrow:
 ## What it solves
 
 It centralizes the common parts of storefront hardening:
+
 - response security headers
 - CSP generation
 - production-only HSTS
 - public backend URL validation
 - dev HMR websocket origins
 
-The goal is that a new storefront can start from a safe shared preset and only
-declare what is unique to that project.
+The goal is that a new storefront can start from a safe shared preset and only declare what is unique to that project.
 
 ## Recommended API
 
 Use `createStorefrontSecurityConfig()` with:
+
 - `preset` for the shared baseline
 - `extend` for additive changes
 - `replace` for full overrides
@@ -48,6 +50,7 @@ export default nextConfig
 Use this for the standard Medusa + Next storefront case.
 
 It includes:
+
 - baseline response headers
 - CSP skeleton
 - validated public backend origin in `connect-src`
@@ -55,6 +58,7 @@ It includes:
 - common storefront defaults for images, fonts, workers, and manifests
 
 It does **not** include:
+
 - analytics hosts
 - checkout widget hosts
 - marketplace/integration-specific allowlists
@@ -65,8 +69,7 @@ Those must be added per app.
 
 ### `extend`
 
-Use `extend` when you want to add more sources or headers without throwing away
-the shared baseline.
+Use `extend` when you want to add more sources or headers without throwing away the shared baseline.
 
 ```ts
 const storefrontSecurity = createStorefrontSecurityConfig({
@@ -78,9 +81,7 @@ const storefrontSecurity = createStorefrontSecurityConfig({
       frameSrc: ["https://www.ppl.cz"],
       styleSrc: ["https://www.ppl.cz"],
     },
-    headers: [
-      { key: "Cache-Control", value: "public, max-age=60" },
-    ],
+    headers: [{ key: "Cache-Control", value: "public, max-age=60" }],
   },
 })
 ```
@@ -89,24 +90,17 @@ const storefrontSecurity = createStorefrontSecurityConfig({
 
 ### `replace`
 
-Use `replace` when a project needs to take ownership of a full directive,
-policy, or header value.
+Use `replace` when a project needs to take ownership of a full directive, policy, or header value.
 
 ```ts
 const storefrontSecurity = createStorefrontSecurityConfig({
   preset: "medusaStorefront",
   replace: {
-    permissionsPolicy: [
-      "camera=()",
-      "microphone=()",
-      "geolocation=(self)",
-    ],
+    permissionsPolicy: ["camera=()", "microphone=()", "geolocation=(self)"],
     csp: {
       frameSrc: ["'self'"],
     },
-    headers: [
-      { key: "X-Frame-Options", value: "SAMEORIGIN" },
-    ],
+    headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
   },
 })
 ```
@@ -128,14 +122,15 @@ createStorefrontSecurityConfig({
 
 ### `publicBackendUrl`
 
-Overrides the backend URL source used by the preset. If omitted, the library
-reads `NEXT_PUBLIC_MEDUSA_BACKEND_URL`.
+Overrides the backend URL source used by the preset. If omitted, the library reads `NEXT_PUBLIC_MEDUSA_BACKEND_URL`.
 
 In production:
+
 - missing URL throws
 - invalid absolute URL throws
 
 In development:
+
 - it falls back to `http://localhost:9000`
 
 ### `source`
@@ -145,6 +140,7 @@ Overrides the Next header matcher. Defaults to `/:path*`.
 ## CSP behavior
 
 The library generates a baseline CSP with:
+
 - `default-src 'self'`
 - `frame-ancestors 'none'`
 - `object-src 'none'`
@@ -152,6 +148,7 @@ The library generates a baseline CSP with:
 - `form-action 'self'`
 
 And storefront defaults for:
+
 - `script-src`
 - `style-src`
 - `img-src`
@@ -162,6 +159,7 @@ And storefront defaults for:
 - `manifest-src`
 
 Notes:
+
 - `unsafe-inline` is still present for the current App Router baseline
 - `unsafe-eval` is added only in development
 - `upgrade-insecure-requests` is added only in production
@@ -169,6 +167,7 @@ Notes:
 ## Legacy compatibility
 
 The library still supports the older transition options:
+
 - `additionalScriptSrc`
 - `additionalStyleSrc`
 - `additionalConnectSrc`
@@ -177,8 +176,7 @@ The library still supports the older transition options:
 - `additionalFontSrc`
 - `permissionsPolicyDirectives`
 
-These are treated as additive extensions. New consumers should prefer
-`preset + extend + replace`.
+These are treated as additive extensions. New consumers should prefer `preset + extend + replace`.
 
 ## Public exports
 

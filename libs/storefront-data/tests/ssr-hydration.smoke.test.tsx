@@ -1,15 +1,18 @@
-import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query"
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import {
-  createProductHooks,
-} from "../src/products/hooks"
+
+import { StorefrontDataProvider } from "../src/client/provider"
+import { createProductHooks } from "../src/products/hooks"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import type {
   ProductListInputBase,
   ProductService,
 } from "../src/products/types"
-import { StorefrontDataProvider } from "../src/client/provider"
 import { getServerQueryClient } from "../src/server/get-query-client"
 import { createCacheConfig } from "../src/shared/cache-config"
 
@@ -29,9 +32,7 @@ type ProductDetailParams = {
   region_id?: string
 }
 
-const buildListParams = (
-  input: ProductListInputBase
-): ProductListParams => {
+const buildListParams = (input: ProductListInputBase): ProductListParams => {
   const limit = input.limit ?? 20
   const page = input.page ?? 1
   const offset = (page - 1) * limit
@@ -39,7 +40,7 @@ const buildListParams = (
   return {
     limit,
     offset,
-    region_id: input.region_id,
+    ...(input.region_id ? { region_id: input.region_id } : {}),
   }
 }
 
@@ -50,8 +51,9 @@ const trackClient = (client: QueryClient) => {
   return client
 }
 
-const createTestClient = (config?: ConstructorParameters<typeof QueryClient>[0]) =>
-  trackClient(new QueryClient(config))
+const createTestClient = (
+  config?: ConstructorParameters<typeof QueryClient>[0]
+) => trackClient(new QueryClient(config))
 
 afterEach(() => {
   for (const client of trackedClients) {
@@ -63,7 +65,11 @@ afterEach(() => {
 describe("storefront-data SSR hydration smoke", () => {
   it("hydrates prefetched queries without refetching on the client", async () => {
     let fetchCount = 0
-    const service: ProductService<TestProduct, ProductListParams, ProductDetailParams> = {
+    const service: ProductService<
+      TestProduct,
+      ProductListParams,
+      ProductDetailParams
+    > = {
       getProducts: async (params) => {
         fetchCount += 1
         return {
@@ -106,9 +112,10 @@ describe("storefront-data SSR hydration smoke", () => {
     }
 
     const listParams = buildListParams(input)
-    const queryKeys = createProductQueryKeys<ProductListParams, ProductDetailParams>(
-      queryKeyNamespace
-    )
+    const queryKeys = createProductQueryKeys<
+      ProductListParams,
+      ProductDetailParams
+    >(queryKeyNamespace)
 
     const serverQueryClient = trackClient(getServerQueryClient())
     await serverQueryClient.prefetchQuery({

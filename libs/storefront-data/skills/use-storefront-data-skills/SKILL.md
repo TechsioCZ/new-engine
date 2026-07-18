@@ -1,11 +1,7 @@
 ---
 name: use-storefront-data-skills
 description: >
-  Load this skill first for any work involving @techsio/storefront-data skills,
-  app integration, shared storefront hooks, product lists, cart, checkout,
-  auth, SSR prefetch, cache policy, or deciding whether behavior belongs in an
-  app or in the shared storefront-data platform. Use it as the orchestrator
-  that selects the smallest relevant storefront-data skill set before editing.
+  Load this skill first for any work involving @techsio/storefront-data skills, app integration, shared storefront hooks, product lists, cart, checkout, auth, SSR prefetch, cache policy, or deciding whether behavior belongs in an app or in the shared storefront-data platform. Use it as the orchestrator that selects the smallest relevant storefront-data skill set before editing.
 type: orchestrator
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -19,8 +15,7 @@ sources:
 
 # Use storefront-data skills
 
-Start here when a task touches `@techsio/storefront-data` or an app that
-consumes it. Pick only the skills needed for the current work.
+Start here when a task touches `@techsio/storefront-data` or an app that consumes it. Pick only the skills needed for the current work.
 
 ## Selection
 
@@ -41,16 +36,11 @@ consumes it. Pick only the skills needed for the current work.
 
 ## Operating rules
 
-- Prefer the preset surface: `storefront.hooks.*`, `storefront.flows.*`,
-  `storefront.queries.*`, and preset-owned `queryKeys`.
-- Keep app code thin: UI, localized text, toasts, analytics, app DTOs,
-  customer-specific mapping, and adapters can stay local.
-- Move repeated backend communication, query keys, cache sync, SSR query
-  options, and mutation invalidation into `libs/storefront-data`.
-- Do not keep old and new data layers active for the same screen. Finish one
-  vertical migration before starting another.
-- Use explicit subpath imports. Do not add package-root imports or barrel
-  re-exports.
+- Prefer the preset surface: `storefront.hooks.*`, `storefront.flows.*`, `storefront.queries.*`, and preset-owned `queryKeys`.
+- Keep app code thin: UI, localized text, toasts, analytics, app DTOs, customer-specific mapping, and adapters can stay local.
+- Move repeated backend communication, query keys, cache sync, SSR query options, and mutation invalidation into `libs/storefront-data`.
+- Do not keep old and new data layers active for the same screen. Finish one vertical migration before starting another.
+- Use explicit subpath imports. Do not add package-root imports or barrel re-exports.
 
 ## Product-list notes
 
@@ -63,9 +53,7 @@ Product lists are a shared platform domain in this package:
 - utilities: `src/product-lists/utils.ts`
 - preset wiring: `src/medusa/preset.ts` and `src/medusa/server-read.ts`
 
-Apps should normally consume product lists through
-`storefront.hooks.productLists` and keep only storefront-specific wrappers for
-labels, errors, UI behavior, and analytics.
+Apps should normally consume product lists through `storefront.hooks.productLists` and keep only storefront-specific wrappers for labels, errors, UI behavior, and analytics.
 
 ## Validation
 
@@ -76,6 +64,4 @@ npx @tanstack/intent@latest validate libs/storefront-data/skills
 npx @tanstack/intent@latest stale libs/storefront-data/skills
 ```
 
-If skills must be published with `@techsio/storefront-data`, ensure
-`libs/storefront-data/package.json` includes the `tanstack-intent` keyword,
-ships the `skills` directory, and pins `@tanstack/intent` for validation.
+If skills must be published with `@techsio/storefront-data`, ensure `libs/storefront-data/package.json` includes the `tanstack-intent` keyword, ships the `skills` directory, and pins `@tanstack/intent` for validation.

@@ -14,11 +14,6 @@ import type { CategoryQueryKeys } from "../categories/types"
 import { createCheckoutQueryKeys } from "../checkout/query-keys"
 import type { CheckoutQueryKeys } from "../checkout/types"
 import type {
-  MedusaProductReviewListInput,
-} from "../reviews/medusa-service"
-import { createProductReviewQueryKeys } from "../reviews/query-keys"
-import type { ProductReviewQueryKeys } from "../reviews/types"
-import type {
   MedusaCollectionDetailInput,
   MedusaCollectionListInput,
 } from "../collections/medusa-service"
@@ -51,6 +46,9 @@ import type {
 } from "../regions/medusa-service"
 import { createRegionQueryKeys } from "../regions/query-keys"
 import type { RegionQueryKeys } from "../regions/types"
+import type { MedusaProductReviewListInput } from "../reviews/medusa-service"
+import { createProductReviewQueryKeys } from "../reviews/query-keys"
+import type { ProductReviewQueryKeys } from "../reviews/types"
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import type { QueryNamespace } from "../shared/query-keys"
 
@@ -115,9 +113,8 @@ export function createMedusaStorefrontQueryKeys(
       MedusaCollectionDetailInput
     >(namespace),
     catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
-    reviews: createProductReviewQueryKeys<MedusaProductReviewListInput>(
-      namespace
-    ),
+    reviews:
+      createProductReviewQueryKeys<MedusaProductReviewListInput>(namespace),
   }
 }
 

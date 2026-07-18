@@ -38,15 +38,6 @@ export function useHeurekaAdapter(
   return {
     key: adapterKey,
 
-    // Heureka doesn't support view tracking
-    trackViewContent: undefined,
-
-    // Heureka doesn't support cart tracking
-    trackAddToCart: undefined,
-
-    // Heureka doesn't support checkout tracking
-    trackInitiateCheckout: undefined,
-
     // Heureka only supports purchase/conversion tracking
     trackPurchase: createTracker(
       getHeureka,
@@ -78,8 +69,5 @@ export function useHeurekaAdapter(
       debug,
       adapterKey
     ),
-
-    // Heureka doesn't support custom events
-    trackCustom: undefined,
   }
 }

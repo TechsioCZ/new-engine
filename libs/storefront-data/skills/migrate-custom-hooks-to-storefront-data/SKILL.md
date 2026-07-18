@@ -1,11 +1,7 @@
 ---
 name: migrate-custom-hooks-to-storefront-data
 description: >
-  Load this skill when replacing app-local Medusa hooks, query utilities, or
-  service wrappers with the preset-first @techsio/storefront-data surface. Use
-  it for migration cutovers, preserving storefront-specific callbacks, and
-  removing dual source-of-truth behavior instead of running legacy and shared
-  data layers in parallel.
+  Load this skill when replacing app-local Medusa hooks, query utilities, or service wrappers with the preset-first @techsio/storefront-data surface. Use it for migration cutovers, preserving storefront-specific callbacks, and removing dual source-of-truth behavior instead of running legacy and shared data layers in parallel.
 type: lifecycle
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -33,7 +29,8 @@ import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/st
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 
 const sdk = createMedusaSdk({
-  baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
+  baseUrl:
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
   publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "",
 })
 
@@ -94,7 +91,10 @@ export function useLoginWithAnalytics() {
 
 ```ts
 // before
-export const productQueryKey = (params: ProductParams) => ["n1-products", params]
+export const productQueryKey = (params: ProductParams) => [
+  "n1-products",
+  params,
+]
 
 // after
 export const productQueryKey = storefront.queryKeys.products.list

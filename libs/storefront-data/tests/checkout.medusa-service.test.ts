@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { vi } from "vitest"
+
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
 
 type SdkLike = {

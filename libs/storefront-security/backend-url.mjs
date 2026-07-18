@@ -1,7 +1,6 @@
 const TRAILING_SLASH_PATTERN = /\/$/
 
-export const DEFAULT_PUBLIC_BACKEND_ENV_NAME =
-  "NEXT_PUBLIC_MEDUSA_BACKEND_URL"
+export const DEFAULT_PUBLIC_BACKEND_ENV_NAME = "NEXT_PUBLIC_MEDUSA_BACKEND_URL"
 export const DEFAULT_DEVELOPMENT_BACKEND_URL = "http://localhost:9000"
 
 /**
@@ -19,8 +18,7 @@ export function resolvePublicBackendUrl(options = {}) {
     envVarName = DEFAULT_PUBLIC_BACKEND_ENV_NAME,
     defaultDevelopmentBackendUrl = DEFAULT_DEVELOPMENT_BACKEND_URL,
   } = options
-  const publicBackendUrl =
-    options.publicBackendUrl ?? process.env[envVarName]
+  const publicBackendUrl = options.publicBackendUrl ?? process.env[envVarName]
 
   const configuredUrl = publicBackendUrl?.trim()
 

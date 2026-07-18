@@ -1,11 +1,7 @@
 ---
 name: use-catalog-and-product-read-flows
 description: >
-  Load this skill when reading products, catalog listings, categories,
-  collections, or regions from @techsio/storefront-data through
-  storefront.hooks.products, storefront.hooks.catalog, and the related read
-  hooks. Use it for region-aware inputs, query-option helpers, and suspense
-  usage that waits until required params actually exist.
+  Load this skill when reading products, catalog listings, categories, collections, or regions from @techsio/storefront-data through storefront.hooks.products, storefront.hooks.catalog, and the related read hooks. Use it for region-aware inputs, query-option helpers, and suspense usage that waits until required params actually exist.
 type: core
 library: "@techsio/storefront-data"
 library_version: "0.1.0"

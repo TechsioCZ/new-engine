@@ -1,31 +1,22 @@
-export const isPlainRecord = (
-  value: unknown
-): value is Record<string, unknown> =>
-  Boolean(value && typeof value === "object" && !Array.isArray(value))
+import {
+  compactRecord,
+  isRecord as isPlainRecord,
+  omitKeys,
+  toPlainRecord,
+} from "@techsio/std/object"
 
-export const toPlainRecord = (
-  value: unknown
-): Record<string, unknown> | undefined => {
-  if (!isPlainRecord(value)) {
-    return
-  }
+export { compactRecord, isPlainRecord, omitKeys, toPlainRecord }
 
-  return value
+type OmitUndefined<T extends object> = {
+  [K in keyof T as undefined extends T[K] ? never : K]: T[K]
+} & {
+  [K in keyof T as undefined extends T[K] ? K : never]?: Exclude<
+    T[K],
+    undefined
+  >
 }
 
-export const compactRecord = (record: Record<string, unknown>) =>
+export const omitUndefined = <T extends object>(value: T): OmitUndefined<T> =>
   Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined)
-  )
-
-export function omitKeys<
-  TObject extends object,
-  const TKeys extends readonly (keyof TObject)[],
->(object: TObject, keys: TKeys): Omit<TObject, TKeys[number]> {
-  const keysToOmit = new Set<keyof TObject>(keys)
-  const entries = Object.entries(object).filter(
-    ([key]) => !keysToOmit.has(key as keyof TObject)
-  )
-
-  return Object.fromEntries(entries) as Omit<TObject, TKeys[number]>
-}
+    Object.entries(value).filter(([, entry]) => entry !== undefined)
+  ) as OmitUndefined<T>

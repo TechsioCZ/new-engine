@@ -1,11 +1,7 @@
 ---
 name: configure-pagination-prefetch-and-cache-policy
 description: >
-  Load this skill when tuning @techsio/storefront-data cacheConfig,
-  skipIfCached, skipMode, usePrefetchProducts, usePrefetchCatalogProducts, or
-  usePrefetchPages. Use it for pagination, page planning, normalized query
-  inputs, and keeping prefetch behavior aligned with shared query keys and
-  cache strategy rules.
+  Load this skill when tuning @techsio/storefront-data cacheConfig, skipIfCached, skipMode, usePrefetchProducts, usePrefetchCatalogProducts, or usePrefetchPages. Use it for pagination, page planning, normalized query inputs, and keeping prefetch behavior aligned with shared query keys and cache strategy rules.
 type: core
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -36,7 +32,8 @@ import { createMedusaSdk } from "@techsio/storefront-data/shared/medusa-client"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 
 const sdk = createMedusaSdk({
-  baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
+  baseUrl:
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
   publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "",
 })
 

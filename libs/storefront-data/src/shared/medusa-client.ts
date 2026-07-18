@@ -1,5 +1,6 @@
 import type { Config } from "@medusajs/js-sdk"
 import Medusa from "@medusajs/js-sdk"
+
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
@@ -20,11 +21,6 @@ export type MedusaSdk = InstanceType<typeof Medusa>
 // because Medusa touches `medusa_locale` in localStorage during client creation
 // and locale reads/writes without exposing a clean public override.
 const LOCALE_STORAGE_KEY = "medusa_locale"
-
-type MedusaClientWithMutableLocale = {
-  locale_: string
-  setLocale: (locale: string) => void
-}
 
 const patchStorageMethod = <
   TMethodName extends "getItem" | "setItem" | "removeItem",
@@ -212,23 +208,25 @@ const patchClientLocaleStorage = (sdk: MedusaSdk): MedusaSdk => {
     return sdk
   }
 
-  const client = sdk.client as unknown as MedusaClientWithMutableLocale
-
-  Object.defineProperty(client, "locale", {
+  Object.defineProperty(sdk.client, "locale", {
     configurable: true,
     enumerable: true,
     get() {
-      return getLocalStorageItem(LOCALE_STORAGE_KEY) ?? client.locale_ ?? ""
+      const locale = Reflect.get(sdk.client, "locale_")
+      return (
+        getLocalStorageItem(LOCALE_STORAGE_KEY) ??
+        (typeof locale === "string" ? locale : "")
+      )
     },
   })
 
-  client.setLocale = (locale: string) => {
+  sdk.client.setLocale = (locale: string) => {
     if (locale) {
       setLocalStorageItem(LOCALE_STORAGE_KEY, locale)
     } else {
       removeLocalStorageItem(LOCALE_STORAGE_KEY)
     }
-    client.locale_ = locale
+    Reflect.set(sdk.client, "locale_", locale)
   }
 
   return sdk

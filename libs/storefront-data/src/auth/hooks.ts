@@ -5,6 +5,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
@@ -12,9 +13,9 @@ import type {
   SuspenseQueryOptions,
 } from "../shared/hook-types"
 import {
-  createQueryKey,
   type QueryKey,
   type QueryNamespace,
+  createQueryKey,
 } from "../shared/query-keys"
 import { createAuthQueryKeys } from "./query-keys"
 import type {
@@ -128,7 +129,7 @@ export function createAuthHooks<
       enabled: options?.enabled ?? true,
       retry: false,
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -154,7 +155,7 @@ export function createAuthHooks<
       queryKey: resolvedQueryKeys.customer(),
       queryFn: ({ signal }) => service.getCustomer(signal),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isFetching } = query
     const customer = data ?? null
@@ -177,7 +178,7 @@ export function createAuthHooks<
     return useMutation<TLoginResult, unknown, TLoginInput, TContext>({
       mutationFn: (input: TLoginInput) => service.login(input),
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
@@ -201,7 +202,7 @@ export function createAuthHooks<
     return useMutation<TRegisterResult, unknown, TRegisterInput, TContext>({
       mutationFn: (input: TRegisterInput) => service.register(input),
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
@@ -230,7 +231,7 @@ export function createAuthHooks<
         return service.createCustomer(input)
       },
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
@@ -254,7 +255,7 @@ export function createAuthHooks<
     return useMutation<void, unknown, void, TContext>({
       mutationFn: () => service.logout(),
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (_data, _variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), null)
         queryClient.removeQueries({
@@ -284,7 +285,7 @@ export function createAuthHooks<
         return service.updateCustomer(input)
       },
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), data)
         options?.onSuccess?.(data, variables, context)
@@ -310,7 +311,7 @@ export function createAuthHooks<
         return service.refresh()
       },
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onSuccess: (data, variables, context) => {
         queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),

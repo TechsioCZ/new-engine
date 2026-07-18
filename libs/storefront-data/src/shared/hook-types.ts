@@ -5,6 +5,7 @@ import type {
   UseQueryOptions,
   UseSuspenseQueryOptions,
 } from "@tanstack/react-query"
+
 import type { QueryKey } from "./query-keys"
 
 export type ReadQueryOptions<

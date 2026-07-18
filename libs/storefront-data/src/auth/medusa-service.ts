@@ -1,7 +1,9 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
+import { omitUndefined } from "../shared/object-utils"
 import type { AuthService } from "./types"
 
 export type MedusaAuthCredentials = {
@@ -147,7 +149,7 @@ export function createMedusaAuthService(
         const { customer } =
           await sdk.client.fetch<HttpTypes.StoreCustomerResponse>(
             "/store/customers/me",
-            { signal }
+            { signal: signal ?? null }
           )
         if (!customer) {
           return null
@@ -226,11 +228,13 @@ export function createMedusaAuthService(
         }
 
         // Step 3: CREATE customer profile (not update!)
-        await sdk.store.customer.create({
-          email: data.email,
-          first_name: data.first_name,
-          last_name: data.last_name,
-        })
+        await sdk.store.customer.create(
+          omitUndefined({
+            email: data.email,
+            first_name: data.first_name,
+            last_name: data.last_name,
+          })
+        )
         customerCreated = true
 
         // Step 4: Refresh auth state after customer creation so the JWT/session

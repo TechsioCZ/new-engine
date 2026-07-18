@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import type {
   CatalogFacets,
   CatalogListInputBase,
@@ -11,12 +12,12 @@ import { resolvePositiveInteger } from "./utils"
 type MedusaCatalogListQuery = Record<string, unknown>
 
 type MedusaCatalogListResponse = {
-  products?: HttpTypes.StoreProduct[]
-  count?: number
-  page?: number
-  limit?: number
-  totalPages?: number
-  facets?: unknown
+  products?: HttpTypes.StoreProduct[] | undefined
+  count?: number | undefined
+  page?: number | undefined
+  limit?: number | undefined
+  totalPages?: number | undefined
+  facets?: unknown | undefined
 }
 
 export type MedusaCatalogListInput = CatalogListInputBase
@@ -35,16 +36,20 @@ export type MedusaCatalogServiceConfig<
   TListParams extends MedusaCatalogListInput,
   TFacets,
 > = {
-  listPath?: string
-  defaultLimit?: number
-  defaultSort?: string
-  normalizeListQuery?: (params: TListParams) => MedusaCatalogListQuery
-  transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
-  transformListProduct?: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaCatalogTransformContext<TListParams, TFacets>
-  ) => TProduct
-  transformFacets?: (facets: CatalogFacets) => TFacets
+  listPath?: string | undefined
+  defaultLimit?: number | undefined
+  defaultSort?: string | undefined
+  normalizeListQuery?:
+    | ((params: TListParams) => MedusaCatalogListQuery)
+    | undefined
+  transformProduct?: ((product: HttpTypes.StoreProduct) => TProduct) | undefined
+  transformListProduct?:
+    | ((
+        product: HttpTypes.StoreProduct,
+        context: MedusaCatalogTransformContext<TListParams, TFacets>
+      ) => TProduct)
+    | undefined
+  transformFacets?: ((facets: CatalogFacets) => TFacets) | undefined
 }
 
 const EMPTY_FACETS: CatalogFacets = {
@@ -134,13 +139,13 @@ const normalizeFacetItems = (items: unknown) => {
       }
 
       const typedItem = item as Record<string, unknown>
-      const id = typeof typedItem.id === "string" ? typedItem.id.trim() : ""
-      const label =
-        typeof typedItem.label === "string" ? typedItem.label.trim() : ""
+      const rawId = typedItem["id"]
+      const rawLabel = typedItem["label"]
+      const rawCount = typedItem["count"]
+      const id = typeof rawId === "string" ? rawId.trim() : ""
+      const label = typeof rawLabel === "string" ? rawLabel.trim() : ""
       const count =
-        typeof typedItem.count === "number" && Number.isFinite(typedItem.count)
-          ? typedItem.count
-          : 0
+        typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : 0
 
       if (!(id && label)) {
         return null
@@ -161,27 +166,23 @@ const normalizeFacets = (value: unknown): CatalogFacets => {
   }
 
   const facetsRecord = value as Record<string, unknown>
+  const price = facetsRecord["price"]
   const priceRecord =
-    facetsRecord.price &&
-    typeof facetsRecord.price === "object" &&
-    !Array.isArray(facetsRecord.price)
-      ? (facetsRecord.price as Record<string, unknown>)
+    price && typeof price === "object" && !Array.isArray(price)
+      ? (price as Record<string, unknown>)
       : {}
-
+  const rawMin = priceRecord["min"]
+  const rawMax = priceRecord["max"]
   const min =
-    typeof priceRecord.min === "number" && Number.isFinite(priceRecord.min)
-      ? priceRecord.min
-      : null
+    typeof rawMin === "number" && Number.isFinite(rawMin) ? rawMin : null
   const max =
-    typeof priceRecord.max === "number" && Number.isFinite(priceRecord.max)
-      ? priceRecord.max
-      : null
+    typeof rawMax === "number" && Number.isFinite(rawMax) ? rawMax : null
 
   return {
-    status: normalizeFacetItems(facetsRecord.status),
-    form: normalizeFacetItems(facetsRecord.form),
-    brand: normalizeFacetItems(facetsRecord.brand),
-    ingredient: normalizeFacetItems(facetsRecord.ingredient),
+    status: normalizeFacetItems(facetsRecord["status"]),
+    form: normalizeFacetItems(facetsRecord["form"]),
+    brand: normalizeFacetItems(facetsRecord["brand"]),
+    ingredient: normalizeFacetItems(facetsRecord["ingredient"]),
     price: {
       min,
       max,
@@ -262,7 +263,9 @@ export function createMedusaCatalogService<
   TFacets = CatalogFacets,
 >(
   sdk: Medusa,
-  config?: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+  config?:
+    | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+    | undefined
 ): CatalogService<TProduct, TListParams, TFacets> {
   const {
     listPath = "/store/catalog/products",
@@ -275,9 +278,10 @@ export function createMedusaCatalogService<
   } = config ?? {}
 
   const baseTransform =
-    transformProduct ?? ((product) => product as unknown as TProduct)
+    transformProduct ??
+    ((product) => ({ ...product }) as typeof product & TProduct)
   const mapFacets =
-    transformFacets ?? ((facets) => facets as unknown as TFacets)
+    transformFacets ?? ((facets) => ({ ...facets }) as typeof facets & TFacets)
   const mapListProduct: (
     product: HttpTypes.StoreProduct,
     context: MedusaCatalogTransformContext<TListParams, TFacets>
@@ -296,14 +300,14 @@ export function createMedusaCatalogService<
   return {
     async getCatalogProducts(
       params: TListParams,
-      signal?: AbortSignal
+      signal?: AbortSignal | undefined
     ): Promise<CatalogListResponse<TProduct, TFacets>> {
       const query = buildListQuery(params)
       const rawResponse = await sdk.client.fetch<MedusaCatalogListResponse>(
         listPath,
         {
           query,
-          signal,
+          signal: signal ?? null,
         }
       )
 

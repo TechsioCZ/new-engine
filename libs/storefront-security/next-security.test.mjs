@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+
 import {
   buildDevHmrOrigins,
   buildStorefrontContentSecurityPolicy,
@@ -135,7 +136,7 @@ test("unknown preset fails fast", () => {
   )
 })
 
-test("createStorefrontSecurityConfig supports preset + extend + replace", async () => {
+test("createStorefrontSecurityConfig supports preset + extend + replace", () => {
   const securityConfig = createStorefrontSecurityConfig({
     preset: "medusaStorefront",
     isProduction: false,
@@ -152,7 +153,7 @@ test("createStorefrontSecurityConfig supports preset + extend + replace", async 
     },
   })
 
-  const headerGroups = await securityConfig.headers()
+  const headerGroups = securityConfig.headers()
   const responseHeaders = headerGroups[0].headers
   const cspHeader = responseHeaders.find(
     (header) => header.key === "Content-Security-Policy"
@@ -170,12 +171,15 @@ test("createStorefrontSecurityConfig supports preset + extend + replace", async 
     cspHeader?.value ?? "",
     /script-src 'self' 'unsafe-inline' 'unsafe-eval' https:\/\/www\.googletagmanager\.com/
   )
-  assert.match(cspHeader?.value ?? "", /frame-src 'self' https:\/\/www\.ppl\.cz/)
+  assert.match(
+    cspHeader?.value ?? "",
+    /frame-src 'self' https:\/\/www\.ppl\.cz/
+  )
   assert.equal(permissionsHeader?.value, "camera=(), microphone=()")
   assert.equal(cacheControlHeader?.value, "public, max-age=60")
 })
 
-test("replace headers win over extend headers", async () => {
+test("replace headers win over extend headers", () => {
   const securityConfig = createStorefrontSecurityConfig({
     isProduction: false,
     publicBackendUrl: "https://demo-medusa.example.com",
@@ -187,23 +191,23 @@ test("replace headers win over extend headers", async () => {
     },
   })
 
-  const frameOptionsHeader = (await securityConfig.headers())[0].headers.find(
-    (header) => header.key === "X-Frame-Options"
-  )
+  const frameOptionsHeader = securityConfig
+    .headers()[0]
+    .headers.find((header) => header.key === "X-Frame-Options")
 
   assert.equal(frameOptionsHeader?.value, "DENY")
 })
 
-test("legacy additional* options still extend the preset", async () => {
+test("legacy additional* options still extend the preset", () => {
   const securityConfig = createStorefrontSecurityConfig({
     isProduction: false,
     publicBackendUrl: "https://demo-medusa.example.com",
     additionalConnectSrc: ["https://www.google-analytics.com"],
   })
 
-  const cspHeader = (await securityConfig.headers())[0].headers.find(
-    (header) => header.key === "Content-Security-Policy"
-  )
+  const cspHeader = securityConfig
+    .headers()[0]
+    .headers.find((header) => header.key === "Content-Security-Policy")
 
   assert.match(cspHeader?.value ?? "", /https:\/\/www\.google-analytics\.com/)
 })

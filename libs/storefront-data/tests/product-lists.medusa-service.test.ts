@@ -1,16 +1,16 @@
-import type Medusa from "@medusajs/js-sdk"
 import { createMedusaProductListService } from "../src/product-lists/medusa-service"
+import { createTestMedusaSdk } from "./medusa-fixtures"
 
-const createSdkMock = (response: unknown = {}) =>
-  ({
-    client: {
-      fetch: vi.fn().mockResolvedValue(response),
-    },
-  }) as unknown as Medusa
+const createSdkMock = (response: unknown = {}) => {
+  const sdk = createTestMedusaSdk()
+  const fetch = vi.fn().mockResolvedValue(response)
+  Object.defineProperty(sdk.client, "fetch", { value: fetch })
+  return { fetch, sdk }
+}
 
 describe("createMedusaProductListService", () => {
   it("lists product lists with normalized pagination and forwards signal", async () => {
-    const sdk = createSdkMock({
+    const { sdk } = createSdkMock({
       product_lists: [{ id: "list_1", title: "Favorites" }],
       count: 1,
       limit: 12,
@@ -41,7 +41,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("adds favorite items with backend field names and normalized quantity", async () => {
-    const sdk = createSdkMock({
+    const { sdk } = createSdkMock({
       product_list_item: {
         id: "item_1",
         product_id: "prod_1",
@@ -77,7 +77,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("rejects zero relative quantity changes before calling the backend", async () => {
-    const sdk = createSdkMock()
+    const { sdk } = createSdkMock()
     const service = createMedusaProductListService(sdk)
 
     await expect(
@@ -91,7 +91,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("sends compact relative quantity payloads", async () => {
-    const sdk = createSdkMock({
+    const { sdk } = createSdkMock({
       product_list_item: {
         id: "item_1",
         quantity: 2,
@@ -116,7 +116,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("sends compact increment payloads with default quantity", async () => {
-    const sdk = createSdkMock({
+    const { sdk } = createSdkMock({
       product_list_item: {
         id: "item_1",
         quantity: 1,
@@ -140,7 +140,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("creates a cart from a product list and maps storefront cart input fields", async () => {
-    const sdk = createSdkMock({
+    const { sdk } = createSdkMock({
       cart: {
         id: "cart_1",
         region_id: "reg_1",

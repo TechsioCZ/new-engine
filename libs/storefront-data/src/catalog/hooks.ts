@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import {
   type CacheConfig,
   type CacheStrategy,
@@ -15,6 +16,7 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
+import { omitUndefined } from "../shared/object-utils"
 import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
@@ -68,7 +70,8 @@ export function createCatalogHooks<
   const resolvedQueryKeys =
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
   const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+    buildListParams ??
+    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
   const { getListQueryOptions } = createCatalogQueryOptionsFactory({
     service,
     buildListParams: buildList,
@@ -96,11 +99,14 @@ export function createCatalogHooks<
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
     const query = useQuery({
-      ...getListQueryOptions(input, {
-        cacheStrategy,
-        queryOptions: options?.queryOptions,
-        region: contextRegion,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy,
+          queryOptions: options?.queryOptions,
+          region: contextRegion,
+        })
+      ),
       enabled,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -156,11 +162,14 @@ export function createCatalogHooks<
 
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const query = useSuspenseQuery({
-      ...getListQueryOptions(input, {
-        cacheStrategy,
-        queryOptions: options?.queryOptions,
-        region: contextRegion,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy,
+          queryOptions: options?.queryOptions,
+          region: contextRegion,
+        })
+      ),
     })
     const { data, isFetching } = query
 
@@ -295,10 +304,13 @@ export function createCatalogHooks<
       return
     }
     await queryClient.prefetchQuery(
-      getListQueryOptions(input, {
-        cacheStrategy: "semiStatic",
-        region,
-      })
+      getListQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy: "semiStatic" as const,
+          region,
+        })
+      )
     )
   }
 
