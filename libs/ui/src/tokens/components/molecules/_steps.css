@@ -4,6 +4,7 @@
  * Kept here:
  *   - `--spacing-steps-list-vertical` (container-based width).
  *   - bare text defaults (Figma exports per-size only).
+ *   - semantic color and font-weight aliases not exported by Figma.
  *   - h-/w- aliases for the Figma progress/separator size axes.
  */
 
@@ -13,6 +14,10 @@
   --text-steps-title: var(--text-md);
   --text-steps-description: var(--text-sm);
   --text-steps-icon: var(--text-md);
+  --font-weight-steps-number: var(--font-weight-medium);
+  --font-weight-steps-title: var(--font-weight-medium);
+
+  --color-steps-fg: var(--color-steps-content-fg);
   --font-weight-steps-number: var(--font-weight-medium);
   --font-weight-steps-title: var(--font-weight-medium);
 
