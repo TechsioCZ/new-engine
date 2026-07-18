@@ -4,6 +4,7 @@ import {
   updateOrderWorkflow,
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import {
   type InvoiceOrderLookupKeys,
   invoicesBatchClientMapperHelper,
@@ -81,7 +82,7 @@ export class InvoicesBatchClient {
         files: [this.mapper.buildUploadPayload(invoice)] as never,
       },
     })
-    return (result?.[0] ?? null) as UploadedInvoice | null
+    return result?.[0] ?? null
   }
 
   async attachInvoice(
@@ -117,7 +118,7 @@ export class InvoicesBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "order",
-      fields: ORDER_FIELDS as unknown as string[],
+      fields: Array.from(ORDER_FIELDS),
       filters,
     })
     return (data ?? []) as ExistingOrder[]

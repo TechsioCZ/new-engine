@@ -7,6 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 type ProductRecord = {
@@ -32,8 +33,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     : fields
 
   if (isPresent(req.pricingContext)) {
-    context.variants ??= {}
-    ;(context.variants as Record<string, unknown>).calculated_price =
+    context["variants"] ??= {}
+    ;(context["variants"] as Record<string, unknown>)["calculated_price"] =
       QueryContext(req.pricingContext as Record<string, unknown>)
   }
 

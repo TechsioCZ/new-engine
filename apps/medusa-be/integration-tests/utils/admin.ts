@@ -4,7 +4,7 @@ import type {
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import jwt from "jsonwebtoken"
-import Scrypt from "scrypt-kdf"
+import * as Scrypt from "scrypt-kdf"
 
 export const adminHeaders: { headers: Record<string, string> } = {
   headers: {},
@@ -28,7 +28,7 @@ export const createAdminUser = async (targetAdminHeaders, appContainer) => {
         provider: "emailpass",
         entity_id: "admin@medusa.js",
         provider_metadata: {
-          password: passwordHash.toString("base64"),
+          password: Buffer.from(passwordHash).toString("base64"),
         },
       },
     ],

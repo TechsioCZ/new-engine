@@ -1,5 +1,6 @@
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table"
 import { useState } from "react"
+
 import { DataTable } from "../../../../components"
 import { useVariants } from "../../../../hooks/api"
 import { useDataTable } from "../../../../hooks/use-data-table"
@@ -34,10 +35,11 @@ export const ManageItemsTable = ({
     prefix: PREFIX,
   })
 
-  const { variants = [], count } = useVariants({
+  const variantQuery = {
     ...searchParams,
     fields: "*inventory_items.inventory.location_levels,+inventory_quantity",
-  })
+  }
+  const { variants = [], count } = useVariants(variantQuery)
 
   const columns = useManageItemsTableColumns(currencyCode)
   const filters = useManageItemsTableFilters()
@@ -45,7 +47,7 @@ export const ManageItemsTable = ({
   const { table } = useDataTable({
     data: variants,
     columns,
-    count,
+    count: count ?? 0,
     enablePagination: true,
     getRowId: (row) => row.id,
     pageSize: PAGE_SIZE,
@@ -60,7 +62,7 @@ export const ManageItemsTable = ({
     <div className="flex size-full flex-col overflow-hidden">
       <DataTable
         columns={columns}
-        count={count}
+        count={count ?? 0}
         filters={filters}
         layout="fill"
         orderBy={["product_id", "title", "sku"]}

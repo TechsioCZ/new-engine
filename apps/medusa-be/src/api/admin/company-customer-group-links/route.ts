@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 
@@ -32,7 +33,7 @@ export const GET = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ) => {
-  const groupIds = [...new Set(toStringArray(req.query.group_id))]
+  const groupIds = [...new Set(toStringArray(req.query["group_id"]))]
 
   if (!groupIds.length) {
     res.json({ customer_group_links: [] })

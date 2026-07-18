@@ -13,10 +13,16 @@ import {
   createLinksWorkflow,
   dismissLinksWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import { ProductProducerLink } from "../../../links/product-producer"
 import { PRODUCER_MODULE } from "../../../modules/producer"
 import type ProducerModuleService from "../../../modules/producer/service"
 import type { ProducerAttributeInput } from "../types"
+
+const isProducerEntity = (
+  value: unknown
+): value is Record<string, unknown> & object =>
+  typeof value === "object" && value !== null
 
 type ProducerAttributeRecord = {
   id: string
@@ -75,33 +81,33 @@ export const withProducerTransaction = <T>(
     (transactionManager) => task({ transactionManager } as Context)
   )
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const isProducerSnapshotRecord = (
   producer: unknown
 ): producer is ProducerSnapshotRecord => {
-  if (!isRecord(producer)) {
+  if (!isProducerEntity(producer)) {
     return false
   }
 
   if (
-    typeof producer.id !== "string" ||
-    typeof producer.title !== "string" ||
-    typeof producer.handle !== "string" ||
-    !Array.isArray(producer.attributes)
+    typeof producer["id"] !== "string" ||
+    typeof producer["title"] !== "string" ||
+    typeof producer["handle"] !== "string" ||
+    !Array.isArray(producer["attributes"])
   ) {
     return false
   }
 
-  return producer.attributes.every((attribute) => {
-    if (!isRecord(attribute) || typeof attribute.value !== "string") {
+  return producer["attributes"].every((attribute) => {
+    if (
+      !isProducerEntity(attribute) ||
+      typeof attribute["value"] !== "string"
+    ) {
       return false
     }
 
     return (
-      isRecord(attribute.attributeType) &&
-      typeof attribute.attributeType.name === "string"
+      isProducerEntity(attribute["attributeType"]) &&
+      typeof attribute["attributeType"]["name"] === "string"
     )
   })
 }

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   ModuleCompanySpendingLimitResetFrequency,
   type QueryCompany,
@@ -14,7 +15,7 @@ type CustomerSpendContext = {
   orders?: HttpTypes.StoreOrder[] | null
 }
 
-export function getSpendWindow(company: QueryCompany): {
+function getSpendWindow(company: QueryCompany): {
   start: Date
   end: Date
 } {
@@ -48,7 +49,7 @@ export function getSpendWindow(company: QueryCompany): {
   }
 }
 
-export function getOrderTotalInSpendWindow(
+function getOrderTotalInSpendWindow(
   orders: HttpTypes.StoreOrder[],
   spendWindow: { start: Date; end: Date }
 ): number {

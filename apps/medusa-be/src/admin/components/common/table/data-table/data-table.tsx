@@ -1,12 +1,12 @@
 import { clx } from "@medusajs/ui"
-import { TableSkeleton } from "../../skeleton"
+
 import { NoRecords, type NoResultsProps } from "../"
+import { TableSkeleton } from "../../skeleton"
 import { DataTableQuery, type DataTableQueryProps } from "./data-table-query"
 import { DataTableRoot, type DataTableRootProps } from "./data-table-root"
 
 interface DataTableProps<TData>
-  extends Omit<DataTableRootProps<TData>, "noResults">,
-    DataTableQueryProps {
+  extends Omit<DataTableRootProps<TData>, "noResults">, DataTableQueryProps {
   isLoading?: boolean
   pageSize: number
   queryObject?: Record<string, unknown>
@@ -67,17 +67,17 @@ export const DataTable = <TData,>({
       })}
     >
       <DataTableQuery
-        filters={filters}
-        orderBy={orderBy}
-        prefix={prefix}
+        {...(filters ? { filters } : {})}
+        {...(orderBy ? { orderBy } : {})}
+        {...(prefix ? { prefix } : {})}
         search={search}
       />
       <DataTableRoot
         columns={columns}
-        commands={commands}
+        {...(commands ? { commands } : {})}
         count={count}
         layout={layout}
-        navigateTo={navigateTo}
+        {...(navigateTo ? { navigateTo } : {})}
         noHeader={noHeader}
         noResults={noResults}
         pagination

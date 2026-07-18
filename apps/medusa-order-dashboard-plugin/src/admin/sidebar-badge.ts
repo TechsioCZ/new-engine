@@ -81,7 +81,7 @@ async function refreshOrderDashboardSidebarBadge() {
 }
 
 function queueOrderDashboardSidebarBadgeRefresh() {
-  refreshOrderDashboardSidebarBadge()
+  void refreshOrderDashboardSidebarBadge()
 }
 
 function canRefreshOrderDashboardSidebarBadge() {

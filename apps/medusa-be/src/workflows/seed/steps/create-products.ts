@@ -18,8 +18,10 @@ import {
   createProductsWorkflow,
   updateProductsWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import { PRODUCER_MODULE } from "../../../modules/producer"
 import type ProducerModuleService from "../../../modules/producer/service"
+import { definedProperties } from "../../../utils/defined-properties"
 
 type ProductInput = {
   title: string
@@ -233,7 +235,7 @@ function getSourceVariantId(variant: {
     return
   }
 
-  return toMetadataId(metadata.source_variant_id ?? metadata.variant_id)
+  return toMetadataId(metadata["source_variant_id"] ?? metadata["variant_id"])
 }
 
 function findExistingVariant(
@@ -243,10 +245,7 @@ function findExistingVariant(
   const sourceVariantId = getSourceVariantId(inputVariant)
   if (sourceVariantId) {
     const bySourceId = (existingProduct.variants ?? []).find((variant) => {
-      const metadata = (
-        variant as { metadata?: Record<string, unknown> | null }
-      ).metadata
-      return getSourceVariantId({ metadata }) === sourceVariantId
+      return getSourceVariantId(variant) === sourceVariantId
     })
 
     if (bySourceId) {
@@ -451,23 +450,21 @@ function buildUpdateVariant(
   inputVariant: NonNullable<ProductInput["variants"]>[number]
 ) {
   const existingVariant = findExistingVariant(existingProduct, inputVariant)
+  const variant = definedProperties({
+    title: inputVariant.title,
+    sku: inputVariant.sku,
+    ean: inputVariant.ean,
+    material: inputVariant.material,
+    options: inputVariant.options,
+    prices: inputVariant.prices?.map((price) => ({
+      amount: price.amount,
+      currency_code: price.currency_code,
+    })),
+    thumbnail: inputVariant.thumbnail,
+    metadata: inputVariant.metadata,
+  })
 
-  return existingVariant
-    ? {
-        title: inputVariant.title,
-        sku: inputVariant.sku,
-        ean: inputVariant.ean,
-        material: inputVariant.material,
-        options: inputVariant.options,
-        prices: inputVariant.prices?.map((p) => ({
-          amount: p.amount,
-          currency_code: p.currency_code,
-        })),
-        thumbnail: inputVariant.thumbnail,
-        metadata: inputVariant.metadata,
-        id: existingVariant.id,
-      }
-    : inputVariant
+  return existingVariant ? { ...variant, id: existingVariant.id } : variant
 }
 
 function buildUpdateProductPayload(params: {
@@ -485,10 +482,10 @@ function buildUpdateProductPayload(params: {
     existingSalesChannels,
   } = params
 
-  return {
+  return definedProperties({
     id: existingProduct.id,
     title: inputProduct.title,
-    categories: inputProduct.categories?.map((inputCat) =>
+    categories: inputProduct.categories.map((inputCat) =>
       resolveCategory(existingCategories, inputCat.handle)
     ),
     description: inputProduct.description,
@@ -499,8 +496,8 @@ function buildUpdateProductPayload(params: {
       existingShippingProfiles,
       inputProduct.shippingProfileName
     ),
-    thumbnail: inputProduct.thumbnail || existingProduct.thumbnail,
-    images: inputProduct.images ?? [],
+    thumbnail: inputProduct.thumbnail || existingProduct.thumbnail || undefined,
+    images: inputProduct.images,
     options: inputProduct.options,
     variants: inputProduct.variants?.map((inputVariant) =>
       buildUpdateVariant(existingProduct, inputVariant)
@@ -508,13 +505,13 @@ function buildUpdateProductPayload(params: {
     sales_channels: inputProduct.salesChannelNames.map((name) =>
       resolveSalesChannel(existingSalesChannels, name)
     ),
-  }
+  })
 }
 
 function buildCreateVariant(
   inputVariant: NonNullable<ProductInput["variants"]>[number]
 ) {
-  return {
+  return definedProperties({
     title: inputVariant.title,
     sku: inputVariant.sku,
     ean: inputVariant.ean,
@@ -526,7 +523,7 @@ function buildCreateVariant(
       currency_code: price.currency_code,
     })),
     metadata: inputVariant.metadata,
-  }
+  })
 }
 
 function buildCreateProductPayload(params: {
@@ -542,9 +539,9 @@ function buildCreateProductPayload(params: {
     existingSalesChannels,
   } = params
 
-  return {
+  return definedProperties({
     title: inputProduct.title,
-    category_ids: inputProduct.categories?.map(
+    category_ids: inputProduct.categories.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
     ),
     description: inputProduct.description,
@@ -557,13 +554,13 @@ function buildCreateProductPayload(params: {
       inputProduct.shippingProfileName
     ),
     thumbnail: inputProduct.thumbnail,
-    images: inputProduct.images ?? [],
+    images: inputProduct.images,
     options: inputProduct.options,
     variants: inputProduct.variants?.map(buildCreateVariant),
     sales_channels: inputProduct.salesChannelNames.map((name) =>
       resolveSalesChannel(existingSalesChannels, name)
     ),
-  }
+  })
 }
 
 function buildUpdateProductPayloads(params: {

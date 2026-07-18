@@ -123,8 +123,8 @@ const dedupe = (values: string[]): string[] => {
 }
 
 const resolveCategoryPaths = (document: UnknownRecord): string[] => {
-  const metadata = asRecord(document.metadata)
-  const categoryPaths = asArray(metadata?.category_paths)
+  const metadata = asRecord(document["metadata"])
+  const categoryPaths = asArray(metadata?.["category_paths"])
 
   return categoryPaths.filter(
     (value): value is string => typeof value === "string"
@@ -134,7 +134,7 @@ const resolveCategoryPaths = (document: UnknownRecord): string[] => {
 const resolveSalesChannelFacetIds = (document: UnknownRecord): string[] => {
   const ids: string[] = []
 
-  for (const rawSalesChannel of asArray(document.sales_channels)) {
+  for (const rawSalesChannel of asArray(document["sales_channels"])) {
     const salesChannel = asRecord(rawSalesChannel)
     const id = getStringField(salesChannel, "id")
     if (id) {
@@ -142,7 +142,7 @@ const resolveSalesChannelFacetIds = (document: UnknownRecord): string[] => {
     }
   }
 
-  for (const rawSalesChannelLink of asArray(document.sales_channels_link)) {
+  for (const rawSalesChannelLink of asArray(document["sales_channels_link"])) {
     const salesChannelLink = asRecord(rawSalesChannelLink)
     const salesChannelId = getStringField(salesChannelLink, "sales_channel_id")
     if (salesChannelId) {
@@ -154,10 +154,10 @@ const resolveSalesChannelFacetIds = (document: UnknownRecord): string[] => {
 }
 
 const resolveProductInStock = (document: UnknownRecord): boolean => {
-  const metadata = asRecord(document.metadata)
-  const topOffer = asRecord(metadata?.top_offer)
-  const stock = asRecord(topOffer?.stock)
-  const amount = stock?.amount
+  const metadata = asRecord(document["metadata"])
+  const topOffer = asRecord(metadata?.["top_offer"])
+  const stock = asRecord(topOffer?.["stock"])
+  const amount = stock?.["amount"]
 
   if (typeof amount === "number") {
     return amount > 0
@@ -172,17 +172,17 @@ const resolveProductInStock = (document: UnknownRecord): boolean => {
 }
 
 const resolveActiveFlagCodes = (document: UnknownRecord): string[] => {
-  const metadata = asRecord(document.metadata)
-  const rawFlags = asArray(metadata?.flags)
+  const metadata = asRecord(document["metadata"])
+  const rawFlags = asArray(metadata?.["flags"])
   const codes: string[] = []
 
   for (const rawFlag of rawFlags) {
     const flag = asRecord(rawFlag)
-    if (!flag || flag.active !== true || typeof flag.code !== "string") {
+    if (!flag || flag["active"] !== true || typeof flag["code"] !== "string") {
       continue
     }
 
-    codes.push(flag.code.toLowerCase())
+    codes.push(flag["code"].toLowerCase())
   }
 
   return dedupe(codes)
@@ -190,7 +190,7 @@ const resolveActiveFlagCodes = (document: UnknownRecord): string[] => {
 
 const resolveStatusKeywordCodes = (document: UnknownRecord): string[] => {
   const searchableText = normalizeForMatch(
-    `${typeof document.title === "string" ? document.title : ""} ${resolveCategoryPaths(document).join(" ")}`
+    `${typeof document["title"] === "string" ? document["title"] : ""} ${resolveCategoryPaths(document).join(" ")}`
   )
   const codes: string[] = []
 
@@ -219,7 +219,7 @@ const resolveStatusFacetIds = (document: UnknownRecord): string[] => {
 
 const resolveFormFacetIds = (document: UnknownRecord): string[] => {
   const searchableText = normalizeForMatch(
-    `${typeof document.title === "string" ? document.title : ""} ${resolveCategoryPaths(document).join(" ")}`
+    `${typeof document["title"] === "string" ? document["title"] : ""} ${resolveCategoryPaths(document).join(" ")}`
   )
 
   const ids: string[] = []
@@ -246,23 +246,23 @@ const sanitizeHandle = (value: string): string | undefined => {
 }
 
 const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
-  const producerCandidates = asArray(document.producer)
+  const producerCandidates = asArray(document["producer"])
   const producer =
     producerCandidates.length > 0
       ? asRecord(producerCandidates[0])
-      : asRecord(document.producer)
+      : asRecord(document["producer"])
 
   if (!producer) {
     return []
   }
 
   const producerHandle =
-    typeof producer.handle === "string"
-      ? sanitizeHandle(producer.handle)
+    typeof producer["handle"] === "string"
+      ? sanitizeHandle(producer["handle"])
       : undefined
   const producerTitle =
-    typeof producer.title === "string"
-      ? sanitizeHandle(producer.title)
+    typeof producer["title"] === "string"
+      ? sanitizeHandle(producer["title"])
       : undefined
   const handle = producerHandle ?? producerTitle
 
@@ -278,27 +278,27 @@ const isActiveIngredientRoot = (value: string): boolean =>
 
 const resolveIngredientFacetIds = (document: UnknownRecord): string[] => {
   const ids: string[] = []
-  const categories = asArray(document.categories)
+  const categories = asArray(document["categories"])
 
   for (const rawCategory of categories) {
     const category = asRecord(rawCategory)
-    if (!category || typeof category.handle !== "string") {
+    if (!category || typeof category["handle"] !== "string") {
       continue
     }
 
-    if (!category.handle.startsWith(ACTIVE_INGREDIENT_HANDLE_PREFIX)) {
+    if (!category["handle"].startsWith(ACTIVE_INGREDIENT_HANDLE_PREFIX)) {
       continue
     }
 
     if (
-      typeof category.name === "string" &&
-      category.name.trim() &&
-      isActiveIngredientRoot(category.name)
+      typeof category["name"] === "string" &&
+      category["name"].trim() &&
+      isActiveIngredientRoot(category["name"])
     ) {
       continue
     }
 
-    const handle = sanitizeHandle(category.handle)
+    const handle = sanitizeHandle(category["handle"])
     if (!handle) {
       continue
     }
@@ -310,15 +310,15 @@ const resolveIngredientFacetIds = (document: UnknownRecord): string[] => {
 }
 
 const resolveCategoryFacetIds = (document: UnknownRecord): string[] => {
-  const categories = asArray(document.categories)
+  const categories = asArray(document["categories"])
   const ids: string[] = []
 
   for (const rawCategory of categories) {
     const category = asRecord(rawCategory)
-    if (!category || typeof category.id !== "string") {
+    if (!category || typeof category["id"] !== "string") {
       continue
     }
-    ids.push(category.id)
+    ids.push(category["id"])
   }
 
   return dedupe(ids)
@@ -367,7 +367,11 @@ const parsePositiveFacetPrice = (value: unknown): number | undefined => {
 const resolveTopOfferFacetPrice = (
   topOffer: UnknownRecord | null
 ): number | undefined =>
-  [topOffer?.current_price, topOffer?.action_price, topOffer?.price_vat]
+  [
+    topOffer?.["current_price"],
+    topOffer?.["action_price"],
+    topOffer?.["price_vat"],
+  ]
     .map(parsePositiveFacetPrice)
     .find((price) => price !== undefined)
 
@@ -378,11 +382,11 @@ const resolveVariantMinFacetPrice = (
 
   for (const rawVariant of variants) {
     const variant = asRecord(rawVariant)
-    const prices = asArray(variant?.prices)
+    const prices = asArray(variant?.["prices"])
 
     for (const rawPrice of prices) {
       const price = asRecord(rawPrice)
-      const amount = parseNumericValue(price?.amount)
+      const amount = parseNumericValue(price?.["amount"])
       if (amount === undefined) {
         continue
       }
@@ -402,11 +406,13 @@ const resolveVariantMinFacetPrice = (
 }
 
 const resolveFacetPrice = (document: UnknownRecord): number | undefined => {
-  const metadata = asRecord(document.metadata)
-  const topOfferPrice = resolveTopOfferFacetPrice(asRecord(metadata?.top_offer))
+  const metadata = asRecord(document["metadata"])
+  const topOfferPrice = resolveTopOfferFacetPrice(
+    asRecord(metadata?.["top_offer"])
+  )
 
   return (
-    topOfferPrice ?? resolveVariantMinFacetPrice(asArray(document.variants))
+    topOfferPrice ?? resolveVariantMinFacetPrice(asArray(document["variants"]))
   )
 }
 
@@ -414,9 +420,9 @@ export const buildProductFacetDocument = (
   document: unknown
 ): ProductFacetDocument => {
   const product = asRecord(document) ?? {}
-
-  return {
-    facet_product_status: getStringField(product, "status"),
+  const productStatus = getStringField(product, "status")
+  const facetPrice = resolveFacetPrice(product)
+  const facetDocument: ProductFacetDocument = {
     facet_sales_channel_ids: resolveSalesChannelFacetIds(product),
     facet_status: resolveStatusFacetIds(product),
     facet_form: resolveFormFacetIds(product),
@@ -424,8 +430,16 @@ export const buildProductFacetDocument = (
     facet_ingredient: resolveIngredientFacetIds(product),
     facet_category_ids: resolveCategoryFacetIds(product),
     facet_in_stock: resolveProductInStock(product),
-    facet_price: resolveFacetPrice(product),
   }
+
+  if (productStatus !== undefined) {
+    facetDocument.facet_product_status = productStatus
+  }
+  if (facetPrice !== undefined) {
+    facetDocument.facet_price = facetPrice
+  }
+
+  return facetDocument
 }
 
 export const isBrandFacetId = (id: string): boolean =>

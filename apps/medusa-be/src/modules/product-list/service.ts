@@ -4,6 +4,7 @@ import {
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import { normalizeTrimmedText } from "../../utils/string"
 import {
   DEFAULT_FAVORITE_LIST_HANDLE,

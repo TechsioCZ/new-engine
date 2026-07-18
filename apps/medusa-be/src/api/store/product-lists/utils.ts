@@ -1,5 +1,6 @@
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"

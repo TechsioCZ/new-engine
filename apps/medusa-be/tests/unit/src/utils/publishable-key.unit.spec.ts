@@ -1,25 +1,59 @@
-import type {
-  IApiKeyModuleService,
-  ILockingModule,
-} from "@medusajs/framework/types"
+import type { ApiKeyDTO, ILockingModule } from "@medusajs/framework/types"
 import type { Mocked } from "vitest"
 import { afterEach, describe, expect, it, vi } from "vitest"
+
 import {
   getActivePublishableKey,
   provisionPublishableKey,
   resolvePublishableKeyTitle,
 } from "../../../../src/utils/publishable-key"
 
-const createApiKeyService = () =>
-  ({
-    listApiKeys: vi.fn(),
-    createApiKeys: vi.fn(),
-  }) as unknown as Mocked<IApiKeyModuleService>
+type ApiKeyServiceStub = {
+  createApiKeys: (data: {
+    created_by: string
+    title: string
+    type: "publishable"
+  }) => Promise<ApiKeyDTO>
+  listApiKeys: (filters: {
+    title: string
+    type: "publishable"
+  }) => Promise<ApiKeyDTO[]>
+}
+type LockingModuleStub = Pick<ILockingModule, "execute">
 
-const createLockingModule = () =>
-  ({
-    execute: vi.fn(async (_key, callback) => await callback()),
-  }) as unknown as Mocked<ILockingModule>
+const createApiKeyService = (): Mocked<ApiKeyServiceStub> => ({
+  listApiKeys: vi.fn(),
+  createApiKeys: vi.fn(),
+})
+
+/**
+ * `ILockingModule["execute"]` is a genuinely generic method (`<T>(...) =>
+ * Promise<T>`). Vitest's `Mock<T>` type loses genericity when wrapping a
+ * generic call signature, so the mock is built from a simpler, non-generic
+ * implementation shape and cast once at this single boundary.
+ */
+const createLockingModule = (): LockingModuleStub => ({
+  execute: vi.fn(
+    async (_key: string | string[], callback: () => Promise<unknown>) =>
+      await callback()
+  ) as ILockingModule["execute"],
+})
+
+const createApiKey = (
+  overrides: Partial<ApiKeyDTO> & Pick<ApiKeyDTO, "id" | "token">
+): ApiKeyDTO => ({
+  created_at: new Date(),
+  created_by: "user_123",
+  deleted_at: null,
+  last_used_at: null,
+  redacted: `${overrides.token.slice(0, 3)}...`,
+  revoked_at: null,
+  revoked_by: null,
+  title: "CI Key",
+  type: "publishable",
+  updated_at: new Date(),
+  ...overrides,
+})
 
 describe("publishable-key utils", () => {
   const originalInitialPublishableKeyName =
@@ -60,20 +94,15 @@ describe("publishable-key utils", () => {
     it("returns the first non-revoked publishable key", async () => {
       const apiKeyService = createApiKeyService()
       apiKeyService.listApiKeys.mockResolvedValue([
-        {
+        createApiKey({
           id: "key_revoked",
-          title: "CI Key",
           token: "pk_revoked",
-          type: "publishable",
           revoked_at: new Date(),
-        } as any,
-        {
+        }),
+        createApiKey({
           id: "key_active",
-          title: "CI Key",
           token: "pk_active",
-          type: "publishable",
-          revoked_at: null,
-        } as any,
+        }),
       ])
 
       const result = await getActivePublishableKey({
@@ -98,13 +127,11 @@ describe("publishable-key utils", () => {
     it("returns null when no active publishable key exists", async () => {
       const apiKeyService = createApiKeyService()
       apiKeyService.listApiKeys.mockResolvedValue([
-        {
+        createApiKey({
           id: "key_revoked",
-          title: "CI Key",
           token: "pk_revoked",
-          type: "publishable",
           revoked_at: new Date(),
-        } as any,
+        }),
       ])
 
       await expect(
@@ -118,13 +145,10 @@ describe("publishable-key utils", () => {
     it("returns an existing active key without creating a new one", async () => {
       const apiKeyService = createApiKeyService()
       apiKeyService.listApiKeys.mockResolvedValue([
-        {
+        createApiKey({
           id: "key_existing",
-          title: "CI Key",
           token: "pk_existing",
-          type: "publishable",
-          revoked_at: null,
-        } as any,
+        }),
       ])
 
       const result = await provisionPublishableKey({
@@ -147,20 +171,15 @@ describe("publishable-key utils", () => {
     it("creates a new key when only revoked keys exist", async () => {
       const apiKeyService = createApiKeyService()
       apiKeyService.listApiKeys.mockResolvedValue([
-        {
+        createApiKey({
           id: "key_revoked",
-          title: "CI Key",
           token: "pk_revoked",
-          type: "publishable",
           revoked_at: new Date(),
-        } as any,
+        }),
       ])
-      apiKeyService.createApiKeys.mockResolvedValue({
-        id: "key_created",
-        title: "CI Key",
-        token: "pk_created",
-        type: "publishable",
-      } as any)
+      apiKeyService.createApiKeys.mockResolvedValue(
+        createApiKey({ id: "key_created", token: "pk_created" })
+      )
 
       const result = await provisionPublishableKey({
         apiKeyService,
@@ -187,12 +206,9 @@ describe("publishable-key utils", () => {
       const apiKeyService = createApiKeyService()
       const lockingModule = createLockingModule()
       apiKeyService.listApiKeys.mockResolvedValue([])
-      apiKeyService.createApiKeys.mockResolvedValue({
-        id: "key_created",
-        title: "CI Key",
-        token: "pk_created",
-        type: "publishable",
-      } as any)
+      apiKeyService.createApiKeys.mockResolvedValue(
+        createApiKey({ id: "key_created", token: "pk_created" })
+      )
 
       await provisionPublishableKey({
         apiKeyService,

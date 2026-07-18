@@ -12,6 +12,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
+
 import { sdk } from "../../../lib/sdk"
 
 export const handle = {
@@ -230,7 +231,7 @@ const PacketaSettingsPage = () => {
     e.preventDefault()
     const payload: PacketaConfigPayload = { ...formData }
     if (payload.default_label_format === "") {
-      payload.default_label_format = undefined
+      delete payload.default_label_format
     }
     for (const field of clearedFields) {
       payload[field] = null
@@ -297,7 +298,7 @@ const PacketaSettingsPage = () => {
       label: "API Password",
       placeholder: "Your Packeta API password",
       type: "password",
-      isSet: packetaConfig?.api_password_set,
+      isSet: packetaConfig?.api_password_set ?? false,
       colSpan: 2,
     },
     {
@@ -317,25 +318,25 @@ const PacketaSettingsPage = () => {
       field: "cod_bank_account",
       label: "Bank Account",
       placeholder: "Bank account",
-      isSet: packetaConfig?.cod_bank_account_set,
+      isSet: packetaConfig?.cod_bank_account_set ?? false,
     },
     {
       field: "cod_bank_code",
       label: "Bank Code",
       placeholder: "Bank code",
-      isSet: packetaConfig?.cod_bank_code_set,
+      isSet: packetaConfig?.cod_bank_code_set ?? false,
     },
     {
       field: "cod_iban",
       label: "IBAN",
       placeholder: "IBAN (alternative)",
-      isSet: packetaConfig?.cod_iban_set,
+      isSet: packetaConfig?.cod_iban_set ?? false,
     },
     {
       field: "cod_swift",
       label: "SWIFT",
       placeholder: "SWIFT (with IBAN)",
-      isSet: packetaConfig?.cod_swift_set,
+      isSet: packetaConfig?.cod_swift_set ?? false,
     },
   ]
 

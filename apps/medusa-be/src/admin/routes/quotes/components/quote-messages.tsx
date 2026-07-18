@@ -12,6 +12,7 @@ import {
 import { type Resolver, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
+
 import type { QueryQuote } from "../../../../types"
 import { Form } from "../../../components/common/form"
 import { useCreateQuoteMessage } from "../../../hooks/api"
@@ -93,7 +94,7 @@ export function QuoteMessages({
     await createMessage(
       {
         text: data.text,
-        item_id: data.item_id ?? undefined,
+        ...(data.item_id ? { item_id: data.item_id } : {}),
       },
       {
         onSuccess: () => {
@@ -169,7 +170,7 @@ export function QuoteMessages({
                         <Select
                           onValueChange={onChange}
                           {...field}
-                          value={field.value ?? undefined}
+                          value={field.value ?? ""}
                         >
                           <Select.Trigger className="bg-ui-bg-base" ref={ref}>
                             <Select.Value placeholder={t("form.selectItem")} />

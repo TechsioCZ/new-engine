@@ -55,6 +55,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeContainer = ({
   graph,
   updateProviderIdentities = vi.fn(),
@@ -81,9 +100,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("does nothing when the customer has no emailpass provider identity", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -94,7 +112,7 @@ describe("setAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn()
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    const result = await (setAdminRoleStep as MockStep)(
+    const result = await asMockStep(setAdminRoleStep)(
       { customerId: "cus_1", employeeId: "employee_1" },
       { container }
     )
@@ -104,9 +122,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("sets the company admin role and returns compensation input", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -117,7 +134,7 @@ describe("setAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    const result = await (setAdminRoleStep as MockStep)(
+    const result = await asMockStep(setAdminRoleStep)(
       { customerId: "cus_1", employeeId: "employee_1" },
       { container }
     )
@@ -139,9 +156,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("clears the company admin role on compensation when no other active admin role remains", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -162,7 +178,7 @@ describe("setAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    await (setAdminRoleStep as MockStep).compensate(
+    await asMockStep(setAdminRoleStep).compensate(
       {
         customerId: "cus_1",
         email: "employee@example.com",
@@ -183,9 +199,8 @@ describe("setAdminRoleStep", () => {
   })
 
   it("keeps the company admin role on compensation when another active admin role remains", async () => {
-    const { setAdminRoleStep } = await import(
-      "../../../../../src/workflows/employee/steps/set-admin-role"
-    )
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -215,7 +230,7 @@ describe("setAdminRoleStep", () => {
     const updateProviderIdentities = vi.fn().mockResolvedValue(undefined)
     const container = makeContainer({ graph, updateProviderIdentities })
 
-    await (setAdminRoleStep as MockStep).compensate(
+    await asMockStep(setAdminRoleStep).compensate(
       {
         customerId: "cus_1",
         email: "employee@example.com",

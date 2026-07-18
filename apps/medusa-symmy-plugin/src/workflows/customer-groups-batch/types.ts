@@ -6,24 +6,24 @@ export type CustomerGroupIdentifierType =
 
 export type CustomerGroupInput = {
   identifier_type: CustomerGroupIdentifierType
-  customer_group_id?: string
+  customer_group_id?: string | undefined
   name: string
-  code?: string
-  erp_code?: string
-  metadata?: Record<string, unknown>
+  code?: string | undefined
+  erp_code?: string | undefined
+  metadata?: Record<string, unknown> | undefined
 }
 
 export type UpsertCustomerGroupsBatchInput = {
-  created_by?: string
+  created_by?: string | undefined
   customer_groups: CustomerGroupInput[]
 }
 
 export type UpsertCustomerGroupsBatchResult = {
   identifier_type: CustomerGroupIdentifierType
-  customer_group_id?: string
-  name?: string
-  code?: string
-  erp_code?: string
+  customer_group_id?: string | undefined
+  name?: string | undefined
+  code?: string | undefined
+  erp_code?: string | undefined
   status: "created" | "updated" | "failed"
   error?: string
 }

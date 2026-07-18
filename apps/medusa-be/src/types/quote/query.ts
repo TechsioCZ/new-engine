@@ -4,6 +4,7 @@ import type {
   AdminUser,
   StoreCart,
 } from "@medusajs/types"
+
 import type { QueryEmployee } from "../company/index"
 import type { ModuleQuote, ModuleQuoteMessage } from "./module"
 
@@ -16,7 +17,7 @@ export type QueryQuote = ModuleQuote & {
   messages: QueryQuoteMessage[]
 }
 
-export type QueryQuoteMessage = ModuleQuoteMessage & {
+type QueryQuoteMessage = ModuleQuoteMessage & {
   customer: AdminCustomer
   admin: AdminUser
 }

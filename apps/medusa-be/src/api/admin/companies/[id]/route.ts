@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
   deleteCompaniesWorkflow,
   updateCompaniesWorkflow,
@@ -26,7 +27,9 @@ export const GET = async (
       entity: "companies",
       fields: req.queryConfig.fields,
       filters: { id },
-      withDeleted: req.queryConfig.withDeleted,
+      ...(req.queryConfig.withDeleted === undefined
+        ? {}
+        : { withDeleted: req.queryConfig.withDeleted }),
     },
     { throwIfKeyNotFound: true }
   )

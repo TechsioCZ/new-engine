@@ -1,11 +1,10 @@
 import type { Query } from "@medusajs/framework/types"
+
 import type OrderNoteModuleService from "../modules/order-note/service"
 import {
   getOrderExpeditionNote,
   type OrderExpeditionRawOrder,
 } from "./order-expedition"
-
-export type { OrderExpeditionCustomerSignals } from "./order-expedition"
 
 export type OrderExpeditionCustomerSignalCounts = {
   note: number

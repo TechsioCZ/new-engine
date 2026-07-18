@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
 import { runImportJob } from "../lib/import-job-runner"
 import {
   SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT,
@@ -28,7 +29,7 @@ export default async function priceListPricesUpdateRequestedHandler({
       ).run({
         input,
       })
-      return result as UpdatePriceListPricesBatchOutput
+      return result
     },
     getCompletionStats: (output) => ({
       processed: output.results.length,

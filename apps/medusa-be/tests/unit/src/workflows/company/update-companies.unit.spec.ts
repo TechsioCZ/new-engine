@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { COMPANY_MODULE } from "../../../../../src/modules/company"
 
 vi.mock("@medusajs/framework/workflows-sdk", () => ({
@@ -38,6 +39,16 @@ type MockStep = (
   payload: unknown
 }>
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeContainer = (companyService: MockCompanyService) => ({
   resolve: vi.fn((key: string) => {
     if (key === ContainerRegistrationKeys.LOGGER) {
@@ -58,9 +69,8 @@ describe("updateCompaniesStep", () => {
   })
 
   it("uses the workflow input id instead of an id inside the update payload", async () => {
-    const { updateCompaniesStep } = await import(
-      "../../../../../src/workflows/company/steps/update-companies"
-    )
+    const { updateCompaniesStep } =
+      await import("../../../../../src/workflows/company/steps/update-companies")
     const companyService = {
       listCompanies: vi.fn().mockResolvedValue([
         {
@@ -75,7 +85,7 @@ describe("updateCompaniesStep", () => {
     }
     const container = makeContainer(companyService)
 
-    const result = await (updateCompaniesStep as MockStep)(
+    const result = await asMockStep(updateCompaniesStep)(
       {
         id: "comp_route",
         update: {

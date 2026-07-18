@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import {
   listProducers,
   type Producer,
@@ -308,7 +309,7 @@ const ProducerAssignmentDrawer = ({
             </Table.Header>
             <Table.Body>
               <ProducerSelectionRows
-                currentProducerId={selectedId}
+                {...(selectedId ? { currentProducerId: selectedId } : {})}
                 isLoading={isLoading}
                 onClear={() => setSelectedId(undefined)}
                 onSelect={setSelectedId}
@@ -441,7 +442,7 @@ const ProductProducersWidget = ({
         </div>
       </Container>
       <ProducerAssignmentDrawer
-        currentProducer={activeProducer}
+        {...(activeProducer ? { currentProducer: activeProducer } : {})}
         onOpenChange={setOpen}
         open={open}
         productId={product.id}

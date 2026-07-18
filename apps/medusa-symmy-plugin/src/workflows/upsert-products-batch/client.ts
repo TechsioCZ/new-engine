@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { batchProductsWorkflow } from "@medusajs/medusa/core-flows"
+
 import { productBatchClientMapperHelper } from "./client-mapper-helper"
 import type { ProductInput } from "./types"
 
@@ -71,7 +72,7 @@ export class ProductBatchClient {
   async preload(products: ProductInput[]): Promise<ExistingProductIndex> {
     const { erpIds, skus, eans } =
       this.helper.collectProductIdentifiers(products)
-    const fields = PRODUCT_PREFETCH_FIELDS as unknown as string[]
+    const fields = Array.from(PRODUCT_PREFETCH_FIELDS)
     const [erpProducts, skuVariants, eanVariants] = await Promise.all([
       this.queryProductsByExternalIds(erpIds, fields),
       this.queryVariantProductRefs("sku", skus),
@@ -149,14 +150,14 @@ export class ProductBatchClient {
     }
     const { result } = await batchProductsWorkflow(this.container).run({
       input: {
-        create: payload.create as never,
-        update: payload.update as never,
+        create: payload.create,
+        update: payload.update,
       },
     })
 
     return {
-      created: (result?.created ?? []) as CreatedProduct[],
-      updated: (result?.updated ?? []) as CreatedProduct[],
+      created: result?.created ?? [],
+      updated: result?.updated ?? [],
     }
   }
 

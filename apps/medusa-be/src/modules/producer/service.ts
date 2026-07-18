@@ -1,5 +1,6 @@
-import type { Context } from "@medusajs/framework/types"
+import type { Context, RepositoryService } from "@medusajs/framework/types"
 import { kebabCase, MedusaService } from "@medusajs/framework/utils"
+
 import Producer from "./models/producer"
 import ProducerAttribute from "./models/producer-attribute"
 import ProducerAttributeType from "./models/producer-attribute-type"
@@ -31,14 +32,6 @@ type ProducerAttributeTypeRecord = {
   name: string
 }
 
-type ServiceWithTransaction = {
-  baseRepository_: {
-    transaction: <T>(
-      task: (transactionManager: unknown) => Promise<T>
-    ) => Promise<T>
-  }
-}
-
 const normalizeAttributes = (attributes: ProducerAttributeInput[] = []) => {
   const byName = new Map<string, ProducerAttributeInput>()
 
@@ -65,13 +58,13 @@ class ProducerModuleService extends MedusaService({
   ProducerAttribute,
   ProducerAttributeType,
 }) {
+  declare protected readonly baseRepository_: RepositoryService
+
   private async withTransaction<T>(
     sharedContext: Context,
     task: (context: Context) => Promise<T>
-  ) {
-    return await (
-      this as unknown as ServiceWithTransaction
-    ).baseRepository_.transaction(async (transactionManager) =>
+  ): Promise<T> {
+    return this.baseRepository_.transaction(async (transactionManager) =>
       task({
         ...sharedContext,
         transactionManager,

@@ -3,6 +3,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { PRODUCT_LIST_MODULE } from "../../../../../../src/modules/product-list/constants"
 
 const workflowMocks = vi.hoisted(() => {
@@ -208,9 +209,8 @@ describe("Store product-list routes", () => {
 
   describe("GET /store/product-lists", () => {
     it("returns an empty customer-scoped result without querying product lists when no linked lists exist", async () => {
-      const { GET } = await import(
-        "../../../../../../src/api/store/product-lists/route"
-      )
+      const { GET } =
+        await import("../../../../../../src/api/store/product-lists/route")
       const productListService = createProductListService()
       const graph = createGraphMock()
       const req = createMockRequest({
@@ -234,9 +234,8 @@ describe("Store product-list routes", () => {
     })
 
     it("scopes product-list listing to current customer link ids and enriches inline items", async () => {
-      const { GET } = await import(
-        "../../../../../../src/api/store/product-lists/route"
-      )
+      const { GET } =
+        await import("../../../../../../src/api/store/product-lists/route")
       const list = createProductList({ id: "plist_1" })
       const item = createProductListItem({
         id: "pli_1",
@@ -318,9 +317,8 @@ describe("Store product-list routes", () => {
 
   describe("GET /store/product-lists/:id", () => {
     it("allows unauthenticated access to public lists", async () => {
-      const { GET } = await import(
-        "../../../../../../src/api/store/product-lists/[id]/route"
-      )
+      const { GET } =
+        await import("../../../../../../src/api/store/product-lists/[id]/route")
       const publicList = createProductList({
         access_type: "public",
         id: "plist_public",
@@ -372,9 +370,8 @@ describe("Store product-list routes", () => {
     })
 
     it("rejects unauthenticated access to private lists as not found", async () => {
-      const { GET } = await import(
-        "../../../../../../src/api/store/product-lists/[id]/route"
-      )
+      const { GET } =
+        await import("../../../../../../src/api/store/product-lists/[id]/route")
       const productListService = createProductListService({
         retrieveProductList: vi
           .fn()
@@ -396,9 +393,8 @@ describe("Store product-list routes", () => {
     })
 
     it("rejects authenticated non-owners of private lists as not found", async () => {
-      const { GET } = await import(
-        "../../../../../../src/api/store/product-lists/[id]/route"
-      )
+      const { GET } =
+        await import("../../../../../../src/api/store/product-lists/[id]/route")
       const productListService = createProductListService({
         retrieveProductList: vi
           .fn()
@@ -442,46 +438,44 @@ describe("Store product-list routes", () => {
           metadata: { origin: "header" },
         },
       },
-    ])("delegates $expectedType creation to the customer product-list workflow", async ({
-      expectedType,
-      importPath,
-      validatedBody,
-    }) => {
-      const { POST } = await import(importPath)
-      const productList = createProductList({
-        id: `plist_${expectedType}`,
-        type: expectedType,
-      })
-      workflowMocks.createCustomerProductListRun.mockResolvedValue({
-        result: {
-          created: expectedType === "custom",
-          product_list: productList,
-        },
-      })
-      const req = createMockRequest({
-        actorId: "cus_1",
-        validatedBody,
-      })
-      const res = createMockResponse()
-
-      await POST(req, res)
-
-      expect(res.status).toHaveBeenCalledWith(200)
-      expect(res.json).toHaveBeenCalledWith({
-        created: expectedType === "custom",
-        product_list: expect.objectContaining({
+    ])(
+      "delegates $expectedType creation to the customer product-list workflow",
+      async ({ expectedType, importPath, validatedBody }) => {
+        const { POST } = await import(importPath)
+        const productList = createProductList({
           id: `plist_${expectedType}`,
           type: expectedType,
-        }),
-      })
-    })
+        })
+        workflowMocks.createCustomerProductListRun.mockResolvedValue({
+          result: {
+            created: expectedType === "custom",
+            product_list: productList,
+          },
+        })
+        const req = createMockRequest({
+          actorId: "cus_1",
+          validatedBody,
+        })
+        const res = createMockResponse()
+
+        await POST(req, res)
+
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith({
+          created: expectedType === "custom",
+          product_list: expect.objectContaining({
+            id: `plist_${expectedType}`,
+            type: expectedType,
+          }),
+        })
+      }
+    )
   })
 
   describe("POST /store/product-lists/:id/items", () => {
     it("delegates to the create item workflow and returns persisted product and variant links", async () => {
-      const { POST } = await import(
-        "../../../../../../src/api/store/product-lists/[id]/items/route"
-      )
+      const { POST } =
+        await import("../../../../../../src/api/store/product-lists/[id]/items/route")
       const item = createProductListItem({
         id: "pli_created",
         list_id: "plist_1",
@@ -535,9 +529,8 @@ describe("Store product-list routes", () => {
 
   describe("POST /store/product-lists/favorites/items", () => {
     it("returns the created favorite item and favorite list with enriched items", async () => {
-      const { POST } = await import(
-        "../../../../../../src/api/store/product-lists/favorites/items/route"
-      )
+      const { POST } =
+        await import("../../../../../../src/api/store/product-lists/favorites/items/route")
       const item = createProductListItem({
         id: "pli_favorite",
         list_id: "plist_favorites",
@@ -614,9 +607,8 @@ describe("Store product-list routes", () => {
 
   describe("POST /store/product-lists/items/:id/increment", () => {
     it("delegates to the increment workflow and returns an enriched item response", async () => {
-      const { POST } = await import(
-        "../../../../../../src/api/store/product-lists/items/[id]/increment/route"
-      )
+      const { POST } =
+        await import("../../../../../../src/api/store/product-lists/items/[id]/increment/route")
       const item = createProductListItem({
         id: "pli_incremented",
         product_id: null,

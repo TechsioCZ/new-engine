@@ -2,6 +2,7 @@ import type { AdminOrder, AdminOrderPreview } from "@medusajs/framework/types"
 import { Button, Heading, Input, toast } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   RouteFocusModal,
   StackedFocusModal,
@@ -131,7 +132,7 @@ export const ManageItemsSection = ({
             item={item}
             key={item.id}
             orderId={order.id}
-            originalItem={originalItem}
+            {...(originalItem ? { originalItem } : {})}
           />
         )
       })}

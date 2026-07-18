@@ -1,4 +1,7 @@
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { CryptoKey } from "jose"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
 import type { AdminPayloadSsoSchemaType } from "../../../../../../../src/api/admin/payload/sso/route"
 
 const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
@@ -38,43 +41,77 @@ const restoreEnv = () => {
   }
 }
 
-type MockResponse = {
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape the route
+ * handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+type MockResponse = MedusaResponse & {
   json: ReturnType<typeof vi.fn>
   send: ReturnType<typeof vi.fn>
   setHeader: ReturnType<typeof vi.fn>
   status: ReturnType<typeof vi.fn>
 }
 
-type MockRequest = {
+type MockRequest = MedusaRequest<unknown, AdminPayloadSsoSchemaType> & {
   auth_context?: {
     actor_id?: string
     actor_type?: string
   }
   headers: Record<string, string>
-  validatedQuery: AdminPayloadSsoSchemaType
 }
 
-const createMockResponse = (): MockResponse => ({
-  json: vi.fn().mockReturnThis(),
-  send: vi.fn().mockReturnThis(),
-  setHeader: vi.fn(),
-  status: vi.fn().mockReturnThis(),
-})
+const createMockResponse = (): MockResponse => {
+  const candidate: unknown = {
+    json: vi.fn().mockReturnThis(),
+    send: vi.fn().mockReturnThis(),
+    setHeader: vi.fn(),
+    status: vi.fn().mockReturnThis(),
+  }
+  assertMockShape<MockResponse>(candidate, [
+    "json",
+    "send",
+    "setHeader",
+    "status",
+  ])
+  return candidate
+}
 
 const createMockRequest = (
   overrides: Record<string, unknown> = {},
   headers: Record<string, string> = {}
-): MockRequest => ({
-  headers,
-  auth_context: {
-    actor_id: "user_123",
-    actor_type: "user",
-  },
-  validatedQuery: {
-    returnTo: "/admin",
-  },
-  ...overrides,
-})
+): MockRequest => {
+  const candidate: unknown = {
+    headers,
+    auth_context: {
+      actor_id: "user_123",
+      actor_type: "user",
+    },
+    validatedQuery: {
+      returnTo: "/admin",
+    },
+    ...overrides,
+  }
+  assertMockShape<MockRequest>(candidate, ["headers", "validatedQuery"])
+  return candidate
+}
 
 describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
@@ -90,9 +127,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("rejects direct handler access without an authenticated admin user context", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest({ auth_context: undefined })
     const res = createMockResponse()
 
@@ -106,9 +142,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("rejects admin secret API key actors for SSO token issuance", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest({
       auth_context: {
         actor_id: "sk_123",
@@ -127,9 +162,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("returns an auto-post form that preserves the Medusa origin for Payload origin checks", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest()
     const res = createMockResponse()
 
@@ -163,9 +197,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("rejects absolute return targets instead of dropping them silently", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest({
       validatedQuery: {
         returnTo: "https://evil.example/admin",
@@ -183,9 +216,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("rejects protocol-relative return targets", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest({
       validatedQuery: {
         returnTo: "//evil.example/admin",
@@ -202,9 +234,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("rejects non-http Payload iframe URLs", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     process.env.PAYLOAD_IFRAME_URL = "javascript:alert(1)"
     const req = createMockRequest()
     const res = createMockResponse()
@@ -218,9 +249,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("uses 127.0.0.1 for Payload SSO when Medusa admin is opened through 127.0.0.1", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest({}, { host: "127.0.0.1:9000" })
     const res = createMockResponse()
 
@@ -233,9 +263,8 @@ describe("GET /admin/payload/sso", () => {
   })
 
   it("uses the local Caddy Payload host when Medusa admin is opened through admin.medusa.localhost", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/payload/sso/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/payload/sso/route")
     const req = createMockRequest(
       {},
       { "x-forwarded-host": "admin.medusa.localhost" }

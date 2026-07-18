@@ -10,8 +10,8 @@ type QueryGraph = {
 }
 
 type AdminRoleCandidate = {
-  customer_id?: string | null
-  email?: string | null
+  customer_id?: string | null | undefined
+  email?: string | null | undefined
 }
 
 type EmployeeCustomerLinkRow = {

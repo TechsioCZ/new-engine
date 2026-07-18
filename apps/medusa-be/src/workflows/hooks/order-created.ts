@@ -1,6 +1,7 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+
 import { COMPANY_MODULE } from "../../modules/company"
 
 createOrderWorkflow.hooks.orderCreated(

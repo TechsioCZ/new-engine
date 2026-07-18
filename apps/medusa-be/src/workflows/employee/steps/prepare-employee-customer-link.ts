@@ -9,6 +9,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
@@ -167,8 +168,8 @@ export const prepareEmployeeCustomerLinkStep = createStep(
         } =>
           Boolean(
             existingLink.customer_id &&
-              existingLink.employee_id &&
-              existingLink.id
+            existingLink.employee_id &&
+            existingLink.id
           )
       )
       .filter((existingLink) =>
@@ -189,8 +190,12 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     const staleAdminCandidates = staleEmployees
       .filter((employee) => employee.is_admin)
       .map((employee) => ({
-        customer_id: employee.customer?.id,
-        email: employee.customer?.email,
+        ...(employee.customer?.id !== undefined
+          ? { customer_id: employee.customer?.id }
+          : {}),
+        ...(employee.customer?.email !== undefined
+          ? { email: employee.customer?.email }
+          : {}),
       }))
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({

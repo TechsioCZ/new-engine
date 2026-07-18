@@ -1,5 +1,5 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
@@ -16,22 +16,9 @@ export const createEmployeesStep = createStep(
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
-    const createdEmployee = await companyModuleService.createEmployees(input)
+    const employee = await companyModuleService.createEmployees(input)
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
-
-    const {
-      data: [employee],
-    } = await query.graph(
-      {
-        entity: "employee",
-        filters: { id: createdEmployee.id },
-        fields: ["id", "company.*"],
-      },
-      { throwIfKeyNotFound: true }
-    )
-
-    return new StepResponse(employee as unknown as ModuleEmployee, employee.id)
+    return new StepResponse(employee, employee.id)
   },
   async (employeeId: string | undefined, { container }) => {
     if (!employeeId) {

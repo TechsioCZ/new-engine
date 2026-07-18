@@ -7,6 +7,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import { ApprovalType } from "../../../types"
 import { ensureRole } from "../../middlewares/ensure-role"
 import { approvalTransformQueryConfig } from "./query-config"
@@ -42,9 +43,7 @@ const ensureApprovalType = async (
     return
   }
 
-  const approvalType = approval.type as unknown as ApprovalType
-
-  if (approvalType !== ApprovalType.ADMIN) {
+  if (approval.type !== ApprovalType.ADMIN) {
     res.status(403).json({ message: "Forbidden" })
     return
   }

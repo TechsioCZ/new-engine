@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { MedusaContainer } from "@medusajs/framework/types"
+
 import {
   getActiveProducerIds,
   getProducerActiveProductCounts,
@@ -23,7 +24,7 @@ type ProductIdGroup = string[] | { $nin?: string[] }
 type ProductPageOptions = {
   limit: number
   offset: number
-  q?: string
+  q?: string | undefined
 }
 
 const getPageWindow = (
@@ -32,7 +33,7 @@ const getPageWindow = (
   remainingLimit: number
 ) => ({
   order: PRODUCT_ORDER,
-  q: options.q,
+  ...(options.q ? { q: options.q } : {}),
   skip: remainingLimit > 0 ? remainingOffset : 0,
   take: remainingLimit > 0 ? remainingLimit : 1,
 })
@@ -113,7 +114,7 @@ export async function GET(
   req: MedusaRequest<unknown, AdminGetProducerProductOptionsSchemaType>,
   res: MedusaResponse
 ) {
-  const producerId = req.params.id ?? ""
+  const producerId = req.params["id"] ?? ""
 
   await retrieveProducerOrThrow(req.scope, producerId)
 

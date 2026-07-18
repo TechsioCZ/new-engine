@@ -2,9 +2,9 @@ export type PriceIdentifierType = "sku" | "ean" | "variant_id"
 
 export type PriceInput = {
   identifier_type: PriceIdentifierType
-  sku?: string
-  ean?: string
-  variant_id?: string
+  sku?: string | undefined
+  ean?: string | undefined
+  variant_id?: string | undefined
   currency_code: string
   amount: number
   min_quantity?: number
@@ -33,9 +33,9 @@ export type UpsertPriceListsBatchInput = {
 
 export type PriceListPriceResult = {
   identifier_type: PriceIdentifierType
-  sku?: string
-  ean?: string
-  variant_id?: string
+  sku?: string | undefined
+  ean?: string | undefined
+  variant_id?: string | undefined
   status: "updated" | "failed" | "not_found"
   error?: string
 }
@@ -64,7 +64,7 @@ export type UpsertPriceListsBatchOutput = {
 }
 
 export type ListPriceListsInput = {
-  code?: string
+  code?: string | undefined
   limit: number
   offset: number
 }
@@ -73,7 +73,7 @@ export type ListedPriceList = {
   id: string
   code: string
   name: string
-  description?: string
+  description?: string | undefined
   starts_at?: string | null
   ends_at?: string | null
 }

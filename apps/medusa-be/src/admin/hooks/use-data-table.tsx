@@ -105,25 +105,27 @@ export const useDataTable = <TData,>({
     columns,
     state: {
       rowSelection, // We always pass a selection state to the table even if it's not enabled
-      pagination: enablePagination ? pagination : undefined,
+      ...(enablePagination ? { pagination } : {}),
     },
     pageCount: Math.ceil((count ?? 0) / pageSize),
     enableRowSelection,
-    getRowId,
-    getSubRows,
-    onRowSelectionChange: enableRowSelection ? setRowSelection : undefined,
-    onPaginationChange: enablePagination
-      ? (onPaginationChange as OnChangeFn<PaginationState>)
-      : undefined,
+    ...(getRowId ? { getRowId } : {}),
+    ...(getSubRows ? { getSubRows } : {}),
+    ...(enableRowSelection ? { onRowSelectionChange: setRowSelection } : {}),
+    ...(enablePagination
+      ? {
+          onPaginationChange: onPaginationChange as OnChangeFn<PaginationState>,
+        }
+      : {}),
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: enablePagination
-      ? getPaginationRowModel()
-      : undefined,
-    getExpandedRowModel: enableExpandableRows
-      ? getExpandedRowModel()
-      : undefined,
-    manualPagination: enablePagination ? true : undefined,
-    meta,
+    ...(enablePagination
+      ? { getPaginationRowModel: getPaginationRowModel() }
+      : {}),
+    ...(enableExpandableRows
+      ? { getExpandedRowModel: getExpandedRowModel() }
+      : {}),
+    ...(enablePagination ? { manualPagination: true } : {}),
+    ...(meta ? { meta } : {}),
   })
 
   return { table }

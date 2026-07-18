@@ -4,6 +4,7 @@ import {
   PaymentSessionStatus,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
@@ -122,9 +123,9 @@ describe("PaykitPaymentProviderBase", () => {
         customer: {
           id: "cus_123",
           email: "customer@example.com",
+          first_name: "Ada",
+          last_name: "Lovelace",
           billing_address: {
-            first_name: "Ada",
-            last_name: "Lovelace",
             address_1: "1 Engine Way",
             address_2: "Suite 2",
             city: "London",
@@ -277,9 +278,9 @@ describe("PaykitPaymentProviderBase", () => {
         customer: {
           id: "cus_123",
           email: "customer@example.com",
+          first_name: "Default",
+          last_name: "Customer",
           billing_address: {
-            first_name: "Default",
-            last_name: "Customer",
             address_1: "1 Default Way",
             city: "Brno",
             country_code: "CZ",

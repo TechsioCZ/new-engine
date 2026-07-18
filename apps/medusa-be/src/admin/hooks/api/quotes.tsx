@@ -8,6 +8,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+
 import type {
   AdminCreateQuoteMessage,
   AdminQuoteResponse,
@@ -37,7 +38,7 @@ export const useQuotes = (
   const fetchQuotes = (filters: QuoteFilterParams, headers?: ClientHeaders) =>
     sdk.client.fetch<StoreQuotesResponse>("/admin/quotes", {
       query: filters,
-      headers,
+      ...(headers ? { headers } : {}),
     })
 
   const { data, ...rest } = useQuery({
@@ -60,8 +61,8 @@ export const useQuote = (
     headers?: ClientHeaders
   ) =>
     sdk.client.fetch<StoreQuoteResponse>(`/admin/quotes/${quoteId}`, {
-      query: filters,
-      headers,
+      ...(filters ? { query: filters } : {}),
+      ...(headers ? { headers } : {}),
     })
 
   const { data, ...rest } = useQuery({

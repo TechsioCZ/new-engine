@@ -1,21 +1,45 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { describe, expect, it, vi } from "vitest"
+
 import { GET as getRuleAttributes } from "../rule-attribute-options/[rule_type]/route"
 import { GET as getProducerValues } from "../rule-value-options/[rule_type]/producer/route"
 import { GET as getVariantValues } from "../rule-value-options/[rule_type]/product_variant/route"
-import type { RuleValueOptionsQuerySchemaType } from "../schema"
+import type {
+  RuleAttributeOptionsQuerySchemaType,
+  RuleValueOptionsQuerySchemaType,
+} from "../schema"
 
-type JsonResponse = MedusaResponse & {
-  json: ReturnType<typeof vi.fn>
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock as `unknown` first (instead of
+ * the target type) avoids requiring every property of the huge Node
+ * request/response interfaces while still validating the shape a route
+ * handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
 }
 
-function createResponse(): JsonResponse {
-  return {
-    json: vi.fn(),
-  } as unknown as JsonResponse
+type MockJsonResponse = MedusaResponse & { json: ReturnType<typeof vi.fn> }
+
+function createResponse(): MockJsonResponse {
+  const candidate: unknown = { json: vi.fn() }
+  assertMockShape<MockJsonResponse>(candidate, ["json"])
+  return candidate
 }
 
-function createRequest({
+function createRequest<TQuery extends Record<string, unknown>>({
   ruleType = "target-rules",
   validatedQuery = {},
   graph,
@@ -23,14 +47,20 @@ function createRequest({
   ruleType?: string
   validatedQuery?: Record<string, unknown>
   graph?: ReturnType<typeof vi.fn>
-} = {}): MedusaRequest<unknown, RuleValueOptionsQuerySchemaType> {
-  return {
+} = {}): MedusaRequest<unknown, TQuery> {
+  const candidate: unknown = {
     params: { rule_type: ruleType },
     validatedQuery,
     scope: {
       resolve: vi.fn().mockReturnValue({ graph }),
     },
-  } as unknown as MedusaRequest<unknown, RuleValueOptionsQuerySchemaType>
+  }
+  assertMockShape<MedusaRequest<unknown, TQuery>>(candidate, [
+    "params",
+    "scope",
+    "validatedQuery",
+  ])
+  return candidate
 }
 
 describe("promotion rule attribute route", () => {
@@ -38,7 +68,7 @@ describe("promotion rule attribute route", () => {
     const res = createResponse()
 
     await getRuleAttributes(
-      createRequest({
+      createRequest<RuleAttributeOptionsQuerySchemaType>({
         ruleType: "target-rules",
         validatedQuery: {
           promotion_type: "standard",
@@ -72,7 +102,9 @@ describe("promotion rule attribute route", () => {
   it("keeps Medusa invalid rule type behavior", async () => {
     await expect(
       getRuleAttributes(
-        createRequest({ ruleType: "bad-rule" }),
+        createRequest<RuleAttributeOptionsQuerySchemaType>({
+          ruleType: "bad-rule",
+        }),
         createResponse()
       )
     ).rejects.toThrow("Invalid param rule_type (bad-rule)")
@@ -88,7 +120,7 @@ describe("promotion custom rule value routes", () => {
     const res = createResponse()
 
     await getProducerValues(
-      createRequest({
+      createRequest<RuleValueOptionsQuerySchemaType>({
         validatedQuery: {
           q: "50%_Sale",
           value: "producer_1",
@@ -132,7 +164,7 @@ describe("promotion custom rule value routes", () => {
     const res = createResponse()
 
     await getVariantValues(
-      createRequest({
+      createRequest<RuleValueOptionsQuerySchemaType>({
         validatedQuery: {
           q: "Trail",
           id: ["variant_1"],

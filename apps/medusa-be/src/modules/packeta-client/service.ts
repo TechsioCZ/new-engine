@@ -1,5 +1,7 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
+
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { PacketaClient } from "./client"
@@ -50,10 +52,77 @@ type CachedConfigEntry = PacketaOptions | DisabledConfigCacheEntry
 const isDisabledConfigCacheEntry = (
   value: unknown
 ): value is DisabledConfigCacheEntry =>
-  typeof value === "object" &&
-  value !== null &&
-  "disabled" in value &&
-  (value as { disabled?: unknown }).disabled === true
+  isRecord(value) && value["disabled"] === true
+
+const isPacketaEnvironment = (value: unknown): value is PacketaEnvironment =>
+  value === "testing" || value === "production"
+
+const toPacketaConfigDTO = (value: unknown): PacketaConfigDTO => {
+  if (
+    !isRecord(value) ||
+    typeof value["id"] !== "string" ||
+    !isPacketaEnvironment(value["environment"]) ||
+    typeof value["is_enabled"] !== "boolean" ||
+    (value["api_password"] !== null &&
+      typeof value["api_password"] !== "string") ||
+    (value["sender_label"] !== null &&
+      typeof value["sender_label"] !== "string") ||
+    (value["eshop_id"] !== null && typeof value["eshop_id"] !== "string") ||
+    typeof value["default_label_format"] !== "string" ||
+    typeof value["default_label_offset"] !== "number" ||
+    (value["cod_bank_account"] !== null &&
+      typeof value["cod_bank_account"] !== "string") ||
+    (value["cod_bank_code"] !== null &&
+      typeof value["cod_bank_code"] !== "string") ||
+    (value["cod_iban"] !== null && typeof value["cod_iban"] !== "string") ||
+    (value["cod_swift"] !== null && typeof value["cod_swift"] !== "string") ||
+    (value["sender_name"] !== null &&
+      typeof value["sender_name"] !== "string") ||
+    (value["sender_street"] !== null &&
+      typeof value["sender_street"] !== "string") ||
+    (value["sender_city"] !== null &&
+      typeof value["sender_city"] !== "string") ||
+    (value["sender_zip_code"] !== null &&
+      typeof value["sender_zip_code"] !== "string") ||
+    (value["sender_country"] !== null &&
+      typeof value["sender_country"] !== "string") ||
+    (value["sender_phone"] !== null &&
+      typeof value["sender_phone"] !== "string") ||
+    (value["sender_email"] !== null &&
+      typeof value["sender_email"] !== "string") ||
+    !(value["created_at"] instanceof Date) ||
+    !(value["updated_at"] instanceof Date)
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Packeta: Stored configuration has an invalid shape"
+    )
+  }
+
+  return {
+    id: value["id"],
+    environment: value["environment"],
+    is_enabled: value["is_enabled"],
+    api_password: value["api_password"],
+    sender_label: value["sender_label"],
+    eshop_id: value["eshop_id"],
+    default_label_format: value["default_label_format"],
+    default_label_offset: value["default_label_offset"],
+    cod_bank_account: value["cod_bank_account"],
+    cod_bank_code: value["cod_bank_code"],
+    cod_iban: value["cod_iban"],
+    cod_swift: value["cod_swift"],
+    sender_name: value["sender_name"],
+    sender_street: value["sender_street"],
+    sender_city: value["sender_city"],
+    sender_zip_code: value["sender_zip_code"],
+    sender_country: value["sender_country"],
+    sender_phone: value["sender_phone"],
+    sender_email: value["sender_email"],
+    created_at: value["created_at"],
+    updated_at: value["updated_at"],
+  }
+}
 
 /**
  * Packeta Client Module Service
@@ -112,7 +181,7 @@ export class PacketaClientModuleService extends MedusaService({
     if (!config) {
       return null
     }
-    return decryptFields(config as unknown as PacketaConfigDTO, [
+    return decryptFields(toPacketaConfigDTO(config), [
       ...PACKETA_SENSITIVE_FIELDS,
     ])
   }
@@ -143,7 +212,7 @@ export class PacketaClientModuleService extends MedusaService({
         ...encrypted,
       })
       await this.invalidateConfigCache()
-      return decryptFields(updated as unknown as PacketaConfigDTO, [
+      return decryptFields(toPacketaConfigDTO(updated), [
         ...PACKETA_SENSITIVE_FIELDS,
       ])
     }
@@ -153,7 +222,7 @@ export class PacketaClientModuleService extends MedusaService({
       environment: this.environment_,
     })
     await this.invalidateConfigCache()
-    return decryptFields(created as unknown as PacketaConfigDTO, [
+    return decryptFields(toPacketaConfigDTO(created), [
       ...PACKETA_SENSITIVE_FIELDS,
     ])
   }
@@ -198,25 +267,36 @@ export class PacketaClientModuleService extends MedusaService({
     config: PacketaConfigDTO,
     apiPassword: string
   ): PacketaOptions {
-    return {
+    const options: PacketaOptions = {
       api_password: apiPassword,
       environment: this.environment_,
       default_label_format: config.default_label_format as PacketaLabelFormat,
       default_label_offset: config.default_label_offset,
-      sender_label: config.sender_label ?? undefined,
-      eshop_id: config.eshop_id ?? undefined,
-      cod_bank_account: config.cod_bank_account ?? undefined,
-      cod_bank_code: config.cod_bank_code ?? undefined,
-      cod_iban: config.cod_iban ?? undefined,
-      cod_swift: config.cod_swift ?? undefined,
-      sender_name: config.sender_name ?? undefined,
-      sender_street: config.sender_street ?? undefined,
-      sender_city: config.sender_city ?? undefined,
-      sender_zip_code: config.sender_zip_code ?? undefined,
-      sender_country: config.sender_country ?? undefined,
-      sender_phone: config.sender_phone ?? undefined,
-      sender_email: config.sender_email ?? undefined,
     }
+    const optionalFields = [
+      "sender_label",
+      "eshop_id",
+      "cod_bank_account",
+      "cod_bank_code",
+      "cod_iban",
+      "cod_swift",
+      "sender_name",
+      "sender_street",
+      "sender_city",
+      "sender_zip_code",
+      "sender_country",
+      "sender_phone",
+      "sender_email",
+    ] as const
+
+    for (const field of optionalFields) {
+      const value = config[field]
+      if (value !== null) {
+        options[field] = value
+      }
+    }
+
+    return options
   }
 
   private async cacheEffectiveConfig(options: PacketaOptions): Promise<void> {

@@ -1,8 +1,10 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { WORKFLOW_QUEUE_MODULE } from "../modules/workflow-queue"
 import type WorkflowQueueModuleService from "../modules/workflow-queue/service"
+import { executeWithLockTimeout } from "../utils/locking"
 import { getQueuedWorkflowRunner } from "../utils/workflow-queue-registry"
 
 const JOB_LOCK_KEY = "workflow-queue-runner-job"
@@ -26,7 +28,7 @@ type WorkflowQueueService = WorkflowQueueModuleService & {
 
 function getWorkflowQueueRunnerBatchSize() {
   const configuredBatchSize = Number(
-    process.env.WORKFLOW_QUEUE_RUNNER_BATCH_SIZE
+    process.env["WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"]
   )
 
   if (Number.isInteger(configuredBatchSize) && configuredBatchSize > 0) {
@@ -104,32 +106,25 @@ export default async function workflowQueueRunnerJob(
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  try {
-    await lockingModule.execute(
-      JOB_LOCK_KEY,
-      async () => {
-        await executeWorkflowQueueRunner(container, logger)
-      },
-      { timeout: JOB_LOCK_TIMEOUT }
-    )
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("Timed-out acquiring lock")
-    ) {
-      logger.info(
-        "Workflow Queue Runner: Skipping - another instance is already running"
-      )
-      return
+  const result = await executeWithLockTimeout(
+    lockingModule,
+    JOB_LOCK_KEY,
+    JOB_LOCK_TIMEOUT,
+    async () => {
+      await executeWorkflowQueueRunner(container, logger)
     }
+  )
 
-    throw error
+  if (result.status === "timed_out") {
+    logger.info(
+      "Workflow Queue Runner: Skipping - another instance is already running"
+    )
   }
 }
 
 export const config = {
   name: "workflow-queue-runner",
   schedule:
-    process.env.WORKFLOW_QUEUE_RUNNER_SCHEDULE ??
+    process.env["WORKFLOW_QUEUE_RUNNER_SCHEDULE"] ??
     DEFAULT_WORKFLOW_QUEUE_RUNNER_SCHEDULE,
 }

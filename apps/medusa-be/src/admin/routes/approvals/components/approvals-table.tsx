@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+
 import { DataTable } from "../../../../admin/components"
 import { useDataTable } from "../../../../admin/hooks"
 import { useApprovals } from "../../../../admin/hooks/api"
@@ -23,10 +24,10 @@ export const ApprovalsTable = () => {
   const filters = useApprovalsTableFilters()
 
   const { table } = useDataTable({
-    data: data?.carts_with_approvals,
+    data: data?.carts_with_approvals ?? [],
     columns,
     enablePagination: true,
-    count: data?.count,
+    count: data?.count ?? 0,
     pageSize: PAGE_SIZE,
   })
 
@@ -34,7 +35,7 @@ export const ApprovalsTable = () => {
     <div className="flex size-full flex-col overflow-hidden">
       <DataTable
         columns={columns}
-        count={data?.count}
+        count={data?.count ?? 0}
         filters={filters}
         isLoading={isPending}
         noRecords={{

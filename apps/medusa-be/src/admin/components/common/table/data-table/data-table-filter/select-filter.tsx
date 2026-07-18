@@ -46,7 +46,11 @@ export const SelectFilter = ({
   const { removeFilter } = useDataTableFilterContext()
 
   const { key, label } = filter
-  const selectedParams = useSelectedParams({ param: key, prefix, multiple })
+  const selectedParams = useSelectedParams({
+    param: key,
+    ...(prefix ? { prefix } : {}),
+    ...(multiple === undefined ? {} : { multiple }),
+  })
   const currentValue = selectedParams.get()
 
   const labelValues = currentValue
@@ -102,14 +106,14 @@ export const SelectFilter = ({
   const normalizedPrev = normalizeValue(previousValue)
 
   return (
-    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
+    <PopoverRoot modal onOpenChange={handleOpenChange} open={open ?? false}>
       <FilterChip
         hadPreviousValue={!!normalizedPrev?.length}
         hasOperator
         label={label}
         onRemove={handleRemove}
-        readonly={readonly}
-        value={normalizedValues?.join(", ")}
+        readonly={readonly ?? false}
+        value={normalizedValues?.join(", ") ?? ""}
       />
       {!readonly && (
         <PopoverPortal>

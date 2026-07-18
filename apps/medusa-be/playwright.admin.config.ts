@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
+
 import { defineConfig, devices } from "@playwright/test"
 
 const useBuiltAdmin = process.env.MEDUSA_ADMIN_E2E_USE_BUILT_ADMIN === "1"

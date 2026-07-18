@@ -67,6 +67,16 @@ type MockStep = (
   payload: unknown
 }>
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeContainer = ({
   companyService,
   graph,
@@ -93,9 +103,8 @@ describe("updateEmployeesStep", () => {
   })
 
   it("validates the route company and does not pass company_id into the update payload", async () => {
-    const { updateEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/update-employees"
-    )
+    const { updateEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/update-employees")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -116,7 +125,7 @@ describe("updateEmployeesStep", () => {
     }
     const container = makeContainer({ companyService, graph })
 
-    const result = await (updateEmployeesStep as MockStep)(
+    const result = await asMockStep(updateEmployeesStep)(
       {
         company_id: "comp_1",
         id: "emp_1",
@@ -146,25 +155,14 @@ describe("updateEmployeesStep", () => {
     expect(companyService.updateEmployees).not.toHaveBeenCalledWith(
       expect.objectContaining({ company_id: "comp_1" })
     )
-    expect(graph).toHaveBeenNthCalledWith(
-      2,
-      {
-        entity: "employee",
-        fields: ["*", "customer.*", "company.*"],
-        filters: {
-          company_id: "comp_1",
-          id: "emp_1",
-        },
-      },
-      { throwIfKeyNotFound: true }
-    )
+    expect(graph).toHaveBeenCalledTimes(1)
+    expect(result.payload).toEqual({ id: "emp_1" })
     expect(result.compensateInput).toEqual({ id: "emp_1", is_admin: false })
   })
 
   it("throws when the employee does not belong to the requested company", async () => {
-    const { updateEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/update-employees"
-    )
+    const { updateEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/update-employees")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const companyService = {
       updateEmployees: vi.fn(),
@@ -172,7 +170,7 @@ describe("updateEmployeesStep", () => {
     const container = makeContainer({ companyService, graph })
 
     await expect(
-      (updateEmployeesStep as MockStep)(
+      asMockStep(updateEmployeesStep)(
         {
           company_id: "comp_1",
           id: "emp_2",

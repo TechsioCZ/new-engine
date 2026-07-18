@@ -6,13 +6,13 @@ export type StockIdentifierType =
 
 export type StockUpdateInput = {
   identifier_type: StockIdentifierType
-  sku?: string
-  ean?: string
-  variant_id?: string
-  inventory_item_id?: string
-  location_id?: string
+  sku?: string | undefined
+  ean?: string | undefined
+  variant_id?: string | undefined
+  inventory_item_id?: string | undefined
+  location_id?: string | undefined
   stocked_quantity: number
-  reserved_quantity?: number
+  reserved_quantity?: number | undefined
 }
 
 export type UpdateStockBatchInput = {

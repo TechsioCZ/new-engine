@@ -39,29 +39,29 @@ type OverridePriceListInput = {
 type SalePriceListInput = {
   title: string
   sourceTitle: string
-  customerGroupName?: string
-  startsAt?: string
-  endsAt?: string
+  customerGroupName?: string | undefined
+  startsAt?: string | undefined
+  endsAt?: string | undefined
   prices: PriceListPriceInput[]
 }
 
 export type SyncPriceListsStepConfig = {
-  metadataSource?: string
-  logLabel?: string
-  customerGroupRuleAttribute?: string
+  metadataSource?: string | undefined
+  logLabel?: string | undefined
+  customerGroupRuleAttribute?: string | undefined
   descriptions?: {
-    override?: string
-    sale?: string
+    override?: string | undefined
+    sale?: string | undefined
   }
   sourceTypes?: {
-    override?: string
-    sale?: string
-    customerGroup?: string
+    override?: string | undefined
+    sale?: string | undefined
+    customerGroup?: string | undefined
   }
   metadataKeys?: {
-    priceListTitle?: string
-    startsAt?: string
-    endsAt?: string
+    priceListTitle?: string | undefined
+    startsAt?: string | undefined
+    endsAt?: string | undefined
   }
 }
 
@@ -91,16 +91,16 @@ export type SyncPriceListsStepInput = {
     overrides: OverridePriceListInput[]
     sales: SalePriceListInput[]
   }
-  config?: SyncPriceListsStepConfig
+  config?: SyncPriceListsStepConfig | undefined
 }
 
 type PriceListSyncEntry = {
   title: string
   description: string
   type: "override" | "sale"
-  startsAt?: string
-  endsAt?: string
-  customerGroupName?: string
+  startsAt?: string | undefined
+  endsAt?: string | undefined
+  customerGroupName?: string | undefined
   prices: PriceListPriceInput[]
   metadata: Record<string, unknown>
 }
@@ -116,7 +116,7 @@ type VariantPriceSetLink = {
 }
 
 type PriceListWithPrices = PriceListDTO & {
-  prices?: PriceDTO[]
+  prices?: PriceDTO[] | undefined
 }
 
 const SyncPriceListsStepId = "sync-price-lists-seed-step"
@@ -141,22 +141,44 @@ const DEFAULT_SYNC_PRICE_LISTS_CONFIG = {
 } satisfies ResolvedSyncPriceListsStepConfig
 
 function resolveSyncPriceListsConfig(
-  config?: SyncPriceListsStepConfig
+  config?: SyncPriceListsStepConfig | undefined
 ): ResolvedSyncPriceListsStepConfig {
   return {
-    ...DEFAULT_SYNC_PRICE_LISTS_CONFIG,
-    ...config,
+    customerGroupRuleAttribute:
+      config?.customerGroupRuleAttribute ??
+      DEFAULT_SYNC_PRICE_LISTS_CONFIG.customerGroupRuleAttribute,
     descriptions: {
-      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions,
-      ...config?.descriptions,
+      override:
+        config?.descriptions?.override ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions.override,
+      sale:
+        config?.descriptions?.sale ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions.sale,
     },
-    sourceTypes: {
-      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes,
-      ...config?.sourceTypes,
-    },
+    logLabel: config?.logLabel ?? DEFAULT_SYNC_PRICE_LISTS_CONFIG.logLabel,
     metadataKeys: {
-      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys,
-      ...config?.metadataKeys,
+      endsAt:
+        config?.metadataKeys?.endsAt ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys.endsAt,
+      priceListTitle:
+        config?.metadataKeys?.priceListTitle ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys.priceListTitle,
+      startsAt:
+        config?.metadataKeys?.startsAt ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys.startsAt,
+    },
+    metadataSource:
+      config?.metadataSource ?? DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataSource,
+    sourceTypes: {
+      customerGroup:
+        config?.sourceTypes?.customerGroup ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes.customerGroup,
+      override:
+        config?.sourceTypes?.override ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes.override,
+      sale:
+        config?.sourceTypes?.sale ??
+        DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes.sale,
     },
   }
 }
@@ -214,7 +236,7 @@ function amountsEqual(left: unknown, right: number): boolean {
 }
 
 function buildPriceListEntries(
-  priceLists?: SyncPriceListsStepInput["priceLists"],
+  priceLists?: SyncPriceListsStepInput["priceLists"] | undefined,
   config: ResolvedSyncPriceListsStepConfig = resolveSyncPriceListsConfig()
 ): PriceListSyncEntry[] {
   if (!priceLists) {
@@ -253,8 +275,8 @@ function buildPriceListEntries(
         config.sourceTypes.sale,
         priceList.sourceTitle,
         {
-          startsAt: priceList.startsAt,
-          endsAt: priceList.endsAt,
+          ...(priceList.startsAt ? { startsAt: priceList.startsAt } : {}),
+          ...(priceList.endsAt ? { endsAt: priceList.endsAt } : {}),
         }
       ),
     })),
@@ -421,7 +443,7 @@ async function ensurePriceLists({
       status: "active" as const,
       starts_at: entry.startsAt ?? null,
       ends_at: entry.endsAt ?? null,
-      rules,
+      ...(rules ? { rules } : {}),
       metadata: entry.metadata,
     }
 

@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { SetProductProducersWorkflowInput } from "../types"
 import {
   getActiveProducerIds,

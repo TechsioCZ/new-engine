@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { buildInventoryItemsInput } from "../../../../../src/workflows/seed/helpers/build-inventory-items-input"
 import type { CreateProductsStepInput } from "../../../../../src/workflows/seed/steps"
 

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
 import { GET } from "../../../src/api/store/catalog/products/route"
 
 type TestProduct = {
@@ -224,11 +225,10 @@ const createCatalogHarness = ({
               ? { "brand-visible": visibleBrandCount }
               : {}),
           },
-          facet_ingredient: {
-            ...(visibleIngredientCount > 0
+          facet_ingredient:
+            visibleIngredientCount > 0
               ? { "ingredient-visible": visibleIngredientCount }
-              : {}),
-          },
+              : {},
         },
         facetStats: {
           facet_price: {

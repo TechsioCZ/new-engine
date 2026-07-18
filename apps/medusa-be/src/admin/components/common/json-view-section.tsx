@@ -127,7 +127,7 @@ export const JsonViewSection = ({ data }: JsonViewSectionProps) => {
                   </Primitive.Colon>
                   <Primitive.Copied
                     render={({ style }, { value }) => (
-                      <Copied style={style} value={value} />
+                      <Copied {...(style ? { style } : {})} value={value} />
                     )}
                   />
                 </Primitive>

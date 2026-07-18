@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { enqueueImportJob } from "../../../../../../../../lib/queued-job-handler"
 import {
   SYMMY_PRICE_LIST_PRICES_UPDATE_JOB_TYPE,
@@ -79,7 +80,7 @@ export const POST = async (
   await enqueueImportJob(req, res, {
     type: SYMMY_PRICE_LIST_PRICES_UPDATE_JOB_TYPE,
     payload: {
-      code: req.params.code,
+      code: req.params["code"],
       prices: req.validatedBody.prices,
     },
     total: req.validatedBody.prices.length,

@@ -10,6 +10,7 @@ import {
 } from "@medusajs/ui"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { QueryCompany } from "../../../../types"
 import {
   useAddCompanyToCustomerGroup,

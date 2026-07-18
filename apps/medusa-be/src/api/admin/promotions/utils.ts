@@ -2,6 +2,7 @@ import {
   getRuleAttributesMap,
   validateRuleType as medusaValidateRuleType,
 } from "@medusajs/medusa/api/admin/promotions/utils/index"
+
 import { customRuleAttributes } from "./const"
 import type {
   GetRuleAttributesMapParams,

@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { requireIdentifierField } from "../../refine-identifier"
+
 const PRICE_LISTS_BATCH_MAX = 500
 const PRICE_LIST_PRICES_MAX = 500
 
@@ -17,29 +19,7 @@ export const PriceInputSchema = z
     amount: z.number().nonnegative(),
     min_quantity: z.number().int().positive().default(1),
   })
-  .superRefine((value, ctx) => {
-    if (value.identifier_type === "sku" && !value.sku) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "sku is required when identifier_type is 'sku'",
-        path: ["sku"],
-      })
-    }
-    if (value.identifier_type === "ean" && !value.ean) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "ean is required when identifier_type is 'ean'",
-        path: ["ean"],
-      })
-    }
-    if (value.identifier_type === "variant_id" && !value.variant_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "variant_id is required when identifier_type is 'variant_id'",
-        path: ["variant_id"],
-      })
-    }
-  })
+  .superRefine(requireIdentifierField)
 
 const PriceListInputSchema = z.object({
   code: z.string().min(1),

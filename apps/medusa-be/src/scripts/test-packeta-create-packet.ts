@@ -1,4 +1,5 @@
 import type { ExecArgs } from "@medusajs/framework/types"
+
 import {
   PACKETA_CLIENT_MODULE,
   type PacketaClientModuleService,
@@ -27,7 +28,7 @@ import {
  * safe, configure a dedicated testing sender in Settings → Packeta first.
  */
 export default async function testPacketaCreatePacket({ container }: ExecArgs) {
-  const addressIdRaw = process.env.PACKETA_ADDRESS_ID
+  const addressIdRaw = process.env["PACKETA_ADDRESS_ID"]
   if (!addressIdRaw) {
     throw new Error("Set PACKETA_ADDRESS_ID env var")
   }
@@ -54,8 +55,8 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   }
 
   const orderRef = `TEST-${Date.now()}`
-  const value = Number.parseFloat(process.env.PACKETA_TEST_VALUE ?? "100")
-  const weight = Number.parseFloat(process.env.PACKETA_TEST_WEIGHT ?? "0.5")
+  const value = Number.parseFloat(process.env["PACKETA_TEST_VALUE"] ?? "100")
+  const weight = Number.parseFloat(process.env["PACKETA_TEST_WEIGHT"] ?? "0.5")
 
   process.stdout.write(
     `Creating Packeta test packet '${orderRef}' (env: ${packetaService.getEnvironment()})...\n`
@@ -66,8 +67,8 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
       number: orderRef,
       name: "Jan",
       surname: "Tester",
-      email: process.env.PACKETA_TEST_EMAIL ?? "test@example.com",
-      phone: process.env.PACKETA_TEST_PHONE ?? "+420777123456",
+      email: process.env["PACKETA_TEST_EMAIL"] ?? "test@example.com",
+      phone: process.env["PACKETA_TEST_PHONE"] ?? "+420777123456",
       addressId,
       value,
       currency: "CZK",

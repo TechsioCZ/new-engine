@@ -10,6 +10,7 @@ import {
 } from "@medusajs/ui"
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
 import { CoolSwitch } from "../../../../components"
 import { useAdminCustomerSearch } from "../../../../hooks/api"
@@ -66,7 +67,7 @@ const toCustomerOption = (
     first_name: customer.first_name,
     id: customer.id,
     last_name: customer.last_name,
-    phone: customer.phone,
+    phone: customer.phone ?? null,
   }
 }
 
@@ -260,7 +261,11 @@ export function EmployeesCreateForm({
     })
 
     if (field === "email") {
-      setValidationErrors((prev) => ({ ...prev, email: undefined }))
+      setValidationErrors((prev) => {
+        const next = { ...prev }
+        delete next.email
+        return next
+      })
     }
   }
 
@@ -350,7 +355,9 @@ export function EmployeesCreateForm({
               value={formData.email || ""}
             />
             <FieldError
-              error={validationErrors.email}
+              {...(validationErrors.email
+                ? { error: validationErrors.email }
+                : {})}
               id="employee-email-error"
             />
             {customerSearchLoading && (

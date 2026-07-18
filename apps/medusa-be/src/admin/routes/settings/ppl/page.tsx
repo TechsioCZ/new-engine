@@ -12,6 +12,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
+
 import { sdk } from "../../../lib/sdk"
 
 export const handle = {
@@ -263,7 +264,7 @@ const PplSettingsPage = () => {
       label: "Client Secret",
       placeholder: "Your PPL Client Secret",
       type: "password",
-      isSet: pplConfig?.client_secret_set,
+      isSet: pplConfig?.client_secret_set ?? false,
     },
   ]
 
@@ -272,25 +273,25 @@ const PplSettingsPage = () => {
       field: "cod_bank_account",
       label: "Bank Account",
       placeholder: "Bank account",
-      isSet: pplConfig?.cod_bank_account_set,
+      isSet: pplConfig?.cod_bank_account_set ?? false,
     },
     {
       field: "cod_bank_code",
       label: "Bank Code",
       placeholder: "Bank code",
-      isSet: pplConfig?.cod_bank_code_set,
+      isSet: pplConfig?.cod_bank_code_set ?? false,
     },
     {
       field: "cod_iban",
       label: "IBAN",
       placeholder: "IBAN (alternative)",
-      isSet: pplConfig?.cod_iban_set,
+      isSet: pplConfig?.cod_iban_set ?? false,
     },
     {
       field: "cod_swift",
       label: "SWIFT",
       placeholder: "SWIFT (with IBAN)",
-      isSet: pplConfig?.cod_swift_set,
+      isSet: pplConfig?.cod_swift_set ?? false,
     },
   ]
 
@@ -358,7 +359,7 @@ const PplSettingsPage = () => {
                 onValueChange={(value) =>
                   updateField("default_label_format", value)
                 }
-                value={formData.default_label_format}
+                value={formData.default_label_format ?? ""}
               >
                 <Select.Trigger id="ppl-label-format">
                   <Select.Value placeholder="Select format" />

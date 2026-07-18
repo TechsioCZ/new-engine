@@ -4,6 +4,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import { approvalTransformQueryConfig } from "./query-config"
 import { AdminGetApprovals, AdminUpdateApproval } from "./validators"
 

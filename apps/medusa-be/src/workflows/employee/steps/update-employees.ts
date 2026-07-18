@@ -3,11 +3,12 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
+  ModuleEmployee,
   ModuleUpdateEmployee,
-  QueryEmployee,
 } from "../../../types"
 
 export const updateEmployeesStep = createStep(
@@ -15,7 +16,7 @@ export const updateEmployeesStep = createStep(
   async (
     input: ModuleUpdateEmployee,
     { container }
-  ): Promise<StepResponse<QueryEmployee, QueryEmployee>> => {
+  ): Promise<StepResponse<ModuleEmployee, ModuleUpdateEmployee>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
@@ -47,24 +48,15 @@ export const updateEmployeesStep = createStep(
     const updatedEmployee =
       await companyModuleService.updateEmployees(updatePayload)
 
-    const {
-      data: [employee],
-    } = await query.graph(
-      {
-        entity: "employee",
-        fields: ["*", "customer.*", "company.*"],
-        filters: {
-          ...filters,
-          id: updatedEmployee.id,
-        },
-      },
-      { throwIfKeyNotFound: true }
-    )
-
-    return new StepResponse(
-      employee as unknown as QueryEmployee,
-      currentData as unknown as QueryEmployee
-    )
+    return new StepResponse(updatedEmployee, {
+      id: currentData.id,
+      ...(typeof currentData["is_admin"] === "boolean"
+        ? { is_admin: currentData["is_admin"] }
+        : {}),
+      ...(typeof currentData["spending_limit"] === "number"
+        ? { spending_limit: currentData["spending_limit"] }
+        : {}),
+    })
   },
   async (currentData: ModuleUpdateEmployee | undefined, { container }) => {
     if (!currentData) {

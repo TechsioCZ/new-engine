@@ -1,10 +1,11 @@
 import { vi } from "vitest"
+
 import type { PaykitInjectedDependencies } from "../core/base"
 import type { PaykitPaymentClient } from "../types"
 
 type MockPaykitClientOverrides = Omit<
   Partial<PaykitPaymentClient>,
-  "payments" | "refunds"
+  "payments" | "refunds" | "customers"
 > & {
   payments?: Partial<PaykitPaymentClient["payments"]>
   refunds?: Partial<NonNullable<PaykitPaymentClient["refunds"]>>

@@ -9,17 +9,13 @@ To create a custom CLI script, create a TypeScript or JavaScript file under the 
 For example, create the file `src/scripts/my-script.ts` with the following content:
 
 ```ts title="src/scripts/my-script.ts"
-import { 
-  ExecArgs,
-  IProductModuleService
-} from "@medusajs/framework/types"
+import { ExecArgs, IProductModuleService } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 
-export default async function myScript ({
-  container
-}: ExecArgs) {
-  const productModuleService: IProductModuleService = 
-    container.resolve(Modules.PRODUCT)
+export default async function myScript({ container }: ExecArgs) {
+  const productModuleService: IProductModuleService = container.resolve(
+    Modules.PRODUCT
+  )
 
   const [, count] = await productModuleService.listAndCountProducts()
 
@@ -50,9 +46,7 @@ For example:
 ```ts
 import { ExecArgs } from "@medusajs/framework/types"
 
-export default async function myScript ({
-  args
-}: ExecArgs) {
+export default async function myScript({ args }: ExecArgs) {
   console.log(`The arguments you passed: ${args}`)
 }
 ```

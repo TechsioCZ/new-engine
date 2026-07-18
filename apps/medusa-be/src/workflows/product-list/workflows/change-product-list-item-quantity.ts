@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { assertCustomerOwnsProductListStep } from "../steps/assert-customer-owns-product-list"
 import { changeProductListItemQuantityStep } from "../steps/change-product-list-item-quantity"
 import { retrieveProductListItemStep } from "../steps/retrieve-product-list-item"

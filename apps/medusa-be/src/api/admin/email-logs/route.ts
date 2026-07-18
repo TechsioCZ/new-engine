@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
 import type EmailLogModuleService from "../../../modules/email-log/service"
 
@@ -40,8 +41,8 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const emailLogService = req.scope.resolve<EmailLogService>(EMAIL_LOG_MODULE)
 
-  const limit = Number(req.query.limit ?? 20)
-  const offset = Number(req.query.offset ?? 0)
+  const limit = Number(req.query["limit"] ?? 20)
+  const offset = Number(req.query["offset"] ?? 0)
 
   const [emailLogs, count] = await emailLogService.listAndCountEmailLogs(
     {},

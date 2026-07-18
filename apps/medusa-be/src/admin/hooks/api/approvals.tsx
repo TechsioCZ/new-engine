@@ -6,6 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
+
 import type {
   AdminApproval,
   AdminApprovalSettings,
@@ -72,7 +73,7 @@ export const useApprovals = (
   const fetchApprovals = async () =>
     sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
       method: "GET",
-      query,
+      ...(query ? { query } : {}),
     })
 
   return useQuery({

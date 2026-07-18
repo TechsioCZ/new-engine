@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import { isAbsolute, resolve } from "node:path"
+
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { sql } from "drizzle-orm"
+
 import { sqlRaw } from "../utils/db"
 import { isHttpXmlSource, readXmlSource } from "./herbatica-xml-utils"
 
@@ -16,7 +18,7 @@ type XmlElement = {
 type XmlShopItem = {
   id: string
   name: string
-  guid?: string
+  guid?: string | undefined
   categoryPathsSeed: string[]
   categoryPathsStrict: string[]
   images: string[]
@@ -43,9 +45,9 @@ type DbProductRecord = {
   handle: string
   title: string
   status: string
-  thumbnail?: string
-  sourceShopitemId?: string
-  sourceGuid?: string
+  thumbnail?: string | undefined
+  sourceShopitemId?: string | undefined
+  sourceGuid?: string | undefined
   metadataCategoryPaths: string[]
   imageUrls: string[]
   categoryHandles: string[]
@@ -84,14 +86,14 @@ type ScriptOptions = {
   xmlPath: string
   outputDir: string
   sampleSize: number
-  sourceId?: string
+  sourceId?: string | undefined
 }
 
 type RawScriptOptions = {
-  outputDirArg?: string
+  outputDirArg?: string | undefined
   sampleSize: number
-  sourceId?: string
-  xmlPathArg?: string
+  sourceId?: string | undefined
+  xmlPathArg?: string | undefined
 }
 
 type MismatchType =
@@ -115,7 +117,7 @@ type ProductMismatch = {
   types: MismatchType[]
   xml: {
     name: string
-    guid?: string
+    guid?: string | undefined
     categoryPathsSeed: string[]
     categoryPathsStrict: string[]
     imageCount: number
@@ -124,7 +126,7 @@ type ProductMismatch = {
   db: {
     title: string
     status: string
-    sourceGuid?: string
+    sourceGuid?: string | undefined
     categoryPathCount: number
     categoryPaths: string[]
     categoryLinkCount: number
@@ -210,7 +212,7 @@ function decodeXml(value: string): string {
     )
 }
 
-function normalizeText(value?: string): string | undefined {
+function normalizeText(value?: string | undefined): string | undefined {
   if (value === undefined) {
     return
   }
@@ -218,7 +220,7 @@ function normalizeText(value?: string): string | undefined {
   return decoded === "" ? undefined : decoded
 }
 
-function normalizeInlineText(value?: string): string | undefined {
+function normalizeInlineText(value?: string | undefined): string | undefined {
   const normalized = normalizeText(value)
   if (normalized === undefined) {
     return
@@ -259,7 +261,7 @@ function dedupeStrings(values: Array<string | undefined>): string[] {
   return result
 }
 
-function parseAttributes(raw?: string): Record<string, string> {
+function parseAttributes(raw?: string | undefined): Record<string, string> {
   if (!raw) {
     return {}
   }
@@ -352,7 +354,7 @@ function parseShopItems(xml: string): XmlShopItem[] {
   return extractElements(xml, "SHOPITEM").map((shopItem) => {
     const categories = parseCategoryPaths(shopItem.inner)
     return {
-      id: shopItem.attributes.id ?? "",
+      id: shopItem.attributes["id"] ?? "",
       name: extractFirstText(shopItem.inner, "NAME") ?? "",
       guid: extractFirstText(shopItem.inner, "GUID"),
       categoryPathsSeed: categories.seedPaths,
@@ -435,7 +437,7 @@ function toStringArray(value: unknown): string[] {
   return []
 }
 
-function normalizeTitle(value?: string): string {
+function normalizeTitle(value?: string | undefined): string {
   return (
     normalizeInlineText(value)
       ?.normalize("NFKD")
@@ -526,7 +528,7 @@ function collectRawOptions(args?: string[]): RawScriptOptions {
   return options
 }
 
-function resolveXmlPath(xmlPathArg?: string): string {
+function resolveXmlPath(xmlPathArg?: string | undefined): string {
   const xmlPathCandidate = normalizeInlineText(xmlPathArg)
   let resolvedXmlPath = DEFAULT_XML_PATHS.find((path) => existsSync(path))
   if (xmlPathCandidate) {
@@ -548,7 +550,7 @@ function resolveXmlPath(xmlPathArg?: string): string {
   return resolvedXmlPath
 }
 
-function resolveOutputDir(outputDirArg?: string): string {
+function resolveOutputDir(outputDirArg?: string | undefined): string {
   const outputCandidate = normalizeInlineText(outputDirArg)
   if (!outputCandidate) {
     return DEFAULT_OUTPUT_DIR
@@ -781,7 +783,7 @@ function indexDbProducts(dbProducts: DbProductRecord[]): {
 function collectSourceIds(
   xmlBySourceId: SourceIdIndex<XmlShopItem>,
   dbBySourceId: SourceIdIndex<DbProductRecord>,
-  sourceIdFilter?: string
+  sourceIdFilter?: string | undefined
 ): string[] {
   return sortStrings(
     [...new Set([...xmlBySourceId.keys(), ...dbBySourceId.keys()])]

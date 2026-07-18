@@ -1,16 +1,14 @@
 const defineTemplate = <
   const RequiredVariables extends readonly string[],
-  const OptionalVariables extends readonly string[],
 >(definition: {
   id: string
   label: string
-  optionalVariables?: OptionalVariables
+  optionalVariables?: readonly string[]
   requiredVariables: RequiredVariables
   subject: string
 }) => ({
   ...definition,
-  optionalVariables:
-    definition.optionalVariables ?? ([] as unknown as OptionalVariables),
+  optionalVariables: definition.optionalVariables ?? [],
 })
 
 export const resendEmailTemplates = {

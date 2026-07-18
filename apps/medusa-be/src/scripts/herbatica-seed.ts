@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import { existsSync } from "node:fs"
+
 import type {
   ExecArgs,
   IFulfillmentModuleService,
@@ -11,8 +12,9 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
-import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
+import { seedShoptetImportWorkflow } from "../workflows/seed/workflows/seed-shoptet-import"
 import {
   excerptPlainText,
   type HerbaticaCategoryExport,
@@ -67,103 +69,103 @@ type ParsedParameter = {
 }
 
 type ParsedCategoryRef = {
-  id?: string
+  id?: string | undefined
   path: string
   isDefault: boolean
 }
 
 type ParsedFlag = {
-  code?: string
-  active?: boolean
-  validFrom?: string
-  validUntil?: string
+  code?: string | undefined
+  active?: boolean | undefined
+  validFrom?: string | undefined
+  validUntil?: string | undefined
 }
 
 type ParsedSetItem = {
-  code?: string
-  amount?: number
+  code?: string | undefined
+  amount?: number | undefined
 }
 
 type ParsedPricelist = {
-  title?: string
-  priceVat?: number
-  vat?: number
-  standardPrice?: number
-  actionPrice?: number
-  actionPriceFrom?: string
-  actionPriceUntil?: string
-  purchasePrice?: number
+  title?: string | undefined
+  priceVat?: number | undefined
+  vat?: number | undefined
+  standardPrice?: number | undefined
+  actionPrice?: number | undefined
+  actionPriceFrom?: string | undefined
+  actionPriceUntil?: string | undefined
+  purchasePrice?: number | undefined
 }
 
 type ParsedOssTaxRate = {
-  country?: string
-  level?: string
+  country?: string | undefined
+  level?: string | undefined
 }
 
 type ParsedStockWarehouse = {
-  name?: string
-  quantity?: number
-  location?: string
+  name?: string | undefined
+  quantity?: number | undefined
+  location?: string | undefined
 }
 
 type ParsedRelatedFile = {
-  url?: string
-  title?: string
-  text?: string
+  url?: string | undefined
+  title?: string | undefined
+  text?: string | undefined
 }
 
 type ParsedRelatedVideo = {
-  youtubeCode?: string
-  url?: string
-  text?: string
+  youtubeCode?: string | undefined
+  url?: string | undefined
+  text?: string | undefined
 }
 
 type ParsedOfferData = {
-  variantId?: string
-  code?: string
-  ean?: string
-  partNumber?: string
-  productNumber?: string
-  plu?: string
-  unit?: string
-  currency?: string
-  vat?: number
-  priceVat?: number
-  standardPrice?: number
-  actionPrice?: number
-  actionPriceFrom?: string
-  actionPriceUntil?: string
-  purchasePrice?: number
-  purchaseVat?: number
-  purchasePriceInclVat?: boolean
-  stockAmount?: number
-  stockAmountRaw?: number
-  stockLocation?: string
-  stockMinimalAmount?: number
-  stockMaximalAmount?: number
-  stockMinSupply?: number
+  variantId?: string | undefined
+  code?: string | undefined
+  ean?: string | undefined
+  partNumber?: string | undefined
+  productNumber?: string | undefined
+  plu?: string | undefined
+  unit?: string | undefined
+  currency?: string | undefined
+  vat?: number | undefined
+  priceVat?: number | undefined
+  standardPrice?: number | undefined
+  actionPrice?: number | undefined
+  actionPriceFrom?: string | undefined
+  actionPriceUntil?: string | undefined
+  purchasePrice?: number | undefined
+  purchaseVat?: number | undefined
+  purchasePriceInclVat?: boolean | undefined
+  stockAmount?: number | undefined
+  stockAmountRaw?: number | undefined
+  stockLocation?: string | undefined
+  stockMinimalAmount?: number | undefined
+  stockMaximalAmount?: number | undefined
+  stockMinSupply?: number | undefined
   stockWarehouses: ParsedStockWarehouse[]
-  availabilityOutOfStock?: string
-  availabilityInStock?: string
-  imageRef?: string
-  visible?: boolean
-  freeShipping?: boolean
-  freeBilling?: boolean
-  decimalCount?: number
-  negativeAmount?: boolean
-  priceRatio?: number
-  minPriceRatio?: number
-  applyLoyaltyDiscount?: boolean
-  applyVolumeDiscount?: boolean
-  applyQuantityDiscount?: boolean
-  applyDiscountCoupon?: boolean
-  weightKg?: number
-  atypicalShipping?: boolean
-  atypicalBilling?: boolean
-  packageAmount?: number
-  packageAmountUnit?: string
-  measureAmount?: number
-  measureAmountUnit?: string
+  availabilityOutOfStock?: string | undefined
+  availabilityInStock?: string | undefined
+  imageRef?: string | undefined
+  visible?: boolean | undefined
+  freeShipping?: boolean | undefined
+  freeBilling?: boolean | undefined
+  decimalCount?: number | undefined
+  negativeAmount?: boolean | undefined
+  priceRatio?: number | undefined
+  minPriceRatio?: number | undefined
+  applyLoyaltyDiscount?: boolean | undefined
+  applyVolumeDiscount?: boolean | undefined
+  applyQuantityDiscount?: boolean | undefined
+  applyDiscountCoupon?: boolean | undefined
+  weightKg?: number | undefined
+  atypicalShipping?: boolean | undefined
+  atypicalBilling?: boolean | undefined
+  packageAmount?: number | undefined
+  packageAmountUnit?: string | undefined
+  measureAmount?: number | undefined
+  measureAmountUnit?: string | undefined
   parameters: ParsedParameter[]
   pricelists: ParsedPricelist[]
   ossTaxRates: ParsedOssTaxRate[]
@@ -171,17 +173,17 @@ type ParsedOfferData = {
 
 type ParsedShopItem = {
   id: string
-  importCode?: string
+  importCode?: string | undefined
   name: string
-  guid?: string
-  shortDescription?: string
-  description?: string
-  warranty?: string
-  appendix?: string
-  manufacturer?: string
-  supplier?: string
-  adult?: boolean
-  itemType?: string
+  guid?: string | undefined
+  shortDescription?: string | undefined
+  description?: string | undefined
+  warranty?: string | undefined
+  appendix?: string | undefined
+  manufacturer?: string | undefined
+  supplier?: string | undefined
+  adult?: boolean | undefined
+  itemType?: string | undefined
   categoryRefs: ParsedCategoryRef[]
   categoryPaths: string[]
   images: string[]
@@ -191,17 +193,17 @@ type ParsedShopItem = {
   relatedFiles: ParsedRelatedFile[]
   relatedVideos: ParsedRelatedVideo[]
   flags: ParsedFlag[]
-  visibility?: string
-  seoTitle?: string
-  metaDescription?: string
-  allowsIplatba?: boolean
-  allowsPayOnline?: boolean
-  internalNote?: string
-  heurekaCategoryId?: string
-  zboziCategoryId?: string
-  googleCategoryId?: string
-  glamiCategoryId?: string
-  xmlFeedName?: string
+  visibility?: string | undefined
+  seoTitle?: string | undefined
+  metaDescription?: string | undefined
+  allowsIplatba?: boolean | undefined
+  allowsPayOnline?: boolean | undefined
+  internalNote?: string | undefined
+  heurekaCategoryId?: string | undefined
+  zboziCategoryId?: string | undefined
+  googleCategoryId?: string | undefined
+  glamiCategoryId?: string | undefined
+  xmlFeedName?: string | undefined
   setItems: ParsedSetItem[]
   topOffer: ParsedOfferData
   variants: ParsedOfferData[]
@@ -246,7 +248,7 @@ type ProductCardCopyConfig = {
 type CategoryNode = {
   key: string
   title: string
-  parentKey?: string
+  parentKey?: string | undefined
   depth: number
 }
 
@@ -283,8 +285,8 @@ type BuildResult = {
 
 type ResolvedFeedPaths = {
   productsXmlPath: string
-  categoriesXmlPath?: string
-  reviewsXmlPath?: string
+  categoriesXmlPath?: string | undefined
+  reviewsXmlPath?: string | undefined
 }
 
 type HerbaticaWorkflowInputOptions = {
@@ -295,13 +297,13 @@ type HerbaticaWorkflowInputOptions = {
 }
 
 type SeedBuildOptions = {
-  referenceDate?: Date
-  promoRebaseDays?: number
+  referenceDate?: Date | undefined
+  promoRebaseDays?: number | undefined
 }
 
 type ResolvedSeedBuildOptions = {
   referenceDate: Date
-  promoRebaseDays?: number
+  promoRebaseDays?: number | undefined
 }
 
 type BuildProductMetadataOptions = {
@@ -310,7 +312,7 @@ type BuildProductMetadataOptions = {
   categoryPaths: string[]
   categoryRefs: ParsedCategoryRef[]
   resolvedProductReferences: ResolvedProductReferences
-  referenceDate?: Date
+  referenceDate?: Date | undefined
 }
 
 type BuildVariantsForProductOptions = {
@@ -318,7 +320,7 @@ type BuildVariantsForProductOptions = {
   handle: string
   usedSkus: Set<string>
   usedEans: Set<string>
-  referenceDate?: Date
+  referenceDate?: Date | undefined
 }
 
 type BuildVariantSeedOptions = {
@@ -689,7 +691,7 @@ function normalizeProductContentLabel(value?: string): string | undefined {
 }
 
 function classifyProductContentLabel(
-  label?: string
+  label?: string | undefined
 ): ProductContentSectionKey | undefined {
   const normalizedLabel = normalizeProductContentLabel(label)
   if (!normalizedLabel) {
@@ -720,7 +722,7 @@ function toHtmlFragment(value?: string): string | undefined {
 
 function buildLabeledHtmlFragment(
   label: string,
-  value?: string
+  value?: string | undefined
 ): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
@@ -749,7 +751,7 @@ function buildPlainTextHtmlFragment(value?: string): string | undefined {
 
 function buildLabeledPlainTextHtmlFragment(
   label: string,
-  value?: string
+  value?: string | undefined
 ): string | undefined {
   const normalizedLabel = normalizeInlineText(label.replace(/:\s*$/g, ""))
   const normalizedValue = normalizeInlineText(value)
@@ -807,7 +809,7 @@ function findProductContentTextAnchors(
 }
 
 function splitLabeledTextBlock(blockHtml: string): {
-  beforeHtml?: string
+  beforeHtml?: string | undefined
   sections: Array<{ key: ProductContentSectionKey; html: string }>
 } {
   const blockText = stripHtmlTags(blockHtml)
@@ -1031,9 +1033,12 @@ function countHtmlListItems(value?: string): number {
 
 function buildProductCardCopyConfig(
   contentSectionsMap: Record<ProductContentSectionKey, string>,
-  shortDescription?: string
+  shortDescription?: string | undefined
 ): ProductCardCopyConfig {
-  const candidates: Array<{ source: ProductCardCopySource; html?: string }> = [
+  const candidates: Array<{
+    source: ProductCardCopySource
+    html?: string | undefined
+  }> = [
     {
       source: "description",
       html: contentSectionsMap.description,
@@ -1136,7 +1141,7 @@ function addUtcDays(date: Date, days: number): Date {
 }
 
 function resolveSeedBuildOptions(
-  options?: SeedBuildOptions
+  options?: SeedBuildOptions | undefined
 ): ResolvedSeedBuildOptions {
   const referenceDate = options?.referenceDate
     ? new Date(options.referenceDate)
@@ -1197,8 +1202,8 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
 }
 
 function isDateRangeActive(
-  validFrom?: string,
-  validUntil?: string,
+  validFrom?: string | undefined,
+  validUntil?: string | undefined,
   referenceDate = new Date()
 ): boolean {
   const from = parseIsoDate(validFrom, false)
@@ -1217,7 +1222,7 @@ function isDateRangeActive(
 
 function resolveOfferBasePrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData | undefined
 ): number | undefined {
   return normalizePriceAmount(
     offer.standardPrice ??
@@ -1229,7 +1234,7 @@ function resolveOfferBasePrice(
 
 function resolveOfferActionPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData | undefined,
   referenceDate = new Date()
 ): number | undefined {
   const actionPrice = normalizePriceAmount(
@@ -1252,7 +1257,7 @@ function resolveOfferActionPrice(
 
 function resolveOfferHasActiveDiscount(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData | undefined,
   referenceDate = new Date()
 ): boolean {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
@@ -1274,7 +1279,7 @@ function resolveOfferHasActiveDiscount(
 
 function hasDiscountedActionPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData | undefined
 ): boolean {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = normalizePriceAmount(
@@ -1290,7 +1295,7 @@ function hasDiscountedActionPrice(
 
 function resolveOfferCurrentPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData | undefined,
   referenceDate = new Date()
 ): number {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
@@ -1321,7 +1326,7 @@ function resolveOfferCurrentPrice(
 
 function resolveOfferDefaultPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData | undefined
 ): number {
   return resolveOfferBasePrice(offer, fallbackOffer) ?? 0
 }
@@ -1340,8 +1345,8 @@ function isDefaultPricelistTitle(title?: string): boolean {
 }
 
 function shouldImportActionPrice(
-  actionPrice?: number,
-  validUntil?: string,
+  actionPrice?: number | undefined,
+  validUntil?: string | undefined,
   referenceDate = new Date()
 ): actionPrice is number {
   if (actionPrice === undefined || actionPrice <= 0) {
@@ -1353,7 +1358,7 @@ function shouldImportActionPrice(
 }
 
 function serializePriceListDate(
-  value?: string,
+  value?: string | undefined,
   endOfDay = false
 ): string | undefined {
   return parseIsoDate(value, endOfDay)?.toISOString()
@@ -1361,8 +1366,8 @@ function serializePriceListDate(
 
 function buildSalePriceListTitle(
   sourceTitle: string,
-  startsAt?: string,
-  endsAt?: string
+  startsAt?: string | undefined,
+  endsAt?: string | undefined
 ): string {
   const windowLabel =
     startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
@@ -1375,7 +1380,7 @@ function buildSalePriceListTitle(
 function rebaseOfferPromotion(
   offer: ParsedOfferData,
   buildOptions: ResolvedSeedBuildOptions,
-  fallbackOffer?: ParsedOfferData
+  fallbackOffer?: ParsedOfferData | undefined
 ): ParsedOfferData {
   if (!buildOptions.promoRebaseDays) {
     return offer
@@ -1527,7 +1532,7 @@ function canonicalizeCategoryPath(path: string): string {
   return splitCategoryPath(path).join(" > ")
 }
 
-function slugify(value: string): string {
+function slugifyHerbaticaHandle(value: string): string {
   const normalized = value
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -1641,14 +1646,9 @@ function buildWarehouseStockLocationAddress(location?: string): {
   }
 }
 
-function buildOfferInventoryQuantities(offer: ParsedOfferData): {
-  quantity?: number
-  supplier_quantity?: number
-  locations?: {
-    stockLocationName: string
-    quantity: number
-  }[]
-} {
+function buildOfferInventoryQuantities(
+  offer: ParsedOfferData
+): NonNullable<VariantSeedInput["quantities"]> {
   if (offer.stockWarehouses.length === 0) {
     const quantity = normalizeInventoryQuantity(offer.stockAmountRaw)
     return {
@@ -1762,7 +1762,7 @@ function parseOfferData(
   )
 
   return {
-    variantId: attributes?.id,
+    variantId: attributes?.["id"],
     code: extractFirstText(scalarSource, "CODE"),
     ean: extractFirstText(scalarSource, "EAN"),
     partNumber: extractFirstText(scalarSource, "PART_NUMBER"),
@@ -1963,12 +1963,12 @@ function parseCategoryRefs(source: string): ParsedCategoryRef[] {
 
   const refs = [
     ...extractElements(categoriesRaw, "CATEGORY").map((category) => ({
-      id: normalizeInlineText(category.attributes.id),
+      id: normalizeInlineText(category.attributes["id"]),
       path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
       isDefault: false,
     })),
     ...extractElements(categoriesRaw, "DEFAULT_CATEGORY").map((category) => ({
-      id: normalizeInlineText(category.attributes.id),
+      id: normalizeInlineText(category.attributes["id"]),
       path: canonicalizeCategoryPath(normalizeInlineText(category.inner) ?? ""),
       isDefault: true,
     })),
@@ -2024,7 +2024,7 @@ function parseShopItems(xml: string): ParsedShopItem[] {
     const categoryRefs = parseCategoryRefs(shopItem.inner)
 
     return {
-      id: shopItem.attributes.id ?? "",
+      id: shopItem.attributes["id"] ?? "",
       importCode: shopItem.attributes["import-code"],
       name: extractFirstText(shopItem.inner, "NAME") ?? "",
       guid: extractFirstText(shopItem.inner, "GUID"),
@@ -2126,7 +2126,7 @@ function buildCategoryHandleMaps(
 
   for (const node of sortedNodes) {
     const baseHandle = truncateWithHash(
-      slugify(node.key) ||
+      slugifyHerbaticaHandle(node.key) ||
         `category-${createHash("sha1").update(node.key).digest("hex").slice(0, 10)}`
     )
     const handle = ensureUnique(baseHandle, usedHandles, "category")
@@ -2144,13 +2144,20 @@ function buildCategorySeedInputs(
   sortedNodes: CategoryNode[],
   keyToHandle: Map<string, string>
 ): CategorySeedInput[] {
-  return sortedNodes.map((node) => ({
-    name: node.title,
-    description: "Imported from Herbatica XML feed.",
-    handle: keyToHandle.get(node.key),
-    isActive: true,
-    parentHandle: node.parentKey ? keyToHandle.get(node.parentKey) : undefined,
-  }))
+  return sortedNodes.map((node) => {
+    const handle = keyToHandle.get(node.key)
+    const parentHandle = node.parentKey
+      ? keyToHandle.get(node.parentKey)
+      : undefined
+
+    return {
+      name: node.title,
+      description: "Imported from Herbatica XML feed.",
+      ...(handle ? { handle } : {}),
+      isActive: true,
+      ...(parentHandle ? { parentHandle } : {}),
+    }
+  })
 }
 
 function buildCategoriesFromProductPaths(
@@ -2265,7 +2272,7 @@ function buildCategoriesFromExport(
 
   for (const node of sortedCategories) {
     const baseHandle = truncateWithHash(
-      slugify(node.path) ||
+      slugifyHerbaticaHandle(node.path) ||
         `category-${createHash("sha1").update(node.path).digest("hex").slice(0, 10)}`
     )
     const handle = ensureUnique(baseHandle, usedHandles, "category")
@@ -2273,21 +2280,28 @@ function buildCategoriesFromExport(
     categoryIdToHandle.set(node.category.id, handle)
   }
 
-  const categories: CategorySeedInput[] = sortedCategories.map((node) => ({
-    name: node.category.title,
-    description:
-      excerptPlainText(node.category.topDescriptionHtml) ??
-      excerptPlainText(node.category.bottomDescriptionHtml) ??
-      "Imported from Herbatica category export.",
-    handle: categoryIdToHandle.get(node.category.id),
-    isActive: node.category.isVisible,
-    parentHandle: node.category.parentId
+  const categories: CategorySeedInput[] = sortedCategories.map((node) => {
+    const handle = categoryIdToHandle.get(node.category.id)
+    const parentHandle = node.category.parentId
       ? categoryIdToHandle.get(node.category.parentId)
-      : undefined,
-    metadata: buildCategoryMetadata(node.category, node.path),
-    rank: node.category.priority,
-    isInternal: node.category.isSystem,
-  }))
+      : undefined
+
+    return {
+      name: node.category.title,
+      description:
+        excerptPlainText(node.category.topDescriptionHtml) ??
+        excerptPlainText(node.category.bottomDescriptionHtml) ??
+        "Imported from Herbatica category export.",
+      ...(handle ? { handle } : {}),
+      isActive: node.category.isVisible,
+      ...(parentHandle ? { parentHandle } : {}),
+      metadata: buildCategoryMetadata(node.category, node.path),
+      ...(node.category.priority === undefined
+        ? {}
+        : { rank: node.category.priority }),
+      isInternal: node.category.isSystem,
+    }
+  })
 
   return {
     categories,
@@ -2372,7 +2386,7 @@ function resolveProductReferences(
   codes: string[],
   productHandleBySourceId: Map<string, string>,
   publishedSourceIds: Set<string>,
-  excludedSourceId?: string
+  excludedSourceId?: string | undefined
 ): ResolvedProductReference[] {
   const refs: ResolvedProductReference[] = []
   const seen = new Set<string>()
@@ -2426,7 +2440,7 @@ function buildResolvedProductReferences(
 
 function buildVariantMetadata(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData,
+  fallbackOffer?: ParsedOfferData | undefined,
   referenceDate = new Date()
 ): Record<string, unknown> {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
@@ -2630,7 +2644,7 @@ function buildDefaultVariantForProduct({
       {
         title: DEFAULT_OPTION_VALUE,
         sku,
-        ean,
+        ...(ean ? { ean } : {}),
         options: {
           [DEFAULT_OPTION_TITLE]: DEFAULT_OPTION_VALUE,
         },
@@ -2640,8 +2654,7 @@ function buildDefaultVariantForProduct({
             currency_code: currencyCode,
           },
         ],
-        images: thumbnail ? [{ url: thumbnail }] : undefined,
-        thumbnail,
+        ...(thumbnail ? { images: [{ url: thumbnail }], thumbnail } : {}),
         metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
         quantities,
       },
@@ -2700,7 +2713,7 @@ function buildVariantSeed({
   return {
     title,
     sku,
-    ean,
+    ...(ean ? { ean } : {}),
     options: optionObject,
     prices: [
       {
@@ -2708,8 +2721,7 @@ function buildVariantSeed({
         currency_code: currencyCode,
       },
     ],
-    images: thumbnail ? [{ url: thumbnail }] : undefined,
-    thumbnail,
+    ...(thumbnail ? { images: [{ url: thumbnail }], thumbnail } : {}),
     metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
     quantities,
   }
@@ -2817,7 +2829,7 @@ function buildProducts(
       ? `shopitem-${item.id}`
       : `${item.name}-${index + 1}`
     const handleSeed = truncateWithHash(
-      slugify(stableHandleSource) || `product-${index + 1}`
+      slugifyHerbaticaHandle(stableHandleSource) || `product-${index + 1}`
     )
     const handle = ensureUnique(handleSeed, usedHandles, `product-${index + 1}`)
 
@@ -2881,6 +2893,7 @@ function buildProducts(
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
+    const producer = buildProducer(item)
 
     return {
       title: item.name || `Product ${item.id || index + 1}`,
@@ -2898,10 +2911,10 @@ function buildProducts(
         referenceDate: buildOptions.referenceDate,
       }),
       shippingProfileName: "Default Shipping Profile",
-      thumbnail,
+      ...(thumbnail ? { thumbnail } : {}),
       images: imageUrls.map((url) => ({ url })),
       options,
-      producer: buildProducer(item),
+      ...(producer ? { producer } : {}),
       variants,
       salesChannelNames: ["Default Sales Channel"],
     }
@@ -2953,9 +2966,9 @@ function addSalePriceListPrice(
     price,
   }: {
     sourceTitle: string
-    customerGroupName?: string
-    startsAtRaw?: string
-    endsAtRaw?: string
+    customerGroupName?: string | undefined
+    startsAtRaw?: string | undefined
+    endsAtRaw?: string | undefined
     price: PriceListPriceSeedInput
   }
 ) {
@@ -2973,8 +2986,8 @@ function addSalePriceListPrice(
       title: buildSalePriceListTitle(sourceTitle, startsAtRaw, endsAtRaw),
       sourceTitle,
       ...(customerGroupName ? { customerGroupName } : {}),
-      startsAt,
-      endsAt,
+      ...(startsAt ? { startsAt } : {}),
+      ...(endsAt ? { endsAt } : {}),
       prices: [],
     } satisfies PriceListsSeedInput["sales"][number])
 
@@ -3010,8 +3023,8 @@ function getMetadataNumber(
 function getMetadataPricelists(
   metadata: Record<string, unknown> | undefined
 ): ParsedPricelist[] {
-  return Array.isArray(metadata?.pricelists)
-    ? (metadata.pricelists as ParsedPricelist[])
+  return Array.isArray(metadata?.["pricelists"])
+    ? (metadata["pricelists"] as ParsedPricelist[])
     : []
 }
 
@@ -3074,7 +3087,7 @@ function ensureOverridePriceList(
 function addRegularPricelistPrice(
   overridePriceList: PriceListsSeedInput["overrides"][number],
   basePrice: PriceListPriceSeedInput,
-  regularPrice?: number
+  regularPrice?: number | undefined
 ) {
   if (
     regularPrice === undefined ||
@@ -3100,7 +3113,7 @@ function addPricelistSalePrice({
   basePrice: PriceListPriceSeedInput
   pricelist: ParsedPricelist
   referenceDate: Date
-  regularPrice?: number
+  regularPrice?: number | undefined
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
   title: string
 }) {
@@ -3333,8 +3346,8 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
 
 export function buildSeedInputFromXml(
   xml: string,
-  categoryExports?: HerbaticaCategoryExport[],
-  options?: SeedBuildOptions
+  categoryExports?: HerbaticaCategoryExport[] | undefined,
+  options?: SeedBuildOptions | undefined
 ): BuildResult {
   const buildOptions = resolveSeedBuildOptions(options)
   const items = applyPromoOverrides(parseShopItems(xml), buildOptions)
@@ -3408,7 +3421,6 @@ export function buildHerbaticaSeedWorkflowInput(
     regions: regionsInput,
     taxRegions: {
       countries: [...DEFAULT_COUNTRIES],
-      taxProviderId: undefined,
     },
     taxRates: {
       countries: HERBATICA_TAX_RATE_COUNTRIES,
@@ -3554,8 +3566,6 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       : existingRegions.map((region) => ({
           name: region.name,
           currencyCode: region.currency_code?.toLowerCase() || "eur",
-          countries: undefined,
-          paymentProviders: undefined,
           isTaxInclusive: true,
         }))
 

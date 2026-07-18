@@ -1,11 +1,13 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type { PacketaClientModuleService } from "../../../modules/packeta-client"
 import { PACKETA_CLIENT_MODULE } from "../../../modules/packeta-client"
 import type {
   PacketaConfigDTO,
   PacketaConfigResponse,
 } from "../../../modules/packeta-client/types"
+import { definedProperties } from "../../../utils/defined-properties"
 import type { PostAdminPacketaConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked. */
@@ -64,7 +66,9 @@ export async function POST(
     PACKETA_CLIENT_MODULE
   )
 
-  const updated = await packetaService.updateConfig(req.validatedBody)
+  const updated = await packetaService.updateConfig(
+    definedProperties(req.validatedBody)
+  )
 
   res.json({ config: toConfigResponse(updated) })
 }

@@ -1,11 +1,13 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type { PplClientModuleService } from "../../../modules/ppl-client"
 import { PPL_CLIENT_MODULE } from "../../../modules/ppl-client"
 import type {
   PplConfigDTO,
   PplConfigResponse,
 } from "../../../modules/ppl-client/types"
+import { definedProperties } from "../../../utils/defined-properties"
 import type { PostAdminPplConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked */
@@ -62,7 +64,9 @@ export async function POST(
   const pplService =
     req.scope.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
 
-  const updated = await pplService.updateConfig(req.validatedBody)
+  const updated = await pplService.updateConfig(
+    definedProperties(req.validatedBody)
+  )
 
   res.json({ config: toConfigResponse(updated) })
 }

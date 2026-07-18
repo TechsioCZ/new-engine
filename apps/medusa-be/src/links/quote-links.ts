@@ -1,5 +1,6 @@
 import { Modules } from "@medusajs/framework/utils"
 import { MedusaModule } from "@medusajs/modules-sdk"
+
 import { QUOTE_MODULE } from "../modules/quote"
 
 MedusaModule.setCustomLink(() => ({

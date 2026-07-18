@@ -60,9 +60,8 @@ describe("GET /admin/companies/:id/approval-settings", () => {
   })
 
   it("lists approval settings scoped to the route company id", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/companies/[id]/approval-settings/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/companies/[id]/approval-settings/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         {
@@ -122,9 +121,8 @@ describe("POST /admin/companies/:id/approval-settings", () => {
   })
 
   it("updates approval settings resolved by route company id", async () => {
-    const { POST } = await import(
-      "../../../../../../src/api/admin/companies/[id]/approval-settings/route"
-    )
+    const { POST } =
+      await import("../../../../../../src/api/admin/companies/[id]/approval-settings/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -181,9 +179,8 @@ describe("POST /admin/companies/:id/approval-settings", () => {
   })
 
   it("creates missing approval settings before applying the update", async () => {
-    const { POST } = await import(
-      "../../../../../../src/api/admin/companies/[id]/approval-settings/route"
-    )
+    const { POST } =
+      await import("../../../../../../src/api/admin/companies/[id]/approval-settings/route")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({ data: [] })

@@ -1,6 +1,10 @@
 import type { MedusaContainer } from "@medusajs/framework"
-import { asValue, createContainer } from "@medusajs/framework/awilix"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { asValue } from "@medusajs/framework/awilix"
+import {
+  ContainerRegistrationKeys,
+  createMedusaContainer,
+  Modules,
+} from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const {
@@ -105,11 +109,12 @@ describe("applyOrderCommercialValues", () => {
 
       return { data: [] }
     })
-    container = createContainer().register({
+    container = createMedusaContainer()
+    container.register({
       [ContainerRegistrationKeys.LOGGER]: asValue(logger),
       [ContainerRegistrationKeys.QUERY]: asValue(query),
       [Modules.LOCKING]: asValue(lockingModule),
-    }) as unknown as MedusaContainer
+    })
   })
 
   it("updates unit price, replaces adjustments, and confirms", async () => {

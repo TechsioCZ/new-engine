@@ -27,6 +27,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+
 import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import {
   listProducerAttributeTypes,
@@ -55,7 +56,7 @@ const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params.id
+  const id = params["id"]
 
   if (!id) {
     return { producer: undefined }
@@ -100,12 +101,6 @@ const toFormState = (producer?: Producer): ProducerInput => ({
   handle: producer?.handle ?? "",
   title: producer?.title ?? "",
 })
-
-const optionalTrimmed = (value?: string) => {
-  const trimmed = value?.trim()
-
-  return trimmed ? trimmed : undefined
-}
 
 const ProductSelectionRows = ({
   currentProducerId,
@@ -294,7 +289,7 @@ const ProducerEditDrawer = ({
           value: attribute.value,
         }))
         .filter((attribute) => attribute.name.length > 0),
-      handle: optionalTrimmed(form.handle),
+      ...(form.handle?.trim() ? { handle: form.handle.trim() } : {}),
       title: form.title.trim(),
     })
   }
@@ -783,7 +778,7 @@ const ProducerProductsSection = ({
             onOpen={onOpenProduct}
             onRemove={onRemove}
             products={products}
-            removingProductId={removingProductId}
+            {...(removingProductId ? { removingProductId } : {})}
           />
         </Table.Body>
       </Table>
@@ -1055,7 +1050,9 @@ const ProducerDetailPage = () => {
           productOrderBy={productOrderBy}
           productQ={productQ}
           products={products}
-          removingProductId={removeProductMutation.variables}
+          {...(removeProductMutation.variables
+            ? { removingProductId: removeProductMutation.variables }
+            : {})}
           setPageIndex={setPageIndex}
           setProductOrderBy={setProductOrderBy}
           setProductQ={setProductQ}

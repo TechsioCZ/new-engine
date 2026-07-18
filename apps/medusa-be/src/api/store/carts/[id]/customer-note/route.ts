@@ -8,6 +8,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
+
 import type { StoreSetCartCustomerNoteType } from "../../validators"
 
 type CartRecord = {
@@ -33,7 +34,7 @@ export async function POST(
   req: AuthenticatedMedusaRequest<StoreSetCartCustomerNoteType>,
   res: MedusaResponse
 ) {
-  const cartId = typeof req.params.id === "string" ? req.params.id : ""
+  const cartId = typeof req.params["id"] === "string" ? req.params["id"] : ""
 
   if (!cartId) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Cart id is missing")
@@ -66,8 +67,8 @@ export async function POST(
     const now = new Date().toISOString()
     const metadata = cart.metadata ?? {}
     const createdAt =
-      typeof metadata.order_note_created_at === "string"
-        ? metadata.order_note_created_at
+      typeof metadata["order_note_created_at"] === "string"
+        ? metadata["order_note_created_at"]
         : now
 
     await updateCartWorkflow(req.scope).run({

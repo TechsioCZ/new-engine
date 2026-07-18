@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
+import { definedProperties } from "../../../../utils/defined-properties"
 import {
   deleteProducersWorkflow,
   restoreProducersWorkflow,
@@ -12,7 +14,7 @@ import {
 import type { AdminUpdateProducerSchemaType } from "../validators"
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const producerId = req.params.id ?? ""
+  const producerId = req.params["id"] ?? ""
   const producer = await retrieveProducerOrThrow(req.scope, producerId, {
     withDeleted: true,
   })
@@ -32,7 +34,7 @@ export async function POST(
   req: MedusaRequest<AdminUpdateProducerSchemaType>,
   res: MedusaResponse
 ) {
-  const producerId = req.params.id ?? ""
+  const producerId = req.params["id"] ?? ""
 
   await retrieveProducerOrThrow(req.scope, producerId)
 
@@ -41,7 +43,7 @@ export async function POST(
       selector: {
         id: producerId,
       },
-      update: req.validatedBody,
+      update: definedProperties(req.validatedBody),
     },
   })
 
@@ -63,7 +65,7 @@ export async function POST(
 }
 
 export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await retrieveProducerOrThrow(req.scope, id)
   await deleteProducersWorkflow(req.scope).run({
@@ -80,7 +82,7 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function PUT(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+  const id = req.params["id"] ?? ""
 
   await retrieveProducerOrThrow(req.scope, id, { withDeleted: true })
   await restoreProducersWorkflow(req.scope).run({

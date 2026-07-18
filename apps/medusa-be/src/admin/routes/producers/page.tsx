@@ -24,6 +24,7 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { formatLocaleCode } from "../../lib/format-locale-code"
 import {
@@ -83,12 +84,6 @@ const toFormState = (producer?: Producer): ProducerInput => ({
   handle: producer?.handle ?? "",
   title: producer?.title ?? "",
 })
-
-const optionalTrimmed = (value?: string) => {
-  const trimmed = value?.trim()
-
-  return trimmed ? trimmed : undefined
-}
 
 const toDefaultHandle = (title: string) =>
   title
@@ -380,7 +375,7 @@ const ProducerFormDrawer = ({
 
     mutation.mutate({
       attributes,
-      handle: optionalTrimmed(form.handle),
+      ...(form.handle?.trim() ? { handle: form.handle.trim() } : {}),
       title: form.title.trim(),
     })
   }

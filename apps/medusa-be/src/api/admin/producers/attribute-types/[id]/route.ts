@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import {
   deleteProducerAttributeTypesWorkflow,
   restoreProducerAttributeTypesWorkflow,
@@ -47,7 +48,7 @@ const retrieveAttributeType = async (req: MedusaRequest) => {
   const [attributeType] = await getProducerService(
     req.scope
   ).listProducerAttributeTypes(
-    { id: req.params.id ?? "" },
+    { id: req.params["id"] ?? "" },
     {
       take: 1,
       withDeleted: true,
@@ -57,7 +58,7 @@ const retrieveAttributeType = async (req: MedusaRequest) => {
   if (!attributeType) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Producer attribute type with id "${req.params.id}" was not found`
+      `Producer attribute type with id "${req.params["id"]}" was not found`
     )
   }
 

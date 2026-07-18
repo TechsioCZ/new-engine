@@ -1,5 +1,6 @@
 import { OAuth2Client } from "@badgateway/oauth2-client"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type {
   PplAccessPoint,
   PplAccessPointsQuery,
@@ -840,13 +841,13 @@ export class PplClient {
       headers["Content-Type"] = "application/json"
     }
 
+    const request: RequestInit = { method, headers }
+    if (body !== undefined) {
+      request.body = JSON.stringify(body)
+    }
+
     return this.withRetry(
-      () =>
-        this.fetchWithTimeout(`${this.baseUrl}${path}`, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : undefined,
-        }),
+      () => this.fetchWithTimeout(`${this.baseUrl}${path}`, request),
       async (response) => {
         if (allow404 && response.status === 404) {
           return { data: null, status: 404 }

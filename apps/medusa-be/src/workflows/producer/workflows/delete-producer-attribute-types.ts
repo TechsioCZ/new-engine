@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { deleteProducerAttributeTypesStep } from "../steps"
 import type { DeleteProducerAttributeTypesWorkflowInput } from "../types"
 

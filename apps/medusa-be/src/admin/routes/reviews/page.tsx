@@ -13,6 +13,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+
 import {
   listReviews,
   type Review,
@@ -21,6 +22,11 @@ import {
   updateReviewStatus,
 } from "../../lib/reviews"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
+import {
+  formatReviewDate,
+  getReviewCustomerName,
+  REVIEW_STATUS_BADGE_COLOR,
+} from "./review-formatters"
 
 const PAGE_SIZE = 20
 
@@ -30,32 +36,6 @@ const STATUS_FILTERS: Array<{ label: string; value?: ReviewStatus }> = [
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
 ]
-
-const STATUS_BADGE_COLOR: Record<ReviewStatus, "green" | "orange" | "red"> = {
-  approved: "green",
-  pending: "orange",
-  rejected: "red",
-}
-
-const formatDate = (date: string | undefined) => {
-  if (!date) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
-}
-
-const getCustomerName = (review: Review) => {
-  const name = [review.first_name, review.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-
-  return name || review.customer_id
-}
 
 const ReviewRows = ({
   isLoading,
@@ -135,7 +115,7 @@ const ReviewRows = ({
         </Table.Cell>
         <Table.Cell>{review.rating}/5</Table.Cell>
         <Table.Cell>
-          <StatusBadge color={STATUS_BADGE_COLOR[review.status]}>
+          <StatusBadge color={REVIEW_STATUS_BADGE_COLOR[review.status]}>
             {review.status}
           </StatusBadge>
         </Table.Cell>
@@ -149,8 +129,8 @@ const ReviewRows = ({
             ) : null}
           </div>
         </Table.Cell>
-        <Table.Cell>{getCustomerName(review)}</Table.Cell>
-        <Table.Cell>{formatDate(review.created_at)}</Table.Cell>
+        <Table.Cell>{getReviewCustomerName(review)}</Table.Cell>
+        <Table.Cell>{formatReviewDate(review.created_at)}</Table.Cell>
       </Table.Row>
     )
   })
@@ -168,8 +148,8 @@ const ReviewsPage = () => {
     limit: PAGE_SIZE,
     offset: pageIndex * PAGE_SIZE,
     order_by: "-created_at",
-    q: debouncedQuery || undefined,
-    status,
+    ...(debouncedQuery ? { q: debouncedQuery } : {}),
+    ...(status ? { status } : {}),
   }
   const { data, isLoading } = useQuery({
     queryFn: () => listReviews(params),

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { APPROVAL_MODULE } from "../../../../../src/modules/approval"
 
 vi.mock("@medusajs/framework/workflows-sdk", () => ({
@@ -46,6 +47,25 @@ type MockStep<TInput> = {
     input: unknown,
     context: { container: MockContainer }
   ) => Promise<void>
+}
+
+const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep<TInput>
 }
 
 const makeApprovalService = (
@@ -99,9 +119,8 @@ describe("approval settings steps", () => {
   })
 
   it("soft-deletes approval settings and restores the same row on compensation", async () => {
-    const { deleteApprovalSettingsStep } = await import(
-      "../../../../../src/workflows/approval/steps/delete-approval-settings"
-    )
+    const { deleteApprovalSettingsStep } =
+      await import("../../../../../src/workflows/approval/steps/delete-approval-settings")
     const approvalService = makeApprovalService({
       listApprovalSettings: vi.fn().mockResolvedValue([
         {
@@ -114,8 +133,8 @@ describe("approval settings steps", () => {
     })
     const container = makeContainer({ approvalService })
 
-    const result = await (
-      deleteApprovalSettingsStep as MockStep<{ companyIds: string[] }>
+    const result = await asMockStep<{ companyIds: string[] }>(
+      deleteApprovalSettingsStep
     )({ companyIds: ["comp_1"] }, { container })
 
     expect(approvalService.softDeleteApprovalSettings).toHaveBeenCalledWith([
@@ -123,8 +142,8 @@ describe("approval settings steps", () => {
     ])
     expect(approvalService.deleteApprovalSettings).not.toHaveBeenCalled()
 
-    await (
-      deleteApprovalSettingsStep as MockStep<{ companyIds: string[] }>
+    await asMockStep<{ companyIds: string[] }>(
+      deleteApprovalSettingsStep
     ).compensate(result.compensateInput, {
       container,
     })
@@ -136,9 +155,8 @@ describe("approval settings steps", () => {
   })
 
   it("restores recoverable approval settings and creates defaults only when missing", async () => {
-    const { ensureApprovalSettingsStep } = await import(
-      "../../../../../src/workflows/approval/steps/ensure-approval-settings"
-    )
+    const { ensureApprovalSettingsStep } =
+      await import("../../../../../src/workflows/approval/steps/ensure-approval-settings")
     const restoredSetting = {
       company_id: "comp_2",
       deleted_at: "2026-01-02T00:00:00.000Z",
@@ -167,7 +185,7 @@ describe("approval settings steps", () => {
     })
     const container = makeContainer({ approvalService })
 
-    const result = await (ensureApprovalSettingsStep as MockStep<string[]>)(
+    const result = await asMockStep<string[]>(ensureApprovalSettingsStep)(
       ["comp_1", "comp_2", "comp_3"],
       { container }
     )
@@ -199,7 +217,7 @@ describe("approval settings steps", () => {
       restored_ids: ["apprset_deleted"],
     })
 
-    await (ensureApprovalSettingsStep as MockStep<string[]>).compensate(
+    await asMockStep<string[]>(ensureApprovalSettingsStep).compensate(
       result.compensateInput,
       {
         container,
@@ -215,9 +233,8 @@ describe("approval settings steps", () => {
   })
 
   it("dismisses stale company approval-settings links with the link API", async () => {
-    const { dismissCompanyApprovalSettingsLinksStep } = await import(
-      "../../../../../src/workflows/approval/steps/dismiss-company-approval-settings-links"
-    )
+    const { dismissCompanyApprovalSettingsLinksStep } =
+      await import("../../../../../src/workflows/approval/steps/dismiss-company-approval-settings-links")
     const staleLink = {
       approval: { approval_settings_id: "apprset_missing" },
       company: { company_id: "comp_1" },
@@ -234,8 +251,8 @@ describe("approval settings steps", () => {
     const linkService = makeLinkService()
     const container = makeContainer({ approvalService, graph, linkService })
 
-    const result = await (
-      dismissCompanyApprovalSettingsLinksStep as MockStep<string[]>
+    const result = await asMockStep<string[]>(
+      dismissCompanyApprovalSettingsLinksStep
     )(["comp_1"], { container })
 
     expect(graph).toHaveBeenCalledWith({
@@ -247,8 +264,8 @@ describe("approval settings steps", () => {
     })
     expect(linkService.dismiss).toHaveBeenCalledWith([staleLink])
 
-    await (
-      dismissCompanyApprovalSettingsLinksStep as MockStep<string[]>
+    await asMockStep<string[]>(
+      dismissCompanyApprovalSettingsLinksStep
     ).compensate(result.compensateInput, { container })
 
     expect(linkService.create).toHaveBeenCalledWith([staleLink])

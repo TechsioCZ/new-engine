@@ -15,6 +15,7 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+
 import type { QueryCompany } from "../../../types"
 import { adminCompanyDisplayFieldsQuery } from "../../../types/company/admin-fields"
 import { useCompanies } from "../../hooks/api"
@@ -126,7 +127,7 @@ const Companies = () => {
           <Table.Cell className="h-6 w-6 items-center justify-center">
             <Avatar
               fallback={displayName.charAt(0)}
-              src={company.logo_url || undefined}
+              src={company.logo_url ?? ""}
             />
           </Table.Cell>
           <Table.Cell>{displayName}</Table.Cell>

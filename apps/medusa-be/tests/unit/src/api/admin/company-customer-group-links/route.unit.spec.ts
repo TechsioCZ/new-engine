@@ -1,5 +1,6 @@
 import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { COMPANY_MODULE } from "../../../../../../src/modules/company"
 
 const COMPANY_CUSTOMER_GROUP_ENTRY_POINT = "company_customer_group"
@@ -41,9 +42,8 @@ describe("GET /admin/company-customer-group-links", () => {
   })
 
   it("returns companies linked to requested customer groups including deleted companies", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/company-customer-group-links/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/company-customer-group-links/route")
     const graph = vi.fn().mockResolvedValue({
       data: [
         { company_id: "comp_1", customer_group_id: "cgrp_1" },
@@ -96,9 +96,8 @@ describe("GET /admin/company-customer-group-links", () => {
   })
 
   it("returns an empty list without resolving services when no group IDs are requested", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/company-customer-group-links/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/company-customer-group-links/route")
     const graph = vi.fn()
     const companyService = { listCompanies: vi.fn() }
     const req = createMockRequest({

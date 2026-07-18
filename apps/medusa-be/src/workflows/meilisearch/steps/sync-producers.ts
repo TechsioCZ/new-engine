@@ -1,8 +1,9 @@
 import type { Query } from "@medusajs/framework"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
+
 import { MEILISEARCH, PRODUCERS } from "../"
+import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 
 export type SyncMeilisearchProducersStepInput = {
   filters?: Record<string, unknown>
@@ -66,7 +67,7 @@ export const syncMeilisearchProducersStep = createStep(
         })
 
         for (const hit of result.hits) {
-          existingProducerIds.add(hit.id)
+          existingProducerIds.add(hit["id"])
         }
 
         if (result.hits.length < batchSize) {
@@ -76,14 +77,14 @@ export const syncMeilisearchProducersStep = createStep(
       }
     }
 
-    const currentProducerIds = new Set(allProducers.map((p) => p.id))
+    const currentProducerIds = new Set(allProducers.map((p) => p["id"]))
     const producersToDelete = Array.from(existingProducerIds).filter(
       (id) => !currentProducerIds.has(id)
     )
 
     const transformedProducers = allProducers.map((producer) => ({
       ...producer,
-      handle: `/store/producers/${producer.handle}/products`,
+      handle: `/store/producers/${producer["handle"]}/products`,
     }))
 
     await Promise.all(

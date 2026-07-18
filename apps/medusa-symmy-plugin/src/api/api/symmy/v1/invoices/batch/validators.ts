@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { requireIdentifierField } from "../../refine-identifier"
+
 const INVOICES_BATCH_MAX = 500
 
 const InvoiceInputSchema = z
@@ -14,27 +16,8 @@ const InvoiceInputSchema = z
     data: z.string().min(1).optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.identifier_type === "display_id" && !value.display_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "display_id is required when identifier_type is 'display_id'",
-        path: ["display_id"],
-      })
-    }
-    if (value.identifier_type === "order_id" && !value.order_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "order_id is required when identifier_type is 'order_id'",
-        path: ["order_id"],
-      })
-    }
-    if (value.identifier_type === "erp_id" && !value.erp_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "erp_id is required when identifier_type is 'erp_id'",
-        path: ["erp_id"],
-      })
-    }
+    requireIdentifierField(value, ctx)
+
     if (!(value.url || value.data)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

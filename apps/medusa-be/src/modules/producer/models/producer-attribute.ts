@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import Producer from "./producer"
 import ProducerAttributeType from "./producer-attribute-type"
 

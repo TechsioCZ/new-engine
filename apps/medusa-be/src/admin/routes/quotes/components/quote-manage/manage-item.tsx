@@ -16,6 +16,7 @@ import {
 } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { ActionMenu, AmountCell, Thumbnail } from "../../../../components"
 import { Form } from "../../../../components/common/form"
 import {
@@ -84,14 +85,14 @@ function ManageItem({
     try {
       if (addItemAction) {
         await updateAddedItem({
-          quantity,
-          unit_price,
+          ...(quantity === undefined ? {} : { quantity }),
+          ...(unit_price === undefined ? {} : { unit_price }),
           actionId: addItemAction.id,
         })
       } else {
         await updateOriginalItem({
-          quantity,
-          unit_price,
+          ...(quantity === undefined ? {} : { quantity }),
+          ...(unit_price === undefined ? {} : { unit_price }),
           itemId: item.id,
         })
       }
@@ -224,7 +225,7 @@ function ManageItem({
             <AmountCell
               amount={item.total}
               currencyCode={currencyCode}
-              originalAmount={originalItem?.total}
+              originalAmount={originalItem?.total ?? null}
             />
           </div>
 

@@ -2,25 +2,22 @@
   "name": "medusa-symmy-plugin",
   "version": "0.1.0",
   "description": "Medusa v2 plugin that exposes an admin batch upsert endpoint for products with per-item identifier matching (sku/ean/erp_id) and partial-success semantics.",
-  "author": "Tomáš Zbedina",
-  "license": "MIT",
-  "engines": {
-    "node": "24.x"
-  },
   "keywords": [
+    "batch",
+    "import",
     "medusa-plugin",
     "medusa-v2",
     "products",
-    "batch",
-    "upsert",
-    "import"
+    "upsert"
   ],
-  "main": "./.medusa/server/src/index.js",
-  "types": "./.medusa/server/src/index.d.ts",
+  "license": "MIT",
+  "author": "Tomáš Zbedina",
   "files": [
     ".medusa/server",
     "README.md"
   ],
+  "main": "./.medusa/server/src/index.js",
+  "types": "./.medusa/server/src/index.d.ts",
   "exports": {
     ".": {
       "import": "./.medusa/server/src/index.js",
@@ -40,36 +37,41 @@
   "scripts": {
     "build": "medusa plugin:build",
     "dev": "medusa plugin:develop",
-    "lint": "pnpm lint:biome && pnpm lint:medusa",
-    "lint:biome": "pnpm -w exec biome check apps/medusa-symmy-plugin",
-    "lint:fix": "pnpm -w exec biome check --write apps/medusa-symmy-plugin && pnpm lint:medusa",
-    "lint:medusa": "medusa lint --quiet",
+    "lint": "pnpm lint:oxlint && pnpm lint:medusa",
+    "lint:fix": "pnpm -w exec ultracite fix apps/medusa-symmy-plugin && pnpm lint:medusa",
+    "lint:medusa": "eslint . --config eslint.config.ts --quiet",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/medusa-symmy-plugin/tsconfig.json",
+    "lint:oxlint": "pnpm -w exec oxlint apps/medusa-symmy-plugin --type-aware --deny-warnings"
   },
   "dependencies": {
     "jose": "^6.2.3"
   },
   "devDependencies": {
-    "@medusajs/admin-sdk": "^2.16.0",
-    "@medusajs/admin-shared": "^2.16.0",
-    "@medusajs/cli": "^2.16.0",
-    "@medusajs/framework": "^2.16.0",
-    "@medusajs/icons": "^2.16.0",
-    "@medusajs/medusa": "^2.16.0",
-    "@medusajs/test-utils": "^2.16.0",
-    "@medusajs/ui": "^4.1.16",
-    "@types/node": "^24.12.4",
-    "@types/react": "^19.0.0",
-    "mysql2": "^3.15.3",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "@medusajs/admin-sdk": "^2.17.2",
+    "@medusajs/admin-shared": "^2.17.2",
+    "@medusajs/cli": "^2.17.2",
+    "@medusajs/framework": "^2.17.2",
+    "@medusajs/icons": "^2.17.2",
+    "@medusajs/medusa": "^2.17.2",
+    "@medusajs/test-utils": "^2.17.2",
+    "@medusajs/ui": "^4.1.19",
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.17",
+    "express": "4.22.2",
+    "mysql2": "^3.23.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "@medusajs/framework": "^2.13.0",
     "@medusajs/medusa": "^2.13.0"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

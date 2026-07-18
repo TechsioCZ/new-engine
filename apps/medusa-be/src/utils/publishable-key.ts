@@ -1,9 +1,12 @@
 import type {
+  ApiKeyDTO,
+  Context,
+  CreateApiKeyDTO,
   IApiKeyModuleService,
   ILockingModule,
 } from "@medusajs/framework/types"
 
-export const DEFAULT_PUBLISHABLE_KEY_TITLE = "Storefront Publishable Key"
+const DEFAULT_PUBLISHABLE_KEY_TITLE = "Storefront Publishable Key"
 
 const PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS = 5
 const PUBLISHABLE_KEY_LOCK_PREFIX = "publishable-key:provision"
@@ -21,26 +24,35 @@ export type PublishableKeyResult = {
   title: string
 }
 
+type ApiKeyServiceDependency = {
+  createApiKeys: (
+    data: CreateApiKeyDTO,
+    sharedContext?: Context
+  ) => Promise<ApiKeyDTO>
+  listApiKeys: IApiKeyModuleService["listApiKeys"]
+}
+type LockingModuleDependency = Pick<ILockingModule, "execute">
+
 type PublishableKeyLookupInput = {
-  apiKeyService: IApiKeyModuleService
+  apiKeyService: ApiKeyServiceDependency
   title?: string | null
 }
 
 type ProvisionPublishableKeyInput = PublishableKeyLookupInput & {
   createdBy?: string | null
-  lockingModule?: ILockingModule | null
+  lockingModule?: LockingModuleDependency | null
 }
 
 export function resolvePublishableKeyTitle(title?: string | null): string {
   return (
     title?.trim() ||
-    process.env.INITIAL_PUBLISHABLE_KEY_NAME?.trim() ||
+    process.env["INITIAL_PUBLISHABLE_KEY_NAME"]?.trim() ||
     DEFAULT_PUBLISHABLE_KEY_TITLE
   )
 }
 
 async function findActivePublishableKey(
-  apiKeyService: IApiKeyModuleService,
+  apiKeyService: ApiKeyServiceDependency,
   title: string
 ): Promise<ListedApiKey | null> {
   const existingKeys = await apiKeyService.listApiKeys({

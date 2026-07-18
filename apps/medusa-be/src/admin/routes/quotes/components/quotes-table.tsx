@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+
 import { DataTable } from "../../../../admin/components"
 import { useDataTable } from "../../../../admin/hooks"
 import { useQuotes } from "../../../../admin/hooks/api"
@@ -34,7 +35,7 @@ export const QuotesTable = () => {
     data: quotes,
     columns,
     enablePagination: true,
-    count,
+    count: count ?? 0,
     pageSize: PAGE_SIZE,
   })
 
@@ -42,7 +43,7 @@ export const QuotesTable = () => {
     <div className="flex size-full flex-col overflow-hidden">
       <DataTable
         columns={columns}
-        count={count}
+        count={count ?? 0}
         filters={filters}
         isLoading={isPending}
         navigateTo={(row) => `/quotes/${row.original.id}`}

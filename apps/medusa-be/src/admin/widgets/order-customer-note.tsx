@@ -3,6 +3,7 @@ import type { AdminOrder, DetailWidgetProps } from "@medusajs/framework/types"
 import { Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
+
 import { sdk } from "../lib/sdk"
 
 type OrderCustomerNote = {

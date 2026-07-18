@@ -1,4 +1,5 @@
 import { model } from "@medusajs/framework/utils"
+
 import ProducerAttribute from "./producer-attribute"
 
 const ProducerAttributeType = model

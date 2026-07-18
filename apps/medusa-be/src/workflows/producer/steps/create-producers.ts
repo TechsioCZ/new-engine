@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { CreateProducersWorkflowInput } from "../types"
 import {
   getProducerService,
@@ -11,7 +12,7 @@ export const createProducersStep = createStep(
   async (input: CreateProducersWorkflowInput, { container }) => {
     const service = getProducerService(container)
 
-    const producers = await withProducerTransaction(
+    const producers = await withProducerTransaction<Array<{ id: string }>>(
       service,
       async (context) => {
         const createdProducers = (await service.createProducers(
@@ -36,7 +37,7 @@ export const createProducersStep = createStep(
         return createdProducers
       }
     )
-    const createdIds = producers.map((producer) => producer.id)
+    const createdIds = producers.map((producer: { id: string }) => producer.id)
 
     return new StepResponse(producers, createdIds)
   },

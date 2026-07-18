@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import {
   type SendProductReviewRequestWorkflowInput,
   sendProductReviewRequestWorkflow,
@@ -17,7 +18,7 @@ type WorkflowQueueRunner = (
 function isSendProductReviewRequestWorkflowInput(
   input: Record<string, unknown>
 ): input is SendProductReviewRequestWorkflowInput {
-  return typeof input.order_id === "string"
+  return typeof input["order_id"] === "string"
 }
 
 const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {

@@ -1,6 +1,7 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/framework/http"
 import { listProductQueryConfig } from "@medusajs/medusa/api/store/products/query-config"
+
 import { StoreProducersDetailProductsSchema } from "./[id]/products/route"
 import { StoreProducersDetailSchema } from "./[id]/route"
 import { StoreProducersSchema } from "./route"

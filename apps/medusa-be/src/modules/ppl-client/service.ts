@@ -4,6 +4,8 @@ import type {
   Logger,
 } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
+
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { PplClient } from "./client"
@@ -81,6 +83,74 @@ type UsablePplConfig = PplConfigDTO & {
   client_secret: string
 }
 
+const isPplEnvironment = (value: unknown): value is PplEnvironment =>
+  value === "testing" || value === "production"
+
+const toPplConfigDTO = (value: unknown): PplConfigDTO => {
+  if (
+    !isRecord(value) ||
+    typeof value["id"] !== "string" ||
+    !isPplEnvironment(value["environment"]) ||
+    typeof value["is_enabled"] !== "boolean" ||
+    (value["client_id"] !== null && typeof value["client_id"] !== "string") ||
+    (value["client_secret"] !== null &&
+      typeof value["client_secret"] !== "string") ||
+    typeof value["default_label_format"] !== "string" ||
+    (value["cod_bank_account"] !== null &&
+      typeof value["cod_bank_account"] !== "string") ||
+    (value["cod_bank_code"] !== null &&
+      typeof value["cod_bank_code"] !== "string") ||
+    (value["cod_iban"] !== null && typeof value["cod_iban"] !== "string") ||
+    (value["cod_swift"] !== null && typeof value["cod_swift"] !== "string") ||
+    (value["sender_name"] !== null &&
+      typeof value["sender_name"] !== "string") ||
+    (value["sender_street"] !== null &&
+      typeof value["sender_street"] !== "string") ||
+    (value["sender_city"] !== null &&
+      typeof value["sender_city"] !== "string") ||
+    (value["sender_zip_code"] !== null &&
+      typeof value["sender_zip_code"] !== "string") ||
+    (value["sender_country"] !== null &&
+      typeof value["sender_country"] !== "string") ||
+    (value["sender_phone"] !== null &&
+      typeof value["sender_phone"] !== "string") ||
+    (value["sender_email"] !== null &&
+      typeof value["sender_email"] !== "string") ||
+    !(value["created_at"] instanceof Date) ||
+    !(value["updated_at"] instanceof Date)
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "PPL: Stored configuration has an invalid shape"
+    )
+  }
+
+  return {
+    id: value["id"],
+    environment: value["environment"],
+    is_enabled: value["is_enabled"],
+    client_id: value["client_id"],
+    client_secret: value["client_secret"],
+    default_label_format: value["default_label_format"],
+    cod_bank_account: value["cod_bank_account"],
+    cod_bank_code: value["cod_bank_code"],
+    cod_iban: value["cod_iban"],
+    cod_swift: value["cod_swift"],
+    sender_name: value["sender_name"],
+    sender_street: value["sender_street"],
+    sender_city: value["sender_city"],
+    sender_zip_code: value["sender_zip_code"],
+    sender_country: value["sender_country"],
+    sender_phone: value["sender_phone"],
+    sender_email: value["sender_email"],
+    created_at: value["created_at"],
+    updated_at: value["updated_at"],
+  }
+}
+
+const isLockTimeoutError = (error: unknown): boolean =>
+  error instanceof MedusaError && error.type === MedusaError.Types.CONFLICT
+
 /**
  * Module options passed from medusa-config.ts
  */
@@ -156,9 +226,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     if (!config) {
       return null
     }
-    return decryptFields(config as unknown as PplConfigDTO, [
-      ...PPL_SENSITIVE_FIELDS,
-    ])
+    return decryptFields(toPplConfigDTO(config), [...PPL_SENSITIVE_FIELDS])
   }
 
   /**
@@ -188,9 +256,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         ...encrypted,
       })
       await this.invalidateConfigCache()
-      return decryptFields(updated as unknown as PplConfigDTO, [
-        ...PPL_SENSITIVE_FIELDS,
-      ])
+      return decryptFields(toPplConfigDTO(updated), [...PPL_SENSITIVE_FIELDS])
     }
 
     // Should not happen if loader ran, but create with environment just in case
@@ -199,9 +265,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       environment: this.environment_,
     })
     await this.invalidateConfigCache()
-    return decryptFields(created as unknown as PplConfigDTO, [
-      ...PPL_SENSITIVE_FIELDS,
-    ])
+    return decryptFields(toPplConfigDTO(created), [...PPL_SENSITIVE_FIELDS])
   }
 
   /**
@@ -244,23 +308,34 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   private buildEffectiveOptions(config: UsablePplConfig): PplOptions {
-    return {
+    const options: PplOptions = {
       client_id: config.client_id,
       client_secret: config.client_secret,
       environment: this.environment_,
       default_label_format: config.default_label_format as PplLabelFormat,
-      cod_bank_account: config.cod_bank_account ?? undefined,
-      cod_bank_code: config.cod_bank_code ?? undefined,
-      cod_iban: config.cod_iban ?? undefined,
-      cod_swift: config.cod_swift ?? undefined,
-      sender_name: config.sender_name ?? undefined,
-      sender_street: config.sender_street ?? undefined,
-      sender_city: config.sender_city ?? undefined,
-      sender_zip_code: config.sender_zip_code ?? undefined,
-      sender_country: config.sender_country ?? undefined,
-      sender_phone: config.sender_phone ?? undefined,
-      sender_email: config.sender_email ?? undefined,
     }
+    const optionalFields = [
+      "cod_bank_account",
+      "cod_bank_code",
+      "cod_iban",
+      "cod_swift",
+      "sender_name",
+      "sender_street",
+      "sender_city",
+      "sender_zip_code",
+      "sender_country",
+      "sender_phone",
+      "sender_email",
+    ] as const
+
+    for (const field of optionalFields) {
+      const value = config[field]
+      if (value !== null) {
+        options[field] = value
+      }
+    }
+
+    return options
   }
 
   private async cacheEffectiveConfig(options: PplOptions): Promise<void> {
@@ -420,7 +495,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         )
       } catch (error) {
         // Lock timeout - fall through to local fallback for this request
-        if (error instanceof Error && error.message.includes("Timed-out")) {
+        if (isLockTimeoutError(error)) {
           this.logger_.warn(
             "PPL: Rate limit lock timed out, using local fallback"
           )

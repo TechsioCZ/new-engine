@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto"
+
 import type { MedusaRequest } from "@medusajs/framework/http"
 
 export function getHeaderValue(

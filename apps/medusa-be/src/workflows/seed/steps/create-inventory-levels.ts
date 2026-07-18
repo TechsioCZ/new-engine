@@ -1,6 +1,7 @@
 import type {
   CreateInventoryLevelInput,
   IInventoryService,
+  UpdateInventoryLevelInput,
   InventoryLevelDTO,
   Logger,
   Query,
@@ -101,8 +102,8 @@ export const createInventoryLevelsStep = createStep(
       return {
         id: inventoryItem?.id,
         sku: ii.sku,
-        quantity: ii.quantity,
-        locations: ii.locations,
+        ...(ii.quantity !== undefined ? { quantity: ii.quantity } : {}),
+        ...(ii.locations !== undefined ? { locations: ii.locations } : {}),
       }
     })
 
@@ -129,24 +130,25 @@ export const createInventoryLevelsStep = createStep(
             eil.location_id === il.location_id
         )
     )
-    const updateInventoryLevels = existingInventoryLevels.flatMap((eil) => {
-      const inputInventoryLevel = inventoryLevels.find(
-        (il) =>
-          eil.inventory_item_id === il.inventory_item_id &&
-          eil.location_id === il.location_id
-      )
-      if (inputInventoryLevel !== undefined) {
-        return [
-          {
-            location_id: eil.location_id,
-            inventory_item_id: eil.inventory_item_id,
-            stocked_quantity: inputInventoryLevel.stocked_quantity,
-          },
-        ]
-      }
+    const updateInventoryLevels: UpdateInventoryLevelInput[] =
+      existingInventoryLevels.flatMap((eil) => {
+        const inputInventoryLevel = inventoryLevels.find(
+          (il) =>
+            eil.inventory_item_id === il.inventory_item_id &&
+            eil.location_id === il.location_id
+        )
+        if (inputInventoryLevel?.stocked_quantity !== undefined) {
+          return [
+            {
+              location_id: eil.location_id,
+              inventory_item_id: eil.inventory_item_id,
+              stocked_quantity: inputInventoryLevel.stocked_quantity,
+            },
+          ]
+        }
 
-      return []
-    })
+        return []
+      })
 
     const CHUNK_SIZE = 1000
 

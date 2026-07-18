@@ -4,6 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { PRODUCER_MODULE } from "../../../../src/modules/producer"
 import ProducerModuleService from "../../../../src/modules/producer/service"
 import {
@@ -13,14 +14,24 @@ import {
   getProductProducerLockKeys,
 } from "../../../../src/workflows/producer"
 
+const asMedusaContainer = (value: {
+  resolve: (key: string) => unknown
+}): MedusaContainer => {
+  if (typeof value.resolve !== "function") {
+    throw new TypeError("mock container requires a resolve function")
+  }
+
+  return value as MedusaContainer
+}
+
 const createScope = ({
   links,
   producers = [],
 }: {
   links: Array<{ producer_id: string; product_id: string }>
   producers?: Array<{ deleted_at?: Date | null; id: string; title: string }>
-}) =>
-  ({
+}): MedusaContainer =>
+  asMedusaContainer({
     resolve: vi.fn((key: string) => {
       if (key === ContainerRegistrationKeys.QUERY) {
         return {
@@ -45,7 +56,7 @@ const createScope = ({
 
       throw new Error(`Unexpected container key: ${key}`)
     }),
-  }) as unknown as MedusaContainer
+  })
 
 describe("producer workflows", () => {
   describe("diffIds", () => {
@@ -109,9 +120,8 @@ describe("producer workflows", () => {
 
   describe("ensureProductsAssignableToProducer", () => {
     it("allows products that are unassigned or already linked to the producer", async () => {
-      const { ensureProductsAssignableToProducer } = await import(
-        "../../../../src/api/admin/producers/utils"
-      )
+      const { ensureProductsAssignableToProducer } =
+        await import("../../../../src/api/admin/producers/utils")
       const scope = createScope({
         links: [
           {
@@ -130,9 +140,8 @@ describe("producer workflows", () => {
     })
 
     it("rejects products linked to a different producer with a clear error", async () => {
-      const { ensureProductsAssignableToProducer } = await import(
-        "../../../../src/api/admin/producers/utils"
-      )
+      const { ensureProductsAssignableToProducer } =
+        await import("../../../../src/api/admin/producers/utils")
       const scope = createScope({
         links: [
           {
@@ -158,9 +167,8 @@ describe("producer workflows", () => {
     })
 
     it("allows products linked only to a soft-deleted producer", async () => {
-      const { ensureProductsAssignableToProducer } = await import(
-        "../../../../src/api/admin/producers/utils"
-      )
+      const { ensureProductsAssignableToProducer } =
+        await import("../../../../src/api/admin/producers/utils")
       const scope = createScope({
         links: [
           {

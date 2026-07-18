@@ -1,5 +1,6 @@
 import babel from "@rolldown/plugin-babel"
 import { reactCompilerPreset } from "@vitejs/plugin-react"
+
 import type { MedusaConfigEnv } from "./env"
 import type { MedusaAdminConfig, MedusaProjectConfig } from "./types"
 
@@ -19,7 +20,9 @@ export function buildAdminConfig(env: MedusaConfigEnv): MedusaAdminConfig {
       },
       plugins: [babel({ presets: [reactCompilerPreset()] })],
       server: {
-        allowedHosts: env.adminAllowedHosts,
+        ...(env.adminAllowedHosts === undefined
+          ? {}
+          : { allowedHosts: env.adminAllowedHosts }),
         hmr: false,
         headers: {
           "Cache-Control": "no-store",
@@ -31,17 +34,17 @@ export function buildAdminConfig(env: MedusaConfigEnv): MedusaAdminConfig {
 
 export function buildProjectConfig(env: MedusaConfigEnv): MedusaProjectConfig {
   return {
-    databaseUrl: env.databaseUrl,
+    ...(env.databaseUrl ? { databaseUrl: env.databaseUrl } : {}),
     databaseSchema: env.databaseSchema,
     http: {
       storeCors: env.storeCors,
       adminCors: env.adminCors,
       authCors: env.authCors,
-      jwtSecret: env.jwtSecret,
-      cookieSecret: env.cookieSecret,
+      ...(env.jwtSecret ? { jwtSecret: env.jwtSecret } : {}),
+      ...(env.cookieSecret ? { cookieSecret: env.cookieSecret } : {}),
     },
     cookieOptions: env.cookieOptions,
-    ...(env.redisSessionsEnabled
+    ...(env.redisSessionsEnabled && env.redisUrl
       ? {
           redisUrl: env.redisUrl,
         }

@@ -5,6 +5,7 @@ import {
   Modules,
   OrderChangeStatus,
 } from "@medusajs/framework/utils"
+
 import type {
   CommercialAdjustmentInput,
   CommercialValuesCalculationInput,
@@ -96,7 +97,7 @@ export type CommercialValuesOrder = {
   id: string
   currency_code?: string | null
   items?: CommercialValuesOrderItem[] | null
-  shipping_methods?: CommercialValuesOrderShippingMethod[] | null
+  shipping_methods?: CommercialValuesOrderShippingMethod[] | null | undefined
   status?: string | null
   total?: AmountValue
   version?: AmountValue
@@ -261,48 +262,48 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function isCommercialValuesOrderItem(
   value: unknown
 ): value is CommercialValuesOrderItem {
-  if (!isRecord(value) || typeof value.id !== "string") {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
   }
 
   return (
-    value.adjustments === undefined ||
-    value.adjustments === null ||
-    Array.isArray(value.adjustments)
+    value["adjustments"] === undefined ||
+    value["adjustments"] === null ||
+    Array.isArray(value["adjustments"])
   )
 }
 
 function isCommercialValuesOrderShippingMethod(
   value: unknown
 ): value is CommercialValuesOrderShippingMethod {
-  if (!isRecord(value) || typeof value.id !== "string") {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
   }
 
   return (
-    value.adjustments === undefined ||
-    value.adjustments === null ||
-    Array.isArray(value.adjustments)
+    value["adjustments"] === undefined ||
+    value["adjustments"] === null ||
+    Array.isArray(value["adjustments"])
   )
 }
 
 function isCommercialValuesOrder(
   value: unknown
 ): value is CommercialValuesOrder {
-  if (!isRecord(value) || typeof value.id !== "string") {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
   }
 
   const hasValidItems =
-    value.items === undefined ||
-    value.items === null ||
-    (Array.isArray(value.items) &&
-      value.items.every(isCommercialValuesOrderItem))
+    value["items"] === undefined ||
+    value["items"] === null ||
+    (Array.isArray(value["items"]) &&
+      value["items"].every(isCommercialValuesOrderItem))
   const hasValidShippingMethods =
-    value.shipping_methods === undefined ||
-    value.shipping_methods === null ||
-    (Array.isArray(value.shipping_methods) &&
-      value.shipping_methods.every(isCommercialValuesOrderShippingMethod))
+    value["shipping_methods"] === undefined ||
+    value["shipping_methods"] === null ||
+    (Array.isArray(value["shipping_methods"]) &&
+      value["shipping_methods"].every(isCommercialValuesOrderShippingMethod))
 
   return hasValidItems && hasValidShippingMethods
 }
@@ -312,9 +313,9 @@ function isActiveOrderChangeRecord(
 ): value is ActiveOrderChangeRecord {
   return (
     isRecord(value) &&
-    typeof value.id === "string" &&
-    (value.status === OrderChangeStatus.PENDING ||
-      value.status === OrderChangeStatus.REQUESTED)
+    typeof value["id"] === "string" &&
+    (value["status"] === OrderChangeStatus.PENDING ||
+      value["status"] === OrderChangeStatus.REQUESTED)
   )
 }
 
@@ -375,7 +376,7 @@ function toDisplayShippingAdjustmentAmount(
   shippingMethod: CommercialValuesOrderShippingMethod
 ) {
   const adjustmentTotal = isRecord(adjustment)
-    ? ((adjustment as Record<string, unknown>).total as AmountValue)
+    ? ((adjustment as Record<string, unknown>)["total"] as AmountValue)
     : undefined
 
   if (adjustmentTotal !== null && adjustmentTotal !== undefined) {
@@ -729,7 +730,7 @@ export async function fetchActiveOrderChange(query: Query, orderId: string) {
 
   return {
     ...activeOrderChange,
-    change_type: activeOrderChange.change_type ?? undefined,
+    change_type: activeOrderChange.change_type ?? null,
     version: toSafeInteger(
       activeOrderChange.version ?? 0,
       "order change version"
@@ -834,9 +835,9 @@ function mergeOrderChangePreview(
   return {
     ...order,
     ...preview,
-    currency_code: preview.currency_code ?? order.currency_code,
+    currency_code: preview.currency_code ?? order.currency_code ?? null,
     items:
-      preview.items?.map((item) => {
+      preview.items?.map((item): CommercialValuesOrderItem => {
         const originalItem = itemsById.get(item.id)
 
         if (!originalItem) {
@@ -846,27 +847,57 @@ function mergeOrderChangePreview(
         return {
           ...originalItem,
           ...item,
-          adjustments: item.adjustments ?? originalItem.adjustments,
+          ...((item.adjustments ?? originalItem.adjustments) !== undefined
+            ? { adjustments: item.adjustments ?? originalItem.adjustments }
+            : {}),
           detail: {
             ...originalItem.detail,
             ...item.detail,
           },
-          quantity:
-            item.quantity ?? item.detail?.quantity ?? originalItem.quantity,
-          raw_quantity:
-            item.raw_quantity ??
+          ...((item.quantity ??
+            item.detail?.quantity ??
+            originalItem.quantity) !== undefined
+            ? {
+                quantity:
+                  item.quantity ??
+                  item.detail?.quantity ??
+                  originalItem.quantity,
+              }
+            : {}),
+          ...((item.raw_quantity ??
             item.detail?.raw_quantity ??
-            originalItem.raw_quantity,
-          raw_unit_price:
-            item.raw_unit_price ??
+            originalItem.raw_quantity) !== undefined
+            ? {
+                raw_quantity:
+                  item.raw_quantity ??
+                  item.detail?.raw_quantity ??
+                  originalItem.raw_quantity,
+              }
+            : {}),
+          ...((item.raw_unit_price ??
             item.detail?.raw_unit_price ??
-            originalItem.raw_unit_price,
-          unit_price:
-            item.unit_price ??
+            originalItem.raw_unit_price) !== undefined
+            ? {
+                raw_unit_price:
+                  item.raw_unit_price ??
+                  item.detail?.raw_unit_price ??
+                  originalItem.raw_unit_price,
+              }
+            : {}),
+          ...((item.unit_price ??
             item.detail?.unit_price ??
-            originalItem.unit_price,
+            originalItem.unit_price) !== undefined
+            ? {
+                unit_price:
+                  item.unit_price ??
+                  item.detail?.unit_price ??
+                  originalItem.unit_price,
+              }
+            : {}),
         }
-      }) ?? order.items,
+      }) ??
+      order.items ??
+      null,
     shipping_methods:
       preview.shipping_methods?.map((shippingMethod) => {
         const originalShippingMethod = shippingMethodsById.get(
@@ -880,13 +911,21 @@ function mergeOrderChangePreview(
         return {
           ...originalShippingMethod,
           ...shippingMethod,
-          adjustments:
-            shippingMethod.adjustments ?? originalShippingMethod.adjustments,
+          ...((shippingMethod.adjustments ??
+            originalShippingMethod.adjustments) !== undefined
+            ? {
+                adjustments:
+                  shippingMethod.adjustments ??
+                  originalShippingMethod.adjustments,
+              }
+            : {}),
         }
-      }) ?? order.shipping_methods,
-    status: preview.status ?? order.status,
-    total: preview.total ?? order.total,
-    version: preview.version ?? order.version,
+      }) ??
+      order.shipping_methods ??
+      null,
+    status: preview.status ?? order.status ?? null,
+    total: preview.total ?? order.total ?? null,
+    version: preview.version ?? order.version ?? null,
   }
 }
 
@@ -958,7 +997,7 @@ export function toCommercialValuesSnapshot(
   const currencyCode = requireCurrencyCode(order)
 
   return {
-    active_order_change: activeOrderChange,
+    ...(activeOrderChange ? { active_order_change: activeOrderChange } : {}),
     currency_code: currencyCode,
     editable: blockers.length === 0,
     edit_blockers: blockers,

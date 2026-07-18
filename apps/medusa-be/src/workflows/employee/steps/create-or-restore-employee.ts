@@ -1,6 +1,7 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
@@ -126,18 +127,7 @@ export const createOrRestoreEmployeeStep = createStep(
         spending_limit: input.spending_limit,
       })
 
-      const {
-        data: [restoredEmployee],
-      } = await query.graph(
-        {
-          entity: "employee",
-          fields: ["id", "company.*"],
-          filters: { id: updatedEmployee.id },
-        },
-        { throwIfKeyNotFound: true }
-      )
-
-      return new StepResponse(restoredEmployee as unknown as ModuleEmployee, {
+      return new StepResponse(updatedEmployee, {
         action: "restored",
         employee_id: restorableEmployee.id,
         previous_is_admin: restorableEmployee.is_admin ?? false,
@@ -152,25 +142,11 @@ export const createOrRestoreEmployeeStep = createStep(
       getEmployeeCustomerLink(createdEmployee.id, input.customer_id)
     )
 
-    const {
-      data: [createdEmployeeResult],
-    } = await query.graph(
-      {
-        entity: "employee",
-        filters: { id: createdEmployee.id },
-        fields: ["id", "company.*"],
-      },
-      { throwIfKeyNotFound: true }
-    )
-
-    return new StepResponse(
-      createdEmployeeResult as unknown as ModuleEmployee,
-      {
-        action: "created",
-        customer_id: input.customer_id,
-        employee_id: createdEmployeeResult.id,
-      }
-    )
+    return new StepResponse(createdEmployee, {
+      action: "created",
+      customer_id: input.customer_id,
+      employee_id: createdEmployee.id,
+    })
   },
   async (
     input: CreateOrRestoreEmployeeCompensation | undefined,

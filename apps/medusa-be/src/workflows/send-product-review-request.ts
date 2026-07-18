@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto"
+
 import type {
   CreateNotificationDTO,
   Logger,
@@ -14,6 +15,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
@@ -143,7 +145,7 @@ function createToken() {
 }
 
 function getReviewTokenExpiryDate() {
-  const configuredDays = Number(process.env.PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS)
+  const configuredDays = Number(process.env["PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS"])
   const expiryDays =
     Number.isFinite(configuredDays) && configuredDays > 0
       ? configuredDays
@@ -158,7 +160,7 @@ function getProductTitle(item: ReviewRequestOrderItem) {
 
 function getProductReviewRequestPath() {
   return (
-    process.env.PRODUCT_REVIEW_REQUEST_PATH ??
+    process.env["PRODUCT_REVIEW_REQUEST_PATH"] ??
     DEFAULT_PRODUCT_REVIEW_REQUEST_PATH
   ).replace(LEADING_SLASH_REGEX, "")
 }
@@ -182,7 +184,9 @@ function isReviewRequestOrderWithItems(
 
   const record = value as Record<string, unknown>
 
-  return typeof record.id === "string" && typeof record.display_id === "number"
+  return (
+    typeof record["id"] === "string" && typeof record["display_id"] === "number"
+  )
 }
 
 function getUniqueProductItems(order: ReviewRequestOrderWithItems) {
@@ -361,26 +365,29 @@ const buildProductReviewRequestNotificationStep = createStep(
     })
     const message = getReviewRequestMessage()
 
-    return new StepResponse([
-      {
-        channel: "email",
-        data: {
-          message,
-          order_display_id: getOrderDisplayId(order),
-          items: formatReviewItems(products),
-          order_id: order.id,
-          product_reviews: products,
-          products: formatReviewProducts(products),
-          store_name: input.store_name,
-        },
-        receiver_id: order.customer_id ?? undefined,
-        resource_id: order.id,
-        resource_type: "order",
-        template: PRODUCT_REVIEW_REQUEST_TEMPLATE,
-        to: order.email,
-        trigger_type: "order.product_review_request",
+    const notification: CreateNotificationDTO = {
+      channel: "email",
+      data: {
+        message,
+        order_display_id: getOrderDisplayId(order),
+        items: formatReviewItems(products),
+        order_id: order.id,
+        product_reviews: products,
+        products: formatReviewProducts(products),
+        store_name: input.store_name,
       },
-    ])
+      resource_id: order.id,
+      resource_type: "order",
+      template: PRODUCT_REVIEW_REQUEST_TEMPLATE,
+      to: order.email,
+      trigger_type: "order.product_review_request",
+    }
+
+    if (order.customer_id) {
+      notification.receiver_id = order.customer_id
+    }
+
+    return new StepResponse([notification])
   }
 )
 

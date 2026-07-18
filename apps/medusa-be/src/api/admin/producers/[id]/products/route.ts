@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { setProducerProductsWorkflow } from "../../../../../workflows/producer"
 import {
   ensureProductIdsExist,
@@ -40,7 +41,7 @@ export async function GET(
   req: MedusaRequest<unknown, AdminGetProducersSchemaType>,
   res: MedusaResponse
 ) {
-  const producerId = req.params.id ?? ""
+  const producerId = req.params["id"] ?? ""
 
   await retrieveProducerOrThrow(req.scope, producerId, { withDeleted: true })
 
@@ -73,7 +74,7 @@ export async function POST(
   req: MedusaRequest<AdminSetProducerProductsSchemaType>,
   res: MedusaResponse
 ) {
-  const producerId = req.params.id ?? ""
+  const producerId = req.params["id"] ?? ""
   const productIds = await ensureProductIdsExist(
     req.scope,
     req.validatedBody.product_ids

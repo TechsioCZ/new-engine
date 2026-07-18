@@ -21,6 +21,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+
 import { translateBreadcrumb } from "../../../../lib/breadcrumb"
 import { formatLocaleCode } from "../../../../lib/format-locale-code"
 import {
@@ -39,7 +40,7 @@ import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 const PAGE_SIZE = 20
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params.id
+  const id = params["id"]
 
   if (!id) {
     return { attribute_type: undefined }

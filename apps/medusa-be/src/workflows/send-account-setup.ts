@@ -18,6 +18,7 @@ import {
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
+
 import {
   ACCOUNT_SETUP_ORDER_FIELDS,
   ACCOUNT_SETUP_TOKEN_EXPIRES_IN,
@@ -45,7 +46,10 @@ type AccountSetupCustomerUpdate = Parameters<
 
 const prepareAccountSetupStep = createStep(
   "prepare-account-setup",
-  async (input: WorkflowInput, { container }) => {
+  async (
+    input: WorkflowInput,
+    { container }
+  ): Promise<StepResponse<AccountSetupResult>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const customerModuleService = container.resolve<ICustomerModuleService>(
@@ -109,7 +113,7 @@ const prepareAccountSetupStep = createStep(
       })
     }
 
-    const jwtSecret = process.env.JWT_SECRET
+    const jwtSecret = process.env["JWT_SECRET"]
 
     if (!jwtSecret) {
       throw new MedusaError(
@@ -158,7 +162,10 @@ const prepareAccountSetupStep = createStep(
 
 const markCustomerHasAccountStep = createStep(
   "mark-customer-has-account",
-  async (input: { customer_id?: string; sent: boolean }, { container }) => {
+  async (
+    input: { customer_id?: string | undefined; sent: boolean },
+    { container }
+  ) => {
     if (!(input.sent && input.customer_id)) {
       return new StepResponse({ skipped: true })
     }

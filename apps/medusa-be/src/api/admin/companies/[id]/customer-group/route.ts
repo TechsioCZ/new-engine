@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { addCompanyToCustomerGroupWorkflow } from "../../../../../workflows/company/workflows/"
 import type { AdminAddCompanyToCustomerGroupType } from "../../validators"
 

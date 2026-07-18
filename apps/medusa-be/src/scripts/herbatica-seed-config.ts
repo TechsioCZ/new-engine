@@ -1,4 +1,5 @@
 import { resolve } from "node:path"
+
 import type { TaxRateSeedConfig } from "../workflows/seed/steps/create-tax-rates"
 import type { SyncPriceListsStepConfig } from "../workflows/seed/steps/sync-price-lists"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
@@ -131,14 +132,12 @@ export const HERBATICA_DEFAULT_REGIONS = [
     name: "Czechia",
     currencyCode: "czk",
     countries: ["cz"],
-    paymentProviders: undefined,
     isTaxInclusive: true,
   },
   {
     name: "Europe",
     currencyCode: "eur",
     countries: HERBATICA_COUNTRIES.filter((country) => country !== "cz"),
-    paymentProviders: undefined,
     isTaxInclusive: true,
   },
 ] satisfies SeedDatabaseWorkflowInput["regions"]

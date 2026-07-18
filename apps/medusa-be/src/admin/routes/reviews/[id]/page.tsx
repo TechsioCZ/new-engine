@@ -15,6 +15,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
+
 import {
   type Review,
   type ReviewFormInput,
@@ -24,34 +25,13 @@ import {
   reviewQueryKeys,
   updateReview,
 } from "../../../lib/reviews"
-
-const STATUS_BADGE_COLOR: Record<ReviewStatus, "green" | "orange" | "red"> = {
-  approved: "green",
-  pending: "orange",
-  rejected: "red",
-}
+import {
+  formatReviewDate,
+  getReviewCustomerName,
+  REVIEW_STATUS_BADGE_COLOR,
+} from "../review-formatters"
 
 const STATUS_OPTIONS: ReviewStatus[] = ["pending", "approved", "rejected"]
-
-const formatDate = (date: string | undefined) => {
-  if (!date) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
-}
-
-const getCustomerName = (review: Review) => {
-  const name = [review.first_name, review.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-
-  return name || review.customer_id
-}
 
 const toFormState = (review: Review): ReviewFormInput => ({
   content: review.content,
@@ -272,7 +252,7 @@ const ReviewsDetailPage = () => {
               <Text leading="compact" size="small" weight="plus">
                 Status
               </Text>
-              <StatusBadge color={STATUS_BADGE_COLOR[review.status]}>
+              <StatusBadge color={REVIEW_STATUS_BADGE_COLOR[review.status]}>
                 {review.status}
               </StatusBadge>
             </div>
@@ -286,19 +266,19 @@ const ReviewsDetailPage = () => {
               <Text leading="compact" size="small" weight="plus">
                 Customer
               </Text>
-              <Text>{getCustomerName(review)}</Text>
+              <Text>{getReviewCustomerName(review)}</Text>
             </div>
             <div>
               <Text leading="compact" size="small" weight="plus">
                 Created
               </Text>
-              <Text>{formatDate(review.created_at)}</Text>
+              <Text>{formatReviewDate(review.created_at)}</Text>
             </div>
             <div>
               <Text leading="compact" size="small" weight="plus">
                 Updated
               </Text>
-              <Text>{formatDate(review.updated_at)}</Text>
+              <Text>{formatReviewDate(review.updated_at)}</Text>
             </div>
           </div>
         </div>

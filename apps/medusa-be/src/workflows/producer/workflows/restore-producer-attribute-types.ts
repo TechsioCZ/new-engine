@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { restoreProducerAttributeTypesStep } from "../steps"
 import type { RestoreProducerAttributeTypesWorkflowInput } from "../types"
 

@@ -16,6 +16,7 @@ import {
 } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import { NoResults } from "../empty-state"
 
 type BulkCommand = {
@@ -90,7 +91,7 @@ const getIsFirstContentCell = <TData,>(
     return index === 0
   }
 
-  return cell.column.id === cells[firstCell].column.id
+  return cell.column.id === cells[firstCell]?.column.id
 }
 
 const getDepthOffset = (rowDepth: number, isFirstCell: boolean) => {
@@ -264,7 +265,7 @@ export const DataTableRoot = <TData,>({
                       )
                       const isFirstHeader =
                         firstHeader !== -1
-                          ? header.id === headerGroup.headers[firstHeader].id
+                          ? header.id === headerGroup.headers[firstHeader]?.id
                           : index === 0
 
                       const isStickyHeader = isSelectHeader || isFirstHeader
@@ -335,7 +336,7 @@ export const DataTableRoot = <TData,>({
                         key={cell.id}
                         rowDepth={row.depth}
                         showStickyBorder={showStickyBorder}
-                        to={to}
+                        {...(to ? { to } : {})}
                       />
                     ))}
                   </Table.Row>

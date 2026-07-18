@@ -16,14 +16,16 @@ type ImportResult = {
   }
 }
 
-const configuredLocales = (import.meta.env.VITE_PAYLOAD_LOCALES ?? "cs,sk,en")
+const configuredLocales: string[] = (
+  import.meta.env["VITE_PAYLOAD_LOCALES"] ?? "cs,sk,en"
+)
   .split(",")
   .map((item: string) => item.trim())
   .filter(Boolean)
 const locales = configuredLocales.length
   ? configuredLocales
   : ["cs", "sk", "en"]
-const defaultLocale = locales.includes("sk") ? "sk" : locales[0]
+const defaultLocale = locales.includes("sk") ? "sk" : (locales[0] ?? "cs")
 
 const parseErrorMessage = async (response: Response) => {
   const payload = await response.json().catch(() => null)

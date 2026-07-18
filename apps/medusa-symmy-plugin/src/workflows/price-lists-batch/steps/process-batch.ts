@@ -1,6 +1,7 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { PriceListsClient } from "../client"
 import { priceListsClientMapperHelper } from "../client-mapper-helper"
 import type {
@@ -192,7 +193,11 @@ export const listPriceListsStep = createStep(
     const limit = Math.max(1, Math.min(input.limit ?? 50, 1000))
     const offset = Math.max(0, input.offset ?? 0)
     return new StepResponse<ListPriceListsOutput>(
-      await client.listPriceLists({ code: input.code, limit, offset })
+      await client.listPriceLists({
+        ...(input.code !== undefined ? { code: input.code } : {}),
+        limit,
+        offset,
+      })
     )
   }
 )

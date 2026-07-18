@@ -1,4 +1,6 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { MedusaError } from "@medusajs/utils"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
@@ -6,6 +8,17 @@ import {
   type IApprovalModuleService,
   type ModuleCreateApproval,
 } from "../../../types"
+
+function parseApprovalStatus(value: unknown): ApprovalStatusType | undefined {
+  if (
+    value === ApprovalStatusType.PENDING ||
+    value === ApprovalStatusType.APPROVED ||
+    value === ApprovalStatusType.REJECTED
+  ) {
+    return value
+  }
+  return
+}
 
 export const createApprovalStep = createStep(
   "create-approval",
@@ -45,17 +58,22 @@ export const createApprovalStep = createStep(
       }
     )
 
+    const cartApprovalStatus = parseApprovalStatus(cart.approval_status?.status)
     if (
-      (cart.approval_status?.status as unknown as ApprovalStatusType) ===
-      ApprovalStatusType.PENDING
+      cart.approval_status?.status !== undefined &&
+      cartApprovalStatus === undefined
     ) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Cart ${cart.id} has an invalid approval status`
+      )
+    }
+
+    if (cartApprovalStatus === ApprovalStatusType.PENDING) {
       throw new Error("Cart already has a pending approval")
     }
 
-    if (
-      (cart.approval_status?.status as unknown as ApprovalStatusType) ===
-      ApprovalStatusType.APPROVED
-    ) {
+    if (cartApprovalStatus === ApprovalStatusType.APPROVED) {
       throw new Error("Cart is already approved")
     }
 

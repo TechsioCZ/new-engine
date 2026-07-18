@@ -20,6 +20,7 @@ import {
 import type { TFunction } from "i18next"
 import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type {
   CommercialDiscountIntent,
   CommercialValuesConfirmResponse as CommercialValuesConfirmPayload,
@@ -547,7 +548,7 @@ const DiscountControls = ({
       className={`grid min-w-0 grid-cols-[116px_minmax(96px,1fr)] items-center gap-2 ${className}`}
     >
       <Select
-        disabled={disabled}
+        disabled={disabled ?? false}
         onValueChange={(next) => {
           if (isDraftDiscountType(next)) {
             onTypeChange(next)
@@ -1185,7 +1186,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
           onClose={() => setIsOpen(false)}
           onConfirm={runConfirm}
           onDraftChange={setDraft}
-          preview={preview}
+          {...(preview ? { preview } : {})}
           snapshot={snapshot}
         />
       ) : null}

@@ -69,9 +69,8 @@ const createMockRequest = ({
 
 describe("GET /admin/companies", () => {
   it("searches active companies by name, email, or phone by default", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/companies/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/companies/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "comp_1", name: "Acme" }],
       metadata: { count: 1, skip: 0, take: 20 },
@@ -110,9 +109,8 @@ describe("GET /admin/companies", () => {
   })
 
   it("can filter to deleted companies only", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/companies/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/companies/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ deleted_at: "2026-06-10T00:00:00.000Z", id: "comp_1" }],
       metadata: { count: 1, skip: 0, take: 20 },
@@ -143,9 +141,8 @@ describe("GET /admin/companies", () => {
   })
 
   it("keeps with_deleted=true requests as all statuses when status is omitted", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/admin/companies/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/admin/companies/route")
     const graph = vi.fn().mockResolvedValue({
       data: [],
       metadata: { count: 0, skip: 0, take: 20 },
@@ -175,9 +172,8 @@ describe("POST /admin/companies/:id", () => {
   })
 
   it("updates a company with the validated body", async () => {
-    const { POST } = await import(
-      "../../../../../../src/api/admin/companies/[id]/route"
-    )
+    const { POST } =
+      await import("../../../../../../src/api/admin/companies/[id]/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "comp_1", name: "updated company name" }],
     })

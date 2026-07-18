@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
   ensureCustomerPurchasedProduct,
@@ -40,8 +41,8 @@ export async function POST(
     ? undefined
     : await retrieveCustomer(req, customerId)
   const authorName = getReviewAuthorName({
-    customer,
-    reviewToken: tokenRecord,
+    ...(customer !== undefined ? { customer } : {}),
+    ...(tokenRecord !== undefined ? { reviewToken: tokenRecord } : {}),
   })
   const { result: review } = await createReviewWorkflow(req.scope).run({
     input: {
@@ -54,7 +55,9 @@ export async function POST(
         rating,
         title,
       },
-      review_token_id: tokenRecord?.id,
+      ...(tokenRecord?.id !== undefined
+        ? { review_token_id: tokenRecord?.id }
+        : {}),
     },
   })
 

@@ -3,7 +3,6 @@
   "compilerOptions": {
     "outDir": "./.medusa/server",
     "rootDir": "./",
-    "baseUrl": ".",
     "jsx": "react-jsx",
     "verbatimModuleSyntax": false,
     "emitDeclarationOnly": false,
@@ -11,7 +10,11 @@
     "declarationMap": false,
     "composite": false,
     "incremental": true,
-    "tsBuildInfoFile": "./.medusa/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./.medusa/tsconfig.tsbuildinfo",
+    "strictNullChecks": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true
   },
   "ts-node": {
     "swc": true
@@ -22,12 +25,14 @@
     ".medusa/*",
     ".cache",
     "src/admin",
+    "src/**/migrations/**",
     "**/__tests__/**",
     "**/*.spec.ts",
     "**/*.test.ts",
     "eslint.config.*",
     "playwright.*.config.ts",
     "tests/**",
+    "e2e-tests/**",
     "integration-tests/**"
   ]
 }

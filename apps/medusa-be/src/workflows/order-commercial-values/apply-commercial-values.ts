@@ -22,6 +22,7 @@ import {
   orderEditUpdateItemQuantityWorkflow,
   requestOrderEditRequestWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import {
   type CommercialAdjustmentInput,
   type CommercialValuesCalculationInput,
@@ -38,44 +39,44 @@ import {
 
 type ApplyCommercialValuesOrderItem = {
   id: string
-  adjustments?: CommercialAdjustmentInput[] | null
-  quantity?: number | string | null
-  unit_price?: number | string | null
+  adjustments?: CommercialAdjustmentInput[] | null | undefined
+  quantity?: number | string | null | undefined
+  unit_price?: number | string | null | undefined
 }
 
 type ApplyCommercialValuesShippingMethod = {
   id: string
-  adjustments?: CommercialAdjustmentInput[] | null
+  adjustments?: CommercialAdjustmentInput[] | null | undefined
 }
 
 type ReplacementAdjustment = {
   amount: number
-  code?: string
-  description?: string
-  is_tax_inclusive?: boolean
-  item_id?: string
-  promotion_id?: string
-  provider_id?: string
-  shipping_method_id?: string
+  code?: string | undefined
+  description?: string | undefined
+  is_tax_inclusive?: boolean | undefined
+  item_id?: string | undefined
+  promotion_id?: string | undefined
+  provider_id?: string | undefined
+  shipping_method_id?: string | undefined
 }
 
 export type ApplyCommercialValuesOrder = {
   id: string
-  items?: ApplyCommercialValuesOrderItem[] | null
-  shipping_methods?: ApplyCommercialValuesShippingMethod[] | null
+  items?: ApplyCommercialValuesOrderItem[] | null | undefined
+  shipping_methods?: ApplyCommercialValuesShippingMethod[] | null | undefined
 }
 
 type ActiveOrderChange = {
-  change_type?: string | null
+  change_type?: string | null | undefined
   id: string
   version: number
 }
 
 type ActiveOrderChangeRecord = {
-  change_type?: string | null
+  change_type?: string | null | undefined
   id: string
-  status?: string | null
-  version?: number | string | null
+  status?: string | null | undefined
+  version?: number | string | null | undefined
 }
 
 type CommercialValuesPreviewItem = CommercialValuesPreview["items"][number]
@@ -83,7 +84,7 @@ type CommercialValuesPreviewShippingMethod =
   CommercialValuesPreview["shipping_methods"][number]
 
 type ApplyCommercialValuesInput = {
-  actor_id?: string
+  actor_id?: string | undefined
   calculation_input: CommercialValuesCalculationInput
   container: MedusaContainer
   order: ApplyCommercialValuesOrder
@@ -100,7 +101,7 @@ type CommercialValuesOrderEditDependency = {
 }
 
 type CommercialValuesOrderEditReadiness = {
-  active_order_change?: ActiveOrderChange
+  active_order_change?: ActiveOrderChange | undefined
   order_id: string
 }
 
@@ -470,7 +471,9 @@ function buildItemUpdateInputs(
     return [
       {
         id: item.id,
-        internal_note: request.internal_note,
+        ...(request.internal_note
+          ? { internal_note: request.internal_note }
+          : {}),
         quantity: toPositiveNumber(item.quantity),
         unit_price: requested.unit_price,
       },
@@ -533,7 +536,9 @@ function buildReplacementActions({
           },
           reference_id: item.id,
         },
-        internal_note: request.internal_note,
+        ...(request.internal_note
+          ? { internal_note: request.internal_note }
+          : {}),
         order_change_id: activeOrderChange.id,
         order_id: order.id,
         version: activeOrderChange.version,
@@ -589,7 +594,9 @@ function buildReplacementActions({
             },
             reference_id: shippingMethod.id,
           },
-          internal_note: request.internal_note,
+          ...(request.internal_note
+            ? { internal_note: request.internal_note }
+            : {}),
           order_change_id: activeOrderChange.id,
           order_id: order.id,
           version: activeOrderChange.version,
@@ -715,8 +722,8 @@ const beginCommercialValuesOrderEditStep = createStep(
   "begin-commercial-values-order-edit",
   async (
     input: {
-      actor_id?: string
-      internal_note?: string
+      actor_id?: string | undefined
+      internal_note?: string | undefined
       readiness: CommercialValuesOrderEditReadiness
     },
     { container }
@@ -732,8 +739,8 @@ const beginCommercialValuesOrderEditStep = createStep(
       container
     ).run({
       input: {
-        created_by: input.actor_id,
-        internal_note: input.internal_note,
+        ...(input.actor_id ? { created_by: input.actor_id } : {}),
+        ...(input.internal_note ? { internal_note: input.internal_note } : {}),
         order_id: input.readiness.order_id,
       },
     })
@@ -823,7 +830,7 @@ const completeCommercialValuesOrderEditStep = createStep(
   "complete-commercial-values-order-edit",
   async (
     input: {
-      actor_id?: string
+      actor_id?: string | undefined
       active_order_change: ActiveOrderChange
       confirmation_mode: "confirm" | "request"
       order_id: string
@@ -843,7 +850,7 @@ const completeCommercialValuesOrderEditStep = createStep(
       ).run({
         input: {
           order_id: input.order_id,
-          requested_by: input.actor_id,
+          ...(input.actor_id ? { requested_by: input.actor_id } : {}),
         },
       })
 
@@ -859,7 +866,7 @@ const completeCommercialValuesOrderEditStep = createStep(
       container
     ).run({
       input: {
-        confirmed_by: input.actor_id,
+        ...(input.actor_id ? { confirmed_by: input.actor_id } : {}),
         order_id: input.order_id,
       },
     })

@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { getProducerProductsLockKeys, setProducerProductsStep } from "../steps"
 import type { SetProducerProductsWorkflowInput } from "../types"
 

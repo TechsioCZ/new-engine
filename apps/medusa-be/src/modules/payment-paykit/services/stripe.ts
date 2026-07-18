@@ -11,6 +11,8 @@ import type {
   RefundPaymentOutput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import {
   type PaykitInjectedDependencies,
@@ -35,9 +37,6 @@ import {
 import { toPaykitPaymentData, toPaykitRefundData } from "../utils/mappers"
 import { requirePaykitOptions } from "../utils/validation"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 const isPaymentAmount = (
   value: unknown
 ): value is InitiatePaymentInput["amount"] =>
@@ -45,7 +44,8 @@ const isPaymentAmount = (
   typeof value === "string" ||
   (isRecord(value) &&
     (("value" in value &&
-      (typeof value.value === "number" || typeof value.value === "string")) ||
+      (typeof value["value"] === "number" ||
+        typeof value["value"] === "string")) ||
       ("toJSON" in value && "valueOf" in value)))
 
 const isStripeCheckoutSessionId = (id: string): boolean => id.startsWith("cs_")
@@ -53,11 +53,11 @@ const isStripeCheckoutSessionId = (id: string): boolean => id.startsWith("cs_")
 const getStripeCheckoutSessionRetriever = (
   provider: unknown
 ): PaykitPaymentClient["stripeCheckoutSessions"] | undefined => {
-  const native = isRecord(provider) ? provider._native : undefined
-  const checkout = isRecord(native) ? native.checkout : undefined
-  const sessions = isRecord(checkout) ? checkout.sessions : undefined
-  const retrieve = isRecord(sessions) ? sessions.retrieve : undefined
-  const expire = isRecord(sessions) ? sessions.expire : undefined
+  const native = isRecord(provider) ? provider["_native"] : undefined
+  const checkout = isRecord(native) ? native["checkout"] : undefined
+  const sessions = isRecord(checkout) ? checkout["sessions"] : undefined
+  const retrieve = isRecord(sessions) ? sessions["retrieve"] : undefined
+  const expire = isRecord(sessions) ? sessions["expire"] : undefined
 
   if (typeof retrieve !== "function") {
     return
@@ -212,17 +212,13 @@ const toPaykitPaymentFromStripeCheckoutSession = (
   const paymentIntent = getStripeCheckoutPaymentIntent(session)
   const paymentUrl =
     paymentIntent?.next_action?.redirect_to_url?.url ?? session.url ?? undefined
-
-  return {
+  const amount =
+    paymentIntent?.amount ?? session.amount_total ?? session.amount_subtotal
+  const currency = paymentIntent?.currency ?? session.currency ?? undefined
+  const customer = getStripeCheckoutCustomer(session, paymentIntent)
+  const status = getStripeCheckoutStatus(session, paymentIntent)
+  const payment: PaykitPayment = {
     id: session.id,
-    amount:
-      paymentIntent?.amount ??
-      session.amount_total ??
-      session.amount_subtotal ??
-      undefined,
-    currency: paymentIntent?.currency ?? session.currency ?? undefined,
-    customer: getStripeCheckoutCustomer(session, paymentIntent),
-    status: getStripeCheckoutStatus(session, paymentIntent),
     metadata: {
       ...(paymentIntent?.metadata ?? {}),
       ...(session.metadata ?? {}),
@@ -231,8 +227,25 @@ const toPaykitPaymentFromStripeCheckoutSession = (
     requires_action:
       paymentIntent?.status === "requires_action" ||
       (session.status === "open" && session.payment_status !== "paid"),
-    ...(paymentUrl ? { payment_url: paymentUrl } : {}),
   }
+
+  if (status !== undefined) {
+    payment.status = status
+  }
+  if (typeof amount === "number") {
+    payment.amount = amount
+  }
+  if (currency !== undefined) {
+    payment.currency = currency
+  }
+  if (customer !== undefined) {
+    payment.customer = customer
+  }
+  if (paymentUrl) {
+    payment.payment_url = paymentUrl
+  }
+
+  return payment
 }
 
 const withStripeCheckoutSessionRetrieve = (
@@ -270,16 +283,16 @@ const withStripeCheckoutSessionRetrieve = (
 }
 
 const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
-  typeof data?.currency === "string" && data.currency.length > 0
-    ? data.currency
+  typeof data?.["currency"] === "string" && data["currency"].length > 0
+    ? data["currency"]
     : undefined
 
 const getPaymentIntentIdFromData = (
   data?: Record<string, unknown>
 ): string | undefined =>
-  typeof data?.payment_intent_id === "string" &&
-  data.payment_intent_id.length > 0
-    ? data.payment_intent_id
+  typeof data?.["payment_intent_id"] === "string" &&
+  data["payment_intent_id"].length > 0
+    ? data["payment_intent_id"]
     : undefined
 
 const getExplicitCaptureAmount = (
@@ -304,7 +317,7 @@ const getExplicitCaptureAmount = (
 const getStoredCaptureAmount = (
   data?: Record<string, unknown>
 ): RefundPaymentInput["amount"] | undefined => {
-  const amount = data?.amount
+  const amount = data?.["amount"]
 
   if (amount === undefined) {
     return
@@ -518,8 +531,8 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   override async deletePayment(
     input: DeletePaymentInput
   ): Promise<DeletePaymentOutput> {
-    if (!input.data?.id) {
-      return { data: input.data }
+    if (!input.data?.["id"]) {
+      return input.data ? { data: input.data } : {}
     }
 
     return this.cancelOrExpirePayment(input.data)
@@ -547,7 +560,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     }
 
     if (!client.payments.cancel) {
-      return { data }
+      return data !== undefined ? { data } : {}
     }
 
     const operationPaymentId = await this.getStripeOperationPaymentId(

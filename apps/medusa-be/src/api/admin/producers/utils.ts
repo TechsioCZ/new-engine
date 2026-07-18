@@ -9,20 +9,21 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+
 import { ProductProducerLink } from "../../../links/product-producer"
 import { PRODUCER_MODULE } from "../../../modules/producer"
 import type ProducerModuleService from "../../../modules/producer/service"
 
 export type ProducerAttributeResponse = {
-  attribute_type_id?: string
-  attribute_type_deleted_at?: string | Date | null
-  id?: string
+  attribute_type_id?: string | undefined
+  attribute_type_deleted_at?: string | Date | null | undefined
+  id?: string | undefined
   name: string
   value: string
 }
 
 export type ProducerAttributeTypeResponse = {
-  deleted_at?: string | Date | null
+  deleted_at?: string | Date | null | undefined
   id: string
   name: string
   usage_count: number
@@ -38,36 +39,36 @@ export type ProducerResponse = {
   title: string
   handle: string
   attributes: ProducerAttributeResponse[]
-  created_at?: string | Date
-  deleted_at?: string | Date | null
-  updated_at?: string | Date
+  created_at?: string | Date | undefined
+  deleted_at?: string | Date | null | undefined
+  updated_at?: string | Date | undefined
 }
 
 export type ProducerAttributeRecord = {
-  id?: string
+  id?: string | undefined
   value: string
   attributeType?: {
-    deleted_at?: string | Date | null
-    id?: string
-    name?: string
+    deleted_at?: string | Date | null | undefined
+    id?: string | undefined
+    name?: string | undefined
   }
-  attributeType_id?: string
-  attribute_type_id?: string
+  attributeType_id?: string | undefined
+  attribute_type_id?: string | undefined
   producer?: {
-    active_product_count?: number
-    attributes?: ProducerAttributeRecord[]
-    created_at?: string | Date
-    deleted_at?: string | Date | null
+    active_product_count?: number | undefined
+    attributes?: ProducerAttributeRecord[] | undefined
+    created_at?: string | Date | undefined
+    deleted_at?: string | Date | null | undefined
     handle: string
-    id?: string
+    id?: string | undefined
     title: string
-    updated_at?: string | Date
+    updated_at?: string | Date | undefined
   }
-  producer_id?: string
+  producer_id?: string | undefined
 }
 
 type ProducerAttributeTypeRecord = {
-  deleted_at?: string | Date | null
+  deleted_at?: string | Date | null | undefined
   id: string
   name: string
 }
@@ -76,10 +77,10 @@ type ProducerRecord = {
   id: string
   title: string
   handle: string
-  attributes?: ProducerAttributeRecord[]
-  created_at?: string | Date
-  deleted_at?: string | Date | null
-  updated_at?: string | Date
+  attributes?: ProducerAttributeRecord[] | undefined
+  created_at?: string | Date | undefined
+  deleted_at?: string | Date | null | undefined
+  updated_at?: string | Date | undefined
 }
 
 type ProductRecord = Pick<ProductTypes.ProductDTO, "id"> &
@@ -91,12 +92,16 @@ type ProductRecord = Pick<ProductTypes.ProductDTO, "id"> &
   >
 
 type LinkRecord = {
-  deleted_at?: string | Date | null
-  product_id?: string
-  producer_id?: string
+  deleted_at?: string | Date | null | undefined
+  product_id?: string | undefined
+  producer_id?: string | undefined
 }
 
-export type ProductProducerLinkRecord = Required<LinkRecord>
+export type ProductProducerLinkRecord = {
+  deleted_at?: string | Date | null | undefined
+  product_id: string
+  producer_id: string
+}
 
 type ProducerService = ProducerModuleService & {
   createProducerAttributeTypes: (
@@ -134,13 +139,13 @@ type ProducerService = ProducerModuleService & {
 
 type ListProductsOptions = {
   order?: Record<string, "ASC" | "DESC">
-  q?: string
-  skip?: number
-  take?: number
+  q?: string | undefined
+  skip?: number | undefined
+  take?: number | undefined
 }
 
 type RetrieveProducerOptions = {
-  withDeleted?: boolean
+  withDeleted?: boolean | undefined
 }
 
 const LIKE_WILDCARD_REGEX = /[\\%_]/g
@@ -168,7 +173,7 @@ export const toProducerResponse = (
       {
         attribute_type_deleted_at: attribute.attributeType?.deleted_at ?? null,
         attribute_type_id: attributeTypeId,
-        id: attribute.id,
+        ...(attribute.id ? { id: attribute.id } : {}),
         name,
         value: attribute.value,
       },
@@ -440,6 +445,31 @@ export const ensureProductIdsExist = async (
   return ids
 }
 
+const isProductProducerLinkRecord = (
+  value: unknown
+): value is ProductProducerLinkRecord => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const record: Record<string, unknown> = { ...value }
+  return (
+    typeof record["product_id"] === "string" &&
+    typeof record["producer_id"] === "string"
+  )
+}
+
+const parseProductProducerLinks = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Product-producer link query returned invalid data"
+    )
+  }
+
+  return value.filter(isProductProducerLinkRecord)
+}
+
 export const listProductProducerLinksByProductIds = async (
   scope: MedusaContainer,
   productIds: string[],
@@ -458,13 +488,12 @@ export const listProductProducerLinksByProductIds = async (
     filters: {
       product_id: { $in: ids },
     },
-    withDeleted: options.withDeleted,
+    ...(options.withDeleted === undefined
+      ? {}
+      : { withDeleted: options.withDeleted }),
   })
 
-  return (data as LinkRecord[]).filter(
-    (link): link is ProductProducerLinkRecord =>
-      !!(link.product_id && link.producer_id)
-  )
+  return parseProductProducerLinks(data)
 }
 
 export const listProductProducerLinks = async (
@@ -475,13 +504,12 @@ export const listProductProducerLinks = async (
   const { data } = await query.graph({
     entity: ProductProducerLink.entryPoint,
     fields: ["deleted_at", "product_id", "producer_id"],
-    withDeleted: options.withDeleted,
+    ...(options.withDeleted === undefined
+      ? {}
+      : { withDeleted: options.withDeleted }),
   })
 
-  return (data as LinkRecord[]).filter(
-    (link): link is ProductProducerLinkRecord =>
-      !!(link.product_id && link.producer_id)
-  )
+  return parseProductProducerLinks(data)
 }
 
 export const ensureProductsAssignableToProducer = async (
@@ -642,10 +670,10 @@ export const listAndCountProducts = async (
       ...(q ? { q } : {}),
     },
     {
-      order,
+      ...(order ? { order } : {}),
       select: ["id", "title", "handle", "thumbnail", "status", "created_at"],
-      skip,
-      take,
+      ...(skip === undefined ? {} : { skip }),
+      ...(take === undefined ? {} : { take }),
     }
   )
 }

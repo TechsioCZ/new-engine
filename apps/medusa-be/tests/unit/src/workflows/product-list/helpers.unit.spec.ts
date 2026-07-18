@@ -1,8 +1,10 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/constants"
 import {
   assertProductSelectionExists,
@@ -37,25 +39,36 @@ vi.mock("../../../../../src/links/product-list-item-variant", () => ({
   },
 }))
 
+const asMedusaContainer = (value: {
+  resolve: (key: string) => unknown
+}): MedusaContainer => {
+  if (typeof value.resolve !== "function") {
+    throw new TypeError("mock container requires a resolve function")
+  }
+
+  return value as MedusaContainer
+}
+
 const makeContainer = ({
   query,
   service,
 }: {
   query: { graph: ReturnType<typeof vi.fn> }
   service?: { listProductListItems: ReturnType<typeof vi.fn> }
-}) => ({
-  resolve: vi.fn((key) => {
-    if (key === ContainerRegistrationKeys.QUERY) {
-      return query
-    }
+}) =>
+  asMedusaContainer({
+    resolve: vi.fn((key) => {
+      if (key === ContainerRegistrationKeys.QUERY) {
+        return query
+      }
 
-    if (key === PRODUCT_LIST_MODULE && service) {
-      return service
-    }
+      if (key === PRODUCT_LIST_MODULE && service) {
+        return service
+      }
 
-    throw new Error(`Unexpected dependency: ${String(key)}`)
-  }),
-})
+      throw new Error(`Unexpected dependency: ${String(key)}`)
+    }),
+  })
 
 describe("assertProductSelectionExists", () => {
   it("accepts published products without requiring a variant", async () => {

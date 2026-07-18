@@ -1,4 +1,5 @@
 import { type PropsWithChildren, useState } from "react"
+
 import { StackedModalContext } from "./stacked-modal-context"
 
 type StackedModalProviderProps = PropsWithChildren<{
@@ -11,7 +12,7 @@ export const StackedModalProvider = ({
 }: StackedModalProviderProps) => {
   const [state, setState] = useState<Record<string, boolean>>({})
 
-  const getIsOpen = (id: string) => state[id]
+  const getIsOpen = (id: string) => state[id] ?? false
 
   const setIsOpen = (id: string, open: boolean) => {
     setState((prevState) => ({

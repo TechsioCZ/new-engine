@@ -20,9 +20,11 @@ import {
   toolbarPlugin,
   UndoRedo,
 } from "@mdxeditor/editor"
+
 import "@mdxeditor/editor/style.css"
 import { marked } from "marked"
 import { useEffect, useMemo, useRef, useState } from "react"
+
 import "./rich-html-editor.css"
 
 const HEADING_TAG_PATTERN = /^h[1-6]$/
@@ -104,7 +106,7 @@ export const htmlToMarkdown = (html: string) => {
       const [headerCells, ...contentRows] = renderedRows
 
       return `${[
-        renderTableLine(headerCells, columnCount),
+        renderTableLine(headerCells ?? [], columnCount),
         renderTableLine(
           Array.from({ length: columnCount }, () => "---"),
           columnCount

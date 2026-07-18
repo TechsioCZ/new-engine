@@ -1,5 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ExecArgs } from "@medusajs/framework/types"
+
 import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 import { syncMeilisearchProducersWorkflow } from "../workflows/meilisearch/workflows/sync-producers"
 

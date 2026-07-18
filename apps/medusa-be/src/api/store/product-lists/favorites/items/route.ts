@@ -2,6 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
+import { definedProperties } from "../../../../../utils/defined-properties"
 import { addFavoriteProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/add-favorite-product-list-item"
 import {
   INLINE_PRODUCT_LIST_ITEMS_LIMIT,
@@ -17,15 +19,10 @@ export async function POST(
   res: MedusaResponse
 ) {
   const { result } = await addFavoriteProductListItemWorkflow(req.scope).run({
-    input: {
+    input: definedProperties({
+      ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
-      metadata: req.validatedBody.metadata,
-      note: req.validatedBody.note,
-      product_id: req.validatedBody.product_id,
-      quantity: req.validatedBody.quantity,
-      sort_order: req.validatedBody.sort_order,
-      variant_id: req.validatedBody.variant_id,
-    },
+    }),
   })
   const [[itemWithSelection], [productListWithItems]] = await Promise.all([
     withProductListItemSelections(req.scope, [result.item]),

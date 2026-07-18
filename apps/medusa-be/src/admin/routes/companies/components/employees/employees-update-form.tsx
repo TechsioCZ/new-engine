@@ -10,6 +10,7 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+
 import type {
   AdminUpdateEmployee,
   QueryCompany,
@@ -54,9 +55,9 @@ export function EmployeesUpdateForm({
       ? Number(formData.spending_limit)
       : undefined
 
-    const data = {
+    const data: AdminUpdateEmployee = {
       is_admin: formData.is_admin,
-      spending_limit: spendingLimit,
+      ...(spendingLimit === undefined ? {} : { spending_limit: spendingLimit }),
     }
 
     await handleSubmit(data)

@@ -9,6 +9,7 @@ import { toast } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+
 import type { QueryCompany } from "../../../../types"
 import { ActionMenu, DeletePrompt } from "../../../components"
 import { useDeleteCompany, useRestoreCompany } from "../../../hooks/api"

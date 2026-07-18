@@ -10,6 +10,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+
 import { normalizeCountryCode } from "../../../../../utils/country-code"
 import {
   getRegionCountryCodes,
@@ -183,7 +184,7 @@ async function listAllTaxRateRules(
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.id ?? ""
+  const productId = req.params["id"] ?? ""
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const regionService = req.scope.resolve<IRegionModuleService>(Modules.REGION)
   const taxService = req.scope.resolve<ITaxModuleService>(Modules.TAX)

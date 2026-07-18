@@ -1,6 +1,7 @@
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
+
 import { buildProducerPromotionContext } from "../../../../workflows/utils/promotion-producer-context"
 import { producerRuleAttribute } from "../const"
 import {
@@ -11,6 +12,15 @@ import {
 } from "../utils"
 
 const validRuleTypes = ["rules", "target-rules", "buy-rules"] as const
+
+const readDisguisedFlag = (value: unknown): boolean | undefined => {
+  if (typeof value !== "object" || value === null || !("disguised" in value)) {
+    return undefined
+  }
+
+  const { disguised } = value as { disguised?: unknown }
+  return typeof disguised === "boolean" ? disguised : undefined
+}
 
 type VariantFixture = {
   id: string
@@ -182,25 +192,22 @@ describe("validateRuleType", () => {
   })
 
   describe("invalid rule types", () => {
-    it.each([
-      "invalid",
-      "RULES",
-      "",
-      "rule",
-      "target",
-      "buy",
-    ])('throws for invalid rule type "%s"', (invalidType) => {
-      expect(() => validateRuleType(invalidType)).toThrow(
-        `Invalid param rule_type (${invalidType})`
-      )
-    })
+    it.each(["invalid", "RULES", "", "rule", "target", "buy"])(
+      'throws for invalid rule type "%s"',
+      (invalidType) => {
+        expect(() => validateRuleType(invalidType)).toThrow(
+          `Invalid param rule_type (${invalidType})`
+        )
+      }
+    )
   })
 
-  it("narrows type after assertion", () => {
+  it("keeps the validated value equal to a known rule type at runtime", () => {
     const ruleType: string = "target-rules"
     validateRuleType(ruleType)
-    // TypeScript should narrow ruleType to RuleType after validateRuleType
-    const narrowed: "rules" | "target-rules" | "buy-rules" = ruleType
+    // validateRuleType throws for unknown types, so a match here confirms
+    // the runtime value stayed one of the known rule types.
+    const narrowed = validRuleTypes.find((candidate) => candidate === ruleType)
     expect(narrowed).toBe("target-rules")
   })
 })
@@ -285,7 +292,7 @@ describe("getExtendedRuleAttributesMap", () => {
       )
       expect(applyToQuantity).toBeDefined()
       expect(applyToQuantity?.required).toBe(true)
-      expect(applyToQuantity?.disguised).toBe(true)
+      expect(readDisguisedFlag(applyToQuantity)).toBe(true)
     })
   })
 

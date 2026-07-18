@@ -7,20 +7,44 @@ import {
 } from "@medusajs/framework/utils"
 import type { Response } from "express"
 import { describe, expect, it, vi } from "vitest"
+
 import { GET } from "../../../src/api/hooks/payment/paykit_gopay/route"
 import {
   PAYKIT_GOPAY_WEBHOOK_PATH,
   PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
 } from "../../../src/modules/payment-paykit/constants"
 
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock via `satisfies` on a narrow
+ * pick (instead of the full target type) avoids requiring every property of
+ * the huge Node request/response interfaces while still validating the
+ * shape the route handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
 const createResponse = (): MedusaResponse => {
-  const res = {
+  const candidate = {
     json: vi.fn().mockReturnThis(),
     sendStatus: vi.fn().mockReturnThis(),
     status: vi.fn().mockReturnThis(),
   } satisfies Pick<Response, "json" | "sendStatus" | "status">
 
-  return res as MedusaResponse
+  assertMockShape<MedusaResponse>(candidate, ["json", "sendStatus", "status"])
+  return candidate
 }
 
 const createRequest = ({
@@ -45,7 +69,7 @@ const createRequest = ({
   webhookDelay?: number
   webhookRetries?: number
 } = {}): MedusaRequest => {
-  const req = {
+  const candidate: unknown = {
     headers,
     originalUrl,
     protocol,
@@ -72,12 +96,16 @@ const createRequest = ({
       }),
     },
     url,
-  } satisfies Partial<MedusaRequest> & {
-    originalUrl: string
-    protocol: string
   }
 
-  return req as MedusaRequest
+  assertMockShape<MedusaRequest>(candidate, [
+    "headers",
+    "originalUrl",
+    "protocol",
+    "scope",
+    "url",
+  ])
+  return candidate
 }
 
 describe("GoPay payment webhook route", () => {

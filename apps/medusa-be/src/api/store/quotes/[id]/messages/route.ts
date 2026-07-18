@@ -3,6 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
+import { definedProperties } from "../../../../../utils/defined-properties"
 import { createQuoteMessageWorkflow } from "../../../../../workflows/quote/workflows"
 import type { StoreCreateQuoteMessageType } from "../../validators"
 
@@ -18,11 +20,11 @@ export const POST = async (
   }
 
   await createQuoteMessageWorkflow(req.scope).run({
-    input: {
+    input: definedProperties({
       ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
       quote_id: id,
-    },
+    }),
   })
 
   const {

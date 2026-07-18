@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { syncMeilisearchProducersStep } from "../steps/sync-producers"
 
 export type SyncMeilisearchProducersWorkflowInput = {

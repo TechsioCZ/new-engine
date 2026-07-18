@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { parseEnv } from "node:util"
+
 import { expect, type Page, test } from "@playwright/test"
 
 const workspaceRoot = resolve(__dirname, "../../../..")
@@ -17,6 +18,14 @@ const readEnv = (...names: string[]) => {
       return value
     }
   }
+}
+
+const assertDefined = (value: string | undefined, message: string): string => {
+  if (value === undefined) {
+    throw new Error(message)
+  }
+
+  return value
 }
 
 const adminEmail = readEnv("MEDUSA_ADMIN_E2E_EMAIL", "DC_SUPERADMIN_EMAIL")
@@ -124,11 +133,21 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
   await page
     .locator('input[name="email"], input[type="email"]')
     .first()
-    .fill(adminEmail)
+    .fill(
+      assertDefined(
+        adminEmail,
+        "adminEmail is required to submit the login form"
+      )
+    )
   await page
     .locator('input[name="password"], input[type="password"]')
     .first()
-    .fill(adminPassword)
+    .fill(
+      assertDefined(
+        adminPassword,
+        "adminPassword is required to submit the login form"
+      )
+    )
 
   await submitLoginForm(page)
   await page.waitForLoadState("networkidle")

@@ -3,6 +3,7 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { toCreateProductsStepInput } from "../../../utils/products"
 import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
 import {
@@ -189,28 +190,34 @@ function seedN1WorkflowComposer(input: SeedN1WorkflowInput) {
       createRegionsResult,
     },
     (data) =>
-      data.input.shippingOptions.map((option) => ({
-        name: option.name,
-        providerId:
-          option.providerId ??
-          data.input.workflowDefaults.fulfillmentProviderId,
-        serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
-        shippingProfileId:
-          data.createDefaultShippingProfileResult.shippingProfile.id,
-        regions: data.createRegionsResult.result.map((region) => ({
-          ...region,
-          amount:
-            option.prices.find(
-              (p) =>
-                p.currencyCode?.toLowerCase() ===
-                region.currency_code?.toLowerCase()
-            )?.amount ?? data.input.workflowDefaults.shippingOptionPriceAmount,
-        })),
-        type: option.type,
-        prices: option.prices,
-        rules: option.rules,
-        data: option.data,
-      }))
+      data.input.shippingOptions.map((option) => {
+        const shippingOption: CreateShippingOptionsStepInput[number] = {
+          name: option.name,
+          providerId:
+            option.providerId ??
+            data.input.workflowDefaults.fulfillmentProviderId,
+          serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
+          shippingProfileId:
+            data.createDefaultShippingProfileResult.shippingProfile.id,
+          regions: data.createRegionsResult.result.map((region) => ({
+            ...region,
+            amount:
+              option.prices.find(
+                (p) =>
+                  p.currencyCode?.toLowerCase() ===
+                  region.currency_code?.toLowerCase()
+              )?.amount ??
+              data.input.workflowDefaults.shippingOptionPriceAmount,
+          })),
+          type: option.type,
+          prices: option.prices,
+          rules: option.rules,
+        }
+        if (option.data !== undefined) {
+          shippingOption.data = option.data
+        }
+        return shippingOption
+      })
   )
 
   createShippingOptionsStep(createShippingOptionsInput)

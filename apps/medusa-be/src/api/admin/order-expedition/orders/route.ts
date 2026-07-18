@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
 import type OrderNoteModuleService from "../../../../modules/order-note/service"
 import {
@@ -76,9 +77,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       ? await fetchFilteredOrders(
           query,
           {
-            businessStatusGroup,
-            businessStatus,
-            carrier,
+            ...(businessStatusGroup ? { businessStatusGroup } : {}),
+            ...(businessStatus ? { businessStatus } : {}),
+            ...(carrier ? { carrier } : {}),
           },
           normalizedLimit,
           normalizedOffset

@@ -3,6 +3,7 @@ import {
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
+
 import type { ModuleCreateEmployee, ModuleEmployee } from "../../../types"
 import { validateCompanyActiveStep } from "../../company/steps"
 import {

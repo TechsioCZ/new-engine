@@ -23,7 +23,7 @@ const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
 
 function getReviewRequestDelayMs() {
   const configuredMinutes = Number(
-    process.env.PRODUCT_REVIEW_REQUEST_DELAY_MINUTES
+    process.env["PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"]
   )
 
   if (Number.isFinite(configuredMinutes) && configuredMinutes >= 0) {
@@ -99,22 +99,6 @@ export function isPaidOrder(order: ReviewRequestOrder) {
   )
 }
 
-export function isReviewRequestReadyOrder(
-  order: ReviewRequestOrder,
-  now = new Date()
-) {
-  if (!isPaidOrder(order)) {
-    return false
-  }
-
-  const paidAt = getOrderPaidAt(order)
-  if (!paidAt) {
-    return false
-  }
-
-  return now.getTime() - paidAt.getTime() >= getReviewRequestDelayMs()
-}
-
 export function getReviewRequestRunAt(order: ReviewRequestOrder) {
   const paidAt = getOrderPaidAt(order)
   if (!paidAt) {
@@ -125,5 +109,7 @@ export function getReviewRequestRunAt(order: ReviewRequestOrder) {
 }
 
 export function getReviewRequestMessage() {
-  return process.env.PRODUCT_REVIEW_REQUEST_MESSAGE ?? "Napiš recenzi produktu"
+  return (
+    process.env["PRODUCT_REVIEW_REQUEST_MESSAGE"] ?? "Napiš recenzi produktu"
+  )
 }

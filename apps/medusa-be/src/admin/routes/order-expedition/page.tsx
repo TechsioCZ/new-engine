@@ -23,6 +23,7 @@ import {
 } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import {
   isManualOrderBusinessStatusId,
   isOrderBusinessStatusId,
@@ -829,10 +830,16 @@ function mergeBusinessStatusSummary(
   return {
     ...order,
     business_status: summary.business_status,
-    created_at: summary.created_at,
-    currency_code: summary.currency_code,
-    manual_status: summary.manual_status,
-    total: summary.total,
+    ...(summary.created_at === undefined
+      ? {}
+      : { created_at: summary.created_at }),
+    ...(summary.currency_code === undefined
+      ? {}
+      : { currency_code: summary.currency_code }),
+    ...(summary.manual_status === undefined
+      ? {}
+      : { manual_status: summary.manual_status }),
+    ...(summary.total === undefined ? {} : { total: summary.total }),
   }
 }
 
@@ -894,8 +901,8 @@ function getSelectedStatusBlockedMessage(
   statusLabel: string,
   blockedOrders: OrderExpeditionBlockingOrder[]
 ) {
-  if (blockedOrders.length === 1) {
-    const [order] = blockedOrders
+  const [order] = blockedOrders
+  if (order) {
     return `${statusLabel} is blocked for 1 selected order: ${order.order_display_id} - ${order.reason}.`
   }
 
@@ -1228,7 +1235,7 @@ const ManualStatusControl = ({
   return (
     <div className="flex items-center justify-end gap-2">
       <Select
-        defaultValue={manualStatus ?? undefined}
+        defaultValue={manualStatus ?? ""}
         disabled={mutation.isPending}
         key={manualStatus ?? "none"}
         onValueChange={(value) => {
@@ -1388,7 +1395,9 @@ function OrdersTable({
               </Table.Cell>
               <Table.Cell className="text-right">
                 <ManualStatusControl
-                  manualStatus={order.manual_status}
+                  {...(order.manual_status === undefined
+                    ? {}
+                    : { manualStatus: order.manual_status })}
                   orderId={order.id}
                 />
               </Table.Cell>

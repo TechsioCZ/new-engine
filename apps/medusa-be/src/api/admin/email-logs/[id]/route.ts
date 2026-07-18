@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { EMAIL_LOG_MODULE } from "../../../../modules/email-log"
 import type EmailLogModuleService from "../../../../modules/email-log/service"
 
@@ -49,7 +50,7 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
 })
 
 async function retrieveResendEmail(emailId: string) {
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = process.env["RESEND_API_KEY"]
 
   if (!apiKey) {
     throw new MedusaError(

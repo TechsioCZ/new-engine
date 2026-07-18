@@ -75,7 +75,9 @@ export class PriceListsClientMapperHelper {
       id: priceList.id,
       code,
       name: priceList.title,
-      description: decoded.description,
+      ...(decoded.description !== undefined
+        ? { description: decoded.description }
+        : {}),
       starts_at: priceList.starts_at,
       ends_at: priceList.ends_at,
     }
@@ -175,7 +177,7 @@ export class PriceListsClientMapperHelper {
     const map = new Map<string, string>()
     for (const variant of variants) {
       const value = variant[field]
-      const id = variant.id
+      const id = variant["id"]
       if (typeof value === "string" && typeof id === "string") {
         map.set(value, id)
       }
@@ -205,10 +207,13 @@ export class PriceListsClientMapperHelper {
     const codeByPriceListId = new Map(
       mappings.map((mapping) => [mapping.price_list_id, mapping.erp_code])
     )
-    return priceLists.map((priceList) => ({
-      ...priceList,
-      erp_code: codeByPriceListId.get(priceList.id),
-    }))
+    return priceLists.map((priceList) => {
+      const erpCode = codeByPriceListId.get(priceList.id)
+      return {
+        ...priceList,
+        ...(erpCode !== undefined ? { erp_code: erpCode } : {}),
+      }
+    })
   }
 
   buildPriceBatchPayload(
@@ -219,7 +224,7 @@ export class PriceListsClientMapperHelper {
     const create: Record<string, unknown>[] = []
     const update: Record<string, unknown>[] = []
     const owners: { index: number; input: PriceInput }[] = []
-    const results: PriceListPriceResult[] = new Array(prices.length)
+    const results = Array.from<PriceListPriceResult>({ length: prices.length })
 
     for (const [index, price] of prices.entries()) {
       const variantId = this.resolveVariantId(price, variantMaps)
@@ -282,9 +287,11 @@ export class PriceListsClientMapperHelper {
   private buildPriceEcho(price: PriceInput) {
     return {
       identifier_type: price.identifier_type,
-      sku: price.sku,
-      ean: price.ean,
-      variant_id: price.variant_id,
+      ...(price.sku !== undefined ? { sku: price.sku } : {}),
+      ...(price.ean !== undefined ? { ean: price.ean } : {}),
+      ...(price.variant_id !== undefined
+        ? { variant_id: price.variant_id }
+        : {}),
     }
   }
 
@@ -298,6 +305,7 @@ export class PriceListsClientMapperHelper {
     if (price.identifier_type === "variant_id" && price.variant_id) {
       return maps.byId.get(price.variant_id)
     }
+    return undefined
   }
 
   private priceKey(

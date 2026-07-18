@@ -5,6 +5,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+
 import type { PostSymmyAuthUserEmailPassSchemaType } from "./validators"
 
 const JWT_TTL_SECONDS = 24 * 60 * 60
@@ -18,7 +19,6 @@ export async function POST(
   const { email, password } = req.validatedBody
 
   const result = await authModuleService.authenticate("emailpass", {
-    actor_type: "user",
     body: { email, password },
   })
 
@@ -39,7 +39,7 @@ export async function POST(
     )
   }
 
-  const jwtSecret = process.env.JWT_SECRET?.trim()
+  const jwtSecret = process.env["JWT_SECRET"]?.trim()
   if (!jwtSecret) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -73,12 +73,12 @@ async function resolveUserId(
     user_metadata?: Record<string, unknown> | null
   }
 ) {
-  const linkedUserId = authIdentity.app_metadata?.user_id
+  const linkedUserId = authIdentity.app_metadata?.["user_id"]
   if (typeof linkedUserId === "string" && linkedUserId.length > 0) {
     return linkedUserId
   }
 
-  const email = authIdentity.user_metadata?.email
+  const email = authIdentity.user_metadata?.["email"]
   if (typeof email !== "string" || !email) {
     return
   }

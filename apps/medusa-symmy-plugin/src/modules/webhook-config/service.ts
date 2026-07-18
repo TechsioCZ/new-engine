@@ -1,5 +1,6 @@
 import type { Logger } from "@medusajs/framework/types"
 import { MedusaService } from "@medusajs/framework/utils"
+
 import packageJson from "../../../package.json"
 import SymmyWebhookConfig, {
   type SymmyWebhookEndpoint,
@@ -9,7 +10,8 @@ export type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
 const DEFAULT_CONFIG_KEY = "default"
 const WEBHOOK_TIMEOUT_MS = 10_000
-const PLUGIN_VERSION = process.env.SYMMY_PLUGIN_VERSION ?? packageJson.version
+const PLUGIN_VERSION =
+  process.env["SYMMY_PLUGIN_VERSION"] ?? packageJson.version
 
 export type SymmyWebhookConfigDTO = {
   id: string
@@ -21,8 +23,8 @@ export type SymmyWebhookConfigDTO = {
 }
 
 export type UpdateSymmyWebhookConfigInput = {
-  is_enabled?: boolean
-  endpoints?: SymmyWebhookEndpoint[]
+  is_enabled?: boolean | undefined
+  endpoints?: SymmyWebhookEndpoint[] | undefined
 }
 
 export type SymmyWebhookJobPayload = {
@@ -37,8 +39,8 @@ export type SymmyWebhookJobPayload = {
     attempts: number
     result: Record<string, unknown> | null
     error: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
+    created_at?: Date | string | undefined
+    updated_at?: Date | string | undefined
     started_at: Date | string | null
     finished_at: Date | string | null
   }
@@ -52,7 +54,7 @@ type RawSymmyWebhookConfigDTO = Omit<SymmyWebhookConfigDTO, "endpoints"> & {
   endpoints: SymmyWebhookEndpoint[]
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isObjectMap = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isDateOrString = (value: unknown): value is Date | string =>
@@ -61,21 +63,21 @@ const isDateOrString = (value: unknown): value is Date | string =>
 const isSymmyWebhookEndpoint = (
   value: unknown
 ): value is SymmyWebhookEndpoint =>
-  isRecord(value) &&
-  typeof value.url === "string" &&
-  typeof value.enabled === "boolean"
+  isObjectMap(value) &&
+  typeof value["url"] === "string" &&
+  typeof value["enabled"] === "boolean"
 
 const isRawSymmyWebhookConfigDTO = (
   value: unknown
 ): value is RawSymmyWebhookConfigDTO =>
-  isRecord(value) &&
-  typeof value.id === "string" &&
-  typeof value.config_key === "string" &&
-  typeof value.is_enabled === "boolean" &&
-  Array.isArray(value.endpoints) &&
-  value.endpoints.every(isSymmyWebhookEndpoint) &&
-  (value.created_at === undefined || isDateOrString(value.created_at)) &&
-  (value.updated_at === undefined || isDateOrString(value.updated_at))
+  isObjectMap(value) &&
+  typeof value["id"] === "string" &&
+  typeof value["config_key"] === "string" &&
+  typeof value["is_enabled"] === "boolean" &&
+  Array.isArray(value["endpoints"]) &&
+  value["endpoints"].every(isSymmyWebhookEndpoint) &&
+  (value["created_at"] === undefined || isDateOrString(value["created_at"])) &&
+  (value["updated_at"] === undefined || isDateOrString(value["updated_at"]))
 
 const normalizeEndpoint = (
   endpoint: SymmyWebhookEndpoint

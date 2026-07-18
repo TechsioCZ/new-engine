@@ -1,6 +1,8 @@
 import crypto from "node:crypto"
+
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
 import type EmailLogModuleService from "../../../modules/email-log/service"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../../utils/resend-webhook-events"
@@ -192,7 +194,7 @@ async function storePendingWebhookEvent({
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const payload = getPayload(req)
-  const webhookSecret = process.env.RESEND_WEBHOOK_SECRET
+  const webhookSecret = process.env["RESEND_WEBHOOK_SECRET"]
 
   if (webhookSecret) {
     const isValidSignature = verifySvixSignature({

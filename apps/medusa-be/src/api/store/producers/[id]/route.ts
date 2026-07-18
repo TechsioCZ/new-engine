@@ -17,7 +17,7 @@ export async function GET(
   const { data: producers } = await query.graph({
     entity: "producer",
     filters: {
-      id: req.params.id ?? "-1",
+      id: req.params["id"] ?? "-1",
     },
     ...req.queryConfig,
   })
