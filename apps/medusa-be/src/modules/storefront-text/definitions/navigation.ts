@@ -2,6 +2,28 @@ import type { StorefrontTextDefinition } from "../registry"
 
 export const STOREFRONT_NAVIGATION_TEXT_DEFINITIONS = [
   {
+    description: "Přístupný název hlavní navigace.",
+    key: "navigation.primary_aria",
+    namespace: "navigation",
+    values: {
+      cz: "Hlavní navigace",
+      hu: "Fő navigáció",
+      ro: "Navigare principală",
+      sk: "Hlavná navigácia",
+    },
+  },
+  {
+    description: "Stav načítání podkategorií v navigačním podmenu.",
+    key: "navigation.submenu.loading",
+    namespace: "navigation",
+    values: {
+      cz: "Načítám podkategorie...",
+      hu: "Alkategóriák betöltése...",
+      ro: "Se încarcă subcategoriile...",
+      sk: "Načítavam podkategórie...",
+    },
+  },
+  {
     description: "Přístupný název drobečkové navigace.",
     key: "navigation.breadcrumbs.root_aria",
     namespace: "navigation",
