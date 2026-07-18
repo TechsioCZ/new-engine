@@ -89,4 +89,15 @@ export const STOREFRONT_CHECKOUT_ENTRY_TEXT_DEFINITIONS = [
       sk: "Novinky, ktoré si môžete pridať do košíka",
     },
   },
+  {
+    description: "Nadpis souvisejících produktů zobrazených v checkoutu.",
+    key: "checkout.inline_products_title",
+    namespace: "checkout",
+    values: {
+      cz: "Často kupované společně",
+      hu: "Gyakran együtt vásárolják",
+      ro: "Cumpărate frecvent împreună",
+      sk: "Často kupované spolu",
+    },
+  },
 ] as const satisfies readonly StorefrontTextDefinition[]
