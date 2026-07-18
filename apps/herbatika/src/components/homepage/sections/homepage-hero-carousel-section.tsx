@@ -5,11 +5,11 @@ import {
 } from "@techsio/ui-kit/molecules/carousel"
 import Image from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { MouseEventHandler, PointerEventHandler } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
 
-const HERO_CTA_LABEL = "Zistiť viac"
 const HERO_SLIDE_SPACING = "var(--spacing-400)"
 const HERO_SLIDES_PER_PAGE = {
   xs: 1,
@@ -29,20 +29,26 @@ function HeroBannerCard({
   onClickCapture,
   onPointerDownCapture,
 }: HeroBannerCardProps) {
-  const ctaLabel = banner.ctaLabel ?? HERO_CTA_LABEL
-  const label =
-    banner.title ?? banner.imageAlt ?? banner.badge ?? "Herbatika banner"
+  const tContent = useTranslations("content")
+  const label = banner.title ?? banner.imageAlt ?? banner.badge
+  const ariaLabel =
+    label && banner.ctaLabel
+      ? tContent("home.hero.link_aria", {
+          cta: banner.ctaLabel,
+          label,
+        })
+      : label
 
   return (
     <NextLink
-      aria-label={`${label} - ${ctaLabel}`}
+      aria-label={ariaLabel}
       className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
       href={banner.href}
       onClickCapture={onClickCapture}
       onPointerDownCapture={onPointerDownCapture}
     >
       <Image
-        alt={banner.imageAlt ?? label}
+        alt={banner.imageAlt ?? label ?? ""}
         className="object-cover transition-transform duration-500 group-hover:scale-105"
         fill
         src={banner.imageSrc}
@@ -58,14 +64,16 @@ function HeroBannerCard({
               {banner.subtitle}
             </p>
           )}
-          <span
-            className={buttonVariants({
-              className: "mt-350 rounded-xl px-450 py-250 text-md",
-              size: "md",
-            })}
-          >
-            {ctaLabel}
-          </span>
+          {banner.ctaLabel ? (
+            <span
+              className={buttonVariants({
+                className: "mt-350 rounded-xl px-450 py-250 text-md",
+                size: "md",
+              })}
+            >
+              {banner.ctaLabel}
+            </span>
+          ) : null}
         </div>
       )}
     </NextLink>

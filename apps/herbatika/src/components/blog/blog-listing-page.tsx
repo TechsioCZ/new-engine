@@ -3,6 +3,7 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
@@ -43,9 +44,10 @@ const getFilterLabel = (filter: BlogTopicFilter) =>
   `${filter.label} (${filter.count})`
 
 export function BlogListingPage({ listing }: BlogListingPageProps) {
+  const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: "Blog",
+      label: tContent("pages.blog"),
       href: "/blog",
       icon: "token-icon-home",
     },
@@ -115,7 +117,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   theme="outlined"
                   variant="primary"
                 >
-                  Zobraziť ďalšie
+                  {tContent("blog.pagination.load_more")}
                 </LinkButton>
               ) : null}
 
@@ -128,7 +130,10 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                     page: nextPage,
                   })}
                 >
-                  {`Strana ${listing.page}/${listing.totalPages}`}
+                  {tContent("blog.pagination.summary", {
+                    page: listing.page,
+                    totalPages: listing.totalPages,
+                  })}
                 </Link>
               ) : null}
             </div>

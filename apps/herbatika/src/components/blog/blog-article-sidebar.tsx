@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import {
   BLOG_PROMO_BANNER,
   BLOG_SIDEBAR_CATEGORIES,
@@ -13,11 +14,13 @@ type BlogArticleSidebarProps = {
 export function BlogArticleSidebar({
   featuredProduct,
 }: BlogArticleSidebarProps) {
+  const tContent = useTranslations("content")
+
   return (
     <aside className="flex w-full flex-col gap-500 xl:w-[342px]">
       <section className="space-y-500 rounded-lg border border-border-secondary bg-surface p-550">
         <h2 className="font-semibold text-fg-primary text-xl leading-[18px]">
-          Kategórie
+          {tContent("blog.sidebar.categories")}
         </h2>
 
         <div className="flex flex-wrap gap-250">

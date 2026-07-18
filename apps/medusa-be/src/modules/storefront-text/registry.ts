@@ -11,6 +11,7 @@ import { STOREFRONT_CHECKOUT_PAYMENT_RETURN_TEXT_DEFINITIONS } from "./definitio
 import { STOREFRONT_CHECKOUT_PICKUP_TEXT_DEFINITIONS } from "./definitions/checkout-pickup"
 import { STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS } from "./definitions/checkout-review"
 import { STOREFRONT_CHECKOUT_SIDEBAR_TEXT_DEFINITIONS } from "./definitions/checkout-sidebar"
+import { STOREFRONT_CONTENT_TEXT_DEFINITIONS } from "./definitions/content"
 import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
 import { STOREFRONT_NAVIGATION_TEXT_DEFINITIONS } from "./definitions/navigation"
 import { STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS } from "./definitions/product-lists"
@@ -26,6 +27,7 @@ export const STOREFRONT_TEXT_NAMESPACES = [
   "catalog",
   "cart",
   "checkout",
+  "content",
   "form",
   "navigation",
   "search",
@@ -793,6 +795,7 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
   ...STOREFRONT_CHECKOUT_PICKUP_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_SIDEBAR_TEXT_DEFINITIONS,
+  ...STOREFRONT_CONTENT_TEXT_DEFINITIONS,
   ...STOREFRONT_FORM_TEXT_DEFINITIONS,
   ...STOREFRONT_CATALOG_TEXT_DEFINITIONS,
   ...STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS,
