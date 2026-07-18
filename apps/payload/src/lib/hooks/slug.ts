@@ -1,5 +1,5 @@
 /** Convert a string into a URL-friendly slug. */
-export const generateSlug = (value: string): string =>
+const generateSlug = (value: string): string =>
   value
     .toLowerCase()
     .normalize("NFKD")

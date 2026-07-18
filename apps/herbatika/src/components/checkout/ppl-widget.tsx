@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
 } from "react"
+
+import { loadPplWidgetLoader } from "./ppl-widget-loader"
 import type {
   PplAccessPoint,
   PplWidgetConfig,
@@ -16,14 +18,8 @@ import type {
   PplWidgetError,
   PplWidgetHandle,
 } from "./ppl-widget.types"
-import { loadPplWidgetLoader } from "./ppl-widget-loader"
 
-export type {
-  PplAccessPoint,
-  PplWidgetConfig,
-  PplWidgetError,
-  PplWidgetHandle,
-} from "./ppl-widget.types"
+export type { PplWidgetHandle } from "./ppl-widget.types"
 
 type PplAccessPointWidgetProps = {
   apiKey: string
@@ -76,7 +72,7 @@ export const PplAccessPointWidget = function PplAccessPointWidget({
           setIsLoaded(true)
         }
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (cancelled) {
           return
         }

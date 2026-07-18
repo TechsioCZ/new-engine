@@ -1,4 +1,5 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+
 import { formatPrice } from "@/lib/format-price"
 
 interface OrdersSummaryProps {

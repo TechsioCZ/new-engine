@@ -1,8 +1,3 @@
-import {
-  type CheckoutAddressInput,
-  defaultCheckoutAddressRequiredFields,
-} from "@techsio/storefront-data/checkout/address"
-
 export type CheckoutAddressValues = {
   email: string
   firstName: string
@@ -68,25 +63,6 @@ export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
   countryCode: "SK",
   customerNote: "",
 }
-
-export const CHECKOUT_BILLING_REQUIRED_FIELDS =
-  defaultCheckoutAddressRequiredFields
-
-export const CHECKOUT_SHIPPING_REQUIRED_FIELDS = [
-  ...defaultCheckoutAddressRequiredFields,
-  "phone",
-] as const satisfies readonly (keyof CheckoutAddressInput)[]
-
-export const CHECKOUT_COMPANY_REQUIRED_FIELDS = [
-  "company",
-  "companyId",
-  "taxId",
-] as const satisfies readonly (keyof CheckoutAddressValues)[]
-
-export const createDefaultCheckoutAddressValues =
-  (): CheckoutAddressValues => ({
-    ...DEFAULT_CHECKOUT_ADDRESS_VALUES,
-  })
 
 const clearCheckoutCompanyFields = (
   address: CheckoutAddressValues

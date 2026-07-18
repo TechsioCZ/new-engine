@@ -1,4 +1,5 @@
 import { join } from "node:path"
+
 import type { NextConfig } from "next"
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
@@ -22,13 +23,14 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
 }
 
 const resolveMedusaImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL)
+  resolveImageRemotePattern(process.env["NEXT_PUBLIC_MEDUSA_BACKEND_URL"])
 
 const resolvePayloadImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
+  resolveImageRemotePattern(process.env["NEXT_PUBLIC_PAYLOAD_BASE_URL"])
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  typedRoutes: true,
   output: "standalone",
   transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
   reactCompiler: true,

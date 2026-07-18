@@ -38,7 +38,7 @@ export type RawSearchAutocompleteProducerRef = {
   handle?: unknown
 }
 
-export type RawSearchAutocompleteCalculatedPrice = {
+type RawSearchAutocompleteCalculatedPrice = {
   calculated_amount?: unknown
   currency_code?: unknown
 }

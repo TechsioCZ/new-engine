@@ -4,6 +4,7 @@ import { Button } from "@ui/atoms/button"
 import { Dialog } from "@ui/molecules/dialog"
 import { SelectTemplate } from "@ui/templates/select"
 import { useState } from "react"
+
 import { useCart } from "@/hooks/use-cart"
 import { truncateProductTitle } from "@/lib/order-utils"
 import type { Product } from "@/types/product"
@@ -26,14 +27,14 @@ export function AddToCartDialog({
   const variants = product.variants || []
 
   const variantOptions = variants.map((variant) => {
-    const variantName = variant.options
-      ? Object.values(variant.options).join(" / ")
-      : variant.title
+    const variantName =
+      variant.options?.map((option) => option.value).join(" / ") ||
+      variant.title
 
     const price = variant.calculated_price
       ? formatPrice(
           variant.calculated_price.calculated_amount || 0,
-          variant.calculated_price.currency_code
+          variant.calculated_price.currency_code ?? undefined
         )
       : ""
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 
 type PlpPageSkeletonProps = {
@@ -21,7 +22,7 @@ function CategoryDescriptionSkeleton() {
             className="flex min-h-750 items-center gap-200 rounded-lg border border-border-secondary bg-surface px-300 py-200"
             key={`category-context-skeleton-${index + 1}`}
           >
-            <Skeleton.Circle className="h-6 w-6 shrink-0" />
+            <Skeleton.Circle className="h-skeleton-control w-skeleton-control shrink-0" />
             <Skeleton.Text
               containerClassName="w-full"
               noOfLines={1}
@@ -48,8 +49,8 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
           </>
         ) : (
           <>
-            <Skeleton.Rectangle className="h-8 rounded-sm" />
-            <Skeleton.Rectangle className="h-12 rounded-sm" />
+            <Skeleton.Rectangle className="h-skeleton-heading-lg rounded-sm" />
+            <Skeleton.Rectangle className="h-form-control-lg rounded-sm" />
           </>
         )}
       </section>
@@ -64,13 +65,13 @@ export function PlpPageSkeleton({ variant }: PlpPageSkeletonProps) {
         <div className="flex min-w-0 flex-col gap-600 md:grid md:grid-cols-12 md:items-start">
           <aside className="hidden md:col-span-3 md:block">
             <Skeleton.Rectangle
-              className="h-164 rounded-2xl"
+              className="h-filter-skeleton rounded-2xl"
               variant="primary"
             />
           </aside>
 
           <div className="space-y-400 md:col-span-9">
-            <Skeleton.Rectangle className="h-16 rounded-xl" />
+            <Skeleton.Rectangle className="h-skeleton-toolbar rounded-xl" />
             <HerbatikaProductGridSkeleton layout="catalog" />
           </div>
         </div>

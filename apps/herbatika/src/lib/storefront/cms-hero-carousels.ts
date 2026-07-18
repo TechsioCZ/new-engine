@@ -1,6 +1,6 @@
 import "server-only"
-
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
+
 import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
 import type { CmsHeroCarousel } from "./cms-types"
 
@@ -34,7 +34,7 @@ const resolveSafeHeroHref = (value: string | null | undefined) => {
   }
 }
 
-export const mapCmsHeroCarouselToHeroBanner = (
+const mapCmsHeroCarouselToHeroBanner = (
   item: CmsHeroCarousel
 ): HeroBannerItem | null => {
   const imageSrc = resolveCmsMediaUrl(item.image)

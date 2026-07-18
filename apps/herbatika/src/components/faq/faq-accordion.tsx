@@ -1,8 +1,10 @@
 "use client"
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
-import NextLink from "next/link"
 import { useCallback, useState } from "react"
+
+import NextLink from "@/components/app-link"
+
 import type {
   FaqAnswerBlock as FaqAnswerBlockData,
   FaqItem,

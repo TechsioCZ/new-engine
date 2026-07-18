@@ -4,8 +4,9 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import type { MouseEvent } from "react"
+
+import NextLink from "@/components/app-link"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import {
@@ -167,14 +168,17 @@ export function ReviewsSection({
         </div>
 
         {isHomepage ? (
-          <ReviewTrustBadges className="sm:w-auto" sources={trustSources} />
+          <ReviewTrustBadges
+            className="sm:w-auto"
+            {...(trustSources === undefined ? {} : { sources: trustSources })}
+          />
         ) : null}
 
         {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (
           <NextLink
             className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
             href={resolvedLinkHref}
-            onClick={onLinkClick}
+            {...(onLinkClick === undefined ? {} : { onClick: onLinkClick })}
           >
             {resolvedLinkLabel}
             <Icon icon="token-icon-chevron-right" size="md" />

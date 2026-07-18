@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
+
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { STORAGE_KEYS } from "@/lib/constants"
@@ -24,7 +25,7 @@ const getErrorStatus = (error: unknown): number | undefined => {
   return err.status ?? err.response?.status
 }
 
-const getErrorMessage = (error: unknown): string | undefined => {
+const resolveErrorMessage = (error: unknown): string | undefined => {
   if (!error || typeof error !== "object") return undefined
   const err = error as ErrorResponse
   return err.message ?? err.response?.data?.message
@@ -137,7 +138,7 @@ export function useCart() {
       console.error("[Cart Hook] Add item error:", error)
 
       // Parse error message for specific inventory issue
-      const errorMessage = getErrorMessage(error) || "Unknown error"
+      const errorMessage = resolveErrorMessage(error) || "Unknown error"
 
       if (errorMessage.toLowerCase().includes("inventory")) {
         toast.create({
@@ -297,7 +298,10 @@ export function useCart() {
 
     // Actions
     addItem: (variantId: string, quantity?: number) =>
-      addItemMutation.mutate({ variantId, quantity }),
+      addItemMutation.mutate({
+        variantId,
+        ...(quantity !== undefined && { quantity }),
+      }),
     updateQuantity: (lineItemId: string, quantity: number) =>
       updateQuantityMutation.mutate({ lineItemId, quantity }),
     removeItem: (lineItemId: string) => removeItemMutation.mutate(lineItemId),

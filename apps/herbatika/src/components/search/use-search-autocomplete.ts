@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
 import {
   createEmptySearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_DEBOUNCE_MS,

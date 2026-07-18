@@ -6,6 +6,7 @@ import { Rating } from "@ui/atoms/rating"
 import { useToast } from "@ui/molecules/toast"
 import { NumericInputTemplate } from "@ui/templates/numeric-input"
 import { useState } from "react"
+
 import { SafeHtmlContent } from "@/components/safe-html-content"
 import { useCart } from "@/hooks/use-cart"
 import type { Product, ProductVariant } from "@/types/product"

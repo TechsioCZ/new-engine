@@ -1,4 +1,4 @@
-export const ACCOUNT_TABS = ["profile", "addresses", "orders"] as const
+const ACCOUNT_TABS = ["profile", "addresses", "orders"] as const
 export type AccountTab = (typeof ACCOUNT_TABS)[number]
 
 export const resolveTab = (

@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import type { ReactNode } from "react"
+
 import type {
   Product,
   ProductMediaFact,

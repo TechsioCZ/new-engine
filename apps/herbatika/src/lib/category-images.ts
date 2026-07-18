@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { StaticImageData } from "next/image"
+
 import {
   type CategoryImageSlug,
   categoryImagesBySlug,
@@ -12,7 +13,7 @@ export type ResolveCategoryImageInput = {
   parentCategoryId?: string | null
 }
 
-export const normalizeCategoryImageKey = (value: string) =>
+const normalizeCategoryImageKey = (value: string) =>
   value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -29,7 +30,7 @@ const CATEGORY_IMAGE_HANDLE_PREFIXES = [
   "ucinne-zlozky-od-a-po-z-",
 ] as const
 
-export const CATEGORY_IMAGE_ALIASES_BY_HANDLE = {
+const CATEGORY_IMAGE_ALIASES_BY_HANDLE = {
   "ine-podpora-a-rast-vlasov": "vlasy-vypadavanie-lupiny",
   "potraviny-a-napoje-prirodne-a-zdrave-zuvacky": "prirodne-a-zdrave-zuvacky",
   "potraviny-a-napoje-sirupy-a-medy": "sirupy",
@@ -38,7 +39,7 @@ export const CATEGORY_IMAGE_ALIASES_BY_HANDLE = {
   "trapi-ma-imunita-a-obranyschopnost": "imunita",
 } satisfies Record<string, CategoryImageSlug>
 
-export const CATEGORY_IMAGE_ALIASES_BY_LABEL = {
+const CATEGORY_IMAGE_ALIASES_BY_LABEL = {
   cbd: "cbd-2",
   "imunita-a-obranyschopnost": "imunita",
   "podpora-a-rast-vlasov": "vlasy-vypadavanie-lupiny",
@@ -111,7 +112,10 @@ export const resolveCategoryImage = ({
   label,
   parentCategoryId,
 }: ResolveCategoryImageInput): StaticImageData | undefined => {
-  const ownImage = resolveOwnCategoryImage({ handle, label })
+  const ownImage = resolveOwnCategoryImage({
+    ...(handle === undefined ? {} : { handle }),
+    ...(label === undefined ? {} : { label }),
+  })
   if (ownImage) {
     return ownImage
   }

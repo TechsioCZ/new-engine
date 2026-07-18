@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "description": "Frontend demo application",
-  "engines": {
-    "node": "24.x"
-  },
   "scripts": {
     "dev": "next dev --turbopack -p 3000",
     "build": "next build --turbopack",
@@ -14,36 +11,40 @@
     "start": "next start -p 3000",
     "check:unused": "node scripts/check-unused-exports.js",
     "generate:categories": "node scripts/generate-categories.mjs",
-    "prebuild": "pnpm generate:categories"
+    "prebuild": "pnpm generate:categories",
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/frontend-demo/tsconfig.json"
   },
   "dependencies": {
-    "@medusajs/js-sdk": "2.15.2",
-    "@medusajs/types": "2.15.2",
-    "@react-email/components": "^0.3.2",
-    "@tanstack/react-query": "^5.90.10",
-    "@tanstack/react-store": "^0.8.0",
+    "@medusajs/js-sdk": "2.17.2",
+    "@medusajs/types": "2.17.2",
+    "@react-email/render": "2.1.0",
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-store": "^0.11.0",
     "@techsio/ui-kit": "workspace:*",
-    "dompurify": "^3.3.0",
+    "dompurify": "^3.4.12",
     "next": "16.3.0-preview.5",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "resend": "^4.7.0",
-    "tailwind-merge": "^3.4.0",
-    "tailwind-variants": "^3.1.1"
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "resend": "^6.17.2",
+    "tailwind-merge": "^3.6.0",
+    "tailwind-variants": "^3.2.2"
   },
   "devDependencies": {
-    "@iconify/json": "^2.2.409",
-    "@iconify/tailwind4": "^1.1.0",
-    "@playwright/test": "^1.60.0",
-    "@tailwindcss/postcss": "^4.1.17",
-    "@types/node": "^24.12.4",
-    "@types/react": "^19.2.3",
-    "@types/react-dom": "^19.2.3",
-    "dotenv": "^16.6.0",
-    "postcss": "^8.5.6",
+    "@iconify/json": "^2.2.500",
+    "@iconify/tailwind4": "^1.2.3",
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "dotenv": "^17.4.2",
+    "postcss": "^8.5.19",
     "postcss-import": "^16.1.1",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

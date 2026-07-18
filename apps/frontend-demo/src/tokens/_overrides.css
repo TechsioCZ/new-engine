@@ -241,16 +241,14 @@
   --color-fg-dark: var(--color-slate-50); /* Dark mode */
   --color-fg-primary: light-dark(var(--color-fg-light), var(--color-fg-dark));
   --color-fg-primary-light: --alpha(
-    var(--color-fg-primary) /
-    var(--opacity-text-secondary)
+    var(--color-fg-primary) / var(--opacity-text-secondary)
   );
   --color-fg-secondary: light-dark(
     var(--color-slate-700),
     var(--color-slate-300)
   );
   --color-fg-secondary-light: --alpha(
-    var(--color-fg-secondary) /
-    var(--opacity-text-secondary)
+    var(--color-fg-secondary) / var(--opacity-text-secondary)
   );
   --color-fg-tertiary: light-dark(
     var(--color-slate-600),
@@ -314,16 +312,13 @@
   It is used to fill all kinds of forbidden elements in the interface, such as background, text, stroke, fill, etc*/
   --color-disabled-bg: --alpha(var(--color-base-reverse) / 10%);
   --color-disabled-text: --alpha(
-    var(--color-fg-primary) /
-    var(--opacity-disabled)
+    var(--color-fg-primary) / var(--opacity-disabled)
   );
   --color-disabled-border: --alpha(
-    var(--color-border-primary) /
-    var(--opacity-disabled)
+    var(--color-border-primary) / var(--opacity-disabled)
   );
   --color-disabled-fill: --alpha(
-    var(--color-fill-base) /
-    var(--opacity-disabled)
+    var(--color-fill-base) / var(--opacity-disabled)
   );
 
   /* Spacing */

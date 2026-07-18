@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Store } from "@tanstack/react-store"
+
 import type { ValidationError } from "@/lib/auth/validation"
 import { sdk } from "@/lib/medusa-client"
 
@@ -105,8 +106,8 @@ export const authHelpers = {
         if (error.status === 404) {
           const { customer } = await sdk.store.customer.create({
             email,
-            first_name: firstName,
-            last_name: lastName,
+            ...(firstName !== undefined && { first_name: firstName }),
+            ...(lastName !== undefined && { last_name: lastName }),
           })
           authStore.setState((state) => ({
             ...state,
@@ -164,14 +165,16 @@ export const authHelpers = {
       // Step 3: Create customer profile
       const { customer } = await sdk.store.customer.create({
         email,
-        first_name: firstName,
-        last_name: lastName,
+        ...(firstName !== undefined && { first_name: firstName }),
+        ...(lastName !== undefined && { last_name: lastName }),
       })
 
       // Step 4: Refresh token to ensure proper permissions
       try {
         await sdk.auth.refresh()
-      } catch (refreshError) {}
+      } catch {
+        // Customer creation succeeded; the following retrieve is the authoritative refresh.
+      }
 
       // Step 5: Fetch the customer again to ensure we have the latest data
       try {

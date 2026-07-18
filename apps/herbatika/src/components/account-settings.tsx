@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useEffect, useRef, useState } from "react"
+
 import {
   AccountSkeletonSurface,
   AccountSurface,
@@ -32,11 +33,13 @@ export function AccountSettings() {
       setSubmitSuccess(null)
 
       try {
+        const phone = value.phone.trim()
+        const companyName = value.company_name.trim()
         const payload = {
           first_name: value.first_name.trim(),
           last_name: value.last_name.trim(),
-          phone: value.phone.trim() || undefined,
-          company_name: value.company_name.trim() || undefined,
+          ...(phone ? { phone } : {}),
+          ...(companyName ? { company_name: companyName } : {}),
         }
 
         await updateCustomerMutation.mutateAsync(payload)

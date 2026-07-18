@@ -30,8 +30,10 @@ export function useProductDetailActions({
   selectedVolumeDiscountOption,
 }: UseProductDetailActionsProps) {
   const addToCart = useAddProductToCart({
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
   })
   const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({
@@ -48,7 +50,9 @@ export function useProductDetailActions({
       await addToCart.addProductToCart({
         product: productToAdd,
         quantity: quantityToAdd,
-        variantId: variantIdOverride,
+        ...(variantIdOverride === undefined
+          ? {}
+          : { variantId: variantIdOverride }),
       })
       toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
     } catch (error) {

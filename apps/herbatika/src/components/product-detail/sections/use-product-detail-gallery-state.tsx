@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import { type MouseEvent, type PointerEvent, useRef, useState } from "react"
+
 import { FallbackImage } from "@/components/fallback-image"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 

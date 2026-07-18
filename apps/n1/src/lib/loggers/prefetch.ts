@@ -14,7 +14,7 @@ export const prefetchLogger = {
     label: string,
     metadata?: Record<string, unknown>
   ) => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env["NODE_ENV"] !== "development") {
       return
     }
 
@@ -31,7 +31,7 @@ export const prefetchLogger = {
    * Log prefetch completion
    */
   complete: (type: PrefetchType, label: string, duration: number) => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env["NODE_ENV"] !== "development") {
       return
     }
 
@@ -44,7 +44,7 @@ export const prefetchLogger = {
    * Log prefetch skip
    */
   skip: (type: PrefetchType, label: string, reason?: string) => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env["NODE_ENV"] !== "development") {
       return
     }
 
@@ -56,7 +56,7 @@ export const prefetchLogger = {
    * Log cache hit
    */
   cacheHit: (type: PrefetchType, label: string) => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env["NODE_ENV"] !== "development") {
       return
     }
 
@@ -67,7 +67,7 @@ export const prefetchLogger = {
    * Log general info
    */
   info: (type: PrefetchType, message: string) => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env["NODE_ENV"] !== "development") {
       return
     }
 

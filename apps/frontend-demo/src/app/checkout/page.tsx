@@ -5,6 +5,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
 import { type ReactNode, useEffect, useState } from "react"
+
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
 import { useCart } from "@/hooks/use-cart"
@@ -12,6 +13,7 @@ import { useCheckout } from "@/hooks/use-checkout"
 import { PAYMENT_METHODS } from "@/lib/checkout-data"
 import { formatPrice } from "@/lib/format-price"
 import { orderHelpers } from "@/stores/order-store"
+
 import { PaymentSelection } from "../../components/molecules/payment-selection"
 import { ShippingSelection } from "../../components/molecules/shipping-selection"
 import { AddressForm } from "../../components/organisms/address-form"
@@ -178,7 +180,7 @@ export default function CheckoutPage() {
       title: "Souhrn",
       content: (
         <OrderSummary
-          addressData={addressData || undefined}
+          {...(addressData !== null && { addressData })}
           isLoading={isProcessingPayment}
           isOrderComplete={isOrderComplete}
           onCompleteClick={handleComplete}

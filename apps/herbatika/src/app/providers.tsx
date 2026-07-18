@@ -6,6 +6,7 @@ import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 import type { PropsWithChildren } from "react"
 import { useEffect } from "react"
+
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useRegionBootstrap } from "@/lib/storefront/regions"
 

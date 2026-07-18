@@ -2,8 +2,9 @@
 
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
-import NextLink from "next/link"
 import { type ComponentPropsWithoutRef, Fragment } from "react"
+
+import NextLink from "@/components/app-link"
 
 type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
 

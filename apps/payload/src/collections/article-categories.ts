@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import { createSlugField, createTitleField } from "../lib/constants/fields"
@@ -37,12 +38,13 @@ export const ArticleCategories: CollectionConfig = {
         if (!data) {
           return data
         }
-        if (data?.title && !data?.slug) {
-          const slug = generateSlugFromTitle(data.title, {
-            locale: req?.locale,
-          })
+        if (data?.["title"] && !data?.["slug"]) {
+          const slug = generateSlugFromTitle(
+            data["title"],
+            req?.locale ? { locale: req.locale } : {}
+          )
           if (slug) {
-            data.slug = slug
+            data["slug"] = slug
           }
         }
 

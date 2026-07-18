@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+
 import {
   resolveCarrierPickupHint,
   resolveCarrierPickupRequirement,
@@ -7,6 +8,7 @@ import { resolveShippingIcon } from "@/components/checkout/checkout-display.util
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
@@ -90,28 +92,32 @@ export function CheckoutShippingSection({
               const pickupRequirement = pickupRequirements.get(option.id)
               const isAwaitingPickupSelection = Boolean(
                 pickupRequirement &&
-                  pendingPickupOptionId === option.id &&
-                  selectedShippingMethodId !== option.id
+                pendingPickupOptionId === option.id &&
+                selectedShippingMethodId !== option.id
               )
 
               return {
-                addon: pickupRequirement ? (
-                  <CheckoutCarrierPickupDetails
-                    disabled={isBusy}
-                    onConfirm={(data) => {
-                      onPendingPickupOptionIdChange(null)
-                      runDetachedPromise(onSelectShipping(option.id, data))
-                    }}
-                    requirement={pickupRequirement}
-                  />
-                ) : undefined,
+                ...(pickupRequirement
+                  ? {
+                      addon: (
+                        <CheckoutCarrierPickupDetails
+                          disabled={isBusy}
+                          onConfirm={(data) => {
+                            onPendingPickupOptionIdChange(null)
+                            runDetachedPromise(
+                              onSelectShipping(option.id, data)
+                            )
+                          }}
+                          requirement={pickupRequirement}
+                        />
+                      ),
+                      hint: resolveCarrierPickupHint(pickupRequirement),
+                    }
+                  : {}),
                 disabled: isBusy,
-                bodyText: isAwaitingPickupSelection
-                  ? PICKUP_SELECTION_REQUIRED_TEXT
-                  : undefined,
-                hint: pickupRequirement
-                  ? resolveCarrierPickupHint(pickupRequirement)
-                  : undefined,
+                ...(isAwaitingPickupSelection
+                  ? { bodyText: PICKUP_SELECTION_REQUIRED_TEXT }
+                  : {}),
                 icon: resolveShippingIcon(option),
                 priceLabel: resolveShippingPriceLabel(optionPrice),
                 priceTone: optionPrice > 0 ? "default" : "success",

@@ -8,6 +8,7 @@ import {
 import NextLink from "next/link"
 import { notFound, useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
 import { ProductGrid } from "@/components/molecules/product-grid"
@@ -47,7 +48,7 @@ function getCategoryPath(category: Category) {
 export default function CategoryPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const handle = params.handle as string
+  const handle = params["handle"] as string
   const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
@@ -109,7 +110,7 @@ export default function CategoryPage() {
     totalPages,
     pageSize: PRODUCT_LIMIT,
     category_id: categoryIds,
-    regionId,
+    ...(regionId ? { regionId } : {}),
     countryCode,
   })
 

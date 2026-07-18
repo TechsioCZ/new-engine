@@ -3,6 +3,7 @@
 import { AuthShell } from "@/components/auth/auth-shell"
 import { RegisterForm } from "@/components/auth/register-form"
 import { useAuthController } from "@/components/auth/use-auth-controller"
+
 import { LoginForm } from "./auth/login-form"
 
 type AuthControlsMode = "login" | "register"
@@ -15,7 +16,7 @@ type AuthControlsProps = {
 export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
   const controller = useAuthController({
     mode,
-    afterAuthHref,
+    ...(afterAuthHref === undefined ? {} : { afterAuthHref }),
   })
 
   return (

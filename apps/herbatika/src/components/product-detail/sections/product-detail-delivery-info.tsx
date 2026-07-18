@@ -1,6 +1,7 @@
 "use client"
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
 

@@ -1,5 +1,6 @@
 "use client"
 import { createContext, type ReactNode, useContext, useState } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 
 type HeaderContextValue = {

@@ -6,11 +6,13 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
-import NextLink from "next/link"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
+
+import NextLink from "@/components/app-link"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,
@@ -137,7 +139,7 @@ export function AccountProductListItemRow({
         {canChangeQuantity ? (
           <NumericInput
             allowOverflow={false}
-            className="w-20"
+            className="w-product-list-quantity"
             disabled={!item.id || isSettingQuantity}
             min={1}
             onChange={handleQuantityChange}

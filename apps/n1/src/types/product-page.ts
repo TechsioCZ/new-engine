@@ -1,14 +1,14 @@
 export type ProducerEntity = {
   name: string
   address: string
-  taxId?: string
-  email?: string
-  phone?: string
+  taxId?: string | undefined
+  email?: string | undefined
+  phone?: string | undefined
 }
 
 export type ParsedProducerInfo = {
-  sizingGuideUrl?: string
-  manufacturer?: ProducerEntity
-  responsiblePerson?: ProducerEntity
-  distributor?: string
+  sizingGuideUrl?: string | undefined
+  manufacturer?: ProducerEntity | undefined
+  responsiblePerson?: ProducerEntity | undefined
+  distributor?: string | undefined
 }

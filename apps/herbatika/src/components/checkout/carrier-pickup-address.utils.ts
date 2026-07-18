@@ -14,16 +14,16 @@ export function resolveCarrierPickupAddress(
   data: unknown,
   fallbackCountryCode?: string
 ): CarrierPickupAddress | null {
-  if (!(isRecord(data) && readString(data.access_point_id))) {
+  if (!(isRecord(data) && readString(data["access_point_id"]))) {
     return null
   }
 
-  const label = readString(data.access_point_name) ?? "Výdajné miesto"
-  const street = readString(data.access_point_street)
-  const city = readString(data.access_point_city) ?? ""
-  const postalCode = readString(data.access_point_zip) ?? ""
+  const label = readString(data["access_point_name"]) ?? "Výdajné miesto"
+  const street = readString(data["access_point_street"])
+  const city = readString(data["access_point_city"]) ?? ""
+  const postalCode = readString(data["access_point_zip"]) ?? ""
   const countryCode = (
-    readString(data.access_point_country) ??
+    readString(data["access_point_country"]) ??
     fallbackCountryCode ??
     DEFAULT_PICKUP_COUNTRY
   ).toUpperCase()

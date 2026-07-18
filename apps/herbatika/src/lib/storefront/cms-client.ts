@@ -1,5 +1,4 @@
 import "server-only"
-
 import type { CmsMedia } from "./cms-types"
 import { resolveMedusaBackendUrl, resolvePayloadBaseUrl } from "./runtime-env"
 import { storefrontConfig } from "./sdk"

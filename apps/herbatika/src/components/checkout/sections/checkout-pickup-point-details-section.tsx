@@ -1,4 +1,5 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import {
   type CarrierPickupAddress,
   formatCarrierPickupAddress,
@@ -7,6 +8,8 @@ import { resolveCheckoutAddressFieldName } from "@/components/checkout/checkout-
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { SupportingText } from "@/components/text/supporting-text"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+
+import { CheckoutCompanyFields } from "./checkout-company-fields"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -121,68 +124,11 @@ export function CheckoutPickupPointDetailsSection({
 
           <div className="grid gap-250 md:grid-cols-2">
             {isCompanyPurchase ? (
-              <>
-                <div className="md:col-span-2">
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName("billing", "company")}
-                    validators={checkoutFieldValidators.billing.company}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-company"
-                        label="Názov firmy"
-                        required
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-                </div>
-
-                <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName(
-                      "billing",
-                      "companyId"
-                    )}
-                    validators={checkoutFieldValidators.billing.companyId}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-company-id"
-                        label="IČO"
-                        required
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName("billing", "taxId")}
-                    validators={checkoutFieldValidators.billing.taxId}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-tax-id"
-                        label="DIČ"
-                        required
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-
-                  <checkoutDetailsForm.form.AppField
-                    name={resolveCheckoutAddressFieldName("billing", "vatId")}
-                  >
-                    {(field) => (
-                      <field.TextField
-                        id="checkout-pickup-vat-id"
-                        label="IČ DPH"
-                        validationMode="blur"
-                      />
-                    )}
-                  </checkoutDetailsForm.form.AppField>
-                </div>
-              </>
+              <CheckoutCompanyFields
+                checkoutDetailsForm={checkoutDetailsForm}
+                fieldPrefix="checkout-pickup"
+                scope="billing"
+              />
             ) : null}
 
             <checkoutDetailsForm.form.AppField
@@ -252,7 +198,7 @@ export function CheckoutPickupPointDetailsSection({
               >
                 {(field) => (
                   <field.TextareaField
-                    className="min-h-14"
+                    className="min-h-form-control-lg"
                     id="checkout-pickup-customer-note"
                     label="Voliteľná poznámka pre zákaznícku podporu"
                     resize="auto"

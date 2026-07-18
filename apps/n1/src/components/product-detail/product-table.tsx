@@ -2,7 +2,7 @@ import { Table } from "@techsio/ui-kit/organisms/table"
 
 export type ProductTableRowProps = {
   key: string
-  value?: string | number | null
+  value?: string | number | null | undefined
 }
 
 export const ProductTable = ({ rows }: { rows: ProductTableRowProps[] }) => (

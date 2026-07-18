@@ -1,8 +1,8 @@
 import "server-only"
-
 import type { QueryClient } from "@tanstack/react-query"
 import { dehydrate } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+
 import {
   buildCatalogProductsParams,
   type CatalogQueryState,
@@ -56,10 +56,12 @@ const prefetchHomepageCatalogProducts = ({
     queryClient,
     buildCatalogProductsParams({
       queryState: buildHomepageCatalogQueryState(sort, status),
-      categoryIds,
+      ...(categoryIds === undefined ? {} : { categoryIds }),
       limit: HOMEPAGE_PRODUCTS_PER_SECTION,
-      regionId: region.region_id,
-      countryCode: region.country_code,
+      ...(region.region_id === undefined ? {} : { regionId: region.region_id }),
+      ...(region.country_code === undefined
+        ? {}
+        : { countryCode: region.country_code }),
     })
   )
 

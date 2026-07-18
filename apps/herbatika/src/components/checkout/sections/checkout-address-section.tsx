@@ -1,10 +1,13 @@
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import {
   type CheckoutAddressScope,
   resolveCheckoutAddressFieldName,
 } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
+
+import { CheckoutCompanyFields } from "./checkout-company-fields"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
 
@@ -102,65 +105,11 @@ export function CheckoutAddressSection({
           </checkoutDetailsForm.form.AppField>
 
           {showCompanyFields ? (
-            <>
-              <div className="md:col-span-2">
-                <checkoutDetailsForm.form.AppField
-                  name={resolveCheckoutAddressFieldName(scope, "company")}
-                  validators={scopedValidators.company}
-                >
-                  {(field) => (
-                    <field.TextField
-                      id={`${fieldPrefix}-company`}
-                      label="Názov firmy"
-                      required
-                      validationMode="blur"
-                    />
-                  )}
-                </checkoutDetailsForm.form.AppField>
-              </div>
-
-              <div className="grid gap-250 md:col-span-2 md:grid-cols-3">
-                <checkoutDetailsForm.form.AppField
-                  name={resolveCheckoutAddressFieldName(scope, "companyId")}
-                  validators={scopedValidators.companyId}
-                >
-                  {(field) => (
-                    <field.TextField
-                      id={`${fieldPrefix}-company-id`}
-                      label="IČO"
-                      required
-                      validationMode="blur"
-                    />
-                  )}
-                </checkoutDetailsForm.form.AppField>
-
-                <checkoutDetailsForm.form.AppField
-                  name={resolveCheckoutAddressFieldName(scope, "taxId")}
-                  validators={scopedValidators.taxId}
-                >
-                  {(field) => (
-                    <field.TextField
-                      id={`${fieldPrefix}-tax-id`}
-                      label="DIČ"
-                      required
-                      validationMode="blur"
-                    />
-                  )}
-                </checkoutDetailsForm.form.AppField>
-
-                <checkoutDetailsForm.form.AppField
-                  name={resolveCheckoutAddressFieldName(scope, "vatId")}
-                >
-                  {(field) => (
-                    <field.TextField
-                      id={`${fieldPrefix}-vat-id`}
-                      label="IČ DPH"
-                      validationMode="blur"
-                    />
-                  )}
-                </checkoutDetailsForm.form.AppField>
-              </div>
-            </>
+            <CheckoutCompanyFields
+              checkoutDetailsForm={checkoutDetailsForm}
+              fieldPrefix={fieldPrefix}
+              scope={scope}
+            />
           ) : null}
 
           {showContactFields ? (

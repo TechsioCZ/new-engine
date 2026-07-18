@@ -106,8 +106,7 @@
     from var(--color-primary) calc(l + var(--state-hover)) c h
   );
   --color-primary-light: --alpha(
-    var(--color-primary) /
-    var(--color-light-alpha)
+    var(--color-primary) / var(--color-light-alpha)
   );
   --color-primary-disabled: var(--color-disabled-bg);
 
@@ -121,8 +120,7 @@
     from var(--color-secondary) calc(l + var(--state-hover)) c h
   );
   --color-secondary-light: --alpha(
-    var(--color-secondary) /
-    var(--color-light-alpha)
+    var(--color-secondary) / var(--color-light-alpha)
   );
   --color-secondary-disabled: var(--color-disabled-bg);
 
@@ -134,8 +132,7 @@
     from var(--color-tertiary) calc(l + var(--state-hover)) c h
   );
   --color-tertiary-light: --alpha(
-    var(--color-tertiary) /
-    var(--color-light-alpha)
+    var(--color-tertiary) / var(--color-light-alpha)
   );
   --color-tertiary-disabled: var(--color-disabled-bg);
 
@@ -145,8 +142,7 @@
     from var(--color-success) calc(l + var(--state-hover)) c h
   );
   --color-success-light: --alpha(
-    var(--color-success) /
-    var(--color-light-alpha)
+    var(--color-success) / var(--color-light-alpha)
   );
   --color-success-disabled: var(--color-disabled-bg);
 
@@ -164,8 +160,7 @@
     from var(--color-warning) calc(l + var(--state-hover)) c h
   );
   --color-warning-light: --alpha(
-    var(--color-warning) /
-    var(--color-light-alpha)
+    var(--color-warning) / var(--color-light-alpha)
   );
   --color-warning-disabled: var(--color-disabled-bg);
 
@@ -203,17 +198,14 @@
   --color-base-reverse: var(--color-base-dark); /* rgb(20,20,20) */
 
   --color-surface-light: --alpha(
-    var(--color-surface) /
-    var(--color-light-alpha)
+    var(--color-surface) / var(--color-light-alpha)
   );
   --color-overlay-light: --alpha(
-    var(--color-overlay) /
-    var(--color-light-alpha)
+    var(--color-overlay) / var(--color-light-alpha)
   );
   --color-float-light: --alpha(var(--color-float) / var(--color-light-alpha));
   --color-highlight-light: --alpha(
-    var(--color-highlight) /
-    var(--color-light-alpha)
+    var(--color-highlight) / var(--color-light-alpha)
   );
 
   /* Borders */
@@ -242,12 +234,10 @@
   /* For an element, if the background color of its container is not fixed, and the contrast between the filling color of the element and the top background color is small, use the filling color as the background color to ensure that the element will not "melt" into a certain level of background color, such as a form control.  */
   --color-fill-base: --alpha(var(--color-base-reverse) / var(--fill-increment));
   --color-fill-hover: --alpha(
-    var(--color-base-reverse) /
-    calc(var(--fill-increment) * 2)
+    var(--color-base-reverse) / calc(var(--fill-increment) * 2)
   );
   --color-fill-active: --alpha(
-    var(--color-base-reverse) /
-    calc(var(--fill-increment) * 3)
+    var(--color-base-reverse) / calc(var(--fill-increment) * 3)
   );
 
   /* Spacing */

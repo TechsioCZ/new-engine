@@ -4,6 +4,7 @@ import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+
 import { useDebounce } from "@/hooks/use-debounce"
 import type { CartLineItem } from "@/services/cart-service"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
@@ -28,7 +29,7 @@ export const CartItem = ({
   const variantTitle = item.variant_title
   const thumbnail = item.thumbnail
   const effectiveMax =
-    (item.metadata?.inventory_quantity as number | undefined) ?? 10
+    (item.metadata?.["inventory_quantity"] as number | undefined) ?? 10
 
   useEffect(() => {
     setLocalQuantity(item.quantity)
@@ -56,7 +57,7 @@ export const CartItem = ({
         ${isPending ? "pointer-events-none" : ""}
       `}
     >
-      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md">
+      <div className="h-cart-thumbnail w-cart-thumbnail flex-shrink-0 overflow-hidden rounded-md">
         {thumbnail ? (
           <Image
             alt={title}
@@ -97,7 +98,7 @@ export const CartItem = ({
       <div className="flex items-center">
         <NumericInput
           allowOverflow={false}
-          className="h-8 border-collapse gap-0"
+          className="h-650 border-collapse gap-0"
           max={effectiveMax}
           min={1}
           onChange={handleQuantityChange}
@@ -121,7 +122,7 @@ export const CartItem = ({
 
       <Button
         aria-label={`Odstranit ${title} z košíku`}
-        className="h-7 w-7 p-0 text-fg-5 transition-colors hover:text-fg-secondary"
+        className="h-650 w-650 p-0 text-fg-5 transition-colors hover:text-fg-secondary"
         disabled={isPending}
         icon="icon-[mdi--trash-can-outline]"
         onClick={onRemove}

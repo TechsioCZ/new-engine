@@ -2,11 +2,14 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useRouter } from "next/navigation"
+
+import NextLink from "@/components/app-link"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { appHref } from "@/lib/routing"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
 
@@ -59,7 +62,7 @@ export function CheckoutDetailsStepSection({
             (async () => {
               const didSaveAddress = await controller.handleSaveAddress()
               if (didSaveAddress) {
-                router.push(nextStepHref)
+                router.push(appHref(nextStepHref))
               }
             })()
           )

@@ -5,6 +5,7 @@ import {
   resolveStorefrontPrice,
   resolveTopOfferInStock,
 } from "@/lib/storefront/product-pricing"
+
 import { normalizeString } from "./search-autocomplete-normalizers"
 import type {
   RawSearchAutocompleteProductHit,
@@ -49,6 +50,10 @@ const createProductSuggestion = (
   )
   const categoryName = normalizeString(firstCategory?.name)
   const price = resolveProductPrice(hit, currencyCode)
+  const imageUrl = normalizeString(hit.thumbnail)
+  const priceLabel = price
+    ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
+    : undefined
 
   return {
     id,
@@ -56,10 +61,8 @@ const createProductSuggestion = (
     title,
     href: `/p/${handle}`,
     subtitle: [producerTitle, categoryName].filter(Boolean).join(" | "),
-    imageUrl: normalizeString(hit.thumbnail) || undefined,
-    priceLabel: price
-      ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
-      : undefined,
+    ...(imageUrl === undefined ? {} : { imageUrl }),
+    ...(priceLabel === undefined ? {} : { priceLabel }),
     inStock: resolveProductInStock(hit),
   }
 }

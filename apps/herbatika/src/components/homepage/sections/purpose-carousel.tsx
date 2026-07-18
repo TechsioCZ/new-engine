@@ -6,8 +6,9 @@ import {
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import type { ComponentProps } from "react"
+
+import NextLink from "@/components/app-link"
 import type { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data"
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu"
 import { TextActionLink } from "@/components/text-action-link"
@@ -70,7 +71,7 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
     content: (
       <Link
         as={NextLink}
-        className="grid h-full min-h-800 w-full grid-rows-[auto_1fr] items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
+        className="grid h-full min-h-800 w-full purpose-card-layout items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
         href={item.href}
       >
         <div className="flex h-850 w-full items-center justify-center">

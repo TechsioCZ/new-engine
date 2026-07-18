@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import type { HomepageProductSection } from "@/components/homepage/homepage.types"
 import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import { TextActionLink } from "@/components/text-action-link"

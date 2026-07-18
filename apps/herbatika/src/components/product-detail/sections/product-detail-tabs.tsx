@@ -3,8 +3,9 @@
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { Suspense } from "react"
-import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
+
 import { ProductDetailHtmlContent } from "@/components/product-detail/product-detail-html-content"
+import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
@@ -26,7 +27,9 @@ function ProductDetailReviewsSlot({
 }) {
   return (
     <Suspense fallback={null}>
-      <ProductDetailReviews productId={productId} />
+      <ProductDetailReviews
+        {...(productId === undefined ? {} : { productId: productId })}
+      />
     </Suspense>
   )
 }
@@ -86,7 +89,9 @@ export function ProductDetailTabs({
               value={section.key}
             >
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                <ProductDetailReviewsSlot productId={productId} />
+                <ProductDetailReviewsSlot
+                  {...(productId === undefined ? {} : { productId: productId })}
+                />
               ) : (
                 <ProductDetailHtmlContent
                   fallback="Obsah sekcie bude čoskoro doplnený."
@@ -116,7 +121,11 @@ export function ProductDetailTabs({
               </Accordion.Header>
               <Accordion.Content>
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                  <ProductDetailReviewsSlot productId={productId} />
+                  <ProductDetailReviewsSlot
+                    {...(productId === undefined
+                      ? {}
+                      : { productId: productId })}
+                  />
                 ) : (
                   <ProductDetailHtmlContent
                     fallback="Obsah sekcie bude čoskoro doplnený."

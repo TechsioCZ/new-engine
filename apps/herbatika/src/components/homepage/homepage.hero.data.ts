@@ -2,6 +2,7 @@ import firstCarouselSlide from "@/assets/homepage-carousel/first.avif"
 import fourthCarouselSlide from "@/assets/homepage-carousel/fourth.avif"
 import secondCarouselSlide from "@/assets/homepage-carousel/second.avif"
 import thirdCarouselSlide from "@/assets/homepage-carousel/third.avif"
+
 import type { HeroBannerItem } from "./homepage.data.types"
 
 export const HERO_BANNERS: HeroBannerItem[] = [

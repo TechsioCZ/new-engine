@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   asStorefrontNumber,
   asStorefrontRecord,
@@ -50,7 +51,9 @@ const resolveTopOffer = (product: HttpTypes.StoreProduct) =>
 
 const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
   const metadata = resolveProductMetadata(product)
-  const setItems = Array.isArray(metadata?.set_items) ? metadata.set_items : []
+  const setItems = Array.isArray(metadata?.["set_items"])
+    ? metadata["set_items"]
+    : []
 
   for (const item of setItems) {
     const record = asStorefrontRecord(item)
@@ -58,8 +61,8 @@ const resolvePrimarySetItem = (product: HttpTypes.StoreProduct) => {
       continue
     }
 
-    const code = asString(record.code)
-    const amount = asPositiveInteger(record.amount)
+    const code = asString(record["code"])
+    const amount = asPositiveInteger(record["amount"])
     if (!code) {
       continue
     }
@@ -80,7 +83,7 @@ const normalizeFamilyCode = (code: string | null) => {
 
 const resolveTopOfferCode = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product)
-  return asString(topOffer?.code)
+  return asString(topOffer?.["code"])
 }
 
 export const resolveRecommendedProductFamilyKey = (
@@ -97,7 +100,7 @@ export const resolveRecommendedProductFamilyKey = (
   }
 
   const metadata = resolveProductMetadata(product)
-  const sourceShopitemId = asString(metadata?.source_shopitem_id)
+  const sourceShopitemId = asString(metadata?.["source_shopitem_id"])
   if (sourceShopitemId) {
     return sourceShopitemId
   }
@@ -129,8 +132,8 @@ const resolveRecommendedProductPackageMultiplier = (
 
 const resolveRecommendedProductInStock = (product: HttpTypes.StoreProduct) => {
   const topOffer = resolveTopOffer(product)
-  const stock = asStorefrontRecord(topOffer?.stock)
-  const amount = asStorefrontNumber(stock?.amount)
+  const stock = asStorefrontRecord(topOffer?.["stock"])
+  const amount = asStorefrontNumber(stock?.["amount"])
 
   return amount === null ? true : amount > 0
 }

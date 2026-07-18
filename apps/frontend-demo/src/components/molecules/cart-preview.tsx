@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Image from "next/image"
 import Link from "next/link"
+
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { useCart } from "@/hooks/use-cart"
 import { getVariantInventory, isQuantityAvailable } from "@/lib/inventory"

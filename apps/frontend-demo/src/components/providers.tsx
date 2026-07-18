@@ -5,6 +5,7 @@ import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { AppThemeProvider } from "@techsio/ui-kit/theme/theme-provider"
 import type { PropsWithChildren } from "react"
 import { useState } from "react"
+
 import { CartPrefetch } from "./cart-prefetch"
 
 function makeQueryClient() {
@@ -13,9 +14,13 @@ function makeQueryClient() {
       queries: {
         staleTime: 60 * 1000, // 1 minute
         gcTime: 5 * 60 * 1000, // 5 minutes
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: unknown) => {
+          const status =
+            error && typeof error === "object" && "status" in error
+              ? error.status
+              : undefined
           // Don't retry on 4xx errors
-          if (error?.status >= 400 && error?.status < 500) {
+          if (typeof status === "number" && status >= 400 && status < 500) {
             return false
           }
           // Retry up to 3 times for other errors

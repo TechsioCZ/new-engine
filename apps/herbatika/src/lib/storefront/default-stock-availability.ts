@@ -12,23 +12,23 @@ const asQuantity = (value: unknown): number | null => {
 
 const resolveRawQuantity = (value: unknown): number | null => {
   const rawRecord = asStorefrontRecord(value)
-  return asQuantity(rawRecord?.value)
+  return asQuantity(rawRecord?.["value"])
 }
 
 const resolveLevelAvailableQuantity = (
   level: StorefrontRecord
 ): number | null => {
-  const explicitAvailable = asQuantity(level.available_quantity)
+  const explicitAvailable = asQuantity(level["available_quantity"])
   if (explicitAvailable !== null) {
     return explicitAvailable
   }
 
   const stockedQuantity =
-    asQuantity(level.stocked_quantity) ??
-    resolveRawQuantity(level.raw_stocked_quantity)
+    asQuantity(level["stocked_quantity"]) ??
+    resolveRawQuantity(level["raw_stocked_quantity"])
   const reservedQuantity =
-    asQuantity(level.reserved_quantity) ??
-    resolveRawQuantity(level.raw_reserved_quantity) ??
+    asQuantity(level["reserved_quantity"]) ??
+    resolveRawQuantity(level["raw_reserved_quantity"]) ??
     0
 
   return stockedQuantity === null
@@ -37,7 +37,7 @@ const resolveLevelAvailableQuantity = (
 }
 
 const hasDefaultStockLocation = (level: StorefrontRecord): boolean => {
-  const stockLocations = level.stock_locations
+  const stockLocations = level["stock_locations"]
   const locations = Array.isArray(stockLocations)
     ? stockLocations
     : [stockLocations]
@@ -45,8 +45,8 @@ const hasDefaultStockLocation = (level: StorefrontRecord): boolean => {
   return locations.some((location) => {
     const locationRecord = asStorefrontRecord(location)
     return (
-      typeof locationRecord?.name === "string" &&
-      locationRecord.name.trim().toLowerCase() === DEFAULT_STOCK_LOCATION_KEY
+      typeof locationRecord?.["name"] === "string" &&
+      locationRecord["name"].trim().toLowerCase() === DEFAULT_STOCK_LOCATION_KEY
     )
   })
 }
@@ -55,9 +55,9 @@ const resolveInventoryItemDefaultStockQuantity = (
   inventoryItem: unknown
 ): number | null => {
   const inventoryItemRecord = asStorefrontRecord(inventoryItem)
-  const inventory = asStorefrontRecord(inventoryItemRecord?.inventory)
-  const locationLevels = Array.isArray(inventory?.location_levels)
-    ? inventory.location_levels
+  const inventory = asStorefrontRecord(inventoryItemRecord?.["inventory"])
+  const locationLevels = Array.isArray(inventory?.["location_levels"])
+    ? inventory["location_levels"]
     : []
 
   let hasDefaultStockLevel = false
@@ -79,7 +79,9 @@ const resolveInventoryItemDefaultStockQuantity = (
 
   const requiredQuantity = Math.max(
     1,
-    Math.floor(asStorefrontNumber(inventoryItemRecord?.required_quantity) ?? 1)
+    Math.floor(
+      asStorefrontNumber(inventoryItemRecord?.["required_quantity"]) ?? 1
+    )
   )
 
   return Math.floor(availableQuantity / requiredQuantity)
@@ -89,8 +91,8 @@ export const resolveDefaultStockInventoryQuantity = (
   variant: unknown
 ): number | null => {
   const variantRecord = asStorefrontRecord(variant)
-  const inventoryItems = Array.isArray(variantRecord?.inventory_items)
-    ? variantRecord.inventory_items
+  const inventoryItems = Array.isArray(variantRecord?.["inventory_items"])
+    ? variantRecord["inventory_items"]
     : null
 
   if (!inventoryItems) {

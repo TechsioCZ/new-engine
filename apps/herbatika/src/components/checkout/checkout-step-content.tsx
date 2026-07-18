@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { ReactNode } from "react"
-import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
+
 import { resolvePaymentSummaryLabel } from "@/components/checkout/checkout-display.utils"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
+import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section"
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section"
 import { CheckoutCompleteSection } from "@/components/checkout/sections/checkout-complete-section"
@@ -10,6 +11,7 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section"
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
 type CheckoutStepContentProps = {
@@ -44,9 +46,13 @@ export function CheckoutStepContent({
       cartTotalAmount={controller.cartTotalAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
-      paymentLabel={selectedPaymentLabel}
+      {...(selectedPaymentLabel === undefined
+        ? {}
+        : { paymentLabel: selectedPaymentLabel })}
       shippingAmount={controller.cartShippingSubtotalAmount}
-      shippingLabel={selectedShippingLabel}
+      {...(selectedShippingLabel === undefined
+        ? {}
+        : { shippingLabel: selectedShippingLabel })}
     />
   )
 
@@ -63,7 +69,9 @@ export function CheckoutStepContent({
               hasShipping={controller.hasShipping}
               nextStepHref={shippingStepHref}
               shippingAmount={controller.cartShippingSubtotalAmount}
-              shippingLabel={selectedShippingLabel}
+              {...(selectedShippingLabel === undefined
+                ? {}
+                : { shippingLabel: selectedShippingLabel })}
             />
           }
           cartItems={controller.cartItems}
@@ -74,7 +82,9 @@ export function CheckoutStepContent({
           }
         >
           <CheckoutCartStepSection
-            cartId={controller.cartQuery.cart?.id}
+            {...(controller.cartQuery.cart?.id === undefined
+              ? {}
+              : { cartId: controller.cartQuery.cart?.id })}
             cartItems={controller.cartItems}
             cartItemsTotalAmount={controller.cartItemsTotalAmount}
             currencyCode={controller.currencyCode}
@@ -102,6 +112,9 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
+    case "suhrn": {
+      throw new Error('Not implemented yet: "suhrn" case')
+    }
     default:
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
@@ -124,11 +137,19 @@ export function CheckoutStepContent({
             onCompleteOrder={controller.handleCompleteOrder}
             onHeurekaConsentChange={controller.setHeurekaConsent}
             onMarketingConsentChange={controller.setMarketingConsent}
-            paymentLabel={selectedPaymentLabel}
-            paymentProviderId={selectedPaymentProviderId ?? undefined}
+            {...(selectedPaymentLabel === undefined
+              ? {}
+              : { paymentLabel: selectedPaymentLabel })}
+            {...(selectedPaymentProviderId === undefined
+              ? {}
+              : { paymentProviderId: selectedPaymentProviderId ?? undefined })}
             shippingAddressForm={controller.shippingAddressForm}
-            shippingLabel={selectedShippingLabel}
-            shippingOptionId={selectedShippingOptionId}
+            {...(selectedShippingLabel === undefined
+              ? {}
+              : { shippingLabel: selectedShippingLabel })}
+            {...(selectedShippingOptionId === undefined
+              ? {}
+              : { shippingOptionId: selectedShippingOptionId })}
             shippingStepHref={shippingStepHref}
           />
         </CheckoutStepLayout>

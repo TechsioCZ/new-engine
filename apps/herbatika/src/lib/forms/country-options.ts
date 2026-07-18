@@ -49,7 +49,7 @@ const resolveCountryCodes = ({
   regions,
 }: Pick<CountryRegionInput, "activeCountryCode" | "regionId" | "regions">) => {
   const regionCountryCodes = resolveRegionCountryCodes(
-    findRegion({ regionId, regions })
+    findRegion({ ...(regionId === undefined ? {} : { regionId }), regions })
   )
   const normalizedActiveCountryCode = normalizeCountryCode(activeCountryCode)
 
@@ -73,8 +73,8 @@ export const resolveCountryItemsForRegion = ({
   "activeCountryCode" | "regionId" | "regions"
 >): SelectItem[] => {
   const countryCodes = resolveCountryCodes({
-    activeCountryCode,
-    regionId,
+    ...(activeCountryCode === undefined ? {} : { activeCountryCode }),
+    ...(regionId === undefined ? {} : { regionId }),
     regions,
   })
 
@@ -97,8 +97,8 @@ export const isCountryAvailableForRegion = ({
 }: CountryRegionInput) => {
   const normalizedCountryCode = normalizeCountryCode(countryCode)
   const countryCodes = resolveCountryCodes({
-    activeCountryCode,
-    regionId,
+    ...(activeCountryCode === undefined ? {} : { activeCountryCode }),
+    ...(regionId === undefined ? {} : { regionId }),
     regions,
   })
 

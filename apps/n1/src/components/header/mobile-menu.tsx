@@ -6,6 +6,7 @@ import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext, useEffect } from "react"
+
 import { links, submenuItems } from "@/data/header"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
@@ -25,7 +26,7 @@ export const MobileMenu = () => {
   return (
     <Header.Mobile position="left">
       <Dialog
-        className="top-[7rem] max-w-xs overflow-hidden px-0 py-0"
+        className="top-mobile-menu max-w-xs overflow-hidden px-0 py-0"
         closeOnInteractOutside={true}
         customTrigger
         hideCloseButton

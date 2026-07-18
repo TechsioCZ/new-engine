@@ -3,8 +3,10 @@ import type { Metadata } from "next"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
 import { Suspense } from "react"
+
 import { AppShell } from "@/components/app-shell"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
+
 import "./globals.css"
 import { Providers } from "./providers"
 

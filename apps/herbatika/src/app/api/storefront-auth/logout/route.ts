@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+
 import { clearSessionTokenCookie } from "../_lib"
 
 type LogoutResponse = {

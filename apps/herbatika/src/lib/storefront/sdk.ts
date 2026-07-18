@@ -7,20 +7,22 @@ import {
   createMedusaSdk,
   type MedusaClientConfig,
 } from "@techsio/storefront-data/shared/medusa-client"
+
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
-export const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token"
-export type StorefrontAuthMode = "jwt_localstorage" | "session_proxy"
+const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token"
+type StorefrontAuthMode = "jwt_localstorage" | "session_proxy"
 
 const DEFAULT_AUTH_MODE: StorefrontAuthMode = "session_proxy"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+  process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] ?? ""
 
 const resolveAuthMode = (): StorefrontAuthMode => {
-  const rawMode =
-    process.env.NEXT_PUBLIC_STOREFRONT_AUTH_MODE?.trim().toLowerCase()
+  const rawMode = process.env["NEXT_PUBLIC_STOREFRONT_AUTH_MODE"]
+    ?.trim()
+    .toLowerCase()
 
   if (!rawMode) {
     return DEFAULT_AUTH_MODE
@@ -39,7 +41,7 @@ const resolveAuthMode = (): StorefrontAuthMode => {
   return DEFAULT_AUTH_MODE
 }
 
-export const STOREFRONT_AUTH_MODE = resolveAuthMode()
+const STOREFRONT_AUTH_MODE = resolveAuthMode()
 export const isSessionProxyAuthMode = STOREFRONT_AUTH_MODE === "session_proxy"
 
 if (!MEDUSA_PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {

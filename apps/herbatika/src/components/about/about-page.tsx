@@ -2,6 +2,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
+
 import {
   AboutArticleSections,
   AboutClosingStatement,

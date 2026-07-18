@@ -3,7 +3,9 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
+
 import {
   type HerbatikaHeaderSubmenuFeaturedItem,
   useHerbatikaHeaderSubmenu,
@@ -40,10 +42,10 @@ export function HerbatikaDesktopSubmenu({
     : []
 
   return (
-    <div className="[&_[data-part=backdrop]]:hidden [&_[data-part=positioner]]:top-full [&_[data-part=positioner]]:right-0 [&_[data-part=positioner]]:bottom-auto [&_[data-part=positioner]]:left-0 [&_[data-part=positioner]]:overflow-visible">
+    <div className="herbatika-desktop-submenu-root">
       <Dialog
         behavior="modeless"
-        className="mx-auto h-auto max-h-[calc(100vh-8rem)] min-h-0 max-w-max-w gap-0 overflow-y-auto rounded-none border-x-1 border-x-border-secondary border-b-2 border-b-border-primary px-0 py-0 shadow-none"
+        className="mx-auto h-auto max-h-header-submenu min-h-0 max-w-max-w gap-0 overflow-y-auto rounded-none border-x-1 border-x-border-secondary border-b-2 border-b-border-primary px-0 py-0 shadow-none"
         closeOnInteractOutside={false}
         customTrigger
         hideCloseButton

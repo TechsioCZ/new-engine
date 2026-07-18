@@ -57,18 +57,29 @@ export const buildCatalogProductsParams = ({
     queryState.price_max
   )
 
+  const categoryIdsValue = toNonEmptyArray(categoryIds ?? [])
+  const status = toNonEmptyArray(normalizeStatusFilterInput(queryState.status))
+  const form = toNonEmptyArray(queryState.form)
+  const brand = toNonEmptyArray(queryState.brand)
+  const ingredient = toNonEmptyArray(queryState.ingredient)
   const params: CatalogProductsParams = {
-    q: normalizedSearchQuery || undefined,
+    ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
     page: queryState.page,
     limit,
     sort: queryState.sort,
-    category_id: toNonEmptyArray(categoryIds ?? []),
-    status: toNonEmptyArray(normalizeStatusFilterInput(queryState.status)),
-    form: toNonEmptyArray(queryState.form),
-    brand: toNonEmptyArray(queryState.brand),
-    ingredient: toNonEmptyArray(queryState.ingredient),
-    price_min: normalizedPriceRange.min,
-    price_max: normalizedPriceRange.max,
+    ...(categoryIdsValue === undefined
+      ? {}
+      : { category_id: categoryIdsValue }),
+    ...(status === undefined ? {} : { status }),
+    ...(form === undefined ? {} : { form }),
+    ...(brand === undefined ? {} : { brand }),
+    ...(ingredient === undefined ? {} : { ingredient }),
+    ...(normalizedPriceRange.min === undefined
+      ? {}
+      : { price_min: normalizedPriceRange.min }),
+    ...(normalizedPriceRange.max === undefined
+      ? {}
+      : { price_max: normalizedPriceRange.max }),
   }
 
   if (regionId) {

@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { type FormEvent, useState } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import {
   AUTH_ERRORS,
@@ -12,6 +13,7 @@ import {
   validatePassword,
   withLoading,
 } from "@/lib/auth"
+
 import { AuthFormWrapper } from "./auth-form-wrapper"
 import { PasswordRequirements } from "./password-requirements"
 
@@ -53,7 +55,7 @@ export function RegisterForm() {
     if (!passwordValidation.isValid) {
       errors.push({
         field: "password",
-        message: passwordValidation.errors[0], // Show first error
+        message: passwordValidation.errors[0] ?? AUTH_ERRORS.PASSWORD_REQUIRED,
       })
     }
 

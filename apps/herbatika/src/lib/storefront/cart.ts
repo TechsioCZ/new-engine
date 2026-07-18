@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
+
 import { storefrontCacheConfig } from "./cache"
 import { resetEmptyCartState } from "./cart-reset"
 import { storefront } from "./storefront"
@@ -20,18 +21,10 @@ export const cartReadQueryOptions = {
   refetchOnReconnect: true,
 } as const
 
-export const {
-  useCart,
-  useSuspenseCart,
-  useCreateCart,
-  useUpdateCart,
-  useUpdateCartAddress,
-  useTransferCart,
-  usePrefetchCart,
-} = cartHooks
+export const { useCart, useUpdateCart, useUpdateCartAddress, useTransferCart } =
+  cartHooks
 
 export const useAddLineItem = cartFlow.useAddToCart
-export const useCompleteCart = cartFlow.useCompleteCart
 
 const createEmptyCartResetSuccessHandler =
   (queryClient: QueryClient, onSuccess?: (cart: HttpTypes.StoreCart) => void) =>

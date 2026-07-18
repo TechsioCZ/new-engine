@@ -1,4 +1,5 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
+
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
 
 type CategorySortTabsProps = {

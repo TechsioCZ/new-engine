@@ -5,7 +5,9 @@ import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import Link from "next/link"
 import { type ComponentPropsWithoutRef, type ReactNode, useState } from "react"
+
 import { useCart } from "@/hooks/use-cart"
+
 import { Logo } from "./atoms/logo"
 import { AuthDropdown } from "./auth/auth-dropdown"
 import { CartPreview } from "./molecules/cart-preview"
@@ -27,7 +29,7 @@ interface HeaderProps extends ComponentPropsWithoutRef<"header"> {
 }
 
 export function Header({
-  logo = { text: "Logo", href: "/" },
+  logo: _logo = { text: "Logo", href: "/" },
   navigationItems = [],
   actions,
   showMobileMenu = true,

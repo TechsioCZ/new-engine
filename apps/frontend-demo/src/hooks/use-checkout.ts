@@ -3,12 +3,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import { orderHelpers } from "@/stores/order-store"
 import type { CheckoutAddressData, UseCheckoutReturn } from "@/types/checkout"
+
 import { useCart } from "./use-cart"
 import { useCustomer } from "./use-customer"
 
@@ -41,7 +43,7 @@ export function useCheckout(): UseCheckoutReturn {
           postal_code: data.shipping.postalCode,
           phone: data.shipping.phone,
           country_code: (data.shipping.country || "CZ").toLowerCase(),
-          company: data.shipping.company,
+          company: data.shipping.company || null,
         },
         billing_address: data.useSameAddress
           ? {
@@ -52,7 +54,7 @@ export function useCheckout(): UseCheckoutReturn {
               postal_code: data.shipping.postalCode,
               phone: data.shipping.phone,
               country_code: (data.shipping.country || "CZ").toLowerCase(),
-              company: data.shipping.company,
+              company: data.shipping.company || null,
             }
           : {
               first_name: data.billing.firstName,
@@ -61,7 +63,7 @@ export function useCheckout(): UseCheckoutReturn {
               city: data.billing.city,
               postal_code: data.billing.postalCode,
               country_code: (data.billing.country || "CZ").toLowerCase(),
-              company: data.billing.company,
+              company: data.billing.company || null,
             },
       })
       setAddressData(data)
@@ -158,10 +160,10 @@ export function useCheckout(): UseCheckoutReturn {
           region_id: currentCart.region_id,
         })
 
-        if (providers.payment_providers?.length > 0) {
-          const providerId = providers.payment_providers[0].id
+        const [provider] = providers.payment_providers ?? []
+        if (provider) {
           await sdk.store.payment.initiatePaymentSession(currentCart, {
-            provider_id: providerId,
+            provider_id: provider.id,
           })
         }
       }
@@ -205,6 +207,8 @@ export function useCheckout(): UseCheckoutReturn {
         // Return success with order data
         return order
       }
+
+      return undefined
     } catch (error) {
       console.error("Order creation error:", error)
       toast.create({

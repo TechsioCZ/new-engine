@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { formatPrice } from "@/lib/format-price"
 import type {
   CheckoutAddressData,
@@ -11,7 +12,7 @@ import type {
 } from "@/types/checkout"
 
 interface OrderSummaryProps {
-  addressData?: CheckoutAddressData
+  addressData?: CheckoutAddressData | undefined
   selectedShipping: ReducedShippingMethod | undefined
   selectedPayment: PaymentMethod | undefined
   onCompleteClick: () => void
@@ -201,7 +202,7 @@ export function OrderSummary({
                   <br />
                 </>
               )}
-              {addressData.shipping.phone && addressData.shipping.phone}
+              {addressData.shipping.phone}
             </p>
           </div>
 

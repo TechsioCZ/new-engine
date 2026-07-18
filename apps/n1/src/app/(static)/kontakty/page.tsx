@@ -1,4 +1,5 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
+
 import { Heading } from "@/components/heading"
 
 export default function KontaktyPage() {

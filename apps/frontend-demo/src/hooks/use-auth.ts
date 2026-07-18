@@ -6,6 +6,7 @@ import { useStore } from "@tanstack/react-store"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+
 import { AUTH_MESSAGES } from "@/lib/auth/constants"
 import { queryKeys } from "@/lib/query-keys"
 import { authHelpers, authStore } from "@/stores/auth-store"
@@ -166,13 +167,25 @@ export function useAuth() {
       password: string,
       firstName?: string,
       lastName?: string
-    ) => loginMutation.mutate({ email, password, firstName, lastName }),
+    ) =>
+      loginMutation.mutate({
+        email,
+        password,
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+      }),
     register: (
       email: string,
       password: string,
       firstName?: string,
       lastName?: string
-    ) => registerMutation.mutate({ email, password, firstName, lastName }),
+    ) =>
+      registerMutation.mutate({
+        email,
+        password,
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+      }),
     logout: () => logoutMutation.mutate(),
     updateProfile: (data: Partial<HttpTypes.StoreCustomer>) =>
       updateProfileMutation.mutate(data),

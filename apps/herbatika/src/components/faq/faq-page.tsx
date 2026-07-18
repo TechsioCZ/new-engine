@@ -2,6 +2,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
+
 import { FaqAccordion } from "./faq-accordion"
 import { faqItemCount, faqItems } from "./faq-page.data"
 
@@ -16,7 +17,7 @@ export function FaqPage() {
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-faq-page-gap p-faq-page 2xl:p-faq-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
-        <section className="mx-auto w-full max-w-7xl space-y-500">
+        <section className="mx-auto w-full max-w-faq-content space-y-500">
           <div className="space-y-400">
             <h1 className="font-bold text-4xl text-fg-primary leading-tight">
               Často kladené otázky

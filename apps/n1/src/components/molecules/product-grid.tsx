@@ -7,8 +7,10 @@ import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
 import { Fragment } from "react"
+
 import { usePrefetchProduct } from "@/hooks/use-prefetch-product"
 import type { Product } from "@/types/product"
+
 import { ProductCardSkeleton } from "../skeletons/product-card-skeleton"
 import { VariantsBox } from "./variants-box"
 
@@ -67,12 +69,12 @@ export const ProductGrid = ({
             {index !== 0 &&
               index % 4 === 0 &&
               index + 1 !== products.length && (
-                <div className="col-span-full h-[1px] bg-border-secondary md:hidden lg:flex" />
+                <div className="col-span-full h-px bg-border-secondary md:hidden lg:flex" />
               )}
             {index !== 0 &&
               index % 3 === 0 &&
               index + 1 !== products.length && (
-                <div className="col-span-full hidden h-[1px] bg-border-secondary md:flex lg:hidden" />
+                <div className="col-span-full hidden h-px bg-border-secondary md:flex lg:hidden" />
               )}
             <Link
               className="contents"

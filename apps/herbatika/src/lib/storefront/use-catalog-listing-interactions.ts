@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { SetValues } from "nuqs"
 import { useEffect } from "react"
+
 import { toggleSelection } from "@/components/category/category-selection-utils"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -88,8 +89,8 @@ export function useCatalogListingInteractions({
   setQueryState,
 }: UseCatalogListingInteractionsInput) {
   const addToCart = useAddProductToCart({
-    regionId,
-    countryCode,
+    ...(regionId === undefined ? {} : { regionId }),
+    ...(countryCode === undefined ? {} : { countryCode }),
   })
   const toast = useAppToast()
   const prefetchProduct = usePrefetchProduct({

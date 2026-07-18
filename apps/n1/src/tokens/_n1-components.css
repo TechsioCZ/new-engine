@@ -144,6 +144,24 @@
   /* === HEADER === */
   --container-header-desktop: 56rem;
   --height-header-container: 5.5rem;
+  --spacing-mobile-menu: 7rem;
+  --spacing-navigation-menu: 24rem;
+  --width-heading-accent: var(--spacing-600);
+  --width-cart-thumbnail: var(--spacing-1000);
+  --height-cart-thumbnail: var(--spacing-1000);
+  --width-skeleton-line-wide: var(--spacing-500);
+  --height-order-detail-summary-skeleton: 10rem;
+  --height-order-detail-content-skeleton: 25rem;
+  --width-profile-skeleton-60: 3.75rem;
+  --width-profile-skeleton-70: 4.375rem;
+  --width-profile-skeleton-80: 5rem;
+  --width-profile-skeleton-100: 6.25rem;
+  --width-profile-skeleton-110: 6.875rem;
+  --width-profile-skeleton-120: 7.5rem;
+  --width-profile-skeleton-130: 8.125rem;
+  --width-profile-skeleton-200: 12.5rem;
+  --width-profile-skeleton-260: 16.25rem;
+  --spacing-home-section: 7rem;
 
   /* === TABLE === */
   --color-table-row-striped-bg-secondary: var(--color-n1-table);

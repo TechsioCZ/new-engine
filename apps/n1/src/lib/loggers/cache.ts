@@ -29,7 +29,7 @@ class CacheLogger {
   private readonly enabled: boolean
 
   constructor() {
-    this.enabled = process.env.NODE_ENV === "development"
+    this.enabled = process.env["NODE_ENV"] === "development"
   }
 
   /**

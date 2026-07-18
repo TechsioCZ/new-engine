@@ -2,7 +2,7 @@ import type { StoreProduct } from "@medusajs/types"
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 
 export interface StoreProductExtended extends StoreProduct {
-  producer?: Producer
+  producer?: Producer | undefined
 }
 
 // Lightweight type for product listing
@@ -35,9 +35,11 @@ export type Producer = {
   title: string
   attributes?: Array<{
     value: string
-    attributeType?: {
-      name: string
-    }
+    attributeType?:
+      | {
+          name: string
+        }
+      | undefined
   }>
 }
 
@@ -51,20 +53,24 @@ export type ProductVariantDetail = {
   material?: string | null
   allow_backorder: boolean
   manage_inventory: boolean
-  inventory_quantity?: number
-  metadata?: {
-    images?: Array<{ url: string }>
-    thumbnail?: string
-    user_code?: string
-    attributes?: Array<{ name: string; value: string }>
-  }
-  calculated_price?: {
-    calculated_amount?: number | null
-    calculated_amount_with_tax?: number | null
-    calculated_amount_without_tax?: number | null
-    original_amount?: number | null
-    currency_code?: string | null
-  }
+  inventory_quantity?: number | undefined
+  metadata?:
+    | {
+        images?: Array<{ url: string }>
+        thumbnail?: string
+        user_code?: string
+        attributes?: Array<{ name: string; value: string }>
+      }
+    | undefined
+  calculated_price?:
+    | {
+        calculated_amount?: number | null
+        calculated_amount_with_tax?: number | null | undefined
+        calculated_amount_without_tax?: number | null | undefined
+        original_amount?: number | null
+        currency_code?: string | null
+      }
+    | undefined
 }
 
 export interface ProductDetail extends Omit<Product, "variants" | "images"> {
@@ -78,5 +84,5 @@ export interface ProductDetail extends Omit<Product, "variants" | "images"> {
   images: ProductImage[]
   variants: ProductVariantDetail[]
   tags?: Array<{ id: string; value: string }>
-  producer?: Producer
+  producer?: Producer | undefined
 }

@@ -1,9 +1,11 @@
 import { join } from "node:path"
+
 import { withPayload } from "@payloadcms/next/withPayload"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  typedRoutes: true,
   outputFileTracingRoot: join(import.meta.dirname, "../../"),
   reactCompiler: true,
   experimental: {

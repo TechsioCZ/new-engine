@@ -1,10 +1,12 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts, type ProductListParams } from "@/services/product-service"
 import type { Product } from "@/types/product"
+
 import type { PageRange } from "./use-url-filters"
 
 interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {
@@ -84,7 +86,7 @@ export function useInfiniteProducts(
       })
     },
     initialPageParam: baseOffset,
-    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+    getNextPageParam: (lastPage, allPages) => {
       // Since we load the full range in the first request,
       // subsequent calls are just "load more" beyond the range
       const totalFetched = allPages.reduce(

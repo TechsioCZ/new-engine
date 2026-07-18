@@ -1,4 +1,5 @@
 import type { StoreOrder } from "@medusajs/types"
+
 import { sdk } from "@/lib/medusa-client"
 
 // Export types for reuse in components/hooks
@@ -39,7 +40,7 @@ export async function getOrders(
       limit,
     }
   } catch (err) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.error("[OrderService] Failed to fetch orders:", err)
     }
     throw new Error("Nepodařilo se načíst objednávky")
@@ -56,7 +57,7 @@ export async function getOrderById(orderId: string): Promise<StoreOrder> {
 
     return response.order
   } catch (err) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.error("[OrderService] Failed to fetch order:", err)
     }
     throw new Error("Nepodařilo se načíst objednávku")

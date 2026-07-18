@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveRelatedCategoryIds } from "@/lib/storefront/category-tree"
 import { asStorefrontString } from "@/lib/storefront/product-pricing"
 import {
@@ -12,6 +13,7 @@ import {
   resolveRecommendedProductFamilyKey,
   selectRecommendedProductRepresentatives,
 } from "@/lib/storefront/recommended-product-families"
+
 import { useCartProductsByHandle } from "./use-cart-products-by-handle"
 
 const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10
@@ -41,7 +43,9 @@ export function useCheckoutInlineProducts(
   const relatedProductsQuery = useProducts({
     page: 1,
     limit: CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT,
-    category_id: relatedCategoryIds.length > 0 ? relatedCategoryIds : undefined,
+    ...(relatedCategoryIds.length > 0
+      ? { category_id: relatedCategoryIds }
+      : {}),
     order: "-created_at",
     fields: PRODUCT_CARD_FIELDS,
     enabled: relatedCategoryIds.length > 0,

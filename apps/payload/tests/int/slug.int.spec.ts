@@ -1,62 +1,22 @@
 import { describe, expect, it } from "vitest"
-import { generateSlug, generateSlugFromTitle } from "@/lib/hooks/slug"
+
+import { generateSlugFromTitle } from "@/lib/hooks/slug"
 
 describe("slug utilities", () => {
-  describe("generateSlug", () => {
-    it("converts string to lowercase", () => {
-      expect(generateSlug("Hello World")).toBe("hello-world")
-    })
-
-    it("replaces spaces with hyphens", () => {
-      expect(generateSlug("hello world test")).toBe("hello-world-test")
-    })
-
-    it("removes special characters", () => {
-      expect(generateSlug("hello@world#test!")).toBe("helloworldtest")
-    })
-
-    it("collapses multiple hyphens into one", () => {
-      expect(generateSlug("hello   world")).toBe("hello-world")
-      expect(generateSlug("hello---world")).toBe("hello-world")
-    })
-
-    it("trims leading and trailing whitespace", () => {
-      expect(generateSlug("  hello world  ")).toBe("hello-world")
-    })
-
-    it("normalizes Unicode characters (NFKD)", () => {
-      expect(generateSlug("Příliš")).toBe("prilis")
-      expect(generateSlug("Žluťoučký")).toBe("zlutoucky")
-      expect(generateSlug("café")).toBe("cafe")
-    })
-
-    it("handles accented characters correctly", () => {
-      expect(generateSlug("résumé")).toBe("resume")
-      expect(generateSlug("naïve")).toBe("naive")
-      expect(generateSlug("über")).toBe("uber")
-    })
-
-    it("preserves numbers", () => {
-      expect(generateSlug("test123")).toBe("test123")
-      expect(generateSlug("Article 2024")).toBe("article-2024")
-    })
-
-    it("handles empty string", () => {
-      expect(generateSlug("")).toBe("")
-    })
-
-    it("handles string with only special characters", () => {
-      expect(generateSlug("!@#$%^&*()")).toBe("")
-    })
-
-    it("handles mixed content", () => {
-      expect(generateSlug("Top 10 Důvodů pro Nákup!")).toBe(
-        "top-10-duvodu-pro-nakup"
-      )
-    })
-  })
-
   describe("generateSlugFromTitle", () => {
+    it.each([
+      ["Hello World", "hello-world"],
+      ["hello@world#test!", "helloworldtest"],
+      ["hello---world", "hello-world"],
+      ["  hello world  ", "hello-world"],
+      ["Příliš Žluťoučký café", "prilis-zlutoucky-cafe"],
+      ["Article 2024", "article-2024"],
+      ["!@#$%^&*()", ""],
+      ["Top 10 Důvodů pro Nákup!", "top-10-duvodu-pro-nakup"],
+    ])("normalizes %s", (title, expected) => {
+      expect(generateSlugFromTitle(title)).toBe(expected)
+    })
+
     it("generates slug from string title", () => {
       expect(generateSlugFromTitle("Hello World")).toBe("hello-world")
     })

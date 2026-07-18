@@ -1,4 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query"
+
 import { SearchResults } from "@/components/search-results"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchSearchPageStorefrontData } from "@/lib/storefront/ssr"

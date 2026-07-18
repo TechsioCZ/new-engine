@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
+
 import type { CartLineItem } from "@/services/cart-service"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
 
@@ -21,7 +22,7 @@ export function CartItemRow({ item, currencyCode }: CartItemRowProps) {
       {item.thumbnail && (
         <Image
           alt={item.title}
-          className="h-16 w-16 rounded object-cover"
+          className="h-cart-thumbnail w-cart-thumbnail rounded object-cover"
           height={64}
           src={item.thumbnail}
           width={64}

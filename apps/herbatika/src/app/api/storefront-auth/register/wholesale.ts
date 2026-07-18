@@ -1,5 +1,7 @@
 import type { NextResponse } from "next/server"
+
 import { normalizeCountryCode } from "@/lib/forms/country-options"
+
 import {
   badRequest,
   buildErrorResponse,
@@ -42,7 +44,7 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const companyName = asStringOrUndefined(wholesale.company_name)
+  const companyName = asStringOrUndefined(wholesale["company_name"])
   if (!companyName) {
     return {
       error: badRequest("Názov firmy je povinný."),
@@ -50,7 +52,7 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const companyIdentifier = asStringOrUndefined(wholesale.company_identifier)
+  const companyIdentifier = asStringOrUndefined(wholesale["company_identifier"])
   if (!companyIdentifier) {
     return {
       error: badRequest("IČO alebo firemný identifikátor je povinný."),
@@ -58,7 +60,7 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const billingAddress = asRecordOrUndefined(wholesale.billing_address)
+  const billingAddress = asRecordOrUndefined(wholesale["billing_address"])
   if (!billingAddress) {
     return {
       error: badRequest("Fakturačná adresa je povinná."),
@@ -66,10 +68,10 @@ export const parseWholesaleRegistration = (
     }
   }
 
-  const address1 = asStringOrUndefined(billingAddress.address_1)
-  const city = asStringOrUndefined(billingAddress.city)
-  const postalCode = asStringOrUndefined(billingAddress.postal_code)
-  const rawCountryCode = asStringOrUndefined(billingAddress.country_code)
+  const address1 = asStringOrUndefined(billingAddress["address_1"])
+  const city = asStringOrUndefined(billingAddress["city"])
+  const postalCode = asStringOrUndefined(billingAddress["postal_code"])
+  const rawCountryCode = asStringOrUndefined(billingAddress["country_code"])
 
   if (!(address1 && city && postalCode && rawCountryCode)) {
     return {
@@ -86,16 +88,18 @@ export const parseWholesaleRegistration = (
     }
   }
 
+  const address2 = asStringOrUndefined(billingAddress["address_2"])
+
   return {
     error: null,
     value: {
       companyName,
       companyIdentifier,
       currencyCode:
-        asStringOrUndefined(wholesale.currency_code)?.toUpperCase() ?? "EUR",
+        asStringOrUndefined(wholesale["currency_code"])?.toUpperCase() ?? "EUR",
       billingAddress: {
         address1,
-        address2: asStringOrUndefined(billingAddress.address_2),
+        ...(address2 === undefined ? {} : { address2 }),
         city,
         postalCode,
         countryCode: countryCode.toUpperCase(),

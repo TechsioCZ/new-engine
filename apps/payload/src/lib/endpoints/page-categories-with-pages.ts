@@ -1,4 +1,5 @@
 import type { Endpoint } from "payload"
+
 import { type CategoryDoc, getCategoryDoc } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
@@ -28,7 +29,7 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
       depth: 1,
       pagination: false,
       limit: DEFAULT_MAX_PAGES,
-      locale,
+      ...(locale ? { locale } : {}),
       where: {
         status: { equals: "published" },
         ...(categorySlug
@@ -63,7 +64,10 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
         ...category,
         pages: [],
       }
-      entry.pages.push({ title: page.title, slug: page.slug })
+      entry.pages.push({
+        title: page.title,
+        ...(page.slug !== undefined ? { slug: page.slug } : {}),
+      })
       categoriesById.set(category.id, entry)
     }
 

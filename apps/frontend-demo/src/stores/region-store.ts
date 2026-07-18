@@ -44,13 +44,19 @@ if (typeof window !== "undefined") {
 
   // migration from localStorage to cookie
   if (cookieRegionId) {
-    regionStore.setState({ selectedRegionId: cookieRegionId })
+    regionStore.setState((state) => ({
+      ...state,
+      selectedRegionId: cookieRegionId,
+    }))
   } else {
     const legacyRegionId = localStorage.getItem(COOKIE_NAME)
     if (legacyRegionId) {
       setCookie(COOKIE_NAME, legacyRegionId)
       localStorage.removeItem(COOKIE_NAME)
-      regionStore.setState({ selectedRegionId: legacyRegionId })
+      regionStore.setState((state) => ({
+        ...state,
+        selectedRegionId: legacyRegionId,
+      }))
     }
   }
 }

@@ -1,14 +1,19 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import NextLink from "next/link"
-import type { AddressFormState } from "@/components/checkout/checkout.constants"
+
+import NextLink from "@/components/app-link"
 import {
   resolveCountryLabel,
   resolvePaymentIcon,
   resolveShippingIcon,
 } from "@/components/checkout/checkout-display.utils"
+import type { AddressFormState } from "@/components/checkout/checkout.constants"
+import {
+  CheckoutSummaryRecapCard,
+  summaryCardClassName,
+  summaryEditLinkClassName,
+} from "@/components/checkout/sections/checkout-summary-recap-card"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
@@ -37,10 +42,6 @@ type CheckoutCompleteSectionProps = {
   shippingStepHref: string
 }
 
-const summaryCardClassName =
-  "rounded-sm border border-border-primary bg-surface space-y-300 p-300 sm:px-350"
-const summaryEditLinkClassName =
-  "gap-100 px-0 font-semibold text-fg-primary underline underline-offset-2 hover:text-primary"
 const summaryInlineLinkClassName =
   "text-fg-primary underline underline-offset-2 hover:text-primary"
 
@@ -170,7 +171,7 @@ export function CheckoutCompleteSection({
             Dokončiť objednávku
           </Button>
 
-          <p className="mx-auto max-w-[42rem] text-center text-fg-secondary text-xs leading-relaxed">
+          <p className="mx-auto max-w-checkout-status text-center text-fg-secondary text-xs leading-relaxed">
             Potvrdzujem, že som sa oboznámil s{" "}
             <NextLink
               className={summaryInlineLinkClassName}
@@ -191,17 +192,17 @@ export function CheckoutCompleteSection({
         </div>
       </section>
 
-      <SummaryRecapCard
+      <CheckoutSummaryRecapCard
         href={shippingStepHref}
         icon={resolveShippingIcon({
-          id: shippingOptionId,
-          name: shippingLabel,
+          ...(shippingOptionId === undefined ? {} : { id: shippingOptionId }),
+          ...(shippingLabel === undefined ? {} : { name: shippingLabel }),
         })}
         label={shippingSummaryLabel}
         tone={hasShipping ? "default" : "warning"}
       />
 
-      <SummaryRecapCard
+      <CheckoutSummaryRecapCard
         href={shippingStepHref}
         icon={resolvePaymentIcon(paymentProviderId ?? "")}
         label={paymentSummaryLabel}
@@ -234,7 +235,7 @@ export function CheckoutCompleteSection({
                 key={`shipping-${row.label}`}
               >
                 <p className="text-fg-tertiary text-sm">{row.label}</p>
-                <p className="text-fg-primary text-sm leading-relaxed [overflow-wrap:anywhere]">
+                <p className="text-fg-primary text-sm leading-relaxed overflow-wrap-anywhere">
                   {resolveValue(row.value)}
                 </p>
               </div>
@@ -249,50 +250,5 @@ export function CheckoutCompleteSection({
         )}
       </section>
     </section>
-  )
-}
-
-function SummaryRecapCard({
-  href,
-  icon,
-  label,
-  tone = "default",
-}: {
-  href: string
-  icon: IconType
-  label: string
-  tone?: "default" | "warning"
-}) {
-  return (
-    <div className={`${summaryCardClassName}`}>
-      <div className="flex items-center justify-between gap-200">
-        <div className="flex min-w-0 items-center gap-450">
-          <span className="flex h-600 w-600 shrink-0 items-center justify-center text-fg-primary">
-            <Icon icon={icon} size="lg" />
-          </span>
-          <p
-            className={
-              tone === "warning"
-                ? "font-medium text-sm text-warning"
-                : "font-medium text-fg-primary text-sm"
-            }
-          >
-            {label}
-          </p>
-        </div>
-
-        <LinkButton
-          as={NextLink}
-          className={summaryEditLinkClassName}
-          href={href}
-          icon="token-icon-pen"
-          iconSize="lg"
-          size="sm"
-          theme="unstyled"
-        >
-          Upraviť
-        </LinkButton>
-      </div>
-    </div>
   )
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+
 import { BrandIndexPage } from "@/components/brands/brand-index-page"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 

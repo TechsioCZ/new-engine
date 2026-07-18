@@ -81,21 +81,21 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
     }
 
     const nextShippingAddress = shippingAddress ?? {}
-    if (nextShippingAddress.countryCode !== undefined) {
-      nextShippingAddress.countryCode = undefined
+    if (nextShippingAddress["countryCode"] !== undefined) {
+      nextShippingAddress["countryCode"] = undefined
     }
     if (
       normalizedCountryCode &&
-      nextShippingAddress.country_code === undefined
+      nextShippingAddress["country_code"] === undefined
     ) {
-      nextShippingAddress.country_code = normalizedCountryCode
+      nextShippingAddress["country_code"] = normalizedCountryCode
     }
 
     return nextShippingAddress
   })()
 
-  if (billingAddress?.countryCode !== undefined) {
-    billingAddress.countryCode = undefined
+  if (billingAddress?.["countryCode"] !== undefined) {
+    billingAddress["countryCode"] = undefined
   }
 
   const payload = {
@@ -112,19 +112,17 @@ const normalizeCartPayload = (input: CartPayloadInput) => {
 
 export const buildCreateCartParams = (
   input: CartCreateInputBase
-): MedusaCartCreateParams =>
-  normalizeCartPayload(input as CartPayloadInput) as MedusaCartCreateParams
+): MedusaCartCreateParams => normalizeCartPayload(input)
 
 export const buildUpdateCartParams = (
   input: UpdateCartInputBase
-): MedusaCartUpdateParams =>
-  normalizeCartPayload(input as CartPayloadInput) as MedusaCartUpdateParams
+): MedusaCartUpdateParams => normalizeCartPayload(input)
 
 export const buildCreateCartInputFromAddLineItemInput = (
   input: AddLineItemInputBase
 ): CartCreateInputBase => {
   const { metadata: _lineItemMetadata, ...rest } = input
-  return rest as CartCreateInputBase
+  return rest
 }
 
 export const buildAddLineItemParams = (
@@ -133,14 +131,12 @@ export const buildAddLineItemParams = (
   const {
     cartId: _cartId,
     autoCreate: _autoCreate,
-    autoUpdateRegion: _autoUpdateRegion,
-    enabled: _enabled,
     region_id: _regionId,
     country_code: _countryCode,
     salesChannelId: _salesChannelId,
     variantId,
     ...rest
-  } = input as AddLineItemInputBase & Record<string, unknown>
+  } = input
 
   return {
     ...(rest as Omit<MedusaCartAddItemParams, "variant_id">),

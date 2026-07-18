@@ -41,8 +41,8 @@ export const resolvePriceState = (
     price?.currencyCode ??
     resolveSupportedCurrencyCode(expectedCurrencyCode, DEFAULT_CURRENCY_CODE)
   const vatRate =
-    asStorefrontNumber(selectedVariant?.metadata?.vat) ??
-    asStorefrontNumber(topOffer?.vat)
+    asStorefrontNumber(selectedVariant?.metadata?.["vat"]) ??
+    asStorefrontNumber(topOffer?.["vat"])
   const explicitCalculatedAmountWithoutTax =
     price?.source === "calculated_price" &&
     typeof calculatedPrice?.calculated_amount_without_tax === "number"

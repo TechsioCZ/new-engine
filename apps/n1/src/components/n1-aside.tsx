@@ -2,6 +2,7 @@
 import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
 import type { TreeView as TreeType } from "@techsio/ui-kit/types/zag"
 import { useRouter } from "next/navigation"
+
 import type { Category, CategoryTreeNode } from "@/data/static/type"
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover"
 import { findNodeById } from "@/utils/transform/find-node-by-id"
@@ -11,8 +12,8 @@ import { transformToTree } from "@/utils/transform/transform-to-tree"
 type N1AsideProps = {
   categories: CategoryTreeNode[]
   categoryMap: Record<string, Category>
-  label?: string
-  currentCategory?: Category
+  label?: string | undefined
+  currentCategory?: Category | undefined
 }
 
 export function N1Aside({
@@ -58,7 +59,7 @@ export function N1Aside({
               key={node.id}
               node={node}
               onNodeHover={(hoveredNode) =>
-                prefetchOnHover(hoveredNode.handle as string)
+                prefetchOnHover(hoveredNode["handle"] as string)
               }
               onNodeLeave={() => cancelHover()}
               showNodeIcons={false}

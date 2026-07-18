@@ -8,6 +8,7 @@ import {
   type GalleryItem,
   type GalleryValueChangeDetails,
 } from "@techsio/ui-kit/organisms/gallery"
+
 import { FallbackImage } from "@/components/fallback-image"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
@@ -73,9 +74,9 @@ export function ProductDetailGalleryLightbox({
   }
 
   return (
-    <div className="[&_[data-part=backdrop]]:z-[80] [&_[data-part=backdrop]]:bg-fg-strong/85 [&_[data-part=positioner]]:z-[90]">
+    <div className="product-detail-lightbox-root">
       <Dialog
-        className="h-full w-full max-w-none overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none [&_[data-part=title]]:sr-only"
+        className="h-full w-full max-w-none overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none"
         customTrigger
         hideCloseButton
         onOpenChange={handleOpenChange}

@@ -4,8 +4,10 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
+import type { Route } from "next"
 import Link from "next/link"
 import { type FormEvent, useState } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import { authFormFields, getAuthErrorMessage, withLoading } from "@/lib/auth"
 
@@ -63,7 +65,20 @@ export function AuthDropdown() {
       href: "/",
       icon: "icon-[mdi--logout]" as const,
     },
-  ]
+  ] satisfies ReadonlyArray<
+    | {
+        id: string
+        type: "action"
+        value: string
+        label: string
+        href: Route
+        icon:
+          | "icon-[mdi--account-outline]"
+          | "icon-[mdi--package-variant-closed]"
+          | "icon-[mdi--logout]"
+      }
+    | { id: string; type: "separator" }
+  >
 
   return (
     <Popover
@@ -89,9 +104,9 @@ export function AuthDropdown() {
               <LinkButton
                 as={Link}
                 className="w-full justify-start"
-                href={item.href ?? ""}
+                href={item.href}
                 icon={item.icon}
-                onClick={item.value === "logout" ? signOut : undefined}
+                {...(item.value === "logout" && { onClick: signOut })}
                 prefetch={true}
                 size="sm"
                 theme="borderless"

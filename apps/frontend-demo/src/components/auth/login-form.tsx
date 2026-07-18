@@ -3,8 +3,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import Link from "next/link"
 import { type FormEvent, useState } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import {
   AUTH_ERRORS,
@@ -12,6 +12,7 @@ import {
   validateEmail,
   withLoading,
 } from "@/lib/auth"
+
 import { AuthFormWrapper } from "./auth-form-wrapper"
 
 export function LoginForm() {
@@ -96,12 +97,7 @@ export function LoginForm() {
             onCheckedChange={setRememberMe}
           />
 
-          <Link
-            className="text-auth-link hover:text-auth-link-hover"
-            href="/auth/forgot-password"
-          >
-            Zapoměli jste heslo?
-          </Link>
+          <span className="text-auth-link">Zapomněli jste heslo?</span>
         </div>
 
         {error && !getFieldError("email") && !getFieldError("password") && (

@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
+
 import { useCategoryListingQueries } from "@/components/category/use-category-listing-queries"
 import {
   usePrefetchCategories,
@@ -33,8 +34,10 @@ export function useCategoryListingController({
   const listingInteractions = useCatalogListingInteractions({
     productPrefetchKeyPrefix: "plp-product",
     queryState,
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
     setQueryState,
   })
   const prefetchCategory = usePrefetchCategory({

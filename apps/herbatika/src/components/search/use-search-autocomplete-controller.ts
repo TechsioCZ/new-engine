@@ -9,10 +9,13 @@ import {
   useId,
   useState,
 } from "react"
+
+import { appHref } from "@/lib/routing"
 import {
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteSuggestion,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel"
 import {
   clampSearchAutocompleteIndex,
@@ -40,10 +43,10 @@ export function useSearchAutocompleteController({
   const [isDismissed, setIsDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const autocomplete = useSearchAutocomplete({
-    countryCode,
+    ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode,
     query: value,
-    regionId,
+    ...(regionId === undefined ? {} : { regionId }),
   })
   const normalizedQuery = value.trim()
   const sections = createSearchAutocompleteSections(autocomplete.data)
@@ -122,7 +125,7 @@ export function useSearchAutocompleteController({
 
     if (event.key === "Enter" && activeItem) {
       event.preventDefault()
-      router.push(activeItem.href)
+      router.push(appHref(activeItem.href))
       closePanel()
     }
   }

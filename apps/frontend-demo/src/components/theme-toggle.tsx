@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { getBrand } from "@techsio/ui-kit/theme/theme-config"
+
 import { useTheme } from "@/hooks/use-theme"
 
 export function ThemeToggle() {

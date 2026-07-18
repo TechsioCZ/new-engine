@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import { useCartToast } from "@/hooks/use-toast"
 import { CACHE_TIMES } from "@/lib/constants"
 import { CartServiceError } from "@/lib/errors"
@@ -72,12 +73,12 @@ export function useCheckoutPayment(
       onSuccess: () => {
         // Refresh cart to get payment collection
         queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
-        if (process.env.NODE_ENV === "development") {
+        if (process.env["NODE_ENV"] === "development") {
           console.log("[useCheckoutPayment] Payment collection created")
         }
       },
       onError: (error) => {
-        if (process.env.NODE_ENV === "development") {
+        if (process.env["NODE_ENV"] === "development") {
           console.error(
             "[useCheckoutPayment] Failed to initiate payment:",
             error

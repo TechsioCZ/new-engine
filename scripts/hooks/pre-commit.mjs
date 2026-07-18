@@ -26,10 +26,10 @@ function run(command, args) {
 
 if (formatFiles.length > 0) {
   run("pnpm", ["exec", "oxfmt", "--write", ...formatFiles])
-  run("git", ["add", "--", ...formatFiles])
+  run("git", ["add", "-f", "--", ...formatFiles])
 }
 
 if (lintFiles.length > 0) {
   run("pnpm", ["exec", "oxlint", "--fix", "--deny-warnings", ...lintFiles])
-  run("git", ["add", "--", ...lintFiles])
+  run("git", ["add", "-f", "--", ...lintFiles])
 }

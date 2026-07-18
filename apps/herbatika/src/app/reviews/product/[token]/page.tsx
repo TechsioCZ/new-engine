@@ -25,9 +25,11 @@ export default async function ProductReviewTokenRoute({
     searchParams,
   ])
 
+  const productId = resolveSearchParam(resolvedSearchParams.product_id)
+
   return (
     <ProductReviewTokenPage
-      productId={resolveSearchParam(resolvedSearchParams.product_id)}
+      {...(productId === undefined ? {} : { productId })}
       token={token}
     />
   )

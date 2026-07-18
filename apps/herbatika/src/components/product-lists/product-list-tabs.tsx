@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { Fragment } from "react"
+
 import { AccountProductListItemRow } from "@/components/product-lists/account-product-list-item-row"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
@@ -12,6 +13,7 @@ import {
   getProductListTitle,
   isFavoriteProductList,
 } from "@/lib/storefront/product-lists"
+
 import type { AccountProductListsController } from "./use-account-product-lists"
 
 type ProductListTabsProps = {
@@ -47,17 +49,17 @@ function ProductListItemsSkeleton() {
                 noOfLines={2}
                 size="sm"
               />
-              <Skeleton.Rectangle className="h-500 w-32 rounded-md" />
+              <Skeleton.Rectangle className="h-500 w-skeleton-heading rounded-md" />
             </div>
             <div className="flex flex-wrap items-center justify-end gap-300">
-              <Skeleton.Rectangle className="h-600 w-20 rounded-md" />
-              <Skeleton.Rectangle className="h-600 w-28 rounded-md" />
+              <Skeleton.Rectangle className="h-600 w-skeleton-short rounded-md" />
+              <Skeleton.Rectangle className="h-600 w-skeleton-caption rounded-md" />
               <Skeleton.Rectangle className="h-600 w-600 rounded-md" />
             </div>
           </article>
         ))}
         <div className="pt-300">
-          <div className="ml-auto w-full space-y-200 sm:max-w-sm">
+          <div className="ml-auto w-full space-y-200 sm:max-w-product-list-summary">
             <Skeleton.Text noOfLines={2} size="sm" />
             <Skeleton.Rectangle className="h-600 rounded-md" />
           </div>
@@ -79,7 +81,7 @@ function ProductListSummary({
 
   return (
     <div className="pt-300">
-      <div className="ml-auto w-full space-y-200 sm:max-w-sm">
+      <div className="ml-auto w-full space-y-200 sm:max-w-product-list-summary">
         <div className="space-y-100 text-sm">
           <div className="flex items-center justify-between gap-300">
             <span className="text-fg-secondary">Celkom bez DPH</span>

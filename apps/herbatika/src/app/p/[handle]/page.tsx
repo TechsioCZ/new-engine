@@ -1,4 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query"
+
 import { ProductDetail } from "@/components/product-detail"
 import { prefetchProductDetailPageStorefrontData } from "@/lib/storefront/ssr"
 

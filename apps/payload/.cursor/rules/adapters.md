@@ -11,7 +11,7 @@ tags: [payload, database, mongodb, postgres, sqlite, transactions]
 ### MongoDB
 
 ```typescript
-import { mongooseAdapter } from '@payloadcms/db-mongodb'
+import { mongooseAdapter } from "@payloadcms/db-mongodb"
 
 export default buildConfig({
   db: mongooseAdapter({
@@ -23,7 +23,7 @@ export default buildConfig({
 ### Postgres
 
 ```typescript
-import { postgresAdapter } from '@payloadcms/db-postgres'
+import { postgresAdapter } from "@payloadcms/db-postgres"
 
 export default buildConfig({
   db: postgresAdapter({
@@ -31,7 +31,7 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URL,
     },
     push: false, // Don't auto-push schema changes
-    migrationDir: './migrations',
+    migrationDir: "./migrations",
   }),
 })
 ```
@@ -39,12 +39,12 @@ export default buildConfig({
 ### SQLite
 
 ```typescript
-import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { sqliteAdapter } from "@payloadcms/db-sqlite"
 
 export default buildConfig({
   db: sqliteAdapter({
     client: {
-      url: 'file:./payload.db',
+      url: "file:./payload.db",
     },
     transactionOptions: {}, // Enable transactions (disabled by default)
   }),
@@ -61,10 +61,14 @@ Payload automatically uses transactions for all-or-nothing database operations.
 
 ```typescript
 // ✅ CORRECT: Thread req through nested operations
-const resaveChildren: CollectionAfterChangeHook = async ({ collection, doc, req }) => {
+const resaveChildren: CollectionAfterChangeHook = async ({
+  collection,
+  doc,
+  req,
+}) => {
   // Find children - pass req
   const children = await req.payload.find({
-    collection: 'children',
+    collection: "children",
     where: { parent: { equals: doc.id } },
     req, // Maintains transaction context
   })
@@ -73,17 +77,21 @@ const resaveChildren: CollectionAfterChangeHook = async ({ collection, doc, req 
   for (const child of children.docs) {
     await req.payload.update({
       id: child.id,
-      collection: 'children',
-      data: { updatedField: 'value' },
+      collection: "children",
+      data: { updatedField: "value" },
       req, // Same transaction as parent operation
     })
   }
 }
 
 // ❌ WRONG: Missing req breaks transaction
-const brokenHook: CollectionAfterChangeHook = async ({ collection, doc, req }) => {
+const brokenHook: CollectionAfterChangeHook = async ({
+  collection,
+  doc,
+  req,
+}) => {
   const children = await req.payload.find({
-    collection: 'children',
+    collection: "children",
     where: { parent: { equals: doc.id } },
     // Missing req - separate transaction or no transaction
   })
@@ -91,8 +99,8 @@ const brokenHook: CollectionAfterChangeHook = async ({ collection, doc, req }) =
   for (const child of children.docs) {
     await req.payload.update({
       id: child.id,
-      collection: 'children',
-      data: { updatedField: 'value' },
+      collection: "children",
+      data: { updatedField: "value" },
       // Missing req - if parent operation fails, these updates persist
     })
   }
@@ -112,12 +120,12 @@ const brokenHook: CollectionAfterChangeHook = async ({ collection, doc, req }) =
 const transactionID = await payload.db.beginTransaction()
 try {
   await payload.create({
-    collection: 'orders',
+    collection: "orders",
     data: orderData,
     req: { transactionID },
   })
   await payload.update({
-    collection: 'inventory',
+    collection: "inventory",
     id: itemId,
     data: { stock: newStock },
     req: { transactionID },
@@ -143,7 +151,7 @@ Available storage adapters:
 ### AWS S3
 
 ```typescript
-import { s3Storage } from '@payloadcms/storage-s3'
+import { s3Storage } from "@payloadcms/storage-s3"
 
 export default buildConfig({
   plugins: [
@@ -169,12 +177,12 @@ export default buildConfig({
 ### Nodemailer (SMTP)
 
 ```typescript
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { nodemailerAdapter } from "@payloadcms/email-nodemailer"
 
 export default buildConfig({
   email: nodemailerAdapter({
-    defaultFromAddress: 'noreply@example.com',
-    defaultFromName: 'My App',
+    defaultFromAddress: "noreply@example.com",
+    defaultFromName: "My App",
     transportOptions: {
       host: process.env.SMTP_HOST,
       port: 587,
@@ -190,12 +198,12 @@ export default buildConfig({
 ### Resend
 
 ```typescript
-import { resendAdapter } from '@payloadcms/email-resend'
+import { resendAdapter } from "@payloadcms/email-resend"
 
 export default buildConfig({
   email: resendAdapter({
-    defaultFromAddress: 'noreply@example.com',
-    defaultFromName: 'My App',
+    defaultFromAddress: "noreply@example.com",
+    defaultFromName: "My App",
     apiKey: process.env.RESEND_API_KEY,
   }),
 })

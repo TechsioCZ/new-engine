@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react"
+
 import { useSuspenseAuth } from "@/hooks/use-auth"
 import { useCompleteCart, useSuspenseCart } from "@/hooks/use-cart"
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
@@ -188,7 +189,7 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
           cartId: cart.id,
           billingAddress,
           shippingAddress,
-          email: cartEmail,
+          ...(cartEmail ? { email: cartEmail } : {}),
         })
       } catch (err) {
         if (err instanceof Error) {

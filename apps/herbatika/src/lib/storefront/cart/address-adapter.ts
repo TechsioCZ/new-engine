@@ -1,11 +1,13 @@
-import type { MedusaAddressLike } from "@techsio/storefront-data/checkout/address"
+import { isRecord } from "@techsio/std/object"
 import {
+  type MedusaAddressLike,
   type CheckoutAddressInput,
   createCheckoutCartAddressAdapter,
   type MedusaCartAddressPayload,
   mapMedusaAddressToCheckoutAddress,
 } from "@techsio/storefront-data/checkout/address"
 import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shared/address"
+
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
 const HERBATIKA_ADDRESS_METADATA_FIELDS = [
@@ -38,9 +40,6 @@ const normalizeOptionalString = (value: unknown) => {
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : undefined
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 const buildHerbatikaAddressMetadata = (
   input: Pick<
@@ -95,7 +94,7 @@ export const mapHerbatikaAddressFormStateFromMedusaAddress = (
     mapMedusaAddressToCheckoutAddress<HerbatikaCheckoutAddressInput>(address)
   const metadata = isRecord(address?.metadata) ? address.metadata : undefined
 
-  return {
+  const values = {
     firstName: baseAddress.firstName,
     lastName: baseAddress.lastName,
     phone: baseAddress.phone,
@@ -110,14 +109,22 @@ export const mapHerbatikaAddressFormStateFromMedusaAddress = (
     countryCode: baseAddress.country?.toUpperCase(),
     customerNote: readMetadataString(metadata, "customer_note"),
   }
+
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined)
+  )
 }
 
 export const herbatikaCheckoutCartAddressAdapter: StorefrontCartAddressAdapter<
   HerbatikaCheckoutAddressInput,
   HerbatikaCheckoutAddressPayload
 > = {
-  normalize: baseAddressAdapter.normalize,
-  validate: baseAddressAdapter.validate,
+  ...(baseAddressAdapter.normalize === undefined
+    ? {}
+    : { normalize: baseAddressAdapter.normalize }),
+  ...(baseAddressAdapter.validate === undefined
+    ? {}
+    : { validate: baseAddressAdapter.validate }),
   toPayload: (input, context) => {
     const payload = baseAddressAdapter.toPayload?.(input, context) ?? {}
     const metadata = buildHerbatikaAddressMetadata(input)

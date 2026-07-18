@@ -21,6 +21,12 @@ export const resolveProductStatusMessage = (
         status: "warning" as const,
         text: "Produkt sa nepodarilo nájsť. Skontrolujte prosím odkaz z emailu.",
       }
+    case "missing-product-id": {
+      throw new Error('Not implemented yet: "missing-product-id" case')
+    }
+    case "ready": {
+      throw new Error('Not implemented yet: "ready" case')
+    }
     default:
       return null
   }

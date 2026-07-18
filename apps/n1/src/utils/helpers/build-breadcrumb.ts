@@ -1,5 +1,7 @@
 import type { BreadcrumbTemplateItem } from "@ui/templates/breadcrumb"
+
 import type { Category } from "@/data/static/type"
+
 import { getCategoryPath } from "../transform/get-category-path"
 
 export function buildBreadcrumbs(

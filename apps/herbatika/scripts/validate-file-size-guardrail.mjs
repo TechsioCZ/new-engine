@@ -3,56 +3,13 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import {
+  globToRegExp,
+  normalizePath,
+  parseGuardrailArgs,
+} from "./guardrail-utils.mjs"
+
 const DEFAULT_CONFIG_PATH = "scripts/file-size-guardrail.config.json"
-
-function parseArgs(argv) {
-  const args = {
-    configPath: DEFAULT_CONFIG_PATH,
-    json: false,
-  }
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
-
-    if (arg === "--json") {
-      args.json = true
-      continue
-    }
-
-    if (arg === "--config") {
-      const nextValue = argv[index + 1]
-      if (nextValue) {
-        args.configPath = nextValue
-        index += 1
-      }
-      continue
-    }
-
-    if (arg.startsWith("--config=")) {
-      args.configPath = arg.slice("--config=".length)
-    }
-  }
-
-  return args
-}
-
-function normalizePath(value) {
-  return value.replaceAll(path.sep, "/")
-}
-
-function globToRegExp(globPattern) {
-  const normalized = normalizePath(globPattern)
-  const withMarkers = normalized
-    .replaceAll("**", "__DOUBLE_STAR__")
-    .replaceAll("*", "__SINGLE_STAR__")
-
-  const escaped = withMarkers
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replaceAll("__DOUBLE_STAR__", ".*")
-    .replaceAll("__SINGLE_STAR__", "[^/]*")
-
-  return new RegExp(`^${escaped}$`)
-}
 
 function buildMatchers(patterns) {
   return patterns.map((pattern) => globToRegExp(pattern))
@@ -312,7 +269,7 @@ function printHumanReadable(report) {
 }
 
 function main() {
-  const args = parseArgs(process.argv.slice(2))
+  const args = parseGuardrailArgs(process.argv.slice(2), DEFAULT_CONFIG_PATH)
   const cwd = process.cwd()
   const configPath = path.resolve(cwd, args.configPath)
 

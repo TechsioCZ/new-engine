@@ -3,6 +3,7 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+
 import {
   buildAuthRouteHref,
   buildLoginDefaults,
@@ -19,6 +20,7 @@ import {
   resolveRegisterSubmitError,
 } from "@/lib/auth/auth-form-validators"
 import { buildAuthRegisterInput } from "@/lib/auth/register-payload"
+import { appHref } from "@/lib/routing"
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth"
 import {
   cartReadQueryOptions,
@@ -56,8 +58,12 @@ export const useAuthController = ({
   const cartQuery = useCart(
     {
       autoCreate: false,
-      region_id: region?.region_id,
-      country_code: region?.country_code,
+      ...(region?.region_id === undefined
+        ? {}
+        : { region_id: region?.region_id }),
+      ...(region?.country_code === undefined
+        ? {}
+        : { country_code: region?.country_code }),
       enabled: Boolean(region?.region_id),
     },
     {
@@ -67,9 +73,10 @@ export const useAuthController = ({
 
   const safeRedirectHref = resolveSafeRedirectHref(afterAuthHref)
   const loginDefaultValues = buildLoginDefaults()
-  const registerDefaultValues = buildRegisterDefaults({
-    countryCode: region?.country_code,
-  })
+  const countryCode = region?.country_code
+  const registerDefaultValues = buildRegisterDefaults(
+    countryCode === undefined ? {} : { countryCode }
+  )
 
   const clearFeedback = () => {
     setAuthError(null)
@@ -113,7 +120,7 @@ export const useAuthController = ({
       return
     }
 
-    router.replace(safeRedirectHref)
+    router.replace(appHref(safeRedirectHref))
   }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
 
   const handleLoginSubmit = async (
@@ -126,7 +133,7 @@ export const useAuthController = ({
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {
-        router.replace(safeRedirectHref)
+        router.replace(appHref(safeRedirectHref))
         return null
       }
 
@@ -152,7 +159,7 @@ export const useAuthController = ({
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {
-        router.replace(safeRedirectHref)
+        router.replace(appHref(safeRedirectHref))
         return null
       }
 

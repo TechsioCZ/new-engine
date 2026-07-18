@@ -1,4 +1,5 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+
 import {
   resolvePaymentDescription,
   resolvePaymentHint,
@@ -7,6 +8,7 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
 type PaymentProvider = {
@@ -58,12 +60,14 @@ export function CheckoutPaymentSection({
               const isProviderSelectable = Boolean(
                 providerId && canInitiatePayment
               )
+              const bodyText = resolvePaymentDescription(providerId)
+              const hint = resolvePaymentHint(providerId)
 
               return {
                 disabled:
                   isBusy || isInitiatingPayment || !isProviderSelectable,
-                bodyText: resolvePaymentDescription(providerId),
-                hint: resolvePaymentHint(providerId),
+                ...(bodyText === undefined ? {} : { bodyText }),
+                ...(hint === undefined ? {} : { hint }),
                 icon: resolvePaymentIcon(providerId),
                 priceLabel: "Zadarmo",
                 priceTone: "success" as const,

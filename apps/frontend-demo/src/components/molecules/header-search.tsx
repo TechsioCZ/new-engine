@@ -4,6 +4,7 @@ import { Combobox, type ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+
 import { useSearchProducts } from "@/hooks/use-search-products"
 import type { Product } from "@/types/product"
 

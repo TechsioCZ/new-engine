@@ -2,12 +2,11 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
-import NextLink from "next/link"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
+import NextLink from "@/components/app-link"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
   Product,
@@ -21,6 +20,8 @@ import {
 import { ProductListPickerPopover } from "@/components/product-lists/product-list-picker-popover"
 import { createBrandSlug } from "@/lib/storefront/brands"
 
+import { ProductDetailPurchaseControls } from "./product-detail-purchase-controls"
+
 type ProductInfoLink = {
   href: string | null
   label: string
@@ -33,10 +34,10 @@ const resolveProductInfoLink = (
   const producer = asRecord(
     (product as Product & { producer?: unknown }).producer
   )
-  const producerTitle = asString(producer?.title)
+  const producerTitle = asString(producer?.["title"])
 
   if (producerTitle) {
-    const producerHandle = asString(producer?.handle)
+    const producerHandle = asString(producer?.["handle"])
     const producerSlug = createBrandSlug(producerHandle || producerTitle)
 
     return {
@@ -207,71 +208,17 @@ export function ProductDetailPurchasePanel({
           ) : null}
         </div>
 
-        {variantItems.length > 1 ? (
-          <Select
-            className="w-full sm:max-w-xs"
-            items={variantItems}
-            onValueChange={(details) => {
-              onVariantChange(details.value[0] ?? null)
-            }}
-            size="lg"
-            value={selectedVariantId ? [selectedVariantId] : []}
-          >
-            <Select.Label>Varianta</Select.Label>
-            <Select.Control>
-              <Select.Trigger className="rounded-select-lg">
-                <Select.ValueText placeholder="Vyberte variantu" />
-              </Select.Trigger>
-            </Select.Control>
-            <Select.Positioner>
-              <Select.Content>
-                {variantItems.map((item) => (
-                  <Select.Item item={item} key={item.value}>
-                    <Select.ItemText />
-                    <Select.ItemIndicator />
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Positioner>
-          </Select>
-        ) : null}
-
-        <div className="grid min-h-purchase-panel-footer min-w-0 items-center gap-350 sm:grid-cols-4">
-          <NumericInput
-            className="w-full min-w-0 px-0 xl:px-300"
-            id="product-quantity"
-            max={maxQuantity}
-            min={1}
-            onChange={(value) => {
-              if (!Number.isFinite(value) || value < 1) {
-                onQuantityChange(1)
-                return
-              }
-
-              onQuantityChange(Math.min(Math.floor(value), maxQuantity))
-            }}
-            value={quantity}
-          >
-            <NumericInput.Control className="grid h-full grid-cols-3 place-items-center">
-              <NumericInput.DecrementTrigger className="min-h-750 w-auto" />
-              <NumericInput.Input className="min-h-750 px-0 py-0 text-center" />
-              <NumericInput.IncrementTrigger className="min-h-750 w-auto" />
-            </NumericInput.Control>
-          </NumericInput>
-          <Button
-            block
-            className="h-full min-w-0 text-md sm:col-span-3"
-            disabled={!canAddToCart}
-            icon="token-icon-cart"
-            iconSize="xl"
-            isLoading={isAdding}
-            loadingText="Pridávam..."
-            onClick={onAddToCart}
-            variant="primary"
-          >
-            Pridať do košíka
-          </Button>
-        </div>
+        <ProductDetailPurchaseControls
+          canAddToCart={canAddToCart}
+          isAdding={isAdding}
+          maxQuantity={maxQuantity}
+          onAddToCart={onAddToCart}
+          onQuantityChange={onQuantityChange}
+          onVariantChange={onVariantChange}
+          quantity={quantity}
+          selectedVariantId={selectedVariantId}
+          variantItems={variantItems}
+        />
       </section>
     </div>
   )

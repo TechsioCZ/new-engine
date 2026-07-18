@@ -1,4 +1,5 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+
 import { PASSWORD_REQUIREMENTS } from "@/lib/auth/auth-form-validators"
 
 type PasswordRequirementsProps = {

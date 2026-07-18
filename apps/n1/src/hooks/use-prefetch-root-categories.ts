@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+
 import { CATEGORY_MAP } from "@/lib/constants"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
+
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 

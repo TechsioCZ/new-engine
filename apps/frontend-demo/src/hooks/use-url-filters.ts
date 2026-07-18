@@ -2,6 +2,7 @@
 
 import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import { useRouter, useSearchParams } from "next/navigation"
+
 import type { FilterState } from "@/components/organisms/product-filters"
 import type { SortOption } from "@/utils/product-filters"
 
@@ -23,7 +24,9 @@ function parsePageRange(pageParam: string): PageRange {
     return { start: singlePage, end: singlePage, isRange: false }
   }
 
-  const [start, end] = pageParam.split("-").map((p) => Number.parseInt(p, 10))
+  const [start = Number.NaN, end = Number.NaN] = pageParam
+    .split("-")
+    .map((part) => Number.parseInt(part, 10))
 
   if (
     !(Number.isNaN(start) || Number.isNaN(end)) &&

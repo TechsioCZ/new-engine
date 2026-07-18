@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import {
   buildCategoryListParams,
@@ -49,8 +49,10 @@ export const prefetchCategoryPageStorefrontData = async (
       queryState,
       categoryIds,
       limit: PLP_PAGE_SIZE,
-      regionId: region.region_id,
-      countryCode: region.country_code,
+      ...(region.region_id === undefined ? {} : { regionId: region.region_id }),
+      ...(region.country_code === undefined
+        ? {}
+        : { countryCode: region.country_code }),
     })
 
     await prefetchServerCatalogProducts(queryClient, catalogListParams)

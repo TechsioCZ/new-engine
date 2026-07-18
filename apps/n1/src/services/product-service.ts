@@ -1,4 +1,5 @@
 import type { StoreProduct } from "@medusajs/types"
+
 import { PRODUCT_DETAILED_FIELDS } from "@/lib/constants"
 import { fetchLogger } from "@/lib/loggers/fetch"
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
@@ -34,17 +35,18 @@ export async function getProducts(
       limit,
       offset,
       fields,
-      country_code,
-      region_id,
+      ...(country_code ? { country_code } : {}),
+      ...(region_id ? { region_id } : {}),
       category_id,
     })
 
     // Use native fetch with Medusa headers for AbortSignal support
     const baseUrl = getMedusaBackendUrl()
-    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+    const publishableKey =
+      process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] || ""
 
     const response = await fetch(`${baseUrl}/store/products?${queryString}`, {
-      signal,
+      ...(signal ? { signal } : {}),
       headers: {
         "Content-Type": "application/json",
         "x-publishable-api-key": publishableKey,
@@ -65,16 +67,10 @@ export async function getProducts(
     }
   } catch (err) {
     const isAbortError = err instanceof Error && err.name === "AbortError"
-    const isPrerenderAbortError =
-      err instanceof Error &&
-      err.message.includes(
-        "During prerendering, fetch() rejects when the prerender is complete"
-      )
-
-    // Request cancellations are expected (navigation, Suspense/prerender completion).
+    // Request cancellations are expected (navigation and Suspense completion).
     // Return empty data so the UI can continue and client queries can refetch.
-    if (signal?.aborted || isAbortError || isPrerenderAbortError) {
-      if (process.env.NODE_ENV === "development") {
+    if (signal?.aborted || isAbortError) {
+      if (process.env["NODE_ENV"] === "development") {
         const categoryLabel = category_id?.[0]?.slice(-6) || "all"
         fetchLogger.cancelled(categoryLabel, offset)
       }
@@ -87,7 +83,7 @@ export async function getProducts(
       }
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.error("[ProductService] Failed to fetch products:", err)
     }
     const message = err instanceof Error ? err.message : "Unknown error"
@@ -115,13 +111,13 @@ export async function getProductByHandle(
       handle,
       limit: 1,
       fields: PRODUCT_DETAILED_FIELDS,
-      country_code,
-      region_id,
+      ...(country_code ? { country_code } : {}),
+      ...(region_id ? { region_id } : {}),
     })
 
     return response.products?.[0] || null
   } catch (err) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.error("[ProductService] Failed to fetch product by handle:", err)
     }
     const message = err instanceof Error ? err.message : "Unknown error"

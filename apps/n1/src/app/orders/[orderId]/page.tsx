@@ -4,6 +4,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { HeurekaOrder } from "@techsio/analytics/heureka"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { CheckoutReview } from "@/app/pokladna/_components/checkout-review"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
@@ -13,7 +14,7 @@ import { getOrderById } from "@/services/order-service"
 export default function OrderPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const orderId = params.orderId as string
+  const orderId = params["orderId"] as string
   const showSuccessBanner = searchParams.get("success") === "true"
 
   const analytics = useAnalytics()
@@ -60,7 +61,7 @@ export default function OrderPage() {
         currency,
         quantity: item.quantity || 1,
       })),
-      email: order.email || undefined,
+      ...(order.email ? { email: order.email } : {}),
     })
   }, [showSuccessBanner, order, analytics])
 
@@ -69,7 +70,7 @@ export default function OrderPage() {
       {/* Heureka conversion tracking - standalone, SDK loads here */}
       {showSuccessBanner && order && (
         <HeurekaOrder
-          apiKey={process.env.NEXT_PUBLIC_HEUREKA_API_KEY ?? ""}
+          apiKey={process.env["NEXT_PUBLIC_HEUREKA_API_KEY"] ?? ""}
           country="cz"
           currency={(order.currency_code ?? "CZK").toUpperCase()}
           debug

@@ -1,4 +1,5 @@
 import type { BlogPost, BlogTopicKey } from "@/lib/storefront/blog-content"
+
 import {
   fetchCmsJson,
   resolveCmsMediaUrl,
@@ -39,6 +40,12 @@ const resolveTopicFromCategory = (
     case "fitness":
     case "sport":
       return "fitness"
+    case undefined: {
+      throw new Error("Not implemented yet: undefined case")
+    }
+    case null: {
+      throw new Error("Not implemented yet: null case")
+    }
     default:
       return DEFAULT_CMS_TOPIC
   }
@@ -53,9 +60,7 @@ const resolveAuthorName = (article: CmsArticle) => {
   return authorParts.length > 0 ? authorParts.join(" ") : "Herbatika redakcia"
 }
 
-export const mapCmsArticleToBlogPost = (
-  article: CmsArticle
-): BlogPost | null => {
+const mapCmsArticleToBlogPost = (article: CmsArticle): BlogPost | null => {
   const slug = article.slug?.trim()
   const title = article.title?.trim()
 
@@ -95,14 +100,14 @@ export const mapCmsArticleToBlogPost = (
   }
 }
 
-export const fetchCmsArticleCategories = async () => {
+const fetchCmsArticleCategories = async () => {
   const response =
     await fetchCmsJson<CmsArticleCategoriesResponse>("article-categories")
 
   return response?.articleCategories ?? []
 }
 
-export const fetchCmsArticleBySlug = async (slug: string) => {
+const fetchCmsArticleBySlug = async (slug: string) => {
   const response = await fetchCmsJson<CmsArticleResponse>(
     `articles/${encodeURIComponent(slug)}`
   )

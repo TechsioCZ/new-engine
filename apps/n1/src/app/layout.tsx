@@ -1,10 +1,12 @@
-import type { Metadata } from "next"
-import { Open_Sans } from "next/font/google"
-import "../tokens/index.css"
 import { GoogleTag } from "@techsio/analytics/google"
 import { LeadhubPixel } from "@techsio/analytics/leadhub"
+
+import "../tokens/index.css"
 import { MetaPixel } from "@techsio/analytics/meta"
+import type { Metadata } from "next"
+import { Open_Sans } from "next/font/google"
 import { type ReactNode, Suspense } from "react"
+
 import { PageviewTracker } from "@/components/analytics/pageview-tracker"
 import { N1Header } from "@/components/header/n1-header"
 import { HeaderProvider } from "@/components/header/store/header-context"
@@ -19,7 +21,7 @@ const openSans = Open_Sans({
   display: "swap",
 })
 
-const analyticsDebug = process.env.NODE_ENV === "development"
+const analyticsDebug = process.env["NODE_ENV"] === "development"
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -38,15 +40,15 @@ export default function RootLayout({
       >
         <MetaPixel
           debug={analyticsDebug}
-          pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID ?? ""}
+          pixelId={process.env["NEXT_PUBLIC_META_PIXEL_ID"] ?? ""}
         />
         <GoogleTag
-          adsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""}
+          adsId={process.env["NEXT_PUBLIC_GOOGLE_ADS_ID"] ?? ""}
           debug={analyticsDebug}
         />
         <LeadhubPixel
           debug={analyticsDebug}
-          trackingId={process.env.NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""}
+          trackingId={process.env["NEXT_PUBLIC_LEADHUB_TRACKING_ID"] ?? ""}
         />
         <Providers>
           <AnalyticsProvider>

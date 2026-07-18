@@ -1,5 +1,6 @@
 import { connection } from "next/server"
 import { Suspense } from "react"
+
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
 import {
   type BlogTopicKey,
@@ -39,8 +40,8 @@ function BlogPageFallback() {
 async function BlogPageContent({ searchParams }: BlogPageProps) {
   await connection()
   const resolvedSearchParams = await searchParams
-  const rawTopic = resolvedSearchParams.topic
-  const rawPage = resolvedSearchParams.page
+  const rawTopic = resolvedSearchParams["topic"]
+  const rawPage = resolvedSearchParams["page"]
 
   const topic = parseTopic(Array.isArray(rawTopic) ? rawTopic[0] : rawTopic)
   const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage)
@@ -48,7 +49,7 @@ async function BlogPageContent({ searchParams }: BlogPageProps) {
 
   const listing = resolveBlogListing({
     page,
-    posts: cmsPosts.length > 0 ? cmsPosts : undefined,
+    ...(cmsPosts.length > 0 ? { posts: cmsPosts } : {}),
     topic,
   })
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+
 import {
   badRequest,
   buildErrorResponse,
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 
     const payload = await parseResponseJson(medusaResponse)
     const token =
-      payload && typeof payload.token === "string" ? payload.token : null
+      payload && typeof payload["token"] === "string" ? payload["token"] : null
 
     if (!token) {
       return serverError(

@@ -1,7 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { MedusaPaymentSessionDataInput } from "@techsio/storefront-data/checkout/medusa-service"
 
-export const HERBATIKA_PAYMENT_RETURN_PATH = "/checkout/platba-navrat"
+const HERBATIKA_PAYMENT_RETURN_PATH = "/checkout/platba-navrat"
 
 const resolveBrowserOrigin = () => {
   if (typeof window === "undefined") {
@@ -11,7 +11,7 @@ const resolveBrowserOrigin = () => {
   return window.location.origin
 }
 
-export const buildHerbatikaPaymentReturnUrl = ({
+const buildHerbatikaPaymentReturnUrl = ({
   cartId,
   providerId,
   paymentCancelled = false,

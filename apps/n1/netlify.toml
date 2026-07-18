@@ -1,13 +1,13 @@
 [build]
-  base = "apps/n1"
-  command = "pnpm build"
-  publish = ".next"
+base = "apps/n1"
+command = "pnpm build"
+publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "22"
+NODE_VERSION = "22"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs"
+package = "@netlify/plugin-nextjs"
 
 [functions]
-  included_files = ["!node_modules/@swc/**", "!node_modules/@rspack/**"]
+included_files = ["!node_modules/@swc/**", "!node_modules/@rspack/**"]

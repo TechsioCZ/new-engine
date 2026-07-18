@@ -2,7 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+
 import { useSuspenseAuth } from "@/hooks/use-auth"
+
 import { AccountProvider } from "./context/account-context"
 
 export default function AccountLayout({

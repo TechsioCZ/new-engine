@@ -1,4 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
+
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
 import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-stock-availability"
@@ -8,8 +10,8 @@ export const FALLBACK_MAX_QUANTITY = 99
 export const resolveLineItemProductHandle = (
   item: HttpTypes.StoreCartLineItem
 ) => {
-  const itemRecord = item as unknown as Record<string, unknown>
-  return typeof itemRecord.product_handle === "string"
+  const itemRecord = isRecord(item) ? item : null
+  return typeof itemRecord?.product_handle === "string"
     ? itemRecord.product_handle
     : null
 }
@@ -25,26 +27,16 @@ export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
 }
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
-  const itemRecord = item as unknown as Record<string, unknown>
-  const metadata =
-    itemRecord.metadata &&
-    typeof itemRecord.metadata === "object" &&
-    !Array.isArray(itemRecord.metadata)
-      ? (itemRecord.metadata as Record<string, unknown>)
-      : null
-  const variant =
-    itemRecord.variant &&
-    typeof itemRecord.variant === "object" &&
-    !Array.isArray(itemRecord.variant)
-      ? (itemRecord.variant as Record<string, unknown>)
-      : null
+  const itemRecord = isRecord(item) ? item : null
+  const metadata = isRecord(itemRecord?.metadata) ? itemRecord.metadata : null
+  const variant = isRecord(itemRecord?.variant) ? itemRecord.variant : null
 
   const defaultStockInventory = resolveDefaultStockInventoryQuantity(variant)
   if (defaultStockInventory !== null) {
     return defaultStockInventory
   }
 
-  const metadataInventory = asFiniteNumber(metadata?.inventory_quantity)
+  const metadataInventory = asFiniteNumber(metadata?.["inventory_quantity"])
   if (metadataInventory !== null) {
     return metadataInventory
   }
@@ -54,7 +46,7 @@ export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
     return variantInventory
   }
 
-  return asFiniteNumber(itemRecord.variant_inventory_quantity)
+  return asFiniteNumber(itemRecord?.["variant_inventory_quantity"])
 }
 
 export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {

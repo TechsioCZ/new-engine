@@ -12,7 +12,7 @@ type ImportResult = {
 }
 
 const configuredLocales = (
-  process.env.NEXT_PUBLIC_PAYLOAD_LOCALES ?? "cs,sk,en"
+  process.env["NEXT_PUBLIC_PAYLOAD_LOCALES"] ?? "cs,sk,en"
 )
   .split(",")
   .map((locale) => locale.trim())
@@ -20,7 +20,9 @@ const configuredLocales = (
 const defaultLocales = configuredLocales.length
   ? configuredLocales
   : ["cs", "sk", "en"]
-const defaultLocale = defaultLocales.includes("sk") ? "sk" : defaultLocales[0]
+const defaultLocale = defaultLocales.includes("sk")
+  ? "sk"
+  : (defaultLocales[0] ?? "cs")
 
 const isFormMessage = (message: string) => Boolean(message)
 

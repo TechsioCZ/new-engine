@@ -2,7 +2,9 @@
 
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
 import type { FormEvent } from "react"
+
 import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { SearchAutocompletePanel } from "./search-autocomplete-panel"
 import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 
@@ -23,10 +25,10 @@ export function SearchAutocomplete({
 }: SearchAutocompleteProps) {
   const isMobile = variant === "mobile"
   const controller = useSearchAutocompleteController({
-    countryCode,
+    ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode,
     onSubmit,
-    regionId,
+    ...(regionId === undefined ? {} : { regionId }),
   })
 
   return (
@@ -68,7 +70,9 @@ export function SearchAutocomplete({
 
         {controller.shouldShowPanel ? (
           <SearchAutocompletePanel
-            activeItemId={controller.activeItemId}
+            {...(controller.activeItemId === undefined
+              ? {}
+              : { activeItemId: controller.activeItemId })}
             id={controller.panelId}
             onItemClick={controller.closePanel}
             onItemMouseEnter={controller.handleItemMouseEnter}

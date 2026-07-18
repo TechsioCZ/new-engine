@@ -10,12 +10,12 @@ tags: [payload, hooks, lifecycle, context]
 
 ```typescript
 export const Posts: CollectionConfig = {
-  slug: 'posts',
+  slug: "posts",
   hooks: {
     // Before validation - format data
     beforeValidate: [
       async ({ data, operation }) => {
-        if (operation === 'create') {
+        if (operation === "create") {
           data.slug = slugify(data.title)
         }
         return data
@@ -25,7 +25,7 @@ export const Posts: CollectionConfig = {
     // Before save - business logic
     beforeChange: [
       async ({ data, req, operation, originalDoc }) => {
-        if (operation === 'update' && data.status === 'published') {
+        if (operation === "update" && data.status === "published") {
           data.publishedAt = new Date()
         }
         return data
@@ -38,7 +38,7 @@ export const Posts: CollectionConfig = {
         // Check context to prevent loops
         if (context.skipNotification) return
 
-        if (operation === 'create') {
+        if (operation === "create") {
           await sendNotification(doc)
         }
         return doc
@@ -57,7 +57,7 @@ export const Posts: CollectionConfig = {
     beforeDelete: [
       async ({ req, id }) => {
         await req.payload.delete({
-          collection: 'comments',
+          collection: "comments",
           where: { post: { equals: id } },
           req, // Important for transaction
         })
@@ -100,7 +100,7 @@ Share data between hooks or control hook behavior using request context:
 
 ```typescript
 export const Posts: CollectionConfig = {
-  slug: 'posts',
+  slug: "posts",
   hooks: {
     beforeChange: [
       async ({ context }) => {
@@ -120,8 +120,8 @@ export const Posts: CollectionConfig = {
 ## Next.js Revalidation Pattern
 
 ```typescript
-import type { CollectionAfterChangeHook } from 'payload'
-import { revalidatePath } from 'next/cache'
+import type { CollectionAfterChangeHook } from "payload"
+import { revalidatePath } from "next/cache"
 
 export const revalidatePage: CollectionAfterChangeHook = ({
   doc,
@@ -129,15 +129,15 @@ export const revalidatePage: CollectionAfterChangeHook = ({
   req: { payload, context },
 }) => {
   if (!context.disableRevalidate) {
-    if (doc._status === 'published') {
-      const path = doc.slug === 'home' ? '/' : `/${doc.slug}`
+    if (doc._status === "published") {
+      const path = doc.slug === "home" ? "/" : `/${doc.slug}`
       payload.logger.info(`Revalidating page at path: ${path}`)
       revalidatePath(path)
     }
 
     // Revalidate old path if unpublished
-    if (previousDoc?._status === 'published' && doc._status !== 'published') {
-      const oldPath = previousDoc.slug === 'home' ? '/' : `/${previousDoc.slug}`
+    if (previousDoc?._status === "published" && doc._status !== "published") {
+      const oldPath = previousDoc.slug === "home" ? "/" : `/${previousDoc.slug}`
       revalidatePath(oldPath)
     }
   }

@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+
 import { ALL_CATEGORIES_MAP } from "@/lib/constants"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+
 import { usePrefetchProducts } from "./use-prefetch-products"
 
 type UsePrefetchOnHoverReturn = {
@@ -24,7 +26,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
     timeoutRef.current = setTimeout(() => {
       const categoryIds = ALL_CATEGORIES_MAP[categoryHandle]
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log(
           "[usePrefetchOnHover] Prefetch:",
           categoryHandle,

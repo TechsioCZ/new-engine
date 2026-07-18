@@ -5,7 +5,8 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -19,6 +20,7 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,
@@ -83,11 +85,11 @@ export function CheckoutCartItemRow({
   const availabilityText = resolveAvailabilityText(item, product)
 
   return (
-    <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:grid md:grid-cols-[auto_1fr] md:gap-300">
+    <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:checkout-cart-item-layout md:grid md:gap-300">
       <div className="flex gap-100">
         <Link
           as={NextLink}
-          className="inline-flex size-[120px] shrink-0"
+          className="inline-flex size-checkout-image shrink-0"
           href={itemHref}
         >
           <NextImage
@@ -110,7 +112,7 @@ export function CheckoutCartItemRow({
           <div className="flex w-full justify-between">
             <div className="flex justify-center">
               <CartLineItemQuantityInput
-                className="w-20 shrink-0 sm:w-24"
+                className="w-cart-quantity-compact shrink-0 sm:w-cart-quantity"
                 inputClassName="text-center"
                 isPending={isPending}
                 itemName={itemName}
@@ -130,8 +132,8 @@ export function CheckoutCartItemRow({
         </div>
       </div>
 
-      <div className="grid h-full w-full grid-rows-[1fr_auto]">
-        <div className="hidden gap-200 sm:grid sm:grid-cols-[3fr_1fr_1fr]">
+      <div className="checkout-cart-item-content grid h-full w-full">
+        <div className="hidden gap-200 sm:checkout-cart-item-summary sm:grid">
           <div className="flex items-start">
             <Link
               as={NextLink}
@@ -144,7 +146,7 @@ export function CheckoutCartItemRow({
 
           <div className="flex justify-center">
             <CartLineItemQuantityInput
-              className="w-20 shrink-0 sm:w-24"
+              className="w-cart-quantity-compact shrink-0 sm:w-cart-quantity"
               inputClassName="text-center pr-0 pl-0"
               isPending={isPending}
               itemName={itemName}

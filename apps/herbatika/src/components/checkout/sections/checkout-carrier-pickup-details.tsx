@@ -1,6 +1,7 @@
 "use client"
 
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+
 import type { CarrierPickupRequirement } from "../carrier-pickup.utils"
 import { CheckoutPacketaPickupSelector } from "./checkout-packeta-pickup-selector"
 import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector"

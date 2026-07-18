@@ -2,6 +2,43 @@
   "name": "n1",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "start:ci-dev": "next dev --turbopack --hostname 0.0.0.0 --port 3000",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "ultracite check",
+    "format": "oxfmt",
+    "generate:categories": "node scripts/generate-categories.mjs",
+    "validate:token-usage": "node scripts/validate-token-usage.mjs",
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/n1/tsconfig.json"
+  },
+  "dependencies": {
+    "@medusajs/js-sdk": "^2.17.2",
+    "@medusajs/types": "^2.17.2",
+    "@tanstack/react-form": "^1.33.2",
+    "@tanstack/react-query": "^5.101.2",
+    "@techsio/analytics": "workspace:*",
+    "@techsio/ui-kit": "workspace:*",
+    "next": "16.3.0-preview.5",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwind-variants": "^3.2.2"
+  },
+  "devDependencies": {
+    "@iconify/tailwind4": "^1.2.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@tanstack/react-query-devtools": "^5.101.2",
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "dotenv": "^17.4.2",
+    "postcss": "^8.5.19",
+    "postcss-import": "^16.1.1",
+    "tailwindcss": "^4.3.3",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^7.0.2"
+  },
   "engines": {
     "node": "24.x"
   },
@@ -11,42 +48,5 @@
       "platform:web",
       "framework:next"
     ]
-  },
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "start:ci-dev": "next dev --turbopack --hostname 0.0.0.0 --port 3000",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write",
-    "generate:categories": "node scripts/generate-categories.mjs",
-    "validate:token-usage": "node scripts/validate-token-usage.mjs"
-  },
-  "dependencies": {
-    "@medusajs/js-sdk": "^2.15.2",
-    "@medusajs/types": "^2.15.2",
-    "@tanstack/react-form": "^1.27.4",
-    "@tanstack/react-query": "^5.90.2",
-    "@techsio/analytics": "workspace:*",
-    "@techsio/ui-kit": "workspace:*",
-    "next": "16.3.0-preview.5",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "tailwind-variants": "^3.1.1"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.3.7",
-    "@iconify/tailwind4": "^1.0.6",
-    "@tailwindcss/postcss": "^4",
-    "@tanstack/react-query-devtools": "^5.90.2",
-    "@types/node": "^24.12.4",
-    "@types/react": "^19.2.3",
-    "@types/react-dom": "^19.2.3",
-    "dotenv": "^16.4.7",
-    "postcss": "^8.5.6",
-    "postcss-import": "^16.1.1",
-    "tailwindcss": "^4",
-    "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3"
   }
 }
