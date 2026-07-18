@@ -54,6 +54,356 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     }
   ),
   defineCatalogProductText(
+    "catalog.product_detail.errors.load_failed",
+    "Obecná chyba při načítání detailu produktu.",
+    {
+      cz: "Produkt se nepodařilo načíst.",
+      hu: "A terméket nem sikerült betölteni.",
+      ro: "Produsul nu a putut fi încărcat.",
+      sk: "Produkt sa nepodarilo načítať.",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.errors.not_found",
+    "Chyba pro nenalezený produkt.",
+    {
+      cz: "Produkt se nepodařilo najít.",
+      hu: "A termék nem található.",
+      ro: "Produsul nu a putut fi găsit.",
+      sk: "Produkt sa nepodarilo nájsť.",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.retry",
+    "Akce pro opakování načtení produktové plochy.",
+    {
+      cz: "Zkusit znovu",
+      hu: "Próbáld újra",
+      ro: "Încearcă din nou",
+      sk: "Skúsiť znova",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.back_home",
+    "Akce pro návrat z nenalezeného produktu na domovskou stránku.",
+    {
+      cz: "Zpět na domovskou stránku",
+      hu: "Vissza a főoldalra",
+      ro: "Înapoi la pagina principală",
+      sk: "Späť na domovskú stránku",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.price_on_request",
+    "Zástupný text ceny na detailu produktu.",
+    {
+      cz: "Cena na vyžádání",
+      hu: "Ár kérésre",
+      ro: "Preț la cerere",
+      sk: "Cena na vyžiadanie",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.information_title",
+    "Nadpis informačních sekcí na detailu produktu.",
+    {
+      cz: "Informace o produktu",
+      hu: "Termékinformációk",
+      ro: "Informații despre produs",
+      sk: "Informácie o produkte",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.description",
+    "Název sekce popisu produktu.",
+    { cz: "Popis", hu: "Leírás", ro: "Descriere", sk: "Popis" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.usage",
+    "Název sekce použití produktu.",
+    { cz: "Použití", hu: "Használat", ro: "Utilizare", sk: "Použitie" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.composition",
+    "Název sekce složení produktu.",
+    { cz: "Složení", hu: "Összetétel", ro: "Compoziție", sk: "Zloženie" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.warning",
+    "Název sekce upozornění produktu.",
+    { cz: "Upozornění", hu: "Figyelmeztetés", ro: "Avertisment", sk: "Upozornenie" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.other",
+    "Název sekce ostatních informací produktu.",
+    {
+      cz: "Ostatní informace",
+      hu: "Egyéb információk",
+      ro: "Alte informații",
+      sk: "Ostatné informácie",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.sections.content",
+    "Obecný název informační sekce produktu.",
+    { cz: "Obsah", hu: "Tartalom", ro: "Conținut", sk: "Obsah" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.variant_label",
+    "Label výběru varianty produktu.",
+    { cz: "Varianta", hu: "Változat", ro: "Variantă", sk: "Varianta" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.variant_placeholder",
+    "Zástupný text výběru varianty produktu.",
+    {
+      cz: "Vyberte variantu",
+      hu: "Válassz változatot",
+      ro: "Selectează varianta",
+      sk: "Vyberte variantu",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.stock.in_stock",
+    "Zástupný stav produktu skladem, když katalog neposkytne vlastní label.",
+    { cz: "Skladem", hu: "Raktáron", ro: "În stoc", sk: "Skladom" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.stock.out_of_stock",
+    "Zástupný stav vyprodaného produktu, když katalog neposkytne vlastní label.",
+    {
+      cz: "Momentálně není skladem",
+      hu: "Jelenleg nincs raktáron",
+      ro: "Momentan nu este în stoc",
+      sk: "Momentálne nie je skladom",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.delivery_by",
+    "Text očekávaného doručení produktu.",
+    {
+      cz: "u vás do {date}",
+      hu: "várható kézbesítés: {date}",
+      ro: "livrare până la {date}",
+      sk: "u vás do {date}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.free_shipping_over",
+    "Informace o hranici dopravy zdarma.",
+    {
+      cz: "Doprava zdarma nad {threshold}",
+      hu: "Ingyenes szállítás {threshold} felett",
+      ro: "Livrare gratuită peste {threshold}",
+      sk: "Doručenie zdarma nad {threshold}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.gallery.title",
+    "Přístupný název galerie produktu.",
+    {
+      cz: "Galerie produktu",
+      hu: "Termékgaléria",
+      ro: "Galeria produsului",
+      sk: "Galéria produktu",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.gallery.close_aria",
+    "Přístupný název akce pro zavření galerie produktu.",
+    {
+      cz: "Zavřít galerii",
+      hu: "Galéria bezárása",
+      ro: "Închide galeria",
+      sk: "Zavrieť galériu",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.gallery.image_alt",
+    "Zástupný alternativní text obrázku v galerii.",
+    {
+      cz: "Produkt ({index})",
+      hu: "Termék ({index})",
+      ro: "Produs ({index})",
+      sk: "Produkt ({index})",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.gallery.thumbnail_aria",
+    "Přístupný název miniatury v galerii produktu.",
+    {
+      cz: "Zobrazit obrázek {index} v galerii",
+      hu: "{index}. kép megjelenítése a galériában",
+      ro: "Afișează imaginea {index} în galerie",
+      sk: "Zobraziť obrázok {index} v galérii",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.advisor.image_alt",
+    "Alternativní text fotografie produktového poradce.",
+    {
+      cz: "Poradce Herbatika",
+      hu: "Herbatika tanácsadó",
+      ro: "Consilier Herbatika",
+      sk: "Poradca Herbatika",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.advisor.title",
+    "Nadpis výzvy ke kontaktování produktového poradce.",
+    {
+      cz: "Potřebujete poradit?",
+      hu: "Segítségre van szükséged?",
+      ro: "Ai nevoie de ajutor?",
+      sk: "Potrebujete poradiť?",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.advisor.description",
+    "Doplňující text produktového poradce.",
+    {
+      cz: "Kontaktujte nás, rádi vám pomůžeme",
+      hu: "Lépj kapcsolatba velünk, szívesen segítünk",
+      ro: "Contactează-ne, te ajutăm cu plăcere",
+      sk: "Kontaktujte nás, radi vám pomôžeme",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.vip_credit.title",
+    "Nadpis informace o VIP kreditu.",
+    { cz: "VIP kredit", hu: "VIP-jóváírás", ro: "Credit VIP", sk: "VIP kredit" }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.vip_credit.earned",
+    "Informace o kreditu získaném nákupem.",
+    {
+      cz: "Nákupem získáte {credit}",
+      hu: "A vásárlással {credit} jóváírást kapsz",
+      ro: "Primești {credit} prin această achiziție",
+      sk: "Nákupom získate {credit}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.quantity_aria",
+    "Přístupný název pole množství produktu.",
+    {
+      cz: "Množství pro {productName}",
+      hu: "Mennyiség ehhez: {productName}",
+      ro: "Cantitate pentru {productName}",
+      sk: "Množstvo pre {productName}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.bulk_discount.title",
+    "Nadpis a přístupný label množstevní slevy.",
+    {
+      cz: "Množstevní sleva",
+      hu: "Mennyiségi kedvezmény",
+      ro: "Reducere de volum",
+      sk: "Množstevná zľava",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.bulk_discount.option_title",
+    "Název nabídky množstevní slevy.",
+    {
+      cz: "Kupte {quantity} a ušetřete",
+      hu: "Vásárolj {quantity} darabot és spórolj",
+      ro: "Cumpără {quantity} și economisește",
+      sk: "Kúpte {quantity} a ušetrite",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.bulk_discount.per_unit",
+    "Cena za kus v nabídce množstevní slevy.",
+    {
+      cz: "{price} / kus",
+      hu: "{price} / db",
+      ro: "{price} / bucată",
+      sk: "{price} / kus",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.unit_price.per_day",
+    "Jednotková cena produktu za den.",
+    {
+      cz: "{price} / den",
+      hu: "{price} / nap",
+      ro: "{price} / zi",
+      sk: "{price} / deň",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.unit_price.excluding_vat",
+    "Jednotková cena produktu bez DPH.",
+    {
+      cz: "bez DPH: {price} / {unit}",
+      hu: "ÁFA nélkül: {price} / {unit}",
+      ro: "fără TVA: {price} / {unit}",
+      sk: "bez DPH: {price} / {unit}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.unit_price.per_unit",
+    "Jednotková cena produktu.",
+    {
+      cz: "{price} / {unit}",
+      hu: "{price} / {unit}",
+      ro: "{price} / {unit}",
+      sk: "{price} / {unit}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.media.doses",
+    "Tvar slova dávka podle počtu dávek produktu.",
+    {
+      cz: "{count, plural, one {dávka} few {dávky} other {dávek}}",
+      hu: "{count, plural, other {adag}}",
+      ro: "{count, plural, one {doză} few {doze} other {de doze}}",
+      sk: "{count, plural, one {dávka} few {dávky} many {dávky} other {dávok}}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.media.daily_capsules",
+    "Denní počet kapslí podle množství.",
+    {
+      cz: "{count, plural, one {tobolka denně} few {tobolky denně} other {tobolek denně}}",
+      hu: "{count, plural, other {kapszula naponta}}",
+      ro: "{count, plural, one {capsulă zilnic} few {capsule zilnic} other {de capsule zilnic}}",
+      sk: "{count, plural, one {kapsula denne} few {kapsuly denne} many {kapsuly denne} other {kapsúl denne}}",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.related.also_bought",
+    "Nadpis doporučení produktů zakoupených společně.",
+    {
+      cz: "Ostatní koupili také",
+      hu: "Mások ezeket is megvették",
+      ro: "Alții au cumpărat și",
+      sk: "Ďalšie kúpil tiež",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.related.products",
+    "Nadpis souvisejících produktů.",
+    {
+      cz: "Související produkty",
+      hu: "Kapcsolódó termékek",
+      ro: "Produse similare",
+      sk: "Súvisiace produkty",
+    }
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.related.found",
+    "Počet nalezených souvisejících produktů.",
+    {
+      cz: "Nalezeno: {count}",
+      hu: "Találatok: {count}",
+      ro: "Găsite: {count}",
+      sk: "Nájdené: {count}",
+    }
+  ),
+  defineCatalogProductText(
     "catalog.reviews.homepage_title",
     "Nadpis zákaznických hodnocení na souhrnné ploše.",
     {

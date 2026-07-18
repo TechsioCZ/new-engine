@@ -55,7 +55,7 @@ export function ProductDetailTabs({
   return (
     <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
       <h2 className="mb-400 font-semibold text-3xl text-fg-primary">
-        Informácie o produkte
+        {tCatalog("product_detail.information_title")}
       </h2>
 
       <div className="hidden lg:block">
@@ -90,10 +90,7 @@ export function ProductDetailTabs({
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                 <ProductDetailReviewsSlot productId={productId} />
               ) : (
-                <ProductDetailHtmlContent
-                  fallback="Obsah sekcie bude čoskoro doplnený."
-                  html={section.html}
-                />
+                <ProductDetailHtmlContent html={section.html} />
               )}
             </Tabs.Content>
           ))}
@@ -120,10 +117,7 @@ export function ProductDetailTabs({
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                   <ProductDetailReviewsSlot productId={productId} />
                 ) : (
-                  <ProductDetailHtmlContent
-                    fallback="Obsah sekcie bude čoskoro doplnený."
-                    html={section.html}
-                  />
+                  <ProductDetailHtmlContent html={section.html} />
                 )}
               </Accordion.Content>
             </Accordion.Item>

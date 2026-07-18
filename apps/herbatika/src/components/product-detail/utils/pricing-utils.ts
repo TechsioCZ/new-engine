@@ -19,7 +19,8 @@ import {
 export const resolvePriceState = (
   product: Product,
   selectedVariantId: string | null,
-  expectedCurrencyCode?: string | null
+  expectedCurrencyCode: string | null | undefined,
+  priceUnavailableLabel: string
 ): ProductPriceState => {
   const variants = product.variants ?? []
   const selectedVariant =
@@ -59,7 +60,7 @@ export const resolvePriceState = (
 
   if (typeof resolvedCalculatedAmount !== "number") {
     return {
-      currentLabel: "Cena na vyžiadanie",
+      currentLabel: priceUnavailableLabel,
       originalLabel: null,
       currentAmount: null,
       currentAmountWithoutTax: null,
@@ -145,6 +146,9 @@ export const resolveUnitPriceLabel = (params: {
   mediaFacts: ProductMediaFact[]
   unitLabel: string | null
   vatRate: number | null
+  formatPerDay: (price: string) => string
+  formatExcludingVatPerUnit: (price: string, unit: string) => string
+  formatPerUnit: (price: string, unit: string) => string
 }): string | null => {
   const {
     currentAmount,
@@ -153,6 +157,9 @@ export const resolveUnitPriceLabel = (params: {
     mediaFacts,
     unitLabel,
     vatRate,
+    formatPerDay,
+    formatExcludingVatPerUnit,
+    formatPerUnit,
   } = params
 
   if (typeof currentAmount !== "number") {
@@ -161,7 +168,9 @@ export const resolveUnitPriceLabel = (params: {
 
   const doseCount = resolveDoseCount(mediaFacts)
   if (typeof doseCount === "number") {
-    return `${formatCurrencyAmount(currentAmount / doseCount, currencyCode)} / deň`
+    return formatPerDay(
+      formatCurrencyAmount(currentAmount / doseCount, currencyCode)
+    )
   }
 
   if (!unitLabel) {
@@ -175,16 +184,23 @@ export const resolveUnitPriceLabel = (params: {
   })
 
   if (typeof resolvedAmountWithoutTax === "number") {
-    return `bez DPH: ${formatCurrencyAmount(resolvedAmountWithoutTax, currencyCode)} / ${unitLabel}`
+    return formatExcludingVatPerUnit(
+      formatCurrencyAmount(resolvedAmountWithoutTax, currencyCode),
+      unitLabel
+    )
   }
 
-  return `${formatCurrencyAmount(currentAmount, currencyCode)} / ${unitLabel}`
+  return formatPerUnit(formatCurrencyAmount(currentAmount, currencyCode), unitLabel)
 }
 
 export const resolveVolumeDiscountOptions = (
   currentAmount: number | null,
   currencyCode: string,
-  isEligible: boolean
+  isEligible: boolean,
+  labels: {
+    title: (quantity: number) => string
+    perUnit: (price: string) => string
+  }
 ): VolumeDiscountOption[] => {
   if (!isEligible || typeof currentAmount !== "number") {
     return []
@@ -202,13 +218,15 @@ export const resolveVolumeDiscountOptions = (
 
     return {
       id: `quantity-tier-${option.quantity}`,
-      title: `Kúpte ${option.quantity} a ušetrite`,
+      title: labels.title(option.quantity),
       quantity: option.quantity,
       totalAmountLabel: formatCurrencyAmount(
         discountedTotalAmount,
         currencyCode
       ),
-      perUnitLabel: `${formatCurrencyAmount(discountedUnitAmount, currencyCode)} / kus`,
+      perUnitLabel: labels.perUnit(
+        formatCurrencyAmount(discountedUnitAmount, currencyCode)
+      ),
       oldTotalAmountLabel:
         discountedTotalAmount < originalTotalAmount
           ? formatCurrencyAmount(originalTotalAmount, currencyCode)

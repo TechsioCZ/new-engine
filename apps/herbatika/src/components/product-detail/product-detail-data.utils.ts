@@ -12,8 +12,6 @@ import {
   asString,
 } from "@/components/product-detail/utils/value-utils"
 
-const PRODUCT_SUMMARY_FALLBACK = "Popis produktu bude čoskoro doplnený."
-
 export const resolveSelectedVariant = (
   variants: HttpTypes.StoreProductVariant[],
   selectedVariantId: string | null
@@ -70,7 +68,7 @@ export const resolveProductSummaryText = (
   }
 
   const descriptionText = stripHtml(product?.description)
-  return descriptionText || PRODUCT_SUMMARY_FALLBACK
+  return descriptionText
 }
 
 export const resolveProductBreadcrumbItems = (
@@ -80,13 +78,14 @@ export const resolveProductBreadcrumbItems = (
   homeLabel: string
 ): HerbatikaBreadcrumbItem[] => {
   const primaryCategory = productCategories[0]
+  const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
 
   return [
     { label: homeLabel, href: "/", icon: "token-icon-home" },
-    ...(primaryCategory?.handle
+    ...(primaryCategory?.handle && primaryCategoryName
       ? [
           {
-            label: normalizeCategoryName(primaryCategory.name),
+            label: primaryCategoryName,
             href: `/c/${primaryCategory.handle}`,
           },
         ]

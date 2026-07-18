@@ -8,6 +8,7 @@ import {
   type GalleryItem,
   type GalleryValueChangeDetails,
 } from "@techsio/ui-kit/organisms/gallery"
+import { useTranslations } from "next-intl"
 import { FallbackImage } from "@/components/fallback-image"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
@@ -26,12 +27,15 @@ export function ProductDetailGalleryLightbox({
   open,
   value,
 }: ProductDetailGalleryLightboxProps) {
+  const tCatalog = useTranslations("catalog")
   const maxIndex = Math.max(items.length - 1, 0)
   const safeValue = Math.min(value, maxIndex)
   const hasMultipleImages = items.length > 1
   const lightboxItems: GalleryItem[] = items.map((item, index) => {
     const imageSrc = item.src || FALLBACK_IMAGE_SRC
-    const imageAlt = item.alt || `Produkt (${index + 1})`
+    const imageAlt =
+      item.alt ||
+      tCatalog("product_detail.gallery.image_alt", { index: index + 1 })
 
     return {
       ...item,
@@ -82,11 +86,11 @@ export function ProductDetailGalleryLightbox({
         open={open}
         placement="right"
         portal={false}
-        title="Galéria produktu"
+        title={tCatalog("product_detail.gallery.title")}
       >
         <div className="relative h-dvh max-h-dvh overflow-hidden p-300 text-fg-reverse">
           <ActionIcon
-            aria-label="Zavrieť galériu"
+            aria-label={tCatalog("product_detail.gallery.close_aria")}
             className="absolute top-300 right-300 z-2 bg-transparent text-fg-reverse hover:text-primary focus-visible:outline-fg-reverse active:bg-fg-reverse/25"
             icon="token-icon-close"
             onClick={handleClose}
@@ -104,7 +108,9 @@ export function ProductDetailGalleryLightbox({
             }}
             className="h-full min-h-0"
             getThumbnailAriaLabel={({ index }) =>
-              `Zobraziť obrázok ${index + 1} v galérii`
+              tCatalog("product_detail.gallery.thumbnail_aria", {
+                index: index + 1,
+              })
             }
             items={lightboxItems}
             onValueChange={handleValueChange}
