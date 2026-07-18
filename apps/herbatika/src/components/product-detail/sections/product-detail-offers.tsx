@@ -21,7 +21,8 @@ export function ProductDetailOffers({
   options,
   selectedOptionId,
 }: ProductDetailOffersProps) {
-  const t = useTranslations("cart")
+  const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
 
   if (options.length === 0) {
     return null
@@ -30,7 +31,7 @@ export function ProductDetailOffers({
   return (
     <section className="min-w-0 space-y-350 sm:p-550">
       <h2 className="font-semibold text-fg-primary text-xl">
-        Množstevná zľava
+        {tCatalog("product_detail.bulk_discount.title")}
       </h2>
 
       <div className="flex min-w-0 flex-col gap-y-350 rounded-base bg-surface p-400 sm:p-550">
@@ -49,7 +50,7 @@ export function ProductDetailOffers({
           variant="subtle"
         >
           <RadioCard.Label className="sr-only">
-            Množstevná zľava
+            {tCatalog("product_detail.bulk_discount.title")}
           </RadioCard.Label>
 
           {options.map((option) => {
@@ -91,11 +92,11 @@ export function ProductDetailOffers({
           disabled={!selectedOptionId}
           icon="token-icon-cart"
           isLoading={isAdding}
-          loadingText={t("adding_to_cart")}
+          loadingText={tCart("adding_to_cart")}
           onClick={onAddToCart}
           variant="primary"
         >
-          {t("add_to_cart")}
+          {tCart("add_to_cart")}
         </Button>
       </div>
     </section>

@@ -1,6 +1,5 @@
 import {
   RELATED_PRODUCTS_PER_SECTION,
-  RELATED_RECOMMENDATION_SECTION_TITLES,
 } from "@/components/product-detail/product-detail.constants"
 import type {
   Product,
@@ -135,9 +134,10 @@ const fillSectionProducts = (
 }
 
 export const resolveRelatedSections = (
-  products: Product[]
+  products: Product[],
+  sectionTitles: readonly string[]
 ): RelatedProductsSection[] => {
-  const recommendationSections = RELATED_RECOMMENDATION_SECTION_TITLES.map(
+  const recommendationSections = sectionTitles.map(
     (title, sectionIndex) => ({
       id: `related-${sectionIndex}`,
       title,

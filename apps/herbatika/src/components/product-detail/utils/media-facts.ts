@@ -21,36 +21,6 @@ const DAILY_CAPSULE_PATTERNS = [
   /(?:odporúčaná|odporucana|denná|denna)[^.]{0,60}?(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/i,
 ]
 
-const resolveDoseWord = (count: number) => {
-  const mod10 = count % 10
-  const mod100 = count % 100
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return "dávka"
-  }
-
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return "dávky"
-  }
-
-  return "dávok"
-}
-
-const resolveCapsuleWord = (count: number) => {
-  const mod10 = count % 10
-  const mod100 = count % 100
-
-  if (mod10 === 1 && mod100 !== 11) {
-    return "kapsula"
-  }
-
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return "kapsuly"
-  }
-
-  return "kapsúl"
-}
-
 const parsePositiveInt = (value: string | undefined): number | null => {
   if (!value) {
     return null
@@ -167,7 +137,11 @@ const collectTexts = (
 
 export const resolveProductMediaFacts = (
   product: Product | null,
-  sections: ProductDetailContentSection[]
+  sections: ProductDetailContentSection[],
+  labels: {
+    doses: (count: number) => string
+    dailyCapsules: (count: number) => string
+  }
 ): ProductMediaFact[] => {
   const texts = collectTexts(product, sections)
   if (texts.length === 0) {
@@ -188,13 +162,13 @@ export const resolveProductMediaFacts = (
       id: "doses",
       icon: "token-icon-calendar",
       value: `${doses}`,
-      label: resolveDoseWord(doses),
+      label: labels.doses(doses),
     },
     {
       id: "daily-intake",
       icon: "token-icon-pill",
       value: `${safeDailyDose}`,
-      label: `${resolveCapsuleWord(safeDailyDose)} denne`,
+      label: labels.dailyCapsules(safeDailyDose),
     },
   ]
 }
