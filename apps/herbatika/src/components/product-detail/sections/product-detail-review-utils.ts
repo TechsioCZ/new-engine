@@ -4,43 +4,42 @@ import type { ProductReview } from "@/lib/storefront/reviews"
 export const PRODUCT_DETAIL_REVIEWS_SECTION_ID = "product-detail-reviews"
 export const PRODUCT_DETAIL_REVIEWS_TAB_VALUE = "reviews"
 
-export const formatReviewScore = (value: number) =>
-  value.toLocaleString("sk-SK", {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  })
-
-export const formatReviewCount = (count: number) =>
-  count.toLocaleString("sk-SK")
-
-const formatReviewDate = (value?: string) => {
+const resolveReviewDate = (value?: string) => {
   if (!value) {
-    return ""
+    return null
   }
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
-    return ""
+    return null
   }
 
-  return new Intl.DateTimeFormat("sk-SK", {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  }).format(date)
+  return date
 }
 
-const resolveReviewAuthor = (review: ProductReview) => {
+const resolveReviewAuthor = (
+  review: ProductReview,
+  anonymousLabel: string
+) => {
   const firstName = review.customer?.first_name?.trim()
   const lastName = review.customer?.last_name?.trim()
   const author = [firstName, lastName].filter(Boolean).join(" ")
 
-  return author || "Anonymne"
+  return author || anonymousLabel
 }
 
-export const toReviewItem = (review: ProductReview): ReviewItem => ({
-  author: resolveReviewAuthor(review),
-  dateLabel: formatReviewDate(review.created_at),
+export const toReviewItem = (
+  review: ProductReview,
+  presentation: {
+    anonymousLabel: string
+    formatDate: (date: Date) => string
+  }
+): ReviewItem => ({
+  author: resolveReviewAuthor(review, presentation.anonymousLabel),
+  dateLabel: (() => {
+    const date = resolveReviewDate(review.created_at)
+    return date ? presentation.formatDate(date) : ""
+  })(),
   id: review.id,
   message: review.content,
   rating: review.rating,

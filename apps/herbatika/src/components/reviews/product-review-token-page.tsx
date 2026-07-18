@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
 import {
@@ -29,6 +30,7 @@ export function ProductReviewTokenPage({
   productId,
   token,
 }: ProductReviewTokenPageProps) {
+  const tCatalog = useTranslations("catalog")
   const normalizedProductId = productId?.trim() ?? ""
   const [formResetKey, setFormResetKey] = useState(0)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -43,10 +45,29 @@ export function ProductReviewTokenPage({
   const product = productQuery.products[0] ?? null
   const productHref = product?.handle ? `/p/${product.handle}` : null
   const backHref = productHref ?? "/"
-  const backLabel = productHref ? "Späť na produkt" : "Späť do obchodu"
+  const backLabel = productHref
+    ? tCatalog("reviews.token.back_to_product")
+    : tCatalog("reviews.token.back_to_store")
+  const reviewErrorMessages = {
+    authRequired: tCatalog("reviews.errors.auth_required"),
+    contentRequired: tCatalog("reviews.errors.content_required"),
+    duplicate: tCatalog("reviews.errors.duplicate"),
+    forbidden: tCatalog("reviews.errors.forbidden"),
+    generic: tCatalog("reviews.errors.generic"),
+    purchaseRequired: tCatalog("reviews.errors.purchase_required"),
+    ratingRequired: tCatalog("reviews.errors.rating_required"),
+    titleInvalid: tCatalog("reviews.errors.title_invalid"),
+    tokenExpired: tCatalog("reviews.errors.token_expired"),
+    tokenMismatch: tCatalog("reviews.errors.token_mismatch"),
+    tokenNotFound: tCatalog("reviews.errors.token_not_found"),
+    tokenUsed: tCatalog("reviews.errors.token_used"),
+    validation: tCatalog("reviews.errors.validation"),
+  }
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
-      setSubmitError(resolveProductReviewSubmitErrorMessage(error))
+      setSubmitError(
+        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages)
+      )
     },
     onSuccess: () => {
       setFormResetKey((current) => current + 1)
@@ -74,7 +95,11 @@ export function ProductReviewTokenPage({
 
     return "ready"
   })()
-  const productStatusMessage = resolveProductStatusMessage(productStatus)
+  const productStatusMessage = resolveProductStatusMessage(productStatus, {
+    loadFailed: tCatalog("reviews.token.product_load_failed"),
+    loading: tCatalog("reviews.token.product_loading"),
+    notFound: tCatalog("reviews.token.product_not_found"),
+  })
 
   const handleSubmit = ({
     content,
@@ -82,7 +107,7 @@ export function ProductReviewTokenPage({
     title,
   }: ProductReviewFormSubmitValues) => {
     if (!normalizedProductId) {
-      setSubmitError("Odkaz na hodnotenie neobsahuje produkt.")
+      setSubmitError(tCatalog("reviews.token.missing_product"))
       return
     }
 
@@ -102,19 +127,19 @@ export function ProductReviewTokenPage({
       <section className="mx-auto flex w-full max-w-3xl flex-col gap-400 rounded-sm border border-border-secondary bg-surface p-500 shadow-sm sm:p-600">
         <header className="space-y-150">
           <p className="font-semibold text-fg-secondary text-sm">
-            Hodnotenie nákupu
+            {tCatalog("reviews.token.eyebrow")}
           </p>
           <h1 className="font-bold text-2xl text-fg-primary">
-            Napísať recenziu
+            {tCatalog("reviews.dialog_title")}
           </h1>
           <p className="text-fg-secondary text-sm">
-            Recenzia sa zobrazí po schválení.
+            {tCatalog("reviews.pending_description")}
           </p>
         </header>
 
         {productStatus === "missing-product-id" ? (
           <StatusText showIcon status="error">
-            Odkaz na hodnotenie neobsahuje produkt.
+            {tCatalog("reviews.token.missing_product")}
           </StatusText>
         ) : null}
 
@@ -126,7 +151,9 @@ export function ProductReviewTokenPage({
 
         {product ? (
           <div className="space-y-100 border-border-secondary border-y py-300">
-            <p className="text-fg-secondary text-sm">Hodnotený produkt</p>
+            <p className="text-fg-secondary text-sm">
+              {tCatalog("reviews.token.product_label")}
+            </p>
             {productHref ? (
               <NextLink
                 className="font-semibold text-fg-primary underline underline-offset-2"
@@ -143,7 +170,7 @@ export function ProductReviewTokenPage({
         {isSubmitted ? (
           <div className="space-y-300">
             <StatusText showIcon status="success">
-              Ďakujeme za recenziu. Po schválení sa zobrazí pri produkte.
+              {tCatalog("reviews.submit_success")}
             </StatusText>
             <LinkButton
               as={NextLink}
@@ -170,10 +197,11 @@ export function ProductReviewTokenPage({
                 disabled={isBusy}
                 form={REVIEW_TOKEN_FORM_ID}
                 isLoading={isBusy}
+                loadingText={tCatalog("reviews.submitting")}
                 type="submit"
                 variant="primary"
               >
-                Odoslať recenziu
+                {tCatalog("reviews.submit")}
               </Button>
               <LinkButton
                 as={NextLink}

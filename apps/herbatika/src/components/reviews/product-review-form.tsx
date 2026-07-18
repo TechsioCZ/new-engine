@@ -3,6 +3,7 @@
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
+import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import { buildProductReviewTitle } from "@/components/reviews/product-review-errors"
 
@@ -35,7 +36,13 @@ const defaultValues: ProductReviewFormValues = {
   rating: null,
 }
 
-const validateReviewForm = (values: ProductReviewFormValues) => {
+const validateReviewForm = (
+  values: ProductReviewFormValues,
+  messages: {
+    contentMinLength: string
+    ratingRequired: string
+  }
+) => {
   const errors: ProductReviewFormErrors = {}
 
   if (
@@ -44,11 +51,11 @@ const validateReviewForm = (values: ProductReviewFormValues) => {
     values.rating < 1 ||
     values.rating > 5
   ) {
-    errors.rating = "Vyberte hodnotenie od 1 do 5 hviezdičiek."
+    errors.rating = messages.ratingRequired
   }
 
   if (values.content.trim().length < REVIEW_CONTENT_MIN_LENGTH) {
-    errors.content = `Napíšte aspoň ${REVIEW_CONTENT_MIN_LENGTH} znakov.`
+    errors.content = messages.contentMinLength
   }
 
   return errors
@@ -61,6 +68,7 @@ export function ProductReviewForm({
   submitError,
   onSubmit,
 }: ProductReviewFormProps) {
+  const tCatalog = useTranslations("catalog")
   const [errors, setErrors] = useState<ProductReviewFormErrors>({})
   const [values, setValues] = useState<ProductReviewFormValues>(defaultValues)
 
@@ -73,7 +81,13 @@ export function ProductReviewForm({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    const nextErrors = validateReviewForm(values)
+    const nextErrors = validateReviewForm(values, {
+      contentMinLength: tCatalog(
+        "reviews.form.content_min_length_validation",
+        { min: REVIEW_CONTENT_MIN_LENGTH }
+      ),
+      ratingRequired: tCatalog("reviews.form.rating_validation"),
+    })
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length > 0) {
@@ -112,7 +126,7 @@ export function ProductReviewForm({
           allowHalf={false}
           disabled={disabled}
           id={`${formId}-rating`}
-          labelText="Hodnotenie"
+          labelText={tCatalog("reviews.form.rating_label")}
           name="rating"
           onChange={(rating) => {
             setValues((current) => ({
@@ -134,10 +148,13 @@ export function ProductReviewForm({
       <FormTextarea
         disabled={disabled}
         helpText={
-          errors.content ?? `Minimálne ${REVIEW_CONTENT_MIN_LENGTH} znakov.`
+          errors.content ??
+          tCatalog("reviews.form.content_min_length_help", {
+            min: REVIEW_CONTENT_MIN_LENGTH,
+          })
         }
         id={`${formId}-content`}
-        label="Recenzia"
+        label={tCatalog("reviews.form.content_label")}
         maxLength={1000}
         onChange={(event) => {
           setValues((current) => ({
