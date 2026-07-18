@@ -5,7 +5,9 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import type { Route } from "next"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { HerbatikaLogo } from "./herbatika-logo"
 
 type FooterNavigationLink =
@@ -27,6 +29,8 @@ type FooterColumn = {
 
 const giftVoucherHref = "/c/darceky" as Route
 const brandListingHref = "/znacka" as Route
+const formatMarketDomain = (domain: string) =>
+  `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
@@ -109,6 +113,9 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "RO", icon: "token-icon-ro" },
 ]
 export function HerbatikaFooter() {
+  const t = useTranslations("navigation")
+  const marketContext = useMarketContext()
+
   return (
     <Footer direction="vertical">
       <Footer.Container className="mx-auto grid-cols-1 gap-x-0 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
@@ -200,15 +207,19 @@ export function HerbatikaFooter() {
 
       <Footer.Bottom className="mx-auto max-w-footer-max flex-wrap items-center gap-400">
         <Footer.Text className="leading-normal">
-          Copyright 2025{" "}
-          <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
-          práva vyhradené.{" "}
+          {t.rich("footer.copyright", {
+            brand: (chunks) => (
+              <strong className="text-fg-primary">{chunks}</strong>
+            ),
+            domain: formatMarketDomain(marketContext.domain),
+            year: new Date().getFullYear(),
+          })}{" "}
           <Footer.Link
             as={NextLink}
             className="text-primary underline"
             href="/#cookies"
           >
-            Upraviť nastavenie cookies
+            {t("footer.cookie_settings")}
           </Footer.Link>
         </Footer.Text>
 

@@ -24,6 +24,28 @@ export const STOREFRONT_NAVIGATION_TEXT_DEFINITIONS = [
     },
   },
   {
+    description: "Text autorských práv v patičce.",
+    key: "navigation.footer.copyright",
+    namespace: "navigation",
+    values: {
+      cz: "Copyright {year} <brand>{domain}.</brand> Všechna práva vyhrazena.",
+      hu: "Copyright {year} <brand>{domain}.</brand> Minden jog fenntartva.",
+      ro: "Copyright {year} <brand>{domain}.</brand> Toate drepturile rezervate.",
+      sk: "Copyright {year} <brand>{domain}.</brand> Všetky práva vyhradené.",
+    },
+  },
+  {
+    description: "Odkaz pro úpravu nastavení cookies v patičce.",
+    key: "navigation.footer.cookie_settings",
+    namespace: "navigation",
+    values: {
+      cz: "Upravit nastavení cookies",
+      hu: "Cookie-beállítások módosítása",
+      ro: "Modifică setările cookie-urilor",
+      sk: "Upraviť nastavenie cookies",
+    },
+  },
+  {
     description: "Label odkazu pro spuštění zákaznického chatu.",
     key: "navigation.start_chat",
     namespace: "navigation",
