@@ -9,6 +9,7 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
 import NextLink from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import type { FocusEvent, FormEvent } from "react"
 import { useState } from "react"
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart"
@@ -43,6 +44,8 @@ const resolveRootHandleFromHref = (href: string) => {
 
 export function HerbatikaHeader() {
   const router = useRouter()
+  const t = useTranslations("navigation")
+  const tAuth = useTranslations("auth")
   const region = useRegionContext()
   const [activeRootHandle, setActiveRootHandle] = useState<string | null>(null)
 
@@ -130,7 +133,7 @@ export function HerbatikaHeader() {
           </Link>
 
           <LinkButton
-            aria-label="Obľúbené zoznamy"
+            aria-label={tAuth("account.navigation.lists")}
             as={NextLink}
             className="text-3xl text-fg-secondary hover:text-primary"
             href="/account/lists"
@@ -191,7 +194,7 @@ export function HerbatikaHeader() {
       >
         <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between px-header-lg 2xl:px-header-2xl">
           <Header.Nav
-            aria-label="Hlavná navigácia"
+            aria-label={t("primary_aria")}
             className="flex-nowrap overflow-x-auto [scrollbar-width:none] md:h-full [&::-webkit-scrollbar]:hidden"
             size="sm"
           >
