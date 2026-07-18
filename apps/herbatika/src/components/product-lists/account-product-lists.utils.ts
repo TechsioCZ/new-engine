@@ -16,17 +16,16 @@ import {
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
 
-const UNAVAILABLE_PRICE_LABEL = "Nie je dostupné"
-
 export type ProductListPriceSummary = {
-  totalWithTaxLabel: string
-  totalWithoutTaxLabel: string
+  totalWithTaxLabel: string | null
+  totalWithoutTaxLabel: string | null
 }
 
 export type ProductListItemAvailability = {
-  badgeLabel: string | null
+  availableQuantity: number | null
   badgeVariant: "danger" | "warning"
   canAddToCart: boolean
+  status: "limited_stock" | "out_of_stock" | "product_unavailable" | null
 }
 
 export type ProductListAvailableItem = {
@@ -35,16 +34,16 @@ export type ProductListAvailableItem = {
 }
 
 export type ProductListAvailabilitySummary = {
-  addToCartLabel: string
   canAddAnyToCart: boolean
   canAddWholeList: boolean
   purchasableItems: ProductListAvailableItem[]
   skippedCount: number
-  statusLabel: string | null
-  statusVariant: "danger" | "warning"
 }
 
-export const sortProductLists = (lists: StoreProductList[]) =>
+export const sortProductLists = (
+  lists: StoreProductList[],
+  labels: { favorite: string; untitled: string }
+) =>
   [...lists].sort((first, second) => {
     if (isFavoriteProductList(first)) {
       return -1
@@ -54,7 +53,9 @@ export const sortProductLists = (lists: StoreProductList[]) =>
       return 1
     }
 
-    return getProductListTitle(first).localeCompare(getProductListTitle(second))
+    return getProductListTitle(first, labels).localeCompare(
+      getProductListTitle(second, labels)
+    )
   })
 
 export const uniqueProductIds = (items: StoreProductListItem[]) =>
@@ -121,9 +122,10 @@ export const resolveProductListItemAvailability = (
 ): ProductListItemAvailability => {
   if (!product) {
     return {
-      badgeLabel: "Produkt nie je dostupný",
+      availableQuantity: null,
       badgeVariant: "danger",
       canAddToCart: false,
+      status: "product_unavailable",
     }
   }
 
@@ -133,35 +135,37 @@ export const resolveProductListItemAvailability = (
 
   if (!(inventory.hasVariant && inventory.hasPrice)) {
     return {
-      badgeLabel: "Produkt nie je dostupný",
+      availableQuantity: null,
       badgeVariant: "danger",
       canAddToCart: false,
+      status: "product_unavailable",
     }
   }
 
   if (!inventory.isInStock) {
     return {
-      badgeLabel: "Momentálne nie je skladom",
+      availableQuantity: inventory.availableQuantity,
       badgeVariant: "warning",
       canAddToCart: false,
+      status: "out_of_stock",
     }
   }
 
   if (!inventory.isPurchasable) {
     return {
-      badgeLabel:
-        inventory.availableQuantity === null
-          ? "Momentálne nie je skladom"
-          : `Dostupné len ${inventory.availableQuantity} ks`,
+      availableQuantity: inventory.availableQuantity,
       badgeVariant: "warning",
       canAddToCart: false,
+      status:
+        inventory.availableQuantity === null ? "out_of_stock" : "limited_stock",
     }
   }
 
   return {
-    badgeLabel: null,
+    availableQuantity: inventory.availableQuantity,
     badgeVariant: "warning",
     canAddToCart: true,
+    status: null,
   }
 }
 
@@ -184,27 +188,14 @@ export const resolveProductListAvailabilitySummary = (params: {
   }
 
   const totalCount = params.items.length
-  const purchasableCount = purchasableItems.length
-  const canAddAnyToCart = purchasableCount > 0
+  const canAddAnyToCart = purchasableItems.length > 0
   const canAddWholeList = totalCount > 0 && skippedCount === 0
-  let addToCartLabel = "Žiadne dostupné položky"
-  if (canAddWholeList) {
-    addToCartLabel = "Pridať všetko do košíka"
-  } else if (canAddAnyToCart) {
-    addToCartLabel = "Pridať dostupné do košíka"
-  }
 
   return {
-    addToCartLabel,
     canAddAnyToCart,
     canAddWholeList,
     purchasableItems,
     skippedCount,
-    statusLabel:
-      skippedCount > 0
-        ? `Momentálne nedostupné položky: ${skippedCount}`
-        : null,
-    statusVariant: canAddAnyToCart ? "warning" : "danger",
   }
 }
 
@@ -302,10 +293,10 @@ export const resolveProductListPriceSummary = (params: {
     totalWithTaxLabel:
       typeof resolvedTotalWithTaxAmount === "number"
         ? formatCurrencyAmount(resolvedTotalWithTaxAmount, currencyCode)
-        : UNAVAILABLE_PRICE_LABEL,
+        : null,
     totalWithoutTaxLabel:
       typeof resolvedTotalWithoutTaxAmount === "number"
         ? formatCurrencyAmount(resolvedTotalWithoutTaxAmount, currencyCode)
-        : UNAVAILABLE_PRICE_LABEL,
+        : null,
   }
 }

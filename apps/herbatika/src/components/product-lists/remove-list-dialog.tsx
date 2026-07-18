@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { useTranslations } from "next-intl"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { getProductListTitle } from "@/lib/storefront/product-lists"
 import type { AccountProductListsController } from "./use-account-product-lists"
@@ -11,6 +12,14 @@ type RemoveListDialogProps = {
 }
 
 export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
+  const tAuth = useTranslations("auth")
+  const deleteListTitle = accountLists.deleteList
+    ? getProductListTitle(accountLists.deleteList, {
+        favorite: tAuth("product_lists.favorite_title"),
+        untitled: tAuth("product_lists.untitled_list"),
+      })
+    : ""
+
   return (
     <Dialog
       actions={
@@ -23,7 +32,7 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
             type="button"
             variant="secondary"
           >
-            Zrušiť
+            {tAuth("product_lists.actions.cancel")}
           </Button>
           <Button
             disabled={accountLists.deleteListMutation.isPending}
@@ -36,13 +45,13 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
             type="button"
             variant="danger"
           >
-            Zmazať zoznam
+            {tAuth("product_lists.actions.delete_list")}
           </Button>
         </>
       }
       className="shadow-md"
       customTrigger
-      description="Zoznam bude odstránený vrátane uložených položiek."
+      description={tAuth("product_lists.delete_description")}
       hideCloseButton
       onOpenChange={({ open }) => {
         if (!open) {
@@ -52,11 +61,13 @@ export function RemoveListDialog({ accountLists }: RemoveListDialogProps) {
       open={Boolean(accountLists.deleteList)}
       role="alertdialog"
       size="sm"
-      title={`Zmazať zoznam ${
-        accountLists.deleteList
-          ? getProductListTitle(accountLists.deleteList)
+      title={
+        deleteListTitle
+          ? tAuth("product_lists.delete_title", {
+              listTitle: deleteListTitle,
+            })
           : ""
-      }?`}
+      }
     />
   )
 }

@@ -1,5 +1,6 @@
 import { STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS } from "./definitions/account-orders"
 import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
+import { STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS } from "./definitions/catalog-product"
 import { STOREFRONT_CATALOG_TEXT_DEFINITIONS } from "./definitions/catalog"
 import { STOREFRONT_CHECKOUT_CART_TEXT_DEFINITIONS } from "./definitions/checkout-cart"
 import { STOREFRONT_CHECKOUT_COMPLETED_ORDER_TEXT_DEFINITIONS } from "./definitions/checkout-completed-order"
@@ -12,6 +13,7 @@ import { STOREFRONT_CHECKOUT_REVIEW_TEXT_DEFINITIONS } from "./definitions/check
 import { STOREFRONT_CHECKOUT_SIDEBAR_TEXT_DEFINITIONS } from "./definitions/checkout-sidebar"
 import { STOREFRONT_FORM_TEXT_DEFINITIONS } from "./definitions/form"
 import { STOREFRONT_NAVIGATION_TEXT_DEFINITIONS } from "./definitions/navigation"
+import { STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS } from "./definitions/product-lists"
 import { STOREFRONT_SEARCH_TEXT_DEFINITIONS } from "./definitions/search"
 import { STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS } from "./definitions/search-results"
 
@@ -793,7 +795,9 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
   ...STOREFRONT_CHECKOUT_SIDEBAR_TEXT_DEFINITIONS,
   ...STOREFRONT_FORM_TEXT_DEFINITIONS,
   ...STOREFRONT_CATALOG_TEXT_DEFINITIONS,
+  ...STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS,
   ...STOREFRONT_NAVIGATION_TEXT_DEFINITIONS,
+  ...STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS,
   ...STOREFRONT_SEARCH_TEXT_DEFINITIONS,
   ...STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS,
 ] as const satisfies readonly StorefrontTextDefinition[]
