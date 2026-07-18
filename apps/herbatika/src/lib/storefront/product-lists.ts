@@ -33,6 +33,7 @@ import {
   isProductInProductList as isSharedProductInProductList,
   resolveProductListItemQuantity as resolveSharedProductListItemQuantity,
 } from "@techsio/storefront-data/product-lists/utils"
+import { useTranslations } from "next-intl"
 import { resolveErrorMessage } from "./error-utils"
 import { storefront } from "./storefront"
 
@@ -99,12 +100,20 @@ export const findProductListItem = (
 export const resolveProductListItemQuantity = (item: StoreProductListItem) =>
   resolveSharedProductListItemQuantity(item)
 
-export const getProductListTitle = (list?: StoreProductList | null) => {
+export type ProductListTitleLabels = {
+  favorite: string
+  untitled: string
+}
+
+export const getProductListTitle = (
+  list: StoreProductList | null | undefined,
+  labels: ProductListTitleLabels
+) => {
   if (isFavoriteProductList(list)) {
-    return "Obľúbené"
+    return labels.favorite
   }
 
-  return list?.title?.trim() || "Zoznam"
+  return list?.title?.trim() || labels.untitled
 }
 
 type ProductListDetailOptions = {
@@ -116,6 +125,7 @@ export function useProductLists(
   input: ProductListListInput = {},
   options?: Parameters<typeof productListHooks.useProductLists>[1]
 ) {
+  const tAuth = useTranslations("auth")
   const result = productListHooks.useProductLists(input, options)
 
   return {
@@ -123,7 +133,7 @@ export function useProductLists(
     error: result.query.error
       ? resolveErrorMessage(
           result.query.error,
-          "Zoznamy sa nepodarilo načítať."
+          tAuth("product_lists.errors.lists_load_failed")
         )
       : null,
   }
@@ -133,6 +143,7 @@ export function useProductList(
   id?: string | null,
   options?: ProductListDetailOptions
 ) {
+  const tAuth = useTranslations("auth")
   const result = productListHooks.useProductList({
     customerId: options?.customerId,
     enabled: options?.enabled,
@@ -142,7 +153,10 @@ export function useProductList(
   return {
     ...result,
     error: result.query.error
-      ? resolveErrorMessage(result.query.error, "Zoznam sa nepodarilo načítať.")
+      ? resolveErrorMessage(
+          result.query.error,
+          tAuth("product_lists.errors.list_load_failed")
+        )
       : null,
   }
 }

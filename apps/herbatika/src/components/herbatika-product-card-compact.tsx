@@ -2,6 +2,7 @@
 
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import {
   type HerbatikaProductCardBaseProps,
@@ -20,9 +21,13 @@ export function HerbatikaProductCardCompact({
   onProductHoverEnd,
   onProductHoverStart,
 }: HerbatikaProductCardCompactProps) {
+  const tCatalog = useTranslations("catalog")
   const { handleImageError, imageSrc, price, productHref, title } =
-    useHerbatikaProductCardState(product, () => {
-      onCompactImageError?.(product)
+    useHerbatikaProductCardState(product, {
+      priceUnavailableLabel: tCatalog("product_card.price_on_request"),
+      onImageError: () => {
+        onCompactImageError?.(product)
+      },
     })
 
   return (
