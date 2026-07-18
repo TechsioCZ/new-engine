@@ -1,0 +1,13 @@
+id: no-error-message-branching
+valid:
+  - |
+    if (error instanceof DomainError && error.code === "LOCK_TIMEOUT") retry()
+  - |
+    const message = error.message
+invalid:
+  - |
+    if (error.message.includes("Timed-out")) retry()
+  - |
+    if (error.message === "Not found") return null
+  - |
+    if (error.message.startsWith("Missing")) reject()

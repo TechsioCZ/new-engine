@@ -38,10 +38,10 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
 
       - name: Set Nx SHAs
         uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
@@ -92,13 +92,13 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-          scope: '@techsio'
+          scope: "@techsio"
 
       - name: Update npm (trusted publishing needs >= 11.5.1)
         run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit...
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=@techsio/ui-kit...
 
       - name: Build UI package
         run: pnpm -C libs/ui build

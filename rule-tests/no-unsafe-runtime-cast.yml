@@ -1,0 +1,11 @@
+id: no-unsafe-runtime-cast
+valid:
+  - |
+    const value = parsePayload(input)
+  - |
+    const record = window as unknown as Record<string, unknown>
+invalid:
+  - |
+    const customer = payload as unknown as Customer
+  - |
+    return response as unknown as Product[]

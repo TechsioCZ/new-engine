@@ -10,11 +10,6 @@ on:
       - "pnpm-lock.yaml"
       - "scripts/install-storybook-playwright.mjs"
   workflow_dispatch:
-    inputs:
-      failOnViolations:
-        description: "Fail workflow when a11y violations are found"
-        required: false
-        default: "true"
 
 permissions:
   contents: read
@@ -23,6 +18,7 @@ jobs:
   detect-a11y-changes:
     runs-on: ubuntu-latest
     outputs:
+      baseline-changed: ${{ steps.changed-paths.outputs.baseline-changed }}
       should-run: ${{ steps.changed-paths.outputs.should-run }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -35,13 +31,19 @@ jobs:
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "baseline-changed=false" >> "$GITHUB_OUTPUT"
             echo "should-run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
+          baseline_changed=false
           should_run=false
           while IFS= read -r file; do
             case "$file" in
+              libs/ui/a11y-baseline.json)
+                baseline_changed=true
+                should_run=true
+                ;;
               .github/workflows/storybook-a11y.yml|\
               .github/workflows/storybook-a11y-baseline.yml|\
               package.json|\
@@ -59,15 +61,42 @@ jobs:
               libs/ui/stories/**|\
               libs/ui/tsconfig.json)
                 should_run=true
-                break
                 ;;
             esac
           done < <(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
 
+          echo "baseline-changed=$baseline_changed" >> "$GITHUB_OUTPUT"
           echo "should-run=$should_run" >> "$GITHUB_OUTPUT"
           if [ "$should_run" = "false" ]; then
             echo "No Storybook a11y-relevant paths changed; skipping Storybook build and scan." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+  authorize-baseline-change:
+    name: Authorize accessibility baseline change
+    needs: detect-a11y-changes
+    if: needs.detect-a11y-changes.outputs.baseline-changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Require a successful authorized baseline workflow run
+        env:
+          BASELINE_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/storybook-a11y-baseline.yml/runs?event=workflow_dispatch&per_page=100" \
+            --jq '.workflow_runs[] | select(.head_sha == env.BASELINE_SHA and .conclusion == "success") | .id' \
+            | grep -q .; then
+            echo "Baseline change authorized by a successful workflow_dispatch run at ${BASELINE_SHA}." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error file=libs/ui/a11y-baseline.json::Accessibility baseline changes require a successful authorized run of .github/workflows/storybook-a11y-baseline.yml at PR head SHA ${BASELINE_SHA}. Run: gh workflow run storybook-a11y-baseline.yml --ref ${HEAD_REF}"
+          exit 1
 
   storybook-a11y:
     needs: detect-a11y-changes
@@ -93,14 +122,16 @@ jobs:
       # hanging. ubuntu-latest already ships Chromium's system libs (no
       # --with-deps needed). Install through Storybook's own Playwright so the
       # downloaded browser revision always matches the test-runner runtime.
-      install-command: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...' && timeout 420 node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
+      install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
-      globals-template: 'theme:{{theme}}'
+      globals-template: "theme:{{theme}}"
       a11y-output-dir: a11y-report
-      fail-on-violations: ${{ fromJSON(github.event.inputs.failOnViolations || vars.A11Y_REPORT_FAIL_ON_VIOLATIONS || 'false') }}
+      # The reusable scan reports violations but cannot enforce baseline deltas.
+      # A separate job below compares its artifact with the committed fingerprint baseline.
+      fail-on-violations: false
       write-junit: true
       wait-ms: 30000 # 30s based on observed Storybook startup time in CI
       test-workers: 2 # keep load stable on GitHub-hosted runners
@@ -112,3 +143,43 @@ jobs:
       baseline-branch: master
       baseline-label: master
       baseline-artifact-prefix: storybook-a11y-baseline
+
+  a11y-regression:
+    name: Accessibility regression gate
+    needs:
+      - authorize-baseline-change
+      - detect-a11y-changes
+      - storybook-a11y
+    if: >-
+      always() && needs.detect-a11y-changes.outputs.should-run == 'true' && needs.storybook-a11y.result == 'success' && (needs.detect-a11y-changes.outputs.baseline-changed != 'true' || needs.authorize-baseline-change.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch immutable base accessibility baseline
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          BASELINE_PATH: ${{ runner.temp }}/storybook-a11y-base/a11y-baseline.json
+        run: |
+          install -d -m 0755 "$(dirname "$BASELINE_PATH")"
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          if ! git show "${BASE_SHA}:libs/ui/a11y-baseline.json" > "$BASELINE_PATH"; then
+            echo "::error file=libs/ui/a11y-baseline.json::The base commit ${BASE_SHA} has no accessibility baseline. Bootstrap it through the authorized .github/workflows/storybook-a11y-baseline.yml workflow before enabling this gate."
+            exit 1
+          fi
+          chmod 0444 "$BASELINE_PATH"
+          chmod 0555 "$(dirname "$BASELINE_PATH")"
+      - name: Download Storybook accessibility report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-a11y-report
+          path: storybook-a11y-report
+      - name: Reject accessibility regressions against base
+        env:
+          BASELINE_PATH: ${{ runner.temp }}/storybook-a11y-base/a11y-baseline.json
+        run: node libs/ui/scripts/storybook-a11y-regression.mjs --report-root storybook-a11y-report --baseline "$BASELINE_PATH" --fail-on-new

@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: true
+  commands:
+    format-and-lint:
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc,css,scss,md,mdx,yml,yaml}"
+      run: mise exec node@24 -- node scripts/hooks/pre-commit.mjs {staged_files}
+      fail_text: "Staged files failed fast formatting or lint checks."
+
+pre-push:
+  commands:
+    quality:
+      run: mise exec node@24 -- node scripts/hooks/pre-push.mjs {0} {1}
+      use_stdin: true
+      fail_text: "Changed files or chained pre-push checks failed."

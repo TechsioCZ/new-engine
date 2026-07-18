@@ -2,5 +2,60 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./scripts/typescript/projects/apps/frontend-demo/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/herbatika/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/medusa-be/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/medusa-be/tsconfig.tests.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/medusa-be/src/admin/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/medusa-order-dashboard-plugin/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/medusa-symmy-plugin/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/n1/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/new-engine-ctl/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/payload/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/apps/zane-operator/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/analytics/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/storefront-data/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/storefront-data/tsconfig.build.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/storefront-data/tsconfig.test.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/storefront-data/tsconfig.type-tests.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/std/tsconfig.json"
+    },
+    {
+      "path": "./scripts/typescript/projects/libs/ui/tsconfig.json"
+    }
+  ]
 }

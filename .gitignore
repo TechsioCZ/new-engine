@@ -34,8 +34,7 @@ node_modules
 npm-debug.log
 testem.log
 /typings
-tsconfig.tsbuildinfo
-tsconfig.type-tests.tsbuildinfo
+*.tsbuildinfo
 storybook-static
 /reports/
 

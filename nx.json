@@ -32,28 +32,9 @@
       "{workspaceRoot}/tsconfig.base.json",
       "{workspaceRoot}/tsconfig.json"
     ],
-    "lintTooling": [
-      "workspaceTooling",
-      "{workspaceRoot}/biome.json",
-      "{workspaceRoot}/eslint.config.ts",
-      "{workspaceRoot}/eslint.nx.config.cjs"
-    ],
+    "lintTooling": ["workspaceTooling", "{workspaceRoot}/biome.json"],
     "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
   },
-  "plugins": [
-    {
-      "plugin": "@nx/js/typescript",
-      "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        },
-        "build": {
-          "targetName": "build",
-          "configName": "tsconfig.lib.json"
-        }
-      }
-    }
-  ],
   "targetDefaults": {
     "lint": {
       "cache": true,

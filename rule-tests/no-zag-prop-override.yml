@@ -1,0 +1,11 @@
+id: no-zag-prop-override
+valid:
+  - |
+    <div {...props} {...api.getRootProps()}>Content</div>
+  - |
+    <div className={root()} {...api.getRootProps()}>Content</div>
+invalid:
+  - |
+    <div {...api.getRootProps()} {...props}>Content</div>
+  - |
+    <button className={trigger()} {...api.getTriggerProps()} {...props}>Open</button>

@@ -80,13 +80,16 @@ log_info "Working directory: $PROJECT_ROOT"
 step_start
 log_info "Step 1/5: Cleaning up unused apps and libs..."
 
-# Remove all apps except medusa-be and its workspace plugin dependencies, and remove all libs
+# Keep only Medusa and the workspace packages it imports. Removing libs/std
+# breaks @techsio/std subpath resolution during the backend build.
 find apps -maxdepth 1 -mindepth 1 -type d \
   ! -name 'medusa-be' \
   ! -name 'medusa-symmy-plugin' \
   ! -name 'medusa-order-dashboard-plugin' \
   -exec rm -rf {} + || true
-rm -rf libs || true
+find libs -maxdepth 1 -mindepth 1 -type d \
+  ! -name 'std' \
+  -exec rm -rf {} + || true
 
 # Clean existing node_modules and .medusa to ensure fresh build
 rm -rf \
@@ -109,10 +112,10 @@ pnpm install --frozen-lockfile --prefer-offline --filter=medusa-be...
 step_end "Install"
 
 # ============================================
-# Step 3: Build Medusa
+# Step 3: Build workspace dependencies and Medusa
 # ============================================
 step_start
-log_info "Step 3/5: Building Medusa..."
+log_info "Step 3/5: Building workspace dependencies and Medusa..."
 
 # Use placeholder secrets for build-time validation only.
 # Medusa validates these exist but doesn't use them cryptographically during build.
@@ -163,6 +166,19 @@ if [[ -n "${FEATURE_PACKETA_ENABLED:-}" ]]; then
 else
   log_warn "FEATURE_PACKETA_ENABLED not set - Packeta module will NOT be included in build"
 fi
+
+# Build injected workspace packages before Medusa reads their published exports.
+# This prevents stale injected copies and missing plugin/.std build artifacts.
+log_info "Building Medusa workspace dependencies..."
+run_with_low_priority pnpm --filter=@techsio/std --filter=medusa-symmy-plugin --filter=medusa-order-dashboard-plugin --workspace-concurrency=1 run build
+
+# Refresh injected workspace copies after their artifacts exist. The install is
+# offline and lockfile-frozen, so it only relinks the already-resolved packages.
+pnpm install --offline --frozen-lockfile --filter=medusa-be...
+
+# Remove generated output again so the backend build cannot consume stale files
+# left by an earlier local or cached build.
+rm -rf apps/medusa-be/.medusa
 
 log_info "Running: MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm --filter=medusa-be build"
 

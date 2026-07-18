@@ -2,131 +2,132 @@
 
 ### Requirements:
 
-* Docker compose + Docker
-  * For Mac, <a href="https://orbstack.dev/">OrbStack</a> is recommended instead of Docker Desktop
-* mise
-  * add trust to the project folder with `mise trust`
-  * install repo-managed tools with `mise install`
-  * activate mise in your shell (for example `eval "$(mise activate bash)"` or your shell equivalent) so repo-managed tools win on `PATH`
-  * `dev:init` ensures the `pnpm` version pinned in `package.json` is installed for the active mise-managed Node toolchain when missing
+- Docker compose + Docker
+  - For Mac, <a href="https://orbstack.dev/">OrbStack</a> is recommended instead of Docker Desktop
+- mise
+  - add trust to the project folder with `mise trust`
+  - install repo-managed tools with `mise install`
+  - activate mise in your shell (for example `eval "$(mise activate bash)"` or your shell equivalent) so repo-managed tools win on `PATH`
+  - `dev:init` ensures the `pnpm` version pinned in `package.json` is installed for the active mise-managed Node toolchain when missing
 
 ### Steps
 
 1. <b>Initialize the local stack</b> (first run, or whenever you want to rebuild local bootstrap state)
 
-    ```shell
-    mise run dev:init
-    ```
+   ```shell
+   mise run dev:init
+   ```
 
-    `dev:init` is the first half of the local startup flow. It:
-    * creates `.env` from `.env.docker` when `.env` is missing
-    * stops immediately until `.env` contains non-empty `DC_SUPERADMIN_EMAIL` and `DC_SUPERADMIN_PASSWORD` values
-    * prepares the local Postgres bind-mount folders so `medusa-db` can bootstrap while the database process still runs as the `postgres` user
-    * runs `mise run dev:install`
-    * starts shared resources
-    * runs Medusa DB migrations before starting `medusa-be`
-    * creates the Medusa admin user from `DC_SUPERADMIN_EMAIL` / `DC_SUPERADMIN_PASSWORD`
-    * runs `mise run dev:medusa:seed`
+   `dev:init` is the first half of the local startup flow. It:
+   - creates `.env` from `.env.docker` when `.env` is missing
+   - stops immediately until `.env` contains non-empty `DC_SUPERADMIN_EMAIL` and `DC_SUPERADMIN_PASSWORD` values
+   - prepares the local Postgres bind-mount folders so `medusa-db` can bootstrap while the database process still runs as the `postgres` user
+   - runs `mise run dev:install`
+   - starts shared resources
+   - runs Medusa DB migrations before starting `medusa-be`
+   - creates the Medusa admin user from `DC_SUPERADMIN_EMAIL` / `DC_SUPERADMIN_PASSWORD`
+   - runs `mise run dev:medusa:seed`
 
-    If you also use the Zane-targeted helper scripts, copy `.env` to `.env.zane` once and keep Zane-specific values there.
+   If you also use the Zane-targeted helper scripts, copy `.env` to `.env.zane` once and keep Zane-specific values there.
 
 2. <b>Bring the full local stack to steady state</b>
 
-    ```shell
-    mise run dev
-    ```
+   ```shell
+   mise run dev
+   ```
 
-    `dev` is the normal incremental/start-or-heal path after initialization. It runs in order:
-    1. resources (`medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`)
-    2. Meilisearch key provisioning
-    3. Medusa DB migrations
-    4. `medusa-be`
-    5. `n1`
+   `dev` is the normal incremental/start-or-heal path after initialization. It runs in order:
+   1. resources (`medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`)
+   2. Meilisearch key provisioning
+   3. Medusa DB migrations
+   4. `medusa-be`
+   5. `n1`
 
-    Common follow-up tasks stay on the public `mise` surface:
-    * rerun first-time bootstrap from the top: `mise run dev:init`
-    * non-destructive restart from a stopped stack: `mise run dev:fresh`
-    * stop the stack: `mise run dev:down`
-    * destructive reset that also removes named volumes: `mise run dev:down:volumes`
-    * enable the optional operator profile: `mise run dev:operator`
-    * rerun Postgres bootstrap: `mise run dev:postgres:bootstrap`
-    * verify Postgres bootstrap idempotency: `mise run dev:postgres:bootstrap:verify`
-    * verify hardened Postgres grants: `mise run dev:postgres:grants:verify`
+   Common follow-up tasks stay on the public `mise` surface:
+   - rerun first-time bootstrap from the top: `mise run dev:init`
+   - non-destructive restart from a stopped stack: `mise run dev:fresh`
+   - stop the stack: `mise run dev:down`
+   - destructive reset that also removes named volumes: `mise run dev:down:volumes`
+   - enable the optional operator profile: `mise run dev:operator`
+   - rerun Postgres bootstrap: `mise run dev:postgres:bootstrap`
+   - verify Postgres bootstrap idempotency: `mise run dev:postgres:bootstrap:verify`
+   - verify hardened Postgres grants: `mise run dev:postgres:grants:verify`
 
-    During `dev` startup, `.env` handling is opinionated:
-    * if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
-    * if existing values differ, you are prompted to `override` or `keep`
-    * Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl meili-api-credentials`; only `mise run dev` performs `.env` sync logic
-    * `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
+   During `dev` startup, `.env` handling is opinionated:
+   - if `DC_MEILISEARCH_BACKEND_API_KEY` / `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` are empty, values are written
+   - if existing values differ, you are prompted to `override` or `keep`
+   - Meilisearch key policy/provisioning is owned by `apps/new-engine-ctl meili-api-credentials`; only `mise run dev` performs `.env` sync logic
+   - `mise run dev` calls provisioning against host URL `http://127.0.0.1:7700` by default (override via `MISE_DEV_MEILI_URL`) so `DC_MEILISEARCH_HOST` can remain container-internal (`http://medusa-meilisearch:7700`)
 
-    * Postgres role bootstrap (`medusa_app`, `medusa_dev`, `zane_operator`) runs automatically from `medusa-db` startup via `/usr/local/bin/run-postgres-with-bootstrap.sh`
-    * MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with bucket-scoped permissions limited to the Medusa bucket
-    * Meilisearch now starts through an in-image bootstrap wrapper (idempotent, swarm-safe) before serving traffic
-    * `medusa-minio` uses dedicated MinIO bootstrap env (`MINIO_ROOT_*` + `MINIO_MEDUSA_*`) to avoid deprecated MinIO server env collisions
-    * `medusa-meilisearch` continues to use shared Medusa env plus service-specific Meili env
-    * `medusa-db` now owns `zane_operator` role/template bootstrap and derives that target from the canonical `DC_ZANE_OPERATOR_*` DB settings
-    * `medusa-db` health now means both Postgres readiness and completed role/template bootstrap; operator startup waits on that full convergence
-    * `mise run dev:operator` reruns Postgres bootstrap in the running `medusa-db` container with the current `DC_ZANE_OPERATOR_*` values before starting `zane-operator`, so enabling or rotating operator DB creds does not require a DB restart
-    * Default `mise run dev` does not require operator credentials; operator flow is explicit opt-in and requires:
-      * `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
-      * `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
-      * `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
+   - Postgres role bootstrap (`medusa_app`, `medusa_dev`, `zane_operator`) runs automatically from `medusa-db` startup via `/usr/local/bin/run-postgres-with-bootstrap.sh`
+   - MinIO bootstrap now runs inside `medusa-minio` startup (idempotent): it ensures `DC_MINIO_BUCKET` exists, enforces public object reads, and provisions a non-root Medusa runtime key with bucket-scoped permissions limited to the Medusa bucket
+   - Meilisearch now starts through an in-image bootstrap wrapper (idempotent, swarm-safe) before serving traffic
+   - `medusa-minio` uses dedicated MinIO bootstrap env (`MINIO_ROOT_*` + `MINIO_MEDUSA_*`) to avoid deprecated MinIO server env collisions
+   - `medusa-meilisearch` continues to use shared Medusa env plus service-specific Meili env
+   - `medusa-db` now owns `zane_operator` role/template bootstrap and derives that target from the canonical `DC_ZANE_OPERATOR_*` DB settings
+   - `medusa-db` health now means both Postgres readiness and completed role/template bootstrap; operator startup waits on that full convergence
+   - `mise run dev:operator` reruns Postgres bootstrap in the running `medusa-db` container with the current `DC_ZANE_OPERATOR_*` values before starting `zane-operator`, so enabling or rotating operator DB creds does not require a DB restart
+   - Default `mise run dev` does not require operator credentials; operator flow is explicit opt-in and requires:
+     - `DC_ZANE_OPERATOR_API_AUTH_TOKEN=<replace-with-long-random-token>`
+     - `DC_ZANE_OPERATOR_PGPASSWORD=<replace-with-strong-db-password>`
+     - `DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET=<replace-with-long-random-secret>`
 
-    To exercise the deploy-wrapper endpoints locally as well, also set:
-      * `DC_ZANE_OPERATOR_ZANE_BASE_URL=<upstream-zane-url>`
-      * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL=<optional-container-reachable-upstream-url>`
-      * `DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER=<optional-host-header-for-connect-url>`
-      * `DC_ZANE_OPERATOR_ZANE_USERNAME=<upstream-zane-username>`
-      * `DC_ZANE_OPERATOR_ZANE_PASSWORD=<upstream-zane-password>`
+   To exercise the deploy-wrapper endpoints locally as well, also set:
+   - `DC_ZANE_OPERATOR_ZANE_BASE_URL=<upstream-zane-url>`
+   - `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL=<optional-container-reachable-upstream-url>`
+   - `DC_ZANE_OPERATOR_ZANE_CONNECT_HOST_HEADER=<optional-host-header-for-connect-url>`
+   - `DC_ZANE_OPERATOR_ZANE_USERNAME=<upstream-zane-username>`
+   - `DC_ZANE_OPERATOR_ZANE_PASSWORD=<upstream-zane-password>`
 
-    First-time upstream ZaneOps setup assumptions for local deploy testing:
-      * `DC_ZANE_OPERATOR_ZANE_BASE_URL` must point at the upstream ZaneOps UI/API root you actually log into, for example `http://localhost:3000`
-      * `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` / `...HOST_HEADER` should stay empty by default; they are only needed when the deployed `zane-operator` cannot reach the public Zane hostname directly, such as this local Docker-based Zane stack
-      * `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
-      * create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_PROJECT_SLUG`
-      * each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
-      * service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `payload`, `n1`
-      * preview environments are derived in CI script space as `pr-<number>` by default
-      * preview teardown is explicit in this repo's CI flow; do not rely on built-in Zane preview auto-teardown for these cloned environments
+   First-time upstream ZaneOps setup assumptions for local deploy testing:
+   - `DC_ZANE_OPERATOR_ZANE_BASE_URL` must point at the upstream ZaneOps UI/API root you actually log into, for example `http://localhost:3000`
+   - `DC_ZANE_OPERATOR_ZANE_CONNECT_BASE_URL` / `...HOST_HEADER` should stay empty by default; they are only needed when the deployed `zane-operator` cannot reach the public Zane hostname directly, such as this local Docker-based Zane stack
+   - `DC_ZANE_OPERATOR_ZANE_USERNAME` / `DC_ZANE_OPERATOR_ZANE_PASSWORD` are the login credentials for that ZaneOps instance; `zane-operator` uses session + CSRF login upstream, not a direct Zane token
+   - create one canonical Zane project and note its slug; local CI-style deploy tests use that slug as `ZANE_PROJECT_SLUG`
+   - each Zane project gets a protected `production` environment by default; preview clones in this repo always use that environment as the base
+   - service names in that Zane project must match `apps/new-engine-ctl/config/stack-manifest.yaml` currently: `medusa-db`, `medusa-valkey`, `medusa-minio`, `medusa-meilisearch`, `medusa-be`, `payload`, `n1`
+   - preview environments are derived in CI script space as `pr-<number>` by default
+   - preview teardown is explicit in this repo's CI flow; do not rely on built-in Zane preview auto-teardown for these cloned environments
 
-    When you run the deploy scripts manually later, export:
-      * `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
-      * `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
-      * `ZANE_PROJECT_SLUG=<your-zane-project-slug>`
-      * `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
+   When you run the deploy scripts manually later, export:
+   - `ZANE_OPERATOR_BASE_URL=http://localhost:8082`
+   - `ZANE_OPERATOR_API_TOKEN=<same value as DC_ZANE_OPERATOR_API_AUTH_TOKEN>`
+   - `ZANE_PROJECT_SLUG=<your-zane-project-slug>`
+   - `ZANE_PRODUCTION_ENVIRONMENT_NAME=production`
 
-    If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
+   If your Postgres volume already existed before this change, rerun Postgres bootstrap once after setting the operator password:
 
-    ```shell
-    mise run dev:postgres:bootstrap
-    ```
+   ```shell
+   mise run dev:postgres:bootstrap
+   ```
 
-    Optional idempotency check (runs bootstrap twice):
+   Optional idempotency check (runs bootstrap twice):
 
-    ```shell
-    mise run dev:postgres:bootstrap:verify
-    ```
+   ```shell
+   mise run dev:postgres:bootstrap:verify
+   ```
 
-    Optional grant hardening check (read-only verification):
+   Optional grant hardening check (read-only verification):
 
-    ```shell
-    mise run dev:postgres:grants:verify
-    ```
+   ```shell
+   mise run dev:postgres:grants:verify
+   ```
 
-    * Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
-    * Medusa BE DB connection is derived from `DC_MEDUSA_APP_DB_*`; keep those on app credentials (`medusa_app`), not superuser credentials
-    * `MEDUSA_DATABASE_SCHEMA` / `DATABASE_SCHEMA` are derived from `DC_MEDUSA_APP_DB_SCHEMA` and must stay aligned with app schema grants
-    * `medusa-db` starts with `-c file_copy_method=clone`; zane-operator preview cloning uses `CREATE DATABASE ... STRATEGY=FILE_COPY`
+   - Existing DB migration note: bootstrap includes idempotent legacy-object migration from `public` schema into `DC_MEDUSA_APP_DB_SCHEMA` (default `medusa`), with conflict fail-fast if same object already exists in target schema.
+   - Medusa BE DB connection is derived from `DC_MEDUSA_APP_DB_*`; keep those on app credentials (`medusa_app`), not superuser credentials
+   - `MEDUSA_DATABASE_SCHEMA` / `DATABASE_SCHEMA` are derived from `DC_MEDUSA_APP_DB_SCHEMA` and must stay aligned with app schema grants
+   - `medusa-db` starts with `-c file_copy_method=clone`; zane-operator preview cloning uses `CREATE DATABASE ... STRATEGY=FILE_COPY`
 
 ### Cloud predeploy note
 
 `zane_operator` role/template bootstrap is now owned by `medusa-db`, not `zane-operator`.
 
 Operational consequence:
-* rotating `zane-operator` DB credentials requires updating both:
-  * `medusa-db` bootstrap envs
-  * `zane-operator` runtime envs
-* then redeploy `medusa-db` first so it can reconcile the role/template state before redeploying `zane-operator`
+
+- rotating `zane-operator` DB credentials requires updating both:
+  - `medusa-db` bootstrap envs
+  - `zane-operator` runtime envs
+- then redeploy `medusa-db` first so it can reconcile the role/template state before redeploying `zane-operator`
 
 ### GitHub approval requirement
 
@@ -135,8 +136,9 @@ Main-lane deploys now resolve downtime risk once after affected-service filterin
 If any affected service is marked with `ci.zane.downtime_risk: true` in `apps/new-engine-ctl/config/stack-manifest.yaml`, the workflow expects a GitHub environment named `zaneops-main-downtime`.
 
 To make the workflow actually pause for human approval:
-* create the `zaneops-main-downtime` environment in GitHub
-* configure required reviewers on that environment
+
+- create the `zaneops-main-downtime` environment in GitHub
+- configure required reviewers on that environment
 
 Without required reviewers, the approval job still runs, but it will not enforce a real manual pause on its own.
 
@@ -151,100 +153,90 @@ When DB env wiring changes, apply these actions manually on the live `.env` file
 5. Restart services that consume `.env`.
 6. Validate with one read and one write operation from medusa-be.
 
-4. <b>Migrate database</b> (if needed)
-    * <i>(optional)</i> `medusa` schema needs to exist, which it should, unless it was manually dropped
-    ```shell
-    mise run dev:medusa:migrate
-    ```
+7. <b>Migrate database</b> (if needed)
+   - <i>(optional)</i> `medusa` schema needs to exist, which it should, unless it was manually dropped
 
-5. <b>Create user for medusa admin</b> (if needed)
-    ```shell
-    EMAIL=[some@email.com] PASSWORD=[PASSWORD] mise run dev:medusa:user:create
-    ```
-
-6. <b>Prepare file storage</b> (automatic in compose; manual fallback only if needed)
-    ```shell
-    mise run dev:medusa:minio:init
-    ```
-
-7. <b>Seed initial data</b> (only first time)
-    * seeded data also add regions that are required to be set
-    * optionally this step can be skipped, but you need to manually add at least 1 region in medusa BE settings page
    ```shell
-   mise run dev:medusa:seed
+   mise run dev:medusa:migrate
    ```
 
-8. <b>Create & set PUBLISHABLE_API_KEY</b> for Store front (only first time)
-    * Restart services (commands below)
-    * Go to <a href="http://localhost:9000/app">localhost:9000/app</a>
-    * Login via user created in previous step
-    * Go to settings -> Publishable API Keys
-    * Create or copy existing key
-    * Update DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
-    * Restart services
+8. <b>Create user for medusa admin</b> (if needed)
+
+   ```shell
+   EMAIL=[some@email.com] PASSWORD=[PASSWORD] mise run dev:medusa:user:create
+   ```
+
+9. <b>Prepare file storage</b> (automatic in compose; manual fallback only if needed)
+
+   ```shell
+   mise run dev:medusa:minio:init
+   ```
+
+10. <b>Seed initial data</b> (only first time)
+    - seeded data also add regions that are required to be set
+    - optionally this step can be skipped, but you need to manually add at least 1 region in medusa BE settings page
+
     ```shell
-   mise run dev:down
-   mise run dev
+    mise run dev:medusa:seed
     ```
 
-8b. <b>Verify scoped Meilisearch keys</b> (manual helper only)
-    * local via `mise`:
+11. <b>Create & set PUBLISHABLE_API_KEY</b> for Store front (only first time)
+    - Restart services (commands below)
+    - Go to <a href="http://localhost:9000/app">localhost:9000/app</a>
+    - Login via user created in previous step
+    - Go to settings -> Publishable API Keys
+    - Create or copy existing key
+    - Update DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY in .env
+    - Restart services
     ```shell
-   mise run dev:meili:verify
+    mise run dev:down
+    mise run dev
     ```
-    * `dev:meili:verify` remains a thin helper because the current contract check is “compare provided key values to the active CLI-managed outputs”
-    * local `.env` sync still uses `scripts/dev/provision-meili-keys.sh`, but that helper is now just a thin wrapper over `apps/new-engine-ctl meili-api-credentials`
-    * main-lane Meili API credential reconciliation now happens inside deploy orchestration, not in a standalone main `prepare` phase
-    * the remaining `scripts/dev/*` Meili commands are helper surfaces, not policy owners
-    * provider policy lives in `apps/new-engine-ctl/config/stack-inputs.yaml`, not in shell scripts
+
+8b. <b>Verify scoped Meilisearch keys</b> (manual helper only) * local via `mise`: `shell    mise run dev:meili:verify     ` * `dev:meili:verify` remains a thin helper because the current contract check is “compare provided key values to the active CLI-managed outputs” * local `.env` sync still uses `scripts/dev/provision-meili-keys.sh`, but that helper is now just a thin wrapper over `apps/new-engine-ctl meili-api-credentials` * main-lane Meili API credential reconciliation now happens inside deploy orchestration, not in a standalone main `prepare` phase * the remaining `scripts/dev/*` Meili commands are helper surfaces, not policy owners * provider policy lives in `apps/new-engine-ctl/config/stack-inputs.yaml`, not in shell scripts
 
 9. <b>Explore local envs</b>
-    * N1 FE should be available at:
-        * <a href="http://localhost:8000">localhost:8000</a>
-        * <a href="https://n1.medusa.localhost">https://n1.medusa.localhost</a>
-    * Medusa BE should be available at:
-        * <a href="http://localhost:9000/app">localhost:9000/app</a>
-        * <sup>(1)</sup><a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a>
-    * Minio console should be available at:
-        * <a href="http://localhost:9003">localhost:9003</a>
-        * <a href="https://admin.minio.localhost">https://admin.minio.localhost</a>
-            * credentials: `DC_MINIO_ROOT_USER`/`DC_MINIO_ROOT_PASSWORD` (defaults: `minioadmin`/`minioadmin`)
-            * Medusa runtime should use `DC_MINIO_ACCESS_KEY`/`DC_MINIO_SECRET_KEY` (non-root identity; object-level policy only)
-    * Meilisearch console should be available at:
-        * <a href="http://localhost:7700">localhost:7700</a>
-        * <a href="https://admin.meilisearch.localhost">https://admin.meilisearch.localhost</a>
-            * credentials: `DC_MEILISEARCH_MASTER_KEY`
-            * backend key: `DC_MEILISEARCH_BACKEND_API_KEY` (scoped, server-only)
-            * frontend key: `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` (read-only search key, never master)
-            * (optional) if plugin was disabled before adding products:
-                * `mise run dev:medusa:meili:reseed`
-    * zane-operator should be available at:
-        * <a href="http://localhost:8082/healthz">localhost:8082/healthz</a>
-        * optional local-stack Caddy route: <a href="https://admin.zane-operator.localhost/healthz">https://admin.zane-operator.localhost/healthz</a>
-            * bearer token: `DC_ZANE_OPERATOR_API_AUTH_TOKEN`
-    * Redis compatible ValKey storage can be connected at `localhost:6379`
-        * password: `DC_VALKEY_PASSWORD` (default in `.env`: `valkey_dev_change_me`)
-    * Postgres DB can be connected at `localhost:5432`
-        * default credentials: `root`/`root`
-        * adminer can be accessed on <a href="http://localhost:8081">localhost:8081</a>
+   - N1 FE should be available at:
+     - <a href="http://localhost:8000">localhost:8000</a>
+     - <a href="https://n1.medusa.localhost">https://n1.medusa.localhost</a>
+   - Medusa BE should be available at:
+     - <a href="http://localhost:9000/app">localhost:9000/app</a>
+     - <sup>(1)</sup><a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a>
+   - Minio console should be available at:
+     - <a href="http://localhost:9003">localhost:9003</a>
+     - <a href="https://admin.minio.localhost">https://admin.minio.localhost</a>
+       - credentials: `DC_MINIO_ROOT_USER`/`DC_MINIO_ROOT_PASSWORD` (defaults: `minioadmin`/`minioadmin`)
+       - Medusa runtime should use `DC_MINIO_ACCESS_KEY`/`DC_MINIO_SECRET_KEY` (non-root identity; object-level policy only)
+   - Meilisearch console should be available at:
+     - <a href="http://localhost:7700">localhost:7700</a>
+     - <a href="https://admin.meilisearch.localhost">https://admin.meilisearch.localhost</a>
+       - credentials: `DC_MEILISEARCH_MASTER_KEY`
+       - backend key: `DC_MEILISEARCH_BACKEND_API_KEY` (scoped, server-only)
+       - frontend key: `DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY` (read-only search key, never master)
+       - (optional) if plugin was disabled before adding products:
+         - `mise run dev:medusa:meili:reseed`
+   - zane-operator should be available at:
+     - <a href="http://localhost:8082/healthz">localhost:8082/healthz</a>
+     - optional local-stack Caddy route: <a href="https://admin.zane-operator.localhost/healthz">https://admin.zane-operator.localhost/healthz</a>
+       - bearer token: `DC_ZANE_OPERATOR_API_AUTH_TOKEN`
+   - Redis compatible ValKey storage can be connected at `localhost:6379`
+     - password: `DC_VALKEY_PASSWORD` (default in `.env`: `valkey_dev_change_me`)
+   - Postgres DB can be connected at `localhost:5432`
+     - default credentials: `root`/`root`
+     - adminer can be accessed on <a href="http://localhost:8081">localhost:8081</a>
 
-* <sup>(1)</sup> Caddyfile currently works inside of docker, and SSL cert is not exposed to host system,
-  Admin for Medusa BE fails to connect websockets for Vite server due to SSL errors when visiting
-  `https://admin.medusa.localhost/app`.
+- <sup>(1)</sup> Caddyfile currently works inside of docker, and SSL cert is not exposed to host system, Admin for Medusa BE fails to connect websockets for Vite server due to SSL errors when visiting `https://admin.medusa.localhost/app`.
 
 10. <b>Optional steps</b>
 
-* Due to Server side rendering on FE and Client side rendering on BE for images, BE images are broken unless you
-  edit hosts file on your host machine and add `127.0.0.1 medusa-minio` record
-    * the issue is described here: <a href="https://github.com/curl/curl/issues/11104">curl/issues/11104</a>
+- Due to Server side rendering on FE and Client side rendering on BE for images, BE images are broken unless you edit hosts file on your host machine and add `127.0.0.1 medusa-minio` record
+  - the issue is described here: <a href="https://github.com/curl/curl/issues/11104">curl/issues/11104</a>
 
 ---
 
 ## Local Postgres 18 Upgrade (Safe Path)
 
-Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now pins Postgres via
-`docker/development/postgres/Dockerfile` (currently `postgres:18.1-alpine`) and stores cluster files in
-`./.docker_data/db18` (mounted to `/var/lib/postgresql`, with `PGDATA=/var/lib/postgresql/18/docker`).
+Postgres Docker image `18+` changed its default `PGDATA` layout. This repo now pins Postgres via `docker/development/postgres/Dockerfile` (currently `postgres:18.1-alpine`) and stores cluster files in `./.docker_data/db18` (mounted to `/var/lib/postgresql`, with `PGDATA=/var/lib/postgresql/18/docker`).
 
 If you already have local data in `./.docker_data/db` from Postgres `<18`, run:
 
@@ -253,11 +245,12 @@ mise run dev:postgres18:migrate
 ```
 
 What the migration script does:
-* stops `medusa-db` (if running)
-* creates a physical backup archive of `./.docker_data/db`
-* creates a logical SQL backup using `pg_dumpall`
-* restores into a fresh Postgres 18 data dir at `./.docker_data/db18`
-* leaves old data untouched for rollback
+
+- stops `medusa-db` (if running)
+- creates a physical backup archive of `./.docker_data/db`
+- creates a logical SQL backup using `pg_dumpall`
+- restores into a fresh Postgres 18 data dir at `./.docker_data/db18`
+- leaves old data untouched for rollback
 
 After migration:
 
@@ -266,8 +259,9 @@ mise run dev
 ```
 
 Rollback path:
-* keep using `./.docker_data/db` with a Postgres 17 image
-* restore from the generated SQL/tar backups in `./.docker_data/backups/postgres18-migration`
+
+- keep using `./.docker_data/db` with a Postgres 17 image
+- restore from the generated SQL/tar backups in `./.docker_data/backups/postgres18-migration`
 
 When migration looks good and you want to keep only the PG18 state:
 
@@ -276,10 +270,7 @@ mise run dev:postgres18:verify
 mise run dev:postgres18:finalize
 ```
 
-`mise run dev:postgres18:verify` checks that old cluster DBs/roles exist in the new cluster and compares structure, sequence values, and per-table row counts.
-If old `./.docker_data/db` cannot be started, it falls back to verifying against the newest
-`./.docker_data/backups/postgres18-migration/pg_dumpall_*.sql` backup.
-`mise run dev:postgres18:finalize` runs the same verification and then deletes `./.docker_data/db` and `./.docker_data/backups/postgres18-migration`.
+`mise run dev:postgres18:verify` checks that old cluster DBs/roles exist in the new cluster and compares structure, sequence values, and per-table row counts. If old `./.docker_data/db` cannot be started, it falls back to verifying against the newest `./.docker_data/backups/postgres18-migration/pg_dumpall_*.sql` backup. `mise run dev:postgres18:finalize` runs the same verification and then deletes `./.docker_data/db` and `./.docker_data/backups/postgres18-migration`.
 
 ---
 
@@ -294,25 +285,24 @@ mise run dev:prod
 Use `mise run dev:prod:no-cache` when you need to bypass Docker layer cache.
 
 This builds a production-optimized image and starts the container. Access the admin at:
-* <a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a> (requires HTTPS for session cookies)
 
-Note: Production mode uses secure cookies, so you must access via HTTPS (Caddy) rather than `http://localhost:9000`.
-Note: `mise run dev:prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
+- <a href="https://admin.medusa.localhost/app">https://admin.medusa.localhost/app</a> (requires HTTPS for session cookies)
+
+Note: Production mode uses secure cookies, so you must access via HTTPS (Caddy) rather than `http://localhost:9000`. Note: `mise run dev:prod` now starts `medusa-be`, waits for health, regenerates `apps/n1/src/data/static/categories.ts` from Medusa data, then builds the `n1` prod image.
 
 ---
 
 ## ZaneOps Deploy Setup
 
-Active Zane deployment for this repo is no longer driven by a checked-in swarm compose file.
-The supported setup is:
+Active Zane deployment for this repo is no longer driven by a checked-in swarm compose file. The supported setup is:
 
-* create one canonical Zane project with the service names from `apps/new-engine-ctl/config/stack-manifest.yaml`
-* configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`; the bootstrap helper derives that contract from `apps/new-engine-ctl/config/stack-manifest.yaml` and `apps/new-engine-ctl/config/stack-inputs.yaml`
-* let CI orchestrate preview/main deploys through `zane-operator`
-* config ownership is split intentionally:
-  * `stack-manifest.yaml` = service graph/deploy topology
-  * `stack-inputs.yaml` = runtime/env/provider materialization and lane runtime policy
-* deploy-to-verify runtime-provider handoff is generic via `runtime_provider_outputs_json` (plus `runtime_provider_output_keys_csv`), not Meili-only output fields
+- create one canonical Zane project with the service names from `apps/new-engine-ctl/config/stack-manifest.yaml`
+- configure the shared production-environment variables and per-service env blocks described in `apps/zane-operator/README.md`; the bootstrap helper derives that contract from `apps/new-engine-ctl/config/stack-manifest.yaml` and `apps/new-engine-ctl/config/stack-inputs.yaml`
+- let CI orchestrate preview/main deploys through `zane-operator`
+- config ownership is split intentionally:
+  - `stack-manifest.yaml` = service graph/deploy topology
+  - `stack-inputs.yaml` = runtime/env/provider materialization and lane runtime policy
+- deploy-to-verify runtime-provider handoff is generic via `runtime_provider_outputs_json` (plus `runtime_provider_output_keys_csv`), not Meili-only output fields
 
 For first-time local Zane setup, follow:
 
@@ -321,6 +311,7 @@ apps/zane-operator/README.md
 ```
 
 Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper scripts such as:
+
 - local CI-parity lane helpers over CTL + deployed `zane-operator`:
   - `mise run dev:zane:main`
   - `mise run dev:zane:preview`
@@ -331,11 +322,13 @@ Use `.env` for local compose/runtime and `.env.zane` for Zane-targeted helper sc
   - `mise run dev:zane:template-db:sync`
 
 The lane helpers and bootstrap helpers are different surfaces:
+
 - `dev:zane:main` / `dev:zane:preview` are staged local wrappers that build CTL and call the active lane commands against a running deployed `zane-operator`; they do not authenticate directly to upstream Zane
 - the bootstrap helpers authenticate to upstream Zane in shell, capture normalized inspect JSON, call the CTL bootstrap plan surface, and execute only the resulting local/manual transport
 - those bootstrap helpers also reconcile the repo-owned shared env contract and managed public URL set defined by the CTL/bootstrap inputs rather than copying ambient `.env.zane` service URLs into Zane
 
 Planning for those rare-use local Zane bootstrap helpers exists in CTL:
+
 - `node apps/new-engine-ctl/dist/cli.js bootstrap zane-project plan --inspect-json /tmp/zane-project-inspect.json`
 - `node apps/new-engine-ctl/dist/cli.js bootstrap preview-template-db plan --inspect-json /tmp/zane-template-db-inspect.json`
 
@@ -343,8 +336,7 @@ Those planning commands are read-only and intentionally separate from the active
 
 For lane helpers, prefer `.env.zane` or explicit script flags over ad hoc exported shell vars. The scripts derive or validate the operator endpoint and token from their own inputs rather than treating exported `ZANE_OPERATOR_BASE_URL` alone as the documented contract.
 
-For Zane-targeted helpers, managed public service URLs are derived from the route contract rather than copied from ambient `.env.zane` frontend URL values.
-`mise run dev:zane:template-db:sync` is also the first-time setup path for the preview template DB: it creates the configured template DB when missing and refreshes it from the chosen source DB when it already exists.
+For Zane-targeted helpers, managed public service URLs are derived from the route contract rather than copied from ambient `.env.zane` frontend URL values. `mise run dev:zane:template-db:sync` is also the first-time setup path for the preview template DB: it creates the configured template DB when missing and refreshes it from the chosen source DB when it already exists.
 
 ---
 
@@ -354,8 +346,7 @@ For Zane-targeted helpers, managed public service URLs are derived from the rout
 
 ✨ Your new, shiny [Nx workspace](https://nx.dev) is almost ready ✨.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
 
 ## Finish your CI setup
 
@@ -381,9 +372,7 @@ To run any task with Nx use:
 npx nx <target> <project-name>
 ```
 
-These targets are
-either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-or defined in the `project.json` or `package.json` files.
+These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
 
 [More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
@@ -401,21 +390,15 @@ Pass `--dry-run` to see what would happen without actually releasing the library
 
 ## Keep TypeScript project references up to date
 
-Nx automatically updates
-TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json`
-files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is
-automatically done when running tasks such as `build` or `typecheck`, which require updated references to function
-correctly.
+Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references,
-run the following command:
+To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
 
 ```sh
 npx nx sync
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a
-step to your CI job configuration that runs the following command:
+You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
 
 ```sh
 npx nx sync:check
@@ -427,8 +410,7 @@ npx nx sync:check
 
 ## Install Nx Console
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and
-improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
 
 [Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
@@ -436,7 +418,7 @@ improves code autocompletion in your IDE. It is available for VSCode and Intelli
 
 Learn more:
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
+- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 - [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
@@ -448,7 +430,7 @@ And join the Nx community:
 - [Our Youtube channel](https://www.youtube.com/@nxdevtools)
 - [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
 
-----
+---
 
 ## ZCLI (Zerops zCLI)
 

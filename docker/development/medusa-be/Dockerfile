@@ -34,12 +34,14 @@ ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-RUN corepack install
+# Root Git hooks are irrelevant in the narrowed image context, which excludes .git.
+RUN corepack install && pnpm pkg delete scripts.prepare
 
-COPY tsconfig.base.json eslint.config.ts ./
+COPY tsconfig.base.json ./
 COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
+COPY libs/std ./libs/std
 
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
@@ -58,23 +60,27 @@ ENV CI=true
 # Pin pnpm before copying the narrowed service source.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-RUN corepack install
+# Root Git hooks are irrelevant in the narrowed image context, which excludes .git.
+RUN corepack install && pnpm pkg delete scripts.prepare
 
 # Copy only the files needed for the Medusa production build so unrelated repo changes
 # don't invalidate the expensive install/build layers.
-COPY nx.json tsconfig.base.json eslint.config.ts ./
+COPY nx.json tsconfig.base.json ./
 COPY scripts/build-medusa.sh ./scripts/build-medusa.sh
 COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
+COPY libs/std ./libs/std
 
 # Build using shared script (cleanup, install, build, validate, prod deploy)
 ARG FEATURE_PPL_ENABLED=0
 ARG FEATURE_PAYLOAD_ENABLED=0
 ARG FEATURE_PACKETA_ENABLED=0
+ARG MEDUSA_BUILD_MAX_OLD_SPACE_SIZE=4096
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
     pnpm_config_prefer_offline=true \
+    MEDUSA_BUILD_MAX_OLD_SPACE_SIZE=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE} \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} \
     FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED} \

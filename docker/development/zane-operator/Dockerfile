@@ -20,7 +20,7 @@ COPY patches ./patches
 COPY apps/zane-operator/package.json apps/zane-operator/package.json
 RUN --mount=type=cache,id=pnpm-store-zane-operator,target=/pnpm/store \
   corepack install \
-  && pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --prod --filter=zane-operator...
+  && pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --prod --filter=zane-operator...
 
 FROM node:24-slim AS dev
 

@@ -204,8 +204,8 @@ description = "Run Biome with writes against apps/medusa-be"
 run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm exec biome check --write apps/medusa-be"
 
 [tasks."nx:lint"]
-description = "Run the root lint:nx package script on the host"
-run = "pnpm lint:nx"
+description = "Run the blocking root lint command on the host"
+run = "pnpm lint"
 
 [tasks."nx:affected"]
 description = "Run the root nx:affected package script on the host"
