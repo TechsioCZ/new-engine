@@ -1,31 +1,37 @@
+import type { StaticImageData } from "next/image"
+import type {
+  HomepageBenefitTranslationKey,
+} from "@/components/homepage/homepage.data.types"
 import delivery from "./doprava.avif"
 import products from "./produkty.avif"
 import returns from "./vraceni.avif"
 import customers from "./zakaznici.avif"
 
+type BenefitDefinition = {
+  id: number
+  image: StaticImageData
+  translationKey: HomepageBenefitTranslationKey
+}
+
 export const BENEFITS = [
   {
     id: 1,
     image: delivery,
-    text: "Rýchle doručenie až k vám domov.",
-    description: "Rychlé a spolehlivé doručení vašich objednávek.",
+    translationKey: "home.benefits.fast_delivery",
   },
   {
     id: 2,
     image: returns,
-    text: "Garancia spokojnosti alebo vrátenia peňazí.",
-    description: "Jednoduché a rychlé vracení produktů.",
+    translationKey: "home.benefits.satisfaction_guarantee",
   },
   {
     id: 3,
     image: products,
-    text: "130+ vlastných produktov skladom.",
-    description: "Vybrané a kvalitní produkty pro vaše potřeby.",
+    translationKey: "home.benefits.own_products",
   },
   {
     id: 4,
     image: customers,
-    text: "Dôverujú nám tisíce zákazníkov po celej Európe.",
-    description: "Výborný zážitek z nákupu u nás.",
+    translationKey: "home.benefits.trusted_customers",
   },
-]
+] satisfies readonly BenefitDefinition[]
