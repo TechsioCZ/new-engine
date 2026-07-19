@@ -7,13 +7,18 @@ import { Button } from "../../src/atoms/button"
 import { NumericInput } from "../../src/atoms/numeric-input"
 import { ProductCard } from "../../src/molecules/product-card"
 
+const localProductImages = {
+  shoes: new URL("../../assets/gallery/shoes-1.avif", import.meta.url).href,
+  watch: new URL("../../assets/gallery/watch-1.avif", import.meta.url).href,
+}
+
 // Sample product images for different scenarios
 const productImages = {
   tshirt: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400",
-  shoes: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
-  watch: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-  headphones:
-    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
+  shoes: localProductImages.shoes,
+  watch: localProductImages.watch,
+  headphones: new URL("../../assets/gallery/watch-2.avif", import.meta.url)
+    .href,
   camera: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=400",
   backpack: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
 }

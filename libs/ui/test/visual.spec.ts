@@ -355,6 +355,12 @@ test.describe.parallel("storybook visual", () => {
 
       try {
         await run()
+      } catch (error) {
+        if (!isRecoverableError(error)) {
+          throw error
+        }
+        await createIsolatedPage()
+        await run()
       } finally {
         const contextToClose = ownedContext as {
           close: () => Promise<void>
