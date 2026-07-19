@@ -53,6 +53,83 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     },
   },
   {
+    description: "Nadpis sekce nejprodávanějších produktů na domovské stránce.",
+    key: "content.home.product_sections.bestsellers",
+    namespace: "content",
+    values: {
+      cz: "Nejoblíbenější produkty",
+      hu: "Legnépszerűbb termékek",
+      ro: "Cele mai populare produse",
+      sk: "Najobľúbenejšie produkty",
+    },
+  },
+  {
+    description: "Nadpis sekce nových produktů na domovské stránce.",
+    key: "content.home.product_sections.new_products",
+    namespace: "content",
+    values: {
+      cz: "Novinky",
+      hu: "Újdonságok",
+      ro: "Noutăți",
+      sk: "Novinky",
+    },
+  },
+  {
+    description: "Nadpis sekce zlevněných produktů na domovské stránce.",
+    key: "content.home.product_sections.sale",
+    namespace: "content",
+    values: {
+      cz: "Aktuálně ve slevě",
+      hu: "Aktuális akciók",
+      ro: "Produse la reducere",
+      sk: "Aktuálne v zľave",
+    },
+  },
+  {
+    description: "Claim rychlého doručení v benefitní liště domovské stránky.",
+    key: "content.home.benefits.fast_delivery",
+    namespace: "content",
+    values: {
+      cz: "Rychlé doručení až k vám domů.",
+      hu: "Gyors szállítás egészen az otthonáig.",
+      ro: "Livrare rapidă direct la dumneavoastră acasă.",
+      sk: "Rýchle doručenie až k vám domov.",
+    },
+  },
+  {
+    description: "Claim garance spokojenosti v benefitní liště domovské stránky.",
+    key: "content.home.benefits.satisfaction_guarantee",
+    namespace: "content",
+    values: {
+      cz: "Garance spokojenosti nebo vrácení peněz.",
+      hu: "Elégedettségi garancia vagy pénzvisszafizetés.",
+      ro: "Garanția satisfacției sau banii înapoi.",
+      sk: "Garancia spokojnosti alebo vrátenia peňazí.",
+    },
+  },
+  {
+    description: "Claim vlastních produktů v benefitní liště domovské stránky.",
+    key: "content.home.benefits.own_products",
+    namespace: "content",
+    values: {
+      cz: "130+ vlastních produktů skladem.",
+      hu: "Több mint 130 saját termék raktáron.",
+      ro: "Peste 130 de produse proprii în stoc.",
+      sk: "130+ vlastných produktov skladom.",
+    },
+  },
+  {
+    description: "Claim důvěry zákazníků v benefitní liště domovské stránky.",
+    key: "content.home.benefits.trusted_customers",
+    namespace: "content",
+    values: {
+      cz: "Důvěřují nám tisíce zákazníků po celé Evropě.",
+      hu: "Vásárlók ezrei bíznak bennünk Európa-szerte.",
+      ro: "Mii de clienți din întreaga Europă au încredere în noi.",
+      sk: "Dôverujú nám tisíce zákazníkov po celej Európe.",
+    },
+  },
+  {
     description: "Název blogu v drobečkové navigaci.",
     key: "content.pages.blog",
     namespace: "content",

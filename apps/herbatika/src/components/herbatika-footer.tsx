@@ -13,17 +13,17 @@ import { HerbatikaLogo } from "./herbatika-logo"
 type FooterNavigationLink =
   | {
       href: Route
-      label: string
+      labelKey: string
       external?: false
     }
   | {
       href: `https://${string}`
-      label: string
+      labelKey: string
       external: true
     }
 
 type FooterColumn = {
-  title: string
+  titleKey: string
   links: readonly FooterNavigationLink[]
 }
 
@@ -34,46 +34,70 @@ const formatMarketDomain = (domain: string) =>
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
-    title: "Informácie pre vás",
+    titleKey: "footer.columns.information.title",
     links: [
-      { href: "/blog", label: "Blog" },
-      { href: "/o-nas", label: "O nás" },
-      { href: "/faq", label: "Časté otázky" },
-      { href: giftVoucherHref, label: "Darčeková poukážka" },
-      { href: brandListingHref, label: "Výrobcovia a značky" },
+      { href: "/blog", labelKey: "footer.columns.information.blog" },
+      { href: "/o-nas", labelKey: "footer.columns.information.about" },
+      { href: "/faq", labelKey: "footer.columns.information.faq" },
+      {
+        href: giftVoucherHref,
+        labelKey: "footer.columns.information.gift_voucher",
+      },
+      {
+        href: brandListingHref,
+        labelKey: "footer.columns.information.brands",
+      },
       {
         href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
-        label: "Recenzie",
+        labelKey: "footer.columns.information.reviews",
         external: true,
       },
     ],
   },
   {
-    title: "Dôležité informácie",
+    titleKey: "footer.columns.important.title",
     links: [
-      { href: "/#doprava-a-platby", label: "Doprava a platby" },
+      {
+        href: "/#doprava-a-platby",
+        labelKey: "footer.columns.important.shipping_payment",
+      },
       {
         href: "/#reklamacia-a-vratenie",
-        label: "Reklamácia a vrátenie",
+        labelKey: "footer.columns.important.claims_returns",
       },
       {
         href: "/#obchodne-podmienky",
-        label: "Obchodné podmienky",
+        labelKey: "footer.columns.important.terms",
       },
       {
         href: "/#ochrana-osobnych-udajov",
-        label: "Ochrana osobných údajov",
+        labelKey: "footer.columns.important.privacy",
       },
-      { href: "/#cookies", label: "Cookies" },
+      {
+        href: "/#cookies",
+        labelKey: "footer.columns.important.cookies",
+      },
     ],
   },
   {
-    title: "Pre partnerov",
+    titleKey: "footer.columns.partners.title",
     links: [
-      { href: "/#affiliate", label: "Affiliate program" },
-      { href: "/#velkoobchod", label: "Veľkoobchod" },
-      { href: "/#dropshipping", label: "Dropshipping" },
-      { href: "/#private-label", label: "Private label" },
+      {
+        href: "/#affiliate",
+        labelKey: "footer.columns.partners.affiliate",
+      },
+      {
+        href: "/#velkoobchod",
+        labelKey: "footer.columns.partners.wholesale",
+      },
+      {
+        href: "/#dropshipping",
+        labelKey: "footer.columns.partners.dropshipping",
+      },
+      {
+        href: "/#private-label",
+        labelKey: "footer.columns.partners.private_label",
+      },
     ],
   },
 ]
@@ -123,7 +147,7 @@ export function HerbatikaFooter() {
           <HerbatikaLogo size="lg" />
 
           <Footer.Text className="leading-normal">
-            Váš partner pre zdravý životný štýl a vitalitu.
+            {t("footer.tagline")}
           </Footer.Text>
 
           <Footer.Link
@@ -157,20 +181,20 @@ export function HerbatikaFooter() {
         </Footer.Section>
 
         {FOOTER_COLUMNS.map((column) => (
-          <Footer.Section className="px-500" key={column.title}>
+          <Footer.Section className="px-500" key={column.titleKey}>
             <Footer.Title className="uppercase leading-relaxed">
-              {column.title}
+              {t(column.titleKey)}
             </Footer.Title>
             <Footer.List>
               {column.links.map((link) => (
                 <li key={link.href}>
                   {link.external ? (
                     <Footer.Link external href={link.href}>
-                      {link.label}
+                      {t(link.labelKey)}
                     </Footer.Link>
                   ) : (
                     <Footer.Link as={NextLink} href={link.href}>
-                      {link.label}
+                      {t(link.labelKey)}
                     </Footer.Link>
                   )}
                 </li>
