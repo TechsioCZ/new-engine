@@ -36,8 +36,11 @@ export type StorefrontTextListParams = {
   namespace?: RegistryStorefrontTextNamespace
   offset: number
   q?: string
+  search_scope?: StorefrontTextSearchScope
   status?: RegistryStorefrontTextStatus
 }
+
+export type StorefrontTextSearchScope = "all" | "value"
 
 export type StorefrontTextInput = {
   override_value?: null | string

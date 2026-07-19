@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+import { GET as getAdminStorefrontTexts } from "../../../src/api/admin/storefront-texts/route"
 import { GET } from "../../../src/api/store/storefront-texts/route"
 import {
   AdminGetStorefrontTextsSchema,
@@ -347,6 +348,69 @@ describe("storefront text admin validation", () => {
     expect(
       AdminUpdateStorefrontTextSchema.safeParse({ override_value: " " }).success
     ).toBe(false)
+  })
+})
+
+describe("storefront text admin search", () => {
+  const createResponse = () => ({ json: vi.fn() })
+
+  const search = async (searchScope: "all" | "value") => {
+    const listAndCountStorefrontTexts = vi
+      .fn()
+      .mockResolvedValue([[], 0])
+    const request = {
+      scope: {
+        resolve: vi.fn(() => ({ listAndCountStorefrontTexts })),
+      },
+      validatedQuery: {
+        limit: 20,
+        offset: 0,
+        q: "partner",
+        search_scope: searchScope,
+      },
+    }
+
+    await getAdminStorefrontTexts(
+      request as never,
+      createResponse() as never
+    )
+
+    return listAndCountStorefrontTexts
+  }
+
+  it("searches the displayed effective value in value-only mode", async () => {
+    const listAndCountStorefrontTexts = await search("value")
+
+    expect(listAndCountStorefrontTexts).toHaveBeenCalledWith(
+      {
+        $or: [
+          {
+            override_value: { $ilike: "%partner%" },
+            status: "active",
+          },
+          {
+            $or: [{ status: { $ne: "active" } }, { override_value: null }],
+            default_value: { $ilike: "%partner%" },
+          },
+        ],
+      },
+      expect.objectContaining({ skip: 0, take: 20 })
+    )
+  })
+
+  it("keeps the existing multi-field search available", async () => {
+    const listAndCountStorefrontTexts = await search("all")
+
+    expect(listAndCountStorefrontTexts).toHaveBeenCalledWith(
+      {
+        $or: expect.arrayContaining([
+          { default_value: { $ilike: "%partner%" } },
+          { key: { $ilike: "%partner%" } },
+          { override_value: { $ilike: "%partner%" } },
+        ]),
+      },
+      expect.objectContaining({ skip: 0, take: 20 })
+    )
   })
 })
 
