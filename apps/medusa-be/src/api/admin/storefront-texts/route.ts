@@ -12,11 +12,15 @@ import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-tex
 import type { AdminGetStorefrontTextsSchemaType } from "./validators"
 
 type StorefrontTextFilters = {
-  $or?: Record<string, { $ilike: string }>[]
-  locale?: StorefrontTextLocale
-  market?: StorefrontTextMarket
-  namespace?: StorefrontTextNamespace
-  status?: StorefrontTextStatus
+  $or?: StorefrontTextFilters[]
+  default_value?: { $ilike: string }
+  description?: { $ilike: string }
+  key?: { $ilike: string }
+  locale?: StorefrontTextLocale | { $ilike: string }
+  market?: StorefrontTextMarket | { $ilike: string }
+  namespace?: StorefrontTextNamespace | { $ilike: string }
+  override_value?: null | { $ilike: string }
+  status?: StorefrontTextStatus | { $ne: StorefrontTextStatus }
 }
 
 const SEARCH_FIELDS = [
@@ -32,7 +36,23 @@ const SEARCH_FIELDS = [
 const escapeLikePattern = (value: string) =>
   value.replace(/[\\%_]/g, (character) => `\\${character}`)
 
-const buildSearchFilters = (query?: string): StorefrontTextFilters["$or"] => {
+const buildEffectiveValueSearchFilters = (
+  searchValue: string
+): StorefrontTextFilters[] => [
+  {
+    override_value: { $ilike: searchValue },
+    status: "active",
+  },
+  {
+    $or: [{ status: { $ne: "active" } }, { override_value: null }],
+    default_value: { $ilike: searchValue },
+  },
+]
+
+const buildSearchFilters = (
+  query: string | undefined,
+  searchScope: AdminGetStorefrontTextsSchemaType["search_scope"]
+): StorefrontTextFilters["$or"] => {
   const normalizedQuery = query?.trim()
 
   if (!normalizedQuery) {
@@ -40,6 +60,10 @@ const buildSearchFilters = (query?: string): StorefrontTextFilters["$or"] => {
   }
 
   const searchValue = `%${escapeLikePattern(normalizedQuery)}%`
+
+  if (searchScope === "value") {
+    return buildEffectiveValueSearchFilters(searchValue)
+  }
 
   return SEARCH_FIELDS.map((field) => ({
     [field]: {
@@ -53,10 +77,11 @@ const buildStorefrontTextFilters = ({
   market,
   namespace,
   q,
+  search_scope: searchScope,
   status,
 }: AdminGetStorefrontTextsSchemaType): StorefrontTextFilters => {
   const filters: StorefrontTextFilters = {}
-  const searchFilters = buildSearchFilters(q)
+  const searchFilters = buildSearchFilters(q, searchScope)
 
   if (locale) {
     filters.locale = locale

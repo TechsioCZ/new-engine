@@ -7,6 +7,8 @@ import {
   STOREFRONT_TEXT_STATUSES,
 } from "../../../modules/storefront-text/registry"
 
+export const STOREFRONT_TEXT_SEARCH_SCOPES = ["all", "value"] as const
+
 export const AdminGetStorefrontTextsSchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(100).optional().default(50),
@@ -15,6 +17,10 @@ export const AdminGetStorefrontTextsSchema = z
     namespace: z.enum(STOREFRONT_TEXT_NAMESPACES).optional(),
     offset: z.coerce.number().int().min(0).optional().default(0),
     q: z.string().trim().optional(),
+    search_scope: z
+      .enum(STOREFRONT_TEXT_SEARCH_SCOPES)
+      .optional()
+      .default("all"),
     status: z.enum(STOREFRONT_TEXT_STATUSES).optional(),
   })
   .strict()

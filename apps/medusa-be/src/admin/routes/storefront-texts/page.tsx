@@ -2,6 +2,7 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { DocumentText, PencilSquare } from "@medusajs/icons"
 import {
   Button,
+  Checkbox,
   Container,
   Drawer,
   Heading,
@@ -28,6 +29,7 @@ import {
   listStorefrontTexts,
   type StorefrontText,
   type StorefrontTextInput,
+  type StorefrontTextSearchScope,
   storefrontTextQueryKeys,
   syncStorefrontTexts,
   updateStorefrontText,
@@ -349,6 +351,8 @@ const StorefrontTextsPage = () => {
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [query, setQuery] = useState("")
+  const [searchScope, setSearchScope] =
+    useState<StorefrontTextSearchScope>("value")
   const [market, setMarket] = useState<string | undefined>()
   const [namespace, setNamespace] = useState<
     StorefrontTextNamespace | undefined
@@ -362,6 +366,7 @@ const StorefrontTextsPage = () => {
     namespace,
     offset: pageIndex * PAGE_SIZE,
     q: debouncedQuery || undefined,
+    search_scope: searchScope,
     status,
   }
   const { data, isLoading } = useQuery({
@@ -412,15 +417,32 @@ const StorefrontTextsPage = () => {
             Synchronizovat klíče
           </Button>
         </div>
-        <div className="grid gap-2 md:grid-cols-[minmax(180px,320px)_repeat(3,minmax(140px,180px))]">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(180px,320px)_max-content_repeat(3,minmax(140px,180px))]">
           <Input
             onChange={(event) => {
               resetPage()
               setQuery(event.target.value)
             }}
-            placeholder="Hledat text"
+            placeholder={
+              searchScope === "value"
+                ? "Hledat v hodnotách"
+                : "Hledat ve všem"
+            }
             value={query}
           />
+          <div className="flex min-h-8 items-center gap-2 px-1">
+            <Checkbox
+              checked={searchScope === "value"}
+              id="storefront-text-value-search"
+              onCheckedChange={(checked) => {
+                resetPage()
+                setSearchScope(checked === true ? "value" : "all")
+              }}
+            />
+            <Label htmlFor="storefront-text-value-search" size="small">
+              Pouze v hodnotách
+            </Label>
+          </div>
           <Select
             onValueChange={(value) => {
               resetPage()
