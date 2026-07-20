@@ -161,3 +161,7 @@ techsio-ui-kit-ai/
 │   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)
 └── scripts/                     # install-git-hook.mjs, pre-push-validate-gate.mjs, sync-skills.mjs
 ```
+
+## License
+
+[MIT](./LICENSE) — including the bundled skills.

@@ -12,7 +12,7 @@
     "directory": "libs/ui/agent-plugin"
   },
   "keywords": ["techsio", "ui-kit", "design-system", "codex", "claude-code", "agent-skills", "plugin"],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "sync-skills": "node scripts/sync-skills.mjs"
@@ -22,11 +22,12 @@
     ".claude-plugin",
     ".mcp.json",
     "AGENTS.md",
+    "LICENSE",
     "README.md",
     "agents",
     "hooks",
     "scripts",
     "skills"
   ],
-  "_publishing": "Distributed as a Codex/Claude plugin via a marketplace (git source), not via npm. To publish to npm instead, drop `private`, pick a license, and add `publishConfig.access`."
+  "_publishing": "Distributed as a Codex/Claude plugin via a marketplace (git source), not via npm. To publish to npm instead, drop `private` and add `publishConfig.access`."
 }
