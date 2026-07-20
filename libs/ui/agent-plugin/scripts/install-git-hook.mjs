@@ -69,6 +69,23 @@ const target = join(hooksDir, "pre-push");
 
 const chained = `${target}.pre-ui-kit`;
 
+/**
+ * A hook tracked in the repo (a committed .husky/pre-push, lefthook output, …) belongs to the
+ * repo's own tooling. Renaming it would dirty the worktree and hand the agent our copy to
+ * commit by accident — never touch it. `.git/hooks` is outside the worktree, so plain hooks
+ * are never tracked and chaining stays available for them.
+ */
+function isTrackedInRepo(file) {
+  try {
+    execFileSync("git", ["-C", topLevel, "ls-files", "--error-unmatch", "--", file], {
+      stdio: ["ignore", "ignore", "ignore"],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 if (!isUiKitSourceRepo()) {
   // Consumer repo — the gate has nothing to guard here. Also undo what an earlier version of
   // this installer may have done: remove our hook and put any chained-aside original back.
@@ -102,19 +119,32 @@ if (existsSync(target)) {
     // A foreign hook (husky, lefthook, hand-written). Do NOT skip installation — that would
     // leave the gate unenforced in exactly the repos that already care about hooks. Move it
     // aside instead; our hook runs it first and honours its exit code, so it still wins.
-    if (!existsSync(chained)) {
-      try {
-        renameSync(target, chained);
-        chmodSync(chained, 0o755);
-        process.stderr.write(
-          `ui-kit: existing pre-push hook preserved as "${chained}" and chained — it runs first.\n`,
-        );
-      } catch (err) {
-        process.stderr.write(
-          `ui-kit: could not preserve the existing pre-push hook (${err.message}) — leaving it untouched, gate NOT installed.\n`,
-        );
-        process.exit(0); // never destroy a hook we cannot back up
-      }
+    if (isTrackedInRepo(target)) {
+      process.stderr.write(
+        `ui-kit: "${target}" is tracked in the repo — leaving it untouched, gate NOT installed. ` +
+          "Chain it manually if you want the gate here.\n",
+      );
+      process.exit(0); // never mutate committed files
+    }
+    if (existsSync(chained)) {
+      // A backup from an earlier install already exists AND the live hook is not ours — a new
+      // foreign hook appeared since. Overwriting either file would destroy someone's hook.
+      process.stderr.write(
+        `ui-kit: both "${target}" and "${chained}" exist and neither is ours — leaving both untouched, gate NOT installed.\n`,
+      );
+      process.exit(0);
+    }
+    try {
+      renameSync(target, chained);
+      chmodSync(chained, 0o755);
+      process.stderr.write(
+        `ui-kit: existing pre-push hook preserved as "${chained}" and chained — it runs first.\n`,
+      );
+    } catch (err) {
+      process.stderr.write(
+        `ui-kit: could not preserve the existing pre-push hook (${err.message}) — leaving it untouched, gate NOT installed.\n`,
+      );
+      process.exit(0); // never destroy a hook we cannot back up
     }
   }
 }

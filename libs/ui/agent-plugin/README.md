@@ -145,6 +145,18 @@ lefthook), and **never destroys a pre-push hook it did not write** — a pre-exi
 moved aside to `pre-push.pre-ui-kit` and chained: it runs first, and its non-zero exit still
 rejects the push.
 
+**Collision rules.** The plugin's agent-level hooks (`hooks.json`) are additive — Codex and
+Claude Code run every plugin's hooks side by side, so they cannot collide with default or
+other plugins' hooks, and ours exit silently outside the ui-kit repo. For the git `pre-push`
+slot the installer refuses to act whenever acting could destroy or dirty anything:
+
+- a hook **tracked in the repo** (a committed `.husky/pre-push`, lefthook output, …) is never
+  renamed or overwritten — the gate is simply not installed and a note tells you how to chain
+  it manually;
+- if both a foreign `pre-push` and an old `pre-push.pre-ui-kit` backup exist, both are left
+  untouched;
+- only an **untracked** foreign hook is chained (moved aside, run first, its exit code wins).
+
 ## Layout
 
 ```
