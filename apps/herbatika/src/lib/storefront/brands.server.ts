@@ -7,19 +7,19 @@ import {
 } from "@/lib/storefront/ssr/constants"
 import { normalizeStorefrontBrand, type StorefrontBrand } from "./brands"
 
-type StoreProducersResponse = {
-  producers?: Array<{
+type StoreBrandsResponse = {
+  brands?: Array<{
     id?: string | null
     title?: string | null
     handle?: string | null
   }>
 }
 
-const STORE_PRODUCERS_INDEX_LIMIT = 500
+const STORE_BRANDS_INDEX_LIMIT = 500
 
 export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
-  const url = new URL("/store/producers", MEDUSA_BACKEND_URL)
-  url.searchParams.set("limit", String(STORE_PRODUCERS_INDEX_LIMIT))
+  const url = new URL("/store/brands", MEDUSA_BACKEND_URL)
+  url.searchParams.set("limit", String(STORE_BRANDS_INDEX_LIMIT))
   url.searchParams.set("offset", "0")
   url.searchParams.set("order", "title")
   url.searchParams.set("fields", "id,title,handle")
@@ -35,9 +35,9 @@ export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
     throw new Error(`Failed to load storefront brands: ${response.status}`)
   }
 
-  const data = (await response.json()) as StoreProducersResponse
-  const brands = (data.producers ?? [])
-    .map((producer) => normalizeStorefrontBrand(producer))
+  const data = (await response.json()) as StoreBrandsResponse
+  const brands = (data.brands ?? [])
+    .map((brand) => normalizeStorefrontBrand(brand))
     .filter((brand): brand is StorefrontBrand => Boolean(brand))
 
   const brandsBySlug = new Map<string, StorefrontBrand>()

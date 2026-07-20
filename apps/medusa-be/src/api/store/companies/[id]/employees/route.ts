@@ -17,7 +17,7 @@ export const GET = async (
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
-    data: [{ employees }],
+    data: [company],
     metadata,
   } = await query.graph(
     {
@@ -30,6 +30,7 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true }
   )
+  const employees = company?.employees ?? []
 
   res.json({
     employees,
