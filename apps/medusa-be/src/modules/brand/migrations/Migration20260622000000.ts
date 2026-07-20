@@ -144,21 +144,21 @@ BEGIN
         'Producer to brand migration aborted: orphan producer attributes exist';
     END IF;
 
-    IF old_link_exists AND (
-      EXISTS (
-        SELECT 1
-        FROM "${PRODUCER_LINK_TABLE}" link
-        LEFT JOIN "product" product ON product.id = link.product_id
-        WHERE product.id IS NULL
-      ) OR EXISTS (
-        SELECT 1
-        FROM "${PRODUCER_LINK_TABLE}" link
-        LEFT JOIN "producer" producer ON producer.id = link.producer_id
-        WHERE producer.id IS NULL
-      )
-    ) THEN
-      RAISE EXCEPTION
-        'Producer to brand migration aborted: orphan producer product links exist';
+    IF old_link_exists THEN
+      IF EXISTS (
+          SELECT 1
+          FROM "${PRODUCER_LINK_TABLE}" link
+          LEFT JOIN "product" product ON product.id = link.product_id
+          WHERE product.id IS NULL
+        ) OR EXISTS (
+          SELECT 1
+          FROM "${PRODUCER_LINK_TABLE}" link
+          LEFT JOIN "producer" producer ON producer.id = link.producer_id
+          WHERE producer.id IS NULL
+        ) THEN
+        RAISE EXCEPTION
+          'Producer to brand migration aborted: orphan producer product links exist';
+      END IF;
     END IF;
 
     SELECT
@@ -276,13 +276,13 @@ BEGIN
         'Producer to brand migration verification failed: domain row counts changed';
     END IF;
 
-    IF old_link_exists AND (
-      '${BRAND_LINK_TABLE}'::regclass::oid <> link_oid OR
-      (SELECT count(*) FROM "${BRAND_LINK_TABLE}") <> link_count OR
-      (SELECT count(*) FROM "${BRAND_LINK_TABLE}" WHERE deleted_at IS NULL) <> link_active_count
-    ) THEN
-      RAISE EXCEPTION
-        'Producer to brand migration verification failed: product link identity or counts changed';
+    IF old_link_exists THEN
+      IF '${BRAND_LINK_TABLE}'::regclass::oid <> link_oid OR
+         (SELECT count(*) FROM "${BRAND_LINK_TABLE}") <> link_count OR
+         (SELECT count(*) FROM "${BRAND_LINK_TABLE}" WHERE deleted_at IS NULL) <> link_active_count THEN
+        RAISE EXCEPTION
+          'Producer to brand migration verification failed: product link identity or counts changed';
+      END IF;
     END IF;
   ELSIF brand_table_count = 0 THEN
     CREATE TABLE "brand" (
