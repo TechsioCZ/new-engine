@@ -105,7 +105,7 @@ step_end "Cleanup"
 # ============================================
 step_start
 log_info "Step 2/5: Installing dependencies..."
-pnpm install --filter=medusa-be...
+pnpm install --frozen-lockfile --prefer-offline --filter=medusa-be...
 step_end "Install"
 
 # ============================================
