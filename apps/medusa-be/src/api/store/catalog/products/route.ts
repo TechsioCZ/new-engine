@@ -16,6 +16,10 @@ import {
   STATUS_FACET_DEFINITIONS,
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
+import {
+  decorateProductsWithMeasurements,
+  getMeasurementDecorationOptions,
+} from "../../../../utils/measurement-units"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
@@ -359,6 +363,9 @@ export async function GET(
   }
 
   const validatedQuery = req.validatedQuery
+  const measurementDecorationOptions = getMeasurementDecorationOptions(
+    req.queryConfig.fields
+  )
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
@@ -486,6 +493,11 @@ export async function GET(
       ? searchResult.estimatedTotalHits
       : orderedProducts.length
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
+  await decorateProductsWithMeasurements(
+    req.scope,
+    orderedProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
+    measurementDecorationOptions
+  )
 
   res.json({
     products: orderedProducts,
