@@ -318,7 +318,7 @@ class BrandModuleService extends MedusaService({
     }
 
     if (toDelete.length) {
-      await this.deleteBrandAttributes(toDelete, sharedContext)
+      await this.softDeleteBrandAttributes(toDelete, {}, sharedContext)
     }
   }
 }

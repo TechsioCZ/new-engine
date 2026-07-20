@@ -2,6 +2,7 @@ import type {
   IProductModuleService,
   MedusaContainer,
   ProductTypes,
+  Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -51,6 +52,7 @@ export type BrandResponse = {
 }
 
 export type BrandAttributeRecord = {
+  deleted_at?: string | Date | null
   id?: string
   value: string
   attributeType?: {
@@ -182,6 +184,10 @@ export const toBrandResponse = (
 ): BrandResponse => ({
   active_product_count: activeProductCount,
   attributes: (brand.attributes ?? []).flatMap((attribute) => {
+    if (attribute.deleted_at) {
+      return []
+    }
+
     const name = attribute.attributeType?.name
     const attributeTypeId = attribute.attributeType?.id
 
@@ -296,7 +302,7 @@ export const getBrandActiveProductCounts = async (
     return new Map<string, number>()
   }
 
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const links: LinkRecord[] = []
 
   for (const brandIdChunk of chunkArray(uniqueIds(brandIds))) {
@@ -411,7 +417,7 @@ export const ensureProductIdsExist = async (
     return ids
   }
 
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
     fields: ["id"],
@@ -443,7 +449,7 @@ export const listProductBrandLinksByProductIds = async (
     return []
   }
 
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductBrandLink.entryPoint,
     fields: ["deleted_at", "product_id", "brand_id"],
@@ -463,7 +469,7 @@ export const listProductBrandLinks = async (
   scope: MedusaContainer,
   options: { withDeleted?: boolean } = {}
 ): Promise<ProductBrandLinkRecord[]> => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductBrandLink.entryPoint,
     fields: ["deleted_at", "product_id", "brand_id"],
@@ -480,7 +486,7 @@ export const retrieveProductOrThrow = async (
   scope: MedusaContainer,
   productId: string
 ) => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
     fields: ["id"],
@@ -505,7 +511,7 @@ export const listBrandIdsForProduct = async (
   scope: MedusaContainer,
   productId: string
 ) => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductBrandLink.entryPoint,
     fields: ["brand_id"],
@@ -523,7 +529,7 @@ export const listProductIdsForBrand = async (
   scope: MedusaContainer,
   brandId: string
 ) => {
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductBrandLink.entryPoint,
     fields: ["product_id"],
@@ -567,7 +573,7 @@ export const listProductsByIds = async (
     return []
   }
 
-  const query = scope.resolve(ContainerRegistrationKeys.QUERY)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
     fields: ["id", "title", "handle", "thumbnail", "status", "created_at"],

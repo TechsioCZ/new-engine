@@ -80,7 +80,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
         )
       })
 
-      it("reuses soft-deleted attributes when reintroduced", async () => {
+      it("soft-deletes removed attributes and reuses them when explicitly reintroduced", async () => {
         const brand = await service.createBrands({
           title: "Restore Attribute Brand",
           handle: "restore-attribute-brand",
@@ -93,7 +93,27 @@ moduleIntegrationTestRunner<BrandModuleService>({
           brand_id: brand.id,
         })
 
+        expect(original).toBeDefined()
+
+        if (!original) {
+          throw new Error("Expected the original Country attribute to exist")
+        }
+
         await service.setBrandAttributes(brand.id, [])
+        const [deleted] = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          { withDeleted: true }
+        )
+
+        expect(deleted).toBeDefined()
+
+        if (!deleted) {
+          throw new Error("Expected the removed Country attribute to exist")
+        }
+
+        expect(deleted.id).toBe(original.id)
+        expect(deleted.deleted_at).toBeTruthy()
+
         await service.setBrandAttributes(brand.id, [
           { name: "Country", value: "SK" },
         ])
@@ -102,6 +122,12 @@ moduleIntegrationTestRunner<BrandModuleService>({
           { brand_id: brand.id },
           { relations: ["attributeType"] }
         )
+
+        expect(restored).toBeDefined()
+
+        if (!restored) {
+          throw new Error("Expected the restored Country attribute to exist")
+        }
 
         expect(restored.id).toBe(original.id)
         expect(restored.value).toBe("SK")
@@ -131,7 +157,7 @@ moduleIntegrationTestRunner<BrandModuleService>({
           throw new Error("Expected the Legacy attribute to exist")
         }
 
-        await service.deleteBrandAttributeTypes(
+        await service.softDeleteBrandAttributeTypes(
           legacyAttribute.attributeType.id
         )
         await service.setBrandAttributes(brand.id, [
