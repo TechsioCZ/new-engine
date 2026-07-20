@@ -69,3 +69,13 @@ describe("B2B admin translations", () => {
     }
   })
 })
+
+describe("storefront text admin translations", () => {
+  it("registers matching Czech and English resources", () => {
+    expect(resources.cs.storefrontTexts.menuItem).toBe("Jazyky")
+    expect(resources.en.storefrontTexts.menuItem).toBe("Languages")
+    expect(collectLeafPaths(resources.cs.storefrontTexts)).toEqual(
+      collectLeafPaths(resources.en.storefrontTexts)
+    )
+  })
+})

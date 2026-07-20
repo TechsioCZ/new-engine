@@ -14,6 +14,10 @@ import {
   type QuoteAdminI18nNamespace,
   quoteAdminI18n,
 } from "../../modules/quote/admin/i18n"
+import {
+  type StorefrontTextAdminI18nNamespace,
+  storefrontTextAdminI18n,
+} from "../../modules/storefront-text/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 
 type AdminLocale = "cs" | "en"
@@ -120,6 +124,7 @@ type AdminI18nResources = Record<
     productSalesRegions: ProductSalesRegionsNamespace
     producers: ProducerAdminI18nNamespace
     quotes: QuoteAdminI18nNamespace
+    storefrontTexts: StorefrontTextAdminI18nNamespace
     translation: AdminDefaultTranslationNamespace
   }
 >
@@ -438,6 +443,7 @@ const resources = {
     productSalesRegions: productSalesRegions.cs,
     producers: producerAdminI18n.cs,
     quotes: quoteAdminI18n.cs,
+    storefrontTexts: storefrontTextAdminI18n.cs,
     translation: defaultTranslation.cs,
   },
   en: {
@@ -447,6 +453,7 @@ const resources = {
     productSalesRegions: productSalesRegions.en,
     producers: producerAdminI18n.en,
     quotes: quoteAdminI18n.en,
+    storefrontTexts: storefrontTextAdminI18n.en,
     translation: defaultTranslation.en,
   },
 } satisfies AdminI18nResources

@@ -18,6 +18,7 @@ import {
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import {
   STOREFRONT_TEXT_MARKETS,
   STOREFRONT_TEXT_NAMESPACES,
@@ -34,6 +35,7 @@ import {
   syncStorefrontTexts,
   updateStorefrontText,
 } from "../../lib/storefront-texts"
+import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -58,10 +60,11 @@ const isStorefrontTextStatus = (value: string): value is StorefrontTextStatus =>
   STOREFRONT_TEXT_STATUS_VALUES.has(value)
 
 export const handle = {
-  breadcrumb: () => "Jazyky",
+  breadcrumb: () =>
+    translateBreadcrumb("storefrontTexts:menuItem", "Languages"),
 }
 
-const getMarketLabel = (market: string) =>
+const getMarketFallbackLabel = (market: string) =>
   STOREFRONT_TEXT_MARKETS.find((item) => item.market === market)?.label ??
   market
 
@@ -77,10 +80,12 @@ const StorefrontTextRows = ({
   onEdit: (storefrontText: StorefrontText) => void
   storefrontTexts: StorefrontText[]
 }) => {
+  const { t } = useTranslation("storefrontTexts")
+
   if (isLoading) {
     return (
       <Table.Row>
-        <Table.Cell>Načítám...</Table.Cell>
+        <Table.Cell>{t("table.loading")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -93,7 +98,7 @@ const StorefrontTextRows = ({
   if (!storefrontTexts.length) {
     return (
       <Table.Row>
-        <Table.Cell>Žádné texty nenalezeny.</Table.Cell>
+        <Table.Cell>{t("table.empty")}</Table.Cell>
         <Table.Cell />
         <Table.Cell />
         <Table.Cell />
@@ -124,7 +129,11 @@ const StorefrontTextRows = ({
       <Table.Cell>{storefrontText.namespace}</Table.Cell>
       <Table.Cell>
         <div className="flex flex-col">
-          <Text size="small">{getMarketLabel(storefrontText.market)}</Text>
+          <Text size="small">
+            {t(`markets.${storefrontText.market}`, {
+              defaultValue: getMarketFallbackLabel(storefrontText.market),
+            })}
+          </Text>
           <Text className="text-ui-fg-subtle" size="small">
             {storefrontText.domain}
           </Text>
@@ -133,7 +142,7 @@ const StorefrontTextRows = ({
       <Table.Cell>{storefrontText.locale}</Table.Cell>
       <Table.Cell>
         <StatusBadge color={STATUS_BADGE_COLOR[storefrontText.status]}>
-          {storefrontText.status}
+          {t(`statuses.${storefrontText.status}`)}
         </StatusBadge>
       </Table.Cell>
       <Table.Cell>
@@ -142,7 +151,7 @@ const StorefrontTextRows = ({
             {getValuePreview(storefrontText.effective_value)}
           </Text>
           <IconButton
-            aria-label="Upravit text"
+            aria-label={t("actions.edit")}
             onClick={(event) => {
               event.stopPropagation()
               onEdit(storefrontText)
@@ -168,6 +177,7 @@ const StorefrontTextEditDrawer = ({
   open: boolean
   storefrontText: StorefrontText | null
 }) => {
+  const { t } = useTranslation("storefrontTexts")
   const queryClient = useQueryClient()
   const [overrideValue, setOverrideValue] = useState("")
   const [status, setStatus] = useState<StorefrontTextStatus>("active")
@@ -184,7 +194,7 @@ const StorefrontTextEditDrawer = ({
   const mutation = useMutation({
     mutationFn: (input: StorefrontTextInput) => {
       if (!storefrontText) {
-        throw new Error("Storefront text is required")
+        throw new Error(t("errors.missingText"))
       }
 
       return updateStorefrontText(storefrontText.id, input)
@@ -193,7 +203,7 @@ const StorefrontTextEditDrawer = ({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Text se nepodařilo uložit."
+          : t("errors.saveFailed")
       )
     },
     onSuccess: async (_, input) => {
@@ -202,8 +212,8 @@ const StorefrontTextEditDrawer = ({
       })
       toast.success(
         input.override_value === null
-          ? "Text obnoven na výchozí hodnotu."
-          : "Text uložen."
+          ? t("toasts.reset")
+          : t("toasts.saved")
       )
       onOpenChange(false)
     },
@@ -213,9 +223,9 @@ const StorefrontTextEditDrawer = ({
     <Drawer onOpenChange={onOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>Upravit text</Drawer.Title>
+          <Drawer.Title>{t("drawer.title")}</Drawer.Title>
           <Drawer.Description className="sr-only">
-            Úprava storefront textu a jeho publikačního statusu.
+            {t("drawer.description")}
           </Drawer.Description>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto p-4">
@@ -224,7 +234,7 @@ const StorefrontTextEditDrawer = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <Text className="text-ui-fg-subtle" size="small">
-                    Klíč
+                    {t("fields.key")}
                   </Text>
                   <Text size="small" weight="plus">
                     {storefrontText.key}
@@ -232,7 +242,7 @@ const StorefrontTextEditDrawer = ({
                 </div>
                 <div className="flex flex-col gap-1">
                   <Text className="text-ui-fg-subtle" size="small">
-                    Namespace
+                    {t("fields.namespace")}
                   </Text>
                   <Text size="small" weight="plus">
                     {storefrontText.namespace}
@@ -242,15 +252,17 @@ const StorefrontTextEditDrawer = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <Text className="text-ui-fg-subtle" size="small">
-                    Market
+                    {t("fields.market")}
                   </Text>
                   <Text size="small" weight="plus">
-                    {getMarketLabel(storefrontText.market)}
+                    {t(`markets.${storefrontText.market}`, {
+                      defaultValue: getMarketFallbackLabel(storefrontText.market),
+                    })}
                   </Text>
                 </div>
                 <div className="flex flex-col gap-1">
                   <Text className="text-ui-fg-subtle" size="small">
-                    Locale
+                    {t("fields.locale")}
                   </Text>
                   <Text size="small" weight="plus">
                     {storefrontText.locale}
@@ -265,7 +277,7 @@ const StorefrontTextEditDrawer = ({
             </>
           ) : null}
           <div className="flex flex-col gap-2">
-            <Label>Výchozí hodnota</Label>
+            <Label>{t("fields.defaultValue")}</Label>
             <Textarea
               readOnly
               rows={5}
@@ -273,7 +285,7 @@ const StorefrontTextEditDrawer = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Vlastní hodnota</Label>
+            <Label>{t("fields.overrideValue")}</Label>
             <Textarea
               onChange={(event) => setOverrideValue(event.target.value)}
               rows={5}
@@ -281,7 +293,7 @@ const StorefrontTextEditDrawer = ({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Status</Label>
+            <Label>{t("fields.status")}</Label>
             <Select
               onValueChange={(nextStatus) => {
                 if (isStorefrontTextStatus(nextStatus)) {
@@ -296,7 +308,7 @@ const StorefrontTextEditDrawer = ({
               <Select.Content>
                 {STOREFRONT_TEXT_STATUSES.map((item) => (
                   <Select.Item key={item} value={item}>
-                    {item}
+                    {t(`statuses.${item}`)}
                   </Select.Item>
                 ))}
               </Select.Content>
@@ -315,12 +327,12 @@ const StorefrontTextEditDrawer = ({
               type="button"
               variant="secondary"
             >
-              Obnovit výchozí
+              {t("actions.resetDefault")}
             </Button>
             <div className="flex items-center justify-end gap-2">
               <Drawer.Close asChild>
                 <Button size="small" type="button" variant="secondary">
-                  Zrušit
+                  {t("actions.cancel")}
                 </Button>
               </Drawer.Close>
               <Button
@@ -337,7 +349,7 @@ const StorefrontTextEditDrawer = ({
                 size="small"
                 type="button"
               >
-                Uložit
+                {t("actions.save")}
               </Button>
             </div>
           </div>
@@ -348,6 +360,7 @@ const StorefrontTextEditDrawer = ({
 }
 
 const StorefrontTextsPage = () => {
+  const { t } = useTranslation("storefrontTexts")
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [query, setQuery] = useState("")
@@ -379,7 +392,7 @@ const StorefrontTextsPage = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Synchronizace se nepodařila."
+          : t("errors.syncFailed")
       )
     },
     onSuccess: async (response) => {
@@ -387,7 +400,10 @@ const StorefrontTextsPage = () => {
         queryKey: storefrontTextQueryKeys.lists(),
       })
       toast.success(
-        `Synchronizováno: ${response.result.created_count} nových, ${response.result.updated_count} upravených.`
+        t("toasts.synchronized", {
+          created: response.result.created_count,
+          updated: response.result.updated_count,
+        })
       )
     },
   })
@@ -402,9 +418,9 @@ const StorefrontTextsPage = () => {
       <div className="flex flex-col gap-4 px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Heading level="h1">Jazyky</Heading>
+            <Heading level="h1">{t("menuItem")}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
-              Editace storefront UI textů řízených backendem.
+              {t("description")}
             </Text>
           </div>
           <Button
@@ -414,7 +430,7 @@ const StorefrontTextsPage = () => {
             type="button"
             variant="secondary"
           >
-            Synchronizovat klíče
+            {t("actions.sync")}
           </Button>
         </div>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(180px,320px)_max-content_repeat(3,minmax(140px,180px))]">
@@ -425,8 +441,8 @@ const StorefrontTextsPage = () => {
             }}
             placeholder={
               searchScope === "value"
-                ? "Hledat v hodnotách"
-                : "Hledat ve všem"
+                ? t("filters.searchValues")
+                : t("filters.searchAll")
             }
             value={query}
           />
@@ -440,7 +456,7 @@ const StorefrontTextsPage = () => {
               }}
             />
             <Label htmlFor="storefront-text-value-search" size="small">
-              Pouze v hodnotách
+              {t("filters.onlyValues")}
             </Label>
           </div>
           <Select
@@ -454,10 +470,12 @@ const StorefrontTextsPage = () => {
               <Select.Value />
             </Select.Trigger>
             <Select.Content>
-              <Select.Item value={ALL_VALUE}>Všechny markety</Select.Item>
+              <Select.Item value={ALL_VALUE}>
+                {t("filters.allMarkets")}
+              </Select.Item>
               {STOREFRONT_TEXT_MARKETS.map((item) => (
                 <Select.Item key={item.market} value={item.market}>
-                  {item.label}
+                  {t(`markets.${item.market}`)}
                 </Select.Item>
               ))}
             </Select.Content>
@@ -477,7 +495,9 @@ const StorefrontTextsPage = () => {
               <Select.Value />
             </Select.Trigger>
             <Select.Content>
-              <Select.Item value={ALL_VALUE}>Všechny namespace</Select.Item>
+              <Select.Item value={ALL_VALUE}>
+                {t("filters.allNamespaces")}
+              </Select.Item>
               {STOREFRONT_TEXT_NAMESPACES.map((item) => (
                 <Select.Item key={item} value={item}>
                   {item}
@@ -500,10 +520,12 @@ const StorefrontTextsPage = () => {
               <Select.Value />
             </Select.Trigger>
             <Select.Content>
-              <Select.Item value={ALL_VALUE}>Všechny statusy</Select.Item>
+              <Select.Item value={ALL_VALUE}>
+                {t("filters.allStatuses")}
+              </Select.Item>
               {STOREFRONT_TEXT_STATUSES.map((item) => (
                 <Select.Item key={item} value={item}>
-                  {item}
+                  {t(`statuses.${item}`)}
                 </Select.Item>
               ))}
             </Select.Content>
@@ -513,12 +535,12 @@ const StorefrontTextsPage = () => {
       <Table>
         <Table.Header>
           <Table.Row>
-            <Table.HeaderCell>Interní jméno</Table.HeaderCell>
-            <Table.HeaderCell>Namespace</Table.HeaderCell>
-            <Table.HeaderCell>Market</Table.HeaderCell>
-            <Table.HeaderCell>Locale</Table.HeaderCell>
-            <Table.HeaderCell>Status</Table.HeaderCell>
-            <Table.HeaderCell>Hodnota</Table.HeaderCell>
+            <Table.HeaderCell>{t("table.internalName")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("table.namespace")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("table.market")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("table.locale")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("table.status")}</Table.HeaderCell>
+            <Table.HeaderCell>{t("table.value")}</Table.HeaderCell>
           </Table.Row>
         </Table.Header>
         <Table.Body>
@@ -539,11 +561,11 @@ const StorefrontTextsPage = () => {
         pageSize={PAGE_SIZE}
         previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
         translations={{
-          next: "Další",
-          of: "z",
-          pages: "stran",
-          prev: "Předchozí",
-          results: "výsledků",
+          next: t("pagination.next"),
+          of: t("pagination.of"),
+          pages: t("pagination.pages"),
+          prev: t("pagination.previous"),
+          results: t("pagination.results"),
         }}
       />
       <StorefrontTextEditDrawer
@@ -561,7 +583,8 @@ const StorefrontTextsPage = () => {
 
 export const config = defineRouteConfig({
   icon: DocumentText,
-  label: "Jazyky",
+  label: "menuItem",
+  translationNs: "storefrontTexts",
 })
 
 export default StorefrontTextsPage
