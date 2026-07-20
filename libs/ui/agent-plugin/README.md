@@ -20,7 +20,7 @@ no spec-driven workflow.
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
 | Bundled deep skills | 58 | Synced 1:1 from `libs/ui/skills/`: per-component `*-usage` guides, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
 | Subagents (Codex TOML) | 6 | design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate |
-| Hooks | 2 | Real git `pre-push` gate (auto-installed) + a `--no-verify` guard |
+| Hooks | 2 | Real git `pre-push` gate (auto-installed in the ui-kit source repo only) + a `--no-verify` guard |
 | MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) |
 
 > **Note on slash commands:** Codex deprecated `~/.codex/prompts` custom prompts in favor of
@@ -117,6 +117,13 @@ Pushes carrying `libs/ui` changes are blocked until `$ui-validate` has passed fo
 pushed. Enforcement is a real **git `pre-push` hook** (`hooks/pre-push`), installed into the
 repo by a `SessionStart` hook (`scripts/install-git-hook.mjs`).
 
+**Scoped to the ui-kit source repo.** The plugin may be installed globally, so sessions start
+in arbitrary repos. Both hooks first check whether the repo actually contains the guarded
+paths — a `libs/ui/` directory with anything besides the plugin bundle itself. In any other
+repo the installer installs nothing and the `--no-verify` guard allows everything. If an
+earlier plugin version already installed the git hook into a consumer repo, the installer
+removes it on the next session start and restores any original hook it had chained aside.
+
 That matters: git invokes `pre-push` with the *resolved* push operation and hands it the exact
 refs and SHAs on stdin. There is nothing to infer, so no phrasing of the command gets around it
 — not `--all`, `--mirror`, glob refspecs, `push.default=matching`, `remote.<name>.push`, nor a
@@ -134,8 +141,9 @@ git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"
 ```
 
 Any new commit invalidates it. The installer is idempotent, honours `core.hooksPath` (husky,
-lefthook), and **never overwrites a pre-push hook it did not write** — a pre-existing hook is
-left alone with a note on how to install manually.
+lefthook), and **never destroys a pre-push hook it did not write** — a pre-existing hook is
+moved aside to `pre-push.pre-ui-kit` and chained: it runs first, and its non-zero exit still
+rejects the push.
 
 ## Layout
 

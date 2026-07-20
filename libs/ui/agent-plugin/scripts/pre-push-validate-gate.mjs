@@ -17,6 +17,8 @@
  * Exit codes: 0 = allow, 2 = block (stderr is fed back to the agent).
  */
 import { execFileSync } from "node:child_process";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 // Boundaries include quotes and `=`, not just whitespace: an alias definition inlined into the
 // command (`git -c alias.x='push --no-verify' x`) puts the tokens inside a quoted value, where
@@ -27,6 +29,28 @@ const IS_PUSH = new RegExp(`(^|${B})push(${B}|$)`);
 
 /** Flags that take a separate value, so the following token is not the subcommand. */
 const GIT_GLOBAL_WITH_VALUE = new Set(["-c", "-C", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+
+/**
+ * Same test the installer uses: the repo is the ui-kit source repo only if `libs/ui` at the
+ * worktree root contains something besides the plugin bundle itself.
+ */
+function isUiKitSourceRepo(cwd) {
+  let topLevel;
+  try {
+    topLevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return false; // not a git worktree — no gate to protect
+  }
+  try {
+    return readdirSync(join(topLevel, "libs", "ui")).some((entry) => entry !== "agent-plugin");
+  } catch {
+    return false;
+  }
+}
 
 const gitConfig = (key, cwd) => {
   try {
@@ -104,6 +128,12 @@ process.stdin.on("end", () => {
   if (typeof command !== "string" || !/\bgit\b/.test(command)) process.exit(0);
 
   const cwd = input?.cwd || process.cwd();
+
+  // The plugin may be installed globally, so this hook fires in arbitrary consumer repos.
+  // There is only something to protect in the ui-kit source repo — the only place the
+  // installer puts the pre-push hook (it guards paths under libs/ui/, which only exist there).
+  if (!isUiKitSourceRepo(cwd)) process.exit(0);
+
   const resolved = expandAliases(command, cwd);
 
   // Check the raw text AND the alias-resolved text. The resolved form catches an alias stored in
