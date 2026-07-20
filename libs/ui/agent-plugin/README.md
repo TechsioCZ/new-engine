@@ -145,17 +145,21 @@ lefthook), and **never destroys a pre-push hook it did not write** — a pre-exi
 moved aside to `pre-push.pre-ui-kit` and chained: it runs first, and its non-zero exit still
 rejects the push.
 
-**Collision rules.** The plugin's agent-level hooks (`hooks.json`) are additive — Codex and
-Claude Code run every plugin's hooks side by side, so they cannot collide with default or
+**Collision resolution.** The plugin's agent-level hooks (`hooks.json`) are additive — Codex
+and Claude Code run every plugin's hooks side by side, so they cannot collide with default or
 other plugins' hooks, and ours exit silently outside the ui-kit repo. For the git `pre-push`
-slot the installer refuses to act whenever acting could destroy or dirty anything:
+slot, collisions are resolved so existing hooks keep running — never won by force:
 
-- a hook **tracked in the repo** (a committed `.husky/pre-push`, lefthook output, …) is never
-  renamed or overwritten — the gate is simply not installed and a note tells you how to chain
-  it manually;
-- if both a foreign `pre-push` and an old `pre-push.pre-ui-kit` backup exist, both are left
-  untouched;
-- only an **untracked** foreign hook is chained (moved aside, run first, its exit code wins).
+- an **untracked** foreign hook (hand-written, `.git/hooks`) is moved aside to a
+  `pre-push.pre-ui-kit[.N]` slot — the gate runs every moved-aside hook first, oldest first,
+  and any non-zero exit still rejects the push;
+- a hook **tracked in the repo** (a committed `.husky/pre-push`, lefthook output, a default
+  hooks dir committed by another tool) is never renamed or overwritten. Instead
+  `core.hooksPath` (repo-local config — nothing in the worktree changes) is pointed at a shim
+  directory inside `.git/` that forwards *every* hook type to the original hooks dir and only
+  adds the gate to `pre-push`, after the original hook has run and passed;
+- uninstalling (which the installer does itself in non-ui-kit repos) restores the original
+  `core.hooksPath` and the most recently moved-aside hook.
 
 ## Layout
 
