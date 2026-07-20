@@ -143,9 +143,9 @@ function isProductBrandLink(
   )
 }
 
-function isProductVariantRecord(
-  value: unknown
-): value is Required<ProductVariantRecord> {
+function isProductVariantRecord<T>(
+  value: T
+): value is T & Required<ProductVariantRecord> {
   return (
     typeof value === "object" &&
     value !== null &&
