@@ -4,15 +4,10 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import type { z } from "@medusajs/framework/zod"
-import { createFindParams } from "@medusajs/medusa/api/utils/validators"
-
-export const StoreBrandsDetailSchema = createFindParams()
-
-export type StoreBrandsSchemaType = z.infer<typeof StoreBrandsDetailSchema>
+import type { StoreBrandsDetailSchemaType } from "../validators"
 
 export async function GET(
-  req: MedusaRequest<unknown, StoreBrandsSchemaType>,
+  req: MedusaRequest<unknown, StoreBrandsDetailSchemaType>,
   res: MedusaResponse
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)

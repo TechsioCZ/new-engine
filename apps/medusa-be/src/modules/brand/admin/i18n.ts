@@ -334,7 +334,7 @@ export const brandAdminI18n = {
     widget: {
       empty: "Žádný výrobce není propojen.",
       inactiveSelectionWarning:
-        "Aktuálně propojený výrobce je neaktivní. Uložení bez nového výběru toto propojení odstraní.",
+        "Aktuálně propojený výrobce je neaktivní. Propojení zůstane zachováno a nahradí se pouze výběrem nového aktivního výrobce.",
       loadFailed: "Výrobce se nepodařilo načíst.",
       manageTitle: "Spravovat výrobce",
       none: "Žádný",
@@ -520,7 +520,7 @@ export const brandAdminI18n = {
     widget: {
       empty: "No brand linked.",
       inactiveSelectionWarning:
-        "The currently linked brand is inactive. Saving without a new selection will clear this link.",
+        "The currently linked brand is inactive. The link is retained unless you select a new active brand.",
       loadFailed: "Failed to load brand.",
       manageTitle: "Manage Brand",
       none: "None",

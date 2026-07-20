@@ -1,10 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework"
-import type {
-  ExecArgs,
-  ILockingModule,
-  Logger,
-} from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import type { ExecArgs, Logger } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 import { syncMeilisearchBrandsWorkflow } from "../workflows/meilisearch/workflows/sync-brands"
 
@@ -23,23 +19,15 @@ export default async function meilisearchBrandsIndexJob(
     return
   }
 
-  const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
+  logger.info("Starting brand indexing...")
 
-  await lockingModule.execute(
-    "meilisearch-brands-index-job",
-    async () => {
-      logger.info("Starting brand indexing...")
+  const {
+    result: { brands },
+  } = await syncMeilisearchBrandsWorkflow(container).run({
+    input: {},
+  })
 
-      const {
-        result: { brands },
-      } = await syncMeilisearchBrandsWorkflow(container).run({
-        input: {},
-      })
-
-      logger.info(`Successfully indexed ${brands.length} brands`)
-    },
-    { timeout: 120 }
-  )
+  logger.info(`Successfully indexed ${brands.length} brands`)
 }
 
 export const config = {

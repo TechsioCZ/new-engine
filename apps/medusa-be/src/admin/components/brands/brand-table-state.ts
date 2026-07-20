@@ -36,3 +36,8 @@ export const isBrandSelectable = (
   selectedId: string | undefined,
   isPending: boolean
 ) => !(brand.deleted_at || isPending || brand.id === selectedId)
+
+export const shouldSubmitProductBrandSelection = (
+  currentBrand: Brand | undefined,
+  selectedId: string | undefined
+) => !(currentBrand?.deleted_at && selectedId === undefined)

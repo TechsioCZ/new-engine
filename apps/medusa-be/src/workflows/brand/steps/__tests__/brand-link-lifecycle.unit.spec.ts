@@ -5,6 +5,7 @@ import {
 } from "../../../seed/steps/create-products"
 import {
   diffIds,
+  getProductBrandIdsToReplace,
   hasActiveBrandConflict,
   normalizeBrandProductDelta,
   partitionProductBrandConflicts,
@@ -12,16 +13,47 @@ import {
 } from "../helpers"
 
 describe("deleted brand link lifecycle", () => {
-  it("ignores an inactive current brand as a conflict but keeps it in the replacement diff", () => {
+  it("ignores an inactive current brand as a conflict and replaces it for a new active assignment", () => {
     const currentIds = ["brand_deleted"]
     const nextIds = ["brand_active"]
+    const replaceableCurrentIds = getProductBrandIdsToReplace(
+      currentIds,
+      new Set<string>(),
+      nextIds
+    )
 
     expect(hasActiveBrandConflict(currentIds, new Set<string>(), nextIds)).toBe(
       false
     )
-    expect(diffIds(currentIds, nextIds)).toEqual({
+    expect(diffIds(replaceableCurrentIds, nextIds)).toEqual({
       add: ["brand_active"],
       remove: ["brand_deleted"],
+    })
+  })
+
+  it("retains an inactive link when no replacement is selected", () => {
+    const replaceableCurrentIds = getProductBrandIdsToReplace(
+      ["brand_deleted"],
+      new Set<string>(),
+      []
+    )
+
+    expect(diffIds(replaceableCurrentIds, [])).toEqual({
+      add: [],
+      remove: [],
+    })
+  })
+
+  it("dismisses an active link when it is explicitly cleared", () => {
+    const replaceableCurrentIds = getProductBrandIdsToReplace(
+      ["brand_active"],
+      new Set(["brand_active"]),
+      []
+    )
+
+    expect(diffIds(replaceableCurrentIds, [])).toEqual({
+      add: [],
+      remove: ["brand_active"],
     })
   })
 

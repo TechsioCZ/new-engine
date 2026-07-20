@@ -3,9 +3,9 @@ import {
   createScope,
   ensureProductsAssignableToBrand,
   getBrandProductsLockKeys,
-  getProductBrandIdsToReplace,
   getProductBrandLockKeys,
 } from "../../../../src/test-helpers/mocks"
+import { getProductBrandIdsToReplace } from "../../../../src/workflows/brand/steps/brand-link-state"
 
 describe("brand workflow helpers", () => {
   describe("product brand lock keys", () => {

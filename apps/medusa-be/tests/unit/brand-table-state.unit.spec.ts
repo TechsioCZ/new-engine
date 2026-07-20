@@ -4,6 +4,7 @@ import {
   fromRowSelection,
   isBrandSelectable,
   isProductOptionSelectable,
+  shouldSubmitProductBrandSelection,
   toRowSelection,
 } from "../../src/admin/components/brands/brand-table-state"
 import type { Brand, BrandProductOption } from "../../src/admin/lib/brands"
@@ -63,6 +64,20 @@ describe("Brand DataTable state", () => {
       isBrandSelectable(brand("brand_1", "2026-07-20"), undefined, false)
     ).toBe(false)
     expect(isBrandSelectable(brand("brand_1"), undefined, true)).toBe(false)
+  })
+
+  it("does not submit an unchanged inactive Brand as an unlink", () => {
+    const inactiveBrand = brand("brand_1", "2026-07-20")
+
+    expect(shouldSubmitProductBrandSelection(inactiveBrand, undefined)).toBe(
+      false
+    )
+    expect(shouldSubmitProductBrandSelection(inactiveBrand, "brand_2")).toBe(
+      true
+    )
+    expect(shouldSubmitProductBrandSelection(brand("brand_1"), undefined)).toBe(
+      true
+    )
   })
 
   it("submits only changed product selections", () => {

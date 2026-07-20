@@ -1,12 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { z } from "@medusajs/framework/zod"
-import { createFindParams } from "@medusajs/medusa/api/utils/validators"
-
-export const StoreBrandsSchema = createFindParams()
-
-export type StoreBrandsSchemaType = z.infer<typeof StoreBrandsSchema>
+import type { StoreBrandsSchemaType } from "./validators"
 
 export async function GET(
   req: MedusaRequest<unknown, StoreBrandsSchemaType>,

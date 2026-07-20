@@ -3,7 +3,16 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+import {
+  acquireLockStep,
+  emitEventStep,
+  releaseLockStep,
+} from "@medusajs/medusa/core-flows"
+import {
+  BRAND_SEARCH_PROJECTION_CHANGED,
+  BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
+  buildBrandSearchProjectionEventData,
+} from "../../meilisearch/events"
 import { createBrandsStep, getBrandAttributeTypeLockKeys } from "../steps"
 import type { CreateBrandsWorkflowInput } from "../types"
 
@@ -26,10 +35,21 @@ export const createBrandsWorkflow = createWorkflow(
     })
 
     const result = createBrandsStep(input)
+    const eventData = transform({ result }, ({ result: createdBrands }) =>
+      buildBrandSearchProjectionEventData({
+        brandIds: createdBrands.map((brand) => brand.id),
+      })
+    )
 
     releaseLockStep({
       executeOnSubWorkflow: true,
       key: lockKey,
+    })
+
+    emitEventStep({
+      data: eventData,
+      eventName: BRAND_SEARCH_PROJECTION_CHANGED,
+      options: BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
     })
 
     return new WorkflowResponse(result)

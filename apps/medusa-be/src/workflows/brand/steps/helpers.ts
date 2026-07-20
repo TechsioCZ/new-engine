@@ -14,6 +14,7 @@ import {
 } from "./validation"
 
 export { getActiveBrandIds } from "../brand-activity"
+export { getProductBrandIdsToReplace } from "./brand-link-state"
 
 type BrandAttributeRecord = {
   id: string

@@ -18,7 +18,10 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { BrandDataTable } from "../components/brands/brand-data-table"
-import { isBrandSelectable } from "../components/brands/brand-table-state"
+import {
+  isBrandSelectable,
+  shouldSubmitProductBrandSelection,
+} from "../components/brands/brand-table-state"
 import {
   type Brand,
   brandQueryKeys,
@@ -348,6 +351,14 @@ const BrandAssignmentDrawer = ({
     setSelectedId(brand.id)
     setSelectedBrandSnapshot(brand)
   }
+  const saveSelection = () => {
+    if (!shouldSubmitProductBrandSelection(currentBrand, selectedId)) {
+      handleOpenChange(false)
+      return
+    }
+
+    mutation.mutate(selectedId)
+  }
   const columns = [
     brandColumnHelper.accessor("title", {
       header: t("columns.brand"),
@@ -480,7 +491,7 @@ const BrandAssignmentDrawer = ({
             <Button
               disabled={mutation.isPending}
               isLoading={mutation.isPending}
-              onClick={() => mutation.mutate(selectedId)}
+              onClick={saveSelection}
               size="small"
               type="button"
             >

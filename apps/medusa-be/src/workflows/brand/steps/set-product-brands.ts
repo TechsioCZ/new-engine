@@ -7,6 +7,7 @@ import {
   getActiveBrandIds,
   getCurrentProductBrandIds,
   getExistingProductIds,
+  getProductBrandIdsToReplace,
   hasActiveBrandConflict,
 } from "./helpers"
 
@@ -61,7 +62,12 @@ export const prepareSetProductBrandsStep = createStep(
       }
     }
 
-    const { add, remove } = diffIds(currentIds, input.brand_ids)
+    const replaceableCurrentIds = getProductBrandIdsToReplace(
+      currentIds,
+      activeCurrentIds,
+      input.brand_ids
+    )
+    const { add, remove } = diffIds(replaceableCurrentIds, input.brand_ids)
 
     return new StepResponse({
       links_to_create: add.map((brandId) =>
