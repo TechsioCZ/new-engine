@@ -17,9 +17,7 @@ vi.mock("../../../../links/product-brand", () => ({
   },
 }))
 
-const asContainer = (
-  resolve: (key: string) => unknown
-): MedusaContainer =>
+const asContainer = (resolve: (key: string) => unknown): MedusaContainer =>
   ({
     resolve: vi.fn(resolve),
   }) as unknown as MedusaContainer
@@ -51,10 +49,7 @@ describe("Brand search projection", () => {
   it("expands changed Brands to their currently linked products", async () => {
     vi.stubEnv("MEILISEARCH_ENABLED", "1")
     const graph = vi.fn().mockResolvedValue({
-      data: [
-        { product_id: "prod_linked" },
-        { product_id: "prod_explicit" },
-      ],
+      data: [{ product_id: "prod_linked" }, { product_id: "prod_explicit" }],
     })
     const container = asContainer((key) =>
       key === ContainerRegistrationKeys.QUERY ? { graph } : undefined
@@ -132,11 +127,9 @@ describe("Brand search projection", () => {
       "brands",
       { container }
     )
-    expect(meilisearch.deleteDocuments).toHaveBeenNthCalledWith(
-      1,
-      "brands",
-      ["brand_deleted"]
-    )
+    expect(meilisearch.deleteDocuments).toHaveBeenNthCalledWith(1, "brands", [
+      "brand_deleted",
+    ])
     expect(meilisearch.addDocuments).toHaveBeenNthCalledWith(
       2,
       "products",
@@ -144,11 +137,10 @@ describe("Brand search projection", () => {
       SearchUtils.indexTypes.PRODUCTS,
       { container }
     )
-    expect(meilisearch.deleteDocuments).toHaveBeenNthCalledWith(
-      2,
-      "products",
-      ["prod_draft", "prod_missing"]
-    )
+    expect(meilisearch.deleteDocuments).toHaveBeenNthCalledWith(2, "products", [
+      "prod_draft",
+      "prod_missing",
+    ])
     expect(result).toEqual({
       brands_deleted: 1,
       brands_upserted: 1,
