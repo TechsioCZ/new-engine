@@ -26,15 +26,15 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs";
 
 const MARKER = "git pre-push hook — the REAL ui-kit quality gate";
 const source = join(dirname(dirname(fileURLToPath(import.meta.url))), "hooks", "pre-push");
@@ -53,19 +53,6 @@ try {
 }
 
 const shimDir = join(gitDir, "ui-kit-hooks");
-
-/**
- * The gate blocks pushes touching `libs/ui/` outside `libs/ui/agent-plugin/`. A repo is only a
- * candidate if it actually contains such paths — i.e. it is the ui-kit source repo, not a
- * consumer that merely installed this plugin (or vendored the plugin bundle itself).
- */
-function isUiKitSourceRepo() {
-  try {
-    return readdirSync(join(topLevel, "libs", "ui")).some((entry) => entry !== "agent-plugin");
-  } catch {
-    return false; // no libs/ui at all
-  }
-}
 
 // Respect a configured hooksPath (husky, lefthook, …) so we install where git actually looks.
 // Git resolves a relative core.hooksPath against the worktree root, not our cwd — do the same.
@@ -92,8 +79,13 @@ const chainedBase = `${target}.pre-ui-kit`;
  * commit by accident. `.git/hooks` is outside the worktree, so plain hooks are never tracked.
  */
 function isTrackedInRepo(file) {
+  // `git ls-files` matches pathspecs against the index; give it a worktree-relative path. An
+  // absolute path is not portably accepted across git versions, so a committed hook could be
+  // misread as untracked and then renamed — dirtying a tracked hooks dir instead of shimming it.
+  // (A path outside the worktree resolves to `../…`, which ls-files rejects → correctly untracked.)
+  const rel = relative(topLevel, file);
   try {
-    execFileSync("git", ["-C", topLevel, "ls-files", "--error-unmatch", "--", file], {
+    execFileSync("git", ["-C", topLevel, "ls-files", "--error-unmatch", "--", rel], {
       stdio: ["ignore", "ignore", "ignore"],
     });
     return true;
@@ -199,12 +191,17 @@ function removeRedirect() {
     if (original) git("config", "core.hooksPath", original);
     else execFileSync("git", ["config", "--unset", "core.hooksPath"], { stdio: "ignore" });
   } catch (err) {
-    note(`could not restore core.hooksPath: ${err.message}`);
+    // If the restore fails we must NOT delete the shim: core.hooksPath may still point at it, and
+    // removing it would silently stop EVERY hook type (including the repo's own tracked hooks the
+    // shim forwards to) from firing — the exact outcome the shim exists to prevent. Leave it all in
+    // place; the next session start retries.
+    note(`could not restore core.hooksPath (${err.message}) — leaving the shim in place.`);
+    return;
   }
   try {
     rmSync(shimDir, { recursive: true, force: true });
   } catch {
-    // best effort
+    // best effort — core.hooksPath is already restored, so a leftover shim dir is harmless
   }
   note(
     `removed the ui-kit hooks shim from this non-ui-kit repo; core.hooksPath restored to ` +
@@ -212,7 +209,7 @@ function removeRedirect() {
   );
 }
 
-if (!isUiKitSourceRepo()) {
+if (!isUiKitSourceRepo(topLevel)) {
   // Consumer repo — the gate has nothing to guard here. Also undo what an earlier version of
   // this installer may have done: remove our hook/shim and put any moved-aside original back.
   if (existsSync(shimDir) && resolve(hooksDir) === resolve(shimDir)) {

@@ -17,8 +17,7 @@
  * Exit codes: 0 = allow, 2 = block (stderr is fed back to the agent).
  */
 import { execFileSync } from "node:child_process";
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
+import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs";
 
 // Boundaries include quotes and `=`, not just whitespace: an alias definition inlined into the
 // command (`git -c alias.x='push --no-verify' x`) puts the tokens inside a quoted value, where
@@ -29,28 +28,6 @@ const IS_PUSH = new RegExp(`(^|${B})push(${B}|$)`);
 
 /** Flags that take a separate value, so the following token is not the subcommand. */
 const GIT_GLOBAL_WITH_VALUE = new Set(["-c", "-C", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
-
-/**
- * Same test the installer uses: the repo is the ui-kit source repo only if `libs/ui` at the
- * worktree root contains something besides the plugin bundle itself.
- */
-function isUiKitSourceRepo(cwd) {
-  let topLevel;
-  try {
-    topLevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
-      cwd,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-  } catch {
-    return false; // not a git worktree — no gate to protect
-  }
-  try {
-    return readdirSync(join(topLevel, "libs", "ui")).some((entry) => entry !== "agent-plugin");
-  } catch {
-    return false;
-  }
-}
 
 const gitConfig = (key, cwd) => {
   try {
