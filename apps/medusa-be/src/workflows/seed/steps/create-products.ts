@@ -851,6 +851,27 @@ function groupProductBrandLinks(links: ProductBrandLinkRecord[]) {
   return linksByProductId
 }
 
+export function filterSeedLinksToActiveBrands(params: {
+  linkedBrandsById: Map<string, ExistingBrand>
+  productHandle: string
+  productLinks: ProductBrandLinkRecord[]
+}) {
+  return params.productLinks.filter((link) => {
+    const linkedBrandId = link.brand_id
+    const linkedBrand = linkedBrandId
+      ? params.linkedBrandsById.get(linkedBrandId)
+      : undefined
+
+    if (!linkedBrand) {
+      throw new Error(
+        `Product "${params.productHandle}" links to missing brand "${linkedBrandId}"`
+      )
+    }
+
+    return !linkedBrand.deleted_at
+  })
+}
+
 function assertExistingProductBrandLinkMatchesSeed(params: {
   desiredBrandHandleByProduct: Map<string, string>
   linkedBrandsById: Map<string, ExistingBrand>
@@ -864,13 +885,23 @@ function assertExistingProductBrandLinkMatchesSeed(params: {
       `Linked product "${params.productId}" was not found in seed input`
     )
   }
-  if (params.productLinks.length > 1) {
+  const activeProductLinks = filterSeedLinksToActiveBrands({
+    linkedBrandsById: params.linkedBrandsById,
+    productHandle,
+    productLinks: params.productLinks,
+  })
+
+  if (!activeProductLinks.length) {
+    return
+  }
+
+  if (activeProductLinks.length > 1) {
     throw new Error(
-      `Product "${productHandle}" already has ${params.productLinks.length} active brand links`
+      `Product "${productHandle}" already has ${activeProductLinks.length} active brand links`
     )
   }
 
-  const linkedBrandId = params.productLinks[0]?.brand_id
+  const linkedBrandId = activeProductLinks[0]?.brand_id
   const linkedBrand = linkedBrandId
     ? params.linkedBrandsById.get(linkedBrandId)
     : undefined
@@ -884,11 +915,6 @@ function assertExistingProductBrandLinkMatchesSeed(params: {
   if (linkedBrand.handle !== desiredHandle) {
     throw new Error(
       `Product "${productHandle}" is already linked to brand "${linkedBrand.title}" (${linkedBrand.handle}), not requested brand "${desiredHandle}"`
-    )
-  }
-  if (linkedBrand.deleted_at) {
-    throw new Error(
-      `Product "${productHandle}" is linked to soft-deleted brand "${linkedBrand.title}" (${linkedBrand.handle})`
     )
   }
 }
@@ -1199,13 +1225,12 @@ async function listSeedProductsByHandle(params: {
   return products
 }
 
-function buildMissingProductBrandLinks(params: {
+export function buildDesiredProductBrandLinks(params: {
   brandIdsByHandle: Map<string, string>
-  currentLinksByProductId: Map<string, ProductBrandLinkRecord[]>
   desiredBrandHandleByProduct: Map<string, string>
   products: ProductDTO[]
 }) {
-  const linksToCreate: { brandId: string; productId: string }[] = []
+  const desiredLinks: { brandId: string; productId: string }[] = []
 
   for (const product of params.products) {
     const desiredHandle = params.desiredBrandHandleByProduct.get(product.handle)
@@ -1218,29 +1243,16 @@ function buildMissingProductBrandLinks(params: {
       )
     }
 
-    const currentLinks = params.currentLinksByProductId.get(product.id) ?? []
-    if (currentLinks.length > 1) {
-      throw new Error(
-        `Product "${product.handle}" already has ${currentLinks.length} active brand links`
-      )
-    }
-    if (currentLinks[0]?.brand_id !== desiredBrandId && currentLinks.length) {
-      throw new Error(
-        `Product "${product.handle}" already has a conflicting active brand link`
-      )
-    }
-    if (!currentLinks.length) {
-      linksToCreate.push({
-        brandId: desiredBrandId,
-        productId: product.id,
-      })
-    }
+    desiredLinks.push({
+      brandId: desiredBrandId,
+      productId: product.id,
+    })
   }
 
-  return linksToCreate
+  return desiredLinks
 }
 
-async function createProductBrandLinks(
+async function reconcileProductBrandLinks(
   container: WorkflowContainer,
   links: { brandId: string; productId: string }[]
 ) {
@@ -1273,19 +1285,13 @@ async function linkBrands(params: {
     desiredBrandHandleByProduct,
     productService: params.productService,
   })
-  const currentLinks = await getCurrentProductBrandLinks(
-    params.container,
-    products.map((product) => product.id)
-  )
-  const currentLinksByProductId = groupProductBrandLinks(currentLinks)
-  const linksToCreate = buildMissingProductBrandLinks({
+  const desiredLinks = buildDesiredProductBrandLinks({
     brandIdsByHandle,
-    currentLinksByProductId,
     desiredBrandHandleByProduct,
     products,
   })
 
-  await createProductBrandLinks(params.container, linksToCreate)
+  await reconcileProductBrandLinks(params.container, desiredLinks)
 }
 
 export const createProductsStep = createStep(

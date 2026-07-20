@@ -75,7 +75,6 @@ export type BrandsResponse = {
 }
 
 export type BrandResponse = {
-  action?: "created" | "restored" | "updated"
   brand: Brand
 }
 
@@ -85,6 +84,16 @@ export type BrandProductsResponse = {
   count: number
   limit?: number
   offset?: number
+}
+
+export type UpdateBrandProductsResponse = {
+  added: string[]
+  removed: string[]
+}
+
+export type UpdateBrandProductsInput = {
+  add: string[]
+  remove: string[]
 }
 
 export type ProductBrandsResponse = {
@@ -311,13 +320,17 @@ export const retrieveBrandProductOptions = (
     `/admin/brands/${brandId}/product-options?${toSearch(params)}`
   )
 
-export const setBrandProducts = (brandId: string, productIds: string[]) =>
-  sdk.client.fetch<BrandProductsResponse>(`/admin/brands/${brandId}/products`, {
-    body: {
-      product_ids: productIds,
-    },
-    method: "POST",
-  })
+export const updateBrandProducts = (
+  brandId: string,
+  input: UpdateBrandProductsInput
+) =>
+  sdk.client.fetch<UpdateBrandProductsResponse>(
+    `/admin/brands/${brandId}/products`,
+    {
+      body: input,
+      method: "POST",
+    }
+  )
 
 export const listProducts = (params: {
   fields?: string

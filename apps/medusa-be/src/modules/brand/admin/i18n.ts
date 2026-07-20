@@ -108,9 +108,7 @@ export type BrandAdminI18nNamespace = {
     | "removeProductDescription"
     | "removeProductTitle"
     | "restoreAttributeDescription"
-    | "restoreAttributeTitle"
-    | "restoreBrandDescription"
-    | "restoreBrandTitle",
+    | "restoreAttributeTitle",
     string
   >
   products: Record<
@@ -141,9 +139,7 @@ export type BrandAdminI18nNamespace = {
     | "attributeRestored"
     | "brandCreated"
     | "brandDeleted"
-    | "brandExistsError"
     | "brandProductsUpdated"
-    | "brandReactivated"
     | "brandRestored"
     | "brandUpdated"
     | "productBrandUpdated"
@@ -287,9 +283,6 @@ export const brandAdminI18n = {
       restoreAttributeDescription:
         'Atribut "{{name}}" už existuje, ale je smazaný. Obnovit ho místo vytvoření nového?',
       restoreAttributeTitle: "Obnovit atribut",
-      restoreBrandDescription:
-        'Výrobce "{{title}}" s handlem "{{handle}}" už existuje, ale je smazaný. Tato akce ho obnoví a upraví místo vytvoření nového výrobce.',
-      restoreBrandTitle: "Obnovit výrobce",
     },
     products: {
       alreadyLinkedTooltip: 'Už je propojen s výrobcem "{{title}}"',
@@ -332,9 +325,7 @@ export const brandAdminI18n = {
       attributeRestored: "Atribut obnoven",
       brandCreated: "Výrobce vytvořen",
       brandDeleted: "Výrobce smazán",
-      brandExistsError: 'Výrobce s handlem "{{handle}}" už existuje',
       brandProductsUpdated: "Produkty výrobce upraveny",
-      brandReactivated: "Výrobce obnoven a upraven",
       brandRestored: "Výrobce obnoven",
       brandUpdated: "Výrobce upraven",
       productBrandUpdated: "Výrobce produktu upraven",
@@ -478,9 +469,6 @@ export const brandAdminI18n = {
       restoreAttributeDescription:
         'Attribute "{{name}}" already exists but is deleted. Restore it instead?',
       restoreAttributeTitle: "Restore attribute",
-      restoreBrandDescription:
-        'Brand "{{title}}" with handle "{{handle}}" already exists but is deleted. This will restore and update it instead of creating a new brand.',
-      restoreBrandTitle: "Restore brand",
     },
     products: {
       alreadyLinkedTooltip: 'Already linked to brand "{{title}}"',
@@ -523,9 +511,7 @@ export const brandAdminI18n = {
       attributeRestored: "Attribute restored",
       brandCreated: "Brand created",
       brandDeleted: "Brand deleted",
-      brandExistsError: 'Brand with handle "{{handle}}" already exists',
       brandProductsUpdated: "Brand products updated",
-      brandReactivated: "Brand restored and updated",
       brandRestored: "Brand restored",
       brandUpdated: "Brand updated",
       productBrandUpdated: "Product brand updated",

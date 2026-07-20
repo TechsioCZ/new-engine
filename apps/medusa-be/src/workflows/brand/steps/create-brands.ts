@@ -7,7 +7,10 @@ import {
   setBrandAttributes,
   withBrandTransaction,
 } from "./helpers"
-import { validateBrandGpsrState } from "./validation"
+import {
+  getBrandHandleCollisionMessage,
+  validateBrandGpsrState,
+} from "./validation"
 
 export const createBrandsStep = createStep(
   "create-brands",
@@ -65,13 +68,9 @@ export const createBrandsStep = createStep(
           "Brand lookup returned an empty record"
         )
       }
-      const suffix = existing.deleted_at
-        ? " as a deleted record. Restore it through the explicit restore action"
-        : ""
-
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
-        `Brand with handle "${existing.handle}" already exists${suffix}.`
+        getBrandHandleCollisionMessage(existing)
       )
     }
 

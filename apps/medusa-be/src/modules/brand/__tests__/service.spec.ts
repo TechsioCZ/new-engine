@@ -106,6 +106,57 @@ moduleIntegrationTestRunner<BrandModuleService>({
         expect(restored.id).toBe(original.id)
         expect(restored.value).toBe("SK")
       })
+
+      it("preserves attributes whose type is soft-deleted during replacement", async () => {
+        const brand = await service.createBrands({
+          title: "Deleted Type Attribute Brand",
+          handle: "deleted-type-attribute-brand",
+        })
+
+        await service.setBrandAttributes(brand.id, [
+          { name: "Legacy", value: "Keep me" },
+          { name: "Country", value: "CZ" },
+        ])
+        const originalAttributes = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          { relations: ["attributeType"] }
+        )
+        const legacyAttribute = originalAttributes.find(
+          (attribute) => attribute.attributeType.name === "Legacy"
+        )
+
+        expect(legacyAttribute).toBeDefined()
+
+        if (!legacyAttribute) {
+          throw new Error("Expected the Legacy attribute to exist")
+        }
+
+        await service.deleteBrandAttributeTypes(
+          legacyAttribute.attributeType.id
+        )
+        await service.setBrandAttributes(brand.id, [
+          { name: "Country", value: "SK" },
+        ])
+
+        const attributes = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          {
+            relations: ["attributeType"],
+            withDeleted: true,
+          }
+        )
+        const preservedLegacyAttribute = attributes.find(
+          (attribute) => attribute.id === legacyAttribute.id
+        )
+        const countryAttribute = attributes.find(
+          (attribute) => attribute.attributeType.name === "Country"
+        )
+
+        expect(preservedLegacyAttribute?.deleted_at).toBeNull()
+        expect(preservedLegacyAttribute?.value).toBe("Keep me")
+        expect(preservedLegacyAttribute?.attributeType.deleted_at).toBeTruthy()
+        expect(countryAttribute?.value).toBe("SK")
+      })
     })
   },
 })

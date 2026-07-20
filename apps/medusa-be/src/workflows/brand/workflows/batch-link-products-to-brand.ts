@@ -9,20 +9,23 @@ import {
   dismissRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
-import { getBrandProductsLockKeys, prepareSetBrandProductsStep } from "../steps"
-import type { SetBrandProductsWorkflowInput } from "../types"
+import {
+  getBrandProductsLockKeys,
+  prepareBatchLinkProductsToBrandStep,
+} from "../steps"
+import type { BatchLinkProductsToBrandWorkflowInput } from "../types"
 
-export const setBrandProductsWorkflow = createWorkflow(
+export const batchLinkProductsToBrandWorkflow = createWorkflow(
   {
-    name: "set-brand-products-workflow",
+    name: "batch-link-products-to-brand",
     idempotent: false,
   },
-  (input: SetBrandProductsWorkflowInput) => {
+  (input: BatchLinkProductsToBrandWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
-      getBrandProductsLockKeys(
-        workflowInput.brand_id,
-        workflowInput.product_ids
-      )
+      getBrandProductsLockKeys(workflowInput.brand_id, [
+        ...workflowInput.add,
+        ...workflowInput.remove,
+      ])
     )
 
     acquireLockStep({
@@ -32,7 +35,7 @@ export const setBrandProductsWorkflow = createWorkflow(
       ttl: 10,
     })
 
-    const prepared = prepareSetBrandProductsStep(input)
+    const prepared = prepareBatchLinkProductsToBrandStep(input)
 
     dismissRemoteLinkStep(prepared.links_to_dismiss)
     createRemoteLinkStep(prepared.links_to_create)

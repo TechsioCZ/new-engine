@@ -2,18 +2,17 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { setBrandProductsWorkflow } from "../../../../../workflows/brand"
+import { batchLinkProductsToBrandWorkflow } from "../../../../../workflows/brand"
 import {
   listAndCountProductsByIds,
   listProductIdsForBrand,
-  listProductsByIds,
   retrieveBrandOrThrow,
   toProductResponse,
   uniqueIds,
 } from "../../utils"
 import type {
   AdminGetBrandProductsSchemaType,
-  AdminSetBrandProductsSchemaType,
+  AdminUpdateBrandProductsSchemaType,
 } from "../../validators"
 
 const ORDER_FIELDS = new Set(["handle", "status", "title", "created_at"])
@@ -71,24 +70,18 @@ export async function GET(
 }
 
 export async function POST(
-  req: AuthenticatedMedusaRequest<AdminSetBrandProductsSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminUpdateBrandProductsSchemaType>,
   res: MedusaResponse
 ) {
   const brandId = req.params.id ?? ""
 
-  await setBrandProductsWorkflow(req.scope).run({
+  const { result } = await batchLinkProductsToBrandWorkflow(req.scope).run({
     input: {
+      add: req.validatedBody.add,
       brand_id: brandId,
-      product_ids: req.validatedBody.product_ids,
+      remove: req.validatedBody.remove,
     },
   })
 
-  const nextProductIds = await listProductIdsForBrand(req.scope, brandId)
-  const products = await listProductsByIds(req.scope, uniqueIds(nextProductIds))
-
-  res.status(200).json({
-    count: nextProductIds.length,
-    product_ids: nextProductIds,
-    products: products.map(toProductResponse),
-  })
+  res.status(200).json(result)
 }

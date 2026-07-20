@@ -7,6 +7,7 @@ import {
   getActiveBrandIds,
   getCurrentProductBrandIds,
   getExistingProductIds,
+  hasActiveBrandConflict,
 } from "./helpers"
 
 export const prepareSetProductBrandsStep = createStep(
@@ -34,11 +35,11 @@ export const prepareSetProductBrandsStep = createStep(
       container,
       input.product_id
     )
+    const activeCurrentIds = await getActiveBrandIds(container, currentIds)
 
     if (
       input.fail_on_conflict &&
-      input.brand_ids.length &&
-      currentIds.some((brandId) => brandId !== input.brand_ids[0])
+      hasActiveBrandConflict(currentIds, activeCurrentIds, input.brand_ids)
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,

@@ -13,6 +13,8 @@ import {
   normalizeBrandWriteInput,
 } from "./validation"
 
+export { getActiveBrandIds } from "../brand-activity"
+
 type BrandAttributeRecord = {
   id: string
   value: string
@@ -256,6 +258,67 @@ export const getBrandProductsLockKeys = (
   productIds: string[]
 ) => [`brand-products:${brandId}`, ...getProductBrandLockKeys(productIds)]
 
+export const normalizeBrandProductDelta = (input: {
+  add: string[]
+  remove: string[]
+}) => {
+  const addProductIds = [...new Set(input.add)]
+  const removeProductIds = [...new Set(input.remove)]
+  const removeProductIdSet = new Set(removeProductIds)
+  const overlappingProductIds = addProductIds.filter((productId) =>
+    removeProductIdSet.has(productId)
+  )
+
+  if (overlappingProductIds.length) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Product ids cannot be added and removed in the same request: ${overlappingProductIds.join(", ")}`
+    )
+  }
+
+  return {
+    add: addProductIds,
+    remove: removeProductIds,
+  }
+}
+
+export const resolveBrandProductDelta = (
+  currentProductIds: string[],
+  input: {
+    add: string[]
+    remove: string[]
+  }
+) => {
+  const delta = normalizeBrandProductDelta(input)
+  const currentProductIdSet = new Set(currentProductIds)
+
+  return {
+    add: delta.add.filter((productId) => !currentProductIdSet.has(productId)),
+    remove: delta.remove.filter((productId) =>
+      currentProductIdSet.has(productId)
+    ),
+  }
+}
+
+export const partitionProductBrandConflicts = (
+  links: Array<{ brand_id: string; product_id: string }>,
+  activeBrandIds: Set<string>,
+  targetBrandId: string
+) => {
+  const conflictingLinks = links.filter(
+    (link) => link.brand_id !== targetBrandId
+  )
+
+  return {
+    active: conflictingLinks.filter((link) =>
+      activeBrandIds.has(link.brand_id)
+    ),
+    inactive: conflictingLinks.filter(
+      (link) => !activeBrandIds.has(link.brand_id)
+    ),
+  }
+}
+
 export const getCurrentProductBrandIds = async (
   container: MedusaContainer,
   productId: string
@@ -305,34 +368,6 @@ export const getCurrentProductBrandLinks = async (
   )
 }
 
-export const getActiveBrandIds = async (
-  container: MedusaContainer,
-  brandIds: string[]
-) => {
-  const ids = [...new Set(brandIds)]
-
-  if (!ids.length) {
-    return new Set<string>()
-  }
-
-  const brands: BrandIdRecord[] = []
-
-  for (const idChunk of chunkArray(ids, CHUNK_SIZE)) {
-    const chunkBrands = await getBrandService(container).listBrands(
-      {
-        id: { $in: idChunk },
-      },
-      {
-        select: ["id"],
-        withDeleted: false,
-      }
-    )
-    brands.push(...(chunkBrands as BrandIdRecord[]))
-  }
-
-  return new Set(brands.map((brand) => brand.id))
-}
-
 export const getExistingProductIds = async (
   container: MedusaContainer,
   productIds: string[]
@@ -360,24 +395,6 @@ export const getExistingProductIds = async (
   return new Set(products.map((product) => product.id))
 }
 
-export const getCurrentBrandProductIds = async (
-  container: MedusaContainer,
-  brandId: string
-) => {
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const { data } = await query.graph({
-    entity: ProductBrandLink.entryPoint,
-    fields: ["product_id"],
-    filters: {
-      brand_id: brandId,
-    },
-  })
-
-  return (data as ProductBrandLinkRecord[])
-    .map((link) => link.product_id)
-    .filter((productId): productId is string => !!productId)
-}
-
 export const diffIds = (currentIds: string[], nextIds: string[]) => {
   const current = new Set(currentIds)
   const next = new Set(nextIds)
@@ -387,6 +404,16 @@ export const diffIds = (currentIds: string[], nextIds: string[]) => {
     remove: [...current].filter((id) => !next.has(id)),
   }
 }
+
+export const hasActiveBrandConflict = (
+  currentIds: string[],
+  activeBrandIds: Set<string>,
+  nextIds: string[]
+) =>
+  nextIds.length > 0 &&
+  currentIds.some(
+    (brandId) => activeBrandIds.has(brandId) && brandId !== nextIds[0]
+  )
 
 export const asArray = <T>(value: T | T[]) =>
   Array.isArray(value) ? value : [value]

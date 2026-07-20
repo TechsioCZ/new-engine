@@ -167,16 +167,25 @@ export const AdminSetProductBrandsSchema = z
   })
   .strict()
 
-const BRAND_PRODUCTS_CHUNK_SIZE = 500
-
-export const AdminSetBrandProductsSchema = z
+export const AdminUpdateBrandProductsSchema = z
   .object({
-    product_ids: z
-      .array(z.string().trim().min(1))
-      .max(BRAND_PRODUCTS_CHUNK_SIZE)
-      .default([]),
+    add: z.array(z.string().trim().min(1)).default([]),
+    remove: z.array(z.string().trim().min(1)).default([]),
   })
   .strict()
+  .superRefine((value, context) => {
+    const addProductIds = new Set(value.add)
+
+    for (const productId of new Set(value.remove)) {
+      if (addProductIds.has(productId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "A product cannot be added and removed in the same request",
+          path: ["remove"],
+        })
+      }
+    }
+  })
 
 export const AdminGetBrandProductOptionsSchema = z
   .object({
@@ -201,8 +210,8 @@ export type AdminUpdateBrandSchemaType = z.infer<typeof AdminUpdateBrandSchema>
 export type AdminSetProductBrandsSchemaType = z.infer<
   typeof AdminSetProductBrandsSchema
 >
-export type AdminSetBrandProductsSchemaType = z.infer<
-  typeof AdminSetBrandProductsSchema
+export type AdminUpdateBrandProductsSchemaType = z.infer<
+  typeof AdminUpdateBrandProductsSchema
 >
 export type AdminGetBrandProductOptionsSchemaType = z.infer<
   typeof AdminGetBrandProductOptionsSchema

@@ -4,6 +4,7 @@ import type {
   RemoteQueryFunction,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { getActiveBrandIds } from "../brand/brand-activity"
 
 type PromotionContextSource = {
   items?: unknown[]
@@ -63,9 +64,15 @@ export async function buildBrandPromotionContext(
 
   const brandIdsByProductId = new Map<string, string[]>()
   const links = Array.isArray(data) ? data.filter(isProductBrandLink) : []
+  const activeBrandIds = await getActiveBrandIds(
+    container,
+    links.map((link) => link.brand_id)
+  )
 
   for (const link of links) {
-    if (!(link.product_id && link.brand_id)) {
+    if (
+      !(link.product_id && link.brand_id && activeBrandIds.has(link.brand_id))
+    ) {
       continue
     }
 

@@ -3,12 +3,12 @@ import {
   Alert,
   Button,
   Container,
+  createDataTableColumnHelper,
   Heading,
   IconButton,
   Input,
   Select,
   StatusBadge,
-  Table,
   Text,
   toast,
 } from "@medusajs/ui"
@@ -22,6 +22,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+import { BrandDataTable } from "../../../../components/brands/brand-data-table"
 import {
   type BrandAttributeTypeBrand,
   type BrandAttributeTypeDetailResponse,
@@ -31,10 +32,6 @@ import {
 } from "../../../../lib/brands"
 import { translateBreadcrumb } from "../../../../lib/breadcrumb"
 import { formatLocaleCode } from "../../../../lib/format-locale-code"
-import {
-  getPaginationTranslations,
-  onRowKeyboardActivate,
-} from "../../../../lib/table"
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -80,75 +77,10 @@ const formatDate = (date: string | undefined, locale?: string) => {
   }).format(new Date(date))
 }
 
-const BrandRows = ({
-  isLoading,
-  onOpen,
-  brands,
-}: {
-  isLoading: boolean
-  onOpen: (brandId: string) => void
-  brands: BrandAttributeTypeBrand[]
-}) => {
-  const { i18n, t } = useTranslation("brands")
-  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
-
-  if (isLoading) {
-    return (
-      <Table.Row>
-        <Table.Cell>
-          <div className="flex items-center gap-2">
-            <Spinner className="animate-spin" />
-            <Text size="small">{t("status.loading")}</Text>
-          </div>
-        </Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-      </Table.Row>
-    )
-  }
-
-  if (!brands.length) {
-    return (
-      <Table.Row>
-        <Table.Cell>{t("brands.empty")}</Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-      </Table.Row>
-    )
-  }
-
-  return brands.map((brand) => (
-    <Table.Row
-      aria-label={t("detail.openBrand", { title: brand.title })}
-      className="cursor-pointer"
-      key={brand.id}
-      onClick={() => onOpen(brand.id)}
-      onKeyDown={onRowKeyboardActivate(() => onOpen(brand.id))}
-      role="button"
-      tabIndex={0}
-    >
-      <Table.Cell>{brand.title}</Table.Cell>
-      <Table.Cell className="text-ui-fg-subtle">{brand.handle}</Table.Cell>
-      <Table.Cell>{brand.attribute_value}</Table.Cell>
-      <Table.Cell>{brand.active_product_count}</Table.Cell>
-      <Table.Cell>
-        <StatusBadge color={brand.deleted_at ? "red" : "green"}>
-          {brand.deleted_at ? t("status.deleted") : t("status.active")}
-        </StatusBadge>
-      </Table.Cell>
-      <Table.Cell>{formatDate(brand.updated_at, locale)}</Table.Cell>
-    </Table.Row>
-  ))
-}
+const brandColumnHelper = createDataTableColumnHelper<BrandAttributeTypeBrand>()
 
 const BrandAttributeDetailPage = () => {
-  const { t } = useTranslation("brands")
+  const { i18n, t } = useTranslation("brands")
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -208,7 +140,36 @@ const BrandAttributeDetailPage = () => {
   const attributeType = data?.attribute_type
   const brands = data?.brands ?? []
   const count = data?.count ?? 0
-  const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
+  const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
+  const columns = [
+    brandColumnHelper.accessor("title", {
+      header: t("columns.brand"),
+      cell: ({ row }) => (
+        <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
+      ),
+    }),
+    brandColumnHelper.accessor("handle", {
+      header: t("columns.handle"),
+    }),
+    brandColumnHelper.accessor("attribute_value", {
+      header: t("columns.value"),
+    }),
+    brandColumnHelper.accessor("active_product_count", {
+      header: t("columns.products"),
+    }),
+    brandColumnHelper.accessor("deleted_at", {
+      header: t("columns.status"),
+      cell: ({ row }) => (
+        <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
+          {row.original.deleted_at ? t("status.deleted") : t("status.active")}
+        </StatusBadge>
+      ),
+    }),
+    brandColumnHelper.accessor("updated_at", {
+      header: t("columns.updated"),
+      cell: ({ row }) => formatDate(row.original.updated_at, locale),
+    }),
+  ]
 
   if (error) {
     return (
@@ -339,37 +300,26 @@ const BrandAttributeDetailPage = () => {
             </Select>
           </div>
         </div>
-        <Table>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>{t("columns.brand")}</Table.HeaderCell>
-              <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
-              <Table.HeaderCell>{t("columns.value")}</Table.HeaderCell>
-              <Table.HeaderCell>{t("columns.products")}</Table.HeaderCell>
-              <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
-              <Table.HeaderCell>{t("columns.updated")}</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            <BrandRows
-              brands={brands}
-              isLoading={isLoading}
-              onOpen={(brandId) => navigate(`/brands/${brandId}`)}
-            />
-          </Table.Body>
-        </Table>
-        <Table.Pagination
-          canNextPage={pageIndex + 1 < pageCount}
-          canPreviousPage={pageIndex > 0}
+        <BrandDataTable
+          columns={columns}
           count={count}
-          nextPage={() => setPageIndex((current) => current + 1)}
-          pageCount={pageCount}
+          data={brands}
+          emptyState={{
+            empty: {
+              description: t("brands.empty"),
+              heading: t("brands.title"),
+            },
+            filtered: {
+              description: t("brands.empty"),
+              heading: t("brands.title"),
+            },
+          }}
+          getRowId={(brand) => brand.id}
+          isLoading={isLoading}
+          onPageIndexChange={setPageIndex}
+          onRowClick={(_event, brand) => navigate(`/brands/${brand.id}`)}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
-          previousPage={() =>
-            setPageIndex((current) => Math.max(current - 1, 0))
-          }
-          translations={getPaginationTranslations(t)}
         />
       </Container>
     </div>

@@ -3,15 +3,14 @@ import {
   Alert,
   Badge,
   Button,
-  Checkbox,
   Container,
+  createDataTableColumnHelper,
   Drawer,
   Heading,
   IconButton,
   Input,
   Select,
   StatusBadge,
-  Table,
   Text,
   Tooltip,
   toast,
@@ -27,7 +26,14 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+import { BrandDataTable } from "../../../components/brands/brand-data-table"
 import { BrandEditDrawer } from "../../../components/brands/brand-form"
+import {
+  buildProductSelectionDelta,
+  fromRowSelection,
+  isProductOptionSelectable,
+  toRowSelection,
+} from "../../../components/brands/brand-table-state"
 import {
   type Brand,
   type BrandAttributeType,
@@ -41,13 +47,9 @@ import {
   retrieveBrand,
   retrieveBrandProductOptions,
   retrieveBrandProducts,
-  setBrandProducts,
+  updateBrandProducts,
 } from "../../../lib/brands"
 import { translateBreadcrumb } from "../../../lib/breadcrumb"
-import {
-  getPaginationTranslations,
-  onRowKeyboardActivate,
-} from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
@@ -78,105 +80,9 @@ const PRODUCT_ORDER_OPTIONS = [
   { labelKey: "orderOptions.newest", value: "-created_at" },
 ]
 
-const ProductSelectionRows = ({
-  currentBrandId,
-  hasSearch,
-  isLoading,
-  onToggle,
-  options,
-  selectedIds,
-}: {
-  currentBrandId: string
-  hasSearch: boolean
-  isLoading: boolean
-  onToggle: (productId: string) => void
-  options: BrandProductOption[]
-  selectedIds: Set<string>
-}) => {
-  const { t } = useTranslation("brands")
-
-  if (isLoading) {
-    return (
-      <Table.Row>
-        <Table.Cell>
-          <div className="flex items-center gap-2">
-            <Spinner className="animate-spin" />
-            <Text size="small">{t("status.loading")}</Text>
-          </div>
-        </Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-      </Table.Row>
-    )
-  }
-
-  if (!options.length) {
-    return (
-      <Table.Row>
-        <Table.Cell>
-          {hasSearch ? t("products.emptySearch") : t("products.emptyOptions")}
-        </Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-      </Table.Row>
-    )
-  }
-
-  return options.map(({ assigned_brand, product }) => {
-    const isAssignedToAnotherBrand =
-      !!assigned_brand && assigned_brand.id !== currentBrandId
-    const tooltip = isAssignedToAnotherBrand
-      ? t("products.alreadyLinkedTooltip", {
-          title: assigned_brand.title,
-        })
-      : undefined
-
-    return (
-      <Table.Row
-        className={
-          isAssignedToAnotherBrand
-            ? "cursor-not-allowed opacity-60"
-            : "cursor-pointer"
-        }
-        key={product.id}
-        onClick={() => {
-          if (!isAssignedToAnotherBrand) {
-            onToggle(product.id)
-          }
-        }}
-      >
-        <Table.Cell
-          onClick={(event) => {
-            event.stopPropagation()
-          }}
-        >
-          <Checkbox
-            checked={selectedIds.has(product.id)}
-            disabled={isAssignedToAnotherBrand}
-            onCheckedChange={() => {
-              if (!isAssignedToAnotherBrand) {
-                onToggle(product.id)
-              }
-            }}
-          />
-        </Table.Cell>
-        <Table.Cell>
-          {tooltip ? (
-            <Tooltip content={tooltip} side="right">
-              <span>{product.title ?? product.id}</span>
-            </Tooltip>
-          ) : (
-            (product.title ?? product.id)
-          )}
-        </Table.Cell>
-        <Table.Cell>{product.handle ?? "-"}</Table.Cell>
-        <Table.Cell>{product.status ?? "-"}</Table.Cell>
-      </Table.Row>
-    )
-  })
-}
+const productOptionColumnHelper =
+  createDataTableColumnHelper<BrandProductOption>()
+const productColumnHelper = createDataTableColumnHelper<ProductSummary>()
 
 const ProductAssignmentDrawer = ({
   currentProductIds,
@@ -218,7 +124,11 @@ const ProductAssignmentDrawer = ({
   })
 
   const mutation = useMutation({
-    mutationFn: () => setBrandProducts(brandId, [...selectedIds]),
+    mutationFn: () =>
+      updateBrandProducts(
+        brandId,
+        buildProductSelectionDelta(currentProductIds, selectedIds)
+      ),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.saveProductsFailed")
@@ -261,20 +171,51 @@ const ProductAssignmentDrawer = ({
 
   const productOptions = data?.products ?? []
   const count = data?.count ?? 0
-  const pageCount = Math.max(Math.ceil(count / PRODUCT_SELECTOR_PAGE_SIZE), 1)
   const hasSearch = q.trim().length > 0
+  const rowSelection = toRowSelection(selectedIds)
+  const isAssignedToAnotherBrand = (option: BrandProductOption) =>
+    !isProductOptionSelectable(option, brandId)
+  const columns = [
+    productOptionColumnHelper.select({ header: () => null }),
+    productOptionColumnHelper.accessor(
+      (option) => option.product.title ?? option.product.id,
+      {
+        header: t("columns.product"),
+        id: "product",
+        cell: ({ row }) => {
+          const assignedBrand = row.original.assigned_brand
+          const label = row.original.product.title ?? row.original.product.id
 
-  const toggle = (productId: string) => {
-    setSelectedIds((current) => {
-      const next = new Set(current)
-      if (next.has(productId)) {
-        next.delete(productId)
-      } else {
-        next.add(productId)
+          return isAssignedToAnotherBrand(row.original) && assignedBrand ? (
+            <Tooltip
+              content={t("products.alreadyLinkedTooltip", {
+                title: assignedBrand.title,
+              })}
+              side="right"
+            >
+              <span className="cursor-not-allowed opacity-60">{label}</span>
+            </Tooltip>
+          ) : (
+            label
+          )
+        },
       }
-      return next
-    })
-  }
+    ),
+    productOptionColumnHelper.accessor(
+      (option) => option.product.handle ?? "-",
+      {
+        header: t("columns.handle"),
+        id: "handle",
+      }
+    ),
+    productOptionColumnHelper.accessor(
+      (option) => option.product.status ?? "-",
+      {
+        header: t("columns.status"),
+        id: "status",
+      }
+    ),
+  ]
 
   return (
     <Drawer onOpenChange={handleOpenChange} open={open}>
@@ -291,38 +232,35 @@ const ProductAssignmentDrawer = ({
             placeholder={t("search.products")}
             value={q}
           />
-          <Table>
-            <Table.Header>
-              <Table.Row>
-                <Table.HeaderCell className="w-12" />
-                <Table.HeaderCell>{t("columns.product")}</Table.HeaderCell>
-                <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
-                <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              <ProductSelectionRows
-                currentBrandId={brandId}
-                hasSearch={hasSearch}
-                isLoading={isLoading}
-                onToggle={toggle}
-                options={productOptions}
-                selectedIds={selectedIds}
-              />
-            </Table.Body>
-          </Table>
-          <Table.Pagination
-            canNextPage={pageIndex + 1 < pageCount}
-            canPreviousPage={pageIndex > 0}
+          <BrandDataTable
+            columns={columns}
             count={count}
-            nextPage={() => setPageIndex((current) => current + 1)}
-            pageCount={pageCount}
+            data={productOptions}
+            emptyState={{
+              empty: {
+                description: hasSearch
+                  ? t("products.emptySearch")
+                  : t("products.emptyOptions"),
+                heading: t("products.manageTitle"),
+              },
+              filtered: {
+                description: t("products.emptySearch"),
+                heading: t("products.manageTitle"),
+              },
+            }}
+            getRowId={(option) => option.product.id}
+            isLoading={isLoading}
+            onPageIndexChange={setPageIndex}
             pageIndex={pageIndex}
             pageSize={PRODUCT_SELECTOR_PAGE_SIZE}
-            previousPage={() =>
-              setPageIndex((current) => Math.max(current - 1, 0))
-            }
-            translations={getPaginationTranslations(t)}
+            rowSelection={{
+              enableRowSelection: (row) =>
+                isProductOptionSelectable(row.original, brandId),
+              onRowSelectionChange: (nextSelection) => {
+                setSelectedIds(fromRowSelection(nextSelection))
+              },
+              state: rowSelection,
+            }}
           />
           <Text className="text-ui-fg-subtle" size="small">
             {t("products.selectedCount", { count: selectedIds.size })}
@@ -355,90 +293,6 @@ const ProductAssignmentDrawer = ({
   )
 }
 
-const ProductRows = ({
-  canManage,
-  isLoading,
-  onOpen,
-  onRemove,
-  products,
-  removingProductId,
-}: {
-  canManage: boolean
-  isLoading: boolean
-  onOpen: (productId: string) => void
-  onRemove: (product: ProductSummary) => void
-  products: ProductSummary[]
-  removingProductId?: string
-}) => {
-  const { t } = useTranslation("brands")
-
-  if (isLoading) {
-    return (
-      <Table.Row>
-        <Table.Cell>
-          <div className="flex items-center gap-2">
-            <Spinner className="animate-spin" />
-            <Text size="small">{t("status.loading")}</Text>
-          </div>
-        </Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        {canManage ? <Table.Cell /> : null}
-      </Table.Row>
-    )
-  }
-
-  if (!products.length) {
-    return (
-      <Table.Row>
-        <Table.Cell>{t("products.emptyLinked")}</Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        {canManage ? <Table.Cell /> : null}
-      </Table.Row>
-    )
-  }
-
-  return products.map((product) => (
-    <Table.Row
-      aria-label={t("detail.openProduct", {
-        title: product.title ?? product.id,
-      })}
-      className="cursor-pointer"
-      key={product.id}
-      onClick={() => onOpen(product.id)}
-      onKeyDown={onRowKeyboardActivate(() => onOpen(product.id))}
-      role="button"
-      tabIndex={0}
-    >
-      <Table.Cell>{product.title ?? product.id}</Table.Cell>
-      <Table.Cell>{product.handle ?? "-"}</Table.Cell>
-      <Table.Cell>
-        {product.status ? <Badge size="2xsmall">{product.status}</Badge> : "-"}
-      </Table.Cell>
-      {canManage ? (
-        <Table.Cell>
-          <div className="flex justify-end">
-            <IconButton
-              aria-label={t("actions.remove")}
-              disabled={removingProductId === product.id}
-              onClick={(event) => {
-                event.stopPropagation()
-                onRemove(product)
-              }}
-              size="small"
-              type="button"
-              variant="transparent"
-            >
-              <Trash />
-            </IconButton>
-          </div>
-        </Table.Cell>
-      ) : null}
-    </Table.Row>
-  ))
-}
-
 const BrandProductsSection = ({
   canManage,
   count,
@@ -450,7 +304,6 @@ const BrandProductsSection = ({
   productQ,
   products,
   removingProductId,
-  pageCount,
   pageIndex,
   setPageIndex,
   setProductOrderBy,
@@ -466,13 +319,52 @@ const BrandProductsSection = ({
   productQ: string
   products: ProductSummary[]
   removingProductId?: string
-  pageCount: number
   pageIndex: number
   setPageIndex: Dispatch<SetStateAction<number>>
   setProductOrderBy: (value: string) => void
   setProductQ: (value: string) => void
 }) => {
   const { t } = useTranslation("brands")
+  const columns = [
+    productColumnHelper.accessor((product) => product.title ?? product.id, {
+      header: t("columns.product"),
+      id: "product",
+      cell: ({ row }) => (
+        <Link to={`/products/${row.original.id}`}>
+          {row.original.title ?? row.original.id}
+        </Link>
+      ),
+    }),
+    productColumnHelper.accessor((product) => product.handle ?? "-", {
+      header: t("columns.handle"),
+      id: "handle",
+    }),
+    productColumnHelper.accessor("status", {
+      header: t("columns.status"),
+      cell: ({ row }) =>
+        row.original.status ? (
+          <Badge size="2xsmall">{row.original.status}</Badge>
+        ) : (
+          "-"
+        ),
+    }),
+    ...(canManage
+      ? [
+          productColumnHelper.action({
+            actions: ({ row }) =>
+              removingProductId === row.original.id
+                ? []
+                : [
+                    {
+                      icon: <Trash />,
+                      label: t("actions.remove"),
+                      onClick: () => onRemove(row.original),
+                    },
+                  ],
+          }),
+        ]
+      : []),
+  ]
 
   return (
     <Container className="divide-y p-0">
@@ -524,40 +416,26 @@ const BrandProductsSection = ({
           </Select>
         </div>
       </div>
-      <Table>
-        <Table.Header>
-          <Table.Row>
-            <Table.HeaderCell>{t("columns.product")}</Table.HeaderCell>
-            <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
-            <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
-            {canManage ? (
-              <Table.HeaderCell className="w-[1%] text-right">
-                {t("columns.actions")}
-              </Table.HeaderCell>
-            ) : null}
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          <ProductRows
-            canManage={canManage}
-            isLoading={isLoading}
-            onOpen={onOpenProduct}
-            onRemove={onRemove}
-            products={products}
-            removingProductId={removingProductId}
-          />
-        </Table.Body>
-      </Table>
-      <Table.Pagination
-        canNextPage={pageIndex + 1 < pageCount}
-        canPreviousPage={pageIndex > 0}
+      <BrandDataTable
+        columns={columns}
         count={count}
-        nextPage={() => setPageIndex((current) => current + 1)}
-        pageCount={pageCount}
+        data={products}
+        emptyState={{
+          empty: {
+            description: t("products.emptyLinked"),
+            heading: t("products.title"),
+          },
+          filtered: {
+            description: t("products.emptyLinked"),
+            heading: t("products.title"),
+          },
+        }}
+        getRowId={(product) => product.id}
+        isLoading={isLoading}
+        onPageIndexChange={setPageIndex}
+        onRowClick={(_event, product) => onOpenProduct(product.id)}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
-        translations={getPaginationTranslations(t)}
       />
     </Container>
   )
@@ -579,7 +457,6 @@ type BrandDetailContentProps = {
   onProductsOpenChange: Dispatch<SetStateAction<boolean>>
   onRemove: (product: ProductSummary) => void
   onRestore: () => void
-  pageCount: number
   pageIndex: number
   productOrderBy: string
   productQ: string
@@ -607,7 +484,6 @@ const BrandDetailContent = ({
   onProductsOpenChange,
   onRemove,
   onRestore,
-  pageCount,
   pageIndex,
   productOrderBy,
   productQ,
@@ -783,7 +659,6 @@ const BrandDetailContent = ({
           onManage={onManageProducts}
           onOpenProduct={onOpenProduct}
           onRemove={onRemove}
-          pageCount={pageCount}
           pageIndex={pageIndex}
           productOrderBy={productOrderBy}
           productQ={productQ}
@@ -861,7 +736,6 @@ const BrandDetailPage = () => {
   const products = productsQuery.data?.products ?? []
   const productIds = productsQuery.data?.product_ids ?? []
   const count = productsQuery.data?.count ?? 0
-  const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
   const attributeTypesParams = {
     include_deleted: true,
     limit: 100,
@@ -896,10 +770,10 @@ const BrandDetailPage = () => {
 
   const removeProductMutation = useMutation({
     mutationFn: (productId: string) =>
-      setBrandProducts(
-        id ?? "",
-        productIds.filter((currentId) => currentId !== productId)
-      ),
+      updateBrandProducts(id ?? "", {
+        add: [],
+        remove: [productId],
+      }),
     onError: (error) => {
       toast.error(
         error instanceof Error ? error.message : t("errors.removeProductFailed")
@@ -983,7 +857,6 @@ const BrandDetailPage = () => {
       onProductsOpenChange={setProductsOpen}
       onRemove={handleRemoveProduct}
       onRestore={() => restoreMutation.mutate(brand.id)}
-      pageCount={pageCount}
       pageIndex={pageIndex}
       productIds={productIds}
       productOrderBy={productOrderBy}

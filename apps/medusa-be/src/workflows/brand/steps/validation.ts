@@ -28,6 +28,17 @@ const REQUIRED_OUTSIDE_EU_FIELDS = [
   "gpsr_european_reseller_contact_email",
 ] as const
 
+export const getBrandHandleCollisionMessage = (brand: {
+  deleted_at?: string | Date | null
+  handle: string
+}) => {
+  const suffix = brand.deleted_at
+    ? " as a deleted record. Restore it through the explicit restore action"
+    : ""
+
+  return `Brand with handle "${brand.handle}" already exists${suffix}.`
+}
+
 export const normalizeBrandWriteInput = (
   brand: BrandScalarWriteInput
 ): BrandScalarWriteInput => {

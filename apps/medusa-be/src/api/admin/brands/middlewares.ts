@@ -10,8 +10,8 @@ import {
   AdminGetBrandProductOptionsSchema,
   AdminGetBrandProductsSchema,
   AdminGetBrandsSchema,
-  AdminSetBrandProductsSchema,
   AdminSetProductBrandsSchema,
+  AdminUpdateBrandProductsSchema,
   AdminUpdateBrandSchema,
 } from "./validators"
 
@@ -86,7 +86,7 @@ export const adminBrandRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["POST"],
     matcher: "/admin/brands/:id/products",
-    middlewares: [validateAndTransformBody(AdminSetBrandProductsSchema)],
+    middlewares: [validateAndTransformBody(AdminUpdateBrandProductsSchema)],
   },
   {
     methods: ["POST"],

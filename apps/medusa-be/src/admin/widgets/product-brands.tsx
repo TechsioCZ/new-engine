@@ -6,10 +6,10 @@ import {
   Badge,
   Button,
   Container,
+  createDataTableColumnHelper,
   Drawer,
   Heading,
   Input,
-  Table,
   Text,
   toast,
 } from "@medusajs/ui"
@@ -17,6 +17,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+import { BrandDataTable } from "../components/brands/brand-data-table"
+import { isBrandSelectable } from "../components/brands/brand-table-state"
 import {
   type Brand,
   brandQueryKeys,
@@ -25,24 +27,12 @@ import {
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
-import { getPaginationTranslations } from "../lib/table"
 import { useDebouncedValue } from "../lib/use-debounced-value"
 
 type ProductBrandsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
 const PAGE_SIZE = 20
 const SUPPLIER_ATTRIBUTE_NAME = "supplier"
-
-const getBrandSelectionRowClassName = (
-  isDeleted: boolean,
-  isSelected: boolean
-) => {
-  if (isDeleted) {
-    return "cursor-not-allowed opacity-60"
-  }
-
-  return isSelected ? undefined : "cursor-pointer"
-}
 
 const getBrandAttributeValue = (
   brand: Brand | undefined,
@@ -52,100 +42,7 @@ const getBrandAttributeValue = (
     (attribute) => attribute.name.toLowerCase() === attributeName
   )?.value
 
-const BrandSelectionRows = ({
-  currentBrandId,
-  isLoading,
-  isPending,
-  onClear,
-  onSelect,
-  brands,
-}: {
-  currentBrandId?: string
-  isLoading: boolean
-  isPending: boolean
-  onClear: () => void
-  onSelect: (brandId: string) => void
-  brands: Brand[]
-}) => {
-  const { t } = useTranslation("brands")
-
-  if (isLoading) {
-    return (
-      <Table.Row>
-        <Table.Cell>
-          <div className="flex items-center gap-2">
-            <Spinner className="animate-spin" />
-            <Text size="small">{t("status.loading")}</Text>
-          </div>
-        </Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-      </Table.Row>
-    )
-  }
-
-  if (!brands.length) {
-    return (
-      <Table.Row>
-        <Table.Cell>{t("brands.empty")}</Table.Cell>
-        <Table.Cell />
-        <Table.Cell />
-        <Table.Cell />
-      </Table.Row>
-    )
-  }
-
-  return brands.map((brand) => {
-    const isSelected = brand.id === currentBrandId
-    const isDeleted = !!brand.deleted_at
-
-    return (
-      <Table.Row
-        className={getBrandSelectionRowClassName(isDeleted, isSelected)}
-        key={brand.id}
-        onClick={() => {
-          if (!(isDeleted || isPending || isSelected)) {
-            onSelect(brand.id)
-          }
-        }}
-      >
-        <Table.Cell>{brand.title}</Table.Cell>
-        <Table.Cell>{brand.handle}</Table.Cell>
-        <Table.Cell>
-          {isSelected ? (
-            <Badge size="2xsmall">{t("status.selected")}</Badge>
-          ) : (
-            "-"
-          )}
-        </Table.Cell>
-        <Table.Cell>
-          <div className="flex justify-end">
-            <Button
-              disabled={isDeleted || isPending}
-              onClick={(event) => {
-                event.stopPropagation()
-                if (isDeleted || isPending) {
-                  return
-                }
-                if (isSelected) {
-                  onClear()
-                } else {
-                  onSelect(brand.id)
-                }
-              }}
-              size="small"
-              type="button"
-              variant="secondary"
-            >
-              {isSelected ? t("actions.clear") : t("actions.select")}
-            </Button>
-          </div>
-        </Table.Cell>
-      </Table.Row>
-    )
-  })
-}
+const brandColumnHelper = createDataTableColumnHelper<Brand>()
 
 const BrandLinkContent = ({
   error,
@@ -443,7 +340,54 @@ const BrandAssignmentDrawer = ({
     selectedBrandSnapshot
   )
   const count = data?.count ?? 0
-  const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
+  const clearSelection = () => {
+    setSelectedId(undefined)
+    setSelectedBrandSnapshot(undefined)
+  }
+  const selectBrand = (brand: Brand) => {
+    setSelectedId(brand.id)
+    setSelectedBrandSnapshot(brand)
+  }
+  const columns = [
+    brandColumnHelper.accessor("title", {
+      header: t("columns.brand"),
+      cell: ({ row }) => (
+        <span className={row.original.deleted_at ? "opacity-60" : undefined}>
+          {row.original.title}
+        </span>
+      ),
+    }),
+    brandColumnHelper.accessor("handle", {
+      header: t("columns.handle"),
+    }),
+    brandColumnHelper.display({
+      id: "status",
+      header: t("columns.status"),
+      cell: ({ row }) =>
+        row.original.id === selectedId ? (
+          <Badge size="2xsmall">{t("status.selected")}</Badge>
+        ) : (
+          "-"
+        ),
+    }),
+    brandColumnHelper.action({
+      actions: ({ row }) => {
+        const isSelected = row.original.id === selectedId
+
+        if (row.original.deleted_at || mutation.isPending) {
+          return []
+        }
+
+        return [
+          {
+            label: isSelected ? t("actions.clear") : t("actions.select"),
+            onClick: () =>
+              isSelected ? clearSelection() : selectBrand(row.original),
+          },
+        ]
+      },
+    }),
+  ]
 
   return (
     <Drawer onOpenChange={handleOpenChange} open={open}>
@@ -463,10 +407,7 @@ const BrandAssignmentDrawer = ({
             </div>
             <Button
               disabled={!selectedId || mutation.isPending}
-              onClick={() => {
-                setSelectedId(undefined)
-                setSelectedBrandSnapshot(undefined)
-              }}
+              onClick={clearSelection}
               size="small"
               type="button"
               variant="secondary"
@@ -492,50 +433,38 @@ const BrandAssignmentDrawer = ({
           {error ? (
             <Alert variant="error">{t("errors.loadBrandsFailed")}</Alert>
           ) : (
-            <Table>
-              <Table.Header>
-                <Table.Row>
-                  <Table.HeaderCell>{t("columns.brand")}</Table.HeaderCell>
-                  <Table.HeaderCell>{t("columns.handle")}</Table.HeaderCell>
-                  <Table.HeaderCell>{t("columns.status")}</Table.HeaderCell>
-                  <Table.HeaderCell className="w-[1%] text-right">
-                    {t("columns.actions")}
-                  </Table.HeaderCell>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                <BrandSelectionRows
-                  brands={brands}
-                  currentBrandId={selectedId}
-                  isLoading={isLoading}
-                  isPending={mutation.isPending}
-                  onClear={() => {
-                    setSelectedId(undefined)
-                    setSelectedBrandSnapshot(undefined)
-                  }}
-                  onSelect={(brandId) => {
-                    setSelectedId(brandId)
-                    setSelectedBrandSnapshot(
-                      brands.find((brand) => brand.id === brandId)
-                    )
-                  }}
-                />
-              </Table.Body>
-            </Table>
+            <BrandDataTable
+              columns={columns}
+              count={count}
+              data={brands}
+              emptyState={{
+                empty: {
+                  description: t("brands.empty"),
+                  heading: t("widget.manageTitle"),
+                },
+                filtered: {
+                  description: t("brands.empty"),
+                  heading: t("widget.manageTitle"),
+                },
+              }}
+              getRowId={(brand) => brand.id}
+              isLoading={isLoading}
+              onPageIndexChange={(nextPageIndex) => {
+                if (!mutation.isPending) {
+                  setPageIndex(nextPageIndex)
+                }
+              }}
+              onRowClick={(_event, brand) => {
+                if (!isBrandSelectable(brand, selectedId, mutation.isPending)) {
+                  return
+                }
+
+                selectBrand(brand)
+              }}
+              pageIndex={pageIndex}
+              pageSize={PAGE_SIZE}
+            />
           )}
-          <Table.Pagination
-            canNextPage={!mutation.isPending && pageIndex + 1 < pageCount}
-            canPreviousPage={!mutation.isPending && pageIndex > 0}
-            count={count}
-            nextPage={() => setPageIndex((current) => current + 1)}
-            pageCount={pageCount}
-            pageIndex={pageIndex}
-            pageSize={PAGE_SIZE}
-            previousPage={() =>
-              setPageIndex((current) => Math.max(current - 1, 0))
-            }
-            translations={getPaginationTranslations(t)}
-          />
         </Drawer.Body>
         <Drawer.Footer>
           <div className="flex justify-end gap-2">

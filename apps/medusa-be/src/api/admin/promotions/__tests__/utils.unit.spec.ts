@@ -1,6 +1,7 @@
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
+import { BRAND_MODULE } from "../../../../modules/brand"
 import { buildBrandPromotionContext } from "../../../../workflows/utils/promotion-brand-context"
 import { brandRuleAttribute } from "../const"
 import {
@@ -401,8 +402,17 @@ describe("buildBrandPromotionContext", () => {
         { product_id: "prod_2", brand_id: "brand_c" },
       ],
     })
+    const listBrands = vi
+      .fn()
+      .mockResolvedValue([
+        { id: "brand_a" },
+        { id: "brand_b" },
+        { id: "brand_c" },
+      ])
     const container = {
-      resolve: vi.fn().mockReturnValue({ graph }),
+      resolve: vi.fn((key) =>
+        key === BRAND_MODULE ? { listBrands } : { graph }
+      ),
     }
 
     const result = await buildBrandPromotionContext(
@@ -463,8 +473,11 @@ describe("buildBrandPromotionContext", () => {
         data: [{ product_id: "prod_1", brand_id: "brand_a" }],
       }
     })
+    const listBrands = vi.fn().mockResolvedValue([{ id: "brand_a" }])
     const container = {
-      resolve: vi.fn().mockReturnValue({ graph }),
+      resolve: vi.fn((key) =>
+        key === BRAND_MODULE ? { listBrands } : { graph }
+      ),
     }
 
     const result = await buildBrandPromotionContext(
@@ -506,5 +519,57 @@ describe("buildBrandPromotionContext", () => {
     expect((result.items as Record<string, unknown>[])[1]).not.toHaveProperty(
       "brand_ids"
     )
+  })
+
+  it("excludes links to deleted brands from promotion context", async () => {
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        { product_id: "prod_1", brand_id: "brand_active" },
+        { product_id: "prod_1", brand_id: "brand_deleted" },
+        { product_id: "prod_2", brand_id: "brand_deleted" },
+      ],
+    })
+    const listBrands = vi.fn().mockResolvedValue([{ id: "brand_active" }])
+    const container = {
+      resolve: vi.fn((key) =>
+        key === BRAND_MODULE ? { listBrands } : { graph }
+      ),
+    }
+
+    const result = await buildBrandPromotionContext(
+      {
+        items: [
+          { id: "item_1", product_id: "prod_1" },
+          { id: "item_2", product_id: "prod_2" },
+        ],
+      },
+      container as never,
+      "product_brand"
+    )
+
+    expect(listBrands).toHaveBeenCalledWith(
+      {
+        id: {
+          $in: ["brand_active", "brand_deleted"],
+        },
+      },
+      {
+        select: ["id"],
+        withDeleted: false,
+      }
+    )
+    expect(result).toEqual({
+      items: [
+        {
+          id: "item_1",
+          product_id: "prod_1",
+          brand_ids: ["brand_active"],
+        },
+        {
+          id: "item_2",
+          product_id: "prod_2",
+        },
+      ],
+    })
   })
 })

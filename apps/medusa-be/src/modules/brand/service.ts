@@ -14,11 +14,12 @@ export type BrandAttributeInput = {
   value: string
 }
 
-type BrandAttributeRecord = {
+export type BrandAttributeRecord = {
   deleted_at?: string | Date | null
   id: string
   value: string
   attributeType?: {
+    deleted_at?: string | Date | null
     id: string
     name: string
   }
@@ -50,6 +51,18 @@ const normalizeAttributes = (attributes: BrandAttributeInput[] = []) => {
 
 const isDeleted = (record: { deleted_at?: string | Date | null }) =>
   !!record.deleted_at
+
+export const shouldDeleteBrandAttribute = (
+  attribute: BrandAttributeRecord,
+  requestedNames: ReadonlySet<string>
+) => {
+  if (isDeleted(attribute) || isDeleted(attribute.attributeType ?? {})) {
+    return false
+  }
+
+  const name = attribute.attributeType?.name
+  return !(name && requestedNames.has(name))
+}
 
 class BrandModuleService extends MedusaService({
   Brand,
@@ -238,6 +251,7 @@ class BrandModuleService extends MedusaService({
   ) {
     const attributes = normalizeAttributes(inputAttributes)
     const names = attributes.map((attribute) => attribute.name)
+    const requestedNames = new Set(names)
     const attributeTypeIdsByName = await this.getAttributeTypeIdsByName(
       names,
       sharedContext
@@ -290,11 +304,9 @@ class BrandModuleService extends MedusaService({
       )
 
     const toDelete = existingAttributes
-      .filter((attribute) => !isDeleted(attribute))
-      .filter((attribute) => {
-        const name = attribute.attributeType?.name
-        return !(name && names.includes(name))
-      })
+      .filter((attribute) =>
+        shouldDeleteBrandAttribute(attribute, requestedNames)
+      )
       .map((attribute) => attribute.id)
 
     if (toCreate.length) {

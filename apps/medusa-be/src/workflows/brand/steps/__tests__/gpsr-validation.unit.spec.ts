@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { normalizeBrandWriteInput, validateBrandGpsrState } from "../validation"
+import {
+  getBrandHandleCollisionMessage,
+  normalizeBrandWriteInput,
+  validateBrandGpsrState,
+} from "../validation"
 
 const validOutsideEuState = {
   handle: "outside-eu",
@@ -75,5 +79,24 @@ describe("workflow-owned brand GPSR validation", () => {
 
   it("defaults an omitted outside-EU flag to false", () => {
     expect(() => validateBrandGpsrState({})).not.toThrow()
+  })
+})
+
+describe("Brand handle collisions", () => {
+  it("directs deleted collisions to the explicit restore action", () => {
+    expect(
+      getBrandHandleCollisionMessage({
+        deleted_at: "2026-07-20",
+        handle: "acme",
+      })
+    ).toBe(
+      'Brand with handle "acme" already exists as a deleted record. Restore it through the explicit restore action.'
+    )
+  })
+
+  it("does not describe active collisions as restorable", () => {
+    expect(getBrandHandleCollisionMessage({ handle: "acme" })).toBe(
+      'Brand with handle "acme" already exists.'
+    )
   })
 })

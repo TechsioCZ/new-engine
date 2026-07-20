@@ -44,9 +44,10 @@ export type SetProductBrandsWorkflowInput = {
   fail_on_conflict?: boolean
 }
 
-export type SetBrandProductsWorkflowInput = {
+export type BatchLinkProductsToBrandWorkflowInput = {
+  add: string[]
   brand_id: string
-  product_ids: string[]
+  remove: string[]
 }
 
 export type CreateBrandAttributeTypesWorkflowInput = {

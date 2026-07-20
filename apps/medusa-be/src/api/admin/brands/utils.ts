@@ -401,61 +401,6 @@ export const retrieveBrandOrThrow = async (
   return brand
 }
 
-export const ensureBrandIdsExist = async (
-  scope: MedusaContainer,
-  brandIds: string[]
-) => {
-  const ids = uniqueIds(brandIds)
-
-  if (!ids.length) {
-    return ids
-  }
-
-  const brands = await getBrandService(scope).listBrands(
-    {
-      id: { $in: ids },
-    },
-    {
-      select: ["id"],
-      withDeleted: false,
-    }
-  )
-  const found = new Set(brands.map((brand) => brand.id))
-  const missing = ids.filter((id) => !found.has(id))
-
-  if (missing.length) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Brand ids were not found: ${missing.join(", ")}`
-    )
-  }
-
-  return ids
-}
-
-export const getActiveBrandIds = async (
-  scope: MedusaContainer,
-  brandIds: string[]
-) => {
-  const ids = uniqueIds(brandIds)
-
-  if (!ids.length) {
-    return new Set<string>()
-  }
-
-  const brands = await getBrandService(scope).listBrands(
-    {
-      id: { $in: ids },
-    },
-    {
-      select: ["id"],
-      withDeleted: false,
-    }
-  )
-
-  return new Set(brands.map((brand) => brand.id))
-}
-
 export const ensureProductIdsExist = async (
   scope: MedusaContainer,
   productIds: string[]
@@ -528,44 +473,6 @@ export const listProductBrandLinks = async (
   return (data as LinkRecord[]).filter(
     (link): link is ProductBrandLinkRecord =>
       !!(link.product_id && link.brand_id)
-  )
-}
-
-export const ensureProductsAssignableToBrand = async (
-  scope: MedusaContainer,
-  brandId: string,
-  productIds: string[]
-) => {
-  const links = await listProductBrandLinksByProductIds(scope, productIds)
-  const linksToOtherBrands = links.filter((link) => link.brand_id !== brandId)
-
-  const activeBrandIds = await getActiveBrandIds(
-    scope,
-    linksToOtherBrands.map((link) => link.brand_id)
-  )
-  const conflictingLinks = linksToOtherBrands.filter((link) =>
-    activeBrandIds.has(link.brand_id)
-  )
-
-  if (!conflictingLinks.length) {
-    return
-  }
-
-  const brands = await listBrandsByIds(
-    scope,
-    uniqueIds(conflictingLinks.map((link) => link.brand_id))
-  )
-  const brandNamesById = new Map(brands.map((brand) => [brand.id, brand.title]))
-  const conflictText = conflictingLinks
-    .map((link) => {
-      const brandName = brandNamesById.get(link.brand_id)
-      return `${link.product_id}${brandName ? ` (${brandName})` : ""}`
-    })
-    .join(", ")
-
-  throw new MedusaError(
-    MedusaError.Types.CONFLICT,
-    `Products are already linked to another brand: ${conflictText}`
   )
 }
 
