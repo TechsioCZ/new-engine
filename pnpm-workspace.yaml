@@ -155,3 +155,6 @@ allowBuilds:
   puppeteer: false
   sharp: true
   unrs-resolver: true
+  # Hooks are installed by the root `prepare` script (`lefthook install`), not lefthook's own
+  # postinstall, so its build script stays disabled.
+  lefthook: false

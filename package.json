@@ -23,7 +23,8 @@
     "knip:report": "knip --reporter markdown > reports/knip-report.md",
     "knip:fix": "knip --fix",
     "knip:prod": "knip --production",
-    "jscpd": "jscpd apps/ libs/"
+    "jscpd": "jscpd apps/ libs/",
+    "prepare": "lefthook install"
   },
   "private": true,
   "devDependencies": {
@@ -45,6 +46,7 @@
     "jiti": "^2.7.0",
     "jscpd": "^4.0.5",
     "knip": "^5.80.2",
+    "lefthook": "^2.1.10",
     "nx": "22.4.2",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
