@@ -1,3 +1,4 @@
+import { escapeLikePattern } from "../utils/sql"
 import type { AdminGetReviewsSchemaType } from "./admin/reviews/validators"
 
 export type ProductRecord = {
@@ -32,12 +33,8 @@ type PublicReviewRecord = Pick<
   | "title"
 >
 
-const LIKE_WILDCARD_REGEX = /[%_\\]/g
 const ORDER_FIELDS = new Set(["created_at", "rating", "status", "updated_at"])
 const LEADING_DASH_REGEX = /^-/
-
-const escapeLikePattern = (value: string) =>
-  value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
 const serializeDate = (date: Date | string | undefined) =>
   date instanceof Date ? date.toISOString() : date
