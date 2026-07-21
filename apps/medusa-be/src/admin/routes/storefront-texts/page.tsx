@@ -20,12 +20,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
+  isStorefrontTextMarket,
+  isStorefrontTextNamespace,
+  isStorefrontTextStatus,
   STOREFRONT_TEXT_MARKETS,
   STOREFRONT_TEXT_NAMESPACES,
   STOREFRONT_TEXT_STATUSES,
+  type StorefrontTextMarket,
   type StorefrontTextNamespace,
   type StorefrontTextStatus,
-} from "../../../modules/storefront-text/registry"
+} from "../../../modules/storefront-text/configuration"
 import {
   listStorefrontTexts,
   type StorefrontText,
@@ -37,6 +41,7 @@ import {
 } from "../../lib/storefront-texts"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
+import { StorefrontTextCatalogActions } from "./components/catalog-actions"
 
 const PAGE_SIZE = 20
 const ALL_VALUE = "all"
@@ -45,19 +50,6 @@ const STATUS_BADGE_COLOR: Record<StorefrontTextStatus, "green" | "orange"> = {
   active: "green",
   draft: "orange",
 }
-
-const STOREFRONT_TEXT_NAMESPACE_VALUES = new Set<string>(
-  STOREFRONT_TEXT_NAMESPACES
-)
-const STOREFRONT_TEXT_STATUS_VALUES = new Set<string>(STOREFRONT_TEXT_STATUSES)
-
-const isStorefrontTextNamespace = (
-  value: string
-): value is StorefrontTextNamespace =>
-  STOREFRONT_TEXT_NAMESPACE_VALUES.has(value)
-
-const isStorefrontTextStatus = (value: string): value is StorefrontTextStatus =>
-  STOREFRONT_TEXT_STATUS_VALUES.has(value)
 
 export const handle = {
   breadcrumb: () =>
@@ -366,7 +358,7 @@ const StorefrontTextsPage = () => {
   const [query, setQuery] = useState("")
   const [searchScope, setSearchScope] =
     useState<StorefrontTextSearchScope>("value")
-  const [market, setMarket] = useState<string | undefined>()
+  const [market, setMarket] = useState<StorefrontTextMarket | undefined>()
   const [namespace, setNamespace] = useState<
     StorefrontTextNamespace | undefined
   >()
@@ -423,15 +415,18 @@ const StorefrontTextsPage = () => {
               {t("description")}
             </Text>
           </div>
-          <Button
-            isLoading={syncMutation.isPending}
-            onClick={() => syncMutation.mutate()}
-            size="small"
-            type="button"
-            variant="secondary"
-          >
-            {t("actions.sync")}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <StorefrontTextCatalogActions market={market} />
+            <Button
+              isLoading={syncMutation.isPending}
+              onClick={() => syncMutation.mutate()}
+              size="small"
+              type="button"
+              variant="secondary"
+            >
+              {t("actions.sync")}
+            </Button>
+          </div>
         </div>
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(180px,320px)_max-content_repeat(3,minmax(140px,180px))]">
           <Input
@@ -462,7 +457,11 @@ const StorefrontTextsPage = () => {
           <Select
             onValueChange={(value) => {
               resetPage()
-              setMarket(value === ALL_VALUE ? undefined : value)
+              setMarket(
+                value !== ALL_VALUE && isStorefrontTextMarket(value)
+                  ? value
+                  : undefined
+              )
             }}
             value={market ?? ALL_VALUE}
           >

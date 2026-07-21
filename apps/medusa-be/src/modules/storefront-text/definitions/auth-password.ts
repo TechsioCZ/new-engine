@@ -1,268 +1,124 @@
-import type { StorefrontTextDefinition } from "../registry"
+import type { StorefrontTextDefinition } from "../configuration"
 
 export const STOREFRONT_AUTH_PASSWORD_TEXT_DEFINITIONS = [
   {
     description: "Nadpis formuláře pro zapomenuté heslo.",
     key: "auth.forgot.title",
     namespace: "auth",
-    values: {
-      cz: "Zapomenuté heslo",
-      hu: "Elfelejtett jelszó",
-      ro: "Parolă uitată",
-      sk: "Zabudnuté heslo",
-    },
   },
   {
     description: "Popis formuláře pro zapomenuté heslo.",
     key: "auth.forgot.description",
     namespace: "auth",
-    values: {
-      cz: "Zadejte e-mailovou adresu, ke které máte vytvořený účet. Pošleme vám odkaz na obnovu hesla.",
-      hu: "Adja meg a fiókjához tartozó e-mail-címet. Küldünk egy hivatkozást a jelszó visszaállításához.",
-      ro: "Introduceți adresa de e-mail asociată contului. Vă vom trimite un link pentru resetarea parolei.",
-      sk: "Zadajte e-mailovú adresu, na ktorú máte vytvorený účet. Pošleme vám odkaz na obnovu hesla.",
-    },
   },
   {
     description: "Akce pro odeslání odkazu na obnovu hesla.",
     key: "auth.forgot.submit",
     namespace: "auth",
-    values: {
-      cz: "Odeslat odkaz",
-      hu: "Hivatkozás küldése",
-      ro: "Trimite linkul",
-      sk: "Zaslať odkaz",
-    },
   },
   {
     description: "Potvrzení odeslání odkazu na obnovu hesla.",
     key: "auth.forgot.sent",
     namespace: "auth",
-    values: {
-      cz: "Odkaz na obnovu hesla jsme odeslali na {email}. Zkontrolujte si schránku.",
-      hu: "A jelszó-visszaállítási hivatkozást elküldtük a(z) {email} címre. Ellenőrizze a postafiókját.",
-      ro: "Am trimis linkul pentru resetarea parolei la {email}. Verificați-vă căsuța de e-mail.",
-      sk: "Odkaz na obnovu hesla sme odoslali na {email}. Skontrolujte si schránku.",
-    },
   },
   {
     description: "Nápověda při nedoručeném e-mailu pro obnovu hesla.",
     key: "auth.forgot.delivery_help",
     namespace: "auth",
-    values: {
-      cz: "E-mail vám nedorazil? Zkontrolujte složku se spamem nebo to zkuste znovu za několik minut.",
-      hu: "Nem érkezett meg az e-mail? Ellenőrizze a spam mappát, vagy próbálja újra néhány perc múlva.",
-      ro: "Nu ați primit e-mailul? Verificați dosarul spam sau încercați din nou peste câteva minute.",
-      sk: "E-mail vám nedorazil? Skontrolujte priečinok spam alebo to skúste znovu o pár minút.",
-    },
   },
   {
     description: "Chyba při odeslání odkazu na obnovu hesla.",
     key: "auth.forgot.failed",
     namespace: "auth",
-    values: {
-      cz: "Odkaz na obnovu hesla se nepodařilo odeslat.",
-      hu: "Nem sikerült elküldeni a jelszó-visszaállítási hivatkozást.",
-      ro: "Linkul pentru resetarea parolei nu a putut fi trimis.",
-      sk: "Nepodarilo sa odoslať odkaz na obnovu hesla.",
-    },
   },
   {
     description: "Nadpis formuláře pro obnovu hesla.",
     key: "auth.reset.title",
     namespace: "auth",
-    values: {
-      cz: "Obnova hesla",
-      hu: "Jelszó visszaállítása",
-      ro: "Resetarea parolei",
-      sk: "Obnova hesla",
-    },
   },
   {
     description: "Obecný popis formuláře pro obnovu hesla.",
     key: "auth.reset.description",
     namespace: "auth",
-    values: {
-      cz: "Zadejte nové heslo pro svůj účet.",
-      hu: "Adjon meg új jelszót a fiókjához.",
-      ro: "Introduceți o parolă nouă pentru contul dvs.",
-      sk: "Zadajte nové heslo pre váš účet.",
-    },
   },
   {
     description: "Popis formuláře pro obnovu hesla s e-mailem účtu.",
     key: "auth.reset.description_with_email",
     namespace: "auth",
-    values: {
-      cz: "Nastavte nové heslo pro účet {email}.",
-      hu: "Állítson be új jelszót a(z) {email} fiókhoz.",
-      ro: "Setați o parolă nouă pentru contul {email}.",
-      sk: "Nastavte nové heslo pre účet {email}.",
-    },
   },
   {
     description: "Nápověda pro neplatný odkaz na obnovu hesla.",
     key: "auth.reset.expired_help",
     namespace: "auth",
-    values: {
-      cz: "Zkuste si vyžádat nový odkaz na obnovu hesla.",
-      hu: "Kérjen új jelszó-visszaállítási hivatkozást.",
-      ro: "Solicitați un link nou pentru resetarea parolei.",
-      sk: "Skúste si vyžiadať nový odkaz na obnovu hesla.",
-    },
   },
   {
     description: "Akce pro vyžádání nového odkazu na obnovu hesla.",
     key: "auth.reset.expired_link",
     namespace: "auth",
-    values: {
-      cz: "Vyžádat nový odkaz",
-      hu: "Új hivatkozás kérése",
-      ro: "Solicită un link nou",
-      sk: "Vyžiadať nový odkaz",
-    },
   },
   {
     description: "Chyba pro neplatný nebo prošlý odkaz na obnovu hesla.",
     key: "auth.reset.expired_message",
     namespace: "auth",
-    values: {
-      cz: "Tento odkaz je neplatný nebo už vypršel.",
-      hu: "Ez a hivatkozás érvénytelen vagy lejárt.",
-      ro: "Acest link nu este valid sau a expirat.",
-      sk: "Tento odkaz je neplatný alebo už vypršal.",
-    },
   },
   {
     description: "Obecná chyba při obnově hesla.",
     key: "auth.reset.failed",
     namespace: "auth",
-    values: {
-      cz: "Heslo se nepodařilo obnovit.",
-      hu: "Nem sikerült visszaállítani a jelszót.",
-      ro: "Parola nu a putut fi resetată.",
-      sk: "Nepodarilo sa obnoviť heslo.",
-    },
   },
   {
     description: "Akce pro odeslání nového hesla.",
     key: "auth.reset.submit",
     namespace: "auth",
-    values: {
-      cz: "Obnovit heslo",
-      hu: "Jelszó visszaállítása",
-      ro: "Resetează parola",
-      sk: "Obnoviť heslo",
-    },
   },
   {
     description: "Potvrzení úspěšné obnovy hesla.",
     key: "auth.reset.success",
     namespace: "auth",
-    values: {
-      cz: "Heslo bylo úspěšně změněno. Můžete se přihlásit pomocí nového hesla.",
-      hu: "A jelszó sikeresen megváltozott. Most már bejelentkezhet az új jelszóval.",
-      ro: "Parola a fost schimbată cu succes. Vă puteți autentifica folosind noua parolă.",
-      sk: "Heslo bolo úspešne zmenené. Môžete sa prihlásiť pomocou nového hesla.",
-    },
   },
   {
     description: "Nadpis formuláře pro první nastavení hesla.",
     key: "auth.account_setup.title",
     namespace: "auth",
-    values: {
-      cz: "Nastavení hesla",
-      hu: "Jelszó beállítása",
-      ro: "Setarea parolei",
-      sk: "Nastavenie hesla",
-    },
   },
   {
     description: "Obecný popis dokončení registrace nastavením hesla.",
     key: "auth.account_setup.description",
     namespace: "auth",
-    values: {
-      cz: "Dokončete registraci účtu nastavením hesla.",
-      hu: "Fejezze be a regisztrációt egy jelszó beállításával.",
-      ro: "Finalizați înregistrarea contului prin setarea unei parole.",
-      sk: "Dokončite registráciu účtu nastavením hesla.",
-    },
   },
   {
     description: "Popis dokončení registrace s e-mailem účtu.",
     key: "auth.account_setup.description_with_email",
     namespace: "auth",
-    values: {
-      cz: "Dokončete registraci účtu {email} nastavením hesla.",
-      hu: "Fejezze be a(z) {email} fiók regisztrációját egy jelszó beállításával.",
-      ro: "Finalizați înregistrarea contului {email} prin setarea unei parole.",
-      sk: "Dokončite registráciu účtu {email} nastavením hesla.",
-    },
   },
   {
     description: "Nápověda pro neplatný odkaz na první nastavení hesla.",
     key: "auth.account_setup.expired_help",
     namespace: "auth",
-    values: {
-      cz: "Na přihlašovací stránce si můžete vyžádat nový odkaz na nastavení hesla.",
-      hu: "A bejelentkezési oldalon új hivatkozást kérhet a jelszó beállításához.",
-      ro: "Puteți solicita un link nou pentru setarea parolei din pagina de autentificare.",
-      sk: "Na prihlasovacej stránke si môžete vyžiadať nový odkaz na nastavenie hesla.",
-    },
   },
   {
     description: "Akce pro vyžádání nového odkazu na první nastavení hesla.",
     key: "auth.account_setup.expired_link",
     namespace: "auth",
-    values: {
-      cz: "Vyžádat nový odkaz na nastavení hesla",
-      hu: "Új jelszóbeállítási hivatkozás kérése",
-      ro: "Solicită un link nou pentru setarea parolei",
-      sk: "Vyžiadať nový odkaz na nastavenie hesla",
-    },
   },
   {
     description: "Chyba pro neplatný odkaz na dokončení registrace.",
     key: "auth.account_setup.expired_message",
     namespace: "auth",
-    values: {
-      cz: "Tento odkaz na dokončení registrace je neplatný nebo už vypršel.",
-      hu: "A regisztráció befejezéséhez használt hivatkozás érvénytelen vagy lejárt.",
-      ro: "Acest link pentru finalizarea înregistrării nu este valid sau a expirat.",
-      sk: "Tento odkaz na dokončenie registrácie je neplatný alebo už vypršal.",
-    },
   },
   {
     description: "Obecná chyba při prvním nastavení hesla.",
     key: "auth.account_setup.failed",
     namespace: "auth",
-    values: {
-      cz: "Heslo se nepodařilo nastavit.",
-      hu: "Nem sikerült beállítani a jelszót.",
-      ro: "Parola nu a putut fi setată.",
-      sk: "Nepodarilo sa nastaviť heslo.",
-    },
   },
   {
     description: "Akce pro první nastavení hesla.",
     key: "auth.account_setup.submit",
     namespace: "auth",
-    values: {
-      cz: "Nastavit heslo",
-      hu: "Jelszó beállítása",
-      ro: "Setează parola",
-      sk: "Nastaviť heslo",
-    },
   },
   {
     description: "Potvrzení úspěšného prvního nastavení hesla.",
     key: "auth.account_setup.success",
     namespace: "auth",
-    values: {
-      cz: "Heslo bylo úspěšně nastaveno. Můžete se přihlásit.",
-      hu: "A jelszó sikeresen be lett állítva. Most már bejelentkezhet.",
-      ro: "Parola a fost setată cu succes. Acum vă puteți autentifica.",
-      sk: "Heslo bolo úspešne nastavené. Môžete sa prihlásiť.",
-    },
   },
 ] as const satisfies readonly StorefrontTextDefinition[]

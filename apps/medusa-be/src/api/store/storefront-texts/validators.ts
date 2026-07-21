@@ -2,7 +2,7 @@ import { z } from "@medusajs/framework/zod"
 import {
   STOREFRONT_TEXT_MARKET_IDS,
   STOREFRONT_TEXT_NAMESPACES,
-} from "../../../modules/storefront-text/registry"
+} from "../../../modules/storefront-text/configuration"
 
 export const StoreGetStorefrontTextsSchema = z
   .object({

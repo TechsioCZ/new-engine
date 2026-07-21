@@ -1,0 +1,749 @@
+{
+  "cart": {
+    "add_to_cart": "Adaugă în coș",
+    "adding_to_cart": "Se adaugă...",
+    "added_to_cart": "Produsul a fost adăugat în coș.",
+    "failed": "Adăugarea în coș a eșuat.",
+    "insufficient_quantity": "Cantitate insuficientă pentru produs.",
+    "insufficient_quantity_available": "Cantitate insuficientă pentru produs. Cantitate disponibilă: {availableQuantity} buc.",
+    "insufficient_quantity_in_cart": "Cantitate insuficientă pentru produs. Ai deja {cartQuantity} buc. în coș, cantitatea disponibilă este {availableQuantity} buc.",
+    "missing_region": "Regiunea încă se încarcă. Te rugăm să încerci din nou în câteva momente.",
+    "missing_variant": "Produsul nu are o variantă disponibilă pentru adăugare în coș.",
+    "out_of_stock": "Produsul nu este momentan în stoc.",
+    "unavailable_in_region": "Produsul nu este momentan disponibil pentru regiunea selectată.",
+    "additional_items": "Alte articole în coș: {count}",
+    "continue_to_checkout": "Continuă la finalizarea comenzii",
+    "discount": "Reducere",
+    "empty_description": "Poți adăuga produse din catalog.",
+    "empty_title": "Coșul tău este gol",
+    "low_stock": "Au mai rămas doar {quantity} buc.",
+    "products_subtotal_excl_tax": "Prețul produselor fără TVA",
+    "quantity_aria": "Cantitate pentru {itemName}",
+    "remove_failed": "Eliminarea articolului a eșuat.",
+    "remove_item_aria": "Elimină {itemName} din coș",
+    "shipping_excl_tax": "Livrare fără TVA",
+    "tax": "TVA",
+    "title": "Coș",
+    "title_with_count": "Coș ({count})",
+    "total_incl_tax": "Total cu TVA",
+    "update_failed": "Actualizarea coșului a eșuat."
+  },
+  "checkout": {
+    "back_to_cart": "Înapoi la coș",
+    "back_to_shipping_payment": "Înapoi la livrare și plată",
+    "complete_order": "Finalizează comanda",
+    "completed_aria": "Finalizat",
+    "continue_to_customer_details": "Continuă la datele dvs.",
+    "continue_to_shipping_payment": "Continuă la livrare și plată",
+    "continue_to_summary": "Continuă la sumar",
+    "customer_details": "Datele dvs.",
+    "edit": "Editează",
+    "free": "Gratuit",
+    "item_quantity": "{quantity} buc.",
+    "no_payment_methods": "Nu există metode de plată disponibile.",
+    "no_shipping_options": "Nu există opțiuni de livrare disponibile.",
+    "order_summary": "Sumarul comenzii",
+    "payment": "Plată",
+    "payment_not_selected": "Plata nu este selectată",
+    "pickup_selection_required": "Selectați un punct de ridicare pentru a debloca plata.",
+    "select_pickup_before_payment": "Pentru a selecta plata, alegeți mai întâi un punct de ridicare.",
+    "select_shipping_before_payment": "Pentru a selecta plata, alegeți mai întâi livrarea.",
+    "selected_payment": "Plată selectată",
+    "selected_shipping": "Livrare selectată",
+    "shipping": "Livrare",
+    "shipping_excl_tax_with_name": "{shippingName} fără TVA",
+    "shipping_not_selected": "Livrarea nu este selectată",
+    "summary": "Sumar",
+    "total_excl_tax": "fără TVA",
+    "shipping_payment": "Livrare și plată",
+    "cart_empty": "Coșul este gol. Adăugați mai întâi produse.",
+    "cart_not_ready": "Coșul nu este încă pregătit.",
+    "complete_failed": "Finalizarea comenzii a eșuat.",
+    "payment_update_failed": "Setarea plății a eșuat.",
+    "select_payment_before_completion": "Selectați metoda de plată înainte de finalizarea comenzii.",
+    "select_shipping_before_completion": "Selectați livrarea înainte de finalizarea comenzii.",
+    "shipping_update_failed": "Setarea livrării a eșuat.",
+    "free_shipping_remaining": "Mai adăugați produse în valoare de {missingAmount} și beneficiați de <strong>transport gratuit.</strong>",
+    "free_shipping_qualified": "Coșul beneficiază deja de transport gratuit.",
+    "free_shipping_progress_aria": "Progres către transportul gratuit",
+    "completed_order_title": "Comandă finalizată",
+    "completed_order_created": "Comanda a fost creată ({orderId}).",
+    "completed_order_qr_preparing": "Pregătim datele QR pentru transferul bancar.",
+    "completed_order_qr_failed": "Plata QR nu a putut fi încărcată. Datele de plată se găsesc și în confirmarea comenzii.",
+    "completed_order_continue_shopping": "Continuă cumpărăturile",
+    "completed_order_go_to_account": "Mergi la cont",
+    "completed_order_qr_amount": "Sumă",
+    "completed_order_qr_iban": "IBAN",
+    "completed_order_qr_reference": "Referință plată",
+    "completed_order_qr_message": "Mesaj",
+    "completed_order_qr_aria": "Cod QR pentru plata comenzii {orderDisplayId}",
+    "completed_order_bank_transfer_title": "Plată prin transfer bancar",
+    "completed_order_bank_transfer_instructions": "Scanați codul QR în aplicația bancară sau folosiți datele de plată de mai jos.",
+    "billing_details": "Date de facturare",
+    "billing_same_as_shipping": "Adresa de facturare este aceeași cu adresa de livrare",
+    "purchase_type": "Tipul achiziției",
+    "private_purchase": "Persoană fizică",
+    "company_purchase": "Cumpăr ca firmă",
+    "pickup_delivery": "Livrare la punctul de ridicare",
+    "contact_and_billing_details": "Date de contact și facturare",
+    "registration_opt_in": "Doresc să mă înregistrez",
+    "registration_info": "(Informațiile despre înregistrare vă vor fi trimise prin e-mail)",
+    "country_unavailable": "Țara selectată nu este disponibilă pentru coșul actual. Selectați o țară din listă.",
+    "address_update_failed": "Salvarea adresei a eșuat.",
+    "registration_update_failed": "Salvarea înregistrării a eșuat.",
+    "secure_purchase": "Cumpărături sigure",
+    "login_prompt_title": "Aveți deja un cont Herbatika?",
+    "login_prompt_description": "<signIn>Autentificați-vă</signIn> pentru cumpărături rapide și reduceri la achizițiile viitoare.",
+    "empty_cart_title": "Coșul este gol",
+    "empty_cart_description": "Alegeți dintre produsele noi sau reveniți la pagina principală. Puteți finaliza comanda imediat după adăugarea unui produs.",
+    "empty_cart_browse_new_products": "Vezi produsele noi",
+    "empty_cart_home": "Mergi la pagina principală",
+    "empty_cart_recommendations_title": "Produse noi pe care le puteți adăuga în coș",
+    "inline_products_title": "Cumpărate frecvent împreună",
+    "payment_return_confirmation_pending": "Plata nu a putut fi confirmată încă.",
+    "payment_return_verification_failed": "Verificarea plății a eșuat.",
+    "payment_return_back_to_summary": "Înapoi la sumar",
+    "payment_return_change_payment": "Schimbă metoda de plată",
+    "payment_return_cancelled_title": "Plata a fost anulată",
+    "payment_return_cancelled_description": "Puteți reveni la sumarul comenzii și încerca plata din nou.",
+    "payment_return_missing_cart_title": "Lipsește coșul asociat plății",
+    "payment_return_missing_cart_description": "Răspunsul de la procesatorul de plăți nu conține identificatorul coșului.",
+    "payment_return_retry": "Încearcă din nou",
+    "payment_return_failed_title": "Plata nu a putut fi confirmată",
+    "payment_return_verifying_title": "Verificăm plata",
+    "payment_return_verifying_description": "După revenirea de la procesatorul de plăți, finalizăm comanda. De obicei durează doar câteva secunde.",
+    "payment_return_help": "Dacă starea nu se schimbă, puteți verifica comanda în cont sau puteți încerca din nou finalizarea.",
+    "payment_return_not_completed": "Plata nu a fost finalizată sau a fost anulată.",
+    "payment_provider_unknown": "Furnizor necunoscut",
+    "payment_provider_qr": "Plată QR prin transfer bancar",
+    "payment_provider_card_gateway": "Plată online cu cardul ({providerName})",
+    "payment_provider_cash_on_delivery": "Plată ramburs",
+    "payment_provider_card": "Plată online cu cardul",
+    "payment_summary_card_gateway": "Plată online cu cardul prin {providerName}",
+    "payment_summary_card_wallets": "Plată cu cardul, Google Pay sau Apple Pay",
+    "payment_hint_qr": "QR după trimiterea comenzii",
+    "payment_description_qr": "După trimiterea comenzii, vom afișa codul QR și datele pentru transferul bancar.",
+    "payment_description_card_gateway": "Plată online cu cardul prin gateway-ul de plată {providerName}.",
+    "select_pickup_point": "Alege punctul de ridicare",
+    "change_pickup_point": "Schimbă punctul de ridicare",
+    "selected_pickup_point": "Punct de ridicare: {pickupPointName}",
+    "pickup_point_fallback": "Punct de ridicare",
+    "pickup_selection_failed": "Selectarea punctului de ridicare nu a putut fi finalizată. Încercați din nou.",
+    "pickup_point_unavailable": "Punctul de ridicare selectat nu este disponibil momentan.",
+    "pickup_selector_unavailable": "Selectarea punctului de ridicare este temporar indisponibilă. Încercați din nou mai târziu.",
+    "review_customer_note": "Notă",
+    "review_marketing_consent": "Sunt de acord să primesc comunicări de marketing",
+    "review_heureka_consent": "Sunt de acord să primesc chestionarul de satisfacție Heureka",
+    "review_legal_confirmation": "Confirm că am citit și am înțeles <terms>termenii și condițiile</terms> și că îi accept în totalitate. Am consultat <privacy>politica de confidențialitate</privacy>.",
+    "review_missing_required_details": "Unele date obligatorii nu sunt încă salvate.",
+    "promo_code_label": "Cod de reducere",
+    "promo_code_placeholder": "Introdu codul de reducere",
+    "benefits_label": "Beneficii",
+    "return_policy_benefit": "Retur gratuit în termen de 14 zile",
+    "save_cart_for_later": "Salvează coșul pentru mai târziu",
+    "save_cart_link": "Salvează linkul",
+    "send_cart_email": "Trimite prin e-mail"
+  },
+  "auth": {
+    "account": {
+      "redirect": {
+        "title": "Redirecționare către autentificare",
+        "description": "Contul este disponibil doar utilizatorilor autentificați."
+      },
+      "navigation": {
+        "overview": "Prezentare generală",
+        "orders": "Comenzi",
+        "lists": "Liste",
+        "settings": "Setări"
+      },
+      "logout": "Deconectare",
+      "logout_failed": "Deconectarea nu a reușit. Încercați din nou.",
+      "overview": {
+        "title": "Prezentarea generală a contului",
+        "description": "Gestionarea comenzilor și a datelor clientului.",
+        "customer": "Client",
+        "customer_fallback": "Client"
+      },
+      "settings": {
+        "title": "Setările contului",
+        "unavailable": "Datele contului nu sunt disponibile. Reîmprospătați pagina.",
+        "description": "Actualizați datele personale pentru finalizarea mai rapidă a comenzii.",
+        "saved": "Datele contului au fost salvate.",
+        "save": "Salvează datele",
+        "email_read_only": "{label} (nu poate fi modificat)",
+        "company_optional": "{label} (opțional)",
+        "update_failed": "Datele contului nu au putut fi salvate. Încercați din nou."
+      },
+      "orders": {
+        "retry": "Încearcă din nou",
+        "empty_description": "Nu aveți încă nicio comandă finalizată.",
+        "browse_products": "Mergi la produse",
+        "description": "Prezentarea comenzilor finalizate, cu articole și starea livrării.",
+        "pagination_summary": "Total: {count} | Pagina {currentPage}/{totalPages}",
+        "back": "Înapoi la comenzi",
+        "not_found_title": "Comanda nu a fost găsită",
+        "not_found_description": "Verificați adresa URL sau reveniți la lista comenzilor.",
+        "item_count": "{count, plural, one {# articol în comandă} few {# articole în comandă} other {# de articole în comandă}}",
+        "total_amount": "Suma totală",
+        "view_invoice": "Vezi factura",
+        "view_order": "Vezi comanda",
+        "product": "Produs",
+        "price": "Preț",
+        "info": "Informații",
+        "product_fallback": "Produs",
+        "quantity_value": "Cantitate: {count}",
+        "product_detail": "Detalii",
+        "no_items": "Comanda nu conține articole.",
+        "detail": {
+          "order_title": "Comanda {orderId}",
+          "created": "Creată: {date}",
+          "payment_summary": "Sumarul plății",
+          "order_details": "Detaliile comenzii",
+          "order_id": "ID: {id}",
+          "items": "Articole: {count}",
+          "updated": "Actualizată: {date}",
+          "shipping_address": "Adresa de livrare",
+          "billing_address": "Adresa de facturare",
+          "address_unavailable": "Adresa nu este disponibilă.",
+          "shipping": "Livrare",
+          "shipping_unavailable": "Metoda de livrare nu este disponibilă",
+          "payment": "Plată",
+          "payment_unavailable": "Metoda de plată nu este disponibilă",
+          "tracking": "Urmărire",
+          "tracking_unavailable": "Codul de urmărire nu este disponibil",
+          "status": "Stare: {status}",
+          "items_title": "Articolele comenzii"
+        },
+        "invoice": "Factură",
+        "variant": "Variantă",
+        "quantity": "Cantitate",
+        "unit_price": "Preț unitar",
+        "total": "Total",
+        "unit_price_value": "Preț unitar: {amount}",
+        "status": {
+          "lifecycle": "{status, select, archived {Arhivată} canceled {Anulată} completed {Finalizată} draft {Ciornă} pending {În procesare} requires_action {Necesită acțiune} other {{status}}}",
+          "payment": "{status, select, authorized {Plată autorizată} awaiting {În așteptarea plății} canceled {Plată anulată} captured {Plătită} not_paid {În așteptarea plății} partially_authorized {Autorizată parțial} partially_captured {Plătită parțial} partially_refunded {Rambursată parțial} refunded {Rambursată} requires_action {Plata necesită acțiune} other {{status}}}",
+          "fulfillment": "{status, select, canceled {Livrare anulată} delivered {Livrată} fulfilled {Pregătită pentru expediere} not_fulfilled {În procesare} partially_delivered {Livrată parțial} partially_fulfilled {Pregătită parțial} partially_shipped {Expediată parțial} shipped {Expediată} other {{status}}}"
+        }
+      }
+    },
+    "login": {
+      "short_title": "Autentificare",
+      "title": "Autentificare în cont",
+      "description": "Introduceți datele de autentificare pentru a accesa secțiunea de client.",
+      "forgot_password": "Ați uitat parola?",
+      "no_account": "Nu aveți încă un cont?",
+      "register_link": "Înregistrați-vă",
+      "success": "Autentificarea a fost efectuată cu succes.",
+      "invalid_credentials": "Adresa de e-mail sau parola este incorectă.",
+      "failed": "Autentificarea nu a reușit. Încercați din nou."
+    },
+    "forgot": {
+      "title": "Parolă uitată",
+      "description": "Introduceți adresa de e-mail asociată contului. Vă vom trimite un link pentru resetarea parolei.",
+      "submit": "Trimite linkul",
+      "sent": "Am trimis linkul pentru resetarea parolei la {email}. Verificați-vă căsuța de e-mail.",
+      "delivery_help": "Nu ați primit e-mailul? Verificați dosarul spam sau încercați din nou peste câteva minute.",
+      "failed": "Linkul pentru resetarea parolei nu a putut fi trimis."
+    },
+    "reset": {
+      "title": "Resetarea parolei",
+      "description": "Introduceți o parolă nouă pentru contul dvs.",
+      "description_with_email": "Setați o parolă nouă pentru contul {email}.",
+      "expired_help": "Solicitați un link nou pentru resetarea parolei.",
+      "expired_link": "Solicită un link nou",
+      "expired_message": "Acest link nu este valid sau a expirat.",
+      "failed": "Parola nu a putut fi resetată.",
+      "submit": "Resetează parola",
+      "success": "Parola a fost schimbată cu succes. Vă puteți autentifica folosind noua parolă."
+    },
+    "account_setup": {
+      "title": "Setarea parolei",
+      "description": "Finalizați înregistrarea contului prin setarea unei parole.",
+      "description_with_email": "Finalizați înregistrarea contului {email} prin setarea unei parole.",
+      "expired_help": "Puteți solicita un link nou pentru setarea parolei din pagina de autentificare.",
+      "expired_link": "Solicită un link nou pentru setarea parolei",
+      "expired_message": "Acest link pentru finalizarea înregistrării nu este valid sau a expirat.",
+      "failed": "Parola nu a putut fi setată.",
+      "submit": "Setează parola",
+      "success": "Parola a fost setată cu succes. Acum vă puteți autentifica."
+    },
+    "register": {
+      "title": "Crearea contului",
+      "description": "Completați datele și creați-vă un cont de client.",
+      "submit": "Înregistrare",
+      "has_account": "Aveți deja un cont?",
+      "account_type": "Tipul contului",
+      "retail_label": "Client obișnuit",
+      "retail_description": "Înregistrare fără solicitarea unui cont angro.",
+      "wholesale_label": "Client angro",
+      "wholesale_description": "După înregistrare, vom trimite cererea spre aprobare.",
+      "company_fields": "Datele companiei",
+      "accept_terms": "Sunt de acord cu termenii și condițiile",
+      "success": "Înregistrarea a fost efectuată cu succes.",
+      "wholesale_success": "Cererea pentru contul angro a fost trimisă spre aprobare. Până la luarea deciziei, puteți cumpăra ca un client obișnuit.",
+      "email_exists": "Există deja un cont cu această adresă de e-mail. Autentificați-vă sau folosiți recuperarea parolei.",
+      "failed": "Înregistrarea nu a reușit. Încercați din nou."
+    },
+    "account_label": "Cont",
+    "sign_in": "Autentificare",
+    "password": "Parolă",
+    "password_confirmation": "Confirmarea parolei",
+    "new_password": "Parolă nouă",
+    "back_to_login": "Înapoi la autentificare",
+    "go_to_login": "Mergi la autentificare",
+    "cart_transfer_failed": "Contul este activ, dar conținutul coșului nu a putut fi transferat. Încercați din nou în coș.",
+    "password_requirements": {
+      "title": "Cerințe pentru parolă:",
+      "min_length": "Cel puțin 8 caractere",
+      "number": "Cel puțin o cifră"
+    },
+    "validation": {
+      "account_type_required": "Selectați tipul de cont.",
+      "password_required": "Introduceți parola.",
+      "password_min_length": "Parola trebuie să conțină cel puțin 8 caractere.",
+      "password_number": "Parola trebuie să conțină cel puțin o cifră.",
+      "confirm_password_required": "Confirmați parola.",
+      "password_mismatch": "Parolele nu coincid.",
+      "terms_required": "Este necesar acordul cu termenii și condițiile."
+    },
+    "product_lists": {
+      "title": "Liste de produse",
+      "description": "Produse salvate și liste de cumpărături proprii.",
+      "empty_description": "Nu aveți încă nicio listă de produse.",
+      "new_list": "Listă nouă",
+      "browse_products": "Vezi produsele",
+      "retry": "Încearcă din nou",
+      "errors": {
+        "lists_load_failed": "Listele nu au putut fi încărcate.",
+        "list_load_failed": "Lista nu a putut fi încărcată.",
+        "create_failed": "Lista nu a putut fi creată.",
+        "add_product_failed": "Produsul nu a putut fi adăugat.",
+        "add_list_to_cart_failed": "Lista nu a putut fi adăugată în coș.",
+        "missing_variant": "Unele produse din listă nu au o variantă selectată.",
+        "add_available_all_failed": "Articolele disponibile nu au putut fi adăugate în coș.",
+        "add_available_partial_failed": "Unele articole disponibile nu au putut fi adăugate în coș.",
+        "quantity_update_failed": "Cantitatea nu a putut fi actualizată.",
+        "delete_list_failed": "Lista nu a putut fi ștearsă.",
+        "remove_product_failed": "Produsul nu a putut fi eliminat din listă."
+      },
+      "list_empty": "Această listă este momentan goală.",
+      "loading_items_aria": "Se încarcă produsele din listă",
+      "create_dialog_title": "Cum se va numi lista?",
+      "new_list_name": "Numele listei noi",
+      "new_list_placeholder": "Numele listei",
+      "actions": {
+        "cancel": "Anulează",
+        "save": "Salvează",
+        "confirm": "OK",
+        "delete_list": "Șterge lista"
+      },
+      "delete_description": "Lista va fi ștearsă împreună cu articolele salvate.",
+      "delete_title": "Ștergi lista {listTitle}?",
+      "delete_list_aria": "Șterge lista {listTitle}",
+      "create_list_aria": "Creează o listă nouă",
+      "favorite_title": "Favorite",
+      "untitled_list": "Listă",
+      "picker": {
+        "title": "Selectează lista",
+        "trigger_aria": "Adaugă într-o listă",
+        "auth_required": "Autentificați-vă pentru a salva produse în liste.",
+        "contains_product_aria": "Lista {listTitle} conține deja produsul",
+        "add_to_list_aria": "Adaugă în lista {listTitle}",
+        "open_list_aria": "Deschide lista {listTitle}",
+        "adding_product": "Se adaugă produsul"
+      },
+      "item": {
+        "quantity": "{quantity} buc.",
+        "quantity_aria": "Cantitate pentru {productName}",
+        "remove_aria": "Elimină {productName} din listă",
+        "removing": "Se elimină"
+      },
+      "availability": {
+        "product_unavailable": "Produsul nu este disponibil",
+        "out_of_stock": "Momentan nu este în stoc",
+        "limited_stock": "Doar {quantity} buc. disponibile",
+        "none_available": "Niciun articol disponibil",
+        "add_all": "Adaugă totul în coș",
+        "add_available": "Adaugă articolele disponibile în coș"
+      },
+      "price_unavailable": "Indisponibil",
+      "validation": {
+        "title_required": "Introduceți numele listei."
+      }
+    }
+  },
+  "catalog": {
+    "product_card": {
+      "price_on_request": "Preț la cerere",
+      "collection_empty": "Momentan nu există produse în această secțiune.",
+      "recently_visited_title": "Vizitate recent",
+      "recently_visited_empty": "Nu ai încă produse vizitate recent."
+    },
+    "product_detail": {
+      "errors": {
+        "load_failed": "Produsul nu a putut fi încărcat.",
+        "not_found": "Produsul nu a putut fi găsit."
+      },
+      "retry": "Încearcă din nou",
+      "back_home": "Înapoi la pagina principală",
+      "price_on_request": "Preț la cerere",
+      "information_title": "Informații despre produs",
+      "sections": {
+        "description": "Descriere",
+        "usage": "Utilizare",
+        "composition": "Compoziție",
+        "warning": "Avertisment",
+        "other": "Alte informații",
+        "content": "Conținut"
+      },
+      "variant_label": "Variantă",
+      "variant_placeholder": "Selectează varianta",
+      "stock": {
+        "in_stock": "În stoc",
+        "out_of_stock": "Momentan nu este în stoc"
+      },
+      "delivery_by": "livrare până la {date}",
+      "free_shipping_over": "Livrare gratuită peste {threshold}",
+      "gallery": {
+        "title": "Galeria produsului",
+        "close_aria": "Închide galeria",
+        "image_alt": "Produs ({index})",
+        "thumbnail_aria": "Afișează imaginea {index} în galerie"
+      },
+      "advisor": {
+        "image_alt": "Consilier Herbatika",
+        "title": "Ai nevoie de ajutor?",
+        "description": "Contactează-ne, te ajutăm cu plăcere"
+      },
+      "vip_credit": {
+        "title": "Credit VIP",
+        "earned": "Primești {credit} prin această achiziție"
+      },
+      "quantity_aria": "Cantitate pentru {productName}",
+      "bulk_discount": {
+        "title": "Reducere de volum",
+        "option_title": "Cumpără {quantity} și economisește",
+        "per_unit": "{price} / bucată"
+      },
+      "unit_price": {
+        "per_day": "{price} / zi",
+        "excluding_vat": "fără TVA: {price} / {unit}",
+        "per_unit": "{price} / {unit}"
+      },
+      "media": {
+        "doses": "{count, plural, one {doză} few {doze} other {de doze}}",
+        "daily_capsules": "{count, plural, one {capsulă zilnic} few {capsule zilnic} other {de capsule zilnic}}"
+      },
+      "related": {
+        "also_bought": "Alții au cumpărat și",
+        "products": "Produse similare",
+        "found": "Găsite: {count}"
+      }
+    },
+    "reviews": {
+      "homepage_title": "Confirmat de clienți",
+      "product_title": "Evaluările produsului",
+      "tab_label": "Evaluări",
+      "all_reviews": "Toate evaluările",
+      "verified_purchase": "Achiziție verificată",
+      "verified_customer_badge_alt": "Clienți verificați Heureka",
+      "rating_aria": "Evaluarea medie a produsului este {rating} din {max}",
+      "based_on_count": "Pe baza a {count, plural, one {# evaluare} few {# evaluări} other {# de evaluări}}",
+      "loading_aria": "Se încarcă recenziile",
+      "unavailable": "Recenziile produsului nu sunt disponibile momentan.",
+      "load_failed": "Recenziile nu au putut fi încărcate.",
+      "retry": "Încearcă din nou",
+      "empty_title": "Acest produs nu are încă recenzii.",
+      "empty_description": "Primele evaluări verificate vor apărea direct în această secțiune.",
+      "first_action": "Scrie prima recenzie",
+      "refreshing": "Se actualizează recenziile",
+      "anonymous": "Anonim",
+      "trust_badges_aria": "Evaluările magazinului",
+      "write_action": "Scrie o recenzie",
+      "auth_checking": "Se verifică autentificarea.",
+      "sign_in_required": "Autentifică-te pentru a scrie o recenzie.",
+      "submit_success": "Îți mulțumim pentru recenzie. După aprobare va apărea lângă produs.",
+      "close": "Închide",
+      "cancel": "Anulează",
+      "submit": "Trimite recenzia",
+      "submitting": "Se trimite recenzia...",
+      "pending_description": "Recenzia va apărea după aprobare.",
+      "dialog_title": "Scrie o recenzie",
+      "form": {
+        "rating_label": "Evaluare",
+        "rating_validation": "Selectează o evaluare de la 1 la 5 stele.",
+        "content_min_length_validation": "Scrie cel puțin {min} caractere.",
+        "content_min_length_help": "Minimum {min} caractere.",
+        "content_label": "Recenzie"
+      },
+      "errors": {
+        "generic": "Recenzia nu a putut fi trimisă. Încearcă din nou.",
+        "purchase_required": "Pentru a scrie o recenzie trebuie să fi cumpărat acest produs.",
+        "validation": "Verifică evaluarea și textul recenziei.",
+        "rating_required": "Selectează o evaluare.",
+        "content_required": "Scrie textul recenziei.",
+        "title_invalid": "Verifică titlul recenziei.",
+        "token_used": "Acest link de evaluare a fost deja folosit.",
+        "token_expired": "Acest link de evaluare a expirat.",
+        "token_mismatch": "Acest link nu corespunde produsului selectat.",
+        "token_not_found": "Acest link de evaluare nu este valid.",
+        "duplicate": "Ai evaluat deja acest produs.",
+        "auth_required": "Autentifică-te pentru a trimite recenzia.",
+        "forbidden": "Momentan nu poți trimite o recenzie pentru acest produs."
+      },
+      "token": {
+        "metadata_title": "Scrie o recenzie | Herbatica",
+        "back_to_product": "Înapoi la produs",
+        "back_to_store": "Înapoi în magazin",
+        "missing_product": "Linkul de evaluare nu conține un produs.",
+        "product_loading": "Se încarcă produsul.",
+        "product_load_failed": "Produsul nu a putut fi încărcat. Poți trimite totuși recenzia.",
+        "product_not_found": "Produsul nu a putut fi găsit. Verifică linkul din e-mail.",
+        "eyebrow": "Evaluarea achiziției",
+        "product_label": "Produs evaluat"
+      }
+    },
+    "brands": {
+      "label": "Mărci",
+      "all_title": "Toate mărcile de la A la Z",
+      "list_aria": "Lista mărcilor în ordine alfabetică",
+      "metadata": {
+        "index_title": "Toate mărcile de la A la Z | Herbatica",
+        "index_description": "Prezentarea tuturor mărcilor disponibile în magazinul online Herbatica, în ordine alfabetică.",
+        "detail_title": "{brandName} | Mărci Herbatica",
+        "detail_description": "Produsele mărcii {brandName} disponibile în magazinul online Herbatica."
+      }
+    },
+    "filters": {
+      "toggle": "{count, plural, =0 {Filtre} other {Filtre (#)}}",
+      "price": "Preț",
+      "form": "Formă",
+      "brand": "Marcă",
+      "active_ingredient": "Ingredient activ",
+      "clear": "Șterge filtrele",
+      "show_more": "Afișează mai multe",
+      "show_less": "Afișează mai puține",
+      "form_loading": "Formele se încarcă.",
+      "form_empty": "Formele nu sunt disponibile momentan.",
+      "brand_loading": "Mărcile se încarcă.",
+      "brand_empty": "Mărcile nu sunt disponibile momentan.",
+      "ingredient_loading": "Ingredientele active se încarcă.",
+      "ingredient_empty": "Ingredientele active nu sunt disponibile momentan.",
+      "status": {
+        "in_stock": "În stoc",
+        "action": "Promoție",
+        "new": "Noutate",
+        "tip": "Recomandare",
+        "vegan": "Vegan"
+      },
+      "form_values": {
+        "capsules": "Capsule",
+        "tablets": "Tablete",
+        "softgel": "Capsule moi",
+        "powder": "Pulbere",
+        "liquid": "Lichide",
+        "drink": "Băutură",
+        "drops": "Picături",
+        "spray": "Spray",
+        "syrup": "Sirop"
+      }
+    },
+    "pagination": {
+      "root_aria": "Paginarea produselor",
+      "previous_aria": "Pagina anterioară",
+      "next_aria": "Pagina următoare",
+      "page_aria": "Pagina {page} din {totalPages}"
+    },
+    "sort": {
+      "recommended": "Recomandate",
+      "price_asc": "Cele mai ieftine",
+      "price_desc": "Cele mai scumpe",
+      "best_selling": "Cele mai vândute",
+      "newest": "Cele mai noi"
+    },
+    "results": {
+      "items_total": "articole în total",
+      "empty_category": "În această categorie nu sunt disponibile momentan produse pentru filtrul selectat.",
+      "empty_brand": "Pentru această marcă nu sunt disponibile momentan produse pentru filtrul selectat.",
+      "category_not_found": "Categoria nu a putut fi găsită. Verificați adresa URL sau selectați o altă categorie."
+    },
+    "errors": {
+      "products_load_failed": "Încărcarea produselor a eșuat.",
+      "categories_load_failed": "Încărcarea categoriilor a eșuat."
+    }
+  },
+  "content": {
+    "actions": {
+      "view_all": "Vezi toate"
+    },
+    "home": {
+      "hero": {
+        "link_aria": "{label} - {cta}"
+      },
+      "purpose": {
+        "title": "Ce vă preocupă? Cumpărați în funcție de scop"
+      },
+      "blog": {
+        "title": "Blog despre sănătate și frumusețe"
+      },
+      "product_sections": {
+        "bestsellers": "Cele mai populare produse",
+        "new_products": "Noutăți",
+        "sale": "Produse la reducere"
+      },
+      "benefits": {
+        "fast_delivery": "Livrare rapidă direct la dumneavoastră acasă.",
+        "satisfaction_guarantee": "Garanția satisfacției sau banii înapoi.",
+        "own_products": "Peste 130 de produse proprii în stoc.",
+        "trusted_customers": "Mii de clienți din întreaga Europă au încredere în noi."
+      }
+    },
+    "pages": {
+      "blog": "Blog",
+      "about": "Despre noi",
+      "faq": "Întrebări frecvente"
+    },
+    "blog": {
+      "card": {
+        "open_article": "Citește articolul"
+      },
+      "pagination": {
+        "load_more": "Afișează mai multe",
+        "summary": "Pagina {page}/{totalPages}"
+      },
+      "detail": {
+        "related_articles": "Alte articole",
+        "author": "Autor:",
+        "published": "Publicat:",
+        "reading_time": "Timp de citire:"
+      },
+      "sidebar": {
+        "categories": "Categorii"
+      }
+    },
+    "faq": {
+      "item_count": "{count, plural, one {# element în total} few {# elemente în total} other {# de elemente în total}}"
+    },
+    "about": {
+      "rating_aria": "Evaluare de {rating} din {max} stele"
+    }
+  },
+  "form": {
+    "first_name": "Prenume",
+    "last_name": "Nume de familie",
+    "company_name": "Denumirea companiei",
+    "company_id": "Numărul de înregistrare al companiei",
+    "tax_id": "Cod fiscal",
+    "vat_id": "Cod TVA",
+    "email": "E-mail",
+    "phone": "Telefon",
+    "country": "Țară",
+    "country_placeholder": "Selectați țara",
+    "address": "Strada și numărul",
+    "address_line_2": "Completarea adresei",
+    "city": "Oraș",
+    "postal_code": "Cod poștal",
+    "customer_note": "Notă opțională pentru serviciul de asistență clienți",
+    "required_fields": "obligatoriu",
+    "validation": {
+      "first_name_min_length": "Prenumele trebuie să conțină cel puțin 2 caractere.",
+      "last_name_min_length": "Numele de familie trebuie să conțină cel puțin 2 caractere.",
+      "company_name_required": "Introduceți denumirea companiei.",
+      "company_name_min_length": "Denumirea companiei trebuie să conțină cel puțin 2 caractere.",
+      "company_id_required": "Introduceți numărul de înregistrare al companiei.",
+      "company_id_min_length": "Numărul de înregistrare al companiei trebuie să conțină cel puțin 4 caractere.",
+      "tax_id_required": "Introduceți codul fiscal.",
+      "tax_id_min_length": "Codul fiscal trebuie să conțină cel puțin 4 caractere.",
+      "email_required": "Introduceți adresa de e-mail.",
+      "email_invalid": "Introduceți o adresă de e-mail validă.",
+      "phone_required": "Introduceți numărul de telefon.",
+      "phone_invalid": "Introduceți un număr de telefon valid.",
+      "phone_min_digits": "Numărul de telefon trebuie să conțină cel puțin 7 cifre.",
+      "country_required": "Selectați țara.",
+      "country_invalid": "Selectați o țară validă.",
+      "address_required": "Introduceți strada și numărul.",
+      "address_min_length": "Strada și numărul trebuie să conțină cel puțin 2 caractere.",
+      "city_required": "Introduceți orașul.",
+      "city_min_length": "Numele orașului trebuie să conțină cel puțin 2 caractere.",
+      "postal_code_required": "Introduceți codul poștal.",
+      "postal_code_invalid": "Introduceți un cod poștal valid.",
+      "postal_code_min_digits": "Codul poștal trebuie să conțină cel puțin 4 cifre."
+    }
+  },
+  "navigation": {
+    "primary_aria": "Navigare principală",
+    "submenu": {
+      "loading": "Se încarcă subcategoriile..."
+    },
+    "footer": {
+      "copyright": "Copyright {year} <brand>{domain}.</brand> Toate drepturile rezervate.",
+      "cookie_settings": "Modifică setările cookie-urilor",
+      "tagline": "Partenerul dumneavoastră pentru un stil de viață sănătos și vitalitate.",
+      "columns": {
+        "information": {
+          "title": "Informații pentru dumneavoastră",
+          "blog": "Blog",
+          "about": "Despre noi",
+          "faq": "Întrebări frecvente",
+          "gift_voucher": "Voucher cadou",
+          "brands": "Producători și mărci",
+          "reviews": "Recenzii"
+        },
+        "important": {
+          "title": "Informații importante",
+          "shipping_payment": "Livrare și plată",
+          "claims_returns": "Reclamații și retururi",
+          "terms": "Termeni și condiții",
+          "privacy": "Protecția datelor cu caracter personal",
+          "cookies": "Cookie-uri"
+        },
+        "partners": {
+          "title": "Pentru parteneri",
+          "affiliate": "Program de afiliere",
+          "wholesale": "Comerț cu ridicata",
+          "dropshipping": "Dropshipping",
+          "private_label": "Marcă privată"
+        }
+      }
+    },
+    "start_chat": "Începe conversația",
+    "breadcrumbs": {
+      "root_aria": "Traseu de navigare",
+      "home": "Acasă"
+    }
+  },
+  "search": {
+    "results": {
+      "title": "Căutare",
+      "description": "Căutați produse în catalog.",
+      "query": "căutare: {query}",
+      "found": "găsite: {count}",
+      "page": "pagina: {page}/{totalPages}",
+      "empty": "Nu au fost găsite produse pentru „{query}”.",
+      "enter_query": "Introduceți un termen de căutare în bara de sus."
+    },
+    "input_placeholder": "Scrieți ce căutați...",
+    "submit_aria": "Căutare",
+    "input_aria": "Căutare",
+    "clear_aria": "Ștergeți căutarea",
+    "autocomplete": {
+      "loading": "Căutăm sugestii...",
+      "load_failed": "Sugestiile nu au putut fi încărcate.",
+      "empty": "Nu avem sugestii rapide pentru „{query}”.",
+      "sections": {
+        "products": "Produse",
+        "categories": "Categorii",
+        "brands": "Mărci"
+      },
+      "types": {
+        "category": "Categorie",
+        "brand": "Marcă"
+      }
+    },
+    "availability": {
+      "in_stock": "În stoc",
+      "out_of_stock": "Stoc epuizat"
+    }
+  }
+}

@@ -1,290 +1,134 @@
-import type { StorefrontTextDefinition } from "../registry"
+import type { StorefrontTextDefinition } from "../configuration"
 
 export const STOREFRONT_NAVIGATION_TEXT_DEFINITIONS = [
   {
     description: "Přístupný název hlavní navigace.",
     key: "navigation.primary_aria",
     namespace: "navigation",
-    values: {
-      cz: "Hlavní navigace",
-      hu: "Fő navigáció",
-      ro: "Navigare principală",
-      sk: "Hlavná navigácia",
-    },
   },
   {
     description: "Stav načítání podkategorií v navigačním podmenu.",
     key: "navigation.submenu.loading",
     namespace: "navigation",
-    values: {
-      cz: "Načítám podkategorie...",
-      hu: "Alkategóriák betöltése...",
-      ro: "Se încarcă subcategoriile...",
-      sk: "Načítavam podkategórie...",
-    },
   },
   {
     description: "Text autorských práv v patičce.",
     key: "navigation.footer.copyright",
     namespace: "navigation",
-    values: {
-      cz: "Copyright {year} <brand>{domain}.</brand> Všechna práva vyhrazena.",
-      hu: "Copyright {year} <brand>{domain}.</brand> Minden jog fenntartva.",
-      ro: "Copyright {year} <brand>{domain}.</brand> Toate drepturile rezervate.",
-      sk: "Copyright {year} <brand>{domain}.</brand> Všetky práva vyhradené.",
-    },
   },
   {
     description: "Odkaz pro úpravu nastavení cookies v patičce.",
     key: "navigation.footer.cookie_settings",
     namespace: "navigation",
-    values: {
-      cz: "Upravit nastavení cookies",
-      hu: "Cookie-beállítások módosítása",
-      ro: "Modifică setările cookie-urilor",
-      sk: "Upraviť nastavenie cookies",
-    },
   },
   {
     description: "Krátký claim pod logem v patičce.",
     key: "navigation.footer.tagline",
     namespace: "navigation",
-    values: {
-      cz: "Váš partner pro zdravý životní styl a vitalitu.",
-      hu: "Az Ön partnere az egészséges életmódhoz és vitalitáshoz.",
-      ro: "Partenerul dumneavoastră pentru un stil de viață sănătos și vitalitate.",
-      sk: "Váš partner pre zdravý životný štýl a vitalitu.",
-    },
   },
   {
     description: "Nadpis informačního sloupce v patičce.",
     key: "navigation.footer.columns.information.title",
     namespace: "navigation",
-    values: {
-      cz: "Informace pro vás",
-      hu: "Információk Önnek",
-      ro: "Informații pentru dumneavoastră",
-      sk: "Informácie pre vás",
-    },
   },
   {
     description: "Odkaz na blog v patičce.",
     key: "navigation.footer.columns.information.blog",
     namespace: "navigation",
-    values: {
-      cz: "Blog",
-      hu: "Blog",
-      ro: "Blog",
-      sk: "Blog",
-    },
   },
   {
     description: "Odkaz na stránku o značce v patičce.",
     key: "navigation.footer.columns.information.about",
     namespace: "navigation",
-    values: {
-      cz: "O nás",
-      hu: "Rólunk",
-      ro: "Despre noi",
-      sk: "O nás",
-    },
   },
   {
     description: "Odkaz na často kladené otázky v patičce.",
     key: "navigation.footer.columns.information.faq",
     namespace: "navigation",
-    values: {
-      cz: "Časté otázky",
-      hu: "Gyakori kérdések",
-      ro: "Întrebări frecvente",
-      sk: "Časté otázky",
-    },
   },
   {
     description: "Odkaz na dárkové poukázky v patičce.",
     key: "navigation.footer.columns.information.gift_voucher",
     namespace: "navigation",
-    values: {
-      cz: "Dárkový poukaz",
-      hu: "Ajándékutalvány",
-      ro: "Voucher cadou",
-      sk: "Darčeková poukážka",
-    },
   },
   {
     description: "Odkaz na přehled výrobců a značek v patičce.",
     key: "navigation.footer.columns.information.brands",
     namespace: "navigation",
-    values: {
-      cz: "Výrobci a značky",
-      hu: "Gyártók és márkák",
-      ro: "Producători și mărci",
-      sk: "Výrobcovia a značky",
-    },
   },
   {
     description: "Odkaz na zákaznické recenze v patičce.",
     key: "navigation.footer.columns.information.reviews",
     namespace: "navigation",
-    values: {
-      cz: "Recenze",
-      hu: "Vélemények",
-      ro: "Recenzii",
-      sk: "Recenzie",
-    },
   },
   {
     description: "Nadpis sloupce důležitých informací v patičce.",
     key: "navigation.footer.columns.important.title",
     namespace: "navigation",
-    values: {
-      cz: "Důležité informace",
-      hu: "Fontos információk",
-      ro: "Informații importante",
-      sk: "Dôležité informácie",
-    },
   },
   {
     description: "Odkaz na informace o dopravě a platbě v patičce.",
     key: "navigation.footer.columns.important.shipping_payment",
     namespace: "navigation",
-    values: {
-      cz: "Doprava a platba",
-      hu: "Szállítás és fizetés",
-      ro: "Livrare și plată",
-      sk: "Doprava a platba",
-    },
   },
   {
     description: "Odkaz na reklamace a vrácení v patičce.",
     key: "navigation.footer.columns.important.claims_returns",
     namespace: "navigation",
-    values: {
-      cz: "Reklamace a vrácení",
-      hu: "Reklamáció és visszaküldés",
-      ro: "Reclamații și retururi",
-      sk: "Reklamácia a vrátenie",
-    },
   },
   {
     description: "Odkaz na obchodní podmínky v patičce.",
     key: "navigation.footer.columns.important.terms",
     namespace: "navigation",
-    values: {
-      cz: "Obchodní podmínky",
-      hu: "Általános szerződési feltételek",
-      ro: "Termeni și condiții",
-      sk: "Obchodné podmienky",
-    },
   },
   {
     description: "Odkaz na ochranu osobních údajů v patičce.",
     key: "navigation.footer.columns.important.privacy",
     namespace: "navigation",
-    values: {
-      cz: "Ochrana osobních údajů",
-      hu: "Adatvédelem",
-      ro: "Protecția datelor cu caracter personal",
-      sk: "Ochrana osobných údajov",
-    },
   },
   {
     description: "Odkaz na informace o cookies v patičce.",
     key: "navigation.footer.columns.important.cookies",
     namespace: "navigation",
-    values: {
-      cz: "Cookies",
-      hu: "Cookie-k",
-      ro: "Cookie-uri",
-      sk: "Cookies",
-    },
   },
   {
     description: "Nadpis partnerského sloupce v patičce.",
     key: "navigation.footer.columns.partners.title",
     namespace: "navigation",
-    values: {
-      cz: "Pro partnery",
-      hu: "Partnereinknek",
-      ro: "Pentru parteneri",
-      sk: "Pre partnerov",
-    },
   },
   {
     description: "Odkaz na partnerský program v patičce.",
     key: "navigation.footer.columns.partners.affiliate",
     namespace: "navigation",
-    values: {
-      cz: "Partnerský program",
-      hu: "Partnerprogram",
-      ro: "Program de afiliere",
-      sk: "Affiliate program",
-    },
   },
   {
     description: "Odkaz na velkoobchod v patičce.",
     key: "navigation.footer.columns.partners.wholesale",
     namespace: "navigation",
-    values: {
-      cz: "Velkoobchod",
-      hu: "Nagykereskedelem",
-      ro: "Comerț cu ridicata",
-      sk: "Veľkoobchod",
-    },
   },
   {
     description: "Odkaz na dropshipping v patičce.",
     key: "navigation.footer.columns.partners.dropshipping",
     namespace: "navigation",
-    values: {
-      cz: "Dropshipping",
-      hu: "Dropshipping",
-      ro: "Dropshipping",
-      sk: "Dropshipping",
-    },
   },
   {
     description: "Odkaz na privátní značku v patičce.",
     key: "navigation.footer.columns.partners.private_label",
     namespace: "navigation",
-    values: {
-      cz: "Privátní značka",
-      hu: "Saját márka",
-      ro: "Marcă privată",
-      sk: "Private label",
-    },
   },
   {
     description: "Label odkazu pro spuštění zákaznického chatu.",
     key: "navigation.start_chat",
     namespace: "navigation",
-    values: {
-      cz: "Spustit chat",
-      hu: "Csevegés indítása",
-      ro: "Începe conversația",
-      sk: "Spustiť chat",
-    },
   },
   {
     description: "Přístupný název drobečkové navigace.",
     key: "navigation.breadcrumbs.root_aria",
     namespace: "navigation",
-    values: {
-      cz: "Cesta na stránce",
-      hu: "Navigációs útvonal",
-      ro: "Traseu de navigare",
-      sk: "Cesta na stránke",
-    },
   },
   {
     description: "Odkaz na domovskou stránku v drobečkové navigaci.",
     key: "navigation.breadcrumbs.home",
     namespace: "navigation",
-    values: {
-      cz: "Domů",
-      hu: "Főoldal",
-      ro: "Acasă",
-      sk: "Domov",
-    },
   },
 ] as const satisfies readonly StorefrontTextDefinition[]

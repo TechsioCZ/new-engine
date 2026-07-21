@@ -1,3 +1,4 @@
+import type { Context } from "@medusajs/framework/types"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
@@ -8,10 +9,9 @@ import {
   type StorefrontTextSeedRow,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
+import type { SyncStorefrontTextsWorkflowInput } from "../types"
 
-const SYNC_STOREFRONT_TEXT_CHUNK_SIZE = 25
-
-type SyncStorefrontTextsCompensation = {
+export type StorefrontTextSyncCompensation = {
   createdIds: string[]
   previousRecords: StorefrontTextRestoreRecord[]
 }
@@ -27,43 +27,22 @@ type StorefrontTextRestoreRecord = Pick<
   | "override_value"
 >
 
-type PreparedSeedRow = {
+type StorefrontTextSyncResult = {
+  created_count: number
+  updated_count: number
+}
+
+const getRecordIdentity = ({
+  key,
+  locale,
+  market,
+}: Pick<StorefrontTextRecord, "key" | "locale" | "market">) =>
+  `${market}:${locale}:${key}`
+
+const validateSeedRow = (
+  seedRow: StorefrontTextSeedRow,
   existing?: StorefrontTextRecord
-  normalizedOverrideValue: null | string
-  seedRow: StorefrontTextSeedRow
-}
-
-type SyncSeedRowResult =
-  | {
-      createdId: string
-      previousRecord?: never
-      updated: false
-    }
-  | {
-      createdId?: never
-      previousRecord: StorefrontTextRestoreRecord
-      updated: true
-    }
-  | {
-      createdId?: never
-      previousRecord?: never
-      updated: false
-    }
-
-const chunkItems = <Item>(items: Item[], size: number) => {
-  const chunks: Item[][] = []
-
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
-  }
-
-  return chunks
-}
-
-const prepareSeedRow = async (
-  service: StorefrontTextModuleService,
-  seedRow: StorefrontTextSeedRow
-): Promise<PreparedSeedRow> => {
+) => {
   const defaultValidation = validateStorefrontTextOverride({
     defaultValue: seedRow.default_value,
     locale: seedRow.locale,
@@ -77,23 +56,10 @@ const prepareSeedRow = async (
     )
   }
 
-  const [existing] = await service.listStorefrontTexts({
-    key: seedRow.key,
-    locale: seedRow.locale,
-    market: seedRow.market,
-  })
-
-  if (!existing) {
-    return {
-      normalizedOverrideValue: null,
-      seedRow,
-    }
-  }
-
   const normalizedOverrideValue =
-    existing.override_value === seedRow.default_value
+    existing?.override_value === seedRow.default_value
       ? null
-      : existing.override_value
+      : (existing?.override_value ?? null)
 
   if (normalizedOverrideValue !== null) {
     const overrideValidation = validateStorefrontTextOverride({
@@ -112,179 +78,137 @@ const prepareSeedRow = async (
     }
   }
 
-  return {
-    existing,
-    normalizedOverrideValue,
-    seedRow,
-  }
+  return normalizedOverrideValue
 }
 
-const syncSeedRow = async (
+export const synchronizeStorefrontTexts = async (
   service: StorefrontTextModuleService,
-  { existing, normalizedOverrideValue, seedRow }: PreparedSeedRow
-): Promise<SyncSeedRowResult> => {
-  if (!existing) {
-    const created = await service.createStorefrontTexts(seedRow)
+  input: SyncStorefrontTextsWorkflowInput,
+  sharedContext: Context
+): Promise<{
+  compensation: StorefrontTextSyncCompensation
+  result: StorefrontTextSyncResult
+}> => {
+  const seedRows = getStorefrontTextSeedRows(input)
+  const existingRecords = await service.listStorefrontTexts(
+    input.market ? { market: input.market } : {},
+    {},
+    sharedContext
+  )
+  const existingByIdentity = new Map(
+    existingRecords.map((record) => [getRecordIdentity(record), record])
+  )
+  const createInputs: StorefrontTextSeedRow[] = []
+  const updateInputs: Array<
+    StorefrontTextRestoreRecord & { override_value: null | string }
+  > = []
+  const previousRecords: StorefrontTextRestoreRecord[] = []
 
-    return {
-      createdId: created.id,
-      updated: false,
+  for (const seedRow of seedRows) {
+    const existing = existingByIdentity.get(getRecordIdentity(seedRow))
+    const normalizedOverrideValue = validateSeedRow(seedRow, existing)
+
+    if (!existing) {
+      createInputs.push(seedRow)
+      continue
     }
+
+    const needsUpdate =
+      existing.country !== seedRow.country ||
+      existing.default_value !== seedRow.default_value ||
+      existing.description !== seedRow.description ||
+      existing.domain !== seedRow.domain ||
+      existing.namespace !== seedRow.namespace ||
+      existing.override_value !== normalizedOverrideValue
+
+    if (!needsUpdate) {
+      continue
+    }
+
+    previousRecords.push({
+      country: existing.country,
+      default_value: existing.default_value,
+      description: existing.description,
+      domain: existing.domain,
+      id: existing.id,
+      namespace: existing.namespace,
+      override_value: existing.override_value,
+    })
+    updateInputs.push({
+      country: seedRow.country,
+      default_value: seedRow.default_value,
+      description: seedRow.description,
+      domain: seedRow.domain,
+      id: existing.id,
+      namespace: seedRow.namespace,
+      override_value: normalizedOverrideValue,
+    })
   }
 
-  const needsUpdate =
-    existing.country !== seedRow.country ||
-    existing.default_value !== seedRow.default_value ||
-    existing.description !== seedRow.description ||
-    existing.domain !== seedRow.domain ||
-    existing.namespace !== seedRow.namespace ||
-    existing.override_value !== normalizedOverrideValue
+  const createdRecords = createInputs.length
+    ? await service.createStorefrontTexts(createInputs, sharedContext)
+    : []
 
-  if (!needsUpdate) {
-    return { updated: false }
+  if (updateInputs.length) {
+    await service.updateStorefrontTexts(updateInputs, sharedContext)
   }
 
-  const previousRecord: StorefrontTextRestoreRecord = {
-    country: existing.country,
-    default_value: existing.default_value,
-    description: existing.description,
-    domain: existing.domain,
-    id: existing.id,
-    namespace: existing.namespace,
-    override_value: existing.override_value,
-  }
-
-  await service.updateStorefrontTexts({
-    id: existing.id,
-    country: seedRow.country,
-    default_value: seedRow.default_value,
-    description: seedRow.description,
-    domain: seedRow.domain,
-    namespace: seedRow.namespace,
-    override_value: normalizedOverrideValue,
-  })
+  const createdIds = createdRecords.map((record) => record.id)
 
   return {
-    previousRecord,
-    updated: true,
+    compensation: { createdIds, previousRecords },
+    result: {
+      created_count: createdIds.length,
+      updated_count: updateInputs.length,
+    },
   }
 }
 
-const rollbackSyncedRows = async (
+export const restoreSynchronizedStorefrontTexts = async (
   service: StorefrontTextModuleService,
-  { createdIds, previousRecords }: SyncStorefrontTextsCompensation
+  { createdIds, previousRecords }: StorefrontTextSyncCompensation,
+  sharedContext: Context
 ) => {
-  const rollbackResults = await Promise.allSettled([
-    ...(createdIds.length
-      ? [service.deleteStorefrontTexts(createdIds)]
-      : []),
-    ...previousRecords.map((previousRecord) =>
-      service.updateStorefrontTexts(previousRecord)
-    ),
-  ])
-  const rollbackErrors = rollbackResults
-    .filter((result) => result.status === "rejected")
-    .map((result) => result.reason)
+  if (previousRecords.length) {
+    await service.updateStorefrontTexts(previousRecords, sharedContext)
+  }
 
-  if (rollbackErrors.length) {
-    throw new AggregateError(
-      rollbackErrors,
-      "Storefront text sync rollback failed"
-    )
+  if (createdIds.length) {
+    await service.deleteStorefrontTexts(createdIds, sharedContext)
   }
 }
 
 export const syncStorefrontTextsStep = createStep(
   "sync-storefront-texts",
-  async (_, { container }) => {
+  async (
+    input: SyncStorefrontTextsWorkflowInput = {},
+    { container }
+  ) => {
     const service = container.resolve<StorefrontTextModuleService>(
       STOREFRONT_TEXT_MODULE
     )
-    const seedRows = getStorefrontTextSeedRows()
-    const preparedRows: PreparedSeedRow[] = []
-    const createdIds: string[] = []
-    const previousRecords: StorefrontTextRestoreRecord[] = []
-    let updatedCount = 0
-
-    for (const seedRowChunk of chunkItems(
-      seedRows,
-      SYNC_STOREFRONT_TEXT_CHUNK_SIZE
-    )) {
-      preparedRows.push(
-        ...(await Promise.all(
-          seedRowChunk.map((seedRow) => prepareSeedRow(service, seedRow))
-        ))
-      )
-    }
-
-    for (const preparedRowChunk of chunkItems(
-      preparedRows,
-      SYNC_STOREFRONT_TEXT_CHUNK_SIZE
-    )) {
-      const settledResults = await Promise.allSettled(
-        preparedRowChunk.map((preparedRow) =>
-          syncSeedRow(service, preparedRow)
-        )
-      )
-      const syncErrors: unknown[] = []
-
-      for (const settledResult of settledResults) {
-        if (settledResult.status === "rejected") {
-          syncErrors.push(settledResult.reason)
-          continue
-        }
-
-        const result = settledResult.value
-
-        if (result.createdId) {
-          createdIds.push(result.createdId)
-        }
-
-        if (result.updated) {
-          previousRecords.push(result.previousRecord)
-          updatedCount += 1
-        }
-      }
-
-      if (syncErrors.length) {
-        try {
-          await rollbackSyncedRows(service, { createdIds, previousRecords })
-        } catch (rollbackError) {
-          throw new AggregateError(
-            [...syncErrors, rollbackError],
-            "Storefront text sync and rollback failed"
-          )
-        }
-
-        const syncError = syncErrors[0]
-
-        if (syncError instanceof Error) {
-          throw syncError
-        }
-
-        throw new Error("Storefront text sync failed")
-      }
-    }
-
-    return new StepResponse(
-      {
-        created_count: createdIds.length,
-        updated_count: updatedCount,
-      },
-      {
-        createdIds,
-        previousRecords,
-      } satisfies SyncStorefrontTextsCompensation
+    const { compensation, result } = await service.runInTransaction(
+      (sharedContext) =>
+        synchronizeStorefrontTexts(service, input, sharedContext)
     )
+
+    return new StepResponse(result, compensation)
   },
   async (compensation, { container }) => {
     if (!compensation) {
       return
     }
 
-    await rollbackSyncedRows(
-      container.resolve<StorefrontTextModuleService>(STOREFRONT_TEXT_MODULE),
-      compensation
+    const service = container.resolve<StorefrontTextModuleService>(
+      STOREFRONT_TEXT_MODULE
+    )
+
+    await service.runInTransaction((sharedContext) =>
+      restoreSynchronizedStorefrontTexts(
+        service,
+        compensation,
+        sharedContext
+      )
     )
   }
 )

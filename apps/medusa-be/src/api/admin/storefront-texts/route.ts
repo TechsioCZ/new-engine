@@ -1,21 +1,28 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
+import { getPublishedStorefrontTextValue } from "../../../modules/storefront-text/catalog"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
 import type {
   StorefrontTextLocale,
   StorefrontTextMarket,
   StorefrontTextNamespace,
   StorefrontTextStatus,
+} from "../../../modules/storefront-text/configuration"
+import {
+  STOREFRONT_TEXT_DEFINITIONS,
+  findStorefrontTextDefault,
+  type StorefrontTextKey,
 } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
-import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-text/value"
+import { escapeLikePattern } from "../../../utils/sql"
 import type { AdminGetStorefrontTextsSchemaType } from "./validators"
 
 type StorefrontTextFilters = {
   $or?: StorefrontTextFilters[]
   default_value?: { $ilike: string }
   description?: { $ilike: string }
-  key?: { $ilike: string }
+  key?: StorefrontTextKey[] | { $ilike: string }
   locale?: StorefrontTextLocale | { $ilike: string }
   market?: StorefrontTextMarket | { $ilike: string }
   namespace?: StorefrontTextNamespace | { $ilike: string }
@@ -33,8 +40,9 @@ const SEARCH_FIELDS = [
   "override_value",
 ] as const
 
-const escapeLikePattern = (value: string) =>
-  value.replace(/[\\%_]/g, (character) => `\\${character}`)
+const CURRENT_STOREFRONT_TEXT_KEYS = STOREFRONT_TEXT_DEFINITIONS.map(
+  (definition) => definition.key
+)
 
 const buildEffectiveValueSearchFilters = (
   searchValue: string
@@ -80,7 +88,9 @@ const buildStorefrontTextFilters = ({
   search_scope: searchScope,
   status,
 }: AdminGetStorefrontTextsSchemaType): StorefrontTextFilters => {
-  const filters: StorefrontTextFilters = {}
+  const filters: StorefrontTextFilters = {
+    key: CURRENT_STOREFRONT_TEXT_KEYS,
+  }
   const searchFilters = buildSearchFilters(q, searchScope)
 
   if (locale) {
@@ -104,6 +114,28 @@ const buildStorefrontTextFilters = ({
   }
 
   return filters
+}
+
+const serializeStorefrontText = (storefrontText: StorefrontTextRecord) => {
+  const currentDefault = findStorefrontTextDefault(storefrontText)
+
+  if (!currentDefault) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Storefront text "${storefrontText.key}" has no current default for market "${storefrontText.market}" and locale "${storefrontText.locale}"`
+    )
+  }
+
+  return {
+    ...storefrontText,
+    default_value: currentDefault.value,
+    effective_value: getPublishedStorefrontTextValue({
+      defaultValue: currentDefault.value,
+      locale: currentDefault.locale,
+      record: storefrontText,
+    }),
+    has_override: storefrontText.override_value !== null,
+  }
 }
 
 export async function GET(
@@ -133,11 +165,7 @@ export async function GET(
     count,
     limit,
     offset,
-    storefront_texts: storefrontTexts.map((storefrontText) => ({
-      ...storefrontText,
-      effective_value: getEffectiveStorefrontTextValue(storefrontText),
-      has_override: storefrontText.override_value !== null,
-    })) satisfies (StorefrontTextRecord & {
+    storefront_texts: storefrontTexts.map(serializeStorefrontText) satisfies (StorefrontTextRecord & {
       effective_value: string
       has_override: boolean
     })[],
