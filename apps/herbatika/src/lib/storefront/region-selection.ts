@@ -5,16 +5,7 @@ import {
   type HerbatikaCurrencyCode,
   normalizeSupportedCurrencyCode,
 } from "./currency"
-
-const DEFAULT_COUNTRY_CODE = "sk"
-const PREFERRED_COUNTRY_CODES = ["sk", "at", "cz"] as const
-const PREFERRED_CURRENCIES = ["eur", "czk"] as const
-
-const COUNTRY_CURRENCY_BY_CODE: Record<string, HerbatikaCurrencyCode> = {
-  at: "EUR",
-  cz: "CZK",
-  sk: "EUR",
-}
+import type { HerbatikaMarketContext } from "./market-context"
 
 type RegionCurrencySource = RegionInfo & {
   currency_code?: unknown
@@ -29,26 +20,35 @@ const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion): string[] =>
     ?.map((country) => country.iso_2?.toLowerCase())
     .filter((countryCode): countryCode is string => Boolean(countryCode)) ?? []
 
-export const resolveCountryCode = (region: HttpTypes.StoreRegion): string => {
+export const regionMatchesMarket = (
+  region: HttpTypes.StoreRegion,
+  marketContext: HerbatikaMarketContext
+) => resolveRegionCountryCodes(region).includes(marketContext.countryCode)
+
+export const resolveCountryCode = (
+  region: HttpTypes.StoreRegion,
+  expectedCountryCode?: string
+): string => {
   const countryCodes = resolveRegionCountryCodes(region)
+  const normalizedExpectedCountryCode = expectedCountryCode
+    ?.trim()
+    .toLowerCase()
 
-  for (const preferredCountryCode of PREFERRED_COUNTRY_CODES) {
-    if (countryCodes.includes(preferredCountryCode)) {
-      return preferredCountryCode
-    }
-  }
-
-  return countryCodes[0] ?? DEFAULT_COUNTRY_CODE
+  return normalizedExpectedCountryCode &&
+    countryCodes.includes(normalizedExpectedCountryCode)
+    ? normalizedExpectedCountryCode
+    : (countryCodes[0] ?? "")
 }
 
 export const toRegionInfo = (
-  region: HttpTypes.StoreRegion
+  region: HttpTypes.StoreRegion,
+  expectedCountryCode?: string
 ): HerbatikaRegionInfo => {
   const currencyCode = normalizeSupportedCurrencyCode(region.currency_code)
 
   return {
     region_id: region.id,
-    country_code: resolveCountryCode(region),
+    country_code: resolveCountryCode(region, expectedCountryCode),
     ...(currencyCode ? { currency_code: currencyCode } : {}),
   }
 }
@@ -64,51 +64,22 @@ export const resolveRegionCurrency = (
     return explicitCurrencyCode
   }
 
-  const countryCode = region?.country_code?.trim().toLowerCase()
-  return countryCode
-    ? (COUNTRY_CURRENCY_BY_CODE[countryCode] ?? DEFAULT_CURRENCY_CODE)
-    : DEFAULT_CURRENCY_CODE
+  return DEFAULT_CURRENCY_CODE
 }
 
-export const pickDefaultRegion = (
-  regions: HttpTypes.StoreRegion[]
-): HttpTypes.StoreRegion | null => {
-  if (regions.length === 0) {
-    return null
-  }
-
-  for (const preferredCountryCode of PREFERRED_COUNTRY_CODES) {
-    const byCountry = regions.find((region) => {
-      const regionCountryCodes = resolveRegionCountryCodes(region)
-
-      return regionCountryCodes.includes(preferredCountryCode)
-    })
-
-    if (byCountry) {
-      return byCountry
-    }
-  }
-
-  const byCurrency = regions.find((region) => {
-    const currency = region.currency_code?.toLowerCase()
-    return Boolean(
-      currency && PREFERRED_CURRENCIES.includes(currency as "eur" | "czk")
-    )
-  })
-
-  return byCurrency ?? regions[0] ?? null
-}
-
-export const resolveRegionByIdOrDefault = (
+export const resolveRegionForMarket = (
   regions: HttpTypes.StoreRegion[],
+  marketContext: HerbatikaMarketContext,
   regionId: string | null | undefined
 ): HttpTypes.StoreRegion | null => {
   if (regionId) {
     const selectedRegion = regions.find((region) => region.id === regionId)
-    if (selectedRegion) {
+    if (selectedRegion && regionMatchesMarket(selectedRegion, marketContext)) {
       return selectedRegion
     }
   }
 
-  return pickDefaultRegion(regions)
+  return (
+    regions.find((region) => regionMatchesMarket(region, marketContext)) ?? null
+  )
 }

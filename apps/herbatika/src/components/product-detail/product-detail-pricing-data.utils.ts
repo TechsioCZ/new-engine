@@ -25,12 +25,17 @@ export const resolveProductVolumeDiscountOptions = (
   currentAmount: number | null,
   currentCurrencyCode: string,
   offerState: ReturnType<typeof resolveOfferState>,
-  availableQuantity: number | null
+  availableQuantity: number | null,
+  labels: {
+    title: (quantity: number) => string
+    perUnit: (price: string) => string
+  }
 ) => {
   const discountOptions = resolveVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount
+    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
+    labels
   )
 
   if (availableQuantity === null) {
@@ -47,15 +52,23 @@ export const resolveProductPricingLabels = ({
   regionCurrencyCode,
   offerState,
   mediaFacts,
+  priceUnavailableLabel,
+  formatPerDay,
+  formatExcludingVatPerUnit,
+  formatPerUnit,
 }: {
   productPrice: ReturnType<typeof resolvePriceState> | null
   regionCurrencyCode: string
   offerState: ReturnType<typeof resolveOfferState>
   mediaFacts: ReturnType<typeof resolveProductMediaFacts>
+  priceUnavailableLabel: string
+  formatPerDay: (price: string) => string
+  formatExcludingVatPerUnit: (price: string, unit: string) => string
+  formatPerUnit: (price: string, unit: string) => string
 }) => {
   const currentAmount = productPrice?.currentAmount ?? null
   const currentAmountWithoutTax = productPrice?.currentAmountWithoutTax ?? null
-  const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie"
+  const currentAmountLabel = productPrice?.currentLabel ?? priceUnavailableLabel
   const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode
   const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
   const displayOriginalLabel = resolveDisplayOriginalLabel(
@@ -80,6 +93,9 @@ export const resolveProductPricingLabels = ({
     mediaFacts,
     unitLabel: offerState.unitLabel,
     vatRate,
+    formatPerDay,
+    formatExcludingVatPerUnit,
+    formatPerUnit,
   })
 
   return {

@@ -1,7 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import {
   PRODUCT_DETAIL_SECTION_ORDER,
-  PRODUCT_DETAIL_SECTION_TITLES,
   PRODUCT_FALLBACK_IMAGE,
 } from "@/components/product-detail/product-detail.constants"
 import type {
@@ -39,14 +38,6 @@ const normalizeSectionKey = (value: unknown): string | null => {
 const hasRenderableSectionHtml = (html: string): boolean =>
   hasRenderableHtmlContent(html)
 
-const toSkDate = (date: Date) => {
-  const day = `${date.getDate()}`.padStart(2, "0")
-  const month = `${date.getMonth() + 1}`.padStart(2, "0")
-  const year = date.getFullYear()
-
-  return `${day}.${month}.${year}`
-}
-
 const addBusinessDays = (start: Date, daysToAdd: number) => {
   const date = new Date(start)
   let remainingDays = daysToAdd
@@ -62,14 +53,12 @@ const addBusinessDays = (start: Date, daysToAdd: number) => {
   return date
 }
 
-const resolveInStockDeliveryLabel = () => {
-  const deliveryDate = addBusinessDays(new Date(), 3)
-  return `u vás do ${toSkDate(deliveryDate)}`
-}
-
-export const normalizeCategoryName = (value?: string | null) => {
+export const normalizeCategoryName = (
+  value?: string | null,
+  fallbackLabel = "Kategória"
+) => {
   if (!value) {
-    return "Kategória"
+    return fallbackLabel
   }
 
   return value.replace(CATEGORY_NAME_PREFIX_PATTERN, "").trim()
@@ -124,12 +113,16 @@ export const resolveVariantLabel = (
     return title
   }
 
-  return "Predvolená varianta"
+  return asString(variant.sku) ?? variant.id
 }
 
 export const resolveOfferState = (
   product: Product | null,
-  selectedVariant: HttpTypes.StoreProductVariant | null
+  selectedVariant: HttpTypes.StoreProductVariant | null,
+  fallbackLabels: {
+    inStock: string
+    outOfStock: string
+  }
 ): ProductOfferState => {
   const metadata = asRecord(product?.metadata)
   const topOffer = asRecord(metadata?.top_offer)
@@ -141,9 +134,10 @@ export const resolveOfferState = (
     variantInventory.availableQuantity ?? asNumber(stock?.amount)
   const isInStock = variantInventory.isInStock
 
-  const inStockLabel = asString(source?.availability_in_stock) ?? "Skladom"
+  const inStockLabel =
+    asString(source?.availability_in_stock) ?? fallbackLabels.inStock
   const outOfStockLabel =
-    asString(source?.availability_out_of_stock) ?? "Momentálne nie je skladom"
+    asString(source?.availability_out_of_stock) ?? fallbackLabels.outOfStock
   const currentAmount =
     asNumber(source?.current_price) ?? asNumber(source?.price_vat)
 
@@ -159,7 +153,7 @@ export const resolveOfferState = (
     code: asString(source?.code) ?? asString(selectedVariant?.sku),
     ean: asString(source?.ean) ?? asString(selectedVariant?.ean),
     availabilityLabel: isInStock ? inStockLabel : outOfStockLabel,
-    deliveryLabel: isInStock ? resolveInStockDeliveryLabel() : "po naskladnení",
+    expectedDeliveryDate: isInStock ? addBusinessDays(new Date(), 3) : null,
     stockAmount,
     isInStock,
     offerSource: source,
@@ -175,7 +169,11 @@ export const resolveOfferState = (
 }
 
 export const resolveProductContentSections = (
-  product: Product | null
+  product: Product | null,
+  sectionTitles: Record<
+    (typeof PRODUCT_DETAIL_SECTION_ORDER)[number] | "content",
+    string
+  >
 ): ProductDetailContentSection[] => {
   const metadata = asRecord(product?.metadata)
   const sectionMap = asRecord(metadata?.content_sections_map)
@@ -212,7 +210,7 @@ export const resolveProductContentSections = (
 
     return {
       key: sectionKey,
-      title: PRODUCT_DETAIL_SECTION_TITLES[sectionKey] ?? "Obsah",
+      title: sectionTitles[sectionKey] ?? sectionTitles.content,
       html,
     }
   }).filter((section) => hasRenderableSectionHtml(section.html))
@@ -221,11 +219,5 @@ export const resolveProductContentSections = (
     return sections
   }
 
-  return [
-    {
-      key: "description",
-      title: PRODUCT_DETAIL_SECTION_TITLES.description,
-      html: productDescriptionHtml,
-    },
-  ]
+  return []
 }

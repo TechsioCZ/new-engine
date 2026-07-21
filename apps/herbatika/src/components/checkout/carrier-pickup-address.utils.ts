@@ -8,24 +8,22 @@ export type CarrierPickupAddress = {
   label: string
 }
 
-const DEFAULT_PICKUP_COUNTRY = "SK"
-
 export function resolveCarrierPickupAddress(
   data: unknown,
-  fallbackCountryCode?: string
+  fallbackCountryCode: string,
+  fallbackLabel: string
 ): CarrierPickupAddress | null {
   if (!(isRecord(data) && readString(data.access_point_id))) {
     return null
   }
 
-  const label = readString(data.access_point_name) ?? "Výdajné miesto"
+  const label = readString(data.access_point_name) ?? fallbackLabel
   const street = readString(data.access_point_street)
   const city = readString(data.access_point_city) ?? ""
   const postalCode = readString(data.access_point_zip) ?? ""
   const countryCode = (
     readString(data.access_point_country) ??
-    fallbackCountryCode ??
-    DEFAULT_PICKUP_COUNTRY
+    fallbackCountryCode
   ).toUpperCase()
 
   return {

@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -25,7 +26,10 @@ import {
   useProducts,
 } from "@/lib/storefront/products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import { useAddProductToCart } from "@/lib/storefront/use-add-product-to-cart"
+import {
+  resolveAddProductToCartErrorMessage,
+  useAddProductToCart,
+} from "@/lib/storefront/use-add-product-to-cart"
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -37,14 +41,21 @@ import {
 
 const MISSING_VARIANT_ERROR_PATTERN = /has no variant selected|no variant/i
 
-const resolveListCartErrorMessage = (error: unknown) => {
-  const errorMessage = resolveErrorMessage(
-    error,
-    "Zoznam sa nepodarilo pridať do košíka."
-  )
+type ListCartErrorMessages = {
+  addListFailed: string
+  allAvailableFailed: string
+  missingVariant: string
+  partiallyAvailableFailed: string
+}
+
+const resolveListCartErrorMessage = (
+  error: unknown,
+  messages: ListCartErrorMessages
+) => {
+  const errorMessage = resolveErrorMessage(error, messages.addListFailed)
 
   if (MISSING_VARIANT_ERROR_PATTERN.test(errorMessage)) {
-    return "Niektoré produkty v zozname nemajú vybranú variantu."
+    return messages.missingVariant
   }
 
   return errorMessage
@@ -52,10 +63,12 @@ const resolveListCartErrorMessage = (error: unknown) => {
 
 const showPartialListCartResult = ({
   failedCount,
+  messages,
   toast,
   totalCount,
 }: {
   failedCount: number
+  messages: ListCartErrorMessages
   toast: ReturnType<typeof useAppToast>
   totalCount: number
 }) => {
@@ -65,17 +78,19 @@ const showPartialListCartResult = ({
 
   if (failedCount === totalCount) {
     toast.error({
-      title: "Dostupné položky sa nepodarilo pridať do košíka.",
+      title: messages.allAvailableFailed,
     })
     return
   }
 
   toast.warning({
-    title: "Niektoré dostupné položky sa nepodarilo pridať do košíka.",
+    title: messages.partiallyAvailableFailed,
   })
 }
 
 export function useAccountProductLists() {
+  const tAuth = useTranslations("auth")
+  const tCart = useTranslations("cart")
   const authQuery = useAuth()
   const region = useRegionContext()
   const router = useRouter()
@@ -100,7 +115,10 @@ export function useAccountProductLists() {
     limit: 100,
     enabled: authQuery.isAuthenticated,
   })
-  const sortedLists = sortProductLists(listsQuery.productLists)
+  const sortedLists = sortProductLists(listsQuery.productLists, {
+    favorite: tAuth("product_lists.favorite_title"),
+    untitled: tAuth("product_lists.untitled_list"),
+  })
   const activeListQuery = useProductList(activeListId, {
     customerId,
     enabled: authQuery.isAuthenticated && Boolean(activeListId),
@@ -211,7 +229,9 @@ export function useAccountProductLists() {
 
     const title = newListTitle.trim()
     if (!title) {
-      toast.warning({ title: "Zadajte názov zoznamu." })
+      toast.warning({
+        title: tAuth("product_lists.validation.title_required"),
+      })
       return
     }
 
@@ -229,7 +249,10 @@ export function useAccountProductLists() {
       setShowCreateListDialog(false)
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(error, "Zoznam sa nepodarilo vytvoriť."),
+        title: resolveErrorMessage(
+          error,
+          tAuth("product_lists.errors.create_failed")
+        ),
       })
     }
   }
@@ -253,7 +276,7 @@ export function useAccountProductLists() {
       })
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(error, "Pridanie do košíka zlyhalo."),
+        title: resolveAddProductToCartErrorMessage(error, tCart("failed")),
       })
     } finally {
       setActiveProductId(null)
@@ -293,7 +316,7 @@ export function useAccountProductLists() {
 
     if (!(region?.region_id || region?.country_code)) {
       toast.warning({
-        title: "Región sa ešte načítava. Skúste to prosím o chvíľu.",
+        title: tCart("missing_region"),
       })
       return
     }
@@ -315,11 +338,36 @@ export function useAccountProductLists() {
 
       showPartialListCartResult({
         failedCount: addResult.failedCount,
+        messages: {
+          addListFailed: tAuth(
+            "product_lists.errors.add_list_to_cart_failed"
+          ),
+          allAvailableFailed: tAuth(
+            "product_lists.errors.add_available_all_failed"
+          ),
+          missingVariant: tAuth("product_lists.errors.missing_variant"),
+          partiallyAvailableFailed: tAuth(
+            "product_lists.errors.add_available_partial_failed"
+          ),
+        },
         toast,
         totalCount: addResult.totalCount,
       })
     } catch (error) {
-      toast.error({ title: resolveListCartErrorMessage(error) })
+      toast.error({
+        title: resolveListCartErrorMessage(error, {
+          addListFailed: tAuth(
+            "product_lists.errors.add_list_to_cart_failed"
+          ),
+          allAvailableFailed: tAuth(
+            "product_lists.errors.add_available_all_failed"
+          ),
+          missingVariant: tAuth("product_lists.errors.missing_variant"),
+          partiallyAvailableFailed: tAuth(
+            "product_lists.errors.add_available_partial_failed"
+          ),
+        }),
+      })
     } finally {
       setActiveProductId(null)
       setIsAddingListToCart(false)
@@ -357,7 +405,10 @@ export function useAccountProductLists() {
       })
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(error, "Množstvo sa nepodarilo upraviť."),
+        title: resolveErrorMessage(
+          error,
+          tAuth("product_lists.errors.quantity_update_failed")
+        ),
       })
     } finally {
       setActiveQuantitySetItemId(null)
@@ -393,7 +444,10 @@ export function useAccountProductLists() {
       setDeleteListId(null)
     } catch (error) {
       toast.error({
-        title: resolveErrorMessage(error, "Zoznam sa nepodarilo zmazať."),
+        title: resolveErrorMessage(
+          error,
+          tAuth("product_lists.errors.delete_list_failed")
+        ),
       })
     }
   }
@@ -414,7 +468,7 @@ export function useAccountProductLists() {
       toast.error({
         title: resolveErrorMessage(
           error,
-          "Produkt sa nepodarilo odstrániť zo zoznamu."
+          tAuth("product_lists.errors.remove_product_failed")
         ),
       })
     } finally {

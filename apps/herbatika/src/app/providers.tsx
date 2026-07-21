@@ -7,6 +7,8 @@ import { NuqsAdapter } from "nuqs/adapters/next/app"
 import type { PropsWithChildren } from "react"
 import { useEffect } from "react"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
+import { MarketProvider } from "@/lib/storefront/market-context-provider"
 import { useRegionBootstrap } from "@/lib/storefront/regions"
 
 type RegionBootstrapProviderProps = PropsWithChildren<{
@@ -23,6 +25,7 @@ function RegionBootstrapProvider({
 }
 
 type ProvidersProps = PropsWithChildren<{
+  initialMarketContext?: HerbatikaMarketContext
   initialRegion?: RegionInfo | null
 }>
 
@@ -43,15 +46,21 @@ function useDisableNextDevIndicator() {
   }, [])
 }
 
-export function Providers({ children, initialRegion = null }: ProvidersProps) {
+export function Providers({
+  children,
+  initialMarketContext,
+  initialRegion = null,
+}: ProvidersProps) {
   useDisableNextDevIndicator()
 
   return (
     <StorefrontDataProvider>
       <NuqsAdapter>
-        <RegionBootstrapProvider initialRegion={initialRegion}>
-          {children}
-        </RegionBootstrapProvider>
+        <MarketProvider value={initialMarketContext}>
+          <RegionBootstrapProvider initialRegion={initialRegion}>
+            {children}
+          </RegionBootstrapProvider>
+        </MarketProvider>
       </NuqsAdapter>
     </StorefrontDataProvider>
   )

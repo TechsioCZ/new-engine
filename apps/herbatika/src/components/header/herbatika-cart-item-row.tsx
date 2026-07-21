@@ -4,6 +4,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
@@ -11,6 +12,7 @@ import {
   resolveLineItemQuantity,
   resolveLineItemUnitAmount,
 } from "@/lib/storefront/cart-calculations"
+import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -20,7 +22,7 @@ import {
 } from "./herbatika-cart-item.utils"
 
 type CartItemRowProps = {
-  currencyCode: "EUR" | "CZK"
+  currencyCode: HerbatikaCurrencyCode
   isPending: boolean
   item: HttpTypes.StoreCartLineItem
   onRemove: (lineItemId: string) => void
@@ -34,6 +36,7 @@ export function CartItemRow({
   onRemove,
   onUpdateQuantity,
 }: CartItemRowProps) {
+  const t = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
@@ -76,7 +79,11 @@ export function CartItemRow({
         <p className="font-semibold text-sm">{itemUnitAmountLabel}</p>
 
         {itemInventory !== null && itemInventory > 0 && itemInventory <= 2 ? (
-          <p className="text-danger text-xs">{`Zbývá pouze ${itemInventory} ks`}</p>
+          <p className="text-danger text-xs">
+            {t("low_stock", {
+              quantity: itemInventory,
+            })}
+          </p>
         ) : null}
       </div>
 
@@ -94,7 +101,9 @@ export function CartItemRow({
         />
 
         <Button
-          aria-label={`Odstrániť ${itemName} z košíka`}
+          aria-label={t("remove_item_aria", {
+            itemName,
+          })}
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"
           disabled={isPending}
           icon="token-icon-trash"

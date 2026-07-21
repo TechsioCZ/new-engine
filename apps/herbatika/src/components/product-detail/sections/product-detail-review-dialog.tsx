@@ -6,10 +6,14 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { buildAuthRouteHref } from "@/components/auth/auth-helpers"
 import { PRODUCT_DETAIL_REVIEWS_SECTION_ID } from "@/components/product-detail/sections/product-detail-review-utils"
-import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
+import {
+  resolveProductReviewSubmitErrorMessage,
+  translateProductReviewErrorMessages,
+} from "@/components/reviews/product-review-errors"
 import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
@@ -26,8 +30,13 @@ const REVIEW_FORM_ID = "product-detail-create-review-form"
 
 export function ProductReviewCreateDialog({
   productId,
-  triggerLabel = "Napísať recenziu",
+  triggerLabel,
 }: ProductReviewCreateDialogProps) {
+  const tAuth = useTranslations("auth")
+  const tCatalog = useTranslations("catalog")
+  const resolvedTriggerLabel =
+    triggerLabel ?? tCatalog("reviews.write_action")
+  const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
   const authQuery = useAuth()
   const pathname = usePathname()
   const [formResetKey, setFormResetKey] = useState(0)
@@ -40,7 +49,9 @@ export function ProductReviewCreateDialog({
   )
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
-      setSubmitError(resolveProductReviewSubmitErrorMessage(error))
+      setSubmitError(
+        resolveProductReviewSubmitErrorMessage(error, reviewErrorMessages)
+      )
     },
     onSuccess: () => {
       setFormResetKey((current) => current + 1)
@@ -80,7 +91,7 @@ export function ProductReviewCreateDialog({
     if (authQuery.isLoading) {
       return (
         <StatusText showIcon status="default">
-          Overujem prihlásenie.
+          {tCatalog("reviews.auth_checking")}
         </StatusText>
       )
     }
@@ -88,7 +99,7 @@ export function ProductReviewCreateDialog({
     if (!isAuthenticated) {
       return (
         <StatusText showIcon status="warning">
-          Na napísanie recenzie sa prosím prihláste.
+          {tCatalog("reviews.sign_in_required")}
         </StatusText>
       )
     }
@@ -96,7 +107,7 @@ export function ProductReviewCreateDialog({
     if (isSubmitted) {
       return (
         <StatusText showIcon status="success">
-          Ďakujeme za recenziu. Po schválení sa zobrazí pri produkte.
+          {tCatalog("reviews.submit_success")}
         </StatusText>
       )
     }
@@ -122,7 +133,7 @@ export function ProductReviewCreateDialog({
             theme="outlined"
             variant="secondary"
           >
-            Zavrieť
+            {tCatalog("reviews.close")}
           </Button>
           <LinkButton
             as={NextLink}
@@ -130,7 +141,7 @@ export function ProductReviewCreateDialog({
             size="sm"
             variant="primary"
           >
-            Prihlásiť sa
+            {tAuth("sign_in")}
           </LinkButton>
         </>
       )
@@ -139,7 +150,7 @@ export function ProductReviewCreateDialog({
     if (isSubmitted) {
       return (
         <Button onClick={() => setIsOpen(false)} size="sm" variant="primary">
-          Zavrieť
+          {tCatalog("reviews.close")}
         </Button>
       )
     }
@@ -154,17 +165,18 @@ export function ProductReviewCreateDialog({
           type="button"
           variant="secondary"
         >
-          Zrušiť
+          {tCatalog("reviews.cancel")}
         </Button>
         <Button
           disabled={!isAuthenticated || authQuery.isLoading || isBusy}
           form={REVIEW_FORM_ID}
           isLoading={isBusy}
+          loadingText={tCatalog("reviews.submitting")}
           size="sm"
           type="submit"
           variant="primary"
         >
-          Odoslať recenziu
+          {tCatalog("reviews.submit")}
         </Button>
       </>
     )
@@ -178,17 +190,17 @@ export function ProductReviewCreateDialog({
         type="button"
         variant="primary"
       >
-        {triggerLabel}
+        {resolvedTriggerLabel}
       </Button>
       <Dialog
         actions={renderActions()}
         className="shadow-md"
         customTrigger
-        description="Recenzia sa zobrazí po schválení."
+        description={tCatalog("reviews.pending_description")}
         onOpenChange={handleOpenChange}
         open={isOpen}
         size="md"
-        title="Napísať recenziu"
+        title={tCatalog("reviews.dialog_title")}
       >
         {renderContent()}
       </Dialog>

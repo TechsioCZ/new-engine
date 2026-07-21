@@ -5,71 +5,99 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import type { Route } from "next"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { HerbatikaLogo } from "./herbatika-logo"
 
 type FooterNavigationLink =
   | {
       href: Route
-      label: string
+      labelKey: string
       external?: false
     }
   | {
       href: `https://${string}`
-      label: string
+      labelKey: string
       external: true
     }
 
 type FooterColumn = {
-  title: string
+  titleKey: string
   links: readonly FooterNavigationLink[]
 }
 
 const giftVoucherHref = "/c/darceky" as Route
 const brandListingHref = "/znacka" as Route
+const formatMarketDomain = (domain: string) =>
+  `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
 const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
-    title: "Informácie pre vás",
+    titleKey: "footer.columns.information.title",
     links: [
-      { href: "/blog", label: "Blog" },
-      { href: "/o-nas", label: "O nás" },
-      { href: "/faq", label: "Časté otázky" },
-      { href: giftVoucherHref, label: "Darčeková poukážka" },
-      { href: brandListingHref, label: "Výrobcovia a značky" },
+      { href: "/blog", labelKey: "footer.columns.information.blog" },
+      { href: "/o-nas", labelKey: "footer.columns.information.about" },
+      { href: "/faq", labelKey: "footer.columns.information.faq" },
+      {
+        href: giftVoucherHref,
+        labelKey: "footer.columns.information.gift_voucher",
+      },
+      {
+        href: brandListingHref,
+        labelKey: "footer.columns.information.brands",
+      },
       {
         href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
-        label: "Recenzie",
+        labelKey: "footer.columns.information.reviews",
         external: true,
       },
     ],
   },
   {
-    title: "Dôležité informácie",
+    titleKey: "footer.columns.important.title",
     links: [
-      { href: "/#doprava-a-platby", label: "Doprava a platby" },
+      {
+        href: "/#doprava-a-platby",
+        labelKey: "footer.columns.important.shipping_payment",
+      },
       {
         href: "/#reklamacia-a-vratenie",
-        label: "Reklamácia a vrátenie",
+        labelKey: "footer.columns.important.claims_returns",
       },
       {
         href: "/#obchodne-podmienky",
-        label: "Obchodné podmienky",
+        labelKey: "footer.columns.important.terms",
       },
       {
         href: "/#ochrana-osobnych-udajov",
-        label: "Ochrana osobných údajov",
+        labelKey: "footer.columns.important.privacy",
       },
-      { href: "/#cookies", label: "Cookies" },
+      {
+        href: "/#cookies",
+        labelKey: "footer.columns.important.cookies",
+      },
     ],
   },
   {
-    title: "Pre partnerov",
+    titleKey: "footer.columns.partners.title",
     links: [
-      { href: "/#affiliate", label: "Affiliate program" },
-      { href: "/#velkoobchod", label: "Veľkoobchod" },
-      { href: "/#dropshipping", label: "Dropshipping" },
-      { href: "/#private-label", label: "Private label" },
+      {
+        href: "/#affiliate",
+        labelKey: "footer.columns.partners.affiliate",
+      },
+      {
+        href: "/#velkoobchod",
+        labelKey: "footer.columns.partners.wholesale",
+      },
+      {
+        href: "/#dropshipping",
+        labelKey: "footer.columns.partners.dropshipping",
+      },
+      {
+        href: "/#private-label",
+        labelKey: "footer.columns.partners.private_label",
+      },
     ],
   },
 ]
@@ -109,6 +137,9 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "RO", icon: "token-icon-ro" },
 ]
 export function HerbatikaFooter() {
+  const t = useTranslations("navigation")
+  const marketContext = useMarketContext()
+
   return (
     <Footer direction="vertical">
       <Footer.Container className="mx-auto grid-cols-1 gap-x-0 px-500 pt-850 pb-700 sm:grid-cols-2 xl:grid-cols-4 xl:gap-x-600 xl:gap-y-0">
@@ -116,7 +147,7 @@ export function HerbatikaFooter() {
           <HerbatikaLogo size="lg" />
 
           <Footer.Text className="leading-normal">
-            Váš partner pre zdravý životný štýl a vitalitu.
+            {t("footer.tagline")}
           </Footer.Text>
 
           <Footer.Link
@@ -150,20 +181,20 @@ export function HerbatikaFooter() {
         </Footer.Section>
 
         {FOOTER_COLUMNS.map((column) => (
-          <Footer.Section className="px-500" key={column.title}>
+          <Footer.Section className="px-500" key={column.titleKey}>
             <Footer.Title className="uppercase leading-relaxed">
-              {column.title}
+              {t(column.titleKey)}
             </Footer.Title>
             <Footer.List>
               {column.links.map((link) => (
                 <li key={link.href}>
                   {link.external ? (
                     <Footer.Link external href={link.href}>
-                      {link.label}
+                      {t(link.labelKey)}
                     </Footer.Link>
                   ) : (
                     <Footer.Link as={NextLink} href={link.href}>
-                      {link.label}
+                      {t(link.labelKey)}
                     </Footer.Link>
                   )}
                 </li>
@@ -200,15 +231,19 @@ export function HerbatikaFooter() {
 
       <Footer.Bottom className="mx-auto max-w-footer-max flex-wrap items-center gap-400">
         <Footer.Text className="leading-normal">
-          Copyright 2025{" "}
-          <strong className="text-fg-primary">Herbatica.sk.</strong> Všetky
-          práva vyhradené.{" "}
+          {t.rich("footer.copyright", {
+            brand: (chunks) => (
+              <strong className="text-fg-primary">{chunks}</strong>
+            ),
+            domain: formatMarketDomain(marketContext.domain),
+            year: new Date().getFullYear(),
+          })}{" "}
           <Footer.Link
             as={NextLink}
             className="text-primary underline"
             href="/#cookies"
           >
-            Upraviť nastavenie cookies
+            {t("footer.cookie_settings")}
           </Footer.Link>
         </Footer.Text>
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
@@ -40,6 +41,8 @@ import { storefront } from "@/lib/storefront/storefront"
 type UseProductDetailDataProps = { handle: string }
 
 export function useProductDetailData({ handle }: UseProductDetailDataProps) {
+  const tCatalog = useTranslations("catalog")
+  const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
@@ -76,13 +79,21 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const optionTitlesById = resolveOptionTitlesById(product)
   const variantItems = resolveVariantItems(variants, optionTitlesById)
 
-  const offerState = resolveOfferState(product, selectedVariant)
+  const offerState = resolveOfferState(product, selectedVariant, {
+    inStock: tCatalog("product_detail.stock.in_stock"),
+    outOfStock: tCatalog("product_detail.stock.out_of_stock"),
+  })
   const selectedVariantInventory = resolveVariantInventoryState(
     selectedVariant,
     quantity
   )
   const productPrice = product
-    ? resolvePriceState(product, selectedVariantId, regionCurrencyCode)
+    ? resolvePriceState(
+        product,
+        selectedVariantId,
+        regionCurrencyCode,
+        tCatalog("product_detail.price_on_request")
+      )
     : null
   const shortDescriptionHtml = resolveShortDescriptionHtml(product)
   const productSummaryText = resolveProductSummaryText(
@@ -90,13 +101,25 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     shortDescriptionHtml
   )
   const productImages = resolveProductImages(product)
-  const galleryItems = resolveGalleryItems(productImages, product?.title)
-  const productHighlights = resolveProductHighlights(
-    productSummaryText,
-    productCategories
+  const galleryItems = resolveGalleryItems(
+    productImages,
+    product?.title,
+    product?.handle?.trim() || product?.id || handle
   )
-  const productContentSections = resolveProductContentSections(product)
-  const mediaFacts = resolveProductMediaFacts(product, productContentSections)
+  const productHighlights = resolveProductHighlights(productSummaryText)
+  const productContentSections = resolveProductContentSections(product, {
+    composition: tCatalog("product_detail.sections.composition"),
+    content: tCatalog("product_detail.sections.content"),
+    description: tCatalog("product_detail.sections.description"),
+    other: tCatalog("product_detail.sections.other"),
+    usage: tCatalog("product_detail.sections.usage"),
+    warning: tCatalog("product_detail.sections.warning"),
+  })
+  const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
+    dailyCapsules: (count) =>
+      tCatalog("product_detail.media.daily_capsules", { count }),
+    doses: (count) => tCatalog("product_detail.media.doses", { count }),
+  })
   const {
     currentAmount,
     currentAmountLabel,
@@ -110,6 +133,13 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     regionCurrencyCode,
     offerState,
     mediaFacts,
+    priceUnavailableLabel: tCatalog("product_detail.price_on_request"),
+    formatPerDay: (price) =>
+      tCatalog("product_detail.unit_price.per_day", { price }),
+    formatExcludingVatPerUnit: (price, unit) =>
+      tCatalog("product_detail.unit_price.excluding_vat", { price, unit }),
+    formatPerUnit: (price, unit) =>
+      tCatalog("product_detail.unit_price.per_unit", { price, unit }),
   })
   const canAddToCart =
     Boolean(selectedVariant?.id) &&
@@ -122,7 +152,15 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     currentAmount,
     currentCurrencyCode,
     offerState,
-    availableQuantity
+    availableQuantity,
+    {
+      perUnit: (price) =>
+        tCatalog("product_detail.bulk_discount.per_unit", { price }),
+      title: (optionQuantity) =>
+        tCatalog("product_detail.bulk_discount.option_title", {
+          quantity: optionQuantity,
+        }),
+    }
   )
   const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
     volumeDiscountOptions,
@@ -168,7 +206,8 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const breadcrumbItems = resolveProductBreadcrumbItems(
     productCategories,
     product,
-    handle
+    handle,
+    tNavigation("breadcrumbs.home")
   )
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)

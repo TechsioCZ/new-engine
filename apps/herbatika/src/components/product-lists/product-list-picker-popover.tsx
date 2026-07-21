@@ -7,6 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -34,13 +35,19 @@ function ProductListPickerListRow({
   onAdd,
   row,
 }: ProductListPickerListRowProps) {
+  const tAuth = useTranslations("auth")
+
   return (
     <div className="flex items-center gap-200 px-350 py-250">
       <Checkbox
         aria-label={
           row.checked
-            ? `${row.title} už obsahuje produkt`
-            : `Pridať do zoznamu ${row.title}`
+            ? tAuth("product_lists.picker.contains_product_aria", {
+                listTitle: row.title,
+              })
+            : tAuth("product_lists.picker.add_to_list_aria", {
+                listTitle: row.title,
+              })
         }
         checked={row.checked}
         disabled={isMutating}
@@ -54,7 +61,9 @@ function ProductListPickerListRow({
       <span className="text-fg-tertiary text-xs">{row.count}</span>
       {row.list?.id ? (
         <LinkButton
-          aria-label={`Otvoriť zoznam ${row.title}`}
+          aria-label={tAuth("product_lists.picker.open_list_aria", {
+            listTitle: row.title,
+          })}
           as={NextLink}
           className="h-500 w-500 p-0"
           href={`/account/lists?list=${encodeURIComponent(row.list.id)}`}
@@ -67,7 +76,11 @@ function ProductListPickerListRow({
       ) : (
         <span className="h-500 w-500" />
       )}
-      {isPending ? <span className="sr-only">Pridávam produkt</span> : null}
+      {isPending ? (
+        <span className="sr-only">
+          {tAuth("product_lists.picker.adding_product")}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -77,6 +90,7 @@ export function ProductListPickerPopover({
   quantity,
   selectedVariantId,
 }: ProductListPickerPopoverProps) {
+  const tAuth = useTranslations("auth")
   const picker = useProductListPicker({
     product,
     quantity,
@@ -88,7 +102,7 @@ export function ProductListPickerPopover({
     pickerContent = (
       <div className="space-y-300 px-350 py-350">
         <p className="text-fg-secondary text-sm">
-          Na ukladanie produktov do zoznamov sa prosím prihláste.
+          {tAuth("product_lists.picker.auth_required")}
         </p>
         <LinkButton
           as={NextLink}
@@ -97,7 +111,7 @@ export function ProductListPickerPopover({
           size="sm"
           variant="primary"
         >
-          Prihlásiť sa
+          {tAuth("sign_in")}
         </LinkButton>
       </div>
     )
@@ -107,6 +121,25 @@ export function ProductListPickerPopover({
         <Skeleton>
           <Skeleton.Text noOfLines={3} />
         </Skeleton>
+      </div>
+    )
+  } else if (picker.listsQuery.error || picker.detailsHaveError) {
+    pickerContent = (
+      <div className="space-y-300 px-350 py-350">
+        <p className="text-danger text-sm">
+          {tAuth("product_lists.errors.lists_load_failed")}
+        </p>
+        <Button
+          block
+          onClick={() => {
+            runDetachedPromise(picker.retryLists())
+          }}
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          {tAuth("product_lists.retry")}
+        </Button>
       </div>
     )
   } else {
@@ -136,10 +169,10 @@ export function ProductListPickerPopover({
                 className="sr-only"
                 htmlFor="product-list-picker-new-list-title"
               >
-                Názov nového zoznamu
+                {tAuth("product_lists.new_list_name")}
               </label>
               <Input
-                aria-label="Názov nového zoznamu"
+                aria-label={tAuth("product_lists.new_list_name")}
                 autoFocus
                 disabled={picker.isMutating}
                 id="product-list-picker-new-list-title"
@@ -147,7 +180,7 @@ export function ProductListPickerPopover({
                 onChange={(event) => {
                   picker.setNewListTitle(event.target.value)
                 }}
-                placeholder="Názov zoznamu"
+                placeholder={tAuth("product_lists.new_list_placeholder")}
                 size="sm"
                 value={picker.newListTitle}
               />
@@ -159,7 +192,7 @@ export function ProductListPickerPopover({
                 type="submit"
                 variant="primary"
               >
-                OK
+                {tAuth("product_lists.actions.confirm")}
               </Button>
             </form>
           ) : (
@@ -174,7 +207,7 @@ export function ProductListPickerPopover({
               theme="borderless"
               variant="primary"
             >
-              Nový zoznam
+              {tAuth("product_lists.new_list")}
             </Button>
           )}
         </div>
@@ -193,7 +226,7 @@ export function ProductListPickerPopover({
       size="sm"
     >
       <Popover.Trigger
-        aria-label="Pridať do zoznamu"
+        aria-label={tAuth("product_lists.picker.trigger_aria")}
         className="h-750 min-h-750 w-750 min-w-750 p-0 text-fg-secondary hover:bg-transparent hover:text-fg-primary hover:text-primary sm:h-600 sm:min-h-600 sm:w-600 sm:min-w-600"
         icon="token-icon-heart"
         iconSize="2xl"
@@ -207,7 +240,7 @@ export function ProductListPickerPopover({
           <Popover.Arrow />
           <div className="border-border-secondary border-b px-350 py-300">
             <Popover.Title className="mb-0 text-sm">
-              Vyberte zoznam
+              {tAuth("product_lists.picker.title")}
             </Popover.Title>
           </div>
 

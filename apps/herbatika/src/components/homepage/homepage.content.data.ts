@@ -6,17 +6,17 @@ import type {
 export const PRODUCT_SECTIONS: ProductSectionDefinition[] = [
   {
     id: "najoblubenejsie-produkty",
-    title: "Najobľúbenejšie produkty",
+    titleKey: "home.product_sections.bestsellers",
     viewAllHref: "/c/ine-najpredavanejsie",
   },
   {
     id: "novinky",
-    title: "Novinky",
+    titleKey: "home.product_sections.new_products",
     viewAllHref: "/c/novinky",
   },
   {
     id: "aktuálne-v.zlave",
-    title: "Aktuálne v zľave",
+    titleKey: "home.product_sections.sale",
     viewAllHref: "/c/vypredaj-zlavy-a-akcie",
   },
 ]

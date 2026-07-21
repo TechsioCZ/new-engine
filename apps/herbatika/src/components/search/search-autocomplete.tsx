@@ -1,6 +1,7 @@
 "use client"
 
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
+import { useTranslations } from "next-intl"
 import type { FormEvent } from "react"
 import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
 import { SearchAutocompletePanel } from "./search-autocomplete-panel"
@@ -21,6 +22,7 @@ export function SearchAutocomplete({
   regionId,
   variant,
 }: SearchAutocompleteProps) {
+  const t = useTranslations("search")
   const isMobile = variant === "mobile"
   const controller = useSearchAutocompleteController({
     countryCode,
@@ -46,22 +48,23 @@ export function SearchAutocomplete({
             aria-controls={controller.hasItems ? controller.panelId : undefined}
             aria-expanded={controller.shouldShowPanel}
             aria-haspopup="listbox"
+            aria-label={t("input_aria")}
             className={`${isMobile ? "px-350 text-sm" : "px-400"} -outline-offset-1 h-full border-none font-verdana outline outline-border-search focus-visible:outline-search-form-border-focused focus-visible:outline-offset-0`}
             maxLength={SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH}
             name="q"
             onFocus={controller.handleFocus}
             onKeyDown={controller.handleKeyDown}
-            placeholder="Napíšte, čo hľadáte..."
+            placeholder={t("input_placeholder")}
             role="combobox"
           />
           <SearchForm.Button
-            aria-label="Hľadať"
+            aria-label={t("submit_aria")}
             className="h-full rounded-none rounded-r-base focus-visible:bg-search-form-bg-focused focus-visible:outline-search-form-border-focused focus-visible:outline-offset-0"
             iconSize={isMobile ? "lg" : "xl"}
             showSearchIcon
           />
           <SearchForm.ClearButton
-            aria-label="Vymazať vyhľadávanie"
+            aria-label={t("clear_aria")}
             className="right-0 text-fg-secondary hover:text-fg-primary"
           />
         </SearchForm.Control>

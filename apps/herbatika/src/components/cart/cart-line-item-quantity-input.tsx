@@ -1,6 +1,7 @@
 "use client"
 
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
+import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 type CartLineItemQuantityInputProps = {
@@ -30,6 +31,7 @@ export function CartLineItemQuantityInput({
   quantity,
   size = "md",
 }: CartLineItemQuantityInputProps) {
+  const t = useTranslations("cart")
   const [localQuantity, setLocalQuantity] = useState(quantity)
   const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -93,7 +95,9 @@ export function CartLineItemQuantityInput({
           disabled={isPending || localQuantity <= 0}
         />
         <NumericInput.Input
-          aria-label={`Množstvo pre ${itemName}`}
+          aria-label={t("quantity_aria", {
+            itemName,
+          })}
           className={inputClassName}
         />
         <NumericInput.IncrementTrigger

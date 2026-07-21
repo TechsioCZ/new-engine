@@ -10,7 +10,8 @@ import {
   resolveRegionInfoFromCookieValues,
 } from "../region-preferences"
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config"
-import { resolveRegionByIdOrDefault, toRegionInfo } from "../region-selection"
+import { resolveRegionForMarket, toRegionInfo } from "../region-selection"
+import { getMarketServerContext } from "../market-context.server"
 import {
   fetchServerProduct,
   fetchServerRegions,
@@ -35,7 +36,10 @@ const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
 
 export const getRegionServerContext = async () => {
   const queryClient = getServerQueryClient()
-  const cookieRegionPreference = await resolveCookieRegionPreference()
+  const [cookieRegionPreference, marketContext] = await Promise.all([
+    resolveCookieRegionPreference(),
+    getMarketServerContext(),
+  ])
 
   const listParams: RegionListParams = {
     fields: REGION_LIST_FIELDS,
@@ -44,13 +48,14 @@ export const getRegionServerContext = async () => {
 
   const regionListResponse = await fetchServerRegions(queryClient, listParams)
 
-  const resolvedRegionRecord = resolveRegionByIdOrDefault(
+  const resolvedRegionRecord = resolveRegionForMarket(
     regionListResponse.regions,
+    marketContext,
     cookieRegionPreference?.region_id
   )
   const region = resolvedRegionRecord
-    ? toRegionInfo(resolvedRegionRecord)
-    : cookieRegionPreference
+    ? toRegionInfo(resolvedRegionRecord, marketContext.countryCode)
+    : null
 
   return {
     queryClient,

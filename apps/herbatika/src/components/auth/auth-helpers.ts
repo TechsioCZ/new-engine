@@ -59,22 +59,19 @@ export const buildRegisterDefaults = ({
   billing_address_2: "",
   billing_city: "",
   billing_postal_code: "",
-  billing_country_code: normalizeCountryCode(countryCode) ?? "SK",
+  billing_country_code: normalizeCountryCode(countryCode) ?? "",
   accept_terms: false,
 })
 
 export const buildRegisterSuccessNotice = ({
   isWholesale,
   transferNotice,
+  wholesaleNotice,
 }: {
   isWholesale: boolean
   transferNotice: string | null
+  wholesaleNotice: string
 }) =>
-  [
-    isWholesale
-      ? "Žiadosť o VO účet bola odoslaná na schválenie. Do rozhodnutia môžete nakupovať ako bežný zákazník."
-      : null,
-    transferNotice,
-  ]
+  [isWholesale ? wholesaleNotice : null, transferNotice]
     .filter((notice): notice is string => Boolean(notice))
     .join(" ") || null

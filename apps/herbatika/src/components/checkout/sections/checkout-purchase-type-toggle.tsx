@@ -1,18 +1,21 @@
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
 
 type CheckoutPurchaseTypeToggleProps = {
+  companyLabel: string
+  groupLabel: string
   id: string
   isCompanyPurchase: boolean
   onValueChange: (isCompanyPurchase: boolean) => void
+  privateLabel: string
 }
 
-const PRIVATE_PURCHASE_LABEL = "Súkromná osoba"
-const COMPANY_PURCHASE_LABEL = "Nakupujem na firmu"
-
 export function CheckoutPurchaseTypeToggle({
+  companyLabel,
+  groupLabel,
   id,
   isCompanyPurchase,
   onValueChange,
+  privateLabel,
 }: CheckoutPurchaseTypeToggleProps) {
   return (
     <RadioGroup
@@ -26,20 +29,20 @@ export function CheckoutPurchaseTypeToggle({
       value={isCompanyPurchase ? "company" : "private"}
       variant="subtle"
     >
-      <RadioGroup.Label className="sr-only">Typ nákupu</RadioGroup.Label>
+      <RadioGroup.Label className="sr-only">{groupLabel}</RadioGroup.Label>
       <RadioGroup.ItemGroup>
         <RadioGroup.Item value="private">
           <RadioGroup.ItemHiddenInput />
           <RadioGroup.ItemControl />
           <RadioGroup.ItemContent>
-            <RadioGroup.ItemText>{PRIVATE_PURCHASE_LABEL}</RadioGroup.ItemText>
+            <RadioGroup.ItemText>{privateLabel}</RadioGroup.ItemText>
           </RadioGroup.ItemContent>
         </RadioGroup.Item>
         <RadioGroup.Item value="company">
           <RadioGroup.ItemHiddenInput />
           <RadioGroup.ItemControl />
           <RadioGroup.ItemContent>
-            <RadioGroup.ItemText>{COMPANY_PURCHASE_LABEL}</RadioGroup.ItemText>
+            <RadioGroup.ItemText>{companyLabel}</RadioGroup.ItemText>
           </RadioGroup.ItemContent>
         </RadioGroup.Item>
       </RadioGroup.ItemGroup>

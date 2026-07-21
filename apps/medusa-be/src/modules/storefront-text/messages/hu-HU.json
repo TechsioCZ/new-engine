@@ -1,0 +1,756 @@
+{
+  "cart": {
+    "add_to_cart": "Kosárba",
+    "adding_to_cart": "Hozzáadás...",
+    "added_to_cart": "A termék a kosárba került.",
+    "failed": "A kosárba helyezés nem sikerült.",
+    "insufficient_quantity": "Nincs elegendő mennyiség a termékből.",
+    "insufficient_quantity_available": "Nincs elegendő mennyiség a termékből. Elérhető mennyiség: {availableQuantity} db.",
+    "insufficient_quantity_in_cart": "Nincs elegendő mennyiség a termékből. A kosárban már {cartQuantity} db van, elérhető mennyiség: {availableQuantity} db.",
+    "missing_region": "A régió még betöltődik. Kérjük, próbáld újra később.",
+    "missing_variant": "A terméknek nincs kosárba tehető elérhető változata.",
+    "out_of_stock": "A termék jelenleg nincs készleten.",
+    "unavailable_in_region": "A termék jelenleg nem elérhető a kiválasztott régióban.",
+    "additional_items": "További tételek a kosárban: {count}",
+    "continue_to_checkout": "Tovább a pénztárhoz",
+    "discount": "Kedvezmény",
+    "empty_description": "A katalógusból adhatsz hozzá termékeket.",
+    "empty_title": "A kosarad üres",
+    "low_stock": "Már csak {quantity} db maradt",
+    "products_subtotal_excl_tax": "Termékek ára ÁFA nélkül",
+    "quantity_aria": "Mennyiség ehhez: {itemName}",
+    "remove_failed": "A tétel eltávolítása nem sikerült.",
+    "remove_item_aria": "A(z) {itemName} eltávolítása a kosárból",
+    "shipping_excl_tax": "Szállítás ÁFA nélkül",
+    "tax": "ÁFA",
+    "title": "Kosár",
+    "title_with_count": "Kosár ({count})",
+    "total_incl_tax": "Összesen ÁFÁ-val",
+    "update_failed": "A kosár frissítése nem sikerült."
+  },
+  "checkout": {
+    "back_to_cart": "Vissza a kosárhoz",
+    "back_to_shipping_payment": "Vissza a szállításhoz és fizetéshez",
+    "complete_order": "Rendelés befejezése",
+    "completed_aria": "Befejezve",
+    "continue_to_customer_details": "Tovább az adatokhoz",
+    "continue_to_shipping_payment": "Tovább a szállításhoz és fizetéshez",
+    "continue_to_summary": "Tovább az összegzéshez",
+    "customer_details": "Az Ön adatai",
+    "edit": "Szerkesztés",
+    "free": "Ingyenes",
+    "item_quantity": "{quantity} db",
+    "no_payment_methods": "Nincsenek elérhető fizetési módok.",
+    "no_shipping_options": "Nincsenek elérhető szállítási lehetőségek.",
+    "order_summary": "Rendelés összegzése",
+    "payment": "Fizetés",
+    "payment_not_selected": "Nincs kiválasztva fizetési mód",
+    "pickup_selection_required": "Válasszon átvételi pontot a fizetés feloldásához.",
+    "select_pickup_before_payment": "A fizetés kiválasztása előtt válasszon átvételi pontot.",
+    "select_shipping_before_payment": "A fizetés kiválasztása előtt válasszon szállítási módot.",
+    "selected_payment": "Kiválasztott fizetés",
+    "selected_shipping": "Kiválasztott szállítás",
+    "shipping": "Szállítás",
+    "shipping_excl_tax_with_name": "{shippingName} ÁFA nélkül",
+    "shipping_not_selected": "Nincs kiválasztva szállítási mód",
+    "summary": "Összegzés",
+    "total_excl_tax": "ÁFA nélkül",
+    "shipping_payment": "Szállítás és fizetés",
+    "cart_empty": "A kosár üres. Először adjon hozzá termékeket.",
+    "cart_not_ready": "A kosár még nem áll készen.",
+    "complete_failed": "A rendelés befejezése sikertelen.",
+    "payment_update_failed": "A fizetés beállítása sikertelen.",
+    "select_payment_before_completion": "A rendelés befejezése előtt válasszon fizetési módot.",
+    "select_shipping_before_completion": "A rendelés befejezése előtt válasszon szállítási módot.",
+    "shipping_update_failed": "A szállítás beállítása sikertelen.",
+    "free_shipping_remaining": "Vásároljon még {missingAmount} értékben, és kapjon <strong>ingyenes szállítást.</strong>",
+    "free_shipping_qualified": "A kosara már jogosult az ingyenes szállításra.",
+    "free_shipping_progress_aria": "Előrehaladás az ingyenes szállítás felé",
+    "completed_order_title": "Rendelés befejezve",
+    "completed_order_created": "A rendelés létrejött ({orderId}).",
+    "completed_order_qr_preparing": "Előkészítjük a banki átutalás QR-adatait.",
+    "completed_order_qr_failed": "A QR-fizetést nem sikerült betölteni. A fizetési adatokat a rendelés visszaigazolásában is megtalálja.",
+    "completed_order_continue_shopping": "Vásárlás folytatása",
+    "completed_order_go_to_account": "Tovább a fiókhoz",
+    "completed_order_qr_amount": "Összeg",
+    "completed_order_qr_iban": "IBAN",
+    "completed_order_qr_reference": "Fizetési azonosító",
+    "completed_order_qr_message": "Közlemény",
+    "completed_order_qr_aria": "QR-kód a(z) {orderDisplayId} rendelés kifizetéséhez",
+    "completed_order_bank_transfer_title": "Fizetés banki átutalással",
+    "completed_order_bank_transfer_instructions": "Olvassa be a QR-kódot a banki alkalmazásban, vagy használja az alábbi fizetési adatokat.",
+    "billing_details": "Számlázási adatok",
+    "billing_same_as_shipping": "A számlázási cím megegyezik a szállítási címmel",
+    "purchase_type": "Vásárlás típusa",
+    "private_purchase": "Magánszemélyként vásárolok",
+    "company_purchase": "Cégként vásárolok",
+    "pickup_delivery": "Szállítás átvételi pontra",
+    "contact_and_billing_details": "Kapcsolattartási és számlázási adatok",
+    "registration_opt_in": "Szeretnék regisztrálni",
+    "registration_info": "(A regisztrációval kapcsolatos információkat e-mailben küldjük el)",
+    "country_unavailable": "A kiválasztott ország nem érhető el az aktuális kosárhoz. Válasszon országot a listából.",
+    "address_update_failed": "A cím mentése sikertelen.",
+    "registration_update_failed": "A regisztráció mentése sikertelen.",
+    "secure_purchase": "Biztonságos vásárlás",
+    "login_prompt_title": "Már van Herbatika-fiókja?",
+    "login_prompt_description": "<signIn>Jelentkezzen be</signIn> a gyorsabb vásárlásért és a további vásárlásokra járó kedvezményért.",
+    "empty_cart_title": "A kosár üres",
+    "empty_cart_description": "Válasszon az újdonságok közül, vagy térjen vissza a főoldalra. A rendelést a termék kosárba helyezése után azonnal befejezheti.",
+    "empty_cart_browse_new_products": "Újdonságok megtekintése",
+    "empty_cart_home": "Ugrás a főoldalra",
+    "empty_cart_recommendations_title": "Újdonságok, amelyeket a kosárba tehet",
+    "inline_products_title": "Gyakran együtt vásárolják",
+    "payment_return_confirmation_pending": "A fizetést egyelőre nem sikerült megerősíteni.",
+    "payment_return_verification_failed": "A fizetés ellenőrzése sikertelen.",
+    "payment_return_back_to_summary": "Vissza az összegzéshez",
+    "payment_return_change_payment": "Fizetési mód módosítása",
+    "payment_return_cancelled_title": "A fizetést megszakították",
+    "payment_return_cancelled_description": "Visszatérhet a rendelés összegzéséhez, és újra megpróbálhatja a fizetést.",
+    "payment_return_missing_cart_title": "Hiányzik a fizetéshez tartozó kosár",
+    "payment_return_missing_cart_description": "A fizetési átjáróból való visszatérés nem tartalmazza a kosár azonosítóját.",
+    "payment_return_retry": "Próbálja újra",
+    "payment_return_failed_title": "A fizetést nem sikerült megerősíteni",
+    "payment_return_verifying_title": "A fizetés ellenőrzése",
+    "payment_return_verifying_description": "A fizetési átjáróból való visszatérés után befejezzük a rendelést. Ez általában csak néhány másodpercet vesz igénybe.",
+    "payment_return_help": "Ha az állapot nem változik, ellenőrizheti a rendelést a fiókjában, vagy újra megpróbálhatja a befejezést.",
+    "payment_return_not_completed": "A fizetés nem fejeződött be, vagy megszakították.",
+    "payment_provider_unknown": "Ismeretlen szolgáltató",
+    "payment_provider_qr": "QR-kódos banki átutalás",
+    "payment_provider_card_gateway": "Online bankkártyás fizetés ({providerName})",
+    "payment_provider_cash_on_delivery": "Utánvét",
+    "payment_provider_card": "Online bankkártyás fizetés",
+    "payment_summary_card_gateway": "Online bankkártyás fizetés a(z) {providerName} rendszerén keresztül",
+    "payment_summary_card_wallets": "Fizetés bankkártyával, Google Payjel vagy Apple Payjel",
+    "payment_hint_qr": "QR-kód a rendelés elküldése után",
+    "payment_description_qr": "A rendelés elküldése után megjelenítjük a QR-kódot és a banki átutaláshoz szükséges adatokat.",
+    "payment_description_card_gateway": "Online bankkártyás fizetés a(z) {providerName} fizetési kapun keresztül.",
+    "select_pickup_point": "Átvételi pont kiválasztása",
+    "change_pickup_point": "Átvételi pont módosítása",
+    "selected_pickup_point": "Átvételi pont: {pickupPointName}",
+    "pickup_point_fallback": "Átvételi pont",
+    "pickup_selection_failed": "Az átvételi pont kiválasztása nem sikerült. Kérjük, próbálja újra.",
+    "pickup_point_unavailable": "A kiválasztott átvételi pont jelenleg nem érhető el.",
+    "pickup_selector_unavailable": "Az átvételi pont kiválasztása átmenetileg nem érhető el. Kérjük, próbálja újra később.",
+    "review_customer_note": "Megjegyzés",
+    "review_marketing_consent": "Hozzájárulok marketinginformációk küldéséhez",
+    "review_heureka_consent": "Hozzájárulok a Heureka elégedettségi kérdőívének elküldéséhez",
+    "review_legal_confirmation": "Megerősítem, že megismertem és megértettem az <terms>általános szerződési feltételeket</terms>, és teljes mértékben elfogadom azokat. Megismertem az <privacy>adatvédelmi szabályzatot</privacy>.",
+    "review_missing_required_details": "Néhány kötelező adat még nincs elmentve.",
+    "promo_code_label": "Kedvezménykód",
+    "promo_code_placeholder": "Kedvezménykód megadása",
+    "benefits_label": "Előnyök",
+    "return_policy_benefit": "Ingyenes visszaküldés 14 napon belül",
+    "save_cart_for_later": "Kosár mentése későbbre",
+    "save_cart_link": "Hivatkozás mentése",
+    "send_cart_email": "Küldés e-mailben"
+  },
+  "auth": {
+    "account": {
+      "redirect": {
+        "title": "Átirányítás a bejelentkezéshez",
+        "description": "A fiók csak bejelentkezett felhasználók számára érhető el."
+      },
+      "navigation": {
+        "overview": "Áttekintés",
+        "orders": "Rendelések",
+        "lists": "Listák",
+        "settings": "Beállítások"
+      },
+      "logout": "Kijelentkezés",
+      "logout_failed": "Nem sikerült kijelentkezni. Próbálja újra.",
+      "overview": {
+        "title": "A fiók áttekintése",
+        "description": "Rendelések és ügyféladatok kezelése.",
+        "customer": "Vásárló",
+        "customer_fallback": "Vásárló"
+      },
+      "settings": {
+        "title": "Fiókbeállítások",
+        "unavailable": "A fiók adatai nem érhetők el. Frissítse az oldalt.",
+        "description": "Frissítse személyes adatait a gyorsabb fizetéshez.",
+        "saved": "A fiók adatai mentve.",
+        "save": "Adatok mentése",
+        "email_read_only": "{label} (nem módosítható)",
+        "company_optional": "{label} (opcionális)",
+        "update_failed": "Nem sikerült menteni a fiók adatait. Próbálja újra."
+      },
+      "orders": {
+        "retry": "Újrapróbálkozás",
+        "empty_description": "Még nincs befejezett rendelése.",
+        "browse_products": "Tovább a termékekhez",
+        "description": "A befejezett rendelések áttekintése tételekkel és szállítási állapottal.",
+        "pagination_summary": "Összesen: {count} | {currentPage}/{totalPages}. oldal",
+        "back": "Vissza a rendelésekhez",
+        "not_found_title": "A rendelés nem található",
+        "not_found_description": "Ellenőrizze az URL-címet, vagy térjen vissza a rendelések listájához.",
+        "item_count": "{count, plural, other {# tétel a rendelésben}}",
+        "total_amount": "Végösszeg",
+        "view_invoice": "Számla megtekintése",
+        "view_order": "Rendelés megtekintése",
+        "product": "Termék",
+        "price": "Ár",
+        "info": "Információ",
+        "product_fallback": "Termék",
+        "quantity_value": "Mennyiség: {count}",
+        "product_detail": "Részletek",
+        "no_items": "A rendelés nem tartalmaz tételeket.",
+        "detail": {
+          "order_title": "Rendelés {orderId}",
+          "created": "Létrehozva: {date}",
+          "payment_summary": "Fizetési összesítő",
+          "order_details": "Rendelés részletei",
+          "order_id": "Azonosító: {id}",
+          "items": "Tételek: {count}",
+          "updated": "Frissítve: {date}",
+          "shipping_address": "Szállítási cím",
+          "billing_address": "Számlázási cím",
+          "address_unavailable": "A cím nem érhető el.",
+          "shipping": "Szállítás",
+          "shipping_unavailable": "A szállítási mód nem érhető el",
+          "payment": "Fizetés",
+          "payment_unavailable": "A fizetési mód nem érhető el",
+          "tracking": "Csomagkövetés",
+          "tracking_unavailable": "A csomagkövetési kód nem érhető el",
+          "status": "Állapot: {status}",
+          "items_title": "A rendelés tételei"
+        },
+        "invoice": "Számla",
+        "variant": "Változat",
+        "quantity": "Mennyiség",
+        "unit_price": "Egységár",
+        "total": "Összesen",
+        "unit_price_value": "Egységár: {amount}",
+        "status": {
+          "lifecycle": "{status, select, archived {Lezárt} canceled {Törölve} completed {Teljesítve} draft {Piszkozat} pending {Feldolgozás alatt} requires_action {Beavatkozást igényel} other {{status}}}",
+          "payment": "{status, select, authorized {Fizetés engedélyezve} awaiting {Fizetésre vár} canceled {Fizetés törölve} captured {Fizetve} not_paid {Fizetésre vár} partially_authorized {Részben engedélyezve} partially_captured {Részben kifizetve} partially_refunded {Részben visszatérítve} refunded {Visszatérítve} requires_action {A fizetés beavatkozást igényel} other {{status}}}",
+          "fulfillment": "{status, select, canceled {Szállítás törölve} delivered {Kézbesítve} fulfilled {Feladásra kész} not_fulfilled {Feldolgozás alatt} partially_delivered {Részben kézbesítve} partially_fulfilled {Részben előkészítve} partially_shipped {Részben feladva} shipped {Feladva} other {{status}}}"
+        }
+      }
+    },
+    "login": {
+      "short_title": "Bejelentkezés",
+      "title": "Bejelentkezés a fiókba",
+      "description": "Adja meg bejelentkezési adatait az ügyfélfiók eléréséhez.",
+      "forgot_password": "Elfelejtette a jelszavát?",
+      "no_account": "Még nincs fiókja?",
+      "register_link": "Regisztráljon",
+      "success": "A bejelentkezés sikeres volt.",
+      "invalid_credentials": "Helytelen e-mail-cím vagy jelszó.",
+      "failed": "A bejelentkezés nem sikerült. Próbálja újra."
+    },
+    "forgot": {
+      "title": "Elfelejtett jelszó",
+      "description": "Adja meg a fiókjához tartozó e-mail-címet. Küldünk egy hivatkozást a jelszó visszaállításához.",
+      "submit": "Hivatkozás küldése",
+      "sent": "A jelszó-visszaállítási hivatkozást elküldtük a(z) {email} címre. Ellenőrizze a postafiókját.",
+      "delivery_help": "Nem érkezett meg az e-mail? Ellenőrizze a spam mappát, vagy próbálja újra néhány perc múlva.",
+      "failed": "Nem sikerült elküldeni a jelszó-visszaállítási hivatkozást."
+    },
+    "reset": {
+      "title": "Jelszó visszaállítása",
+      "description": "Adjon meg új jelszót a fiókjához.",
+      "description_with_email": "Állítson be új jelszót a(z) {email} fiókhoz.",
+      "expired_help": "Kérjen új jelszó-visszaállítási hivatkozást.",
+      "expired_link": "Új hivatkozás kérése",
+      "expired_message": "Ez a hivatkozás érvénytelen vagy lejárt.",
+      "failed": "Nem sikerült visszaállítani a jelszót.",
+      "submit": "Jelszó visszaállítása",
+      "success": "A jelszó sikeresen megváltozott. Most már bejelentkezhet az új jelszóval."
+    },
+    "account_setup": {
+      "title": "Jelszó beállítása",
+      "description": "Fejezze be a regisztrációt egy jelszó beállításával.",
+      "description_with_email": "Fejezze be a(z) {email} fiók regisztrációját egy jelszó beállításával.",
+      "expired_help": "A bejelentkezési oldalon új hivatkozást kérhet a jelszó beállításához.",
+      "expired_link": "Új jelszóbeállítási hivatkozás kérése",
+      "expired_message": "A regisztráció befejezéséhez használt hivatkozás érvénytelen vagy lejárt.",
+      "failed": "Nem sikerült beállítani a jelszót.",
+      "submit": "Jelszó beállítása",
+      "success": "A jelszó sikeresen be lett állítva. Most már bejelentkezhet."
+    },
+    "register": {
+      "title": "Fiók létrehozása",
+      "description": "Töltse ki az adatokat, és hozza létre ügyfélfiókját.",
+      "submit": "Regisztráció",
+      "has_account": "Már van fiókja?",
+      "account_type": "Fiók típusa",
+      "retail_label": "Lakossági ügyfél",
+      "retail_description": "Regisztráció nagykereskedelmi fiók igénylése nélkül.",
+      "wholesale_label": "Nagykereskedelmi ügyfél",
+      "wholesale_description": "A regisztráció után jóváhagyásra elküldjük a kérelmet.",
+      "company_fields": "Céges adatok",
+      "accept_terms": "Elfogadom az általános szerződési feltételeket",
+      "success": "A regisztráció sikeres volt.",
+      "wholesale_success": "A nagykereskedelmi fiók iránti kérelmet jóváhagyásra elküldtük. A döntésig lakossági ügyfélként vásárolhat.",
+      "email_exists": "Ezzel az e-mail-címmel már létezik fiók. Jelentkezzen be, vagy állítsa vissza a jelszavát.",
+      "failed": "A regisztráció nem sikerült. Próbálja újra."
+    },
+    "account_label": "Fiók",
+    "sign_in": "Bejelentkezés",
+    "password": "Jelszó",
+    "password_confirmation": "Jelszó megerősítése",
+    "new_password": "Új jelszó",
+    "back_to_login": "Vissza a bejelentkezéshez",
+    "go_to_login": "Tovább a bejelentkezéshez",
+    "cart_transfer_failed": "A fiók aktív, de a kosár tartalmát nem sikerült átvinnie. Próbálja újra a kosárban.",
+    "password_requirements": {
+      "title": "Jelszókövetelmények:",
+      "min_length": "Legalább 8 karakter",
+      "number": "Legalább egy számjegy"
+    },
+    "validation": {
+      "account_type_required": "Válassza ki a fiók típusát.",
+      "password_required": "Adja meg a jelszót.",
+      "password_min_length": "A jelszónak legalább 8 karakterből kell állnia.",
+      "password_number": "A jelszónak legalább egy számjegyet kell tartalmaznia.",
+      "confirm_password_required": "Erősítse meg a jelszót.",
+      "password_mismatch": "A jelszavak nem egyeznek.",
+      "terms_required": "Az általános szerződési feltételek elfogadása kötelező."
+    },
+    "product_lists": {
+      "title": "Terméklisták",
+      "description": "Mentett termékek és saját bevásárlólisták.",
+      "empty_description": "Még nincs terméklistája.",
+      "new_list": "Új lista",
+      "browse_products": "Termékek megtekintése",
+      "retry": "Újrapróbálás",
+      "errors": {
+        "lists_load_failed": "A listákat nem sikerült betölteni.",
+        "list_load_failed": "A listát nem sikerült betölteni.",
+        "create_failed": "A listát nem sikerült létrehozni.",
+        "add_product_failed": "A terméket nem sikerült hozzáadni.",
+        "add_list_to_cart_failed": "A listát nem sikerült a kosárhoz adni.",
+        "missing_variant": "A lista egyes termékeinél nincs kiválasztva változat.",
+        "add_available_all_failed": "Az elérhető tételeket nem sikerült a kosárhoz adni.",
+        "add_available_partial_failed": "Néhány elérhető tételt nem sikerült a kosárhoz adni.",
+        "quantity_update_failed": "A mennyiséget nem sikerült módosítani.",
+        "delete_list_failed": "A listát nem sikerült törölni.",
+        "remove_product_failed": "A terméket nem sikerült eltávolítani a listáról."
+      },
+      "list_empty": "Ez a lista még üres.",
+      "loading_items_aria": "A lista termékeinek betöltése",
+      "create_dialog_title": "Mi legyen a lista neve?",
+      "new_list_name": "Az új lista neve",
+      "new_list_placeholder": "Lista neve",
+      "actions": {
+        "cancel": "Mégse",
+        "save": "Mentés",
+        "confirm": "OK",
+        "delete_list": "Lista törlése"
+      },
+      "delete_description": "A lista a mentett tételekkel együtt törlődik.",
+      "delete_title": "Törli a(z) {listTitle} listát?",
+      "delete_list_aria": "A(z) {listTitle} lista törlése",
+      "create_list_aria": "Új lista létrehozása",
+      "favorite_title": "Kedvencek",
+      "untitled_list": "Lista",
+      "picker": {
+        "title": "Válasszon listát",
+        "trigger_aria": "Hozzáadás listához",
+        "auth_required": "A termékek listákba mentéséhez jelentkezzen be.",
+        "contains_product_aria": "A(z) {listTitle} lista már tartalmazza a terméket",
+        "add_to_list_aria": "Hozzáadás a(z) {listTitle} listához",
+        "open_list_aria": "A(z) {listTitle} lista megnyitása",
+        "adding_product": "Termék hozzáadása"
+      },
+      "item": {
+        "quantity": "{quantity} db",
+        "quantity_aria": "Mennyiség ehhez: {productName}",
+        "remove_aria": "A(z) {productName} eltávolítása a listáról",
+        "removing": "Eltávolítás"
+      },
+      "availability": {
+        "product_unavailable": "A termék nem elérhető",
+        "out_of_stock": "Jelenleg nincs készleten",
+        "limited_stock": "Csak {quantity} db érhető el",
+        "none_available": "Nincs elérhető tétel",
+        "add_all": "Összes hozzáadása a kosárhoz",
+        "add_available": "Elérhetők hozzáadása a kosárhoz"
+      },
+      "price_unavailable": "Nem érhető el",
+      "validation": {
+        "title_required": "Adja meg a lista nevét."
+      }
+    }
+  },
+  "catalog": {
+    "product_card": {
+      "price_on_request": "Ár kérésre",
+      "collection_empty": "Ebben a szakaszban jelenleg nincsenek termékek.",
+      "recently_visited_title": "Legutóbb megtekintett",
+      "recently_visited_empty": "Még nincsenek legutóbb megtekintett termékeid."
+    },
+    "product_detail": {
+      "errors": {
+        "load_failed": "A terméket nem sikerült betölteni.",
+        "not_found": "A termék nem található."
+      },
+      "retry": "Próbáld újra",
+      "back_home": "Vissza a főoldalra",
+      "price_on_request": "Ár kérésre",
+      "information_title": "Termékinformációk",
+      "sections": {
+        "description": "Leírás",
+        "usage": "Használat",
+        "composition": "Összetétel",
+        "warning": "Figyelmeztetés",
+        "other": "Egyéb információk",
+        "content": "Tartalom"
+      },
+      "variant_label": "Változat",
+      "variant_placeholder": "Válassz változatot",
+      "stock": {
+        "in_stock": "Raktáron",
+        "out_of_stock": "Jelenleg nincs raktáron"
+      },
+      "delivery_by": "várható kézbesítés: {date}",
+      "free_shipping_over": "Ingyenes szállítás {threshold} felett",
+      "location_availability": {
+        "loading_aria": "Raktárankénti készlet betöltése",
+        "error": "A raktárankénti készletet nem sikerült betölteni.",
+        "in_stock": "Raktáron",
+        "more_than": "Raktáron (>{quantity} db)",
+        "quantity": "{quantity} db"
+      },
+      "gallery": {
+        "title": "Termékgaléria",
+        "close_aria": "Galéria bezárása",
+        "image_alt": "Termék ({index})",
+        "thumbnail_aria": "{index}. kép megjelenítése a galériában"
+      },
+      "advisor": {
+        "image_alt": "Herbatika tanácsadó",
+        "title": "Segítségre van szükséged?",
+        "description": "Lépj kapcsolatba velünk, szívesen segítünk"
+      },
+      "vip_credit": {
+        "title": "VIP-jóváírás",
+        "earned": "A vásárlással {credit} jóváírást kapsz"
+      },
+      "quantity_aria": "Mennyiség ehhez: {productName}",
+      "bulk_discount": {
+        "title": "Mennyiségi kedvezmény",
+        "option_title": "Vásárolj {quantity} darabot és spórolj",
+        "per_unit": "{price} / db"
+      },
+      "unit_price": {
+        "per_day": "{price} / nap",
+        "excluding_vat": "ÁFA nélkül: {price} / {unit}",
+        "per_unit": "{price} / {unit}"
+      },
+      "media": {
+        "doses": "{count, plural, other {adag}}",
+        "daily_capsules": "{count, plural, other {kapszula naponta}}"
+      },
+      "related": {
+        "also_bought": "Mások ezeket is megvették",
+        "products": "Kapcsolódó termékek",
+        "found": "Találatok: {count}"
+      }
+    },
+    "reviews": {
+      "homepage_title": "Vásárlóink által hitelesítve",
+      "product_title": "Termékértékelések",
+      "tab_label": "Értékelések",
+      "all_reviews": "Összes értékelés",
+      "verified_purchase": "Ellenőrzött vásárlás",
+      "verified_customer_badge_alt": "Heureka által ellenőrzött vásárlók",
+      "rating_aria": "A termék átlagos értékelése {rating} / {max}",
+      "based_on_count": "{count, plural, other {# értékelés alapján}}",
+      "loading_aria": "Értékelések betöltése",
+      "unavailable": "A termékértékelések jelenleg nem érhetők el.",
+      "load_failed": "Az értékeléseket nem sikerült betölteni.",
+      "retry": "Próbáld újra",
+      "empty_title": "Ehhez a termékhez még nincs értékelés.",
+      "empty_description": "Az első ellenőrzött értékelések ebben a szakaszban jelennek meg.",
+      "first_action": "Írd meg az első értékelést",
+      "refreshing": "Értékelések frissítése",
+      "anonymous": "Névtelen",
+      "trust_badges_aria": "Az áruház értékelései",
+      "write_action": "Értékelés írása",
+      "auth_checking": "Bejelentkezés ellenőrzése.",
+      "sign_in_required": "Az értékelés írásához jelentkezz be.",
+      "submit_success": "Köszönjük az értékelést. Jóváhagyás után megjelenik a terméknél.",
+      "close": "Bezárás",
+      "cancel": "Mégse",
+      "submit": "Értékelés beküldése",
+      "submitting": "Értékelés beküldése...",
+      "pending_description": "Az értékelés jóváhagyás után jelenik meg.",
+      "dialog_title": "Értékelés írása",
+      "form": {
+        "rating_label": "Értékelés",
+        "rating_validation": "Válassz 1 és 5 csillag közötti értékelést.",
+        "content_min_length_validation": "Írj legalább {min} karaktert.",
+        "content_min_length_help": "Legalább {min} karakter.",
+        "content_label": "Értékelés"
+      },
+      "errors": {
+        "generic": "Az értékelést nem sikerült elküldeni. Próbáld újra.",
+        "purchase_required": "Csak megvásárolt termékről írhatsz értékelést.",
+        "validation": "Ellenőrizd az értékelést és a recenzió szövegét.",
+        "rating_required": "Válassz értékelést.",
+        "content_required": "Írd meg az értékelés szövegét.",
+        "title_invalid": "Ellenőrizd az értékelés címét.",
+        "token_used": "Ezt az értékelési linket már felhasználták.",
+        "token_expired": "Ez az értékelési link lejárt.",
+        "token_mismatch": "Ez a link nem a kiválasztott termékhez tartozik.",
+        "token_not_found": "Ez az értékelési link érvénytelen.",
+        "duplicate": "Ezt a terméket már értékelted.",
+        "auth_required": "Az értékelés elküldéséhez jelentkezz be.",
+        "forbidden": "Ehhez a termékhez jelenleg nem küldhetsz értékelést."
+      },
+      "token": {
+        "metadata_title": "Értékelés írása | Herbatica",
+        "back_to_product": "Vissza a termékhez",
+        "back_to_store": "Vissza az áruházba",
+        "missing_product": "Az értékelési link nem tartalmaz terméket.",
+        "product_loading": "Termék betöltése.",
+        "product_load_failed": "A terméket nem sikerült betölteni. Az értékelést ettől még elküldheted.",
+        "product_not_found": "A termék nem található. Ellenőrizd az e-mailben kapott linket.",
+        "eyebrow": "Vásárlás értékelése",
+        "product_label": "Értékelt termék"
+      }
+    },
+    "brands": {
+      "label": "Márkák",
+      "all_title": "Összes márka A-tól Z-ig",
+      "list_aria": "Márkák betűrend szerinti listája",
+      "metadata": {
+        "index_title": "Összes márka A-tól Z-ig | Herbatica",
+        "index_description": "A Herbatica webáruházban elérhető összes márka betűrendben.",
+        "detail_title": "{brandName} | Herbatica márkák",
+        "detail_description": "A(z) {brandName} márka Herbatica webáruházban elérhető termékei."
+      }
+    },
+    "filters": {
+      "toggle": "{count, plural, =0 {Szűrő} other {Szűrő (#)}}",
+      "price": "Ár",
+      "form": "Forma",
+      "brand": "Márka",
+      "active_ingredient": "Hatóanyag",
+      "clear": "Szűrők törlése",
+      "show_more": "Több megjelenítése",
+      "show_less": "Kevesebb megjelenítése",
+      "form_loading": "A formák betöltése folyamatban van.",
+      "form_empty": "A formák egyelőre nem érhetők el.",
+      "brand_loading": "A márkák betöltése folyamatban van.",
+      "brand_empty": "A márkák egyelőre nem érhetők el.",
+      "ingredient_loading": "A hatóanyagok betöltése folyamatban van.",
+      "ingredient_empty": "A hatóanyagok egyelőre nem érhetők el.",
+      "status": {
+        "in_stock": "Raktáron",
+        "action": "Akció",
+        "new": "Újdonság",
+        "tip": "Tipp",
+        "vegan": "Vegán"
+      },
+      "form_values": {
+        "capsules": "Kapszula",
+        "tablets": "Tabletta",
+        "softgel": "Lágy kapszula",
+        "powder": "Por",
+        "liquid": "Folyadékok",
+        "drink": "Ital",
+        "drops": "Cseppek",
+        "spray": "Spray",
+        "syrup": "Szirup"
+      }
+    },
+    "pagination": {
+      "root_aria": "Termékek lapozása",
+      "previous_aria": "Előző oldal",
+      "next_aria": "Következő oldal",
+      "page_aria": "{page}. oldal, összesen {totalPages}"
+    },
+    "sort": {
+      "recommended": "Ajánlott",
+      "price_asc": "Legolcsóbb",
+      "price_desc": "Legdrágább",
+      "best_selling": "Legkelendőbb",
+      "newest": "Legújabb"
+    },
+    "results": {
+      "items_total": "összesen",
+      "empty_category": "Ebben a kategóriában jelenleg nincsenek elérhető termékek a kiválasztott szűrőhöz.",
+      "empty_brand": "Ehhez a márkához jelenleg nincsenek elérhető termékek a kiválasztott szűrőhöz.",
+      "category_not_found": "A kategória nem található. Ellenőrizze az URL-t, vagy válasszon másik kategóriát."
+    },
+    "errors": {
+      "products_load_failed": "A termékek betöltése sikertelen.",
+      "categories_load_failed": "A kategóriák betöltése sikertelen."
+    }
+  },
+  "content": {
+    "actions": {
+      "view_all": "Összes megtekintése"
+    },
+    "home": {
+      "hero": {
+        "link_aria": "{label} - {cta}"
+      },
+      "purpose": {
+        "title": "Mi aggasztja? Vásároljon cél szerint"
+      },
+      "blog": {
+        "title": "Egészség- és szépségblog"
+      },
+      "product_sections": {
+        "bestsellers": "Legnépszerűbb termékek",
+        "new_products": "Újdonságok",
+        "sale": "Aktuális akciók"
+      },
+      "benefits": {
+        "fast_delivery": "Gyors szállítás egészen az otthonáig.",
+        "satisfaction_guarantee": "Elégedettségi garancia vagy pénzvisszafizetés.",
+        "own_products": "Több mint 130 saját termék raktáron.",
+        "trusted_customers": "Vásárlók ezrei bíznak bennünk Európa-szerte."
+      }
+    },
+    "pages": {
+      "blog": "Blog",
+      "about": "Rólunk",
+      "faq": "Gyakori kérdések"
+    },
+    "blog": {
+      "card": {
+        "open_article": "Cikk megnyitása"
+      },
+      "pagination": {
+        "load_more": "Továbbiak megjelenítése",
+        "summary": "{page}/{totalPages}. oldal"
+      },
+      "detail": {
+        "related_articles": "További cikkek",
+        "author": "Szerző:",
+        "published": "Közzétéve:",
+        "reading_time": "Olvasási idő:"
+      },
+      "sidebar": {
+        "categories": "Kategóriák"
+      }
+    },
+    "faq": {
+      "item_count": "{count, plural, other {Összesen # elem}}"
+    },
+    "about": {
+      "rating_aria": "Értékelés: {rating} / {max} csillag"
+    }
+  },
+  "form": {
+    "first_name": "Keresztnév",
+    "last_name": "Vezetéknév",
+    "company_name": "Cégnév",
+    "company_id": "Cégjegyzékszám",
+    "tax_id": "Adószám",
+    "vat_id": "Közösségi adószám",
+    "email": "E-mail-cím",
+    "phone": "Telefonszám",
+    "country": "Ország",
+    "country_placeholder": "Válasszon országot",
+    "address": "Utca és házszám",
+    "address_line_2": "Cím kiegészítése",
+    "city": "Város",
+    "postal_code": "Irányítószám",
+    "customer_note": "Opcionális megjegyzés az ügyfélszolgálat számára",
+    "required_fields": "kötelező",
+    "validation": {
+      "first_name_min_length": "A keresztnévnek legalább 2 karakterből kell állnia.",
+      "last_name_min_length": "A vezetéknévnek legalább 2 karakterből kell állnia.",
+      "company_name_required": "Adja meg a cég nevét.",
+      "company_name_min_length": "A cégnévnek legalább 2 karakterből kell állnia.",
+      "company_id_required": "Adja meg a cégjegyzékszámot.",
+      "company_id_min_length": "A cégjegyzékszámnak legalább 4 karakterből kell állnia.",
+      "tax_id_required": "Adja meg az adószámot.",
+      "tax_id_min_length": "Az adószámnak legalább 4 karakterből kell állnia.",
+      "email_required": "Adja meg az e-mail-címet.",
+      "email_invalid": "Adjon meg érvényes e-mail-címet.",
+      "phone_required": "Adja meg a telefonszámot.",
+      "phone_invalid": "Adjon meg érvényes telefonszámot.",
+      "phone_min_digits": "A telefonszámnak legalább 7 számjegyet kell tartalmaznia.",
+      "country_required": "Válasszon országot.",
+      "country_invalid": "Válasszon érvényes országot.",
+      "address_required": "Adja meg az utcát és a házszámot.",
+      "address_min_length": "Az utcának és a házszámnak legalább 2 karakterből kell állnia.",
+      "city_required": "Adja meg a várost.",
+      "city_min_length": "A város nevének legalább 2 karakterből kell állnia.",
+      "postal_code_required": "Adja meg az irányítószámot.",
+      "postal_code_invalid": "Adjon meg érvényes irányítószámot.",
+      "postal_code_min_digits": "Az irányítószámnak legalább 4 számjegyet kell tartalmaznia."
+    }
+  },
+  "navigation": {
+    "primary_aria": "Fő navigáció",
+    "submenu": {
+      "loading": "Alkategóriák betöltése..."
+    },
+    "footer": {
+      "copyright": "Copyright {year} <brand>{domain}.</brand> Minden jog fenntartva.",
+      "cookie_settings": "Cookie-beállítások módosítása",
+      "tagline": "Az Ön partnere az egészséges életmódhoz és vitalitáshoz.",
+      "columns": {
+        "information": {
+          "title": "Információk Önnek",
+          "blog": "Blog",
+          "about": "Rólunk",
+          "faq": "Gyakori kérdések",
+          "gift_voucher": "Ajándékutalvány",
+          "brands": "Gyártók és márkák",
+          "reviews": "Vélemények"
+        },
+        "important": {
+          "title": "Fontos információk",
+          "shipping_payment": "Szállítás és fizetés",
+          "claims_returns": "Reklamáció és visszaküldés",
+          "terms": "Általános szerződési feltételek",
+          "privacy": "Adatvédelem",
+          "cookies": "Cookie-k"
+        },
+        "partners": {
+          "title": "Partnereinknek",
+          "affiliate": "Partnerprogram",
+          "wholesale": "Nagykereskedelem",
+          "dropshipping": "Dropshipping",
+          "private_label": "Saját márka"
+        }
+      }
+    },
+    "start_chat": "Csevegés indítása",
+    "breadcrumbs": {
+      "root_aria": "Navigációs útvonal",
+      "home": "Főoldal"
+    }
+  },
+  "search": {
+    "results": {
+      "title": "Keresés",
+      "description": "Keressen termékeket a katalógusban.",
+      "query": "keresés: {query}",
+      "found": "találatok: {count}",
+      "page": "oldal: {page}/{totalPages}",
+      "empty": "A(z) „{query}” kifejezésre nem találhatók termékek.",
+      "enter_query": "Írjon be egy keresési kifejezést a felső sávba."
+    },
+    "input_placeholder": "Írja be, mit keres...",
+    "submit_aria": "Keresés",
+    "input_aria": "Keresés",
+    "clear_aria": "Keresés törlése",
+    "autocomplete": {
+      "loading": "Javaslatok keresése...",
+      "load_failed": "A javaslatokat nem sikerült betölteni.",
+      "empty": "Nincsenek gyors javaslataink a(z) „{query}” kifejezésre.",
+      "sections": {
+        "products": "Termékek",
+        "categories": "Kategóriák",
+        "brands": "Márkák"
+      },
+      "types": {
+        "category": "Kategória",
+        "brand": "Márka"
+      }
+    },
+    "availability": {
+      "in_stock": "Raktáron",
+      "out_of_stock": "Elfogyott"
+    }
+  }
+}

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { useEffect, useState } from "react"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -22,6 +23,7 @@ const QR_PAYMENT_PENDING_TIMEOUT_MS = 15_000
 export function CheckoutCompletedOrderSection({
   completedOrderId,
 }: CheckoutCompletedOrderSectionProps) {
+  const tCheckout = useTranslations("checkout")
   const [hasQrPaymentPendingTimedOut, setHasQrPaymentPendingTimedOut] =
     useState(false)
   const qrPaymentQuery = useQuery({
@@ -73,15 +75,17 @@ export function CheckoutCompletedOrderSection({
     <section className="mx-auto flex max-w-2xl flex-col gap-400">
       <section className="mx-auto max-w-2xl space-y-300 rounded-sm border border-border-primary bg-surface p-350">
         <h2 className="font-semibold text-fg-primary text-xl">
-          Objednávka dokončená
+          {tCheckout("completed_order_title")}
         </h2>
         <StatusText showIcon status="success">
-          {`Objednávka bola vytvorená (${completedOrderId}).`}
+          {tCheckout("completed_order_created", {
+            orderId: completedOrderId,
+          })}
         </StatusText>
 
         {isPreparingQrPayment ? (
           <SupportingText aria-live="polite">
-            Pripravujeme QR údaje na bankový prevod.
+            {tCheckout("completed_order_qr_preparing")}
           </SupportingText>
         ) : null}
 
@@ -89,14 +93,13 @@ export function CheckoutCompletedOrderSection({
 
         {didQrPaymentFail ? (
           <StatusText showIcon size="sm" status="warning">
-            QR platbu sa nepodarilo načítať. Platobné údaje nájdete aj v
-            potvrdení objednávky.
+            {tCheckout("completed_order_qr_failed")}
           </StatusText>
         ) : null}
       </section>
       <div className="flex w-full flex-wrap gap-200">
         <LinkButton as={NextLink} href="/" size="md">
-          Pokračovať v nákupe
+          {tCheckout("completed_order_continue_shopping")}
         </LinkButton>
         <LinkButton
           as={NextLink}
@@ -105,7 +108,7 @@ export function CheckoutCompletedOrderSection({
           theme="outlined"
           variant="secondary"
         >
-          Prejsť na účet
+          {tCheckout("completed_order_go_to_account")}
         </LinkButton>
       </div>
     </section>
@@ -117,23 +120,44 @@ function CheckoutPaymentQrPanel({
 }: {
   qrPayment: StorefrontOrderPaymentQr
 }) {
+  const tCheckout = useTranslations("checkout")
   const amountLabel =
     qrPayment.amount === null
       ? null
       : formatCurrencyAmount(qrPayment.amount, qrPayment.currencyCode)
   const detailRows = [
-    { label: "Suma", value: amountLabel },
-    { label: "IBAN", value: qrPayment.iban },
-    { label: "Variabilný symbol", value: qrPayment.variableSymbol },
-    { label: "Správa", value: qrPayment.message },
-  ].filter((row): row is { label: string; value: string } => Boolean(row.value))
+    {
+      id: "amount",
+      label: tCheckout("completed_order_qr_amount"),
+      value: amountLabel,
+    },
+    {
+      id: "iban",
+      label: tCheckout("completed_order_qr_iban"),
+      value: qrPayment.iban,
+    },
+    {
+      id: "reference",
+      label: tCheckout("completed_order_qr_reference"),
+      value: qrPayment.variableSymbol,
+    },
+    {
+      id: "message",
+      label: tCheckout("completed_order_qr_message"),
+      value: qrPayment.message,
+    },
+  ].filter((row): row is { id: string; label: string; value: string } =>
+    Boolean(row.value)
+  )
 
   return (
     <div className="border-border-primary border-t pt-300">
       <div className="grid w-fit gap-400 sm:grid-cols-[1fr_auto]">
         <div className="flex justify-center sm:justify-start">
           <div
-            aria-label={`QR kód pre platbu objednávky ${qrPayment.orderDisplayId}`}
+            aria-label={tCheckout("completed_order_qr_aria", {
+              orderDisplayId: qrPayment.orderDisplayId,
+            })}
             className="aspect-square w-950 max-w-full overflow-hidden rounded-sm border border-border-primary bg-surface p-200 [&_svg]:h-full [&_svg]:w-full"
             // biome-ignore lint/security/noDangerouslySetInnerHtml: QR SVG is generated server-side with the qrcode library from the SPAYD payment payload.
             dangerouslySetInnerHTML={{ __html: qrPayment.qrSvg }}
@@ -144,17 +168,16 @@ function CheckoutPaymentQrPanel({
         <div className="space-y-250">
           <div className="space-y-100">
             <h3 className="font-semibold text-base text-fg-primary">
-              Platba bankovým prevodom
+              {tCheckout("completed_order_bank_transfer_title")}
             </h3>
             <SupportingText>
-              Naskenujte QR kód v bankovej aplikácii alebo použite platobné
-              údaje nižšie.
+              {tCheckout("completed_order_bank_transfer_instructions")}
             </SupportingText>
           </div>
 
           <dl className="grid gap-150">
             {detailRows.map((row) => (
-              <div className="grid gap-50" key={row.label}>
+              <div className="grid gap-50" key={row.id}>
                 <dt className="font-medium text-fg-secondary text-xs uppercase">
                   {row.label}
                 </dt>

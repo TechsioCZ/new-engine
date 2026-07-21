@@ -8,10 +8,14 @@ import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
 type UseProductDetailGalleryStateProps = {
   galleryItems: GalleryItem[]
+  getFallbackImageAlt: (index: number) => string
+  getOpenImageAriaLabel: (index: number) => string
 }
 
 export function useProductDetailGalleryState({
   galleryItems,
+  getFallbackImageAlt,
+  getOpenImageAriaLabel,
 }: UseProductDetailGalleryStateProps) {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -63,7 +67,7 @@ export function useProductDetailGalleryState({
   const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
     (item, index) => {
       const imageSrc = item.src || FALLBACK_IMAGE_SRC
-      const imageAlt = item.alt || "Produkt"
+      const imageAlt = item.alt || getFallbackImageAlt(index)
       const imageContent = item.content ?? (
         <FallbackImage
           alt={imageAlt}
@@ -83,7 +87,7 @@ export function useProductDetailGalleryState({
         src: imageSrc,
         content: (
           <Button
-            aria-label={`Otvoriť obrázok ${index + 1} v galérii`}
+            aria-label={getOpenImageAriaLabel(index)}
             className="flex h-full w-full cursor-zoom-in items-center justify-center p-0 active:cursor-grabbing"
             onClick={(event) => handleMainImageClick(event, index)}
             onPointerCancel={cancelPendingOpen}

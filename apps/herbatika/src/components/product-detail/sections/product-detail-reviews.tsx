@@ -7,12 +7,11 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
+import { useFormatter, useTranslations } from "next-intl"
 import { createParser, createSerializer, useQueryState } from "nuqs"
 import { useEffect } from "react"
 import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog"
 import {
-  formatReviewCount,
-  formatReviewScore,
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils"
@@ -45,11 +44,13 @@ const serializeReviewPage = createSerializer({
 })
 
 function ProductDetailReviewsSkeleton() {
+  const tCatalog = useTranslations("catalog")
+
   return (
     // biome-ignore lint/a11y/useAriaPropsSupportedByRole: existing loading skeleton announces itself via aria-busy + aria-label; markup kept unchanged.
     <div
       aria-busy="true"
-      aria-label="Načítavam recenzie"
+      aria-label={tCatalog("reviews.loading_aria")}
       className="space-y-500"
     >
       <section className="space-y-350">
@@ -91,26 +92,36 @@ function ProductDetailReviewsHeader({
   productId: string
   totalCount: number
 }) {
+  const format = useFormatter()
+  const tCatalog = useTranslations("catalog")
+  const formattedAverageRating = format.number(averageRating, {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  })
+
   return (
     <header className="flex flex-col gap-350 lg:items-start lg:justify-between">
       <div className="space-y-100">
         <div className="flex flex-wrap items-center gap-300">
           <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
-            Hodnotenie produktu{" "}
+            {tCatalog("reviews.product_title")}{" "}
             <span className="whitespace-nowrap">
               -{" "}
               <span className="text-primary">
-                {formatReviewScore(averageRating)}
+                {formattedAverageRating}
               </span>
             </span>
           </h2>
           <FractionalRating
-            label={`Priemerné hodnotenie produktu ${formatReviewScore(averageRating)} z 5`}
+            label={tCatalog("reviews.rating_aria", {
+              max: 5,
+              rating: formattedAverageRating,
+            })}
             value={averageRating}
           />
         </div>
         <p className="text-fg-secondary text-sm leading-relaxed">
-          Na základe {formatReviewCount(totalCount)} hodnotení
+          {tCatalog("reviews.based_on_count", { count: totalCount })}
         </p>
       </div>
 
@@ -162,6 +173,8 @@ function ProductReviewListItem({ review }: { review: ReviewItem }) {
 }
 
 export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
+  const format = useFormatter()
+  const tCatalog = useTranslations("catalog")
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [currentPage, setCurrentPage] = useQueryState(
@@ -186,7 +199,17 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const reviews = reviewsQuery.reviews
   const totalCount = reviewsQuery.totalCount
   const averageRating = reviewsQuery.summary.average_rating
-  const reviewItems = reviews.map(toReviewItem)
+  const reviewItems = reviews.map((review) =>
+    toReviewItem(review, {
+      anonymousLabel: tCatalog("reviews.anonymous"),
+      formatDate: (date) =>
+        format.dateTime(date, {
+          day: "numeric",
+          month: "numeric",
+          year: "numeric",
+        }),
+    })
+  )
   const isInitialLoading = reviewsQuery.isLoading && reviews.length === 0
   const isEmpty = reviewsQuery.isSuccess && totalCount === 0
   const isPageOutOfRange =
@@ -206,7 +229,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   if (!productId) {
     return (
       <StatusText showIcon status="warning">
-        Recenzie produktu nie sú momentálne dostupné.
+        {tCatalog("reviews.unavailable")}
       </StatusText>
     )
   }
@@ -223,7 +246,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     return (
       <div className="space-y-300">
         <StatusText showIcon status="error">
-          Recenzie sa nepodarilo načítať.
+          {tCatalog("reviews.load_failed")}
         </StatusText>
         <Button
           onClick={() => {
@@ -232,7 +255,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
           size="sm"
           variant="secondary"
         >
-          Skúsiť znova
+          {tCatalog("reviews.retry")}
         </Button>
       </div>
     )
@@ -242,15 +265,15 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     return (
       <div className="rounded-xs border border-border-secondary bg-highlight p-500">
         <p className="font-semibold text-fg-primary text-lg">
-          Tento produkt zatiaľ nemá recenzie.
+          {tCatalog("reviews.empty_title")}
         </p>
         <p className="mt-150 text-fg-secondary text-md leading-relaxed">
-          Po prvých overených hodnoteniach sa zobrazia priamo v tejto sekcii.
+          {tCatalog("reviews.empty_description")}
         </p>
         <div className="mt-300">
           <ProductReviewCreateDialog
             productId={productId}
-            triggerLabel="Napísať prvú recenziu"
+            triggerLabel={tCatalog("reviews.first_action")}
           />
         </div>
       </div>
@@ -267,7 +290,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
 
       {reviewsQuery.isFetching && reviews.length > 0 ? (
         <StatusText showIcon status="default">
-          Aktualizujem recenzie
+          {tCatalog("reviews.refreshing")}
         </StatusText>
       ) : null}
 
@@ -287,6 +310,13 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
             pageSize={PRODUCT_REVIEWS_PAGE_SIZE}
             siblingCount={0}
             size="sm"
+            translations={{
+              itemLabel: ({ page, totalPages }) =>
+                tCatalog("pagination.page_aria", { page, totalPages }),
+              nextTriggerLabel: tCatalog("pagination.next_aria"),
+              prevTriggerLabel: tCatalog("pagination.previous_aria"),
+              rootLabel: tCatalog("pagination.root_aria"),
+            }}
             variant="outlined"
           />
         </div>

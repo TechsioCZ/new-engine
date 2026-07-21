@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 import {
   resolveOrderAddresses,
   resolveOrderContactEmail,
@@ -12,6 +13,7 @@ import {
 import {
   formatOrderAmount,
   formatOrderDate,
+  type OrderStatusTranslator,
   resolveOrderDisplayId,
   resolveOrderFulfillmentStatusLabel,
   resolveOrderInvoiceUrl,
@@ -79,9 +81,11 @@ const resolveOrderAmountSummary = (
 function OrderAddressBlock({
   address,
   title,
+  unavailableText,
 }: {
   address: OrderAddress
   title: string
+  unavailableText: string
 }) {
   return (
     <article className="space-y-150">
@@ -97,7 +101,7 @@ function OrderAddressBlock({
           ))}
         </div>
       ) : (
-        <p className="text-fg-secondary text-sm">Adresa nie je dostupná.</p>
+        <p className="text-fg-secondary text-sm">{unavailableText}</p>
       )}
     </article>
   )
@@ -107,6 +111,12 @@ export function AccountOrderDetailSummary({
   order,
   customerEmail,
 }: AccountOrderDetailSummaryProps) {
+  const locale = useLocale()
+  const tAuth = useTranslations("auth")
+  const tCart = useTranslations("cart")
+  const tForm = useTranslations("form")
+  const translateOrderStatus: OrderStatusTranslator = (group, status) =>
+    tAuth(`account.orders.status.${group}`, { status })
   const orderItems = order.items ?? []
   const amountSummary = resolveOrderAmountSummary(order)
   const addresses = resolveOrderAddresses(order)
@@ -115,19 +125,29 @@ export function AccountOrderDetailSummary({
   const trackingCode = resolveOrderTrackingCode(order)
   const invoiceUrl = resolveOrderInvoiceUrl(order)
   const resolvedEmail = resolveOrderContactEmail(order, customerEmail)
-  const orderProgress = resolveOrderProgressState(order)
-  const paymentStatus = resolveOrderPaymentStatusLabel(order)
-  const fulfillmentStatus = resolveOrderFulfillmentStatusLabel(order)
+  const orderProgress = resolveOrderProgressState(order, translateOrderStatus)
+  const paymentStatus = resolveOrderPaymentStatusLabel(
+    order,
+    translateOrderStatus
+  )
+  const fulfillmentStatus = resolveOrderFulfillmentStatusLabel(
+    order,
+    translateOrderStatus
+  )
 
   return (
     <section className="space-y-400 rounded-lg border border-border-secondary bg-surface p-550">
       <header className="flex flex-wrap items-start justify-between gap-300 border-border-secondary border-b pb-300">
         <div className="space-y-100">
           <h2 className="font-semibold text-xl">
-            {`Objednávka ${resolveOrderDisplayId(order)}`}
+            {tAuth("account.orders.detail.order_title", {
+              orderId: resolveOrderDisplayId(order),
+            })}
           </h2>
           <p className="text-fg-secondary text-sm">
-            {`Vytvorená: ${formatOrderDate(order.created_at)}`}
+            {tAuth("account.orders.detail.created", {
+              date: formatOrderDate(order.created_at, locale),
+            })}
           </p>
         </div>
 
@@ -143,7 +163,7 @@ export function AccountOrderDetailSummary({
               theme="outlined"
               variant="secondary"
             >
-              Faktúra
+              {tAuth("account.orders.invoice")}
             </LinkButton>
           )}
         </div>
@@ -151,30 +171,52 @@ export function AccountOrderDetailSummary({
 
       <div className="grid gap-300 md:grid-cols-2">
         <article className="space-y-100">
-          <h3 className="font-semibold">Zhrnutie platby</h3>
+          <h3 className="font-semibold">
+            {tAuth("account.orders.detail.payment_summary")}
+          </h3>
           <p className="text-fg-secondary text-sm">
-            {`Cena produktov bez DPH: ${formatOrderAmount(amountSummary.itemSubtotal, order.currency_code)}`}
+            {tCart("products_subtotal_excl_tax")}:{" "}
+            {formatOrderAmount(
+              amountSummary.itemSubtotal,
+              order.currency_code
+            )}
           </p>
           <p className="text-fg-secondary text-sm">
-            {`Doprava bez DPH: ${formatOrderAmount(amountSummary.shippingSubtotal, order.currency_code)}`}
+            {tCart("shipping_excl_tax")}:{" "}
+            {formatOrderAmount(
+              amountSummary.shippingSubtotal,
+              order.currency_code
+            )}
           </p>
           <p className="text-fg-secondary text-sm">
-            {`DPH: ${formatOrderAmount(amountSummary.taxTotal, order.currency_code)}`}
+            {tCart("tax")}:{" "}
+            {formatOrderAmount(amountSummary.taxTotal, order.currency_code)}
           </p>
           <p className="font-semibold text-fg-primary text-sm">
-            {`Celkom s DPH: ${formatOrderAmount(amountSummary.total, order.currency_code)}`}
+            {tCart("total_incl_tax")}:{" "}
+            {formatOrderAmount(amountSummary.total, order.currency_code)}
           </p>
         </article>
 
         <article className="space-y-100">
-          <h3 className="font-semibold">Detaily objednávky</h3>
-          <p className="text-fg-secondary text-sm">{`ID: ${order.id}`}</p>
-          <p className="text-fg-secondary text-sm">{`Email: ${resolvedEmail}`}</p>
+          <h3 className="font-semibold">
+            {tAuth("account.orders.detail.order_details")}
+          </h3>
           <p className="text-fg-secondary text-sm">
-            {`Položky: ${resolveOrderItemCount(orderItems)}`}
+            {tAuth("account.orders.detail.order_id", { id: order.id })}
           </p>
           <p className="text-fg-secondary text-sm">
-            {`Aktualizované: ${formatOrderDate(order.updated_at)}`}
+            {tForm("email")}: {resolvedEmail}
+          </p>
+          <p className="text-fg-secondary text-sm">
+            {tAuth("account.orders.detail.items", {
+              count: resolveOrderItemCount(orderItems),
+            })}
+          </p>
+          <p className="text-fg-secondary text-sm">
+            {tAuth("account.orders.detail.updated", {
+              date: formatOrderDate(order.updated_at, locale),
+            })}
           </p>
         </article>
       </div>
@@ -182,41 +224,62 @@ export function AccountOrderDetailSummary({
       <div className="grid gap-300 rounded-md border border-border-secondary bg-base p-350 md:grid-cols-2">
         <OrderAddressBlock
           address={addresses.shipping}
-          title="Doručovacia adresa"
+          title={tAuth("account.orders.detail.shipping_address")}
+          unavailableText={tAuth(
+            "account.orders.detail.address_unavailable"
+          )}
         />
         <OrderAddressBlock
           address={addresses.billing}
-          title="Fakturačná adresa"
+          title={tAuth("account.orders.detail.billing_address")}
+          unavailableText={tAuth(
+            "account.orders.detail.address_unavailable"
+          )}
         />
       </div>
 
       <div className="grid gap-300 rounded-md border border-border-secondary bg-base p-350 md:grid-cols-3">
         <article className="space-y-100">
-          <h3 className="font-semibold">Doprava</h3>
+          <h3 className="font-semibold">
+            {tAuth("account.orders.detail.shipping")}
+          </h3>
           <p className="text-fg-secondary text-sm">
-            {shippingMethod ?? "Spôsob dopravy nie je dostupný"}
+            {shippingMethod ??
+              tAuth("account.orders.detail.shipping_unavailable")}
           </p>
           {fulfillmentStatus && (
             <p className="text-fg-secondary text-sm">
-              {`Stav: ${fulfillmentStatus}`}
+              {tAuth("account.orders.detail.status", {
+                status: fulfillmentStatus,
+              })}
             </p>
           )}
         </article>
 
         <article className="space-y-100">
-          <h3 className="font-semibold">Platba</h3>
+          <h3 className="font-semibold">
+            {tAuth("account.orders.detail.payment")}
+          </h3>
           <p className="text-fg-secondary text-sm">
-            {paymentMethod ?? "Spôsob platby nie je dostupný"}
+            {paymentMethod ??
+              tAuth("account.orders.detail.payment_unavailable")}
           </p>
           {paymentStatus && (
-            <p className="text-fg-secondary text-sm">{`Stav: ${paymentStatus}`}</p>
+            <p className="text-fg-secondary text-sm">
+              {tAuth("account.orders.detail.status", {
+                status: paymentStatus,
+              })}
+            </p>
           )}
         </article>
 
         <article className="space-y-100">
-          <h3 className="font-semibold">Tracking</h3>
+          <h3 className="font-semibold">
+            {tAuth("account.orders.detail.tracking")}
+          </h3>
           <p className="text-fg-secondary text-sm">
-            {trackingCode ?? "Tracking kód nie je dostupný"}
+            {trackingCode ??
+              tAuth("account.orders.detail.tracking_unavailable")}
           </p>
         </article>
       </div>

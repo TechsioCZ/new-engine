@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
+import { useTranslations } from "next-intl"
 import { Fragment } from "react"
 import { AccountProductListItemRow } from "@/components/product-lists/account-product-list-item-row"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -19,20 +20,23 @@ type ProductListTabsProps = {
 }
 
 function ProductListEmptyPanel() {
+  const tAuth = useTranslations("auth")
+
   return (
     <div className="rounded-md border border-border-secondary bg-base p-400">
       <p className="text-fg-secondary text-sm">
-        Tento zoznam je zatiaľ prázdny.
+        {tAuth("product_lists.list_empty")}
       </p>
     </div>
   )
 }
 
 function ProductListItemsSkeleton() {
+  const tAuth = useTranslations("auth")
   const rows = [0, 1, 2] as const
 
   return (
-    <Skeleton aria-label="Načítavam produkty zoznamu">
+    <Skeleton aria-label={tAuth("product_lists.loading_items_aria")}>
       <div className="space-y-250">
         {rows.map((row) => (
           <article
@@ -72,25 +76,37 @@ function ProductListSummary({
 }: {
   accountLists: AccountProductListsController
 }) {
+  const tAuth = useTranslations("auth")
+  const tCart = useTranslations("cart")
   const availabilitySummary = accountLists.activeListAvailabilitySummary
   const isAddingListToCart =
     accountLists.createListCartMutation.isPending ||
     accountLists.isAddingListToCart
+  const addToCartLabel = availabilitySummary.canAddWholeList
+    ? tAuth("product_lists.availability.add_all")
+    : availabilitySummary.canAddAnyToCart
+      ? tAuth("product_lists.availability.add_available")
+      : tAuth("product_lists.availability.none_available")
+  const unavailablePriceLabel = tAuth("product_lists.price_unavailable")
 
   return (
     <div className="pt-300">
       <div className="ml-auto w-full space-y-200 sm:max-w-sm">
         <div className="space-y-100 text-sm">
           <div className="flex items-center justify-between gap-300">
-            <span className="text-fg-secondary">Celkom bez DPH</span>
+            <span className="text-fg-secondary">
+              {tCart("products_subtotal_excl_tax")}
+            </span>
             <span className="font-medium">
-              {accountLists.activeListPriceSummary.totalWithoutTaxLabel}
+              {accountLists.activeListPriceSummary.totalWithoutTaxLabel ??
+                unavailablePriceLabel}
             </span>
           </div>
           <div className="flex items-center justify-between gap-300">
-            <span className="font-semibold">Celkom s DPH</span>
+            <span className="font-semibold">{tCart("total_incl_tax")}</span>
             <span className="font-bold text-lg">
-              {accountLists.activeListPriceSummary.totalWithTaxLabel}
+              {accountLists.activeListPriceSummary.totalWithTaxLabel ??
+                unavailablePriceLabel}
             </span>
           </div>
         </div>
@@ -99,7 +115,7 @@ function ProductListSummary({
           disabled={!accountLists.activeListCanCreateCart || isAddingListToCart}
           icon="token-icon-cart"
           isLoading={isAddingListToCart}
-          loadingText="Pridávam"
+          loadingText={tCart("adding_to_cart")}
           onClick={() => {
             runDetachedPromise(accountLists.handleAddListToCart())
           }}
@@ -107,7 +123,7 @@ function ProductListSummary({
           type="button"
           variant="primary"
         >
-          {availabilitySummary.addToCartLabel}
+          {addToCartLabel}
         </Button>
       </div>
     </div>
@@ -119,12 +135,30 @@ function ProductListActiveContent({
 }: {
   accountLists: AccountProductListsController
 }) {
+  const tAuth = useTranslations("auth")
+
   if (accountLists.activeListQuery.isLoading) {
     return <ProductListItemsSkeleton />
   }
 
   if (accountLists.activeListQuery.error) {
-    return null
+    return (
+      <div className="space-y-300 rounded-md border border-border-secondary p-400">
+        <p className="text-danger text-sm">
+          {tAuth("product_lists.errors.list_load_failed")}
+        </p>
+        <Button
+          onClick={() => {
+            runDetachedPromise(accountLists.activeListQuery.query.refetch())
+          }}
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
+          {tAuth("product_lists.retry")}
+        </Button>
+      </div>
+    )
   }
 
   if (accountLists.activeProductsAreLoading) {
@@ -171,6 +205,12 @@ function ProductListActiveContent({
 }
 
 export function ProductListTabs({ accountLists }: ProductListTabsProps) {
+  const tAuth = useTranslations("auth")
+  const titleLabels = {
+    favorite: tAuth("product_lists.favorite_title"),
+    untitled: tAuth("product_lists.untitled_list"),
+  }
+
   return (
     <Tabs
       onValueChange={accountLists.selectList}
@@ -181,7 +221,7 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
       <div className="flex items-center gap-100 overflow-x-auto">
         <Tabs.List className="min-w-max border-product-list-tabs-border bg-base">
           {accountLists.sortedLists.map((list) => {
-            const listTitle = getProductListTitle(list)
+            const listTitle = getProductListTitle(list, titleLabels)
             const canDeleteList = !isFavoriteProductList(list)
 
             return (
@@ -191,7 +231,9 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
                 </Tabs.Trigger>
                 {canDeleteList ? (
                   <Button
-                    aria-label={`Zmazať zoznam ${listTitle}`}
+                    aria-label={tAuth("product_lists.delete_list_aria", {
+                      listTitle,
+                    })}
                     disabled={accountLists.deleteListMutation.isPending}
                     icon="token-icon-close"
                     onClick={() => accountLists.openDeleteListDialog(list.id)}
@@ -207,7 +249,7 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
           <Tabs.Indicator />
         </Tabs.List>
         <Button
-          aria-label="Vytvoriť nový zoznam"
+          aria-label={tAuth("product_lists.create_list_aria")}
           disabled={accountLists.createListMutation.isPending}
           icon="token-icon-plus"
           onClick={accountLists.openCreateListDialog}

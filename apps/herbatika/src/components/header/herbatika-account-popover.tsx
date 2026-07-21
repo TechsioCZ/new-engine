@@ -4,11 +4,13 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { LoginForm } from "@/components/auth/login-form"
 import { useAuthController } from "@/components/auth/use-auth-controller"
 
 export function HerbatikaAccountPopover() {
+  const tAuth = useTranslations("auth")
   const controller = useAuthController({ mode: "login" })
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
 
@@ -23,7 +25,7 @@ export function HerbatikaAccountPopover() {
   if (controller.authQuery.isAuthenticated) {
     return (
       <LinkButton
-        aria-label="Účet"
+        aria-label={tAuth("account_label")}
         as={NextLink}
         className="px-0 py-0 text-fg-secondary text-icon-2xl hover:text-primary"
         href="/account"
@@ -45,7 +47,7 @@ export function HerbatikaAccountPopover() {
       shadow={false}
     >
       <Popover.Trigger className="px-0 py-0 text-3xl hover:bg-transparent data-[state=open]:bg-transparent">
-        <span className="sr-only">Prihlásenie</span>
+        <span className="sr-only">{tAuth("login.short_title")}</span>
         <Icon
           className="text-3xl text-fg-secondary hover:text-primary"
           icon="token-icon-user"
@@ -55,7 +57,7 @@ export function HerbatikaAccountPopover() {
       <Popover.Positioner>
         <Popover.Content className="w-[22rem] max-w-[calc(100vw-2rem)]">
           <Popover.Arrow />
-          <Popover.Title>Prihlásenie</Popover.Title>
+          <Popover.Title>{tAuth("login.short_title")}</Popover.Title>
           <LoginForm
             defaultValues={controller.loginDefaultValues}
             forgotPasswordHref={controller.forgotPasswordHref}

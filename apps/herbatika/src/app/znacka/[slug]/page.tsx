@@ -1,6 +1,7 @@
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { Metadata } from "next"
 import { notFound, redirect } from "next/navigation"
+import { getTranslations } from "next-intl/server"
 import { BrandListing } from "@/components/brands/brand-listing"
 import { createBrandHref, resolveBrandBySlug } from "@/lib/storefront/brands"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
@@ -45,17 +46,22 @@ export async function generateMetadata({
   params,
 }: Pick<BrandPageProps, "params">): Promise<Metadata> {
   const { slug } = await params
-  const brand = await resolveBrandPageData(slug)
+  const [brand, tCatalog] = await Promise.all([
+    resolveBrandPageData(slug),
+    getTranslations("catalog"),
+  ])
 
   if (!brand) {
-    return {
-      title: "Značka | Herbatica",
-    }
+    return {}
   }
 
   return {
-    title: `${brand.title} | Značky Herbatica`,
-    description: `Produkty značky ${brand.title} dostupné v e-shope Herbatica.`,
+    title: tCatalog("brands.metadata.detail_title", {
+      brandName: brand.title,
+    }),
+    description: tCatalog("brands.metadata.detail_description", {
+      brandName: brand.title,
+    }),
   }
 }
 

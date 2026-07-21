@@ -1,3 +1,5 @@
+import type { Metadata } from "next"
+import { getTranslations } from "next-intl/server"
 import { ProductReviewTokenPage } from "@/components/reviews/product-review-token-page"
 
 type ProductReviewTokenRouteProps = {
@@ -12,8 +14,12 @@ type ProductReviewTokenRouteProps = {
 const resolveSearchParam = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value
 
-export const metadata = {
-  title: "Napísať recenziu | Herbatica",
+export async function generateMetadata(): Promise<Metadata> {
+  const tCatalog = await getTranslations("catalog")
+
+  return {
+    title: tCatalog("reviews.token.metadata_title"),
+  }
 }
 
 export default async function ProductReviewTokenRoute({

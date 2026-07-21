@@ -1,6 +1,7 @@
 "use client"
 
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import type {
   SearchAutocompleteStatus,
@@ -37,21 +38,6 @@ export const getSearchAutocompleteOptionId = (
   item: SearchAutocompleteSuggestion
 ) => `${panelId}-${item.type}-${item.id}`
 
-const resolveStatusMessage = (
-  status: SearchAutocompleteStatus,
-  query: string
-) => {
-  if (status === "loading") {
-    return "Hľadáme návrhy..."
-  }
-
-  if (status === "error") {
-    return "Návrhy sa nepodarilo načítať."
-  }
-
-  return `Pre výraz "${query}" nemáme rýchle návrhy.`
-}
-
 function SearchAutocompleteRow({
   activeItemId,
   item,
@@ -65,8 +51,16 @@ function SearchAutocompleteRow({
   item: SearchAutocompleteSuggestion
   panelId: string
 }) {
+  const t = useTranslations("search")
   const optionId = getSearchAutocompleteOptionId(panelId, item)
   const isActive = activeItemId === optionId
+  let subtitle = item.subtitle
+
+  if (!subtitle && item.type === "category") {
+    subtitle = t("autocomplete.types.category")
+  } else if (!subtitle && item.type === "brand") {
+    subtitle = t("autocomplete.types.brand")
+  }
 
   return (
     <li role="presentation">
@@ -87,9 +81,9 @@ function SearchAutocompleteRow({
           <span className="block truncate font-semibold text-sm leading-snug">
             {item.title}
           </span>
-          {item.subtitle ? (
+          {subtitle ? (
             <span className="block truncate text-fg-secondary text-xs leading-snug">
-              {item.subtitle}
+              {subtitle}
             </span>
           ) : null}
         </span>
@@ -104,7 +98,9 @@ function SearchAutocompleteRow({
               <span
                 className={item.inStock ? "text-success" : "text-fg-secondary"}
               >
-                {item.inStock ? "Skladom" : "Vypredané"}
+                {item.inStock
+                  ? t("availability.in_stock")
+                  : t("availability.out_of_stock")}
               </span>
             ) : null}
           </span>
@@ -124,7 +120,15 @@ export function SearchAutocompletePanel({
   sections,
   status,
 }: SearchAutocompletePanelProps) {
+  const t = useTranslations("search")
   const hasItems = sections.some((section) => section.items.length > 0)
+  let statusMessage = t("autocomplete.empty", { query })
+
+  if (status === "loading") {
+    statusMessage = t("autocomplete.loading")
+  } else if (status === "error") {
+    statusMessage = t("autocomplete.load_failed")
+  }
 
   if (!hasItems) {
     return (
@@ -135,7 +139,7 @@ export function SearchAutocompletePanel({
           className={`block px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}
           id={id}
         >
-          {resolveStatusMessage(status, query)}
+          {statusMessage}
         </output>
       </div>
     )

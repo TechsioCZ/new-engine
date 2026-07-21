@@ -3,17 +3,15 @@ import { sanitizeHtml } from "@/components/product-detail/utils/html-sanitizer"
 
 type ProductDetailHtmlContentProps = {
   html: string
-  fallback: string
 }
 
 export function ProductDetailHtmlContent({
   html,
-  fallback,
 }: ProductDetailHtmlContentProps) {
   const sanitizedHtml = sanitizeHtml(html)
 
   if (!sanitizedHtml) {
-    return <p className="text-fg-secondary text-md">{fallback}</p>
+    return null
   }
 
   return (

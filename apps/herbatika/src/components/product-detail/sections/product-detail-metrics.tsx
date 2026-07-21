@@ -1,8 +1,8 @@
 "use client"
 
+import { useFormatter, useTranslations } from "next-intl"
 import { ReviewSkeleton } from "@/components/loading/review-skeleton"
 import {
-  formatReviewScore,
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils"
@@ -35,6 +35,8 @@ export function ProductDetailMetrics({
   onShowAllReviews,
   productId,
 }: ProductDetailMetricsProps) {
+  const format = useFormatter()
+  const tCatalog = useTranslations("catalog")
   const reviewsQuery = useProductReviews({
     enabled: Boolean(productId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
@@ -43,7 +45,17 @@ export function ProductDetailMetrics({
   })
   const reviews = reviewsQuery.reviews
     .slice(0, PRODUCT_REVIEW_TEASER_LIMIT)
-    .map(toReviewItem)
+    .map((review) =>
+      toReviewItem(review, {
+        anonymousLabel: tCatalog("reviews.anonymous"),
+        formatDate: (date) =>
+          format.dateTime(date, {
+            day: "numeric",
+            month: "numeric",
+            year: "numeric",
+          }),
+      })
+    )
 
   if (!productId) {
     return null
@@ -70,7 +82,10 @@ export function ProductDetailMetrics({
       }}
       ratingValue={reviewsQuery.summary.average_rating}
       reviews={reviews}
-      scoreLabel={formatReviewScore(reviewsQuery.summary.average_rating)}
+      scoreLabel={format.number(reviewsQuery.summary.average_rating, {
+        maximumFractionDigits: 1,
+        minimumFractionDigits: 1,
+      })}
       sectionClassName="space-y-500 pt-750"
       variant="product"
     />

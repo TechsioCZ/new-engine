@@ -1,9 +1,11 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useEffect } from "react"
 import {
   CHECKOUT_STEPS,
+  type CheckoutStepId,
   type CheckoutStepSlug,
 } from "@/components/checkout/checkout.constants"
 import {
@@ -26,6 +28,18 @@ type CheckoutFlowProps = {
 export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
   const router = useRouter()
   const controller = useCheckoutController()
+  const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
+  const checkoutStepTitles = {
+    address: tCheckout("customer_details"),
+    cart: tCart("title"),
+    "shipping-payment": tCheckout("shipping_payment"),
+    summary: tCheckout("summary"),
+  } satisfies Record<CheckoutStepId, string>
+  const checkoutSteps = CHECKOUT_STEPS.map((step) => ({
+    ...step,
+    title: checkoutStepTitles[step.id],
+  }))
   const requiredStep = resolveRequiredCheckoutStepSlug({
     hasItems: controller.hasItems,
     hasPayment: controller.hasPayment,
@@ -73,7 +87,8 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-600 px-400 pt-600 pb-850 font-rubik lg:px-550 xl:px-700">
       <CheckoutStepsSection
         checkoutStepIndex={checkoutStepIndex}
-        steps={CHECKOUT_STEPS}
+        completedAriaLabel={tCheckout("completed_aria")}
+        steps={checkoutSteps}
       />
 
       <CheckoutFeedbackSection

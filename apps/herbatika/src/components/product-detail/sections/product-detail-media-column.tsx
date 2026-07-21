@@ -7,6 +7,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types"
 import { ProductDetailGalleryLightbox } from "@/components/product-detail/sections/product-detail-gallery-lightbox"
 import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
@@ -24,6 +25,8 @@ export function ProductDetailMediaColumn({
   galleryItems,
   mediaFacts,
 }: ProductDetailMediaColumnProps) {
+  const tCatalog = useTranslations("catalog")
+  const tNavigation = useTranslations("navigation")
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"
   const {
@@ -33,7 +36,13 @@ export function ProductDetailMediaColumn({
     safeSelectedImageIndex,
     setIsLightboxOpen,
     setSelectedImageIndex,
-  } = useProductDetailGalleryState({ galleryItems })
+  } = useProductDetailGalleryState({
+    galleryItems,
+    getFallbackImageAlt: (index) =>
+      tCatalog("product_detail.gallery.image_alt", { index: index + 1 }),
+    getOpenImageAriaLabel: (index) =>
+      tCatalog("product_detail.gallery.thumbnail_aria", { index: index + 1 }),
+  })
 
   return (
     <div className="min-w-0 space-y-300">
@@ -109,7 +118,7 @@ export function ProductDetailMediaColumn({
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-250 rounded-base border border-primary/20 bg-surface p-400 md:flex-nowrap lg:max-xl:grid lg:max-xl:grid-cols-2 xl:flex-wrap">
         <div className="flex min-w-0 items-center gap-150 lg:max-xl:col-span-2">
           <NextImage
-            alt="Poradca Herbatika"
+            alt={tCatalog("product_detail.advisor.image_alt")}
             className="size-11 shrink-0 rounded-full object-cover"
             height={46}
             quality={50}
@@ -118,10 +127,10 @@ export function ProductDetailMediaColumn({
           />
           <div className="min-w-0 space-y-0">
             <p className="font-bold text-fg-strong text-lg leading-tight">
-              Potrebujete poradiť?
+              {tCatalog("product_detail.advisor.title")}
             </p>
             <SupportingText className="text-fg-secondary text-xs leading-tight">
-              Kontaktujte nás, radi vám pomôžeme
+              {tCatalog("product_detail.advisor.description")}
             </SupportingText>
           </div>
         </div>
@@ -147,7 +156,7 @@ export function ProductDetailMediaColumn({
           theme="outlined"
           variant="primary"
         >
-          Spustiť chat
+          {tNavigation("start_chat")}
         </LinkButton>
       </div>
     </div>

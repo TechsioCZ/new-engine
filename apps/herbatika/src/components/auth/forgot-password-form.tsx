@@ -4,10 +4,11 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
-import { useState } from "react"
+import { useTranslations } from "next-intl"
+import { useMemo, useState } from "react"
 import {
+  createForgotPasswordValidators,
   type ForgotPasswordFormValues,
-  forgotPasswordValidators,
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -26,8 +27,18 @@ export const ForgotPasswordForm = ({
   loginHref,
   onSubmit,
 }: ForgotPasswordFormProps) => {
+  const tAuth = useTranslations("auth")
+  const tForm = useTranslations("form")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
+  const forgotPasswordValidators = useMemo(
+    () =>
+      createForgotPasswordValidators({
+        emailInvalid: tForm("validation.email_invalid"),
+        emailRequired: tForm("validation.email_required"),
+      }),
+    [tForm]
+  )
 
   const form = useHerbatikaForm({
     defaultValues,
@@ -46,11 +57,10 @@ export const ForgotPasswordForm = ({
     return (
       <div className="flex flex-col gap-300">
         <StatusText showIcon={false} status="success">
-          {`Odkaz na obnovu hesla sme odoslali na ${submittedEmail}. Skontrolujte si schránku.`}
+          {tAuth("forgot.sent", { email: submittedEmail })}
         </StatusText>
         <p className="text-fg-secondary text-sm">
-          E-mail vám nedorazil? Skontrolujte priečinok spam alebo to skúste
-          znovu o pár minút.
+          {tAuth("forgot.delivery_help")}
         </p>
         <div className="flex flex-wrap gap-200">
           <LinkButton
@@ -60,7 +70,7 @@ export const ForgotPasswordForm = ({
             size="sm"
             variant="primary"
           >
-            Späť na prihlásenie
+            {tAuth("back_to_login")}
           </LinkButton>
         </div>
       </div>
@@ -87,7 +97,7 @@ export const ForgotPasswordForm = ({
           <field.TextField
             autoComplete="email"
             id="auth-forgot-password-email"
-            label="E-mail"
+            label={tForm("email")}
             onValueChange={() => setSubmitError(null)}
             required
             type="email"
@@ -98,10 +108,14 @@ export const ForgotPasswordForm = ({
 
       <div className="flex flex-wrap gap-200">
         <Button block isLoading={isBusy} size="sm" type="submit">
-          Zaslať odkaz
+          {tAuth("forgot.submit")}
         </Button>
       </div>
-      <AuthFooter href="/auth/login" linkText="Späť na prihlásenie" text="" />
+      <AuthFooter
+        href={loginHref}
+        linkText={tAuth("back_to_login")}
+        text=""
+      />
     </form>
   )
 }

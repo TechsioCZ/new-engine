@@ -3,6 +3,7 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { type ComponentPropsWithoutRef, Fragment } from "react"
 
 type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
@@ -27,14 +28,6 @@ function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
   return `${item.href?.toString() ?? "current"}-${item.label}-${index}`
 }
 
-function getIconOnlyLabel(item: HerbatikaBreadcrumbItem) {
-  if (item.ariaLabel || item.label || !item.icon) {
-    return item.ariaLabel
-  }
-
-  return "Domov"
-}
-
 function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {
   return (
     <>
@@ -50,6 +43,8 @@ export function HerbatikaBreadcrumb({
   items,
   ...breadcrumbProps
 }: HerbatikaBreadcrumbProps) {
+  const t = useTranslations("navigation")
+
   if (items.length === 0) {
     return null
   }
@@ -57,7 +52,11 @@ export function HerbatikaBreadcrumb({
   const hasExplicitCurrent = items.some((item) => item.isCurrent)
 
   return (
-    <Breadcrumb {...breadcrumbProps} className="font-inter">
+    <Breadcrumb
+      aria-label={t("breadcrumbs.root_aria")}
+      {...breadcrumbProps}
+      className="font-inter"
+    >
       <Breadcrumb.List>
         {items.map((item, index) => {
           const isLastItem = index === items.length - 1
@@ -70,14 +69,14 @@ export function HerbatikaBreadcrumb({
               <Breadcrumb.Item>
                 {isCurrentPage ? (
                   <Breadcrumb.CurrentLink
-                    aria-label={getIconOnlyLabel(item)}
+                    aria-label={item.ariaLabel}
                     className="font-bold"
                   >
                     <BreadcrumbItemContent item={item} />
                   </Breadcrumb.CurrentLink>
                 ) : (
                   <Breadcrumb.Link
-                    aria-label={getIconOnlyLabel(item)}
+                    aria-label={item.ariaLabel}
                     as={NextLink}
                     href={item.href ?? "#"}
                     {...item.linkProps}

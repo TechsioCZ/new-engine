@@ -3,6 +3,7 @@ import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import {
   HerbatikaProductGrid,
@@ -15,8 +16,8 @@ import { CategorySortTabs } from "./category-sort-tabs"
 
 type CategoryResultsSectionProps = {
   activeSort: ProductSortValue
-  categoriesError: string | null
-  catalogError: string | null
+  categoriesError: unknown
+  catalogError: unknown
   isEmpty: boolean
   isLoading: boolean
   isProductAdding: (productId: string) => boolean
@@ -31,7 +32,6 @@ type CategoryResultsSectionProps = {
   layout?: HerbatikaProductGridLayout
   loadingSkeleton?: ReactNode
   showCategoryNotFound: boolean
-  sortItems: Array<{ label: string; value: ProductSortValue }>
   totalCount: number
   totalPages: number
   totalProducts: number
@@ -45,7 +45,7 @@ export function CategoryResultsSection({
   isEmpty,
   isLoading,
   isProductAdding,
-  emptyMessage = "V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený filter.",
+  emptyMessage,
   onAddToCart,
   onProductHoverEnd,
   onProductHoverStart,
@@ -56,13 +56,14 @@ export function CategoryResultsSection({
   layout = "catalog",
   loadingSkeleton,
   showCategoryNotFound,
-  sortItems,
   totalCount,
   totalPages,
   totalProducts,
   isRefreshing = false,
 }: CategoryResultsSectionProps) {
+  const t = useTranslations("catalog")
   const getPageUrl = usePaginationUrlBuilder()
+  const resolvedEmptyMessage = emptyMessage ?? t("results.empty_category")
   const resolvedLoadingSkeleton = loadingSkeleton ?? (
     <HerbatikaProductGridSkeleton layout={layout} />
   )
@@ -74,7 +75,6 @@ export function CategoryResultsSection({
       <CategorySortTabs
         activeSort={activeSort}
         onSortChange={onSortChange}
-        sortItems={sortItems}
         totalProducts={totalProducts}
       />
 
@@ -82,20 +82,19 @@ export function CategoryResultsSection({
         <Skeleton.Rectangle className="h-100 rounded-full" speed="fast" />
       ) : null}
 
-      {categoriesError && (
+      {categoriesError ? (
         <StatusText showIcon status="error">
-          {categoriesError}
+          {t("errors.categories_load_failed")}
         </StatusText>
-      )}
-      {catalogError && (
+      ) : null}
+      {catalogError ? (
         <StatusText showIcon status="error">
-          {catalogError}
+          {t("errors.products_load_failed")}
         </StatusText>
-      )}
+      ) : null}
       {showCategoryNotFound && (
         <StatusText showIcon status="error">
-          Kategóriu sa nepodarilo nájsť. Skontrolujte URL alebo vyberte inú
-          kategóriu.
+          {t("results.category_not_found")}
         </StatusText>
       )}
 
@@ -103,7 +102,7 @@ export function CategoryResultsSection({
 
       {!(isLoading || showCategoryNotFound) && isEmpty && (
         <div className="rounded-lg border border-border-secondary bg-base p-400">
-          <p className="text-fg-secondary text-sm">{emptyMessage}</p>
+          <p className="text-fg-secondary text-sm">{resolvedEmptyMessage}</p>
         </div>
       )}
 
@@ -127,6 +126,16 @@ export function CategoryResultsSection({
           page={page}
           pageSize={pageSize}
           size="sm"
+          translations={{
+            itemLabel: ({ page: itemPage, totalPages: itemTotalPages }) =>
+              t("pagination.page_aria", {
+                page: itemPage,
+                totalPages: itemTotalPages,
+              }),
+            nextTriggerLabel: t("pagination.next_aria"),
+            prevTriggerLabel: t("pagination.previous_aria"),
+            rootLabel: t("pagination.root_aria"),
+          }}
           variant="outlined"
         />
       )}

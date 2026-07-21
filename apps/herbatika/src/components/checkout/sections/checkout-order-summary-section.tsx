@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { SupportingText } from "@/components/text/supporting-text"
 import {
@@ -34,12 +35,21 @@ export function CheckoutOrderSummarySection({
   shippingLabel,
   shippingAmount,
 }: CheckoutOrderSummarySectionProps) {
+  const tCart = useTranslations("cart")
+  const tCheckout = useTranslations("checkout")
   const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik"
+  const shippingExclTaxLabel = shippingLabel
+    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
+    : tCart("shipping_excl_tax")
 
   return (
     <section className={`space-y-300 rounded-sm sm:p-550 ${detailsFontClass}`}>
       <header>
-        <h2 className="font-medium text-fg-primary text-xl leading-relaxed">{`Váš košík (${cartItems.length})`}</h2>
+        <h2 className="font-medium text-fg-primary text-xl leading-relaxed">
+          {tCart("title_with_count", {
+            count: cartItems.length,
+          })}
+        </h2>
       </header>
 
       <div className="space-y-250">
@@ -93,7 +103,11 @@ export function CheckoutOrderSummarySection({
                     <p className="shrink-0 font-semibold text-fg-primary text-lg">
                       {itemPrice}
                     </p>
-                    <SupportingText className="text-fg-secondary">{`${itemQuantity} ks`}</SupportingText>
+                    <SupportingText className="text-fg-secondary">
+                      {tCheckout("item_quantity", {
+                        quantity: itemQuantity,
+                      })}
+                    </SupportingText>
                   </div>
                 </div>
                 <p className="inline-flex 2xs:hidden w-full items-start gap-150 font-medium text-success-fg text-xs leading-normal">
@@ -111,7 +125,7 @@ export function CheckoutOrderSummarySection({
           })
         ) : (
           <SupportingText className="text-fg-secondary">
-            Košík je zatiaľ prázdny.
+            {tCheckout("empty_cart_title")}
           </SupportingText>
         )}
       </div>
@@ -119,7 +133,7 @@ export function CheckoutOrderSummarySection({
       <div className="space-y-200 border-border-primary border-t">
         <div className="flex items-center justify-between border-border-primary border-b">
           <span className="py-200 text-fg-secondary">
-            Cena produktov bez DPH
+            {tCart("products_subtotal_excl_tax")}
           </span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(cartItemsWithoutTaxAmount, currencyCode)}
@@ -127,25 +141,29 @@ export function CheckoutOrderSummarySection({
         </div>
         <div className="flex items-center justify-between border-border-primary border-b py-200">
           <span className="text-fg-secondary">
-            {shippingLabel ? `${shippingLabel} bez DPH` : "Doprava bez DPH"}
+            {shippingExclTaxLabel}
           </span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(shippingAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between border-border-primary border-b py-200">
-          <span className="text-fg-secondary">DPH</span>
+          <span className="text-fg-secondary">{tCart("tax")}</span>
           <p className="font-medium text-fg-primary text-md">
             {formatCurrencyAmount(cartTaxAmount, currencyCode)}
           </p>
         </div>
         <div className="flex items-center justify-between py-200">
-          <span className="text-fg-secondary">{paymentLabel || "Platba"}</span>
-          <p className="font-medium text-md text-success-fg">Zadarmo</p>
+          <span className="text-fg-secondary">
+            {paymentLabel || tCheckout("payment")}
+          </span>
+          <p className="font-medium text-md text-success-fg">
+            {tCheckout("free")}
+          </p>
         </div>
         <div className="flex items-start justify-between border-border-primary border-t pt-150">
           <span className="font-semibold text-fg-primary text-md md:mt-150">
-            Spolu s DPH
+            {tCart("total_incl_tax")}
           </span>
           <div className="flex flex-col items-end gap-200">
             <p className="font-bold text-2xl text-fg-primary">

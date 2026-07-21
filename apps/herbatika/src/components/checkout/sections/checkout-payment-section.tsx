@@ -1,9 +1,9 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import {
-  resolvePaymentDescription,
-  resolvePaymentHint,
+  formatProviderLabel,
+  resolvePaymentDisplayTextKeys,
   resolvePaymentIcon,
-  resolveProviderLabel,
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -40,21 +40,48 @@ export function CheckoutPaymentSection({
   selectedPaymentProviderId,
   selectionMessage,
 }: CheckoutPaymentSectionProps) {
+  const tCheckout = useTranslations("checkout")
+
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
       <header>
-        <h2 className="font-medium text-fg-primary text-xl">Platba</h2>
+        <h2 className="font-medium text-fg-primary text-xl">
+          {tCheckout("payment")}
+        </h2>
       </header>
       <div className="grid gap-150">
         {paymentProviders.length > 0 ? (
           <CheckoutOptionRadioCard
-            label="Platba"
+            label={tCheckout("payment")}
             onValueChange={(value) => {
               runDetachedPromise(onSelectPaymentProvider(value))
             }}
             options={paymentProviders.map((provider, index) => {
               const providerId = resolveProviderId(provider)
-              const providerLabel = resolveProviderLabel(providerId)
+              const displayTextKeys =
+                resolvePaymentDisplayTextKeys(providerId)
+              let providerLabel =
+                displayTextKeys.providerName ?? formatProviderLabel(providerId)
+              if (displayTextKeys.labelKey) {
+                providerLabel = displayTextKeys.providerName
+                  ? tCheckout(displayTextKeys.labelKey, {
+                      providerName: displayTextKeys.providerName,
+                    })
+                  : tCheckout(displayTextKeys.labelKey)
+              }
+
+              let paymentDescription: string | undefined
+              if (displayTextKeys.descriptionKey) {
+                paymentDescription = displayTextKeys.providerName
+                  ? tCheckout(displayTextKeys.descriptionKey, {
+                      providerName: displayTextKeys.providerName,
+                    })
+                  : tCheckout(displayTextKeys.descriptionKey)
+              }
+
+              const paymentHint = displayTextKeys.hintKey
+                ? tCheckout(displayTextKeys.hintKey)
+                : displayTextKeys.hintValue
               const isProviderSelectable = Boolean(
                 providerId && canInitiatePayment
               )
@@ -62,10 +89,10 @@ export function CheckoutPaymentSection({
               return {
                 disabled:
                   isBusy || isInitiatingPayment || !isProviderSelectable,
-                bodyText: resolvePaymentDescription(providerId),
-                hint: resolvePaymentHint(providerId),
+                bodyText: paymentDescription,
+                hint: paymentHint,
                 icon: resolvePaymentIcon(providerId),
-                priceLabel: "Zadarmo",
+                priceLabel: tCheckout("free"),
                 priceTone: "success" as const,
                 title: providerLabel,
                 value: providerId || `${providerLabel}-${index}`,
@@ -74,9 +101,7 @@ export function CheckoutPaymentSection({
             value={selectedPaymentProviderId ?? null}
           />
         ) : (
-          <SupportingText>
-            Nie sú dostupné žiadne platobné metódy.
-          </SupportingText>
+          <SupportingText>{tCheckout("no_payment_methods")}</SupportingText>
         )}
         {paymentProviders.length > 0 && selectionMessage ? (
           <PaymentSelectionMessage message={selectionMessage} />

@@ -2,7 +2,14 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import { useMemo, useRef, useState } from "react"
+import {
+  CARRIER_PICKUP_FAILURE_KEYS,
+  type CarrierPickupFailureReason,
+  resolveCarrierPickupWidgetLanguage,
+} from "@/components/checkout/carrier-pickup.utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PplAccessPointWidget } from "../ppl-widget"
 import type {
   PplAccessPoint,
@@ -22,66 +29,88 @@ export function CheckoutPplPickupSelector({
   disabled,
   onConfirm,
 }: CheckoutPplPickupSelectorProps) {
+  const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
   const widgetRef = useRef<PplWidgetHandle | null>(null)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [failureReason, setFailureReason] =
+    useState<CarrierPickupFailureReason | null>(null)
   const [selectedPoint, setSelectedPoint] = useState<PplAccessPoint | null>(
     null
   )
+  const fallbackPointLabel = tCheckout("pickup_point_fallback")
 
   const widgetConfig = useMemo(
     () => ({
       accessPointCode: selectedPoint?.code ?? undefined,
+      allowedCountries: [marketContext.countryCode.toUpperCase()],
+      countriesMenuDisabled: true,
+      defaultCountry: marketContext.countryCode.toUpperCase(),
+      defaultLang: resolveCarrierPickupWidgetLanguage(marketContext.locale),
       viewMode: "modal" as const,
     }),
-    [selectedPoint?.code]
+    [
+      marketContext.countryCode,
+      marketContext.locale,
+      selectedPoint?.code,
+    ]
   )
 
   if (!PPL_WIDGET_API_KEY) {
     return (
       <StatusText showIcon size="sm" status="error">
-        Chýba konfigurácia PPL widgetu. Doplňte NEXT_PUBLIC_PPL_WIDGET_API_KEY a
-        reštartujte dev server.
+        {tCheckout("pickup_selector_unavailable")}
       </StatusText>
     )
   }
 
   const handleOpenWidget = () => {
-    setErrorMessage(null)
+    setFailureReason(null)
     widgetRef.current?.open()
   }
 
   const handleWidgetError = (error: PplWidgetError) => {
-    setErrorMessage(error.message || "PPL widget sa nepodarilo načítať.")
+    console.error("PPL pickup widget failed", error)
+    setFailureReason("selector_unavailable")
   }
 
   const handleSelect = (accessPoint: PplAccessPoint) => {
     if (!accessPoint.code) {
-      setErrorMessage("PPL nevrátilo kód výdajného miesta.")
+      console.error("PPL pickup point selection is missing a code")
+      setFailureReason("selection_failed")
       return
     }
 
     setSelectedPoint(accessPoint)
-    setErrorMessage(null)
-    onConfirm(buildPplShippingData(accessPoint))
+    setFailureReason(null)
+    onConfirm(buildPplShippingData(accessPoint, fallbackPointLabel))
     widgetRef.current?.close()
   }
+
+  const selectedPointAddress = selectedPoint
+    ? formatPplAddress(selectedPoint)
+    : null
 
   return (
     <div className="grid gap-150">
       {selectedPoint ? (
         <div className="grid gap-50">
           <p className="font-medium text-fg-primary text-sm">
-            Výdajné miesto: {selectedPoint.name ?? selectedPoint.code}
+            {tCheckout("selected_pickup_point", {
+              pickupPointName:
+                selectedPoint.name ?? selectedPoint.code ?? fallbackPointLabel,
+            })}
           </p>
-          <p className="text-fg-secondary text-xs">
-            {formatPplAddress(selectedPoint)}
-          </p>
+          {selectedPointAddress ? (
+            <p className="text-fg-secondary text-xs">
+              {selectedPointAddress}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
-      {errorMessage ? (
+      {failureReason ? (
         <StatusText showIcon size="sm" status="error">
-          {errorMessage}
+          {tCheckout(CARRIER_PICKUP_FAILURE_KEYS[failureReason])}
         </StatusText>
       ) : null}
 
@@ -92,7 +121,9 @@ export function CheckoutPplPickupSelector({
         type="button"
         variant="primary"
       >
-        {selectedPoint ? "Zmeniť výdajné miesto" : "Vybrať výdajné miesto"}
+        {selectedPoint
+          ? tCheckout("change_pickup_point")
+          : tCheckout("select_pickup_point")}
       </Button>
 
       <PplAccessPointWidget
@@ -106,11 +137,15 @@ export function CheckoutPplPickupSelector({
   )
 }
 
-function buildPplShippingData(accessPoint: PplAccessPoint) {
+function buildPplShippingData(
+  accessPoint: PplAccessPoint,
+  fallbackPointLabel: string
+) {
   const address = accessPoint.address
   const payload: Record<string, unknown> = {
     access_point_id: accessPoint.code,
-    access_point_name: accessPoint.name,
+    access_point_name:
+      accessPoint.name ?? accessPoint.code ?? fallbackPointLabel,
     access_point_type: accessPoint.type,
     access_point_street: address?.street,
     access_point_city: address?.city,
@@ -131,5 +166,5 @@ function formatPplAddress(accessPoint: PplAccessPoint) {
     address?.city,
   ].filter(Boolean)
 
-  return addressParts.length > 0 ? addressParts.join(", ") : "PPL ParcelShop"
+  return addressParts.length > 0 ? addressParts.join(", ") : null
 }

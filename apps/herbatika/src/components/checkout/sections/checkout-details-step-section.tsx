@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextLink from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -33,6 +34,7 @@ export function CheckoutDetailsStepSection({
   nextStepHref,
 }: CheckoutDetailsStepSectionProps) {
   const router = useRouter()
+  const tCheckout = useTranslations("checkout")
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
   const hasCarrierPickupShipping =
@@ -45,7 +47,7 @@ export function CheckoutDetailsStepSection({
     <section className="space-y-300">
       <header className="xl:pt-550">
         <h2 className="font-inter font-medium text-fg-primary text-xl leading-relaxed">
-          Vaše údaje
+          {tCheckout("customer_details")}
         </h2>
       </header>
 
@@ -97,7 +99,7 @@ export function CheckoutDetailsStepSection({
                 {(field) => (
                   <field.CheckboxField
                     id="checkout-use-same-address"
-                    label="Fakturačná adresa je rovnaká ako doručovacia"
+                    label={tCheckout("billing_same_as_shipping")}
                     onValueChange={(nextUseSameAddress) => {
                       controller.checkoutDetailsForm.trackUseSameAddressIntent(
                         nextUseSameAddress
@@ -132,7 +134,7 @@ export function CheckoutDetailsStepSection({
                 showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
                 showCompanyPurchaseToggle
                 showContactFields={false}
-                title="Fakturačné údaje"
+                title={tCheckout("billing_details")}
               />
             )}
           </>
@@ -149,7 +151,9 @@ export function CheckoutDetailsStepSection({
           theme="outlined"
           variant="tertiary"
         >
-          <span className="font-normal">Späť na dopravu a platbu</span>
+          <span className="font-normal">
+            {tCheckout("back_to_shipping_payment")}
+          </span>
         </LinkButton>
         <Button
           className="w-full sm:w-auto sm:min-w-950"
@@ -161,7 +165,9 @@ export function CheckoutDetailsStepSection({
           size="lg"
           type="submit"
         >
-          <span className="font-normal uppercase">Pokračovať na súhrn</span>
+          <span className="font-normal uppercase">
+            {tCheckout("continue_to_summary")}
+          </span>
         </Button>
       </div>
     </section>

@@ -44,22 +44,11 @@ export const resolveProductLocationAvailabilityState = (
   isInventoryManaged: options.isInventoryManaged !== false,
 })
 
-export const formatLocationAvailability = (
-  availableQuantity: number,
-  options: { isInventoryManaged?: boolean | null } = {}
+export const normalizeLocationAvailabilityQuantity = (
+  availableQuantity: number
 ) => {
-  if (options.isInventoryManaged === false) {
-    return "Skladom"
-  }
-
   const finiteQuantity = Number.isFinite(availableQuantity)
     ? availableQuantity
     : 0
-  const normalizedQuantity = Math.max(0, Math.floor(finiteQuantity))
-
-  if (normalizedQuantity > 10) {
-    return "Skladom (>10 ks)"
-  }
-
-  return `${normalizedQuantity} ks`
+  return Math.max(0, Math.floor(finiteQuantity))
 }

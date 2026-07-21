@@ -2,12 +2,17 @@
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { useEffect, useState } from "react"
+import { useMarketContext } from "./market-context-provider"
 import {
   getStoredRegionPreference,
   persistRegionPreference,
 } from "./region-preferences"
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config"
-import { resolveRegionByIdOrDefault, toRegionInfo } from "./region-selection"
+import {
+  regionMatchesMarket,
+  resolveRegionForMarket,
+  toRegionInfo,
+} from "./region-selection"
 import { storefront } from "./storefront"
 
 const regionHooks = storefront.hooks.regions
@@ -27,6 +32,7 @@ type UseRegionBootstrapOptions = {
 
 export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
   const initialRegion = options.initialRegion ?? null
+  const marketContext = useMarketContext()
 
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(
     initialRegion?.region_id ?? null
@@ -53,7 +59,11 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
       return
     }
 
-    const resolvedRegion = resolveRegionByIdOrDefault(regions, selectedRegionId)
+    const resolvedRegion = resolveRegionForMarket(
+      regions,
+      marketContext,
+      selectedRegionId
+    )
 
     if (!resolvedRegion) {
       return
@@ -63,26 +73,30 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
       setSelectedRegionId(resolvedRegion.id)
     }
 
-    persistRegionPreference(toRegionInfo(resolvedRegion))
-  }, [regions, selectedRegionId])
+    persistRegionPreference(
+      toRegionInfo(resolvedRegion, marketContext.countryCode)
+    )
+  }, [marketContext, regions, selectedRegionId])
 
-  const selectedRegion = selectedRegionId
-    ? (regions.find(
-        (candidateRegion) => candidateRegion.id === selectedRegionId
-      ) ?? null)
-    : null
-  const region = selectedRegion ? toRegionInfo(selectedRegion) : initialRegion
+  const selectedRegion = resolveRegionForMarket(
+    regions,
+    marketContext,
+    selectedRegionId
+  )
+  const region = selectedRegion
+    ? toRegionInfo(selectedRegion, marketContext.countryCode)
+    : initialRegion
 
   const setRegionById = (regionId: string) => {
     const nextRegion = regions.find(
       (candidateRegion) => candidateRegion.id === regionId
     )
-    if (!nextRegion) {
+    if (!nextRegion || !regionMatchesMarket(nextRegion, marketContext)) {
       return
     }
 
     setSelectedRegionId(nextRegion.id)
-    persistRegionPreference(toRegionInfo(nextRegion))
+    persistRegionPreference(toRegionInfo(nextRegion, marketContext.countryCode))
   }
 
   return {

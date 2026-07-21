@@ -1,11 +1,8 @@
-import {
-  RELATED_PRODUCTS_PER_SECTION,
-  RELATED_RECOMMENDATION_SECTION_TITLES,
-} from "@/components/product-detail/product-detail.constants"
 import type {
   Product,
   RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types"
+import { RELATED_PRODUCTS_PER_SECTION } from "@/lib/storefront/related-products-config"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value)
@@ -135,9 +132,10 @@ const fillSectionProducts = (
 }
 
 export const resolveRelatedSections = (
-  products: Product[]
+  products: Product[],
+  sectionTitles: readonly string[]
 ): RelatedProductsSection[] => {
-  const recommendationSections = RELATED_RECOMMENDATION_SECTION_TITLES.map(
+  const recommendationSections = sectionTitles.map(
     (title, sectionIndex) => ({
       id: `related-${sectionIndex}`,
       title,

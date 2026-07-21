@@ -20,7 +20,7 @@ export type ProductOfferState = {
   code: string | null
   ean: string | null
   availabilityLabel: string
-  deliveryLabel: string
+  expectedDeliveryDate: Date | null
   stockAmount: number | null
   isInStock: boolean
   offerSource: Record<string, unknown> | null

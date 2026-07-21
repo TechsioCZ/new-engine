@@ -31,34 +31,6 @@ const resolveLineItemTopOffer = (
   )
 }
 
-export const toSkDate = (date: Date) => {
-  const day = `${date.getDate()}`.padStart(2, "0")
-  const month = `${date.getMonth() + 1}`.padStart(2, "0")
-  const year = date.getFullYear()
-
-  return `${day}.${month}.${year}`
-}
-
-export const addBusinessDays = (start: Date, daysToAdd: number) => {
-  const date = new Date(start)
-  let remainingDays = daysToAdd
-
-  while (remainingDays > 0) {
-    date.setDate(date.getDate() + 1)
-    const dayOfWeek = date.getDay()
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      remainingDays -= 1
-    }
-  }
-
-  return date
-}
-
-export const resolveFallbackDeliveryLabel = () => {
-  const deliveryDate = addBusinessDays(new Date(), 3)
-  return `u Vás do ${toSkDate(deliveryDate)}`
-}
-
 export const resolveOriginalLineItemTotalAmount = (
   item: HttpTypes.StoreCartLineItem,
   product?: HttpTypes.StoreProduct | null
@@ -98,8 +70,9 @@ export const resolveAvailabilityText = (
 
   const availabilityLabel =
     asStorefrontString(topOffer?.availability_in_stock) ?? "Na sklade"
-  const deliveryLabel =
-    asStorefrontString(topOffer?.delivery_label) ??
-    resolveFallbackDeliveryLabel()
-  return `${availabilityLabel}, ${deliveryLabel}`
+  const deliveryLabel = asStorefrontString(topOffer?.delivery_label)
+
+  return deliveryLabel
+    ? `${availabilityLabel}, ${deliveryLabel}`
+    : availabilityLabel
 }

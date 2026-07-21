@@ -1,6 +1,7 @@
 "use client"
 
-import { registerValidators } from "@/lib/auth/auth-form-validators"
+import { useTranslations } from "next-intl"
+import type { RegisterFormValidators } from "@/lib/auth/auth-form-validators"
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,
@@ -9,36 +10,36 @@ import type {
 type RegisterAccountTypeFieldProps = {
   form: RegisterFormController
   onValueChange?: RegisterFieldChangeHandler
+  validators: RegisterFormValidators["account_type"]
 }
-
-const REGISTER_ACCOUNT_TYPE_ITEMS = [
-  {
-    value: "retail",
-    label: "Bežný zákazník",
-    description: "Registrácia bez žiadosti o veľkoobchodný účet.",
-  },
-  {
-    value: "wholesale",
-    label: "VO zákazník",
-    description: "Po registrácii odošleme žiadosť na schválenie.",
-  },
-]
 
 export function RegisterAccountTypeField({
   form,
   onValueChange,
+  validators,
 }: RegisterAccountTypeFieldProps) {
+  const tAuth = useTranslations("auth")
+  const accountTypeItems = [
+    {
+      value: "retail",
+      label: tAuth("register.retail_label"),
+      description: tAuth("register.retail_description"),
+    },
+    {
+      value: "wholesale",
+      label: tAuth("register.wholesale_label"),
+      description: tAuth("register.wholesale_description"),
+    },
+  ]
+
   return (
-    <form.AppField
-      name="account_type"
-      validators={registerValidators.account_type}
-    >
+    <form.AppField name="account_type" validators={validators}>
       {(field) => (
         <field.RadioGroupField
           className="gap-300"
           id="auth-register-account-type"
-          items={REGISTER_ACCOUNT_TYPE_ITEMS}
-          label="Typ účtu"
+          items={accountTypeItems}
+          label={tAuth("register.account_type")}
           onValueChange={onValueChange}
           orientation="horizontal"
           required

@@ -7,6 +7,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { useLocale, useTranslations } from "next-intl"
 import NextLink from "next/link"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
@@ -28,7 +29,7 @@ type ProductInfoLink = {
 
 const resolveProductInfoLink = (
   product: Product,
-  primaryCategory?: HttpTypes.StoreProductCategory
+  primaryCategory: HttpTypes.StoreProductCategory | undefined
 ): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
   const brandTitle = asString(brand?.title)
@@ -43,13 +44,14 @@ const resolveProductInfoLink = (
     }
   }
 
-  if (!primaryCategory?.handle) {
+  const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
+  if (!(primaryCategory?.handle && primaryCategoryName)) {
     return null
   }
 
   return {
     href: `/c/${primaryCategory.handle}`,
-    label: normalizeCategoryName(primaryCategory.name),
+    label: primaryCategoryName,
   }
 }
 
@@ -92,9 +94,16 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
+  const locale = useLocale()
+  const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
   const primaryCategory = productCategories[0]
   const productInfoLink = resolveProductInfoLink(product, primaryCategory)
-  const flags = resolveFlags(product, Boolean(displayOriginalLabel))
+  const flags = resolveFlags(product, Boolean(displayOriginalLabel), {
+    action: tCatalog("filters.status.action"),
+    new: tCatalog("filters.status.new"),
+    tip: tCatalog("filters.status.tip"),
+  })
   const displayHighlights = productHighlights
     .map((highlight) => highlight.replace(/\s+/g, " ").trim())
     .filter(Boolean)
@@ -195,10 +204,12 @@ export function ProductDetailPurchasePanel({
               />
               <div className="min-w-0 space-y-50">
                 <p className="font-semibold text-fg-primary text-md leading-tight">
-                  VIP kredit
+                  {tCatalog("product_detail.vip_credit.title")}
                 </p>
                 <p className="break-words text-fg-secondary text-sm leading-tight">
-                  {`Nákupom získate ${vipCreditLabel}`}
+                  {tCatalog("product_detail.vip_credit.earned", {
+                    credit: vipCreditLabel,
+                  })}
                 </p>
               </div>
             </div>
@@ -215,10 +226,14 @@ export function ProductDetailPurchasePanel({
             size="lg"
             value={selectedVariantId ? [selectedVariantId] : []}
           >
-            <Select.Label>Varianta</Select.Label>
+            <Select.Label>
+              {tCatalog("product_detail.variant_label")}
+            </Select.Label>
             <Select.Control>
               <Select.Trigger className="rounded-select-lg">
-                <Select.ValueText placeholder="Vyberte variantu" />
+                <Select.ValueText
+                  placeholder={tCatalog("product_detail.variant_placeholder")}
+                />
               </Select.Trigger>
             </Select.Control>
             <Select.Positioner>
@@ -238,6 +253,7 @@ export function ProductDetailPurchasePanel({
           <NumericInput
             className="w-full min-w-0 px-0 xl:px-300"
             id="product-quantity"
+            locale={locale}
             max={maxQuantity}
             min={1}
             onChange={(value) => {
@@ -252,7 +268,15 @@ export function ProductDetailPurchasePanel({
           >
             <NumericInput.Control className="grid h-full grid-cols-3 place-items-center">
               <NumericInput.DecrementTrigger className="min-h-750 w-auto" />
-              <NumericInput.Input className="min-h-750 px-0 py-0 text-center" />
+              <NumericInput.Input
+                aria-label={tCatalog("product_detail.quantity_aria", {
+                  productName:
+                    product.title?.trim() ||
+                    product.handle?.trim() ||
+                    product.id,
+                })}
+                className="min-h-750 px-0 py-0 text-center"
+              />
               <NumericInput.IncrementTrigger className="min-h-750 w-auto" />
             </NumericInput.Control>
           </NumericInput>
@@ -263,11 +287,11 @@ export function ProductDetailPurchasePanel({
             icon="token-icon-cart"
             iconSize="xl"
             isLoading={isAdding}
-            loadingText="Pridávam..."
+            loadingText={tCart("adding_to_cart")}
             onClick={onAddToCart}
             variant="primary"
           >
-            Pridať do košíka
+            {tCart("add_to_cart")}
           </Button>
         </div>
       </section>

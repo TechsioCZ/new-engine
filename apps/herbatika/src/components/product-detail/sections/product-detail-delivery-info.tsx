@@ -3,10 +3,11 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useFormatter, useTranslations } from "next-intl"
 import type { ProductOfferState } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
 import {
-  formatLocationAvailability,
+  normalizeLocationAvailabilityQuantity,
   type ProductLocationAvailabilityState,
 } from "@/lib/storefront/product-location-availability"
 
@@ -16,13 +17,13 @@ type ProductDetailDeliveryInfoProps = {
   offerState: ProductOfferState
 }
 
-const DELIVERY_DATE_LABEL_PATTERN = /^u vás do\s+(.+)$/i
-
 export function ProductDetailDeliveryInfo({
   freeShippingThresholdLabel,
   locationAvailabilityState,
   offerState,
 }: ProductDetailDeliveryInfoProps) {
+  const format = useFormatter()
+  const tCatalog = useTranslations("catalog")
   const { error, isInventoryManaged, isLoading, items } =
     locationAvailabilityState
   const showLocationAvailability =
@@ -31,9 +32,26 @@ export function ProductDetailDeliveryInfo({
   const availabilityToneClass = offerState.isInStock
     ? "text-primary"
     : "text-warning"
-  const deliveryDateMatch = DELIVERY_DATE_LABEL_PATTERN.exec(
-    offerState.deliveryLabel
-  )
+  const expectedDeliveryDateLabel = offerState.expectedDeliveryDate
+    ? format.dateTime(offerState.expectedDeliveryDate, {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+      })
+    : null
+  const getLocationAvailabilityLabel = (availableQuantity: number) => {
+    if (!isInventoryManaged) {
+      return tCatalog("product_detail.location_availability.in_stock")
+    }
+
+    const quantity = normalizeLocationAvailabilityQuantity(availableQuantity)
+
+    return quantity > 10
+      ? tCatalog("product_detail.location_availability.more_than", {
+          quantity: 10,
+        })
+      : tCatalog("product_detail.location_availability.quantity", { quantity })
+  }
 
   return (
     <div className="space-y-400 rounded-lg bg-surface p-550">
@@ -49,16 +67,13 @@ export function ProductDetailDeliveryInfo({
             <span className={`font-semibold ${availabilityToneClass}`}>
               {offerState.availabilityLabel}
             </span>
-            {deliveryDateMatch && (
-              <>
-                <span className="font-normal text-fg-secondary">
-                  , u vás do{" "}
-                </span>
-                <span className="font-semibold text-fg-primary">
-                  {deliveryDateMatch[1]}
-                </span>
-              </>
-            )}
+            {expectedDeliveryDateLabel ? (
+              <span className="font-normal text-fg-secondary">
+                {`, ${tCatalog("product_detail.delivery_by", {
+                  date: expectedDeliveryDateLabel,
+                })}`}
+              </span>
+            ) : null}
           </SupportingText>
         </div>
 
@@ -69,17 +84,20 @@ export function ProductDetailDeliveryInfo({
               icon="token-icon-truck-delivery text-icon-delivery-size"
             />
             <SupportingText className="text-fg-secondary text-md leading-snug">
-              Doručenie zdarma nad{" "}
-              <span className="font-semibold text-primary">
-                {freeShippingThresholdLabel}
-              </span>
+              {tCatalog("product_detail.free_shipping_over", {
+                threshold: freeShippingThresholdLabel,
+              })}
             </SupportingText>
           </div>
         ) : null}
       </div>
 
       {isLoading ? (
-        <Skeleton aria-label="Načítavam dostupnosť podľa skladov">
+        <Skeleton
+          aria-label={tCatalog(
+            "product_detail.location_availability.loading_aria"
+          )}
+        >
           <div className="grid gap-250 border-border-secondary border-t pt-400 sm:grid-cols-2">
             <Skeleton.Rectangle className="h-500 rounded-sm" />
             <Skeleton.Rectangle className="h-500 rounded-sm" />
@@ -104,9 +122,7 @@ export function ProductDetailDeliveryInfo({
                 <dd
                   className={`shrink-0 text-right font-semibold text-sm ${isAvailable ? "text-primary" : "text-warning"}`}
                 >
-                  {formatLocationAvailability(location.available_quantity, {
-                    isInventoryManaged,
-                  })}
+                  {getLocationAvailabilityLabel(location.available_quantity)}
                 </dd>
               </div>
             )
@@ -116,7 +132,7 @@ export function ProductDetailDeliveryInfo({
 
       {showLocationAvailabilityError ? (
         <StatusText showIcon size="sm" status="warning">
-          Dostupnosť podľa skladov sa nepodarilo načítať.
+          {tCatalog("product_detail.location_availability.error")}
         </StatusText>
       ) : null}
     </div>

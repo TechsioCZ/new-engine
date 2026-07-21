@@ -3,6 +3,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import NextImage from "next/image"
+import { useTranslations } from "next-intl"
 import NextLink from "next/link"
 import {
   type HerbatikaProductCardBaseProps,
@@ -25,15 +26,23 @@ export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
 export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
   const { product, onProductHoverStart, onProductHoverEnd } = props
   const { descriptionOverride, isAdding, onAddToCart } = props
+  const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
   const { handleImageError, imageSrc, price, productHref, title } =
-    useHerbatikaProductCardState(product)
+    useHerbatikaProductCardState(product, {
+      priceUnavailableLabel: tCatalog("product_card.price_on_request"),
+    })
   const defaultVariant = product.variants?.[0] ?? null
   const defaultVariantInventory = resolveVariantInventoryState(defaultVariant)
   const canAddToCart =
     defaultVariantInventory.isPurchasable &&
     typeof price.currentAmount === "number"
   const discountLabel = resolveDiscountLabel(price)
-  const flags = resolveFlags(product, Boolean(discountLabel))
+  const flags = resolveFlags(product, Boolean(discountLabel), {
+    action: tCatalog("filters.status.action"),
+    new: tCatalog("filters.status.new"),
+    tip: tCatalog("filters.status.tip"),
+  })
   const description =
     descriptionOverride && descriptionOverride.trim().length > 0
       ? descriptionOverride
@@ -121,6 +130,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               icon="token-icon-cart"
               iconSize="2xl"
               isLoading={isAdding}
+              loadingText={tCart("adding_to_cart")}
               onClick={() => {
                 runDetachedPromise(onAddToCart(product))
               }}
@@ -128,7 +138,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
               type="button"
               variant="primary"
             >
-              Do košíka
+              {tCart("add_to_cart")}
             </Button>
           </ProductCard.Actions>
         </div>

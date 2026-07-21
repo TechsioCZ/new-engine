@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-  formatLocationAvailability,
+  normalizeLocationAvailabilityQuantity,
   resolveProductLocationAvailabilityState,
   resolveSelectedVariantLocationAvailability,
 } from "./product-location-availability"
@@ -25,23 +25,17 @@ const availability = {
   ],
 }
 
-describe("formatLocationAvailability", () => {
+describe("normalizeLocationAvailabilityQuantity", () => {
   it.each([
-    [Number.NaN, "0 ks"],
-    [-2, "0 ks"],
-    [0, "0 ks"],
-    [1, "1 ks"],
-    [10, "10 ks"],
-    [10.9, "10 ks"],
-    [11, "Skladom (>10 ks)"],
-  ])("formats %s as %s", (quantity, expected) => {
-    expect(formatLocationAvailability(quantity)).toBe(expected)
-  })
-
-  it("formats unmanaged inventory as generally in stock", () => {
-    expect(formatLocationAvailability(0, { isInventoryManaged: false })).toBe(
-      "Skladom"
-    )
+    [Number.NaN, 0],
+    [-2, 0],
+    [0, 0],
+    [1, 1],
+    [10, 10],
+    [10.9, 10],
+    [11, 11],
+  ])("normalizes %s as %s", (quantity, expected) => {
+    expect(normalizeLocationAvailabilityQuantity(quantity)).toBe(expected)
   })
 })
 

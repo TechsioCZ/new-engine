@@ -2,6 +2,7 @@
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
+import { useTranslations } from "next-intl"
 import { Suspense } from "react"
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 import { ProductDetailHtmlContent } from "@/components/product-detail/product-detail-html-content"
@@ -38,13 +39,14 @@ export function ProductDetailTabs({
   productId,
   sections,
 }: ProductDetailTabsProps) {
+  const tCatalog = useTranslations("catalog")
   const selectedSectionValue = activeSectionValue ?? defaultSectionValue
   const tabSections = productId
     ? [
         ...sections,
         {
           key: PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
-          title: "Hodnotenie",
+          title: tCatalog("reviews.tab_label"),
           html: "",
         },
       ]
@@ -53,7 +55,7 @@ export function ProductDetailTabs({
   return (
     <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
       <h2 className="mb-400 font-semibold text-3xl text-fg-primary">
-        Informácie o produkte
+        {tCatalog("product_detail.information_title")}
       </h2>
 
       <div className="hidden lg:block">
@@ -88,10 +90,7 @@ export function ProductDetailTabs({
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                 <ProductDetailReviewsSlot productId={productId} />
               ) : (
-                <ProductDetailHtmlContent
-                  fallback="Obsah sekcie bude čoskoro doplnený."
-                  html={section.html}
-                />
+                <ProductDetailHtmlContent html={section.html} />
               )}
             </Tabs.Content>
           ))}
@@ -118,10 +117,7 @@ export function ProductDetailTabs({
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                   <ProductDetailReviewsSlot productId={productId} />
                 ) : (
-                  <ProductDetailHtmlContent
-                    fallback="Obsah sekcie bude čoskoro doplnený."
-                    html={section.html}
-                  />
+                  <ProductDetailHtmlContent html={section.html} />
                 )}
               </Accordion.Content>
             </Accordion.Item>
