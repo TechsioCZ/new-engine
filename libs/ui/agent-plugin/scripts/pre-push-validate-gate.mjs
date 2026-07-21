@@ -17,6 +17,7 @@
  * Exit codes: 0 = allow, 2 = block (stderr is fed back to the agent).
  */
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs";
 
 // Boundaries include quotes and `=`, not just whitespace: an alias definition inlined into the
@@ -28,6 +29,37 @@ const IS_PUSH = new RegExp(`(^|${B})push(${B}|$)`);
 
 /** Flags that take a separate value, so the following token is not the subcommand. */
 const GIT_GLOBAL_WITH_VALUE = new Set(["-c", "-C", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+
+/**
+ * The directory the git command actually operates in. `git -C <dir>` (repeatable, applied
+ * cumulatively) changes it before the subcommand runs, so `git -C /path/to/ui-kit push
+ * --no-verify` issued from a consumer cwd still targets the ui-kit worktree. Resolve it so the
+ * scope check and alias lookup use the real target repo, not the shell tool's cwd — otherwise the
+ * guard would wave that push through and `--no-verify` would skip the installed pre-push gate.
+ * We only need the working directory here, not full ref resolution; git's own pre-push hook stays
+ * the real gate.
+ */
+function effectiveGitCwd(command, startCwd) {
+  const tokens = command.trim().split(/\s+/);
+  const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"));
+  if (gitIdx === -1) return startCwd;
+  let dir = startCwd;
+  for (let i = gitIdx + 1; i < tokens.length; i++) {
+    const t = tokens[i];
+    if (t === "-C" && tokens[i + 1]) {
+      dir = resolve(dir, tokens[i + 1]); // -C is relative to the current effective dir
+      i++;
+      continue;
+    }
+    if (GIT_GLOBAL_WITH_VALUE.has(t)) {
+      i++;
+      continue;
+    }
+    if (t.startsWith("-")) continue;
+    break; // first non-flag token = the subcommand; -C only precedes it
+  }
+  return dir;
+}
 
 const gitConfig = (key, cwd) => {
   try {
@@ -105,13 +137,15 @@ process.stdin.on("end", () => {
   if (typeof command !== "string" || !/\bgit\b/.test(command)) process.exit(0);
 
   const cwd = input?.cwd || process.cwd();
+  // Honour `git -C <dir>`: the command may target the ui-kit repo from a different cwd.
+  const gitCwd = effectiveGitCwd(command, cwd);
 
   // The plugin may be installed globally, so this hook fires in arbitrary consumer repos.
   // There is only something to protect in the ui-kit source repo — the only place the
   // installer puts the pre-push hook (it guards paths under libs/ui/, which only exist there).
-  if (!isUiKitSourceRepo(cwd)) process.exit(0);
+  if (!isUiKitSourceRepo(gitCwd)) process.exit(0);
 
-  const resolved = expandAliases(command, cwd);
+  const resolved = expandAliases(command, gitCwd);
 
   // Check the raw text AND the alias-resolved text. The resolved form catches an alias stored in
   // config (`alias.publish = push --no-verify`, whose call site shows neither token); the raw form
