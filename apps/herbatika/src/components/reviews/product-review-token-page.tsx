@@ -6,7 +6,10 @@ import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
-import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
+import {
+  resolveProductReviewSubmitErrorMessage,
+  translateProductReviewErrorMessages,
+} from "@/components/reviews/product-review-errors"
 import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
@@ -48,21 +51,7 @@ export function ProductReviewTokenPage({
   const backLabel = productHref
     ? tCatalog("reviews.token.back_to_product")
     : tCatalog("reviews.token.back_to_store")
-  const reviewErrorMessages = {
-    authRequired: tCatalog("reviews.errors.auth_required"),
-    contentRequired: tCatalog("reviews.errors.content_required"),
-    duplicate: tCatalog("reviews.errors.duplicate"),
-    forbidden: tCatalog("reviews.errors.forbidden"),
-    generic: tCatalog("reviews.errors.generic"),
-    purchaseRequired: tCatalog("reviews.errors.purchase_required"),
-    ratingRequired: tCatalog("reviews.errors.rating_required"),
-    titleInvalid: tCatalog("reviews.errors.title_invalid"),
-    tokenExpired: tCatalog("reviews.errors.token_expired"),
-    tokenMismatch: tCatalog("reviews.errors.token_mismatch"),
-    tokenNotFound: tCatalog("reviews.errors.token_not_found"),
-    tokenUsed: tCatalog("reviews.errors.token_used"),
-    validation: tCatalog("reviews.errors.validation"),
-  }
+  const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
       setSubmitError(

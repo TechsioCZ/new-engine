@@ -1,8 +1,5 @@
 import { normalizeCountryCode } from "@/lib/forms/country-options"
-import {
-  DEFAULT_ADDRESS_VALIDATION_MESSAGES,
-  type AddressValidationMessages,
-} from "@/lib/forms/validators/address-validation-messages"
+import type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import {
   createCustomerNameValidator,
   createEmailAddressValidator,
@@ -116,7 +113,3 @@ export const createAddressFieldValidators = (
     4
   ),
 })
-
-export const addressFieldValidators = createAddressFieldValidators(
-  DEFAULT_ADDRESS_VALIDATION_MESSAGES
-)

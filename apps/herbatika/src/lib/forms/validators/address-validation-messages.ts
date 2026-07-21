@@ -1,3 +1,5 @@
+import type { useTranslations } from "next-intl"
+
 export type AddressValidationMessages = {
   addressMinLength: string
   addressRequired: string
@@ -23,27 +25,31 @@ export type AddressValidationMessages = {
   taxIdRequired: string
 }
 
-export const DEFAULT_ADDRESS_VALIDATION_MESSAGES: AddressValidationMessages = {
-  addressMinLength: "Ulica a číslo domu musí mať aspoň 2 znaky.",
-  addressRequired: "Zadajte ulicu a číslo domu.",
-  cityMinLength: "Mesto musí mať aspoň 2 znaky.",
-  cityRequired: "Zadajte mesto.",
-  companyIdMinLength: "IČO musí mať aspoň 4 znaky.",
-  companyIdRequired: "Zadajte IČO.",
-  companyNameMinLength: "Názov firmy musí mať aspoň 2 znaky.",
-  companyNameRequired: "Zadajte názov firmy.",
-  countryInvalid: "Vyberte platnú krajinu.",
-  countryRequired: "Vyberte krajinu.",
-  emailInvalid: "Zadajte platný e-mail.",
-  emailRequired: "Zadajte e-mail.",
-  firstNameMinLength: "Meno musí mať aspoň 2 znaky.",
-  lastNameMinLength: "Priezvisko musí mať aspoň 2 znaky.",
-  phoneInvalid: "Zadajte platné telefónne číslo.",
-  phoneMinDigits: "Telefónne číslo musí obsahovať aspoň 7 číslic.",
-  phoneRequired: "Zadajte telefón.",
-  postalCodeInvalid: "Zadajte platné PSČ.",
-  postalCodeMinDigits: "PSČ musí obsahovať aspoň 4 číslice.",
-  postalCodeRequired: "Zadajte PSČ.",
-  taxIdMinLength: "DIČ musí mať aspoň 4 znaky.",
-  taxIdRequired: "Zadajte DIČ.",
-}
+type FormTranslator = ReturnType<typeof useTranslations<"form">>
+
+export const translateAddressValidationMessages = (
+  translate: FormTranslator
+): AddressValidationMessages => ({
+  addressMinLength: translate("validation.address_min_length"),
+  addressRequired: translate("validation.address_required"),
+  cityMinLength: translate("validation.city_min_length"),
+  cityRequired: translate("validation.city_required"),
+  companyIdMinLength: translate("validation.company_id_min_length"),
+  companyIdRequired: translate("validation.company_id_required"),
+  companyNameMinLength: translate("validation.company_name_min_length"),
+  companyNameRequired: translate("validation.company_name_required"),
+  countryInvalid: translate("validation.country_invalid"),
+  countryRequired: translate("validation.country_required"),
+  emailInvalid: translate("validation.email_invalid"),
+  emailRequired: translate("validation.email_required"),
+  firstNameMinLength: translate("validation.first_name_min_length"),
+  lastNameMinLength: translate("validation.last_name_min_length"),
+  phoneInvalid: translate("validation.phone_invalid"),
+  phoneMinDigits: translate("validation.phone_min_digits"),
+  phoneRequired: translate("validation.phone_required"),
+  postalCodeInvalid: translate("validation.postal_code_invalid"),
+  postalCodeMinDigits: translate("validation.postal_code_min_digits"),
+  postalCodeRequired: translate("validation.postal_code_required"),
+  taxIdMinLength: translate("validation.tax_id_min_length"),
+  taxIdRequired: translate("validation.tax_id_required"),
+})
