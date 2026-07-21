@@ -1,3 +1,5 @@
+import type { useTranslations } from "next-intl"
+
 const REVIEW_TITLE_MAX_LENGTH = 200
 const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
 // Broad duplicate keywords are skipped for validation statuses below.
@@ -50,6 +52,26 @@ export type ProductReviewErrorMessages = {
   tokenUsed: string
   validation: string
 }
+
+type CatalogTranslator = ReturnType<typeof useTranslations<"catalog">>
+
+export const translateProductReviewErrorMessages = (
+  translate: CatalogTranslator
+): ProductReviewErrorMessages => ({
+  authRequired: translate("reviews.errors.auth_required"),
+  contentRequired: translate("reviews.errors.content_required"),
+  duplicate: translate("reviews.errors.duplicate"),
+  forbidden: translate("reviews.errors.forbidden"),
+  generic: translate("reviews.errors.generic"),
+  purchaseRequired: translate("reviews.errors.purchase_required"),
+  ratingRequired: translate("reviews.errors.rating_required"),
+  titleInvalid: translate("reviews.errors.title_invalid"),
+  tokenExpired: translate("reviews.errors.token_expired"),
+  tokenMismatch: translate("reviews.errors.token_mismatch"),
+  tokenNotFound: translate("reviews.errors.token_not_found"),
+  tokenUsed: translate("reviews.errors.token_used"),
+  validation: translate("reviews.errors.validation"),
+})
 
 const hasErrorShape = (
   error: unknown

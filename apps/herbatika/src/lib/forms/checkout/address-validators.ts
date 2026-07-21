@@ -1,14 +1,11 @@
 import type { CheckoutDetailsValues } from "@/lib/forms/checkout/address.form"
 import {
-  addressFieldValidators,
   createAddressFieldValidators,
   type AddressValidationMessages,
 } from "@/lib/forms/validators/address"
-import { DEFAULT_ADDRESS_VALIDATION_MESSAGES } from "@/lib/forms/validators/address-validation-messages"
 import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories"
 
 export type CheckoutAddressValidationMessages = AddressValidationMessages
-export const checkoutAddressFieldValidators = addressFieldValidators
 
 const validateBillingFields = (values: CheckoutDetailsValues) =>
   !values.useSameAddress
@@ -94,7 +91,3 @@ export const createCheckoutFieldValidators = (
 
   return { billing, shipping }
 }
-
-export const checkoutFieldValidators = createCheckoutFieldValidators(
-  DEFAULT_ADDRESS_VALIDATION_MESSAGES
-)

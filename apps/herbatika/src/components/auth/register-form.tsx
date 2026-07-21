@@ -14,6 +14,7 @@ import {
   type RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
+import { translateAddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { AuthFooter } from "./auth-footer"
 
@@ -38,36 +39,15 @@ export const RegisterForm = ({
   const registerValidators = useMemo(
     () =>
       createRegisterValidators({
+        ...translateAddressValidationMessages(tForm),
         accountTypeRequired: tAuth("validation.account_type_required"),
-        addressMinLength: tForm("validation.address_min_length"),
-        addressRequired: tForm("validation.address_required"),
-        cityMinLength: tForm("validation.city_min_length"),
-        cityRequired: tForm("validation.city_required"),
-        companyIdMinLength: tForm("validation.company_id_min_length"),
-        companyIdRequired: tForm("validation.company_id_required"),
-        companyNameMinLength: tForm("validation.company_name_min_length"),
-        companyNameRequired: tForm("validation.company_name_required"),
         confirmPasswordRequired: tAuth(
           "validation.confirm_password_required"
         ),
-        countryInvalid: tForm("validation.country_invalid"),
-        countryRequired: tForm("validation.country_required"),
-        emailInvalid: tForm("validation.email_invalid"),
-        emailRequired: tForm("validation.email_required"),
-        firstNameMinLength: tForm("validation.first_name_min_length"),
-        lastNameMinLength: tForm("validation.last_name_min_length"),
         passwordMinLength: tAuth("validation.password_min_length"),
         passwordMismatch: tAuth("validation.password_mismatch"),
         passwordNumber: tAuth("validation.password_number"),
         passwordRequired: tAuth("validation.password_required"),
-        phoneInvalid: tForm("validation.phone_invalid"),
-        phoneMinDigits: tForm("validation.phone_min_digits"),
-        phoneRequired: tForm("validation.phone_required"),
-        postalCodeInvalid: tForm("validation.postal_code_invalid"),
-        postalCodeMinDigits: tForm("validation.postal_code_min_digits"),
-        postalCodeRequired: tForm("validation.postal_code_required"),
-        taxIdMinLength: tForm("validation.tax_id_min_length"),
-        taxIdRequired: tForm("validation.tax_id_required"),
         termsRequired: tAuth("validation.terms_required"),
       }),
     [tAuth, tForm]
