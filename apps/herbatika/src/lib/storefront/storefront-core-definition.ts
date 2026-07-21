@@ -38,9 +38,6 @@ export const storefrontCoreDefinition = {
   productLists: {
     queryKeys: storefrontQueryKeys.productLists,
   },
-  productLocationAvailability: {
-    queryKeys: storefrontQueryKeys.productLocationAvailability,
-  },
   reviews: {
     queryKeys: storefrontQueryKeys.reviews,
   },

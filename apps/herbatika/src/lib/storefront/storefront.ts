@@ -34,9 +34,6 @@ export const storefront = createMedusaStorefrontPreset<
   productLists: {
     queryKeys: storefrontDefinition.productLists.queryKeys,
   },
-  productLocationAvailability: {
-    queryKeys: storefrontDefinition.productLocationAvailability.queryKeys,
-  },
   reviews: {
     queryKeys: storefrontDefinition.reviews.queryKeys,
   },
