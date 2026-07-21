@@ -29,13 +29,8 @@ ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-COPY apps/herbatika/package.json apps/herbatika/package.json
-COPY libs/ui/package.json libs/ui/package.json
-COPY libs/storefront-data/package.json libs/storefront-data/package.json
 
-RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
-    corepack install && \
-    pnpm --filter=herbatika... fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN corepack install
 
 COPY tsconfig.base.json tsconfig.json nx.json ./
 COPY apps/herbatika ./apps/herbatika

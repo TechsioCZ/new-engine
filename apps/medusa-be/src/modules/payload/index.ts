@@ -9,6 +9,5 @@ export default Module(PAYLOAD_MODULE, {
   service: PayloadModuleService,
 })
 
-// biome-ignore lint/performance/noBarrelFile: Medusa module entrypoint intentionally re-exports public service types.
 export * from "./service"
 export * from "./types"

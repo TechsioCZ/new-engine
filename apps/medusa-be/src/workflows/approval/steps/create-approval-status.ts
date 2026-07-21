@@ -1,3 +1,4 @@
+import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
@@ -6,7 +7,7 @@ import { ApprovalStatusType, type IApprovalModuleService } from "../../../types"
 export const createApprovalStatusStep = createStep(
   "create-approval-status",
   async (cartIds: string[], { container }) => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 

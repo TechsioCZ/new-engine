@@ -70,7 +70,7 @@
     "test:components:update": "node scripts/run-component-tests.mjs --update-snapshots",
     "lint:tailwind": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js",
     "lint:tailwind:fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --fix",
-    "prepare": "pnpm build && pnpm build:storybook",
+    "prepare": "pnpm build",
     "check:unused-tokens": "bun scripts/check-unused-tokens.js",
     "validate:tokens": "bun scripts/validate-token-usage.js && bun scripts/validate-token-definitions.js",
     "validate:token-usage": "bun scripts/validate-token-usage.js",

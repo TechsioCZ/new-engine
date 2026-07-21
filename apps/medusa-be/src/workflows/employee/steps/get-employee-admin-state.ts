@@ -1,3 +1,4 @@
+import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
@@ -12,7 +13,7 @@ export const getEmployeeAdminStateStep = createStep(
     input: { company_id?: string; id: string },
     { container }
   ): Promise<StepResponse<EmployeeAdminState>> => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const filters = {
       id: input.id,
       ...(input.company_id ? { company_id: input.company_id } : {}),
@@ -29,6 +30,10 @@ export const getEmployeeAdminStateStep = createStep(
       { throwIfKeyNotFound: true }
     )
 
-    return new StepResponse(employee as EmployeeAdminState)
+    if (!employee) {
+      throw new Error(`Employee "${input.id}" was not found`)
+    }
+
+    return new StepResponse(employee)
   }
 )

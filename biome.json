@@ -40,6 +40,9 @@
   "javascript": {
     "formatter": {
       "semicolons": "asNeeded"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
     }
   },
   "overrides": [
@@ -94,7 +97,7 @@
             "noExcessiveCognitiveComplexity": "warn"
           },
           "performance": {
-            "noBarrelFile": "info",
+            "noBarrelFile": "off",
             "noNamespaceImport": "info"
           }
         }

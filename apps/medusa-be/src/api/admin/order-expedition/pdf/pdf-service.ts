@@ -8,6 +8,7 @@ import bwipjs from "bwip-js"
 import { PageSizes, rgb } from "pdf-lib"
 import {
   fetchOrderedOrderExpeditionOrdersByIds,
+  isOrderExpeditionRawOrder,
   type OrderExpeditionItemDto,
   type OrderExpeditionOrderDto,
   type OrderExpeditionRawOrder,
@@ -80,6 +81,12 @@ type FulfillmentLabel = {
   tracking_number?: string | null
 }
 
+function isOrderExpeditionQueryOrder<T>(
+  order: T
+): order is T & OrderExpeditionRawOrder {
+  return isOrderExpeditionRawOrder(order)
+}
+
 export async function createOrderExpeditionPdfResponse(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
   orderIds: string[]
@@ -95,15 +102,16 @@ export async function createOrderExpeditionPdfResponse(
     )
   }
 
+  const expeditionOrders = orders.filter(isOrderExpeditionQueryOrder)
   const stockQuantitiesByVariantId = await fetchStockQuantitiesByVariantId(
     query,
-    orders
+    expeditionOrders
   )
   const packetaBarcodesByOrderId = await fetchPacketaBarcodesByOrderId(
     query,
-    orders
+    expeditionOrders
   )
-  const orderedDtos = orders.map((order) =>
+  const orderedDtos = expeditionOrders.map((order) =>
     withPacketaBarcode(
       withStockQuantities(
         toOrderExpeditionDto(order),

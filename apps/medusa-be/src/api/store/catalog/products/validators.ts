@@ -14,9 +14,9 @@ export const STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS = [
   "categories.id",
   "categories.name",
   "categories.handle",
-  "producer.id",
-  "producer.title",
-  "producer.handle",
+  "brand.id",
+  "brand.title",
+  "brand.handle",
 ]
 
 export const STORE_CATALOG_PRODUCTS_PRICING_FIELDS = [

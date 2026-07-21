@@ -1,3 +1,4 @@
+import type { Link } from "@medusajs/framework/modules-sdk"
 import type { CartDTO } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
@@ -12,7 +13,7 @@ createCartWorkflow.hooks.cartCreated(
     | StepResponse<undefined, null>
     | StepResponse<undefined, { cart_id: string; company_id: string }>
   > => {
-    const remoteLink = container.resolve(ContainerRegistrationKeys.LINK)
+    const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
     const cartInputdata = cart as CartDTO
 
@@ -20,7 +21,7 @@ createCartWorkflow.hooks.cartCreated(
       return new StepResponse(undefined, null)
     }
 
-    await remoteLink.create({
+    await link.create({
       [COMPANY_MODULE]: {
         company_id: cartInputdata.metadata?.company_id,
       },
@@ -42,9 +43,9 @@ createCartWorkflow.hooks.cartCreated(
       return
     }
 
-    const remoteLink = container.resolve(ContainerRegistrationKeys.REMOTE_LINK)
+    const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
-    await remoteLink.dismiss({
+    await link.dismiss({
       [COMPANY_MODULE]: {
         company_id: input.company_id,
       },

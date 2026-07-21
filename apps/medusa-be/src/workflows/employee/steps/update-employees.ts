@@ -1,3 +1,4 @@
+import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -7,19 +8,25 @@ import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleUpdateEmployee,
-  QueryEmployee,
 } from "../../../types"
+
+type UpdateEmployeeCompensation = Pick<
+  ModuleUpdateEmployee,
+  "id" | "is_admin" | "spending_limit"
+>
 
 export const updateEmployeesStep = createStep(
   "update-employees",
   async (
     input: ModuleUpdateEmployee,
     { container }
-  ): Promise<StepResponse<QueryEmployee, QueryEmployee>> => {
+  ): Promise<
+    StepResponse<RemoteQueryEntryPoints["employee"], UpdateEmployeeCompensation>
+  > => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { company_id: companyId, ...updatePayload } = input
     const filters = {
       id: input.id,
@@ -61,12 +68,23 @@ export const updateEmployeesStep = createStep(
       { throwIfKeyNotFound: true }
     )
 
-    return new StepResponse(
-      employee as unknown as QueryEmployee,
-      currentData as unknown as QueryEmployee
-    )
+    if (!employee) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Updated employee "${updatedEmployee.id}" was not found`
+      )
+    }
+
+    return new StepResponse(employee, {
+      id: currentData.id,
+      is_admin: currentData.is_admin,
+      spending_limit: currentData.spending_limit,
+    })
   },
-  async (currentData: ModuleUpdateEmployee | undefined, { container }) => {
+  async (
+    currentData: UpdateEmployeeCompensation | undefined,
+    { container }
+  ) => {
     if (!currentData) {
       return
     }
