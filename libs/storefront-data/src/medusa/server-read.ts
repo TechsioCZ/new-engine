@@ -1,8 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import type {
-  CreateCatalogHooksConfig,
-} from "../catalog/hooks"
+import type { CreateCatalogHooksConfig } from "../catalog/hooks"
 import {
   createCatalogQueryOptionsFactory,
   type CatalogQueryOptionsFactory,
@@ -37,9 +35,7 @@ import {
   type MedusaCollectionServiceConfig,
 } from "../collections/medusa-service"
 import type { CollectionQueryKeys } from "../collections/types"
-import type {
-  CreateOrderHooksConfig,
-} from "../orders/hooks"
+import type { CreateOrderHooksConfig } from "../orders/hooks"
 import {
   createOrderQueryOptionsFactory,
   type OrderQueryOptionsFactory,
@@ -75,6 +71,20 @@ import type {
   ProductListService,
 } from "../product-lists/types"
 import {
+  createMedusaProductLocationAvailabilityService,
+  type MedusaProductLocationAvailabilityInput,
+  type MedusaProductLocationAvailabilityServiceConfig,
+} from "../product-location-availability/medusa-service"
+import {
+  createProductLocationAvailabilityQueryOptionsFactory,
+  type ProductLocationAvailabilityQueryOptionsFactory,
+} from "../product-location-availability/query-options"
+import type {
+  ProductLocationAvailabilityQueryKeys,
+  ProductLocationAvailabilityResponse,
+  ProductLocationAvailabilityService,
+} from "../product-location-availability/types"
+import {
   createMedusaProductReviewService,
   type MedusaProductReviewListInput,
   type MedusaProductReviewServiceConfig,
@@ -89,9 +99,7 @@ import type {
   ProductReviewService,
   ReviewBase,
 } from "../reviews/types"
-import type {
-  CreateProductHooksConfig,
-} from "../products/hooks"
+import type { CreateProductHooksConfig } from "../products/hooks"
 import {
   createProductQueryOptionsFactory,
   type ProductQueryOptionsFactory,
@@ -246,6 +254,9 @@ type MedusaStorefrontReadQueryKeys = {
     MedusaProductListListKeyInput,
     MedusaProductListDetailKeyInput
   >
+  productLocationAvailability: ProductLocationAvailabilityQueryKeys<
+    MedusaProductLocationAvailabilityInput
+  >
   orders: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   regions: RegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>
   categories: CategoryQueryKeys<
@@ -278,6 +289,12 @@ type MedusaProductReviewReadService = ProductReviewService<
   ReviewBase,
   MedusaProductReviewListInput
 >
+
+type MedusaProductLocationAvailabilityReadService =
+  ProductLocationAvailabilityService<
+    ProductLocationAvailabilityResponse,
+    MedusaProductLocationAvailabilityInput
+  >
 
 export type CreateMedusaStorefrontServerReadPresetConfig<
   TProduct = HttpTypes.StoreProduct,
@@ -312,6 +329,13 @@ export type CreateMedusaStorefrontServerReadPresetConfig<
     queryKeys?: ProductListQueryKeys<
       MedusaProductListListKeyInput,
       MedusaProductListDetailKeyInput
+    >
+  }
+  productLocationAvailability?: {
+    service?: MedusaProductLocationAvailabilityReadService
+    serviceConfig?: MedusaProductLocationAvailabilityServiceConfig
+    queryKeys?: ProductLocationAvailabilityQueryKeys<
+      MedusaProductLocationAvailabilityInput
     >
   }
   orders?: {
@@ -380,6 +404,7 @@ type MedusaStorefrontReadServices<
     >
   >
   productLists: MedusaProductListReadService
+  productLocationAvailability: MedusaProductLocationAvailabilityReadService
   orders: MedusaOrderReadService
   regions: ReturnType<typeof createMedusaRegionService>
   categories: ReturnType<
@@ -422,6 +447,10 @@ type MedusaStorefrontReadQueries<
     ProductListBase<ProductListItemBase>,
     MedusaProductListListHookInput,
     MedusaProductListDetailHookInput
+  >
+  productLocationAvailability: ProductLocationAvailabilityQueryOptionsFactory<
+    ProductLocationAvailabilityResponse,
+    MedusaProductLocationAvailabilityInput
   >
   orders: OrderQueryOptionsFactory<
     HttpTypes.StoreOrder,
@@ -512,6 +541,9 @@ export function createMedusaStorefrontServerReadPreset<
     products: config.products?.queryKeys ?? defaultQueryKeys.products,
     productLists:
       config.productLists?.queryKeys ?? defaultQueryKeys.productLists,
+    productLocationAvailability:
+      config.productLocationAvailability?.queryKeys ??
+      defaultQueryKeys.productLocationAvailability,
     orders: config.orders?.queryKeys ?? defaultQueryKeys.orders,
     regions: config.regions?.queryKeys ?? defaultQueryKeys.regions,
     categories: config.categories?.queryKeys ?? defaultQueryKeys.categories,
@@ -537,6 +569,12 @@ export function createMedusaStorefrontServerReadPreset<
       createMedusaProductListService(
         config.sdk,
         config.productLists?.serviceConfig
+      ),
+    productLocationAvailability:
+      config.productLocationAvailability?.service ??
+      createMedusaProductLocationAvailabilityService(
+        config.sdk,
+        config.productLocationAvailability?.serviceConfig
       ),
     orders:
       config.orders?.service ??
@@ -583,6 +621,13 @@ export function createMedusaStorefrontServerReadPreset<
       cacheConfig,
       ...(config.productLists?.hooks ?? {}),
     }),
+    productLocationAvailability:
+      createProductLocationAvailabilityQueryOptionsFactory({
+        service: services.productLocationAvailability,
+        queryKeys: queryKeys.productLocationAvailability,
+        queryKeyNamespace: namespace,
+        cacheConfig,
+      }),
     orders: createOrderQueryOptionsFactory({
       service: services.orders,
       queryKeys: queryKeys.orders,

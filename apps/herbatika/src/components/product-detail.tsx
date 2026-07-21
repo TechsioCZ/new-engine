@@ -116,6 +116,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
             freeShippingThresholdLabel={controller.freeShippingThresholdLabel}
             galleryItems={controller.galleryItems}
             isAdding={controller.isMainProductAdding}
+            locationAvailabilityState={controller.locationAvailabilityState}
             maxQuantity={controller.maxQuantity}
             mediaFacts={controller.mediaFacts}
             offerState={controller.offerState}
