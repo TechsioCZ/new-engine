@@ -3,6 +3,7 @@ import {
   parse,
   type ParserOptions,
 } from "@formatjs/icu-messageformat-parser"
+import { isObjectRecord } from "../../utils/guards"
 
 type StorefrontTextMessageValidationFailure = {
   code: "invalid_default" | "invalid_override" | "incompatible_override"
@@ -14,18 +15,30 @@ type StorefrontTextMessageValidationResult =
   | StorefrontTextMessageValidationFailure
   | { success: true }
 
+const getErrorLocation = (error: Error) => {
+  if (!("location" in error) || !isObjectRecord(error.location)) {
+    return null
+  }
+
+  const { start } = error.location
+  if (!isObjectRecord(start)) {
+    return null
+  }
+
+  const { column, line } = start
+  return typeof column === "number" && typeof line === "number"
+    ? { column, line }
+    : null
+}
+
 const getErrorMessage = (error: unknown) => {
   if (!(error instanceof Error)) {
     return "Unknown ICU MessageFormat error"
   }
 
-  const location = (
-    error as Error & {
-      location?: { start?: { column?: number; line?: number } }
-    }
-  ).location?.start
+  const location = getErrorLocation(error)
 
-  return location?.line && location.column
+  return location
     ? `${error.message} at line ${location.line}, column ${location.column}`
     : error.message
 }

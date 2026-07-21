@@ -1,10 +1,8 @@
-import {
-  RELATED_PRODUCTS_PER_SECTION,
-} from "@/components/product-detail/product-detail.constants"
 import type {
   Product,
   RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types"
+import { RELATED_PRODUCTS_PER_SECTION } from "@/lib/storefront/related-products-config"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value)
