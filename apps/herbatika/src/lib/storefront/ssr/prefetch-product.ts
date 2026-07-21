@@ -7,8 +7,8 @@ import {
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
 } from "../product-query-config"
+import { RELATED_PRODUCTS_LIMIT } from "../related-products-config"
 import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
-import { PDP_RELATED_PRODUCTS_LIMIT } from "./constants"
 import {
   getRegionServerContext,
   prefetchProductDetail,
@@ -44,7 +44,7 @@ export const prefetchProductDetailPageStorefrontData = async (
     if (relatedCategoryIds.length > 0 && product?.id) {
       const relatedProductsListParams = buildProductListParams({
         page: 1,
-        limit: PDP_RELATED_PRODUCTS_LIMIT,
+        limit: RELATED_PRODUCTS_LIMIT,
         category_id: relatedCategoryIds,
         order: "-created_at",
         fields: PRODUCT_CARD_FIELDS,

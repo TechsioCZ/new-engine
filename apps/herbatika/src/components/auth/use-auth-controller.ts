@@ -27,6 +27,7 @@ import {
   useTransferCart,
 } from "@/lib/storefront/cart"
 import { cartStorage } from "@/lib/storefront/cart-storage"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 type AuthControlsMode = "login" | "register"
@@ -42,12 +43,13 @@ export const useAuthController = ({
 }: UseAuthControllerProps) => {
   const tAuth = useTranslations("auth")
   const router = useRouter()
+  const marketContext = useMarketContext()
   const region = useRegionContext()
   const authQuery = useAuth()
   const loginMutation = useLogin()
   const registerMutation = useRegister()
   const transferCartMutation = useTransferCart()
-  const registerCountryItems = useRegisterCountryItems(region)
+  const registerCountryItems = useRegisterCountryItems()
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [authNotice, setAuthNotice] = useState<string | null>(null)
 
@@ -66,7 +68,7 @@ export const useAuthController = ({
   const safeRedirectHref = resolveSafeRedirectHref(afterAuthHref)
   const loginDefaultValues = buildLoginDefaults()
   const registerDefaultValues = buildRegisterDefaults({
-    countryCode: region?.country_code,
+    countryCode: marketContext.countryCode,
   })
 
   const clearFeedback = () => {

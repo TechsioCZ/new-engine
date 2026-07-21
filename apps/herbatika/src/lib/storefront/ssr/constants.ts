@@ -1,7 +1,5 @@
 import { resolveMedusaBackendUrl } from "../runtime-env"
 
-export const PDP_RELATED_PRODUCTS_LIMIT = 13
-
 const SSR_STATIC_REVALIDATE_SECONDS = 60 * 60
 const SSR_SEMI_STATIC_REVALIDATE_SECONDS = 2 * 60
 

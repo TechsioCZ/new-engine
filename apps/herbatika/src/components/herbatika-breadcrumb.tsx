@@ -28,17 +28,6 @@ function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
   return `${item.href?.toString() ?? "current"}-${item.label}-${index}`
 }
 
-function getIconOnlyLabel(
-  item: HerbatikaBreadcrumbItem,
-  fallbackLabel: string
-) {
-  if (item.ariaLabel || item.label || !item.icon) {
-    return item.ariaLabel
-  }
-
-  return fallbackLabel
-}
-
 function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {
   return (
     <>
@@ -61,7 +50,6 @@ export function HerbatikaBreadcrumb({
   }
 
   const hasExplicitCurrent = items.some((item) => item.isCurrent)
-  const homeLabel = t("breadcrumbs.home")
 
   return (
     <Breadcrumb
@@ -81,14 +69,14 @@ export function HerbatikaBreadcrumb({
               <Breadcrumb.Item>
                 {isCurrentPage ? (
                   <Breadcrumb.CurrentLink
-                    aria-label={getIconOnlyLabel(item, homeLabel)}
+                    aria-label={item.ariaLabel}
                     className="font-bold"
                   >
                     <BreadcrumbItemContent item={item} />
                   </Breadcrumb.CurrentLink>
                 ) : (
                   <Breadcrumb.Link
-                    aria-label={getIconOnlyLabel(item, homeLabel)}
+                    aria-label={item.ariaLabel}
                     as={NextLink}
                     href={item.href ?? "#"}
                     {...item.linkProps}
