@@ -14,10 +14,17 @@
 // Reads staged content from the git index, so it validates exactly what is being committed.
 
 import { execFileSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 const SKILLS_DIR = "libs/ui/skills"
+// The plugin bundle is generated from SKILLS_DIR by sync-skills.mjs. It is committed, so a stale
+// copy would ship wrong version metadata to plugin consumers — check it too.
+const PLUGIN_SKILLS_DIR = "libs/ui/agent-plugin/skills"
+const SYNC_CMD = "node libs/ui/agent-plugin/scripts/sync-skills.mjs"
+const COMPONENT_DIRS = ["atoms", "molecules", "organisms", "templates"].map(
+  (d) => `libs/ui/src/${d}`
+)
 const CHANGELOG = "libs/ui/stories/changelog/changelog.stories.tsx"
 const COMPONENT_RE =
   /^libs\/ui\/src\/(atoms|molecules|organisms|templates)\/[^/]+\.tsx$/
@@ -75,14 +82,48 @@ const stripMeta = (src) =>
 const staged = git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"])
   .split("\n")
   .filter(Boolean)
-const components = staged.filter(
-  (f) => COMPONENT_RE.test(f) && !f.endsWith(".figma.tsx")
-)
+const stagedSet = new Set(staged)
+
+const isComponentPath = (f) => COMPONENT_RE.test(f) && !f.endsWith(".figma.tsx")
+
+// Every opted-in component in the tree, so a commit that touches only a skill or the changelog
+// still resolves back to the components it affects instead of silently passing.
+const optedInComponents = () => {
+  const out = []
+  for (const dir of COMPONENT_DIRS) {
+    let entries = []
+    try {
+      entries = readdirSync(dir)
+    } catch {
+      continue
+    }
+    for (const entry of entries) {
+      if (!entry.endsWith(".tsx") || entry.endsWith(".figma.tsx")) continue
+      const file = `${dir}/${entry}`
+      const src = readStaged(file)
+      if (VERSION_RE.test(src) && SKILL_TAG_RE.test(src)) out.push(file)
+    }
+  }
+  return out
+}
+
+// Staged components, plus any opted-in component whose skill (source or bundle) is staged, plus
+// every opted-in component when the changelog itself changed.
+const toCheck = new Set(staged.filter(isComponentPath))
+const changelogStaged = stagedSet.has(CHANGELOG)
+for (const file of optedInComponents()) {
+  const skillName = readStaged(file).match(SKILL_TAG_RE)?.[1]
+  if (!skillName) continue
+  const skillTouched =
+    stagedSet.has(join(SKILLS_DIR, skillName, "SKILL.md")) ||
+    stagedSet.has(join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md"))
+  if (skillTouched || changelogStaged) toCheck.add(file)
+}
 
 const errors = []
 const base = baselineRef()
 
-for (const file of components) {
+for (const file of toCheck) {
   const src = readStaged(file)
   const vMatch = src.match(VERSION_RE)
   const sMatch = src.match(SKILL_TAG_RE)
@@ -114,6 +155,22 @@ for (const file of components) {
   } else if (skillVMatch[1] !== version) {
     errors.push(
       `${label}: component v${version} ≠ ${skillName} component_version v${skillVMatch[1]} — must match 1:1.`
+    )
+  }
+
+  // The committed plugin bundle is generated from the source skill — a stale copy would ship wrong
+  // version metadata to standalone plugin consumers.
+  const bundledPath = join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
+  if (existsSync(bundledPath)) {
+    const bundledV = readStaged(bundledPath).match(SKILL_VERSION_RE)?.[1]
+    if (bundledV !== version) {
+      errors.push(
+        `${bundledPath}: component_version v${bundledV ?? "—"} is stale (expected v${version}) — run \`${SYNC_CMD}\`.`
+      )
+    }
+  } else {
+    errors.push(
+      `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`
     )
   }
 
