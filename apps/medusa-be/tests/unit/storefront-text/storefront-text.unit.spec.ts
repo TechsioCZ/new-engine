@@ -1,18 +1,33 @@
 import { describe, expect, it, vi } from "vitest"
+import { GET as getAdminStorefrontTextCatalog } from "../../../src/api/admin/storefront-texts/catalog/route"
 import { GET as getAdminStorefrontTexts } from "../../../src/api/admin/storefront-texts/route"
 import { GET } from "../../../src/api/store/storefront-texts/route"
 import {
+  AdminGetStorefrontTextCatalogSchema,
   AdminGetStorefrontTextsSchema,
+  AdminImportStorefrontTextCatalogSchema,
   AdminUpdateStorefrontTextSchema,
 } from "../../../src/api/admin/storefront-texts/validators"
 import {
+  flattenStorefrontTextCatalog,
+  getPublishedStorefrontTextMessages,
+  nestStorefrontTextMessages,
+  STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+} from "../../../src/modules/storefront-text/catalog"
+import {
   STOREFRONT_TEXT_DEFINITIONS,
   STOREFRONT_TEXT_MARKETS,
+  getStorefrontTextDefaultMessages,
   getStorefrontTextSeedRows,
   isStorefrontTextMarketLocalePair,
+  parseStorefrontTextCatalog,
+  parseStorefrontTextCatalogEnvelope,
 } from "../../../src/modules/storefront-text/registry"
 import { validateStorefrontTextOverride } from "../../../src/modules/storefront-text/message-validation"
 import { getEffectiveStorefrontTextValue } from "../../../src/modules/storefront-text/value"
+import {
+  STOREFRONT_TEXT_LOCK_KEY,
+} from "../../../src/workflows/storefront-text/lock"
 
 describe("storefront text registry", () => {
   it("accepts only configured market and locale pairs", () => {
@@ -25,6 +40,119 @@ describe("storefront text registry", () => {
 
     expect(seedRow?.default_value).toBeTruthy()
     expect(seedRow?.override_value).toBeNull()
+  })
+
+  it("round-trips a native nested next-intl catalog", () => {
+    const defaults = getStorefrontTextDefaultMessages({ market: "cz" })
+    const nestedCatalog = nestStorefrontTextMessages(defaults)
+
+    expect(parseStorefrontTextCatalog(nestedCatalog)).toEqual(defaults)
+    expect(flattenStorefrontTextCatalog(nestedCatalog)).toEqual(defaults)
+  })
+
+  it("validates a versioned catalog against its target market", () => {
+    const messages = nestStorefrontTextMessages(
+      getStorefrontTextDefaultMessages({ market: "cz" })
+    )
+
+    expect(
+      parseStorefrontTextCatalogEnvelope({
+        catalog: {
+          locale: "cs-CZ",
+          market: "cz",
+          messages,
+          schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        },
+        targetMarket: "cz",
+      })
+    ).toMatchObject({
+      locale: "cs-CZ",
+      market: "cz",
+      messages: getStorefrontTextDefaultMessages({ market: "cz" }),
+      schema_version: 1,
+    })
+  })
+
+  it("rejects a catalog exported for a different target market", () => {
+    expect(() =>
+      parseStorefrontTextCatalogEnvelope({
+        catalog: {
+          locale: "cs-CZ",
+          market: "cz",
+          messages: nestStorefrontTextMessages(
+            getStorefrontTextDefaultMessages({ market: "cz" })
+          ),
+          schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        },
+        targetMarket: "sk",
+      })
+    ).toThrow('Catalog market "cz" does not match target market "sk"')
+  })
+
+  it("rejects unsupported catalog versions and market-locale pairs", () => {
+    const messages = nestStorefrontTextMessages(
+      getStorefrontTextDefaultMessages({ market: "cz" })
+    )
+
+    expect(() =>
+      parseStorefrontTextCatalogEnvelope({
+        catalog: {
+          locale: "cs-CZ",
+          market: "cz",
+          messages,
+          schema_version: 2,
+        },
+        targetMarket: "cz",
+      })
+    ).toThrow('Unsupported storefront text catalog schema version "2"')
+
+    expect(() =>
+      parseStorefrontTextCatalogEnvelope({
+        catalog: {
+          locale: "sk-SK",
+          market: "cz",
+          messages,
+          schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        },
+        targetMarket: "cz",
+      })
+    ).toThrow('Locale "sk-SK" does not belong to market "cz"')
+  })
+
+  it("serializes all storefront text writes with one lock", () => {
+    expect(STOREFRONT_TEXT_LOCK_KEY).toBe("storefront-texts")
+  })
+
+  it("rejects incomplete and unknown catalog keys", () => {
+    expect(() =>
+      parseStorefrontTextCatalog({
+        cart: { add_to_cart: "Do košíku" },
+      })
+    ).toThrow("Missing keys")
+
+    const catalog = nestStorefrontTextMessages(
+      getStorefrontTextDefaultMessages({ market: "cz" })
+    )
+    catalog.unknown = "Neznámý text"
+
+    expect(() => parseStorefrontTextCatalog(catalog)).toThrow("Unknown keys")
+  })
+
+  it("rejects reserved object-path segments in catalogs", () => {
+    const catalog = JSON.parse(
+      '{"__proto__":"ignored","cart":{"add_to_cart":"Do košíku"}}'
+    )
+
+    expect(() => flattenStorefrontTextCatalog(catalog)).toThrow(
+      'Invalid storefront text catalog key "__proto__"'
+    )
+    expect(() =>
+      nestStorefrontTextMessages({
+        "__proto__.polluted": "yes",
+      })
+    ).toThrow(
+      'Invalid storefront text message key "__proto__.polluted"'
+    )
   })
 
   it("keeps definition keys unique and aligned with their namespace", () => {
@@ -43,15 +171,27 @@ describe("storefront text registry", () => {
   })
 
   it("keeps every localized default ICU-compatible with its key contract", () => {
+    const seedRows = getStorefrontTextSeedRows()
+
     for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
-      const defaultValue = definition.values.sk
+      const defaultValue = seedRows.find(
+        (row) => row.key === definition.key && row.market === "sk"
+      )?.default_value
+
+      expect(defaultValue).toBeTypeOf("string")
 
       for (const market of STOREFRONT_TEXT_MARKETS) {
+        const localizedValue = seedRows.find(
+          (row) =>
+            row.key === definition.key && row.market === market.market
+        )?.default_value
+
+        expect(localizedValue).toBeTypeOf("string")
         expect(
           validateStorefrontTextOverride({
-            defaultValue,
+            defaultValue: defaultValue ?? "",
             locale: market.locale,
-            overrideValue: definition.values[market.market],
+            overrideValue: localizedValue ?? "",
           }),
           `${definition.key} (${market.market})`
         ).toEqual({ success: true })
@@ -274,6 +414,26 @@ describe("storefront text values", () => {
       })
     ).toBe("Default")
   })
+
+  it("ignores an active override that is incompatible with the current catalog", () => {
+    const defaultMessages = {
+      "cart.low_stock": "Zbývá už jen {quantity} ks",
+    }
+
+    expect(
+      getPublishedStorefrontTextMessages(
+        defaultMessages,
+        [
+          {
+            key: "cart.low_stock",
+            override_value: "Zbývá už jen {count} ks",
+            status: "active",
+          },
+        ],
+        "cs-CZ"
+      )
+    ).toEqual(defaultMessages)
+  })
 })
 
 describe("storefront text ICU validation", () => {
@@ -349,6 +509,129 @@ describe("storefront text admin validation", () => {
       AdminUpdateStorefrontTextSchema.safeParse({ override_value: " " }).success
     ).toBe(false)
   })
+
+  it("validates catalog export and import inputs", () => {
+    expect(
+      AdminGetStorefrontTextCatalogSchema.safeParse({ market: "cz" }).success
+    ).toBe(true)
+    expect(
+      AdminImportStorefrontTextCatalogSchema.safeParse({
+        catalog: {
+          locale: "cs-CZ",
+          market: "cz",
+          messages: { cart: { add_to_cart: "Do košíku" } },
+          schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        },
+        market: "cz",
+      }).success
+    ).toBe(true)
+    expect(
+      AdminImportStorefrontTextCatalogSchema.safeParse({
+        catalog: {
+          locale: "cs-CZ",
+          market: "cz",
+          messages: { cart: { add_to_cart: "Do košíku" } },
+          schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        },
+        market: "cz",
+        status: "draft",
+      }).success
+    ).toBe(false)
+    expect(
+      AdminImportStorefrontTextCatalogSchema.safeParse({
+        catalog: {
+          locale: "sk-SK",
+          market: "cz",
+          messages: {},
+          schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        },
+        market: "cz",
+      }).success
+    ).toBe(false)
+  })
+
+  it("preserves reserved message keys for workflow validation", () => {
+    const messages = JSON.parse('{"__proto__":"blocked"}')
+    const result = AdminImportStorefrontTextCatalogSchema.safeParse({
+      catalog: {
+        locale: "cs-CZ",
+        market: "cz",
+        messages,
+        schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+      },
+      market: "cz",
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(
+        Object.prototype.hasOwnProperty.call(
+          result.data.catalog.messages,
+          "__proto__"
+        )
+      ).toBe(true)
+    }
+  })
+})
+
+describe("storefront text admin catalog", () => {
+  it("exports current defaults with active overrides only", async () => {
+    const defaultMessages = getStorefrontTextDefaultMessages({ market: "cz" })
+    const listStorefrontTexts = vi.fn().mockResolvedValue([
+      {
+        default_value: "Do košíku",
+        key: "cart.add_to_cart",
+        override_value: "Přidat",
+        status: "active",
+      },
+      {
+        default_value: "Starý výchozí text",
+        key: "cart.adding_to_cart",
+        override_value: null,
+        status: "active",
+      },
+      {
+        default_value: "Starý výchozí text",
+        key: "cart.added_to_cart",
+        override_value: "Rozepsaný koncept",
+        status: "draft",
+      },
+      {
+        default_value: "Retired",
+        key: "cart.retired_key",
+        override_value: null,
+        status: "active",
+      },
+    ])
+    const request = {
+      scope: { resolve: vi.fn(() => ({ listStorefrontTexts })) },
+      validatedQuery: { market: "cz" },
+    }
+    const response = { json: vi.fn() }
+
+    await getAdminStorefrontTextCatalog(
+      request as never,
+      response as never
+    )
+
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locale: "cs-CZ",
+        market: "cz",
+        schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
+        messages: expect.objectContaining({
+          cart: expect.objectContaining({
+            add_to_cart: "Přidat",
+            added_to_cart: defaultMessages["cart.added_to_cart"],
+            adding_to_cart: defaultMessages["cart.adding_to_cart"],
+          }),
+        }),
+      })
+    )
+    expect(
+      response.json.mock.calls[0]?.[0]?.messages?.cart?.retired_key
+    ).toBeUndefined()
+  })
 })
 
 describe("storefront text admin search", () => {
@@ -382,7 +665,7 @@ describe("storefront text admin search", () => {
     const listAndCountStorefrontTexts = await search("value")
 
     expect(listAndCountStorefrontTexts).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         $or: [
           {
             override_value: { $ilike: "%partner%" },
@@ -393,7 +676,8 @@ describe("storefront text admin search", () => {
             default_value: { $ilike: "%partner%" },
           },
         ],
-      },
+        key: expect.arrayContaining(["cart.add_to_cart"]),
+      }),
       expect.objectContaining({ skip: 0, take: 20 })
     )
   })
@@ -402,14 +686,61 @@ describe("storefront text admin search", () => {
     const listAndCountStorefrontTexts = await search("all")
 
     expect(listAndCountStorefrontTexts).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         $or: expect.arrayContaining([
           { default_value: { $ilike: "%partner%" } },
           { key: { $ilike: "%partner%" } },
           { override_value: { $ilike: "%partner%" } },
         ]),
-      },
+        key: expect.arrayContaining(["cart.add_to_cart"]),
+      }),
       expect.objectContaining({ skip: 0, take: 20 })
+    )
+  })
+
+  it("returns the current catalog default when the database copy is stale", async () => {
+    const currentDefault = getStorefrontTextDefaultMessages({ market: "cz" })[
+      "cart.low_stock"
+    ]
+    const listAndCountStorefrontTexts = vi.fn().mockResolvedValue([
+      [
+        {
+          default_value: "Zbývá už jen {count} ks",
+          key: "cart.low_stock",
+          locale: "cs-CZ",
+          market: "cz",
+          override_value: "Posledních {count} ks",
+          status: "active",
+        },
+      ],
+      1,
+    ])
+    const response = createResponse()
+
+    await getAdminStorefrontTexts(
+      {
+        scope: {
+          resolve: vi.fn(() => ({ listAndCountStorefrontTexts })),
+        },
+        validatedQuery: {
+          limit: 20,
+          offset: 0,
+          search_scope: "all",
+        },
+      } as never,
+      response as never
+    )
+
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storefront_texts: [
+          expect.objectContaining({
+            default_value: currentDefault,
+            effective_value: currentDefault,
+            has_override: true,
+          }),
+        ],
+      })
     )
   })
 })
@@ -432,11 +763,18 @@ describe("storefront text store route", () => {
   })
 
   it("overlays active database values on registry defaults", async () => {
+    const defaultMessages = getStorefrontTextDefaultMessages({ market: "cz" })
     const listStorefrontTexts = vi.fn().mockResolvedValue([
       {
         default_value: "Do košíku",
         key: "cart.add_to_cart",
         override_value: "Přidat",
+        status: "active",
+      },
+      {
+        default_value: "Starý výchozí text",
+        key: "cart.adding_to_cart",
+        override_value: null,
         status: "active",
       },
     ])
@@ -460,6 +798,7 @@ describe("storefront text store route", () => {
         market: "cz",
         messages: expect.objectContaining({
           "cart.add_to_cart": "Přidat",
+          "cart.adding_to_cart": defaultMessages["cart.adding_to_cart"],
         }),
       })
     )

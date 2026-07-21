@@ -1,4 +1,16 @@
-import type { StorefrontTextStatus } from "../../modules/storefront-text/registry"
+import type {
+  StorefrontTextMarket,
+  StorefrontTextStatus,
+} from "../../modules/storefront-text/configuration"
+
+export type ImportStorefrontTextCatalogWorkflowInput = {
+  catalog: unknown
+  market: StorefrontTextMarket
+}
+
+export type SyncStorefrontTextsWorkflowInput = {
+  market?: StorefrontTextMarket
+}
 
 export type UpdateStorefrontTextWorkflowInput = {
   id: string

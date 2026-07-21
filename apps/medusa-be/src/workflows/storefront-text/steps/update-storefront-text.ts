@@ -1,13 +1,25 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/framework/utils"
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
+import { isStorefrontTextStatus } from "../../../modules/storefront-text/configuration"
 import { validateStorefrontTextOverride } from "../../../modules/storefront-text/message-validation"
+import { findStorefrontTextDefault } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import type { UpdateStorefrontTextWorkflowInput } from "../types"
 
 export const updateStorefrontTextStep = createStep(
   "update-storefront-text",
   async (input: UpdateStorefrontTextWorkflowInput, { container }) => {
+    if (
+      input.update.status !== undefined &&
+      !isStorefrontTextStatus(input.update.status)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Unsupported storefront text status "${String(input.update.status)}"`
+      )
+    }
+
     const service = container.resolve<StorefrontTextModuleService>(
       STOREFRONT_TEXT_MODULE
     )
@@ -24,9 +36,18 @@ export const updateStorefrontTextStep = createStep(
     }
 
     if (overrideToValidate !== null) {
+      const currentDefault = findStorefrontTextDefault(previousRecord)
+
+      if (!currentDefault) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Storefront text "${previousRecord.key}" has no current default for market "${previousRecord.market}" and locale "${previousRecord.locale}"`
+        )
+      }
+
       const validation = validateStorefrontTextOverride({
-        defaultValue: previousRecord.default_value,
-        locale: previousRecord.locale,
+        defaultValue: currentDefault.value,
+        locale: currentDefault.locale,
         overrideValue: overrideToValidate,
       })
 

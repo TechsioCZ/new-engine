@@ -1,16 +1,33 @@
 import type {
   StorefrontTextMarket,
   StorefrontTextStatus,
-} from "../registry"
+} from "../configuration"
 
 export type StorefrontTextAdminI18nNamespace = {
   actions: Record<
-    "cancel" | "edit" | "resetDefault" | "save" | "sync",
+    | "cancel"
+    | "edit"
+    | "export"
+    | "import"
+    | "resetDefault"
+    | "save"
+    | "sync",
     string
   >
+  catalog: Record<"description" | "file" | "title", string>
   description: string
   drawer: Record<"description" | "title", string>
-  errors: Record<"missingText" | "saveFailed" | "syncFailed", string>
+  errors: Record<
+    | "exportFailed"
+    | "importFailed"
+    | "invalidCatalog"
+    | "missingCatalog"
+    | "missingText"
+    | "saveFailed"
+    | "selectMarket"
+    | "syncFailed",
+    string
+  >
   fields: Record<
     | "defaultValue"
     | "key"
@@ -45,7 +62,10 @@ export type StorefrontTextAdminI18nNamespace = {
     | "value",
     string
   >
-  toasts: Record<"reset" | "saved" | "synchronized", string>
+  toasts: Record<
+    "exported" | "imported" | "reset" | "saved" | "synchronized",
+    string
+  >
 }
 
 export const storefrontTextAdminI18n = {
@@ -53,9 +73,16 @@ export const storefrontTextAdminI18n = {
     actions: {
       cancel: "Zrušit",
       edit: "Upravit text",
+      export: "Exportovat JSON",
+      import: "Importovat JSON",
       resetDefault: "Obnovit výchozí",
       save: "Uložit",
       sync: "Synchronizovat klíče",
+    },
+    catalog: {
+      description: "Import storefront překladového katalogu.",
+      file: "JSON katalog",
+      title: "Importovat překlady",
     },
     description: "Editace storefront UI textů řízených backendem.",
     drawer: {
@@ -63,8 +90,13 @@ export const storefrontTextAdminI18n = {
       title: "Upravit text",
     },
     errors: {
+      exportFailed: "Katalog se nepodařilo exportovat.",
+      importFailed: "Katalog se nepodařilo importovat.",
+      invalidCatalog: "Soubor neobsahuje platný JSON katalog.",
+      missingCatalog: "Vyberte market a JSON katalog.",
       missingText: "Storefront text je povinný.",
       saveFailed: "Text se nepodařilo uložit.",
+      selectMarket: "Nejprve vyberte market.",
       syncFailed: "Synchronizace se nepodařila.",
     },
     fields: {
@@ -113,6 +145,9 @@ export const storefrontTextAdminI18n = {
       value: "Hodnota",
     },
     toasts: {
+      exported: "Katalog byl exportován.",
+      imported:
+        "Katalog importován: upravené: {{updated}}, beze změny: {{unchanged}}.",
       reset: "Text obnoven na výchozí hodnotu.",
       saved: "Text uložen.",
       synchronized:
@@ -123,9 +158,16 @@ export const storefrontTextAdminI18n = {
     actions: {
       cancel: "Cancel",
       edit: "Edit text",
+      export: "Export JSON",
+      import: "Import JSON",
       resetDefault: "Restore default",
       save: "Save",
       sync: "Synchronize keys",
+    },
+    catalog: {
+      description: "Import a storefront translation catalog.",
+      file: "JSON catalog",
+      title: "Import translations",
     },
     description: "Edit storefront UI texts managed by the backend.",
     drawer: {
@@ -133,8 +175,13 @@ export const storefrontTextAdminI18n = {
       title: "Edit text",
     },
     errors: {
+      exportFailed: "Failed to export the catalog.",
+      importFailed: "Failed to import the catalog.",
+      invalidCatalog: "The file does not contain a valid JSON catalog.",
+      missingCatalog: "Select a market and JSON catalog.",
       missingText: "Storefront text is required.",
       saveFailed: "Failed to save the text.",
+      selectMarket: "Select a market first.",
       syncFailed: "Failed to synchronize the keys.",
     },
     fields: {
@@ -183,6 +230,9 @@ export const storefrontTextAdminI18n = {
       value: "Value",
     },
     toasts: {
+      exported: "Catalog exported.",
+      imported:
+        "Catalog imported: updated: {{updated}}, unchanged: {{unchanged}}.",
       reset: "Text restored to its default value.",
       saved: "Text saved.",
       synchronized:
