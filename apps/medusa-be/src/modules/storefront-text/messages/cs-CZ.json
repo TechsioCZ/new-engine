@@ -405,6 +405,13 @@
       },
       "delivery_by": "u vás do {date}",
       "free_shipping_over": "Doprava zdarma nad {threshold}",
+      "location_availability": {
+        "loading_aria": "Načítá se dostupnost podle skladů",
+        "error": "Dostupnost podle skladů se nepodařilo načíst.",
+        "in_stock": "Skladem",
+        "more_than": "Skladem (>{quantity} ks)",
+        "quantity": "{quantity} ks"
+      },
       "gallery": {
         "title": "Galerie produktu",
         "close_aria": "Zavřít galerii",

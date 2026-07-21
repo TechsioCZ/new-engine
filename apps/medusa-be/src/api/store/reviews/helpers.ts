@@ -34,6 +34,7 @@ type PaymentCollectionRecord = {
 
 type OrderRecord = {
   id: string
+  items?: { product_id?: string | null }[] | null
   payment_collections?: PaymentCollectionRecord[] | null
 }
 
@@ -244,21 +245,24 @@ export async function ensureCustomerPurchasedProduct(
     entity: "order",
     fields: [
       "id",
+      "items.product_id",
       "payment_collections.status",
       "payment_collections.captured_amount",
       "payment_collections.payments.captured_at",
     ],
     filters: {
       customer_id: customerId,
-      items: {
-        product_id: productId,
-      },
     },
   })
 
   const customerPurchasedProduct =
     Array.isArray(data) &&
-    data.some((order) => (isOrderRecord(order) ? isOrderPaid(order) : false))
+    data.some(
+      (order) =>
+        isOrderRecord(order) &&
+        order.items?.some((item) => item?.product_id === productId) &&
+        isOrderPaid(order)
+    )
 
   if (!customerPurchasedProduct) {
     throw new MedusaError(

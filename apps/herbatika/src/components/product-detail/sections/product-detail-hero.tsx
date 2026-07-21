@@ -12,6 +12,7 @@ import type {
 import { ProductDetailDeliveryInfo } from "@/components/product-detail/sections/product-detail-delivery-info"
 import { ProductDetailMediaColumn } from "@/components/product-detail/sections/product-detail-media-column"
 import { ProductDetailPurchasePanel } from "@/components/product-detail/sections/product-detail-purchase-panel"
+import type { ProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 
 type ProductDetailHeroProps = {
   children?: ReactNode
@@ -23,6 +24,7 @@ type ProductDetailHeroProps = {
   galleryItems: GalleryItem[]
   mediaFacts: ProductMediaFact[]
   isAdding: boolean
+  locationAvailabilityState: ProductLocationAvailabilityState
   maxQuantity: number
   offerState: ProductOfferState
   onAddToCart: () => void
@@ -48,6 +50,7 @@ export function ProductDetailHero({
   galleryItems,
   mediaFacts,
   isAdding,
+  locationAvailabilityState,
   maxQuantity,
   offerState,
   onAddToCart,
@@ -93,6 +96,7 @@ export function ProductDetailHero({
 
         <ProductDetailDeliveryInfo
           freeShippingThresholdLabel={freeShippingThresholdLabel}
+          locationAvailabilityState={locationAvailabilityState}
           offerState={offerState}
         />
 

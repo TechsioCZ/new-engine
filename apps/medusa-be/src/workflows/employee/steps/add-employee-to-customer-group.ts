@@ -1,5 +1,9 @@
-import type { ICustomerModuleService } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import type { ICustomerModuleService, Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 export const addEmployeeToCustomerGroupStep = createStep(
@@ -8,7 +12,7 @@ export const addEmployeeToCustomerGroupStep = createStep(
     input: { customer_id: string; employee_id: string },
     { container }
   ) => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
     const {
       data: [employee],
@@ -21,6 +25,13 @@ export const addEmployeeToCustomerGroupStep = createStep(
       { throwIfKeyNotFound: true }
     )
 
+    if (!employee) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Employee "${input.employee_id}" was not found`
+      )
+    }
+
     const {
       data: [company],
     } = await query.graph(
@@ -31,6 +42,13 @@ export const addEmployeeToCustomerGroupStep = createStep(
       },
       { throwIfKeyNotFound: true }
     )
+
+    if (!company) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Company for employee "${input.employee_id}" was not found`
+      )
+    }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
       Modules.CUSTOMER

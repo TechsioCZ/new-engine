@@ -100,6 +100,26 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Informace o hranici dopravy zdarma."
   ),
   defineCatalogProductText(
+    "catalog.product_detail.location_availability.loading_aria",
+    "Přístupný popis načítání dostupnosti produktu podle skladů."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.location_availability.error",
+    "Chyba při načítání dostupnosti produktu podle skladů."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.location_availability.in_stock",
+    "Dostupnost podle skladů pro produkt bez spravovaného skladu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.location_availability.more_than",
+    "Dostupnost podle skladů nad zobrazovaným množstvím."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.location_availability.quantity",
+    "Přesné množství produktu dostupné v konkrétním skladu."
+  ),
+  defineCatalogProductText(
     "catalog.product_detail.gallery.title",
     "Přístupný název galerie produktu."
   ),

@@ -73,7 +73,7 @@ run = "bash ./scripts/dev/run-pnpm-toolchain.sh corepack up"
 
 [tasks."dev:install"]
 description = "Install workspace dependencies inside the repo pnpm toolchain container"
-run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm install --frozen-lockfile"
+run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm install --frozen-lockfile --prefer-offline"
 
 [tasks."dev:install:fix-lock"]
 description = "Repair the pnpm lockfile inside the repo pnpm toolchain container"

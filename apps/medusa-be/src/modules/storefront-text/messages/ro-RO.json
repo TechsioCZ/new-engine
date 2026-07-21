@@ -405,6 +405,13 @@
       },
       "delivery_by": "livrare până la {date}",
       "free_shipping_over": "Livrare gratuită peste {threshold}",
+      "location_availability": {
+        "loading_aria": "Se încarcă disponibilitatea pe depozite",
+        "error": "Disponibilitatea pe depozite nu a putut fi încărcată.",
+        "in_stock": "În stoc",
+        "more_than": "În stoc (>{quantity} buc.)",
+        "quantity": "{quantity} buc."
+      },
       "gallery": {
         "title": "Galeria produsului",
         "close_aria": "Închide galeria",

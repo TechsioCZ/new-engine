@@ -405,6 +405,13 @@
       },
       "delivery_by": "várható kézbesítés: {date}",
       "free_shipping_over": "Ingyenes szállítás {threshold} felett",
+      "location_availability": {
+        "loading_aria": "Raktárankénti készlet betöltése",
+        "error": "A raktárankénti készletet nem sikerült betölteni.",
+        "in_stock": "Raktáron",
+        "more_than": "Raktáron (>{quantity} db)",
+        "quantity": "{quantity} db"
+      },
       "gallery": {
         "title": "Termékgaléria",
         "close_aria": "Galéria bezárása",

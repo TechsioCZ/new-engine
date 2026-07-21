@@ -1,4 +1,3 @@
-// biome-ignore lint/performance/noBarrelFile: Workflow routes import this package-local public API.
 export * from "./add-company-to-customer-group"
 export * from "./create-companies"
 export * from "./delete-companies"

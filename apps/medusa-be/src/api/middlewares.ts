@@ -7,6 +7,7 @@ import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
 import { adminMiddlewares } from "./admin/middlewares"
 import { adminOrderBusinessStatusesRoutesMiddlewares } from "./admin/order-business-statuses/middlewares"
 import { adminOrderExpeditionRoutesMiddlewares } from "./admin/order-expedition/middlewares"
@@ -17,18 +18,18 @@ import { adminPacketaConfigRoutesMiddlewares } from "./admin/packeta-config/midd
 import { adminPacketaLabelsRoutesMiddlewares } from "./admin/packeta-labels/middlewares"
 import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middlewares"
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
-import { adminProducerRoutesMiddlewares } from "./admin/producers/middlewares"
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
+import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
-import { storeProducersRoutesMiddlewares } from "./store/producers/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
+import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
 import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
 
@@ -67,7 +68,7 @@ export default defineMiddlewares({
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
-    ...adminProducerRoutesMiddlewares,
+    ...adminBrandRoutesMiddlewares,
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
@@ -77,7 +78,8 @@ export default defineMiddlewares({
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
-    ...storeProducersRoutesMiddlewares,
+    ...storeProductLocationAvailabilityRoutesMiddlewares,
+    ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,
   ],

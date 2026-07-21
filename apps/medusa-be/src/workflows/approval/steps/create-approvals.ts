@@ -1,3 +1,5 @@
+import type { Query } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
@@ -15,7 +17,7 @@ export const createApprovalStep = createStep(
       | Omit<ModuleCreateApproval, "type">[],
     { container }
   ) => {
-    const query = container.resolve("query")
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
     const approvalData = Array.isArray(input) ? input : [input]
     const firstApproval = approvalData[0]
@@ -45,17 +47,15 @@ export const createApprovalStep = createStep(
       }
     )
 
-    if (
-      (cart.approval_status?.status as unknown as ApprovalStatusType) ===
-      ApprovalStatusType.PENDING
-    ) {
+    if (!cart) {
+      throw new Error(`Cart ${firstApproval.cart_id} was not found`)
+    }
+
+    if (cart.approval_status?.status === ApprovalStatusType.PENDING) {
       throw new Error("Cart already has a pending approval")
     }
 
-    if (
-      (cart.approval_status?.status as unknown as ApprovalStatusType) ===
-      ApprovalStatusType.APPROVED
-    ) {
+    if (cart.approval_status?.status === ApprovalStatusType.APPROVED) {
       throw new Error("Cart is already approved")
     }
 

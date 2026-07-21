@@ -233,31 +233,54 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
   }
 }
 
+function readStringArray(
+  object: Record<string, unknown>,
+  key: string
+): string[] {
+  const value = object[key]
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : []
+}
+
+function matchesPermissions(
+  keyObject: unknown,
+  policy: PolicyDefinition
+): boolean {
+  if (!keyObject || typeof keyObject !== "object") {
+    return false
+  }
+
+  const candidate = keyObject as Record<string, unknown>
+  const candidateActions = readStringArray(candidate, "actions")
+  const candidateIndexes = readStringArray(candidate, "indexes")
+
+  return (
+    [...candidateActions].sort().join(",") ===
+      [...policy.actions].sort().join(",") &&
+    [...candidateIndexes].sort().join(",") ===
+      [...policy.indexes].sort().join(",")
+  )
+}
+
 function matchesPolicy(keyObject: unknown, policy: PolicyDefinition): boolean {
   if (!keyObject || typeof keyObject !== "object") {
     return false
   }
 
   const candidate = keyObject as Record<string, unknown>
-  const candidateActions = Array.isArray(candidate.actions)
-    ? candidate.actions.filter(
-        (value): value is string => typeof value === "string"
-      )
-    : []
-  const candidateIndexes = Array.isArray(candidate.indexes)
-    ? candidate.indexes.filter(
-        (value): value is string => typeof value === "string"
-      )
-    : []
-
   return (
     candidate.uid === policy.uid &&
-    candidate.description === policy.description &&
-    [...candidateActions].sort().join(",") ===
-      [...policy.actions].sort().join(",") &&
-    [...candidateIndexes].sort().join(",") ===
-      [...policy.indexes].sort().join(",")
+    matchesPermissions(keyObject, policy) &&
+    candidate.description === policy.description
   )
+}
+
+function matchesDescription(
+  keyObject: Record<string, unknown>,
+  policy: PolicyDefinition
+): boolean {
+  return keyObject.description === policy.description
 }
 
 async function getKeyByUid(
@@ -293,7 +316,7 @@ async function getKeyByUid(
   return result
 }
 
-async function createOrUpdateKey(input: {
+type ReconcileKeyInput = {
   meiliUrl: string
   masterKey: string
   uid: string
@@ -303,7 +326,85 @@ async function createOrUpdateKey(input: {
   timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
-}): Promise<{
+}
+
+async function createKey(
+  input: ReconcileKeyInput
+): Promise<Record<string, unknown>> {
+  return await requestJson({
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys`,
+    init: {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${input.masterKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uid: input.uid,
+        description: input.description,
+        actions: input.actions,
+        indexes: input.indexes,
+        expiresAt: null,
+      }),
+    },
+    parse: (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        throw new Error(`Failed to create key uid=${input.uid}.`)
+      }
+
+      return value as Record<string, unknown>
+    },
+    timeoutSeconds: input.timeoutSeconds,
+    retryCount: input.retryCount,
+    retryDelaySeconds: input.retryDelaySeconds,
+  })
+}
+
+async function updateKeyDescription(
+  input: ReconcileKeyInput
+): Promise<Record<string, unknown>> {
+  return await requestJson({
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
+    init: {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${input.masterKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        description: input.description,
+      }),
+    },
+    parse: (value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        throw new Error(`Failed to update key uid=${input.uid}.`)
+      }
+
+      return value as Record<string, unknown>
+    },
+    timeoutSeconds: input.timeoutSeconds,
+    retryCount: input.retryCount,
+    retryDelaySeconds: input.retryDelaySeconds,
+  })
+}
+
+async function deleteKey(input: ReconcileKeyInput): Promise<void> {
+  await requestJson({
+    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
+    init: {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${input.masterKey}`,
+      },
+    },
+    parse: () => null,
+    timeoutSeconds: input.timeoutSeconds,
+    retryCount: input.retryCount,
+    retryDelaySeconds: input.retryDelaySeconds,
+  })
+}
+
+async function createOrUpdateKey(input: ReconcileKeyInput): Promise<{
   keyObject: Record<string, unknown>
   created: boolean
   updated: boolean
@@ -326,33 +427,7 @@ async function createOrUpdateKey(input: {
   })
 
   if (!existing) {
-    const created = await requestJson({
-      url: `${normalizeBaseUrl(input.meiliUrl)}/keys`,
-      init: {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${input.masterKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          uid: input.uid,
-          description: input.description,
-          actions: input.actions,
-          indexes: input.indexes,
-          expiresAt: null,
-        }),
-      },
-      parse: (value) => {
-        if (!value || typeof value !== "object" || Array.isArray(value)) {
-          throw new Error(`Failed to create key uid=${input.uid}.`)
-        }
-
-        return value as Record<string, unknown>
-      },
-      timeoutSeconds: input.timeoutSeconds,
-      retryCount: input.retryCount,
-      retryDelaySeconds: input.retryDelaySeconds,
-    })
+    const created = await createKey(input)
 
     return {
       keyObject: created,
@@ -361,7 +436,18 @@ async function createOrUpdateKey(input: {
     }
   }
 
-  if (matchesPolicy(existing, policy)) {
+  if (!matchesPermissions(existing, policy)) {
+    await deleteKey(input)
+    const replacement = await createKey(input)
+
+    return {
+      keyObject: replacement,
+      created: false,
+      updated: true,
+    }
+  }
+
+  if (matchesDescription(existing, policy)) {
     return {
       keyObject: existing,
       created: false,
@@ -369,32 +455,7 @@ async function createOrUpdateKey(input: {
     }
   }
 
-  const updated = await requestJson({
-    url: `${normalizeBaseUrl(input.meiliUrl)}/keys/${input.uid}`,
-    init: {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${input.masterKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        description: input.description,
-        actions: input.actions,
-        indexes: input.indexes,
-        expiresAt: null,
-      }),
-    },
-    parse: (value) => {
-      if (!value || typeof value !== "object" || Array.isArray(value)) {
-        throw new Error(`Failed to update key uid=${input.uid}.`)
-      }
-
-      return value as Record<string, unknown>
-    },
-    timeoutSeconds: input.timeoutSeconds,
-    retryCount: input.retryCount,
-    retryDelaySeconds: input.retryDelaySeconds,
-  })
+  const updated = await updateKeyDescription(input)
 
   return {
     keyObject: updated,
