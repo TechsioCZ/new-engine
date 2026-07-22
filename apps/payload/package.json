@@ -34,8 +34,8 @@
     "jose": "^5.9.6",
     "next": "16.3.0-preview.5",
     "payload": "3.86.0",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "sharp": "0.34.2"
   },
   "devDependencies": {
@@ -43,9 +43,9 @@
     "@playwright/test": "1.56.1",
     "@testing-library/react": "16.3.0",
     "@types/node": "^24.12.4",
-    "@types/react": "19.2.1",
-    "@types/react-dom": "19.2.1",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "catalog:vite8-testing",
     "cross-env": "^7.0.3",
     "esbuild": "0.28.0",
     "eslint": "^9.16.0",

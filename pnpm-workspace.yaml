@@ -14,12 +14,12 @@ catalogs:
     vite: 5.4.21
     vitest: ^3.2.7
   vite8-testing:
+    '@vitest/coverage-v8': ^4.1.5
     vite: 8.1.3
     vitest: ^4.1.5
 
 strictPeerDependencies: true
 disallowWorkspaceCycles: true
-dedupeDirectDeps: true
 injectWorkspacePackages: true
 verifyDepsBeforeRun: false
 # Keep registry request fan-out stable across developer and CI machines.
@@ -51,17 +51,16 @@ overrides:
   '@types/react': 19.2.3
   '@types/react-dom': 19.2.3
   '@types/node': 24.12.4
+  # Vitest 3 supports Vite 5-7, but pnpm otherwise selects Vite 7 for its
+  # private dependency graph. Keep Medusa's test tooling on its Vite 5 line.
+  'vitest@3.2.7>vite': 5.4.21
+  'vite-node@3.2.4>vite': 5.4.21
 
 # These exact, package-scoped exceptions acknowledge compatibility without
 # rewriting the dependencies' published peer metadata. Future version changes
 # will surface as peer errors again and require explicit re-verification.
 peerDependencyRules:
   allowedVersions:
-    '@medusajs/caching@2.17.2>awilix': 12.0.5
-    '@rokmohar/medusa-plugin-meilisearch@1.4.3>awilix': 12.0.5
-    'medusa-plugin-content@0.2.0>@medusajs/framework': 2.17.2
-    'medusa-plugin-content@0.2.0>@medusajs/js-sdk': 2.17.2
-    'medusa-plugin-content@0.2.0>@medusajs/medusa': 2.17.2
     'fdir@6.1.1>picomatch': 4.0.5
 
 supportedArchitectures:
@@ -91,10 +90,19 @@ packageExtensions:
       '@medusajs/workflows-sdk': 2.17.2
   '@rokmohar/medusa-plugin-meilisearch@1.4.3':
     dependencies:
-      '@medusajs/js-sdk': ^2.17.2
+      # The published bundle externalizes these runtime imports but omits them
+      # from its manifest. Keep the extension scoped to the audited release.
+      '@medusajs/js-sdk': 2.17.2
+      '@medusajs/utils': 2.17.2
+      '@medusajs/workflows-sdk': 2.17.2
+      zod: ^4.2.0
+  'medusa-plugin-content@0.2.5':
+    dependencies:
+      # The prebuilt Admin bundle imports React Query without declaring it.
+      # Bind it to the dashboard's exact version so both use one query context.
+      '@tanstack/react-query': 5.64.2
 
 patchedDependencies:
-  medusa-plugin-content@0.2.0: patches/medusa-plugin-content@0.2.0.patch
   '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
   object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
 
