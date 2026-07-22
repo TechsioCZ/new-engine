@@ -1,13 +1,16 @@
 import "server-only"
 
 import type { CmsMedia } from "./cms-types"
-import { resolveMedusaBackendUrl, resolvePayloadBaseUrl } from "./runtime-env"
+import {
+  resolveMedusaBackendUrl,
+  resolvePublicPayloadBaseUrl,
+} from "./runtime-env"
 import { storefrontConfig } from "./sdk"
 
 const CMS_LOCALE = "sk"
 const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
-const CMS_MEDIA_BASE_URL = resolvePayloadBaseUrl(CMS_MEDUSA_BASE_URL)
+const CMS_MEDIA_BASE_URL = resolvePublicPayloadBaseUrl()
 
 const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
 
@@ -73,7 +76,9 @@ export const resolveCmsMediaUrl = (
   }
 
   try {
-    return new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
+    return CMS_MEDIA_BASE_URL
+      ? new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
+      : new URL(mediaPath).toString()
   } catch {
     return null
   }
@@ -82,6 +87,10 @@ export const resolveCmsMediaUrl = (
 export const rewriteCmsHtmlMediaUrls = (html: string) => {
   if (!html) {
     return ""
+  }
+
+  if (!CMS_MEDIA_BASE_URL) {
+    return html
   }
 
   return html.replace(

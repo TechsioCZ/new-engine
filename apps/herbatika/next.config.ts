@@ -1,6 +1,8 @@
 import { join } from "node:path"
 import type { NextConfig } from "next"
 
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"])
+
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   if (!baseUrl) {
     return []
@@ -18,6 +20,18 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
     ] as const
   } catch {
     return []
+  }
+}
+
+const resolvesToLoopback = (baseUrl: string | undefined) => {
+  if (!baseUrl) {
+    return false
+  }
+
+  try {
+    return LOOPBACK_HOSTNAMES.has(new URL(baseUrl).hostname)
+  } catch {
+    return false
   }
 }
 
@@ -52,6 +66,10 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
+    // Loopback media must be fetched by the browser, not from inside the container.
+    unoptimized: resolvesToLoopback(
+      process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL
+    ),
     remotePatterns: [
       {
         protocol: "https",
