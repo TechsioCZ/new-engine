@@ -163,14 +163,15 @@ function getProductReviewRequestPath() {
   ).replace(LEADING_SLASH_REGEX, "")
 }
 
-function getReviewUrl(token: string) {
+function getReviewUrl(token: string, productId: string) {
   const storefrontUrl = getStorefrontUrl().replace(TRAILING_SLASH_REGEX, "")
   const reviewPath = getProductReviewRequestPath().replace(
     TRAILING_SLASH_REGEX,
     ""
   )
+  const search = new URLSearchParams({ product_id: productId })
 
-  return `${storefrontUrl}/${reviewPath}/${token}`
+  return `${storefrontUrl}/${reviewPath}/${token}?${search.toString()}`
 }
 
 function isReviewRequestOrderWithItems(
@@ -353,7 +354,7 @@ const buildProductReviewRequestNotificationStep = createStep(
         {
           image_url: item.thumbnail ?? null,
           product_id: item.product_id,
-          review_url: getReviewUrl(token),
+          review_url: getReviewUrl(token, item.product_id),
           title: getProductTitle(item),
           token,
         },

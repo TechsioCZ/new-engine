@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import type { MedusaRequest } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import {
@@ -79,34 +80,34 @@ type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   ) => Promise<ReviewTokenDTO[]>
 }
 
-export const getCustomerId = (req: MedusaRequest) => {
+export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
   const authContext =
     "auth_context" in req
       ? (req.auth_context as AuthContext | undefined)
       : undefined
 
-  if (authContext?.actor_type !== "customer" || !authContext.actor_id) {
-    throw new MedusaError(
-      MedusaError.Types.UNAUTHORIZED,
-      "Product reviews require an authenticated customer."
-    )
-  }
-
-  return authContext.actor_id
+  return authContext?.actor_type === "customer"
+    ? authContext.actor_id
+    : undefined
 }
+
+export const getGuestReviewCustomerId = () => `guest-review:${randomUUID()}`
 
 export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
   reviewToken.customer_id ?? `review-token:${reviewToken.id}`
 
 export const getReviewAuthorName = ({
   customer,
+  isGuest = false,
   reviewToken,
 }: {
   customer?: CustomerRecord
+  isGuest?: boolean
   reviewToken?: ReviewTokenDTO
 }) => ({
-  first_name: reviewToken ? "Anonym" : (customer?.first_name ?? null),
-  last_name: reviewToken ? null : (customer?.last_name ?? null),
+  first_name:
+    reviewToken || isGuest ? "Anonym" : (customer?.first_name ?? null),
+  last_name: reviewToken || isGuest ? null : (customer?.last_name ?? null),
 })
 
 export function assertReviewTokenUsable(
