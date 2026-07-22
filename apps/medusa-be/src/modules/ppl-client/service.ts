@@ -148,8 +148,22 @@ const toPplConfigDTO = (value: unknown): PplConfigDTO => {
   }
 }
 
-const isLockTimeoutError = (error: unknown): boolean =>
-  error instanceof MedusaError && error.type === MedusaError.Types.CONFLICT
+const LOCK_TIMEOUT_MESSAGE = "Timed-out acquiring lock."
+const REDIS_LOCK_TIMEOUT_MESSAGE = `Failed to acquire lock for key "${LOCK_KEYS.RATE_LIMIT}"`
+
+const isLockTimeoutError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  if (!(error instanceof MedusaError)) {
+    return error.message === LOCK_TIMEOUT_MESSAGE
+  }
+  return (
+    error.type === MedusaError.Types.CONFLICT &&
+    (error.message === LOCK_TIMEOUT_MESSAGE ||
+      error.message === REDIS_LOCK_TIMEOUT_MESSAGE)
+  )
+}
 
 /**
  * Module options passed from medusa-config.ts

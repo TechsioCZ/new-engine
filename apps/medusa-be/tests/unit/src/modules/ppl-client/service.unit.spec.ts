@@ -296,6 +296,59 @@ describe("PplClientModuleService", () => {
       )
       expect(mockPplClient.fetchNewToken).not.toHaveBeenCalled()
     })
+
+    it.each([
+      [
+        "Redis",
+        new MedusaError(
+          MedusaError.Types.CONFLICT,
+          "Timed-out acquiring lock."
+        ),
+      ],
+      [
+        "Redis cancellation",
+        new MedusaError(
+          MedusaError.Types.CONFLICT,
+          'Failed to acquire lock for key "ppl:rate_limit_lock"'
+        ),
+      ],
+      ["Postgres", new Error("Timed-out acquiring lock.")],
+    ])(
+      "uses local fallback when the %s lock provider times out",
+      async (_, error) => {
+        mockLockingService.execute.mockRejectedValueOnce(error)
+        mockCacheService.get.mockResolvedValueOnce({
+          accessToken: "cached-token",
+          expiresAt: Date.now() + 120_000,
+        })
+
+        const service = createService()
+        await service.createShipmentBatch([])
+
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          "PPL: Rate limit lock timed out, using local fallback"
+        )
+        expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
+          "cached-token",
+          [],
+          undefined
+        )
+      }
+    )
+
+    it.each([
+      ["a plain provider error", new Error("locking provider unavailable")],
+      [
+        "an unrelated Medusa conflict",
+        new MedusaError(MedusaError.Types.CONFLICT, "resource conflict"),
+      ],
+    ])("rethrows %s", async (_, error) => {
+      mockLockingService.execute.mockRejectedValueOnce(error)
+
+      const service = createService()
+
+      await expect(service.createShipmentBatch([])).rejects.toBe(error)
+    })
   })
 
   describe("caching - codelists", () => {
