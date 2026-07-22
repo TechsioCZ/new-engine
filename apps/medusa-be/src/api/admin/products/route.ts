@@ -25,6 +25,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 
   res.json({
     products: products.map((product) =>
+      // Medusa applies this helper to field-selected graph results, but its
+      // public parameter type is the stricter, fully populated ProductDTO.
       remapProductResponse(product as ProductDTO)
     ),
     count: metadata.count,

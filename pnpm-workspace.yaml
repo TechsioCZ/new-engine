@@ -7,6 +7,16 @@ minimumReleaseAgeExclude:
   - '@rokmohar/medusa-plugin-meilisearch'
 # trustPolicy: no-downgrade
 
+# Packages own their test-tool dependencies; catalogs centralize the two
+# intentionally supported Vite/Vitest compatibility lines.
+catalogs:
+  vite5-testing:
+    vite: 5.4.21
+    vitest: ^3.2.7
+  vite8-testing:
+    vite: 8.1.3
+    vitest: ^4.1.5
+
 strictPeerDependencies: true
 disallowWorkspaceCycles: true
 dedupeDirectDeps: true
@@ -28,9 +38,6 @@ publicHoistPattern:
   - postcss
   - postcss-*
   - '@iconify/tailwind4'
-  - vite
-  - vitest
-  - '@vitejs/*'
   - storybook
   - storybook-*
   - '@storybook/*'
@@ -44,10 +51,18 @@ overrides:
   '@types/react': 19.2.3
   '@types/react-dom': 19.2.3
   '@types/node': 24.12.4
-  '@medusajs/admin-bundler>vite': 8.1.3
-  '@medusajs/admin-vite-plugin>vite': 8.1.3
-  '@medusajs/admin-bundler>@vitejs/plugin-react': 6.0.3
-  vite: 8.1.3
+
+# These exact, package-scoped exceptions acknowledge compatibility without
+# rewriting the dependencies' published peer metadata. Future version changes
+# will surface as peer errors again and require explicit re-verification.
+peerDependencyRules:
+  allowedVersions:
+    '@medusajs/caching@2.17.2>awilix': 12.0.5
+    '@rokmohar/medusa-plugin-meilisearch@1.4.3>awilix': 12.0.5
+    'medusa-plugin-content@0.2.0>@medusajs/framework': 2.17.2
+    'medusa-plugin-content@0.2.0>@medusajs/js-sdk': 2.17.2
+    'medusa-plugin-content@0.2.0>@medusajs/medusa': 2.17.2
+    'fdir@6.1.1>picomatch': 4.0.5
 
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
@@ -67,22 +82,16 @@ supportedArchitectures:
 
 # Manual dependency metadata extensions for packages with incomplete published metadata.
 packageExtensions:
-  '@payloadcms/ui@3.85.1':
-    dependencies:
-      '@floating-ui/react': 0.27.19
-  '@pigment/auto-translate@1.3.4':
-    dependencies:
-      '@payloadcms/ui': 3.85.1
-  '@medusajs/caching@2.16.0':
+  '@medusajs/caching@2.17.2':
     dependencies:
       graphql: 16.14.0
-  '@medusajs/core-flows@2.16.0':
+  '@medusajs/core-flows@2.17.2':
     dependencies:
-      '@medusajs/utils': 2.16.0
-      '@medusajs/workflows-sdk': 2.16.0
-  '@rokmohar/medusa-plugin-meilisearch@*':
+      '@medusajs/utils': 2.17.2
+      '@medusajs/workflows-sdk': 2.17.2
+  '@rokmohar/medusa-plugin-meilisearch@1.4.3':
     dependencies:
-      '@medusajs/js-sdk': ^2.16.0
+      '@medusajs/js-sdk': ^2.17.2
 
 patchedDependencies:
   medusa-plugin-content@0.2.0: patches/medusa-plugin-content@0.2.0.patch

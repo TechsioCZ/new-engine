@@ -28,8 +28,8 @@
   "private": true,
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
-    "@medusajs/deps": "2.16.0",
-    "@medusajs/eslint-plugin": "2.16.0",
+    "@medusajs/deps": "2.17.2",
+    "@medusajs/eslint-plugin": "2.17.2",
     "@nubjs/nub": "0.1.14",
     "@nx/esbuild": "22.4.2",
     "@nx/eslint-plugin": "22.4.2",
@@ -52,5 +52,5 @@
     "ultracite": "6.3.6",
     "yaml": "^2.7.1"
   },
-  "packageManager": "pnpm@11.8.0"
+  "packageManager": "pnpm@11.15.1+sha512.81350b07e53c9538a02f1f2303b4290fa2d7be04e56e2a970c4cc4b417dc761de196edabd49d55c7dc9580db81007c44143e4e3d7e462b3000d23c255122d065"
 }

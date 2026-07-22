@@ -24,8 +24,8 @@
     ]
   },
   "dependencies": {
-    "@medusajs/js-sdk": "^2.12.5",
-    "@medusajs/types": "^2.12.5",
+    "@medusajs/js-sdk": "^2.17.2",
+    "@medusajs/types": "^2.17.2",
     "@tanstack/react-form": "^1.27.4",
     "@tanstack/react-query": "^5.90.2",
     "@techsio/storefront-data": "workspace:*",
