@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { omitUndefined } from "@techsio/std/object"
 
 import {
   type AuthHooks,
@@ -170,7 +171,6 @@ import type {
 } from "../reviews/types"
 import type { CacheConfig } from "../shared/cache-config"
 import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
-import { omitUndefined } from "../shared/object-utils"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createMedusaCartFlow } from "./cart-flow"
 import { createMedusaCheckoutFlow } from "./checkout-flow"

@@ -12,6 +12,20 @@ export const compactRecord = (
     Object.entries(record).filter(([, value]) => value !== undefined)
   )
 
+type OmitUndefined<T extends object> = {
+  [K in keyof T as undefined extends T[K] ? never : K]: T[K]
+} & {
+  [K in keyof T as undefined extends T[K] ? K : never]?: Exclude<
+    T[K],
+    undefined
+  >
+}
+
+export const omitUndefined = <T extends object>(value: T): OmitUndefined<T> =>
+  Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined)
+  ) as OmitUndefined<T>
+
 export const omitKeys = <
   TObject extends object,
   const TKeys extends readonly (keyof TObject)[],

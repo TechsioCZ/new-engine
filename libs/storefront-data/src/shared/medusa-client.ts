@@ -1,12 +1,12 @@
 import type { Config } from "@medusajs/js-sdk"
 import Medusa from "@medusajs/js-sdk"
+import { omitKeys } from "@techsio/std/object"
 
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
   setLocalStorageItem,
 } from "./local-storage"
-import { omitKeys } from "./object-utils"
 
 export type MedusaClientConfig = Config
 

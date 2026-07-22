@@ -1,3 +1,10 @@
+import { omitUndefined } from "@techsio/std/object"
+import {
+  hasTrimmedString,
+  normalizePresentTrimmedString,
+  normalizeTrimmedString,
+} from "@techsio/std/string"
+
 import type {
   MedusaCustomerAddressCreateInput,
   MedusaCustomerAddressUpdateInput,
@@ -7,12 +14,6 @@ import type {
   StorefrontCartAddressAdapter,
   StorefrontCustomerAddressAdapter,
 } from "../shared/address"
-import { omitUndefined } from "../shared/object-utils"
-import {
-  hasTrimmedString,
-  normalizePresentTrimmedString,
-  normalizeTrimmedString,
-} from "../shared/string-utils"
 
 export type CheckoutAddressInput = {
   firstName?: string | null
@@ -188,25 +189,24 @@ const normalizePatchCountryCode = (
   return normalized ? normalized.toLowerCase() : ""
 }
 
-const normalizeCheckoutAddressInput = <TAddress extends CheckoutAddressInput>(
-  address: TAddress
-): NormalizedCheckoutAddress<TAddress> => {
-  const normalized: NormalizedCheckoutAddress<CheckoutAddressInput> =
-    omitUndefined({
-      ...address,
-      firstName: normalizeTrimmedString(address.firstName),
-      lastName: normalizeTrimmedString(address.lastName),
-      street: normalizeTrimmedString(address.street),
-      street2: normalizeTrimmedString(address.street2),
-      city: normalizeTrimmedString(address.city),
-      postalCode: normalizeTrimmedString(address.postalCode),
-      country: normalizeTrimmedString(address.country),
-      province: normalizeTrimmedString(address.province),
-      company: normalizeTrimmedString(address.company),
-      phone: normalizeTrimmedString(address.phone),
-    })
+const normalizeCheckoutAddressInput = (
+  address: CheckoutAddressInput
+): NormalizedCheckoutAddress => {
+  const normalized = omitUndefined({
+    ...address,
+    firstName: normalizeTrimmedString(address.firstName),
+    lastName: normalizeTrimmedString(address.lastName),
+    street: normalizeTrimmedString(address.street),
+    street2: normalizeTrimmedString(address.street2),
+    city: normalizeTrimmedString(address.city),
+    postalCode: normalizeTrimmedString(address.postalCode),
+    country: normalizeTrimmedString(address.country),
+    province: normalizeTrimmedString(address.province),
+    company: normalizeTrimmedString(address.company),
+    phone: normalizeTrimmedString(address.phone),
+  })
 
-  return { ...address, ...normalized }
+  return normalized
 }
 
 const normalizeCheckoutAddressPatch = <

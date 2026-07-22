@@ -9,6 +9,7 @@ import {
   getErrorMessage,
   isRecord,
   omitKeys,
+  omitUndefined,
   toPlainRecord,
 } from "../src/object.js"
 import {
@@ -43,6 +44,10 @@ describe("object utilities", () => {
       c: null,
     })
     expect(omitKeys({ a: 1, b: 2 }, ["b"])).toEqual({ a: 1 })
+    expect(omitUndefined({ a: 1, b: undefined, c: null })).toEqual({
+      a: 1,
+      c: null,
+    })
   })
 
   it("normalizes error messages", () => {

@@ -1,7 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { omitUndefined } from "@techsio/std/object"
 
-import { omitUndefined } from "../shared/object-utils"
 import type { CheckoutService } from "./types"
 
 export type MedusaPaymentSessionDataInput = {

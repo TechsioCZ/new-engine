@@ -1,7 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { compactRecord } from "@techsio/std/object"
 
-import { compactRecord } from "../shared/object-utils"
 import type {
   AddFavoriteProductListItemInput,
   AddProductListItemInput,

@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
 
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import type {
@@ -23,7 +24,6 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { omitUndefined } from "../shared/object-utils"
 import type { StorageValueStore } from "../shared/storage-value-store"
 
 type MedusaCartMutationHook<TInput> = (options?: {

@@ -1,6 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-
-import { omitUndefined } from "./object-utils"
+import { omitUndefined } from "@techsio/std/object"
 
 export type CheckoutCartWithId = {
   id?: string | null

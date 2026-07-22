@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
 
 import {
   type CacheConfig,
@@ -16,7 +17,6 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { omitUndefined } from "../shared/object-utils"
 import { resolvePagination } from "../shared/pagination"
 import type { PrefetchSkipMode } from "../shared/prefetch"
 import { shouldSkipPrefetch } from "../shared/prefetch"

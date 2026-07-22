@@ -157,6 +157,28 @@ describe("checkout address defaults", () => {
     })
   })
 
+  it("omits blank and null optional fields from cart address payloads", () => {
+    expect(
+      mapCheckoutAddressToMedusaCartAddress({
+        firstName: "Jan",
+        lastName: "Novak",
+        street: "Main 1",
+        street2: "   ",
+        city: "Prague",
+        postalCode: "11000",
+        country: "CZ",
+        phone: null,
+      })
+    ).toStrictEqual({
+      first_name: "Jan",
+      last_name: "Novak",
+      address_1: "Main 1",
+      city: "Prague",
+      postal_code: "11000",
+      country_code: "cz",
+    })
+  })
+
   it("builds cart address input for separate and same-address checkout flows", () => {
     expect(
       buildCheckoutCartAddressInput(

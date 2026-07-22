@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query"
+import { isRecord as isPlainRecord } from "@techsio/std/object"
 
 import type { CartQueryKeys } from "../cart/types"
-import { isPlainRecord } from "./object-utils"
 import {
   areQueryKeySegmentsEqual,
   getSortedRecordKeys,

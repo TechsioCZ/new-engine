@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { omitUndefined, toPlainRecord } from "@techsio/std/object"
 
 import type { MedusaCompleteCartResult } from "../cart/medusa-service"
 import {
@@ -14,7 +15,6 @@ import {
   resolveSelectedPaymentProviderId,
 } from "../shared/checkout-flow-utils"
 import { createErrorWithStage } from "../shared/error-utils"
-import { omitUndefined, toPlainRecord } from "../shared/object-utils"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import {
   type MedusaCartFlowStorefront,

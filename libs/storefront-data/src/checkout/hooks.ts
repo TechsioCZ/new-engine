@@ -7,6 +7,7 @@ import {
   useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
 
 import type { CartQueryKeys } from "../cart/types"
 import {
@@ -20,7 +21,6 @@ import {
   patchCartCaches,
   syncCartCaches,
 } from "../shared/cart-cache-sync"
-import { omitUndefined } from "../shared/object-utils"
 import type { QueryNamespace } from "../shared/query-keys"
 import { createCheckoutQueryKeys } from "./query-keys"
 import type {
