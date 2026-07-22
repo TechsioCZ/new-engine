@@ -1,5 +1,5 @@
 "use client"
-import { LinkButton } from "@ui/atoms/link-button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"

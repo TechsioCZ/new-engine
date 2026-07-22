@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 
 import type { Cart } from "@/services/cart-service"
 import { formatAmount } from "@/utils/format/format-product"

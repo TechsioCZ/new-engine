@@ -1,8 +1,8 @@
 "use client"
 
-import { Button } from "@ui/atoms/button"
-import { Dialog } from "@ui/molecules/dialog"
-import { SelectTemplate } from "@ui/templates/select"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { useState } from "react"
 
 import { useCart } from "@/hooks/use-cart"

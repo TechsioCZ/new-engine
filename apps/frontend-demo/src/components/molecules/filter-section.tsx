@@ -1,4 +1,4 @@
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import type { ReactNode } from "react"
 import { useState } from "react"
 

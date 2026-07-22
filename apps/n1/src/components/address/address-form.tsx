@@ -1,8 +1,8 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { Button } from "@ui/atoms/button"
 
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
 import { AddressValidationError } from "@/lib/errors"

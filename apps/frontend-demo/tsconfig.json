@@ -16,7 +16,7 @@
     "incremental": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@ui/*": ["../../libs/ui/src/*"]
+      "@techsio/ui-kit/*": ["../../libs/ui/src/*"]
     },
     "plugins": [
       {

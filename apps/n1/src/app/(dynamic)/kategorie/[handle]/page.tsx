@@ -4,7 +4,7 @@ import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination
 import {
   BreadcrumbTemplate,
   type BreadcrumbTemplateItem,
-} from "@ui/templates/breadcrumb"
+} from "@techsio/ui-kit/templates/breadcrumb"
 import NextLink from "next/link"
 import { notFound, useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"

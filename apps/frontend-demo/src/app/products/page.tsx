@@ -1,7 +1,7 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
 import Link from "next/link"
 import { Suspense, useEffect, useRef } from "react"
 

@@ -1,8 +1,8 @@
 "use client"
 
 import { useForm, useStore } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import { Button } from "@ui/atoms/button"
 import Link from "next/link"
 
 import { TextField } from "@/components/forms/fields/text-field"

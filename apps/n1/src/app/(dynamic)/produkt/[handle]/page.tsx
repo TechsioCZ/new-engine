@@ -1,8 +1,8 @@
 "use client"
 
 import { HeurekaProduct } from "@techsio/analytics/heureka"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
-import { GalleryTemplate } from "@ui/templates/gallery"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"

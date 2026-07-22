@@ -22,7 +22,6 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@ui/*": ["../../libs/ui/src/*"],
       "@techsio/ui-kit/*": ["../../libs/ui/src/*"],
       "@techsio/analytics": ["../../libs/analytics/src/index.ts"],
       "@techsio/analytics/*": ["../../libs/analytics/src/*/index.ts"]

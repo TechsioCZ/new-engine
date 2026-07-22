@@ -1,9 +1,9 @@
 "use client"
 
-import type { BadgeProps } from "@ui/atoms/badge"
-import { StatusText } from "@ui/atoms/status-text"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
-import { GalleryTemplate } from "@ui/templates/gallery"
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"

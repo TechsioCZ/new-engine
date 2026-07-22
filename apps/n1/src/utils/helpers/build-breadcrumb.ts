@@ -1,4 +1,4 @@
-import type { BreadcrumbTemplateItem } from "@ui/templates/breadcrumb"
+import type { BreadcrumbTemplateItem } from "@techsio/ui-kit/templates/breadcrumb"
 
 import type { Category } from "@/data/static/type"
 
