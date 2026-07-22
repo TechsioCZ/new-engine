@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
-  ensureCustomerPurchasedProduct,
   ensureProductExists,
   ensureReviewDoesNotExist,
-  getCustomerId,
+  getAuthenticatedCustomerId,
+  getGuestReviewCustomerId,
   getReviewAuthorName,
   getReviewTokenCustomerId,
   retrieveCustomer,
@@ -20,15 +20,15 @@ export async function POST(
   const tokenRecord = review_token
     ? await retrieveReviewToken(req, review_token, product_id)
     : undefined
+  const authenticatedCustomerId = tokenRecord
+    ? undefined
+    : getAuthenticatedCustomerId(req)
   const customerId = tokenRecord
     ? getReviewTokenCustomerId(tokenRecord)
-    : getCustomerId(req)
+    : (authenticatedCustomerId ?? getGuestReviewCustomerId())
+  const isGuestReview = !(tokenRecord || authenticatedCustomerId)
 
   await ensureProductExists(req, product_id)
-
-  if (!tokenRecord) {
-    await ensureCustomerPurchasedProduct(req, customerId, product_id)
-  }
 
   await ensureReviewDoesNotExist({
     customerId,
@@ -36,11 +36,12 @@ export async function POST(
     req,
   })
 
-  const customer = tokenRecord
-    ? undefined
-    : await retrieveCustomer(req, customerId)
+  const customer = authenticatedCustomerId
+    ? await retrieveCustomer(req, authenticatedCustomerId)
+    : undefined
   const authorName = getReviewAuthorName({
     customer,
+    isGuest: isGuestReview,
     reviewToken: tokenRecord,
   })
   const { result: review } = await createReviewWorkflow(req.scope).run({
