@@ -91,6 +91,14 @@ run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm --filter medusa-be update -
 description = "Update @medusajs/* packages inside the Medusa backend workspace"
 run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm --filter medusa-be update '@medusajs/*' --latest"
 
+[tasks."dev:deps:peers:check"]
+description = "Check workspace peer dependency contracts without changing dependencies"
+run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm peers check"
+
+[tasks."dev:deps:dedupe:check"]
+description = "Report compatible dependency convergence without changing the lockfile"
+run = "bash ./scripts/dev/run-pnpm-toolchain.sh pnpm dedupe --check"
+
 [tasks."dev:deps:npkill"]
 description = "Interactively clean node_modules trees inside the repo pnpm toolchain container"
 run = "PNPM_TOOLCHAIN_TTY=1 bash ./scripts/dev/run-pnpm-toolchain.sh pnpx npkill -x -D -y"

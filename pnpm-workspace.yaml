@@ -21,7 +21,11 @@ catalogs:
 strictPeerDependencies: true
 disallowWorkspaceCycles: true
 injectWorkspacePackages: true
-verifyDepsBeforeRun: false
+# Never let `pnpm run`/`pnpm exec` repair a stale dependency layout implicitly.
+# Dependency reconciliation is an explicit, reviewable workflow in this repo.
+verifyDepsBeforeRun: error
+# A misspelled or stale workspace filter must not pass as a successful no-op.
+failIfNoMatch: true
 # Keep registry request fan-out stable across developer and CI machines.
 # pnpm otherwise derives this from the available CPU count.
 networkConcurrency: 16
