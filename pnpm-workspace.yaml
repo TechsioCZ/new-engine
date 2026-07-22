@@ -21,9 +21,12 @@ catalogs:
 strictPeerDependencies: true
 disallowWorkspaceCycles: true
 injectWorkspacePackages: true
-# Never let `pnpm run`/`pnpm exec` repair a stale dependency layout implicitly.
-# Dependency reconciliation is an explicit, reviewable workflow in this repo.
-verifyDepsBeforeRun: error
+# Keep host and container installs on the same non-global virtual-store layout.
+enableGlobalVirtualStore: false
+# pnpm's run/exec verification persists absolute project and patch paths, so a
+# shared node_modules cannot pass it from both the host checkout and /var/www.
+# Installs remain explicit through the frozen mise/CI workflows.
+verifyDepsBeforeRun: false
 # A misspelled or stale workspace filter must not pass as a successful no-op.
 failIfNoMatch: true
 # Keep registry request fan-out stable across developer and CI machines.
@@ -92,6 +95,12 @@ packageExtensions:
     dependencies:
       '@medusajs/utils': 2.17.2
       '@medusajs/workflows-sdk': 2.17.2
+  '@medusajs/types@2.17.2':
+    dependencies:
+      # Its published declarations import this package, but the release lists
+      # it only as a dev dependency. Supply the missing type/runtime edge so
+      # every MedusaContainer resolves the same Awilix contract.
+      '@medusajs/deps': 2.17.2
   '@rokmohar/medusa-plugin-meilisearch@1.4.3':
     dependencies:
       # The published bundle externalizes these runtime imports but omits them
