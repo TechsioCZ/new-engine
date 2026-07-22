@@ -21,7 +21,7 @@
     "knip:report": "knip --treat-config-hints-as-errors --reporter markdown",
     "knip:fix": "knip --fix",
     "knip:prod": "knip --production --treat-config-hints-as-errors",
-    "jscpd": "jscpd apps libs",
+    "jscpd": "jscpd",
     "prepare": "lefthook install",
     "typecheck": "node scripts/typescript/typecheck.mjs --compiler tsc",
     "typecheck:affected": "nx affected -t typecheck",

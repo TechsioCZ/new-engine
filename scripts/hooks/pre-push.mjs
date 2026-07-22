@@ -149,6 +149,7 @@ process.stdin.on("end", () => {
   if (touchesDangerPolicy(files)) {
     run(process.execPath, [
       "--test",
+      "scripts/danger/check-migration-immutability.test.mjs",
       "scripts/danger/policy.test.ts",
       "scripts/hooks/files.test.mjs",
     ])

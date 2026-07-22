@@ -6,6 +6,7 @@
   "compilerOptions": {
     "composite": false,
     "incremental": false,
+    "moduleSuffixes": [".strict", ""],
     "noEmit": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
@@ -31,17 +32,16 @@
     "useUnknownInCatchVariables": true
   },
   "include": [
-    "../../../../../apps/payload/src/collections/**/*.ts",
-    "../../../../../apps/payload/src/components/**/*.tsx",
-    "../../../../../apps/payload/src/lib/**/*.ts",
-    "../../../../../apps/payload/src/payload-types.ts",
-    "../../../../../apps/payload/tests/**/*.ts",
-    "../../../../../apps/payload/vitest.config.mts",
-    "../../../../../apps/payload/vitest.setup.ts"
+    "../../../../../apps/payload/**/*.ts",
+    "../../../../../apps/payload/**/*.tsx",
+    "../../../../../apps/payload/**/*.mts"
   ],
   "exclude": [
+    "../../../../../apps/payload/.next",
     "../../../../../apps/payload/node_modules",
+    "../../../../../apps/payload/next-env.d.ts",
+    "../../../../../apps/payload/src/app/(payload)/admin/importMap/**/*.ts",
     "../../../../../apps/payload/src/migrations/**/*.ts",
-    "../../../../../apps/payload/src/lib/endpoints/article-import.ts"
+    "../../../../../apps/payload/src/payload-types.ts"
   ]
 }

@@ -6,6 +6,16 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../..")
 const projectsDirectory = path.join(import.meta.dirname, "projects")
 
 const readJson = (filePath) => JSON.parse(readFileSync(filePath, "utf-8"))
+// Committed Payload migrations are immutable generated history, but
+// payload.config.ts imports ./migrations, so the strict wrapper substitutes a
+// typed façade (src/migrations.strict.d.ts) via this exact suffix list instead
+// of pulling generated implementations into the strict program.
+const wrapperResolutionExceptions = new Map([
+  [
+    "scripts/typescript/projects/apps/payload/tsconfig.json",
+    new Map([["moduleSuffixes", JSON.stringify([".strict", ""])]]),
+  ],
+])
 const fail = (message) => {
   throw new Error(message)
 }
@@ -42,10 +52,16 @@ for (const { path: referencePath } of rootConfig.references ?? []) {
     "typeRoots",
     "types",
   ]) {
-    if (JSON.stringify(effective[option]) !== JSON.stringify(source[option])) {
-      fail(
-        `${path.relative(repositoryRoot, wrapperPath)} changes source compiler resolution option ${option}`
-      )
+    const effectiveValue = JSON.stringify(effective[option])
+    if (effectiveValue !== JSON.stringify(source[option])) {
+      const allowedValue = wrapperResolutionExceptions
+        .get(path.relative(repositoryRoot, wrapperPath))
+        ?.get(option)
+      if (allowedValue === undefined || effectiveValue !== allowedValue) {
+        fail(
+          `${path.relative(repositoryRoot, wrapperPath)} changes source compiler resolution option ${option}`
+        )
+      }
     }
   }
   if (!wrapperPath.startsWith(`${projectsDirectory}${path.sep}`)) {

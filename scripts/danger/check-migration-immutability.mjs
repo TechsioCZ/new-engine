@@ -11,25 +11,37 @@ const base =
         encoding: "utf-8",
       }).trim()
 
-const modifiedMigrations = execFileSync(
+const mutatedMigrations = execFileSync(
   "git",
   [
     "diff",
-    "--name-only",
-    "--diff-filter=M",
+    "--name-status",
+    "--diff-filter=MRDCT",
+    "--find-renames",
+    "--find-copies-harder",
     `${base}...HEAD`,
-    "--",
-    ":(glob)**/migrations/**",
   ],
   { encoding: "utf-8" }
 )
   .trim()
   .split("\n")
   .filter(Boolean)
+  .map((line) => {
+    const [status, sourceOrPath] = line.split("\t")
+    if (status.startsWith("R") || status.startsWith("C")) {
+      return sourceOrPath.split("/").includes("migrations")
+        ? sourceOrPath
+        : undefined
+    }
+    return sourceOrPath.split("/").includes("migrations")
+      ? sourceOrPath
+      : undefined
+  })
+  .filter(Boolean)
 
-if (modifiedMigrations.length > 0) {
+if (mutatedMigrations.length > 0) {
   console.error(
-    `Do not edit existing migrations; add a new migration instead:\n${modifiedMigrations.join("\n")}`
+    `Do not edit existing migrations; add a new migration instead:\n${mutatedMigrations.join("\n")}`
   )
   process.exit(1)
 }

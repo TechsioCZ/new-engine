@@ -151,12 +151,32 @@ jobs:
       - detect-a11y-changes
       - storybook-a11y
     if: >-
-      always() && needs.detect-a11y-changes.outputs.should-run == 'true' && needs.storybook-a11y.result == 'success' && (needs.detect-a11y-changes.outputs.baseline-changed != 'true' || needs.authorize-baseline-change.result == 'success')
+      always() && (needs.detect-a11y-changes.result != 'success' || needs.detect-a11y-changes.outputs.should-run == 'true')
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
     steps:
+      - name: Require successful accessibility prerequisites
+        env:
+          AUTHORIZATION_RESULT: ${{ needs.authorize-baseline-change.result }}
+          BASELINE_CHANGED: ${{ needs.detect-a11y-changes.outputs.baseline-changed }}
+          DETECTION_RESULT: ${{ needs.detect-a11y-changes.result }}
+          SCAN_RESULT: ${{ needs.storybook-a11y.result }}
+        run: |
+          if [ "$DETECTION_RESULT" != "success" ]; then
+            echo "::error::Accessibility change detection did not succeed (result: $DETECTION_RESULT)."
+            exit 1
+          fi
+          if [ "$SCAN_RESULT" != "success" ]; then
+            echo "::error::The Storybook accessibility scan did not succeed (result: $SCAN_RESULT)."
+            exit 1
+          fi
+          if [ "$BASELINE_CHANGED" = "true" ] && [ "$AUTHORIZATION_RESULT" != "success" ]; then
+            echo "::error file=libs/ui/a11y-baseline.json::Accessibility baseline authorization did not succeed (result: $AUTHORIZATION_RESULT)."
+            exit 1
+          fi
+
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
