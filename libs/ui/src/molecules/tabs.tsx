@@ -190,17 +190,13 @@ export function Tabs({
 
   const api = tabs.connect(service, normalizeProps)
   const styles = tabsVariants({ variant, size, fitted, justify })
+  const rootProps = mergeProps(api.getRootProps(), props)
 
   return (
     <TabsContext.Provider
       value={{ api, variant, size, fitted, justify, styles }}
     >
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...props}
-        {...api.getRootProps()}
-      >
+      <div {...rootProps} className={styles.root({ className })} ref={ref}>
         {children}
       </div>
     </TabsContext.Provider>
@@ -219,14 +215,10 @@ Tabs.List = function TabsList({
   ...props
 }: TabsListProps) {
   const { api, styles } = useTabsContext()
+  const listProps = mergeProps(api.getListProps(), props)
 
   return (
-    <div
-      className={styles.list({ className })}
-      ref={ref}
-      {...props}
-      {...api.getListProps()}
-    >
+    <div {...listProps} className={styles.list({ className })} ref={ref}>
       {children}
     </div>
   )
@@ -284,14 +276,10 @@ Tabs.Content = function TabsContent({
   ...props
 }: TabsContentProps) {
   const { api, styles } = useTabsContext()
+  const contentProps = mergeProps(api.getContentProps({ value }), props)
 
   return (
-    <div
-      className={styles.content({ className })}
-      ref={ref}
-      {...props}
-      {...api.getContentProps({ value })}
-    >
+    <div {...contentProps} className={styles.content({ className })} ref={ref}>
       {children}
     </div>
   )
@@ -308,13 +296,13 @@ Tabs.Indicator = function TabsIndicator({
   ...props
 }: TabsIndicatorProps) {
   const { api, styles } = useTabsContext()
+  const indicatorProps = mergeProps(api.getIndicatorProps(), props)
 
   return (
     <div
+      {...indicatorProps}
       className={styles.indicator({ className })}
       ref={ref}
-      {...props}
-      {...api.getIndicatorProps()}
     />
   )
 }
