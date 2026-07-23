@@ -203,9 +203,9 @@ export function useAddToCart(options?: UseAddToCartOptions) {
 
       options?.onError?.(error)
     },
-    onSettled: () => {
+    onSettled: async () => {
       // Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -265,8 +265,8 @@ export function useUpdateLineItem() {
         console.error("[useUpdateLineItem] Failed to update quantity:", error)
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -319,8 +319,8 @@ export function useRemoveLineItem() {
         console.error("[useRemoveLineItem] Failed to remove item:", error)
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
     },
   })
 }
@@ -343,17 +343,21 @@ export function useCompleteCart(options?: UseCompleteCartOptions) {
     CartMutationContext
   >({
     mutationFn: ({ cartId }) => completeCart(cartId),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       if (result.success) {
         const order = result.order
 
         // Clear cart cache
         queryClient.setQueryData(queryKeys.cart.active(), null)
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.cart.active(),
+        })
 
         queryClient.setQueryData(queryKeys.orders.detail(order.id), order)
 
-        queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.orders.all(),
+        })
 
         if (process.env["NODE_ENV"] === "development") {
           console.log("[useCompleteCart] Order created successfully:", order.id)

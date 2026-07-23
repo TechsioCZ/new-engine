@@ -60,7 +60,7 @@ export function usePrefetchPages({
         `${categoryName}: ${pageLabels} (${priority})`
       )
 
-      Promise.all(
+      void Promise.all(
         pages.map((page) => {
           const queryParams = buildProductQueryParams({
             category_id,

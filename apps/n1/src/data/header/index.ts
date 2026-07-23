@@ -194,7 +194,7 @@ const getImageForCategory = (
   const image = parentImages[childKey] as StaticImageData | undefined
   if (!image && process.env["NODE_ENV"] === "development") {
     console.warn(
-      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${childKey})`
+      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${String(childKey)})`
     )
   }
   return image

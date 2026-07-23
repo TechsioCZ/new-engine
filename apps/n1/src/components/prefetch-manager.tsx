@@ -39,7 +39,7 @@ export function PrefetchManager() {
 
       // Prefetch ALL root categories (without AbortSignal)
       for (const categoryIds of Object.values(CATEGORY_MAP)) {
-        prefetchRootCategories(categoryIds)
+        void prefetchRootCategories(categoryIds)
       }
     }, PREFETCH_DELAY)
 

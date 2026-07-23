@@ -93,7 +93,7 @@ type CheckoutContextValue = {
   customer: ReturnType<typeof useSuspenseAuth>["customer"]
   selectedAddressId: string | null
   setSelectedAddressId: (id: string | null) => void
-  completeCheckout: () => void
+  completeCheckout: () => Promise<void>
   isCompleting: boolean
   error: string | null
   isReady: boolean
@@ -269,8 +269,8 @@ export function CheckoutProvider({ children }: { children: ReactNode }) {
     }
   }, [shipping.selectedOption])
 
-  const completeCheckout = () => {
-    form.handleSubmit()
+  const completeCheckout = async () => {
+    await form.handleSubmit()
   }
 
   // Check if selected shipping requires access point

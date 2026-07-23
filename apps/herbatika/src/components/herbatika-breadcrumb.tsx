@@ -25,7 +25,7 @@ export type HerbatikaBreadcrumbProps = Omit<
 }
 
 function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
-  return `${item.href?.toString() ?? "current"}-${item.label}-${index}`
+  return `${item.label}-${index}`
 }
 
 function getIconOnlyLabel(item: HerbatikaBreadcrumbItem) {

@@ -84,9 +84,9 @@ export function LoginForm({
     <form
       className="mt-100 flex flex-col gap-100"
       noValidate
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        form.handleSubmit()
+        await form.handleSubmit()
       }}
     >
       <form.Field name="email" validators={loginValidators.email}>

@@ -95,9 +95,9 @@ export function RegisterForm({
     <form
       className={`mt-100 flex flex-col gap-200 ${className}`}
       noValidate
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        form.handleSubmit()
+        await form.handleSubmit()
       }}
     >
       {register.error && (

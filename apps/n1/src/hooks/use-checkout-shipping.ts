@@ -52,7 +52,7 @@ export function useCheckoutShipping(
   const canLoadShipping = !!cartId && (cart?.items?.length ?? 0) > 0
 
   // Fetch shipping options for cart
-  const { data: shippingOptions = [] } = useSuspenseQuery({
+  const { data: shippingOptions } = useSuspenseQuery({
     queryKey: queryKeys.cart.shippingOptions(cartId || "unknown"),
     queryFn: () => {
       if (!(canLoadShipping && cartId)) {

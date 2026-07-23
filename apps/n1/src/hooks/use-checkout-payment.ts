@@ -40,7 +40,7 @@ export function useCheckoutPayment(
   const canLoadProviders = !!regionId
 
   // Fetch available payment providers for region
-  const { data: paymentProviders = [] } = useSuspenseQuery({
+  const { data: paymentProviders } = useSuspenseQuery({
     queryKey: queryKeys.payment.providers(regionId || "unknown"),
     queryFn: () => {
       if (!(canLoadProviders && regionId)) {
@@ -70,9 +70,11 @@ export function useCheckoutPayment(
         }
         return createPaymentCollection(cartId, providerId)
       },
-      onSuccess: () => {
+      onSuccess: async () => {
         // Refresh cart to get payment collection
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.cart.active(),
+        })
         if (process.env["NODE_ENV"] === "development") {
           console.log("[useCheckoutPayment] Payment collection created")
         }

@@ -75,7 +75,7 @@ export const DesktopSubmenu = () => {
                   onMouseEnter={() => {
                     // Immediate prefetch on hover
                     if (item.categoryIds && item.categoryIds.length > 0) {
-                      prefetchCategoryProducts(item.categoryIds)
+                      void prefetchCategoryProducts(item.categoryIds)
                     }
                   }}
                 >

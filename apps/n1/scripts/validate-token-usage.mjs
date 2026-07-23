@@ -80,7 +80,7 @@ function findFilesWithExtension(dir, extension, ignore = []) {
           results.push(relativePath)
         }
       }
-    } catch (_err) {
+    } catch {
       // Skip directories we can't read
     }
   }
@@ -643,7 +643,7 @@ function findCssFiles(dir) {
         results.push(fullPath)
       }
     }
-  } catch (_err) {
+  } catch {
     // Skip directories we can't read
   }
   return results

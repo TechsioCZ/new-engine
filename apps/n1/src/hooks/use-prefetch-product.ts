@@ -53,7 +53,7 @@ export function usePrefetchProduct() {
     }
 
     const timeoutId = setTimeout(() => {
-      prefetchProduct(handle, fields)
+      void prefetchProduct(handle, fields)
       timeoutsRef.current.delete(handle)
     }, delay)
 

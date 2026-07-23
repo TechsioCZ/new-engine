@@ -756,4 +756,4 @@ export const { allCategories, categoryTree, rootCategories, categoryMap, leafCat
 }
 
 // Run the script
-generateCategories()
+await generateCategories()

@@ -187,7 +187,7 @@ export function PplWidget({
         }
       }
 
-      checkPermission()
+      void checkPermission()
     } else {
       navigator.geolocation.getCurrentPosition(
         handleSuccess,

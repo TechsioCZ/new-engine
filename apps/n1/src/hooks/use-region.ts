@@ -42,7 +42,7 @@ export function useRegion() {
 }
 
 export function useSuspenseRegion() {
-  const { data: regions = [] } = useSuspenseQuery(getRegionQueryOptions())
+  const { data: regions } = useSuspenseQuery(getRegionQueryOptions())
 
   const selectedRegion =
     regions.find((r) => r.countries?.some((c) => c.iso_2 === "cz")) ||

@@ -36,7 +36,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
 
       if (categoryIds?.length) {
         // Use categoryHandle as scopedBy for potential cancellation
-        prefetchCategoryProducts(categoryIds, categoryHandle)
+        void prefetchCategoryProducts(categoryIds, categoryHandle)
       }
     }, PREFETCH_DELAYS.CATEGORY_HOVER)
   }

@@ -3,6 +3,8 @@
  * Provides consistent logging format across all prefetch systems
  */
 
+import { formatLogValue } from "./format-log-value"
+
 type PrefetchType = "Root" | "Categories" | "Pages" | "Children" | "Product"
 
 export const prefetchLogger = {
@@ -20,7 +22,7 @@ export const prefetchLogger = {
 
     const metaStr = metadata
       ? ` ${Object.entries(metadata)
-          .map(([k, v]) => `${k}:${v}`)
+          .map(([key, value]) => `${key}:${formatLogValue(value)}`)
           .join(", ")}`
       : ""
 

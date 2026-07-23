@@ -43,9 +43,9 @@ export function useCreateAddress() {
 
       return await createAddress(cleanedData)
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate addresses cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },
@@ -84,9 +84,9 @@ export function useUpdateAddress() {
 
       return await updateAddress(addressId, cleanedData)
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate addresses cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },
@@ -98,9 +98,9 @@ export function useDeleteAddress() {
 
   return useMutation({
     mutationFn: (addressId: string) => deleteAddress(addressId),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate addresses cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },

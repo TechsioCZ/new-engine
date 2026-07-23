@@ -119,9 +119,11 @@ export function useUpdateCartAddress(options?: UpdateCartAddressOptions) {
 
       options?.onError?.(error)
     },
-    onSettled: () => {
+    onSettled: async () => {
       // Always refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.active() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.cart.active(),
+      })
     },
   })
 }

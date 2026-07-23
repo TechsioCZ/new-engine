@@ -76,9 +76,9 @@ export function AddressForm({
   return (
     <form
       className="space-y-400"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        form.handleSubmit()
+        await form.handleSubmit()
       }}
     >
       <AddressFormFields disabled={isPending} form={form} />

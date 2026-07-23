@@ -108,7 +108,7 @@ export function usePrefetchProducts() {
     }
 
     const timeoutId = setTimeout(() => {
-      prefetchCategoryProducts(categoryId)
+      void prefetchCategoryProducts(categoryId)
       timeoutsRef.current.delete(id)
     }, delay)
 
