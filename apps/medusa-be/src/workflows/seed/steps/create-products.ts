@@ -1414,10 +1414,10 @@ export const createProductsStep = createStep(
 
       const updatedIds: string[] = []
 
-      for (const updateProduct of updateProducts) {
+      for (const updateProductsChunk of chunkArray(updateProducts)) {
         const updateResult = await batchProductsWorkflow(container).run({
           input: {
-            update: [updateProduct],
+            update: updateProductsChunk,
           },
         })
 

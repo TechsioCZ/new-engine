@@ -258,6 +258,7 @@ const toPaykitPaymentFromStripeCheckoutSession = (
     requires_action:
       paymentIntentStatus === "requires_action" ||
       paymentIntentStatus === "requires_confirmation" ||
+      paymentIntentStatus === "requires_payment_method" ||
       (!paymentIntentStatus &&
         session.status === "open" &&
         session.payment_status !== "paid" &&
@@ -307,7 +308,7 @@ const withStripeCheckoutSessionRetrieve = (
 
         return session
           ? toPaykitPaymentFromStripeCheckoutSession(session)
-          : await retrievePayment(id)
+          : null
       },
     },
   }

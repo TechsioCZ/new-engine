@@ -94,14 +94,18 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
 }>) {
   const { queryClient, region } = await getRegionServerContext()
-  await fetchServerCategories(
-    queryClient,
-    buildCategoryListParams({
-      page: 1,
-      limit: CATEGORY_TREE_LIMIT,
-      fields: CATEGORY_TREE_FIELDS,
-    })
-  )
+  try {
+    await fetchServerCategories(
+      queryClient,
+      buildCategoryListParams({
+        page: 1,
+        limit: CATEGORY_TREE_LIMIT,
+        fields: CATEGORY_TREE_FIELDS,
+      })
+    )
+  } catch (error) {
+    console.error("Failed to prefetch storefront categories", error)
+  }
 
   return (
     <LayoutShell

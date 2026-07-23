@@ -287,6 +287,13 @@ export class ProductBatchClientMapperHelper {
       resolvedCategories
     )
     const images = this.buildImagesPayload(product.images)
+    let categoryIdsForUpdate: string[] | undefined
+
+    if (product.categories?.length === 0) {
+      categoryIdsForUpdate = []
+    } else if (categoryIds.length) {
+      categoryIdsForUpdate = categoryIds
+    }
 
     return {
       id: productId,
@@ -333,7 +340,7 @@ export class ProductBatchClientMapperHelper {
             }
           })
         : undefined,
-      category_ids: categoryIds.length ? categoryIds : undefined,
+      category_ids: categoryIdsForUpdate,
     }
   }
 

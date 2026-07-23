@@ -282,6 +282,72 @@ describe("PaykitStripePaymentProvider", () => {
     })
   })
 
+  it("marks checkout sessions requiring a payment method as requiring action", async () => {
+    const client = createMockPaykitClient({
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_payment_method",
+          amount_total: 1050,
+          currency: "czk",
+          payment_intent: {
+            id: "pi_payment_method",
+            status: "requires_payment_method",
+          },
+          payment_status: "unpaid",
+          status: "open",
+        }),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "cs_test_payment_method",
+        },
+      })
+    ).resolves.toEqual({
+      status: PaymentSessionStatus.PENDING,
+      data: expect.objectContaining({
+        id: "cs_test_payment_method",
+        payment_intent_id: "pi_payment_method",
+        requires_action: true,
+        status: "pending",
+      }),
+    })
+  })
+
+  it("does not fall back to lossy PayKit retrieval for a null checkout session", async () => {
+    const client = createMockPaykitClient({
+      payments: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_null",
+          amount: 1050,
+          currency: "czk",
+          metadata: {},
+          status: "succeeded",
+        }),
+      },
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockResolvedValue(null),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "cs_test_null",
+        },
+      })
+    ).rejects.toThrow("PayKit payment cs_test_null could not be retrieved")
+    expect(client.payments.retrieve).not.toHaveBeenCalled()
+  })
+
   it("preserves PayKit's null retrieval contract for missing checkout sessions", async () => {
     const stripeError = Object.assign(new Error("No such checkout session"), {
       code: "resource_missing",
