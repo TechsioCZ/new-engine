@@ -23,7 +23,7 @@ pnpm --filter medusa-be medusa exec ./src/scripts/herbatica-seed.ts \
 
 The positional arguments are products, categories, reviews, then manufacturers.
 To omit the optional reviews feed while passing manufacturers, use an empty
-third argument (`""`). The manufacturers source is required and should be an
+third argument (`""`). The manufacturers' source is required and should be an
 explicit local path or pinned/versioned URL.
 
 Full feed snapshots are large, change frequently, and may contain copied editor, assistant, or conversation markup from supplier content. Keep them in supplier storage, object storage, or another controlled import source instead of git. No supplier feed URL is configured by default; Herbatica import remains explicitly invoked through `seedHerbatica` or `medusa exec`.
