@@ -24,6 +24,9 @@ function loadLocalEnvOverrides(path: string) {
 
 if (isIntegration) {
   loadEnv("test", projectRoot)
+  process.env.DATABASE_SCHEMA = "public"
+  process.env.MEDUSA_DATABASE_SCHEMA = "public"
+  process.env.MEDUSA_DB_SCHEMA = "public"
   loadLocalEnvOverrides(join(projectRoot, ".env.test.local"))
 }
 

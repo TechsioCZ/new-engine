@@ -4,10 +4,7 @@ import { PRODUCT_REVIEW_MODULE } from "../../../src/modules/product-review"
 import type ProductReviewModuleService from "../../../src/modules/product-review/service"
 import { adminHeaders, createAdminUser } from "../../utils/admin"
 import { productSeeder, salesChannelSeeder } from "../../utils/seeder"
-import {
-  generatePublishableKey,
-  generateStoreHeaders,
-} from "../../utils/store"
+import { generatePublishableKey, generateStoreHeaders } from "../../utils/store"
 
 type TestValue = any
 
@@ -68,6 +65,8 @@ medusaIntegrationTestRunner({
     let customer: TestValue
     let otherCustomer: TestValue
     let customerHeaders: TestValue
+    let otherCustomerHeaders: TestValue
+    let storeHeaders: TestValue
     let product: TestValue
     let otherProduct: TestValue
     let reviewService: ProductReviewModuleService
@@ -80,7 +79,7 @@ medusaIntegrationTestRunner({
       )
 
       const publishableKey = await generatePublishableKey(container)
-      const storeHeaders = generateStoreHeaders({ publishableKey })
+      storeHeaders = generateStoreHeaders({ publishableKey })
       const salesChannel = await salesChannelSeeder({
         api,
         adminHeaders,
@@ -101,6 +100,18 @@ medusaIntegrationTestRunner({
           handle: "other-test-product",
           sales_channels: [{ id: salesChannel.id }],
           title: "Other Test Product",
+          variants: [
+            {
+              title: "Other test variant",
+              sku: "other-test-variant",
+              manage_inventory: false,
+              prices: [{ currency_code: "usd", amount: 100 }],
+              options: {
+                color: "green",
+                size: "large",
+              },
+            },
+          ],
         },
       })
 
@@ -124,6 +135,7 @@ medusaIntegrationTestRunner({
       customer = firstUser.customer
       otherCustomer = secondUser.customer
       customerHeaders = withBearerToken(storeHeaders, firstUser.token)
+      otherCustomerHeaders = withBearerToken(storeHeaders, secondUser.token)
     })
 
     describe("PATCH /admin/reviews/:id", () => {
@@ -184,7 +196,83 @@ medusaIntegrationTestRunner({
           )
           .catch((error: TestValue) => error)
 
+        const unchangedReview = await reviewService.retrieveReview(review.id)
+
         expect(response.status).toEqual(404)
+        expect(unchangedReview).toEqual(
+          expect.objectContaining({
+            content: "Someone else's review",
+            rating: 3,
+            status: "approved",
+            title: "Other review",
+          })
+        )
+      })
+
+      it("does not let an unauthenticated request update a review", async () => {
+        const review = await reviewService.createReviews({
+          content: "Protected review",
+          customer_id: customer.id,
+          first_name: "Review",
+          last_name: "Author",
+          product_id: product.id,
+          rating: 4,
+          status: "approved",
+          title: "Protected title",
+        })
+
+        const { response } = await api
+          .patch(
+            `/admin/reviews/${review.id}`,
+            { content: "Anonymous update", rating: 1, title: "Anonymous" },
+            storeHeaders
+          )
+          .catch((error: TestValue) => error)
+
+        const unchangedReview = await reviewService.retrieveReview(review.id)
+
+        expect(response.status).toEqual(401)
+        expect(unchangedReview).toEqual(
+          expect.objectContaining({
+            content: "Protected review",
+            rating: 4,
+            status: "approved",
+            title: "Protected title",
+          })
+        )
+      })
+
+      it("does not let another customer update the author's review", async () => {
+        const review = await reviewService.createReviews({
+          content: "Author-only review",
+          customer_id: customer.id,
+          first_name: "Review",
+          last_name: "Author",
+          product_id: product.id,
+          rating: 5,
+          status: "approved",
+          title: "Author-only title",
+        })
+
+        const { response } = await api
+          .patch(
+            `/admin/reviews/${review.id}`,
+            { content: "Other customer update", rating: 1, title: "Hacked" },
+            otherCustomerHeaders
+          )
+          .catch((error: TestValue) => error)
+
+        const unchangedReview = await reviewService.retrieveReview(review.id)
+
+        expect(response.status).toEqual(404)
+        expect(unchangedReview).toEqual(
+          expect.objectContaining({
+            content: "Author-only review",
+            rating: 5,
+            status: "approved",
+            title: "Author-only title",
+          })
+        )
       })
 
       it("keeps the existing admin review update behavior", async () => {
@@ -218,6 +306,73 @@ medusaIntegrationTestRunner({
             rating: 4,
             status: "approved",
             title: "Approved title",
+          })
+        )
+      })
+
+      it("lets admins update reviews from any customer", async () => {
+        const customerReview = await reviewService.createReviews({
+          content: "Customer review",
+          customer_id: customer.id,
+          first_name: "Review",
+          last_name: "Author",
+          product_id: product.id,
+          rating: 2,
+          status: "pending",
+          title: "Customer review title",
+        })
+        const otherCustomerReview = await reviewService.createReviews({
+          content: "Other customer review",
+          customer_id: otherCustomer.id,
+          first_name: "Other",
+          last_name: "Author",
+          product_id: otherProduct.id,
+          rating: 1,
+          status: "rejected",
+          title: "Other customer review title",
+        })
+
+        const customerResponse = await api.patch(
+          `/admin/reviews/${customerReview.id}`,
+          {
+            content: "Admin edited first customer review",
+            rating: 4,
+            status: "approved",
+            title: "Admin edited first",
+          },
+          adminHeaders
+        )
+        const otherCustomerResponse = await api.patch(
+          `/admin/reviews/${otherCustomerReview.id}`,
+          {
+            content: "Admin edited other customer review",
+            rating: 5,
+            status: "approved",
+            title: "Admin edited other",
+          },
+          adminHeaders
+        )
+
+        expect(customerResponse.status).toEqual(200)
+        expect(otherCustomerResponse.status).toEqual(200)
+        expect(customerResponse.data.review).toEqual(
+          expect.objectContaining({
+            id: customerReview.id,
+            content: "Admin edited first customer review",
+            customer_id: customer.id,
+            rating: 4,
+            status: "approved",
+            title: "Admin edited first",
+          })
+        )
+        expect(otherCustomerResponse.data.review).toEqual(
+          expect.objectContaining({
+            id: otherCustomerReview.id,
+            content: "Admin edited other customer review",
+            customer_id: otherCustomer.id,
+            rating: 5,
+            status: "approved",
+            title: "Admin edited other",
           })
         )
       })
