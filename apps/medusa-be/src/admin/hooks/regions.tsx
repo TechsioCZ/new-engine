@@ -20,7 +20,7 @@ export function useRegions() {
       }
     }
 
-    fetchRegions()
+    void fetchRegions()
   }, [])
 
   return {

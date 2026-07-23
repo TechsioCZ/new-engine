@@ -211,7 +211,7 @@ function ManageItem({
                 const quantity = val === "" ? null : Number(val)
 
                 if (quantity) {
-                  onUpdate({ quantity })
+                  void onUpdate({ quantity })
                 }
               }}
               type="number"
@@ -278,7 +278,7 @@ function ManageItem({
             <div className="flex-grow">
               <Form.Field
                 name={`inbound_items.${item.id}.unit_price`}
-                render={({ field: { ref, ...field } }) => (
+                render={({ field }) => (
                   <Form.Item>
                     <Form.Control>
                       <CurrencyInput
@@ -290,7 +290,7 @@ function ManageItem({
                         onBlur={() => {
                           field.onChange(field.value)
 
-                          onUpdate({
+                          void onUpdate({
                             unit_price: Number.parseFloat(field.value),
                             quantity: item.quantity,
                           })

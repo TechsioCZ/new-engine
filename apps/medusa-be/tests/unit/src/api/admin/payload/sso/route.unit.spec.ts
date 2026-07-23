@@ -117,9 +117,9 @@ describe("GET /admin/payload/sso", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockImportPKCS8.mockResolvedValue({} as CryptoKey)
-    process.env.PAYLOAD_SSO_PRIVATE_KEY = "private-key"
-    process.env.PAYLOAD_IFRAME_URL = "http://localhost:8083"
-    process.env.PAYLOAD_SSO_USER_EMAIL = "admin@example.com"
+    process.env["PAYLOAD_SSO_PRIVATE_KEY"] = "private-key"
+    process.env["PAYLOAD_IFRAME_URL"] = "http://localhost:8083"
+    process.env["PAYLOAD_SSO_USER_EMAIL"] = "admin@example.com"
   })
 
   afterEach(() => {
@@ -236,7 +236,7 @@ describe("GET /admin/payload/sso", () => {
   it("rejects non-http Payload iframe URLs", async () => {
     const { GET } =
       await import("../../../../../../../src/api/admin/payload/sso/route")
-    process.env.PAYLOAD_IFRAME_URL = "javascript:alert(1)"
+    process.env["PAYLOAD_IFRAME_URL"] = "javascript:alert(1)"
     const req = createMockRequest()
     const res = createMockResponse()
 

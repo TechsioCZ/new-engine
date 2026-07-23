@@ -73,6 +73,10 @@ export const createMockPaykitClient = (
     delete: vi.fn().mockResolvedValue(null),
     ...overrides.customers,
   },
-  handleWebhook: overrides.handleWebhook,
-  stripeCheckoutSessions: overrides.stripeCheckoutSessions,
+  ...(overrides.handleWebhook
+    ? { handleWebhook: overrides.handleWebhook }
+    : {}),
+  ...(overrides.stripeCheckoutSessions
+    ? { stripeCheckoutSessions: overrides.stripeCheckoutSessions }
+    : {}),
 })

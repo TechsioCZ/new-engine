@@ -33,9 +33,9 @@ const isPaykitProviderRuntime = (
 ): provider is PaykitProviderRuntime =>
   isRecord(provider) && typeof provider["handleWebhook"] === "function"
 
-const dynamicImport = new Function("specifier", "return import(specifier)") as (
+const dynamicImport = async (
   specifier: string
-) => Promise<Record<string, unknown>>
+): Promise<Record<string, unknown>> => import(specifier)
 
 const isMissingPackageImportError = (
   packageName: string,
@@ -237,7 +237,9 @@ const toHeadersAsObject = (
       continue
     }
 
-    if (value !== undefined) {
+    if (typeof value === "string") {
+      result[key] = value
+    } else if (typeof value === "number" || typeof value === "boolean") {
       result[key] = String(value)
     }
   }

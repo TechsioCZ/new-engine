@@ -222,7 +222,7 @@ function normalizeAmountValue(
     return value.numeric_
   }
 
-  return value.toString?.()
+  return undefined
 }
 
 function toPositiveFiniteAmount(value: AmountValue, fieldName: string) {

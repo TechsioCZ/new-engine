@@ -473,7 +473,12 @@ describe("PplClientModuleService", () => {
         })
 
         // encryptFields should NOT receive client_secret (it was filtered out)
-        const encryptCallArgs = vi.mocked(encryptFields).mock.calls[0][0]
+        const encryptCall = vi.mocked(encryptFields).mock.calls[0]
+        expect(encryptCall).toBeDefined()
+        if (encryptCall === undefined) {
+          throw new Error("Expected encryptFields call")
+        }
+        const [encryptCallArgs] = encryptCall
         expect(encryptCallArgs).not.toHaveProperty("client_secret")
         expect(encryptFields).toHaveBeenCalledWith(
           expect.any(Object),

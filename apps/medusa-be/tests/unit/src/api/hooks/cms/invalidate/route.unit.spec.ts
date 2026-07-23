@@ -35,18 +35,18 @@ vi.mock("../../../../../../../src/utils/webhooks", () => ({
   ),
 }))
 
-const originalEnv = process.env.PAYLOAD_WEBHOOK_SECRET
+const originalEnv = process.env["PAYLOAD_WEBHOOK_SECRET"]
 
 beforeAll(() => {
-  process.env.PAYLOAD_WEBHOOK_SECRET = WEBHOOK_SECRET
+  process.env["PAYLOAD_WEBHOOK_SECRET"] = WEBHOOK_SECRET
 })
 
 afterAll(() => {
   if (originalEnv !== undefined) {
-    process.env.PAYLOAD_WEBHOOK_SECRET = originalEnv
+    process.env["PAYLOAD_WEBHOOK_SECRET"] = originalEnv
   } else {
     // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
-    delete process.env.PAYLOAD_WEBHOOK_SECRET
+    delete process.env["PAYLOAD_WEBHOOK_SECRET"]
   }
 })
 
@@ -97,7 +97,7 @@ describe("POST /hooks/cms/invalidate", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    process.env.PAYLOAD_WEBHOOK_SECRET = WEBHOOK_SECRET
+    process.env["PAYLOAD_WEBHOOK_SECRET"] = WEBHOOK_SECRET
   })
 
   it("returns 401 when signature is missing", async () => {
@@ -233,7 +233,7 @@ describe("POST /hooks/cms/invalidate", () => {
 describe("POST /hooks/cms/invalidate - missing webhook secret", () => {
   it("returns 500 when webhook secret is not configured", async () => {
     // biome-ignore lint/performance/noDelete: delete required to unset env vars in Node.js
-    delete process.env.PAYLOAD_WEBHOOK_SECRET
+    delete process.env["PAYLOAD_WEBHOOK_SECRET"]
 
     const { POST } =
       await import("../../../../../../../src/api/hooks/cms/invalidate/route")

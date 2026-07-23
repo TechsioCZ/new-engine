@@ -10,7 +10,7 @@ const rootEnv = existsSync(rootEnvPath)
   ? parseEnv(readFileSync(rootEnvPath, "utf8"))
   : {}
 
-const readEnv = (...names: string[]) => {
+const readEnv = (...names: string[]): string | undefined => {
   for (const name of names) {
     const value = process.env[name] ?? rootEnv[name]
 
@@ -18,6 +18,8 @@ const readEnv = (...names: string[]) => {
       return value
     }
   }
+
+  return undefined
 }
 
 const assertDefined = (value: string | undefined, message: string): string => {
@@ -33,7 +35,7 @@ const adminPassword = readEnv(
   "MEDUSA_ADMIN_E2E_PASSWORD",
   "DC_SUPERADMIN_PASSWORD"
 )
-const skipAuthenticatedAdmin = process.env.MEDUSA_ADMIN_E2E_SKIP_AUTH === "1"
+const skipAuthenticatedAdmin = process.env["MEDUSA_ADMIN_E2E_SKIP_AUTH"] === "1"
 
 const ADMIN_APP_URL_PATTERN = /\/app\/(?!login)/
 const CONTINUE_WITH_EMAIL_NAME = /continue with email/i

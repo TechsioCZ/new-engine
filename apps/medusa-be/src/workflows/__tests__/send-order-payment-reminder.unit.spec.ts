@@ -148,14 +148,14 @@ describe("send order payment reminder workflow", () => {
       { container }
     )) as { output: Notification[] }
 
-    expect(result.output[0]?.data?.total).toBe(
+    expect(result.output[0]?.data?.["total"]).toBe(
       new Intl.NumberFormat("cs-CZ", {
         currency: "CZK",
         style: "currency",
       }).format(1234.56)
     )
-    expect(result.output[0]?.data?.total).not.toBe("stale input total")
-    expect(result.output[0]?.data?.total).not.toBe(1999)
+    expect(result.output[0]?.data?.["total"]).not.toBe("stale input total")
+    expect(result.output[0]?.data?.["total"]).not.toBe(1999)
     expect(graph).toHaveBeenCalledWith(
       expect.objectContaining({
         entity: "order",
@@ -227,7 +227,7 @@ describe("send order payment reminder workflow", () => {
         { container }
       )) as { output: Notification[] }
 
-      expect(result.output[0]?.data?.total).toBe(expectedTotal)
+      expect(result.output[0]?.data?.["total"]).toBe(expectedTotal)
     }
   )
 })

@@ -212,7 +212,7 @@ function decodeXml(value: string): string {
     )
 }
 
-function normalizeText(value?: string | undefined): string | undefined {
+function normalizeText(value?: string): string | undefined {
   if (value === undefined) {
     return
   }
@@ -220,7 +220,7 @@ function normalizeText(value?: string | undefined): string | undefined {
   return decoded === "" ? undefined : decoded
 }
 
-function normalizeInlineText(value?: string | undefined): string | undefined {
+function normalizeInlineText(value?: string): string | undefined {
   const normalized = normalizeText(value)
   if (normalized === undefined) {
     return
@@ -261,7 +261,7 @@ function dedupeStrings(values: Array<string | undefined>): string[] {
   return result
 }
 
-function parseAttributes(raw?: string | undefined): Record<string, string> {
+function parseAttributes(raw?: string): Record<string, string> {
   if (!raw) {
     return {}
   }
@@ -437,7 +437,7 @@ function toStringArray(value: unknown): string[] {
   return []
 }
 
-function normalizeTitle(value?: string | undefined): string {
+function normalizeTitle(value?: string): string {
   return (
     normalizeInlineText(value)
       ?.normalize("NFKD")
@@ -528,7 +528,7 @@ function collectRawOptions(args?: string[]): RawScriptOptions {
   return options
 }
 
-function resolveXmlPath(xmlPathArg?: string | undefined): string {
+function resolveXmlPath(xmlPathArg?: string): string {
   const xmlPathCandidate = normalizeInlineText(xmlPathArg)
   let resolvedXmlPath = DEFAULT_XML_PATHS.find((path) => existsSync(path))
   if (xmlPathCandidate) {
@@ -550,7 +550,7 @@ function resolveXmlPath(xmlPathArg?: string | undefined): string {
   return resolvedXmlPath
 }
 
-function resolveOutputDir(outputDirArg?: string | undefined): string {
+function resolveOutputDir(outputDirArg?: string): string {
   const outputCandidate = normalizeInlineText(outputDirArg)
   if (!outputCandidate) {
     return DEFAULT_OUTPUT_DIR
@@ -783,7 +783,7 @@ function indexDbProducts(dbProducts: DbProductRecord[]): {
 function collectSourceIds(
   xmlBySourceId: SourceIdIndex<XmlShopItem>,
   dbBySourceId: SourceIdIndex<DbProductRecord>,
-  sourceIdFilter?: string | undefined
+  sourceIdFilter?: string
 ): string[] {
   return sortStrings(
     [...new Set([...xmlBySourceId.keys(), ...dbBySourceId.keys()])]

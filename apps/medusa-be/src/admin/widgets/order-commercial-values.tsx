@@ -89,16 +89,16 @@ function isDraftDiscountType(value: string): value is DraftDiscountType {
   return value === "none" || value === "percentage" || value === "amount"
 }
 
-function invalidateMedusaAdminOrderQueries(
+async function invalidateMedusaAdminOrderQueries(
   queryClient: QueryClient,
   orderId: string
 ) {
   const orderDetailQueryKey = ["orders", "detail", orderId] as const
 
-  queryClient.invalidateQueries({ queryKey: ["orders"] })
-  queryClient.invalidateQueries({ queryKey: orderDetailQueryKey })
+  await queryClient.invalidateQueries({ queryKey: ["orders"] })
+  await queryClient.invalidateQueries({ queryKey: orderDetailQueryKey })
   // Medusa dashboard derives preview/change/line-item keys from a nested detail key.
-  queryClient.invalidateQueries({ queryKey: [orderDetailQueryKey] })
+  await queryClient.invalidateQueries({ queryKey: [orderDetailQueryKey] })
 }
 
 function getIntlLocale(language?: string) {
@@ -1070,7 +1070,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
           : t("orderCommercialValues.errors.saveFailed")
       )
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast.success(
         response.commercial_values.mode === "requested"
           ? t("orderCommercialValues.status.requested")
@@ -1078,9 +1078,9 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
       )
       setIsOpen(false)
       setPreview(undefined)
-      queryClient.invalidateQueries({ queryKey })
+      await queryClient.invalidateQueries({ queryKey })
       if (order?.id) {
-        invalidateMedusaAdminOrderQueries(queryClient, order.id)
+        await invalidateMedusaAdminOrderQueries(queryClient, order.id)
       }
     },
   })

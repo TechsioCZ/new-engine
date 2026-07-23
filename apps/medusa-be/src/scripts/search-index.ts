@@ -222,12 +222,8 @@ const syncEntityToMeilisearch = async ({
   meilisearchIndexService: MeiliSearchService
   queryService: Query
 }): Promise<SyncEntityResult> => {
-  const fields = await meilisearchIndexService.getFieldsForType(
-    config.entityType
-  )
-  const indexes = await meilisearchIndexService.getIndexesByType(
-    config.entityType
-  )
+  const fields = meilisearchIndexService.getFieldsForType(config.entityType)
+  const indexes = meilisearchIndexService.getIndexesByType(config.entityType)
 
   if (indexes.length === 0) {
     logger.info(

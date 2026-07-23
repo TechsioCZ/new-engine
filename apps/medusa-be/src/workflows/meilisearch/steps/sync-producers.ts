@@ -22,8 +22,8 @@ export const syncMeilisearchProducersStep = createStep(
     const meilisearchService: MeiliSearchService =
       container.resolve(MEILISEARCH)
 
-    const producerFields = await meilisearchService.getFieldsForType(PRODUCERS)
-    const producerIndexes = await meilisearchService.getIndexesByType(PRODUCERS)
+    const producerFields = meilisearchService.getFieldsForType(PRODUCERS)
+    const producerIndexes = meilisearchService.getIndexesByType(PRODUCERS)
 
     // Fetch ALL producers in batches to avoid pagination corruption
     // (pagination would cause deletion of producers not in the current page)
@@ -84,7 +84,7 @@ export const syncMeilisearchProducersStep = createStep(
 
     const transformedProducers = allProducers.map((producer) => ({
       ...producer,
-      handle: `/store/producers/${producer["handle"]}/products`,
+      handle: `/store/producers/${String(producer["handle"])}/products`,
     }))
 
     await Promise.all(

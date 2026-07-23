@@ -167,8 +167,8 @@ const PplSettingsPage = () => {
         method: "POST",
         body: payload,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ppl-config"] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["ppl-config"] })
       toast.success("PPL configuration saved")
     },
     onError: (err) => {

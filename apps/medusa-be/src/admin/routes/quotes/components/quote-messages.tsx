@@ -193,7 +193,7 @@ export function QuoteMessages({
 
             <Form.Field
               name={"text"}
-              render={({ field: { ref, ...field } }) => (
+              render={({ field }) => (
                 <Form.Item>
                   <Form.Control>
                     <Textarea

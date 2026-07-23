@@ -59,7 +59,7 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   const weight = Number.parseFloat(process.env["PACKETA_TEST_WEIGHT"] ?? "0.5")
 
   process.stdout.write(
-    `Creating Packeta test packet '${orderRef}' (env: ${packetaService.getEnvironment()})...\n`
+    `Creating Packeta test packet '${orderRef}' (env: ${JSON.stringify(packetaService.getEnvironment())})...\n`
   )
 
   try {

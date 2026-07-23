@@ -205,8 +205,10 @@ function escapeSpaydValue(value: string) {
     .slice(0, 60)
 }
 
-function ascii(value: unknown) {
-  return String(value ?? "")
+function ascii(value: boolean | number | string | null | undefined) {
+  const text = value === null || value === undefined ? "" : String(value)
+
+  return text
     .replace(/\u00a0/g, " ")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")

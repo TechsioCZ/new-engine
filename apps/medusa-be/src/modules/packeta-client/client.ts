@@ -282,7 +282,7 @@ export class PacketaClient {
         if (envelope.status !== "ok") {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: unexpected status "${envelope.status}"`
+            `Packeta ${methodName}: unexpected status ${JSON.stringify(envelope.status)}`
           )
         }
 

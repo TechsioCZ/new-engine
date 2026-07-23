@@ -29,15 +29,26 @@ type VariantFixture = {
   product?: { title: string }
 }
 
-const createVariant = (
-  overrides: Partial<VariantFixture> = {}
-): VariantFixture => ({
-  id: "variant_test",
-  title: "Test Variant",
-  sku: "TEST-SKU",
-  product: { title: "Test Product" },
-  ...overrides,
-})
+type VariantOverrides = Omit<Partial<VariantFixture>, "product"> & {
+  product?: VariantFixture["product"] | undefined
+}
+
+const createVariant = (overrides: VariantOverrides = {}): VariantFixture => {
+  const { product, ...variantOverrides } = overrides
+  const hasProductOverride = Object.hasOwn(overrides, "product")
+
+  return {
+    id: "variant_test",
+    title: "Test Variant",
+    sku: "TEST-SKU",
+    ...(hasProductOverride
+      ? product
+        ? { product }
+        : {}
+      : { product: { title: "Test Product" } }),
+    ...variantOverrides,
+  }
+}
 
 describe("mapVariantToRuleValueOption", () => {
   it.each<{
@@ -510,8 +521,8 @@ describe("buildProducerPromotionContext", () => {
         }),
       ],
     })
-    expect((result.items as Record<string, unknown>[])[1]).not.toHaveProperty(
-      "producer_ids"
-    )
+    expect(
+      (result["items"] as Record<string, unknown>[])[1]
+    ).not.toHaveProperty("producer_ids")
   })
 })

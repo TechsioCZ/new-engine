@@ -14,9 +14,8 @@ const PUBLISHABLE_KEY_LOCK_PREFIX = "publishable-key:provision"
 type ListedApiKey = Awaited<
   ReturnType<IApiKeyModuleService["listApiKeys"]>
 >[number]
-type CreatedApiKey = Awaited<ReturnType<IApiKeyModuleService["createApiKeys"]>>
 
-type PublishableApiKey = ListedApiKey | CreatedApiKey
+type PublishableApiKey = ListedApiKey
 
 export type PublishableKeyResult = {
   apiKey: PublishableApiKey

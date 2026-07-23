@@ -169,9 +169,9 @@ const ReviewsPage = () => {
     onError: () => {
       toast.error("Failed to update reviews")
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: reviewQueryKeys.lists(),
       })
       toast.success("Reviews updated")

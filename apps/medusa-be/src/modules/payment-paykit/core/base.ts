@@ -344,10 +344,10 @@ export abstract class PaykitPaymentProviderBase<
     if (
       !(
         isRecord(billing) &&
-        billing?.["address_1"] &&
-        billing["city"] &&
-        billing["country_code"] &&
-        billing["postal_code"] &&
+        typeof billing["address_1"] === "string" &&
+        typeof billing["city"] === "string" &&
+        typeof billing["country_code"] === "string" &&
+        typeof billing["postal_code"] === "string" &&
         currencyCode
       )
     ) {
@@ -365,15 +365,15 @@ export abstract class PaykitPaymentProviderBase<
           input.context?.customer?.email ||
           input.context?.customer?.id ||
           "Customer",
-        line1: String(billing["address_1"]),
+        line1: billing["address_1"],
         line2:
           typeof billing["address_2"] === "string" ? billing["address_2"] : "",
-        city: String(billing["city"]),
+        city: billing["city"],
         ...(typeof billing["province"] === "string"
           ? { state: billing["province"] }
           : {}),
-        postal_code: String(billing["postal_code"]),
-        country: String(billing["country_code"]),
+        postal_code: billing["postal_code"],
+        country: billing["country_code"],
         ...(typeof billing["phone"] === "string"
           ? { phone: billing["phone"] }
           : input.context?.customer?.phone
@@ -507,7 +507,7 @@ export abstract class PaykitPaymentProviderBase<
     const data = input.data ?? {}
     const sessionId = this.getSessionId(data)
     const metadata = {
-      ...(getMetadataRecord(data["metadata"]) ?? {}),
+      ...getMetadataRecord(data["metadata"]),
       session_id: sessionId,
     }
     const providerMetadata = this.getCreateProviderMetadata(input, data)

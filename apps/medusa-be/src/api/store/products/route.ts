@@ -38,9 +38,7 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       QueryContext(req.pricingContext as Record<string, unknown>)
   }
 
-  const { data: products = [], metadata } = await (
-    query.graph as GraphWithOptions
-  )(
+  const { data: products, metadata } = await (query.graph as GraphWithOptions)(
     {
       entity: "product",
       fields: productFields,

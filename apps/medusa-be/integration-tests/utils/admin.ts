@@ -1,18 +1,25 @@
 import type {
   IAuthModuleService,
   IUserModuleService,
+  MedusaContainer,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-import jwt from "jsonwebtoken"
+import type { MedusaSuiteOptions } from "@medusajs/test-utils"
+import { SignJWT } from "jose"
 import * as Scrypt from "scrypt-kdf"
 
 export const adminHeaders: { headers: Record<string, string> } = {
   headers: {},
 }
 
-export const createAdminUser = async (targetAdminHeaders, appContainer) => {
-  const userModule: IUserModuleService = appContainer.resolve(Modules.USER)
-  const authModule: IAuthModuleService = appContainer.resolve(Modules.AUTH)
+type TestHeaders = { headers: Record<string, string> }
+
+export const createAdminUser = async (
+  targetAdminHeaders: TestHeaders,
+  appContainer: MedusaContainer
+) => {
+  const userModule = appContainer.resolve<IUserModuleService>(Modules.USER)
+  const authModule = appContainer.resolve<IAuthModuleService>(Modules.AUTH)
   const user = await userModule.createUsers({
     first_name: "Admin",
     last_name: "User",
@@ -37,24 +44,34 @@ export const createAdminUser = async (targetAdminHeaders, appContainer) => {
     },
   })
 
-  const token = jwt.sign(
-    {
-      actor_id: user.id,
-      actor_type: "user",
-      auth_identity_id: authIdentity.id,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1d",
-    }
-  )
+  const jwtSecret = process.env["JWT_SECRET"]
+  if (!jwtSecret) {
+    throw new Error(
+      "JWT_SECRET is required to create an integration-test admin"
+    )
+  }
 
-  targetAdminHeaders.headers.authorization = `Bearer ${token}`
+  const token = await new SignJWT({
+    actor_id: user.id,
+    actor_type: "user",
+    auth_identity_id: authIdentity.id,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("1d")
+    .sign(new TextEncoder().encode(jwtSecret))
+
+  targetAdminHeaders.headers["authorization"] = `Bearer ${token}`
 
   return { user, authIdentity }
 }
 
-export const createStoreUser = async ({ api, storeHeaders }) => {
+export const createStoreUser = async ({
+  api,
+  storeHeaders,
+}: {
+  api: MedusaSuiteOptions["api"]
+  storeHeaders: TestHeaders
+}) => {
   const registerToken = (
     await api.post("/auth/customer/emailpass/register", {
       email: "test@email.com",

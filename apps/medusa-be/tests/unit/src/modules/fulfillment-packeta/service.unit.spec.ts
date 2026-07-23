@@ -240,7 +240,7 @@ describe("PacketaFulfillmentProviderService", () => {
     })
 
     it("throws when shipping_address is missing", async () => {
-      const order = createOrder({ shipping_address: undefined })
+      const { shipping_address: _shippingAddress, ...order } = createOrder()
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",

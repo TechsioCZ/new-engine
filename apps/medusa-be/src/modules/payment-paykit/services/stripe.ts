@@ -220,8 +220,8 @@ const toPaykitPaymentFromStripeCheckoutSession = (
   const payment: PaykitPayment = {
     id: session.id,
     metadata: {
-      ...(paymentIntent?.metadata ?? {}),
-      ...(session.metadata ?? {}),
+      ...paymentIntent?.metadata,
+      ...session.metadata,
     },
     payment_intent_id: getStripeCheckoutPaymentIntentId(session, paymentIntent),
     requires_action:

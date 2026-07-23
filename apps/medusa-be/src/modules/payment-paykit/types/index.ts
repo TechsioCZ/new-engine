@@ -183,13 +183,9 @@ type PaykitSdkWebhookEvent = WebhookEventPayload<Record<string, unknown>>
 export type PaykitWebhookEvent = Partial<
   Omit<PaykitSdkWebhookEvent, "data" | "type">
 > & {
-  type?: WebhookEventPayload["type"] | string
+  type?: WebhookEventPayload["type"]
   is_raw?: WebhookEventPayload["is_raw"]
-  data?:
-    | PaykitSdkWebhookEvent["data"]
-    | PaykitPayment
-    | { object?: PaykitPayment | null; payment?: PaykitPayment | null }
-    | null
+  data?: unknown
   payment?: PaykitPayment | null
   metadata?: Record<string, unknown> | null
   amount?: BigNumberInput

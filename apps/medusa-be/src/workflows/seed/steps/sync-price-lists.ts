@@ -141,7 +141,7 @@ const DEFAULT_SYNC_PRICE_LISTS_CONFIG = {
 } satisfies ResolvedSyncPriceListsStepConfig
 
 function resolveSyncPriceListsConfig(
-  config?: SyncPriceListsStepConfig | undefined
+  config?: SyncPriceListsStepConfig
 ): ResolvedSyncPriceListsStepConfig {
   return {
     customerGroupRuleAttribute:
@@ -236,7 +236,7 @@ function amountsEqual(left: unknown, right: number): boolean {
 }
 
 function buildPriceListEntries(
-  priceLists?: SyncPriceListsStepInput["priceLists"] | undefined,
+  priceLists?: SyncPriceListsStepInput["priceLists"],
   config: ResolvedSyncPriceListsStepConfig = resolveSyncPriceListsConfig()
 ): PriceListSyncEntry[] {
   if (!priceLists) {

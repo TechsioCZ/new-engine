@@ -691,7 +691,7 @@ function normalizeProductContentLabel(value?: string): string | undefined {
 }
 
 function classifyProductContentLabel(
-  label?: string | undefined
+  label?: string
 ): ProductContentSectionKey | undefined {
   const normalizedLabel = normalizeProductContentLabel(label)
   if (!normalizedLabel) {
@@ -722,7 +722,7 @@ function toHtmlFragment(value?: string): string | undefined {
 
 function buildLabeledHtmlFragment(
   label: string,
-  value?: string | undefined
+  value?: string
 ): string | undefined {
   const normalized = normalizeText(value)
   if (!normalized) {
@@ -751,7 +751,7 @@ function buildPlainTextHtmlFragment(value?: string): string | undefined {
 
 function buildLabeledPlainTextHtmlFragment(
   label: string,
-  value?: string | undefined
+  value?: string
 ): string | undefined {
   const normalizedLabel = normalizeInlineText(label.replace(/:\s*$/g, ""))
   const normalizedValue = normalizeInlineText(value)
@@ -1033,7 +1033,7 @@ function countHtmlListItems(value?: string): number {
 
 function buildProductCardCopyConfig(
   contentSectionsMap: Record<ProductContentSectionKey, string>,
-  shortDescription?: string | undefined
+  shortDescription?: string
 ): ProductCardCopyConfig {
   const candidates: Array<{
     source: ProductCardCopySource
@@ -1141,7 +1141,7 @@ function addUtcDays(date: Date, days: number): Date {
 }
 
 function resolveSeedBuildOptions(
-  options?: SeedBuildOptions | undefined
+  options?: SeedBuildOptions
 ): ResolvedSeedBuildOptions {
   const referenceDate = options?.referenceDate
     ? new Date(options.referenceDate)
@@ -1202,8 +1202,8 @@ function parseIsoDate(value?: string, endOfDay = false): Date | undefined {
 }
 
 function isDateRangeActive(
-  validFrom?: string | undefined,
-  validUntil?: string | undefined,
+  validFrom?: string,
+  validUntil?: string,
   referenceDate = new Date()
 ): boolean {
   const from = parseIsoDate(validFrom, false)
@@ -1222,7 +1222,7 @@ function isDateRangeActive(
 
 function resolveOfferBasePrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined
+  fallbackOffer?: ParsedOfferData
 ): number | undefined {
   return normalizePriceAmount(
     offer.standardPrice ??
@@ -1234,7 +1234,7 @@ function resolveOfferBasePrice(
 
 function resolveOfferActionPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined,
+  fallbackOffer?: ParsedOfferData,
   referenceDate = new Date()
 ): number | undefined {
   const actionPrice = normalizePriceAmount(
@@ -1257,7 +1257,7 @@ function resolveOfferActionPrice(
 
 function resolveOfferHasActiveDiscount(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined,
+  fallbackOffer?: ParsedOfferData,
   referenceDate = new Date()
 ): boolean {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
@@ -1279,7 +1279,7 @@ function resolveOfferHasActiveDiscount(
 
 function hasDiscountedActionPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined
+  fallbackOffer?: ParsedOfferData
 ): boolean {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const actionPrice = normalizePriceAmount(
@@ -1295,7 +1295,7 @@ function hasDiscountedActionPrice(
 
 function resolveOfferCurrentPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined,
+  fallbackOffer?: ParsedOfferData,
   referenceDate = new Date()
 ): number {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
@@ -1326,7 +1326,7 @@ function resolveOfferCurrentPrice(
 
 function resolveOfferDefaultPrice(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined
+  fallbackOffer?: ParsedOfferData
 ): number {
   return resolveOfferBasePrice(offer, fallbackOffer) ?? 0
 }
@@ -1345,8 +1345,8 @@ function isDefaultPricelistTitle(title?: string): boolean {
 }
 
 function shouldImportActionPrice(
-  actionPrice?: number | undefined,
-  validUntil?: string | undefined,
+  actionPrice?: number,
+  validUntil?: string,
   referenceDate = new Date()
 ): actionPrice is number {
   if (actionPrice === undefined || actionPrice <= 0) {
@@ -1358,7 +1358,7 @@ function shouldImportActionPrice(
 }
 
 function serializePriceListDate(
-  value?: string | undefined,
+  value?: string,
   endOfDay = false
 ): string | undefined {
   return parseIsoDate(value, endOfDay)?.toISOString()
@@ -1366,8 +1366,8 @@ function serializePriceListDate(
 
 function buildSalePriceListTitle(
   sourceTitle: string,
-  startsAt?: string | undefined,
-  endsAt?: string | undefined
+  startsAt?: string,
+  endsAt?: string
 ): string {
   const windowLabel =
     startsAt || endsAt ? `${startsAt ?? "open"}_${endsAt ?? "open"}` : "undated"
@@ -1380,7 +1380,7 @@ function buildSalePriceListTitle(
 function rebaseOfferPromotion(
   offer: ParsedOfferData,
   buildOptions: ResolvedSeedBuildOptions,
-  fallbackOffer?: ParsedOfferData | undefined
+  fallbackOffer?: ParsedOfferData
 ): ParsedOfferData {
   if (!buildOptions.promoRebaseDays) {
     return offer
@@ -2386,7 +2386,7 @@ function resolveProductReferences(
   codes: string[],
   productHandleBySourceId: Map<string, string>,
   publishedSourceIds: Set<string>,
-  excludedSourceId?: string | undefined
+  excludedSourceId?: string
 ): ResolvedProductReference[] {
   const refs: ResolvedProductReference[] = []
   const seen = new Set<string>()
@@ -2440,7 +2440,7 @@ function buildResolvedProductReferences(
 
 function buildVariantMetadata(
   offer: ParsedOfferData,
-  fallbackOffer?: ParsedOfferData | undefined,
+  fallbackOffer?: ParsedOfferData,
   referenceDate = new Date()
 ): Record<string, unknown> {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
@@ -3087,7 +3087,7 @@ function ensureOverridePriceList(
 function addRegularPricelistPrice(
   overridePriceList: PriceListsSeedInput["overrides"][number],
   basePrice: PriceListPriceSeedInput,
-  regularPrice?: number | undefined
+  regularPrice?: number
 ) {
   if (
     regularPrice === undefined ||
@@ -3333,7 +3333,7 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
 
       if (candidate !== variant.sku) {
         variant.metadata = {
-          ...(variant.metadata ?? {}),
+          ...variant.metadata,
           source_sku: variant.sku,
         }
         variant.sku = candidate
@@ -3346,8 +3346,8 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
 
 export function buildSeedInputFromXml(
   xml: string,
-  categoryExports?: HerbaticaCategoryExport[] | undefined,
-  options?: SeedBuildOptions | undefined
+  categoryExports?: HerbaticaCategoryExport[],
+  options?: SeedBuildOptions
 ): BuildResult {
   const buildOptions = resolveSeedBuildOptions(options)
   const items = applyPromoOverrides(parseShopItems(xml), buildOptions)

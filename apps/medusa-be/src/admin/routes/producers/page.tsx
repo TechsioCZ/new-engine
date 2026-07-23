@@ -776,7 +776,7 @@ const AttributeTypesSection = () => {
                 }
                 onClick={(event) => {
                   event.stopPropagation()
-                  handleDelete(attributeType)
+                  void handleDelete(attributeType)
                 }}
                 size="small"
                 type="button"

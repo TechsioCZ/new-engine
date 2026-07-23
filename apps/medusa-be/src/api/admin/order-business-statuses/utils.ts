@@ -101,7 +101,7 @@ export function buildOrderBusinessStatusMetadata(
   metadata: Record<string, unknown> | null | undefined,
   status: ManualOrderBusinessStatusId | null
 ) {
-  const nextMetadata = { ...(metadata ?? {}) }
+  const nextMetadata = { ...metadata }
 
   if (status === null) {
     nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = null

@@ -147,7 +147,6 @@
     "@types/react-dom": "19.2.3",
     "@typescript-eslint/typescript-estree": "^8.64.0",
     "express": "4.22.2",
-    "jsonwebtoken": "^9.0.3",
     "pg-god": "1.0.12",
     "scrypt-kdf": "^4.0.0",
     "ts-node": "10.9.2",

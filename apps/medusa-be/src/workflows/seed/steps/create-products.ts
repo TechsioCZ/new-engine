@@ -161,7 +161,7 @@ function renameVariantSku(
   }
 
   variant.metadata = {
-    ...(variant.metadata ?? {}),
+    ...variant.metadata,
     source_sku: variant.sku,
   }
   variant.sku = candidate

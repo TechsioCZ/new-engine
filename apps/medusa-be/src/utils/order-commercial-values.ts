@@ -439,7 +439,7 @@ function allocateAmount(
   totalAmount: number,
   items: DiscountAllocationTarget[]
 ) {
-  const allocations = new Array(items.length).fill(0) as number[]
+  const allocations = Array.from({ length: items.length }, () => 0)
 
   if (totalAmount === 0) {
     return allocations

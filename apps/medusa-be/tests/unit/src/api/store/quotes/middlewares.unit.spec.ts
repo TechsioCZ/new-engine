@@ -17,25 +17,29 @@ const asAuthenticatedRequest = (request: {
   return request as AuthenticatedMedusaRequest
 }
 
-const asMedusaResponse = (response: {
-  json: (...args: unknown[]) => unknown
-  status: (...args: unknown[]) => unknown
-}): MedusaResponse => {
+function assertMedusaResponse<
+  T extends {
+    json: (...args: unknown[]) => unknown
+    status: (...args: unknown[]) => unknown
+  },
+>(response: T): asserts response is T & MedusaResponse {
   if (
     typeof response.json !== "function" ||
     typeof response.status !== "function"
   ) {
     throw new TypeError("mock response requires json and status functions")
   }
-
-  return response as MedusaResponse
 }
 
-const createResponse = () =>
-  asMedusaResponse({
+const createResponse = () => {
+  const response = {
     json: vi.fn().mockReturnThis(),
     status: vi.fn().mockReturnThis(),
-  })
+  }
+
+  assertMedusaResponse(response)
+  return response
+}
 
 const createRequest = ({
   actorId = "cus_1",

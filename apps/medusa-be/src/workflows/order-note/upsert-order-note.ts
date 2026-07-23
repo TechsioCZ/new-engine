@@ -123,7 +123,7 @@ const clearOrderNoteMetadataStep = createStep(
     }
 
     const orderRecord = order as OrderRecord
-    const previousMetadata = { ...(orderRecord.metadata ?? {}) }
+    const previousMetadata = { ...orderRecord.metadata }
     const { order_note: _orderNote, ...nextMetadata } = previousMetadata
 
     await orderService.updateOrders(input.order_id, {

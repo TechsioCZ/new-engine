@@ -1,4 +1,10 @@
-import type { ApiKeyDTO, ILockingModule } from "@medusajs/framework/types"
+import type {
+  ApiKeyDTO,
+  Context,
+  CreateApiKeyDTO,
+  IApiKeyModuleService,
+  ILockingModule,
+} from "@medusajs/framework/types"
 import type { Mocked } from "vitest"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
@@ -9,20 +15,16 @@ import {
 } from "../../../../src/utils/publishable-key"
 
 type ApiKeyServiceStub = {
-  createApiKeys: (data: {
-    created_by: string
-    title: string
-    type: "publishable"
-  }) => Promise<ApiKeyDTO>
-  listApiKeys: (filters: {
-    title: string
-    type: "publishable"
-  }) => Promise<ApiKeyDTO[]>
+  createApiKeys: (
+    data: CreateApiKeyDTO,
+    sharedContext?: Context
+  ) => Promise<ApiKeyDTO>
+  listApiKeys: IApiKeyModuleService["listApiKeys"]
 }
 type LockingModuleStub = Pick<ILockingModule, "execute">
 
 const createApiKeyService = (): Mocked<ApiKeyServiceStub> => ({
-  listApiKeys: vi.fn(),
+  listApiKeys: vi.fn<IApiKeyModuleService["listApiKeys"]>(),
   createApiKeys: vi.fn(),
 })
 
@@ -57,34 +59,35 @@ const createApiKey = (
 
 describe("publishable-key utils", () => {
   const originalInitialPublishableKeyName =
-    process.env.INITIAL_PUBLISHABLE_KEY_NAME
+    process.env["INITIAL_PUBLISHABLE_KEY_NAME"]
 
   afterEach(() => {
     vi.clearAllMocks()
 
     if (originalInitialPublishableKeyName === undefined) {
-      process.env.INITIAL_PUBLISHABLE_KEY_NAME = ""
+      process.env["INITIAL_PUBLISHABLE_KEY_NAME"] = ""
       return
     }
 
-    process.env.INITIAL_PUBLISHABLE_KEY_NAME = originalInitialPublishableKeyName
+    process.env["INITIAL_PUBLISHABLE_KEY_NAME"] =
+      originalInitialPublishableKeyName
   })
 
   describe("resolvePublishableKeyTitle", () => {
     it("prefers an explicit title after trimming", () => {
-      process.env.INITIAL_PUBLISHABLE_KEY_NAME = "Env Title"
+      process.env["INITIAL_PUBLISHABLE_KEY_NAME"] = "Env Title"
 
       expect(resolvePublishableKeyTitle("  CI Title  ")).toBe("CI Title")
     })
 
     it("falls back to env title before the default", () => {
-      process.env.INITIAL_PUBLISHABLE_KEY_NAME = "Env Title"
+      process.env["INITIAL_PUBLISHABLE_KEY_NAME"] = "Env Title"
 
       expect(resolvePublishableKeyTitle("   ")).toBe("Env Title")
     })
 
     it("uses the hard-coded default when no title is provided", () => {
-      process.env.INITIAL_PUBLISHABLE_KEY_NAME = ""
+      process.env["INITIAL_PUBLISHABLE_KEY_NAME"] = ""
 
       expect(resolvePublishableKeyTitle()).toBe("Storefront Publishable Key")
     })

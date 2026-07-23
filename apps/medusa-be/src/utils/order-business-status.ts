@@ -209,7 +209,7 @@ export function getOrderBusinessManualStatusUpdateBlockReason(
   const nextOrder = {
     ...order,
     metadata: {
-      ...(order.metadata ?? {}),
+      ...order.metadata,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
     },
   }

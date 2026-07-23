@@ -39,16 +39,16 @@ describe("QrManualPaymentProvider", () => {
 
     expect(result.id).toBe("1234567890")
     expect(result.status).toBe("pending")
-    expect(result.data?.payment_qr_spayd).toContain(
+    expect(result.data?.["payment_qr_spayd"]).toContain(
       "ACC:CZ6508000000192000145399"
     )
-    expect(result.data?.payment_qr_spayd).toContain("AM:1234.50")
-    expect(result.data?.payment_qr_spayd).toContain("CC:CZK")
-    expect(result.data?.payment_qr_spayd).toContain("X-VS:1234567890")
-    expect(result.data?.payment_qr_data_url).toEqual(
+    expect(result.data?.["payment_qr_spayd"]).toContain("AM:1234.50")
+    expect(result.data?.["payment_qr_spayd"]).toContain("CC:CZK")
+    expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:1234567890")
+    expect(result.data?.["payment_qr_data_url"]).toEqual(
       expect.stringMatching(PNG_DATA_URL_PATTERN)
     )
-    expect(result.data?.qr_payment).toMatchObject({
+    expect(result.data?.["qr_payment"]).toMatchObject({
       amount: 1234.5,
       currency_code: "CZK",
       iban: "CZ6508000000192000145399",
@@ -71,7 +71,7 @@ describe("QrManualPaymentProvider", () => {
     })
 
     expect(getIban).toHaveBeenCalled()
-    expect(result.data?.payment_qr_spayd).toContain("X-VS:987654321")
+    expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:987654321")
   })
 
   it("preserves the existing QR payment reference when payment amount changes", async () => {
@@ -94,9 +94,9 @@ describe("QrManualPaymentProvider", () => {
     })) as UpdatePaymentOutputWithId
 
     expect(result.id).toBe("1234567890")
-    expect(result.data?.payment_qr_spayd).toContain("AM:250.00")
-    expect(result.data?.payment_qr_spayd).toContain("X-VS:1234567890")
-    expect(result.data?.qr_payment).toMatchObject({
+    expect(result.data?.["payment_qr_spayd"]).toContain("AM:250.00")
+    expect(result.data?.["payment_qr_spayd"]).toContain("X-VS:1234567890")
+    expect(result.data?.["qr_payment"]).toMatchObject({
       reference: "1234567890",
     })
   })

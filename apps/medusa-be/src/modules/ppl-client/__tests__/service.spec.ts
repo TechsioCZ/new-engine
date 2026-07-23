@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.hoisted(() => {
-  process.env.SETTINGS_ENCRYPTION_KEY =
+  process.env["SETTINGS_ENCRYPTION_KEY"] =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 })
 

@@ -5,7 +5,6 @@ import {
   Modules,
   PaymentWebhookEvents,
 } from "@medusajs/framework/utils"
-import type { Response } from "express"
 import { describe, expect, it, vi } from "vitest"
 
 import { GET } from "../../../src/api/hooks/payment/paykit_gopay/route"
@@ -36,12 +35,12 @@ function assertMockShape<T>(
   }
 }
 
-const createResponse = (): MedusaResponse => {
+const createResponse = () => {
   const candidate = {
     json: vi.fn().mockReturnThis(),
     sendStatus: vi.fn().mockReturnThis(),
     status: vi.fn().mockReturnThis(),
-  } satisfies Pick<Response, "json" | "sendStatus" | "status">
+  } satisfies Pick<MedusaResponse, "json" | "sendStatus" | "status">
 
   assertMockShape<MedusaResponse>(candidate, ["json", "sendStatus", "status"])
   return candidate

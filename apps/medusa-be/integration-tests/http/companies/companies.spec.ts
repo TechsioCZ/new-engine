@@ -6,6 +6,7 @@ import {
   createAdminUser,
   createStoreUser,
 } from "../../utils/admin"
+import { getHttpError } from "../../utils/http-error"
 import {
   cartSeeder,
   productSeeder,
@@ -151,7 +152,7 @@ medusaIntegrationTestRunner({
       it("should throw error when company does not exist", async () => {
         const { response } = await api
           .get("/store/companies/does-not-exist", storeHeaders)
-          .catch((e) => e)
+          .catch(getHttpError)
 
         expect(response.data).toMatchObject({
           type: "not_found",
@@ -225,7 +226,7 @@ medusaIntegrationTestRunner({
             { name: "Nonexistent Company" },
             storeHeaders
           )
-          .catch((e) => e)
+          .catch(getHttpError)
 
         expect(response.data).toMatchObject({
           type: "not_found",
@@ -270,7 +271,7 @@ medusaIntegrationTestRunner({
       it("should throw an error when company does not exist", async () => {
         const response = await api
           .delete("/store/companies/does-not-exist", storeHeaders)
-          .catch((e) => e)
+          .catch(getHttpError)
 
         expect(response.status).toEqual(204)
       })

@@ -13,7 +13,7 @@ import type { PaykitAdapterOptions, PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitAdapterOptions> {
-  static identifier = "paykit_test"
+  static override identifier = "paykit_test"
 
   // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected.
   constructor(
@@ -429,8 +429,10 @@ describe("PaykitPaymentProviderBase", () => {
     const fullClient = createMockPaykitClient()
     const client: PaykitPaymentClient = {
       payments: fullClient.payments,
-      customers: fullClient.customers,
-      handleWebhook: fullClient.handleWebhook,
+      ...(fullClient.customers ? { customers: fullClient.customers } : {}),
+      ...(fullClient.handleWebhook
+        ? { handleWebhook: fullClient.handleWebhook }
+        : {}),
     }
     const provider = createProvider(client)
 

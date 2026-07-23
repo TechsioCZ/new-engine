@@ -37,10 +37,10 @@ const fetchJson = async <T,>(
   const response = await fetch(path, {
     ...options,
     credentials: "include",
-    headers: {
+    headers: new Headers({
       "content-type": "application/json",
-      ...options?.headers,
-    },
+      ...Object.fromEntries(new Headers(options?.headers).entries()),
+    }),
   })
 
   if (!response.ok) {

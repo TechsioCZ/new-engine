@@ -128,7 +128,7 @@ export type PplShipmentRequest = {
  * - PRID: Parcel Private + COD (home delivery, with COD)
  * Note: Includes `| string` for forward-compatibility with PPL API changes
  */
-export type PplProductType = "SMAR" | "SMAD" | "PRIV" | "PRID" | string
+export type PplProductType = string
 
 export type PplExternalNumber = {
   /** External number type code (usually "CUST") */
@@ -285,7 +285,7 @@ export type PplCodSettings = {
  */
 export type PplReturnChannel = {
   /** Return channel type */
-  type: "None" | "Ftp" | "Email" | string
+  type: string
   /** Return address (FTP path or email) */
   address?: string
 }
@@ -440,7 +440,7 @@ export type PplAccessPoint = {
 }
 
 /** Access point types - includes | string for forward-compatibility with PPL API */
-export type PplAccessPointType = "ParcelShop" | "ParcelBox" | "AlzaBox" | string
+export type PplAccessPointType = string
 
 /**
  * Access points query parameters
@@ -586,7 +586,7 @@ export type PplShipmentQuery = {
 /**
  * Order type - includes | string for forward-compatibility with PPL API
  */
-export type PplOrderType = "Transport" | "CollectionOrder" | string
+export type PplOrderType = string
 
 /**
  * Order state

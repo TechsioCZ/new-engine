@@ -148,7 +148,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       () => controller.abort(),
       this.requestTimeoutMs_
     )
-    const headers = { ...this.headers_, ...(options?.headers ?? {}) }
+    const headers = { ...this.headers_, ...options?.headers }
 
     let response: Response
     try {

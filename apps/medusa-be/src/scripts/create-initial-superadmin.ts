@@ -93,7 +93,7 @@ export default async function createInitialSuperadmin({
     await authService.updateAuthIdentities({
       id: authIdentity.id,
       app_metadata: {
-        ...(authIdentity.app_metadata ?? {}),
+        ...authIdentity.app_metadata,
         user_id: user.id,
       },
     })

@@ -40,7 +40,7 @@ function getWorkflowQueueRunnerBatchSize() {
 
 function withQueueItemId(item: WorkflowQueueItemDTO): Record<string, unknown> {
   return {
-    ...(item.arguments ?? {}),
+    ...item.arguments,
     queue_item_id: item.id,
   }
 }

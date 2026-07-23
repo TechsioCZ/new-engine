@@ -195,8 +195,8 @@ const PacketaSettingsPage = () => {
         method: "POST",
         body: payload,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["packeta-config"] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["packeta-config"] })
       toast.success("Packeta configuration saved")
     },
     onError: (err) => {

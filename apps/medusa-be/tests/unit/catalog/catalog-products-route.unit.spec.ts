@@ -34,8 +34,13 @@ const getFilterIds = (value: unknown): string[] => {
     return [value]
   }
 
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    const inValue = (value as Record<string, unknown>).$in
+  if (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    "$in" in value
+  ) {
+    const inValue = value["$in"]
     if (Array.isArray(inValue)) {
       return inValue.filter((item): item is string => typeof item === "string")
     }
@@ -109,7 +114,10 @@ const getMeiliPriceRange = (filter: unknown): MeiliPriceRange => {
     }
   }
 
-  return { min, max }
+  return {
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  }
 }
 
 const productMatchesSearchFilters = (
@@ -244,8 +252,8 @@ const createCatalogHarness = ({
     const filters = config.filters ?? {}
 
     if (config.entity === "product_sales_channel") {
-      const productIds = getFilterIds(filters.product_id)
-      const salesChannelIds = toArray(filters.sales_channel_id)
+      const productIds = getFilterIds(filters["product_id"])
+      const salesChannelIds = toArray(filters["sales_channel_id"])
 
       return {
         data: productIds.flatMap((productId) => {
@@ -264,8 +272,8 @@ const createCatalogHarness = ({
     }
 
     if (config.entity === "product") {
-      const productIds = getFilterIds(filters.id)
-      const status = filters.status
+      const productIds = getFilterIds(filters["id"])
+      const status = filters["status"]
 
       return {
         data: productIds
@@ -324,10 +332,10 @@ const getJsonPayload = (res: ReturnType<typeof createMockResponse>) =>
   res.json.mock.calls[0][0]
 
 describe("GET /store/catalog/products", () => {
-  const originalMeilisearchEnabled = process.env.MEILISEARCH_ENABLED
+  const originalMeilisearchEnabled = process.env["MEILISEARCH_ENABLED"]
 
   beforeEach(() => {
-    process.env.MEILISEARCH_ENABLED = "1"
+    process.env["MEILISEARCH_ENABLED"] = "1"
   })
 
   afterEach(() => {
@@ -336,11 +344,11 @@ describe("GET /store/catalog/products", () => {
       return
     }
 
-    process.env.MEILISEARCH_ENABLED = originalMeilisearchEnabled
+    process.env["MEILISEARCH_ENABLED"] = originalMeilisearchEnabled
   })
 
   it("returns unavailable without loading Meilisearch when search is disabled", async () => {
-    process.env.MEILISEARCH_ENABLED = "0"
+    process.env["MEILISEARCH_ENABLED"] = "0"
     const { req, res, meiliSearch, queryGraph } = createCatalogHarness({
       products: [
         {

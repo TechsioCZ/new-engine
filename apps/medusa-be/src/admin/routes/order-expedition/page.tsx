@@ -1223,10 +1223,12 @@ const ManualStatusControl = ({
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : t("toast.saveError"))
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(t("toast.saveSuccess"))
-      queryClient.invalidateQueries({ queryKey: [ORDER_EXPEDITION_QUERY_KEY] })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
+        queryKey: [ORDER_EXPEDITION_QUERY_KEY],
+      })
+      await queryClient.invalidateQueries({
         queryKey: ["order-business-statuses-by-ids"],
       })
     },

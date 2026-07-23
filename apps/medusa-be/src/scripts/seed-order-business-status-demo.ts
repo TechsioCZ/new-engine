@@ -589,7 +589,7 @@ function buildDemoMetadata(
   demo: BusinessStatusDemo
 ) {
   const nextMetadata: Record<string, unknown> = {
-    ...(metadata ?? {}),
+    ...metadata,
     order_business_status_demo: true,
     order_business_status_demo_expected_status: demo.expectedStatus,
     order_business_status_demo_key: demo.key,
