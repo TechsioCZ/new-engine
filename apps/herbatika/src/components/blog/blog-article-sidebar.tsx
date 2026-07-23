@@ -3,7 +3,6 @@ import NextImage from "next/image"
 import { useTranslations } from "next-intl"
 import {
   BLOG_PROMO_BANNER,
-  BLOG_SIDEBAR_CATEGORIES,
 } from "@/lib/storefront/blog-content"
 import { BlogFeaturedProductCard } from "./blog-featured-product-card"
 
@@ -18,23 +17,6 @@ export function BlogArticleSidebar({
 
   return (
     <aside className="flex w-full flex-col gap-500 xl:w-[342px]">
-      <section className="space-y-500 rounded-lg border border-border-secondary bg-surface p-550">
-        <h2 className="font-semibold text-fg-primary text-xl leading-[18px]">
-          {tContent("blog.sidebar.categories")}
-        </h2>
-
-        <div className="flex flex-wrap gap-250">
-          {BLOG_SIDEBAR_CATEGORIES.map((category) => (
-            <span
-              className="inline-flex items-center justify-center rounded-sm bg-highlight px-200 py-150 font-normal text-[13.4px] text-primary leading-[17.28px]"
-              key={category.label}
-            >
-              {`${category.label} (${category.count})`}
-            </span>
-          ))}
-        </div>
-      </section>
-
       <div className="relative h-[384px] overflow-hidden rounded-lg border border-border-secondary bg-surface">
         <NextImage
           alt={BLOG_PROMO_BANNER.title}

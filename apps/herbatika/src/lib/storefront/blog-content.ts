@@ -57,17 +57,6 @@ const BLOG_TOPIC_ONLY_FILTERS: Array<{
   { key: "zdravie", label: "Zdravie" },
 ]
 
-export const BLOG_SIDEBAR_CATEGORIES = [
-  { label: "Kapsuly", count: 4 },
-  { label: "Tablety", count: 28 },
-  { label: "Softgel", count: 46 },
-  { label: "Prášok", count: 14 },
-  { label: "Tekutiny", count: 9 },
-  { label: "Nápoj", count: 2 },
-  { label: "Kvapky", count: 27 },
-  { label: "Sprej", count: 3 },
-  { label: "Sirup", count: 1 },
-]
 
 export const BLOG_PROMO_BANNER = {
   title: "ZĽAVA 20 %",
