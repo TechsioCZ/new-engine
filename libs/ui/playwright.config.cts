@@ -31,6 +31,9 @@ export default defineConfig({
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.01,
     },
+    toMatchSnapshot: {
+      maxDiffPixelRatio: 0.01,
+    },
   },
   workers,
   use: {

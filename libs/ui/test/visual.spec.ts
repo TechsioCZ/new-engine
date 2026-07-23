@@ -23,6 +23,77 @@ type StorybookIndex = {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const indexPath = path.resolve(__dirname, "../storybook-static/index.json")
+const galleryDir = path.resolve(__dirname, "../assets/gallery")
+
+// Remote image hosts are non-deterministic (network, CDN re-encodes). Serve a
+// stable local asset per URL instead so screenshots are hermetic.
+const galleryFiles = [
+  "shoes-1.jpg",
+  "shoes-2.jpg",
+  "shoes-3.jpg",
+  "shoes-4.jpg",
+  "watch-1.jpg",
+  "watch-2.jpg",
+  "watch-3.jpg",
+  "watch-4.jpg",
+]
+const galleryBuffers = galleryFiles.map((file) =>
+  readFileSync(path.join(galleryDir, file))
+)
+
+// Neutral stand-in for non-product remote images (logos, badges) whose
+// natural size must stay small so substitution does not distort layout.
+const placeholderPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAAAAACPAi4CAAAAKklEQVR4nO3MQREAAAwCIPunM5Ih9ttBANKjCAQCgUAgEAgEAoFAIPgeDED6AMS2vrHWAAAAAElFTkSuQmCC",
+  "base64"
+)
+
+function stableGalleryBuffer(url: string): Buffer {
+  let hash = 0
+  for (let i = 0; i < url.length; i += 1) {
+    hash = (hash * 31 + url.charCodeAt(i)) >>> 0
+  }
+  return galleryBuffers[hash % galleryBuffers.length] as Buffer
+}
+
+// Chromium's expectScreenshot capture loop deterministically breaks on these
+// stories ("read requests waitng on finished stream") and leaves the browser
+// unable to take further screenshots, while a single element screenshot works.
+// Capture them with the plain screenshot + toMatchSnapshot path instead.
+const rawCaptureStories = new Set([
+  "molecules-productcard--stock-states:desktop",
+  "molecules-steps--variants:mobile",
+])
+
+const storybookHostname = new URL(
+  process.env["TEST_BASE_URL"] ?? "http://127.0.0.1:6006"
+).hostname
+
+async function installHermeticImageRoutes(page: Page): Promise<void> {
+  await page.route(
+    (url) =>
+      url.hostname !== storybookHostname &&
+      url.hostname !== "localhost" &&
+      url.hostname !== "127.0.0.1",
+    async (route) => {
+      const request = route.request()
+      if (request.resourceType() === "image") {
+        const url = new URL(request.url())
+        const isProductPhoto = url.hostname === "images.unsplash.com"
+        await route.fulfill(
+          isProductPhoto
+            ? {
+                body: stableGalleryBuffer(request.url()),
+                contentType: "image/jpeg",
+              }
+            : { body: placeholderPng, contentType: "image/png" }
+        )
+        return
+      }
+      await route.abort()
+    }
+  )
+}
 const resetEnv = (process.env["PLAYWRIGHT_PAGE_RESET"] ?? "").toLowerCase()
 const shouldResetBetweenTests =
   resetEnv === ""
@@ -46,6 +117,7 @@ const test = base.extend<{}, { workerPage: Page }>({
         definedContextOptions(testInfo.project.use)
       )
       const page = await context.newPage()
+      await installHermeticImageRoutes(page)
       await use(page)
       await context.close()
     },
@@ -103,6 +175,7 @@ test.describe.parallel("storybook visual", () => {
           definedContextOptions(testInfo.project.use)
         )
         page = await ownedContext.newPage()
+        await installHermeticImageRoutes(page)
       }
 
       const isRecoverableError = (error: unknown) => {
@@ -114,11 +187,23 @@ test.describe.parallel("storybook visual", () => {
           message.includes("Target page, context or browser has been closed") ||
           message.includes("Page crashed") ||
           message.includes("net::ERR_ABORTED") ||
-          message.includes("frame was detached")
+          message.includes("frame was detached") ||
+          // Chromium screenshot-capture bug on oversized elements.
+          message.includes("hermetic images failed to settle") ||
+          message.includes("read requests waitng on finished stream") ||
+          message.includes("read requests waiting on finished stream")
         )
       }
 
-      const run = async () => {
+      const defaultCaptureMode = rawCaptureStories.has(
+        `${story.id}:${testInfo.project.name}`
+      )
+        ? ("raw" as const)
+        : ("expect" as const)
+
+      const run = async (
+        captureMode: "expect" | "raw" = defaultCaptureMode
+      ) => {
         const params = new URLSearchParams({
           id: story.id,
           viewMode: "story",
@@ -181,6 +266,17 @@ test.describe.parallel("storybook visual", () => {
           },
           { timeout: 30_000 }
         )
+        // Story CSS is injected as stylesheet links by dynamically imported
+        // chunks; capturing before every sheet applies yields unstyled layout.
+        await page.waitForFunction(
+          () =>
+            Array.from(
+              document.querySelectorAll<HTMLLinkElement>(
+                'link[rel="stylesheet"]'
+              )
+            ).every((link) => link.sheet !== null),
+          { timeout: 30_000 }
+        )
         await page.evaluate(async () => {
           if (!("fonts" in document)) {
             return
@@ -195,6 +291,28 @@ test.describe.parallel("storybook visual", () => {
           }
         })
 
+        // Force lazy images to load eagerly so layout is deterministic, then
+        // wait for every sourced image to finish loading and decoding. Images
+        // are hermetic (local assets or fulfilled routes), so this must
+        // succeed; failing loudly beats capturing a pre-load layout.
+        await page.evaluate(async () => {
+          const root = document.querySelector("#storybook-root")
+          if (!root) return
+          const images = Array.from(root.querySelectorAll("img"))
+          await Promise.all(
+            images.map(async (img) => {
+              if (!img.src) return
+              if (img.loading === "lazy") {
+                img.loading = "eager"
+              }
+              try {
+                await img.decode()
+              } catch {
+                // decode failures fall through to the completeness wait
+              }
+            })
+          )
+        })
         try {
           await page.waitForFunction(
             () => {
@@ -202,17 +320,25 @@ test.describe.parallel("storybook visual", () => {
               if (!root) return false
               const images = root.querySelectorAll("img")
               if (images.length === 0) return true
-              return Array.from(images).every((img) => {
-                if (!img.src) return true
-                if (img.loading === "lazy") return true
-                return img.complete
-              })
+              return Array.from(images).every(
+                (img) => !img.src || (img.complete && img.naturalWidth > 0)
+              )
             },
-            { timeout: 5000 }
+            { timeout: 30_000 }
           )
         } catch {
-          // image readiness is best-effort; avoid failing on lazy/offscreen images
+          throw new Error("hermetic images failed to settle")
         }
+        // WebKit can keep fit-content layout computed before image decode;
+        // force a relayout so every capture sees the post-load geometry.
+        await page.evaluate(() => {
+          const root = document.querySelector("#storybook-root")
+          if (!(root instanceof HTMLElement)) return
+          root.style.display = "none"
+          void root.offsetHeight
+          root.style.display = ""
+          void root.offsetHeight
+        })
 
         const isCarouselStory =
           story.id.startsWith("molecules-carousel--") ||
@@ -343,6 +469,21 @@ test.describe.parallel("storybook visual", () => {
 
         // Element screenshots are faster and avoid full-page rendering cost.
         const root = page.locator("#storybook-root")
+        if (captureMode === "raw") {
+          // Chromium's expectScreenshot capture loop fails persistently for
+          // some layouts ("read requests waitng on finished stream") while a
+          // plain element screenshot on a fresh page succeeds; compare that
+          // capture instead.
+          const capture = await root.screenshot({
+            animations: "disabled",
+            scale: "css",
+            type: "jpeg",
+            quality: 100,
+            ...(mask.length > 0 ? { mask } : {}),
+          })
+          expect(capture).toMatchSnapshot(`${story.id}.jpg`)
+          return
+        }
         await expect(root).toHaveScreenshot(`${story.id}.png`, {
           animations: "disabled",
           ...(mask.length > 0 ? { mask } : {}),

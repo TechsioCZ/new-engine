@@ -164,6 +164,8 @@ const dockerRunArgs = [
   "-v",
   `${storybookDir}:/app/storybook-static:ro`,
   "-v",
+  `${path.resolve(uiRoot, "assets")}:/app/assets:ro`,
+  "-v",
   `${path.resolve(uiRoot, "test")}:/app/test-src:ro`,
   "-v",
   `${path.resolve(uiRoot, "playwright.config.cts")}:/app/playwright.config.cts:ro`,

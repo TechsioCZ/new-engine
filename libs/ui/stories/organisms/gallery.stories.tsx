@@ -6,22 +6,14 @@ import { StatusText } from "../../src/atoms/status-text"
 import { Gallery, type GalleryItem } from "../../src/organisms/gallery"
 import { GalleryTemplate } from "../../src/templates/gallery"
 
-const shoes1 = new URL("../../assets/gallery/shoes-1.avif", import.meta.url)
-  .href
-const shoes2 = new URL("../../assets/gallery/shoes-2.avif", import.meta.url)
-  .href
-const shoes3 = new URL("../../assets/gallery/shoes-3.avif", import.meta.url)
-  .href
-const shoes4 = new URL("../../assets/gallery/shoes-4.avif", import.meta.url)
-  .href
-const watch1 = new URL("../../assets/gallery/watch-1.avif", import.meta.url)
-  .href
-const watch2 = new URL("../../assets/gallery/watch-2.avif", import.meta.url)
-  .href
-const watch3 = new URL("../../assets/gallery/watch-3.avif", import.meta.url)
-  .href
-const watch4 = new URL("../../assets/gallery/watch-4.avif", import.meta.url)
-  .href
+const shoes1 = new URL("../../assets/gallery/shoes-1.jpg", import.meta.url).href
+const shoes2 = new URL("../../assets/gallery/shoes-2.jpg", import.meta.url).href
+const shoes3 = new URL("../../assets/gallery/shoes-3.jpg", import.meta.url).href
+const shoes4 = new URL("../../assets/gallery/shoes-4.jpg", import.meta.url).href
+const watch1 = new URL("../../assets/gallery/watch-1.jpg", import.meta.url).href
+const watch2 = new URL("../../assets/gallery/watch-2.jpg", import.meta.url).href
+const watch3 = new URL("../../assets/gallery/watch-3.jpg", import.meta.url).href
+const watch4 = new URL("../../assets/gallery/watch-4.jpg", import.meta.url).href
 
 const sneakerItems: GalleryItem[] = [
   {
