@@ -46,6 +46,7 @@
   },
   "scripts": {
     "build": "rslib build",
+    "prepare": "pnpm build",
     "test": "pnpm build && vitest run",
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/libs/std/tsconfig.json"
   },
