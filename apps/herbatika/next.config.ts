@@ -6,11 +6,7 @@ type ImageRemotePattern = {
   hostname: string
 }
 
-const LOOPBACK_IMAGE_HOSTNAMES = new Set([
-  "localhost",
-  "127.0.0.1",
-  "[::1]",
-])
+const LOOPBACK_IMAGE_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"])
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   if (!baseUrl) {
@@ -51,8 +47,8 @@ const imageRemotePatterns: ImageRemotePattern[] = [
   ...resolvePayloadImageRemotePattern(),
 ]
 
-const shouldDisableImageOptimization = imageRemotePatterns.some(({ hostname }) =>
-  LOOPBACK_IMAGE_HOSTNAMES.has(hostname)
+const shouldDisableImageOptimization = imageRemotePatterns.some(
+  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname)
 )
 
 const nextConfig: NextConfig = {
