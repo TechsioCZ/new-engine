@@ -23,6 +23,7 @@ import {
   getStorefrontUrl,
 } from "../utils/order-payment-reminders"
 import {
+  buildProductReviewRequestUrl,
   getReviewRequestMessage,
   type ReviewRequestOrder,
 } from "../utils/order-review-requests"
@@ -132,11 +133,8 @@ const ORDER_REVIEW_REQUEST_FIELDS = [
 ]
 
 const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
-const DEFAULT_PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const DEFAULT_REVIEW_TOKEN_EXPIRY_DAYS = 90
 const DAY_IN_MS = 24 * 60 * 60 * 1000
-const LEADING_SLASH_REGEX = /^\/+/
-const TRAILING_SLASH_REGEX = /\/$/
 
 function createToken() {
   return randomBytes(32).toString("base64url")
@@ -154,23 +152,6 @@ function getReviewTokenExpiryDate() {
 
 function getProductTitle(item: ReviewRequestOrderItem) {
   return item.product_title ?? item.title ?? "Produkt"
-}
-
-function getProductReviewRequestPath() {
-  return (
-    process.env.PRODUCT_REVIEW_REQUEST_PATH ??
-    DEFAULT_PRODUCT_REVIEW_REQUEST_PATH
-  ).replace(LEADING_SLASH_REGEX, "")
-}
-
-function getReviewUrl(token: string) {
-  const storefrontUrl = getStorefrontUrl().replace(TRAILING_SLASH_REGEX, "")
-  const reviewPath = getProductReviewRequestPath().replace(
-    TRAILING_SLASH_REGEX,
-    ""
-  )
-
-  return `${storefrontUrl}/${reviewPath}/${token}`
 }
 
 function isReviewRequestOrderWithItems(
@@ -353,7 +334,11 @@ const buildProductReviewRequestNotificationStep = createStep(
         {
           image_url: item.thumbnail ?? null,
           product_id: item.product_id,
-          review_url: getReviewUrl(token),
+          review_url: buildProductReviewRequestUrl({
+            productId: item.product_id,
+            storefrontUrl: getStorefrontUrl(),
+            token,
+          }),
           title: getProductTitle(item),
           token,
         },
