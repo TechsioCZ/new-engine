@@ -16,7 +16,7 @@ export function CartPrefetch() {
     if (!selectedRegion) return
 
     // Prefetch cart data
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
       queryKey: queryKeys.cart(
         typeof window !== "undefined"
           ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined

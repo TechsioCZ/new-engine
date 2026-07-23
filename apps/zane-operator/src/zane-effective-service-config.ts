@@ -6,7 +6,7 @@ import type {
 
 type PendingFieldChange = {
   field?: string
-  type?: "ADD" | "UPDATE" | "DELETE" | string
+  type?: string
   new_value?: Record<string, unknown> | null
 }
 

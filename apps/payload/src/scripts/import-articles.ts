@@ -209,6 +209,9 @@ const normalizeRow = (row: Row): Row => {
   return normalized
 }
 
+const serializeCellObject = (value: object): string =>
+  JSON.stringify(value) ?? ""
+
 const getCellValue = (cell: ExcelJS.Cell): RowValue => {
   const value = cell.value
   if (
@@ -226,7 +229,7 @@ const getCellValue = (cell: ExcelJS.Cell): RowValue => {
     const result = value.result
     return result instanceof Date || typeof result !== "object"
       ? (result as RowValue)
-      : String(result ?? "")
+      : serializeCellObject(result ?? {})
   }
 
   if ("text" in value && typeof value.text === "string") {
@@ -237,7 +240,7 @@ const getCellValue = (cell: ExcelJS.Cell): RowValue => {
     return value.richText.map((item) => item.text).join("")
   }
 
-  return String(value)
+  return serializeCellObject(value)
 }
 
 const firstValue = (row: Row, keys: string[]) => {
@@ -704,7 +707,13 @@ const readRows = async (filePath: string, sheetName?: string) => {
 
     const data: Row = {}
     for (let columnIndex = 1; columnIndex < headers.length; columnIndex += 1) {
-      const header = String(headers[columnIndex] ?? "").trim()
+      const headerValue = headers[columnIndex]
+      const header =
+        headerValue === null || headerValue === undefined
+          ? ""
+          : typeof headerValue === "object"
+            ? serializeCellObject(headerValue)
+            : String(headerValue).trim()
       if (header) {
         data[header] = getCellValue(row.getCell(columnIndex))
       }

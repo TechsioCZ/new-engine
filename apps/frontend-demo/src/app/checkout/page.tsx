@@ -117,7 +117,7 @@ export default function CheckoutPage() {
         setIsOrderComplete(true)
         setCurrentStep(3)
       }
-    } catch (_error) {
+    } catch {
       // Error already handled in hook
     }
   }
@@ -132,7 +132,7 @@ export default function CheckoutPage() {
             try {
               await updateAddresses(data)
               setCurrentStep(1)
-            } catch (_err) {
+            } catch {
               // Error already handled in hook
             }
           }}
@@ -150,7 +150,7 @@ export default function CheckoutPage() {
             setSelectedShipping(method)
             try {
               await addShippingMethod(method)
-            } catch (_error) {
+            } catch {
               // Error already handled in hook
             }
           }}

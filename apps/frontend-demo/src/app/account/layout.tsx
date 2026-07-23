@@ -34,8 +34,8 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
   const pathname = usePathname()
   const { logout } = useAuth()
 
-  const handleLogout = async () => {
-    await logout()
+  const handleLogout = () => {
+    logout()
   }
 
   return (

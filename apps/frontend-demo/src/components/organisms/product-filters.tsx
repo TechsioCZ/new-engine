@@ -66,7 +66,7 @@ export function ProductFilters({
 
     // Only prefetch if data is not in cache or is stale
     if (!cachedData || queryState?.isInvalidated) {
-      queryClient.prefetchQuery({
+      void queryClient.prefetchQuery({
         queryKey,
         queryFn: () =>
           getProducts({

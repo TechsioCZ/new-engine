@@ -50,9 +50,11 @@ export function useAuth() {
       firstName?: string
       lastName?: string
     }) => authHelpers.login(email, password, firstName, lastName),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
+      })
 
       // Only redirect if not on test page
       if (!window.location.pathname.includes("/test-auth")) {
@@ -86,9 +88,11 @@ export function useAuth() {
       firstName?: string
       lastName?: string
     }) => authHelpers.register(email, password, firstName, lastName),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
+      })
 
       // Only redirect if not on test page
       if (!window.location.pathname.includes("/test-auth")) {
@@ -112,9 +116,9 @@ export function useAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: authHelpers.logout,
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate all queries since user context changed
-      queryClient.invalidateQueries()
+      await queryClient.invalidateQueries()
       router.push("/")
 
       toast.create({
@@ -128,9 +132,11 @@ export function useAuth() {
   const updateProfileMutation = useMutation({
     mutationFn: (data: Partial<HttpTypes.StoreCustomer>) =>
       authHelpers.updateProfile(data),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth queries to refetch updated user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
+      })
 
       toast.create({
         ...AUTH_MESSAGES.UPDATE_SUCCESS,

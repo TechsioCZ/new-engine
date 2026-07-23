@@ -320,7 +320,7 @@ export interface ZaneServiceDetails {
   resource_limits?: ZaneServiceResourceLimits | null
   unapplied_changes?: Array<{
     id: string
-    type?: "ADD" | "UPDATE" | "DELETE" | string
+    type?: string
     field?: string
     item_id?: string | null
     new_value?: Record<string, unknown> | null

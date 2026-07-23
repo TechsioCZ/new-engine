@@ -55,6 +55,17 @@ function normalizeBaseUrl(url: string): string {
   return url.replace(trailingSlashesPattern, "")
 }
 
+function requireStringField(
+  record: Record<string, unknown>,
+  field: string
+): string {
+  const value = record[field]
+  if (typeof value !== "string" || !value) {
+    throw new Error(`Meilisearch response is missing string field ${field}.`)
+  }
+  return value
+}
+
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
@@ -449,10 +460,10 @@ export async function provisionMeiliKeys(input: {
 
   return meiliProvisionResponseSchema.parse({
     meili_url: normalizeBaseUrl(input.meiliUrl),
-    backend_key: String(backend.keyObject["key"] ?? ""),
-    frontend_key: String(frontend.keyObject["key"] ?? ""),
-    backend_uid: String(backend.keyObject["uid"] ?? backendPolicy.uid),
-    frontend_uid: String(frontend.keyObject["uid"] ?? frontendPolicy.uid),
+    backend_key: requireStringField(backend.keyObject, "key"),
+    frontend_key: requireStringField(frontend.keyObject, "key"),
+    backend_uid: requireStringField(backend.keyObject, "uid"),
+    frontend_uid: requireStringField(frontend.keyObject, "uid"),
     backend_created: backend.created,
     frontend_created: frontend.created,
     backend_updated: backend.updated,
@@ -548,13 +559,13 @@ export async function verifyMeiliKeys(input: {
     )
   }
 
-  if (String(backend["key"] ?? "") !== input.backendKey) {
+  if (requireStringField(backend, "key") !== input.backendKey) {
     throw new Error(
       `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`
     )
   }
 
-  if (String(frontend["key"] ?? "") !== input.frontendKey) {
+  if (requireStringField(frontend, "key") !== input.frontendKey) {
     throw new Error(
       `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`
     )

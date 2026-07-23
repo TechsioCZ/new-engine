@@ -72,7 +72,7 @@ export function usePrefetchPages({
       // Execute all prefetches
       for (const page of pagesToPrefetch) {
         const offset = (page - 1) * pageSize
-        queryClient.prefetchQuery({
+        void queryClient.prefetchQuery({
           queryKey: queryKeys.products.list({
             page,
             limit: pageSize,

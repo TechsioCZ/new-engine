@@ -21,7 +21,7 @@ export function useCustomer() {
       try {
         const response = await sdk.store.customer.listAddress()
         return response
-      } catch (error) {
+      } catch {
         return { addresses: [] }
       }
     },

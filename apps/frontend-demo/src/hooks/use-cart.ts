@@ -134,7 +134,7 @@ export function useCart() {
         type: "success",
       })
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error("[Cart Hook] Add item error:", error)
 
       // Parse error message for specific inventory issue
@@ -161,7 +161,7 @@ export function useCart() {
           type: "error",
         })
         // Invalidate cart query to trigger recreation
-        queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
+        await queryClient.invalidateQueries({ queryKey: queryKeys.cart() })
       } else {
         toast.create({
           title: "Nepodařilo se přidat položku",

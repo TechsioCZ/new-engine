@@ -24,7 +24,7 @@ interface ZaneEnvVariable {
 
 interface ZanePendingChange {
   id: string
-  type?: "ADD" | "UPDATE" | "DELETE" | string
+  type?: string
   field?: string
   item_id?: string | null
   new_value?: Record<string, unknown> | null
@@ -37,7 +37,7 @@ interface ZaneServiceCard {
 
 interface ZaneServiceDetails {
   slug: string
-  type: ServiceType | string
+  type: string
   commit_sha?: string | null
   deploy_token: string
   env_variables: ZaneEnvVariable[]

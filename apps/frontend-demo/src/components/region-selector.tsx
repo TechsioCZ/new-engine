@@ -23,7 +23,7 @@ export function RegionSelector({ className }: { className?: string }) {
     const regionId = details.value[0]
     const region = regions.find((r) => r.id === regionId)
     if (region) {
-      setSelectedRegion(region)
+      void setSelectedRegion(region)
     }
   }
 

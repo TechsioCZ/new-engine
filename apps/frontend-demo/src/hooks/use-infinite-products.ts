@@ -22,7 +22,7 @@ interface UseInfiniteProductsReturn {
   currentPageRange: PageRange
   hasNextPage: boolean
   isFetchingNextPage: boolean
-  fetchNextPage: () => void
+  fetchNextPage: () => Promise<void>
   refetch: () => void
 }
 
@@ -68,7 +68,7 @@ export function useInfiniteProducts(
       q,
       category,
     }),
-    queryFn: ({ pageParam = baseOffset }) => {
+    queryFn: ({ pageParam }) => {
       // For the initial load, use rangeLimit to load all pages in range at once
       // For subsequent "load more" calls, use normal limit
       const isInitialLoad = pageParam === baseOffset
@@ -119,7 +119,9 @@ export function useInfiniteProducts(
     currentPageRange: pageRange,
     hasNextPage,
     isFetchingNextPage,
-    fetchNextPage: () => fetchNextPage(),
+    fetchNextPage: async () => {
+      await fetchNextPage()
+    },
     refetch,
   }
 }

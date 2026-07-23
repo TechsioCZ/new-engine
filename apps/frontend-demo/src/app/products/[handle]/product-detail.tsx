@@ -29,9 +29,10 @@ function getProductBadges(metadata: Product["metadata"]): BadgeProps[] {
     badges.push({ children: "New", variant: "info" })
   }
 
-  if (metadata?.["discount"]) {
+  const discount = metadata?.["discount"]
+  if (typeof discount === "number" || typeof discount === "string") {
     badges.push({
-      children: `${metadata["discount"]}% OFF`,
+      children: `${discount}% OFF`,
       variant: "warning",
     })
   }

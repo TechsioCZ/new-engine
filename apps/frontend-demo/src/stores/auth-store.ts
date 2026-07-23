@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Store } from "@tanstack/react-store"
 
+import { getAuthErrorMessage } from "@/lib/auth/error-handler"
 import type { ValidationError } from "@/lib/auth/validation"
 import { sdk } from "@/lib/medusa-client"
 
@@ -46,8 +47,8 @@ export const authHelpers = {
           isInitialized: true,
         }))
         return customer
-      } catch (error: any) {
-        // If 401, user is not authenticated
+      } catch {
+        // An unavailable customer means there is no authenticated storefront user.
         authStore.setState((state) => ({
           ...state,
           user: null,
@@ -122,7 +123,7 @@ export const authHelpers = {
       // Step 3: Clear anonymous cart ID
       // Cart will be merged automatically by Medusa
     } catch (err: any) {
-      const message = err?.message || "Login failed"
+      const message = getAuthErrorMessage(err)
       authStore.setState((state) => ({
         ...state,
         error: message,
@@ -187,7 +188,7 @@ export const authHelpers = {
           isInitialized: true,
         }))
         return refreshedCustomer
-      } catch (fetchError) {
+      } catch {
         authStore.setState((state) => ({
           ...state,
           user: customer,
@@ -217,8 +218,8 @@ export const authHelpers = {
         isInitialized: true,
         validationErrors: [],
       }))
-    } catch (err) {
-      // Silent fail
+    } catch {
+      // Preserve local auth state when the remote logout request fails.
     }
   },
 

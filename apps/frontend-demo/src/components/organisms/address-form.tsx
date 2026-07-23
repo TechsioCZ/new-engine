@@ -92,7 +92,7 @@ export function AddressForm({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (validateForm()) {
-      onComplete({
+      void onComplete({
         shipping: shippingAddress,
         billing: useSameAddress ? shippingAddress : billingAddress,
         useSameAddress,

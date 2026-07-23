@@ -5,7 +5,7 @@ interface ZaneEnvVariable {
 }
 
 interface ZaneEnvVariableChange {
-  type?: "ADD" | "UPDATE" | "DELETE" | string
+  type?: string
   field?: string
   item_id?: string | null
   new_value?: Record<string, unknown> | null
