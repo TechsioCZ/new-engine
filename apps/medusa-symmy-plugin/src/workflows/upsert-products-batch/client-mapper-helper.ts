@@ -1,4 +1,8 @@
 import type {
+  CreateProductsWorkflowInput,
+  UpdateProductsWorkflowInputProducts,
+} from "@medusajs/medusa/core-flows"
+import type {
   ExistingProduct,
   ExistingProductIndex,
   ResolvedCategoryMap,
@@ -198,13 +202,6 @@ export class ProductBatchClientMapperHelper {
     return images.map((image) => ({ url: image.url }))
   }
 
-  private buildCategoryAssociations(categoryIds: string[]) {
-    if (!categoryIds.length) {
-      return
-    }
-    return categoryIds.map((id) => ({ id }))
-  }
-
   buildIdentifierEcho(product: ProductInput) {
     return {
       identifier_type: product.identifier_type,
@@ -218,7 +215,7 @@ export class ProductBatchClientMapperHelper {
     product: ProductInput,
     resolvedCategories: ResolvedCategoryMap,
     defaultSalesChannelId: string | null
-  ) {
+  ): CreateProductsWorkflowInput["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants)
     const fallbackPrices = this.normalizePrices(product.base_prices)
@@ -269,7 +266,7 @@ export class ProductBatchClientMapperHelper {
       sales_channels: defaultSalesChannelId
         ? [{ id: defaultSalesChannelId }]
         : undefined,
-      categories: this.buildCategoryAssociations(categoryIds),
+      category_ids: categoryIds.length ? categoryIds : undefined,
     }
   }
 
@@ -278,7 +275,7 @@ export class ProductBatchClientMapperHelper {
     product: ProductInput,
     existing: ExistingProduct,
     resolvedCategories: ResolvedCategoryMap
-  ) {
+  ): UpdateProductsWorkflowInputProducts["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants) ?? [
       { title: "Default", values: ["Default"] },
@@ -290,6 +287,13 @@ export class ProductBatchClientMapperHelper {
       resolvedCategories
     )
     const images = this.buildImagesPayload(product.images)
+    let categoryIdsForUpdate: string[] | undefined
+
+    if (product.categories?.length === 0) {
+      categoryIdsForUpdate = []
+    } else if (categoryIds.length) {
+      categoryIdsForUpdate = categoryIds
+    }
 
     return {
       id: productId,
@@ -336,7 +340,7 @@ export class ProductBatchClientMapperHelper {
             }
           })
         : undefined,
-      categories: this.buildCategoryAssociations(categoryIds),
+      category_ids: categoryIdsForUpdate,
     }
   }
 

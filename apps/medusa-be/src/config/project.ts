@@ -1,5 +1,3 @@
-import babel from "@rolldown/plugin-babel"
-import { reactCompilerPreset } from "@vitejs/plugin-react"
 import type { MedusaConfigEnv } from "./env"
 import type { MedusaAdminConfig, MedusaProjectConfig } from "./types"
 
@@ -17,7 +15,6 @@ export function buildAdminConfig(env: MedusaConfigEnv): MedusaAdminConfig {
       esbuild: {
         target: "esnext",
       },
-      plugins: [babel({ presets: [reactCompilerPreset()] })],
       server: {
         allowedHosts: env.adminAllowedHosts,
         hmr: false,

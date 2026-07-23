@@ -14,9 +14,10 @@ import {
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   type BatchVariantImagesWorkflowInput,
+  batchProductsWorkflow,
   batchVariantImagesWorkflow,
   createProductsWorkflow,
-  updateProductsWorkflow,
+  type ProcessProductOptionsForImportInput,
 } from "@medusajs/medusa/core-flows"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
@@ -631,7 +632,7 @@ function buildUpdateProductPayload(params: {
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-}) {
+}): ProcessProductOptionsForImportInput["products"][number] {
   const {
     existingProduct,
     inputProduct,
@@ -643,8 +644,8 @@ function buildUpdateProductPayload(params: {
   return {
     id: existingProduct.id,
     title: inputProduct.title,
-    categories: inputProduct.categories?.map((inputCat) =>
-      resolveCategory(existingCategories, inputCat.handle)
+    category_ids: inputProduct.categories?.map(
+      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
     ),
     description: inputProduct.description,
     weight: inputProduct.weight,
@@ -1413,17 +1414,14 @@ export const createProductsStep = createStep(
 
       const updatedIds: string[] = []
 
-      for (const updateProduct of updateProducts) {
-        const updateResult = await updateProductsWorkflow(container).run({
+      for (const updateProductsChunk of chunkArray(updateProducts)) {
+        const updateResult = await batchProductsWorkflow(container).run({
           input: {
-            selector: {
-              id: updateProduct.id,
-            },
-            update: updateProduct,
+            update: updateProductsChunk,
           },
         })
 
-        for (const updated of updateResult.result) {
+        for (const updated of updateResult.result.updated) {
           updatedIds.push(updated.id)
         }
       }

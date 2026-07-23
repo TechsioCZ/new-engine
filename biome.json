@@ -49,7 +49,7 @@
     {
       "includes": ["**/*.spec.ts"],
       "javascript": {
-        "globals": ["jest", "describe", "it", "expect"]
+        "globals": ["jest", "describe", "it", "expect", "beforeEach"]
       }
     },
     {
