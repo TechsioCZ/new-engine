@@ -1,3 +1,4 @@
+import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
@@ -6,7 +7,7 @@ import { checkSpendingLimit } from "../../utils/check-spending-limit"
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
 
 completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
-  const query = container.resolve(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   const {
     data: [queryCart],
@@ -17,6 +18,10 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
       id: cart.id,
     },
   })
+
+  if (!queryCart) {
+    throw new Error(`Cart "${cart.id}" was not found`)
+  }
 
   // Check if cart is pending approval
   const { isPendingApproval } = getCartApprovalStatus(queryCart)
@@ -36,6 +41,10 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
         id: queryCart.customer_id,
       },
     })
+
+    if (!customer) {
+      throw new Error(`Customer "${queryCart.customer_id}" was not found`)
+    }
 
     if (customer.employee?.spending_limit) {
       const spendLimitExceeded = checkSpendingLimit(queryCart, customer)

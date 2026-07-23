@@ -1,3 +1,4 @@
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -7,20 +8,25 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
-  ModuleEmployee,
   ModuleUpdateEmployee,
+  QueryEmployee,
 } from "../../../types"
+
+type UpdateEmployeeCompensation = Pick<
+  ModuleUpdateEmployee,
+  "id" | "is_admin" | "spending_limit"
+>
 
 export const updateEmployeesStep = createStep(
   "update-employees",
   async (
     input: ModuleUpdateEmployee,
     { container }
-  ): Promise<StepResponse<ModuleEmployee, ModuleUpdateEmployee>> => {
+  ): Promise<StepResponse<QueryEmployee, UpdateEmployeeCompensation>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { company_id: companyId, ...updatePayload } = input
     const filters = {
       id: input.id,
@@ -48,17 +54,37 @@ export const updateEmployeesStep = createStep(
     const updatedEmployee =
       await companyModuleService.updateEmployees(updatePayload)
 
-    return new StepResponse(updatedEmployee, {
+    const {
+      data: [employee],
+    } = await query.graph(
+      {
+        entity: "employee",
+        fields: ["*", "customer.*", "company.*"],
+        filters: {
+          ...filters,
+          id: updatedEmployee.id,
+        },
+      },
+      { throwIfKeyNotFound: true }
+    )
+
+    if (!employee) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Updated employee "${updatedEmployee.id}" was not found`
+      )
+    }
+
+    return new StepResponse(employee, {
       id: currentData.id,
-      ...(typeof currentData["is_admin"] === "boolean"
-        ? { is_admin: currentData["is_admin"] }
-        : {}),
-      ...(typeof currentData["spending_limit"] === "number"
-        ? { spending_limit: currentData["spending_limit"] }
-        : {}),
+      is_admin: currentData.is_admin,
+      spending_limit: currentData.spending_limit,
     })
   },
-  async (currentData: ModuleUpdateEmployee | undefined, { container }) => {
+  async (
+    currentData: UpdateEmployeeCompensation | undefined,
+    { container }
+  ) => {
     if (!currentData) {
       return
     }

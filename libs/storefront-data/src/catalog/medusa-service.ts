@@ -288,9 +288,21 @@ type MedusaCatalogServiceArgs<
 > =
   IsExactly<TProduct, HttpTypes.StoreProduct> extends true
     ? IsExactly<TFacets, CatalogFacets> extends true
-      ? [config?: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
-      : [config: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
-    : [config: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
+      ? [
+          config?:
+            | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+            | undefined,
+        ]
+      : [
+          config:
+            | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+            | undefined,
+        ]
+    : [
+        config:
+          | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+          | undefined,
+      ]
 
 export function createMedusaCatalogService<
   TProduct = HttpTypes.StoreProduct,

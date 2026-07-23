@@ -43,7 +43,8 @@
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/medusa-symmy-plugin/tsconfig.json",
-    "lint:oxlint": "pnpm -w exec oxlint apps/medusa-symmy-plugin --type-aware --deny-warnings"
+    "lint:oxlint": "pnpm -w exec oxlint apps/medusa-symmy-plugin --type-aware --deny-warnings",
+    "test": "vitest run"
   },
   "dependencies": {
     "jose": "^6.2.3"
@@ -57,8 +58,10 @@
     "@medusajs/medusa": "^2.17.2",
     "@medusajs/test-utils": "^2.17.2",
     "@medusajs/ui": "^4.1.19",
+    "@swc/core": "1.15.3",
     "@types/node": "24.12.4",
     "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
     "express": "4.22.2",
     "mysql2": "^3.23.0",
     "react": "19.2.7",

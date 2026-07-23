@@ -106,18 +106,14 @@ type MedusaCategoryServiceArgs<
 > =
   IsExactly<TCategory, HttpTypes.StoreProductCategory> extends true
     ? [
-        config?: MedusaCategoryServiceConfig<
-          TCategory,
-          TListParams,
-          TDetailParams
-        >,
+        config?:
+          | MedusaCategoryServiceConfig<TCategory, TListParams, TDetailParams>
+          | undefined,
       ]
     : [
-        config: MedusaCategoryServiceConfig<
-          TCategory,
-          TListParams,
-          TDetailParams
-        >,
+        config:
+          | MedusaCategoryServiceConfig<TCategory, TListParams, TDetailParams>
+          | undefined,
       ]
 
 export function createMedusaCategoryService<

@@ -11,6 +11,7 @@ import type {
   RefundPaymentOutput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
+import { omitInternalMetadata, PAYKIT_METADATA_KEY } from "@paykit-sdk/core"
 import { isRecord } from "@techsio/std/object"
 
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
@@ -50,6 +51,9 @@ const isPaymentAmount = (
 
 const isStripeCheckoutSessionId = (id: string): boolean => id.startsWith("cs_")
 
+const isStripeResourceMissingError = (error: unknown): boolean =>
+  isRecord(error) && error["code"] === "resource_missing"
+
 const getStripeCheckoutSessionRetriever = (
   provider: unknown
 ): PaykitPaymentClient["stripeCheckoutSessions"] | undefined => {
@@ -86,7 +90,7 @@ const requireStripeCheckoutSessionRetriever = (
 
   if (!checkoutSessions) {
     throw new Error(
-      "PayKit Stripe temporary Checkout Session fallback could not access provider._native.checkout.sessions. Remove this fallback after the PayKit SDK supports Checkout Session ids returned by createPayment."
+      "PayKit Stripe Checkout Session compatibility mapping could not access provider._native.checkout.sessions. This mapping is required until PayKit preserves Checkout Session metadata when retrieving cs_ payment ids."
     )
   }
 
@@ -158,6 +162,26 @@ const getStripeCheckoutPaymentIntentId = (
   return null
 }
 
+const getStripeCheckoutItemId = (
+  metadata: Record<string, unknown>
+): string | null => {
+  const paykitMetadata = metadata[PAYKIT_METADATA_KEY]
+
+  if (typeof paykitMetadata !== "string") {
+    return null
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(paykitMetadata)
+
+    return isRecord(parsed) && typeof parsed["itemId"] === "string"
+      ? parsed["itemId"]
+      : null
+  } catch {
+    return null
+  }
+}
+
 const mapStripePaymentIntentStatus = (
   status: string | null | undefined
 ): PaykitPayment["status"] | undefined => {
@@ -183,7 +207,7 @@ const mapStripePaymentIntentStatus = (
 const getStripeCheckoutStatus = (
   session: PaykitStripeCheckoutSession,
   paymentIntent: PaykitStripePaymentIntent | null
-): NonNullable<PaykitPayment["status"]> => {
+): PaykitPayment["status"] => {
   const paymentIntentStatus = mapStripePaymentIntentStatus(
     paymentIntent?.status
   )
@@ -210,44 +234,45 @@ const toPaykitPaymentFromStripeCheckoutSession = (
   session: PaykitStripeCheckoutSession
 ): PaykitPayment => {
   const paymentIntent = getStripeCheckoutPaymentIntent(session)
+  const paymentIntentStatus = paymentIntent?.status
+  const metadata = {
+    ...paymentIntent?.metadata,
+    ...session.metadata,
+  }
   const paymentUrl =
     paymentIntent?.next_action?.redirect_to_url?.url ?? session.url ?? undefined
-  const amount =
-    paymentIntent?.amount ?? session.amount_total ?? session.amount_subtotal
-  const currency = paymentIntent?.currency ?? session.currency ?? undefined
-  const customer = getStripeCheckoutCustomer(session, paymentIntent)
-  const status = getStripeCheckoutStatus(session, paymentIntent)
-  const payment: PaykitPayment = {
+
+  return {
     id: session.id,
-    status,
-    customer: customer ?? null,
-    metadata: {
-      ...paymentIntent?.metadata,
-      ...session.metadata,
-    },
+    amount:
+      paymentIntent?.amount ??
+      session.amount_total ??
+      session.amount_subtotal ??
+      undefined,
+    currency: paymentIntent?.currency ?? session.currency ?? undefined,
+    customer: getStripeCheckoutCustomer(session, paymentIntent),
+    status: getStripeCheckoutStatus(session, paymentIntent),
+    metadata: omitInternalMetadata(metadata),
+    item_id: getStripeCheckoutItemId(metadata),
     payment_intent_id: getStripeCheckoutPaymentIntentId(session, paymentIntent),
     requires_action:
-      paymentIntent?.status === "requires_action" ||
-      (session.status === "open" && session.payment_status !== "paid"),
+      paymentIntentStatus === "requires_action" ||
+      paymentIntentStatus === "requires_confirmation" ||
+      paymentIntentStatus === "requires_payment_method" ||
+      (!paymentIntentStatus &&
+        session.status === "open" &&
+        session.payment_status !== "paid" &&
+        session.payment_status !== "no_payment_required"),
+    ...(paymentUrl ? { payment_url: paymentUrl } : {}),
   }
-
-  if (typeof amount === "number") {
-    payment.amount = amount
-  }
-  if (currency !== undefined) {
-    payment.currency = currency
-  }
-  if (paymentUrl) {
-    payment.payment_url = paymentUrl
-  }
-
-  return payment
 }
 
 const withStripeCheckoutSessionRetrieve = (
   client: PaykitPaymentClient
 ): PaykitPaymentClient => {
-  if (!client.stripeCheckoutSessions) {
+  const checkoutSessions = client.stripeCheckoutSessions
+
+  if (!checkoutSessions) {
     return client
   }
 
@@ -258,17 +283,28 @@ const withStripeCheckoutSessionRetrieve = (
     payments: {
       ...client.payments,
       retrieve: async (id) => {
-        const payment = await retrievePayment(id)
-
-        if (payment || !isStripeCheckoutSessionId(id)) {
-          return payment
+        if (!isStripeCheckoutSessionId(id)) {
+          return await retrievePayment(id)
         }
 
-        // TODO(paykit-sdk): remove this once Stripe retrievePayment supports
-        // Checkout Session ids returned by createPayment's Checkout path.
-        const session = await client.stripeCheckoutSessions?.retrieve(id, {
-          expand: ["payment_intent"],
-        })
+        // PayKit Stripe 1.3.2 maps an expanded PaymentIntent for cs_ ids but
+        // drops Checkout Session metadata and its PaymentIntent id. Remove this
+        // compatibility path once the SDK preserves both values itself.
+        let session: PaykitStripeCheckoutSession | null
+
+        try {
+          session = await checkoutSessions.retrieve(id, {
+            expand: ["payment_intent"],
+          })
+        } catch (error) {
+          // Match PayKit's retrievePayment contract for missing Stripe objects;
+          // all operational and authentication errors must still propagate.
+          if (isStripeResourceMissingError(error)) {
+            return null
+          }
+
+          throw error
+        }
 
         return session
           ? toPaykitPaymentFromStripeCheckoutSession(session)
@@ -528,7 +564,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     input: DeletePaymentInput
   ): Promise<DeletePaymentOutput> {
     if (!input.data?.["id"]) {
-      return input.data ? { data: input.data } : {}
+      return input.data === undefined ? {} : { data: input.data }
     }
 
     return this.cancelOrExpirePayment(input.data)
@@ -556,7 +592,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
     }
 
     if (!client.payments.cancel) {
-      return data !== undefined ? { data } : {}
+      return data === undefined ? {} : { data }
     }
 
     const operationPaymentId = await this.getStripeOperationPaymentId(

@@ -1,3 +1,5 @@
+import type { Query } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/utils"
 
@@ -29,7 +31,7 @@ export const updateApprovalStep = createStep(
     input: ModuleUpdateApproval,
     { container }
   ): Promise<StepResponse<ModuleApproval, ModuleUpdateApproval>> => {
-    const query = container.resolve("query")
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
@@ -71,11 +73,11 @@ export const updateApprovalStep = createStep(
       await approvalModule.updateApprovals(updateData)
     }
 
-    const previousData = {
+    const previousData: ModuleUpdateApproval = {
+      handled_by: approval.handled_by,
       id: approval.id,
       status: parseApprovalStatus(approval.status),
-      handled_by: approval.handled_by,
-    } as ModuleUpdateApproval
+    }
 
     const [updatedApproval] = await approvalModule.updateApprovals([input])
 

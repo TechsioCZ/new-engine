@@ -158,13 +158,15 @@ type MedusaProductServiceArgs<
 > =
   IsExactly<TProduct, HttpTypes.StoreProduct> extends true
     ? [
-        config?: MedusaProductServiceConfig<
-          TProduct,
-          TListParams,
-          TDetailParams
-        >,
+        config?:
+          | MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
+          | undefined,
       ]
-    : [config: MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>]
+    : [
+        config:
+          | MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
+          | undefined,
+      ]
 
 export function createMedusaProductService<
   TProduct = HttpTypes.StoreProduct,

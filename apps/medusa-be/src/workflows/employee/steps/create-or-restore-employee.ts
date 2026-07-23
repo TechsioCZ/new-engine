@@ -1,12 +1,17 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import type { Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
-  ModuleEmployee,
+  QueryEmployee,
 } from "../../../types"
 
 type EmployeeCustomerLinkRow = {
@@ -63,9 +68,9 @@ export const createOrRestoreEmployeeStep = createStep(
     input: ModuleCreateEmployee,
     { container }
   ): Promise<
-    StepResponse<ModuleEmployee, CreateOrRestoreEmployeeCompensation>
+    StepResponse<QueryEmployee, CreateOrRestoreEmployeeCompensation>
   > => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
@@ -127,7 +132,25 @@ export const createOrRestoreEmployeeStep = createStep(
         spending_limit: input.spending_limit,
       })
 
-      return new StepResponse(updatedEmployee, {
+      const {
+        data: [restoredEmployee],
+      } = await query.graph(
+        {
+          entity: "employee",
+          fields: ["id", "company.*"],
+          filters: { id: updatedEmployee.id },
+        },
+        { throwIfKeyNotFound: true }
+      )
+
+      if (!restoredEmployee) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Restored employee "${updatedEmployee.id}" was not found`
+        )
+      }
+
+      return new StepResponse(restoredEmployee, {
         action: "restored",
         employee_id: restorableEmployee.id,
         previous_is_admin: restorableEmployee.is_admin ?? false,
@@ -142,10 +165,28 @@ export const createOrRestoreEmployeeStep = createStep(
       getEmployeeCustomerLink(createdEmployee.id, input.customer_id)
     )
 
-    return new StepResponse(createdEmployee, {
+    const {
+      data: [createdEmployeeResult],
+    } = await query.graph(
+      {
+        entity: "employee",
+        filters: { id: createdEmployee.id },
+        fields: ["id", "company.*"],
+      },
+      { throwIfKeyNotFound: true }
+    )
+
+    if (!createdEmployeeResult) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Created employee "${createdEmployee.id}" was not found`
+      )
+    }
+
+    return new StepResponse(createdEmployeeResult, {
       action: "created",
       customer_id: input.customer_id,
-      employee_id: createdEmployee.id,
+      employee_id: createdEmployeeResult.id,
     })
   },
   async (

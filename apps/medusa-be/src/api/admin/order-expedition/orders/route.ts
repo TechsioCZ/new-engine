@@ -58,6 +58,12 @@ type CollectMatchingOrdersInput = {
 const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
 const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
 
+function isOrderExpeditionQueryOrder<T>(
+  order: T
+): order is T & OrderExpeditionRawOrder {
+  return isOrderExpeditionRawOrder(order)
+}
+
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const orderNoteService =
@@ -272,7 +278,7 @@ async function fetchOrderBatch(
     },
   })
   const validOrders = Array.isArray(orders)
-    ? orders.filter(isOrderExpeditionRawOrder)
+    ? orders.filter(isOrderExpeditionQueryOrder)
     : []
   const scannedCount = Array.isArray(orders) ? orders.length : 0
 

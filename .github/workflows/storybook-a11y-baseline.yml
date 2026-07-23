@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=@techsio/ui-kit...
 
+      # --ignore-scripts skips the std `prepare` build; the Storybook build
+      # resolves @techsio/std/* through dist-backed exports.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
+
       - name: Build Storybook (UI)
         run: pnpm -C libs/ui run build:storybook
 

@@ -19,7 +19,25 @@ export type ReviewRequestOrder = {
 const DEFAULT_REVIEW_REQUEST_DELAY_MINUTES = 7 * 24 * 60
 const MINUTE_IN_MS = 60 * 1000
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
+const PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
+const TRAILING_SLASH_REGEX = /\/+$/
+
+export function buildProductReviewRequestUrl({
+  productId,
+  storefrontUrl,
+  token,
+}: {
+  productId: string
+  storefrontUrl: string
+  token: string
+}) {
+  const baseUrl = storefrontUrl.replace(TRAILING_SLASH_REGEX, "")
+  const encodedToken = encodeURIComponent(token)
+  const searchParams = new URLSearchParams({ product_id: productId })
+
+  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams.toString()}`
+}
 
 function getReviewRequestDelayMs() {
   const configuredMinutes = Number(

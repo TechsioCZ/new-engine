@@ -6,8 +6,8 @@ export type SearchAutocompleteSuggestion = {
   title: string
   href: string
   subtitle?: string
-  imageUrl?: string
-  priceLabel?: string
+  imageUrl?: string | undefined
+  priceLabel?: string | undefined
   inStock?: boolean
 }
 
@@ -32,7 +32,7 @@ export type RawSearchAutocompleteCategoryRef = {
   handle?: unknown
 }
 
-export type RawSearchAutocompleteProducerRef = {
+export type RawSearchAutocompleteBrandRef = {
   id?: unknown
   title?: unknown
   handle?: unknown
@@ -49,7 +49,7 @@ export type RawSearchAutocompleteProductHit = {
   handle?: unknown
   thumbnail?: unknown
   metadata?: unknown
-  producer?: RawSearchAutocompleteProducerRef
+  brand?: RawSearchAutocompleteBrandRef
   categories?: RawSearchAutocompleteCategoryRef[]
   variants?: Array<{
     calculated_price?: RawSearchAutocompleteCalculatedPrice

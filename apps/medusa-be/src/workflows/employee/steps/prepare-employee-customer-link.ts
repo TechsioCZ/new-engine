@@ -2,6 +2,7 @@ import type { Link } from "@medusajs/framework/modules-sdk"
 import type {
   IAuthModuleService,
   ICustomerModuleService,
+  Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -76,7 +77,7 @@ export const prepareEmployeeCustomerLinkStep = createStep(
     { container }
   ): Promise<StepResponse<undefined, EmployeeCustomerLinkCompensation>> => {
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 

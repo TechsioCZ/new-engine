@@ -31,9 +31,11 @@ import {
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
+import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { storefront } from "@/lib/storefront/storefront"
 
 type UseProductDetailDataProps = { handle: string }
 
@@ -58,6 +60,19 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
   const productCategories = product?.categories ?? []
 
   const selectedVariant = resolveSelectedVariant(variants, selectedVariantId)
+  const productLocationAvailabilityQuery =
+    storefront.hooks.productLocationAvailability.useProductLocationAvailability(
+      {
+        productId: product?.id ?? null,
+      }
+    )
+  const locationAvailabilityState = resolveProductLocationAvailabilityState(
+    productLocationAvailabilityQuery,
+    selectedVariant?.id ?? null,
+    {
+      isInventoryManaged: selectedVariant?.manage_inventory,
+    }
+  )
   const optionTitlesById = resolveOptionTitlesById(product)
   const variantItems = resolveVariantItems(variants, optionTitlesById)
 
@@ -174,6 +189,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     productCategories,
     productContentSections,
     productHighlights,
+    locationAvailabilityState,
     productQuery,
     quantity,
     relatedSections,

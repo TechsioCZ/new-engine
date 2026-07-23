@@ -1,7 +1,7 @@
 import { clx } from "@medusajs/ui"
 
-import { NoRecords, type NoResultsProps } from "../"
-import { TableSkeleton } from "../../skeleton"
+import { TableSkeleton } from "../../skeleton/skeleton"
+import { NoRecords, type NoResultsProps } from "../empty-state"
 import { DataTableQuery, type DataTableQueryProps } from "./data-table-query"
 import { DataTableRoot, type DataTableRootProps } from "./data-table-root"
 
@@ -67,20 +67,20 @@ export const DataTable = <TData,>({
       })}
     >
       <DataTableQuery
-        {...(filters ? { filters } : {})}
-        {...(orderBy ? { orderBy } : {})}
-        {...(prefix ? { prefix } : {})}
+        filters={filters}
+        orderBy={orderBy}
+        prefix={prefix}
         search={search}
       />
       <DataTableRoot
         columns={columns}
-        {...(commands ? { commands } : {})}
+        commands={commands}
         count={count}
         layout={layout}
-        {...(navigateTo ? { navigateTo } : {})}
+        navigateTo={navigateTo}
         noHeader={noHeader}
         noResults={noResults}
-        pagination
+        pagination={pagination}
         table={table}
       />
     </div>

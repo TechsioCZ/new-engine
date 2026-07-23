@@ -109,6 +109,11 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=medusa-be...
 
+      # --ignore-scripts skips the std `prepare` build; medusa-be resolves
+      # @techsio/std/* through dist-backed exports at test runtime.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
+
       - name: Run Medusa BE unit tests
         run: pnpm --filter medusa-be test:unit
 
@@ -152,6 +157,11 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=medusa-be...
 
+      # --ignore-scripts skips the std `prepare` build; medusa-be resolves
+      # @techsio/std/* through dist-backed exports at test runtime.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
+
       - name: Run Medusa BE module integration tests
         run: pnpm --filter medusa-be test:integration:modules
 
@@ -179,6 +189,11 @@ jobs:
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=medusa-be...
+
+      # --ignore-scripts skips the std `prepare` build; medusa-be resolves
+      # @techsio/std/* through dist-backed exports at test runtime.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
 
       - name: Run Medusa BE HTTP e2e suite
         run: bash ./scripts/e2e/medusa-be-http.sh run

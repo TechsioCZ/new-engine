@@ -2,6 +2,13 @@ import { join } from "node:path"
 
 import type { NextConfig } from "next"
 
+type ImageRemotePattern = {
+  protocol: "http" | "https"
+  hostname: string
+}
+
+const LOOPBACK_IMAGE_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"])
+
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   if (!baseUrl) {
     return []
@@ -27,6 +34,23 @@ const resolveMedusaImageRemotePattern = () =>
 
 const resolvePayloadImageRemotePattern = () =>
   resolveImageRemotePattern(process.env["NEXT_PUBLIC_PAYLOAD_BASE_URL"])
+
+const imageRemotePatterns: ImageRemotePattern[] = [
+  {
+    protocol: "https",
+    hostname: "cdn.myshoptet.com", // Herbatika CDN
+  },
+  {
+    protocol: "https",
+    hostname: "images.unsplash.com",
+  },
+  ...resolveMedusaImageRemotePattern(),
+  ...resolvePayloadImageRemotePattern(),
+]
+
+const shouldDisableImageOptimization = imageRemotePatterns.some(
+  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname)
+)
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -54,18 +78,10 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.myshoptet.com", // Herbatika CDN
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      ...resolveMedusaImageRemotePattern(),
-      ...resolvePayloadImageRemotePattern(),
-    ],
+    // Browser-facing loopback URLs cannot be resolved correctly by the Next
+    // image optimizer from inside Docker. Non-loopback deployments stay optimized.
+    unoptimized: shouldDisableImageOptimization,
+    remotePatterns: imageRemotePatterns,
     qualities: [40, 50, 60, 75, 90],
   },
 

@@ -100,6 +100,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=@techsio/ui-kit...
 
+      # --ignore-scripts skips the std `prepare` build; the UI build resolves
+      # @techsio/std/* through dist-backed exports.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
+
       - name: Build UI package
         run: pnpm -C libs/ui build
 

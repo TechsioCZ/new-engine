@@ -122,7 +122,10 @@ jobs:
       # hanging. ubuntu-latest already ships Chromium's system libs (no
       # --with-deps needed). Install through Storybook's own Playwright so the
       # downloaded browser revision always matches the test-runner runtime.
-      install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
+      # `--ignore-scripts` also skips the std `prepare` build, so build
+      # @techsio/std explicitly before the Storybook build resolves its
+      # dist-backed exports.
+      install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && pnpm --filter @techsio/std build && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook

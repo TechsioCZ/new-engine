@@ -14,6 +14,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
 
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
@@ -42,6 +43,16 @@ type QueryOrder = OrderReceiptOrder &
       last_name?: string | null
     } | null
   }
+
+function isQueryOrder(value: unknown): value is QueryOrder {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const id = value["id"]
+
+  return typeof id === "string" && id.length > 0
+}
 
 const ORDER_RECEIPT_FIELDS = [
   "id",
@@ -123,7 +134,7 @@ const sendOrderReceiptStep = createStep(
         id: input.order_id,
       },
     })
-    const order = (data as QueryOrder[])[0]
+    const order = data.find(isQueryOrder)
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
@@ -162,7 +173,7 @@ const sendOrderReceiptStep = createStep(
       template: "order-placed",
       to: order.email,
       trigger_type: "order.placed",
-    } as Parameters<INotificationModuleService["createNotifications"]>[0])
+    })
 
     return new StepResponse({
       email: order.email,

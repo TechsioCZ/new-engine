@@ -42,6 +42,9 @@
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/medusa-order-dashboard-plugin/tsconfig.json",
     "lint:oxlint": "pnpm -w exec oxlint apps/medusa-order-dashboard-plugin --type-aware --deny-warnings"
   },
+  "dependencies": {
+    "@medusajs/js-sdk": "2.17.2"
+  },
   "devDependencies": {
     "@medusajs/admin-sdk": "2.17.2",
     "@medusajs/admin-shared": "2.17.2",
@@ -51,6 +54,7 @@
     "@medusajs/js-sdk": "2.17.2",
     "@medusajs/medusa": "^2.17.2",
     "@medusajs/ui": "4.1.19",
+    "@swc/core": "1.15.3",
     "@tanstack/react-query": "5.101.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",

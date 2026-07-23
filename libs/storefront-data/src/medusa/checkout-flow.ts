@@ -131,8 +131,8 @@ export type UseMedusaCheckoutPaymentReturn = {
 
 export type CreateMedusaCheckoutFlowConfig = {
   storefront: MedusaCheckoutFlowStorefront
-  cartStorage?: StorageValueStore
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  cartStorage?: StorageValueStore | undefined
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type UseMedusaCompleteCheckoutInput = {

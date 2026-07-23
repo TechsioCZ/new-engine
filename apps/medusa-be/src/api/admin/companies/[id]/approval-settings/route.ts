@@ -50,13 +50,15 @@ export const POST = async (
   const { requires_admin_approval, requires_sales_manager_approval } =
     req.validatedBody
 
-  let {
+  const {
     data: [currentApprovalSettings],
   } = await query.graph({
     entity: "approval_settings",
     fields: ["id"],
     filters: { company_id: id },
   })
+
+  let currentApprovalSettingsId = currentApprovalSettings?.id
 
   if (!currentApprovalSettings) {
     const { result: createdApprovalSettings } =
@@ -65,9 +67,9 @@ export const POST = async (
         container: req.scope,
       })
 
-    currentApprovalSettings = createdApprovalSettings[0]
+    currentApprovalSettingsId = createdApprovalSettings[0]?.id
 
-    if (!currentApprovalSettings) {
+    if (!currentApprovalSettingsId) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Approval settings for company ${id} were not found`
@@ -79,7 +81,7 @@ export const POST = async (
     await updateApprovalSettingsWorkflow.run({
       input: {
         company_id: id,
-        id: currentApprovalSettings.id,
+        id: currentApprovalSettingsId,
         requires_admin_approval,
         requires_sales_manager_approval,
       },

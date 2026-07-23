@@ -106,15 +106,13 @@ test("renders the Medusa admin login without browser errors", async ({
     page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME })
   ).toBeVisible()
 
-  const renderedBody = await page.locator("body").evaluate((body) => ({
-    interactiveElements: body.querySelectorAll(
-      'a, button, input, textarea, select, [role="button"]'
-    ).length,
-    textLength: body.innerText.trim().length,
-  }))
+  const interactiveElements = await page
+    .locator('a, button, input, textarea, select, [role="button"]')
+    .count()
+  const bodyText = await page.locator("body").innerText()
 
-  expect(renderedBody.textLength).toBeGreaterThan(20)
-  expect(renderedBody.interactiveElements).toBeGreaterThan(2)
+  expect(bodyText.trim().length).toBeGreaterThan(20)
+  expect(interactiveElements).toBeGreaterThan(2)
   expectNoBrowserErrors(browserErrors)
 })
 

@@ -155,8 +155,25 @@ describe("updateEmployeesStep", () => {
     expect(companyService.updateEmployees).not.toHaveBeenCalledWith(
       expect.objectContaining({ company_id: "comp_1" })
     )
-    expect(graph).toHaveBeenCalledTimes(1)
-    expect(result.payload).toEqual({ id: "emp_1" })
+    expect(graph).toHaveBeenNthCalledWith(
+      2,
+      {
+        entity: "employee",
+        fields: ["*", "customer.*", "company.*"],
+        filters: {
+          company_id: "comp_1",
+          id: "emp_1",
+        },
+      },
+      { throwIfKeyNotFound: true }
+    )
+    expect(graph).toHaveBeenCalledTimes(2)
+    expect(result.payload).toEqual({
+      company: { id: "comp_1" },
+      customer: { id: "cus_1" },
+      id: "emp_1",
+      is_admin: true,
+    })
     expect(result.compensateInput).toEqual({ id: "emp_1", is_admin: false })
   })
 

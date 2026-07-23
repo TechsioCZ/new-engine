@@ -1,4 +1,4 @@
-export type ProducerEntity = {
+export type BrandEntity = {
   name: string
   address: string
   taxId?: string | undefined
@@ -6,9 +6,9 @@ export type ProducerEntity = {
   phone?: string | undefined
 }
 
-export type ParsedProducerInfo = {
+export type ParsedBrandInfo = {
   sizingGuideUrl?: string | undefined
-  manufacturer?: ProducerEntity | undefined
-  responsiblePerson?: ProducerEntity | undefined
+  manufacturer?: BrandEntity | undefined
+  responsiblePerson?: BrandEntity | undefined
   distributor?: string | undefined
 }

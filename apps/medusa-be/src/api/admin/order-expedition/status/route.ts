@@ -10,6 +10,7 @@ import {
   fetchOrderedOrderExpeditionOrdersByIds,
   getOrderExpeditionDisplayId,
   getOrderExpeditionTransitionBlockReason,
+  isOrderExpeditionRawOrder,
   type OrderExpeditionBlockingOrder,
   type OrderExpeditionRawOrder,
   type OrderExpeditionTargetStatus,
@@ -29,6 +30,12 @@ type StatusChangedOrder = {
   status: string | null
 }
 
+function isOrderExpeditionQueryOrder<T>(
+  order: T
+): order is T & OrderExpeditionRawOrder {
+  return isOrderExpeditionRawOrder(order)
+}
+
 export async function POST(
   req: MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>,
   res: MedusaResponse
@@ -40,9 +47,10 @@ export async function POST(
 
   const { missingOrderIds, orders } =
     await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
+  const expeditionOrders = orders.filter(isOrderExpeditionQueryOrder)
   const blockingOrders = collectBlockingOrders(
     missingOrderIds,
-    orders,
+    expeditionOrders,
     targetStatus
   )
 
@@ -60,13 +68,16 @@ export async function POST(
 
   const { orders: changedOrders } =
     await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
+  const changedExpeditionOrders = changedOrders.filter(
+    isOrderExpeditionQueryOrder
+  )
 
   await clearOrderExpeditionSummaryCache(req.scope)
 
   res.json({
-    count: changedOrders.length,
+    count: changedExpeditionOrders.length,
     target_status: targetStatus,
-    orders: changedOrders.map(toChangedOrder),
+    orders: changedExpeditionOrders.map(toChangedOrder),
   })
 }
 

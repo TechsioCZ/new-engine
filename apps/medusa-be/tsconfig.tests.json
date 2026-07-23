@@ -13,6 +13,7 @@
     "types": ["node", "vitest/globals"]
   },
   "include": [
+    "src/admin/vite-env.d.ts",
     "**/__tests__/**/*.ts",
     "**/*.spec.ts",
     "**/*.test.ts",

@@ -57,6 +57,7 @@ describe("PayKit runtime helpers", () => {
       })
     ).toEqual({
       apiKey: "sk_test_123",
+      apiVersion: "2026-06-24.dahlia",
       debug: true,
     })
   })
@@ -68,6 +69,7 @@ describe("PayKit runtime helpers", () => {
       })
     ).toEqual({
       apiKey: "sk_test_123",
+      apiVersion: "2026-06-24.dahlia",
       debug: false,
     })
   })

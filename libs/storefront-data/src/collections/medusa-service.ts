@@ -110,18 +110,22 @@ type MedusaCollectionServiceArgs<
 > =
   IsExactly<TCollection, HttpTypes.StoreCollection> extends true
     ? [
-        config?: MedusaCollectionServiceConfig<
-          TCollection,
-          TListParams,
-          TDetailParams
-        >,
+        config?:
+          | MedusaCollectionServiceConfig<
+              TCollection,
+              TListParams,
+              TDetailParams
+            >
+          | undefined,
       ]
     : [
-        config: MedusaCollectionServiceConfig<
-          TCollection,
-          TListParams,
-          TDetailParams
-        >,
+        config:
+          | MedusaCollectionServiceConfig<
+              TCollection,
+              TListParams,
+              TDetailParams
+            >
+          | undefined,
       ]
 
 export function createMedusaCollectionService<

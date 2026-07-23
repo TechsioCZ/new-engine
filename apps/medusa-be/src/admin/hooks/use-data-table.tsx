@@ -13,10 +13,10 @@ import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
 type UseDataTableProps<TData> = {
-  data?: TData[]
+  data?: TData[] | undefined
   // biome-ignore lint/suspicious/noExplicitAny: ColumnDef is invariant in TValue, and this table accepts heterogeneous column value types.
   columns: ColumnDef<TData, any>[]
-  count?: number
+  count?: number | undefined
   pageSize?: number
   enableRowSelection?: boolean | ((row: Row<TData>) => boolean)
   rowSelection?: {

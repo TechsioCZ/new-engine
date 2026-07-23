@@ -141,8 +141,8 @@ export type UseMedusaCompleteCartOptions = {
 
 export type CreateMedusaCartFlowConfig = {
   storefront: MedusaCartFlowStorefront
-  cartStorage?: StorageValueStore
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  cartStorage?: StorageValueStore | undefined
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type UseMedusaCartInput = Omit<CartInputBase, "cartId"> & {

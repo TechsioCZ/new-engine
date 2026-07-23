@@ -112,10 +112,7 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    case "suhrn": {
-      throw new Error('Not implemented yet: "suhrn" case')
-    }
-    default:
+    case "suhrn":
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
@@ -154,6 +151,10 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
+    default: {
+      const unhandledStep: never = activeStep
+      throw new Error(`Unhandled checkout step: ${String(unhandledStep)}`)
+    }
   }
 }
 

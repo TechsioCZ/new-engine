@@ -44,7 +44,7 @@ type MeiliProductHit = {
   id?: string | number
 }
 
-type ProducerRecord = {
+type BrandRecord = {
   handle?: string
   title?: string
 }
@@ -212,8 +212,8 @@ const resolveBrandFacetLabels = async (
     return labelsById
   }
 
-  const { data: producers } = await queryService.graph({
-    entity: "producer",
+  const { data: brands } = await queryService.graph({
+    entity: "brand",
     fields: ["handle", "title"],
     filters: {
       handle: {
@@ -222,12 +222,12 @@ const resolveBrandFacetLabels = async (
     },
   })
 
-  const producerTitleByHandle = new Map<string, string>()
-  for (const producer of producers as ProducerRecord[]) {
-    if (!(producer.handle && producer.title)) {
+  const brandTitleByHandle = new Map<string, string>()
+  for (const brand of brands as BrandRecord[]) {
+    if (!(brand.handle && brand.title)) {
       continue
     }
-    producerTitleByHandle.set(producer.handle, producer.title)
+    brandTitleByHandle.set(brand.handle, brand.title)
   }
 
   for (const facetId of facetIds) {
@@ -238,7 +238,7 @@ const resolveBrandFacetLabels = async (
 
     labelsById.set(
       facetId,
-      producerTitleByHandle.get(handle) ?? humanizeFacetHandle(handle)
+      brandTitleByHandle.get(handle) ?? humanizeFacetHandle(handle)
     )
   }
 

@@ -304,6 +304,26 @@
     "./regions/types": {
       "types": "./dist/src/regions/types.d.ts",
       "import": "./dist/regions/types.js"
+    },
+    "./product-location-availability/hooks": {
+      "types": "./dist/src/product-location-availability/hooks.d.ts",
+      "import": "./dist/product-location-availability/hooks.js"
+    },
+    "./product-location-availability/medusa-service": {
+      "types": "./dist/src/product-location-availability/medusa-service.d.ts",
+      "import": "./dist/product-location-availability/medusa-service.js"
+    },
+    "./product-location-availability/query-keys": {
+      "types": "./dist/src/product-location-availability/query-keys.d.ts",
+      "import": "./dist/product-location-availability/query-keys.js"
+    },
+    "./product-location-availability/query-options": {
+      "types": "./dist/src/product-location-availability/query-options.d.ts",
+      "import": "./dist/product-location-availability/query-options.js"
+    },
+    "./product-location-availability/types": {
+      "types": "./dist/src/product-location-availability/types.d.ts",
+      "import": "./dist/product-location-availability/types.js"
     }
   },
   "publishConfig": {
@@ -331,6 +351,7 @@
     "jsdom": "^29.1.1",
     "msw": "^2.15.0",
     "typescript": "^7.0.2",
+    "vite": "8.1.3",
     "vitest": "^4.1.10"
   },
   "peerDependencies": {

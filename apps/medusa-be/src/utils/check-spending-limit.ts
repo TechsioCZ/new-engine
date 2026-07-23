@@ -1,21 +1,29 @@
-import type { HttpTypes } from "@medusajs/types"
+import { ModuleCompanySpendingLimitResetFrequency } from "../types"
 
-import {
-  ModuleCompanySpendingLimitResetFrequency,
-  type QueryCompany,
-  type QueryEmployee,
-} from "../types"
+type CompanySpendContext = {
+  spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
+}
+
+type EmployeeSpendContext = {
+  company: CompanySpendContext
+  spending_limit: number
+}
+
+type OrderSpendContext = {
+  created_at: Date | string
+  total: number
+}
 
 type CartSpendTotal = {
   total: number
 }
 
 type CustomerSpendContext = {
-  employee?: QueryEmployee | null
-  orders?: HttpTypes.StoreOrder[] | null
+  employee?: EmployeeSpendContext | null
+  orders?: Array<OrderSpendContext | null> | null
 }
 
-function getSpendWindow(company: QueryCompany): {
+export function getSpendWindow(company: CompanySpendContext): {
   start: Date
   end: Date
 } {
@@ -49,12 +57,16 @@ function getSpendWindow(company: QueryCompany): {
   }
 }
 
-function getOrderTotalInSpendWindow(
-  orders: HttpTypes.StoreOrder[],
+export function getOrderTotalInSpendWindow(
+  orders: Array<OrderSpendContext | null>,
   spendWindow: { start: Date; end: Date }
 ): number {
   return (
     orders.reduce((acc, order) => {
+      if (!order) {
+        return acc
+      }
+
       const orderDate = new Date(order.created_at)
       if (orderDate >= spendWindow.start && orderDate <= spendWindow.end) {
         return acc + order.total

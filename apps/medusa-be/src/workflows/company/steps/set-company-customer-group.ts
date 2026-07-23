@@ -1,5 +1,5 @@
 import type { Link } from "@medusajs/framework/modules-sdk"
-import type { ICustomerModuleService } from "@medusajs/framework/types"
+import type { ICustomerModuleService, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -73,7 +73,7 @@ export const setCompanyCustomerGroupStep = createStep(
       SetCompanyCustomerGroupCompensation
     >
   > => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
@@ -96,6 +96,13 @@ export const setCompanyCustomerGroupStep = createStep(
       },
       { throwIfKeyNotFound: true }
     )
+
+    if (!company) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Company ${input.company_id} was not found`
+      )
+    }
 
     const previousGroupId = company.customer_group?.id
     const previousGroupCustomers = previousGroupId

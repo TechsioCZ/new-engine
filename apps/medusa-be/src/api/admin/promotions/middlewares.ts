@@ -21,7 +21,7 @@ export const adminPromotionsExtensionMiddlewares: MiddlewareRoute[] = [
   },
   {
     method: ["GET"],
-    matcher: "/admin/promotions/rule-value-options/:rule_type/producer",
+    matcher: "/admin/promotions/rule-value-options/:rule_type/brand",
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
 ]

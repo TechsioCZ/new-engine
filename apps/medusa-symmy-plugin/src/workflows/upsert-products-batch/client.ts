@@ -72,7 +72,7 @@ export class ProductBatchClient {
   async preload(products: ProductInput[]): Promise<ExistingProductIndex> {
     const { erpIds, skus, eans } =
       this.helper.collectProductIdentifiers(products)
-    const fields = Array.from(PRODUCT_PREFETCH_FIELDS)
+    const fields = PRODUCT_PREFETCH_FIELDS as unknown as string[]
     const [erpProducts, skuVariants, eanVariants] = await Promise.all([
       this.queryProductsByExternalIds(erpIds, fields),
       this.queryVariantProductRefs("sku", skus),
@@ -149,15 +149,12 @@ export class ProductBatchClient {
       return { created: [], updated: [] }
     }
     const { result } = await batchProductsWorkflow(this.container).run({
-      input: {
-        create: payload.create,
-        update: payload.update,
-      },
+      input: payload,
     })
 
     return {
-      created: result?.created ?? [],
-      updated: result?.updated ?? [],
+      created: result.created,
+      updated: result.updated,
     }
   }
 

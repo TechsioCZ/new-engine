@@ -1,5 +1,5 @@
 import type { Link } from "@medusajs/framework/modules-sdk"
-import type { LinkDefinition } from "@medusajs/framework/types"
+import type { LinkDefinition, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
@@ -33,7 +33,7 @@ export const dismissCompanyApprovalSettingsLinksStep = createStep(
     }
 
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { data: linkRows }: { data: CompanyApprovalSettingsLinkRow[] } =
       await query.graph({
         entity: COMPANY_APPROVAL_SETTINGS_LINK_ENTRY_POINT,

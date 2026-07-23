@@ -29,7 +29,7 @@ type RawProductFromDb = {
   variants: string // JSON string
   options: string // JSON string
   categories: string // JSON string
-  producer: string // JSON string
+  brand: string // JSON string
 }
 
 /** Raw option data after JSON parsing */
@@ -59,8 +59,8 @@ type RawVariant = {
   }
 }
 
-/** Raw producer data after JSON parsing */
-type RawProducer = {
+/** Raw brand data after JSON parsing */
+type RawBrand = {
   title?: string
   attributes?: { name: string; value: string }[]
 }
@@ -89,9 +89,9 @@ export function toCreateProductsStepInput(
       "categories",
       raw.handle
     )
-    const parsedProducer = safeJsonParse<RawProducer | null>(
-      raw.producer,
-      "producer",
+    const parsedBrand = safeJsonParse<RawBrand | null>(
+      raw.brand,
+      "brand",
       raw.handle
     )
 
@@ -138,7 +138,7 @@ export function toCreateProductsStepInput(
         (im): im is { url: string } => im.url != null
       ),
       ...(options.length === 0 ? {} : { options }),
-      producer: parsedProducer,
+      brand: parsedBrand,
       ...(variants.length === 0 ? {} : { variants }),
       salesChannelNames: ["Default Sales Channel"],
     }

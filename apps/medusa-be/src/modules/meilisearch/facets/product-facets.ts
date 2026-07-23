@@ -57,7 +57,7 @@ export const FORM_FACET_LABEL_BY_ID = new Map(
 )
 
 export type ProductFacetDocument = {
-  facet_product_status?: string
+  facet_product_status?: string | undefined
   facet_sales_channel_ids: string[]
   facet_status: string[]
   facet_form: string[]
@@ -65,7 +65,7 @@ export type ProductFacetDocument = {
   facet_ingredient: string[]
   facet_category_ids: string[]
   facet_in_stock: boolean
-  facet_price?: number
+  facet_price?: number | undefined
 }
 
 const asRecord = (value: unknown): UnknownRecord | null => {
@@ -246,25 +246,25 @@ const sanitizeHandle = (value: string): string | undefined => {
 }
 
 const resolveBrandFacetIds = (document: UnknownRecord): string[] => {
-  const producerCandidates = asArray(document["producer"])
-  const producer =
-    producerCandidates.length > 0
-      ? asRecord(producerCandidates[0])
-      : asRecord(document["producer"])
+  const brandCandidates = asArray(document["brand"])
+  const brand =
+    brandCandidates.length > 0
+      ? asRecord(brandCandidates[0])
+      : asRecord(document["brand"])
 
-  if (!producer) {
+  if (!brand) {
     return []
   }
 
-  const producerHandle =
-    typeof producer["handle"] === "string"
-      ? sanitizeHandle(producer["handle"])
+  const brandHandle =
+    typeof brand["handle"] === "string"
+      ? sanitizeHandle(brand["handle"])
       : undefined
-  const producerTitle =
-    typeof producer["title"] === "string"
-      ? sanitizeHandle(producer["title"])
+  const brandTitle =
+    typeof brand["title"] === "string"
+      ? sanitizeHandle(brand["title"])
       : undefined
-  const handle = producerHandle ?? producerTitle
+  const handle = brandHandle ?? brandTitle
 
   if (!handle) {
     return []
@@ -420,9 +420,9 @@ export const buildProductFacetDocument = (
   document: unknown
 ): ProductFacetDocument => {
   const product = asRecord(document) ?? {}
-  const productStatus = getStringField(product, "status")
-  const facetPrice = resolveFacetPrice(product)
-  const facetDocument: ProductFacetDocument = {
+
+  return {
+    facet_product_status: getStringField(product, "status"),
     facet_sales_channel_ids: resolveSalesChannelFacetIds(product),
     facet_status: resolveStatusFacetIds(product),
     facet_form: resolveFormFacetIds(product),
@@ -430,16 +430,8 @@ export const buildProductFacetDocument = (
     facet_ingredient: resolveIngredientFacetIds(product),
     facet_category_ids: resolveCategoryFacetIds(product),
     facet_in_stock: resolveProductInStock(product),
+    facet_price: resolveFacetPrice(product),
   }
-
-  if (productStatus !== undefined) {
-    facetDocument.facet_product_status = productStatus
-  }
-  if (facetPrice !== undefined) {
-    facetDocument.facet_price = facetPrice
-  }
-
-  return facetDocument
 }
 
 export const isBrandFacetId = (id: string): boolean =>

@@ -6,7 +6,11 @@ import type {
   IOrderModuleService,
   RemoteQueryFunction,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 
 export const GET = async (
   req: AuthenticatedMedusaRequest,
@@ -27,6 +31,13 @@ export const GET = async (
     },
     { throwIfKeyNotFound: true }
   )
+
+  if (!quote) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Quote ${id} was not found`
+    )
+  }
 
   const orderModuleService: IOrderModuleService = req.scope.resolve(
     Modules.ORDER

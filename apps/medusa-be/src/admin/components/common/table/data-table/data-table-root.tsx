@@ -50,19 +50,19 @@ export type DataTableRootProps<TData> = {
   /**
    * Function to generate a link to navigate to when clicking on a row
    */
-  navigateTo?: (row: Row<TData>) => string
+  navigateTo?: ((row: Row<TData>) => string) | undefined
   /**
    * Bulk actions to render
    */
-  commands?: BulkCommand[]
+  commands?: BulkCommand[] | undefined
   /**
    * The total number of items in the table
    */
-  count?: number
+  count?: number | undefined
   /**
    * Whether to display pagination controls
    */
-  pagination?: boolean
+  pagination?: boolean | undefined
   /**
    * Whether the table is empty due to no results from the active query
    */

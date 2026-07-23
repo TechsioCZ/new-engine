@@ -139,10 +139,18 @@ describe("PaykitStripePaymentProvider", () => {
     )
   })
 
-  it("falls back to Stripe Checkout Session retrieval for cs ids", async () => {
+  it("uses Stripe Checkout Session data as authoritative for cs ids", async () => {
     const client = createMockPaykitClient({
       payments: {
-        retrieve: vi.fn().mockResolvedValue(null),
+        // PayKit Stripe 1.3.2 returns this incomplete PaymentIntent-derived
+        // shape and would otherwise bypass the Checkout Session mapping.
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_123",
+          amount: 1050,
+          currency: "czk",
+          metadata: {},
+          status: "succeeded",
+        }),
       },
       stripeCheckoutSessions: {
         retrieve: vi.fn().mockResolvedValue({
@@ -152,6 +160,7 @@ describe("PaykitStripePaymentProvider", () => {
           customer: "cus_123",
           metadata: {
             session_id: "payses_123",
+            __paykit: JSON.stringify({ itemId: "cart_123" }),
           },
           payment_intent: {
             id: "pi_123",
@@ -184,16 +193,55 @@ describe("PaykitStripePaymentProvider", () => {
         metadata: {
           session_id: "payses_123",
         },
+        item_id: "cart_123",
         payment_intent_id: "pi_123",
         payment_url: "https://checkout.stripe.example/session",
         status: "succeeded",
       }),
     })
-    expect(client.payments.retrieve).toHaveBeenCalledWith("cs_test_123")
+    expect(client.payments.retrieve).not.toHaveBeenCalled()
     expect(client.stripeCheckoutSessions?.retrieve).toHaveBeenCalledWith(
       "cs_test_123",
       { expand: ["payment_intent"] }
     )
+  })
+
+  it("delegates non-checkout payment retrieval to PayKit", async () => {
+    const client = createMockPaykitClient({
+      payments: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "pi_test_123",
+          amount: 1050,
+          currency: "czk",
+          metadata: {
+            session_id: "payses_123",
+          },
+          status: "succeeded",
+        }),
+      },
+      stripeCheckoutSessions: {
+        retrieve: vi.fn(),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "pi_test_123",
+        },
+      })
+    ).resolves.toEqual({
+      status: PaymentSessionStatus.CAPTURED,
+      data: expect.objectContaining({
+        id: "pi_test_123",
+        status: "succeeded",
+      }),
+    })
+    expect(client.payments.retrieve).toHaveBeenCalledWith("pi_test_123")
+    expect(client.stripeCheckoutSessions?.retrieve).not.toHaveBeenCalled()
   })
 
   it("prefers expanded Stripe PaymentIntent status for checkout sessions", async () => {
@@ -237,9 +285,124 @@ describe("PaykitStripePaymentProvider", () => {
       data: expect.objectContaining({
         id: "cs_test_manual",
         payment_intent_id: "pi_manual",
+        requires_action: false,
         status: "requires_capture",
       }),
     })
+  })
+
+  it("marks checkout sessions requiring a payment method as requiring action", async () => {
+    const client = createMockPaykitClient({
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_payment_method",
+          amount_total: 1050,
+          currency: "czk",
+          payment_intent: {
+            id: "pi_payment_method",
+            status: "requires_payment_method",
+          },
+          payment_status: "unpaid",
+          status: "open",
+        }),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "cs_test_payment_method",
+        },
+      })
+    ).resolves.toEqual({
+      status: PaymentSessionStatus.PENDING,
+      data: expect.objectContaining({
+        id: "cs_test_payment_method",
+        payment_intent_id: "pi_payment_method",
+        requires_action: true,
+        status: "pending",
+      }),
+    })
+  })
+
+  it("does not fall back to lossy PayKit retrieval for a null checkout session", async () => {
+    const client = createMockPaykitClient({
+      payments: {
+        retrieve: vi.fn().mockResolvedValue({
+          id: "cs_test_null",
+          amount: 1050,
+          currency: "czk",
+          metadata: {},
+          status: "succeeded",
+        }),
+      },
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockResolvedValue(null),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "cs_test_null",
+        },
+      })
+    ).rejects.toThrow("PayKit payment cs_test_null could not be retrieved")
+    expect(client.payments.retrieve).not.toHaveBeenCalled()
+  })
+
+  it("preserves PayKit's null retrieval contract for missing checkout sessions", async () => {
+    const stripeError = Object.assign(new Error("No such checkout session"), {
+      code: "resource_missing",
+    })
+    const client = createMockPaykitClient({
+      payments: {
+        retrieve: vi.fn().mockResolvedValue(null),
+      },
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockRejectedValue(stripeError),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "cs_test_missing",
+        },
+      })
+    ).rejects.toThrow("PayKit payment cs_test_missing could not be retrieved")
+    expect(client.payments.retrieve).not.toHaveBeenCalled()
+  })
+
+  it("does not hide operational Stripe checkout retrieval errors", async () => {
+    const stripeError = Object.assign(new Error("Stripe is unavailable"), {
+      code: "api_connection_error",
+    })
+    const client = createMockPaykitClient({
+      stripeCheckoutSessions: {
+        retrieve: vi.fn().mockRejectedValue(stripeError),
+      },
+    })
+    const provider = new PaykitStripePaymentProvider(createMockContainer(), {
+      client,
+    })
+
+    await expect(
+      provider.getPaymentStatus({
+        data: {
+          id: "cs_test_unavailable",
+        },
+      })
+    ).rejects.toBe(stripeError)
   })
 
   it("does not double-normalize persisted Stripe amounts during capture", async () => {

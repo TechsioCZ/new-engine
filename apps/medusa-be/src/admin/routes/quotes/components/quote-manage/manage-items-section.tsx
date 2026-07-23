@@ -3,11 +3,9 @@ import { Button, Heading, Input, toast } from "@medusajs/ui"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import {
-  RouteFocusModal,
-  StackedFocusModal,
-  useStackedModal,
-} from "../../../../components/common/modals/route-focus-modal"
+import { RouteFocusModal } from "../../../../components/common/modals/route-focus-modal/route-focus-modal"
+import { StackedFocusModal } from "../../../../components/common/modals/route-focus-modal/stacked-focus-modal"
+import { useStackedModal } from "../../../../components/common/modals/route-focus-modal/use-stacked-modal"
 import { useAddItemsToQuote } from "../../../../hooks/api"
 import { ManageItem } from "./manage-item"
 import { ManageItemsTable } from "./manage-items-table"
@@ -132,7 +130,7 @@ export const ManageItemsSection = ({
             item={item}
             key={item.id}
             orderId={order.id}
-            {...(originalItem ? { originalItem } : {})}
+            originalItem={originalItem}
           />
         )
       })}

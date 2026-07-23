@@ -120,7 +120,7 @@
     "lodash": "^4.18.1",
     "marked": "18.0.6",
     "medusa-order-dashboard-plugin": "workspace:*",
-    "medusa-plugin-content": "0.2.0",
+    "medusa-plugin-content": "0.2.5",
     "medusa-symmy-plugin": "workspace:*",
     "mime": "4.1.0",
     "mysql2": "^3.23.0",

@@ -4,11 +4,11 @@ import { resolveRequiredEnv } from "./helpers/client"
 import type { DraftOrderPreview } from "./helpers/promotions"
 import {
   applyPromotion,
+  createBrand,
   createBuyGetPromotion,
   createCart,
   createCartAndApplyPromotion,
   createDraftOrderWithItem,
-  createProducer,
   createProduct,
   createPromotion,
   createTestContext,
@@ -22,24 +22,24 @@ import {
 describe("Custom promotion rules HTTP E2E", () => {
   const backendUrl = resolveRequiredEnv("MEDUSA_E2E_BACKEND_URL")
 
-  it("applies producer promotions only to cart items from the matching producer", async () => {
+  it("applies brand promotions only to cart items from the matching brand", async () => {
     const context = await createTestContext(backendUrl)
-    const producer = await createProducer(context.admin)
-    const otherProducer = await createProducer(context.admin)
+    const brand = await createBrand(context.admin)
+    const otherBrand = await createBrand(context.admin)
     const matchingProduct = await createProduct(
       context.admin,
       context.salesChannelId,
       {
-        producerId: producer.id,
-        title: `Producer Match ${suffix()}`,
+        brandId: brand.id,
+        title: `Brand Match ${suffix()}`,
       }
     )
     const otherProduct = await createProduct(
       context.admin,
       context.salesChannelId,
       {
-        producerId: otherProducer.id,
-        title: `Producer Non Match ${suffix()}`,
+        brandId: otherBrand.id,
+        title: `Brand Non Match ${suffix()}`,
       }
     )
     const positiveCartBeforePromotion = await createCart(context, [
@@ -52,9 +52,9 @@ describe("Custom promotion rules HTTP E2E", () => {
     const promotion = await createPromotion(context.admin, {
       targetRules: [
         {
-          attribute: "items.producer_ids",
+          attribute: "items.brand_ids",
           operator: "in",
-          values: [producer.id],
+          values: [brand.id],
         },
       ],
     })
@@ -83,13 +83,13 @@ describe("Custom promotion rules HTTP E2E", () => {
 
   it("applies buy-get promotions to the matching get item only", async () => {
     const context = await createTestContext(backendUrl)
-    const producer = await createProducer(context.admin)
+    const brand = await createBrand(context.admin)
     const buyProduct = await createProduct(
       context.admin,
       context.salesChannelId,
       {
         amount: 1500,
-        producerId: producer.id,
+        brandId: brand.id,
         title: `Buy Get Qualifier ${suffix()}`,
       }
     )
@@ -112,9 +112,9 @@ describe("Custom promotion rules HTTP E2E", () => {
     const promotion = await createBuyGetPromotion(context.admin, {
       buyRules: [
         {
-          attribute: "items.producer_ids",
+          attribute: "items.brand_ids",
           operator: "in",
-          values: [producer.id],
+          values: [brand.id],
         },
       ],
       targetRules: [
@@ -294,18 +294,18 @@ describe("Custom promotion rules HTTP E2E", () => {
     expect(negativeCart.discount_total ?? 0).toBe(0)
   })
 
-  it("computes producer-targeted promotion adjustments for draft orders", async () => {
+  it("computes brand-targeted promotion adjustments for draft orders", async () => {
     const context = await createTestContext(backendUrl)
-    const producer = await createProducer(context.admin)
+    const brand = await createBrand(context.admin)
     const product = await createProduct(context.admin, context.salesChannelId, {
-      producerId: producer.id,
-      title: `Draft Producer Match ${suffix()}`,
+      brandId: brand.id,
+      title: `Draft Brand Match ${suffix()}`,
     })
     const otherProduct = await createProduct(
       context.admin,
       context.salesChannelId,
       {
-        title: `Draft Producer Non Match ${suffix()}`,
+        title: `Draft Brand Non Match ${suffix()}`,
       }
     )
     const variant = product.variants[0]
@@ -313,9 +313,9 @@ describe("Custom promotion rules HTTP E2E", () => {
     const promotion = await createPromotion(context.admin, {
       targetRules: [
         {
-          attribute: "items.producer_ids",
+          attribute: "items.brand_ids",
           operator: "in",
-          values: [producer.id],
+          values: [brand.id],
         },
       ],
     })

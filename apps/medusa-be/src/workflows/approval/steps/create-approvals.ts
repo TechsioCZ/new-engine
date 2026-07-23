@@ -1,3 +1,5 @@
+import type { Query } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/utils"
 
@@ -28,7 +30,7 @@ export const createApprovalStep = createStep(
       | Omit<ModuleCreateApproval, "type">[],
     { container }
   ) => {
-    const query = container.resolve("query")
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
     const approvalData = Array.isArray(input) ? input : [input]
     const firstApproval = approvalData[0]
@@ -57,6 +59,10 @@ export const createApprovalStep = createStep(
         throwIfKeyNotFound: true,
       }
     )
+
+    if (!cart) {
+      throw new Error(`Cart ${firstApproval.cart_id} was not found`)
+    }
 
     const cartApprovalStatus = parseApprovalStatus(cart.approval_status?.status)
     if (

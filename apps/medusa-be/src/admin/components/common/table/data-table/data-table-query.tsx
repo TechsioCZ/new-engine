@@ -1,10 +1,13 @@
-import { DataTableFilter, type Filter } from "./data-table-filter"
+import {
+  DataTableFilter,
+  type Filter,
+} from "./data-table-filter/data-table-filter"
 
 export type DataTableQueryProps = {
-  search?: boolean | "autofocus"
-  orderBy?: (string | number)[]
-  filters?: Filter[]
-  prefix?: string
+  search?: boolean | "autofocus" | undefined
+  orderBy?: (string | number)[] | undefined
+  filters?: Filter[] | undefined
+  prefix?: string | undefined
 }
 
 export const DataTableQuery = ({

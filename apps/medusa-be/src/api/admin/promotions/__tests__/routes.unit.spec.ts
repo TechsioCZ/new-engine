@@ -2,44 +2,24 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { describe, expect, it, vi } from "vitest"
 
 import { GET as getRuleAttributes } from "../rule-attribute-options/[rule_type]/route"
-import { GET as getProducerValues } from "../rule-value-options/[rule_type]/producer/route"
+import { GET as getBrandValues } from "../rule-value-options/[rule_type]/brand/route"
 import { GET as getVariantValues } from "../rule-value-options/[rule_type]/product_variant/route"
 import type {
   RuleAttributeOptionsQuerySchemaType,
   RuleValueOptionsQuerySchemaType,
 } from "../schema"
 
-/**
- * Asserts that a plain mock object contains the given keys before narrowing
- * it to a framework type. Building the mock as `unknown` first (instead of
- * the target type) avoids requiring every property of the huge Node
- * request/response interfaces while still validating the shape a route
- * handler actually reads from at runtime.
- */
-function assertMockShape<T>(
-  candidate: unknown,
-  requiredKeys: readonly string[]
-): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
-
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${key}`)
-    }
-  }
+type JsonResponse = MedusaResponse & {
+  json: ReturnType<typeof vi.fn>
 }
 
-type MockJsonResponse = MedusaResponse & { json: ReturnType<typeof vi.fn> }
-
-function createResponse(): MockJsonResponse {
-  const candidate: unknown = { json: vi.fn() }
-  assertMockShape<MockJsonResponse>(candidate, ["json"])
-  return candidate
+function createResponse(): JsonResponse {
+  return {
+    json: vi.fn(),
+  } as unknown as JsonResponse
 }
 
-function createRequest<TQuery extends Record<string, unknown>>({
+function createRequest<TQuery = RuleValueOptionsQuerySchemaType>({
   ruleType = "target-rules",
   validatedQuery = {},
   graph,
@@ -48,19 +28,13 @@ function createRequest<TQuery extends Record<string, unknown>>({
   validatedQuery?: Record<string, unknown>
   graph?: ReturnType<typeof vi.fn>
 } = {}): MedusaRequest<unknown, TQuery> {
-  const candidate: unknown = {
+  return {
     params: { rule_type: ruleType },
     validatedQuery,
     scope: {
       resolve: vi.fn().mockReturnValue({ graph }),
     },
-  }
-  assertMockShape<MedusaRequest<unknown, TQuery>>(candidate, [
-    "params",
-    "scope",
-    "validatedQuery",
-  ])
-  return candidate
+  } as unknown as MedusaRequest<unknown, TQuery>
 }
 
 describe("promotion rule attribute route", () => {
@@ -87,11 +61,11 @@ describe("promotion rule attribute route", () => {
     }>
 
     expect(attributes.map((attribute) => attribute.id)).toEqual(
-      expect.arrayContaining(["product", "producer", "product_variant"])
+      expect.arrayContaining(["product", "brand", "product_variant"])
     )
-    expect(attributes.find((attribute) => attribute.id === "producer")).toEqual(
+    expect(attributes.find((attribute) => attribute.id === "brand")).toEqual(
       expect.objectContaining({
-        value: "items.producer_ids",
+        value: "items.brand_ids",
         operators: expect.arrayContaining([
           expect.objectContaining({ value: "ne", label: "Not In" }),
         ]),
@@ -112,18 +86,18 @@ describe("promotion rule attribute route", () => {
 })
 
 describe("promotion custom rule value routes", () => {
-  it("returns producer values with pagination and escaped search filters", async () => {
+  it("returns brand values with pagination and escaped search filters", async () => {
     const graph = vi.fn().mockResolvedValue({
-      data: [{ id: "producer_1", title: "ACME 50%_Sale" }],
+      data: [{ id: "brand_1", title: "ACME 50%_Sale" }],
       metadata: { count: 1, skip: 5, take: 10 },
     })
     const res = createResponse()
 
-    await getProducerValues(
-      createRequest<RuleValueOptionsQuerySchemaType>({
+    await getBrandValues(
+      createRequest({
         validatedQuery: {
           q: "50%_Sale",
-          value: "producer_1",
+          value: "brand_1",
           limit: 10,
           offset: 5,
         },
@@ -133,16 +107,17 @@ describe("promotion custom rule value routes", () => {
     )
 
     expect(graph).toHaveBeenCalledWith({
-      entity: "producer",
+      entity: "brand",
       fields: ["id", "title"],
       filters: {
-        id: ["producer_1"],
+        deleted_at: null,
+        id: ["brand_1"],
         title: { $ilike: "%50\\%\\_Sale%" },
       },
       pagination: { skip: 5, take: 10 },
     })
     expect(res.json).toHaveBeenCalledWith({
-      values: [{ label: "ACME 50%_Sale", value: "producer_1" }],
+      values: [{ label: "ACME 50%_Sale", value: "brand_1" }],
       count: 1,
       offset: 5,
       limit: 10,
@@ -164,7 +139,7 @@ describe("promotion custom rule value routes", () => {
     const res = createResponse()
 
     await getVariantValues(
-      createRequest<RuleValueOptionsQuerySchemaType>({
+      createRequest({
         validatedQuery: {
           q: "Trail",
           id: ["variant_1"],

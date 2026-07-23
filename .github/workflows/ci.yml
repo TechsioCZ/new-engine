@@ -36,6 +36,10 @@ jobs:
           cache: pnpm
       - name: Install dependencies without lifecycle scripts
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
+      # --ignore-scripts skips the std `prepare` build, but @techsio/std only
+      # publishes dist-backed exports, so build it before steps that resolve it.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
       - name: Check Oxfmt
         run: pnpm format:check
       - name: Run type-aware Oxlint
@@ -88,6 +92,9 @@ jobs:
           cache: pnpm
       - name: Install dependencies without lifecycle scripts
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
+      # --ignore-scripts skips the std `prepare` build; dist-backed exports.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
       - name: Audit TypeScript compiler isolation and strict policy
         run: node scripts/typescript/audit.mjs
       - name: Verify root TypeScript compiler
@@ -137,6 +144,10 @@ jobs:
       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
         with:
           main-branch-name: master
+      # --ignore-scripts skips the std `prepare` build; dist-backed exports.
+      # `nx affected -t build` covers this via ^build, but `-t test` does not.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
       - name: Test CI scope wiring
         run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:test
       - name: Run affected tests

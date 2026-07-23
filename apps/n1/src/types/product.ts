@@ -2,7 +2,7 @@ import type { StoreProduct } from "@medusajs/types"
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 
 export interface StoreProductExtended extends StoreProduct {
-  producer?: Producer | undefined
+  brand?: Brand
 }
 
 // Lightweight type for product listing
@@ -29,8 +29,8 @@ export type ProductImage = {
 
 // Product option
 
-// Producer information
-export type Producer = {
+// Brand information
+export type Brand = {
   id: string
   title: string
   attributes?: Array<{
@@ -64,11 +64,11 @@ export type ProductVariantDetail = {
     | undefined
   calculated_price?:
     | {
-        calculated_amount?: number | null
+        calculated_amount?: number | null | undefined
         calculated_amount_with_tax?: number | null | undefined
         calculated_amount_without_tax?: number | null | undefined
-        original_amount?: number | null
-        currency_code?: string | null
+        original_amount?: number | null | undefined
+        currency_code?: string | null | undefined
       }
     | undefined
 }
@@ -84,5 +84,5 @@ export interface ProductDetail extends Omit<Product, "variants" | "images"> {
   images: ProductImage[]
   variants: ProductVariantDetail[]
   tags?: Array<{ id: string; value: string }>
-  producer?: Producer | undefined
+  brand?: Brand | undefined
 }

@@ -28,7 +28,7 @@ import {
 import { currencySymbolMap } from "../../../../utils"
 
 type ManageItemProps = {
-  originalItem?: AdminOrder["items"][0]
+  originalItem?: AdminOrder["items"][0] | undefined
   item: AdminOrderPreview["items"][0]
   currencyCode: string
   orderId: string

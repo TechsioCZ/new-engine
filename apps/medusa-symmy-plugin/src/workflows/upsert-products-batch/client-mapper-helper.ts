@@ -1,4 +1,9 @@
 import type {
+  CreateProductsWorkflowInput,
+  UpdateProductsWorkflowInputProducts,
+} from "@medusajs/medusa/core-flows"
+
+import type {
   ExistingProduct,
   ExistingProductIndex,
   ResolvedCategoryMap,
@@ -43,7 +48,7 @@ export class ProductBatchClientMapperHelper {
     return {
       id: product.id,
       external_id: product.external_id ?? null,
-      metadata: product.metadata ?? null,
+      metadata: (product.metadata ?? null) as Record<string, unknown> | null,
       variants: (product.variants ?? []).map((variant) => ({
         id: variant.id,
         sku: variant.sku ?? null,
@@ -198,13 +203,6 @@ export class ProductBatchClientMapperHelper {
     return images.map((image) => ({ url: image.url }))
   }
 
-  private buildCategoryAssociations(categoryIds: string[]) {
-    if (!categoryIds.length) {
-      return
-    }
-    return categoryIds.map((id) => ({ id }))
-  }
-
   buildIdentifierEcho(product: ProductInput) {
     return {
       identifier_type: product.identifier_type,
@@ -218,7 +216,7 @@ export class ProductBatchClientMapperHelper {
     product: ProductInput,
     resolvedCategories: ResolvedCategoryMap,
     defaultSalesChannelId: string | null
-  ) {
+  ): CreateProductsWorkflowInput["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants)
     const fallbackPrices = this.normalizePrices(product.base_prices)
@@ -249,8 +247,8 @@ export class ProductBatchClientMapperHelper {
       product.categories,
       resolvedCategories
     )
+
     const images = this.buildImagesPayload(product.images)
-    const categories = this.buildCategoryAssociations(categoryIds)
 
     return {
       title: product.title,
@@ -278,7 +276,7 @@ export class ProductBatchClientMapperHelper {
       ...(defaultSalesChannelId
         ? { sales_channels: [{ id: defaultSalesChannelId }] }
         : {}),
-      ...(categories === undefined ? {} : { categories }),
+      ...(categoryIds.length ? { category_ids: categoryIds } : {}),
     }
   }
 
@@ -287,7 +285,7 @@ export class ProductBatchClientMapperHelper {
     product: ProductInput,
     existing: ExistingProduct,
     resolvedCategories: ResolvedCategoryMap
-  ) {
+  ): UpdateProductsWorkflowInputProducts["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants) ?? [
       { title: "Default", values: ["Default"] },
@@ -299,7 +297,13 @@ export class ProductBatchClientMapperHelper {
       resolvedCategories
     )
     const images = this.buildImagesPayload(product.images)
-    const categories = this.buildCategoryAssociations(categoryIds)
+    let categoryIdsForUpdate: string[] | undefined
+
+    if (product.categories?.length === 0) {
+      categoryIdsForUpdate = []
+    } else if (categoryIds.length) {
+      categoryIdsForUpdate = categoryIds
+    }
 
     return {
       id: productId,
@@ -354,7 +358,9 @@ export class ProductBatchClientMapperHelper {
             }),
           }
         : {}),
-      ...(categories === undefined ? {} : { categories }),
+      ...(categoryIdsForUpdate === undefined
+        ? {}
+        : { category_ids: categoryIdsForUpdate }),
     }
   }
 

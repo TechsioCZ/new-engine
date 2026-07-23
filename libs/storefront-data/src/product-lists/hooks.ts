@@ -120,8 +120,8 @@ export type CreateProductListHooksConfig<
   cacheConfig?: CacheConfig
   defaultPageSize?: number
   cartQueryKeys?: CartQueryKeys
-  cartStorage?: StorageValueStore
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  cartStorage?: StorageValueStore | undefined
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type ProductListHooks<

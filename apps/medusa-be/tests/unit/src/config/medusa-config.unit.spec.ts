@@ -147,7 +147,7 @@ describe("readMedusaConfigEnv", () => {
       "node",
       "medusa",
       "db:generate",
-      "producer",
+      "brand",
     ])
 
     expect(config.databaseSchema).toBe("medusa")

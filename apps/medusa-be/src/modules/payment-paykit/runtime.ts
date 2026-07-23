@@ -28,6 +28,10 @@ type CreatedPaykitClient = {
   provider: PayKitProvider
 }
 
+// stripe-node advances its default REST API version with major releases.
+// Keep this explicit so dependency updates cannot silently change payment behavior.
+const PAYKIT_STRIPE_API_VERSION = "2026-06-24.dahlia" as const
+
 const isPaykitProviderRuntime = (
   provider: unknown
 ): provider is PaykitProviderRuntime =>
@@ -179,6 +183,7 @@ export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): PaykitStripeProviderOptions => ({
   ...(options.apiKey ? { apiKey: options.apiKey } : {}),
+  apiVersion: PAYKIT_STRIPE_API_VERSION,
   debug: options.debug ?? false,
 })
 

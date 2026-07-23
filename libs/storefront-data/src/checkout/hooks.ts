@@ -84,7 +84,7 @@ export type CreateCheckoutHooksConfig<
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   cartQueryKeys?: CartQueryKeys
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export function createCheckoutHooks<
