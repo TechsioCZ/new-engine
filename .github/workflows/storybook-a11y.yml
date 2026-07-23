@@ -127,6 +127,15 @@ jobs:
       # dist-backed exports.
       install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
+      # The reusable scan only writes per-story entry JSON. The regression gate
+      # below needs the canonical per-theme report.json (complete-coverage
+      # check against the Storybook index plus fingerprinting), so run the
+      # same index + finalize scripts the baseline workflow uses right after
+      # each themed test pass. The reusable workflow exports
+      # A11Y_REPORT_OUTPUT_DIR (a11y-report/<theme>, relative to workdir) to
+      # this command, which is how the theme name is recovered.
+      test-command: >-
+        pnpm -C {{workdir}} exec test-storybook --url "{{url}}" --config-dir {{configDir}} --maxWorkers {{maxWorkers}} --testTimeout {{testTimeout}} && theme="$(basename "$A11Y_REPORT_OUTPUT_DIR")" && node {{workdir}}/scripts/storybook-a11y-index.mjs --input {{workdir}}/storybook-static/index.json --output "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" && node {{workdir}}/scripts/storybook-a11y-finalize.mjs --index "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" --report-dir "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR" --theme "$theme"
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
