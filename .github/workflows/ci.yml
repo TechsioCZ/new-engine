@@ -63,6 +63,10 @@ jobs:
           cache: pnpm
       - name: Install dependencies without lifecycle scripts
         run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies
+      # --ignore-scripts skips the std `prepare` build, but @techsio/std only
+      # publishes dist-backed exports, so build it before steps that resolve it.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
       - name: Verify lockfile is deduplicated
         run: pnpm dedupe --check
       - name: Reject edits to committed migrations

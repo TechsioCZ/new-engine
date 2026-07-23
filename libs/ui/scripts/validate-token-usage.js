@@ -440,7 +440,7 @@ function validateTokenUsage() {
 
   for (const file of componentFiles) {
     const content = fs.readFileSync(path.join(ROOT, file), "utf8")
-    const classes = extractTailwindClasses(content, file)
+    const classes = extractTailwindClasses(content)
     const fileErrors = []
 
     for (const className of classes) {

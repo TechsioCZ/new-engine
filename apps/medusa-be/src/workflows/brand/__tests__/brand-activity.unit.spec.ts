@@ -1,4 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { BRAND_MODULE } from "../../../modules/brand"
@@ -14,7 +15,7 @@ function assertMockShape<T>(
   candidate: unknown,
   requiredKeys: readonly string[]
 ): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
+  if (!isRecord(candidate)) {
     throw new TypeError("Expected a mock object")
   }
 

@@ -40,12 +40,6 @@ const resolveTopicFromCategory = (
     case "fitness":
     case "sport":
       return "fitness"
-    case undefined: {
-      throw new Error("Not implemented yet: undefined case")
-    }
-    case null: {
-      throw new Error("Not implemented yet: null case")
-    }
     default:
       return DEFAULT_CMS_TOPIC
   }

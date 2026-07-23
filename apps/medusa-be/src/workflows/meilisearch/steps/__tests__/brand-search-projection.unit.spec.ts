@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   SearchUtils,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import {
@@ -28,7 +29,7 @@ function assertMockShape<T>(
   candidate: unknown,
   requiredKeys: readonly string[]
 ): asserts candidate is T {
-  if (typeof candidate !== "object" || candidate === null) {
+  if (!isRecord(candidate)) {
     throw new TypeError("Expected a mock object")
   }
 

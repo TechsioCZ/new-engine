@@ -5,9 +5,14 @@ export type ProductReviewTokenProductStatus =
   | "not-found"
   | "ready"
 
+export type ProductReviewTokenStatusMessage = {
+  status: "default" | "warning"
+  text: string
+}
+
 export const resolveProductStatusMessage = (
   status: ProductReviewTokenProductStatus
-) => {
+): ProductReviewTokenStatusMessage | null => {
   switch (status) {
     case "loading":
       return { status: "default" as const, text: "Načítavam produkt." }
@@ -21,13 +26,8 @@ export const resolveProductStatusMessage = (
         status: "warning" as const,
         text: "Produkt sa nepodarilo nájsť. Skontrolujte prosím odkaz z emailu.",
       }
-    case "missing-product-id": {
-      throw new Error('Not implemented yet: "missing-product-id" case')
-    }
-    case "ready": {
-      throw new Error('Not implemented yet: "ready" case')
-    }
-    default:
+    case "missing-product-id":
+    case "ready":
       return null
   }
 }

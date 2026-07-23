@@ -19,12 +19,19 @@ WORKDIR /var/www
 
 ENV NODE_ENV=production
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY patches ./patches
 COPY apps/zane-operator/package.json apps/zane-operator/package.json
+COPY libs/std/package.json libs/std/package.json
+# --prod=false keeps @techsio/std devDependencies (its build toolchain)
+# despite NODE_ENV=production; --ignore-scripts skips the std `prepare`
+# build, and @techsio/std only publishes dist-backed exports, so build it
+# here before the Bun compile stage consumes this tree.
 RUN --mount=type=cache,id=pnpm-store-zane-operator,target=/pnpm/store \
   corepack install \
-  && pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --prod --filter=zane-operator...
+  && pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --prod=false --filter=zane-operator...
+COPY libs/std ./libs/std
+RUN pnpm --filter @techsio/std build
 
 FROM node:24-slim AS dev
 

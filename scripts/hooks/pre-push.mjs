@@ -46,7 +46,7 @@ function runNodeHook(hook, args, stdin) {
     [
       "--input-type=module",
       "--eval",
-      `process.argv.splice(1, 1);\n${readFileSync(hook, "utf-8").replace(/^#![^\n]*\n/, "")}`,
+      readFileSync(hook, "utf-8").replace(/^#![^\n]*\n/, ""),
       hook,
       ...args,
     ],
