@@ -125,7 +125,7 @@ jobs:
       # `--ignore-scripts` also skips the std `prepare` build, so build
       # @techsio/std explicitly before the Storybook build resolves its
       # dist-backed exports.
-      install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && pnpm --filter @techsio/std build && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
+      install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook

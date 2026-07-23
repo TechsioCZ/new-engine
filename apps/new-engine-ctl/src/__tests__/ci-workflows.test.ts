@@ -176,7 +176,13 @@ test("Storybook baseline changes run and require the explicit authorized workflo
   )
   expect(workflow).toContain("- authorize-baseline-change")
   expect(workflow).toContain(
-    "needs.authorize-baseline-change.result == 'success'"
+    [
+      "AUTHORIZATION_RESULT: ${{",
+      "needs.authorize-baseline-change.result }}",
+    ].join(" ")
+  )
+  expect(workflow).toContain(
+    '[ "$BASELINE_CHANGED" = "true" ] && [ "$AUTHORIZATION_RESULT" != "success" ]'
   )
   expect(baselineWorkflow).toContain(
     "Verify proposed baseline matches the authorized scan"

@@ -77,7 +77,7 @@
     "lint:tailwind:fix": "eslint \"**/*.{js,jsx,ts,tsx}\" --config eslint.config.js --fix",
     "prepare": "pnpm build",
     "check:unused-tokens": "bun scripts/check-unused-tokens.js",
-    "validate:tokens": "bun scripts/validate-token-usage.js && bun scripts/validate-token-definitions.js",
+    "validate:tokens": "node scripts/validate-token-usage.js && node scripts/validate-token-definitions.js",
     "validate:token-usage": "bun scripts/validate-token-usage.js",
     "validate:token-definitions": "bun scripts/validate-token-definitions.js",
     "semantic-release": "semantic-release",

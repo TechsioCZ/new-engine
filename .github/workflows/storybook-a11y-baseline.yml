@@ -29,7 +29,7 @@ jobs:
       # --ignore-scripts skips the std `prepare` build; the Storybook build
       # resolves @techsio/std/* through dist-backed exports.
       - name: Build @techsio/std
-        run: pnpm --filter @techsio/std build
+        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build
 
       - name: Build Storybook (UI)
         run: pnpm -C libs/ui run build:storybook
