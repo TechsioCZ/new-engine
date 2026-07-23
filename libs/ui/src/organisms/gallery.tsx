@@ -54,7 +54,7 @@ const galleryVariants = tv({
       "brightness-gallery-trigger",
       "hover:brightness-gallery-trigger-active data-active:brightness-gallery-trigger-active",
       "transition-all duration-200 motion-reduce:transition-none",
-      "*:h-full *:w-full *:object-cover",
+      "*:object-cover *:size-full",
     ],
   },
   variants: {

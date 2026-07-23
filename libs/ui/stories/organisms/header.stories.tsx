@@ -358,7 +358,7 @@ export const NestedSubmenu: Story = {
                       id="categories-popover-1"
                       placement="right-start"
                     >
-                      <Popover.Trigger className="text-fg-primary px-0 py-0 hover:bg-transparent">
+                      <Popover.Trigger className="text-fg-primary hover:bg-transparent p-0">
                         <Header.NavItem>
                           <span>Categories</span>
                           <Icon icon="icon-[mdi--chevron-down]" />
@@ -490,7 +490,7 @@ export const NestedSubmenu: Story = {
                         id="categories-popover-2"
                         placement="right-start"
                       >
-                        <Popover.Trigger className="text-fg-primary px-0 py-0 hover:bg-transparent">
+                        <Popover.Trigger className="text-fg-primary hover:bg-transparent p-0">
                           <Header.NavItem>
                             <span>Categories</span>
                             <Icon icon="icon-[mdi--chevron-down]" />

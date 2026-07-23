@@ -65,7 +65,7 @@ const treeViewVariants = tv({
     ],
     branchContent: ["relative", "data-[state=closed]:hidden"],
     indentGuide: [
-      "absolute start-1 top-0 bottom-0",
+      "absolute start-1 inset-y-0",
       "w-tree-view-indent-width bg-tree-view-indent-bg",
       "opacity-tree-view-indent",
     ],

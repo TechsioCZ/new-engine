@@ -24,7 +24,7 @@ Use BreadcrumbTemplate for the ready-to-use data-driven default.
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="max-w-container-md bg-surface p-400">
+      <div className="max-w-md bg-surface p-400">
         <Story />
       </div>
     ),

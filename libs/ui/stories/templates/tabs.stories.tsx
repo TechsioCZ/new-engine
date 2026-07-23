@@ -101,7 +101,7 @@ const defaultItems = [
     content: (
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Overview</h3>
-        <p className="text-fg-muted">
+        <p className="text-fg-secondary">
           This is the overview tab content. It contains general information
           about the product or feature.
         </p>
@@ -114,7 +114,7 @@ const defaultItems = [
     content: (
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Details</h3>
-        <p className="text-fg-muted">
+        <p className="text-fg-secondary">
           Here you'll find detailed specifications and technical information.
         </p>
       </div>
@@ -126,7 +126,7 @@ const defaultItems = [
     content: (
       <div className="p-400">
         <h3 className="text-lg font-semibold mb-200">Reviews</h3>
-        <p className="text-fg-muted">
+        <p className="text-fg-secondary">
           Customer reviews and ratings appear in this section.
         </p>
       </div>

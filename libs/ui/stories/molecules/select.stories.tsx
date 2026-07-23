@@ -536,7 +536,7 @@ export const WithAvatars: Story = {
                 <img
                   src={items[0]?.["avatar"] as string}
                   alt={items[0]?.label as string}
-                  className="h-6 w-6 rounded-full object-cover"
+                  className="rounded-full object-cover size-6"
                 />
                 <span>{items[0]?.label}</span>
               </span>
@@ -553,7 +553,7 @@ export const WithAvatars: Story = {
                 <img
                   src={item["avatar"] as string}
                   alt={item.label as string}
-                  className="h-6 w-6 rounded-full object-cover"
+                  className="rounded-full object-cover size-6"
                 />
                 <span className="flex flex-col">
                   <Select.ItemText />

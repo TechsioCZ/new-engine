@@ -20,8 +20,8 @@ const footerVariants = tv({
     bottom:
       "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
     title:
-      "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
-    link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
+      "font-footer-title text-footer-title-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-title-fg-hover",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-link-fg-hover",
     text: "text-footer-text-fg",
     divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
   },

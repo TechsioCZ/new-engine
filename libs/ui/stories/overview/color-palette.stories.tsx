@@ -75,7 +75,7 @@ export const Default: Story = {
                             key={state}
                             className="flex min-w-0 flex-col items-center gap-2"
                           >
-                            <div className="h-16 w-16 flex-shrink-0">
+                            <div className="flex-shrink-0 size-16">
                               <ColorSelect
                                 colors={[{ color: computedColor }]}
                                 size="full"

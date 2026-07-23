@@ -341,7 +341,7 @@ export const RichContent: Story = {
     children: (
       <div className="space-y-300">
         <div className="flex gap-200">
-          <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-surface">
+          <div className="flex items-center justify-center rounded-lg bg-surface size-24">
             <span className="text-secondary text-sm">Image</span>
           </div>
           <div className="flex-1">
@@ -734,7 +734,7 @@ export const PortalComparison: Story = {
       <div className="flex flex-col gap-600 p-400">
         <div className="space-y-200">
           <h2 className="text-lg font-semibold">Portal Behavior Comparison</h2>
-          <p className="text-sm text-fg-muted">
+          <p className="text-sm text-fg-secondary">
             This example demonstrates the difference between using Portal
             (default) and not using Portal. The container below has
             overflow:hidden and fixed height to simulate a real-world scenario
@@ -746,8 +746,8 @@ export const PortalComparison: Story = {
           {/* With Portal (default) */}
           <div className="space-y-200">
             <h3 className="font-medium">With Portal (default)</h3>
-            <div className="relative h-[200px] overflow-hidden rounded-lg border-2 border-border-primary bg-surface-secondary p-300">
-              <p className="mb-200 text-sm text-fg-muted">
+            <div className="relative h-50 overflow-hidden rounded-lg border-2 border-border-primary bg-overlay p-300">
+              <p className="mb-200 text-sm text-fg-secondary">
                 Container with overflow:hidden
               </p>
               <Dialog
@@ -766,7 +766,7 @@ export const PortalComparison: Story = {
                     This dialog is rendered outside the container using Portal,
                     so it's not affected by the parent's overflow:hidden.
                   </p>
-                  <p className="text-sm text-fg-muted">
+                  <p className="text-sm text-fg-secondary">
                     Perfect for modals, tooltips, and dropdowns that need to
                     escape container constraints.
                   </p>
@@ -778,8 +778,8 @@ export const PortalComparison: Story = {
           {/* Without Portal */}
           <div className="space-y-200">
             <h3 className="font-medium">Without Portal</h3>
-            <div className="relative h-[200px] overflow-hidden rounded-lg border-2 border-border-primary bg-surface-secondary p-300">
-              <p className="mb-200 text-sm text-fg-muted">
+            <div className="relative h-50 overflow-hidden rounded-lg border-2 border-border-primary bg-overlay p-300">
+              <p className="mb-200 text-sm text-fg-secondary">
                 Container with overflow:hidden
               </p>
               <Dialog
@@ -798,7 +798,7 @@ export const PortalComparison: Story = {
                     This dialog is rendered inside the container without Portal,
                     so it gets clipped by the parent's overflow:hidden.
                   </p>
-                  <p className="text-sm text-fg-muted">
+                  <p className="text-sm text-fg-secondary">
                     Useful for inline tooltips, context menus that should stay
                     within their container, or navigation submenus.
                   </p>
@@ -808,7 +808,7 @@ export const PortalComparison: Story = {
           </div>
         </div>
 
-        <div className="rounded-lg bg-surface-tertiary p-300">
+        <div className="rounded-lg bg-float p-300">
           <h4 className="mb-100 font-medium">When to use each:</h4>
           <ul className="space-y-50 text-sm">
             <li>

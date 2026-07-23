@@ -10,7 +10,6 @@ const headerVariants = tv({
     root: [
       "@container w-full bg-header-bg",
       "flex justify-between",
-      "max-w-header-max",
       "relative",
     ],
     desktop: "flex @max-header-desktop:hidden w-full",
@@ -19,7 +18,7 @@ const headerVariants = tv({
     ],
     container: [
       "grid w-full gap-header-container",
-      "data-[position=start]:justify-items-start-safe",
+      "data-[position=start]:justify-items-start",
       "data-[position=center]:justify-items-center-safe",
       "data-[position=end]:justify-items-end-safe",
     ],
@@ -41,7 +40,7 @@ const headerVariants = tv({
       "@header-desktop:hidden",
       "items-center",
       "text-header-hamburger-fg hover:text-header-hamburger-fg-hover",
-      "transition-colors duration-header motion-reduce:transition-none",
+      "transition-colors duration-200 motion-reduce:transition-none",
       "cursor-pointer",
     ],
   },

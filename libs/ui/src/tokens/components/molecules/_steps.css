@@ -18,6 +18,7 @@
   --font-weight-steps-title: var(--font-weight-medium);
 
   --color-steps-fg: var(--color-steps-content-fg);
+  --color-steps-ring: var(--color-ring);
   --font-weight-steps-number: var(--font-weight-medium);
   --font-weight-steps-title: var(--font-weight-medium);
 

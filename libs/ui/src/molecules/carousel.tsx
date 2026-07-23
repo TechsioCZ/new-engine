@@ -45,7 +45,7 @@ const carouselVariants = tv({
       "relative shrink-0",
       "flex items-center justify-center",
       "overflow-hidden",
-      "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full",
+      "data-[orientation=vertical]:size-full",
     ],
     prevTrigger: "",
     nextTrigger: "",
@@ -92,13 +92,13 @@ const carouselVariants = tv({
   variants: {
     objectFit: {
       cover: {
-        slide: "*:h-full *:w-full *:object-cover",
+        slide: "*:object-cover *:size-full",
       },
       contain: {
-        slide: "*:h-full *:w-full *:object-contain",
+        slide: "*:object-contain *:size-full",
       },
       fill: {
-        slide: "*:h-full *:w-full *:object-fill",
+        slide: "*:object-fill *:size-full",
       },
       none: {
         slide: "",

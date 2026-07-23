@@ -272,7 +272,7 @@ export const CustomContent: Story = {
         <Accordion.Item value="custom-2">
           <Accordion.Header>
             <span className="inline-flex flex-col p-200">
-              <Accordion.Title className="px-0 py-0">
+              <Accordion.Title className="p-0">
                 Product Features
               </Accordion.Title>
               <Accordion.Subtitle className="text-left">

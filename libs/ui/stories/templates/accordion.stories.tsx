@@ -91,7 +91,7 @@ const defaultItems = [
     value: "item1",
     title: "What is your return policy?",
     content: (
-      <p className="text-fg-muted">
+      <p className="text-fg-secondary">
         We offer a 30-day return policy on all items. Items must be unused and
         in their original packaging. Shipping costs are non-refundable unless
         the item is defective.
@@ -102,7 +102,7 @@ const defaultItems = [
     value: "item2",
     title: "How long does shipping take?",
     content: (
-      <p className="text-fg-muted">
+      <p className="text-fg-secondary">
         Standard shipping typically takes 5-7 business days. Express shipping
         options are available at checkout for delivery within 2-3 business days.
       </p>
@@ -112,7 +112,7 @@ const defaultItems = [
     value: "item3",
     title: "Do you ship internationally?",
     content: (
-      <p className="text-fg-muted">
+      <p className="text-fg-secondary">
         Yes, we ship to most countries worldwide. International shipping times
         vary by destination and typically range from 10-21 business days.
       </p>
@@ -141,7 +141,7 @@ export const Playground: Story = {
         value: "item4",
         title: "Can I track my order?",
         content: (
-          <p className="text-fg-muted">
+          <p className="text-fg-secondary">
             Yes! Once your order ships, you'll receive a tracking number via
             email. You can use this number to track your package on our website
             or the carrier's site.
@@ -151,7 +151,7 @@ export const Playground: Story = {
       {
         value: "item5",
         title: "Disabled Item",
-        content: <p className="text-fg-muted">This item is disabled</p>,
+        content: <p className="text-fg-secondary">This item is disabled</p>,
         disabled: true,
       },
     ],

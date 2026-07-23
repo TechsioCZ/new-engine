@@ -448,7 +448,7 @@ export const AllButtonVariants: Story = {
               buttonVariant="custom"
               icon="token-icon-share"
               onClick={fn()}
-              className="bg-accent text-accent-fg hover:bg-accent-hover"
+              className="bg-bg-primary-base text-fg-reverse hover:bg-bg-primary-hover"
             >
               Share Product
             </ProductCard.Button>
@@ -529,13 +529,13 @@ export const CustomComposition: Story = {
       <ProductCard.Name>Professional DSLR Camera</ProductCard.Name>
 
       <div className="flex items-baseline gap-100">
-        <span className="text-100 text-fg-primary line-through">$1,899</span>
+        <span className="text-sm text-fg-primary line-through">$1,899</span>
         <ProductCard.Price>$1,329</ProductCard.Price>
       </div>
 
       <div className="flex items-center gap-100">
         <ProductCard.Rating rating={{ defaultValue: 4.5 }} />
-        <span className="text-100 text-fg-muted">(245 reviews)</span>
+        <span className="text-sm text-fg-secondary">(245 reviews)</span>
       </div>
 
       <ProductCard.Stock status="limited-stock">
@@ -653,16 +653,16 @@ export const ComplexCard: Story = {
 
       <div className="mb-100 flex items-center gap-100">
         <ProductCard.Rating rating={{ defaultValue: 4.9 }} />
-        <span className="text-50 text-fg-muted">(512 reviews)</span>
+        <span className="text-xs text-fg-secondary">(512 reviews)</span>
       </div>
 
       <div className="mb-200 flex flex-col gap-100">
         <div className="flex items-baseline gap-100">
-          <span className="text-fg-muted line-through">$3,499</span>
+          <span className="text-fg-secondary line-through">$3,499</span>
           <ProductCard.Price>$2,449</ProductCard.Price>
           <Badge variant="danger">Save $1,050</Badge>
         </div>
-        <span className="text-50 text-success-fg">Free shipping included</span>
+        <span className="text-xs text-success-fg">Free shipping included</span>
       </div>
 
       <ProductCard.Stock status="limited-stock">
@@ -719,7 +719,7 @@ export const ComplexCard: Story = {
       </ProductCard.Actions>
 
       <div className="border-border-primary border-t pt-100">
-        <span className="text-50 text-fg-muted">
+        <span className="text-xs text-fg-secondary">
           ✓ 2-year warranty • ✓ 30-day returns • ✓ Expert support
         </span>
       </div>
@@ -830,7 +830,7 @@ export const ActionLayouts: Story = {
 export const CustomRowSpan: Story = {
   name: "Custom Row Span Override",
   render: () => (
-    <ProductCard layout="row" className="w-lg grid-rows-[auto, auto, auto]">
+    <ProductCard layout="row" className="w-lg grid-rows-[auto_auto_auto]">
       <div className="row-span-3">
         <ProductCard.Name>Professional Camera</ProductCard.Name>
         <ProductCard.Image

@@ -49,7 +49,7 @@ Use the molecule directly when a project needs custom slot ordering or per-slot 
   tags: ["autodocs"],
   decorators: [
     (Story) => (
-      <div className="max-w-container-md bg-surface p-400">
+      <div className="max-w-md bg-surface p-400">
         <Story />
       </div>
     ),

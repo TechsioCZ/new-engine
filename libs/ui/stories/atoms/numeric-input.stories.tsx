@@ -111,7 +111,9 @@ export const Playground: Story = {
             )}
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-100">Current value: {value}</p>
+        <p className="text-fg-secondary text-sm mt-100">
+          Current value: {value}
+        </p>
       </div>
     )
   },
@@ -219,7 +221,9 @@ export const WithoutControls: Story = {
             <NumericInput.Input />
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">Current value: {value}</p>
+        <p className="text-fg-secondary text-sm mt-50">
+          Current value: {value}
+        </p>
       </div>
     )
   },
@@ -251,7 +255,9 @@ export const WithScrubber: Story = {
             </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">Current value: {value}</p>
+        <p className="text-fg-secondary text-sm mt-50">
+          Current value: {value}
+        </p>
       </div>
     )
   },
@@ -281,7 +287,7 @@ export const MinMax: Story = {
             </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">
+        <p className="text-fg-secondary text-sm mt-50">
           Try typing a value outside the range and blur the input
         </p>
       </div>
@@ -316,7 +322,7 @@ export const InvalidState: Story = {
           </NumericInput.Control>
         </NumericInput>
         {isInvalid && (
-          <p className="text-fg-danger text-sm mt-50">
+          <p className="text-fg-accent-danger text-sm mt-50">
             Value must be between 0 and 100
           </p>
         )}
@@ -349,7 +355,9 @@ export const WithPrecision: Story = {
             </NumericInput.TriggerContainer>
           </NumericInput.Control>
         </NumericInput>
-        <p className="text-fg-muted text-sm mt-50">Current value: {value}</p>
+        <p className="text-fg-secondary text-sm mt-50">
+          Current value: {value}
+        </p>
       </div>
     )
   },

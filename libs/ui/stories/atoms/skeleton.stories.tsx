@@ -363,7 +363,7 @@ export const RectangleAspectRatios: Story = {
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">4:3</p>
-        <Skeleton.Rectangle className="aspect-[4/3]" />
+        <Skeleton.Rectangle className="aspect-landscape" />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">1:1 (Square)</p>
@@ -398,7 +398,7 @@ export const ProductCardSkeleton: Story = {
       <Skeleton.Text noOfLines={2} size="sm" />
       <div className="flex gap-150 mt-250">
         <Skeleton.Rectangle className="h-10 flex-1" />
-        <Skeleton.Rectangle className="h-10 w-10" />
+        <Skeleton.Rectangle className="size-10" />
       </div>
     </div>
   ),
@@ -452,7 +452,7 @@ export const ReducedMotion: Story = {
   },
   render: () => (
     <div className="space-y-250">
-      <div className="bg-warning-subtle border border-warning p-250 rounded">
+      <div className="bg-warning-light border border-warning p-250 rounded">
         <p className="text-sm text-warning">
           💡 <strong>Accessibility:</strong> When users enable "Reduce motion"
           in their OS, animations automatically switch to the static state shown

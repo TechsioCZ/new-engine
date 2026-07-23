@@ -332,7 +332,7 @@ export const Controlled: Story = {
 
     return (
       <div className="w-full max-w-2xl flex flex-col gap-200">
-        <div className="flex items-center gap-200 bg-surface-secondary p-200 rounded-md">
+        <div className="flex items-center gap-200 bg-overlay p-200 rounded-md">
           <span className="text-sm font-medium">
             Current tab: {selectedTab}
           </span>
@@ -619,7 +619,7 @@ export const RTLSupport: Story = {
 export const NestedTabs: Story = {
   render: () => (
     <div className="w-full max-w-4xl">
-      <div className="bg-surface-secondary p-200 rounded-md mb-200">
+      <div className="bg-overlay p-200 rounded-md mb-200">
         <p className="text-sm text-fg-secondary">
           Demonstrates nested tabs structure - useful for complex hierarchical
           content.
@@ -643,7 +643,7 @@ export const NestedTabs: Story = {
                 <Tabs.Trigger value="billing">Billing</Tabs.Trigger>
               </Tabs.List>
               <Tabs.Content value="profile">
-                <div className="p-150 bg-surface-secondary rounded-md mt-150">
+                <div className="p-150 bg-overlay rounded-md mt-150">
                   <h4 className="font-medium mb-100">Profile Information</h4>
                   <p className="text-sm text-fg-secondary">
                     Update your personal information and profile picture.
@@ -651,7 +651,7 @@ export const NestedTabs: Story = {
                 </div>
               </Tabs.Content>
               <Tabs.Content value="security">
-                <div className="p-150 bg-surface-secondary rounded-md mt-150">
+                <div className="p-150 bg-overlay rounded-md mt-150">
                   <h4 className="font-medium mb-100">Security Settings</h4>
                   <p className="text-sm text-fg-secondary">
                     Manage your password, 2FA, and security preferences.
@@ -659,7 +659,7 @@ export const NestedTabs: Story = {
                 </div>
               </Tabs.Content>
               <Tabs.Content value="billing">
-                <div className="p-150 bg-surface-secondary rounded-md mt-150">
+                <div className="p-150 bg-overlay rounded-md mt-150">
                   <h4 className="font-medium mb-100">Billing Information</h4>
                   <p className="text-sm text-fg-secondary">
                     View and update your billing details and payment methods.
@@ -679,7 +679,7 @@ export const NestedTabs: Story = {
                 <Tabs.Trigger value="sharing">Sharing</Tabs.Trigger>
               </Tabs.List>
               <Tabs.Content value="data">
-                <div className="p-150 bg-surface-secondary rounded-md mt-150">
+                <div className="p-150 bg-overlay rounded-md mt-150">
                   <h4 className="font-medium mb-100">Data & Privacy</h4>
                   <p className="text-sm text-fg-secondary">
                     Control how your data is collected and used.
@@ -687,7 +687,7 @@ export const NestedTabs: Story = {
                 </div>
               </Tabs.Content>
               <Tabs.Content value="sharing">
-                <div className="p-150 bg-surface-secondary rounded-md mt-150">
+                <div className="p-150 bg-overlay rounded-md mt-150">
                   <h4 className="font-medium mb-100">Sharing Preferences</h4>
                   <p className="text-sm text-fg-secondary">
                     Manage who can see your information and activity.

@@ -36,7 +36,7 @@ const dialogVariants = tv({
       center: {
         positioner: "items-center justify-center",
         content:
-          "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
+          "max-h-(--container-dialog-center-max-h) max-w-dialog-center-max-w rounded-dialog-content-center",
       },
       left: {
         positioner: "items-stretch justify-start",

@@ -573,11 +573,11 @@ export const ComplexDemo: Story = {
           </FormNumericInput>
         </div>
 
-        <div className="bg-surface-secondary rounded-md">
+        <div className="bg-overlay rounded-md">
           <h3 className="text-fg-primary font-semibold mb-100">
             Current State
           </h3>
-          <ul className="text-fg-muted text-sm space-y-050">
+          <ul className="text-fg-secondary text-sm space-y-50">
             <li>
               Value: <strong>{value}</strong>
             </li>

@@ -310,7 +310,7 @@ export const Controlled: Story = {
     return (
       <div className="min-w-sm">
         <Slider {...args} value={values} onChange={handleChange} />
-        <div className="mt-400 rounded border bg-surface-secondary p-200">
+        <div className="mt-400 rounded border bg-overlay p-200">
           <p className="text-fg-secondary text-sm">Component State:</p>
           <p className="font-mono text-lg">[{values.join(", ")}]</p>
           <div>
@@ -356,7 +356,7 @@ export const DynamicBoundsControlled: Story = {
             Reset bounds
           </Button>
         </div>
-        <div className="rounded border bg-surface-secondary p-200 text-sm">
+        <div className="rounded border bg-overlay p-200 text-sm">
           <p className="text-fg-secondary">Values (controlled):</p>
           <p className="font-mono">[{values.join(", ")}]</p>
         </div>

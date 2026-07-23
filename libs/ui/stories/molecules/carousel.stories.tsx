@@ -63,8 +63,8 @@ const mixedSlides: CarouselSlide[] = [
   {
     id: "content-1",
     content: (
-      <div className="flex h-full flex-col items-center justify-center bg-surface-secondary p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">
+      <div className="flex h-full flex-col items-center justify-center bg-overlay p-400 text-center">
+        <h3 className="mb-250 font-bold text-xl text-fg-primary">
           Custom Content
         </h3>
         <p className="text-fg-secondary">
@@ -84,8 +84,8 @@ const contentSlides: CarouselSlide[] = [
   {
     id: "content-1",
     content: (
-      <div className="flex flex-col items-center justify-center bg-surface-accent p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">Welcome</h3>
+      <div className="flex flex-col items-center justify-center bg-bg-secondary-base p-400 text-center">
+        <h3 className="mb-250 font-bold text-xl text-fg-primary">Welcome</h3>
         <p className="text-fg-secondary">
           This is the first slide with custom content
         </p>
@@ -95,8 +95,8 @@ const contentSlides: CarouselSlide[] = [
   {
     id: "content-2",
     content: (
-      <div className="flex flex-col items-center justify-center bg-surface-success p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">Features</h3>
+      <div className="flex flex-col items-center justify-center bg-bg-success p-400 text-center">
+        <h3 className="mb-250 font-bold text-xl text-fg-primary">Features</h3>
         <p className="text-fg-secondary">
           Explore the amazing features we offer
         </p>
@@ -106,8 +106,10 @@ const contentSlides: CarouselSlide[] = [
   {
     id: "content-3",
     content: (
-      <div className="flex flex-col items-center justify-center bg-surface-info p-lg text-center">
-        <h3 className="mb-md font-bold text-xl text-fg-primary">Get Started</h3>
+      <div className="flex flex-col items-center justify-center bg-bg-info p-400 text-center">
+        <h3 className="mb-250 font-bold text-xl text-fg-primary">
+          Get Started
+        </h3>
         <p className="text-fg-secondary">Ready to begin your journey?</p>
       </div>
     ),
@@ -308,7 +310,7 @@ export const MinimalControls: Story = {
     <Carousel.Root slideCount={sampleImages.length} loop className="relative">
       <Carousel.Slides slides={sampleImages} />
       <Carousel.Previous className="absolute top-1/2 left-0 -translate-y-1/2 translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary" />
-      <Carousel.Next className="absolute top-1/2 right-0 -translate-y-1/2 -translate-x-1/2 bg-transparent text-xl hover:bg-transparent hover:text-primary" />
+      <Carousel.Next className="absolute top-1/2 right-0 bg-transparent text-xl hover:bg-transparent hover:text-primary -translate-1/2" />
     </Carousel.Root>
   ),
   parameters: {
@@ -331,7 +333,7 @@ export const CustomIndicators: Story = {
             <Carousel.Indicator
               key={index}
               index={index}
-              className="rounded-sm border border-reverse"
+              className="rounded-sm border border-border-primary"
             />
           ))}
         </Carousel.Indicators>
@@ -351,7 +353,7 @@ export const CustomIndicators: Story = {
 
 export const NumberedIndicators: Story = {
   render: () => (
-    <div className="space-y-md">
+    <div className="space-y-250">
       <Carousel.Root
         slideCount={sampleImages.length}
         loop
@@ -408,9 +410,9 @@ export const MixedContent: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div className="space-y-lg">
+    <div className="space-y-400">
       <div>
-        <h3 className="mb-md font-medium text-lg text-fg-primary">Small</h3>
+        <h3 className="mb-250 font-medium text-lg text-fg-primary">Small</h3>
         <Carousel.Root slideCount={3} size="sm">
           <Carousel.Slides slides={sampleImages.slice(0, 3)} />
           <Carousel.Control>
@@ -422,7 +424,7 @@ export const Sizes: Story = {
       </div>
 
       <div>
-        <h3 className="mb-md font-medium text-lg text-fg-primary">
+        <h3 className="mb-250 font-medium text-lg text-fg-primary">
           Medium (Default)
         </h3>
         <Carousel.Root slideCount={3} size="md">
@@ -436,7 +438,7 @@ export const Sizes: Story = {
       </div>
 
       <div>
-        <h3 className="mb-md font-medium text-lg text-fg-primary">Large</h3>
+        <h3 className="mb-250 font-medium text-lg text-fg-primary">Large</h3>
         <Carousel.Root slideCount={3} size="lg">
           <Carousel.Slides slides={sampleImages.slice(0, 3)} />
           <Carousel.Control>
@@ -466,9 +468,9 @@ export const ObjectFitDemo: Story = {
     }
 
     return (
-      <div className="space-y-lg">
+      <div className="space-y-400">
         <div className="text-center">
-          <h3 className="mb-sm font-semibold text-lg text-fg-primary">
+          <h3 className="mb-150 font-semibold text-lg text-fg-primary">
             Object Fit Variants
           </h3>
           <p className="text-fg-secondary text-sm">
@@ -476,10 +478,12 @@ export const ObjectFitDemo: Story = {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-lg">
+        <div className="grid grid-cols-2 gap-400">
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Cover</h4>
-            <p className="mb-md text-fg-muted text-xs">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
+              Cover
+            </h4>
+            <p className="mb-250 text-fg-secondary text-xs">
               Image covers entire container, may crop
             </p>
             <Carousel.Root
@@ -494,10 +498,10 @@ export const ObjectFitDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
               Contain
             </h4>
-            <p className="mb-md text-fg-muted text-xs">
+            <p className="mb-250 text-fg-secondary text-xs">
               Entire image visible, may have empty space
             </p>
             <Carousel.Root
@@ -512,8 +516,8 @@ export const ObjectFitDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">Fill</h4>
-            <p className="mb-md text-fg-muted text-xs">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">Fill</h4>
+            <p className="mb-250 text-fg-secondary text-xs">
               Image stretches to fill, may distort
             </p>
             <Carousel.Root
@@ -528,8 +532,8 @@ export const ObjectFitDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">None</h4>
-            <p className="mb-md text-fg-muted text-xs">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">None</h4>
+            <p className="mb-250 text-fg-secondary text-xs">
               Natural size, no fitting applied
             </p>
             <Carousel.Root
@@ -557,9 +561,9 @@ export const AspectRatioDemo: Story = {
     }
 
     return (
-      <div className="space-y-lg">
+      <div className="space-y-400">
         <div className="text-center">
-          <h3 className="mb-sm font-semibold text-lg text-fg-primary">
+          <h3 className="mb-150 font-semibold text-lg text-fg-primary">
             Aspect Ratio Variants
           </h3>
           <p className="text-fg-secondary text-sm">
@@ -567,9 +571,9 @@ export const AspectRatioDemo: Story = {
           </p>
         </div>
 
-        <div className="space-y-md">
+        <div className="space-y-250">
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
               Square (1:1)
             </h4>
             <Carousel.Root
@@ -584,7 +588,7 @@ export const AspectRatioDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
               Landscape (16:9)
             </h4>
             <Carousel.Root
@@ -599,7 +603,7 @@ export const AspectRatioDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
               Portrait (3:4)
             </h4>
             <Carousel.Root
@@ -614,7 +618,7 @@ export const AspectRatioDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
               Wide (21:9)
             </h4>
             <Carousel.Root
@@ -629,7 +633,7 @@ export const AspectRatioDemo: Story = {
           </div>
 
           <div>
-            <h4 className="mb-sm font-medium text-sm text-fg-primary">
+            <h4 className="mb-150 font-medium text-sm text-fg-primary">
               None (natural height)
             </h4>
             <Carousel.Root

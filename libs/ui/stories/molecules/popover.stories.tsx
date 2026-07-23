@@ -348,7 +348,7 @@ export const CustomTrigger: Story = {
       <PopoverTemplate
         id="custom-area-trigger-popover"
         trigger={
-          <div className="rounded-lg border-2 border-border border-dashed p-100">
+          <div className="rounded-lg border-2 border-border-primary border-dashed p-100">
             <p className="text-sm">Click this custom area</p>
           </div>
         }
@@ -460,7 +460,7 @@ export const PositioningBehaviors: Story = {
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex gap-200">
-          <div className="relative h-48 w-sm overflow-hidden border border-border border-dashed">
+          <div className="relative h-48 w-sm overflow-hidden border border-border-primary border-dashed">
             <div>
               <PopoverTemplate
                 id="slide-true-popover"
@@ -475,7 +475,7 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative h-48 w-sm overflow-hidden border border-border border-dashed">
+          <div className="relative h-48 w-sm overflow-hidden border border-border-primary border-dashed">
             <div>
               <PopoverTemplate
                 id="slide-false-popover"
@@ -525,7 +525,7 @@ export const SameWidthDemo: Story = {
 export const EdgePositioning: Story = {
   args: {},
   render: () => (
-    <div className="relative h-96 w-full border border-border border-dashed">
+    <div className="relative h-96 w-full border border-border-primary border-dashed">
       <div className="absolute top-2 left-2">
         <PopoverTemplate
           id="smart-popover"
@@ -577,7 +577,7 @@ export const EdgePositioning: Story = {
         </PopoverTemplate>
       </div>
 
-      <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
+      <div className="absolute top-1/2 left-1/2 -translate-1/2">
         <PopoverTemplate
           id="center-popover"
           placement="bottom"

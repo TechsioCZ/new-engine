@@ -244,7 +244,7 @@ export const CustomComposition: Story = {
                       <TreeView.NodeIcon />
                       <TreeView.BranchText />
                       {node.children && (
-                        <Badge variant="secondary" className="ml-xs">
+                        <Badge variant="secondary" className="ml-100">
                           {String(node.children.length)}
                         </Badge>
                       )}
@@ -456,22 +456,22 @@ export const Controlled: Story = {
           </TreeView>
 
           <div className="flex flex-col gap-100">
-            <div className="p-100 bg-surface-secondary rounded-md">
-              <h4 className="text-sm font-semibold mb-xs">Expanded Nodes:</h4>
-              <ul className="text-xs space-y-xs">
+            <div className="p-100 bg-overlay rounded-md">
+              <h4 className="text-sm font-semibold mb-100">Expanded Nodes:</h4>
+              <ul className="text-xs space-y-100">
                 {expanded.map((id) => (
-                  <li key={id} className="text-fg-muted">
+                  <li key={id} className="text-fg-secondary">
                     {id}
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="p-100 bg-surface-secondary rounded-md">
-              <h4 className="text-sm font-semibold mb-xs">Selected Nodes:</h4>
-              <ul className="text-xs space-y-xs">
+            <div className="p-100 bg-overlay rounded-md">
+              <h4 className="text-sm font-semibold mb-100">Selected Nodes:</h4>
+              <ul className="text-xs space-y-100">
                 {selected.map((id) => (
-                  <li key={id} className="text-fg-muted">
+                  <li key={id} className="text-fg-secondary">
                     {id}
                   </li>
                 ))}
@@ -523,9 +523,9 @@ export const CustomStyling: Story = {
     <TreeView
       data={fileSystemData}
       selectionMode="single"
-      className="w-lg bg-gradient-to-br from-surface to-surface-secondary rounded-lg"
+      className="w-lg bg-gradient-to-br from-surface to-overlay rounded-lg"
     >
-      <h2 className="text-lg font-bold mb-md bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+      <h2 className="text-lg font-bold mb-250 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
         🎨 Styled File Explorer
       </h2>
       <TreeView.Tree className="bg-white/50 dark:bg-black/20 backdrop-blur-sm">
@@ -550,7 +550,7 @@ export const CustomStyling: Story = {
                     <TreeView.BranchIndicator className="text-secondary" />
                   </TreeView.BranchTrigger>
                   <TreeView.BranchContent>
-                    <div className="ml-md pl-sm border-l-2 border-border-secondary/30">
+                    <div className="ml-250 pl-150 border-l-2 border-border-secondary/30">
                       {node.children?.map((child, idx) => (
                         <CustomNode
                           key={child.id}
@@ -562,7 +562,7 @@ export const CustomStyling: Story = {
                   </TreeView.BranchContent>
                 </TreeView.Branch>
               ) : (
-                <TreeView.Item className="hover:bg-secondary/10 rounded-sm transition-colors ml-sm">
+                <TreeView.Item className="hover:bg-secondary/10 rounded-sm transition-colors ml-150">
                   <span className="text-secondary">
                     <TreeView.NodeIcon />
                   </span>

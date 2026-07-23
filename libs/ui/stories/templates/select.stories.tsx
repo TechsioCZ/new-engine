@@ -121,7 +121,7 @@ export const Default: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div className="flex w-full max-w-container-sm flex-col gap-300">
+    <div className="flex w-full max-w-sm flex-col gap-300">
       {(["xs", "sm", "md", "lg"] as const).map((size) => (
         <SelectTemplate
           defaultValue={["cz"]}
@@ -138,7 +138,7 @@ export const Sizes: Story = {
 
 export const States: Story = {
   render: () => (
-    <div className="flex w-full max-w-container-sm flex-col gap-300">
+    <div className="flex w-full max-w-sm flex-col gap-300">
       <SelectTemplate
         items={defaultItems}
         label="Default"
