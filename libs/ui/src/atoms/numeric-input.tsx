@@ -166,7 +166,7 @@ export function NumericInput({
   const generatedId = useId()
   const uniqueId = id || generatedId
   const resolvedFormatOptions = precision
-    ? { ...(formatOptions ?? {}), maximumFractionDigits: precision }
+    ? { ...formatOptions, maximumFractionDigits: precision }
     : formatOptions
 
   const formatValue = (inputValue: number) => {

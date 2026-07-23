@@ -11,9 +11,7 @@ import {
 
 function resolveSlides(
   items: GalleryItem[],
-  renderSlide?:
-    | ((params: { item: GalleryItem; index: number }) => ReactNode)
-    | undefined
+  renderSlide?: (params: { item: GalleryItem; index: number }) => ReactNode
 ) {
   if (!renderSlide) {
     return items

@@ -293,7 +293,7 @@ async function buildTokenIndices() {
 
         // 2) Index var() usage on non-definition lines as direct CSS usage
         const defLine = new Set()
-        for (const [token, data] of defs) {
+        for (const data of defs.values()) {
           if (data.file === file) defLine.add(data.line)
         }
 

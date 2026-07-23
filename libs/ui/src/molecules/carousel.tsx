@@ -282,7 +282,7 @@ export function Carousel<T extends ElementType = typeof Image>({
   aspectRatio,
   /* Zag.js carousel config */
   orientation = "horizontal",
-  slideCount = 1,
+  slideCount,
   loop = true,
   autoplay = false,
   allowMouseDrag = true,

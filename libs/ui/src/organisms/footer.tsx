@@ -130,7 +130,7 @@ type FooterNativeLinkProps = FooterLinkBaseProps &
     ComponentPropsWithoutRef<"a">,
     keyof FooterLinkBaseProps | "as" | "href"
   > & {
-    as?: never | undefined
+    as?: never
     href: NonNullable<ComponentPropsWithoutRef<"a">["href"]>
   }
 

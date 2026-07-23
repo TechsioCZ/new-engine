@@ -19,7 +19,7 @@ export interface NativeLinkProps
   extends
     BaseLinkProps,
     Omit<ComponentPropsWithoutRef<"a">, keyof BaseLinkProps> {
-  as?: never | undefined
+  as?: never
 }
 
 export type LinkProps<T extends ElementType = "a"> = BaseLinkProps &

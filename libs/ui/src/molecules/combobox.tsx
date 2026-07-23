@@ -188,7 +188,7 @@ export function Combobox<T = unknown>({
   disabled = false,
   readOnly = false,
   required = false,
-  items = [],
+  items,
   value,
   defaultValue,
   inputValue,

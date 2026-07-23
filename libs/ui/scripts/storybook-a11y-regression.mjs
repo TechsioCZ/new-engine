@@ -115,7 +115,7 @@ function collectTheme(report, theme) {
 
   return {
     stories: storyIds.size,
-    storyIds: [...storyIds].sort(),
+    storyIds: [...storyIds].sort((left, right) => left.localeCompare(right)),
     violations,
     entries,
   }

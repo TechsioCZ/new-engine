@@ -77,7 +77,7 @@ function getItemKey(item: BreadcrumbDisplayItem, index: number) {
     return `ellipsis-${index}`
   }
 
-  return item.value ?? `${index}-${String(item.label)}`
+  return item.value ?? `breadcrumb-${index}`
 }
 
 export function BreadcrumbTemplate<T extends ElementType = "a">({

@@ -1,7 +1,6 @@
 import {
   AsYouType,
   type CountryCode,
-  type E164Number,
   formatIncompletePhoneNumber,
   getCountryCallingCode,
   isSupportedCountry,
@@ -51,7 +50,7 @@ export type PhoneInputCountry = {
 
 export type PhoneInputValueChangeDetails = {
   value: string
-  e164: E164Number | ""
+  e164: string
   country: CountryCode
   callingCode: string
   nationalNumber: string

@@ -268,8 +268,8 @@ export interface MenuProps extends VariantProps<typeof menuVariants> {
   closeOnSelect?: boolean | undefined
   loopFocus?: boolean | undefined
   typeahead?: boolean | undefined
-  positioning?: any | undefined
-  anchorPoint?: any | undefined
+  positioning?: menu.Props["positioning"] | undefined
+  anchorPoint?: menu.Props["anchorPoint"] | undefined
   open?: boolean | undefined
   defaultOpen?: boolean | undefined
   composite?: boolean | undefined
