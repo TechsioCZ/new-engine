@@ -17,7 +17,7 @@ const catches = (rule, from, to) =>
   (rule.to.path === undefined || matches(rule.to.path, to)) &&
   !matches(rule.to.pathNot, to)
 
-test("application boundaries allow own files and libraries, not other apps", () => {
+void test("application boundaries allow own files and libraries, not other apps", () => {
   const rule = rules.get("app-depends-on-libraries-apps-n1")
   assert.ok(rule)
   assert.equal(
@@ -34,7 +34,7 @@ test("application boundaries allow own files and libraries, not other apps", () 
   )
 })
 
-test("library boundaries reject application dependencies", () => {
+void test("library boundaries reject application dependencies", () => {
   const rule = rules.get("libraries-do-not-import-applications")
   assert.ok(rule)
   assert.equal(
@@ -43,7 +43,7 @@ test("library boundaries reject application dependencies", () => {
   )
 })
 
-test("platform boundaries reject web to backend imports", () => {
+void test("platform boundaries reject web to backend imports", () => {
   const rule = rules.get("web-does-not-import-backend")
   assert.ok(rule)
   assert.equal(

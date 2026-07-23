@@ -39,15 +39,6 @@ const falseStrictOptions = new Set([
   "allowUnreachableCode",
   "allowUnusedLabels",
 ])
-const testWrapperRelaxations = new Map([
-  ["exactOptionalPropertyTypes", false],
-  ["noImplicitAny", false],
-  ["noImplicitOverride", false],
-  ["noImplicitReturns", false],
-  ["noPropertyAccessFromIndexSignature", false],
-  ["noUncheckedIndexedAccess", false],
-  ["strictFunctionTypes", false],
-])
 const ignoredDirectories = new Set([
   ".git",
   ".next",
@@ -174,13 +165,8 @@ for (const wrapper of wrapperConfigs) {
   wrappedSources.add(sourceConfig)
 
   const wrapperOptions = config.compilerOptions ?? {}
-  const isMedusaTestWrapper =
-    relative(wrapper) ===
-    "scripts/typescript/projects/apps/medusa-be/tsconfig.tests.json"
   for (const option of requiredStrictOptions) {
-    const expected = isMedusaTestWrapper
-      ? (testWrapperRelaxations.get(option) ?? !falseStrictOptions.has(option))
-      : !falseStrictOptions.has(option)
+    const expected = !falseStrictOptions.has(option)
     if (wrapperOptions[option] !== expected) {
       fail(`${relative(wrapper)} must pin ${option}=${expected}`)
     }
@@ -189,9 +175,7 @@ for (const wrapper of wrapperConfigs) {
   const effectiveConfig = showConfig(wrapper)
   const effectiveOptions = effectiveConfig.compilerOptions ?? {}
   for (const option of requiredStrictOptions) {
-    const expected = isMedusaTestWrapper
-      ? (testWrapperRelaxations.get(option) ?? !falseStrictOptions.has(option))
-      : !falseStrictOptions.has(option)
+    const expected = !falseStrictOptions.has(option)
     if (effectiveOptions[option] !== expected) {
       fail(`${relative(wrapper)} does not enforce ${option}=${expected}`)
     }

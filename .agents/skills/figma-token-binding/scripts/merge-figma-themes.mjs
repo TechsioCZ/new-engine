@@ -67,7 +67,9 @@ function parseDecls(relDir) {
  * kept as-is for both.
  */
 function mergeMode(lightDecls, darkDecls) {
-  const names = [...new Set([...lightDecls.keys(), ...darkDecls.keys()])].sort()
+  const names = [...new Set([...lightDecls.keys(), ...darkDecls.keys()])].sort(
+    (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+  )
   const merged = new Map()
   for (const name of names) {
     const L = lightDecls.get(name)

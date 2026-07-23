@@ -29,8 +29,8 @@ function input(
   }
 }
 
-describe("evaluatePullRequestPolicy", () => {
-  it("accepts a focused, tested backend pull request", () => {
+void describe("evaluatePullRequestPolicy", () => {
+  void it("accepts a focused, tested backend pull request", () => {
     assert.deepEqual(evaluatePullRequestPolicy(input()), {
       failures: [],
       requiredReviewers: [],
@@ -38,7 +38,7 @@ describe("evaluatePullRequestPolicy", () => {
     })
   })
 
-  it("requires conventional titles and meaningful descriptions", () => {
+  void it("requires conventional titles and meaningful descriptions", () => {
     const result = evaluatePullRequestPolicy(
       input({ body: "Fix", title: "Fix checkout" })
     )
@@ -46,7 +46,7 @@ describe("evaluatePullRequestPolicy", () => {
     assert.equal(result.failures.length, 2)
   })
 
-  it("downgrades blocking metadata findings for drafts", () => {
+  void it("downgrades blocking metadata findings for drafts", () => {
     const result = evaluatePullRequestPolicy(
       input({ body: "", draft: true, title: "work in progress" })
     )
@@ -56,7 +56,7 @@ describe("evaluatePullRequestPolicy", () => {
     assert.ok(result.warnings.every((warning) => warning.startsWith("[draft]")))
   })
 
-  it("routes infrastructure and frontend changes to their owners", () => {
+  void it("routes infrastructure and frontend changes to their owners", () => {
     const result = evaluatePullRequestPolicy(
       input({
         files: ["pnpm-lock.yaml", "libs/ui/src/atoms/button.tsx"],
@@ -71,7 +71,7 @@ describe("evaluatePullRequestPolicy", () => {
     assert.equal(result.failures.length, 2)
   })
 
-  it("routes every CODEOWNERS frontend area to the frontend reviewer", () => {
+  void it("routes every CODEOWNERS frontend area to the frontend reviewer", () => {
     for (const file of [
       "apps/payload/src/payload.config.ts",
       "libs/analytics/src/index.ts",
@@ -90,7 +90,7 @@ describe("evaluatePullRequestPolicy", () => {
     }
   })
 
-  it("recognizes requested or completed reviewers case-insensitively", () => {
+  void it("recognizes requested or completed reviewers case-insensitively", () => {
     const result = evaluatePullRequestPolicy(
       input({
         files: [".github/workflows/ci.yml", "apps/herbatika/src/app/page.tsx"],
@@ -105,7 +105,7 @@ describe("evaluatePullRequestPolicy", () => {
     assert.deepEqual(result.failures, [])
   })
 
-  it("blocks edits to existing migrations but permits new migrations", () => {
+  void it("blocks edits to existing migrations but permits new migrations", () => {
     const edited = evaluatePullRequestPolicy(
       input({
         files: ["apps/medusa-be/src/migrations/20260101.ts"],
@@ -124,7 +124,7 @@ describe("evaluatePullRequestPolicy", () => {
     assert.deepEqual(created.failures, [])
   })
 
-  it("normalizes GitHub Danger context and tolerates missing optional review fields", () => {
+  void it("normalizes GitHub Danger context and tolerates missing optional review fields", () => {
     assert.deepEqual(
       createPullRequestPolicyInput({
         git: {
@@ -159,7 +159,7 @@ describe("evaluatePullRequestPolicy", () => {
     assert.equal(createPullRequestPolicyInput({ git: {} }), undefined)
   })
 
-  it("warns on large, untested, or unlocked source changes", () => {
+  void it("warns on large, untested, or unlocked source changes", () => {
     const result = evaluatePullRequestPolicy(
       input({
         additions: 1001,

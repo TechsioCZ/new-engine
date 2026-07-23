@@ -60,8 +60,8 @@ afterEach(() => {
   }
 })
 
-describe("migration immutability check", () => {
-  it("allows new migrations and unrelated changes", () => {
+void describe("migration immutability check", () => {
+  void it("allows new migrations and unrelated changes", () => {
     const { base, repository } = createRepository()
     write(repository, "app/migrations/002.ts", "export const version = 2\n")
     write(repository, "app/src/index.ts", "export const changed = true\n")
@@ -70,38 +70,39 @@ describe("migration immutability check", () => {
     assert.equal(check(repository, base).status, 0)
   })
 
-  for (const [name, mutate] of [
-    [
-      "modifications",
-      (repository) => write(repository, "app/migrations/001.ts", "changed\n"),
-    ],
-    [
-      "deletions",
-      (repository) => git(repository, "rm", "app/migrations/001.ts"),
-    ],
-    [
-      "renames",
-      (repository) =>
+  for (const { mutate, name } of [
+    {
+      mutate: (repository) =>
+        write(repository, "app/migrations/001.ts", "changed\n"),
+      name: "modifications",
+    },
+    {
+      mutate: (repository) => git(repository, "rm", "app/migrations/001.ts"),
+      name: "deletions",
+    },
+    {
+      mutate: (repository) =>
         git(repository, "mv", "app/migrations/001.ts", "app/renamed.ts"),
-    ],
-    [
-      "type changes",
-      (repository) => {
+      name: "renames",
+    },
+    {
+      mutate: (repository) => {
         rmSync(path.join(repository, "app/migrations/001.ts"))
         symlinkSync(
           "../target.ts",
           path.join(repository, "app/migrations/001.ts")
         )
       },
-    ],
-    [
-      "copies",
-      (repository) => {
+      name: "type changes",
+    },
+    {
+      mutate: (repository) => {
         write(repository, "app/src/copied.ts", "export const version = 1\n")
       },
-    ],
+      name: "copies",
+    },
   ]) {
-    it(`rejects ${name} of committed migrations`, () => {
+    void it(`rejects ${name} of committed migrations`, () => {
       const { base, repository } = createRepository()
       mutate(repository)
       commit(repository)
