@@ -46,6 +46,7 @@
     "lint:medusa": "medusa lint --quiet",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -67,7 +68,8 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "catalog:vite5-testing"
   },
   "peerDependencies": {
     "@medusajs/admin-sdk": "^2.17.2",
