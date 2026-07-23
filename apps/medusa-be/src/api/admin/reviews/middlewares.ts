@@ -1,4 +1,5 @@
 import {
+  authenticate,
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework"
@@ -20,9 +21,17 @@ export const adminReviewRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
+    methods: ["GET"],
+    matcher: "/admin/reviews/:id",
+    middlewares: [authenticate("user", ["session", "bearer", "api-key"])],
+  },
+  {
     methods: ["PATCH"],
     matcher: "/admin/reviews/:id",
-    middlewares: [validateAndTransformBody(AdminUpdateReviewSchema)],
+    middlewares: [
+      authenticate(["user", "customer"], ["session", "bearer", "api-key"]),
+      validateAndTransformBody(AdminUpdateReviewSchema),
+    ],
   },
   {
     methods: ["POST"],

@@ -115,6 +115,22 @@ export const normalizeAdminReview = (
   product: productsById.get(review.product_id) ?? null,
 })
 
+export const normalizeCustomerReview = (
+  review: ReviewRecord,
+  productsById: Map<string, ProductRecord>
+) => ({
+  content: review.content,
+  created_at: serializeDate(review.created_at),
+  customer_id: review.customer_id,
+  id: review.id,
+  product: productsById.get(review.product_id) ?? null,
+  product_id: review.product_id,
+  rating: review.rating,
+  status: review.status,
+  title: review.title,
+  updated_at: serializeDate(review.updated_at),
+})
+
 export const normalizePublicReview = (review: PublicReviewRecord) => ({
   content: review.content,
   created_at: serializeDate(review.created_at),

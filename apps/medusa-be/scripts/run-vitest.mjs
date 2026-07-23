@@ -2,4 +2,7 @@
 
 import { runUnderHashSafeContext } from "./hash-safe-workdir.mjs"
 
-runUnderHashSafeContext("vitest", process.argv.slice(2))
+runUnderHashSafeContext(
+  "vitest",
+  process.argv.slice(2).filter((arg) => arg !== "--")
+)
