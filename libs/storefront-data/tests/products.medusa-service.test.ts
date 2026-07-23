@@ -82,6 +82,10 @@ describe("createMedusaProductService", () => {
         id: product.id,
         label: product.title,
       }),
+      transformDetailProduct: (product) => ({
+        id: product.id,
+        label: product.title,
+      }),
     })
 
     const result = await service.getProducts({
@@ -145,6 +149,10 @@ describe("createMedusaProductService", () => {
         handle: params.handle,
         limit: 1,
         fields: "id,handle,title",
+      }),
+      transformListProduct: (product) => ({
+        slug: product.handle,
+        label: product.title,
       }),
       transformDetailProduct: (product) => ({
         slug: product.handle,

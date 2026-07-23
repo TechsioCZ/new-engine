@@ -34,8 +34,15 @@ export const toErrorMessage = (error: unknown): string | null => {
     return error
   }
 
-  const serialized = String(error)
-  return serialized === "[object Object]" ? null : serialized
+  if (
+    typeof error === "number" ||
+    typeof error === "bigint" ||
+    typeof error === "boolean"
+  ) {
+    return String(error)
+  }
+
+  return null
 }
 
 export const toErrorMessageWithFallback = (

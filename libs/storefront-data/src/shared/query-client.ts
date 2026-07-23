@@ -43,7 +43,7 @@ const defaultQueryClientConfig: QueryClientConfig = {
  */
 const mergeQueryClientConfig = (
   baseConfig: QueryClientConfig,
-  overrides?: QueryClientConfig | undefined
+  overrides?: QueryClientConfig
 ): QueryClientConfig => {
   if (!overrides) {
     return baseConfig
@@ -76,7 +76,7 @@ const mergeQueryClientConfig = (
 }
 
 export function createQueryClientConfig(
-  overrides?: QueryClientConfig | undefined
+  overrides?: QueryClientConfig
 ): QueryClientConfig {
   return mergeQueryClientConfig(defaultQueryClientConfig, overrides)
 }

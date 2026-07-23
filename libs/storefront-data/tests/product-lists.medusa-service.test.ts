@@ -10,7 +10,7 @@ const createSdkMock = (response: unknown = {}) => {
 
 describe("createMedusaProductListService", () => {
   it("lists product lists with normalized pagination and forwards signal", async () => {
-    const { sdk } = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       product_lists: [{ id: "list_1", title: "Favorites" }],
       count: 1,
       limit: 12,
@@ -28,7 +28,7 @@ describe("createMedusaProductListService", () => {
       controller.signal
     )
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith("/store/product-lists", {
+    expect(fetch).toHaveBeenCalledWith("/store/product-lists", {
       query: {
         type: "custom",
         limit: 12,
@@ -41,7 +41,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("adds favorite items with backend field names and normalized quantity", async () => {
-    const { sdk } = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       product_list_item: {
         id: "item_1",
         product_id: "prod_1",
@@ -57,17 +57,14 @@ describe("createMedusaProductListService", () => {
       quantity: 2.9,
     })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith(
-      "/store/product-lists/favorites/items",
-      {
-        method: "POST",
-        body: {
-          product_id: "prod_1",
-          variant_id: "var_1",
-          quantity: 2,
-        },
-      }
-    )
+    expect(fetch).toHaveBeenCalledWith("/store/product-lists/favorites/items", {
+      method: "POST",
+      body: {
+        product_id: "prod_1",
+        variant_id: "var_1",
+        quantity: 2,
+      },
+    })
     expect(item).toEqual(
       expect.objectContaining({
         id: "item_1",
@@ -77,7 +74,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("rejects zero relative quantity changes before calling the backend", async () => {
-    const { sdk } = createSdkMock()
+    const { fetch, sdk } = createSdkMock()
     const service = createMedusaProductListService(sdk)
 
     await expect(
@@ -87,11 +84,11 @@ describe("createMedusaProductListService", () => {
       })
     ).rejects.toThrow("Quantity change must be a non-zero integer.")
 
-    expect(sdk.client.fetch).not.toHaveBeenCalled()
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it("sends compact relative quantity payloads", async () => {
-    const { sdk } = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       product_list_item: {
         id: "item_1",
         quantity: 2,
@@ -104,7 +101,7 @@ describe("createMedusaProductListService", () => {
       quantity: 2.9,
     })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith(
+    expect(fetch).toHaveBeenCalledWith(
       "/store/product-lists/items/item_1/change-quantity",
       {
         method: "POST",
@@ -116,7 +113,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("sends compact increment payloads with default quantity", async () => {
-    const { sdk } = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       product_list_item: {
         id: "item_1",
         quantity: 1,
@@ -128,7 +125,7 @@ describe("createMedusaProductListService", () => {
       itemId: "item_1",
     })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith(
+    expect(fetch).toHaveBeenCalledWith(
       "/store/product-lists/items/item_1/increment",
       {
         method: "POST",
@@ -140,7 +137,7 @@ describe("createMedusaProductListService", () => {
   })
 
   it("creates a cart from a product list and maps storefront cart input fields", async () => {
-    const { sdk } = createSdkMock({
+    const { fetch, sdk } = createSdkMock({
       cart: {
         id: "cart_1",
         region_id: "reg_1",
@@ -156,18 +153,15 @@ describe("createMedusaProductListService", () => {
       salesChannelId: "sc_1",
     })
 
-    expect(sdk.client.fetch).toHaveBeenCalledWith(
-      "/store/product-lists/list_1/cart",
-      {
-        method: "POST",
-        body: {
-          region_id: "reg_1",
-          country_code: "sk",
-          email: "customer@example.com",
-          sales_channel_id: "sc_1",
-        },
-      }
-    )
+    expect(fetch).toHaveBeenCalledWith("/store/product-lists/list_1/cart", {
+      method: "POST",
+      body: {
+        region_id: "reg_1",
+        country_code: "sk",
+        email: "customer@example.com",
+        sales_channel_id: "sc_1",
+      },
+    })
     expect(cart).toEqual({
       id: "cart_1",
       region_id: "reg_1",

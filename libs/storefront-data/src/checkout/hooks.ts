@@ -237,12 +237,12 @@ export function createCheckoutHooks<
       ...(onMutate
         ? { onMutate: async (variables) => onMutate(variables) }
         : {}),
-      onSuccess: (data, variables, context) => {
+      onSuccess: async (data, variables, context) => {
         if (cartQueryKeys && cartId) {
           patchCartCaches<TCart>(queryClient, cartQueryKeys, cartId, {
             patch: (cached) => patchPaymentCollection(cached, data),
           })
-          queryClient.invalidateQueries({
+          await queryClient.invalidateQueries({
             queryKey: cartQueryKeys.all(),
           })
         }

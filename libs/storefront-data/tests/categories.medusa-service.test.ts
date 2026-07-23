@@ -78,6 +78,10 @@ describe("createMedusaCategoryService", () => {
         id: category.id,
         label: category.name,
       }),
+      transformDetailCategory: (category) => ({
+        id: category.id,
+        label: category.name,
+      }),
     })
 
     const result = await service.getCategories({
@@ -120,6 +124,10 @@ describe("createMedusaCategoryService", () => {
       MedusaCategoryDetailInput
     >(sdk as never, {
       defaultDetailFields: "id,name,handle,parent_category_id",
+      transformListCategory: (category) => ({
+        slug: category.handle,
+        title: category.name,
+      }),
       transformDetailCategory: (category) => ({
         slug: category.handle,
         title: category.name,

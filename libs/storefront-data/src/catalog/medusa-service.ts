@@ -1,6 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 
+import type { IsExactly } from "../shared/type-utils"
 import type {
   CatalogFacets,
   CatalogListInputBase,
@@ -17,7 +18,7 @@ type MedusaCatalogListResponse = {
   page?: number | undefined
   limit?: number | undefined
   totalPages?: number | undefined
-  facets?: unknown | undefined
+  facets?: unknown
 }
 
 export type MedusaCatalogListInput = CatalogListInputBase
@@ -31,26 +32,49 @@ export type MedusaCatalogTransformContext<
   response: CatalogListResponse<HttpTypes.StoreProduct, TFacets>
 }
 
+type MedusaCatalogServiceConfigBase<
+  TListParams extends MedusaCatalogListInput,
+> = {
+  listPath?: string
+  defaultLimit?: number
+  defaultSort?: string
+  normalizeListQuery?: (params: TListParams) => MedusaCatalogListQuery
+}
+
+type MedusaCatalogProductTransforms<
+  TProduct,
+  TListParams extends MedusaCatalogListInput,
+  TFacets,
+> =
+  | {
+      transformProduct: (product: HttpTypes.StoreProduct) => TProduct
+      transformListProduct?: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaCatalogTransformContext<TListParams, TFacets>
+      ) => TProduct
+    }
+  | {
+      transformProduct?: never
+      transformListProduct: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaCatalogTransformContext<TListParams, TFacets>
+      ) => TProduct
+    }
+
+type MedusaCatalogFacetTransform<TFacets> =
+  IsExactly<TFacets, CatalogFacets> extends true
+    ? { transformFacets?: (facets: CatalogFacets) => TFacets }
+    : { transformFacets: (facets: CatalogFacets) => TFacets }
+
 export type MedusaCatalogServiceConfig<
   TProduct,
   TListParams extends MedusaCatalogListInput,
   TFacets,
-> = {
-  listPath?: string | undefined
-  defaultLimit?: number | undefined
-  defaultSort?: string | undefined
-  normalizeListQuery?:
-    | ((params: TListParams) => MedusaCatalogListQuery)
-    | undefined
-  transformProduct?: ((product: HttpTypes.StoreProduct) => TProduct) | undefined
-  transformListProduct?:
-    | ((
-        product: HttpTypes.StoreProduct,
-        context: MedusaCatalogTransformContext<TListParams, TFacets>
-      ) => TProduct)
-    | undefined
-  transformFacets?: ((facets: CatalogFacets) => TFacets) | undefined
-}
+> = MedusaCatalogServiceConfigBase<TListParams> &
+  (IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? Partial<MedusaCatalogProductTransforms<TProduct, TListParams, TFacets>>
+    : MedusaCatalogProductTransforms<TProduct, TListParams, TFacets>) &
+  MedusaCatalogFacetTransform<TFacets>
 
 const EMPTY_FACETS: CatalogFacets = {
   status: [],
@@ -257,16 +281,34 @@ const buildDefaultListQuery = (
  * Uses `/store/catalog/products` through `sdk.client.fetch` so query cancellation
  * works with `AbortSignal` passed by TanStack Query.
  */
+type MedusaCatalogServiceArgs<
+  TProduct,
+  TListParams extends MedusaCatalogListInput,
+  TFacets,
+> =
+  IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? IsExactly<TFacets, CatalogFacets> extends true
+      ? [config?: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
+      : [config: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
+    : [config: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>]
+
 export function createMedusaCatalogService<
   TProduct = HttpTypes.StoreProduct,
   TListParams extends MedusaCatalogListInput = MedusaCatalogListInput,
   TFacets = CatalogFacets,
 >(
   sdk: Medusa,
-  config?:
-    | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
-    | undefined
-): CatalogService<TProduct, TListParams, TFacets> {
+  ...[config]: MedusaCatalogServiceArgs<TProduct, TListParams, TFacets>
+): CatalogService<TProduct, TListParams, TFacets>
+export function createMedusaCatalogService<
+  TListParams extends MedusaCatalogListInput,
+>(
+  sdk: Medusa,
+  config?: MedusaCatalogServiceConfigBase<TListParams> &
+    Partial<MedusaCatalogProductTransforms<unknown, TListParams, unknown>> & {
+      transformFacets?: (facets: CatalogFacets) => unknown
+    }
+): CatalogService<unknown, TListParams, unknown> {
   const {
     listPath = "/store/catalog/products",
     defaultLimit = 12,
@@ -278,14 +320,9 @@ export function createMedusaCatalogService<
   } = config ?? {}
 
   const baseTransform =
-    transformProduct ??
-    ((product) => ({ ...product }) as typeof product & TProduct)
-  const mapFacets =
-    transformFacets ?? ((facets) => ({ ...facets }) as typeof facets & TFacets)
-  const mapListProduct: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaCatalogTransformContext<TListParams, TFacets>
-  ) => TProduct =
+    transformProduct ?? ((product: HttpTypes.StoreProduct) => product)
+  const mapFacets = transformFacets ?? ((facets: CatalogFacets) => facets)
+  const mapListProduct =
     transformListProduct ??
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
@@ -300,8 +337,8 @@ export function createMedusaCatalogService<
   return {
     async getCatalogProducts(
       params: TListParams,
-      signal?: AbortSignal | undefined
-    ): Promise<CatalogListResponse<TProduct, TFacets>> {
+      signal?: AbortSignal
+    ): Promise<CatalogListResponse<unknown, unknown>> {
       const query = buildListQuery(params)
       const rawResponse = await sdk.client.fetch<MedusaCatalogListResponse>(
         listPath,
@@ -313,7 +350,7 @@ export function createMedusaCatalogService<
 
       const normalizedResponse: CatalogListResponse<
         HttpTypes.StoreProduct,
-        TFacets
+        unknown
       > = {
         products: rawResponse.products ?? [],
         count: rawResponse.count ?? 0,
@@ -329,7 +366,7 @@ export function createMedusaCatalogService<
         facets: mapFacets(normalizeFacets(rawResponse.facets)),
       }
 
-      const context: MedusaCatalogTransformContext<TListParams, TFacets> = {
+      const context: MedusaCatalogTransformContext<TListParams, unknown> = {
         params,
         query,
         response: normalizedResponse,

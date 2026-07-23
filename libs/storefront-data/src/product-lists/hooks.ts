@@ -664,7 +664,7 @@ export function createProductListHooks<
 
       return schedulePrefetch(
         () => {
-          prefetchProductLists(input)
+          return prefetchProductLists(input)
         },
         id,
         delay
@@ -738,7 +738,7 @@ export function createProductListHooks<
 
       return schedulePrefetch(
         () => {
-          prefetchProductList(input)
+          return prefetchProductList(input)
         },
         id,
         delay
@@ -769,8 +769,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.createFavoriteProductList,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -795,8 +795,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.createCustomProductList,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -821,8 +821,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.updateProductList,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -847,8 +847,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.deleteProductList,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -873,8 +873,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.addProductListItem,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -899,8 +899,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.addFavoriteProductListItem,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -920,12 +920,14 @@ export function createProductListHooks<
     return useMutation<TCart, unknown, CreateProductListCartInput, TContext>({
       mutationFn: service.createProductListCart,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (cart, variables, context) => {
+      onSuccess: async (cart, variables, context) => {
         if (cartQueryKeys) {
           syncCartCaches(queryClient, cartQueryKeys, cart, {
             isActiveCartQueryKey,
           })
-          queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
+          await queryClient.invalidateQueries({
+            queryKey: cartQueryKeys.all(),
+          })
         }
         cartStorage?.set(cart.id)
         options?.onSuccess?.(cart, variables, context)
@@ -952,8 +954,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.updateProductListItem,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -978,8 +980,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.changeProductListItemQuantity,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -1004,8 +1006,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.incrementProductListItem,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),
@@ -1030,8 +1032,8 @@ export function createProductListHooks<
     >({
       mutationFn: service.deleteProductListItem,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       ...(options?.onError ? { onError: options.onError } : {}),

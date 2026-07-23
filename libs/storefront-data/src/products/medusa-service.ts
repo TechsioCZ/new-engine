@@ -1,6 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 
+import type { IsExactly } from "../shared/type-utils"
 import type { ProductListResponse, ProductService } from "./types"
 
 type MedusaProductListQuery = HttpTypes.StoreProductListParams &
@@ -34,8 +35,7 @@ export type MedusaProductTransformDetailContext<
   response: HttpTypes.StoreProductListResponse
 }
 
-export type MedusaProductServiceConfig<
-  TProduct,
+type MedusaProductServiceConfigBase<
   TListParams extends MedusaProductListInput,
   TDetailParams extends MedusaProductDetailInput,
 > = {
@@ -56,17 +56,45 @@ export type MedusaProductServiceConfig<
    * Include desired `fields` directly in the returned query object.
    */
   normalizeDetailQuery?: (params: TDetailParams) => MedusaProductListQuery
-  transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
-  transformListProduct?: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformListContext<TListParams>
-  ) => TProduct
-  transformDetailProduct?: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformDetailContext<TDetailParams>
-  ) => TProduct
   createGlobalFetcher?: boolean
 }
+
+type MedusaProductTransforms<
+  TProduct,
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+> =
+  | {
+      transformProduct: (product: HttpTypes.StoreProduct) => TProduct
+      transformListProduct?: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformListContext<TListParams>
+      ) => TProduct
+      transformDetailProduct?: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformDetailContext<TDetailParams>
+      ) => TProduct
+    }
+  | {
+      transformProduct?: never
+      transformListProduct: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformListContext<TListParams>
+      ) => TProduct
+      transformDetailProduct: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformDetailContext<TDetailParams>
+      ) => TProduct
+    }
+
+export type MedusaProductServiceConfig<
+  TProduct,
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+> = MedusaProductServiceConfigBase<TListParams, TDetailParams> &
+  (IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? Partial<MedusaProductTransforms<TProduct, TListParams, TDetailParams>>
+    : MedusaProductTransforms<TProduct, TListParams, TDetailParams>)
 
 const normalizeCountryCode = (
   query: MedusaProductListQuery
@@ -123,14 +151,37 @@ const toListResponse = <TProduct>(
  * })
  * ```
  */
+type MedusaProductServiceArgs<
+  TProduct,
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+> =
+  IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? [
+        config?: MedusaProductServiceConfig<
+          TProduct,
+          TListParams,
+          TDetailParams
+        >,
+      ]
+    : [config: MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>]
+
 export function createMedusaProductService<
   TProduct = HttpTypes.StoreProduct,
   TListParams extends MedusaProductListInput = MedusaProductListInput,
   TDetailParams extends MedusaProductDetailInput = MedusaProductDetailInput,
 >(
   sdk: Medusa,
-  config?: MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
-): ProductService<TProduct, TListParams, TDetailParams> {
+  ...[config]: MedusaProductServiceArgs<TProduct, TListParams, TDetailParams>
+): ProductService<TProduct, TListParams, TDetailParams>
+export function createMedusaProductService<
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+>(
+  sdk: Medusa,
+  config?: MedusaProductServiceConfigBase<TListParams, TDetailParams> &
+    Partial<MedusaProductTransforms<unknown, TListParams, TDetailParams>>
+): ProductService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/products",
     defaultListFields,
@@ -144,20 +195,13 @@ export function createMedusaProductService<
   } = config ?? {}
 
   const baseTransform =
-    transformProduct ??
-    ((product) => ({ ...product }) as typeof product & TProduct)
+    transformProduct ?? ((product: HttpTypes.StoreProduct) => product)
 
-  const mapListProduct: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformListContext<TListParams>
-  ) => TProduct =
+  const mapListProduct =
     transformListProduct ??
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
-  const mapDetailProduct: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformDetailContext<TDetailParams>
-  ) => TProduct =
+  const mapDetailProduct =
     transformDetailProduct ??
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
@@ -196,7 +240,7 @@ export function createMedusaProductService<
   const getProducts = async (
     params: TListParams,
     signal?: AbortSignal
-  ): Promise<ProductListResponse<TProduct>> => {
+  ): Promise<ProductListResponse<unknown>> => {
     const query = buildListQuery(params)
     const response = await sdk.client.fetch<HttpTypes.StoreProductListResponse>(
       listPath,
@@ -225,7 +269,7 @@ export function createMedusaProductService<
     async getProductByHandle(
       params: TDetailParams,
       signal?: AbortSignal
-    ): Promise<TProduct | null> {
+    ): Promise<unknown> {
       const query = buildDetailQuery(params)
       const response =
         await sdk.client.fetch<HttpTypes.StoreProductListResponse>(listPath, {

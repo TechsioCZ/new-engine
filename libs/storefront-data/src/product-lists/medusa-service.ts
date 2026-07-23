@@ -202,7 +202,7 @@ export function createMedusaProductListService<
   return {
     async listProductLists(
       params: TListInput,
-      signal?: AbortSignal | undefined
+      signal?: AbortSignal
     ): Promise<ProductListListResult<TProductList>> {
       const query = resolveListQuery(params)
       const response = await sdk.client.fetch<
@@ -225,7 +225,7 @@ export function createMedusaProductListService<
 
     async getProductList(
       params: MedusaProductListDetailInput,
-      signal?: AbortSignal | undefined
+      signal?: AbortSignal
     ): Promise<TProductList | null> {
       if (!params.id) {
         return null

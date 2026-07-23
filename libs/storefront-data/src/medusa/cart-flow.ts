@@ -245,9 +245,14 @@ export function createMedusaCartFlow({
         syncCartCaches(queryClient, cartQueryKeys, resolvedCart, {
           isActiveCartQueryKey,
         })
-        invalidateCartCaches(queryClient, cartQueryKeys, resolvedCart.id, {
-          isActiveCartQueryKey,
-        })
+        await invalidateCartCaches(
+          queryClient,
+          cartQueryKeys,
+          resolvedCart.id,
+          {
+            isActiveCartQueryKey,
+          }
+        )
       }
       options?.onSuccess?.(resolvedCart)
     },
@@ -388,17 +393,23 @@ export function createMedusaCartFlow({
       getCompletedCartIdFromContext(context) ?? variables.cartId ?? null
 
     clearCompletedCart(queryClient, completedCartId)
-    queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
-    queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() })
+    const invalidations = [
+      queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: checkoutQueryKeys.all() }),
+      queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() }),
+    ]
     if (order.region_id) {
-      queryClient.invalidateQueries({
-        queryKey: checkoutQueryKeys.paymentProviders(order.region_id),
-      })
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: checkoutQueryKeys.paymentProviders(order.region_id),
+        })
+      )
     }
 
     queryClient.setQueryData(orderQueryKeys.detail({ id: order.id }), order)
-    queryClient.invalidateQueries({ queryKey: orderQueryKeys.all() })
-    onSuccess?.(order)
+    return Promise.all(invalidations).then(() => {
+      onSuccess?.(order)
+    })
   }
 
   function useCompleteCart(options?: UseMedusaCompleteCartOptions) {
@@ -421,7 +432,7 @@ export function createMedusaCartFlow({
           return
         }
 
-        handleOrderCompletionSuccess(
+        return handleOrderCompletionSuccess(
           omitUndefined({
             queryClient,
             order: result.order,

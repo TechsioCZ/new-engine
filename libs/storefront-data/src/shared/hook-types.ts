@@ -63,7 +63,7 @@ export type MutationOptions<TData, TVariables, TContext = unknown> = {
   ) => void
   onSettled?: (
     data: TData | undefined,
-    error: unknown | null,
+    error: unknown,
     variables: TVariables,
     context: TContext | undefined
   ) => void

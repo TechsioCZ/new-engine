@@ -78,6 +78,10 @@ describe("createMedusaCollectionService", () => {
         id: collection.id,
         label: collection.title,
       }),
+      transformDetailCollection: (collection) => ({
+        id: collection.id,
+        label: collection.title,
+      }),
     })
 
     const result = await service.getCollections({
@@ -122,6 +126,10 @@ describe("createMedusaCollectionService", () => {
       MedusaCollectionDetailInput
     >(sdk as never, {
       defaultDetailFields: "id,title,handle,metadata",
+      transformListCollection: (collection) => ({
+        slug: collection.handle,
+        title: collection.title,
+      }),
       transformDetailCollection: (collection) => ({
         slug: collection.handle,
         title: collection.title,

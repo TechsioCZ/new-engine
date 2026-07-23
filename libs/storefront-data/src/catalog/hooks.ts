@@ -272,7 +272,7 @@ export function createCatalogHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          prefetchCatalogProducts(input)
+          return prefetchCatalogProducts(input)
         },
         id,
         delay

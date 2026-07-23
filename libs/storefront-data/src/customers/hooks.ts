@@ -222,11 +222,11 @@ export function createCustomerHooks<
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (address, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (address, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
@@ -268,11 +268,11 @@ export function createCustomerHooks<
         )
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (address, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (address, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
@@ -298,11 +298,11 @@ export function createCustomerHooks<
         return service.deleteAddress(addressId)
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(data, variables, context)
@@ -328,11 +328,11 @@ export function createCustomerHooks<
         return service.updateCustomer(buildUpdateCustomer(input))
       },
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (customer, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (customer, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.profile(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(customer, variables, context)

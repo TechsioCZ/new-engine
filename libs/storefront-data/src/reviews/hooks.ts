@@ -248,8 +248,8 @@ export function createProductReviewHooks<
       mutationFn: service.createProductReview,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       ...(options?.onError ? { onError: options.onError } : {}),
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
         options?.onSuccess?.(data, variables, context)

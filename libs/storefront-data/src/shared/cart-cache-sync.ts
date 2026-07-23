@@ -112,7 +112,7 @@ const matchesActiveKeySegment = ({
 
 const hasCartId = <TCart extends CartLike>(
   value: unknown,
-  cartId?: string | undefined
+  cartId?: string
 ): value is TCart => {
   if (!isPlainRecord(value)) {
     return false
@@ -164,7 +164,7 @@ export const createDefaultActiveCartQueryMatcher = (
 
 const resolveActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys,
-  options?: CartCacheSyncOptions | undefined
+  options?: CartCacheSyncOptions
 ): ActiveCartQueryKeyMatcher =>
   options?.isActiveCartQueryKey ??
   createDefaultActiveCartQueryMatcher(queryKeys)
@@ -173,7 +173,7 @@ export function syncCartCaches<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cart: TCart,
-  options?: CartCacheSyncOptions | undefined
+  options?: CartCacheSyncOptions
 ): void {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
   const activeKey = queryKeys.active({
@@ -196,14 +196,16 @@ export function invalidateCartCaches(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions | undefined
-): void {
+  options?: CartCacheSyncOptions
+): Promise<void> {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
-  queryClient.invalidateQueries({
-    predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
-  })
-  queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) })
+  return Promise.all([
+    queryClient.invalidateQueries({
+      predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
+    }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) }),
+  ]).then(() => undefined)
 }
 
 export type PatchCartCachesParams<TCart extends CartLike> = {
@@ -241,7 +243,7 @@ export function getCachedCartById<TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions | undefined
+  options?: CartCacheSyncOptions
 ): TCart | null {
   const detailCart = queryClient.getQueryData<TCart>(queryKeys.detail(cartId))
   if (hasCartId<TCart>(detailCart, cartId)) {

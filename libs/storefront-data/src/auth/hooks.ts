@@ -108,10 +108,12 @@ export function createAuthHooks<
     ...(invalidateOnAuthChange?.removeOnLogout ?? []),
   ]
 
-  const invalidateCrossDomain = (queryClient: QueryClient) => {
-    for (const queryKey of invalidateKeys) {
-      queryClient.invalidateQueries({ queryKey })
-    }
+  const invalidateCrossDomain = async (queryClient: QueryClient) => {
+    await Promise.all(
+      invalidateKeys.map((queryKey) =>
+        queryClient.invalidateQueries({ queryKey })
+      )
+    )
   }
 
   const removeCrossDomainOnLogout = (queryClient: QueryClient) => {
@@ -179,11 +181,11 @@ export function createAuthHooks<
       mutationFn: (input: TLoginInput) => service.login(input),
       retry: false,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        invalidateCrossDomain(queryClient)
+        await invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -203,11 +205,11 @@ export function createAuthHooks<
       mutationFn: (input: TRegisterInput) => service.register(input),
       retry: false,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        invalidateCrossDomain(queryClient)
+        await invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -232,11 +234,11 @@ export function createAuthHooks<
       },
       retry: false,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        invalidateCrossDomain(queryClient)
+        await invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {
@@ -312,11 +314,11 @@ export function createAuthHooks<
       },
       retry: false,
       ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.customer(),
         })
-        invalidateCrossDomain(queryClient)
+        await invalidateCrossDomain(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
       onError: (error, variables, context) => {

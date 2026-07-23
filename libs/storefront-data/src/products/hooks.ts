@@ -864,7 +864,7 @@ export function createProductHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          prefetchProducts(input)
+          return prefetchProducts(input)
         },
         id,
         delay
@@ -954,7 +954,7 @@ export function createProductHooks<
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
         () => {
-          prefetchProduct(input)
+          return prefetchProduct(input)
         },
         id,
         delay
@@ -1011,7 +1011,9 @@ export function createProductHooks<
         timers.push(
           setTimeout(() => {
             for (const page of pages) {
-              prefetchPage(page)
+              void prefetchPage(page).catch(() => {
+                // best-effort background prefetch
+              })
             }
           }, delay)
         )
@@ -1026,7 +1028,9 @@ export function createProductHooks<
       })
 
       for (const page of plan.immediate) {
-        prefetchPage(page)
+        void prefetchPage(page).catch(() => {
+          // best-effort background prefetch
+        })
       }
       scheduleDelayedPrefetch(plan.medium, mediumDelay)
       scheduleDelayedPrefetch(plan.low, lowDelay)

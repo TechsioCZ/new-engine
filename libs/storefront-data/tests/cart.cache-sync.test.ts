@@ -87,7 +87,7 @@ describe("cart cache sync helpers", () => {
     expect(queryClient.getQueryData<Cart>(detailKey)?.item_count).toBe(3)
   })
 
-  it("invalidates active and detail caches", () => {
+  it("invalidates active and detail caches", async () => {
     const queryClient = new QueryClient()
     const queryKeys = createCartQueryKeys("cache-invalidate")
     const activeKey = queryKeys.active({
@@ -99,7 +99,7 @@ describe("cart cache sync helpers", () => {
     queryClient.setQueryData(activeKey, { id: "cart_3" } satisfies Cart)
     queryClient.setQueryData(detailKey, { id: "cart_3" } satisfies Cart)
 
-    invalidateCartCaches(queryClient, queryKeys, "cart_3")
+    await invalidateCartCaches(queryClient, queryKeys, "cart_3")
 
     expect(queryClient.getQueryState(activeKey)?.isInvalidated).toBe(true)
     expect(queryClient.getQueryState(detailKey)?.isInvalidated).toBe(true)

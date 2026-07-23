@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 
+import type { IsExactly } from "../shared/type-utils"
 import type {
   CreateProductReviewInput,
   ProductReviewListResponse,
@@ -28,10 +29,15 @@ type StoreCreateProductReviewResponse<TReview> = {
 
 const REVIEW_SUMMARY_REPAIR_LIMIT = 100
 
-export type MedusaProductReviewServiceConfig<TReview> = {
+type MedusaProductReviewServiceConfigBase = {
   listPath?: string
-  transformReview?: (review: ReviewBase) => TReview
 }
+
+export type MedusaProductReviewServiceConfig<TReview> =
+  MedusaProductReviewServiceConfigBase &
+    (IsExactly<TReview, ReviewBase> extends true
+      ? { transformReview?: (review: ReviewBase) => TReview }
+      : { transformReview: (review: ReviewBase) => TReview })
 
 const stripListInput = (
   input: MedusaProductReviewListInput
@@ -70,19 +76,29 @@ const hasInconsistentSummary = (
   response: StoreProductReviewsResponse<ReviewBase>
 ) => response.summary.count !== response.count
 
+type MedusaProductReviewServiceArgs<TReview> =
+  IsExactly<TReview, ReviewBase> extends true
+    ? [config?: MedusaProductReviewServiceConfig<TReview>]
+    : [config: MedusaProductReviewServiceConfig<TReview>]
+
 export function createMedusaProductReviewService<TReview = ReviewBase>(
   sdk: Medusa,
-  config?: MedusaProductReviewServiceConfig<TReview>
-): ProductReviewService<TReview, MedusaProductReviewListInput> {
+  ...[config]: MedusaProductReviewServiceArgs<TReview>
+): ProductReviewService<TReview, MedusaProductReviewListInput>
+export function createMedusaProductReviewService(
+  sdk: Medusa,
+  config?: MedusaProductReviewServiceConfigBase & {
+    transformReview?: (review: ReviewBase) => unknown
+  }
+): ProductReviewService<unknown, MedusaProductReviewListInput> {
   const { listPath = "/store/products", transformReview } = config ?? {}
-  const mapReview =
-    transformReview ?? ((review) => ({ ...review }) as typeof review & TReview)
+  const mapReview = transformReview ?? ((review: ReviewBase) => review)
 
   return {
     async listProductReviews(
       params: MedusaProductReviewListInput,
       signal?: AbortSignal
-    ): Promise<ProductReviewListResponse<TReview>> {
+    ): Promise<ProductReviewListResponse<unknown>> {
       if (!params.productId) {
         return {
           count: 0,
@@ -136,7 +152,7 @@ export function createMedusaProductReviewService<TReview = ReviewBase>(
 
     async createProductReview(
       input: MedusaCreateProductReviewInput
-    ): Promise<TReview> {
+    ): Promise<unknown> {
       const response = await sdk.client.fetch<
         StoreCreateProductReviewResponse<ReviewBase>
       >("/store/reviews", {
