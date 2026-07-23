@@ -60,9 +60,12 @@ const isAppHref = (href: string): href is AppHref => {
 }
 
 export const appHref = (href: string): AppHref => {
+  // Keep an unnarrowed alias: without the generated Next route types (CI
+  // lints without .next), the narrowed-out residual of `href` is not a string.
+  const rejected: string = href
   if (isAppHref(href)) {
     return href
   }
 
-  throw new TypeError(`Invalid application href: ${href}`)
+  throw new TypeError(`Invalid application href: ${rejected}`)
 }

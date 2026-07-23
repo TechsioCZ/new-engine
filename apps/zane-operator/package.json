@@ -16,6 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@techsio/std": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

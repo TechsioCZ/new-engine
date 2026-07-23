@@ -15,6 +15,7 @@
     "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/new-engine-ctl/tsconfig.json"
   },
   "dependencies": {
+    "@techsio/std": "workspace:*",
     "commander": "^15.0.0",
     "yaml": "^2.9.0",
     "zod": "^4.4.3"

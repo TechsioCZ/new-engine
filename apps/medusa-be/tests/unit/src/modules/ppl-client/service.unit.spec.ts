@@ -297,44 +297,32 @@ describe("PplClientModuleService", () => {
       expect(mockPplClient.fetchNewToken).not.toHaveBeenCalled()
     })
 
-    it.each([
-      [
-        "Redis",
-        new MedusaError(
-          MedusaError.Types.CONFLICT,
-          "Timed-out acquiring lock."
-        ),
-      ],
-      [
-        "Redis cancellation",
-        new MedusaError(
-          MedusaError.Types.CONFLICT,
-          'Failed to acquire lock for key "ppl:rate_limit_lock"'
-        ),
-      ],
-      ["Postgres", new Error("Timed-out acquiring lock.")],
-    ])(
-      "uses local fallback when the %s lock provider times out",
-      async (_, error) => {
-        mockLockingService.execute.mockRejectedValueOnce(error)
-        mockCacheService.get.mockResolvedValueOnce({
-          accessToken: "cached-token",
-          expiresAt: Date.now() + 120_000,
-        })
+    it("uses local fallback when lock acquisition stalls past the timeout", async () => {
+      // A provider that never grants the lock within the service's own
+      // acquisition timeout (LOCK_ACQUIRE_TIMEOUT_MS = 5000 in service.ts).
+      mockLockingService.execute.mockImplementationOnce(
+        () => new Promise<void>(() => {})
+      )
+      mockCacheService.get.mockResolvedValueOnce({
+        accessToken: "cached-token",
+        expiresAt: Date.now() + 120_000,
+      })
 
-        const service = createService()
-        await service.createShipmentBatch([])
+      const service = createService()
+      const promise = service.createShipmentBatch([])
 
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          "PPL: Rate limit lock timed out, using local fallback"
-        )
-        expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
-          "cached-token",
-          [],
-          undefined
-        )
-      }
-    )
+      await vi.advanceTimersByTimeAsync(5000)
+      await promise
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "PPL: Rate limit lock timed out, using local fallback"
+      )
+      expect(mockPplClient.createShipmentBatch).toHaveBeenCalledWith(
+        "cached-token",
+        [],
+        undefined
+      )
+    })
 
     it.each([
       ["a plain provider error", new Error("locking provider unavailable")],

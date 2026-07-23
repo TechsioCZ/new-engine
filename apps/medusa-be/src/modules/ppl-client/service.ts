@@ -148,21 +148,29 @@ const toPplConfigDTO = (value: unknown): PplConfigDTO => {
   }
 }
 
-const LOCK_TIMEOUT_MESSAGE = "Timed-out acquiring lock."
-const REDIS_LOCK_TIMEOUT_MESSAGE = `Failed to acquire lock for key "${LOCK_KEYS.RATE_LIMIT}"`
+/** How long this service waits for the rate limit lock before falling back. */
+const LOCK_ACQUIRE_TIMEOUT_MS = 5000
+/**
+ * Backstop timeout passed to the locking provider so an abandoned lock wait
+ * cannot keep queueing inside the provider forever. Deliberately longer than
+ * LOCK_ACQUIRE_TIMEOUT_MS so this service's typed timeout always fires first.
+ */
+const LOCK_STALL_TIMEOUT_SECONDS = 10
 
-const isLockTimeoutError = (error: unknown): boolean => {
-  if (!(error instanceof Error)) {
-    return false
+/**
+ * Typed discriminator for rate limit lock acquisition timeouts. The locking
+ * providers only reject with plain `Error` values whose human-readable
+ * messages differ per provider, so instead of branching on those messages the
+ * service enforces its own acquisition timeout with this error class and
+ * treats the provider timeout purely as a backstop.
+ */
+class RateLimitLockTimeoutError extends MedusaError {
+  constructor() {
+    super(
+      MedusaError.Types.CONFLICT,
+      "PPL: Timed out acquiring the rate limit lock"
+    )
   }
-  if (!(error instanceof MedusaError)) {
-    return error.message === LOCK_TIMEOUT_MESSAGE
-  }
-  return (
-    error.type === MedusaError.Types.CONFLICT &&
-    (error.message === LOCK_TIMEOUT_MESSAGE ||
-      error.message === REDIS_LOCK_TIMEOUT_MESSAGE)
-  )
 }
 
 /**
@@ -484,38 +492,54 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     if (cacheService && lockingService) {
       let waitTime = 0
 
+      const lockExecution = lockingService.execute(
+        LOCK_KEYS.RATE_LIMIT,
+        async () => {
+          const now = Date.now()
+          const cached = (await cacheService.get({
+            key: CACHE_KEYS.RATE_LIMIT,
+          })) as { timestamp: number } | null
+
+          if (cached && now - cached.timestamp < MIN_REQUEST_INTERVAL_MS) {
+            waitTime = MIN_REQUEST_INTERVAL_MS - (now - cached.timestamp)
+          }
+
+          // Reserve our slot by writing the future timestamp
+          const slotTime = now + waitTime
+          await cacheService.set({
+            key: CACHE_KEYS.RATE_LIMIT,
+            data: { timestamp: slotTime },
+            ttl: CACHE_TTL.RATE_LIMIT,
+          })
+        },
+        { timeout: LOCK_STALL_TIMEOUT_SECONDS }
+      )
+
+      let acquisitionTimer: NodeJS.Timeout | undefined
+      const acquisitionTimeout = new Promise<never>((_, reject) => {
+        acquisitionTimer = setTimeout(() => {
+          reject(new RateLimitLockTimeoutError())
+        }, LOCK_ACQUIRE_TIMEOUT_MS)
+        acquisitionTimer.unref?.()
+      })
+
       try {
-        await lockingService.execute(
-          LOCK_KEYS.RATE_LIMIT,
-          async () => {
-            const now = Date.now()
-            const cached = (await cacheService.get({
-              key: CACHE_KEYS.RATE_LIMIT,
-            })) as { timestamp: number } | null
-
-            if (cached && now - cached.timestamp < MIN_REQUEST_INTERVAL_MS) {
-              waitTime = MIN_REQUEST_INTERVAL_MS - (now - cached.timestamp)
-            }
-
-            // Reserve our slot by writing the future timestamp
-            const slotTime = now + waitTime
-            await cacheService.set({
-              key: CACHE_KEYS.RATE_LIMIT,
-              data: { timestamp: slotTime },
-              ttl: CACHE_TTL.RATE_LIMIT,
-            })
-          },
-          { timeout: 5 }
-        )
+        await Promise.race([lockExecution, acquisitionTimeout])
       } catch (error) {
         // Lock timeout - fall through to local fallback for this request
-        if (isLockTimeoutError(error)) {
+        if (error instanceof RateLimitLockTimeoutError) {
+          // Abandon the lock wait; the provider backstop timeout settles it.
+          lockExecution.catch(() => undefined)
           this.logger_.warn(
             "PPL: Rate limit lock timed out, using local fallback"
           )
           return this.acquireLocalRateLimitSlot()
         }
         throw error
+      } finally {
+        if (acquisitionTimer !== undefined) {
+          clearTimeout(acquisitionTimer)
+        }
       }
 
       // Sleep outside the lock to minimize lock hold time

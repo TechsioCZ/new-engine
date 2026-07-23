@@ -1,3 +1,5 @@
+import { sleep } from "@techsio/std/async"
+
 import type {
   MeiliProvisionResponse,
   MeiliVerifyResponse,
@@ -43,12 +45,6 @@ type RequestJsonOptions<T> = {
   timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
-}
-
-function sleep(seconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, seconds * 1000)
-  })
 }
 
 function normalizeBaseUrl(url: string): string {
@@ -200,7 +196,7 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
       }
 
       attempt += 1
-      await sleep(options.retryDelaySeconds)
+      await sleep(options.retryDelaySeconds * 1000)
     }
   }
 }
@@ -229,7 +225,7 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
       )
     }
 
-    await sleep(2)
+    await sleep(2000)
   }
 }
 

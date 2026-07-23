@@ -1,3 +1,5 @@
+import { sleep } from "@techsio/std/async"
+
 import { BadRequestError } from "./db"
 import type {
   ProvisionMeiliKeysInput,
@@ -223,12 +225,6 @@ function meiliKeyDescriptionMatches(
   description: string
 ): boolean {
   return keyObj["description"] === description
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }
 
 function resolveMeiliUrl(meiliUrl: string, path: string): string {

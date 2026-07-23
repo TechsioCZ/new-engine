@@ -13,10 +13,34 @@ type JsonResponse = MedusaResponse & {
   json: ReturnType<typeof vi.fn>
 }
 
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock this way avoids requiring every
+ * property of the huge Node request/response interfaces while still
+ * validating the shape the route handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
 function createResponse(): JsonResponse {
-  return {
+  const candidate: unknown = {
     json: vi.fn(),
-  } as unknown as JsonResponse
+  }
+
+  assertMockShape<JsonResponse>(candidate, ["json"])
+  return candidate
 }
 
 function createRequest<TQuery = RuleValueOptionsQuerySchemaType>({
@@ -28,13 +52,20 @@ function createRequest<TQuery = RuleValueOptionsQuerySchemaType>({
   validatedQuery?: Record<string, unknown>
   graph?: ReturnType<typeof vi.fn>
 } = {}): MedusaRequest<unknown, TQuery> {
-  return {
+  const candidate: unknown = {
     params: { rule_type: ruleType },
     validatedQuery,
     scope: {
       resolve: vi.fn().mockReturnValue({ graph }),
     },
-  } as unknown as MedusaRequest<unknown, TQuery>
+  }
+
+  assertMockShape<MedusaRequest<unknown, TQuery>>(candidate, [
+    "params",
+    "validatedQuery",
+    "scope",
+  ])
+  return candidate
 }
 
 describe("promotion rule attribute route", () => {

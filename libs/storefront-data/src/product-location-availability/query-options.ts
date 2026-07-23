@@ -39,8 +39,8 @@ export type ProductLocationAvailabilityQueryOptionsFactory<
 
 export function createProductLocationAvailabilityQueryOptionsFactory<
   TResponse,
-  TInput extends ProductLocationAvailabilityInputBase,
-  TParams,
+  TInput extends ProductLocationAvailabilityInputBase & TParams,
+  TParams = TInput,
 >({
   service,
   buildDetailParams,
@@ -56,8 +56,7 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
   const resolvedQueryKeys =
     queryKeys ??
     createProductLocationAvailabilityQueryKeys<TParams>(queryKeyNamespace)
-  const buildDetail =
-    buildDetailParams ?? ((input: TInput) => input as unknown as TParams)
+  const buildDetail = buildDetailParams ?? ((input: TInput) => input)
 
   return {
     getDetailQueryOptions: (input, options): QueryFactoryOptions<TResponse> => {

@@ -4,6 +4,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
@@ -88,9 +89,6 @@ export const withBrandTransaction = <T>(
   service: BrandModuleService,
   task: (sharedContext: Context) => Promise<T>
 ) => service.runInTransaction(task)
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
 
 const isBrandSnapshotRecord = (
   brand: unknown

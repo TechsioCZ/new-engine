@@ -47,8 +47,8 @@ export type ProductLocationAvailabilityHooks<
 
 export function createProductLocationAvailabilityHooks<
   TResponse,
-  TInput extends ProductLocationAvailabilityInputBase,
-  TParams,
+  TInput extends ProductLocationAvailabilityInputBase & TParams,
+  TParams = TInput,
 >({
   service,
   buildDetailParams,

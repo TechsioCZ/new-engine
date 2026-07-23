@@ -20,7 +20,6 @@
       "ignoreDependencies": [
         "^@medusajs/deps$",
         "^@medusajs/(framework|js-sdk|medusa)$",
-        "^@tanstack/react-query$",
         "^@nx/playwright$",
         "^@opentelemetry/core$",
         "^@rslib/core$",

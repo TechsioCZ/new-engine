@@ -15,9 +15,76 @@ vi.mock("../../../../../../src/links/product-brand", () => ({
   },
 }))
 
-const createMockResponse = () => ({
-  json: vi.fn().mockReturnThis(),
-})
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock this way avoids requiring every
+ * property of the huge Node request/response interfaces while still
+ * validating the shape the route handler actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (typeof candidate !== "object" || candidate === null) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+type MockedGetResponse = Parameters<typeof GET>[1] & {
+  json: ReturnType<typeof vi.fn>
+}
+
+const createMockResponse = (): MockedGetResponse => {
+  const candidate: unknown = {
+    json: vi.fn().mockReturnThis(),
+  }
+
+  assertMockShape<MockedGetResponse>(candidate, ["json"])
+  return candidate
+}
+
+const createRequest = ({
+  brandId,
+  graph,
+  remoteQuery,
+  skip = 0,
+}: {
+  brandId: string
+  graph: ReturnType<typeof vi.fn>
+  remoteQuery: ReturnType<typeof vi.fn>
+  skip?: number
+}): Parameters<typeof GET>[0] => {
+  const candidate: unknown = {
+    filterableFields: {
+      sales_channel_id: ["sc_1"],
+      status: "published",
+    },
+    params: { id: brandId },
+    queryConfig: {
+      fields: ["id", "title"],
+      pagination: { skip, take: 20 },
+    },
+    scope: {
+      resolve: vi.fn((key: string) =>
+        key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery
+      ),
+    },
+  }
+
+  assertMockShape<Parameters<typeof GET>[0]>(candidate, [
+    "filterableFields",
+    "params",
+    "queryConfig",
+    "scope",
+  ])
+  return candidate
+}
 
 describe("Store Brand visibility", () => {
   beforeEach(() => {
@@ -60,26 +127,10 @@ describe("Store Brand visibility", () => {
   it("does not query links or products when the active Brand is absent", async () => {
     const graph = vi.fn().mockResolvedValueOnce({ data: [] })
     const remoteQuery = vi.fn()
-    const req = {
-      filterableFields: {
-        sales_channel_id: ["sc_1"],
-        status: "published",
-      },
-      params: { id: "brand_deleted" },
-      queryConfig: {
-        fields: ["id", "title"],
-        pagination: { skip: 0, take: 20 },
-      },
-      scope: {
-        resolve: vi.fn((key: string) =>
-          key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery
-        ),
-      },
-    } as unknown as Parameters<typeof GET>[0]
+    const req = createRequest({ brandId: "brand_deleted", graph, remoteQuery })
     const response = createMockResponse()
-    const res = response as unknown as Parameters<typeof GET>[1]
 
-    await expect(GET(req, res)).rejects.toThrow(
+    await expect(GET(req, response)).rejects.toThrow(
       'Brand with id "brand_deleted" was not found'
     )
     expect(graph).toHaveBeenCalledTimes(1)
@@ -92,26 +143,15 @@ describe("Store Brand visibility", () => {
       .mockResolvedValueOnce({ data: [{ id: "brand_1" }] })
       .mockResolvedValueOnce({ data: [] })
     const remoteQuery = vi.fn()
-    const req = {
-      filterableFields: {
-        sales_channel_id: ["sc_1"],
-        status: "published",
-      },
-      params: { id: "brand_1" },
-      queryConfig: {
-        fields: ["id", "title"],
-        pagination: { skip: 20, take: 20 },
-      },
-      scope: {
-        resolve: vi.fn((key: string) =>
-          key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery
-        ),
-      },
-    } as unknown as Parameters<typeof GET>[0]
+    const req = createRequest({
+      brandId: "brand_1",
+      graph,
+      remoteQuery,
+      skip: 20,
+    })
     const response = createMockResponse()
-    const res = response as unknown as Parameters<typeof GET>[1]
 
-    await GET(req, res)
+    await GET(req, response)
 
     expect(graph).toHaveBeenCalledTimes(2)
     expect(remoteQuery).not.toHaveBeenCalled()
@@ -141,26 +181,10 @@ describe("Store Brand visibility", () => {
         metadata: { count: 1, skip: 0, take: 20 },
       })
     const remoteQuery = vi.fn()
-    const req = {
-      filterableFields: {
-        sales_channel_id: ["sc_1"],
-        status: "published",
-      },
-      params: { id: "brand_1" },
-      queryConfig: {
-        fields: ["id", "title"],
-        pagination: { skip: 0, take: 20 },
-      },
-      scope: {
-        resolve: vi.fn((key: string) =>
-          key === ContainerRegistrationKeys.QUERY ? { graph } : remoteQuery
-        ),
-      },
-    } as unknown as Parameters<typeof GET>[0]
+    const req = createRequest({ brandId: "brand_1", graph, remoteQuery })
     const response = createMockResponse()
-    const res = response as unknown as Parameters<typeof GET>[1]
 
-    await GET(req, res)
+    await GET(req, response)
 
     expect(graph).toHaveBeenNthCalledWith(3, {
       entity: "product_sales_channel",

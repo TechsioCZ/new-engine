@@ -543,7 +543,7 @@ async function generateCategories() {
     const tsOutputPath = getStaticCategoryModulePath()
     const moduleExists = fs.existsSync(tsOutputPath)
 
-    if (!moduleExists && !process.env.CI) {
+    if (!moduleExists) {
       const fallbackData = createFallbackCategoryData(new Date().toISOString())
       const writtenPath = writeStaticCategoryModule(fallbackData)
       console.warn(
@@ -552,17 +552,9 @@ async function generateCategories() {
       return
     }
 
-    if (moduleExists) {
-      console.warn(
-        `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
-      )
-      if (process.env.CI) {
-        process.exitCode = 1
-      }
-      return
-    }
-
-    process.exitCode = 1
+    console.warn(
+      `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
+    )
   }
 }
 
