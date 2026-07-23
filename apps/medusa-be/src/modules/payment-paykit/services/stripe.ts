@@ -220,6 +220,7 @@ const toPaykitPaymentFromStripeCheckoutSession = (
   const payment: PaykitPayment = {
     id: session.id,
     status,
+    customer: customer ?? null,
     metadata: {
       ...paymentIntent?.metadata,
       ...session.metadata,
@@ -235,9 +236,6 @@ const toPaykitPaymentFromStripeCheckoutSession = (
   }
   if (currency !== undefined) {
     payment.currency = currency
-  }
-  if (customer !== undefined) {
-    payment.customer = customer
   }
   if (paymentUrl) {
     payment.payment_url = paymentUrl
