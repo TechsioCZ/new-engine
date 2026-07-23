@@ -146,7 +146,7 @@
     "storybook-addon-rslib": "^3.3.4",
     "storybook-react-rsbuild": "^3.3.4",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.3",
     "vitest-axe": "0.1.0"
   },
   "peerDependencies": {
