@@ -1,6 +1,6 @@
 import {
-  dehydrate,
   type DehydratedState,
+  dehydrate,
   HydrationBoundary,
 } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"

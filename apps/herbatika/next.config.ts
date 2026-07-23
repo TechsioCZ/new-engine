@@ -67,9 +67,7 @@ const nextConfig: NextConfig = {
   },
   images: {
     // Loopback media must be fetched by the browser, not from inside the container.
-    unoptimized: resolvesToLoopback(
-      process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL
-    ),
+    unoptimized: resolvesToLoopback(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL),
     remotePatterns: [
       {
         protocol: "https",
