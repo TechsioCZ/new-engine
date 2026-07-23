@@ -123,7 +123,7 @@ export function useSuspenseProducts({
 
   const queryParams = buildProductQueryParams({
     category_id,
-    ...(regionId ? { region_id: regionId } : {}),
+    region_id: regionId,
     country_code: countryCode,
     page,
     limit,

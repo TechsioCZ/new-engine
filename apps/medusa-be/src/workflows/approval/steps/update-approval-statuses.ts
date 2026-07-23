@@ -10,7 +10,7 @@ import {
 } from "../../../types"
 
 function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {
-  if (typeof value !== "object" || value === null) {
+  if (value === null || typeof value !== "object") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Approval status snapshot is invalid"

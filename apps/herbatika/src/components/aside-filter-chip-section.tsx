@@ -55,9 +55,9 @@ export function AsideFilterChipSection({
               <AsideFilterButton
                 checked={item.checked}
                 count={item.count}
-                {...(isLoading || item.disabled === undefined
-                  ? {}
-                  : { disabled: isLoading || item.disabled })}
+                {...(isLoading || item.disabled !== undefined
+                  ? { disabled: isLoading || item.disabled === true }
+                  : {})}
                 key={item.id}
                 label={item.label}
                 onClick={() => onToggle(item.id)}

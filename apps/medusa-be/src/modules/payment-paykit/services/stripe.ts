@@ -183,7 +183,7 @@ const mapStripePaymentIntentStatus = (
 const getStripeCheckoutStatus = (
   session: PaykitStripeCheckoutSession,
   paymentIntent: PaykitStripePaymentIntent | null
-): PaykitPayment["status"] => {
+): NonNullable<PaykitPayment["status"]> => {
   const paymentIntentStatus = mapStripePaymentIntentStatus(
     paymentIntent?.status
   )
@@ -219,6 +219,7 @@ const toPaykitPaymentFromStripeCheckoutSession = (
   const status = getStripeCheckoutStatus(session, paymentIntent)
   const payment: PaykitPayment = {
     id: session.id,
+    status,
     metadata: {
       ...paymentIntent?.metadata,
       ...session.metadata,
@@ -229,9 +230,6 @@ const toPaykitPaymentFromStripeCheckoutSession = (
       (session.status === "open" && session.payment_status !== "paid"),
   }
 
-  if (status !== undefined) {
-    payment.status = status
-  }
   if (typeof amount === "number") {
     payment.amount = amount
   }

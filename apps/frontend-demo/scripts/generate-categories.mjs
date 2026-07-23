@@ -256,12 +256,7 @@ function buildCategoryTree(categories) {
 }
 
 // Function to check if category or any of its descendants has products
-function categoryHasProducts(
-  categoryId,
-  categoriesWithProducts,
-  categoryTree,
-  categoryMap
-) {
+function categoryHasProducts(categoryId, categoriesWithProducts, categoryTree) {
   // Direct check - if this category has products
   if (categoriesWithProducts.has(categoryId)) {
     return true
@@ -314,12 +309,7 @@ function filterCategoriesWithProducts(
   // First, mark all categories that have products or whose descendants have products
   categories.forEach((category) => {
     if (
-      categoryHasProducts(
-        category.id,
-        categoriesWithProducts,
-        categoryTree,
-        categoryMap
-      )
+      categoryHasProducts(category.id, categoriesWithProducts, categoryTree)
     ) {
       categoriesToKeep.add(category.id)
 
@@ -577,4 +567,4 @@ async function generateCategories() {
 }
 
 // Run the script
-generateCategories()
+await generateCategories()
