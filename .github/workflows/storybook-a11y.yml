@@ -133,9 +133,11 @@ jobs:
       # same index + finalize scripts the baseline workflow uses right after
       # each themed test pass. The reusable workflow exports
       # A11Y_REPORT_OUTPUT_DIR (a11y-report/<theme>, relative to workdir) to
-      # this command, which is how the theme name is recovered.
+      # this command, which is how the theme name is recovered. A11Y_THEME must
+      # be exported per pass: the test-runner applies the mode global from it,
+      # and finalize rejects entries captured under the wrong mode.
       test-command: >-
-        pnpm -C {{workdir}} exec test-storybook --url "{{url}}" --config-dir {{configDir}} --maxWorkers {{maxWorkers}} --testTimeout {{testTimeout}} && theme="$(basename "$A11Y_REPORT_OUTPUT_DIR")" && node {{workdir}}/scripts/storybook-a11y-index.mjs --input {{workdir}}/storybook-static/index.json --output "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" && node {{workdir}}/scripts/storybook-a11y-finalize.mjs --index "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" --report-dir "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR" --theme "$theme"
+        theme="$(basename "$A11Y_REPORT_OUTPUT_DIR")" && A11Y_THEME="$theme" pnpm -C {{workdir}} exec test-storybook --url "{{url}}" --config-dir {{configDir}} --maxWorkers {{maxWorkers}} --testTimeout {{testTimeout}} && node {{workdir}}/scripts/storybook-a11y-index.mjs --input {{workdir}}/storybook-static/index.json --output "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" && node {{workdir}}/scripts/storybook-a11y-finalize.mjs --index "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" --report-dir "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR" --theme "$theme"
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
