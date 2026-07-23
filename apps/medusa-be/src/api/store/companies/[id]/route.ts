@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/utils"
 
 import {
   deleteCompaniesWorkflow,
@@ -19,6 +19,13 @@ export const GET = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
 
   const { data } = await query.graph(
     {
@@ -37,6 +44,14 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   await updateCompaniesWorkflow.run({

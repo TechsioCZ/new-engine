@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/utils"
 
 import {
   deleteEmployeesWorkflow,
@@ -18,6 +18,14 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const { id, employeeId } = req.params
+
+  if (!(id && employeeId)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id and employeeId path parameters are required"
+    )
+  }
+
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {
@@ -44,6 +52,14 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const { id, employeeId } = req.params
+
+  if (!(id && employeeId)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id and employeeId path parameters are required"
+    )
+  }
+
   const { spending_limit, is_admin } = req.validatedBody
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 

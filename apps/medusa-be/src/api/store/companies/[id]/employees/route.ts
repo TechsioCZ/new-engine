@@ -2,7 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/utils"
+import { ContainerRegistrationKeys, MedusaError } from "@medusajs/utils"
 
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows"
 import type {
@@ -15,6 +15,14 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const {

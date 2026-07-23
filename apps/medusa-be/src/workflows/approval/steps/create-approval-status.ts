@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
@@ -12,13 +15,22 @@ export const createApprovalStatusStep = createStep(
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
+    const [firstCartId] = cartIds
+
+    if (!firstCartId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "At least one cart id is required to create an approval status"
+      )
+    }
+
     const {
       data: [existingApprovalStatus],
     } = await query.graph({
       entity: "approval_status",
       fields: ["*"],
       filters: {
-        cart_id: cartIds[0],
+        cart_id: firstCartId,
       },
     })
 

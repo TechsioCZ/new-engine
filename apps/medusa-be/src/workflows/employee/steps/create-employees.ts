@@ -9,7 +9,7 @@ import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
-  QueryEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
 
 export const createEmployeesStep = createStep(
@@ -17,7 +17,7 @@ export const createEmployeesStep = createStep(
   async (
     input: ModuleCreateEmployee,
     { container }
-  ): Promise<StepResponse<QueryEmployee, string>> => {
+  ): Promise<StepResponse<QueryGraphEmployee, string>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 

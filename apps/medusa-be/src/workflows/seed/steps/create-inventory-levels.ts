@@ -32,7 +32,7 @@ export type CreateInventoryLevelsStepInput = {
 
 type ResolvedInventoryItemInput =
   CreateInventoryLevelsStepInput["inventoryItems"][number] & {
-    id?: string
+    id?: string | undefined
   }
 
 function buildInventoryLevelsForItem(

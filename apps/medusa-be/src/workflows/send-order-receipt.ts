@@ -44,6 +44,12 @@ type QueryOrder = OrderReceiptOrder &
     } | null
   }
 
+function findQueryOrder(
+  candidates: readonly unknown[]
+): QueryOrder | undefined {
+  return candidates.find(isQueryOrder)
+}
+
 function isQueryOrder(value: unknown): value is QueryOrder {
   if (!isRecord(value)) {
     return false
@@ -134,7 +140,7 @@ const sendOrderReceiptStep = createStep(
         id: input.order_id,
       },
     })
-    const order = data.find(isQueryOrder)
+    const order = findQueryOrder(data)
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")

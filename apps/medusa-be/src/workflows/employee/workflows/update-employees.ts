@@ -6,7 +6,7 @@ import {
   when,
 } from "@medusajs/framework/workflows-sdk"
 
-import type { ModuleUpdateEmployee, QueryEmployee } from "../../../types"
+import type { ModuleUpdateEmployee, QueryGraphEmployee } from "../../../types"
 import { validateCompanyActiveStep } from "../../company/steps"
 import {
   getEmployeeAdminStateStep,
@@ -19,7 +19,7 @@ export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
   (
     input: WorkflowData<ModuleUpdateEmployee>
-  ): WorkflowResponse<QueryEmployee> => {
+  ): WorkflowResponse<QueryGraphEmployee> => {
     validateCompanyActiveStep(input.company_id)
 
     const previousEmployee = getEmployeeAdminStateStep({

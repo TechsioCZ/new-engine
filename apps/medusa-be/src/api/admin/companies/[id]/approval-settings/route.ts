@@ -21,6 +21,13 @@ export const GET = async (
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
 
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const { data: approvalSettings, metadata } = await query.graph({
     entity: "approval_settings",
     fields: adminApprovalSettingsFields,
@@ -47,6 +54,13 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
   const { requires_admin_approval, requires_sales_manager_approval } =
     req.validatedBody
 

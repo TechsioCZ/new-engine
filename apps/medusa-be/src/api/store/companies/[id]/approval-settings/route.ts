@@ -22,6 +22,13 @@ export const POST = async (
 
   const { id } = req.params
 
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const {
     data: [approvalSettings],
   } = await query.graph({

@@ -188,12 +188,23 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
           BASELINE_PATH: ${{ runner.temp }}/storybook-a11y-base/a11y-baseline.json
+          AUTHORIZATION_RESULT: ${{ needs.authorize-baseline-change.result }}
+          BASELINE_CHANGED: ${{ needs.detect-a11y-changes.outputs.baseline-changed }}
         run: |
           install -d -m 0755 "$(dirname "$BASELINE_PATH")"
           git fetch --no-tags --depth=1 origin "$BASE_SHA"
           if ! git show "${BASE_SHA}:libs/ui/a11y-baseline.json" > "$BASELINE_PATH"; then
-            echo "::error file=libs/ui/a11y-baseline.json::The base commit ${BASE_SHA} has no accessibility baseline. Bootstrap it through the authorized .github/workflows/storybook-a11y-baseline.yml workflow before enabling this gate."
-            exit 1
+            if [ "$BASELINE_CHANGED" = "true" ] && [ "$AUTHORIZATION_RESULT" = "success" ]; then
+              # Bootstrap: the base commit predates the gate. The PR's baseline
+              # was already proven byte-identical to an authorized head-SHA scan
+              # by the authorize-baseline-change job, so it is the only
+              # trustworthy comparison base available until this PR merges.
+              echo "Base commit ${BASE_SHA} has no baseline; using the authorized baseline from this PR as the bootstrap base." >> "$GITHUB_STEP_SUMMARY"
+              cp libs/ui/a11y-baseline.json "$BASELINE_PATH"
+            else
+              echo "::error file=libs/ui/a11y-baseline.json::The base commit ${BASE_SHA} has no accessibility baseline. Bootstrap it through the authorized .github/workflows/storybook-a11y-baseline.yml workflow before enabling this gate."
+              exit 1
+            fi
           fi
           chmod 0444 "$BASELINE_PATH"
           chmod 0555 "$(dirname "$BASELINE_PATH")"

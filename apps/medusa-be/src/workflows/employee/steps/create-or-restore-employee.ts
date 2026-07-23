@@ -11,7 +11,7 @@ import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
-  QueryEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
 
 type EmployeeCustomerLinkRow = {
@@ -68,7 +68,7 @@ export const createOrRestoreEmployeeStep = createStep(
     input: ModuleCreateEmployee,
     { container }
   ): Promise<
-    StepResponse<QueryEmployee, CreateOrRestoreEmployeeCompensation>
+    StepResponse<QueryGraphEmployee, CreateOrRestoreEmployeeCompensation>
   > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)

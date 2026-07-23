@@ -181,8 +181,13 @@ export const setCompanyCustomerGroupStep = createStep(
       await customerModuleService.addCustomerToGroup(newGroupCustomers)
     }
 
+    const previousGroupPayload =
+      previousGroupId === undefined
+        ? {}
+        : { previous_group_id: previousGroupId }
+
     return new StepResponse(
-      { group_id: input.group_id, previous_group_id: previousGroupId },
+      { group_id: input.group_id, ...previousGroupPayload },
       {
         company_id: input.company_id,
         customer_ids: newGroupCustomers.map(({ customer_id }) => customer_id),
@@ -191,7 +196,7 @@ export const setCompanyCustomerGroupStep = createStep(
           customer_group_id: input.group_id,
         })),
         new_group_id: input.group_id,
-        previous_group_id: previousGroupId,
+        ...previousGroupPayload,
       }
     )
   },

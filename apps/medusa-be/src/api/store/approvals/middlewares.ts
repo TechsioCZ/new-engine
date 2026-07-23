@@ -23,6 +23,11 @@ const ensureApprovalType = async (
     customer_id?: string
   }
 
+  if (!id) {
+    res.status(400).json({ message: "Approval id is required" })
+    return
+  }
+
   if (!customerId) {
     res.status(403).json({ message: "Forbidden" })
     return
