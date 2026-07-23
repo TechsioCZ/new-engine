@@ -233,6 +233,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-attribute",
     },
     {
+      resolve: "./src/modules/api-store",
+    },
+    {
       resolve: "./src/modules/product-list",
     },
     {
