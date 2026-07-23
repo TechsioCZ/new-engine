@@ -195,6 +195,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/brand",
     },
     {
+      resolve: "./src/modules/api-store",
+    },
+    {
       resolve: "./src/modules/product-list",
     },
     {

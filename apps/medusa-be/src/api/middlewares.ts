@@ -7,6 +7,7 @@ import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { adminApiStoreRoutesMiddlewares } from "./admin/api-store/middlewares"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
 import { adminMiddlewares } from "./admin/middlewares"
 import { adminOrderBusinessStatusesRoutesMiddlewares } from "./admin/order-business-statuses/middlewares"
@@ -67,6 +68,7 @@ export default defineMiddlewares({
     ...adminPacketaConfigRoutesMiddlewares,
     ...adminPacketaLabelsRoutesMiddlewares,
     ...adminPplConfigRoutesMiddlewares,
+    ...adminApiStoreRoutesMiddlewares,
     ...adminBrandRoutesMiddlewares,
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
