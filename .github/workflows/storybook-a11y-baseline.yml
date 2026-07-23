@@ -95,6 +95,7 @@ jobs:
         continue-on-error: true
         env:
           A11Y_REPORT_OUTPUT_DIR: a11y-report/${{ matrix.theme }}
+          A11Y_THEME: ${{ matrix.theme }}
         run: |
           mkdir -p "libs/ui/a11y-report/${{ matrix.theme }}"
           python3 -m http.server 6006 --directory libs/ui/storybook-static &
@@ -114,6 +115,13 @@ jobs:
             exit 1
           fi
           pnpm -C libs/ui exec test-storybook --url "http://127.0.0.1:6006/?globals=theme:${{ matrix.theme }}" --config-dir .storybook --maxWorkers 2 --testTimeout 60000
+          node libs/ui/scripts/storybook-a11y-index.mjs \
+            --input libs/ui/storybook-static/index.json \
+            --output "libs/ui/a11y-report/${{ matrix.theme }}/index.json"
+          node libs/ui/scripts/storybook-a11y-finalize.mjs \
+            --index "libs/ui/a11y-report/${{ matrix.theme }}/index.json" \
+            --report-dir "libs/ui/a11y-report/${{ matrix.theme }}" \
+            --theme "${{ matrix.theme }}"
 
       - name: Upload baseline report (${{ matrix.theme }})
         if: always() && hashFiles(format('libs/ui/a11y-report/{0}/report.json', matrix.theme)) != ''
