@@ -4,6 +4,10 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ENV CI=true
+# The minimumReleaseAge supply-chain check fetches registry metadata per
+# lockfile entry; default fetch budgets abort it on slow networks.
+ENV pnpm_config_fetch_timeout=180000
+ENV pnpm_config_fetch_retries=5
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl \

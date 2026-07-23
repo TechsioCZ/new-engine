@@ -2,6 +2,10 @@ FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# The minimumReleaseAge supply-chain check fetches registry metadata per
+# lockfile entry; default fetch budgets abort it on slow networks.
+ENV pnpm_config_fetch_timeout=180000
+ENV pnpm_config_fetch_retries=5
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
