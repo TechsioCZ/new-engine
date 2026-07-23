@@ -11,6 +11,9 @@ import {
 } from "@/components/product-detail/sections/product-detail-review-utils"
 import { ProductDetailReviews } from "@/components/product-detail/sections/product-detail-reviews"
 
+const getAccordionSectionId = (value: string) =>
+  `product-detail-information-${value}`
+
 type ProductDetailTabsProps = {
   activeSectionValue?: string
   defaultSectionValue: string
@@ -49,6 +52,21 @@ export function ProductDetailTabs({
         },
       ]
     : sections
+
+  const handleAccordionChange = (value: string[]) => {
+    const sectionValue = value[0]
+    onSectionValueChange(sectionValue)
+
+    if (!sectionValue) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(getAccordionSectionId(sectionValue))
+        ?.scrollIntoView({ block: "start" })
+    })
+  }
 
   return (
     <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
@@ -101,16 +119,17 @@ export function ProductDetailTabs({
       <div className="lg:hidden">
         <Accordion
           collapsible
-          onChange={(value) => {
-            onSectionValueChange(value[0])
-          }}
+          onChange={handleAccordionChange}
           size="sm"
           value={activeSectionValue ? [activeSectionValue] : []}
           variant="default"
         >
           {tabSections.map((section) => (
             <Accordion.Item key={section.key} value={section.key}>
-              <Accordion.Header>
+              <Accordion.Header
+                className="scroll-mt-product-detail-information-scroll-offset"
+                id={getAccordionSectionId(section.key)}
+              >
                 <Accordion.Title>{section.title}</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
