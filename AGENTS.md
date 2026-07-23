@@ -2,7 +2,7 @@
 
 ## Scope
 
-Nx + pnpm monorepo. Node 24 and pnpm 11.8.0 are required. Read the nearest subtree `AGENTS.md` or `CLAUDE.md`; local guidance overrides only its subtree.
+Nx + pnpm monorepo. Node 24 and pnpm 11.15.1 are required. Read the nearest subtree `AGENTS.md` or `CLAUDE.md`; local guidance overrides only its subtree.
 
 Applications: Next.js (`frontend-demo`, `herbatika`, `n1`, `payload`), Medusa (`medusa-be`, `medusa-order-dashboard-plugin`, `medusa-symmy-plugin`), and services/tools (`zane-operator`, `new-engine-ctl`). Libraries: `analytics`, `std`, `storefront-data`, `storefront-security`, `ui`.
 

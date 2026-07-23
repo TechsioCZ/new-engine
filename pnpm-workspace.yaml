@@ -172,7 +172,7 @@ allowBuilds:
   unrs-resolver: true
   "@ast-grep/cli": true
   lefthook: true
-  inotify: set this to true or false
+  inotify: false
 
 peerDependencyRules:
   allowedVersions:

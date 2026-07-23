@@ -2,7 +2,7 @@
 
 ## Project
 
-Nx + pnpm monorepo for Medusa commerce services, Next.js storefronts, Payload, operators, plugins, and shared libraries. Node 24 and pnpm 11.8.0 are required.
+Nx + pnpm monorepo for Medusa commerce services, Next.js storefronts, Payload, operators, plugins, and shared libraries. Node 24 and pnpm 11.15.1 are required.
 
 ### Applications
 
