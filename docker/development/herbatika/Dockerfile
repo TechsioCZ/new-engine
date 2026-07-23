@@ -24,6 +24,35 @@ CMD ["sh", "-lc", "\
     pnpm --filter=herbatika exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
 "]
 
+# ============================================
+# CI DEV TARGET - non-interactive preview runtime
+# ============================================
+FROM base AS ci-dev
+ENV NODE_ENV=development
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV CI=true
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
+RUN corepack install
+
+COPY tsconfig.base.json tsconfig.json nx.json ./
+COPY apps/herbatika ./apps/herbatika
+COPY libs/ui ./libs/ui
+COPY libs/storefront-data ./libs/storefront-data
+
+RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
+    pnpm_config_store_dir=/pnpm/store \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=herbatika... && \
+    pnpm --filter=@techsio/storefront-data build && \
+    pnpm --filter=@techsio/ui-kit build && \
+    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=herbatika...
+
+WORKDIR /var/www/apps/herbatika
+
+CMD ["npm", "run", "start:ci-dev"]
+
 FROM base AS build
 ENV CI=true
 
@@ -42,6 +71,7 @@ ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_STOREFRONT_AUTH_MODE
 ARG NEXT_PUBLIC_PACKETA_WIDGET_API_KEY
 ARG NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES
+ARG NEXT_PUBLIC_PPL_WIDGET_API_KEY
 ARG NEXT_PUBLIC_PAYLOAD_BASE_URL
 
 ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=${NEXT_PUBLIC_MEDUSA_BACKEND_URL}
@@ -49,6 +79,7 @@ ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
 ENV NEXT_PUBLIC_STOREFRONT_AUTH_MODE=${NEXT_PUBLIC_STOREFRONT_AUTH_MODE}
 ENV NEXT_PUBLIC_PACKETA_WIDGET_API_KEY=${NEXT_PUBLIC_PACKETA_WIDGET_API_KEY}
 ENV NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES=${NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES}
+ENV NEXT_PUBLIC_PPL_WIDGET_API_KEY=${NEXT_PUBLIC_PPL_WIDGET_API_KEY}
 ENV NEXT_PUBLIC_PAYLOAD_BASE_URL=${NEXT_PUBLIC_PAYLOAD_BASE_URL}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \

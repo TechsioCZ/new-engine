@@ -118,6 +118,9 @@ Phase intent:
 - `prepare` is for shared-resource prerequisites and input validation only.
 - preview `prepare` owns baseline-aware shared-resource ensure decisions. It must not rely only on the originally requested service set when a baseline replay will expand deploy scope to the full preview clone set.
 - runtime-provider execution belongs in deploy orchestration after the provider source service is deployed and healthy, except that consumer-only deploys may reuse already-persisted contract-owned provider outputs from healthy target deployments when the source service is not in the current plan.
+- project bootstrap/sync must not materialize or clean service envs owned by
+  runtime providers; empty local provider-output placeholders are inputs for
+  local reconciliation, not empty upstream desired values.
 - deploy-to-verify/render runtime-provider handoff is generic:
   - deploy emits `runtime_provider_outputs_json` and `runtime_provider_output_keys_csv`
   - verify/render consume `--runtime-provider-outputs-json`
@@ -133,7 +136,11 @@ Phase intent:
 - preview route identity is repo-owned. When a preview environment is cloned or reused, authenticated URL reconciliation, stale cloned/default URL removal, preview-excluded service cleanup, and preview service-spec convergence belong in `zane-operator`, while deploy/baseline policy stays in `apps/new-engine-ctl`.
 - preview shared-env reconciliation is also repo-owned and typed: preview deploy syncs the existing shared host/DB keys from the preview environment topology plus prepared DB credentials before service deploy stages consume them.
 - `service_reconciliation` should stay lean: source-sync behavior is the default for preview-cloned services, and the YAML should only encode non-default policy such as lane-specific build-stage targets.
-- Current lane-specific builder-stage policy in `service_reconciliation`: `medusa-be`, `payload`, and `n1` use `ci-dev` for preview and `prod` for main.
+- Current lane-specific builder-stage policy in `service_reconciliation`: `medusa-be`, `payload`, `herbatika`, and optional `n1` use `ci-dev` for preview and `prod` for main.
+- `ci.enabled_by_default: false` keeps optional deployable services such as
+  `n1` out of affected-service scope and ordinary preview baselines while
+  preserving explicit `--services-csv n1` deployment and provider
+  reconciliation.
 - workflow YAML may use workflow-safe concurrency groups to cancel superseded runs, but workflow cancellation complements rather than replaces lane-owned deployment adoption/cancel rules.
 - Preview runtime address policy has two scopes: operator-side provisioners must use preview-scoped global/private identities, while shared/service env values consumed by services inside the preview environment may keep local private aliases from `preview_runtime_reconciliation` when those consumers run on the same preview environment network.
 - main deploys and redeploy-only preview runs should not reprovision unrelated runtime-provider outputs just because the provider source service is healthy; when required persisted env values already exist on in-scope consumers, CTL may reuse them instead of forcing a fresh provider run.

@@ -19,6 +19,7 @@ BRANCH_NAME="${ZANE_BRANCH_NAME:-}"
 GIT_APP_ID="${ZANE_GIT_APP_ID:-}"
 PUBLIC_DOMAIN="${ZANE_PUBLIC_DOMAIN:-}"
 PUBLIC_URL_AFFIX="${ZANE_PUBLIC_URL_AFFIX:--zane}"
+SERVICES_CSV=""
 
 MINIO_FILE_URL_OVERRIDE="${ZANE_PUBLIC_MINIO_FILE_URL:-}"
 STORE_CORS_OVERRIDE="${ZANE_STORE_CORS:-}"
@@ -61,6 +62,7 @@ Options:
                                  (default: auto-discovered from Zane API settings)
   --public-url-affix SUFFIX      Service URL suffix between service slug and domain
                                  (default: -zane)
+  --services-csv CSV             Override the complete service list to sync
   --minio-file-url URL           Public MinIO file URL override
   --store-cors VALUE             STORE_CORS override
   --admin-cors VALUE             ADMIN_CORS override
@@ -79,7 +81,7 @@ Options:
   --help                         Show this help
 
 Notes:
-  - The helper manages public routes for medusa-be, payload, n1, medusa-meilisearch, and zane-operator.
+  - Herbatika is in the default service list. Include n1 in --services-csv when N1 should also be synced.
   - The default branch is the current checked-out branch. Use --branch to target a different branch explicitly.
 EOF
 }
@@ -129,6 +131,10 @@ setup::parse_args() {
         ;;
       --public-url-affix)
         PUBLIC_URL_AFFIX="$2"
+        shift 2
+        ;;
+      --services-csv)
+        SERVICES_CSV="$2"
         shift 2
         ;;
       --minio-file-url)
@@ -300,7 +306,6 @@ setup::resolve_ctl_plan() {
   [[ -n "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER" ]] && ctl_args+=(--operator-upstream-zane-connect-host-header "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER")
   [[ -n "$OPERATOR_UPSTREAM_ZANE_USERNAME" ]] && ctl_args+=(--operator-upstream-zane-username "$OPERATOR_UPSTREAM_ZANE_USERNAME")
   [[ -n "$OPERATOR_UPSTREAM_ZANE_PASSWORD" ]] && ctl_args+=(--operator-upstream-zane-password "$OPERATOR_UPSTREAM_ZANE_PASSWORD")
-
   dev::run_ctl "${ctl_args[@]}" >"$PLAN_JSON_FILE"
 }
 
@@ -1372,12 +1377,15 @@ setup::main() {
     medusa-meilisearch
     medusa-be
     payload
-    n1
+    herbatika
     zane-operator
   )
   local service_plan
 
   setup::parse_args "$@"
+  if [[ -n "$SERVICES_CSV" ]]; then
+    IFS=',' read -r -a services <<<"$SERVICES_CSV"
+  fi
   dev::load_env_file "$ENV_FILE" required
   setup::normalize_base_url
   setup::derive_repository_url
@@ -1442,17 +1450,12 @@ Configured:
 - branch: ${BRANCH_NAME}
 
 Created or updated services:
-- medusa-db
-- medusa-valkey
-- medusa-minio
-- medusa-meilisearch
-- medusa-be
-- payload
-- n1
-- zane-operator
+EOF
+  printf -- '- %s\n' "${services[@]}"
+  cat <<EOF
 
 Notes:
-- public Zane routes were aligned for medusa-be, payload, n1, medusa-meilisearch, and zane-operator
+- public Zane routes were aligned for the requested service list
 - service changes remain pending in Zane until you deploy them
 EOF
 }

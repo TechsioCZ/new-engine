@@ -10,6 +10,7 @@ export const localPhaseSchema = z.enum([
 
 const defaultCiConfig = {
   deployable: false,
+  enabled_by_default: true,
   affected_path_globs: [],
   prepare: {
     preview_db: false,
@@ -51,6 +52,7 @@ const serviceSchema = z.looseObject({
   ci: z
     .looseObject({
       deployable: z.boolean().optional().default(false),
+      enabled_by_default: z.boolean().optional().default(true),
       affected_path_globs: z.array(z.string().min(1)).optional().default([]),
       prepare: prepareSchema.optional().default(defaultCiConfig.prepare),
       zane: zaneServiceSchema.optional(),
@@ -78,6 +80,7 @@ export type StackManifest = z.infer<typeof stackManifestSchema>
 export type DeployableService = {
   id: string
   serviceSlug: string
+  enabledByDefault: boolean
   cloneToPreview: boolean
   deployLanes: Lane[]
   deployStage: number
@@ -101,6 +104,7 @@ function toDeployableService(
   return {
     id: service.id,
     serviceSlug: service.ci.zane.service_slug,
+    enabledByDefault: service.ci.enabled_by_default,
     cloneToPreview: service.ci.zane.clone_to_preview,
     deployLanes: service.ci.zane.deploy_lanes,
     deployStage: service.ci.zane.deploy_stage,
@@ -133,6 +137,29 @@ export function getDeployableService(
   }
 
   return toDeployableService(service)
+}
+
+export function getZaneService(
+  manifest: StackManifest,
+  serviceId: string
+): DeployableService {
+  const service = manifest.services.find(
+    (candidate) => candidate.id === serviceId
+  )
+  if (!service?.ci.zane) {
+    throw new Error(`Service is missing Zane metadata: ${serviceId}`)
+  }
+
+  return {
+    id: service.id,
+    serviceSlug: service.ci.zane.service_slug,
+    enabledByDefault: service.ci.enabled_by_default,
+    cloneToPreview: service.ci.zane.clone_to_preview,
+    deployLanes: service.ci.zane.deploy_lanes,
+    deployStage: service.ci.zane.deploy_stage,
+    downtimeRisk: service.ci.zane.downtime_risk,
+    serviceDependencies: service.ci.zane.service_dependencies,
+  }
 }
 
 export function listComposeServicesForPhase(
@@ -168,11 +195,13 @@ export function listPrepareServiceIds(
 
 export function listLaneServiceIds(
   manifest: StackManifest,
-  lane: Lane
+  lane: Lane,
+  defaultOnly = false
 ): string[] {
   return listDeployableServices(manifest)
     .filter(
       (service) =>
+        (!defaultOnly || service.enabledByDefault) &&
         service.deployLanes.includes(lane) &&
         (lane !== "preview" || service.cloneToPreview)
     )

@@ -9,7 +9,7 @@ import {
   getBootstrapZaneProjectSharedEnvDefinitions,
   type StackInputs,
 } from "../../contracts/stack-inputs.js"
-import { listDeployableServices } from "../../contracts/stack-manifest.js"
+import { getZaneService } from "../../contracts/stack-manifest.js"
 import { loadDeployContracts } from "../deploy-inputs.js"
 import type { BootstrapValueSource } from "./shared.js"
 import {
@@ -149,6 +149,16 @@ const sharedEnvCleanupKeys = [
   "MEILI_MASTER_KEY",
   "JWT_SECRET",
   "COOKIE_SECRET",
+  "MEDUSA_COOKIE_SECURE",
+  "MEDUSA_COOKIE_SAME_SITE",
+  "MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
+  "STOREFRONT_URL",
+  "STORE_NAME",
+  "PRODUCT_REVIEW_REQUEST_MESSAGE",
+  "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
+  "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+  "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
+  "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
   "SETTINGS_ENCRYPTION_KEY",
   "SUPERADMIN_EMAIL",
   "SUPERADMIN_PASSWORD",
@@ -176,6 +186,10 @@ const sharedEnvCleanupKeys = [
   "COMGATE_PAYMENT_LABEL",
   "HERBATICA_XML_PATH",
   "HERBATICA_CATEGORIES_XML_PATH",
+  "HERBATICA_MANUFACTURERS_CSV_PATH",
+  "HERBATICA_REVIEWS_XML_PATH",
+  "SENTRY_TRACES_SAMPLE_RATE",
+  "FEATURE_PAYMENT_QR_ENABLED",
   "MEDUSA_BE_NODE_ENV",
   "MEDUSA_BE_BACKEND_URL",
   "MEDUSA_BE_STORE_CORS",
@@ -257,9 +271,11 @@ const sharedEnvCleanupKeys = [
   "DC_NODE_ENV",
   "DC_SENTRY_NAME",
   "DC_SENTRY_DSN",
+  "DC_SENTRY_TRACES_SAMPLE_RATE",
   "DC_SETTINGS_ENCRYPTION_KEY",
   "DC_FEATURE_PPL_ENABLED",
   "DC_PPL_ENVIRONMENT",
+  "DC_FEATURE_PAYMENT_QR_ENABLED",
   "DC_SUPERADMIN_EMAIL",
   "DC_SUPERADMIN_PASSWORD",
   "DC_INITIAL_PUBLISHABLE_KEY_NAME",
@@ -268,6 +284,14 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_URL",
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+  "DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+  "DC_HERBATIKA_MEDUSA_BACKEND_URL_INTERNAL",
+  "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+  "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
+  "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+  "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
+  "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+  "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
   "DC_N1_NEXT_PUBLIC_META_PIXEL_ID",
   "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
   "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
@@ -307,6 +331,16 @@ const sharedEnvCleanupKeys = [
   "DC_MINIO_ROOT_PASSWORD",
   "DC_JWT_SECRET",
   "DC_COOKIE_SECRET",
+  "DC_MEDUSA_COOKIE_SECURE",
+  "DC_MEDUSA_COOKIE_SAME_SITE",
+  "DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
+  "DC_STOREFRONT_URL",
+  "DC_STORE_NAME",
+  "DC_PRODUCT_REVIEW_REQUEST_MESSAGE",
+  "DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
+  "DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+  "DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
+  "DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE",
   "DC_MEDUSA_DEV_DB_USER",
   "DC_MEDUSA_DEV_DB_PASSWORD",
   "DC_REDIS_URL",
@@ -318,6 +352,8 @@ const sharedEnvCleanupKeys = [
   "DC_MEDUSA_BE_MEILISEARCH_ENABLED",
   "DC_MEDUSA_BE_FILE_PROVIDER",
   "DC_MEDUSA_BE_FILE_LOCAL_UPLOAD_DIR",
+  "DC_HERBATICA_MANUFACTURERS_CSV_PATH",
+  "DC_HERBATICA_REVIEWS_XML_PATH",
   "DC_MEILISEARCH_BACKEND_API_KEY",
   "DC_N1_MEDUSA_BACKEND_URL_INTERNAL",
   "DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
@@ -498,7 +534,8 @@ function buildZaneProjectServices(
     : `${protectedNamesBase},template_medusa`
   const medusaBeSlug = requiredServiceSlug(serviceSlugs, "medusa-be")
   const payloadSlug = requiredServiceSlug(serviceSlugs, "payload")
-  const n1Slug = requiredServiceSlug(serviceSlugs, "n1")
+  const herbatikaSlug = requiredServiceSlug(serviceSlugs, "herbatika")
+  const n1Slug = serviceSlugs.n1
   const meilisearchSlug = requiredServiceSlug(
     serviceSlugs,
     "medusa-meilisearch"
@@ -508,7 +545,7 @@ function buildZaneProjectServices(
   const servicePublicOrigins = {
     medusaBe: servicePublicOriginSource(medusaBeSlug),
     payload: servicePublicOriginSource(payloadSlug),
-    n1: servicePublicOriginSource(n1Slug),
+    herbatika: servicePublicOriginSource(herbatikaSlug),
     meilisearch: servicePublicOriginSource(meilisearchSlug),
   }
   const minioFileSource = context.minioFileUrlOverride
@@ -732,7 +769,17 @@ function buildZaneProjectServices(
         "DC_NODE_ENV",
         "DC_JWT_SECRET",
         "DC_COOKIE_SECRET",
+        "DC_MEDUSA_COOKIE_SECURE",
+        "DC_MEDUSA_COOKIE_SAME_SITE",
+        "DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
         "DC_MEDUSA_BACKEND_URL",
+        "DC_STOREFRONT_URL",
+        "DC_STORE_NAME",
+        "DC_PRODUCT_REVIEW_REQUEST_MESSAGE",
+        "DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
+        "DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+        "DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
+        "DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE",
         "DC_STORE_CORS",
         "DC_ADMIN_CORS",
         "DC_AUTH_CORS",
@@ -742,13 +789,17 @@ function buildZaneProjectServices(
         "DC_SETTINGS_ENCRYPTION_KEY",
         "DC_SENTRY_NAME",
         "DC_SENTRY_DSN",
+        "DC_SENTRY_TRACES_SAMPLE_RATE",
         "DC_HERBATICA_XML_PATH",
         "DC_HERBATICA_CATEGORIES_XML_PATH",
+        "DC_HERBATICA_MANUFACTURERS_CSV_PATH",
+        "DC_HERBATICA_REVIEWS_XML_PATH",
         "DC_FEATURE_PPL_ENABLED",
         "DC_PPL_ENVIRONMENT",
         "DC_FEATURE_PACKETA_ENABLED",
         "DC_PACKETA_ENVIRONMENT",
         "DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+        "DC_FEATURE_PAYMENT_QR_ENABLED",
         "DC_FEATURE_PAYKIT_ENABLED",
         "DC_FEATURE_PAYKIT_GOPAY_ENABLED",
         "DC_FEATURE_PAYKIT_STRIPE_ENABLED",
@@ -817,6 +868,20 @@ function buildZaneProjectServices(
           envVar: "COOKIE_SECRET",
           source: literalSource(process.env.DC_COOKIE_SECRET ?? ""),
         },
+        {
+          envVar: "MEDUSA_COOKIE_SECURE",
+          source: literalSource(process.env.DC_MEDUSA_COOKIE_SECURE ?? ""),
+        },
+        {
+          envVar: "MEDUSA_COOKIE_SAME_SITE",
+          source: literalSource(process.env.DC_MEDUSA_COOKIE_SAME_SITE ?? ""),
+        },
+        {
+          envVar: "MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD",
+          source: literalSource(
+            process.env.DC_MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD ?? "0"
+          ),
+        },
         { envVar: "MEDUSA_BACKEND_URL", source: servicePublicOrigins.medusaBe },
         { envVar: "STORE_CORS", source: literalSource(context.storeCors) },
         { envVar: "ADMIN_CORS", source: literalSource(context.adminCors) },
@@ -848,7 +913,53 @@ function buildZaneProjectServices(
           envVar: "SENTRY_DSN",
           source: literalSource(process.env.DC_SENTRY_DSN ?? ""),
         },
-        { envVar: "STOREFRONT_URL", source: servicePublicOrigins.n1 },
+        {
+          envVar: "SENTRY_TRACES_SAMPLE_RATE",
+          source: literalSource(
+            process.env.DC_SENTRY_TRACES_SAMPLE_RATE ?? "0.1"
+          ),
+        },
+        {
+          envVar: "STOREFRONT_URL",
+          source: process.env.DC_STOREFRONT_URL?.trim()
+            ? literalSource(process.env.DC_STOREFRONT_URL.trim())
+            : servicePublicOrigins.herbatika,
+        },
+        {
+          envVar: "STORE_NAME",
+          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatika"),
+        },
+        {
+          envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
+          source: literalSource(
+            process.env.DC_PRODUCT_REVIEW_REQUEST_MESSAGE ??
+              "Napiš recenzi produktu"
+          ),
+        },
+        {
+          envVar: "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
+          source: literalSource(
+            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080"
+          ),
+        },
+        {
+          envVar: "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
+          source: literalSource(
+            process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS ?? "90"
+          ),
+        },
+        {
+          envVar: "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE",
+          source: literalSource(
+            process.env.DC_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE ?? "500"
+          ),
+        },
+        {
+          envVar: "WORKFLOW_QUEUE_RUNNER_SCHEDULE",
+          source: literalSource(
+            process.env.DC_WORKFLOW_QUEUE_RUNNER_SCHEDULE ?? "0 * * * *"
+          ),
+        },
         {
           envVar: "HERBATICA_XML_PATH",
           source: literalSource(process.env.DC_HERBATICA_XML_PATH ?? ""),
@@ -857,6 +968,18 @@ function buildZaneProjectServices(
           envVar: "HERBATICA_CATEGORIES_XML_PATH",
           source: literalSource(
             process.env.DC_HERBATICA_CATEGORIES_XML_PATH ?? ""
+          ),
+        },
+        {
+          envVar: "HERBATICA_MANUFACTURERS_CSV_PATH",
+          source: literalSource(
+            process.env.DC_HERBATICA_MANUFACTURERS_CSV_PATH ?? ""
+          ),
+        },
+        {
+          envVar: "HERBATICA_REVIEWS_XML_PATH",
+          source: literalSource(
+            process.env.DC_HERBATICA_REVIEWS_XML_PATH ?? ""
           ),
         },
         {
@@ -881,6 +1004,12 @@ function buildZaneProjectServices(
           envVar: "PACKETA_PICKUP_POINTS_API_KEY",
           source: literalSource(
             process.env.DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
+          ),
+        },
+        {
+          envVar: "FEATURE_PAYMENT_QR_ENABLED",
+          source: literalSource(
+            process.env.DC_FEATURE_PAYMENT_QR_ENABLED ?? "0"
           ),
         },
         {
@@ -998,12 +1127,6 @@ function buildZaneProjectServices(
           envVar: "MEILISEARCH_HOST",
           source: literalSource("http://{{env.MEDUSA_MEILISEARCH_HOST}}:7700"),
         },
-        {
-          envVar: "MEILISEARCH_API_KEY",
-          source: literalSource(
-            process.env.DC_MEILISEARCH_BACKEND_API_KEY ?? ""
-          ),
-        },
         { envVar: "MINIO_FILE_URL", source: minioFileSource },
         {
           envVar: "MINIO_ENDPOINT",
@@ -1022,25 +1145,28 @@ function buildZaneProjectServices(
         {
           envVar: "RESEND_API_KEY",
           source: literalSource(
-            process.env.DC_MEDUSA_BE_RESEND_API_KEY ??
-              process.env.DC_RESEND_API_KEY ??
-              ""
+            firstNonEmpty(
+              process.env.DC_MEDUSA_BE_RESEND_API_KEY,
+              process.env.DC_RESEND_API_KEY
+            ) ?? ""
           ),
         },
         {
           envVar: "RESEND_FROM_EMAIL",
           source: literalSource(
-            process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL ??
-              process.env.DC_RESEND_FROM_EMAIL ??
-              ""
+            firstNonEmpty(
+              process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL,
+              process.env.DC_RESEND_FROM_EMAIL
+            ) ?? ""
           ),
         },
         {
           envVar: "RESEND_WEBHOOK_SECRET",
           source: literalSource(
-            process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET ??
-              process.env.DC_RESEND_WEBHOOK_SECRET ??
-              ""
+            firstNonEmpty(
+              process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET,
+              process.env.DC_RESEND_WEBHOOK_SECRET
+            ) ?? ""
           ),
         },
       ],
@@ -1168,8 +1294,8 @@ function buildZaneProjectServices(
         },
       ],
     },
-    n1: {
-      dockerfilePath: "./docker/development/n1/Dockerfile",
+    herbatika: {
+      dockerfilePath: "./docker/development/herbatika/Dockerfile",
       buildContextDir: "./",
       command: null,
       volumes: [],
@@ -1178,7 +1304,7 @@ function buildZaneProjectServices(
           domain:
             publicServiceDomain({
               projectSlug: context.projectSlug,
-              serviceSlug: n1Slug,
+              serviceSlug: herbatikaSlug,
               publicUrlAffix: context.publicUrlAffix,
               publicDomain: context.publicDomain,
             }) ?? "",
@@ -1189,7 +1315,7 @@ function buildZaneProjectServices(
       ].filter((url) => url.domain),
       healthcheck: {
         type: "PATH",
-        value: "/api/health",
+        value: "/",
         timeout_seconds: 120,
         interval_seconds: 30,
         associated_port: 3000,
@@ -1199,29 +1325,20 @@ function buildZaneProjectServices(
         memory: { unit: "MEGABYTES", value: 1536 },
       },
       cleanupEnvKeys: [
-        "NEXT_PUBLIC_META_PIXEL_ID",
-        "NEXT_PUBLIC_GOOGLE_ADS_ID",
-        "NEXT_PUBLIC_HEUREKA_API_KEY",
-        "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
-        "RESEND_API_KEY",
-        "CONTACT_EMAIL",
-        "RESEND_FROM_EMAIL",
-        "DC_N1_MEDUSA_BACKEND_URL_INTERNAL",
-        "DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
-        "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
-        "DC_N1_NEXT_PUBLIC_MEILISEARCH_URL",
-        "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
-        "DC_N1_NEXT_PUBLIC_SITE_URL",
-        "DC_N1_NEXT_PUBLIC_META_PIXEL_ID",
-        "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
-        "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
-        "DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID",
-        "DC_N1_RESEND_API_KEY",
-        "DC_N1_CONTACT_EMAIL",
-        "DC_N1_RESEND_FROM_EMAIL",
-        "DC_N1_MEDUSA_RESEND_API_KEY",
-        "DC_N1_MEDUSA_CONTACT_EMAIL",
-        "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+        "MEILISEARCH_HOST",
+        "MEILISEARCH_SEARCH_API_KEY",
+        "MEILISEARCH_PRODUCTS_INDEX",
+        "MEILISEARCH_CATEGORIES_INDEX",
+        "MEILISEARCH_PRODUCERS_INDEX",
+        "DC_HERBATIKA_PUBLIC_PORT",
+        "DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+        "DC_HERBATIKA_MEDUSA_BACKEND_URL_INTERNAL",
+        "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+        "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
+        "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
+        "DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY",
+        "DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL",
+        "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
       ],
       env: [
         {
@@ -1236,72 +1353,169 @@ function buildZaneProjectServices(
           source: servicePublicOrigins.medusaBe,
         },
         {
-          envVar: "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+          envVar: "NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
           source: literalSource(
-            process.env.DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
+              "session_proxy"
           ),
         },
         {
-          envVar: "NEXT_PUBLIC_MEILISEARCH_URL",
-          source: servicePublicOrigins.meilisearch,
-        },
-        {
-          envVar: "NEXT_PUBLIC_MEILISEARCH_API_KEY",
+          envVar: "NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
           source: literalSource(
-            process.env.DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY ?? ""
-          ),
-        },
-        { envVar: "NEXT_PUBLIC_SITE_URL", source: servicePublicOrigins.n1 },
-        {
-          envVar: "NEXT_PUBLIC_META_PIXEL_ID",
-          source: literalSource(
-            process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES ??
+              "sk"
           ),
         },
         {
-          envVar: "NEXT_PUBLIC_GOOGLE_ADS_ID",
+          envVar: "NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY ?? ""
           ),
         },
         {
-          envVar: "NEXT_PUBLIC_HEUREKA_API_KEY",
+          envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
           source: literalSource(
-            process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? ""
+            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
           ),
         },
         {
-          envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
-          source: literalSource(
-            process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
-          ),
-        },
-        {
-          envVar: "RESEND_API_KEY",
-          source: literalSource(
-            process.env.DC_N1_RESEND_API_KEY ??
-              process.env.DC_RESEND_API_KEY ??
-              ""
-          ),
-        },
-        {
-          envVar: "CONTACT_EMAIL",
-          source: literalSource(
-            process.env.DC_N1_CONTACT_EMAIL ??
-              process.env.DC_CONTACT_EMAIL ??
-              ""
-          ),
-        },
-        {
-          envVar: "RESEND_FROM_EMAIL",
-          source: literalSource(
-            process.env.DC_N1_RESEND_FROM_EMAIL ??
-              process.env.DC_RESEND_FROM_EMAIL ??
-              ""
-          ),
+          envVar: "NEXT_PUBLIC_PAYLOAD_BASE_URL",
+          source: servicePublicOrigins.payload,
         },
       ],
     },
+    ...(n1Slug
+      ? {
+          n1: {
+            dockerfilePath: "./docker/development/n1/Dockerfile",
+            buildContextDir: "./",
+            command: null,
+            volumes: [],
+            urls: [
+              {
+                domain:
+                  publicServiceDomain({
+                    projectSlug: context.projectSlug,
+                    serviceSlug: n1Slug,
+                    publicUrlAffix: context.publicUrlAffix,
+                    publicDomain: context.publicDomain,
+                  }) ?? "",
+                base_path: "/",
+                strip_prefix: true,
+                associated_port: 3000,
+              },
+            ].filter((url) => url.domain),
+            healthcheck: {
+              type: "PATH",
+              value: "/api/health",
+              timeout_seconds: 120,
+              interval_seconds: 30,
+              associated_port: 3000,
+            },
+            resourceLimits: {
+              cpus: 0.75,
+              memory: { unit: "MEGABYTES", value: 1536 },
+            },
+            cleanupEnvKeys: [
+              "NEXT_PUBLIC_META_PIXEL_ID",
+              "NEXT_PUBLIC_GOOGLE_ADS_ID",
+              "NEXT_PUBLIC_HEUREKA_API_KEY",
+              "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+              "RESEND_API_KEY",
+              "CONTACT_EMAIL",
+              "RESEND_FROM_EMAIL",
+              "DC_N1_MEDUSA_BACKEND_URL_INTERNAL",
+              "DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+              "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+              "DC_N1_NEXT_PUBLIC_MEILISEARCH_URL",
+              "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
+              "DC_N1_NEXT_PUBLIC_SITE_URL",
+              "DC_N1_NEXT_PUBLIC_META_PIXEL_ID",
+              "DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID",
+              "DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY",
+              "DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+              "DC_N1_RESEND_API_KEY",
+              "DC_N1_CONTACT_EMAIL",
+              "DC_N1_RESEND_FROM_EMAIL",
+              "DC_N1_MEDUSA_RESEND_API_KEY",
+              "DC_N1_MEDUSA_CONTACT_EMAIL",
+              "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+            ],
+            env: [
+              {
+                envVar: "MEDUSA_BACKEND_URL_INTERNAL",
+                source: serviceInternalOriginSource({
+                  serviceSlug: medusaBeSlug,
+                  port: 9000,
+                }),
+              },
+              {
+                envVar: "NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+                source: servicePublicOrigins.medusaBe,
+              },
+              {
+                envVar: "NEXT_PUBLIC_MEILISEARCH_URL",
+                source: servicePublicOrigins.meilisearch,
+              },
+              {
+                envVar: "NEXT_PUBLIC_SITE_URL",
+                source: servicePublicOriginSource(n1Slug),
+              },
+              {
+                envVar: "NEXT_PUBLIC_META_PIXEL_ID",
+                source: literalSource(
+                  process.env.DC_N1_NEXT_PUBLIC_META_PIXEL_ID ?? ""
+                ),
+              },
+              {
+                envVar: "NEXT_PUBLIC_GOOGLE_ADS_ID",
+                source: literalSource(
+                  process.env.DC_N1_NEXT_PUBLIC_GOOGLE_ADS_ID ?? ""
+                ),
+              },
+              {
+                envVar: "NEXT_PUBLIC_HEUREKA_API_KEY",
+                source: literalSource(
+                  process.env.DC_N1_NEXT_PUBLIC_HEUREKA_API_KEY ?? ""
+                ),
+              },
+              {
+                envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
+                source: literalSource(
+                  process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
+                ),
+              },
+              {
+                envVar: "RESEND_API_KEY",
+                source: literalSource(
+                  firstNonEmpty(
+                    process.env.DC_N1_RESEND_API_KEY,
+                    process.env.DC_RESEND_API_KEY
+                  ) ?? ""
+                ),
+              },
+              {
+                envVar: "CONTACT_EMAIL",
+                source: literalSource(
+                  firstNonEmpty(
+                    process.env.DC_N1_CONTACT_EMAIL,
+                    process.env.DC_CONTACT_EMAIL
+                  ) ?? ""
+                ),
+              },
+              {
+                envVar: "RESEND_FROM_EMAIL",
+                source: literalSource(
+                  firstNonEmpty(
+                    process.env.DC_N1_RESEND_FROM_EMAIL,
+                    process.env.DC_RESEND_FROM_EMAIL
+                  ) ?? ""
+                ),
+              },
+            ],
+          },
+        }
+      : {}),
     "zane-operator": {
       dockerfilePath: "./docker/development/zane-operator/Dockerfile",
       buildContextDir: "./",
@@ -1494,7 +1708,7 @@ function buildContext(input: {
       explicitValue: input.planInput.storeCorsOverride,
       envValue: process.env.DC_STORE_CORS,
       fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"n1"}${input.planInput.publicUrlAffix}.${publicDomain}`
+        ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
     adminCors: preferPublicCsvOrUrl({
@@ -1916,11 +2130,18 @@ export async function executeBootstrapZaneProjectPlan(
     input.stackManifestPath,
     input.stackInputsPath
   )
-  const deployableServices = listDeployableServices(manifest)
   const repositoryUrl = await deriveRepositoryUrl(input.repositoryUrl)
   const branchName = await deriveBranchName(input.branchName)
   const inspectResponse = bootstrapZaneProjectInspectResponseSchema.parse(
     await readJsonFile(input.inspectJsonPath)
+  )
+  const inspectedServiceSlugs = new Set(
+    inspectResponse.services.map((service) => service.service_slug)
+  )
+  const bootstrapServices = manifest.services.flatMap((service) =>
+    service.ci.zane && inspectedServiceSlugs.has(service.ci.zane.service_slug)
+      ? [getZaneService(manifest, service.id)]
+      : []
   )
   const context = buildContext({
     planInput: input,
@@ -1929,12 +2150,12 @@ export async function executeBootstrapZaneProjectPlan(
     branchName,
   })
   const serviceSlugById = Object.fromEntries(
-    deployableServices.map((service) => [service.id, service.serviceSlug])
+    bootstrapServices.map((service) => [service.id, service.serviceSlug])
   ) as Record<string, string>
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
   applySharedEnvServiceTargets({ plannedServices, stackInputs })
   const inspectedServices = Object.fromEntries(
-    deployableServices.map((service) => {
+    bootstrapServices.map((service) => {
       const inspected = inspectResponse.services.find(
         (candidate) => candidate.service_slug === service.serviceSlug
       )
@@ -1987,7 +2208,7 @@ export async function executeBootstrapZaneProjectPlan(
       connect_base_url: context.operatorUpstreamConnectBaseUrl,
       connect_host_header: context.operatorUpstreamConnectHostHeader,
     },
-    services: deployableServices.map((service) => {
+    services: bootstrapServices.map((service) => {
       const servicePlan = plannedServices[service.id]
       const serviceState = inspectedServices[service.id]
       if (!servicePlan) {
