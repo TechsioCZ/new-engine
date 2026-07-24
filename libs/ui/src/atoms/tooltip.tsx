@@ -1,3 +1,14 @@
+/**
+ * Tooltip — @techsio/ui-kit atom.
+ *
+ * @component Tooltip
+ * @componentVersion v1.0.0
+ * @skill tooltip-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the tooltip-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as tooltip from "@zag-js/tooltip"
 import { type ReactNode, type Ref, useId } from "react"

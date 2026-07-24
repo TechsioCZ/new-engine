@@ -1,3 +1,14 @@
+/**
+ * Dialog — @techsio/ui-kit molecule.
+ *
+ * @component Dialog
+ * @componentVersion v1.0.0
+ * @skill dialog-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the dialog-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import * as dialog from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"

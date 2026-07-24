@@ -1,4 +1,5 @@
 ---
+component_version: "1.0.0"
 name: link-button-usage
 description: >
   Use after component-usage-ux when navigation should look like a Button using

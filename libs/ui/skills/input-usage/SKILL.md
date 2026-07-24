@@ -1,4 +1,5 @@
 ---
+component_version: "1.0.0"
 name: input-usage
 description: >
   Use after component-usage-ux when an app needs the low-level

@@ -1,3 +1,14 @@
+/**
+ * Tabs — @techsio/ui-kit template.
+ *
+ * @component Tabs
+ * @componentVersion v1.0.0
+ * @skill tabs-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the tabs-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type * as React from "react"
 import type { Ref } from "react"
 import { Tabs, type TabsProps } from "../molecules/tabs"

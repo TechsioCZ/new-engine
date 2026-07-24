@@ -1,4 +1,5 @@
 ---
+component_version: "1.0.0"
 name: tabs-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Tabs for

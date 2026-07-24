@@ -1,3 +1,14 @@
+/**
+ * Header — @techsio/ui-kit organism.
+ *
+ * @component Header
+ * @componentVersion v1.0.0
+ * @skill header-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the header-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { HTMLAttributes, ReactNode, Ref } from "react"
 import { createContext, useContext, useState } from "react"
 import type { VariantProps } from "tailwind-variants"

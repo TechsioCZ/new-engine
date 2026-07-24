@@ -1,3 +1,14 @@
+/**
+ * ProductCard — @techsio/ui-kit molecule.
+ *
+ * @component ProductCard
+ * @componentVersion v1.0.0
+ * @skill product-card-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the product-card-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import {
   type ComponentPropsWithoutRef,
   type ComponentPropsWithRef,

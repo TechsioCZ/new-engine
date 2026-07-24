@@ -1,3 +1,14 @@
+/**
+ * Toast — @techsio/ui-kit molecule.
+ *
+ * @component Toast
+ * @componentVersion v1.0.0
+ * @skill toast-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the toast-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as toast from "@zag-js/toast"
 import { type ReactNode, useId } from "react"

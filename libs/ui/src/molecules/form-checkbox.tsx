@@ -1,3 +1,14 @@
+/**
+ * FormCheckbox — @techsio/ui-kit molecule.
+ *
+ * @component FormCheckbox
+ * @componentVersion v1.0.0
+ * @skill form-checkbox-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the form-checkbox-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import { connect, machine } from "@zag-js/checkbox"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"

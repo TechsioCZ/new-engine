@@ -1,0 +1,9 @@
+# Git hooks for new-engine. Installed by `lefthook install`, which the root `prepare` script runs
+# after every `pnpm install`. See scripts/check-skill-sync.mjs for the ui-kit version gate.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: ui-kit-skill-sync
+      # Only worth running when ui-kit sources, skills, or the changelog are touched.
+      glob: "libs/ui/**/*"
+      run: node scripts/check-skill-sync.mjs

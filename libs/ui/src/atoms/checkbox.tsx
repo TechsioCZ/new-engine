@@ -1,3 +1,14 @@
+/**
+ * Checkbox — @techsio/ui-kit atom.
+ *
+ * @component Checkbox
+ * @componentVersion v1.0.0
+ * @skill checkbox-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the checkbox-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { InputHTMLAttributes, Ref } from "react"
 import { tv } from "../utils"
 
