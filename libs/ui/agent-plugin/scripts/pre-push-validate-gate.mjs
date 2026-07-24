@@ -69,15 +69,29 @@ function effectiveGitCwd(command, startCwd) {
   let dir = startCwd;
   let gitDir;
   let trusted = true;
+
+  // Apply a selector's value. `-C` is cumulative and also shifts the flags that follow it; a bare
+  // `--git-dir` retargets the repo. Shell-expansion syntax makes the value unresolvable here (this
+  // hook sees the command PRE-expansion), so mark the target untrusted → the caller fails closed.
+  const apply = (name, rawValue) => {
+    if (SHELL_EXPANSION.test(rawValue)) trusted = false;
+    const value = resolve(dir, stripQuotes(rawValue)); // relative to the current effective dir
+    if (name === "-C") dir = value;
+    else gitDir = value;
+  };
+
   for (let i = gitIdx + 1; i < tokens.length; i++) {
     const t = tokens[i];
+    // Space form: `-C <dir>` / `--git-dir <dir>` (git requires the space for the short `-C`).
     if ((t === "-C" || t === "--git-dir") && tokens[i + 1] !== undefined) {
-      const raw = tokens[i + 1];
-      if (SHELL_EXPANSION.test(raw)) trusted = false; // real target unknown until the shell expands
-      const value = resolve(dir, stripQuotes(raw)); // relative to the current effective dir
-      if (t === "-C") dir = value; // -C is cumulative and also shifts the flags that follow it
-      else gitDir = value;
+      apply(t, tokens[i + 1]);
       i++;
+      continue;
+    }
+    // Attached form (long option only): `--git-dir=<dir>`. Missing this leaves the target at the
+    // consumer cwd, so `git --git-dir=/path/to/ui-kit/.git push --no-verify` would slip through.
+    if (t.startsWith("--git-dir=")) {
+      apply("--git-dir", t.slice("--git-dir=".length));
       continue;
     }
     if (GIT_GLOBAL_WITH_VALUE.has(t)) {

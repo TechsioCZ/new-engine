@@ -21,7 +21,7 @@
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, isAbsolute, join } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 const ZERO = /^0+$/;
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
@@ -55,18 +55,32 @@ function chainedHooks() {
     // no shim marker — not redirected
   }
 
-  // Hooks the installer moved aside, oldest first (unnumbered slot predates numbered ones).
-  try {
-    const slot = (name) => Number(name.match(/\.(\d+)$/)?.[1] ?? 0);
-    hooks.push(
-      ...readdirSync(hookDir)
+  // Hooks the installer moved aside (`pre-push.pre-ui-kit[.N]`), oldest first (unnumbered slot
+  // predates numbered ones). Scan this hook dir AND — when it is not already git's default
+  // `.git/hooks`, i.e. we are the redirect shim — that default dir too: an EARLIER (untracked-path)
+  // install may have parked a foreign backup there before the repo grew a tracked hooks dir and
+  // forced the shim. The shim dir never receives those, so missing the default dir would silently
+  // drop that hook's checks (and non-zero exit) on every push.
+  const slot = (name) => Number(name.match(/\.(\d+)$/)?.[1] ?? 0);
+  const backupsIn = (dir) => {
+    try {
+      return readdirSync(dir)
         .filter((name) => /^pre-push\.pre-ui-kit(\.\d+)?$/.test(name))
         .sort((a, b) => slot(a) - slot(b))
-        .map((name) => join(hookDir, name)),
-    );
+        .map((name) => join(dir, name));
+    } catch {
+      return []; // unreadable dir — nothing to chain
+    }
+  };
+
+  const dirs = [hookDir];
+  try {
+    const defaultHooks = join(git("rev-parse", "--absolute-git-dir"), "hooks");
+    if (resolve(defaultHooks) !== resolve(hookDir)) dirs.push(defaultHooks);
   } catch {
-    // unreadable hooks dir — nothing to chain
+    // no git dir resolvable — just scan this hook dir
   }
+  for (const dir of dirs) hooks.push(...backupsIn(dir));
 
   return hooks.filter((hook) => existsSync(hook));
 }
