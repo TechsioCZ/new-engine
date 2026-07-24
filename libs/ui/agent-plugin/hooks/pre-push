@@ -20,8 +20,8 @@
  * Exit 0 = allow, non-zero = reject the push.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 const ZERO = /^0+$/;
 const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
@@ -33,22 +33,68 @@ const touchesUi = (files) =>
   files.some((f) => f.startsWith("libs/ui/") && !f.startsWith("libs/ui/agent-plugin/"));
 
 /**
- * If this repo already had a pre-push hook (husky, lefthook, a custom one), the installer moved
- * it aside rather than deleting it. Run it FIRST and honour its verdict — the human's hook wins,
- * and our gate is additive rather than a replacement that silently drops their checks.
- * Both hooks need stdin, so we replay the buffered ref lines into it.
+ * If this repo already had pre-push hooks (husky, lefthook, custom ones), the installer never
+ * deleted them — it either moved them aside (`pre-push.pre-ui-kit[.N]`) or, when the hooks dir
+ * was tracked in the repo, redirected core.hooksPath to this shim dir and recorded the original
+ * dir in `original-hooks-path`. Run them ALL first, oldest first, and honour their verdicts —
+ * the human's hooks win, and our gate is additive rather than a replacement that silently drops
+ * their checks. Every hook needs stdin, so we replay the buffered ref lines into each.
  */
-function runChainedHook(stdinData) {
-  const chained = join(dirname(process.argv[1]), "pre-push.pre-ui-kit");
-  if (!existsSync(chained)) return;
+function chainedHooks() {
+  const hookDir = dirname(process.argv[1]);
+  const hooks = [];
 
-  const res = spawnSync(chained, process.argv.slice(2), {
-    input: stdinData,
-    stdio: ["pipe", "inherit", "inherit"],
-  });
+  // The core.hooksPath shim case: the repo's original hooks dir comes first.
+  try {
+    let orig = readFileSync(join(hookDir, "original-hooks-path"), "utf8").trim();
+    if (orig) {
+      if (!isAbsolute(orig)) orig = join(git("rev-parse", "--show-toplevel"), orig);
+      hooks.push(join(orig, "pre-push"));
+    }
+  } catch {
+    // no shim marker — not redirected
+  }
 
-  if (res.error) return; // not executable / not runnable — do not block on our own plumbing
-  if (typeof res.status === "number" && res.status !== 0) process.exit(res.status);
+  // Hooks the installer moved aside (`pre-push.pre-ui-kit[.N]`), oldest first (unnumbered slot
+  // predates numbered ones). Scan this hook dir AND — when it is not already git's default
+  // `.git/hooks`, i.e. we are the redirect shim — that default dir too: an EARLIER (untracked-path)
+  // install may have parked a foreign backup there before the repo grew a tracked hooks dir and
+  // forced the shim. The shim dir never receives those, so missing the default dir would silently
+  // drop that hook's checks (and non-zero exit) on every push.
+  const slot = (name) => Number(name.match(/\.(\d+)$/)?.[1] ?? 0);
+  const backupsIn = (dir) => {
+    try {
+      return readdirSync(dir)
+        .filter((name) => /^pre-push\.pre-ui-kit(\.\d+)?$/.test(name))
+        .sort((a, b) => slot(a) - slot(b))
+        .map((name) => join(dir, name));
+    } catch {
+      return []; // unreadable dir — nothing to chain
+    }
+  };
+
+  const dirs = [hookDir];
+  try {
+    const defaultHooks = join(git("rev-parse", "--absolute-git-dir"), "hooks");
+    if (resolve(defaultHooks) !== resolve(hookDir)) dirs.push(defaultHooks);
+  } catch {
+    // no git dir resolvable — just scan this hook dir
+  }
+  for (const dir of dirs) hooks.push(...backupsIn(dir));
+
+  return hooks.filter((hook) => existsSync(hook));
+}
+
+function runChainedHooks(stdinData) {
+  for (const hook of chainedHooks()) {
+    const res = spawnSync(hook, process.argv.slice(2), {
+      input: stdinData,
+      stdio: ["pipe", "inherit", "inherit"],
+    });
+
+    if (res.error) continue; // not executable / not runnable — do not block on our own plumbing
+    if (typeof res.status === "number" && res.status !== 0) process.exit(res.status);
+  }
 }
 
 let raw = "";
@@ -56,7 +102,7 @@ process.stdin.on("data", (c) => {
   raw += c;
 });
 process.stdin.on("end", () => {
-  runChainedHook(raw);
+  runChainedHooks(raw);
 
   const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
   if (!lines.length) process.exit(0); // nothing being pushed
