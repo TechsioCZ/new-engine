@@ -17,7 +17,7 @@
  * Exit codes: 0 = allow, 2 = block (stderr is fed back to the agent).
  */
 import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { isUiKitSourceRepo } from "./lib/is-ui-kit-source-repo.mjs";
 
 // Boundaries include quotes and `=`, not just whitespace: an alias definition inlined into the
@@ -30,8 +30,9 @@ const IS_PUSH = new RegExp(`(^|${B})push(${B}|$)`);
 /** Flags that take a separate value, so the following token is not the subcommand. */
 const GIT_GLOBAL_WITH_VALUE = new Set(["-c", "-C", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
 
-// Characters in a `-C` value that make its real target unknowable BEFORE the shell expands the
-// command (which this hook receives verbatim): variables, command substitution, tilde, globs.
+// Characters in a `-C`/`--git-dir`/`--work-tree` value that make its real target unknowable BEFORE
+// the shell expands the command (which this hook receives verbatim): variables, command
+// substitution, tilde, globs.
 const SHELL_EXPANSION = /[$`~*?[\]{}()]/;
 
 /** Drop one layer of matched surrounding quotes so a plain quoted literal path stays resolvable. */
@@ -43,29 +44,39 @@ function stripQuotes(s) {
 }
 
 /**
- * The directory the git command actually operates in. `git -C <dir>` (repeatable, applied
- * cumulatively) changes it before the subcommand runs, so `git -C /path/to/ui-kit push
- * --no-verify` issued from a consumer cwd still targets the ui-kit worktree — resolve it so the
- * scope check uses the real target, not the shell tool's cwd.
+ * The repository selectors a git command carries. Only these change WHICH REPO a push targets, and
+ * therefore whether the scope check should trust the shell tool's cwd:
+ *   - `git -C <dir>` (repeatable, applied cumulatively) changes the cwd git discovers the repo from;
+ *   - `git --git-dir <dir>` points git at a DIFFERENT repository entirely.
+ * (`--work-tree` only relocates the working tree; the repo is still the one `--git-dir`/cwd select,
+ * so it can't retarget a push and is deliberately NOT treated as a selector here — keying off it
+ * would over-block a legitimate consumer `git --work-tree <x> push --no-verify`.)
  *
- * Returns `trusted: false` when a `-C` value contains shell-expansion syntax (`$VAR`, `$(…)`, `~`,
- * globs). This hook sees the command PRE-expansion, so `git -C "$UI_KIT_DIR" push --no-verify`
- * would otherwise resolve to a literal `$UI_KIT_DIR` dir that does not exist, the scope check would
- * return "not the ui-kit repo", and the guard would wave the push through for the shell to then
- * expand and run. When we cannot prove where such a command points, the caller fails closed.
+ * Either selector lets `git … push --no-verify` issued from a consumer cwd still hit the ui-kit repo,
+ * so we extract them and resolve the real target rather than trusting cwd.
+ *
+ * Returns `trusted: false` when a selector value contains shell-expansion syntax (`$VAR`, `$(…)`,
+ * `~`, globs). This hook sees the command PRE-expansion, so `git -C "$UI_KIT_DIR" push --no-verify`
+ * (or `--git-dir "$UI_KIT_DIR/.git"`) would otherwise resolve to a literal, non-existent path, the
+ * scope check would return "not the ui-kit repo", and the guard would wave the push through for the
+ * shell to then expand and run. When we cannot prove where such a command points, the caller fails
+ * closed.
  */
 function effectiveGitCwd(command, startCwd) {
   const tokens = command.trim().split(/\s+/);
   const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"));
   if (gitIdx === -1) return { dir: startCwd, trusted: true };
   let dir = startCwd;
+  let gitDir;
   let trusted = true;
   for (let i = gitIdx + 1; i < tokens.length; i++) {
     const t = tokens[i];
-    if (t === "-C" && tokens[i + 1] !== undefined) {
+    if ((t === "-C" || t === "--git-dir") && tokens[i + 1] !== undefined) {
       const raw = tokens[i + 1];
       if (SHELL_EXPANSION.test(raw)) trusted = false; // real target unknown until the shell expands
-      dir = resolve(dir, stripQuotes(raw)); // -C is relative to the current effective dir
+      const value = resolve(dir, stripQuotes(raw)); // relative to the current effective dir
+      if (t === "-C") dir = value; // -C is cumulative and also shifts the flags that follow it
+      else gitDir = value;
       i++;
       continue;
     }
@@ -74,9 +85,35 @@ function effectiveGitCwd(command, startCwd) {
       continue;
     }
     if (t.startsWith("-")) continue;
-    break; // first non-flag token = the subcommand; -C only precedes it
+    break; // first non-flag token = the subcommand; the selectors only precede it
   }
-  return { dir, trusted };
+  return { dir, gitDir, trusted };
+}
+
+/**
+ * The worktree a command actually operates on, honouring `--git-dir`. Returns null when the target
+ * can't be pinned down — an unreadable git dir, a bare repo, or a linked worktree whose worktree
+ * isn't its git dir's parent — so the caller fails closed instead of guessing.
+ *
+ * Why cwd can't be trusted here: `git --git-dir /path/to/ui-kit/.git push --no-verify` from a
+ * consumer cwd pushes the ui-kit repo while skipping its gate, yet `git rev-parse --show-toplevel`
+ * run from that cwd reports the CONSUMER — git assumes the cwd is the top level when only
+ * `--git-dir` is set. So we resolve the git dir explicitly and derive its worktree.
+ */
+function resolveTargetWorktree({ dir, gitDir }) {
+  if (!gitDir) return dir; // no repo-selection override — the effective cwd is the target
+  try {
+    const absGitDir = execFileSync("git", ["--git-dir", gitDir, "rev-parse", "--absolute-git-dir"], {
+      cwd: dir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    // Standard layout only (`<worktree>/.git`). A bare repo or linked worktree has no worktree we
+    // can derive cheaply — return null so the caller fails closed rather than mis-scope the push.
+    return basename(absGitDir) === ".git" ? dirname(absGitDir) : null;
+  } catch {
+    return null; // unreadable / not a git dir — can't verify the target
+  }
 }
 
 // Git never lets an alias shadow a built-in command, so a subcommand that IS a built-in provably
@@ -188,28 +225,34 @@ process.stdin.on("end", () => {
   if (typeof command !== "string" || !/\bgit\b/.test(command)) process.exit(0);
 
   const cwd = input?.cwd || process.cwd();
-  // Honour `git -C <dir>`: the command may target the ui-kit repo from a different cwd.
-  const { dir: gitCwd, trusted } = effectiveGitCwd(command, cwd);
+  // Honour the repo selectors: the command may target the ui-kit repo from a different cwd via
+  // `git -C <dir>` or `git --git-dir <dir>`.
+  const { dir: gitCwd, gitDir, trusted } = effectiveGitCwd(command, cwd);
+  // The real worktree the command hits. null = target can't be proven (shell-expansion value, or a
+  // git dir we can't resolve to a worktree) — fall through to the fail-closed branch below.
+  const target = trusted ? resolveTargetWorktree({ dir: gitCwd, gitDir }) : null;
 
-  if (!trusted) {
-    // A `-C` value we can't resolve before the shell expands it (e.g. `git -C "$UI_KIT_DIR" …`).
-    // We can neither confirm the target repo nor read its config to expand its aliases, so we fail
-    // closed: refuse anything that could push there — a literal `push --no-verify`, or a NON-built-in
-    // subcommand that could be an alias expanding to it in that repo (`alias.publish = push
-    // --no-verify`). A built-in subcommand can't be an alias, and a bare `push` without `--no-verify`
-    // still runs the target's pre-push hook, so both stay allowed.
+  if (target === null) {
+    // A target we can't resolve before the shell expands the command (e.g. `git -C "$UI_KIT_DIR" …`
+    // or `git --git-dir "$X/.git" …`), or a git dir with no derivable worktree. We can neither
+    // confirm the target repo nor read its config to expand its aliases, so we fail closed: refuse
+    // anything that could push there — a literal `push --no-verify`, or a NON-built-in subcommand
+    // that could be an alias expanding to it in that repo (`alias.publish = push --no-verify`). A
+    // built-in subcommand can't be an alias, and a bare `push` without `--no-verify` still runs the
+    // target's pre-push hook, so both stay allowed.
     const sub = gitSubcommand(command);
     const literalPushSkip = IS_PUSH.test(command) && SKIPS_HOOKS.test(command);
     const possibleAlias = sub !== "" && !GIT_BUILTINS.has(sub);
     if (literalPushSkip || possibleAlias) {
       process.stderr.write(
         [
-          "BLOCKED: this command targets a git repo through an unresolved `-C` path (a shell",
-          "variable/expansion), so the guard cannot confirm it is not a push that skips the ui-kit gate.",
+          "BLOCKED: this command targets a git repo through a path the guard cannot resolve (a shell",
+          "variable/expansion, or a `--git-dir` with no verifiable worktree), so it cannot confirm the",
+          "command is not a push that skips the ui-kit gate.",
           possibleAlias
             ? `\`${sub}\` is not a git built-in — it may be an alias expanding to \`push --no-verify\` in that repo.`
             : "`--no-verify` is not permitted on a push.",
-          "Use a literal path in `-C` (not a shell variable) so the target can be verified, then push normally.",
+          "Use a literal path (not a shell variable) so the target can be verified, then push normally.",
         ].join("\n"),
       );
       process.exit(2);
@@ -217,10 +260,10 @@ process.stdin.on("end", () => {
     process.exit(0);
   }
 
-  // Scope out only when we can prove the target is a non-ui-kit repo (resolvable `-C`/cwd).
-  if (!isUiKitSourceRepo(gitCwd)) process.exit(0);
+  // Scope out only when we can prove the target is a non-ui-kit repo (resolvable target).
+  if (!isUiKitSourceRepo(target)) process.exit(0);
 
-  const resolved = expandAliases(command, gitCwd);
+  const resolved = expandAliases(command, target);
 
   // Check the raw text AND the alias-resolved text. The resolved form catches an alias stored in
   // config (`alias.publish = push --no-verify`, whose call site shows neither token); the raw form
