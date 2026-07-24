@@ -4,6 +4,7 @@ import {
   resolveCheckoutAddressFieldName,
 } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutDetailsFormController } from "@/components/checkout/use-checkout-details-form"
+import { normalizeHerbatikaAddressCountryCode } from "@/lib/forms/address/address-country-rules"
 import { checkoutFieldValidators } from "@/lib/forms/checkout/address-validators"
 import { CheckoutLoginPrompt } from "./checkout-login-prompt"
 import { CheckoutPurchaseTypeToggle } from "./checkout-purchase-type-toggle"
@@ -40,6 +41,10 @@ export function CheckoutAddressSection({
   title,
 }: CheckoutAddressSectionProps) {
   const scopedValidators = checkoutFieldValidators[scope]
+  const phoneDefaultCountry =
+    normalizeHerbatikaAddressCountryCode(
+      checkoutDetailsForm.values[scope].countryCode
+    ) ?? "SK"
 
   return (
     <section className="space-y-300 rounded-sm border border-border-primary bg-surface p-550 font-rubik">
@@ -187,10 +192,12 @@ export function CheckoutAddressSection({
               >
                 {(field) => (
                   <field.PhoneField
+                    defaultCountry={phoneDefaultCountry}
                     id={`${fieldPrefix}-phone`}
                     label="Telefón"
                     required
                     validationMode="blur"
+                    valueMode="e164WhenValid"
                   />
                 )}
               </checkoutDetailsForm.form.AppField>

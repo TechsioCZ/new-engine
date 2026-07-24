@@ -3,7 +3,9 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import {
   PhoneInput,
+  type PhoneInputCountryChangeDetails,
   type PhoneInputCountry,
+  type PhoneInputValueChangeDetails,
 } from "@techsio/ui-kit/molecules/phone-input"
 import { type ReactNode, useState } from "react"
 import {
@@ -16,10 +18,15 @@ type FormPhoneFieldProps = {
   id: string
   label: ReactNode
   countries?: PhoneInputCountry[]
+  country?: PhoneInputCountry["value"]
+  countryName?: string
   defaultCountry?: PhoneInputCountry["value"]
   placeholder?: string
   required?: boolean
   validationMode?: "none" | "blur"
+  valueMode?: "display" | "e164WhenValid"
+  onCountryChange?: (details: PhoneInputCountryChangeDetails) => void
+  onDetailsChange?: (details: PhoneInputValueChangeDetails) => void
   onValueChange?: (value: string) => void
 }
 
@@ -76,12 +83,17 @@ const CHECKOUT_PHONE_COUNTRIES: PhoneInputCountry[] = [
 
 export function FormPhoneField({
   countries = CHECKOUT_PHONE_COUNTRIES,
+  country,
+  countryName,
   defaultCountry = "SK",
   id,
   label,
+  onCountryChange,
+  onDetailsChange,
   onValueChange,
   placeholder = "900 123 456",
   required = false,
+  valueMode = "display",
   validationMode = "blur",
 }: FormPhoneFieldProps) {
   const field = useFieldContext<string>()
@@ -97,9 +109,12 @@ export function FormPhoneField({
   return (
     <PhoneInput
       countries={countries}
+      country={country}
+      countryName={countryName}
       defaultCountry={defaultCountry}
       id={id}
       name={field.name}
+      onCountryChange={onCountryChange}
       onValueChange={(details) => {
         if (
           shouldTrackLiveFieldFeedback({
@@ -110,8 +125,14 @@ export function FormPhoneField({
           setHasChangedSinceBlur(true)
         }
 
-        field.handleChange(details.value)
-        onValueChange?.(details.value)
+        const nextValue =
+          valueMode === "e164WhenValid" && details.e164
+            ? details.e164.toString()
+            : details.value
+
+        field.handleChange(nextValue)
+        onDetailsChange?.(details)
+        onValueChange?.(nextValue)
       }}
       required={required}
       validateStatus={fieldFeedback.validateStatus}

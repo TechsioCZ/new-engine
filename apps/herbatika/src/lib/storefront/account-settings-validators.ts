@@ -1,9 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
+import { validateOptionalPhoneNumberForSupportedCountries } from "@/lib/forms/address/phone"
 import { createChangeBlurFieldValidators } from "@/lib/forms/validators/field-validator-factories"
-import {
-  validateCustomerName,
-  validateOptionalPhoneNumber,
-} from "@/lib/forms/validators/shared"
+import { validateCustomerName } from "@/lib/forms/validators/shared"
 
 export type AccountSettingsValues = {
   first_name: string
@@ -19,7 +17,10 @@ export const accountSettingsValidators = {
   last_name: createChangeBlurFieldValidators((value: string) =>
     validateCustomerName(value, "Priezvisko")
   ),
-  phone: createChangeBlurFieldValidators(validateOptionalPhoneNumber),
+  phone: createChangeBlurFieldValidators((value: string) => {
+    const result = validateOptionalPhoneNumberForSupportedCountries(value, "SK")
+    return result?.valid === false ? result.message : undefined
+  }),
 }
 
 export const toAccountSettingsValues = (
