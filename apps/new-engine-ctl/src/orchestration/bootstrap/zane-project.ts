@@ -19,7 +19,7 @@ import {
   isLoopbackUrl,
   literalSource,
   normalizeOriginUrl,
-  preferPublicCsvOrUrl,
+  preferExplicitOrMergeCsv,
   readJsonFile,
   serviceGlobalNetworkAliasSource,
   serviceInternalBucketUrlSource,
@@ -1713,21 +1713,21 @@ function buildContext(input: {
     publicDomain,
     publicUrlAffix: input.planInput.publicUrlAffix,
     minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
-    storeCors: preferPublicCsvOrUrl({
+    storeCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.storeCorsOverride,
       envValue: process.env.DC_STORE_CORS,
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
-    adminCors: preferPublicCsvOrUrl({
+    adminCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.adminCorsOverride,
       envValue: process.env.DC_ADMIN_CORS,
       fallbackValue: publicDomain
         ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
-    authCors: preferPublicCsvOrUrl({
+    authCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.authCorsOverride,
       envValue: process.env.DC_AUTH_CORS,
       fallbackValue: publicDomain

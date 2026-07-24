@@ -16,6 +16,11 @@ const stackInputsPath = join(
   repoRoot,
   "apps/new-engine-ctl/config/stack-inputs.yaml"
 )
+const projectSlug = "example-project"
+const publicDomain = "example.test"
+const publicUrlAffix = "-deploy"
+const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
+const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
 
 const serviceSlugs = [
   "medusa-db",
@@ -40,17 +45,26 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
     "preview-password-secret"
   )
-  vi.stubEnv("DC_STOREFRONT_URL", "https://storefront.example.com")
+  vi.stubEnv("DC_STOREFRONT_URL", "https://storefront.example.test")
   vi.stubEnv("DC_STORE_NAME", "Herbatika")
+  vi.stubEnv(
+    "DC_STORE_CORS",
+    "http://localhost:3001,https://storefront.example.test/"
+  )
+  vi.stubEnv("DC_ADMIN_CORS", `http://localhost:5173,${medusaBePublicOrigin}/`)
+  vi.stubEnv("DC_AUTH_CORS", "http://127.0.0.1:3001")
   vi.stubEnv("DC_FEATURE_PAYMENT_QR_ENABLED", "1")
   vi.stubEnv(
     "DC_GOPAY_WEBHOOK_URL",
     "http://localhost:9000/hooks/payment/paykit_gopay"
   )
-  vi.stubEnv("DC_HERBATICA_REVIEWS_XML_PATH", "https://example.com/reviews.xml")
+  vi.stubEnv(
+    "DC_HERBATICA_REVIEWS_XML_PATH",
+    "https://assets.example.test/reviews.xml"
+  )
   vi.stubEnv("DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "")
   vi.stubEnv("DC_MEDUSA_BE_RESEND_FROM_EMAIL", "")
-  vi.stubEnv("DC_RESEND_FROM_EMAIL", "noreply@example.com")
+  vi.stubEnv("DC_RESEND_FROM_EMAIL", "noreply@example.test")
 
   const temporaryDirectory = await mkdtemp(
     join(tmpdir(), "new-engine-zane-project-")
@@ -60,13 +74,13 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
   await writeFile(
     inspectJsonPath,
     JSON.stringify({
-      project_slug: "test-engine",
+      project_slug: projectSlug,
       environment_name: "production",
       project_exists: true,
       environment_exists: true,
       settings: {
-        root_domain: "example.com",
-        app_domain: "zane.example.com",
+        root_domain: publicDomain,
+        app_domain: `control.${publicDomain}`,
       },
       shared_variables: [],
       services: serviceSlugs.map((serviceSlug) => ({
@@ -87,14 +101,14 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
 
   try {
     const plan = await executeBootstrapZaneProjectPlan({
-      projectSlug: "test-engine",
+      projectSlug,
       projectDescription: "Test project",
       environmentName: "production",
       inspectJsonPath,
       repositoryUrl: "https://github.com/example/new-engine.git",
       branchName: "main",
-      publicDomain: "example.com",
-      publicUrlAffix: "-zane",
+      publicDomain,
+      publicUrlAffix,
       stackManifestPath,
       stackInputsPath,
       phase: "env",
@@ -135,14 +149,14 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     )
 
     const planWithN1 = await executeBootstrapZaneProjectPlan({
-      projectSlug: "test-engine",
+      projectSlug,
       projectDescription: "Test project",
       environmentName: "production",
       inspectJsonPath: inspectWithN1JsonPath,
       repositoryUrl: "https://github.com/example/new-engine.git",
       branchName: "main",
-      publicDomain: "example.com",
-      publicUrlAffix: "-zane",
+      publicDomain,
+      publicUrlAffix,
       stackManifestPath,
       stackInputsPath,
       phase: "env",
@@ -171,13 +185,15 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       (service) => service.service_id === "medusa-be"
     )
     expect(medusa?.desired_env).toMatchObject({
-      STOREFRONT_URL: "https://storefront.example.com",
+      STOREFRONT_URL: "https://storefront.example.test",
       STORE_NAME: "Herbatika",
+      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
+      ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
+      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
-      GOPAY_WEBHOOK_URL:
-        "https://test-engine-medusa-be-zane.example.com/hooks/payment/paykit_gopay",
-      HERBATICA_REVIEWS_XML_PATH: "https://example.com/reviews.xml",
-      RESEND_FROM_EMAIL: "noreply@example.com",
+      GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
+      HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
+      RESEND_FROM_EMAIL: "noreply@example.test",
     })
     expect(medusa?.desired_env).toHaveProperty(
       "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"
