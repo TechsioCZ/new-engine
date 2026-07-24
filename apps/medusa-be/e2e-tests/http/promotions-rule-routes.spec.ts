@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { authenticateAdmin, resolveRequiredEnv } from "./helpers/client"
 import {
-  createProducer,
+  createBrand,
   createProduct,
   createTestContext,
   suffix,
@@ -40,29 +40,29 @@ describe("Custom promotion rule routes HTTP E2E", () => {
         "/admin/promotions/rule-attribute-options/target-rules?promotion_type=standard&application_method_type=fixed&application_method_target_type=items"
       )
     const itemTargetIds = itemTargetAttributes.map((attribute) => attribute.id)
-    const producerAttribute = itemTargetAttributes.find(
-      (attribute) => attribute.id === "producer"
+    const brandAttribute = itemTargetAttributes.find(
+      (attribute) => attribute.id === "brand"
     )
 
     expect(itemTargetIds).toEqual(
       expect.arrayContaining([
         "product",
         "product_category",
-        "producer",
+        "brand",
         "product_variant",
         "item_price",
         "item_quantity",
       ])
     )
-    expect(producerAttribute).toEqual(
+    expect(brandAttribute).toEqual(
       expect.objectContaining({
-        value: "items.producer_ids",
+        value: "items.brand_ids",
         operators: expect.arrayContaining([
           expect.objectContaining({ label: "Not In", value: "ne" }),
         ]),
       })
     )
-    expect(producerAttribute?.operators).not.toEqual(
+    expect(brandAttribute?.operators).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ value: "nin" })])
     )
 
@@ -83,7 +83,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
     expect(buyRuleAttributes.map((attribute) => attribute.id)).toEqual(
       expect.arrayContaining([
         "buy_rules_min_quantity",
-        "producer",
+        "brand",
         "product_variant",
         "item_price",
         "item_quantity",
@@ -98,7 +98,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
     expect(buyGetTargetAttributes.map((attribute) => attribute.id)).toEqual(
       expect.arrayContaining([
         "apply_to_quantity",
-        "producer",
+        "brand",
         "product_variant",
         "item_price",
         "item_quantity",
@@ -116,7 +116,7 @@ describe("Custom promotion rule routes HTTP E2E", () => {
     expect(shippingTargetIds).toContain("shipping_option_type")
     expect(shippingTargetIds).not.toEqual(
       expect.arrayContaining([
-        "producer",
+        "brand",
         "product_variant",
         "item_price",
         "item_quantity",
@@ -133,36 +133,32 @@ describe("Custom promotion rule routes HTTP E2E", () => {
     )
   })
 
-  it("returns custom producer and product variant rule value options", async () => {
+  it("returns custom brand and product variant rule value options", async () => {
     const context = await createTestContext(backendUrl)
-    const producer = await createProducer(
+    const brand = await createBrand(
       context.admin,
-      `Rule Value Producer ${suffix()}`
+      `Rule Value Brand ${suffix()}`
     )
     const product = await createProduct(context.admin, context.salesChannelId, {
       title: `Rule Value Product ${suffix()}`,
     })
     const variant = product.variants[0]
 
-    const { values: targetProducerValues } =
+    const { values: targetBrandValues } =
       await context.admin.get<RuleValuesResponse>(
-        `/admin/promotions/rule-value-options/target-rules/producer?value=${producer.id}`
+        `/admin/promotions/rule-value-options/target-rules/brand?value=${brand.id}`
       )
-    const { values: buyProducerValues } =
+    const { values: buyBrandValues } =
       await context.admin.get<RuleValuesResponse>(
-        `/admin/promotions/rule-value-options/buy-rules/producer?value=${producer.id}`
+        `/admin/promotions/rule-value-options/buy-rules/brand?value=${brand.id}`
       )
     const { values: variantValues } =
       await context.admin.get<RuleValuesResponse>(
         `/admin/promotions/rule-value-options/target-rules/product_variant?value=${variant.id}`
       )
 
-    expect(targetProducerValues).toEqual([
-      { label: producer.title, value: producer.id },
-    ])
-    expect(buyProducerValues).toEqual([
-      { label: producer.title, value: producer.id },
-    ])
+    expect(targetBrandValues).toEqual([{ label: brand.title, value: brand.id }])
+    expect(buyBrandValues).toEqual([{ label: brand.title, value: brand.id }])
     expect(variantValues).toEqual([
       {
         label: `${product.title} - ${variant.title} (${variant.sku})`,

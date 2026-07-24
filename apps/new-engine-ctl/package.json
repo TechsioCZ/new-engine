@@ -23,6 +23,7 @@
     "@biomejs/biome": "^2.3.7",
     "@types/node": "^24.12.4",
     "esbuild": "^0.27.3",
-    "vitest": "^4.0.18"
+    "vite": "catalog:vite8-testing",
+    "vitest": "catalog:vite8-testing"
   }
 }

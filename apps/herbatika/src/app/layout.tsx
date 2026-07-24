@@ -1,10 +1,21 @@
+import {
+  type DehydratedState,
+  dehydrate,
+  HydrationBoundary,
+} from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
+import {
+  buildCategoryListParams,
+  CATEGORY_TREE_FIELDS,
+  CATEGORY_TREE_LIMIT,
+} from "@/lib/storefront/category-query-config"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
+import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import "./globals.css"
 import { Providers } from "./providers"
 
@@ -57,15 +68,22 @@ export const metadata: Metadata = {
 
 type LayoutShellProps = Readonly<{
   children: React.ReactNode
+  dehydratedState: DehydratedState
   initialRegion?: RegionInfo | null
 }>
 
-function LayoutShell({ children, initialRegion = null }: LayoutShellProps) {
+function LayoutShell({
+  children,
+  dehydratedState,
+  initialRegion = null,
+}: LayoutShellProps) {
   return (
     <Providers initialRegion={initialRegion}>
-      <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-        <AppShell>{children}</AppShell>
-      </Suspense>
+      <HydrationBoundary state={dehydratedState}>
+        <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+          <AppShell>{children}</AppShell>
+        </Suspense>
+      </HydrationBoundary>
     </Providers>
   )
 }
@@ -75,9 +93,28 @@ async function ResolvedLayoutShell({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const { region } = await getRegionServerContext()
+  const { queryClient, region } = await getRegionServerContext()
+  try {
+    await fetchServerCategories(
+      queryClient,
+      buildCategoryListParams({
+        page: 1,
+        limit: CATEGORY_TREE_LIMIT,
+        fields: CATEGORY_TREE_FIELDS,
+      })
+    )
+  } catch (error) {
+    console.error("Failed to prefetch storefront categories", error)
+  }
 
-  return <LayoutShell initialRegion={region}>{children}</LayoutShell>
+  return (
+    <LayoutShell
+      dehydratedState={dehydrate(queryClient)}
+      initialRegion={region}
+    >
+      {children}
+    </LayoutShell>
+  )
 }
 
 export default function RootLayout({

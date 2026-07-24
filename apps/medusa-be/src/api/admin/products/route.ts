@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { refetchEntities } from "@medusajs/framework/http"
+import type { ProductDTO } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
   remapKeysForProduct,
@@ -23,7 +24,11 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   })
 
   res.json({
-    products: products.map(remapProductResponse),
+    products: products.map((product) =>
+      // Medusa applies this helper to field-selected graph results, but its
+      // public parameter type is the stricter, fully populated ProductDTO.
+      remapProductResponse(product as ProductDTO)
+    ),
     count: metadata.count,
     offset: metadata.skip,
     limit: metadata.take,

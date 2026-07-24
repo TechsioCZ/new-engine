@@ -2,6 +2,7 @@ import type {
   INotificationModuleService,
   Logger,
   Query,
+  RemoteQueryEntryPoints,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -41,6 +42,14 @@ type QueryOrder = OrderReceiptOrder &
       last_name?: string | null
     } | null
   }
+
+type GeneratedOrder = RemoteQueryEntryPoints["order"]
+
+function isQueryOrder(
+  order: GeneratedOrder
+): order is GeneratedOrder & QueryOrder {
+  return typeof order.id === "string" && order.id.length > 0
+}
 
 const ORDER_RECEIPT_FIELDS = [
   "id",
@@ -122,7 +131,7 @@ const sendOrderReceiptStep = createStep(
         id: input.order_id,
       },
     })
-    const order = (data as QueryOrder[])[0]
+    const order = data.find(isQueryOrder)
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
@@ -161,7 +170,7 @@ const sendOrderReceiptStep = createStep(
       template: "order-placed",
       to: order.email,
       trigger_type: "order.placed",
-    } as Parameters<INotificationModuleService["createNotifications"]>[0])
+    })
 
     return new StepResponse({
       email: order.email,

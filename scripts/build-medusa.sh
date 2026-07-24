@@ -105,7 +105,7 @@ step_end "Cleanup"
 # ============================================
 step_start
 log_info "Step 2/5: Installing dependencies..."
-pnpm install --filter=medusa-be...
+pnpm install --frozen-lockfile --prefer-offline --filter=medusa-be...
 step_end "Install"
 
 # ============================================
@@ -123,7 +123,7 @@ export NODE_ENV="${NODE_ENV:-production}"
 export MEDUSA_TELEMETRY_DISABLED="${MEDUSA_TELEMETRY_DISABLED:-1}"
 export NX_DAEMON=false
 export NX_SKIP_NX_CACHE=true
-export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-2048}}"
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=${MEDUSA_BUILD_MAX_OLD_SPACE_SIZE:-4096}}"
 export CI="${CI:-true}"
 export ESBUILD_WORKER_THREADS="${ESBUILD_WORKER_THREADS:-0}"
 
@@ -172,14 +172,18 @@ log_info "Running: MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm --filter=medus
 if MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 run_with_low_priority pnpm --filter=medusa-be build 2>&1 | tee "$BUILD_LOG"; then
   log_info "Backend build command completed"
 else
-  log_warn "Backend build command exited with code $?"
+  build_status=$?
+  log_error "Backend build command failed with code ${build_status}"
+  exit "$build_status"
 fi
 
 log_info "Running: pnpm --filter=medusa-be exec medusa build --admin-only"
 if run_with_low_priority pnpm --filter=medusa-be exec medusa build --admin-only 2>&1 | tee -a "$BUILD_LOG"; then
   log_info "Admin build command completed"
 else
-  log_warn "Admin build command exited with code $?"
+  build_status=$?
+  log_error "Admin build command failed with code ${build_status}"
+  exit "$build_status"
 fi
 
 rm -rf apps/medusa-be/.medusa/server/public/admin
