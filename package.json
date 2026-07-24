@@ -24,7 +24,7 @@
     "knip:fix": "knip --fix",
     "knip:prod": "knip --production",
     "jscpd": "jscpd apps/ libs/",
-    "prepare": "lefthook install"
+    "prepare": "node -e \"if (require('node:fs').existsSync('.git')) require('node:child_process').execSync('lefthook install', { stdio: 'inherit' })\""
   },
   "private": true,
   "devDependencies": {

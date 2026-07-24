@@ -1,5 +1,5 @@
-# Git hooks for new-engine. Installed by `lefthook install`, which the root `prepare` script runs
-# after every `pnpm install`. See scripts/check-skill-sync.mjs for the ui-kit version gate.
+# Git hooks for new-engine. The root `prepare` script installs them after `pnpm install` in a Git
+# checkout. See scripts/check-skill-sync.mjs for the ui-kit version gate.
 pre-commit:
   parallel: true
   jobs:
