@@ -140,7 +140,9 @@ function writeBaseline(baselinePath, themes) {
       "Known Storybook accessibility violation nodes. CI rejects new node fingerprints and lost story coverage while reporting this debt.",
     themes,
   }
-  fs.writeFileSync(baselinePath, `${JSON.stringify(baseline, null, 2)}\n`)
+  // Compact on purpose: the committed baseline holds ~13k violation entries
+  // and pretty-printing turns it into ~90k diff lines on every regeneration.
+  fs.writeFileSync(baselinePath, `${JSON.stringify(baseline)}\n`)
 }
 
 function entryKey(entry) {
