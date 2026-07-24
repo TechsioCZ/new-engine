@@ -25,6 +25,7 @@
     "@techsio/std": "workspace:*",
     "@techsio/storefront-data": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
+    "isomorphic-dompurify": "^3.19.0",
     "next": "16.3.0-preview.5",
     "nuqs": "^2.9.0",
     "qrcode": "1.5.4",
