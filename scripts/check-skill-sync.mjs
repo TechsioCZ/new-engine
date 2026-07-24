@@ -14,7 +14,7 @@
 // Reads staged content from the git index, so it validates exactly what is being committed.
 
 import { execFileSync } from "node:child_process"
-import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 
 const SKILLS_DIR = "libs/ui/skills"
@@ -45,16 +45,11 @@ const git = (args) => {
   }
 }
 
-// Staged content of a path (from the index), falling back to the working tree.
-const readStaged = (path) => {
-  const fromIndex = git(["show", `:${path}`])
-  if (fromIndex) return fromIndex
-  try {
-    return readFileSync(path, "utf8")
-  } catch {
-    return ""
-  }
-}
+// Staged content of a path, read STRICTLY from the index — this gate asserts the state of the
+// commit being made, so an unstaged working-tree edit (file modified but not `git add`ed, or
+// deleted from the index) must read as absent rather than silently validating content that will
+// not be committed. `git show :<path>` returns "" for a path missing from the index.
+const readStaged = (path) => git(["show", `:${path}`])
 
 const baselineRef = () => {
   for (const base of ["origin/master", "master", "origin/main", "main"]) {
