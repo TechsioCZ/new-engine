@@ -14,6 +14,9 @@ export default defineConfig({
     "libs/ui/src/tokens/figma/brand-overrides.css",
     "libs/ui/src/tokens/figma/variables.css",
     "libs/ui/src/tokens/_tokens-base.css",
+    // Machine-generated debt ledger; kept as one compact line so baseline
+    // regenerations do not produce ~90k-line diffs.
+    "libs/ui/a11y-baseline.json",
   ],
   semi: false,
 })
