@@ -32,6 +32,7 @@ import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
 
 const originalErrorHandler = errorHandler()
 
@@ -82,5 +83,6 @@ export default defineMiddlewares({
     ...storeProductLocationAvailabilityRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
+    ...storeShopReviewRoutesMiddlewares,
   ],
 })

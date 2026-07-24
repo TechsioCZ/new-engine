@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { API_STORE_MODULE } from "../modules/api-store"
 import { DATABASE_MODULE } from "../modules/database"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
@@ -196,6 +197,10 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/api-store",
+    },
+    {
+      resolve: "./src/modules/shop-review",
+      dependencies: [API_STORE_MODULE],
     },
     {
       resolve: "./src/modules/product-list",
