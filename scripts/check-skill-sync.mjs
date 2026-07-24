@@ -52,7 +52,12 @@ const git = (args) => {
 const readStaged = (path) => git(["show", `:${path}`])
 
 const baselineRef = () => {
-  for (const base of ["origin/master", "master", "origin/main", "main"]) {
+  const candidates = ["origin/master", "master", "origin/main", "main"]
+  // Also honour the remote's actual default branch, so a repo whose default is neither master nor
+  // main doesn't silently skip the bump check below (baselineRef() returning "" disables it).
+  const remoteHead = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"])
+  if (remoteHead) candidates.push(remoteHead)
+  for (const base of candidates) {
     const mb = git(["merge-base", "HEAD", base])
     if (mb) return mb
   }
@@ -74,7 +79,10 @@ const stripMeta = (src) =>
     .filter((l) => !/@componentVersion|@skill\b|@component\b/.test(l))
     .join("\n")
 
-const staged = git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"])
+// Include deletions (D): removing a component's SKILL.md, its generated bundle copy, or the
+// changelog must still pull the component into the check set so the missing-artifact checks fire —
+// otherwise the commit passes while the component points at a now-missing sync artifact.
+const staged = git(["diff", "--cached", "--name-only", "--diff-filter=ACMRD"])
   .split("\n")
   .filter(Boolean)
 const stagedSet = new Set(staged)
@@ -153,19 +161,18 @@ for (const file of toCheck) {
     )
   }
 
-  // The committed plugin bundle is generated from the source skill — a stale copy would ship wrong
-  // version metadata to standalone plugin consumers.
+  // The committed plugin bundle is generated from the source skill by a verbatim copy
+  // (sync-skills.mjs `cpSync`), so it must be byte-for-byte identical. Comparing only
+  // `component_version` would let changed source guidance ship with a stale bundle that happens to
+  // carry the same version — check the whole file, which subsumes the version.
   const bundledPath = join(PLUGIN_SKILLS_DIR, skillName, "SKILL.md")
-  if (existsSync(bundledPath)) {
-    const bundledV = readStaged(bundledPath).match(SKILL_VERSION_RE)?.[1]
-    if (bundledV !== version) {
-      errors.push(
-        `${bundledPath}: component_version v${bundledV ?? "—"} is stale (expected v${version}) — run \`${SYNC_CMD}\`.`
-      )
-    }
-  } else {
+  if (!existsSync(bundledPath)) {
     errors.push(
       `${bundledPath} missing — run \`${SYNC_CMD}\` to bundle ${skillName}.`
+    )
+  } else if (readStaged(bundledPath) !== readStaged(skillPath)) {
+    errors.push(
+      `${bundledPath}: out of sync with ${skillPath} (content differs) — run \`${SYNC_CMD}\`.`
     )
   }
 

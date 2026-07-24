@@ -20,8 +20,8 @@ const CHANGELOG = `
 
 function Changelog() {
   return (
-    <div className="min-h-screen bg-base p-8">
-      <div className="mx-auto max-w-3xl rounded-xl bg-surface p-6 shadow-lg">
+    <div className="min-h-screen bg-base p-400">
+      <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
         <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
           {CHANGELOG}
         </pre>
@@ -33,9 +33,10 @@ function Changelog() {
 const meta: Meta<typeof Changelog> = {
   title: 'Guide/Changelog',
   component: Changelog,
+  tags: ['autodocs'],
   parameters: { layout: 'fullscreen' },
 }
 
 export default meta
 
-export const Default: StoryObj<typeof Changelog> = {}
+export const Playground: StoryObj<typeof Changelog> = {}
