@@ -1,3 +1,14 @@
+/**
+ * Input — @techsio/ui-kit atom.
+ *
+ * @component Input
+ * @componentVersion v1.0.0
+ * @skill input-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the input-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { InputHTMLAttributes, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"

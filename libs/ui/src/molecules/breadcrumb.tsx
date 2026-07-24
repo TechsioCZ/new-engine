@@ -1,3 +1,14 @@
+/**
+ * Breadcrumb — @techsio/ui-kit molecule.
+ *
+ * @component Breadcrumb
+ * @componentVersion v1.0.0
+ * @skill breadcrumb-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import {
   createContext,
   type ComponentPropsWithoutRef,

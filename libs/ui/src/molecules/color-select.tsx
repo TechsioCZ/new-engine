@@ -1,3 +1,14 @@
+/**
+ * ColorSelect — @techsio/ui-kit molecule.
+ *
+ * @component ColorSelect
+ * @componentVersion v1.0.0
+ * @skill color-select-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the color-select-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import { Button } from "../atoms/button"
 import { Icon } from "../atoms/icon"
 import { tv } from "../utils"

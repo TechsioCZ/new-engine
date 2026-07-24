@@ -1,3 +1,14 @@
+/**
+ * FormTextarea — @techsio/ui-kit molecule.
+ *
+ * @component FormTextarea
+ * @componentVersion v1.0.0
+ * @skill form-textarea-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the form-textarea-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { ReactNode } from "react"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
