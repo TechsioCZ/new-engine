@@ -1370,7 +1370,7 @@ setup::upsert_service_envs_from_plan() {
 }
 
 setup::main() {
-  local services=(
+  local baseline_services=(
     medusa-db
     medusa-valkey
     medusa-minio
@@ -1380,12 +1380,30 @@ setup::main() {
     herbatika
     zane-operator
   )
+  local services=("${baseline_services[@]}")
+  local inspection_services=("${baseline_services[@]}")
+  local parsed_services=()
+  local requested_service
   local service_plan
 
   setup::parse_args "$@"
   if [[ -n "$SERVICES_CSV" ]]; then
-    IFS=',' read -r -a services <<<"$SERVICES_CSV"
+    services=()
+    IFS=',' read -r -a parsed_services <<<"$SERVICES_CSV"
+    for requested_service in "${parsed_services[@]}"; do
+      requested_service="${requested_service//[[:space:]]/}"
+      [[ -n "$requested_service" ]] || continue
+      if [[ " ${services[*]} " != *" ${requested_service} "* ]]; then
+        services+=("$requested_service")
+      fi
+    done
+    [[ "${#services[@]}" -gt 0 ]] || common::die "--services-csv must contain at least one service id."
   fi
+  for requested_service in "${services[@]}"; do
+    if [[ " ${inspection_services[*]} " != *" ${requested_service} "* ]]; then
+      inspection_services+=("$requested_service")
+    fi
+  done
   dev::load_env_file "$ENV_FILE" required
   setup::normalize_base_url
   setup::derive_repository_url
@@ -1403,7 +1421,7 @@ setup::main() {
   echo "Logging into Zane at ${ZANE_BASE_URL}..."
   zane::login
   setup::capture_zane_settings
-  setup::resolve_ctl_plan services "${services[@]}"
+  setup::resolve_ctl_plan services "${inspection_services[@]}"
   if [[ "$(jq -r '.warnings | length' <"$PLAN_JSON_FILE")" != "0" ]]; then
     setup::print_plan_summary
   fi
@@ -1418,15 +1436,17 @@ setup::main() {
   fi
   zane::api GET "projects/${PROJECT_SLUG}/environment-details/${ENVIRONMENT_NAME}/" >/dev/null
 
-  while IFS= read -r service_plan; do
+  for requested_service in "${services[@]}"; do
+    service_plan="$(jq -c --arg service_id "$requested_service" '.services[] | select(.service_id == $service_id)' <"$PLAN_JSON_FILE")"
+    [[ -n "$service_plan" ]] || common::die "CTL bootstrap plan omitted requested service ${requested_service}."
     setup::apply_service_from_plan "$service_plan"
-  done < <(jq -c '.services[]' <"$PLAN_JSON_FILE")
+  done
 
   rm -f "$INSPECT_JSON_FILE" "$PLAN_JSON_FILE"
   INSPECT_JSON_FILE=""
   PLAN_JSON_FILE=""
 
-  setup::resolve_ctl_plan env "${services[@]}"
+  setup::resolve_ctl_plan env "${inspection_services[@]}"
   if [[ "$(jq -r '.warnings | length' <"$PLAN_JSON_FILE")" != "0" ]]; then
     setup::print_plan_summary
   fi
@@ -1436,9 +1456,11 @@ setup::main() {
   fi
 
   setup::upsert_shared_envs_from_plan "$(cat "$PLAN_JSON_FILE")"
-  while IFS= read -r service_plan; do
+  for requested_service in "${services[@]}"; do
+    service_plan="$(jq -c --arg service_id "$requested_service" '.services[] | select(.service_id == $service_id)' <"$PLAN_JSON_FILE")"
+    [[ -n "$service_plan" ]] || common::die "CTL bootstrap plan omitted requested service ${requested_service}."
     setup::upsert_service_envs_from_plan "$service_plan"
-  done < <(jq -c '.services[]' <"$PLAN_JSON_FILE")
+  done
 
   cat <<EOF
 Bootstrap complete.

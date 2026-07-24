@@ -49,6 +49,11 @@ RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=herbatika...
 
+RUN mkdir -p /var/www/apps/herbatika/.next && \
+    chown node:node /var/www/apps/herbatika /var/www/apps/herbatika/.next
+
+USER node
+
 WORKDIR /var/www/apps/herbatika
 
 CMD ["npm", "run", "start:ci-dev"]

@@ -92,6 +92,26 @@ export type GlobalRuntimeRule = {
   serviceIds: string[]
 }
 
+function buildDeployableService(
+  service: StackManifest["services"][number]
+): DeployableService {
+  const zane = service.ci.zane
+  if (!zane) {
+    throw new Error(`Service is missing Zane metadata: ${service.id}`)
+  }
+
+  return {
+    id: service.id,
+    serviceSlug: zane.service_slug,
+    enabledByDefault: service.ci.enabled_by_default,
+    cloneToPreview: zane.clone_to_preview,
+    deployLanes: zane.deploy_lanes,
+    deployStage: zane.deploy_stage,
+    downtimeRisk: zane.downtime_risk,
+    serviceDependencies: zane.service_dependencies,
+  }
+}
+
 function toDeployableService(
   service: StackManifest["services"][number]
 ): DeployableService {
@@ -101,16 +121,7 @@ function toDeployableService(
     )
   }
 
-  return {
-    id: service.id,
-    serviceSlug: service.ci.zane.service_slug,
-    enabledByDefault: service.ci.enabled_by_default,
-    cloneToPreview: service.ci.zane.clone_to_preview,
-    deployLanes: service.ci.zane.deploy_lanes,
-    deployStage: service.ci.zane.deploy_stage,
-    downtimeRisk: service.ci.zane.downtime_risk,
-    serviceDependencies: service.ci.zane.service_dependencies,
-  }
+  return buildDeployableService(service)
 }
 
 export function listDeployableServices(
@@ -150,16 +161,7 @@ export function getZaneService(
     throw new Error(`Service is missing Zane metadata: ${serviceId}`)
   }
 
-  return {
-    id: service.id,
-    serviceSlug: service.ci.zane.service_slug,
-    enabledByDefault: service.ci.enabled_by_default,
-    cloneToPreview: service.ci.zane.clone_to_preview,
-    deployLanes: service.ci.zane.deploy_lanes,
-    deployStage: service.ci.zane.deploy_stage,
-    downtimeRisk: service.ci.zane.downtime_risk,
-    serviceDependencies: service.ci.zane.service_dependencies,
-  }
+  return buildDeployableService(service)
 }
 
 export function listComposeServicesForPhase(

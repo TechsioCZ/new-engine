@@ -2,7 +2,12 @@ import { delimiter, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { expect, test } from "vitest"
-import { listLaneServiceIds } from "../contracts/stack-manifest.js"
+import {
+  getDeployableService,
+  getZaneService,
+  listLaneServiceIds,
+  stackManifestSchema,
+} from "../contracts/stack-manifest.js"
 import { loadDeployContracts } from "../orchestration/deploy-inputs.js"
 import { executePlan } from "../orchestration/plan.js"
 import { collectConfiguredRuntimeProviderNeeds } from "../orchestration/runtime-provider-orchestration.js"
@@ -43,6 +48,28 @@ test("scope removes duplicate path casing when prefixing workspace bin", () => {
 
   expect(env.PATH).toBe([workspaceBinPath, "/usr/bin"].join(delimiter))
   expect(Object.hasOwn(env, "Path")).toBe(false)
+})
+
+test("Zane service lookup preserves its less restrictive deployability guard", () => {
+  const manifest = stackManifestSchema.parse({
+    services: [
+      {
+        id: "optional",
+        ci: {
+          deployable: false,
+          zane: {
+            service_slug: "optional",
+            deploy_lanes: ["main"],
+          },
+        },
+      },
+    ],
+  })
+
+  expect(getZaneService(manifest, "optional").serviceSlug).toBe("optional")
+  expect(() => getDeployableService(manifest, "optional")).toThrow(
+    "Service is not deployable or missing Zane metadata: optional"
+  )
 })
 
 test("preview scope prepares DB credentials for first baseline replay", async () => {
