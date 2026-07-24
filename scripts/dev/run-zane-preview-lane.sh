@@ -46,7 +46,7 @@ Options:
 Notes:
   - Local defaults are sourced from .env.zane when present.
   - This helper stays thin: repo policy remains owned by apps/new-engine-ctl.
-  - Pass explicit services, for example: --services-csv medusa-be,n1
+  - Pass explicit services, for example: --services-csv medusa-be,herbatika
 EOF
 }
 

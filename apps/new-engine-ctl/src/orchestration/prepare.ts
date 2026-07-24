@@ -46,7 +46,9 @@ async function resolveRequiresPreviewDb(
     listDeployableServices(manifest)
       .filter(
         (service) =>
-          service.cloneToPreview && service.deployLanes.includes("preview")
+          service.enabledByDefault &&
+          service.cloneToPreview &&
+          service.deployLanes.includes("preview")
       )
       .map((service) => service.id)
   )

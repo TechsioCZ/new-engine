@@ -83,8 +83,14 @@ function buildPlanService(
   }
 }
 
-function buildPreviewServiceSets(manifest: StackManifest): PreviewServiceSets {
-  const services = listDeployableServices(manifest)
+function buildPreviewServiceSets(
+  manifest: StackManifest,
+  explicitlyRequestedServiceIds: Set<string>
+): PreviewServiceSets {
+  const services = listDeployableServices(manifest).filter(
+    (service) =>
+      service.enabledByDefault || explicitlyRequestedServiceIds.has(service.id)
+  )
 
   return {
     clonedServices: services.filter((service) => service.cloneToPreview),
@@ -144,7 +150,7 @@ export async function executePlan(
   )
   const previewServiceSets =
     input.lane === "preview"
-      ? buildPreviewServiceSets(manifest)
+      ? buildPreviewServiceSets(manifest, requestedServiceIds)
       : { clonedServices: [], excludedServices: [] }
 
   const response = planResponseSchema.parse({

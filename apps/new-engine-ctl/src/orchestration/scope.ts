@@ -250,7 +250,9 @@ function listPreviewBaselinePrepareServiceIds(
     listDeployableServices(manifest)
       .filter(
         (service) =>
-          service.deployLanes.includes("preview") && service.cloneToPreview
+          service.enabledByDefault &&
+          service.deployLanes.includes("preview") &&
+          service.cloneToPreview
       )
       .map((service) => service.id)
   )
@@ -398,8 +400,11 @@ function filterServicesAllowedInLane(input: {
   manifest: StackManifest
   lane: ScopeCommandInput["lane"]
   servicesCsv: string
+  defaultOnly?: boolean
 }): string {
-  const allowed = new Set(listLaneServiceIds(input.manifest, input.lane))
+  const allowed = new Set(
+    listLaneServiceIds(input.manifest, input.lane, input.defaultOnly ?? false)
+  )
 
   return normalizeCsvToArray(input.servicesCsv)
     .filter((serviceId) => allowed.has(serviceId))
@@ -461,6 +466,7 @@ export async function executeScope(
       manifest,
       lane: input.lane,
       servicesCsv,
+      defaultOnly: true,
     })
   }
 
