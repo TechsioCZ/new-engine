@@ -82,7 +82,10 @@ COPY apps/payload/package.json apps/payload/package.json
 COPY libs/std/package.json libs/std/package.json
 RUN --mount=type=cache,id=quality-v12-payload-pnpm-${TARGETPLATFORM},target=/pnpm/store \
     corepack install && \
-    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=@nmit/payload...
+    # --prod=false: NODE_ENV=production would prune devDependencies, but the
+    # @techsio/std build below needs its toolchain (--ignore-scripts skips its
+    # prepare build).
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --prod=false --filter=@nmit/payload...
 COPY apps/payload apps/payload
 COPY libs/std libs/std
 RUN mkdir -p apps/payload/public
