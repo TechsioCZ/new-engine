@@ -80,6 +80,15 @@ function effectiveGitCwd(command, startCwd) {
     else gitDir = value;
   };
 
+  // Environment assignments prefixed before the git executable (`GIT_DIR=… git …`, incl. via `env`
+  // or other leading `NAME=value` tokens). Only GIT_DIR selects the repository — GIT_WORK_TREE just
+  // relocates the working tree, exactly like `--work-tree`, so it can't retarget a push. A
+  // command-line `--git-dir` overrides the env var, so we seed gitDir here and let the flag loop win.
+  for (let i = 0; i < gitIdx; i++) {
+    const m = /^GIT_DIR=(.*)$/.exec(tokens[i]);
+    if (m) apply("--git-dir", m[1]);
+  }
+
   for (let i = gitIdx + 1; i < tokens.length; i++) {
     const t = tokens[i];
     // Space form: `-C <dir>` / `--git-dir <dir>` (git requires the space for the short `-C`).
