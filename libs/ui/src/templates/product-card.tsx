@@ -2,35 +2,37 @@ import { Badge, type BadgeProps } from "../atoms/badge"
 import { ProductCard, type ProductCardProps } from "../molecules/product-card"
 import { slugify } from "../utils"
 
-export interface ProductCardTemplateProps
-  extends Pick<ProductCardProps, "layout"> {
+export interface ProductCardTemplateProps extends Pick<
+  ProductCardProps,
+  "layout"
+> {
   image?: {
     src: string
     alt: string
   }
-  name?: string
-  price?: string
-  originalPrice?: string
-  badges?: BadgeProps[]
+  name?: string | undefined
+  price?: string | undefined
+  originalPrice?: string | undefined
+  badges?: BadgeProps[] | undefined
   rating?: {
     value: number
     /** Total number of rating items to display (e.g., 5 for 5 stars) */
-    count?: number
+    count?: number | undefined
     /** Number of reviews/ratings from users */
-    reviewCount?: number
+    reviewCount?: number | undefined
   }
   stock?: {
-    status?: "in-stock" | "limited-stock" | "out-of-stock"
+    status?: "in-stock" | "limited-stock" | "out-of-stock" | undefined
     label: string
   }
-  showActions?: boolean
-  onAddToCart?: () => void
-  onViewDetails?: () => void
-  onAddToWishlist?: () => void
-  cartButtonText?: string
-  detailButtonText?: string
-  wishlistButtonText?: string
-  className?: string
+  showActions?: boolean | undefined
+  onAddToCart?: (() => void) | undefined
+  onViewDetails?: (() => void) | undefined
+  onAddToWishlist?: (() => void) | undefined
+  cartButtonText?: string | undefined
+  detailButtonText?: string | undefined
+  wishlistButtonText?: string | undefined
+  className?: string | undefined
 }
 
 export function ProductCardTemplate({
@@ -101,9 +103,7 @@ export function ProductCardTemplate({
             }}
           />
           {rating.reviewCount && (
-            <span className="text-sm">
-              ({rating.reviewCount})
-            </span>
+            <span className="text-sm">({rating.reviewCount})</span>
           )}
         </div>
       )}

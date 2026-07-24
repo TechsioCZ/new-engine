@@ -1,9 +1,11 @@
 import { join } from "node:path"
+
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["n1.medusa.localhost"],
   reactStrictMode: true,
+  typedRoutes: true,
   output: "standalone",
   transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
   reactCompiler: true,
@@ -68,7 +70,7 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(self)",
           },
-          ...(process.env.NODE_ENV === "production"
+          ...(process.env["NODE_ENV"] === "production"
             ? [
                 {
                   key: "Strict-Transport-Security",

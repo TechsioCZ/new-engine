@@ -8,6 +8,16 @@ type OrderReceiptMoney =
     }
   | null
 
+type TextValue = boolean | number | string | null | undefined
+
+function normalizeTextValue(value: TextValue): string {
+  if (value === null || value === undefined) {
+    return ""
+  }
+
+  return String(value)
+}
+
 export type OrderReceiptAddress = {
   address_1?: string | null
   address_2?: string | null
@@ -110,13 +120,6 @@ function objectToNumberValue(
     return toNumber(value.toJSON() as OrderReceiptMoney)
   }
 
-  if ("toString" in value && typeof value.toString === "function") {
-    const stringValue = value.toString()
-    if (stringValue !== "[object Object]") {
-      return toNumber(stringValue)
-    }
-  }
-
   return 0
 }
 
@@ -142,8 +145,8 @@ function getExplicitMoneyTotal(value: OrderReceiptMoney | undefined) {
   return hasExplicitMoney(value) ? toNumber(value) : null
 }
 
-export function ascii(value: unknown) {
-  return String(value ?? "")
+export function ascii(value: TextValue) {
+  return normalizeTextValue(value)
     .replace(/\u00a0/g, " ")
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -193,8 +196,8 @@ function escapePdfAsciiChar(char: string) {
   return char.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")
 }
 
-export function escapePdfText(value: unknown) {
-  const normalized = String(value ?? "")
+export function escapePdfText(value: TextValue) {
+  const normalized = normalizeTextValue(value)
     .replace(/\u00a0/g, " ")
     .normalize("NFKD")
   let escaped = ""
@@ -818,8 +821,8 @@ function helveticaCharacterWidth(character: string, font: PdfFont) {
   return widths[character] ?? HELVETICA_FALLBACK_WIDTH
 }
 
-export function truncate(value: unknown, maxLength: number) {
-  const textValue = String(value ?? "")
+export function truncate(value: TextValue, maxLength: number) {
+  const textValue = normalizeTextValue(value)
     .replace(/\u00a0/g, " ")
     .trim()
 
@@ -913,13 +916,13 @@ function tokenLinesToEstimatedWidth(
 }
 
 export function wrapToEstimatedWidth(
-  value: unknown,
+  value: TextValue,
   maxWidth: number,
   fontSize: number,
   font: PdfFont = "F1"
 ) {
   const context = { font, fontSize, maxWidth }
-  const textValue = String(value ?? "")
+  const textValue = normalizeTextValue(value)
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -955,7 +958,7 @@ export function wrapToEstimatedWidth(
 export type PdfCommand = string
 
 export function pdfText(
-  value: unknown,
+  value: TextValue,
   x: number,
   y: number,
   options: {
@@ -968,7 +971,7 @@ export function pdfText(
   const content = escapePdfText(value)
   const alignedX =
     options.align === "right"
-      ? x - estimateTextWidth(String(value ?? ""), fontSize, options.font)
+      ? x - estimateTextWidth(normalizeTextValue(value), fontSize, options.font)
       : x
 
   return `BT /${options.font ?? "F1"} ${fontSize} Tf ${alignedX.toFixed(

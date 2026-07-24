@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { XMLBuilder, XMLParser } from "fast-xml-parser"
+
 import type {
   PacketaBranch,
   PacketaCreatePacketResult,
@@ -179,7 +180,8 @@ export class PacketaClient {
     const url = BRANCH_FEED_URL.replace(
       "{apiKey}",
       encodeURIComponent(
-        process.env.PACKETA_PICKUP_POINTS_API_KEY ?? this.options.api_password
+        process.env["PACKETA_PICKUP_POINTS_API_KEY"] ??
+          this.options.api_password
       )
     )
 
@@ -280,7 +282,7 @@ export class PacketaClient {
         if (envelope.status !== "ok") {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: unexpected status "${envelope.status}"`
+            `Packeta ${methodName}: unexpected status ${JSON.stringify(envelope.status)}`
           )
         }
 

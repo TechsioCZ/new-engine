@@ -3,14 +3,16 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useState } from "react"
+
+import NextLink from "@/components/app-link"
 import {
   type ForgotPasswordFormValues,
   forgotPasswordValidators,
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { AuthFooter } from "./auth-footer"
 
 type ForgotPasswordFormProps = {

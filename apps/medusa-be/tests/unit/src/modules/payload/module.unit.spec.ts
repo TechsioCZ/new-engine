@@ -1,5 +1,6 @@
 import { Module } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import payloadModule, {
   PAYLOAD_MODULE,
 } from "../../../../../src/modules/payload/index"

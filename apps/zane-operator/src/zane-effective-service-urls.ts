@@ -3,22 +3,25 @@ import type { ZaneServiceDetails, ZaneServiceUrl } from "./zane-contract"
 function coercePendingUrl(
   value: Record<string, unknown> | null | undefined
 ): ZaneServiceUrl | null {
-  if (!value || typeof value.domain !== "string") {
+  if (!value || typeof value["domain"] !== "string") {
     return null
   }
 
   return {
-    id: typeof value.id === "string" ? value.id : undefined,
-    domain: value.domain,
+    ...(typeof value["id"] === "string" ? { id: value["id"] } : {}),
+    domain: value["domain"],
     base_path:
-      typeof value.base_path === "string" && value.base_path.trim()
-        ? value.base_path
+      typeof value["base_path"] === "string" && value["base_path"].trim()
+        ? value["base_path"]
         : "/",
     strip_prefix:
-      typeof value.strip_prefix === "boolean" ? value.strip_prefix : true,
-    redirect_to: typeof value.redirect_to === "string" ? value.redirect_to : null,
+      typeof value["strip_prefix"] === "boolean" ? value["strip_prefix"] : true,
+    redirect_to:
+      typeof value["redirect_to"] === "string" ? value["redirect_to"] : null,
     associated_port:
-      typeof value.associated_port === "number" ? value.associated_port : null,
+      typeof value["associated_port"] === "number"
+        ? value["associated_port"]
+        : null,
   }
 }
 

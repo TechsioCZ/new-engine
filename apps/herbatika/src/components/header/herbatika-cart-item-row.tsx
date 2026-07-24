@@ -4,7 +4,8 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import Image from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   resolveCartItemName,
@@ -12,6 +13,7 @@ import {
   resolveLineItemUnitAmount,
 } from "@/lib/storefront/cart-calculations"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import {
   FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
@@ -49,11 +51,11 @@ export function CartItemRow({
   )
 
   return (
-    <article className="grid grid-cols-[auto_1fr_auto] items-start gap-200">
+    <article className="header-cart-item-layout grid items-start gap-200">
       <NextLink href={itemHref}>
         <Image
           alt={itemName}
-          className="h-16 w-16 rounded-md object-cover"
+          className="size-cart-preview-image rounded-md object-cover"
           height={60}
           src={resolveLineItemThumbnail(item)}
           width={60}
@@ -82,7 +84,7 @@ export function CartItemRow({
 
       <div className="ml-auto flex items-center gap-150">
         <CartLineItemQuantityInput
-          className="w-24"
+          className="w-cart-quantity"
           inputClassName="text-center"
           isPending={isPending}
           itemName={itemName}

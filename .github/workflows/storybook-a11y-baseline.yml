@@ -1,25 +1,6 @@
 name: Storybook A11y Baseline (APCA)
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - "libs/ui/.storybook/**"
-      - "libs/ui/assets/**"
-      - "libs/ui/package.json"
-      - "libs/ui/playwright.config.cts"
-      - "libs/ui/postcss.config.mjs"
-      - "libs/ui/project.json"
-      - "libs/ui/rslib.config.ts"
-      - "libs/ui/scripts/storybook-a11y*"
-      - "libs/ui/src/**"
-      - "libs/ui/stories/**"
-      - "libs/ui/tsconfig.json"
-      - ".github/workflows/storybook-a11y.yml"
-      - ".github/workflows/storybook-a11y-baseline.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
   workflow_dispatch:
 
 permissions:
@@ -43,7 +24,12 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit...
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=@techsio/ui-kit...
+
+      # --ignore-scripts skips the std `prepare` build; the Storybook build
+      # resolves @techsio/std/* through dist-backed exports.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build
 
       - name: Build Storybook (UI)
         run: pnpm -C libs/ui run build:storybook
@@ -82,12 +68,12 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...'
 
       - name: Install Playwright browsers
         # Storybook's test runner can use a different Playwright version than
         # the workspace root. Install its exact matching browser revision.
-        run: timeout 420 node scripts/install-storybook-playwright.mjs libs/ui install --only-shell chromium
+        run: node scripts/install-storybook-playwright.mjs libs/ui install --only-shell chromium
 
       - name: Download Storybook static
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -109,6 +95,7 @@ jobs:
         continue-on-error: true
         env:
           A11Y_REPORT_OUTPUT_DIR: a11y-report/${{ matrix.theme }}
+          A11Y_THEME: ${{ matrix.theme }}
         run: |
           mkdir -p "libs/ui/a11y-report/${{ matrix.theme }}"
           python3 -m http.server 6006 --directory libs/ui/storybook-static &
@@ -128,6 +115,13 @@ jobs:
             exit 1
           fi
           pnpm -C libs/ui exec test-storybook --url "http://127.0.0.1:6006/?globals=theme:${{ matrix.theme }}" --config-dir .storybook --maxWorkers 2 --testTimeout 60000
+          node libs/ui/scripts/storybook-a11y-index.mjs \
+            --input libs/ui/storybook-static/index.json \
+            --output "libs/ui/a11y-report/${{ matrix.theme }}/index.json"
+          node libs/ui/scripts/storybook-a11y-finalize.mjs \
+            --index "libs/ui/a11y-report/${{ matrix.theme }}/index.json" \
+            --report-dir "libs/ui/a11y-report/${{ matrix.theme }}" \
+            --theme "${{ matrix.theme }}"
 
       - name: Upload baseline report (${{ matrix.theme }})
         if: always() && hashFiles(format('libs/ui/a11y-report/{0}/report.json', matrix.theme)) != ''
@@ -136,3 +130,38 @@ jobs:
           name: storybook-a11y-baseline-${{ matrix.theme }}
           path: libs/ui/a11y-report/${{ matrix.theme }}/report.json
           retention-days: 30
+
+  authorize-baseline:
+    name: Verify proposed baseline matches the authorized scan
+    runs-on: ubuntu-latest
+    needs: storybook-a11y-baseline
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Download light baseline report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-a11y-baseline-light
+          path: ${{ runner.temp }}/authorized-a11y-report/light
+
+      - name: Download dark baseline report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-a11y-baseline-dark
+          path: ${{ runner.temp }}/authorized-a11y-report/dark
+
+      - name: Verify the proposed baseline
+        env:
+          AUTHORIZED_BASELINE: ${{ runner.temp }}/authorized-a11y-baseline.json
+          AUTHORIZED_REPORT_ROOT: ${{ runner.temp }}/authorized-a11y-report
+        run: |
+          node libs/ui/scripts/storybook-a11y-regression.mjs \
+            --report-root "$AUTHORIZED_REPORT_ROOT" \
+            --baseline "$AUTHORIZED_BASELINE" \
+            --update-baseline
+          if ! cmp --silent "$AUTHORIZED_BASELINE" libs/ui/a11y-baseline.json; then
+            echo "::error file=libs/ui/a11y-baseline.json::The proposed accessibility baseline does not exactly match this authorized Storybook scan. Download the generated baseline artifact or regenerate it locally; do not suppress individual findings."
+            exit 1
+          fi

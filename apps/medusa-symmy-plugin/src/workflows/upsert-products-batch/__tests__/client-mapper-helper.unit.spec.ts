@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import type { ExistingProduct, ResolvedCategoryMap } from "../client"
 import { ProductBatchClientMapperHelper } from "../client-mapper-helper"
 import type { ProductInput } from "../types"

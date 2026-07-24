@@ -1,5 +1,6 @@
 import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
 import { describe, expect, it, vi } from "vitest"
+
 import { BRAND_MODULE } from "../index"
 import Brand from "../models/brand"
 import BrandAttribute from "../models/brand-attribute"

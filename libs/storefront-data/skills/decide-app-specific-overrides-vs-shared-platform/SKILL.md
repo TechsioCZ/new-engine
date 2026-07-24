@@ -1,11 +1,7 @@
 ---
 name: decide-app-specific-overrides-vs-shared-platform
 description: >
-  Load this skill when deciding whether storefront-specific wrappers, DTOs,
-  address adapters, or backend behavior should stay in the app or move into
-  @techsio/storefront-data. Use it for thin wrapper rules, customer-specific
-  read models, and deciding when repeated backend logic becomes shared platform
-  behavior.
+  Load this skill when deciding whether storefront-specific wrappers, DTOs, address adapters, or backend behavior should stay in the app or move into @techsio/storefront-data. Use it for thin wrapper rules, customer-specific read models, and deciding when repeated backend logic becomes shared platform behavior.
 type: composition
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -57,35 +53,39 @@ The shared package should own reusable backend-facing contracts. A storefront-lo
 // apps/n1/src/lib/address-adapter.ts
 import type { CheckoutCartAddressAdapter } from "@techsio/storefront-data/shared/address"
 
-export const checkoutCartAddressAdapter: CheckoutCartAddressAdapter<FormValues> = {
-  toCreateInput(values) {
-    return {
-      first_name: values.firstName,
-      last_name: values.lastName,
-      address_1: values.street,
-      city: values.city,
-      country_code: values.countryCode,
-      postal_code: values.postalCode,
-    }
-  },
-  toPatchInput(values) {
-    return {
-      first_name: values.firstName,
-      last_name: values.lastName,
-      address_1: values.street,
-      city: values.city,
-      country_code: values.countryCode,
-      postal_code: values.postalCode,
-    }
-  },
-}
+export const checkoutCartAddressAdapter: CheckoutCartAddressAdapter<FormValues> =
+  {
+    toCreateInput(values) {
+      return {
+        first_name: values.firstName,
+        last_name: values.lastName,
+        address_1: values.street,
+        city: values.city,
+        country_code: values.countryCode,
+        postal_code: values.postalCode,
+      }
+    },
+    toPatchInput(values) {
+      return {
+        first_name: values.firstName,
+        last_name: values.lastName,
+        address_1: values.street,
+        city: values.city,
+        country_code: values.countryCode,
+        postal_code: values.postalCode,
+      }
+    },
+  }
 ```
 
 ### Promote repeated backend behavior into the shared package
 
 ```ts
 // apps/n1/src/lib/checkout.ts
-export function useCheckoutWithSharedPaymentRule(cartId: string, regionId: string) {
+export function useCheckoutWithSharedPaymentRule(
+  cartId: string,
+  regionId: string
+) {
   return storefront.flows.checkout.useCompleteCheckout({
     cartId,
     regionId,

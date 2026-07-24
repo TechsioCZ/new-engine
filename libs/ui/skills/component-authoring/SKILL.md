@@ -1,10 +1,7 @@
 ---
 name: component-authoring
 description: >
-  Use when creating or refactoring @techsio/ui-kit React components in libs/ui,
-  including atoms, molecules, organisms, tv() variants, React 19 ref props,
-  component token CSS, Storybook stories, package subpath exports, and Figma
-  handoff reminders.
+  Use when creating or refactoring @techsio/ui-kit React components in libs/ui, including atoms, molecules, organisms, tv() variants, React 19 ref props, component token CSS, Storybook stories, package subpath exports, and Figma handoff reminders.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -24,8 +21,7 @@ sources:
 
 # @techsio/ui-kit Component Authoring
 
-Use this for work inside `libs/ui`. For app-side usage, load
-`component-usage-ux` instead.
+Use this for work inside `libs/ui`. For app-side usage, load `component-usage-ux` instead.
 
 ## Setup
 
@@ -56,7 +52,13 @@ type ActionProps = ButtonHTMLAttributes<HTMLButtonElement> &
     ref?: Ref<HTMLButtonElement>
   }
 
-export function Action({ variant, size, className, ref, ...props }: ActionProps) {
+export function Action({
+  variant,
+  size,
+  className,
+  ref,
+  ...props
+}: ActionProps) {
   return (
     <button
       className={actionVariants({ variant, size, className })}
@@ -67,8 +69,7 @@ export function Action({ variant, size, className, ref, ...props }: ActionProps)
 }
 ```
 
-Use `type` for new props. Existing `interface` declarations are legacy unless
-the task is a targeted cleanup.
+Use `type` for new props. Existing `interface` declarations are legacy unless the task is a targeted cleanup.
 
 ## Core Patterns
 
@@ -92,8 +93,7 @@ const badgeVariants = tv({
 })
 ```
 
-Component implementations use component tokens. Semantic tokens like
-`bg-primary` are allowed in Storybook examples, not in component internals.
+Component implementations use component tokens. Semantic tokens like `bg-primary` are allowed in Storybook examples, not in component internals.
 
 ### Use public subpath imports
 
@@ -149,8 +149,7 @@ Correct:
 const card = tv({ base: "bg-card-bg text-card-fg p-card" })
 ```
 
-Direct semantic tokens in component implementations bypass component-specific
-token aliases and make app overrides harder.
+Direct semantic tokens in component implementations bypass component-specific token aliases and make app overrides harder.
 
 Source: libs/ui/AGENTS.md
 
@@ -159,9 +158,11 @@ Source: libs/ui/AGENTS.md
 Wrong:
 
 ```tsx
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-  return <button ref={ref} {...props} />
-})
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (props, ref) => {
+    return <button ref={ref} {...props} />
+  }
+)
 ```
 
 Correct:
@@ -198,8 +199,7 @@ export type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 }
 ```
 
-The current codebase still has legacy interfaces, but new component work should
-follow `AGENTS.md`.
+The current codebase still has legacy interfaces, but new component work should follow `AGENTS.md`.
 
 Source: libs/ui/AGENTS.md
 
@@ -221,8 +221,7 @@ const onOpenChange = (details: { open: boolean }) => {
 }
 ```
 
-Do not add `useCallback` by habit. Consumer apps are Next 16+ with React
-Compiler; keep memoization for proven identity or performance needs only.
+Do not add `useCallback` by habit. Consumer apps are Next 16+ with React Compiler; keep memoization for proven identity or performance needs only.
 
 Source: libs/ui/skills/_artifacts/domain_map.yaml
 
@@ -235,4 +234,3 @@ bunx nx run ui:build
 ```
 
 Add Storybook/a11y/component visual checks when visuals or interactions change.
-

@@ -57,9 +57,7 @@
   --spacing-product-detail-page-lg: var(--spacing-page);
   --spacing-product-detail-page-gap: var(--spacing-page-gap);
   --spacing-product-detail-information-scroll-offset: calc(
-    var(--height-header-mobile) +
-    var(--height-search-form) +
-    var(--spacing-300)
+    var(--height-header-mobile) + var(--height-search-form) + var(--spacing-300)
   );
 
   --spacing-about-page: var(--spacing-page-default);

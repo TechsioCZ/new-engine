@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type * as Steps from "../../workflows/seed/steps"
 
 function safeJsonParse<T>(
@@ -104,23 +105,25 @@ export function toCreateProductsStepInput(
       .map((v) => ({
         title: v.title ?? v.sku,
         sku: v.sku,
-        ean: v.ean,
-        material: v.material,
-        options: v.options
-          ? Object.fromEntries(
-              Object.entries(v.options).map(([key, value]) => [
-                key,
-                value ?? "Default",
-              ])
-            )
-          : undefined,
-        prices: v.prices,
+        ...(v.ean ? { ean: v.ean } : {}),
+        ...(v.material ? { material: v.material } : {}),
+        ...(v.options
+          ? {
+              options: Object.fromEntries(
+                Object.entries(v.options).map(([key, value]) => [
+                  key,
+                  value ?? "Default",
+                ])
+              ),
+            }
+          : {}),
+        ...(v.prices ? { prices: v.prices } : {}),
         images: (v.images ?? []).filter(
           (im): im is { url: string } => im.url != null
         ),
-        thumbnail: v.thumbnail,
-        metadata: v.metadata,
-        quantities: v.quantities,
+        ...(v.thumbnail ? { thumbnail: v.thumbnail } : {}),
+        ...(v.metadata ? { metadata: v.metadata } : {}),
+        ...(v.quantities ? { quantities: v.quantities } : {}),
       }))
 
     return {
@@ -130,13 +133,13 @@ export function toCreateProductsStepInput(
       handle: raw.handle,
       weight: 1,
       shippingProfileName: "Default Shipping Profile",
-      thumbnail: raw.thumbnail,
+      ...(raw.thumbnail ? { thumbnail: raw.thumbnail } : {}),
       images: (parsedImages ?? []).filter(
         (im): im is { url: string } => im.url != null
       ),
-      options: options.length === 0 ? undefined : options,
+      ...(options.length === 0 ? {} : { options }),
       brand: parsedBrand,
-      variants: variants.length === 0 ? undefined : variants,
+      ...(variants.length === 0 ? {} : { variants }),
       salesChannelNames: ["Default Sales Channel"],
     }
   })

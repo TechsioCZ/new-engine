@@ -3,7 +3,15 @@
 import fs from "node:fs"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
-import ts from "typescript"
+
+import { parseSync } from "oxc-parser"
+
+import {
+  globToRegExp,
+  normalizePath,
+  parseGuardrailArgs,
+} from "./guardrail-utils.mjs"
+import defaultConfig from "./ui-primitives.config.mjs"
 
 const DEFAULT_CONFIG_PATH = "scripts/ui-primitives.config.mjs"
 const BASE_EXCLUDE_PATTERNS = [
@@ -11,50 +19,6 @@ const BASE_EXCLUDE_PATTERNS = [
   "**/.next/**",
   "**/.git/**",
 ]
-
-function parseArgs(argv) {
-  const args = { configPath: DEFAULT_CONFIG_PATH, json: false }
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
-
-    if (arg === "--json") {
-      args.json = true
-      continue
-    }
-
-    if (arg === "--config") {
-      const nextValue = argv[index + 1]
-      if (nextValue) {
-        args.configPath = nextValue
-        index += 1
-      }
-      continue
-    }
-
-    if (arg.startsWith("--config=")) {
-      args.configPath = arg.slice("--config=".length)
-    }
-  }
-
-  return args
-}
-
-function normalizePath(value) {
-  return value.replaceAll(path.sep, "/")
-}
-
-function globToRegExp(globPattern) {
-  const normalized = normalizePath(globPattern)
-  const withMarkers = normalized
-    .replaceAll("**", "__DOUBLE_STAR__")
-    .replaceAll("*", "__SINGLE_STAR__")
-  const escaped = withMarkers
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    .replaceAll("__DOUBLE_STAR__", ".*")
-    .replaceAll("__SINGLE_STAR__", "[^/]*")
-  return new RegExp(`^${escaped}$`)
-}
 
 function listSourceFiles(rootDir, config) {
   const extensions = new Set(config.fileExtensions ?? [".ts", ".tsx"])
@@ -133,37 +97,32 @@ function parseRuleConfig(config) {
   }
 }
 
-function getLineAndColumn(sourceFile, position) {
-  const { line, character } = ts.getLineAndCharacterOfPosition(
-    sourceFile,
-    position
-  )
-  return { line: line + 1, column: character + 1 }
+function getLineAndColumn(content, position) {
+  const precedingContent = content.slice(0, position)
+  const line = precedingContent.split("\n").length
+  const lastNewline = precedingContent.lastIndexOf("\n")
+  return { line, column: position - lastNewline }
 }
 
 function isIntrinsicTagName(tagNameNode) {
-  if (ts.isIdentifier(tagNameNode)) {
-    const text = tagNameNode.text
+  if (tagNameNode.type === "JSXIdentifier") {
+    const text = tagNameNode.name
     return text.length > 0 && text[0] === text[0].toLowerCase()
   }
 
-  if (ts.isJsxNamespacedName(tagNameNode)) {
-    return true
-  }
-
-  return false
+  return tagNameNode.type === "JSXNamespacedName"
 }
 
-function normalizedTagName(tagNameNode, sourceFile) {
-  if (ts.isIdentifier(tagNameNode)) {
-    return tagNameNode.text.toLowerCase()
+function normalizedTagName(tagNameNode) {
+  if (tagNameNode.type === "JSXIdentifier") {
+    return tagNameNode.name.toLowerCase()
   }
 
-  if (ts.isJsxNamespacedName(tagNameNode)) {
-    return `${tagNameNode.namespace.text}:${tagNameNode.name.text}`.toLowerCase()
+  if (tagNameNode.type === "JSXNamespacedName") {
+    return `${tagNameNode.namespace.name}:${tagNameNode.name.name}`.toLowerCase()
   }
 
-  return tagNameNode.getText(sourceFile).toLowerCase()
+  return ""
 }
 
 function isTagAllowedForFile(relativeFilePath, tagName, allowByFile) {
@@ -174,18 +133,18 @@ function isTagAllowedForFile(relativeFilePath, tagName, allowByFile) {
   )
 }
 
-function resolveBannedImportFinding(node, sourceFile, rulesConfig) {
+function resolveBannedImportFinding(node, content, rulesConfig) {
   if (
     !(
       rulesConfig.bannedImports.enabled &&
-      ts.isImportDeclaration(node) &&
-      ts.isStringLiteral(node.moduleSpecifier)
+      node.type === "ImportDeclaration" &&
+      typeof node.source?.value === "string"
     )
   ) {
     return null
   }
 
-  const moduleName = node.moduleSpecifier.text
+  const moduleName = node.source.value
   const isBannedModule = rulesConfig.bannedImports.modulePatterns.some(
     (pattern) => pattern.test(moduleName)
   )
@@ -194,10 +153,7 @@ function resolveBannedImportFinding(node, sourceFile, rulesConfig) {
     return null
   }
 
-  const { line, column } = getLineAndColumn(
-    sourceFile,
-    node.moduleSpecifier.getStart(sourceFile)
-  )
+  const { line, column } = getLineAndColumn(content, node.source.start)
 
   return {
     rule: "no-banned-ui-imports",
@@ -210,25 +166,22 @@ function resolveBannedImportFinding(node, sourceFile, rulesConfig) {
 
 function resolveBannedJsxTagFinding(
   node,
-  sourceFile,
+  content,
   relativeFilePath,
   rulesConfig
 ) {
   if (
-    !(
-      rulesConfig.bannedJsxTags.enabled &&
-      (ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node))
-    )
+    !(rulesConfig.bannedJsxTags.enabled && node.type === "JSXOpeningElement")
   ) {
     return null
   }
 
-  const tagNode = node.tagName
+  const tagNode = node.name
   if (!isIntrinsicTagName(tagNode)) {
     return null
   }
 
-  const tagName = normalizedTagName(tagNode, sourceFile)
+  const tagName = normalizedTagName(tagNode)
   const isBannedTag = rulesConfig.bannedJsxTags.tags.has(tagName)
   const isAllowed = isTagAllowedForFile(
     relativeFilePath,
@@ -240,10 +193,7 @@ function resolveBannedJsxTagFinding(
     return null
   }
 
-  const { line, column } = getLineAndColumn(
-    sourceFile,
-    tagNode.getStart(sourceFile)
-  )
+  const { line, column } = getLineAndColumn(content, tagNode.start)
   const suggestion = rulesConfig.bannedJsxTags.suggestions[tagName]
   const message = suggestion
     ? `Nepouzivej nativni <${tagName}>. ${suggestion}`
@@ -259,14 +209,10 @@ function resolveBannedJsxTagFinding(
 }
 
 function collectFileFindings(relativeFilePath, content, rulesConfig) {
-  const sourceFile = ts.createSourceFile(
-    relativeFilePath,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-    relativeFilePath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
-  )
-
+  const parseResult = parseSync(relativeFilePath, content, {
+    lang: relativeFilePath.endsWith(".tsx") ? "tsx" : "ts",
+    sourceType: "module",
+  })
   const findings = []
   const dedupe = new Set()
 
@@ -280,18 +226,14 @@ function collectFileFindings(relativeFilePath, content, rulesConfig) {
   }
 
   const visit = (node) => {
-    const importFinding = resolveBannedImportFinding(
-      node,
-      sourceFile,
-      rulesConfig
-    )
+    const importFinding = resolveBannedImportFinding(node, content, rulesConfig)
     if (importFinding) {
       pushFinding(importFinding)
     }
 
     const jsxTagFinding = resolveBannedJsxTagFinding(
       node,
-      sourceFile,
+      content,
       relativeFilePath,
       rulesConfig
     )
@@ -299,10 +241,20 @@ function collectFileFindings(relativeFilePath, content, rulesConfig) {
       pushFinding(jsxTagFinding)
     }
 
-    ts.forEachChild(node, visit)
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) {
+        for (const child of value) {
+          if (child && typeof child === "object" && "type" in child) {
+            visit(child)
+          }
+        }
+      } else if (value && typeof value === "object" && "type" in value) {
+        visit(value)
+      }
+    }
   }
 
-  visit(sourceFile)
+  visit(parseResult.program)
   return findings
 }
 
@@ -345,7 +297,7 @@ function printSummary(findings, scannedFileCount) {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2))
+  const args = parseGuardrailArgs(process.argv.slice(2), DEFAULT_CONFIG_PATH)
   const rootDir = process.cwd()
   const configPath = path.resolve(rootDir, args.configPath)
 
@@ -354,8 +306,11 @@ async function main() {
     process.exit(2)
   }
 
-  const configModule = await import(pathToFileURL(configPath).href)
-  const config = configModule.default ?? configModule
+  let config = defaultConfig
+  if (args.configPath !== DEFAULT_CONFIG_PATH) {
+    const configModule = await import(pathToFileURL(configPath).href)
+    config = configModule.default ?? configModule
+  }
   const rulesConfig = parseRuleConfig(config)
   const sourceFiles = listSourceFiles(rootDir, config)
 

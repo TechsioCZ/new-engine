@@ -1,6 +1,7 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import {
   CustomerGroupsBatchClient,
   type ExistingCustomerGroupIndex,
@@ -33,7 +34,7 @@ const processCustomerGroupForBatch = async ({
   logger,
 }: {
   client: CustomerGroupsBatchClient
-  createdBy?: string
+  createdBy?: string | undefined
   customerGroupIndex: ExistingCustomerGroupIndex
   group: CustomerGroupInput
   logger: Logger

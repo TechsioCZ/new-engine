@@ -1,11 +1,13 @@
 "use client"
 
 import { HeurekaProduct } from "@techsio/analytics/heureka"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
+import Image from "next/image"
 import { useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { Heading } from "@/components/heading"
-import { Gallery } from "@/components/organisms/gallery"
 import { ProductInfoPanel } from "@/components/product-detail/product-info-panel"
 import { ProductSizes } from "@/components/product-detail/product-sizes"
 import { ProductTable } from "@/components/product-detail/product-table"
@@ -24,7 +26,7 @@ import { transformProductDetail } from "@/utils/transform/transform-product"
 export default function ProductPage() {
   const params = useParams()
   const searchParams = useSearchParams()
-  const handle = params.handle as string
+  const handle = params["handle"] as string
   const variantParam = searchParams.get("variant")
 
   const { data: rawProduct } = useSuspenseProduct({ handle })
@@ -59,7 +61,9 @@ export default function ProductPage() {
       currency: (
         selectedVariant.calculated_price?.currency_code ?? "CZK"
       ).toUpperCase(),
-      category: rawProduct?.categories?.[0]?.name,
+      ...(rawProduct?.categories?.[0]?.name
+        ? { category: rawProduct.categories[0].name }
+        : {}),
     })
   }, [
     detail?.id,
@@ -149,13 +153,16 @@ export default function ProductPage() {
         </header>
         <div className="mx-auto aspect-square max-w-md">
           {detail.images && (
-            <Gallery
+            <GalleryTemplate
               aspectRatio="square"
-              carouselSize={150}
-              images={detail.images}
+              carouselHeight={150}
+              carouselWidth={150}
+              imageAs={Image}
+              items={detail.images}
               objectFit="cover"
               orientation="horizontal"
               size="md"
+              thumbnailImageAs={Image}
             />
           )}
         </div>

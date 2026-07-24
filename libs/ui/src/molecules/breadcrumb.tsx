@@ -6,6 +6,7 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Icon, type IconProps, type IconType } from "../atoms/icon"
 import { Link, type LinkProps } from "../atoms/link"
 import { tv } from "../utils"
@@ -19,10 +20,7 @@ const BreadcrumbVariants = tv({
       "list-none",
       "text-breadcrumb-item",
     ],
-    item: [
-      "inline-flex min-w-0 items-center",
-      "text-breadcrumb-item",
-    ],
+    item: ["inline-flex min-w-0 items-center", "text-breadcrumb-item"],
     link: [
       "inline-flex min-w-0 items-center",
       "rounded-breadcrumb-link",
@@ -116,16 +114,13 @@ type BreadcrumbContextValue = {
   styles: ReturnType<typeof BreadcrumbVariants>
 }
 
-const BreadcrumbContext =
-  createContext<BreadcrumbContextValue | null>(null)
+const BreadcrumbContext = createContext<BreadcrumbContextValue | null>(null)
 
 function useBreadcrumbContext() {
   const context = useContext(BreadcrumbContext)
 
   if (!context) {
-    throw new Error(
-      "Breadcrumb components must be used within Breadcrumb.Root"
-    )
+    throw new Error("Breadcrumb components must be used within Breadcrumb.Root")
   }
 
   return context
@@ -136,7 +131,7 @@ function getContextualIconClassName({
   defaultClassName,
   useDefaultClassName,
 }: {
-  className?: string
+  className?: string | undefined
   defaultClassName: string
   useDefaultClassName: boolean
 }) {
@@ -149,7 +144,7 @@ function getContextualIconClassName({
 
 export type BreadcrumbRootProps = ComponentPropsWithoutRef<"nav"> &
   VariantProps<typeof BreadcrumbVariants> & {
-    ref?: Ref<HTMLElement>
+    ref?: Ref<HTMLElement> | undefined
   }
 
 export function Breadcrumb({
@@ -178,7 +173,7 @@ export function Breadcrumb({
 }
 
 export type BreadcrumbListProps = ComponentPropsWithoutRef<"ol"> & {
-  ref?: Ref<HTMLOListElement>
+  ref?: Ref<HTMLOListElement> | undefined
 }
 
 Breadcrumb.List = function BreadcrumbList({
@@ -197,7 +192,7 @@ Breadcrumb.List = function BreadcrumbList({
 }
 
 export type BreadcrumbItemProps = ComponentPropsWithoutRef<"li"> & {
-  ref?: Ref<HTMLLIElement>
+  ref?: Ref<HTMLLIElement> | undefined
 }
 
 Breadcrumb.Item = function BreadcrumbItem({
@@ -218,14 +213,11 @@ Breadcrumb.Item = function BreadcrumbItem({
 type BreadcrumbLinkHref<T extends ElementType> =
   ComponentPropsWithoutRef<T> extends { href?: infer H } ? H : string
 
-export type BreadcrumbLinkProps<T extends ElementType = "a"> =
-  LinkProps<T> & {
-    href?: BreadcrumbLinkHref<T>
-  }
+export type BreadcrumbLinkProps<T extends ElementType = "a"> = LinkProps<T> & {
+  href?: BreadcrumbLinkHref<T> | undefined
+}
 
-Breadcrumb.Link = function BreadcrumbLink<
-  T extends ElementType = "a",
->({
+Breadcrumb.Link = function BreadcrumbLink<T extends ElementType = "a">({
   children,
   className,
   ...props
@@ -239,10 +231,9 @@ Breadcrumb.Link = function BreadcrumbLink<
   )
 }
 
-export type BreadcrumbCurrentLinkProps =
-  ComponentPropsWithoutRef<"span"> & {
-    ref?: Ref<HTMLSpanElement>
-  }
+export type BreadcrumbCurrentLinkProps = ComponentPropsWithoutRef<"span"> & {
+  ref?: Ref<HTMLSpanElement> | undefined
+}
 
 Breadcrumb.CurrentLink = function BreadcrumbCurrentLink({
   children,
@@ -288,13 +279,12 @@ Breadcrumb.Icon = function BreadcrumbIcon({
   )
 }
 
-export type BreadcrumbSeparatorProps =
-  ComponentPropsWithoutRef<"li"> & {
-    icon?: IconType
-    iconProps?: Omit<IconProps, "icon" | "size">
-    iconSize?: IconProps["size"]
-    ref?: Ref<HTMLLIElement>
-  }
+export type BreadcrumbSeparatorProps = ComponentPropsWithoutRef<"li"> & {
+  icon?: IconType | undefined
+  iconProps?: Omit<IconProps, "icon" | "size"> | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLLIElement> | undefined
+}
 
 Breadcrumb.Separator = function BreadcrumbSeparator({
   children,
@@ -333,13 +323,12 @@ Breadcrumb.Separator = function BreadcrumbSeparator({
   )
 }
 
-export type BreadcrumbEllipsisProps =
-  ComponentPropsWithoutRef<"li"> & {
-    icon?: IconType
-    iconProps?: Omit<IconProps, "icon" | "size">
-    iconSize?: IconProps["size"]
-    ref?: Ref<HTMLLIElement>
-  }
+export type BreadcrumbEllipsisProps = ComponentPropsWithoutRef<"li"> & {
+  icon?: IconType | undefined
+  iconProps?: Omit<IconProps, "icon" | "size"> | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLLIElement> | undefined
+}
 
 Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
   children,

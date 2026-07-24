@@ -7,6 +7,7 @@ import type {
   RegionDTO,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
 import seedPaykitRegionsWorkflow, {
   type SeedPaykitRegionsWorkflowInput,
@@ -142,12 +143,14 @@ const toRegionSeedInput = (
     )
   }
 
+  const paymentProviders = paymentProviderMap.get(region.id)
+
   return {
     id: region.id,
     name: region.name,
     currencyCode,
     countries: region.countries?.map((country) => country.iso_2),
-    paymentProviders: paymentProviderMap.get(region.id),
+    ...(paymentProviders ? { paymentProviders } : {}),
   }
 }
 

@@ -1,4 +1,5 @@
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { DATABASE_MODULE } from "../modules/database"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {

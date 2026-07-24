@@ -1,6 +1,7 @@
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { ProductBrandLink } from "../../../links/product-brand"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 import {

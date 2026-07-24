@@ -3,6 +3,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { BRAND_SEARCH_PROJECTION_LOCK_KEY } from "../events"
 import { syncMeilisearchBrandsStep } from "../steps/sync-brands"
 

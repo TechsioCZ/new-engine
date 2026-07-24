@@ -1,4 +1,3 @@
-import { Transform } from "node:stream"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/utils"
 
@@ -8,14 +7,14 @@ const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 30_000
 
 const getMaxUploadBytes = () => {
-  const configured = Number(process.env.PAYLOAD_IMPORT_MAX_UPLOAD_BYTES)
+  const configured = Number(process.env["PAYLOAD_IMPORT_MAX_UPLOAD_BYTES"])
   return Number.isFinite(configured) && configured > 0
     ? configured
     : DEFAULT_MAX_UPLOAD_BYTES
 }
 
 const getUpstreamTimeoutMs = () => {
-  const configured = Number(process.env.PAYLOAD_IMPORT_UPSTREAM_TIMEOUT_MS)
+  const configured = Number(process.env["PAYLOAD_IMPORT_UPSTREAM_TIMEOUT_MS"])
   return Number.isFinite(configured) && configured > 0
     ? configured
     : DEFAULT_UPSTREAM_TIMEOUT_MS
@@ -23,31 +22,42 @@ const getUpstreamTimeoutMs = () => {
 
 const createLimitedUploadStream = (req: MedusaRequest, maxBytes: number) => {
   let totalBytes = 0
-  const limiter = new Transform({
-    transform(chunk: Buffer, _encoding, callback) {
-      totalBytes += chunk.length
-      if (totalBytes > maxBytes) {
-        callback(
-          new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Upload exceeds ${maxBytes} bytes limit`
-          )
-        )
-        return
-      }
 
-      callback(null, chunk)
+  return new ReadableStream<Uint8Array>({
+    cancel() {
+      req.destroy()
+    },
+    start(controller) {
+      req.on("data", (chunk: unknown) => {
+        const bytes = Buffer.isBuffer(chunk)
+          ? chunk
+          : Buffer.from(String(chunk))
+        totalBytes += bytes.byteLength
+
+        if (totalBytes > maxBytes) {
+          controller.error(
+            new MedusaError(
+              MedusaError.Types.INVALID_DATA,
+              `Upload exceeds ${maxBytes} bytes limit`
+            )
+          )
+          req.destroy()
+          return
+        }
+
+        controller.enqueue(bytes)
+      })
+      req.once("end", () => controller.close())
+      req.once("error", (error) => controller.error(error))
     },
   })
-
-  return (req as unknown as NodeJS.ReadableStream).pipe(limiter)
 }
 
 const resolvePayloadBaseUrl = () => {
   const configuredUrl =
-    process.env.PAYLOAD_INTERNAL_URL ??
-    process.env.PAYLOAD_BASE_URL ??
-    process.env.PAYLOAD_IFRAME_URL
+    process.env["PAYLOAD_INTERNAL_URL"] ??
+    process.env["PAYLOAD_BASE_URL"] ??
+    process.env["PAYLOAD_IFRAME_URL"]
 
   if (!configuredUrl) {
     return "http://payload:8083"
@@ -66,7 +76,7 @@ const resolvePayloadBaseUrl = () => {
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const payloadApiKey = process.env.PAYLOAD_API_KEY
+  const payloadApiKey = process.env["PAYLOAD_API_KEY"]
   if (!payloadApiKey) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -108,13 +118,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
           "content-type": contentType,
           "x-payload-api-key": payloadApiKey,
         },
-        body: createLimitedUploadStream(
-          req,
-          maxUploadBytes
-        ) as unknown as RequestInit["body"],
+        body: createLimitedUploadStream(req, maxUploadBytes),
         duplex: "half",
         signal: controller.signal,
-      } as RequestInit & { duplex: "half" }
+      }
     )
 
     const responseBody = await response.text()

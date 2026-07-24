@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 export type IconType = `token-icon-${string}` | `icon-[${string}]`
@@ -32,10 +33,11 @@ const iconVariants = tv({
 })
 
 export interface IconProps
-  extends Omit<HTMLAttributes<HTMLSpanElement>, "color">,
+  extends
+    Omit<HTMLAttributes<HTMLSpanElement>, "color">,
     VariantProps<typeof iconVariants> {
   icon: IconType
-  className?: string
+  className?: string | undefined
 }
 
 export function Icon({ icon, size, color, className, ...props }: IconProps) {

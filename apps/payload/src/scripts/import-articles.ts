@@ -1,7 +1,9 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+
 import ExcelJS from "exceljs"
 import { getPayload, type PayloadRequest } from "payload"
+
 import type { Article } from "../payload-types"
 
 type Payload = Awaited<ReturnType<typeof getPayload>>
@@ -28,10 +30,26 @@ type ImportContext = {
 const REQUIRED_COLUMNS = ["title", "content"]
 export const STATUS_VALUES = ["draft", "published", "archived"] as const
 export type ImportStatus = (typeof STATUS_VALUES)[number]
+export type ArticleImportErrorCode =
+  | "ABORTED"
+  | "MISSING_REQUIRED_COLUMNS"
+  | "NO_ROWS"
+  | "NO_SHEETS"
+  | "SHEET_NOT_FOUND"
+
+export class ArticleImportError extends Error {
+  readonly code: ArticleImportErrorCode
+
+  constructor(code: ArticleImportErrorCode, message: string) {
+    super(message)
+    this.name = "ArticleImportError"
+    this.code = code
+  }
+}
 const HEADER_WHITESPACE_PATTERN = /\s+/g
 const NEWLINE_PATTERN = /\r?\n/
 const TAG_SEPARATOR_PATTERN = /[,;]/
-const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
+const IS_DEBUG_IMPORT = process.env["DEBUG_IMPORT_ARTICLES"] === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
@@ -121,6 +139,9 @@ const getArgs = () => {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
+    if (!arg) {
+      continue
+    }
 
     switch (arg) {
       case "--dry-run":
@@ -188,6 +209,9 @@ const normalizeRow = (row: Row): Row => {
   return normalized
 }
 
+const serializeCellObject = (value: object): string =>
+  JSON.stringify(value) ?? ""
+
 const getCellValue = (cell: ExcelJS.Cell): RowValue => {
   const value = cell.value
   if (
@@ -205,7 +229,7 @@ const getCellValue = (cell: ExcelJS.Cell): RowValue => {
     const result = value.result
     return result instanceof Date || typeof result !== "object"
       ? (result as RowValue)
-      : String(result ?? "")
+      : serializeCellObject(result ?? {})
   }
 
   if ("text" in value && typeof value.text === "string") {
@@ -216,7 +240,7 @@ const getCellValue = (cell: ExcelJS.Cell): RowValue => {
     return value.richText.map((item) => item.text).join("")
   }
 
-  return String(value)
+  return serializeCellObject(value)
 }
 
 const firstValue = (row: Row, keys: string[]) => {
@@ -250,7 +274,7 @@ const sanitizeTitle = (value: string, rowIndex: number) => {
 
 const getText = (row: Row, keys: string[]) => toText(firstValue(row, keys))
 
-const slugify = (value: string) =>
+const slugifyImportValue = (value: string) =>
   value
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
@@ -260,7 +284,7 @@ const slugify = (value: string) =>
 
 const throwIfAborted = (signal?: AbortSignal) => {
   if (signal?.aborted) {
-    throw new Error("Article import aborted")
+    throw new ArticleImportError("ABORTED", "Article import aborted")
   }
 }
 
@@ -337,7 +361,8 @@ const hasLocaleValue = (
 }
 
 const resolveSupportedLocales = () => {
-  const locales = process.env.PAYLOAD_LOCALES?.split(",")
+  const locales = process.env["PAYLOAD_LOCALES"]
+    ?.split(",")
     .map((locale) => locale.trim().toLowerCase())
     .filter(Boolean)
 
@@ -657,12 +682,18 @@ const readRows = async (filePath: string, sheetName?: string) => {
 
   const selectedSheetName = sheetName ?? workbook.worksheets[0]?.name
   if (!selectedSheetName) {
-    throw new Error("XLSX file does not contain any sheets")
+    throw new ArticleImportError(
+      "NO_SHEETS",
+      "XLSX file does not contain any sheets"
+    )
   }
 
   const worksheet = workbook.getWorksheet(selectedSheetName)
   if (!worksheet) {
-    throw new Error(`Sheet not found: ${selectedSheetName}`)
+    throw new ArticleImportError(
+      "SHEET_NOT_FOUND",
+      `Sheet not found: ${selectedSheetName}`
+    )
   }
 
   const headerRow = worksheet.getRow(1)
@@ -676,7 +707,13 @@ const readRows = async (filePath: string, sheetName?: string) => {
 
     const data: Row = {}
     for (let columnIndex = 1; columnIndex < headers.length; columnIndex += 1) {
-      const header = String(headers[columnIndex] ?? "").trim()
+      const headerValue = headers[columnIndex]
+      const header =
+        headerValue === null || headerValue === undefined
+          ? ""
+          : typeof headerValue === "object"
+            ? serializeCellObject(headerValue)
+            : String(headerValue).trim()
       if (header) {
         data[header] = getCellValue(row.getCell(columnIndex))
       }
@@ -693,7 +730,7 @@ const readRows = async (filePath: string, sheetName?: string) => {
 const assertRequiredColumns = (rows: Row[]) => {
   const firstRow = rows[0]
   if (!firstRow) {
-    throw new Error("No rows found in XLSX file")
+    throw new ArticleImportError("NO_ROWS", "No rows found in XLSX file")
   }
 
   const missing = REQUIRED_COLUMNS.filter((column) => {
@@ -724,7 +761,10 @@ const assertRequiredColumns = (rows: Row[]) => {
   })
 
   if (missing.length > 0) {
-    throw new Error(`Missing required columns: ${missing.join(", ")}`)
+    throw new ArticleImportError(
+      "MISSING_REQUIRED_COLUMNS",
+      `Missing required columns: ${missing.join(", ")}`
+    )
   }
 }
 
@@ -773,7 +813,7 @@ const processArticleRow = async (
     "Blog"
   const categorySlug =
     getText(row, ["category_slug", "rubrika_slug", "kategorie_slug"]) ||
-    slugify(categoryTitle)
+    slugifyImportValue(categoryTitle)
   const categoryId = await ensureCategory({
     payload,
     title: categoryTitle,
@@ -812,7 +852,7 @@ const processArticleRow = async (
     getText(row, ["excerpt", "perex", "summary", "description", "popis"]) ||
     content.slice(0, 300)
   const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
-  const slug = rawSlug ? slugify(rawSlug) : slugify(title)
+  const slug = rawSlug ? slugifyImportValue(rawSlug) : slugifyImportValue(title)
 
   const data: ArticlePayloadData = {
     title,
@@ -943,10 +983,10 @@ const runImportFromCli = async () => {
 
   const result = await runImportFromFile({
     filePath,
-    sheetName,
+    ...(sheetName ? { sheetName } : {}),
     dryRun,
     locale,
-    status: statusOverride,
+    ...(statusOverride ? { status: statusOverride } : {}),
     translate,
     overwrite,
   })

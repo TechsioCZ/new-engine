@@ -42,9 +42,9 @@ export type DeployMainExecutionResult = {
 function supportsPrettyLogs(): boolean {
   return Boolean(
     process.stderr.isTTY &&
-      !process.env.GITHUB_ACTIONS &&
-      !process.env.NO_COLOR &&
-      process.env.TERM !== "dumb"
+    !process.env["GITHUB_ACTIONS"] &&
+    !process.env["NO_COLOR"] &&
+    process.env["TERM"] !== "dumb"
   )
 }
 

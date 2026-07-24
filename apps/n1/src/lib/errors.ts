@@ -14,7 +14,7 @@ function isError(error: unknown): error is Error {
   return error instanceof Error
 }
 
-function getErrorMessage(error: unknown): string {
+function resolveErrorMessage(error: unknown): string {
   if (isError(error)) {
     return error.message
   }
@@ -66,7 +66,7 @@ export function isNotFoundError(error: unknown): boolean {
 }
 
 export function logError(context: string, error: unknown): void {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env["NODE_ENV"] === "development") {
     console.error(`[${context}]`, error)
   }
 }
@@ -114,7 +114,7 @@ export class CartServiceError extends Error {
     error: unknown,
     fallbackCode: CartServiceErrorCode = "VALIDATION_ERROR"
   ): CartServiceError {
-    const message = getErrorMessage(error)
+    const message = resolveErrorMessage(error)
     const status = getErrorStatus(error)
 
     // Map HTTP status to error code

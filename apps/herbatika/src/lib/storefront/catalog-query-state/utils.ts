@@ -70,8 +70,8 @@ export const normalizePriceRange = (
   }
 
   return {
-    min: normalizedMin,
-    max: normalizedMax,
+    ...(normalizedMin === undefined ? {} : { min: normalizedMin }),
+    ...(normalizedMax === undefined ? {} : { max: normalizedMax }),
   }
 }
 

@@ -7,18 +7,18 @@ export type TrackingItemInput = {
 
 export type TrackingShipmentInput = {
   identifier_type: TrackingOrderIdentifierType
-  display_id?: string
-  order_id?: string
-  erp_id?: string
+  display_id?: string | undefined
+  order_id?: string | undefined
+  erp_id?: string | undefined
   tracking_number: string
-  tracking_url?: string
-  carrier?: string
-  send_notification?: boolean
-  items?: TrackingItemInput[]
+  tracking_url?: string | undefined
+  carrier?: string | undefined
+  send_notification?: boolean | undefined
+  items?: TrackingItemInput[] | undefined
 }
 
 export type AddTrackingBatchInput = {
-  created_by?: string
+  created_by?: string | undefined
   shipments: TrackingShipmentInput[]
 }
 

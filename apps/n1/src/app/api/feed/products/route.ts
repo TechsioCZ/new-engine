@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server"
+
 import { getMedusaBackendUrl } from "@/lib/medusa-backend-url"
 
 const MEDUSA_API_URL = getMedusaBackendUrl()
-const MEDUSA_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+const MEDUSA_API_KEY = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] || ""
 const BATCH_SIZE = 100
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com"
+const SITE_URL = process.env["NEXT_PUBLIC_SITE_URL"] || "https://example.com"
 const DEFAULT_REGION_ID =
-  process.env.NEXT_PUBLIC_DEFAULT_REGION_ID || "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
+  process.env["NEXT_PUBLIC_DEFAULT_REGION_ID"] ||
+  "reg_01JYERR9Q887DKZ9JAR7SMJHA5"
 
 type MedusaVariant = {
   id: string

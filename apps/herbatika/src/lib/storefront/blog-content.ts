@@ -2,7 +2,7 @@ import BLOG_BANNER from "@/assets/blog-banner.webp"
 
 export type BlogTopicKey = "all" | "fitness" | "krasa" | "zdravie"
 
-export type BlogPostSection = {
+type BlogPostSection = {
   title: string
   paragraphs: string[]
   bulletPoints?: string[]
@@ -28,7 +28,7 @@ export type BlogPost = {
   sections: BlogPostSection[]
 }
 
-export type BlogRecommendedProductsConfig = {
+type BlogRecommendedProductsConfig = {
   categoryHandles: string[]
   limit?: number
 }
@@ -46,7 +46,7 @@ export type ResolveBlogListingInput = {
   pageSize?: number
 }
 
-export const BLOG_PAGE_SIZE = 12
+const BLOG_PAGE_SIZE = 12
 
 const BLOG_TOPIC_ONLY_FILTERS: Array<{
   key: Exclude<BlogTopicKey, "all">
@@ -65,7 +65,7 @@ export const BLOG_PROMO_BANNER = {
   imageSrc: BLOG_BANNER,
 }
 
-export const HERBATIKA_BLOG_POSTS: BlogPost[] = [
+const HERBATIKA_BLOG_POSTS: BlogPost[] = [
   {
     id: "blog-1",
     slug: "elektrolyty-klucove-mineraly-pre-spravne-fungovanie-tela",
@@ -512,7 +512,7 @@ const normalizeBlogTopic = (topic: BlogTopicKey | undefined): BlogTopicKey => {
   return "all"
 }
 
-export const resolveBlogTopicFilters = (
+const resolveBlogTopicFilters = (
   posts = HERBATIKA_BLOG_POSTS
 ): BlogTopicFilter[] => {
   const topicCounts = BLOG_TOPIC_ONLY_FILTERS.map((topicFilter) => ({

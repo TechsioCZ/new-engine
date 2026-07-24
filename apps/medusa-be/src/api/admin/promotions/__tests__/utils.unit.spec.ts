@@ -1,6 +1,7 @@
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
+
 import { BRAND_MODULE } from "../../../../modules/brand"
 import { buildBrandPromotionContext } from "../../../../workflows/utils/promotion-brand-context"
 import { brandRuleAttribute } from "../const"
@@ -17,7 +18,7 @@ type VariantFixture = {
   id: string
   title: string
   sku: string | null
-  product?: { title: string }
+  product?: { title: string } | undefined
 }
 
 const createVariant = (
@@ -183,18 +184,14 @@ describe("validateRuleType", () => {
   })
 
   describe("invalid rule types", () => {
-    it.each([
-      "invalid",
-      "RULES",
-      "",
-      "rule",
-      "target",
-      "buy",
-    ])('throws for invalid rule type "%s"', (invalidType) => {
-      expect(() => validateRuleType(invalidType)).toThrow(
-        `Invalid param rule_type (${invalidType})`
-      )
-    })
+    it.each(["invalid", "RULES", "", "rule", "target", "buy"])(
+      'throws for invalid rule type "%s"',
+      (invalidType) => {
+        expect(() => validateRuleType(invalidType)).toThrow(
+          `Invalid param rule_type (${invalidType})`
+        )
+      }
+    )
   })
 
   it("narrows type after assertion", () => {
@@ -286,7 +283,11 @@ describe("getExtendedRuleAttributesMap", () => {
       )
       expect(applyToQuantity).toBeDefined()
       expect(applyToQuantity?.required).toBe(true)
-      expect(applyToQuantity?.disguised).toBe(true)
+      expect(
+        applyToQuantity !== undefined &&
+          "disguised" in applyToQuantity &&
+          applyToQuantity.disguised
+      ).toBe(true)
     })
   })
 
@@ -516,9 +517,9 @@ describe("buildBrandPromotionContext", () => {
         }),
       ],
     })
-    expect((result.items as Record<string, unknown>[])[1]).not.toHaveProperty(
-      "brand_ids"
-    )
+    expect(
+      (result["items"] as Record<string, unknown>[])[1]
+    ).not.toHaveProperty("brand_ids")
   })
 
   it("excludes links to deleted brands from promotion context", async () => {

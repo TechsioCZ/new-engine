@@ -1,10 +1,12 @@
 "use client"
 
 import { useInfiniteQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts, type ProductListParams } from "@/services/product-service"
 import type { Product } from "@/types/product"
+
 import type { PageRange } from "./use-url-filters"
 
 interface UseInfiniteProductsParams extends Omit<ProductListParams, "offset"> {
@@ -20,7 +22,7 @@ interface UseInfiniteProductsReturn {
   currentPageRange: PageRange
   hasNextPage: boolean
   isFetchingNextPage: boolean
-  fetchNextPage: () => void
+  fetchNextPage: () => Promise<void>
   refetch: () => void
 }
 
@@ -66,7 +68,7 @@ export function useInfiniteProducts(
       q,
       category,
     }),
-    queryFn: ({ pageParam = baseOffset }) => {
+    queryFn: ({ pageParam }) => {
       // For the initial load, use rangeLimit to load all pages in range at once
       // For subsequent "load more" calls, use normal limit
       const isInitialLoad = pageParam === baseOffset
@@ -84,7 +86,7 @@ export function useInfiniteProducts(
       })
     },
     initialPageParam: baseOffset,
-    getNextPageParam: (lastPage, allPages, lastPageParam) => {
+    getNextPageParam: (lastPage, allPages) => {
       // Since we load the full range in the first request,
       // subsequent calls are just "load more" beyond the range
       const totalFetched = allPages.reduce(
@@ -117,7 +119,9 @@ export function useInfiniteProducts(
     currentPageRange: pageRange,
     hasNextPage,
     isFetchingNextPage,
-    fetchNextPage: () => fetchNextPage(),
+    fetchNextPage: async () => {
+      await fetchNextPage()
+    },
     refetch,
   }
 }

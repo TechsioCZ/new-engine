@@ -51,11 +51,11 @@ export type OrderBusinessStatus = {
   translation_key: `statuses.${OrderBusinessStatusId}`
 }
 
-export type OrderBusinessStatusPaymentCollection = {
+type OrderBusinessStatusPaymentCollection = {
   status?: string | null
 }
 
-export type OrderBusinessStatusFulfillment = {
+type OrderBusinessStatusFulfillment = {
   canceled_at?: Date | string | null
   delivered_at?: Date | string | null
   shipped_at?: Date | string | null
@@ -209,7 +209,7 @@ export function getOrderBusinessManualStatusUpdateBlockReason(
   const nextOrder = {
     ...order,
     metadata: {
-      ...(order.metadata ?? {}),
+      ...order.metadata,
       [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
     },
   }
@@ -222,7 +222,7 @@ export function getOrderBusinessManualStatusUpdateBlockReason(
   return
 }
 
-export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
+function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
   return (
     order.payment_status ??
     order.payment_collections?.find((collection) => collection.status)

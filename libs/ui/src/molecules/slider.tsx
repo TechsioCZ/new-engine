@@ -2,6 +2,7 @@ import { normalizeProps, useMachine } from "@zag-js/react"
 import * as slider from "@zag-js/slider"
 import { useId } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { slugify, tv } from "../utils"
@@ -100,36 +101,43 @@ const sliderVariants = tv({
 })
 
 export interface SliderProps extends VariantProps<typeof sliderVariants> {
-  id?: string
-  name?: string
-  label?: string
-  validateStatus?: "default" | "error" | "success" | "warning"
-  helpText?: string
-  showHelpTextIcon?: boolean
-  value?: number[]
-  defaultValue?: number[]
-  min?: number
-  max?: number
-  step?: number
-  minStepsBetweenThumbs?: number
-  disabled?: boolean
-  readOnly?: boolean
-  dir?: "ltr" | "rtl"
-  orientation?: "horizontal" | "vertical"
-  origin?: "start" | "center" | "end"
-  thumbAlignment?: "center" | "contain"
-  showMarkers?: boolean
-  markerCount?: number
-  showValueText?: boolean
-  formatRangeText?: (values: number[]) => string
-  formatValue?: (value: number) => string
-  className?: string
-  onChange?: (values: number[]) => void
-  onChangeEnd?: (values: number[]) => void
+  id?: string | undefined
+  name?: string | undefined
+  label?: string | undefined
+  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  helpText?: string | undefined
+  showHelpTextIcon?: boolean | undefined
+  value?: number[] | undefined
+  defaultValue?: number[] | undefined
+  min?: number | undefined
+  max?: number | undefined
+  step?: number | undefined
+  minStepsBetweenThumbs?: number | undefined
+  disabled?: boolean | undefined
+  readOnly?: boolean | undefined
+  dir?: "ltr" | "rtl" | undefined
+  orientation?: "horizontal" | "vertical" | undefined
+  origin?: "start" | "center" | "end" | undefined
+  thumbAlignment?: "center" | "contain" | undefined
+  showMarkers?: boolean | undefined
+  markerCount?: number | undefined
+  showValueText?: boolean | undefined
+  formatRangeText?: ((values: number[]) => string) | undefined
+  formatValue?: ((value: number) => string) | undefined
+  className?: string | undefined
+  onChange?: ((values: number[]) => void) | undefined
+  onChangeEnd?: ((values: number[]) => void) | undefined
 }
 
-const resolveFiniteNumber = (value: number | undefined, fallbackValue: number) => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+const resolveFiniteNumber = (
+  value: number | undefined,
+  fallbackValue: number
+) => {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return fallbackValue
   }
 
@@ -208,9 +216,7 @@ const resolveSliderConfig = (
     Math.floor((span + Number.EPSILON) / resolvedStep)
   )
   const maxMinStepsBetweenThumbs =
-    thumbCount > 1
-      ? Math.floor(stepsInSpan / (thumbCount - 1))
-      : 0
+    thumbCount > 1 ? Math.floor(stepsInSpan / (thumbCount - 1)) : 0
   const normalizedMinSteps = Math.trunc(
     resolveFiniteNumber(minStepsBetweenThumbs, 0)
   )
@@ -382,12 +388,14 @@ export function Slider({
 
   const service = useMachine(slider.machine, {
     id: uniqueId,
-    name,
-    value: resolvedValue,
-    defaultValue: resolvedDefaultValue,
+    ...(name !== undefined && { name }),
+    ...(resolvedValue !== undefined && { value: resolvedValue }),
+    ...(resolvedDefaultValue !== undefined && {
+      defaultValue: resolvedDefaultValue,
+    }),
     min: resolvedConfig.min,
     max: resolvedConfig.max,
-    origin,
+    ...(origin !== undefined && { origin }),
     thumbAlignment,
     step: resolvedConfig.step,
     minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
@@ -444,7 +452,11 @@ export function Slider({
       )}
 
       <div className={control()} {...api.getControlProps()}>
-        <div className={track()} {...api.getTrackProps()} data-invalid={validateStatus === "error"}>
+        <div
+          className={track()}
+          {...api.getTrackProps()}
+          data-invalid={validateStatus === "error"}
+        >
           <div
             className={range()}
             {...api.getRangeProps()}

@@ -3,6 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows"
 import type {
   AdminCreateCompanyType,
@@ -50,7 +51,7 @@ const buildCompanyListFilters = (
   if (searchTerm) {
     const escapedSearchTerm = escapeLikePattern(searchTerm)
 
-    filters.$or = [
+    filters["$or"] = [
       { name: { $ilike: `%${escapedSearchTerm}%` } },
       { email: { $ilike: `%${escapedSearchTerm}%` } },
       { phone: { $ilike: `%${escapedSearchTerm}%` } },
@@ -58,7 +59,7 @@ const buildCompanyListFilters = (
   }
 
   if (status === "deleted") {
-    filters.deleted_at = { $ne: null }
+    filters["deleted_at"] = { $ne: null }
   }
 
   return {

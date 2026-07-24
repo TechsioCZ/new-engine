@@ -30,7 +30,7 @@ type ResolvedFieldValidationResult = {
   matchedSource: boolean
 }
 
-export const toFieldErrorText = (error: unknown): string | undefined => {
+const toFieldErrorText = (error: unknown): string | undefined => {
   if (typeof error === "string" || typeof error === "number") {
     return String(error)
   }
@@ -163,7 +163,7 @@ const resolveBlurredFieldError = (
     : resolveFallbackFieldError(meta)
 }
 
-export const resolveVisibleFieldError = ({
+const resolveVisibleFieldError = ({
   hasChangedSinceBlur = false,
   meta,
   submissionAttempts,

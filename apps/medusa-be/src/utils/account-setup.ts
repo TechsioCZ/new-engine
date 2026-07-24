@@ -1,4 +1,5 @@
 import crypto from "node:crypto"
+
 import type {
   IAuthModuleService,
   ICustomerModuleService,
@@ -8,52 +9,56 @@ import { MedusaError } from "@medusajs/framework/utils"
 
 export const EMAIL_PASS_PROVIDER = "emailpass"
 export const ACCOUNT_SETUP_TOKEN_EXPIRES_IN = "15m"
-export const ACCOUNT_SETUP_REQUESTED_METADATA_KEY = "account_setup_requested"
+const ACCOUNT_SETUP_REQUESTED_METADATA_KEY = "account_setup_requested"
 
 export type AccountSetupOrder = {
   id: string
-  display_id?: number | null
-  email?: string | null
-  customer_id?: string | null
+  display_id?: number | null | undefined
+  email?: string | null | undefined
+  customer_id?: string | null | undefined
   metadata?: Record<string, unknown> | null
   billing_address?: {
-    first_name?: string | null
-    last_name?: string | null
+    first_name?: string | null | undefined
+    last_name?: string | null | undefined
   } | null
   shipping_address?: {
-    first_name?: string | null
-    last_name?: string | null
+    first_name?: string | null | undefined
+    last_name?: string | null | undefined
   } | null
   customer?: {
-    id?: string | null
-    email?: string | null
-    first_name?: string | null
-    last_name?: string | null
-    has_account?: boolean | null
+    id?: string | null | undefined
+    email?: string | null | undefined
+    first_name?: string | null | undefined
+    last_name?: string | null | undefined
+    has_account?: boolean | null | undefined
   } | null
 }
 
 export type AccountSetupCustomer = {
   id: string
-  email?: string | null
-  first_name?: string | null
-  last_name?: string | null
-  has_account?: boolean | null
+  email?: string | null | undefined
+  first_name?: string | null | undefined
+  last_name?: string | null | undefined
+  has_account?: boolean | null | undefined
 }
 
 export type AccountSetupResult = {
-  customer_id?: string
-  email?: string
+  customer_id?: string | undefined
+  email?: string | undefined
   order_id: string
-  customer_name?: string
-  order_display_id?: string
-  reset_url?: string
+  customer_name?: string | undefined
+  order_display_id?: string | undefined
+  reset_url?: string | undefined
   sent: boolean
-  skipped_reason?: "account_exists" | "missing_email" | "not_requested"
+  skipped_reason?:
+    | "account_exists"
+    | "missing_email"
+    | "not_requested"
+    | undefined
 }
 
 type EmailPassProviderIdentity = {
-  auth_identity_id?: string
+  auth_identity_id?: string | undefined
   id: string
 }
 
@@ -102,7 +107,7 @@ export function getAccountSetupCustomerName(order: AccountSetupOrder) {
 }
 
 export function buildAccountSetupUrl(email: string, token: string) {
-  const template = process.env.ACCOUNT_SETUP_URL_TEMPLATE
+  const template = process.env["ACCOUNT_SETUP_URL_TEMPLATE"]
 
   if (template) {
     if (!template.includes("{TOKEN}")) {
@@ -117,7 +122,7 @@ export function buildAccountSetupUrl(email: string, token: string) {
       .replaceAll("{EMAIL}", encodeURIComponent(email))
   }
 
-  const storefrontUrl = process.env.STOREFRONT_URL
+  const storefrontUrl = process.env["STOREFRONT_URL"]
 
   if (!storefrontUrl) {
     throw new MedusaError(
@@ -132,10 +137,13 @@ export function buildAccountSetupUrl(email: string, token: string) {
 function getCustomerCreateData(order: AccountSetupOrder, email: string) {
   const address = order.billing_address ?? order.shipping_address
 
+  const firstName = order.customer?.first_name ?? address?.first_name
+  const lastName = order.customer?.last_name ?? address?.last_name
+
   return {
     email,
-    first_name: order.customer?.first_name ?? address?.first_name ?? undefined,
-    last_name: order.customer?.last_name ?? address?.last_name ?? undefined,
+    ...(firstName ? { first_name: firstName } : {}),
+    ...(lastName ? { last_name: lastName } : {}),
     has_account: false,
   }
 }
@@ -159,8 +167,8 @@ function isOptionalNullableAddress(value: unknown) {
 
   return (
     isRecord(value) &&
-    isOptionalNullableString(value.first_name) &&
-    isOptionalNullableString(value.last_name)
+    isOptionalNullableString(value["first_name"]) &&
+    isOptionalNullableString(value["last_name"])
   )
 }
 
@@ -171,31 +179,29 @@ function isOptionalNullableOrderCustomer(value: unknown) {
 
   return (
     isRecord(value) &&
-    isOptionalNullableString(value.id) &&
-    isOptionalNullableString(value.email) &&
-    isOptionalNullableString(value.first_name) &&
-    isOptionalNullableString(value.last_name) &&
-    isOptionalNullableBoolean(value.has_account)
+    isOptionalNullableString(value["id"]) &&
+    isOptionalNullableString(value["email"]) &&
+    isOptionalNullableString(value["first_name"]) &&
+    isOptionalNullableString(value["last_name"]) &&
+    isOptionalNullableBoolean(value["has_account"])
   )
 }
 
-export function isAccountSetupOrder(
-  value: unknown
-): value is AccountSetupOrder {
+function isAccountSetupOrder(value: unknown): value is AccountSetupOrder {
   return (
     isRecord(value) &&
-    typeof value.id === "string" &&
-    (value.display_id === undefined ||
-      value.display_id === null ||
-      typeof value.display_id === "number") &&
-    isOptionalNullableString(value.email) &&
-    isOptionalNullableString(value.customer_id) &&
-    (value.metadata === undefined ||
-      value.metadata === null ||
-      isRecord(value.metadata)) &&
-    isOptionalNullableAddress(value.billing_address) &&
-    isOptionalNullableAddress(value.shipping_address) &&
-    isOptionalNullableOrderCustomer(value.customer)
+    typeof value["id"] === "string" &&
+    (value["display_id"] === undefined ||
+      value["display_id"] === null ||
+      typeof value["display_id"] === "number") &&
+    isOptionalNullableString(value["email"]) &&
+    isOptionalNullableString(value["customer_id"]) &&
+    (value["metadata"] === undefined ||
+      value["metadata"] === null ||
+      isRecord(value["metadata"])) &&
+    isOptionalNullableAddress(value["billing_address"]) &&
+    isOptionalNullableAddress(value["shipping_address"]) &&
+    isOptionalNullableOrderCustomer(value["customer"])
   )
 }
 
@@ -211,22 +217,20 @@ export function assertAccountSetupOrder(
   }
 }
 
-export function isAccountSetupCustomer(
-  value: unknown
-): value is AccountSetupCustomer {
-  if (!isRecord(value) || typeof value.id !== "string") {
+function isAccountSetupCustomer(value: unknown): value is AccountSetupCustomer {
+  if (!isRecord(value) || typeof value["id"] !== "string") {
     return false
   }
 
   return (
-    isOptionalNullableString(value.email) &&
-    isOptionalNullableString(value.first_name) &&
-    isOptionalNullableString(value.last_name) &&
-    isOptionalNullableBoolean(value.has_account)
+    isOptionalNullableString(value["email"]) &&
+    isOptionalNullableString(value["first_name"]) &&
+    isOptionalNullableString(value["last_name"]) &&
+    isOptionalNullableBoolean(value["has_account"])
   )
 }
 
-export function assertAccountSetupCustomer(
+function assertAccountSetupCustomer(
   value: unknown,
   source: string
 ): asserts value is AccountSetupCustomer {
@@ -243,9 +247,9 @@ function isEmailPassProviderIdentity(
 ): value is EmailPassProviderIdentity {
   return (
     isRecord(value) &&
-    typeof value.id === "string" &&
-    (value.auth_identity_id === undefined ||
-      typeof value.auth_identity_id === "string")
+    typeof value["id"] === "string" &&
+    (value["auth_identity_id"] === undefined ||
+      typeof value["auth_identity_id"] === "string")
   )
 }
 

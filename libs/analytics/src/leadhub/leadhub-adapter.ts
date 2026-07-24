@@ -106,7 +106,7 @@ export function useLeadhubAdapter(
       getLhi,
       (lhi, params) => {
         lhi("Purchase", {
-          email: params.email,
+          ...(params.email === undefined ? {} : { email: params.email }),
           value: params.value,
           currency: params.currency,
           order_id: params.orderId,
@@ -121,9 +121,6 @@ export function useLeadhubAdapter(
       debug,
       adapterKey
     ),
-
-    // Leadhub doesn't support arbitrary custom events
-    trackCustom: undefined,
 
     // ========================================
     // Leadhub-specific methods (LeadhubExtras)

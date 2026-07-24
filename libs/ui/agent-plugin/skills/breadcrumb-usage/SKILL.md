@@ -1,9 +1,7 @@
 ---
 name: breadcrumb-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Breadcrumb for
-  page hierarchy navigation with Link/NextLink adapters, current page state,
-  separators, ellipsis, icons, size, and underline variant.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Breadcrumb for page hierarchy navigation with Link/NextLink adapters, current page state, separators, ellipsis, icons, size, and underline variant.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -28,11 +26,17 @@ Use Breadcrumb for location hierarchy, not for primary navigation tabs.
 import NextLink from "next/link"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
 
-<Breadcrumb size="md">
+;<Breadcrumb size="md">
   <Breadcrumb.List>
-    <Breadcrumb.Item><Breadcrumb.Link as={NextLink} href="/">Home</Breadcrumb.Link></Breadcrumb.Item>
+    <Breadcrumb.Item>
+      <Breadcrumb.Link as={NextLink} href="/">
+        Home
+      </Breadcrumb.Link>
+    </Breadcrumb.Item>
     <Breadcrumb.Separator />
-    <Breadcrumb.Item><Breadcrumb.CurrentLink>Products</Breadcrumb.CurrentLink></Breadcrumb.Item>
+    <Breadcrumb.Item>
+      <Breadcrumb.CurrentLink>Products</Breadcrumb.CurrentLink>
+    </Breadcrumb.Item>
   </Breadcrumb.List>
 </Breadcrumb>
 ```
@@ -50,18 +54,15 @@ Separator/Ellipsis/Icon: token icon defaults with icon override props
 
 ### Use CurrentLink for the current page
 
-The last breadcrumb should be `Breadcrumb.CurrentLink`, not a clickable link to
-the same page.
+The last breadcrumb should be `Breadcrumb.CurrentLink`, not a clickable link to the same page.
 
 ### Use framework link adapters
 
-In Next apps, pass `as={NextLink}` to `Breadcrumb.Link` instead of wrapping or
-restyling anchors.
+In Next apps, pass `as={NextLink}` to `Breadcrumb.Link` instead of wrapping or restyling anchors.
 
 ### Use separators and ellipsis components
 
-Let `Breadcrumb.Separator` and `Breadcrumb.Ellipsis` supply token icons and
-ARIA behavior.
+Let `Breadcrumb.Separator` and `Breadcrumb.Ellipsis` supply token icons and ARIA behavior.
 
 ## Common Mistakes
 
@@ -70,13 +71,17 @@ ARIA behavior.
 Wrong:
 
 ```tsx
-<nav><a href="/">Home</a> / <span>Products</span></nav>
+<nav>
+  <a href="/">Home</a> / <span>Products</span>
+</nav>
 ```
 
 Correct:
 
 ```tsx
-<Breadcrumb><Breadcrumb.List>{/* items */}</Breadcrumb.List></Breadcrumb>
+<Breadcrumb>
+  <Breadcrumb.List>{/* items */}</Breadcrumb.List>
+</Breadcrumb>
 ```
 
 Source: libs/ui/src/molecules/breadcrumb.tsx
@@ -92,7 +97,9 @@ Wrong:
 Correct in Next:
 
 ```tsx
-<Breadcrumb.Link as={NextLink} href="/products">Products</Breadcrumb.Link>
+<Breadcrumb.Link as={NextLink} href="/products">
+  Products
+</Breadcrumb.Link>
 ```
 
 Source: libs/ui/src/atoms/link.tsx

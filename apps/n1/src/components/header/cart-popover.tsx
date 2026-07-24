@@ -3,8 +3,10 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { Suspense } from "react"
+
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useSuspenseCart } from "@/hooks/use-cart"
+
 import { CartContent } from "./cart-content"
 import { CartEmptyState } from "./cart-empty-state"
 import { CartSkeleton } from "./cart-skeleton"
@@ -56,7 +58,7 @@ function CartPopoverContent({ onClose }: { onClose: () => void }) {
           />
           {itemCount > 0 && (
             <Badge
-              className="-right-2 -top-1 absolute flex size-5 items-center rounded-full bg-primary text-3xs text-fg-primary"
+              className="-right-200 -top-100 absolute flex size-5 items-center rounded-full bg-primary text-3xs text-fg-primary"
               variant="primary"
             >
               {itemCount > 99 ? "99+" : itemCount.toString()}

@@ -1,7 +1,8 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
 import logo from "@/assets/herbatica-logo.avif"
+import NextLink from "@/components/app-link"
 
 type HerbatikaLogoProps = {
   className?: string

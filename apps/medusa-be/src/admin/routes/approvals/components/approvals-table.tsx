@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+
 import { DataTable } from "../../../components/common/table/data-table/data-table"
 import { useApprovals } from "../../../hooks/api"
 import { useDataTable } from "../../../hooks/use-data-table"

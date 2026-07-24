@@ -1,4 +1,5 @@
 import type { StoreCustomer } from "@medusajs/types"
+
 import { mapAuthError } from "@/lib/auth-messages"
 import { logError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
@@ -105,7 +106,7 @@ export async function getCustomer(): Promise<StoreCustomer | null> {
       )
     }
     return customer
-  } catch (_err) {
+  } catch {
     // Not authenticated or session expired
     return null
   }

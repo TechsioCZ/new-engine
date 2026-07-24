@@ -1,10 +1,7 @@
 ---
 name: ui-kit-workflow-orchestrator
 description: >
-  Use first when a task could touch @techsio/ui-kit in libs/ui or an apps/*
-  consumer. Routes component authoring, app usage, token work, Storybook,
-  validation, framework adapters, Figma handoff, and Intent skill maintenance
-  without crossing library/app scope accidentally.
+  Use first when a task could touch @techsio/ui-kit in libs/ui or an apps/* consumer. Routes component authoring, app usage, token work, Storybook, validation, framework adapters, Figma handoff, and Intent skill maintenance without crossing library/app scope accidentally.
 type: lifecycle
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -17,8 +14,7 @@ sources:
 
 # @techsio/ui-kit Workflow Orchestrator
 
-Load this before deciding how to work with `@techsio/ui-kit`. It separates
-library authoring in `libs/ui` from app adoption in `apps/*`.
+Load this before deciding how to work with `@techsio/ui-kit`. It separates library authoring in `libs/ui` from app adoption in `apps/*`.
 
 ## Routing Setup
 
@@ -63,8 +59,7 @@ Need a destructive action button
 -> app-token-overrides only if Button tokens cannot express the app visual
 ```
 
-Do not make `component-usage-ux` decide every prop by itself. It routes to the
-component-specific skill.
+Do not make `component-usage-ux` decide every prop by itself. It routes to the component-specific skill.
 
 ### Treat Figma as a handoff
 
@@ -84,8 +79,7 @@ pnpm --dir libs/ui validate:tokens
 bunx nx run ui:build
 ```
 
-Run narrow checks by default. Ask the maintainer before broader Storybook,
-a11y, or screenshot runs unless the task already requires them.
+Run narrow checks by default. Ask the maintainer before broader Storybook, a11y, or screenshot runs unless the task already requires them.
 
 ## Common Mistakes
 
@@ -127,8 +121,7 @@ Run component-consistency-validation.
 Use figma-sync-handoff for public API or visual changes.
 ```
 
-Component work in this repo normally spans TSX, CSS tokens, stories, and
-validation.
+Component work in this repo normally spans TSX, CSS tokens, stories, and validation.
 
 Source: libs/ui/AGENTS.md
 

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { parseEnv } from "node:util"
+
 import { expect, type Page, test } from "@playwright/test"
 
 const workspaceRoot = resolve(__dirname, "../../../..")
@@ -9,7 +10,7 @@ const rootEnv = existsSync(rootEnvPath)
   ? parseEnv(readFileSync(rootEnvPath, "utf8"))
   : {}
 
-const readEnv = (...names: string[]) => {
+const readEnv = (...names: string[]): string | undefined => {
   for (const name of names) {
     const value = process.env[name] ?? rootEnv[name]
 
@@ -17,6 +18,16 @@ const readEnv = (...names: string[]) => {
       return value
     }
   }
+
+  return undefined
+}
+
+const assertDefined = (value: string | undefined, message: string): string => {
+  if (value === undefined) {
+    throw new Error(message)
+  }
+
+  return value
 }
 
 const adminEmail = readEnv("MEDUSA_ADMIN_E2E_EMAIL", "DC_SUPERADMIN_EMAIL")
@@ -24,7 +35,7 @@ const adminPassword = readEnv(
   "MEDUSA_ADMIN_E2E_PASSWORD",
   "DC_SUPERADMIN_PASSWORD"
 )
-const skipAuthenticatedAdmin = process.env.MEDUSA_ADMIN_E2E_SKIP_AUTH === "1"
+const skipAuthenticatedAdmin = process.env["MEDUSA_ADMIN_E2E_SKIP_AUTH"] === "1"
 
 const ADMIN_APP_URL_PATTERN = /\/app\/(?!login)/
 const CONTINUE_WITH_EMAIL_NAME = /continue with email/i
@@ -95,15 +106,13 @@ test("renders the Medusa admin login without browser errors", async ({
     page.getByRole("button", { name: CONTINUE_WITH_EMAIL_NAME })
   ).toBeVisible()
 
-  const renderedBody = await page.locator("body").evaluate((body) => ({
-    interactiveElements: body.querySelectorAll(
-      'a, button, input, textarea, select, [role="button"]'
-    ).length,
-    textLength: body.innerText.trim().length,
-  }))
+  const interactiveElements = await page
+    .locator('a, button, input, textarea, select, [role="button"]')
+    .count()
+  const bodyText = await page.locator("body").innerText()
 
-  expect(renderedBody.textLength).toBeGreaterThan(20)
-  expect(renderedBody.interactiveElements).toBeGreaterThan(2)
+  expect(bodyText.trim().length).toBeGreaterThan(20)
+  expect(interactiveElements).toBeGreaterThan(2)
   expectNoBrowserErrors(browserErrors)
 })
 
@@ -124,11 +133,21 @@ test("renders the authenticated Medusa admin shell without browser errors", asyn
   await page
     .locator('input[name="email"], input[type="email"]')
     .first()
-    .fill(adminEmail)
+    .fill(
+      assertDefined(
+        adminEmail,
+        "adminEmail is required to submit the login form"
+      )
+    )
   await page
     .locator('input[name="password"], input[type="password"]')
     .first()
-    .fill(adminPassword)
+    .fill(
+      assertDefined(
+        adminPassword,
+        "adminPassword is required to submit the login form"
+      )
+    )
 
   await submitLoginForm(page)
   await page.waitForLoadState("networkidle")

@@ -1,80 +1,84 @@
 {
-    log default {
-        format console
-        output stdout
-        exclude http.log.access
-    }
+	log default {
+		format console
+		output stdout
+		exclude http.log.access
+	}
 }
 
 admin.medusa.localhost:443 {
-    reverse_proxy medusa-be:9000
-    tls internal
+	reverse_proxy medusa-be:9000
+	tls internal
 }
 
 admin.medusa.localhost:9009 {
-    reverse_proxy medusa-be:9009
-    tls internal
+	reverse_proxy medusa-be:9009
+	tls internal
 }
 
-admin.medusa.localhost {
-    redir https://{host}{uri}
+http://admin.medusa.localhost {
+	redir https://{host}{uri}
 }
 
 n1.medusa.localhost:443 {
-    reverse_proxy n1:3000
-    tls internal
+	reverse_proxy n1:3000
+	tls internal
 }
 
-n1.medusa.localhost {
-    redir https://{host}{uri}
+http://n1.medusa.localhost {
+	redir https://{host}{uri}
 }
 
 admin.payload.medusa.localhost:443 {
-    reverse_proxy payload:8083
-    tls internal
+	reverse_proxy payload:8083
+	tls internal
 }
 
-admin.payload.medusa.localhost {
-    redir https://{host}{uri}
+http://admin.payload.medusa.localhost {
+	redir https://{host}{uri}
 }
 
 admin.meilisearch.localhost:443 {
-    reverse_proxy medusa-meilisearch:7700
-    tls internal
+	reverse_proxy medusa-meilisearch:7700
+	tls internal
 }
 
-admin.meilisearch.localhost {
-    redir https://{host}{uri}
+http://admin.meilisearch.localhost {
+	redir https://{host}{uri}
 }
 
 admin.minio.localhost:443 {
-    reverse_proxy medusa-minio:9003
-    tls internal
+	reverse_proxy medusa-minio:9003
+	tls internal
 }
 
-api.minio.localhost:80 {
-    reverse_proxy medusa-minio:9004
-    tls internal
+api.minio.localhost:443 {
+	reverse_proxy medusa-minio:9004
+	tls internal
 }
 
-admin.minio.localhost {
-    redir https://{host}{uri}
+http://api.minio.localhost {
+	redir https://{host}{uri}
+}
+
+http://admin.minio.localhost {
+	redir https://{host}{uri}
 }
 
 admin.db.localhost:443 {
-    reverse_proxy adminer:8080
-    tls internal
+	reverse_proxy adminer:8080
+	tls internal
 }
 
-admin.db.localhost {
-    redir https://{host}{uri}
+http://admin.db.localhost {
+	redir https://{host}{uri}
 }
 
 admin.zane-operator.localhost:443 {
-    reverse_proxy zane-operator:8080
-    tls internal
+	reverse_proxy zane-operator:8080
+	tls internal
 }
 
-admin.zane-operator.localhost {
-    redir https://{host}{uri}
+http://admin.zane-operator.localhost {
+	redir https://{host}{uri}
 }

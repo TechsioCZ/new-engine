@@ -1,6 +1,7 @@
 "use client"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useRegion } from "@/hooks/use-region"
 import { CATEGORY_MAP } from "@/lib/constants"
@@ -38,7 +39,7 @@ export function PrefetchManager() {
 
       // Prefetch ALL root categories (without AbortSignal)
       for (const categoryIds of Object.values(CATEGORY_MAP)) {
-        prefetchRootCategories(categoryIds)
+        void prefetchRootCategories(categoryIds)
       }
     }, PREFETCH_DELAY)
 

@@ -7,7 +7,9 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import NextLink from "next/link"
+
 import logo from "@/assets/logo-n1.webp"
+
 import { CartPopover } from "./cart-popover"
 import { DesktopSubmenu } from "./desktop-submenu"
 import { LoginPopover } from "./login-popover"
@@ -39,7 +41,7 @@ export const N1Header = () => {
 
   return (
     <Header
-      className="z-50 flex h-fit max-h-96 w-full flex-col"
+      className="z-50 flex h-fit max-h-navigation-menu w-full flex-col"
       direction="vertical"
     >
       <Header.Container className="flex items-center justify-between gap-200 bg-highlight px-400 py-150">
@@ -50,7 +52,7 @@ export const N1Header = () => {
               office@n1shop.cz
             </span>
           </Link>
-          <span className="hidden h-1.5 w-1.5 bg-secondary md:block" />
+          <span className="hidden h-150 w-150 bg-secondary md:block" />
           {topHeaderLinks.map((link) => (
             <Link
               as={NextLink}

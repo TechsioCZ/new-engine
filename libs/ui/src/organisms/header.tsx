@@ -1,6 +1,7 @@
 import type { HTMLAttributes, ReactNode, Ref } from "react"
 import { createContext, useContext, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import { tv } from "../utils"
 
@@ -9,7 +10,6 @@ const headerVariants = tv({
     root: [
       "@container w-full bg-header-bg",
       "flex justify-between",
-      "max-w-header-max",
       "relative",
     ],
     desktop: "flex @max-header-desktop:hidden w-full",
@@ -18,30 +18,30 @@ const headerVariants = tv({
     ],
     container: [
       "grid w-full gap-header-container",
-      "data-[position=start]:justify-items-start-safe",
+      "data-[position=start]:justify-items-start",
       "data-[position=center]:justify-items-center-safe",
       "data-[position=end]:justify-items-end-safe",
     ],
     nav: ["flex flex-1 items-center", "@max-header-desktop:bg-header-bg"],
     navItem: [
-      'bg-header-nav-item-bg hover:bg-header-nav-item-bg-hover',
-      'data-[active=true]:text-header-nav-fg-active',
-      'data-[active=true]:font-header-nav-active',
-      'min-w-max',
-      'transition-colors duration-200 motion-reduce:transition-none',
+      "bg-header-nav-item-bg hover:bg-header-nav-item-bg-hover",
+      "data-[active=true]:text-header-nav-fg-active",
+      "data-[active=true]:font-header-nav-active",
+      "min-w-max",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     actions: ["flex items-center", "shrink-0"],
     actionItem: [
-      'text-header-actions-fg',
-      'hover:text-header-actions-fg-hover',
-      'transition-colors duration-200 motion-reduce:transition-none',
+      "text-header-actions-fg",
+      "hover:text-header-actions-fg-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
     ],
     hamburger: [
-      '@header-desktop:hidden',
-      'items-center',
-      'text-header-hamburger-fg hover:text-header-hamburger-fg-hover',
-      'transition-colors duration-header motion-reduce:transition-none',
-      'cursor-pointer',
+      "@header-desktop:hidden",
+      "items-center",
+      "text-header-hamburger-fg hover:text-header-hamburger-fg-hover",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "cursor-pointer",
     ],
   },
   compoundSlots: [
@@ -94,7 +94,7 @@ const headerVariants = tv({
 
 // === CONTEXT ===
 interface HeaderContextValue {
-  size?: "sm" | "md" | "lg"
+  size?: "sm" | "md" | "lg" | undefined
   isMobileMenuOpen: boolean
   setIsMobileMenuOpen: (open: boolean) => void
   toggleMobileMenu: () => void
@@ -108,47 +108,46 @@ export const HeaderContext = createContext<HeaderContextValue>({
 
 // === TYPE DEFINITIONS ===
 export interface HeaderProps
-  extends HTMLAttributes<HTMLElement>,
-    VariantProps<typeof headerVariants> {
+  extends HTMLAttributes<HTMLElement>, VariantProps<typeof headerVariants> {
   children: ReactNode
-  ref?: Ref<HTMLElement>
+  ref?: Ref<HTMLElement> | undefined
 }
 
 interface HeaderContainerProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode
-  ref?: Ref<HTMLElement>
-  position?: "start" | "center" | "end"
+  ref?: Ref<HTMLElement> | undefined
+  position?: "start" | "center" | "end" | undefined
 }
 
 interface HeaderNavProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode
-  ref?: Ref<HTMLElement>
-  size?: "sm" | "md" | "lg"
+  ref?: Ref<HTMLElement> | undefined
+  size?: "sm" | "md" | "lg" | undefined
 }
 
 interface HeaderNavItemProps extends HTMLAttributes<HTMLDivElement> {
-  active?: boolean
+  active?: boolean | undefined
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
-  size?: "sm" | "md" | "lg"
+  ref?: Ref<HTMLDivElement> | undefined
+  size?: "sm" | "md" | "lg" | undefined
 }
 
 interface HeaderActionsProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
-  size?: "sm" | "md" | "lg"
+  ref?: Ref<HTMLDivElement> | undefined
+  size?: "sm" | "md" | "lg" | undefined
 }
 
 interface HeaderActionItemProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
-  size?: "sm" | "md" | "lg"
+  ref?: Ref<HTMLDivElement> | undefined
+  size?: "sm" | "md" | "lg" | undefined
 }
 
 interface HeaderMobileProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
-  ref?: Ref<HTMLDivElement>
-  position?: "left" | "right"
+  ref?: Ref<HTMLDivElement> | undefined
+  position?: "left" | "right" | undefined
 }
 
 export function Header({
@@ -325,7 +324,7 @@ Header.ActionItem = function HeaderActionItem({
 Header.Hamburger = function HeaderHamburger({
   className,
 }: {
-  className?: string
+  className?: string | undefined
 }) {
   const { toggleMobileMenu, isMobileMenuOpen } = useContext(HeaderContext)
   const { hamburger } = headerVariants()
@@ -335,7 +334,9 @@ Header.Hamburger = function HeaderHamburger({
       aria-expanded={isMobileMenuOpen}
       aria-label="Toggle mobile menu"
       className={hamburger({ className })}
-      icon={isMobileMenuOpen ? "token-icon-header-close" : "token-icon-header-menu"}
+      icon={
+        isMobileMenuOpen ? "token-icon-header-close" : "token-icon-header-menu"
+      }
       onClick={toggleMobileMenu}
       size="current"
       theme="unstyled"

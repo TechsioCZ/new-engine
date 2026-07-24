@@ -8,8 +8,10 @@ import { type SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { slugify } from "@techsio/ui-kit/utils"
 import Image from "next/image"
+
 import { contactContent } from "@/data/contact-content"
 import { useContactForm } from "@/hooks/use-contact-form"
+
 import contactImage from "../../../assets/hero/contact.webp"
 
 export default function ContactPage() {

@@ -1,0 +1,18 @@
+id: no-local-canonical-helper
+valid:
+  - |
+    import { isRecord } from "@techsio/std/object"
+  - |
+    const isOrderRecord = (value: unknown): value is OrderRecord => validate(value)
+  - |
+    const isRecord = schema.isRecord
+  - |
+    const isOrderRecord = (value: unknown): value is OrderRecord =>
+      typeof value === "object" && value !== null
+invalid:
+  - |
+    const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null
+  - |
+    function assertNever(value: never): never { throw new Error(String(value)) }
+  - |
+    const debounce = (callback, delay) => callback

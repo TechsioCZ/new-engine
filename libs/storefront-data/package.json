@@ -1,12 +1,19 @@
 {
   "name": "@techsio/storefront-data",
   "version": "0.1.0",
-  "type": "module",
+  "keywords": [
+    "tanstack-intent"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TechsioCZ/new-engine.git",
     "directory": "libs/storefront-data"
   },
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "type": "module",
   "exports": {
     ".": null,
     "./package.json": "./package.json",
@@ -258,26 +265,6 @@
       "types": "./dist/src/product-lists/utils.d.ts",
       "import": "./dist/product-lists/utils.js"
     },
-    "./product-location-availability/hooks": {
-      "types": "./dist/src/product-location-availability/hooks.d.ts",
-      "import": "./dist/product-location-availability/hooks.js"
-    },
-    "./product-location-availability/medusa-service": {
-      "types": "./dist/src/product-location-availability/medusa-service.d.ts",
-      "import": "./dist/product-location-availability/medusa-service.js"
-    },
-    "./product-location-availability/query-keys": {
-      "types": "./dist/src/product-location-availability/query-keys.d.ts",
-      "import": "./dist/product-location-availability/query-keys.js"
-    },
-    "./product-location-availability/query-options": {
-      "types": "./dist/src/product-location-availability/query-options.d.ts",
-      "import": "./dist/product-location-availability/query-options.js"
-    },
-    "./product-location-availability/types": {
-      "types": "./dist/src/product-location-availability/types.d.ts",
-      "import": "./dist/product-location-availability/types.js"
-    },
     "./reviews/hooks": {
       "types": "./dist/src/reviews/hooks.d.ts",
       "import": "./dist/reviews/hooks.js"
@@ -317,18 +304,62 @@
     "./regions/types": {
       "types": "./dist/src/regions/types.d.ts",
       "import": "./dist/regions/types.js"
+    },
+    "./product-location-availability/hooks": {
+      "types": "./dist/src/product-location-availability/hooks.d.ts",
+      "import": "./dist/product-location-availability/hooks.js"
+    },
+    "./product-location-availability/medusa-service": {
+      "types": "./dist/src/product-location-availability/medusa-service.d.ts",
+      "import": "./dist/product-location-availability/medusa-service.js"
+    },
+    "./product-location-availability/query-keys": {
+      "types": "./dist/src/product-location-availability/query-keys.d.ts",
+      "import": "./dist/product-location-availability/query-keys.js"
+    },
+    "./product-location-availability/query-options": {
+      "types": "./dist/src/product-location-availability/query-options.d.ts",
+      "import": "./dist/product-location-availability/query-options.js"
+    },
+    "./product-location-availability/types": {
+      "types": "./dist/src/product-location-availability/types.d.ts",
+      "import": "./dist/product-location-availability/types.js"
     }
   },
-  "files": [
-    "dist",
-    "skills"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
-    "lint": "pnpm -w exec biome lint libs/storefront-data/src --diagnostic-level=error",
+    "lint": "pnpm -w exec oxlint libs/storefront-data/src --type-aware",
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.type-tests.json"
+    "typecheck": "pnpm exec tsc --noEmit -p ./tsconfig.json && pnpm exec tsc --noEmit -p ./tsconfig.type-tests.json"
+  },
+  "devDependencies": {
+    "@medusajs/js-sdk": "2.17.2",
+    "@medusajs/types": "2.17.2",
+    "@rsbuild/plugin-react": "^2.1.0",
+    "@rslib/core": "^0.23.2",
+    "@tanstack/intent": "^0.3.6",
+    "@tanstack/react-query": "^5.101.2",
+    "@techsio/std": "workspace:*",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "glob": "^13.0.6",
+    "jsdom": "^29.1.1",
+    "msw": "^2.15.0",
+    "typescript": "^7.0.2",
+    "vite": "8.1.3",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "@medusajs/js-sdk": ">=2.15.2",
+    "@medusajs/types": ">=2.15.2",
+    "@tanstack/react-query": "^5.101.2",
+    "react": ">=19.2.0",
+    "react-dom": ">=19.2.0"
   },
   "nx": {
     "tags": [
@@ -369,33 +400,5 @@
         }
       }
     }
-  },
-  "devDependencies": {
-    "@medusajs/js-sdk": "2.17.2",
-    "@medusajs/types": "2.17.2",
-    "@rsbuild/plugin-react": "^1.4.1",
-    "@rslib/core": "^0.18.0",
-    "@tanstack/intent": "^0.0.42",
-    "@testing-library/react": "^16.3.1",
-    "@types/react": "^19.2.3",
-    "@types/react-dom": "^19.2.3",
-    "jsdom": "^27.4.0",
-    "msw": "^2.8.0",
-    "typescript": "^5.9.3",
-    "vite": "catalog:vite5-testing",
-    "vitest": "catalog:vite5-testing"
-  },
-  "peerDependencies": {
-    "@medusajs/js-sdk": ">=2.15.2",
-    "@medusajs/types": ">=2.15.2",
-    "@tanstack/react-query": ">=5.0.0",
-    "react": ">=19.2.0",
-    "react-dom": ">=19.2.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "keywords": [
-    "tanstack-intent"
-  ]
+  }
 }

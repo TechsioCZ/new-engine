@@ -3,7 +3,11 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import type { RemoteQueryFunction } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+
 import type { GetQuoteParamsType } from "../validators"
 
 export const GET = async (
@@ -11,6 +15,14 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const query = req.scope.resolve<RemoteQueryFunction>(
     ContainerRegistrationKeys.QUERY
   )

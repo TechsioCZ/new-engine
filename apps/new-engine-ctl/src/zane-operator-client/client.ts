@@ -29,8 +29,8 @@ import type {
   ResolveTargetsResponse,
 } from "../contracts/resolve-targets.js"
 import { resolveTargetsResponseSchema } from "../contracts/resolve-targets.js"
-import type { RuntimeProviderRunResponse } from "../contracts/runtime-provider-run.js"
 import {
+  type RuntimeProviderRunResponse,
   type RuntimeProviderRunPayload,
   runtimeProviderRunResponseSchema,
 } from "../contracts/runtime-provider-run.js"
@@ -50,18 +50,18 @@ function extractOperatorMessage(body: unknown): string | undefined {
   }
 
   const record = body as Record<string, unknown>
-  const directMessage = record.message
+  const directMessage = record["message"]
   if (typeof directMessage === "string" && directMessage.trim()) {
     return directMessage.trim()
   }
 
-  const errorField = record.error
+  const errorField = record["error"]
   if (typeof errorField === "string" && errorField.trim()) {
     return errorField.trim()
   }
 
   if (errorField && typeof errorField === "object") {
-    const nestedMessage = (errorField as Record<string, unknown>).message
+    const nestedMessage = (errorField as Record<string, unknown>)["message"]
     if (typeof nestedMessage === "string" && nestedMessage.trim()) {
       return nestedMessage.trim()
     }
@@ -90,12 +90,13 @@ export class ZaneOperatorClient {
     let response: Response
 
     try {
+      const { headers, ...requestInit } = init
       response = await fetch(`${this.#baseUrl}${path}`, {
-        ...init,
-        headers: {
+        ...requestInit,
+        headers: new Headers({
+          ...Object.fromEntries(new Headers(headers).entries()),
           authorization: `Bearer ${this.#apiToken}`,
-          ...(init.headers ?? {}),
-        },
+        }),
       })
     } catch {
       throw new Error(
@@ -161,14 +162,16 @@ export class ZaneOperatorClient {
     service_specs: Array<{
       service_id: string
       service_slug: string
-      git_source?: {
-        sync_from_source: boolean
-        branch_name?: string
-        commit_sha?: string
-      }
+      git_source?:
+        | {
+            sync_from_source: boolean
+            branch_name?: string | undefined
+            commit_sha?: string | undefined
+          }
+        | undefined
       builder?: {
         sync_from_source: boolean
-        build_stage_target?: string | null
+        build_stage_target?: string | undefined | null
       }
       healthcheck?: {
         sync_from_source: boolean
@@ -178,10 +181,8 @@ export class ZaneOperatorClient {
       }
     }>
   }): Promise<ResolveEnvironmentResponse> {
-    return this.#postJson(
-      "/v1/zane/environments/resolve",
-      payload,
-      resolveEnvironmentResponseSchema.parse
+    return this.#postJson("/v1/zane/environments/resolve", payload, (value) =>
+      resolveEnvironmentResponseSchema.parse(value)
     )
   }
 
@@ -192,21 +193,21 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-commit-state/read",
       payload,
-      previewCommitStateResponseSchema.parse
+      (value) => previewCommitStateResponseSchema.parse(value)
     )
   }
 
   writePreviewCommitState(payload: {
     project_slug: string
     environment_name: string
-    target_commit_sha?: string
-    last_deployed_commit_sha?: string
+    target_commit_sha?: string | undefined
+    last_deployed_commit_sha?: string | undefined
     baseline_complete?: boolean
   }): Promise<PreviewCommitStateResponse> {
     return this.#postJson(
       "/v1/zane/preview-commit-state/write",
       payload,
-      previewCommitStateResponseSchema.parse
+      (value) => previewCommitStateResponseSchema.parse(value)
     )
   }
 
@@ -215,9 +216,9 @@ export class ZaneOperatorClient {
     environment_name: string
     secrets: Array<{
       secret_id: string
-      value?: string
-      persist_to?: string
-      persisted_env_var?: string
+      value?: string | undefined
+      persist_to?: string | undefined
+      persisted_env_var?: string | undefined
       targets: Array<{
         service_slug: string
         env_var: string
@@ -227,7 +228,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-random-once-secrets/sync",
       payload,
-      previewRandomOnceSecretsResponseSchema.parse
+      (value) => previewRandomOnceSecretsResponseSchema.parse(value)
     )
   }
 
@@ -239,7 +240,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-shared-env/sync",
       payload,
-      previewSharedEnvSyncResponseSchema.parse
+      (value) => previewSharedEnvSyncResponseSchema.parse(value)
     )
   }
 
@@ -258,17 +259,15 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/preview-service-env/sync",
       payload,
-      applyEnvOverridesResponseSchema.parse
+      (value) => applyEnvOverridesResponseSchema.parse(value)
     )
   }
 
   resolveTargets(
     payload: ResolveTargetsPayload
   ): Promise<ResolveTargetsResponse> {
-    return this.#postJson(
-      "/v1/zane/deploy/resolve-targets",
-      payload,
-      resolveTargetsResponseSchema.parse
+    return this.#postJson("/v1/zane/deploy/resolve-targets", payload, (value) =>
+      resolveTargetsResponseSchema.parse(value)
     )
   }
 
@@ -278,7 +277,7 @@ export class ZaneOperatorClient {
     return this.#postJson(
       "/v1/zane/deploy/apply-env-overrides",
       payload,
-      applyEnvOverridesResponseSchema.parse
+      (value) => applyEnvOverridesResponseSchema.parse(value)
     )
   }
 
@@ -286,12 +285,10 @@ export class ZaneOperatorClient {
     project_slug: string
     environment_name: string
     targets: ResolveTargetsResponse["services"]
-    git_commit_sha?: string
+    git_commit_sha?: string | undefined
   }): Promise<TriggerResponse> {
-    return this.#postJson(
-      "/v1/zane/deploy/trigger",
-      payload,
-      triggerResponseSchema.parse
+    return this.#postJson("/v1/zane/deploy/trigger", payload, (value) =>
+      triggerResponseSchema.parse(value)
     )
   }
 
@@ -307,18 +304,14 @@ export class ZaneOperatorClient {
   runRuntimeProvider(
     payload: RuntimeProviderRunPayload
   ): Promise<RuntimeProviderRunResponse> {
-    return this.#postJson(
-      "/v1/zane/runtime-providers/run",
-      payload,
-      runtimeProviderRunResponseSchema.parse
+    return this.#postJson("/v1/zane/runtime-providers/run", payload, (value) =>
+      runtimeProviderRunResponseSchema.parse(value)
     )
   }
 
   verifyDeploy(payload: VerifyDeployPayload): Promise<VerifyResponse> {
-    return this.#postJson(
-      "/v1/zane/deploy/verify",
-      payload,
-      verifyResponseSchema.parse
+    return this.#postJson("/v1/zane/deploy/verify", payload, (value) =>
+      verifyResponseSchema.parse(value)
     )
   }
 
@@ -335,7 +328,7 @@ export class ZaneOperatorClient {
         },
         body: JSON.stringify({ pr_number: prNumber }),
       },
-      ensurePreviewDbResponseSchema.parse
+      (value) => ensurePreviewDbResponseSchema.parse(value)
     )
   }
 
@@ -351,7 +344,7 @@ export class ZaneOperatorClient {
           Accept: "application/json",
         },
       },
-      teardownPreviewDbResponseSchema.parse
+      (value) => teardownPreviewDbResponseSchema.parse(value)
     )
   }
 
@@ -371,7 +364,7 @@ export class ZaneOperatorClient {
         },
         body: JSON.stringify(payload),
       },
-      archiveEnvironmentResponseSchema.parse
+      (value) => archiveEnvironmentResponseSchema.parse(value)
     )
   }
 }

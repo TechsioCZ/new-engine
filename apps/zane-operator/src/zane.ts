@@ -4,8 +4,8 @@ import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
   Lane,
-  ProvisionMedusaPublishableKeyInput,
   PreviewRuntimeValueSourceInput,
+  ProvisionMedusaPublishableKeyInput,
   ProvisionMeiliKeysInput,
   ReadPreviewCommitStateInput,
   ResolveEnvironmentInput,
@@ -32,8 +32,8 @@ import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { ZaneEnvironmentManager } from "./zane-environments"
 import { UpstreamHttpError } from "./zane-errors"
-import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 import { ZaneMedusaPublishableKeyProvisioner } from "./zane-medusa-publishable-key"
+import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 import {
   type HttpMethod,
   type ZaneSession,
@@ -43,24 +43,14 @@ import {
 export type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
-  ForbiddenEnvRequirement,
   Lane,
-  PersistedEnvRequirement,
-  ProvisionMedusaPublishableKeyInput,
-  ProvisionMeiliKeysInput,
   ResolveEnvironmentInput,
   ResolveTargetInput,
-  ServiceType,
   TriggeredDeployment,
   VerifyDeployInput,
-  VerifyDeploymentRef,
-  ZaneEnvironment,
-  ZaneEnvVariable,
-  ZaneResolvedCurrentDeployment,
   ZaneResolvedTarget,
   ZaneServiceCard,
   ZaneServiceDetails,
-  ZaneServiceUrl,
 } from "./zane-contract"
 
 interface ZaneDeployment {
@@ -159,19 +149,18 @@ function assertStringArrayInput(value: unknown, label: string): string[] {
   })
 }
 
-
 function toMeiliProvisionOutputInput(
   output: RuntimeProviderOutputInput,
   label: string
- ): ProvisionMeiliKeysInput["backendOutput"] {
+): NonNullable<ProvisionMeiliKeysInput["backendOutput"]> {
   if (output.policy.kind !== "meilisearch_key") {
     throw new BadRequestError(
       `${label}.policy.kind must be meilisearch_key for meili_api_credentials`
     )
   }
 
-  const uid = output.policy.uid
-  const description = output.policy.description
+  const uid = output.policy["uid"]
+  const description = output.policy["description"]
   if (typeof uid !== "string" || !uid.trim()) {
     throw new BadRequestError(`${label}.policy.uid must be a non-empty string`)
   }
@@ -186,8 +175,14 @@ function toMeiliProvisionOutputInput(
     policy: {
       uid: uid.trim(),
       description: description.trim(),
-      actions: assertStringArrayInput(output.policy.actions, `${label}.policy.actions`),
-      indexes: assertStringArrayInput(output.policy.indexes, `${label}.policy.indexes`),
+      actions: assertStringArrayInput(
+        output.policy["actions"],
+        `${label}.policy.actions`
+      ),
+      indexes: assertStringArrayInput(
+        output.policy["indexes"],
+        `${label}.policy.indexes`
+      ),
     },
   }
 }
@@ -202,8 +197,12 @@ function toMedusaPublishableKeyProvisionOutputInput(
     )
   }
 
-  const title = output.policy.title
-  if (title != null && (typeof title !== "string" || !title.trim())) {
+  const title = output.policy["title"]
+  if (
+    title !== null &&
+    title !== undefined &&
+    (typeof title !== "string" || !title.trim())
+  ) {
     throw new BadRequestError(
       `${label}.policy.title must be a non-empty string when provided`
     )
@@ -211,11 +210,8 @@ function toMedusaPublishableKeyProvisionOutputInput(
 
   return {
     envVar: output.envVar,
-    policy: {
-      ...(typeof title === "string" && title.trim()
-        ? { title: title.trim() }
-        : {}),
-    },
+    policy:
+      typeof title === "string" && title.trim() ? { title: title.trim() } : {},
   }
 }
 
@@ -231,10 +227,12 @@ function normalizeServiceCards(payload: unknown): ZaneServiceCard[] {
   return payload.map((item, index) => {
     const object = assertObject(item, `service_list[${index}]`)
     return {
-      id: assertString(object.id, `service_list[${index}].id`),
-      slug: assertString(object.slug, `service_list[${index}].slug`),
-      type: assertServiceType(object.type, `service_list[${index}].type`),
-      status: typeof object.status === "string" ? object.status : undefined,
+      id: assertString(object["id"], `service_list[${index}].id`),
+      slug: assertString(object["slug"], `service_list[${index}].slug`),
+      type: assertServiceType(object["type"], `service_list[${index}].type`),
+      ...(typeof object["status"] === "string"
+        ? { status: object["status"] }
+        : {}),
     }
   })
 }
@@ -246,21 +244,59 @@ function normalizeServiceDetails(
   const object = assertObject(payload, label)
 
   return {
-    ...(object as unknown as ZaneServiceDetails),
-    id: assertString(object.id, `${label}.id`),
-    slug: assertString(object.slug, `${label}.slug`),
-    type: assertServiceType(object.type, `${label}.type`),
+    id: assertString(object["id"], `${label}.id`),
+    slug: assertString(object["slug"], `${label}.slug`),
+    type: assertServiceType(object["type"], `${label}.type`),
     global_network_alias:
-      typeof object.global_network_alias === "string"
-        ? object.global_network_alias
+      typeof object["global_network_alias"] === "string"
+        ? object["global_network_alias"]
         : null,
-    deploy_token: assertString(object.deploy_token, `${label}.deploy_token`),
-    env_variables: Array.isArray(object.env_variables)
-      ? (object.env_variables as ZaneEnvVariable[])
+    deploy_token: assertString(object["deploy_token"], `${label}.deploy_token`),
+    env_variables: Array.isArray(object["env_variables"])
+      ? (object["env_variables"] as ZaneEnvVariable[])
       : [],
-    urls: Array.isArray(object.urls)
-      ? (object.urls as ZaneServiceDetails["urls"])
+    urls: Array.isArray(object["urls"])
+      ? (object["urls"] as ZaneServiceDetails["urls"])
       : [],
+    ...(typeof object["network_alias"] === "string"
+      ? { network_alias: object["network_alias"] }
+      : {}),
+    ...(typeof object["commit_sha"] === "string"
+      ? { commit_sha: object["commit_sha"] }
+      : {}),
+    ...(typeof object["repository_url"] === "string"
+      ? { repository_url: object["repository_url"] }
+      : {}),
+    ...(typeof object["branch_name"] === "string"
+      ? { branch_name: object["branch_name"] }
+      : {}),
+    ...(typeof object["builder"] === "string"
+      ? { builder: object["builder"] }
+      : {}),
+    ...(typeof object["command"] === "string"
+      ? { command: object["command"] }
+      : {}),
+    ...(Array.isArray(object["system_env_variables"])
+      ? {
+          system_env_variables: object[
+            "system_env_variables"
+          ] as ZaneEnvVariable[],
+        }
+      : {}),
+    ...(Array.isArray(object["volumes"])
+      ? {
+          volumes: object["volumes"] as NonNullable<
+            ZaneServiceDetails["volumes"]
+          >,
+        }
+      : {}),
+    ...(Array.isArray(object["unapplied_changes"])
+      ? {
+          unapplied_changes: object["unapplied_changes"] as NonNullable<
+            ZaneServiceDetails["unapplied_changes"]
+          >,
+        }
+      : {}),
   }
 }
 
@@ -966,7 +1002,7 @@ export class ZaneClient {
           )
         }
 
-        const result = await provider.provisionMeiliKeys({
+        const provisionInput: ProvisionMeiliKeysInput = {
           projectSlug: input.projectSlug,
           environmentName: input.environmentName,
           serviceSlug: input.serviceSlug,
@@ -987,7 +1023,8 @@ export class ZaneClient {
                 ),
               }
             : {}),
-        })
+        }
+        const result = await provider.provisionMeiliKeys(provisionInput)
 
         return {
           project_slug: result.project_slug,
@@ -1123,7 +1160,7 @@ export class ZaneClient {
     key: string
     value: string | undefined
   }): Promise<string | undefined> {
-    if (input.value == null) {
+    if (input.value === null || input.value === undefined) {
       return
     }
 

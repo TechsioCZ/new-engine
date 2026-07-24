@@ -1,8 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import type { PplAccessPointData } from "@/app/pokladna/_components/ppl-widget"
 import { DEFAULT_COUNTRY_CODE } from "@/lib/constants"
 import type { ShippingMethodData } from "@/services/cart-service"
 import type { StoreCustomerAddress } from "@/services/customer-service"
+
 import type { AddressFormData } from "./address-validation"
 import { formatPhoneNumber } from "./format/format-phone-number"
 import { formatPostalCode } from "./format/format-postal-code"
@@ -81,10 +83,18 @@ export function accessPointToShippingData(
     access_point_id: accessPoint.code,
     access_point_name: accessPoint.name,
     access_point_type: accessPoint.type,
-    access_point_street: accessPoint.address?.street,
-    access_point_city: accessPoint.address?.city,
-    access_point_zip: accessPoint.address?.zipCode,
-    access_point_country: accessPoint.address?.country,
+    ...(accessPoint.address?.street
+      ? { access_point_street: accessPoint.address.street }
+      : {}),
+    ...(accessPoint.address?.city
+      ? { access_point_city: accessPoint.address.city }
+      : {}),
+    ...(accessPoint.address?.zipCode
+      ? { access_point_zip: accessPoint.address.zipCode }
+      : {}),
+    ...(accessPoint.address?.country
+      ? { access_point_country: accessPoint.address.country }
+      : {}),
   }
 }
 
@@ -104,6 +114,6 @@ export function accessPointToAddress(
     country_code:
       accessPoint.address?.country?.toLowerCase() || DEFAULT_COUNTRY_CODE,
     province: "",
-    phone: billingAddress.phone,
+    ...(billingAddress.phone ? { phone: billingAddress.phone } : {}),
   }
 }

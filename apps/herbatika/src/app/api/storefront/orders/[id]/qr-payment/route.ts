@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
+
 import {
   getNotApplicableQrPaymentResponse,
   mapStoreOrderPaymentQr,
   ORDER_PAYMENT_QR_FIELDS,
-  type StoreOrderResponse,
 } from "@/lib/storefront/order-payment-qr-response"
+
 import {
   buildMedusaUrl,
   getPublishableHeaders,
@@ -49,9 +50,7 @@ export async function GET(_request: Request, context: RouteContext) {
       )
     }
 
-    const qrPayment = await mapStoreOrderPaymentQr(
-      (payload ?? {}) as StoreOrderResponse
-    )
+    const qrPayment = await mapStoreOrderPaymentQr(payload ?? {})
 
     return NextResponse.json(qrPayment)
   } catch (error) {

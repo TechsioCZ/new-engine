@@ -68,7 +68,8 @@ export function createCatalogQueryOptionsFactory<
   const resolvedQueryKeys =
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
   const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+    buildListParams ??
+    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
 
   return {
     getListQueryOptions: (
@@ -89,7 +90,7 @@ export function createCatalogQueryOptionsFactory<
         queryKey: resolvedQueryKeys.list(listParams),
         queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

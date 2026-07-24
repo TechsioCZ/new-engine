@@ -1,4 +1,6 @@
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import type { Route } from "next"
+
 import type { Product } from "@/types/product"
 
 /**
@@ -9,10 +11,7 @@ interface ProductDisplayData {
   displayBadges: BadgeProps[]
 }
 
-export function extractProductData(
-  product: Product,
-  currencyCode?: string
-): ProductDisplayData {
+export function extractProductData(product: Product): ProductDisplayData {
   // For API products, find the price that matches the current currency
   const primaryVariant = product.primaryVariant
 
@@ -54,6 +53,6 @@ export function extractProductData(
 /**
  * Get product URL path
  */
-export function getProductPath(handle: string): string {
+export function getProductPath(handle: string): Route<`/products/${string}`> {
   return `/products/${handle}`
 }

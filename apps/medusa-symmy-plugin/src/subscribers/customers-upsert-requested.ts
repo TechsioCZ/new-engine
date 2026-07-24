@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
 import { runImportJob } from "../lib/import-job-runner"
 import {
   SYMMY_CUSTOMERS_UPSERT_REQUESTED_EVENT,
@@ -23,7 +24,7 @@ export default async function customersUpsertRequestedHandler({
       const { result } = await upsertCustomersBatchWorkflow(container).run({
         input,
       })
-      return result as UpsertCustomersBatchOutput
+      return result
     },
     getCompletionStats: (output) => ({
       processed: output.processed,

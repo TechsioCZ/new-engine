@@ -7,6 +7,7 @@ import {
   useContext,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Link, type LinkProps } from "../atoms/link"
 import { tv } from "../utils"
 
@@ -19,8 +20,8 @@ const footerVariants = tv({
     bottom:
       "flex w-full items-center justify-between border-t-(length:--border-footer-width) bg-footer-bottom-bg pt-footer-bottom",
     title:
-      "font-footer-title text-footer-title-fg transition-footer-title hover:text-footer-title-fg-hover",
-    link: "font-footer-link text-footer-link-fg transition-footer-link hover:text-footer-link-fg-hover",
+      "font-footer-title text-footer-title-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-title-fg-hover",
+    link: "font-footer-link text-footer-link-fg transition-colors duration-200 motion-reduce:transition-none hover:text-footer-link-fg-hover",
     text: "text-footer-text-fg",
     divider: "flex h-footer-divider w-full border-0 bg-footer-divider-bg",
   },
@@ -94,16 +95,15 @@ const footerVariants = tv({
 })
 
 interface FooterContextValue {
-  size?: "sm" | "md" | "lg"
-  sectionFlow?: "col" | "row"
-  layout?: "col" | "row"
+  size?: "sm" | "md" | "lg" | undefined
+  sectionFlow?: "col" | "row" | undefined
+  layout?: "col" | "row" | undefined
 }
 
 const FooterContext = createContext<FooterContextValue>({})
 
 interface FooterProps
-  extends HTMLAttributes<HTMLElement>,
-    VariantProps<typeof footerVariants> {
+  extends HTMLAttributes<HTMLElement>, VariantProps<typeof footerVariants> {
   children: ReactNode
 }
 
@@ -121,8 +121,8 @@ interface FooterTitleProps extends HTMLAttributes<HTMLElement> {
 
 type FooterLinkBaseProps = {
   children: ReactNode
-  external?: boolean
-  className?: string
+  external?: boolean | undefined
+  className?: string | undefined
 }
 
 type FooterNativeLinkProps = FooterLinkBaseProps &

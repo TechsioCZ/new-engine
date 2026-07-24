@@ -7,6 +7,7 @@ import { CategoryResultsSection } from "@/components/category/category-results-s
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+
 import { useBrandListingController } from "./use-brand-listing-controller"
 
 type BrandListingProps = {

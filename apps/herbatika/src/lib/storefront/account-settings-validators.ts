@@ -1,4 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
+
 import { createChangeBlurFieldValidators } from "@/lib/forms/validators/field-validator-factories"
 import {
   validateCustomerName,
@@ -29,6 +31,7 @@ export const toAccountSettingsValues = (
   last_name: customer?.last_name ?? "",
   phone: customer?.phone ?? "",
   company_name:
-    (customer as unknown as { company_name?: string | null })?.company_name ??
-    "",
+    isRecord(customer) && typeof customer.company_name === "string"
+      ? customer.company_name
+      : "",
 })

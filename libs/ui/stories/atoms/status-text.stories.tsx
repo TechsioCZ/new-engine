@@ -1,8 +1,9 @@
-import type { ComponentPropsWithoutRef } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentPropsWithoutRef } from "react"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import { StatusText } from "../../src/atoms/status-text"
 import type { IconType } from "../../src/atoms/icon"
+import { StatusText } from "../../src/atoms/status-text"
 import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const LONG_TEXT =
@@ -84,7 +85,6 @@ export const Playground: StoryObj<PlaygroundArgs> = {
     status: "default",
     align: "center",
     showIcon: false,
-    icon: undefined,
     useLongText: false,
   },
   argTypes: {

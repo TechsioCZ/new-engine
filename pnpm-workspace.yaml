@@ -1,80 +1,57 @@
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  - '@techsio/storybook-better-a11y'
-  - '@techsio/storybook-a11y-reporter'
-  - '@medusajs/*'
-  - '@paykit-sdk/*'
-  - '@rokmohar/medusa-plugin-meilisearch'
+  - "@techsio/storybook-better-a11y"
+  - "@techsio/storybook-a11y-reporter"
+  - "@medusajs/*"
+  - "@paykit-sdk/*"
+  - "@rokmohar/medusa-plugin-meilisearch"
 # trustPolicy: no-downgrade
-
-# Packages own their test-tool dependencies; catalogs centralize the two
-# intentionally supported Vite/Vitest compatibility lines.
-catalogs:
-  vite5-testing:
-    vite: 5.4.21
-    vitest: ^3.2.7
-  vite8-testing:
-    '@vitest/coverage-v8': ^4.1.5
-    vite: 8.1.3
-    vitest: ^4.1.5
 
 strictPeerDependencies: true
 disallowWorkspaceCycles: true
+dedupeDirectDeps: true
 injectWorkspacePackages: true
-# Keep host and container installs on the same non-global virtual-store layout.
-enableGlobalVirtualStore: false
-# pnpm's run/exec verification persists absolute project and patch paths, so a
-# shared node_modules cannot pass it from both the host checkout and /var/www.
-# Installs remain explicit through the frozen mise/CI workflows.
 verifyDepsBeforeRun: false
-# A misspelled or stale workspace filter must not pass as a successful no-op.
-failIfNoMatch: true
 # Keep registry request fan-out stable across developer and CI machines.
 # pnpm otherwise derives this from the available CPU count.
 networkConcurrency: 16
+# A misspelled or stale workspace filter must not pass as a successful no-op.
+failIfNoMatch: true
 storeDir: .pnpm-store
 publicHoistPattern:
   - eslint
   - eslint-*
-  - '@eslint/*'
-  - '@typescript-eslint/*'
+  - "@eslint/*"
+  - "@typescript-eslint/*"
   - typescript
   - tailwindcss
   - tailwind-*
-  - '@tailwindcss/*'
+  - "@tailwindcss/*"
   - postcss
   - postcss-*
-  - '@iconify/tailwind4'
+  - "@iconify/tailwind4"
+  - vite
+  - vitest
+  - "@vitejs/*"
   - storybook
   - storybook-*
-  - '@storybook/*'
-  - '@rsbuild/*'
-  - '@medusajs/*'
+  - "@storybook/*"
+  - "@rsbuild/*"
+  - "@medusajs/*"
 
 overrides:
   csstype: 3.1.3
-  react: 19.2.3
-  react-dom: 19.2.3
-  '@types/react': 19.2.3
-  '@types/react-dom': 19.2.3
-  '@types/node': 24.12.4
-  # Vitest 3 supports Vite 5-7, but pnpm otherwise selects Vite 7 for its
-  # private dependency graph. Keep Medusa's test tooling on its Vite 5 line.
-  'vitest@3.2.7>vite': 5.4.21
-  'vite-node@3.2.4>vite': 5.4.21
+  "@types/node": 24.12.4
+  "@medusajs/admin-bundler>vite": 8.1.3
+  "@medusajs/admin-vite-plugin>vite": 8.1.3
+  "@medusajs/admin-bundler>@vitejs/plugin-react": 6.0.3
+  vite: 8.1.3
+
   # Security-only convergence scoped to the exact owning package versions.
   # Keep these narrow so future parent upgrades restore normal resolution.
-  'vite@5.4.21>rollup': 4.59.0
-  'ts-node@10.9.2>diff': 4.0.4
-  'cli-ux@5.6.7>js-yaml': 3.15.0
-  '@mdxeditor/editor@3.54.0>js-yaml': 4.3.0
-
-# These exact, package-scoped exceptions acknowledge compatibility without
-# rewriting the dependencies' published peer metadata. Future version changes
-# will surface as peer errors again and require explicit re-verification.
-peerDependencyRules:
-  allowedVersions:
-    'fdir@6.1.1>picomatch': 4.0.5
+  "ts-node@10.9.2>diff": 4.0.4
+  "cli-ux@5.6.7>js-yaml": 3.15.0
+  "@mdxeditor/editor@3.54.0>js-yaml": 4.3.0
 
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
@@ -94,57 +71,95 @@ supportedArchitectures:
 
 # Manual dependency metadata extensions for packages with incomplete published metadata.
 packageExtensions:
-  '@medusajs/caching@2.17.2':
+  # Medusa dynamically imports TypeScript through its build compiler, but does not
+  # declare it. Keep its legacy compiler isolated while workspace tooling uses TS 7.
+  "@medusajs/framework@2.17.2":
     dependencies:
-      graphql: 16.14.0
-  '@medusajs/core-flows@2.17.2':
+      typescript: 5.9.3
+  "@payloadcms/ui@3.86.0":
     dependencies:
-      '@medusajs/utils': 2.17.2
-      '@medusajs/workflows-sdk': 2.17.2
-  '@medusajs/types@2.17.2':
+      "@floating-ui/react": 0.27.19
+  "@pigment/auto-translate@1.5.0":
+    dependencies:
+      "@payloadcms/ui": 3.86.0
+  "@medusajs/types@2.17.2":
     dependencies:
       # Its published declarations import this package, but the release lists
       # it only as a dev dependency. Supply the missing type/runtime edge so
       # every MedusaContainer resolves the same Awilix contract.
-      '@medusajs/deps': 2.17.2
-  '@rokmohar/medusa-plugin-meilisearch@1.4.3':
+      "@medusajs/deps": 2.17.2
+  "@medusajs/caching@2.17.2":
+    dependencies:
+      awilix: 8.0.1
+      graphql: 16.14.0
+  "@medusajs/draft-order@2.17.2":
+    dependencies:
+      react-router-dom: 6.30.4
+  "@medusajs/core-flows@2.17.2":
+    dependencies:
+      "@medusajs/utils": 2.17.2
+      "@medusajs/workflows-sdk": 2.17.2
+  "@rokmohar/medusa-plugin-meilisearch@1.4.3":
     dependencies:
       # The published bundle externalizes these runtime imports but omits them
       # from its manifest. Keep the extension scoped to the audited release.
-      '@medusajs/js-sdk': 2.17.2
-      '@medusajs/utils': 2.17.2
-      '@medusajs/workflows-sdk': 2.17.2
+      "@medusajs/js-sdk": 2.17.2
+      "@medusajs/utils": 2.17.2
+      "@medusajs/workflows-sdk": 2.17.2
+      "@tanstack/react-query": 5.64.2
+      awilix: 8.0.1
       zod: ^4.2.0
-  'medusa-plugin-content@0.2.5':
+  "@medusajs/cli@2.17.2":
+    dependencies:
+      typescript: 5.9.3
+  "@medusajs/test-utils@2.17.2":
+    dependencies:
+      pg-god: 1.0.12
+  ts-node@10.9.2:
+    peerDependencies:
+      typescript: ">=2.7 <6"
+  "medusa-plugin-content@0.2.5":
     dependencies:
       # The prebuilt Admin bundle imports React Query without declaring it.
       # Bind it to the dashboard's exact version so both use one query context.
-      '@tanstack/react-query': 5.64.2
+      "@tanstack/react-query": 5.64.2
+  "@sentry/node-core@10.66.0":
+    dependencies:
+      "@opentelemetry/core": 2.4.0
+  "@sentry/opentelemetry@10.66.0":
+    dependencies:
+      "@opentelemetry/core": 2.4.0
+  zod-validation-error@3.5.1:
+    peerDependencies:
+      zod: ">=3.25.0 <5"
+  zod-validation-error@3.5.4:
+    peerDependencies:
+      zod: ">=3.24.4 <5"
 
 patchedDependencies:
-  '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
+  "@lexical/code@0.35.0": patches/@lexical__code@0.35.0.patch
   object-inspect@1.13.4: patches/object-inspect@1.13.4.patch
 
 packages:
   - packages/**
   - apps/**
   - libs/**
-  - '!apps/demo/**'
-  - '!apps/e2e/**'
-  - '!apps/typesense-demo/**'
+  - "!apps/demo/**"
+  - "!apps/e2e/**"
+  - "!apps/typesense-demo/**"
   # agent plugin is published separately, not a workspace package
-  - '!libs/ui/agent-plugin/**'
+  - "!libs/ui/agent-plugin/**"
 
 syncInjectedDepsAfterScripts:
   - build
 
 allowBuilds:
-  '@nubjs/nub': true
-  '@biomejs/biome': true
-  '@medusajs/telemetry': false
-  '@parcel/watcher': true
-  '@swc/core': true
-  '@tailwindcss/oxide': true
+  "@nubjs/nub": true
+  "@biomejs/biome": true
+  "@medusajs/telemetry": false
+  "@parcel/watcher": true
+  "@swc/core": true
+  "@tailwindcss/oxide": true
   core-js: false
   es5-ext: false
   esbuild: true
@@ -155,3 +170,31 @@ allowBuilds:
   puppeteer: false
   sharp: true
   unrs-resolver: true
+  "@ast-grep/cli": true
+  lefthook: true
+  inotify: false
+
+peerDependencyRules:
+  allowedVersions:
+    "fdir@6.1.1>picomatch": 4.0.5
+    # Stable TS 7 metadata has not propagated to these compiler consumers yet.
+    "@babel/core": 8.0.1
+    "@medusajs/framework": 2.17.2
+    "@medusajs/js-sdk": 2.17.2
+    "@medusajs/medusa": 2.17.2
+    "@tanstack/react-query": ">=5.64.2 <6"
+    "@types/react": 19.2.17
+    awilix: ">=8 <13"
+    eslint: 9.39.1
+    graphql: 17.0.2
+    picomatch: ">=3 <5"
+    react: ">=19.2.3 <19.3"
+    react-dom: ">=19.2.3 <19.3"
+    react-router-dom: ">=6.30.4 <8"
+    typescript: ^7.0.2
+    zod-validation-error@3.5.1>zod: ">=3.25 <5"
+    zod-validation-error@3.5.4>zod: ">=3.24.4 <5"
+
+autoInstallPeers: true
+
+resolvePeersFromWorkspaceRoot: false

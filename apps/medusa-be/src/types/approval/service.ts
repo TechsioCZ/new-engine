@@ -4,6 +4,7 @@ import type {
   FindConfig,
   IModuleService,
 } from "@medusajs/types"
+
 import type {
   ModuleApproval,
   ModuleApprovalSettings,
@@ -16,14 +17,12 @@ import type {
   ModuleUpdateApprovalStatus,
 } from "./module"
 
-export interface ModuleApprovalSettingsFilters
-  extends BaseFilterable<ModuleApprovalSettingsFilters> {
+export interface ModuleApprovalSettingsFilters extends BaseFilterable<ModuleApprovalSettingsFilters> {
   id?: string | string[]
   company_id?: string | string[]
 }
 
-export interface ModuleApprovalFilters
-  extends BaseFilterable<ModuleApprovalFilters> {
+interface ModuleApprovalFilters extends BaseFilterable<ModuleApprovalFilters> {
   id?: string | string[]
   cart_id?: string | string[]
 }

@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
+
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import type { FormAddressData, FormUserData } from "@/types/checkout"
@@ -20,7 +21,7 @@ export function useCustomer() {
       try {
         const response = await sdk.store.customer.listAddress()
         return response
-      } catch (error) {
+      } catch {
         return { addresses: [] }
       }
     },
@@ -81,7 +82,7 @@ export function useCustomer() {
       // Return context with snapshot for rollback
       return { previousAddresses }
     },
-    onError: (error: Error, newData, context) => {
+    onError: (error: Error, _newData, context) => {
       // Rollback on error
       if (context?.previousAddresses) {
         queryClient.setQueryData(
@@ -109,8 +110,8 @@ export function useCustomer() {
       const updateData = {
         first_name: data.first_name,
         last_name: data.last_name,
-        phone: data.phone || undefined,
-        company_name: data.company_name || undefined,
+        phone: data.phone || null,
+        company_name: data.company_name || null,
       }
       const updatedCustomer = await sdk.store.customer.update(updateData)
       return updatedCustomer
@@ -138,7 +139,7 @@ export function useCustomer() {
       // Return context with snapshot
       return { previousCustomer }
     },
-    onError: (error: Error, newData, context) => {
+    onError: (error: Error, _newData, context) => {
       // Rollback on error
       if (context?.previousCustomer) {
         queryClient.setQueryData(

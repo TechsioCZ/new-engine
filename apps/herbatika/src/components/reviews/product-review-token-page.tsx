@@ -3,8 +3,9 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useState } from "react"
+
+import NextLink from "@/components/app-link"
 import { resolveProductReviewSubmitErrorMessage } from "@/components/reviews/product-review-errors"
 import {
   ProductReviewForm,
@@ -36,7 +37,7 @@ export function ProductReviewTokenPage({
   const productQuery = useProducts({
     page: 1,
     limit: 1,
-    id: normalizedProductId || undefined,
+    ...(normalizedProductId ? { id: normalizedProductId } : {}),
     fields: REVIEW_TOKEN_PRODUCT_FIELDS,
     enabled: Boolean(normalizedProductId),
   })
@@ -99,7 +100,7 @@ export function ProductReviewTokenPage({
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-500 p-product-detail-page font-rubik 2xl:p-product-detail-page-lg">
-      <section className="mx-auto flex w-full max-w-3xl flex-col gap-400 rounded-sm border border-border-secondary bg-surface p-500 shadow-sm sm:p-600">
+      <section className="mx-auto flex w-full max-w-review-form flex-col gap-400 rounded-sm border border-border-secondary bg-surface p-500 shadow-sm sm:p-600">
         <header className="space-y-150">
           <p className="font-semibold text-fg-secondary text-sm">
             Hodnotenie nákupu

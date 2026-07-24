@@ -1,5 +1,7 @@
 import { fileURLToPath } from "node:url"
+
 import { afterEach, describe, expect, test, vi } from "vitest"
+
 import {
   getRuntimeProviderMeiliKeyPolicy,
   type StackInputs,
@@ -102,7 +104,9 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
     input: Parameters<typeof fetch>[0],
     init?: Parameters<typeof fetch>[1]
   ): Response => {
-    const url = new URL(String(input))
+    const url = new URL(
+      typeof input === "string" || input instanceof URL ? input : input.url
+    )
     const method = init?.method ?? "GET"
     const body =
       typeof init?.body === "string"
@@ -120,13 +124,13 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
     }
 
     if (url.pathname === "/keys" && method === "POST") {
-      if (!body || typeof body.uid !== "string") {
+      if (!body || typeof body["uid"] !== "string") {
         return jsonResponse({ message: "Missing key UID" }, 400)
       }
 
       const created = {
         ...(body as KeyPolicy),
-        key: `key-${body.uid}`,
+        key: `key-${body["uid"]}`,
         expiresAt: null,
       }
       keys.set(created.uid, created)
@@ -149,7 +153,7 @@ function createMeiliFetch(initialKeys: StoredKey[]) {
 
       const updated = {
         ...existing,
-        description: String(body.description),
+        description: String(body["description"]),
       }
       keys.set(uid, updated)
       return jsonResponse(updated)

@@ -1,6 +1,8 @@
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
+
 import type { AboutParagraph } from "./about-page.data"
 
 export type AboutImage = {
@@ -17,7 +19,7 @@ const textLinkClassName =
 
 const isExternalHref = (href: string) => href.startsWith("http")
 
-export function AboutRichText({ content }: { content: AboutParagraph }) {
+function AboutRichText({ content }: { content: AboutParagraph }) {
   if (typeof content === "string") {
     return content
   }
@@ -66,7 +68,7 @@ export function AboutImageFrame({
     <figure className="overflow-hidden rounded-lg border border-border-secondary bg-surface">
       <NextImage
         alt={image.alt}
-        className="aspect-[4/3] w-full object-cover"
+        className="aspect-about-image w-full object-cover"
         height={900}
         priority={priority}
         quality={60}
@@ -92,7 +94,7 @@ export function SectionHeader({
   title: string
 }) {
   return (
-    <header className="max-w-5xl space-y-200">
+    <header className="max-w-about-copy space-y-200">
       {eyebrow ? (
         <p className="font-bold font-open-sans text-primary text-xs uppercase leading-normal tracking-normal">
           {eyebrow}

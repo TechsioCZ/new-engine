@@ -4,6 +4,8 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
+
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
@@ -88,9 +90,6 @@ export const withBrandTransaction = <T>(
   task: (sharedContext: Context) => Promise<T>
 ) => service.runInTransaction(task)
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const isBrandSnapshotRecord = (
   brand: unknown
 ): brand is BrandSnapshotRecord => {
@@ -99,27 +98,27 @@ const isBrandSnapshotRecord = (
   }
 
   if (
-    typeof brand.id !== "string" ||
-    typeof brand.title !== "string" ||
-    typeof brand.handle !== "string" ||
-    !Array.isArray(brand.attributes) ||
+    typeof brand["id"] !== "string" ||
+    typeof brand["title"] !== "string" ||
+    typeof brand["handle"] !== "string" ||
+    !Array.isArray(brand["attributes"]) ||
     !(
-      brand.gpsr_manufactured_outside_eu === undefined ||
-      brand.gpsr_manufactured_outside_eu === null ||
-      typeof brand.gpsr_manufactured_outside_eu === "boolean"
+      brand["gpsr_manufactured_outside_eu"] === undefined ||
+      brand["gpsr_manufactured_outside_eu"] === null ||
+      typeof brand["gpsr_manufactured_outside_eu"] === "boolean"
     )
   ) {
     return false
   }
 
-  return brand.attributes.every((attribute) => {
-    if (!isRecord(attribute) || typeof attribute.value !== "string") {
+  return brand["attributes"].every((attribute) => {
+    if (!isRecord(attribute) || typeof attribute["value"] !== "string") {
       return false
     }
 
     return (
-      isRecord(attribute.attributeType) &&
-      typeof attribute.attributeType.name === "string"
+      isRecord(attribute["attributeType"]) &&
+      typeof attribute["attributeType"]["name"] === "string"
     )
   })
 }

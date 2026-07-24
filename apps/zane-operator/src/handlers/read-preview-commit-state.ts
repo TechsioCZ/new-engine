@@ -1,8 +1,8 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseReadPreviewCommitStateInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseReadPreviewCommitStateInput } from "../zane-inputs"
 
 interface ReadPreviewCommitStateDeps {
   config: AppConfig
@@ -10,7 +10,7 @@ interface ReadPreviewCommitStateDeps {
 
 export async function handleReadPreviewCommitState(
   request: Request,
-  deps: ReadPreviewCommitStateDeps,
+  deps: ReadPreviewCommitStateDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

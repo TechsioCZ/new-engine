@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 
 const CATALOG_PRODUCT_GRID_CLASSNAME =
@@ -47,8 +48,12 @@ export function HerbatikaProductGrid({
           isAdding={isProductAdding?.(product) ?? false}
           key={`${keyPrefix ?? layout}-${product.id}-${index}`}
           onAddToCart={onAddToCart}
-          onProductHoverEnd={onProductHoverEnd}
-          onProductHoverStart={onProductHoverStart}
+          {...(onProductHoverEnd === undefined
+            ? {}
+            : { onProductHoverEnd: onProductHoverEnd })}
+          {...(onProductHoverStart === undefined
+            ? {}
+            : { onProductHoverStart: onProductHoverStart })}
           product={product}
         />
       ))}

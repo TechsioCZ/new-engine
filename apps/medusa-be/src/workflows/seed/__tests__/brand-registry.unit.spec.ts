@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { buildBrandRegistry } from "../steps/create-products"
 
 const GPSR_EMAIL_CONFLICT_ERROR =

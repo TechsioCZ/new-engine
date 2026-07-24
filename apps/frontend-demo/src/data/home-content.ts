@@ -1,33 +1,35 @@
+import type { Route } from "next"
+
 import type { HomeCategory } from "@/types/product"
 import { getCategoryIdsByHandles } from "@/utils/category-helpers"
 
-export interface HeroContent {
+interface HeroContent {
   title: string
   subtitle: string
   backgroundImage: string
   primaryAction: {
     label: string
-    href: string
+    href: Route
   }
   secondaryAction: {
     label: string
-    href: string
+    href: Route
   }
 }
 
-export interface FeaturedSection {
+interface FeaturedSection {
   title: string
   subtitle: string
   linkText?: string
-  linkHref: string
+  linkHref: Route
 }
 
-export interface BannerContent {
+interface BannerContent {
   title: string
   subtitle: string
   backgroundImage: string
   linkText: string
-  linkHref: string
+  linkHref: Route
 }
 
 export interface HomeContent {

@@ -1,7 +1,9 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
 import type { BlogPost } from "@/lib/storefront/blog-content"
+
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
 type BlogListingCardProps = {
@@ -29,7 +31,7 @@ export function BlogListingCard({ post }: BlogListingCardProps) {
             {formatBlogDate(post.publishedAt)}
           </p>
           <Badge
-            className="font-normal text-xs leading-[15px]"
+            className="font-normal text-xs blog-leading-compact"
             variant="secondary"
           >
             {formatTopicFromKey(post.topic)}

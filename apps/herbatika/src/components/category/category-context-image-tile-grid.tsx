@@ -5,7 +5,8 @@ import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
 import { resolveCategoryImage } from "@/lib/category-images"
 
 export type CategoryContextImageTile = {
@@ -15,7 +16,7 @@ export type CategoryContextImageTile = {
   src?: StaticImageData
 }
 
-export type CategoryContextImageTileSource = {
+type CategoryContextImageTileSource = {
   handle?: string | null
   href: string
   id: string
@@ -46,10 +47,10 @@ const resolveCategoryTileImage = ({
   categoryById?: Map<string, HttpTypes.StoreProductCategory>
 }) =>
   resolveCategoryImage({
-    categoryById,
-    handle,
+    ...(categoryById === undefined ? {} : { categoryById }),
+    ...(handle === undefined ? {} : { handle }),
     label,
-    parentCategoryId,
+    ...(parentCategoryId === undefined ? {} : { parentCategoryId }),
   })
 
 export const buildCategoryContextImageTiles = ({
@@ -71,16 +72,19 @@ export const buildCategoryContextImageTiles = ({
     }
 
     seenLabels.add(dedupeKey)
+    const src = resolveCategoryTileImage({
+      ...(categoryById === undefined ? {} : { categoryById }),
+      ...(category.handle === undefined ? {} : { handle: category.handle }),
+      label: normalizedLabel,
+      ...(category.parentCategoryId === undefined
+        ? {}
+        : { parentCategoryId: category.parentCategoryId }),
+    })
     tiles.push({
       href: category.href,
       id: category.id,
       label: normalizedLabel,
-      src: resolveCategoryTileImage({
-        handle: category.handle,
-        label: normalizedLabel,
-        parentCategoryId: category.parentCategoryId,
-        categoryById,
-      }),
+      ...(src === undefined ? {} : { src }),
     })
   }
 

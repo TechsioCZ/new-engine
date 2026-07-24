@@ -2,6 +2,7 @@ import * as dialog from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { type ReactNode, useId } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
+
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 
@@ -35,7 +36,7 @@ const dialogVariants = tv({
       center: {
         positioner: "items-center justify-center",
         content:
-          "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
+          "max-h-(--container-dialog-center-max-h) max-w-dialog-center-max-w rounded-dialog-content-center",
       },
       left: {
         positioner: "items-stretch justify-start",
@@ -165,26 +166,26 @@ const dialogVariants = tv({
 })
 
 export interface DialogProps extends VariantProps<typeof dialogVariants> {
-  open?: boolean
-  onOpenChange?: (details: { open: boolean }) => void
-  initialFocusEl?: () => HTMLElement | null
-  finalFocusEl?: () => HTMLElement | null
-  closeOnEscape?: boolean
-  closeOnInteractOutside?: boolean
-  preventScroll?: boolean
-  trapFocus?: boolean
-  role?: "dialog" | "alertdialog"
-  id?: string
-  customTrigger?: boolean
-  triggerText?: string
-  title?: ReactNode
-  description?: ReactNode
-  children?: ReactNode
-  actions?: ReactNode
-  hideCloseButton?: boolean
-  className?: string
-  modal?: boolean
-  portal?: boolean
+  open?: boolean | undefined
+  onOpenChange?: ((details: { open: boolean }) => void) | undefined
+  initialFocusEl?: (() => HTMLElement | null) | undefined
+  finalFocusEl?: (() => HTMLElement | null) | undefined
+  closeOnEscape?: boolean | undefined
+  closeOnInteractOutside?: boolean | undefined
+  preventScroll?: boolean | undefined
+  trapFocus?: boolean | undefined
+  role?: "dialog" | "alertdialog" | undefined
+  id?: string | undefined
+  customTrigger?: boolean | undefined
+  triggerText?: string | undefined
+  title?: ReactNode | undefined
+  description?: ReactNode | undefined
+  children?: ReactNode | undefined
+  actions?: ReactNode | undefined
+  hideCloseButton?: boolean | undefined
+  className?: string | undefined
+  modal?: boolean | undefined
+  portal?: boolean | undefined
 }
 
 export function Dialog({
@@ -218,14 +219,14 @@ export function Dialog({
 
   const service = useMachine(dialog.machine, {
     id: uniqueId,
-    onOpenChange,
+    ...(onOpenChange !== undefined && { onOpenChange }),
     role,
     closeOnEscape,
     closeOnInteractOutside,
     preventScroll,
     trapFocus,
-    initialFocusEl,
-    finalFocusEl,
+    ...(initialFocusEl !== undefined && { initialFocusEl }),
+    ...(finalFocusEl !== undefined && { finalFocusEl }),
     modal,
     ...(open !== undefined && { open }),
   })

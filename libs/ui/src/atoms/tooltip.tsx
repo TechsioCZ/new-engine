@@ -42,13 +42,14 @@ const tooltipVariants = tv({
 })
 
 export interface TooltipProps
-  extends VariantProps<typeof tooltipVariants>,
+  extends
+    VariantProps<typeof tooltipVariants>,
     Partial<tooltip.Props>,
     Partial<tooltip.PositioningOptions> {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
   content: ReactNode
   children: ReactNode
-  className?: string
+  className?: string | undefined
 }
 
 export function Tooltip({
@@ -88,19 +89,17 @@ export function Tooltip({
   const service = useMachine(tooltip.machine, {
     id,
     dir,
-    open,
-    defaultOpen,
-    disabled,
-
     openDelay,
     closeDelay,
     interactive,
-    closeOnPointerDown,
     closeOnEscape,
-    closeOnScroll,
-    closeOnClick,
-
-    onOpenChange,
+    ...(open !== undefined && { open }),
+    ...(defaultOpen !== undefined && { defaultOpen }),
+    ...(disabled !== undefined && { disabled }),
+    ...(closeOnPointerDown !== undefined && { closeOnPointerDown }),
+    ...(closeOnScroll !== undefined && { closeOnScroll }),
+    ...(closeOnClick !== undefined && { closeOnClick }),
+    ...(onOpenChange !== undefined && { onOpenChange }),
 
     positioning: {
       placement,
@@ -127,7 +126,7 @@ export function Tooltip({
 
   const triggerProps = api.getTriggerProps()
   // Exclude onBeforeInput: incompatible with span elements in React 19.2+
-  const { onBeforeInput, ...spanCompatibleProps } = triggerProps
+  const { onBeforeInput: _onBeforeInput, ...spanCompatibleProps } = triggerProps
 
   return (
     <>

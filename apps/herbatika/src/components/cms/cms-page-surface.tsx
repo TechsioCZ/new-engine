@@ -39,7 +39,7 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
           </header>
 
           <CategoryRichText
-            className="max-w-4xl text-md [&_p+p]:mt-300"
+            className="max-w-cms-copy text-md [&_p+p]:mt-300"
             html={page.content}
           />
         </article>

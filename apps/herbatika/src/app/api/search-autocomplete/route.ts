@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
-import { fetchSearchAutocomplete } from "@/lib/search-autocomplete/search-autocomplete.server"
+
 import {
   createEmptySearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+import { fetchSearchAutocomplete } from "@/lib/search-autocomplete/search-autocomplete.server"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)

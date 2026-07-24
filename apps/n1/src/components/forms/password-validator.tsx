@@ -1,4 +1,5 @@
-import { Icon } from "@ui/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+
 import { PASSWORD_REQUIREMENTS } from "@/lib/form-validators"
 
 type PasswordValidatorProps = {
@@ -37,7 +38,7 @@ export const PasswordValidator = ({
           >
             <span
               aria-hidden="true"
-              className={`flex h-4 w-4 items-center justify-center rounded-full border border-border-secondary text-[.75rem] ${
+              className={`flex h-400 w-4 items-center justify-center rounded-full border border-border-secondary text-[.75rem] ${
                 req.met ? "bg-success" : "bg-surface"
               }`}
             >

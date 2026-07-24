@@ -1,9 +1,7 @@
 ---
 name: menu-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Menu for
-  action, radio, checkbox, separator, or submenu items using the Zag.js menu
-  wrapper, Button trigger, icons, and supported open/highlight/select props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Menu for action, radio, checkbox, separator, or submenu items using the Zag.js menu wrapper, Button trigger, icons, and supported open/highlight/select props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,8 +18,7 @@ sources:
 
 # @techsio/ui-kit Menu Usage
 
-Use Menu for contextual command lists. Use Select for choosing a value in a
-form, Tabs for switching panels, and Popover for custom content.
+Use Menu for contextual command lists. Use Select for choosing a value in a form, Tabs for switching panels, and Popover for custom content.
 
 ## Setup
 
@@ -55,13 +52,11 @@ Use `MenuItem[]`; do not render custom `<li>` elements in apps.
 
 ### Use menu for commands
 
-Menu actions should trigger commands. For destructive commands, pair with
-Dialog confirmation when needed.
+Menu actions should trigger commands. For destructive commands, pair with Dialog confirmation when needed.
 
 ### Use customTrigger carefully
 
-Prefer the default Button trigger. If custom trigger is needed, pass a valid
-React element so Zag trigger props can be cloned onto it.
+Prefer the default Button trigger. If custom trigger is needed, pass a valid React element so Zag trigger props can be cloned onto it.
 
 ## Common Mistakes
 
@@ -120,4 +115,3 @@ rg -n "role=\"menu\"|<ul[^>]*className=.*(absolute|shadow)|type: \"(danger|link|
 rg -n "<Menu[^>]*className=.*(bg-|text-|rounded-|p-|shadow-)" apps
 rg -n "customTrigger=|type: \"submenu\"|onCheckedChange" apps
 ```
-

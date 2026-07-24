@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { ReactNode } from "react"
+
 import type { UseCheckoutShippingReturn } from "@/hooks/use-checkout-shipping"
 import type { ShippingMethodData } from "@/services/cart-service"
 import {
@@ -10,6 +11,7 @@ import {
   type PplAccessPointData,
 } from "@/utils/address-helpers"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
+
 import { SelectedParcelCard } from "./selected-parcel-card"
 
 type ShippingMethodSectionProps = {

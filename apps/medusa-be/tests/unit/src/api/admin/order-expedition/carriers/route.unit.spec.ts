@@ -6,9 +6,8 @@ const createMockResponse = () => ({
 
 describe("GET /admin/order-expedition/carriers", () => {
   it("returns supported carrier options", async () => {
-    const { GET } = await import(
-      "../../../../../../../src/api/admin/order-expedition/carriers/route"
-    )
+    const { GET } =
+      await import("../../../../../../../src/api/admin/order-expedition/carriers/route")
     const res = createMockResponse()
 
     await GET({} as never, res as never)

@@ -1,0 +1,17 @@
+id: no-error-message-branching
+language: TypeScript
+severity: error
+message: Branch on a stable typed error discriminator, not human-readable Error.message text.
+note: The rule is intentionally limited to production source and direct message branching.
+files:
+  - "apps/**/src/**/*.{ts,tsx,js,jsx}"
+  - "libs/**/src/**/*.{ts,tsx,js,jsx}"
+ignores:
+  - "**/*.figma.{ts,tsx}"
+rule:
+  any:
+    - pattern: $ERROR.message.includes($TEXT)
+    - pattern: $ERROR.message.startsWith($TEXT)
+    - pattern: $ERROR.message.endsWith($TEXT)
+    - pattern: $ERROR.message === $TEXT
+    - pattern: $ERROR.message !== $TEXT

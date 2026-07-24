@@ -3,7 +3,8 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCategories } from "@/lib/storefront/categories"
@@ -46,10 +47,9 @@ export function CheckoutEmptyCartSection() {
     limit: EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT,
     order: "-created_at",
     fields: RELATED_PRODUCT_FIELDS,
-    category_id:
-      recommendationCategoryIds.length > 0
-        ? recommendationCategoryIds
-        : undefined,
+    ...(recommendationCategoryIds.length > 0
+      ? { category_id: recommendationCategoryIds }
+      : {}),
     enabled: Boolean(region?.region_id && recommendationCategoryIds.length > 0),
   })
   const recommendedProducts = selectRecommendedProductRepresentatives(
@@ -71,7 +71,7 @@ export function CheckoutEmptyCartSection() {
               <h2 className="font-bold text-2xl text-fg-primary leading-tight">
                 Košík je prázdny
               </h2>
-              <SupportingText className="max-w-3xl">
+              <SupportingText className="max-w-auth-content">
                 Vyberte si z noviniek alebo pokračujte na domovskú stránku.
                 Objednávku dokončíte hneď po pridaní produktu.
               </SupportingText>

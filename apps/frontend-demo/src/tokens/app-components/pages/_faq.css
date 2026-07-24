@@ -15,6 +15,8 @@
 }
 
 /* Hover na celém accordion header aplikuje styl na trigger button */
-[data-scope="accordion"][data-part="item"] header:hover [data-part="item-trigger"] {
+[data-scope="accordion"][data-part="item"]
+  header:hover
+  [data-part="item-trigger"] {
   background-color: var(--color-accordion-title-bg-hover);
 }

@@ -1,10 +1,7 @@
 ---
 name: toast-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Toast for
-  transient CRUD feedback using the global Zag.js toaster store, Toaster
-  portal, useToast, toast types, title, description, close trigger, and token
-  styling.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Toast for transient CRUD feedback using the global Zag.js toaster store, Toaster portal, useToast, toast types, title, description, close trigger, and token styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +18,7 @@ sources:
 
 # @techsio/ui-kit Toast Usage
 
-Use Toast for transient feedback after actions. Use StatusText for inline field
-messages and Dialog for blocking decisions.
+Use Toast for transient feedback after actions. Use StatusText for inline field messages and Dialog for blocking decisions.
 
 ## Setup
 
@@ -83,7 +79,9 @@ Use title and optional description. Long guidance belongs inline or in Dialog.
 Wrong:
 
 ```tsx
-{saved && <div className="fixed bottom-4 right-4 bg-green-600">Saved</div>}
+{
+  saved && <div className="fixed bottom-4 right-4 bg-green-600">Saved</div>
+}
 ```
 
 Correct:
@@ -91,7 +89,11 @@ Correct:
 ```tsx
 const toaster = useToast()
 
-return <Button onClick={() => toaster.create({ type: "success", title: "Saved" })}>Save</Button>
+return (
+  <Button onClick={() => toaster.create({ type: "success", title: "Saved" })}>
+    Save
+  </Button>
+)
 ```
 
 Source: libs/ui/src/molecules/toast.tsx
@@ -101,13 +103,22 @@ Source: libs/ui/src/molecules/toast.tsx
 Wrong:
 
 ```tsx
-function SaveButton() { return <><Toaster /><Button /></> }
+function SaveButton() {
+  return (
+    <>
+      <Toaster />
+      <Button />
+    </>
+  )
+}
 ```
 
 Correct:
 
 ```tsx
-function AppShell() { return <Toaster /> }
+function AppShell() {
+  return <Toaster />
+}
 ```
 
 Source: https://zagjs.com/components/react/toast
@@ -123,7 +134,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Button onClick={() => toaster.create({ type: "success", title: "Saved" })}>Save</Button>
+<Button onClick={() => toaster.create({ type: "success", title: "Saved" })}>
+  Save
+</Button>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_toast.css

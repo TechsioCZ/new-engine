@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import { safeResolve } from "../../../../src/utils/safe-resolve"
 
 describe("safeResolve", () => {

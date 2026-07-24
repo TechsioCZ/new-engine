@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query"
+import { isRecord as isPlainRecord } from "@techsio/std/object"
+
 import type { CartQueryKeys } from "../cart/types"
-import { isPlainRecord } from "./object-utils"
 import {
   areQueryKeySegmentsEqual,
   getSortedRecordKeys,
@@ -10,7 +11,7 @@ import type { QueryKey } from "./query-keys"
 
 type CartLike = {
   id: string
-  region_id?: string | null
+  region_id?: string | null | undefined
 }
 
 export type ActiveCartQueryKeyMatcher = (
@@ -19,7 +20,7 @@ export type ActiveCartQueryKeyMatcher = (
 ) => boolean
 
 export type CartCacheSyncOptions = {
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type CartUpdater<TCart extends CartLike> = (cart: TCart) => TCart
@@ -117,7 +118,7 @@ const hasCartId = <TCart extends CartLike>(
     return false
   }
 
-  const valueId = value.id
+  const valueId = value["id"]
   if (typeof valueId !== "string") {
     return false
   }
@@ -196,18 +197,20 @@ export function invalidateCartCaches(
   queryKeys: CartQueryKeys,
   cartId: string,
   options?: CartCacheSyncOptions
-): void {
+): Promise<void> {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
-  queryClient.invalidateQueries({
-    predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
-  })
-  queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) })
+  return Promise.all([
+    queryClient.invalidateQueries({
+      predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
+    }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) }),
+  ]).then(() => undefined)
 }
 
 export type PatchCartCachesParams<TCart extends CartLike> = {
   patch: CartUpdater<TCart>
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 }
 
 export function patchCartCaches<TCart extends CartLike>(

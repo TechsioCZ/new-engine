@@ -1,11 +1,12 @@
 import { createHmac } from "node:crypto"
+
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
   PayloadRequest,
 } from "payload"
-import { getEnvString } from "../utils/env"
 
+import { getEnvString } from "../utils/env"
 import { createRequestTimeout } from "../utils/request"
 
 /** Payload invalidation payload sent to Medusa. */
@@ -133,12 +134,13 @@ export const createMedusaCacheHook = (
     const isDelete = op === "delete"
     const locale = isDelete ? undefined : (req?.locale ?? undefined)
     const cmsDoc = doc as CmsDoc | undefined
+    const slug = resolveSlug(cmsDoc, locale)
     const payload: MedusaInvalidatePayload = {
       collection,
       doc: {
-        id: cmsDoc?.id ? String(cmsDoc.id) : undefined,
-        slug: resolveSlug(cmsDoc, locale),
-        locale,
+        ...(cmsDoc?.id ? { id: String(cmsDoc.id) } : {}),
+        ...(slug ? { slug } : {}),
+        ...(locale ? { locale } : {}),
       },
     }
 

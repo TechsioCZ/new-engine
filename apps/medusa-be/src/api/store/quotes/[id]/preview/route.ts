@@ -17,6 +17,14 @@ export const GET = async (
   res: MedusaResponse
 ) => {
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const query = req.scope.resolve<RemoteQueryFunction>(
     ContainerRegistrationKeys.QUERY
   )

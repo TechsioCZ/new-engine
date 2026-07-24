@@ -1,8 +1,8 @@
 import type { StoreOrder } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Image from "next/image"
 import Link from "next/link"
+
 import { formatPrice } from "@/lib/format-price"
 import {
   formatOrderDate,
@@ -95,15 +95,13 @@ export function DesktopOrderCard({ order }: { order: StoreOrder }) {
       </div>
 
       <div className="col-span-2 flex items-center justify-end">
-        <LinkButton
-          as={Link}
-          href={`/account/orders/${order.id}`}
+        <Link
+          className="rounded-button-md bg-button-primary px-button-md-x py-button-md-y text-button-primary"
+          href={{ pathname: "/account/orders/[id]", query: { id: order.id } }}
           prefetch={true}
-          size="sm"
-          variant="primary"
         >
           Detail
-        </LinkButton>
+        </Link>
       </div>
     </div>
   )

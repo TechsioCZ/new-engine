@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+
 import { queryKeys } from "@/lib/query-keys"
 import { type RegisterData, register } from "@/services/auth-service"
 
@@ -12,9 +13,11 @@ export function useRegister(options?: UseRegisterOptions) {
 
   return useMutation({
     mutationFn: (data: RegisterData) => register(data),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth cache to refetch customer data
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.profile() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.customer.profile(),
+      })
       options?.onSuccess?.()
     },
     onError: (error: Error) => {

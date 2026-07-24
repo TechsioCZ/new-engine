@@ -1,13 +1,15 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
+
+import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
 import { createOrderHooks } from "../src/orders/hooks"
 import { createProductHooks } from "../src/products/hooks"
 import { resolvePagination as resolveSharedPagination } from "../src/shared/pagination"
-import { StorefrontDataProvider } from "../src/client/provider"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -73,12 +75,11 @@ describe("phase 3 regressions", () => {
       service,
       queryKeyNamespace: "phase3-orders",
       buildListParams: (input) => ({
-        page: input.page,
-        limit: input.limit,
+        ...(input.page === undefined ? {} : { page: input.page }),
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
       }),
-      buildDetailParams: (input) => ({
-        id: input.id,
-      }),
+      buildDetailParams: (input) =>
+        input.id === undefined ? {} : { id: input.id },
     })
 
     const queryClient = new QueryClient({
@@ -129,18 +130,22 @@ describe("phase 3 regressions", () => {
       })),
     }
 
-    const { getListQueryOptions, getDetailQueryOptions } =
-      createOrderHooks<Order, ListInput, ListParams, DetailInput, DetailParams>({
-        service,
-        queryKeyNamespace: "phase3-order-query-options",
-        buildListParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
-        }),
-        buildDetailParams: (input) => ({
-          id: input.id,
-        }),
-      })
+    const { getListQueryOptions, getDetailQueryOptions } = createOrderHooks<
+      Order,
+      ListInput,
+      ListParams,
+      DetailInput,
+      DetailParams
+    >({
+      service,
+      queryKeyNamespace: "phase3-order-query-options",
+      buildListParams: (input) => ({
+        ...(input.page === undefined ? {} : { page: input.page }),
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+      }),
+      buildDetailParams: (input) =>
+        input.id === undefined ? {} : { id: input.id },
+    })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -213,28 +218,33 @@ describe("phase 3 regressions", () => {
       })),
     }
 
-    const { getListQueryOptions, getDetailQueryOptions } =
-      createProductHooks<Product, ListInput, ListParams, DetailInput, DetailParams>({
-        service,
-        queryKeyNamespace: "phase3-product-query-options",
-        requireRegion: false,
-        buildListParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
-          offset: input.offset,
-          region_id: input.region_id,
-        }),
-        buildPrefetchParams: (input) => ({
-          page: input.page,
-          limit: input.limit,
-          offset: input.offset,
-          region_id: input.region_id,
-        }),
-        buildDetailParams: (input) => ({
-          handle: input.handle,
-          region_id: input.region_id,
-        }),
-      })
+    const { getListQueryOptions, getDetailQueryOptions } = createProductHooks<
+      Product,
+      ListInput,
+      ListParams,
+      DetailInput,
+      DetailParams
+    >({
+      service,
+      queryKeyNamespace: "phase3-product-query-options",
+      requireRegion: false,
+      buildListParams: (input) => ({
+        ...(input.page === undefined ? {} : { page: input.page }),
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+        ...(input.offset === undefined ? {} : { offset: input.offset }),
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+      }),
+      buildPrefetchParams: (input) => ({
+        ...(input.page === undefined ? {} : { page: input.page }),
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+        ...(input.offset === undefined ? {} : { offset: input.offset }),
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+      }),
+      buildDetailParams: (input) => ({
+        handle: input.handle,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
+      }),
+    })
 
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -316,13 +326,13 @@ describe("phase 3 regressions", () => {
       queryKeyNamespace: "phase3-suspense-input-types",
       requireRegion: false,
       buildListParams: (input) => ({
-        page: input.page,
-        limit: input.limit,
-        region_id: input.region_id,
+        ...(input.page === undefined ? {} : { page: input.page }),
+        ...(input.limit === undefined ? {} : { limit: input.limit }),
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }),
       buildDetailParams: (input) => ({
         handle: input.handle,
-        region_id: input.region_id,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }),
     })
 
@@ -341,11 +351,11 @@ describe("phase 3 regressions", () => {
     void validListInput
     void validDetailInput
 
-    // @ts-expect-error suspense product list input must not expose enabled
+    // @ts-expect-error -- suspense list contracts intentionally reject enabled
     const invalidListInput: SuspenseListInput = { page: 1, enabled: false }
-    // @ts-expect-error suspense product detail input must not expose enabled
     const invalidDetailInput: SuspenseDetailInput = {
       handle: "hoodie",
+      // @ts-expect-error -- suspense detail contracts intentionally reject enabled
       enabled: false,
     }
     void invalidListInput
@@ -360,10 +370,10 @@ describe("phase 3 regressions", () => {
 
     const service = {
       getAddresses: vi.fn(async () => ({ addresses: [] as Address[] })),
-      createAddress: vi.fn(async () => ({ id: "addr_created" } as Address)),
-      updateAddress: vi.fn(async () => ({ id: "addr_updated" } as Address)),
+      createAddress: vi.fn(async () => ({ id: "addr_created" }) as Address),
+      updateAddress: vi.fn(async () => ({ id: "addr_updated" }) as Address),
       deleteAddress: vi.fn(async () => {}),
-      updateCustomer: vi.fn(async () => ({ id: "cus_1" } as Customer)),
+      updateCustomer: vi.fn(async () => ({ id: "cus_1" }) as Customer),
     }
 
     const { useDeleteCustomerAddress } = createCustomerHooks<
@@ -376,11 +386,16 @@ describe("phase 3 regressions", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
-    const { result } = renderHook(() => useDeleteCustomerAddress(), { wrapper })
+    const { result } = renderHook(() => useDeleteCustomerAddress(), {
+      wrapper,
+    })
 
     await act(async () => {
       await expect(result.current.mutateAsync({} as never)).rejects.toThrow(

@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { processCustomerGroupCustomersBatchStep } from "./steps/process-batch"
 import type {
   AssignCustomersToGroupBatchInput,

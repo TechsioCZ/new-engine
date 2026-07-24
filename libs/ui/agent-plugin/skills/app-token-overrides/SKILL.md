@@ -1,10 +1,7 @@
 ---
 name: app-token-overrides
 description: >
-  Use when changing app-specific @techsio/ui-kit visuals through semantic,
-  typography, spacing, layout, radius, or component CSS token overrides while
-  avoiding redundant token chains, duplicated JSX className styling, and
-  permanent local API-gap workarounds.
+  Use when changing app-specific @techsio/ui-kit visuals through semantic, typography, spacing, layout, radius, or component CSS token overrides while avoiding redundant token chains, duplicated JSX className styling, and permanent local API-gap workarounds.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -46,8 +43,7 @@ Work down the token chain:
 }
 ```
 
-This lets Button, Badge, Dialog, Toast, and other components inherit the app
-scheme.
+This lets Button, Badge, Dialog, Toast, and other components inherit the app scheme.
 
 ### Let semantic tokens remove component overrides
 
@@ -57,9 +53,7 @@ scheme.
 }
 ```
 
-If Button primary should use the app primary color, stop here. Do not also add
-`--color-button-bg-primary: var(--color-primary)` when the UI-kit default chain
-already points Button primary to `--color-primary`.
+If Button primary should use the app primary color, stop here. Do not also add `--color-button-bg-primary: var(--color-primary)` when the UI-kit default chain already points Button primary to `--color-primary`.
 
 ### Use component overrides only for real exceptions
 
@@ -69,8 +63,7 @@ already points Button primary to `--color-primary`.
 }
 ```
 
-Do this only when Button primary should intentionally reference a different
-token/value than the app's general `--color-primary`.
+Do this only when Button primary should intentionally reference a different token/value than the app's general `--color-primary`.
 
 ### Keep className for layout composition
 
@@ -103,8 +96,7 @@ Correct:
 }
 ```
 
-Do not override component tokens when the corrected semantic layer already
-drives the component to the right value.
+Do not override component tokens when the corrected semantic layer already drives the component to the right value.
 
 Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 
@@ -128,8 +120,7 @@ Correct:
 }
 ```
 
-If multiple components should follow the same app primary color, set the
-semantic source once instead of duplicating component overrides.
+If multiple components should follow the same app primary color, set the semantic source once instead of duplicating component overrides.
 
 Source: https://github.com/TechsioCZ/new-engine/issues/72
 
@@ -151,8 +142,7 @@ Correct:
 }
 ```
 
-Use a component override only when Button really should diverge from semantic
-primary/default mappings. Otherwise fix the semantic token.
+Use a component override only when Button really should diverge from semantic primary/default mappings. Otherwise fix the semantic token.
 
 Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 

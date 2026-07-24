@@ -1,3 +1,5 @@
+import { isRecord } from "@techsio/std/object"
+
 import {
   RELATED_PRODUCTS_PER_SECTION,
   RELATED_RECOMMENDATION_SECTION_TITLES,
@@ -6,9 +8,6 @@ import type {
   Product,
   RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types"
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value)
 
 const asStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -40,8 +39,8 @@ export const resolveRelatedProductReferenceCodes = (
 ): string[] => {
   const metadata = isRecord(product?.metadata) ? product.metadata : null
   const codes = [
-    ...asStringArray(metadata?.related_products),
-    ...asStringArray(metadata?.alternative_products),
+    ...asStringArray(metadata?.["related_products"]),
+    ...asStringArray(metadata?.["alternative_products"]),
   ]
   const seen = new Set<string>()
   const result: string[] = []
@@ -74,7 +73,7 @@ export const orderProductsByReferenceCodes = (
     }
 
     const metadata = isRecord(product.metadata) ? product.metadata : null
-    const sourceShopitemId = metadata?.source_shopitem_id
+    const sourceShopitemId = metadata?.["source_shopitem_id"]
     if (typeof sourceShopitemId === "string" && sourceShopitemId) {
       productBySourceId.set(sourceShopitemId, product)
     }

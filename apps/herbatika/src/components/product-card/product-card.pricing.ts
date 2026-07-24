@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   DEFAULT_CURRENCY_CODE,
   resolveSupportedCurrencyCode,
@@ -8,6 +9,7 @@ import {
   resolveProductTopOffer,
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
+
 import type { ProductPriceState } from "./product-card.types"
 
 export const resolvePriceState = (
@@ -70,6 +72,3 @@ export const resolveDiscountLabel = (
   const discountAmount = price.originalAmount - price.currentAmount
   return `-${formatCurrencyAmount(discountAmount, price.currencyCode)}`
 }
-
-export const getProductPriceLabel = (product: HttpTypes.StoreProduct): string =>
-  resolvePriceState(product).currentLabel

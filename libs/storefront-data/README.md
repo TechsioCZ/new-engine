@@ -3,6 +3,7 @@
 Medusa-first storefront data layer built on TanStack Query.
 
 The library is intentionally opinionated:
+
 - use explicit file-level imports, not package-root barrels
 - compose one preset per storefront
 - keep Medusa quirks inside Medusa services and preset wiring
@@ -13,6 +14,7 @@ The library is intentionally opinionated:
 For Medusa storefronts, the primary entrypoint is `createMedusaStorefrontPreset`.
 
 A preset owns:
+
 - query keys
 - services
 - hooks
@@ -21,6 +23,7 @@ A preset owns:
 - cart persistence wiring
 
 That lets each storefront keep a thin local composition module for:
+
 - SDK instance
 - localized error mapping
 - product field defaults
@@ -140,7 +143,9 @@ import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-
 
 export default async function Page() {
   const queryClient = getServerQueryClient()
-  await queryClient.prefetchQuery(productHooks.getListQueryOptions({ limit: 20 }))
+  await queryClient.prefetchQuery(
+    productHooks.getListQueryOptions({ limit: 20 })
+  )
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
@@ -155,6 +160,7 @@ export default async function Page() {
 Use explicit file-level imports. There is no supported package-root import.
 
 Core subpaths:
+
 - `@techsio/storefront-data/client/provider`
 - `@techsio/storefront-data/server/get-query-client`
 - `@techsio/storefront-data/shared/address`
@@ -168,6 +174,7 @@ Core subpaths:
 - `@techsio/storefront-data/medusa/preset`
 
 Domain subpaths:
+
 - `@techsio/storefront-data/<domain>/hooks`
 - `@techsio/storefront-data/<domain>/medusa-service`
 - `@techsio/storefront-data/<domain>/query-keys`
@@ -175,9 +182,11 @@ Domain subpaths:
 - `@techsio/storefront-data/<domain>/types`
 
 Product-list utilities:
+
 - `@techsio/storefront-data/product-lists/utils`
 
 Supported domains:
+
 - `auth`
 - `cart`
 - `catalog`

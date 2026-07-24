@@ -64,9 +64,7 @@ export type MedusaStorefrontQueryKeys = {
     MedusaProductListListKeyInput,
     MedusaProductListDetailKeyInput
   >
-  productLocationAvailability: ProductLocationAvailabilityQueryKeys<
-    MedusaProductLocationAvailabilityInput
-  >
+  productLocationAvailability: ProductLocationAvailabilityQueryKeys<MedusaProductLocationAvailabilityInput>
   orders: OrderQueryKeys<MedusaOrderListInput, MedusaOrderDetailInput>
   customers: CustomerQueryKeys<MedusaCustomerListInput>
   regions: RegionQueryKeys<MedusaRegionListInput, MedusaRegionDetailInput>
@@ -123,9 +121,8 @@ export function createMedusaStorefrontQueryKeys(
       MedusaCollectionDetailInput
     >(namespace),
     catalog: createCatalogQueryKeys<MedusaCatalogListInput>(namespace),
-    reviews: createProductReviewQueryKeys<MedusaProductReviewListInput>(
-      namespace
-    ),
+    reviews:
+      createProductReviewQueryKeys<MedusaProductReviewListInput>(namespace),
   }
 }
 

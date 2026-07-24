@@ -6,15 +6,46 @@
     "dev": "next dev --turbopack -p 3001",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write",
+    "lint": "ultracite check",
+    "format": "oxfmt",
     "validate:token-usage": "node scripts/validate-token-usage.mjs",
     "validate:token-usage:json": "node scripts/validate-token-usage.mjs --json",
     "validate:ui-primitives": "node scripts/validate-ui-primitives.mjs",
     "validate:ui-primitives:json": "node scripts/validate-ui-primitives.mjs --json",
     "validate:file-size": "node scripts/validate-file-size-guardrail.mjs",
     "validate:file-size:json": "node scripts/validate-file-size-guardrail.mjs --json",
-    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size"
+    "validate:guardrails": "pnpm validate:token-usage && pnpm validate:ui-primitives && pnpm validate:file-size",
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/herbatika/tsconfig.json"
+  },
+  "dependencies": {
+    "@medusajs/js-sdk": "^2.17.2",
+    "@medusajs/types": "^2.17.2",
+    "@tanstack/react-form": "^1.33.2",
+    "@tanstack/react-query": "^5.101.2",
+    "@techsio/std": "workspace:*",
+    "@techsio/storefront-data": "workspace:*",
+    "@techsio/ui-kit": "workspace:*",
+    "isomorphic-dompurify": "^3.19.0",
+    "next": "16.3.0-preview.5",
+    "nuqs": "^2.9.0",
+    "qrcode": "1.5.4",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@iconify/tailwind4": "^1.2.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "24.12.4",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "oxc-parser": "^0.140.0",
+    "postcss": "^8.5.19",
+    "tailwindcss": "^4.3.3",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^7.0.2",
+    "vitest": "4.1.10"
   },
   "nx": {
     "tags": [
@@ -22,32 +53,5 @@
       "platform:web",
       "framework:next"
     ]
-  },
-  "dependencies": {
-    "@medusajs/js-sdk": "^2.17.2",
-    "@medusajs/types": "^2.17.2",
-    "@tanstack/react-form": "^1.27.4",
-    "@tanstack/react-query": "^5.90.2",
-    "@techsio/storefront-data": "workspace:*",
-    "@techsio/ui-kit": "workspace:*",
-    "next": "16.3.0-preview.5",
-    "nuqs": "^2.8.8",
-    "qrcode": "1.5.4",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "server-only": "^0.0.1"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.3.8",
-    "@iconify/tailwind4": "^1.0.6",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "24.12.4",
-    "@types/qrcode": "1.5.6",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4",
-    "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3"
   }
 }

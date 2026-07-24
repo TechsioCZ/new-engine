@@ -1,12 +1,14 @@
 "use client"
 
-import NextLink from "next/link"
 import type { MouseEvent } from "react"
+
+import NextLink from "@/components/app-link"
 import type {
   SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,
   SearchAutocompleteSuggestionType,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { SearchAutocompleteMedia } from "./search-autocomplete-media"
 
 export type SearchAutocompletePanelSection = {
@@ -161,7 +163,9 @@ export function SearchAutocompletePanel({
             <ul aria-label={section.title}>
               {section.items.map((item) => (
                 <SearchAutocompleteRow
-                  activeItemId={activeItemId}
+                  {...(activeItemId === undefined
+                    ? {}
+                    : { activeItemId: activeItemId })}
                   item={item}
                   key={`${item.type}-${item.id}`}
                   onItemClick={onItemClick}

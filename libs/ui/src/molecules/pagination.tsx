@@ -12,6 +12,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Icon } from "../atoms/icon"
 import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
 import { tv } from "../utils"
@@ -99,19 +100,21 @@ export type PaginationBaseProps = Omit<
   "onChange"
 > &
   VariantProps<typeof paginationVariants> & {
-    page?: number
-    defaultPage?: number
+    page?: number | undefined
+    defaultPage?: number | undefined
     count: number
-    pageSize?: number
-    siblingCount?: number
-    boundaryCount?: number
-    showPrevNext?: boolean
-    dir?: "ltr" | "rtl"
-    compact?: boolean
-    compactLabel?: (details: { page: number; totalPages: number }) => ReactNode
-    onChange?: (page: number) => void
-    onPageChange?: (page: number) => void
-    translations?: PaginationIntlTranslations
+    pageSize?: number | undefined
+    siblingCount?: number | undefined
+    boundaryCount?: number | undefined
+    showPrevNext?: boolean | undefined
+    dir?: "ltr" | "rtl" | undefined
+    compact?: boolean | undefined
+    compactLabel?:
+      | ((details: { page: number; totalPages: number }) => ReactNode)
+      | undefined
+    onChange?: ((page: number) => void) | undefined
+    onPageChange?: ((page: number) => void) | undefined
+    translations?: PaginationIntlTranslations | undefined
   }
 
 type PaginationLinkProps<T extends ElementType> = Omit<
@@ -130,8 +133,8 @@ type PaginationLinkProps<T extends ElementType> = Omit<
 export type PaginationProps<T extends ElementType = "a"> =
   PaginationBaseProps & {
     getPageUrl: PaginationGetPageUrl
-    linkAs?: T
-    linkProps?: PaginationLinkProps<T>
+    linkAs?: T | undefined
+    linkProps?: PaginationLinkProps<T> | undefined
   }
 
 type PaginationTriggerProps = Record<string, unknown>
@@ -147,10 +150,10 @@ export type PaginationSearchParamsInput =
 
 export type CreatePaginationGetPageUrlOptions = {
   pathname: string
-  searchParams?: PaginationSearchParamsInput
-  pageParam?: string
-  defaultPage?: number
-  searchParamOverrides?: PaginationSearchParamsRecord
+  searchParams?: PaginationSearchParamsInput | undefined
+  pageParam?: string | undefined
+  defaultPage?: number | undefined
+  searchParamOverrides?: PaginationSearchParamsRecord | undefined
 }
 
 function toURLSearchParams(searchParams?: PaginationSearchParamsInput) {
@@ -201,7 +204,7 @@ export function createPaginationGetPageUrl({
 function hasHref(
   triggerProps: PaginationTriggerProps
 ): triggerProps is PaginationTriggerProps & { href: unknown } {
-  return triggerProps.href != null
+  return triggerProps["href"] != null
 }
 
 export function Pagination<T extends ElementType = "a">({
@@ -234,7 +237,7 @@ export function Pagination<T extends ElementType = "a">({
     pageSize,
     siblingCount,
     boundaryCount,
-    page,
+    ...(page !== undefined && { page }),
     dir,
     defaultPage,
     type: "link",
@@ -243,7 +246,7 @@ export function Pagination<T extends ElementType = "a">({
       onChange?.(details.page)
       onPageChange?.(details.page)
     },
-    translations,
+    ...(translations !== undefined && { translations }),
   })
 
   const api = connectPagination(service, normalizeProps)
@@ -251,7 +254,7 @@ export function Pagination<T extends ElementType = "a">({
     variant,
     size,
   })
-  const rootProps = mergeProps(props, api.getRootProps())
+  const rootProps = mergeProps(api.getRootProps(), props)
 
   const sharedLinkProps =
     linkProps && typeof linkProps === "object"

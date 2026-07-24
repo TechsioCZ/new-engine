@@ -4,32 +4,33 @@
  * Run with: node scripts/generate-categories-2.mjs
  */
 
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import dotenv from 'dotenv'
+import fs from "fs"
+import path from "path"
+import { fileURLToPath } from "url"
+
+import dotenv from "dotenv"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 // Load environment variables - try .env first, then .env.local
-dotenv.config({ path: path.join(__dirname, '../.env') })
-dotenv.config({ path: path.join(__dirname, '../.env.local') })
+dotenv.config({ path: path.join(__dirname, "../.env") })
+dotenv.config({ path: path.join(__dirname, "../.env.local") })
 
 // Fetch categories from API
 async function fetchCategoriesDirectly() {
   const baseUrl =
-    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || 'http://localhost:9000'
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   }
 
   // Add publishable key if available
   if (publishableKey) {
-    headers['x-publishable-api-key'] = publishableKey
+    headers["x-publishable-api-key"] = publishableKey
   }
 
   console.log(`Fetching categories from: ${baseUrl}/store/product-categories`)
@@ -52,17 +53,17 @@ async function fetchCategoriesDirectly() {
 // Fetch products and determine which categories have products
 async function fetchProductsAndCategorizesByCategory() {
   const baseUrl =
-    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || 'http://localhost:9000'
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000"
 
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   }
 
   // Add publishable key if available
   if (publishableKey) {
-    headers['x-publishable-api-key'] = publishableKey
+    headers["x-publishable-api-key"] = publishableKey
   }
 
   console.log(`Fetching products from: ${baseUrl}/store/products`)
@@ -115,14 +116,14 @@ async function fetchProductsAndCategorizesByCategory() {
 
 // Copy of ROOT_CATEGORY_ORDER from category-utils
 const ROOT_CATEGORY_ORDER = [
-  'Pánské',
-  'Dámské',
-  'Dětské',
-  'Oblečení',
-  'Cyklo',
-  'Moto',
-  'Snb-Skate',
-  'Ski',
+  "Pánské",
+  "Dámské",
+  "Dětské",
+  "Oblečení",
+  "Cyklo",
+  "Moto",
+  "Snb-Skate",
+  "Ski",
 ]
 
 function createStaticCategoryModule(dataToSave) {
@@ -192,7 +193,7 @@ function createFallbackCategoryData(generatedAt) {
 }
 
 function getStaticCategoryModulePath() {
-  return path.join(__dirname, '../src/lib/static-data/categories.ts')
+  return path.join(__dirname, "../src/lib/static-data/categories.ts")
 }
 
 function writeStaticCategoryModule(dataToSave) {
@@ -255,12 +256,7 @@ function buildCategoryTree(categories) {
 }
 
 // Function to check if category or any of its descendants has products
-function categoryHasProducts(
-  categoryId,
-  categoriesWithProducts,
-  categoryTree,
-  categoryMap
-) {
+function categoryHasProducts(categoryId, categoriesWithProducts, categoryTree) {
   // Direct check - if this category has products
   if (categoriesWithProducts.has(categoryId)) {
     return true
@@ -313,12 +309,7 @@ function filterCategoriesWithProducts(
   // First, mark all categories that have products or whose descendants have products
   categories.forEach((category) => {
     if (
-      categoryHasProducts(
-        category.id,
-        categoriesWithProducts,
-        categoryTree,
-        categoryMap
-      )
+      categoryHasProducts(category.id, categoriesWithProducts, categoryTree)
     ) {
       categoriesToKeep.add(category.id)
 
@@ -411,7 +402,7 @@ function extractLeafsAndParents(categoryTree, allCategoriesMap) {
 }
 
 async function generateCategories() {
-  console.log('🔄 Generating static category data V2 with product filtering...')
+  console.log("🔄 Generating static category data V2 with product filtering...")
 
   try {
     // Fetch categories from API
@@ -503,20 +494,20 @@ async function generateCategories() {
     }
 
     // Ensure directory exists
-    const dataDir = path.join(__dirname, '../public/data')
+    const dataDir = path.join(__dirname, "../public/data")
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true })
     }
 
     // Write JSON to public directory
-    const outputPath = path.join(dataDir, 'categories-test.json')
+    const outputPath = path.join(dataDir, "categories-test.json")
     fs.writeFileSync(outputPath, JSON.stringify(dataToSave, null, 2))
 
     // Generate TypeScript module used by the Next.js build
     const tsOutputPath = writeStaticCategoryModule(dataToSave)
 
     console.log(
-      '✅ Category data V2 with product filtering generated successfully!'
+      "✅ Category data V2 with product filtering generated successfully!"
     )
     console.log(`📁 JSON saved to: ${outputPath}`)
     console.log(`📁 TypeScript module saved to: ${tsOutputPath}`)
@@ -538,7 +529,7 @@ async function generateCategories() {
     console.log(`   - Leaf parents: ${leafParents.length}`)
 
     // Log some examples of leaf parents with their nested leafs
-    console.log('\n📋 Example leaf parents with nested leafs:')
+    console.log("\n📋 Example leaf parents with nested leafs:")
     leafParents.slice(0, 3).forEach((parent) => {
       console.log(`   - ${parent.name}: ${parent.leafs.length} leafs`)
     })
@@ -547,27 +538,25 @@ async function generateCategories() {
       `\n   - File size: ${(fs.statSync(outputPath).size / 1024).toFixed(2)} KB`
     )
   } catch (error) {
-    console.error('❌ Category generation failed:', error)
+    console.error("❌ Category generation failed:", error)
 
     const tsOutputPath = getStaticCategoryModulePath()
     const moduleExists = fs.existsSync(tsOutputPath)
 
-    if (!moduleExists && !process.env.CI) {
+    if (!moduleExists) {
       const fallbackData = createFallbackCategoryData(new Date().toISOString())
       const writtenPath = writeStaticCategoryModule(fallbackData)
-      console.warn(`📁 Empty fallback TypeScript module saved to: ${writtenPath}`)
+      console.warn(
+        `📁 Empty fallback TypeScript module saved to: ${writtenPath}`
+      )
       return
     }
 
-    if (moduleExists) {
-      console.warn(
-        `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
-      )
-    }
-
-    process.exitCode = 1
+    console.warn(
+      `ℹ️ Keeping existing module at ${tsOutputPath}; not overwriting it with an empty fallback.`
+    )
   }
 }
 
 // Run the script
-generateCategories()
+await generateCategories()

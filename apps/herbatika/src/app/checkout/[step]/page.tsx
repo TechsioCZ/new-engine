@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation"
 import { connection } from "next/server"
 import { Suspense } from "react"
-import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
+
+import { CheckoutFlow } from "@/components/checkout-flow"
 import {
   isCheckoutStepSlug,
   resolveCheckoutStepHref,
 } from "@/components/checkout/checkout-route.utils"
-import { CheckoutFlow } from "@/components/checkout-flow"
+import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
+import { appHref } from "@/lib/routing"
 
 type CheckoutStepPageProps = {
   params: Promise<{
@@ -23,7 +25,7 @@ async function CheckoutStepPageContent({ params }: CheckoutStepPageProps) {
   const { step } = await params
 
   if (!isCheckoutStepSlug(step)) {
-    redirect(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG))
+    redirect(appHref(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG)))
   }
 
   return (

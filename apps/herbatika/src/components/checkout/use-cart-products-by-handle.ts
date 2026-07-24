@@ -1,10 +1,11 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 
-export const resolveCartProductHandles = (
+const resolveCartProductHandles = (
   cartItems: HttpTypes.StoreCartLineItem[]
 ) => {
   const seenHandles = new Set<string>()
@@ -29,7 +30,7 @@ export function useCartProductsByHandle(
   const productsQuery = useProducts({
     page: 1,
     limit: Math.max(productHandles.length, 1),
-    handle: productHandles.length > 0 ? productHandles : undefined,
+    ...(productHandles.length > 0 ? { handle: productHandles } : {}),
     fields,
     enabled: productHandles.length > 0,
   })

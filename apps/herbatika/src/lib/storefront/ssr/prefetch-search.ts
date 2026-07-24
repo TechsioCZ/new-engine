@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
 import { prefetchServerCatalogProducts } from "../storefront-server"
@@ -16,8 +16,10 @@ export const prefetchSearchPageStorefrontData = async (
     const catalogListParams = buildCatalogProductsParams({
       queryState,
       limit: PLP_PAGE_SIZE,
-      regionId: region.region_id,
-      countryCode: region.country_code,
+      ...(region.region_id === undefined ? {} : { regionId: region.region_id }),
+      ...(region.country_code === undefined
+        ? {}
+        : { countryCode: region.country_code }),
     })
 
     await Promise.all([
@@ -38,8 +40,12 @@ export const prefetchSearchPageStorefrontData = async (
             price_max: null,
           },
           limit: 1,
-          regionId: region.region_id,
-          countryCode: region.country_code,
+          ...(region.region_id === undefined
+            ? {}
+            : { regionId: region.region_id }),
+          ...(region.country_code === undefined
+            ? {}
+            : { countryCode: region.country_code }),
         })
       ),
     ])

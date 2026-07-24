@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query"
+
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
@@ -28,7 +29,7 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
       region_id: selectedRegion.id,
     }
 
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
       queryKey: queryKeys.products.list({
         page: params?.offset
           ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1

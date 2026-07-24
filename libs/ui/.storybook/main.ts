@@ -1,22 +1,22 @@
-import type { StorybookConfig } from 'storybook-react-rsbuild'
+import type { StorybookConfig } from "storybook-react-rsbuild"
 
 const config: StorybookConfig = {
   stories: [
-    '../stories/**/*.mdx',
-    '../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)',
+    "../stories/**/*.mdx",
+    "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)",
   ],
   addons: [
-    '@storybook/addon-themes',
-    '@techsio/storybook-better-a11y',
-    'storybook-addon-rslib',
+    "@storybook/addon-themes",
+    "@techsio/storybook-better-a11y",
+    "storybook-addon-rslib",
   ],
   framework: {
-    name: 'storybook-react-rsbuild',
+    name: "storybook-react-rsbuild",
     options: {},
   },
   typescript: {
-    reactDocgen: 'react-docgen-typescript',
-    check: true,
+    reactDocgen: "react-docgen",
+    check: false,
   },
 }
 

@@ -20,7 +20,7 @@ export type LoginFormValues = {
   password: string
 }
 
-export type RegisterAccountType = "retail" | "wholesale"
+type RegisterAccountType = "retail" | "wholesale"
 
 export type RegisterFormValues = {
   account_type: RegisterAccountType

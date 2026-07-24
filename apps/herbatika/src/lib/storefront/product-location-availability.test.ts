@@ -1,22 +1,25 @@
 import { describe, expect, it } from "vitest"
+
 import {
   formatLocationAvailability,
   resolveProductLocationAvailabilityState,
   resolveSelectedVariantLocationAvailability,
 } from "./product-location-availability"
 
+const variantOneLocations = [
+  {
+    location_id: "sloc_store",
+    location_name: "Prodejna",
+    available_quantity: 4,
+  },
+]
+
 const availability = {
   product_id: "prod_1",
   variants: [
     {
       variant_id: "variant_1",
-      location_availability: [
-        {
-          location_id: "sloc_store",
-          location_name: "Prodejna",
-          available_quantity: 4,
-        },
-      ],
+      location_availability: variantOneLocations,
     },
     {
       variant_id: "variant_empty",
@@ -49,7 +52,7 @@ describe("resolveSelectedVariantLocationAvailability", () => {
   it("returns the selected variant locations", () => {
     expect(
       resolveSelectedVariantLocationAvailability(availability, "variant_1")
-    ).toEqual(availability.variants[0].location_availability)
+    ).toEqual(variantOneLocations)
   })
 
   it("returns an empty array when the selected variant has no locations", () => {
@@ -86,7 +89,7 @@ describe("resolveProductLocationAvailabilityState", () => {
         "variant_1"
       )
     ).toEqual({
-      items: availability.variants[0].location_availability,
+      items: variantOneLocations,
       isLoading: false,
       error: null,
       isInventoryManaged: true,

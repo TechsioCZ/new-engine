@@ -99,10 +99,11 @@ export function createSimpleListDetailQueryOptionsFactory<
 > {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+    buildListParams ??
+    ((input: TListInput) => ({ ...input }) as TListInput & TListParams)
   const buildDetail =
     buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
+    ((input: TDetailInput) => ({ ...input }) as TDetailInput & TDetailParams)
 
   return {
     getListQueryOptions: (
@@ -117,7 +118,7 @@ export function createSimpleListDetailQueryOptionsFactory<
         queryFn: ({ signal }: { signal?: AbortSignal }) =>
           getList(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
     getDetailQueryOptions: (
@@ -137,7 +138,7 @@ export function createSimpleListDetailQueryOptionsFactory<
           return getDetail(detailParams, signal)
         },
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

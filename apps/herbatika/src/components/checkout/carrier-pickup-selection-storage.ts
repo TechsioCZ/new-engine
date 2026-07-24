@@ -76,10 +76,10 @@ function createStorageKey(cartId: string) {
 function hasAccessPointId(
   data: Record<string, unknown> | null | undefined
 ): data is Record<string, unknown> {
-  return typeof data?.access_point_id === "string"
-    ? data.access_point_id.trim().length > 0
-    : typeof data?.access_point_id === "number" &&
-        Number.isFinite(data.access_point_id)
+  return typeof data?.["access_point_id"] === "string"
+    ? data["access_point_id"].trim().length > 0
+    : typeof data?.["access_point_id"] === "number" &&
+        Number.isFinite(data["access_point_id"])
 }
 
 function isStoredCarrierPickupSelection(

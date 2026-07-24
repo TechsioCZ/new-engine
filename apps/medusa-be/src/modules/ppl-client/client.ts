@@ -1,5 +1,6 @@
 import { OAuth2Client } from "@badgateway/oauth2-client"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type {
   PplAccessPoint,
   PplAccessPointsQuery,
@@ -182,7 +183,7 @@ export class PplClient {
     const params = this.buildShipmentQueryParams(query)
     const { data } = await this.makeRequest<
       PplPaginatedResponse<PplShipmentInfo> | PplShipmentInfo[]
-    >(token, `/shipment?${params}`)
+    >(token, `/shipment?${params.toString()}`)
     return Array.isArray(data) ? data : data?.items || []
   }
 
@@ -211,7 +212,7 @@ export class PplClient {
     const params = this.buildAccessPointQueryParams(query)
     const { data } = await this.makeRequest<
       PplPaginatedResponse<PplAccessPoint> | PplAccessPoint[]
-    >(token, `/accessPoint?${params}`)
+    >(token, `/accessPoint?${params.toString()}`)
     return Array.isArray(data) ? data : data?.items || []
   }
 
@@ -239,7 +240,7 @@ export class PplClient {
 
     const { data } = await this.makeRequest<
       { items: PplAddressWhisperItem[] } | PplAddressWhisperItem[]
-    >(token, `/addressWhisper?${params}`)
+    >(token, `/addressWhisper?${params.toString()}`)
     return Array.isArray(data) ? data : data?.items || []
   }
 
@@ -306,7 +307,7 @@ export class PplClient {
     const { data } = await this.makeRequest<
       | PplPaginatedResponse<PplCodelistServicePriceLimit>
       | PplCodelistServicePriceLimit[]
-    >(token, `/codelist/servicePriceLimit?${params}`)
+    >(token, `/codelist/servicePriceLimit?${params.toString()}`)
     return Array.isArray(data) ? data : data?.items || []
   }
 
@@ -356,7 +357,7 @@ export class PplClient {
     const params = this.buildOrderQueryParams(query)
     const { data } = await this.makeRequest<
       PplPaginatedResponse<PplOrder> | PplOrder[]
-    >(token, `/order?${params}`)
+    >(token, `/order?${params.toString()}`)
     return Array.isArray(data) ? data : data?.items || []
   }
 
@@ -374,7 +375,7 @@ export class PplClient {
     }
 
     try {
-      await this.makeRequest(token, `/order/cancel?${params}`, {
+      await this.makeRequest(token, `/order/cancel?${params.toString()}`, {
         method: "POST",
         body: request,
       })
@@ -420,7 +421,7 @@ export class PplClient {
 
     return this.get<PplBatchLabelResponse>(
       token,
-      `/shipment/batch/${batchId}/label?${params}`
+      `/shipment/batch/${batchId}/label?${params.toString()}`
     )
   }
 
@@ -484,7 +485,7 @@ export class PplClient {
       params.append("ProductType", query.productType)
     }
 
-    return this.get<PplRoutingResponse>(token, `/routing?${params}`)
+    return this.get<PplRoutingResponse>(token, `/routing?${params.toString()}`)
   }
 
   async getVersionInformation(
@@ -635,7 +636,7 @@ export class PplClient {
 
     const { data } = await this.makeRequest<PplPaginatedResponse<T> | T[]>(
       token,
-      `/codelist/${codelistName}?${params}`
+      `/codelist/${codelistName}?${params.toString()}`
     )
     return Array.isArray(data) ? data : data?.items || []
   }
@@ -840,13 +841,13 @@ export class PplClient {
       headers["Content-Type"] = "application/json"
     }
 
+    const request: RequestInit = { method, headers }
+    if (body !== undefined) {
+      request.body = JSON.stringify(body)
+    }
+
     return this.withRetry(
-      () =>
-        this.fetchWithTimeout(`${this.baseUrl}${path}`, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : undefined,
-        }),
+      () => this.fetchWithTimeout(`${this.baseUrl}${path}`, request),
       async (response) => {
         if (allow404 && response.status === 404) {
           return { data: null, status: 404 }

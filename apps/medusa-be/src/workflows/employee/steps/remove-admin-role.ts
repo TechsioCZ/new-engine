@@ -1,6 +1,7 @@
 import type { IAuthModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
 export const removeAdminRoleStep = createStep(
@@ -22,7 +23,9 @@ export const removeAdminRoleStep = createStep(
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: [
           {
-            customer_id: input.customer_id,
+            ...(input.customer_id !== undefined
+              ? { customer_id: input.customer_id }
+              : {}),
             email: input.email,
           },
         ],

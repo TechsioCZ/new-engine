@@ -55,7 +55,7 @@ type AnalyticsProviderProps = {
  */
 export function AnalyticsProvider({
   children,
-  debug = process.env.NODE_ENV === "development",
+  debug = process.env["NODE_ENV"] === "development",
   googleConversionLabel,
 }: AnalyticsProviderProps) {
   // Create Leadhub adapter - we need direct access to its specific methods
@@ -65,7 +65,12 @@ export function AnalyticsProvider({
   const analytics = useUnifiedAnalytics({
     adapters: [
       useMetaAdapter({ debug }),
-      useGoogleAdapter({ debug, conversionLabel: googleConversionLabel }),
+      useGoogleAdapter({
+        debug,
+        ...(googleConversionLabel
+          ? { conversionLabel: googleConversionLabel }
+          : {}),
+      }),
       leadhubAdapter,
     ],
     debug,

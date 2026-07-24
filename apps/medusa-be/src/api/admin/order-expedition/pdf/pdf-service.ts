@@ -4,8 +4,9 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import bwipjs from "bwip-js"
+import bwipjs from "bwip-js/node"
 import { PageSizes, rgb } from "pdf-lib"
+
 import {
   fetchOrderedOrderExpeditionOrdersByIds,
   isOrderExpeditionRawOrder,
@@ -308,7 +309,9 @@ function withPacketaBarcode(
 ): OrderExpeditionOrderDto {
   return {
     ...order,
-    packeta_barcode: packetaBarcode ?? order.packeta_barcode,
+    ...((packetaBarcode ?? order.packeta_barcode) !== undefined
+      ? { packeta_barcode: packetaBarcode ?? order.packeta_barcode }
+      : {}),
   }
 }
 
@@ -764,18 +767,24 @@ function buildSummaryItems(orders: OrderExpeditionOrderDto[]) {
       if (existing) {
         existing.quantity += item.quantity
         existing.stock_claims = (existing.stock_claims ?? 0) + item.quantity
-        existing.real_stock = existing.stock_quantity
+        existing.real_stock = existing.stock_quantity ?? null
       } else {
         itemsByKey.set(key, {
           key,
           quantity: item.quantity,
           sku: item.sku ?? "",
           stock_claims: item.quantity,
-          stock_quantity: item.stock_quantity,
+          ...(item.stock_quantity !== undefined
+            ? { stock_quantity: item.stock_quantity }
+            : {}),
           title: item.title,
-          real_stock: item.stock_quantity,
-          unit_price: item.unit_price,
-          variant: item.variant,
+          ...(item.stock_quantity !== undefined
+            ? { real_stock: item.stock_quantity }
+            : {}),
+          ...(item.unit_price !== undefined
+            ? { unit_price: item.unit_price }
+            : {}),
+          ...(item.variant !== undefined ? { variant: item.variant } : {}),
         })
       }
     }

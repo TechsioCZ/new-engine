@@ -1,5 +1,6 @@
 import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
+
 import type { QueryQuote } from "../../../../../types"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"
 import { TextCell } from "../../../../components/common/table/table-cells/text-cell"

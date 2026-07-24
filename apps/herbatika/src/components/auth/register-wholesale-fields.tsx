@@ -1,7 +1,9 @@
 "use client"
 
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import { registerValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,
@@ -31,7 +33,9 @@ export function RegisterWholesaleFields({
               autoComplete="organization"
               id="auth-register-company-name"
               label="Názov firmy"
-              onValueChange={onValueChange}
+              {...(onValueChange === undefined
+                ? {}
+                : { onValueChange: onValueChange })}
               required
               validationMode="blur"
             />
@@ -48,7 +52,9 @@ export function RegisterWholesaleFields({
             autoComplete="off"
             id="auth-register-company-identifier"
             label="IČO / firemný identifikátor"
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}
             required
             validationMode="blur"
           />
@@ -64,7 +70,9 @@ export function RegisterWholesaleFields({
             id="auth-register-billing-country"
             items={countryItems}
             label="Krajina"
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}
             placeholder="Vyberte krajinu"
             required
             validationMode="blur"
@@ -82,7 +90,9 @@ export function RegisterWholesaleFields({
               autoComplete="billing street-address"
               id="auth-register-billing-address-1"
               label="Ulica a číslo domu"
-              onValueChange={onValueChange}
+              {...(onValueChange === undefined
+                ? {}
+                : { onValueChange: onValueChange })}
               required
               validationMode="blur"
             />
@@ -97,7 +107,9 @@ export function RegisterWholesaleFields({
               autoComplete="billing address-line2"
               id="auth-register-billing-address-2"
               label="Doplnenie adresy"
-              onValueChange={onValueChange}
+              {...(onValueChange === undefined
+                ? {}
+                : { onValueChange: onValueChange })}
               validationMode="blur"
             />
           )}
@@ -113,7 +125,9 @@ export function RegisterWholesaleFields({
             autoComplete="billing address-level2"
             id="auth-register-billing-city"
             label="Mesto"
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}
             required
             validationMode="blur"
           />
@@ -129,7 +143,9 @@ export function RegisterWholesaleFields({
             autoComplete="billing postal-code"
             id="auth-register-billing-postal-code"
             label="PSČ"
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined
+              ? {}
+              : { onValueChange: onValueChange })}
             required
             validationMode="blur"
           />

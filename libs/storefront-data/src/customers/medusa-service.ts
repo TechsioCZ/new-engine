@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
 import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
 import type { CustomerAddressListResponse, CustomerService } from "./types"
@@ -259,7 +260,7 @@ export function createMedusaCustomerService(
           await sdk.client.fetch<HttpTypes.StoreCustomerAddressListResponse>(
             "/store/customers/me/addresses",
             {
-              signal,
+              signal: signal ?? null,
             }
           )
         return { addresses: response.addresses ?? [] }

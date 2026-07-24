@@ -2,6 +2,7 @@ import type { AdminOrder } from "@medusajs/framework/types"
 import { Text } from "@medusajs/ui"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+
 import { formatAmount } from "../../../../utils"
 
 export const CostBreakdown = ({ order }: { order: AdminOrder }) => {

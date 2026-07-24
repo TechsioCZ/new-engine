@@ -5,6 +5,7 @@ import {
   resolveStorefrontPrice,
   resolveTopOfferInStock,
 } from "@/lib/storefront/product-pricing"
+
 import { normalizeString } from "./search-autocomplete-normalizers"
 import type {
   RawSearchAutocompleteProductHit,

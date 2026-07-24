@@ -1,0 +1,11 @@
+id: no-empty-catch
+valid:
+  - |
+    try { run() } catch (error) { report(error) }
+  - |
+    try { run() } catch { reportFailure() }
+invalid:
+  - |
+    try { run() } catch {}
+  - |
+    try { run() } catch (error) {}

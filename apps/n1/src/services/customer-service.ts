@@ -1,13 +1,10 @@
 import type { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
+
 import { logError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 
 // Export types for reuse in components/hooks
 export type { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
-
-export type AddressesResponse = {
-  addresses: StoreCustomerAddress[]
-}
 
 export type CreateAddressData = {
   first_name: string
@@ -20,20 +17,6 @@ export type CreateAddressData = {
   postal_code: string
   country_code: string
   phone?: string
-}
-
-export async function getAddresses(): Promise<AddressesResponse> {
-  try {
-    const response = await sdk.store.customer.listAddress()
-
-    return {
-      addresses: response.addresses || [],
-    }
-  } catch (err) {
-    logError("CustomerService.getAddresses", err)
-    // Return empty array instead of throwing if no addresses exist
-    return { addresses: [] }
-  }
 }
 
 export async function createAddress(

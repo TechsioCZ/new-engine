@@ -1,5 +1,6 @@
 import type { LoaderOptions, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { QR_PAYMENT_CONFIG_SERVICE } from "../constants"
 
 type QrPaymentConfigServiceType = {

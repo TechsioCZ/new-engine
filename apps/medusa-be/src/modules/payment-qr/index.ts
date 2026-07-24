@@ -1,4 +1,5 @@
 import { Module } from "@medusajs/framework/utils"
+
 import { QR_PAYMENT_MODULE as QR_PAYMENT_MODULE_ID } from "./constants"
 import createDefaultConfigLoader from "./loaders/create-default-config"
 import { QrPaymentModuleService } from "./service"

@@ -37,11 +37,11 @@
   padding-inline: var(--spacing-450);
   transition:
     grid-template-rows var(--herbatika-faq-accordion-duration)
-    var(--herbatika-faq-accordion-easing),
+      var(--herbatika-faq-accordion-easing),
     opacity var(--herbatika-faq-accordion-duration)
-    var(--herbatika-faq-accordion-easing),
+      var(--herbatika-faq-accordion-easing),
     border-color var(--herbatika-faq-accordion-duration)
-    var(--herbatika-faq-accordion-easing);
+      var(--herbatika-faq-accordion-easing);
 }
 
 [data-herbatika-faq-accordion]

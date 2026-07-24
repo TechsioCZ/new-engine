@@ -10,6 +10,7 @@ import {
   useId,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
@@ -44,7 +45,7 @@ const carouselVariants = tv({
       "relative shrink-0",
       "flex items-center justify-center",
       "overflow-hidden",
-      "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full",
+      "data-[orientation=vertical]:size-full",
     ],
     prevTrigger: "",
     nextTrigger: "",
@@ -58,7 +59,10 @@ const carouselVariants = tv({
       "rounded-carousel-indicator border border-carousel-indicator-border-base",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    autoplayIcon: ["token-icon-carousel-play", "data-[pressed=true]:token-icon-carousel-pause"],
+    autoplayIcon: [
+      "token-icon-carousel-play",
+      "data-[pressed=true]:token-icon-carousel-pause",
+    ],
     autoplayTrigger: [
       "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
       "bg-carousel-trigger-bg-base",
@@ -79,22 +83,22 @@ const carouselVariants = tv({
     {
       slots: ["prevTrigger", "nextTrigger"],
       class: [
-        'bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger',
-        'hover:text-carousel-trigger-fg-hover',
-        'transition-colors duration-200 motion-reduce:transition-none',
+        "bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger",
+        "hover:text-carousel-trigger-fg-hover",
+        "transition-colors duration-200 motion-reduce:transition-none",
       ],
     },
   ],
   variants: {
     objectFit: {
       cover: {
-        slide: "*:h-full *:w-full *:object-cover",
+        slide: "*:object-cover *:size-full",
       },
       contain: {
-        slide: "*:h-full *:w-full *:object-contain",
+        slide: "*:object-contain *:size-full",
       },
       fill: {
-        slide: "*:h-full *:w-full *:object-fill",
+        slide: "*:object-fill *:size-full",
       },
       none: {
         slide: "",
@@ -183,9 +187,15 @@ const carouselVariants = tv({
 
 interface CarouselContextValue {
   api: ReturnType<typeof carousel.connect>
-  size?: "sm" | "md" | "lg" | "full"
-  objectFit?: "cover" | "contain" | "fill" | "none"
-  aspectRatio?: "square" | "landscape" | "portrait" | "wide" | "none"
+  size?: "sm" | "md" | "lg" | "full" | undefined
+  objectFit?: "cover" | "contain" | "fill" | "none" | undefined
+  aspectRatio?:
+    | "square"
+    | "landscape"
+    | "portrait"
+    | "wide"
+    | "none"
+    | undefined
 }
 
 const CarouselContext = createContext<CarouselContextValue | null>(null)
@@ -200,67 +210,68 @@ const useCarouselContext = () => {
 
 export type CarouselSlide = {
   id: string
-  content?: ReactNode
-  src?: string
-  alt?: string
-  imageProps?: Record<string, unknown>
+  content?: ReactNode | undefined
+  src?: string | undefined
+  alt?: string | undefined
+  imageProps?: Record<string, unknown> | undefined
 }
 
 type CarouselDimension = CSSProperties["width"]
 
 export interface CarouselRootProps<T extends ElementType = typeof Image>
-  extends Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
+  extends
+    Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
     Omit<carousel.Props, "id" | "size"> {
-  id?: string
-  className?: string
+  id?: string | undefined
+  className?: string | undefined
   children: ReactNode
-  imageAs?: CarouselImageComponent<T>
-  width?: CarouselDimension
-  height?: CarouselDimension
+  imageAs?: CarouselImageComponent<T> | undefined
+  width?: CarouselDimension | undefined
+  height?: CarouselDimension | undefined
 }
 
 interface CarouselSlidesProps {
   slides: CarouselSlide[]
-  size?: "sm" | "md" | "lg" | "full"
-  imageAs?: ElementType
-  className?: string
+  size?: "sm" | "md" | "lg" | "full" | undefined
+  imageAs?: ElementType | undefined
+  className?: string | undefined
 }
 
 interface CarouselSlideProps {
   index: number
   children: ReactNode
-  size?: "sm" | "md" | "lg" | "full"
-  className?: string
+  size?: "sm" | "md" | "lg" | "full" | undefined
+  className?: string | undefined
 }
 
 interface CarouselPreviousProps {
-  className?: string
-  icon?: IconType
+  className?: string | undefined
+  icon?: IconType | undefined
 }
 
 interface CarouselNextProps {
-  className?: string
-  icon?: IconType
+  className?: string | undefined
+  icon?: IconType | undefined
 }
 
 interface CarouselIndicatorsProps {
-  className?: string
+  className?: string | undefined
 }
 
 interface CarouselIndicatorProps {
   index: number
-  className?: string
-  children?: ReactNode
+  className?: string | undefined
+  children?: ReactNode | undefined
 }
 
 interface CarouselAutoplayProps {
-  className?: string
+  className?: string | undefined
 }
 
 interface CarouselControlProps {
   children: ReactNode
-  className?: string
-  controlPosition?: "top" | "bottom" | "side" | "unset"
+  className?: string | undefined
+  controlPosition?: "top" | "bottom" | "side" | "unset" | undefined
 }
 
 export function Carousel<T extends ElementType = typeof Image>({
@@ -271,7 +282,7 @@ export function Carousel<T extends ElementType = typeof Image>({
   aspectRatio,
   /* Zag.js carousel config */
   orientation = "horizontal",
-  slideCount = 1,
+  slideCount,
   loop = true,
   autoplay = false,
   allowMouseDrag = true,
@@ -290,6 +301,9 @@ export function Carousel<T extends ElementType = typeof Image>({
   ...props
 }: CarouselRootProps<T>) {
   const fallbackId = useId()
+  const machineProps = Object.fromEntries(
+    Object.entries(props).filter(([, option]) => option !== undefined)
+  )
   const service = useMachine(carousel.machine, {
     id: id ?? fallbackId,
     slideCount,
@@ -303,8 +317,8 @@ export function Carousel<T extends ElementType = typeof Image>({
     padding,
     dir,
     snapType,
-    onPageChange,
-    ...props,
+    ...(onPageChange !== undefined && { onPageChange }),
+    ...machineProps,
   })
 
   const api = carousel.connect(service, normalizeProps)
@@ -362,8 +376,8 @@ Carousel.Slides = function CarouselSlides({
     <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
       {slides.map((slide, index) => (
         <Carousel.Slide index={index} key={slide.id}>
-          {slide.content || (
-            hasCustomImageComponent ? (
+          {slide.content ||
+            (hasCustomImageComponent ? (
               <CustomImageComponent
                 alt={slide.alt || ""}
                 src={slide.src || ""}
@@ -375,8 +389,7 @@ Carousel.Slides = function CarouselSlides({
                 src={slide.src || ""}
                 {...slide.imageProps}
               />
-            )
-          )}
+            ))}
         </Carousel.Slide>
       ))}
     </div>
@@ -508,7 +521,9 @@ Carousel.Autoplay = function CarouselAutoplay({
   return (
     <Button
       className={autoplayTriggerSlot({ className })}
-      icon={api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"}
+      icon={
+        api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"
+      }
       {...api.getAutoplayTriggerProps()}
     />
   )

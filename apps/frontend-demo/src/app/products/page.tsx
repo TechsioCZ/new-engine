@@ -1,9 +1,10 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import Link from "next/link"
 import { Suspense, useEffect, useRef } from "react"
+
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { ProductFilters } from "@/components/organisms/product-filters"
 import { ProductGrid } from "@/components/organisms/product-grid"

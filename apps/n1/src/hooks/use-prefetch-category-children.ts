@@ -2,9 +2,11 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
+
 import { allCategories } from "@/data/static/categories"
 import { ALL_CATEGORIES_MAP } from "@/lib/constants"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
+
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
@@ -35,7 +37,7 @@ export function usePrefetchCategoryChildren({
     const children = allCategories.filter(
       (cat) => cat.parent_category_id === currentCategory.id
     )
-    ;(async () => {
+    void (async () => {
       // PHASE 1: Direct children - wait for completion
       if (children.length > 0) {
         const childHandles = children.map((c) => c.handle).join(", ")
@@ -63,10 +65,10 @@ export function usePrefetchCategoryChildren({
 
       // Cancel ongoing prefetch requests for this category's children
       // Uses meta scope to avoid canceling queries from other categories
-      queryClient.cancelQueries({
+      void queryClient.cancelQueries({
         predicate: (query) => {
           // ✅ Only cancel queries prefetched by THIS categoryHandle
-          return query.meta?.prefetchedBy === categoryHandle
+          return query.meta?.["prefetchedBy"] === categoryHandle
         },
       })
 

@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
+
 import { queryKeys } from "@/lib/query-keys"
 
 type ErrorProps = {
@@ -12,9 +13,11 @@ type ErrorProps = {
 export default function ErrorProduct({ reset }: ErrorProps) {
   const queryClient = useQueryClient()
 
-  const handleRetry = () => {
-    queryClient.resetQueries({ queryKey: queryKeys.regions() })
-    queryClient.resetQueries({ queryKey: queryKeys.products.all() })
+  const handleRetry = async () => {
+    await Promise.all([
+      queryClient.resetQueries({ queryKey: queryKeys.regions() }),
+      queryClient.resetQueries({ queryKey: queryKeys.products.all() }),
+    ])
     reset()
   }
 

@@ -17,6 +17,14 @@
  * }} StorefrontCspDirectives
  */
 
+/**
+ * @typedef {"defaultSrc" | "baseUri" | "formAction" | "frameAncestors" |
+ *   "objectSrc" | "scriptSrc" | "styleSrc" | "imgSrc" | "fontSrc" |
+ *   "connectSrc" | "frameSrc" | "workerSrc" | "manifestSrc"}
+ * StorefrontCspSourceDirectiveKey
+ */
+
+/** @type {ReadonlyArray<readonly [StorefrontCspSourceDirectiveKey, string]>} */
 const CSP_DIRECTIVE_ORDER = [
   ["defaultSrc", "default-src"],
   ["baseUri", "base-uri"],
@@ -38,7 +46,16 @@ const CSP_DIRECTIVE_ORDER = [
  * @returns {string[]}
  */
 export function uniquePolicySources(sources) {
-  return [...new Set(sources.filter(Boolean))]
+  /** @type {string[]} */
+  const uniqueSources = []
+
+  for (const source of sources) {
+    if (typeof source === "string" && source.length > 0) {
+      uniqueSources.push(source)
+    }
+  }
+
+  return [...new Set(uniqueSources)]
 }
 
 /**
@@ -159,7 +176,9 @@ export function mergeStorefrontCsp(options = {}) {
   const merged = { ...base }
 
   for (const [directiveKey] of CSP_DIRECTIVE_ORDER) {
-    const baseValues = Array.isArray(base[directiveKey]) ? base[directiveKey] : []
+    const baseValues = Array.isArray(base[directiveKey])
+      ? base[directiveKey]
+      : []
     const extendValues = Array.isArray(extend[directiveKey])
       ? extend[directiveKey]
       : []
@@ -190,15 +209,17 @@ export function mergeStorefrontCsp(options = {}) {
 export function buildStorefrontContentSecurityPolicy(options) {
   const { csp } = options
 
-  const directives = CSP_DIRECTIVE_ORDER.flatMap(([directiveKey, headerName]) => {
-    const values = csp[directiveKey]
+  const directives = CSP_DIRECTIVE_ORDER.flatMap(
+    ([directiveKey, headerName]) => {
+      const values = csp[directiveKey]
 
-    if (!Array.isArray(values) || values.length === 0) {
-      return []
+      if (!Array.isArray(values) || values.length === 0) {
+        return []
+      }
+
+      return `${headerName} ${values.join(" ")}`
     }
-
-    return `${headerName} ${values.join(" ")}`
-  })
+  )
 
   if (csp.upgradeInsecureRequests) {
     directives.push("upgrade-insecure-requests")

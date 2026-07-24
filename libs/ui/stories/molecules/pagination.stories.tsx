@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentPropsWithoutRef } from "react"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import {
   Pagination,
@@ -112,7 +113,12 @@ export const Sizes: Story = {
     <VariantContainer>
       <VariantGroup title="Small (sm)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="sm" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="sm"
+          />
           <StoryPagination
             count={100}
             defaultPage={5}
@@ -132,7 +138,12 @@ export const Sizes: Story = {
 
       <VariantGroup title="Medium (md)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="md" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="md"
+          />
           <StoryPagination
             count={100}
             defaultPage={5}
@@ -152,7 +163,12 @@ export const Sizes: Story = {
 
       <VariantGroup title="Large (lg)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="lg" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="lg"
+          />
           <StoryPagination
             count={100}
             defaultPage={5}
@@ -309,7 +325,9 @@ export const RealWorldScenarios: Story = {
               Table content area
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-fg-secondary text-sm">20 items per page</span>
+              <span className="text-fg-secondary text-sm">
+                20 items per page
+              </span>
               <StoryPagination count={456} defaultPage={3} pageSize={20} />
             </div>
           </div>

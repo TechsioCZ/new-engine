@@ -8,10 +8,10 @@ type RegionAwareInput = {
 
 describe("applyRegion", () => {
   it("applies context region when input omits region fields", () => {
-    const result = applyRegion(
-      { q: "kretin" } as RegionAwareInput,
-      { region_id: "reg_sk", country_code: "sk" }
-    )
+    const result = applyRegion({ q: "kretin" } as RegionAwareInput, {
+      region_id: "reg_sk",
+      country_code: "sk",
+    })
 
     expect(result).toEqual({
       q: "kretin",
@@ -21,14 +21,11 @@ describe("applyRegion", () => {
   })
 
   it("uses context region when input region fields are undefined", () => {
-    const result = applyRegion(
-      {
-        q: "kretin",
-        region_id: undefined,
-        country_code: undefined,
-      } as RegionAwareInput,
-      { region_id: "reg_sk", country_code: "sk" }
-    )
+    const input: RegionAwareInput = { q: "kretin" }
+    const result = applyRegion(input, {
+      region_id: "reg_sk",
+      country_code: "sk",
+    })
 
     expect(result.region_id).toBe("reg_sk")
     expect(result.country_code).toBe("sk")

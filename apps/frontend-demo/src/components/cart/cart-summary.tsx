@@ -1,5 +1,6 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { formatPrice } from "@/utils/price-utils"
 
 interface CartSummaryProps {
@@ -7,7 +8,7 @@ interface CartSummaryProps {
   total: number
   tax: number
   shipping: number
-  currencyCode?: string
+  currencyCode?: string | undefined
 }
 
 export function CartSummary({

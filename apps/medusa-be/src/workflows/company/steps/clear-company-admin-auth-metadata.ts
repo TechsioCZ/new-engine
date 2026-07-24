@@ -1,6 +1,7 @@
 import type { IAuthModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../../employee/utils/admin-auth-metadata"
 
 type CompanyWithEmployees = {
@@ -34,8 +35,12 @@ export const clearCompanyAdminAuthMetadataStep = createStep(
       .flatMap((company) => company.employees ?? [])
       .filter((employee) => employee.is_admin)
       .map((employee) => ({
-        customer_id: employee.customer?.id,
-        email: employee.customer?.email,
+        ...(employee.customer?.id !== undefined
+          ? { customer_id: employee.customer?.id }
+          : {}),
+        ...(employee.customer?.email !== undefined
+          ? { email: employee.customer?.email }
+          : {}),
       }))
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({

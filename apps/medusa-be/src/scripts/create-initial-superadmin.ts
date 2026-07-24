@@ -23,8 +23,8 @@ function maskEmailForLog(email: string): string {
 export default async function createInitialSuperadmin({
   container,
 }: ExecArgs): Promise<void> {
-  const email = process.env.SUPERADMIN_EMAIL?.trim()
-  const password = process.env.SUPERADMIN_PASSWORD
+  const email = process.env["SUPERADMIN_EMAIL"]?.trim()
+  const password = process.env["SUPERADMIN_PASSWORD"]
 
   if (!(email && password)) {
     console.log(
@@ -85,15 +85,15 @@ export default async function createInitialSuperadmin({
   }
 
   const linkedUserId =
-    typeof authIdentity.app_metadata?.user_id === "string"
-      ? authIdentity.app_metadata.user_id
+    typeof authIdentity.app_metadata?.["user_id"] === "string"
+      ? authIdentity.app_metadata["user_id"]
       : undefined
 
   if (linkedUserId !== user.id) {
     await authService.updateAuthIdentities({
       id: authIdentity.id,
       app_metadata: {
-        ...(authIdentity.app_metadata ?? {}),
+        ...authIdentity.app_metadata,
         user_id: user.id,
       },
     })

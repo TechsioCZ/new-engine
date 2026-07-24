@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { useEffect, useState } from "react"
+
 import type { NavItem } from "../molecules/navigation"
 import { RegionSelector } from "../region-selector"
 import { ThemeToggle } from "../theme-toggle"

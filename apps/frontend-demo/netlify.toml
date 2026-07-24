@@ -1,21 +1,21 @@
 [build]
-  base = "apps/frontend-demo"
-  command = "pnpm build"
-  publish = ".next"
+base = "apps/frontend-demo"
+command = "pnpm build"
+publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "22"
+NODE_VERSION = "24"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs"
+package = "@netlify/plugin-nextjs"
 
 [functions]
-  included_files = ["!node_modules/@swc/**", "!node_modules/@rspack/**"]
+included_files = ["!node_modules/@swc/**", "!node_modules/@rspack/**"]
 
 [[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
-    Cache-Control = "public, max-age=60, s-maxage=60, stale-while-revalidate=300"
+for = "/*"
+[headers.values]
+X-Frame-Options = "SAMEORIGIN"
+X-Content-Type-Options = "nosniff"
+X-XSS-Protection = "1; mode=block"
+Cache-Control = "public, max-age=60, s-maxage=60, stale-while-revalidate=300"

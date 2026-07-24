@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+
 import { importSPKI, jwtVerify } from "jose"
 import type { Endpoint } from "payload"
 import {
@@ -82,7 +83,7 @@ const normalizeOrigin = (value: string | null) => {
 /** Read and normalize a list of allowed origins from environment. */
 const getAllowedOrigins = () =>
   new Set(
-    (process.env.PAYLOAD_SSO_ALLOWED_ORIGINS || "")
+    (process.env["PAYLOAD_SSO_ALLOWED_ORIGINS"] || "")
       .split(",")
       .map((origin) => normalizeOrigin(origin))
       .filter((origin): origin is string => Boolean(origin))
@@ -134,8 +135,8 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       throw new APIError("Origin is not allowed.", 403)
     }
 
-    const publicKey = process.env.PAYLOAD_SSO_PUBLIC_KEY
-    const expectedSsoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
+    const publicKey = process.env["PAYLOAD_SSO_PUBLIC_KEY"]
+    const expectedSsoEmail = process.env["PAYLOAD_SSO_USER_EMAIL"]
     if (!(publicKey && expectedSsoEmail)) {
       throw new APIError("Payload SSO is not configured.", 500)
     }
@@ -161,9 +162,9 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       throw new APIError("Missing SSO token.", 400)
     }
 
-    const alg = process.env.PAYLOAD_SSO_ALG ?? DEFAULT_ALG
-    const issuer = process.env.PAYLOAD_SSO_ISSUER ?? DEFAULT_ISSUER
-    const audience = process.env.PAYLOAD_SSO_AUDIENCE ?? DEFAULT_AUDIENCE
+    const alg = process.env["PAYLOAD_SSO_ALG"] ?? DEFAULT_ALG
+    const issuer = process.env["PAYLOAD_SSO_ISSUER"] ?? DEFAULT_ISSUER
+    const audience = process.env["PAYLOAD_SSO_AUDIENCE"] ?? DEFAULT_AUDIENCE
     const key = await importSPKI(normalizeKey(publicKey), alg)
 
     let verifiedPayload: MedusaSsoToken | null = null

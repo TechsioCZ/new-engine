@@ -10,7 +10,7 @@ type EmployeeAdminState = {
 export const getEmployeeAdminStateStep = createStep(
   "get-employee-admin-state",
   async (
-    input: { company_id?: string; id: string },
+    input: { company_id?: string | undefined; id: string },
     { container }
   ): Promise<StepResponse<EmployeeAdminState>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)

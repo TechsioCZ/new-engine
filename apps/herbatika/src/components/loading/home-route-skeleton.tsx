@@ -1,15 +1,20 @@
 "use client"
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
+
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
+
 import { ReviewSkeleton } from "./review-skeleton"
 
 function HeroCardSkeleton({ index }: { index: number }) {
   return (
-    <div className="relative aspect-[4/5]" key={`home-route-hero-${index + 1}`}>
+    <div
+      className="relative aspect-home-hero"
+      key={`home-route-hero-${index + 1}`}
+    >
       <Skeleton.Rectangle className="absolute inset-0 rounded-md" />
-      <div className="absolute inset-x-0 bottom-0 space-y-2 p-4">
-        <Skeleton.Rectangle className="h-6 w-20 rounded-full bg-skeleton-bg-highlight" />
+      <div className="absolute inset-x-0 bottom-0 space-y-200 p-400">
+        <Skeleton.Rectangle className="h-skeleton-control w-skeleton-short rounded-full bg-skeleton-bg-highlight" />
         <Skeleton.Text
           className="bg-skeleton-bg-highlight"
           noOfLines={3}
@@ -47,7 +52,7 @@ function PurposeCategoriesSkeleton() {
           noOfLines={1}
           size="md"
         />
-        <Skeleton.Rectangle className="hidden h-6 w-28 rounded-sm sm:block" />
+        <Skeleton.Rectangle className="hidden h-skeleton-control w-skeleton-caption rounded-sm sm:block" />
       </div>
 
       <div className="space-y-200">
@@ -108,8 +113,8 @@ export function HomeRouteSkeleton() {
             ))}
           </div>
 
-          <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 left-4 hidden size-14 bg-skeleton-bg-highlight lg:block" />
-          <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 right-4 hidden size-14 bg-skeleton-bg-highlight lg:block" />
+          <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 left-400 hidden size-14 bg-skeleton-bg-highlight lg:block" />
+          <Skeleton.Circle className="-translate-y-1/2 absolute top-1/2 right-400 hidden size-14 bg-skeleton-bg-highlight lg:block" />
         </div>
       </section>
 
@@ -118,7 +123,7 @@ export function HomeRouteSkeleton() {
       <section className="grid gap-300 bg-skeleton-bg-secondary p-200 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
           <div
-            className="flex min-h-20 items-center gap-300 p-300"
+            className="flex min-h-benefit-skeleton items-center gap-300 p-300"
             key={`home-route-benefit-${index + 1}`}
           >
             <Skeleton.Circle className="size-16 shrink-0" />

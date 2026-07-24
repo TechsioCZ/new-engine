@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import { CACHE_TIMES, TAX_RATE } from "@/lib/constants"
 import { CartServiceError } from "@/lib/errors"
 import { queryKeys } from "@/lib/query-keys"
@@ -13,6 +14,7 @@ import {
   type ShippingMethodData,
   setShippingMethod,
 } from "@/services/cart-service"
+
 import { useCartToast } from "./use-toast"
 
 type CartMutationError = {
@@ -21,12 +23,12 @@ type CartMutationError = {
 }
 
 type CartMutationContext = {
-  previousCart?: Cart
+  previousCart: Cart | undefined
 }
 
 type SetShippingVariables = {
   optionId: string
-  data?: ShippingMethodData
+  data?: ShippingMethodData | undefined
 }
 
 export type UseCheckoutShippingReturn = {
@@ -35,9 +37,9 @@ export type UseCheckoutShippingReturn = {
   isSettingShipping: boolean
   canLoadShipping: boolean
   canSetShipping: boolean
-  selectedShippingMethodId?: string
+  selectedShippingMethodId?: string | undefined
   /** Currently selected shipping option (derived from shippingOptions + selectedShippingMethodId) */
-  selectedOption?: HttpTypes.StoreCartShippingOption
+  selectedOption?: HttpTypes.StoreCartShippingOption | undefined
 }
 
 export function useCheckoutShipping(
@@ -50,7 +52,7 @@ export function useCheckoutShipping(
   const canLoadShipping = !!cartId && (cart?.items?.length ?? 0) > 0
 
   // Fetch shipping options for cart
-  const { data: shippingOptions = [] } = useSuspenseQuery({
+  const { data: shippingOptions } = useSuspenseQuery({
     queryKey: queryKeys.cart.shippingOptions(cartId || "unknown"),
     queryFn: () => {
       if (!(canLoadShipping && cartId)) {
@@ -116,7 +118,7 @@ export function useCheckoutShipping(
           // Immediately update UI
           queryClient.setQueryData(queryKeys.cart.active(), optimisticCart)
 
-          if (process.env.NODE_ENV === "development") {
+          if (process.env["NODE_ENV"] === "development") {
             console.log("[useCheckoutShipping] Optimistic update applied")
           }
         }
@@ -128,7 +130,7 @@ export function useCheckoutShipping(
       // Replace optimistic data with real server data
       queryClient.setQueryData(queryKeys.cart.active(), updatedCart)
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.log("[useCheckoutShipping] Shipping method confirmed:", {
           methodId: updatedCart.shipping_methods?.[0]?.shipping_option_id,
           total: updatedCart.shipping_total,
@@ -144,7 +146,7 @@ export function useCheckoutShipping(
       // Show error toast to user
       toast.shippingError()
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         console.error("[useCheckoutShipping] Failed to set shipping:", error)
       }
     },
@@ -165,7 +167,7 @@ export function useCheckoutShipping(
 
   // Wrapper for easier API - accepts optionId and optional data
   const setShipping = (optionId: string, data?: ShippingMethodData) => {
-    mutateShipping({ optionId, data })
+    mutateShipping({ optionId, ...(data ? { data } : {}) })
   }
 
   return {

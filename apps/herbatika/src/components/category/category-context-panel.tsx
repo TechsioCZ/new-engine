@@ -2,7 +2,9 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState } from "react"
+
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
+
 import {
   type CategoryContextImageTile,
   CategoryContextImageTileGrid,
@@ -92,7 +94,7 @@ export function CategoryContextPanel({
   return (
     <section className="space-y-350">
       <CategoryIntro
-        introText={introText}
+        {...(introText === undefined ? {} : { introText: introText })}
         isExpanded={isExpanded}
         onExpandedChange={setIsExpanded}
         sanitizedIntroHtml={sanitizedIntroHtml}

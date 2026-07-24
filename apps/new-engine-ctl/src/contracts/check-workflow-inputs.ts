@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const workflowInputModeSchema = z.enum([
+const workflowInputModeSchema = z.enum([
   "preview-prepare",
   "preview-deploy",
   "main-deploy",
@@ -14,6 +14,3 @@ export const checkWorkflowInputsCommandInputSchema = z.object({
 })
 
 export type WorkflowInputMode = z.infer<typeof workflowInputModeSchema>
-export type CheckWorkflowInputsCommandInput = z.infer<
-  typeof checkWorkflowInputsCommandInputSchema
->

@@ -1,6 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import NextLink from "next/link"
+
 import type { ProductDetail, ProductVariantDetail } from "@/types/product"
+
 import { ProductPrice } from "../product-price"
 import { AddToCartSection } from "./product-info-panel/add-to-cart-section"
 import { DeliveryDate } from "./product-info-panel/delivery-date"

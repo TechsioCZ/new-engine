@@ -1,9 +1,7 @@
 ---
 name: form-checkbox-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit FormCheckbox
-  for labeled checkbox fields with Zag.js checked/indeterminate state, help
-  text, validation status, required, disabled, and read-only props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit FormCheckbox for labeled checkbox fields with Zag.js checked/indeterminate state, help text, validation status, required, disabled, and read-only props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit FormCheckbox Usage
 
-Use FormCheckbox for checkbox fields with label/help/error structure. Use the
-Checkbox atom only for bare table/list controls.
+Use FormCheckbox for checkbox fields with label/help/error structure. Use the Checkbox atom only for bare table/list controls.
 
 ## Setup
 
 ```tsx
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 
-<FormCheckbox
+;<FormCheckbox
   name="newsletter"
   label="Send me updates"
   helpText="You can unsubscribe anytime."
@@ -52,8 +49,7 @@ It wires root, hidden input, control, indicator, label, and StatusText.
 
 ### Use indeterminate for partial selection
 
-For parent selection states, pass `indeterminate` and a controlled `checked`
-value.
+For parent selection states, pass `indeterminate` and a controlled `checked` value.
 
 ### Use validateStatus for errors
 
@@ -66,7 +62,9 @@ value.
 Wrong:
 
 ```tsx
-<label><Checkbox /> Accept terms</label>
+<label>
+  <Checkbox /> Accept terms
+</label>
 ```
 
 Correct:

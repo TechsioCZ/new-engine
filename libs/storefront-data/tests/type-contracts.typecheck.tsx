@@ -1,12 +1,70 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
+import { createMedusaCatalogService } from "../src/catalog/medusa-service"
 import type { CatalogFacets } from "../src/catalog/types"
+import { createMedusaCategoryService } from "../src/categories/medusa-service"
+import { createMedusaCollectionService } from "../src/collections/medusa-service"
 import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import type { ProductListHooks } from "../src/product-lists/hooks"
 import type { ProductListCartLike } from "../src/product-lists/types"
 import type { ProductHooks } from "../src/products/hooks"
+import { createMedusaProductService } from "../src/products/medusa-service"
+import { createMedusaProductReviewService } from "../src/reviews/medusa-service"
 
 declare const sdk: Medusa
+
+export const defaultProductService = createMedusaProductService(sdk)
+export const defaultCatalogService = createMedusaCatalogService(sdk)
+export const defaultCategoryService = createMedusaCategoryService(sdk)
+export const defaultCollectionService = createMedusaCollectionService(sdk)
+export const defaultReviewService = createMedusaProductReviewService(sdk)
+
+export const unsafeCustomProductService =
+  // @ts-expect-error custom product output requires a transform
+  createMedusaProductService<{ slug: string }>(sdk)
+
+export const unsafeCustomCatalogService =
+  // @ts-expect-error custom catalog output requires a transform
+  createMedusaCatalogService<{ slug: string }>(sdk)
+
+export const unsafeCustomCategoryService =
+  // @ts-expect-error custom category output requires a transform
+  createMedusaCategoryService<{ slug: string }>(sdk)
+
+export const unsafeCustomCollectionService =
+  // @ts-expect-error custom collection output requires a transform
+  createMedusaCollectionService<{ slug: string }>(sdk)
+
+export const unsafeCustomReviewService =
+  // @ts-expect-error custom review output requires a transform
+  createMedusaProductReviewService<{ slug: string }>(sdk)
+
+export const customProductService = createMedusaProductService<{
+  slug: string
+}>(sdk, {
+  transformProduct: (product) => ({ slug: product.handle }),
+})
+export const customCatalogService = createMedusaCatalogService<{
+  slug: string
+}>(sdk, {
+  transformProduct: (product) => ({ slug: product.handle }),
+})
+export const customCategoryService = createMedusaCategoryService<{
+  slug: string
+}>(sdk, {
+  transformCategory: (category) => ({ slug: category.handle }),
+})
+export const customCollectionService = createMedusaCollectionService<{
+  slug: string
+}>(sdk, {
+  transformCollection: (collection) => ({ slug: collection.handle }),
+})
+export const customReviewService = createMedusaProductReviewService<{
+  slug: string
+}>(sdk, {
+  transformReview: (review) => ({ slug: review.id }),
+})
 
 type ExtendedCatalogFacets = CatalogFacets & {
   dosage: CatalogFacets["brand"]

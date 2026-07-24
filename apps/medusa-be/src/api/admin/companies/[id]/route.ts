@@ -2,7 +2,11 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+
 import {
   deleteCompaniesWorkflow,
   updateCompaniesWorkflow,
@@ -19,6 +23,13 @@ export const GET = async (
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
 
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
+
   const {
     data: [company],
   } = await query.graph(
@@ -26,7 +37,9 @@ export const GET = async (
       entity: "companies",
       fields: req.queryConfig.fields,
       filters: { id },
-      withDeleted: req.queryConfig.withDeleted,
+      ...(req.queryConfig.withDeleted === undefined
+        ? {}
+        : { withDeleted: req.queryConfig.withDeleted }),
     },
     { throwIfKeyNotFound: true }
   )
@@ -40,6 +53,13 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
   const workflowInput = {
     id,
     update: { ...req.validatedBody },
@@ -69,6 +89,13 @@ export const DELETE = async (
   res: MedusaResponse
 ) => {
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
 
   await deleteCompaniesWorkflow.run({
     input: {

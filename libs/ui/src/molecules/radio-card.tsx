@@ -15,6 +15,7 @@ import {
   useId,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { tv } from "../utils"
@@ -82,10 +83,7 @@ const radioCardVariants = tv({
       "data-[state=checked]:opacity-100",
       "data-disabled:data-[state=checked]:text-radio-card-item-indicator-content-fg-disabled",
     ],
-    itemIndicatorMark: [
-      "block leading-none",
-      "token-icon-radio-card-checked",
-    ],
+    itemIndicatorMark: ["block leading-none", "token-icon-radio-card-checked"],
     itemAddon: [
       "border-t-(length:--border-width-radio-card-addon)",
       "border-radio-card-addon-border",
@@ -105,7 +103,7 @@ const radioCardVariants = tv({
     variant: {
       outline: {
         item: [
-          "data-[state=checked]:bg-radio-card-item-bg-outline-checked",
+          "data-[state=checked]:bg-radio-card-item-bg",
           "data-[state=checked]:border-radio-card-item-border-outline-checked",
           "data-hover:data-[state=checked]:bg-radio-card-item-bg-outline-checked-hover",
           "data-hover:data-[state=checked]:border-radio-card-item-border-outline-checked-hover",
@@ -179,10 +177,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-sm",
         itemIndicator: "size-radio-card-indicator-sm",
         itemIndicatorMark: "size-radio-card-indicator-mark-sm",
-        itemAddon: [
-          "p-radio-card-addon-sm",
-          "text-radio-card-addon-sm",
-        ],
+        itemAddon: ["p-radio-card-addon-sm", "text-radio-card-addon-sm"],
       },
       md: {
         root: "gap-radio-card-stack-md",
@@ -195,10 +190,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-md",
         itemIndicator: "size-radio-card-indicator-md",
         itemIndicatorMark: "size-radio-card-indicator-mark-md",
-        itemAddon: [
-          "p-radio-card-addon-md",
-          "text-radio-card-addon-md",
-        ],
+        itemAddon: ["p-radio-card-addon-md", "text-radio-card-addon-md"],
       },
       lg: {
         root: "gap-radio-card-stack-lg",
@@ -211,10 +203,7 @@ const radioCardVariants = tv({
         itemDescription: "text-radio-card-item-description-lg",
         itemIndicator: "size-radio-card-indicator-lg",
         itemIndicatorMark: "size-radio-card-indicator-mark-lg",
-        itemAddon: [
-          "p-radio-card-addon-lg",
-          "text-radio-card-addon-lg",
-        ],
+        itemAddon: ["p-radio-card-addon-lg", "text-radio-card-addon-lg"],
       },
     },
     itemOrientation: {
@@ -336,13 +325,13 @@ type RadioCardMachineProps = Omit<
 
 export type RadioCardProps = VariantProps<typeof radioCardVariants> &
   RadioCardMachineProps & {
-    "aria-describedby"?: string
-    id?: string
+    "aria-describedby"?: string | undefined
+    id?: string | undefined
     children: ReactNode
-    className?: string
-    ref?: Ref<HTMLDivElement>
-    validateStatus?: RadioCardValidateStatus
-    onValueChange?: (value: string | null) => void
+    className?: string | undefined
+    ref?: Ref<HTMLDivElement> | undefined
+    validateStatus?: RadioCardValidateStatus | undefined
+    onValueChange?: ((value: string | null) => void) | undefined
   }
 
 export function RadioCard({
@@ -391,7 +380,7 @@ export function RadioCard({
     {
       "aria-describedby": ariaDescribedByProp,
     },
-    api.getRootProps(),
+    api.getRootProps()
   )
 
   return (
@@ -419,9 +408,9 @@ type RadioCardLabelProps = Omit<
   ComponentPropsWithoutRef<typeof Label>,
   "disabled" | "required"
 > & {
-  disabled?: boolean
-  required?: boolean
-  ref?: Ref<HTMLLabelElement>
+  disabled?: boolean | undefined
+  required?: boolean | undefined
+  ref?: Ref<HTMLLabelElement> | undefined
 }
 
 RadioCard.Label = function RadioCardLabel({
@@ -437,7 +426,7 @@ RadioCard.Label = function RadioCardLabel({
     disabled: groupDisabled,
     required: groupRequired,
   } = useRadioCardContext()
-  const labelProps = mergeProps(props, api.getLabelProps())
+  const labelProps = mergeProps(api.getLabelProps(), props)
 
   return (
     <Label
@@ -456,7 +445,7 @@ export type RadioCardItemProps = Omit<
   "value"
 > &
   ItemProps & {
-    ref?: Ref<HTMLLabelElement>
+    ref?: Ref<HTMLLabelElement> | undefined
   }
 
 RadioCard.Item = function RadioCardItem({
@@ -471,7 +460,7 @@ RadioCard.Item = function RadioCardItem({
   const { api, size, variant } = useRadioCardContext()
   const styles = radioCardVariants({ size, variant })
   const itemProps = { value, disabled, invalid }
-  const mergedItemProps = mergeProps(props, api.getItemProps(itemProps))
+  const mergedItemProps = mergeProps(api.getItemProps(itemProps), props)
 
   return (
     <RadioCardItemContext.Provider value={{ itemProps }}>
@@ -490,7 +479,7 @@ type RadioCardItemHiddenInputProps = Omit<
   ComponentPropsWithoutRef<"input">,
   "type" | "value"
 > & {
-  ref?: Ref<HTMLInputElement>
+  ref?: Ref<HTMLInputElement> | undefined
 }
 
 RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
@@ -501,7 +490,10 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
   const { api, size, variant } = useRadioCardContext()
   const { itemProps } = useRadioCardItemContext()
   const styles = radioCardVariants({ size, variant })
-  const hiddenInputProps = mergeProps(props, api.getItemHiddenInputProps(itemProps))
+  const hiddenInputProps = mergeProps(
+    api.getItemHiddenInputProps(itemProps),
+    props
+  )
 
   return (
     <input
@@ -513,7 +505,7 @@ RadioCard.ItemHiddenInput = function RadioCardItemHiddenInput({
 }
 
 type RadioCardItemControlProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioCard.ItemControl = function RadioCardItemControl({
@@ -532,7 +524,7 @@ RadioCard.ItemControl = function RadioCardItemControl({
     align,
     justify,
   })
-  const itemControlProps = mergeProps(props, api.getItemControlProps(itemProps))
+  const itemControlProps = mergeProps(api.getItemControlProps(itemProps), props)
 
   return (
     <div
@@ -546,7 +538,7 @@ RadioCard.ItemControl = function RadioCardItemControl({
 }
 
 type RadioCardItemContentProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioCard.ItemContent = function RadioCardItemContent({
@@ -571,7 +563,7 @@ RadioCard.ItemContent = function RadioCardItemContent({
 }
 
 type RadioCardItemTextProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 RadioCard.ItemText = function RadioCardItemText({
@@ -588,7 +580,7 @@ RadioCard.ItemText = function RadioCardItemText({
     itemOrientation,
     align,
   })
-  const itemTextProps = mergeProps(props, api.getItemTextProps(itemProps))
+  const itemTextProps = mergeProps(api.getItemTextProps(itemProps), props)
 
   return (
     <span
@@ -602,7 +594,7 @@ RadioCard.ItemText = function RadioCardItemText({
 }
 
 type RadioCardItemDescriptionProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioCard.ItemDescription = function RadioCardItemDescription({
@@ -637,7 +629,7 @@ type RadioCardItemIndicatorProps = Omit<
   ComponentPropsWithoutRef<"span">,
   "children"
 > & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 RadioCard.ItemIndicator = function RadioCardItemIndicator({
@@ -671,7 +663,7 @@ RadioCard.ItemIndicator = function RadioCardItemIndicator({
 }
 
 type RadioCardItemAddonProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioCard.ItemAddon = function RadioCardItemAddon({
@@ -706,9 +698,9 @@ type RadioCardStatusTextProps = Omit<
   ComponentPropsWithoutRef<typeof StatusText>,
   "status" | "size"
 > & {
-  status?: RadioCardValidateStatus
-  size?: RadioCardSize
-  ref?: Ref<HTMLDivElement>
+  status?: RadioCardValidateStatus | undefined
+  size?: RadioCardSize | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 RadioCard.StatusText = function RadioCardStatusText({

@@ -10,7 +10,7 @@ const HEX_KEY_REGEX = /^[0-9a-fA-F]{64}$/
  * The key must be a 64-character hex string (32 bytes).
  */
 function getEncryptionKey(): Buffer {
-  const keyHex = process.env.SETTINGS_ENCRYPTION_KEY
+  const keyHex = process.env["SETTINGS_ENCRYPTION_KEY"]
   if (!keyHex) {
     throw new Error(
       "SETTINGS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32"

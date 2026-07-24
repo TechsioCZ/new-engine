@@ -10,6 +10,7 @@ import {
   createRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { assertCustomerOwnsProductListStep } from "../steps/assert-customer-owns-product-list"
 import { createProductListItemStep } from "../steps/create-product-list-item"

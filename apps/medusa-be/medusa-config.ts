@@ -1,11 +1,12 @@
 import { defineConfig, loadEnv } from "@medusajs/framework/utils"
 import type { InputConfigWithArrayModules } from "@medusajs/types"
+
 import { readMedusaConfigEnv } from "./src/config/env"
 import { buildModules } from "./src/config/modules"
 import { buildPlugins } from "./src/config/plugins"
 import { buildAdminConfig, buildProjectConfig } from "./src/config/project"
 
-loadEnv(process.env.NODE_ENV || "development", process.cwd())
+loadEnv(process.env["NODE_ENV"] || "development", process.cwd())
 
 const env = readMedusaConfigEnv(process.env)
 

@@ -2,6 +2,7 @@ import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { MedusaError } from "@medusajs/utils"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
@@ -9,6 +10,35 @@ import {
   type ModuleApproval,
   type ModuleApprovalStatus,
 } from "../../../types"
+
+function toApprovalStatusSnapshot(value: unknown): ModuleApprovalStatus {
+  if (value === null || typeof value !== "object") {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Approval status snapshot is invalid"
+    )
+  }
+
+  const id = Reflect.get(value, "id")
+  const cartId = Reflect.get(value, "cart_id")
+  const status = Reflect.get(value, "status")
+  if (
+    typeof id !== "string" ||
+    typeof cartId !== "string" ||
+    !(
+      status === ApprovalStatusType.PENDING ||
+      status === ApprovalStatusType.APPROVED ||
+      status === ApprovalStatusType.REJECTED
+    )
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Approval status snapshot is missing required fields"
+    )
+  }
+
+  return { cart_id: cartId, id, status }
+}
 
 export const updateApprovalStatusStep = createStep(
   "update-approval-status",
@@ -41,11 +71,7 @@ export const updateApprovalStatusStep = createStep(
       )
     }
 
-    const previousData: ModuleApprovalStatus = {
-      cart_id: approvalStatus.cart_id,
-      id: approvalStatus.id,
-      status: approvalStatus.status,
-    }
+    const previousData = toApprovalStatusSnapshot(approvalStatus)
 
     const hasPendingApprovals = await approvalModule.hasPendingApprovals(
       input.cart_id

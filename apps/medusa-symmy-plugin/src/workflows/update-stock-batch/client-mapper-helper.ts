@@ -213,10 +213,10 @@ export class StockBatchClientMapperHelper {
         stocked_quantity: item.input.stocked_quantity,
       }
       if (typeof item.input.reserved_quantity === "number") {
-        payload.reserved_quantity = item.input.reserved_quantity
+        payload["reserved_quantity"] = item.input.reserved_quantity
       }
       if (existing) {
-        payload.id = existing.id
+        payload["id"] = existing.id
         update.push(payload)
         updateOwners.push(item)
       } else {

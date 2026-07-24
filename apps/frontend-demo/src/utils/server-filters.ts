@@ -16,7 +16,7 @@ export interface MedusaProductQuery {
   cart_id?: string
   currency_code?: string
   // Variant filtering requires special handling
-  [key: string]: any
+  [key: string]: unknown
 }
 
 /**
@@ -32,9 +32,10 @@ export function buildMedusaQuery(
 
   // Category filtering - Medusa supports this natively
   if (filters.categories?.length) {
+    const [onlyCategory] = filters.categories
     query.category_id =
-      filters.categories.length === 1
-        ? filters.categories[0]
+      filters.categories.length === 1 && onlyCategory !== undefined
+        ? onlyCategory
         : filters.categories
   }
 
@@ -42,14 +43,14 @@ export function buildMedusaQuery(
   if (filters.sizes?.length) {
     // For single size
     if (filters.sizes.length === 1) {
-      query.variants = {
+      query["variants"] = {
         options: {
           value: filters.sizes[0],
         },
       }
     } else {
       // For multiple sizes, we need to use $in operator
-      query.variants = {
+      query["variants"] = {
         options: {
           value: {
             $in: filters.sizes,

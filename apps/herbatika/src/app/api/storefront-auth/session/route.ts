@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+
 import {
   buildMedusaUrl,
   clearSessionTokenCookie,
@@ -21,10 +22,10 @@ const resolveToken = (
 ) => {
   if (
     payload &&
-    typeof payload.token === "string" &&
-    payload.token.length > 0
+    typeof payload["token"] === "string" &&
+    payload["token"].length > 0
   ) {
-    return payload.token
+    return payload["token"]
   }
 
   return fallbackToken

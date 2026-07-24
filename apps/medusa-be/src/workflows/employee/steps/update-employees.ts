@@ -1,13 +1,15 @@
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleUpdateEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
 
 type UpdateEmployeeCompensation = Pick<
@@ -20,9 +22,7 @@ export const updateEmployeesStep = createStep(
   async (
     input: ModuleUpdateEmployee,
     { container }
-  ): Promise<
-    StepResponse<RemoteQueryEntryPoints["employee"], UpdateEmployeeCompensation>
-  > => {
+  ): Promise<StepResponse<QueryGraphEmployee, UpdateEmployeeCompensation>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 

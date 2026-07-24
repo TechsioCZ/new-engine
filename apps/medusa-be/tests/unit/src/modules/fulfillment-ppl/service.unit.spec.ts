@@ -96,7 +96,7 @@ describe("PplFulfillmentProviderService", () => {
     })
 
     it("throws if shipping address is missing", async () => {
-      const order = createOrder({ shipping_address: undefined })
+      const { shipping_address: _shippingAddress, ...order } = createOrder()
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {
           id: "ful_1",
@@ -106,7 +106,10 @@ describe("PplFulfillmentProviderService", () => {
 
     it("throws if country_code is missing", async () => {
       const order = createOrder({
-        shipping_address: { ...baseShippingAddress, country_code: undefined },
+        shipping_address: (() => {
+          const { country_code: _countryCode, ...address } = baseShippingAddress
+          return address
+        })(),
       })
       await expect(
         createService().createFulfillment(createShippingData(), [], order, {

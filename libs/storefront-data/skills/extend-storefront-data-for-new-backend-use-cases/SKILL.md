@@ -1,11 +1,7 @@
 ---
 name: extend-storefront-data-for-new-backend-use-cases
 description: >
-  Load this skill when adding a new shared backend-facing capability to
-  @techsio/storefront-data through preset wiring, normalized query keys,
-  service-layer cancellation, and test-backed invariants. Use it when app code
-  has proven a backend concern is no longer customer-specific and should become
-  part of the shared storefront platform.
+  Load this skill when adding a new shared backend-facing capability to @techsio/storefront-data through preset wiring, normalized query keys, service-layer cancellation, and test-backed invariants. Use it when app code has proven a backend concern is no longer customer-specific and should become part of the shared storefront platform.
 type: core
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -34,7 +30,8 @@ import { createQueryKey, type QueryNamespace } from "../shared/query-keys"
 
 export const createInventoryQueryKeys = (namespace: QueryNamespace) => ({
   all: () => createQueryKey(namespace, "inventory"),
-  list: (input: { sku?: string }) => createQueryKey(namespace, "inventory", "list", input),
+  list: (input: { sku?: string }) =>
+    createQueryKey(namespace, "inventory", "list", input),
 })
 ```
 
@@ -64,7 +61,8 @@ export function createMedusaInventoryService(sdk: MedusaSdk) {
 // src/medusa/preset.ts
 const services = {
   ...existingServices,
-  inventory: config.inventory?.service ?? createMedusaInventoryService(config.sdk),
+  inventory:
+    config.inventory?.service ?? createMedusaInventoryService(config.sdk),
 }
 ```
 
@@ -75,7 +73,8 @@ The preset is the canonical composition root. If the new domain never reaches th
 ```ts
 // src/inventory/hooks.ts
 const queryKeys =
-  config.queryKeys ?? createInventoryQueryKeys(config.queryKeyNamespace ?? "storefront-data")
+  config.queryKeys ??
+  createInventoryQueryKeys(config.queryKeyNamespace ?? "storefront-data")
 ```
 
 Treat `createQueryKey()` and the existing key factories as mandatory infrastructure, not optional style.

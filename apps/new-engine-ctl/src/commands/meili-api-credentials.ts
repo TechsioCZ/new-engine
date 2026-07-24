@@ -27,20 +27,20 @@ export function createMeiliApiCredentialsCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input = meiliApiCredentialsCommandInputSchema.parse({
-        meiliUrl: options.meiliUrl ?? process.env.MEILISEARCH_URL ?? "",
+        meiliUrl: options.meiliUrl ?? process.env["MEILISEARCH_URL"] ?? "",
         masterKey:
           options.masterKey ??
-          process.env.MEILISEARCH_MASTER_KEY ??
-          process.env.DC_MEILISEARCH_MASTER_KEY ??
+          process.env["MEILISEARCH_MASTER_KEY"] ??
+          process.env["DC_MEILISEARCH_MASTER_KEY"] ??
           "",
         outputJson: options.outputJson,
         dryRun: Boolean(options.dryRun),
@@ -51,7 +51,7 @@ export function createMeiliApiCredentialsCommand(): Command {
         stackManifestPath: options.stackManifestPath,
         stackInputsPath: options.stackInputsPath,
         providerId:
-          process.env.ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID ??
+          process.env["ZANE_MEILI_API_CREDENTIALS_PROVIDER_ID"] ??
           "meili_api_credentials",
       })
 

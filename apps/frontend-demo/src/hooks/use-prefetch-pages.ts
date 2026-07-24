@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
+
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts, type ProductFilters } from "@/services/product-service"
 
@@ -71,7 +72,7 @@ export function usePrefetchPages({
       // Execute all prefetches
       for (const page of pagesToPrefetch) {
         const offset = (page - 1) * pageSize
-        queryClient.prefetchQuery({
+        void queryClient.prefetchQuery({
           queryKey: queryKeys.products.list({
             page,
             limit: pageSize,

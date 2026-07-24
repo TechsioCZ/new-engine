@@ -12,7 +12,11 @@ interface EnsurePreviewDbPayload {
 }
 
 function parsePayload(rawPayload: unknown): EnsurePreviewDbPayload {
-  if (!rawPayload || typeof rawPayload !== "object" || Array.isArray(rawPayload)) {
+  if (
+    !rawPayload ||
+    typeof rawPayload !== "object" ||
+    Array.isArray(rawPayload)
+  ) {
     throw new BadRequestError("request body must be a JSON object")
   }
 
@@ -30,11 +34,14 @@ function parsePayload(rawPayload: unknown): EnsurePreviewDbPayload {
   }
 
   return {
-    pr_number: payload.pr_number,
+    pr_number: payload["pr_number"],
   }
 }
 
-export async function handleEnsurePreviewDb(request: Request, deps: EnsurePreviewDbDeps): Promise<Response> {
+export async function handleEnsurePreviewDb(
+  request: Request,
+  deps: EnsurePreviewDbDeps
+): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {
       throw new BadRequestError("request body must be valid JSON")
@@ -60,7 +67,7 @@ export async function handleEnsurePreviewDb(request: Request, deps: EnsurePrevie
         app_user: result.appUser,
         template_db: templateDatabase,
         owner,
-      }),
+      })
     )
 
     return jsonResponse(200, {

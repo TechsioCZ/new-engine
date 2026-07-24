@@ -40,7 +40,7 @@ export type Brand = {
 
 export type BrandInput = {
   title: string
-  handle?: string
+  handle?: string | undefined
   attributes: BrandAttribute[]
   gpsr_contact_email?: string | null
   gpsr_european_reseller_contact_email?: string | null

@@ -1,9 +1,7 @@
 ---
 name: ui-validate
 description: >
-  Run the full @techsio/ui-kit quality gate before commit/push: build, token validation,
-  biome on changed files, tailwind lint, visual tests, consistency checklist. Use as the
-  last step of any libs/ui change. Invoke explicitly with $ui-validate.
+  Run the full @techsio/ui-kit quality gate before commit/push: build, token validation, biome on changed files, tailwind lint, visual tests, consistency checklist. Use as the last step of any libs/ui change. Invoke explicitly with $ui-validate.
 metadata:
   plugin: techsio-ui-kit-ai
   library: "@techsio/ui-kit"
@@ -30,9 +28,7 @@ Then review the change against the bundled `component-consistency-validation` sk
 - Story exists and follows the Playground/Variants/Sizes/States order
 - `*.figma.tsx` present or explicitly deferred in the summary
 
-Visual snapshot diffs are findings — update with
-`pnpm --dir libs/ui test:components:update` only when the visual change is intended, and say
-so in the summary.
+Visual snapshot diffs are findings — update with `pnpm --dir libs/ui test:components:update` only when the visual change is intended, and say so in the summary.
 
 ## On success — mark the push gate
 
@@ -40,12 +36,8 @@ so in the summary.
 git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"
 ```
 
-The plugin installs a real git `pre-push` hook that rejects any push whose commits touch
-`libs/ui` until this marker matches the pushed ref's tip. Git gives that hook the exact refs and
-SHAs, so no form of `git push` (aliases, `--all`, `--mirror`, refspecs, config) evades it — and
-`--no-verify` is refused separately. Any new commit invalidates the marker, so validate last.
+The plugin installs a real git `pre-push` hook that rejects any push whose commits touch `libs/ui` until this marker matches the pushed ref's tip. Git gives that hook the exact refs and SHAs, so no form of `git push` (aliases, `--all`, `--mirror`, refspecs, config) evades it — and `--no-verify` is refused separately. Any new commit invalidates the marker, so validate last.
 
 ## Known CI trap
 
-`herbatica:lint` is red on master (9 pre-existing errors) and any UI diff makes herbatika
-"affected" — that failure is not caused by UI work. Never modify apps/herbatika from a UI task.
+`herbatica:lint` is red on master (9 pre-existing errors) and any UI diff makes herbatika "affected" — that failure is not caused by UI work. Never modify apps/herbatika from a UI task.

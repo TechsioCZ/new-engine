@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { asRecord } from "./product-card.parsers"
 
 const SENTENCE_BOUNDARY_PATTERN = /(?<=[.!?])\s+/
@@ -54,18 +55,18 @@ export const resolveDescription = (
   product: HttpTypes.StoreProduct
 ): string | null => {
   const metadata = asRecord(product.metadata)
-  const contentSectionsMap = asRecord(metadata?.content_sections_map)
+  const contentSectionsMap = asRecord(metadata?.["content_sections_map"])
   const descriptionSection =
-    typeof contentSectionsMap?.description === "string"
-      ? contentSectionsMap.description
+    typeof contentSectionsMap?.["description"] === "string"
+      ? contentSectionsMap["description"]
       : null
   const usageSection =
-    typeof contentSectionsMap?.usage === "string"
-      ? contentSectionsMap.usage
+    typeof contentSectionsMap?.["usage"] === "string"
+      ? contentSectionsMap["usage"]
       : null
   const shortDescription =
-    typeof metadata?.short_description === "string"
-      ? metadata.short_description
+    typeof metadata?.["short_description"] === "string"
+      ? metadata["short_description"]
       : null
 
   const htmlCandidates = [

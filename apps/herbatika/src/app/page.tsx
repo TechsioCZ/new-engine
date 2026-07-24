@@ -1,4 +1,5 @@
 import { HydrationBoundary } from "@tanstack/react-query"
+
 import { HerbatikaHomepage } from "@/components/herbatika-homepage"
 import { fetchCmsHeroBanners } from "@/lib/storefront/cms"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"

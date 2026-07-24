@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
+
 import { useRegions } from "@/hooks/use-region"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
@@ -15,7 +16,7 @@ export function CartPrefetch() {
     if (!selectedRegion) return
 
     // Prefetch cart data
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
       queryKey: queryKeys.cart(
         typeof window !== "undefined"
           ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined

@@ -9,6 +9,7 @@ import {
   createRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { createCustomerProductListStep } from "../steps/create-customer-product-list"
 import type { CreateCustomerProductListWorkflowInput } from "../types"

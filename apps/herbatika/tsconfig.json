@@ -5,7 +5,6 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "baseUrl": ".",
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -22,7 +21,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@techsio/storefront-data": ["../../libs/storefront-data/src/index.ts"],
-      "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"]
+      "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"],
+      "@techsio/std/*": ["../../libs/std/src/*"],
+      "@techsio/ui-kit/*": ["../../libs/ui/src/*"]
     }
   },
   "include": [

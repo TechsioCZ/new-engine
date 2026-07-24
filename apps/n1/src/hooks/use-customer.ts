@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+
 import { queryKeys } from "@/lib/query-keys"
 import {
   type UpdateCustomerData,
@@ -10,9 +11,9 @@ export function useUpdateCustomer() {
 
   return useMutation({
     mutationFn: (data: UpdateCustomerData) => updateCustomer(data),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate customer cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },

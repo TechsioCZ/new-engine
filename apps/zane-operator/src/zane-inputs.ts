@@ -30,7 +30,7 @@ const nonEmptyTrimmedStringSchema = z.string().trim().min(1, "cannot be empty")
 const strictTrueBooleanSchema = z.literal(true)
 
 const optionalTrimmedStringSchema = z.preprocess(
-  (value) => (value == null ? undefined : value),
+  (value) => (value === null || value === undefined ? undefined : value),
   nonEmptyTrimmedStringSchema.optional()
 )
 
@@ -43,7 +43,7 @@ const serviceReconciliationGitSourceSchema = z.object({
   sync_from_source: strictTrueBooleanSchema,
   branch_name: optionalTrimmedStringSchema,
   commit_sha: z.preprocess(
-    (value) => (value == null ? "HEAD" : value),
+    (value) => (value === null || value === undefined ? "HEAD" : value),
     nonEmptyTrimmedStringSchema
   ),
 })
@@ -61,19 +61,19 @@ const serviceReconciliationSpecSchema = z.object({
   service_id: nonEmptyTrimmedStringSchema,
   service_slug: nonEmptyTrimmedStringSchema,
   git_source: z.preprocess(
-    (value) => (value == null ? undefined : value),
+    (value) => (value === null || value === undefined ? undefined : value),
     serviceReconciliationGitSourceSchema.optional()
   ),
   builder: z.preprocess(
-    (value) => (value == null ? undefined : value),
+    (value) => (value === null || value === undefined ? undefined : value),
     serviceReconciliationBuilderSchema.optional()
   ),
   healthcheck: z.preprocess(
-    (value) => (value == null ? undefined : value),
+    (value) => (value === null || value === undefined ? undefined : value),
     serviceReconciliationSyncFlagSchema.optional()
   ),
   resource_limits: z.preprocess(
-    (value) => (value == null ? undefined : value),
+    (value) => (value === null || value === undefined ? undefined : value),
     serviceReconciliationSyncFlagSchema.optional()
   ),
 })
@@ -138,7 +138,7 @@ function assertOptionalString(
   value: unknown,
   label: string
 ): string | undefined {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return
   }
 
@@ -182,12 +182,12 @@ function normalizeRuntimeProviderOutput(
   label: string
 ): RuntimeProviderOutputInput {
   const object = assertObject(value, label)
-  const policy = assertObject(object.policy, `${label}.policy`)
-  const kind = assertString(policy.kind, `${label}.policy.kind`)
+  const policy = assertObject(object["policy"], `${label}.policy`)
+  const kind = assertString(policy["kind"], `${label}.policy.kind`)
 
   return {
-    outputId: assertString(object.output_id, `${label}.output_id`),
-    envVar: assertString(object.env_var, `${label}.env_var`),
+    outputId: assertString(object["output_id"], `${label}.output_id`),
+    envVar: assertString(object["env_var"], `${label}.env_var`),
     policy: {
       ...policy,
       kind,
@@ -213,7 +213,7 @@ function assertStringMap(
 }
 
 function normalizeProjectSlugFromPayload(payload: JsonRecord): string {
-  return assertString(payload.project_slug, "project_slug")
+  return assertString(payload["project_slug"], "project_slug")
 }
 
 function normalizeResolveTargets(
@@ -228,11 +228,11 @@ function normalizeResolveTargets(
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(
-        object.service_id,
+        object["service_id"],
         `${label}[${index}].service_id`
       ),
       service_slug: assertString(
-        object.service_slug,
+        object["service_slug"],
         `${label}[${index}].service_slug`
       ),
     }
@@ -251,14 +251,14 @@ function normalizeEnvOverrides(
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(
-        object.service_id,
+        object["service_id"],
         `${label}[${index}].service_id`
       ),
       service_slug: assertString(
-        object.service_slug,
+        object["service_slug"],
         `${label}[${index}].service_slug`
       ),
-      env: assertStringMap(object.env, `${label}[${index}].env`),
+      env: assertStringMap(object["env"], `${label}[${index}].env`),
     }
   })
 }
@@ -267,7 +267,7 @@ function normalizeDeployments(
   value: unknown,
   label: string
 ): VerifyDeploymentRef[] {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return []
   }
 
@@ -279,15 +279,15 @@ function normalizeDeployments(
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(
-        object.service_id,
+        object["service_id"],
         `${label}[${index}].service_id`
       ),
       service_slug: assertString(
-        object.service_slug,
+        object["service_slug"],
         `${label}[${index}].service_slug`
       ),
       deployment_hash: assertString(
-        object.deployment_hash,
+        object["deployment_hash"],
         `${label}[${index}].deployment_hash`
       ),
     }
@@ -298,7 +298,7 @@ function normalizePersistedEnvRequirements(
   value: unknown,
   label: string
 ): PersistedEnvRequirement[] {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return []
   }
 
@@ -310,15 +310,15 @@ function normalizePersistedEnvRequirements(
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(
-        object.service_id,
+        object["service_id"],
         `${label}[${index}].service_id`
       ),
       service_slug: assertString(
-        object.service_slug,
+        object["service_slug"],
         `${label}[${index}].service_slug`
       ),
       env_keys: assertStringArray(
-        object.env_keys,
+        object["env_keys"],
         `${label}[${index}].env_keys`
       ),
     }
@@ -329,7 +329,7 @@ function normalizeSharedEnvRequirements(
   value: unknown,
   label: string
 ): Array<{ key: string }> {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return []
   }
 
@@ -340,7 +340,7 @@ function normalizeSharedEnvRequirements(
   return value.map((item, index) => {
     const object = assertObject(item, `${label}[${index}]`)
     return {
-      key: assertString(object.key, `${label}[${index}].key`),
+      key: assertString(object["key"], `${label}[${index}].key`),
     }
   })
 }
@@ -376,29 +376,36 @@ function assertPreviewRuntimeValueSourceKind(
 function parsePreviewRuntimeValueSource(rawValue: unknown, label: string) {
   const object = assertObject(rawValue, label)
 
+  const value = assertOptionalString(object["value"], `${label}.value`)
+  const serviceSlug = assertOptionalString(
+    object["service_slug"],
+    `${label}.service_slug`
+  )
+  const sourceEnvironmentName = assertOptionalString(
+    object["source_environment_name"],
+    `${label}.source_environment_name`
+  )
+  const port =
+    typeof object["port"] === "number" && Number.isInteger(object["port"])
+      ? object["port"]
+      : undefined
+  const trailingSlash =
+    typeof object["trailing_slash"] === "boolean"
+      ? object["trailing_slash"]
+      : undefined
+  const bucketSharedEnvKey = assertOptionalString(
+    object["bucket_shared_env_key"],
+    `${label}.bucket_shared_env_key`
+  )
+
   return {
-    kind: assertPreviewRuntimeValueSourceKind(object.kind, `${label}.kind`),
-    value: assertOptionalString(object.value, `${label}.value`),
-    serviceSlug: assertOptionalString(
-      object.service_slug,
-      `${label}.service_slug`
-    ),
-    sourceEnvironmentName: assertOptionalString(
-      object.source_environment_name,
-      `${label}.source_environment_name`
-    ),
-    port:
-      typeof object.port === "number" && Number.isInteger(object.port)
-        ? object.port
-        : undefined,
-    trailingSlash:
-      typeof object.trailing_slash === "boolean"
-        ? object.trailing_slash
-        : undefined,
-    bucketSharedEnvKey: assertOptionalString(
-      object.bucket_shared_env_key,
-      `${label}.bucket_shared_env_key`
-    ),
+    kind: assertPreviewRuntimeValueSourceKind(object["kind"], `${label}.kind`),
+    ...(value === undefined ? {} : { value }),
+    ...(serviceSlug === undefined ? {} : { serviceSlug }),
+    ...(sourceEnvironmentName === undefined ? {} : { sourceEnvironmentName }),
+    ...(port === undefined ? {} : { port }),
+    ...(trailingSlash === undefined ? {} : { trailingSlash }),
+    ...(bucketSharedEnvKey === undefined ? {} : { bucketSharedEnvKey }),
   }
 }
 
@@ -406,7 +413,7 @@ function normalizeForbiddenEnvRequirements(
   value: unknown,
   label: string
 ): ForbiddenEnvRequirement[] {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return []
   }
 
@@ -418,15 +425,15 @@ function normalizeForbiddenEnvRequirements(
     const object = assertObject(item, `${label}[${index}]`)
     return {
       service_id: assertString(
-        object.service_id,
+        object["service_id"],
         `${label}[${index}].service_id`
       ),
       service_slug: assertString(
-        object.service_slug,
+        object["service_slug"],
         `${label}[${index}].service_slug`
       ),
       env_keys: assertStringArray(
-        object.env_keys,
+        object["env_keys"],
         `${label}[${index}].env_keys`
       ),
     }
@@ -440,37 +447,40 @@ function parseResolvedTargets(value: unknown): ZaneResolvedTarget[] {
 
   return value.map((item, index) => {
     const object = assertObject(item, `targets[${index}]`)
+    const configuredCommitSha = assertOptionalString(
+      object["configured_commit_sha"],
+      `targets[${index}].configured_commit_sha`
+    )
     return {
       service_id: assertString(
-        object.service_id,
+        object["service_id"],
         `targets[${index}].service_id`
       ),
       service_slug: assertString(
-        object.service_slug,
+        object["service_slug"],
         `targets[${index}].service_slug`
       ),
       service_type: assertServiceType(
-        object.service_type,
+        object["service_type"],
         `targets[${index}].service_type`
       ),
-      configured_commit_sha: assertOptionalString(
-        object.configured_commit_sha,
-        `targets[${index}].configured_commit_sha`
-      ),
+      ...(configuredCommitSha === undefined
+        ? {}
+        : { configured_commit_sha: configuredCommitSha }),
       deploy_token: assertString(
-        object.deploy_token,
+        object["deploy_token"],
         `targets[${index}].deploy_token`
       ),
       deploy_url: assertString(
-        object.deploy_url,
+        object["deploy_url"],
         `targets[${index}].deploy_url`
       ),
       env_change_url: assertString(
-        object.env_change_url,
+        object["env_change_url"],
         `targets[${index}].env_change_url`
       ),
       details_url: assertString(
-        object.details_url,
+        object["details_url"],
         `targets[${index}].details_url`
       ),
     }
@@ -481,11 +491,42 @@ function parseServiceReconciliationSpecs(
   value: unknown,
   label: string
 ): ZaneServiceReconciliationSpec[] {
-  if (value == null) {
+  if (value === null || value === undefined) {
     return []
   }
 
-  return parseZodInput(serviceReconciliationSpecsSchema, value, label)
+  const specs = parseZodInput(serviceReconciliationSpecsSchema, value, label)
+  return specs.map((spec) => ({
+    service_id: spec.service_id,
+    service_slug: spec.service_slug,
+    ...(spec.git_source === undefined
+      ? {}
+      : {
+          git_source: {
+            sync_from_source: spec.git_source.sync_from_source,
+            commit_sha: spec.git_source.commit_sha,
+            ...(spec.git_source.branch_name === undefined
+              ? {}
+              : { branch_name: spec.git_source.branch_name }),
+          },
+        }),
+    ...(spec.builder === undefined
+      ? {}
+      : {
+          builder: {
+            sync_from_source: spec.builder.sync_from_source,
+            ...(spec.builder.build_stage_target === undefined
+              ? {}
+              : { build_stage_target: spec.builder.build_stage_target }),
+          },
+        }),
+    ...(spec.healthcheck === undefined
+      ? {}
+      : { healthcheck: spec.healthcheck }),
+    ...(spec.resource_limits === undefined
+      ? {}
+      : { resource_limits: spec.resource_limits }),
+  }))
 }
 
 export function parseResolveEnvironmentInput(
@@ -493,23 +534,26 @@ export function parseResolveEnvironmentInput(
 ): ResolveEnvironmentInput {
   const payload = assertObject(rawPayload, "request body")
   return {
-    lane: assertLane(payload.lane, "lane"),
+    lane: assertLane(payload["lane"], "lane"),
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
     sourceEnvironmentName: assertString(
-      payload.source_environment_name,
+      payload["source_environment_name"],
       "source_environment_name"
     ),
     expectedPreviewServiceSlugs: assertStringArray(
-      payload.expected_preview_service_slugs ?? [],
+      payload["expected_preview_service_slugs"] ?? [],
       "expected_preview_service_slugs"
     ),
     excludedPreviewServiceSlugs: assertStringArray(
-      payload.excluded_preview_service_slugs ?? [],
+      payload["excluded_preview_service_slugs"] ?? [],
       "excluded_preview_service_slugs"
     ),
     serviceSpecs: parseServiceReconciliationSpecs(
-      payload.service_specs,
+      payload["service_specs"],
       "service_specs"
     ),
   }
@@ -521,7 +565,10 @@ export function parseArchiveEnvironmentInput(
   const payload = assertObject(rawPayload, "request body")
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
   }
 }
 
@@ -531,7 +578,10 @@ export function parseReadPreviewCommitStateInput(
   const payload = assertObject(rawPayload, "request body")
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
   }
 }
 
@@ -540,16 +590,16 @@ export function parseWritePreviewCommitStateInput(
 ): WritePreviewCommitStateInput {
   const payload = assertObject(rawPayload, "request body")
   const targetCommitSha = assertOptionalString(
-    payload.target_commit_sha,
+    payload["target_commit_sha"],
     "target_commit_sha"
   )
   const lastDeployedCommitSha = assertOptionalString(
-    payload.last_deployed_commit_sha,
+    payload["last_deployed_commit_sha"],
     "last_deployed_commit_sha"
   )
   const baselineComplete =
-    typeof payload.baseline_complete === "boolean"
-      ? payload.baseline_complete
+    typeof payload["baseline_complete"] === "boolean"
+      ? payload["baseline_complete"]
       : undefined
 
   if (
@@ -566,10 +616,13 @@ export function parseWritePreviewCommitStateInput(
 
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
-    targetCommitSha,
-    lastDeployedCommitSha,
-    baselineComplete,
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
+    ...(targetCommitSha === undefined ? {} : { targetCommitSha }),
+    ...(lastDeployedCommitSha === undefined ? {} : { lastDeployedCommitSha }),
+    ...(baselineComplete === undefined ? {} : { baselineComplete }),
   }
 }
 
@@ -577,32 +630,45 @@ export function parseSyncPreviewRandomOnceSecretsInput(
   rawPayload: unknown
 ): SyncPreviewRandomOnceSecretsInput {
   const payload = assertObject(rawPayload, "request body")
-  const secrets = payload.secrets
+  const secrets = payload["secrets"]
   if (!Array.isArray(secrets) || secrets.length === 0) {
     throw new BadRequestError("secrets must be a non-empty array")
   }
 
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
     secrets: secrets.map((item, index) => {
       const object = assertObject(item, `secrets[${index}]`)
-      const targets = object.targets
+      const targets = object["targets"]
       if (!Array.isArray(targets)) {
         throw new BadRequestError(`secrets[${index}].targets must be an array`)
       }
 
+      const value = assertOptionalString(
+        object["value"],
+        `secrets[${index}].value`
+      )
+      const persistTo = assertOptionalString(
+        object["persist_to"],
+        `secrets[${index}].persist_to`
+      )
+      const persistedEnvVar = assertOptionalString(
+        object["persisted_env_var"],
+        `secrets[${index}].persisted_env_var`
+      )
+
       return {
-        secretId: assertString(object.secret_id, `secrets[${index}].secret_id`),
-        value: assertOptionalString(object.value, `secrets[${index}].value`),
-        persistTo: assertOptionalString(
-          object.persist_to,
-          `secrets[${index}].persist_to`
+        secretId: assertString(
+          object["secret_id"],
+          `secrets[${index}].secret_id`
         ),
-        persistedEnvVar: assertOptionalString(
-          object.persisted_env_var,
-          `secrets[${index}].persisted_env_var`
-        ),
+        ...(value === undefined ? {} : { value }),
+        ...(persistTo === undefined ? {} : { persistTo }),
+        ...(persistedEnvVar === undefined ? {} : { persistedEnvVar }),
         targets: targets.map((target, targetIndex) => {
           const targetObject = assertObject(
             target,
@@ -611,11 +677,11 @@ export function parseSyncPreviewRandomOnceSecretsInput(
 
           return {
             serviceSlug: assertString(
-              targetObject.service_slug,
+              targetObject["service_slug"],
               `secrets[${index}].targets[${targetIndex}].service_slug`
             ),
             envVar: assertString(
-              targetObject.env_var,
+              targetObject["env_var"],
               `secrets[${index}].targets[${targetIndex}].env_var`
             ),
           }
@@ -629,20 +695,23 @@ export function parseSyncPreviewSharedEnvInput(
   rawPayload: unknown
 ): SyncPreviewSharedEnvInput {
   const payload = assertObject(rawPayload, "request body")
-  const variables = payload.variables
+  const variables = payload["variables"]
   if (!Array.isArray(variables) || variables.length === 0) {
     throw new BadRequestError("variables must be a non-empty array")
   }
 
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
     variables: variables.map((item, index) => {
       const object = assertObject(item, `variables[${index}]`)
       return {
-        key: assertString(object.key, `variables[${index}].key`),
+        key: assertString(object["key"], `variables[${index}].key`),
         source: parsePreviewRuntimeValueSource(
-          object.source,
+          object["source"],
           `variables[${index}].source`
         ),
       }
@@ -654,17 +723,20 @@ export function parseSyncPreviewServiceEnvInput(
   rawPayload: unknown
 ): SyncPreviewServiceEnvInput {
   const payload = assertObject(rawPayload, "request body")
-  const services = payload.services
+  const services = payload["services"]
   if (!Array.isArray(services) || services.length === 0) {
     throw new BadRequestError("services must be a non-empty array")
   }
 
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
     services: services.map((item, index) => {
       const object = assertObject(item, `services[${index}]`)
-      const env = object.env
+      const env = object["env"]
       if (!Array.isArray(env) || env.length === 0) {
         throw new BadRequestError(
           `services[${index}].env must be a non-empty array`
@@ -673,11 +745,11 @@ export function parseSyncPreviewServiceEnvInput(
 
       return {
         service_id: assertString(
-          object.service_id,
+          object["service_id"],
           `services[${index}].service_id`
         ),
         service_slug: assertString(
-          object.service_slug,
+          object["service_slug"],
           `services[${index}].service_slug`
         ),
         env: env.map((envItem, envIndex) => {
@@ -688,11 +760,11 @@ export function parseSyncPreviewServiceEnvInput(
 
           return {
             env_var: assertString(
-              envObject.env_var,
+              envObject["env_var"],
               `services[${index}].env[${envIndex}].env_var`
             ),
             source: parsePreviewRuntimeValueSource(
-              envObject.source,
+              envObject["source"],
               `services[${index}].env[${envIndex}].source`
             ),
           }
@@ -706,17 +778,20 @@ export function parseRuntimeProviderRunInput(
   rawPayload: unknown
 ): RuntimeProviderRunInput {
   const payload = assertObject(rawPayload, "request body")
-  const rawOutputs = payload.outputs
+  const rawOutputs = payload["outputs"]
   if (!Array.isArray(rawOutputs) || rawOutputs.length === 0) {
     throw new BadRequestError("outputs must be a non-empty array")
   }
 
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
-    providerId: assertString(payload.provider_id, "provider_id"),
-    serviceSlug: assertString(payload.service_slug, "service_slug"),
-    readinessPath: assertString(payload.readiness_path, "readiness_path"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
+    providerId: assertString(payload["provider_id"], "provider_id"),
+    serviceSlug: assertString(payload["service_slug"], "service_slug"),
+    readinessPath: assertString(payload["readiness_path"], "readiness_path"),
     outputs: rawOutputs.map((output, index) =>
       normalizeRuntimeProviderOutput(output, `outputs[${index}]`)
     ),
@@ -731,10 +806,13 @@ export function parseResolveTargetsInput(rawPayload: unknown): {
 } {
   const payload = assertObject(rawPayload, "request body")
   return {
-    lane: assertLane(payload.lane, "lane"),
+    lane: assertLane(payload["lane"], "lane"),
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
-    services: normalizeResolveTargets(payload.services, "services"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
+    services: normalizeResolveTargets(payload["services"], "services"),
   }
 }
 
@@ -747,9 +825,15 @@ export function parseApplyEnvOverridesInput(rawPayload: unknown): {
   const payload = assertObject(rawPayload, "request body")
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
-    targets: parseResolvedTargets(payload.targets),
-    envOverrides: normalizeEnvOverrides(payload.env_overrides, "env_overrides"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
+    targets: parseResolvedTargets(payload["targets"]),
+    envOverrides: normalizeEnvOverrides(
+      payload["env_overrides"],
+      "env_overrides"
+    ),
   }
 }
 
@@ -760,14 +844,18 @@ export function parseTriggerInput(rawPayload: unknown): {
   gitCommitSha?: string
 } {
   const payload = assertObject(rawPayload, "request body")
+  const gitCommitSha = assertOptionalString(
+    payload["git_commit_sha"],
+    "git_commit_sha"
+  )
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
-    targets: parseResolvedTargets(payload.targets),
-    gitCommitSha: assertOptionalString(
-      payload.git_commit_sha,
-      "git_commit_sha"
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
     ),
+    targets: parseResolvedTargets(payload["targets"]),
+    ...(gitCommitSha === undefined ? {} : { gitCommitSha }),
   }
 }
 
@@ -780,54 +868,60 @@ export function parseCancelDeployInput(rawPayload: unknown): {
   const payload = assertObject(rawPayload, "request body")
   return {
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
-    serviceSlug: assertString(payload.service_slug, "service_slug"),
-    deploymentHash: assertString(payload.deployment_hash, "deployment_hash"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
+    serviceSlug: assertString(payload["service_slug"], "service_slug"),
+    deploymentHash: assertString(payload["deployment_hash"], "deployment_hash"),
   }
 }
 
 export function parseVerifyInput(rawPayload: unknown): VerifyDeployInput {
   const payload = assertObject(rawPayload, "request body")
   return {
-    lane: assertLane(payload.lane, "lane"),
+    lane: assertLane(payload["lane"], "lane"),
     projectSlug: normalizeProjectSlugFromPayload(payload),
-    environmentName: assertString(payload.environment_name, "environment_name"),
+    environmentName: assertString(
+      payload["environment_name"],
+      "environment_name"
+    ),
     requestedServiceIds: assertStringArray(
-      payload.requested_service_ids,
+      payload["requested_service_ids"],
       "requested_service_ids"
     ),
     deployServiceIds: assertStringArray(
-      payload.deploy_service_ids,
+      payload["deploy_service_ids"],
       "deploy_service_ids"
     ),
     triggeredServiceIds: assertStringArray(
-      payload.triggered_service_ids,
+      payload["triggered_service_ids"],
       "triggered_service_ids"
     ),
     expectedPreviewServiceSlugs: assertStringArray(
-      payload.expected_preview_service_slugs ?? [],
+      payload["expected_preview_service_slugs"] ?? [],
       "expected_preview_service_slugs"
     ),
     excludedPreviewServiceSlugs: assertStringArray(
-      payload.excluded_preview_service_slugs ?? [],
+      payload["excluded_preview_service_slugs"] ?? [],
       "excluded_preview_service_slugs"
     ),
     expectedEnvOverrides: normalizeEnvOverrides(
-      payload.expected_env_overrides ?? [],
+      payload["expected_env_overrides"] ?? [],
       "expected_env_overrides"
     ),
     requiredPersistedEnv: normalizePersistedEnvRequirements(
-      payload.required_persisted_env ?? [],
+      payload["required_persisted_env"] ?? [],
       "required_persisted_env"
     ),
     requiredSharedEnv: normalizeSharedEnvRequirements(
-      payload.required_shared_env ?? [],
+      payload["required_shared_env"] ?? [],
       "required_shared_env"
     ),
     forbiddenEnv: normalizeForbiddenEnvRequirements(
-      payload.forbidden_env ?? [],
+      payload["forbidden_env"] ?? [],
       "forbidden_env"
     ),
-    deployments: normalizeDeployments(payload.deployments, "deployments"),
+    deployments: normalizeDeployments(payload["deployments"], "deployments"),
   }
 }

@@ -8,6 +8,7 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
 import NextLink from "next/link"
+
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
   Product,
@@ -19,6 +20,7 @@ import {
   asString,
 } from "@/components/product-detail/utils/value-utils"
 import { ProductListPickerPopover } from "@/components/product-lists/product-list-picker-popover"
+import { appHref } from "@/lib/routing"
 import { createBrandSlug } from "@/lib/storefront/brands"
 
 type ProductInfoLink = {
@@ -31,10 +33,10 @@ const resolveProductInfoLink = (
   primaryCategory?: HttpTypes.StoreProductCategory
 ): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
-  const brandTitle = asString(brand?.title)
+  const brandTitle = asString(brand?.["title"])
 
   if (brandTitle) {
-    const brandHandle = asString(brand?.handle)
+    const brandHandle = asString(brand?.["handle"])
     const brandSlug = createBrandSlug(brandHandle || brandTitle)
 
     return {
@@ -127,7 +129,7 @@ export function ProductDetailPurchasePanel({
                   <Link
                     as={NextLink}
                     className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
-                    href={productInfoLink.href}
+                    href={appHref(productInfoLink.href)}
                   >
                     {productInfoLink.label}
                   </Link>

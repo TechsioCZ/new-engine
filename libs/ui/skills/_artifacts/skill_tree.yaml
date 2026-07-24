@@ -3,8 +3,7 @@ library:
   version: 0.3.2
   repository: git+https://github.com/TechsioCZ/new-engine.git
   description: >
-    React 19, Tailwind v4, Zag.js, tailwind-variants, Storybook, and Figma Code Connect UI kit in
-    libs/ui, with skills for library authoring and correct app-side adoption.
+    React 19, Tailwind v4, Zag.js, tailwind-variants, Storybook, and Figma Code Connect UI kit in libs/ui, with skills for library authoring and correct app-side adoption.
 generated_from:
   domain_map: skills/_artifacts/domain_map.yaml
   skill_spec: skills/_artifacts/skill_spec.md
@@ -13,10 +12,7 @@ generated_at: 2026-06-02
 tree:
   layout: flat
   skills_root: libs/ui/skills
-  note: Every path is relative to package libs/ui. The tree is task-focused. Consumer usage is
-    intentionally generated per public atom, molecule, and organism from src/atoms, src/molecules,
-    and src/organisms so agents load concrete usage rules instead of a generic component guide.
-    Templates are excluded from per-component usage skills by maintainer decision.
+  note: Every path is relative to package libs/ui. The tree is task-focused. Consumer usage is intentionally generated per public atom, molecule, and organism from src/atoms, src/molecules, and src/organisms so agents load concrete usage rules instead of a generic component guide. Templates are excluded from per-component usage skills by maintainer decision.
 skills:
   - name: ui-kit-workflow-orchestrator
     slug: ui-kit-workflow-orchestrator
@@ -25,9 +21,7 @@ skills:
     path: skills/ui-kit-workflow-orchestrator/SKILL.md
     package: libs/ui
     description: >
-      Use first when a task could touch @techsio/ui-kit or an apps/* consumer. Routes library
-      authoring, app usage, token work, validation, Figma handoff, and skill maintenance without
-      crossing scope accidentally.
+      Use first when a task could touch @techsio/ui-kit or an apps/* consumer. Routes library authoring, app usage, token work, validation, Figma handoff, and skill maintenance without crossing scope accidentally.
     sources:
       - skills/_artifacts/domain_map.yaml
       - skills/_artifacts/skill_spec.md
@@ -39,9 +33,7 @@ skills:
     path: skills/component-authoring/SKILL.md
     package: libs/ui
     description: >
-      Use when creating or refactoring @techsio/ui-kit components in libs/ui, including TSX, tv()
-      variants, React 19 ref props, component token CSS, Storybook stories, exports, and Figma
-      handoff reminders.
+      Use when creating or refactoring @techsio/ui-kit components in libs/ui, including TSX, tv() variants, React 19 ref props, component token CSS, Storybook stories, exports, and Figma handoff reminders.
     requires:
       - tailwind-token-authoring
       - storybook-authoring
@@ -60,9 +52,7 @@ skills:
     path: skills/component-consistency-validation/SKILL.md
     package: libs/ui
     description: >
-      Use after changing a component, token, story, export, or Figma mapping to validate consistency
-      across TSX props, token classes, stories, Code Connect, build, token validators, and
-      visual/a11y checks.
+      Use after changing a component, token, story, export, or Figma mapping to validate consistency across TSX props, token classes, stories, Code Connect, build, token validators, and visual/a11y checks.
     sources:
       - package.json
       - project.json
@@ -79,9 +69,7 @@ skills:
     path: skills/tailwind-token-authoring/SKILL.md
     package: libs/ui
     description: >
-      Use when adding or changing Tailwind v4 tokens in libs/ui, including @theme static, semantic
-      aliases, two-layer component tokens, token naming, token class mapping, and validator
-      commands.
+      Use when adding or changing Tailwind v4 tokens in libs/ui, including @theme static, semantic aliases, two-layer component tokens, token naming, token class mapping, and validator commands.
     sources:
       - AGENTS.md
       - token-contribution.md
@@ -100,9 +88,7 @@ skills:
     path: skills/zag-compound-components/SKILL.md
     package: libs/ui
     description: >
-      Use when creating or refactoring interactive components with Zag.js machine/connect APIs,
-      React context, compound Component.Subcomponent patterns, slots, and data attribute state
-      styling.
+      Use when creating or refactoring interactive components with Zag.js machine/connect APIs, React context, compound Component.Subcomponent patterns, slots, and data attribute state styling.
     requires:
       - component-authoring
       - tailwind-token-authoring
@@ -120,9 +106,7 @@ skills:
     path: skills/storybook-authoring/SKILL.md
     package: libs/ui
     description: >
-      Use when creating or editing Storybook CSF3 stories for libs/ui using Playground, argTypes,
-      VariantContainer/VariantGroup, fn() handlers, token-based classes, and UI-kit components
-      instead of native HTML.
+      Use when creating or editing Storybook CSF3 stories for libs/ui using Playground, argTypes, VariantContainer/VariantGroup, fn() handlers, token-based classes, and UI-kit components instead of native HTML.
     sources:
       - AGENTS.md
       - .storybook/main.ts
@@ -139,8 +123,7 @@ skills:
     path: skills/figma-sync-handoff/SKILL.md
     package: libs/ui
     description: >
-      Use when component work should flag a Figma/Code Connect follow-up. This skill only prepares
-      the handoff and points to component-to-figma; it must not edit Figma automatically.
+      Use when component work should flag a Figma/Code Connect follow-up. This skill only prepares the handoff and points to component-to-figma; it must not edit Figma automatically.
     sources:
       - AGENTS.md
       - figma.config.json
@@ -154,9 +137,7 @@ skills:
     path: skills/ui-kit-publish-readiness/SKILL.md
     package: libs/ui
     description: >
-      Use before releasing or validating @techsio/ui-kit package readiness: RSLib build, exports,
-      publint, token validation, Storybook build/a11y, component screenshots, and semantic-release
-      constraints.
+      Use before releasing or validating @techsio/ui-kit package readiness: RSLib build, exports, publint, token validation, Storybook build/a11y, component screenshots, and semantic-release constraints.
     requires:
       - component-consistency-validation
     sources:
@@ -174,8 +155,7 @@ skills:
     path: skills/app-token-initialization/SKILL.md
     package: libs/ui
     description: >
-      Use when adopting @techsio/ui-kit in a new or existing apps/* project and setting up app
-      semantic, typography, spacing, layout, radius, and minimal component token override files.
+      Use when adopting @techsio/ui-kit in a new or existing apps/* project and setting up app semantic, typography, spacing, layout, radius, and minimal component token override files.
     requires:
       - tailwind-token-authoring
     sources:
@@ -192,9 +172,7 @@ skills:
     path: skills/app-token-overrides/SKILL.md
     package: libs/ui
     description: >
-      Use when changing app-specific visuals for UI-kit components through semantic, typography,
-      spacing, layout, or component CSS token overrides while avoiding redundant token chains and
-      JSX className styling.
+      Use when changing app-specific visuals for UI-kit components through semantic, typography, spacing, layout, or component CSS token overrides while avoiding redundant token chains and JSX className styling.
     requires:
       - tailwind-token-authoring
     sources:
@@ -210,9 +188,7 @@ skills:
     path: skills/component-usage-ux/SKILL.md
     package: libs/ui
     description: >
-      Use as the app-side usage orchestrator. It decides which UI-kit component and which
-      per-component usage skill to load before selecting props, variants, themes, sizes, slots,
-      framework adapters, and token overrides.
+      Use as the app-side usage orchestrator. It decides which UI-kit component and which per-component usage skill to load before selecting props, variants, themes, sizes, slots, framework adapters, and token overrides.
     requires:
       - app-token-overrides
     sources:
@@ -230,9 +206,7 @@ skills:
     path: skills/app-ui-kit-audit/SKILL.md
     package: libs/ui
     description: >
-      Use when reviewing an apps/* UI for native HTML, custom duplicated primitives, nonexistent
-      props, duplicate className styling, token-first violations, framework adapter mistakes, and
-      component API gaps.
+      Use when reviewing an apps/* UI for native HTML, custom duplicated primitives, nonexistent props, duplicate className styling, token-first violations, framework adapter mistakes, and component API gaps.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -249,8 +223,7 @@ skills:
     path: skills/framework-consumer-integration/SKILL.md
     package: libs/ui
     description: >
-      Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+ with React
-      Compiler, NextLink, NextImage, token imports, adapter props, and wrapper-avoidance checks.
+      Use when consuming @techsio/ui-kit in framework apps, especially Next.js 16+ with React Compiler, NextLink, NextImage, token imports, adapter props, and wrapper-avoidance checks.
     requires:
       - component-usage-ux
     sources:
@@ -268,9 +241,7 @@ skills:
     path: skills/intent-skill-maintenance/SKILL.md
     package: libs/ui
     description: >
-      Use when @techsio/ui-kit components, props, token rules, Storybook rules, app usage patterns,
-      Figma handoff rules, or validation commands change and the Intent skills should be updated
-      with TanStack Intent meta workflows.
+      Use when @techsio/ui-kit components, props, token rules, Storybook rules, app usage patterns, Figma handoff rules, or validation commands change and the Intent skills should be updated with TanStack Intent meta workflows.
     sources:
       - skills/_artifacts/domain_map.yaml
       - skills/_artifacts/skill_spec.md
@@ -284,9 +255,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/badge-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Badge from
-      @techsio/ui-kit/atoms/badge. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Badge from @techsio/ui-kit/atoms/badge. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -302,9 +271,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/button-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Button from
-      @techsio/ui-kit/atoms/button. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Button from @techsio/ui-kit/atoms/button. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -320,9 +287,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/checkbox-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Checkbox from
-      @techsio/ui-kit/atoms/checkbox. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Checkbox from @techsio/ui-kit/atoms/checkbox. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -338,9 +303,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/icon-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Icon from
-      @techsio/ui-kit/atoms/icon. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Icon from @techsio/ui-kit/atoms/icon. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -356,10 +319,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/image-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Image from
-      @techsio/ui-kit/atoms/image. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations. Also covers framework adapter
-      boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use Image from @techsio/ui-kit/atoms/image. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -376,9 +336,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/input-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Input from
-      @techsio/ui-kit/atoms/input. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Input from @techsio/ui-kit/atoms/input. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -395,9 +353,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/label-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Label from
-      @techsio/ui-kit/atoms/label. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Label from @techsio/ui-kit/atoms/label. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -412,10 +368,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/link-button-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use LinkButton from
-      @techsio/ui-kit/atoms/link-button. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. Also covers
-      framework adapter boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use LinkButton from @techsio/ui-kit/atoms/link-button. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -431,10 +384,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/link-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Link from
-      @techsio/ui-kit/atoms/link. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations. Also covers framework adapter
-      boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use Link from @techsio/ui-kit/atoms/link. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -449,10 +399,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/numeric-input-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use NumericInput from
-      @techsio/ui-kit/atoms/numeric-input. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use NumericInput from @techsio/ui-kit/atoms/numeric-input. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -470,10 +417,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/rating-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Rating from
-      @techsio/ui-kit/atoms/rating. Covers valid props, variants, themes, sizes, states, token-first
-      styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior,
-      compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Rating from @techsio/ui-kit/atoms/rating. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -490,9 +434,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/skeleton-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Skeleton from
-      @techsio/ui-kit/atoms/skeleton. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Skeleton from @techsio/ui-kit/atoms/skeleton. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -508,9 +450,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/status-text-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use StatusText from
-      @techsio/ui-kit/atoms/status-text. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use StatusText from @techsio/ui-kit/atoms/status-text. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -526,9 +466,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/textarea-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Textarea from
-      @techsio/ui-kit/atoms/textarea. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Textarea from @techsio/ui-kit/atoms/textarea. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -545,10 +483,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/tooltip-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Tooltip from
-      @techsio/ui-kit/atoms/tooltip. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Tooltip from @techsio/ui-kit/atoms/tooltip. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -565,10 +500,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/accordion-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Accordion from
-      @techsio/ui-kit/molecules/accordion. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Accordion from @techsio/ui-kit/molecules/accordion. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -585,10 +517,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/breadcrumb-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Breadcrumb from
-      @techsio/ui-kit/molecules/breadcrumb. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. Also covers
-      framework adapter boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use Breadcrumb from @techsio/ui-kit/molecules/breadcrumb. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -605,10 +534,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/carousel-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Carousel from
-      @techsio/ui-kit/molecules/carousel. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Carousel from @techsio/ui-kit/molecules/carousel. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -625,9 +551,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/color-select-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use ColorSelect from
-      @techsio/ui-kit/molecules/color-select. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use ColorSelect from @techsio/ui-kit/molecules/color-select. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -642,10 +566,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/combobox-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Combobox from
-      @techsio/ui-kit/molecules/combobox. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Combobox from @techsio/ui-kit/molecules/combobox. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -662,10 +583,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/dialog-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Dialog from
-      @techsio/ui-kit/molecules/dialog. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Dialog from @techsio/ui-kit/molecules/dialog. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -682,10 +600,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/form-checkbox-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use FormCheckbox from
-      @techsio/ui-kit/molecules/form-checkbox. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use FormCheckbox from @techsio/ui-kit/molecules/form-checkbox. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -701,9 +616,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/form-input-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use FormInput from
-      @techsio/ui-kit/molecules/form-input. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use FormInput from @techsio/ui-kit/molecules/form-input. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -719,9 +632,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/form-numeric-input-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use FormNumericInput from
-      @techsio/ui-kit/molecules/form-numeric-input. Covers valid props, variants, themes, sizes,
-      states, token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use FormNumericInput from @techsio/ui-kit/molecules/form-numeric-input. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -737,9 +648,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/form-textarea-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use FormTextarea from
-      @techsio/ui-kit/molecules/form-textarea. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use FormTextarea from @techsio/ui-kit/molecules/form-textarea. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -755,10 +664,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/menu-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Menu from
-      @techsio/ui-kit/molecules/menu. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Menu from @techsio/ui-kit/molecules/menu. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -775,11 +681,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/pagination-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Pagination from
-      @techsio/ui-kit/molecules/pagination. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. Also covers
-      framework adapter boundaries such as NextLink or NextImage when relevant. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Pagination from @techsio/ui-kit/molecules/pagination. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -797,9 +699,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/phone-input-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use PhoneInput from
-      @techsio/ui-kit/molecules/phone-input. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use PhoneInput from @techsio/ui-kit/molecules/phone-input. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -814,10 +714,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/popover-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Popover from
-      @techsio/ui-kit/molecules/popover. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Popover from @techsio/ui-kit/molecules/popover. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -834,10 +731,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/product-card-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use ProductCard from
-      @techsio/ui-kit/molecules/product-card. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. Also covers
-      framework adapter boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use ProductCard from @techsio/ui-kit/molecules/product-card. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -854,10 +748,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/radio-card-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use RadioCard from
-      @techsio/ui-kit/molecules/radio-card. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use RadioCard from @techsio/ui-kit/molecules/radio-card. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -874,10 +765,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/radio-group-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use RadioGroup from
-      @techsio/ui-kit/molecules/radio-group. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use RadioGroup from @techsio/ui-kit/molecules/radio-group. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -894,9 +782,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/search-form-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use SearchForm from
-      @techsio/ui-kit/molecules/search-form. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use SearchForm from @techsio/ui-kit/molecules/search-form. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -912,10 +798,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/select-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Select from
-      @techsio/ui-kit/molecules/select. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Select from @techsio/ui-kit/molecules/select. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -932,10 +815,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/slider-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Slider from
-      @techsio/ui-kit/molecules/slider. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Slider from @techsio/ui-kit/molecules/slider. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -952,10 +832,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/steps-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Steps from
-      @techsio/ui-kit/molecules/steps. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Steps from @techsio/ui-kit/molecules/steps. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -972,10 +849,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/switch-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Switch from
-      @techsio/ui-kit/molecules/switch. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Switch from @techsio/ui-kit/molecules/switch. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -992,10 +866,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/tabs-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Tabs from
-      @techsio/ui-kit/molecules/tabs. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Tabs from @techsio/ui-kit/molecules/tabs. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -1012,10 +883,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/toast-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Toast from
-      @techsio/ui-kit/molecules/toast. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use Toast from @techsio/ui-kit/molecules/toast. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -1032,10 +900,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/tree-view-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use TreeView from
-      @techsio/ui-kit/molecules/tree-view. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed
-      behavior, compare the local wrapper with official Zag React docs.
+    description: Use after component-usage-ux when an app should use TreeView from @techsio/ui-kit/molecules/tree-view. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. For Zag-backed behavior, compare the local wrapper with official Zag React docs.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -1052,10 +917,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/footer-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Footer from
-      @techsio/ui-kit/organisms/footer. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. Also covers
-      framework adapter boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use Footer from @techsio/ui-kit/organisms/footer. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -1071,9 +933,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/gallery-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Gallery from
-      @techsio/ui-kit/organisms/gallery. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Gallery from @techsio/ui-kit/organisms/gallery. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides
@@ -1088,10 +948,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/header-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Header from
-      @techsio/ui-kit/organisms/header. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations. Also covers
-      framework adapter boundaries such as NextLink or NextImage when relevant.
+    description: Use after component-usage-ux when an app should use Header from @techsio/ui-kit/organisms/header. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations. Also covers framework adapter boundaries such as NextLink or NextImage when relevant.
     requires:
       - component-usage-ux
       - framework-consumer-integration
@@ -1107,9 +964,7 @@ skills:
     domain: consumer-app-adoption
     path: skills/table-usage/SKILL.md
     package: libs/ui
-    description: Use after component-usage-ux when an app should use Table from
-      @techsio/ui-kit/organisms/table. Covers valid props, variants, themes, sizes, states,
-      token-first styling, and avoiding native/custom duplicate implementations.
+    description: Use after component-usage-ux when an app should use Table from @techsio/ui-kit/organisms/table. Covers valid props, variants, themes, sizes, states, token-first styling, and avoiding native/custom duplicate implementations.
     requires:
       - component-usage-ux
       - app-token-overrides

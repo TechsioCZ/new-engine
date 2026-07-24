@@ -4,6 +4,7 @@ import type {
   RemoteQueryFunction,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { getActiveBrandIds } from "../brand/brand-activity"
 
 type PromotionContextSource = {

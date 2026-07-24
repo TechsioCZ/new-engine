@@ -1,9 +1,7 @@
 import type { ElementType, ReactNode } from "react"
+
 import type { IconType } from "../atoms/icon"
-import {
-  Carousel,
-  type CarouselRootProps,
-} from "../molecules/carousel"
+import { Carousel, type CarouselRootProps } from "../molecules/carousel"
 import {
   Gallery,
   type GalleryItem,
@@ -30,37 +28,41 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
   "children" | "items" | "carouselProps"
 > & {
   items: GalleryItem[]
-  carouselWidth?: CarouselRootProps<T>["width"]
-  carouselHeight?: CarouselRootProps<T>["height"]
-  fitParent?: boolean
-  carouselClassName?: string
-  slidesClassName?: string
-  mainClassName?: string
-  thumbnailsClassName?: string
-  thumbnailsScrollAreaClassName?: string
-  thumbnailsListClassName?: string
-  thumbnailClassName?: string
-  renderThumbnail?: (params: GalleryRenderThumbnailParams) => ReactNode
-  renderSlide?: (params: { item: GalleryItem; index: number }) => ReactNode
-  showControls?: boolean
-  showIndicators?: boolean
-  showAutoplay?: boolean
-  controlsClassName?: string
-  indicatorsClassName?: string
-  controlPosition?: "top" | "bottom" | "side" | "unset"
-  prevIcon?: IconType
-  nextIcon?: IconType
-  previousTriggerClassName?: string
-  nextTriggerClassName?: string
-  autoplayTriggerClassName?: string
-  aspectRatio?: CarouselRootProps<T>["aspectRatio"]
-  size?: CarouselRootProps<T>["size"]
-  objectFit?: CarouselRootProps<T>["objectFit"]
-  loop?: CarouselRootProps<T>["loop"]
-  autoplay?: CarouselRootProps<T>["autoplay"]
-  allowMouseDrag?: CarouselRootProps<T>["allowMouseDrag"]
-  imageAs?: CarouselRootProps<T>["imageAs"]
-  onPageChange?: CarouselRootProps<T>["onPageChange"]
+  carouselWidth?: CarouselRootProps<T>["width"] | undefined
+  carouselHeight?: CarouselRootProps<T>["height"] | undefined
+  fitParent?: boolean | undefined
+  carouselClassName?: string | undefined
+  slidesClassName?: string | undefined
+  mainClassName?: string | undefined
+  thumbnailsClassName?: string | undefined
+  thumbnailsScrollAreaClassName?: string | undefined
+  thumbnailsListClassName?: string | undefined
+  thumbnailClassName?: string | undefined
+  renderThumbnail?:
+    | ((params: GalleryRenderThumbnailParams) => ReactNode)
+    | undefined
+  renderSlide?:
+    | ((params: { item: GalleryItem; index: number }) => ReactNode)
+    | undefined
+  showControls?: boolean | undefined
+  showIndicators?: boolean | undefined
+  showAutoplay?: boolean | undefined
+  controlsClassName?: string | undefined
+  indicatorsClassName?: string | undefined
+  controlPosition?: "top" | "bottom" | "side" | "unset" | undefined
+  prevIcon?: IconType | undefined
+  nextIcon?: IconType | undefined
+  previousTriggerClassName?: string | undefined
+  nextTriggerClassName?: string | undefined
+  autoplayTriggerClassName?: string | undefined
+  aspectRatio?: CarouselRootProps<T>["aspectRatio"] | undefined
+  size?: CarouselRootProps<T>["size"] | undefined
+  objectFit?: CarouselRootProps<T>["objectFit"] | undefined
+  loop?: CarouselRootProps<T>["loop"] | undefined
+  autoplay?: CarouselRootProps<T>["autoplay"] | undefined
+  allowMouseDrag?: CarouselRootProps<T>["allowMouseDrag"] | undefined
+  imageAs?: CarouselRootProps<T>["imageAs"] | undefined
+  onPageChange?: CarouselRootProps<T>["onPageChange"] | undefined
 }
 
 export function GalleryTemplate<T extends ElementType = "img">({

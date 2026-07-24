@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
 
 const asFiniteNumber = (value: unknown): number | null => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -19,7 +20,7 @@ export const resolveCartItemsTaxAmount = (
   }
 
   const itemTaxTotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).item_tax_total
+    isRecord(cart) ? cart.item_tax_total : undefined
   )
   if (itemTaxTotal !== null) {
     return Math.max(itemTaxTotal, 0)
@@ -27,8 +28,8 @@ export const resolveCartItemsTaxAmount = (
 
   return (
     cart.items?.reduce((sum, item) => {
-      const itemRecord = item as unknown as Record<string, unknown>
-      return sum + (asFiniteNumber(itemRecord.tax_total) ?? 0)
+      const itemRecord = isRecord(item) ? item : null
+      return sum + (asFiniteNumber(itemRecord?.tax_total) ?? 0)
     }, 0) ?? 0
   )
 }
@@ -41,7 +42,7 @@ export const resolveCartShippingTaxAmount = (
   }
 
   const shippingTaxTotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).shipping_tax_total
+    isRecord(cart) ? cart.shipping_tax_total : undefined
   )
   if (shippingTaxTotal !== null) {
     return Math.max(shippingTaxTotal, 0)
@@ -49,8 +50,8 @@ export const resolveCartShippingTaxAmount = (
 
   return (
     cart.shipping_methods?.reduce((sum, shippingMethod) => {
-      const methodRecord = shippingMethod as unknown as Record<string, unknown>
-      return sum + (asFiniteNumber(methodRecord.tax_total) ?? 0)
+      const methodRecord = isRecord(shippingMethod) ? shippingMethod : null
+      return sum + (asFiniteNumber(methodRecord?.tax_total) ?? 0)
     }, 0) ?? 0
   )
 }

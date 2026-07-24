@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef } from "react"
+
 import type {
   AnalyticsAdapter,
   CoreAddToCartParams,

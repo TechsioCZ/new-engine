@@ -1,10 +1,12 @@
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
 import { vi } from "vitest"
+
 import {
   adminHeaders,
   createAdminUser,
   createStoreUser,
 } from "../../utils/admin"
+import { getHttpError } from "../../utils/http-error"
 import {
   cartSeeder,
   productSeeder,
@@ -137,7 +139,7 @@ medusaIntegrationTestRunner({
           response: { data },
         } = await api
           .get("/store/quotes/does-not-exist", storeHeaders)
-          .catch((e) => e)
+          .catch(getHttpError)
 
         expect(data).toEqual({
           type: "not_found",
@@ -248,7 +250,7 @@ medusaIntegrationTestRunner({
 
         const { response } = await api
           .post(`/store/quotes/${quote1.id}/accept`, {}, storeHeaders)
-          .catch((e) => e)
+          .catch(getHttpError)
 
         expect(response.data).toEqual({
           type: "invalid_data",

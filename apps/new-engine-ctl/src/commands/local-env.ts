@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import { localEnvRuntimeProviderOutputTargetsCommandInputSchema } from "../contracts/local-env.js"
 import { executeLocalEnvRuntimeProviderOutputTargets } from "../orchestration/local-env.js"
 import { defaultStackInputsPath } from "../paths.js"
@@ -18,7 +19,7 @@ export function createLocalEnvCommand(): Command {
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath
     )
     .action(async (options) => {
       const input =

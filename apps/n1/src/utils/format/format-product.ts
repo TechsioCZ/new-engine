@@ -1,4 +1,5 @@
 import type { StoreProduct } from "@medusajs/types"
+
 import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, TAX_RATE } from "@/lib/constants"
 
 export const formatPrice = ({

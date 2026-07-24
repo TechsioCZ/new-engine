@@ -80,7 +80,7 @@ function findFilesWithExtension(dir, extension, ignore = []) {
           results.push(relativePath)
         }
       }
-    } catch (_err) {
+    } catch {
       // Skip directories we can't read
     }
   }
@@ -564,6 +564,19 @@ function mapClassToPossibleTokens(className) {
   for (const namespace of namespaces) {
     if (namespace === "font-weight") {
       possibleTokens.push(`--font-weight-${value}`)
+    } else if (namespace === "container") {
+      possibleTokens.push(`--container-${value}`)
+      if (["w", "min-w", "max-w"].includes(prefix)) {
+        possibleTokens.push(`--width-${value}`)
+      }
+      if (["h", "min-h", "max-h"].includes(prefix)) {
+        possibleTokens.push(`--height-${value}`)
+      }
+    } else if (namespace === "spacing") {
+      possibleTokens.push(`--spacing-${value}`)
+      if (["top", "right", "bottom", "left"].includes(prefix)) {
+        possibleTokens.push(`--inset-${value}`)
+      }
     } else {
       possibleTokens.push(`--${namespace}-${value}`)
     }
@@ -630,7 +643,7 @@ function findCssFiles(dir) {
         results.push(fullPath)
       }
     }
-  } catch (_err) {
+  } catch {
     // Skip directories we can't read
   }
   return results
@@ -717,7 +730,7 @@ function extractTokensFromArbitraryUtility(className) {
   return Array.from(tokens)
 }
 
-// Valid N1 spacing values (50-950 in steps of 50)
+// Valid N1 spacing values (50-1000 in steps of 50)
 const VALID_N1_SPACING = new Set([
   "50",
   "100",
@@ -738,6 +751,7 @@ const VALID_N1_SPACING = new Set([
   "850",
   "900",
   "950",
+  "1000",
 ])
 
 // Special spacing values that are always OK
@@ -882,9 +896,8 @@ function checkInvalidSpacing(className) {
         return null
       }
 
-      // Check if it's a number
       if (NUMBER_REGEX.test(value) && !VALID_N1_SPACING.has(value)) {
-        return "Invalid spacing: use N1 scale (50-950), not Tailwind default"
+        return "Invalid spacing: use N1 scale (50-1000), not Tailwind default"
       }
 
       break

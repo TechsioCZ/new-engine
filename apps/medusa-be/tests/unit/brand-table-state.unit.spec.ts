@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import {
   buildProductSelectionDelta,
   fromRowSelection,
@@ -12,7 +13,7 @@ import type { Brand, BrandProductOption } from "../../src/admin/lib/brands"
 const brand = (id: string, deletedAt?: string): Brand => ({
   active_product_count: 0,
   attributes: [],
-  deleted_at: deletedAt,
+  ...(deletedAt === undefined ? {} : { deleted_at: deletedAt }),
   handle: id,
   id,
   title: id,
@@ -22,7 +23,7 @@ const option = (
   productId: string,
   assignedBrand?: Brand
 ): BrandProductOption => ({
-  assigned_brand: assignedBrand,
+  ...(assignedBrand === undefined ? {} : { assigned_brand: assignedBrand }),
   product: {
     id: productId,
   },

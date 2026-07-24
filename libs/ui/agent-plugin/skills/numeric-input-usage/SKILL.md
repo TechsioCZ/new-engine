@@ -1,10 +1,7 @@
 ---
 name: numeric-input-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit NumericInput
-  for accessible number entry with Zag.js spinbutton behavior, compound parts,
-  numeric public values, locale formatting, min/max/step, and token-first
-  styling.
+  Use after component-usage-ux when an app needs @techsio/ui-kit NumericInput for accessible number entry with Zag.js spinbutton behavior, compound parts, numeric public values, locale formatting, min/max/step, and token-first styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -22,16 +19,14 @@ sources:
 
 # @techsio/ui-kit NumericInput Usage
 
-Use NumericInput for quantities, percentages, currency-like values, or bounded
-numbers where keyboard, wheel, increment/decrement, and validation behavior
-matter.
+Use NumericInput for quantities, percentages, currency-like values, or bounded numbers where keyboard, wheel, increment/decrement, and validation behavior matter.
 
 ## Setup
 
 ```tsx
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 
-<NumericInput id="quantity" name="quantity" defaultValue={1} min={1} step={1}>
+;<NumericInput id="quantity" name="quantity" defaultValue={1} min={1} step={1}>
   <NumericInput.Control>
     <NumericInput.Input />
     <NumericInput.TriggerContainer>
@@ -69,14 +64,11 @@ allowMouseWheel, allowOverflow, clampValueOnBlur, spinOnPress, formatOptions
 </NumericInput>
 ```
 
-Do not replace trigger parts with native buttons. The subcomponents spread Zag
-part props and use Button/Input tokens.
+Do not replace trigger parts with native buttons. The subcomponents spread Zag part props and use Button/Input tokens.
 
 ### Respect wrapper value types
 
-Zag number-input documents string values internally, but this UI-kit wrapper
-converts public `number` values to the Zag string format and calls `onChange`
-with `valueAsNumber`.
+Zag number-input documents string values internally, but this UI-kit wrapper converts public `number` values to the Zag string format and calls `onChange` with `valueAsNumber`.
 
 ```tsx
 const [quantity, setQuantity] = useState(1)
@@ -87,16 +79,10 @@ const [quantity, setQuantity] = useState(1)
 ### Use locale and precision deliberately
 
 ```tsx
-<NumericInput
-  defaultValue={12.5}
-  locale="cs-CZ"
-  precision={1}
-  step={0.1}
-/>
+<NumericInput defaultValue={12.5} locale="cs-CZ" precision={1} step={0.1} />
 ```
 
-Use `formatOptions` for currency/percent formatting only after checking that
-the output is still a usable input value.
+Use `formatOptions` for currency/percent formatting only after checking that the output is still a usable input value.
 
 ### Use describedBy for external help/error text
 

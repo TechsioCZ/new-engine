@@ -1,5 +1,7 @@
-import NextLink from "next/link"
 import { Fragment } from "react"
+
+import NextLink from "@/components/app-link"
+
 import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
@@ -27,7 +29,7 @@ function getAboutParagraphKey(paragraph: AboutParagraph) {
 function AboutLogoMeaning() {
   return (
     <section className="border-border-secondary border-t pt-650">
-      <div className="max-w-5xl border-primary border-l-4 pl-400">
+      <div className="max-w-about-copy border-primary border-l-4 pl-400">
         {ABOUT_PAGE.logoMeaning.paragraphs.map((paragraph) => (
           <AboutParagraphText
             key={`logo-meaning-${getAboutParagraphKey(paragraph)}`}
@@ -53,8 +55,8 @@ export function AboutArticleSections({
     <div className="space-y-650">
       {sections.map((section, index) => (
         <Fragment key={section.title}>
-          <section className="grid gap-500 border-border-secondary border-t pt-650 first:border-t-0 first:pt-0 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,34rem)] lg:items-start">
-            <div className="max-w-5xl space-y-300">
+          <section className="grid gap-500 border-border-secondary border-t pt-650 first:border-t-0 first:pt-0 lg:about-article-layout lg:items-start">
+            <div className="max-w-about-copy space-y-300">
               <SectionHeader title={section.title} />
               <div className="space-y-300">
                 {section.paragraphs.map((paragraph) => (
@@ -85,7 +87,7 @@ export function AboutMilestones() {
       <ol className="space-y-250">
         {ABOUT_PAGE.milestones.map((milestone) => (
           <li
-            className="grid gap-150 border-border-secondary border-t py-250 first:border-t-0 sm:grid-cols-[5rem_minmax(0,1fr)]"
+            className="grid gap-150 border-border-secondary border-t py-250 first:border-t-0 sm:about-milestone-layout"
             key={`${milestone.year}-${getAboutParagraphKey(milestone.description)}`}
           >
             <p className="font-bold text-primary text-xl leading-tight">
@@ -101,7 +103,7 @@ export function AboutMilestones() {
 
 export function AboutClosingStatement() {
   return (
-    <p className="mx-auto max-w-5xl text-center font-bold text-2xl text-primary leading-snug">
+    <p className="mx-auto max-w-about-copy text-center font-bold text-2xl text-primary leading-snug">
       {ABOUT_PAGE.closingStatement}
     </p>
   )
@@ -186,7 +188,7 @@ export function AboutCommunityAndReviews() {
 
 export function AboutContact() {
   return (
-    <section className="grid gap-500 border-border-secondary border-t pt-650 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)]">
+    <section className="grid gap-500 border-border-secondary border-t pt-650 lg:about-contact-layout">
       <div className="space-y-350">
         <SectionHeader title={ABOUT_PAGE.contact.title} />
         <div className="space-y-300">

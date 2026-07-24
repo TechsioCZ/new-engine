@@ -1,9 +1,9 @@
 import type { StoreOrder } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Image from "next/image"
 import Link from "next/link"
+
 import { formatPrice } from "@/lib/format-price"
 import {
   formatOrderDate,
@@ -111,15 +111,13 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
             )}
           </span>
         </div>
-        <LinkButton
-          as={Link}
-          href={`/account/orders/${order.id}`}
+        <Link
+          className="rounded-button-md bg-button-primary px-button-md-x py-button-md-y text-button-primary"
+          href={{ pathname: "/account/orders/[id]", query: { id: order.id } }}
           prefetch={true}
-          size="sm"
-          variant="primary"
         >
           Zobrazit detail
-        </LinkButton>
+        </Link>
       </div>
     </div>
   )

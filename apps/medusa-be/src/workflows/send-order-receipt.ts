@@ -2,7 +2,6 @@ import type {
   INotificationModuleService,
   Logger,
   Query,
-  RemoteQueryEntryPoints,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -15,6 +14,8 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { isRecord } from "@techsio/std/object"
+
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
@@ -43,12 +44,20 @@ type QueryOrder = OrderReceiptOrder &
     } | null
   }
 
-type GeneratedOrder = RemoteQueryEntryPoints["order"]
+function findQueryOrder(
+  candidates: readonly unknown[]
+): QueryOrder | undefined {
+  return candidates.find(isQueryOrder)
+}
 
-function isQueryOrder(
-  order: GeneratedOrder
-): order is GeneratedOrder & QueryOrder {
-  return typeof order.id === "string" && order.id.length > 0
+function isQueryOrder(value: unknown): value is QueryOrder {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const id = value["id"]
+
+  return typeof id === "string" && id.length > 0
 }
 
 const ORDER_RECEIPT_FIELDS = [
@@ -131,7 +140,7 @@ const sendOrderReceiptStep = createStep(
         id: input.order_id,
       },
     })
-    const order = data.find(isQueryOrder)
+    const order = findQueryOrder(data)
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")

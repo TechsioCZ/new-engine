@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+
 import type {
   ProductLocationAvailabilityResponse,
   ProductLocationAvailabilityService,
@@ -23,17 +24,14 @@ export function createMedusaProductLocationAvailabilityService(
   const productsPath = config?.productsPath ?? "/store/products"
 
   return {
-    getProductLocationAvailability: (
-      params,
-      signal?: AbortSignal
-    ) => {
+    getProductLocationAvailability: (params, signal?: AbortSignal) => {
       if (!params.productId) {
         throw new Error("Product id is required for location availability.")
       }
 
       return sdk.client.fetch<ProductLocationAvailabilityResponse>(
         `${productsPath}/${encodeURIComponent(params.productId)}/location-availability`,
-        { signal }
+        signal === undefined ? {} : { signal }
       )
     },
   }

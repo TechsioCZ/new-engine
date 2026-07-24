@@ -1,6 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { compactRecord } from "../shared/object-utils"
+import { compactRecord } from "@techsio/std/object"
+
 import type {
   AddFavoriteProductListItemInput,
   AddProductListItemInput,
@@ -90,12 +91,14 @@ export type MedusaProductListServiceConfig<
   basePath?: string
   defaultLimit?: number
   defaultOffset?: number
-  normalizeListQuery?: (input: TListInput) => PlainQuery
-  transformProductList?: (
-    list: ProductListBase<TProductListItem>
-  ) => TProductList
-  transformProductListItem?: (item: ProductListItemBase) => TProductListItem
-  transformCart?: (cart: HttpTypes.StoreCart) => TCart
+  normalizeListQuery?: ((input: TListInput) => PlainQuery) | undefined
+  transformProductList?:
+    | ((list: ProductListBase<TProductListItem>) => TProductList)
+    | undefined
+  transformProductListItem?:
+    | ((item: ProductListItemBase) => TProductListItem)
+    | undefined
+  transformCart?: ((cart: HttpTypes.StoreCart) => TCart) | undefined
 }
 
 export const normalizeProductListsResponse = <TProductList>(
@@ -167,7 +170,8 @@ export function createMedusaProductListService<
     ((item: ProductListItemBase) => item as TProductListItem)
   const transformCart =
     config?.transformCart ??
-    ((cart: HttpTypes.StoreCart) => cart as unknown as TCart)
+    ((cart: HttpTypes.StoreCart) =>
+      ({ ...cart }) as HttpTypes.StoreCart & TCart)
 
   const mapList = (list: ProductListBase<TProductListItem>) =>
     transformProductList(list)
@@ -205,12 +209,12 @@ export function createMedusaProductListService<
         ProductListListResponse<ProductListBase<TProductListItem>>
       >(basePath, {
         query,
-        signal,
+        signal: signal ?? null,
       })
       const normalized = normalizeProductListsResponse(
         response,
-        Number(query.limit ?? defaultLimit),
-        Number(query.offset ?? defaultOffset)
+        Number(query["limit"] ?? defaultLimit),
+        Number(query["offset"] ?? defaultOffset)
       )
 
       return {
@@ -229,7 +233,7 @@ export function createMedusaProductListService<
 
       const response = await sdk.client.fetch<
         ProductListResponse<ProductListBase<TProductListItem>>
-      >(`${basePath}/${params.id}`, { signal })
+      >(`${basePath}/${params.id}`, { signal: signal ?? null })
 
       const productList = resolveProductListFromResponse(response)
       return productList ? mapList(productList) : null
@@ -286,7 +290,9 @@ export function createMedusaProductListService<
     deleteProductList(input: DeleteProductListInput) {
       return sdk.client.fetch<ProductListDeleteResponse>(
         `${basePath}/${input.listId}`,
-        { method: "DELETE" }
+        {
+          method: "DELETE",
+        }
       )
     },
 

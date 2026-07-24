@@ -1,21 +1,22 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import type { StaticImageData } from "next/image"
+
 import pavelImg from "../../assets/team/pavel.jpg"
 import petrImg from "../../assets/team/petr.jpg"
 
-export interface TeamMember {
+interface TeamMember {
   name: string
   role: string
   image: string | StaticImageData
 }
 
-export interface CompanyValue {
+interface CompanyValue {
   title: string
   description: string
   icon: IconType // SVG path data
 }
 
-export interface CompanyStat {
+interface CompanyStat {
   value: string
   label: string
 }

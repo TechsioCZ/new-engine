@@ -2,6 +2,7 @@
 
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import type { ChangeEvent, InputHTMLAttributes } from "react"
+
 import type { AnyFieldApiCompat } from "@/types/form"
 
 type TextFieldProps = {
@@ -10,12 +11,12 @@ type TextFieldProps = {
   type?: InputHTMLAttributes<HTMLInputElement>["type"]
   placeholder?: string
   required?: boolean
-  disabled?: boolean
+  disabled?: boolean | undefined
   transform?: (value: string) => string
   className?: string
   autoComplete?: string
   maxLength?: number
-  externalError?: string
+  externalError?: string | undefined
   onExternalErrorClear?: () => void
 }
 

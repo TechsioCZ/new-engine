@@ -1,10 +1,10 @@
 import "server-only"
-
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import {
   MEDUSA_BACKEND_URL,
   MEDUSA_PUBLISHABLE_KEY,
 } from "@/lib/storefront/ssr/constants"
+
 import { normalizeString } from "./search-autocomplete-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
 import {
@@ -101,10 +101,10 @@ const fetchCatalogCandidates = async ({
   try {
     const response = await fetch(
       createCatalogAutocompleteUrl({
-        countryCode,
+        ...(countryCode === undefined ? {} : { countryCode }),
         currencyCode,
         query,
-        regionId,
+        ...(regionId === undefined ? {} : { regionId }),
       }),
       {
         cache: "no-store",
@@ -144,10 +144,10 @@ export const fetchSearchAutocomplete = async ({
 
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const catalogResponse = await fetchCatalogCandidates({
-    countryCode,
+    ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode: safeCurrencyCode,
     query: normalizedQuery,
-    regionId,
+    ...(regionId === undefined ? {} : { regionId }),
   })
   const productHits = catalogResponse.products ?? []
 

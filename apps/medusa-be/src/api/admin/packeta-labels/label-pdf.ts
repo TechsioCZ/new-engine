@@ -1,4 +1,5 @@
 import { PDFDocument } from "pdf-lib"
+
 import type { PacketaLabelFormat } from "../../../modules/packeta-client/types"
 
 const A4_WIDTH = 595.28

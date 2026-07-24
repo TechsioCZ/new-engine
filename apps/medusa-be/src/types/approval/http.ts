@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import type { QueryCompany } from "../company"
-import type { ApprovalStatusType, ApprovalType } from "./module"
+import type { ApprovalStatusType } from "./module"
 import type {
   QueryApproval,
   QueryApprovalSettings,
@@ -35,25 +36,4 @@ export type AdminCartWithApprovals = HttpTypes.StoreCart & {
 
 export type AdminUpdateApproval = {
   status: ApprovalStatusType
-}
-
-export type AdminApprovalStatus = QueryApprovalStatus
-/* Store */
-export type StoreApprovalSettings = QueryApprovalSettings
-
-export type StoreUpdateApprovalSettings = {
-  requires_admin_approval: boolean
-}
-
-export type StoreApproval = QueryApproval
-
-export type StoreCreateApproval = {
-  cart_id: string
-  type: ApprovalType
-  created_by: string
-}
-
-export type StoreUpdateApproval = {
-  status: ApprovalStatusType
-  handled_by: string
 }

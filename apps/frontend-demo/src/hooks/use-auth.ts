@@ -6,6 +6,7 @@ import { useStore } from "@tanstack/react-store"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+
 import { AUTH_MESSAGES } from "@/lib/auth/constants"
 import { queryKeys } from "@/lib/query-keys"
 import { authHelpers, authStore } from "@/stores/auth-store"
@@ -49,9 +50,11 @@ export function useAuth() {
       firstName?: string
       lastName?: string
     }) => authHelpers.login(email, password, firstName, lastName),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
+      })
 
       // Only redirect if not on test page
       if (!window.location.pathname.includes("/test-auth")) {
@@ -85,9 +88,11 @@ export function useAuth() {
       firstName?: string
       lastName?: string
     }) => authHelpers.register(email, password, firstName, lastName),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth queries to refetch user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
+      })
 
       // Only redirect if not on test page
       if (!window.location.pathname.includes("/test-auth")) {
@@ -111,9 +116,9 @@ export function useAuth() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: authHelpers.logout,
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate all queries since user context changed
-      queryClient.invalidateQueries()
+      await queryClient.invalidateQueries()
       router.push("/")
 
       toast.create({
@@ -127,9 +132,11 @@ export function useAuth() {
   const updateProfileMutation = useMutation({
     mutationFn: (data: Partial<HttpTypes.StoreCustomer>) =>
       authHelpers.updateProfile(data),
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate auth queries to refetch updated user
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.customer() })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.auth.customer(),
+      })
 
       toast.create({
         ...AUTH_MESSAGES.UPDATE_SUCCESS,
@@ -166,13 +173,25 @@ export function useAuth() {
       password: string,
       firstName?: string,
       lastName?: string
-    ) => loginMutation.mutate({ email, password, firstName, lastName }),
+    ) =>
+      loginMutation.mutate({
+        email,
+        password,
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+      }),
     register: (
       email: string,
       password: string,
       firstName?: string,
       lastName?: string
-    ) => registerMutation.mutate({ email, password, firstName, lastName }),
+    ) =>
+      registerMutation.mutate({
+        email,
+        password,
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+      }),
     logout: () => logoutMutation.mutate(),
     updateProfile: (data: Partial<HttpTypes.StoreCustomer>) =>
       updateProfileMutation.mutate(data),

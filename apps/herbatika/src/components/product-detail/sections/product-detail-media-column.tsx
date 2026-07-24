@@ -6,7 +6,8 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import NextImage from "next/image"
-import NextLink from "next/link"
+
+import NextLink from "@/components/app-link"
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types"
 import { ProductDetailGalleryLightbox } from "@/components/product-detail/sections/product-detail-gallery-lightbox"
 import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
@@ -51,7 +52,7 @@ export function ProductDetailMediaColumn({
             }
           },
         }}
-        className="min-w-0 md:grid-cols-[auto_minmax(0,1fr)]"
+        className="min-w-0 md:product-detail-media-layout"
         hideThumbnailsWhenSingle={false}
         items={galleryItemsWithFallback}
         onValueChange={({ value }) => setSelectedImageIndex(value)}
@@ -74,7 +75,7 @@ export function ProductDetailMediaColumn({
           ) : null}
 
           <Gallery.Carousel className="min-w-0 px-gallery-carousel">
-            <Gallery.Slides className="mx-auto h-full max-h-[408px] w-full max-w-full md:max-w-[408px]" />
+            <Gallery.Slides className="mx-auto h-full max-h-product-gallery w-full max-w-full md:max-w-product-gallery" />
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (

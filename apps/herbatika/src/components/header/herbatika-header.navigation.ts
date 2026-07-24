@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image"
+
 import flameIcon from "@/assets/icons/flame-icon.avif"
 import giftIcon from "@/assets/icons/gift-icon.avif"
 

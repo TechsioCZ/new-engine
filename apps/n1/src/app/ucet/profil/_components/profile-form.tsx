@@ -1,9 +1,10 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { Button } from "@ui/atoms/button"
-import { FormInput } from "@ui/molecules/form-input"
+
 import { TextField } from "@/components/forms/fields/text-field"
 import { useAuth } from "@/hooks/use-auth"
 import { useUpdateCustomer } from "@/hooks/use-customer"
@@ -59,9 +60,9 @@ export function ProfileForm() {
   return (
     <form
       className="space-y-200"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        form.handleSubmit()
+        await form.handleSubmit()
       }}
     >
       <div className="grid gap-200 md:grid-cols-2">

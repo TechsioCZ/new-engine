@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { isMeilisearchEnabled } from "../modules/meilisearch/env"
 import { syncMeilisearchBrandsWorkflow } from "../workflows/meilisearch/workflows/sync-brands"
 

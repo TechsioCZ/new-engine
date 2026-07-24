@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { Pagination } from "./pagination"
 
 figma.connect(
@@ -17,7 +18,7 @@ figma.connect(
       <Pagination
         count={100}
         defaultPage={1}
-        getPageUrl={(page) => `?page=${page}`}
+        getPageUrl={({ page }) => `?page=${page}`}
         pageSize={10}
         size={size}
       />

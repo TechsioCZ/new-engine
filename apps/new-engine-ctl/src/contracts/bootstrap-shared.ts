@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const bootstrapInspectEnvVarSchema = z.looseObject({
+const bootstrapInspectEnvVarSchema = z.looseObject({
   key: z.string().min(1),
   value: z.string(),
 })
@@ -14,7 +14,7 @@ export const bootstrapInspectUrlSchema = z.looseObject({
   associated_port: z.number().int().nullable().optional(),
 })
 
-export const bootstrapInspectVolumeSchema = z.looseObject({
+const bootstrapInspectVolumeSchema = z.looseObject({
   id: z.string().min(1).optional(),
   name: z.string().min(1),
   container_path: z.string().min(1),

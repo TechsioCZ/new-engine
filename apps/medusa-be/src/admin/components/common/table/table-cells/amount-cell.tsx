@@ -1,4 +1,5 @@
 import { clx } from "@medusajs/ui"
+
 import { formatAmount } from "../../../../utils"
 import { PlaceholderCell } from "./placeholder-cell"
 

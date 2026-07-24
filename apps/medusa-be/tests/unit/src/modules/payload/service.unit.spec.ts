@@ -1,21 +1,28 @@
 import { createHash } from "node:crypto"
+
+import { logger } from "@medusajs/framework"
+import type { ICachingModuleService } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-import type { Mock } from "vitest"
+import type { Mocked } from "vitest"
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest"
+
 import PayloadModuleService from "../../../../../src/modules/payload/service"
 import type { PayloadModuleOptions } from "../../../../../src/modules/payload/types"
 
-const mockLogger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  debug: vi.fn(),
-}
+type PayloadDependencies = ConstructorParameters<typeof PayloadModuleService>[0]
+type PayloadCacheService = Pick<ICachingModuleService, "clear" | "get" | "set">
 
-const createCacheService = () => ({
+const createCacheService = (): Mocked<PayloadCacheService> => ({
   get: vi.fn(),
   set: vi.fn(),
   clear: vi.fn(),
+})
+
+const createDependencies = (
+  cacheService?: PayloadCacheService
+): PayloadDependencies => ({
+  logger,
+  ...(cacheService ? { [Modules.CACHING]: cacheService } : {}),
 })
 
 type FetchResponseOverrides = { ok?: boolean; status?: number }
@@ -23,11 +30,11 @@ type FetchResponseOverrides = { ok?: boolean; status?: number }
 const createFetchResponse = (
   payload: unknown,
   overrides: FetchResponseOverrides = {}
-) => ({
-  ok: overrides.ok ?? true,
-  status: overrides.status ?? 200,
-  json: vi.fn().mockResolvedValue(payload),
-})
+) =>
+  new Response(JSON.stringify(payload), {
+    headers: { "Content-Type": "application/json" },
+    status: overrides.status ?? (overrides.ok === false ? 500 : 200),
+  })
 
 /**
  * Create a valid Payload bulk response with all required pagination fields.
@@ -55,31 +62,45 @@ const defaultOptions: PayloadModuleOptions = {
 
 const createServiceWithCache = (options?: Partial<PayloadModuleOptions>) => {
   const cacheService = createCacheService()
-  const service = new PayloadModuleService(
-    {
-      logger: mockLogger,
-      [Modules.CACHING]: cacheService,
-    } as any,
-    { ...defaultOptions, ...options }
-  )
+  const service = new PayloadModuleService(createDependencies(cacheService), {
+    ...defaultOptions,
+    ...options,
+  })
 
   return { service, cacheService }
 }
 
 const createServiceWithoutCache = (options?: Partial<PayloadModuleOptions>) =>
-  new PayloadModuleService({ logger: mockLogger } as any, {
+  new PayloadModuleService(createDependencies(), {
     ...defaultOptions,
     ...options,
   })
 
+const callPrivateStringHelper = (
+  service: PayloadModuleService,
+  methodName: "buildParamsQuery" | "buildQuery"
+): string => {
+  const helper = Reflect.get(service, methodName)
+  if (typeof helper !== "function") {
+    throw new TypeError(`${methodName} is not callable`)
+  }
+
+  const result = Reflect.apply(helper, service, [undefined])
+  if (typeof result !== "string") {
+    throw new TypeError(`${methodName} did not return a string`)
+  }
+
+  return result
+}
+
 describe("PayloadModuleService", () => {
   const originalFetch = globalThis.fetch
-  let fetchMock: Mock
+  let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>
 
   beforeEach(() => {
     vi.clearAllMocks()
-    fetchMock = vi.fn()
-    globalThis.fetch = fetchMock as unknown as typeof fetch
+    fetchMock = vi.fn<typeof fetch>()
+    globalThis.fetch = fetchMock
   })
 
   afterAll(() => {
@@ -90,7 +111,7 @@ describe("PayloadModuleService", () => {
     it("throws when serverUrl is missing", () => {
       expect(
         () =>
-          new PayloadModuleService({ logger: mockLogger } as any, {
+          new PayloadModuleService(createDependencies(), {
             serverUrl: "",
             apiKey: "test",
           })
@@ -100,7 +121,7 @@ describe("PayloadModuleService", () => {
     it("throws when apiKey is missing", () => {
       expect(
         () =>
-          new PayloadModuleService({ logger: mockLogger } as any, {
+          new PayloadModuleService(createDependencies(), {
             serverUrl: "https://payload.example.com",
             apiKey: "",
           })
@@ -108,14 +129,14 @@ describe("PayloadModuleService", () => {
     })
 
     it("handles cache resolution errors gracefully", () => {
-      const container: Record<string, unknown> = { logger: mockLogger }
+      const container = createDependencies()
       Object.defineProperty(container, Modules.CACHING, {
         get() {
           throw new Error("boom")
         },
       })
 
-      const service = new PayloadModuleService(container as any, {
+      const service = new PayloadModuleService(container, {
         serverUrl: "https://payload.example.com",
         apiKey: "test-api-key",
       })
@@ -538,18 +559,14 @@ describe("PayloadModuleService", () => {
   describe("private helpers", () => {
     it("returns empty string when buildQuery receives undefined", () => {
       const service = createServiceWithoutCache()
-      const query = (
-        service as unknown as { buildQuery: (o?: unknown) => string }
-      ).buildQuery(undefined)
-      expect(query).toBe("")
+
+      expect(callPrivateStringHelper(service, "buildQuery")).toBe("")
     })
 
     it("returns empty string when buildParamsQuery receives undefined", () => {
       const service = createServiceWithoutCache()
-      const query = (
-        service as unknown as { buildParamsQuery: (o?: unknown) => string }
-      ).buildParamsQuery(undefined)
-      expect(query).toBe("")
+
+      expect(callPrivateStringHelper(service, "buildParamsQuery")).toBe("")
     })
   })
 

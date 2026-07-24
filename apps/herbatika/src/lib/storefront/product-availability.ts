@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { resolveDefaultStockInventoryQuantity } from "./default-stock-availability"
 import {
   asStorefrontBoolean,
@@ -6,7 +7,7 @@ import {
   asStorefrontRecord,
 } from "./product-pricing"
 
-export const DEFAULT_MAX_PURCHASE_QUANTITY = 50
+const DEFAULT_MAX_PURCHASE_QUANTITY = 50
 
 export type VariantInventoryState = {
   allowBackorder: boolean
@@ -39,12 +40,12 @@ export const resolveVariantInventoryState = (
   const hasPrice =
     asStorefrontNumber(variant?.calculated_price?.calculated_amount) !== null
   const allowBackorder =
-    asStorefrontBoolean(variantRecord?.allow_backorder) === true
+    asStorefrontBoolean(variantRecord?.["allow_backorder"]) === true
   const manageInventory =
-    asStorefrontBoolean(variantRecord?.manage_inventory) !== false
+    asStorefrontBoolean(variantRecord?.["manage_inventory"]) !== false
   const inventoryQuantity =
     resolveDefaultStockInventoryQuantity(variantRecord) ??
-    asStorefrontNumber(variantRecord?.inventory_quantity)
+    asStorefrontNumber(variantRecord?.["inventory_quantity"])
   const hasInventoryQuantity = inventoryQuantity !== null
 
   if (!(hasVariant && hasPrice)) {

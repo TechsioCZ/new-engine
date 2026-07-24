@@ -1,0 +1,47 @@
+{
+  "extends": [
+    "../../../../../tsconfig.strict.json",
+    "../../../../../apps/payload/tsconfig.json"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "moduleSuffixes": [".strict", ""],
+    "noEmit": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "alwaysStrict": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "strictBindCallApply": true,
+    "strictBuiltinIteratorReturn": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true
+  },
+  "include": [
+    "../../../../../apps/payload/**/*.ts",
+    "../../../../../apps/payload/**/*.tsx",
+    "../../../../../apps/payload/**/*.mts"
+  ],
+  "exclude": [
+    "../../../../../apps/payload/.next",
+    "../../../../../apps/payload/node_modules",
+    "../../../../../apps/payload/next-env.d.ts",
+    "../../../../../apps/payload/src/app/(payload)/admin/importMap/**/*.ts",
+    "../../../../../apps/payload/src/migrations/**/*.ts",
+    "../../../../../apps/payload/src/payload-types.ts"
+  ]
+}

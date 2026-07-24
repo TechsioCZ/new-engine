@@ -1,9 +1,7 @@
 ---
 name: form-numeric-input-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit
-  FormNumericInput for labeled numeric fields using NumericInput compound
-  children, validation status, help text, and number-specific constraints.
+  Use after component-usage-ux when an app needs @techsio/ui-kit FormNumericInput for labeled numeric fields using NumericInput compound children, validation status, help text, and number-specific constraints.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +19,7 @@ sources:
 
 # @techsio/ui-kit FormNumericInput Usage
 
-Use FormNumericInput for labeled quantities, limits, prices, or measurements.
-It requires NumericInput compound children.
+Use FormNumericInput for labeled quantities, limits, prices, or measurements. It requires NumericInput compound children.
 
 ## Setup
 
@@ -53,8 +50,7 @@ NumericInputProps excluding children
 
 ### Keep NumericInput anatomy inside
 
-Do not pass plain `<input>` or native buttons as children. Use NumericInput
-parts.
+Do not pass plain `<input>` or native buttons as children. Use NumericInput parts.
 
 ### Express domain constraints with props
 
@@ -77,7 +73,11 @@ Wrong:
 Correct:
 
 ```tsx
-<FormNumericInput id="qty" label="Quantity"><NumericInput.Control><NumericInput.Input /></NumericInput.Control></FormNumericInput>
+<FormNumericInput id="qty" label="Quantity">
+  <NumericInput.Control>
+    <NumericInput.Input />
+  </NumericInput.Control>
+</FormNumericInput>
 ```
 
 Source: libs/ui/src/molecules/form-numeric-input.tsx

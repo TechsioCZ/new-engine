@@ -117,16 +117,36 @@
   --color-button-bg-danger-light-hover: var(--color-bg-light-danger-hover);
   --color-button-bg-disabled: var(--color-bg-disabled);
   --color-button-bg-outlined: var(--color-bg-transparent);
-  --color-button-bg-outlined-danger-active: var(--color-bg-outlined-danger-active);
-  --color-button-bg-outlined-danger-hover: var(--color-bg-outlined-danger-hover);
-  --color-button-bg-outlined-primary-active: var(--color-bg-outlined-primary-active);
-  --color-button-bg-outlined-primary-hover: var(--color-bg-outlined-primary-hover);
-  --color-button-bg-outlined-secondary-active: var(--color-bg-outlined-secondary-active);
-  --color-button-bg-outlined-secondary-hover: var(--color-bg-outlined-secondary-hover);
-  --color-button-bg-outlined-tertiary-active: var(--color-bg-outlined-tertiary-active);
-  --color-button-bg-outlined-tertiary-hover: var(--color-bg-outlined-tertiary-hover);
-  --color-button-bg-outlined-warning-active: var(--color-bg-outlined-warning-active);
-  --color-button-bg-outlined-warning-hover: var(--color-bg-outlined-warning-hover);
+  --color-button-bg-outlined-danger-active: var(
+    --color-bg-outlined-danger-active
+  );
+  --color-button-bg-outlined-danger-hover: var(
+    --color-bg-outlined-danger-hover
+  );
+  --color-button-bg-outlined-primary-active: var(
+    --color-bg-outlined-primary-active
+  );
+  --color-button-bg-outlined-primary-hover: var(
+    --color-bg-outlined-primary-hover
+  );
+  --color-button-bg-outlined-secondary-active: var(
+    --color-bg-outlined-secondary-active
+  );
+  --color-button-bg-outlined-secondary-hover: var(
+    --color-bg-outlined-secondary-hover
+  );
+  --color-button-bg-outlined-tertiary-active: var(
+    --color-bg-outlined-tertiary-active
+  );
+  --color-button-bg-outlined-tertiary-hover: var(
+    --color-bg-outlined-tertiary-hover
+  );
+  --color-button-bg-outlined-warning-active: var(
+    --color-bg-outlined-warning-active
+  );
+  --color-button-bg-outlined-warning-hover: var(
+    --color-bg-outlined-warning-hover
+  );
   --color-button-bg-primary-active: var(--color-bg-primary-active);
   --color-button-bg-primary-base: var(--color-bg-primary-base);
   --color-button-bg-primary-hover: var(--color-bg-primary-hover);
@@ -136,13 +156,19 @@
   --color-button-bg-secondary-active: var(--color-bg-secondary-active);
   --color-button-bg-secondary-base: var(--color-bg-secondary-base);
   --color-button-bg-secondary-hover: var(--color-bg-secondary-hover);
-  --color-button-bg-secondary-light-active: var(--color-bg-light-secondary-active);
+  --color-button-bg-secondary-light-active: var(
+    --color-bg-light-secondary-active
+  );
   --color-button-bg-secondary-light-base: var(--color-bg-light-secondary-base);
-  --color-button-bg-secondary-light-hover: var(--color-bg-light-secondary-hover);
+  --color-button-bg-secondary-light-hover: var(
+    --color-bg-light-secondary-hover
+  );
   --color-button-bg-tertiary-active: var(--color-bg-tertiary-active);
   --color-button-bg-tertiary-base: var(--color-bg-tertiary-base);
   --color-button-bg-tertiary-hover: var(--color-bg-tertiary-hover);
-  --color-button-bg-tertiary-light-active: var(--color-bg-light-tertiary-active);
+  --color-button-bg-tertiary-light-active: var(
+    --color-bg-light-tertiary-active
+  );
   --color-button-bg-tertiary-light-base: var(--color-bg-light-tertiary-base);
   --color-button-bg-tertiary-light-hover: var(--color-bg-light-tertiary-hover);
   --color-button-bg-warning-active: var(--color-bg-warning-active);
@@ -449,7 +475,9 @@
   --color-phone-input-bg-focus: var(--color-form-control-bg-focus);
   --color-phone-input-bg-hover: var(--color-form-control-bg-hover);
   --color-phone-input-border-danger: var(--color-bg-danger-base);
-  --color-phone-input-border-disabled: var(--color-form-control-border-disabled);
+  --color-phone-input-border-disabled: var(
+    --color-form-control-border-disabled
+  );
   --color-phone-input-border-focus: var(--color-form-control-border-focus);
   --color-phone-input-border-hover: var(--color-form-control-border-hover);
   --color-phone-input-border-success: var(--color-bg-success);
@@ -511,7 +539,9 @@
   --color-radio-card-addon-border: var(--color-border-primary);
   --color-radio-card-addon-border-disabled: var(--color-border-disabled);
   --color-radio-card-addon-border-solid-checked: var(--color-bg-primary-hover);
-  --color-radio-card-addon-border-subtle-checked: var(--color-bg-light-primary-hover);
+  --color-radio-card-addon-border-subtle-checked: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-card-addon-fg: var(--color-fg-secondary);
   --color-radio-card-addon-fg-disabled: var(--color-fg-disabled);
   --color-radio-card-addon-fg-solid-checked: var(--color-fg-light);
@@ -523,17 +553,27 @@
   --color-radio-card-item-bg-solid-checked: var(--color-bg-primary-base);
   --color-radio-card-item-bg-solid-checked-hover: var(--color-bg-primary-hover);
   --color-radio-card-item-bg-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-card-item-bg-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-card-item-bg-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-card-item-border: var(--color-border-primary);
   --color-radio-card-item-border-disabled: var(--color-border-disabled);
   --color-radio-card-item-border-error: var(--color-bg-danger-base);
   --color-radio-card-item-border-hover: var(--color-form-control-border-hover);
   --color-radio-card-item-border-outline-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-border-outline-checked-hover: var(--color-primary-hover);
+  --color-radio-card-item-border-outline-checked-hover: var(
+    --color-primary-hover
+  );
   --color-radio-card-item-border-solid-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-border-solid-checked-hover: var(--color-bg-primary-hover);
-  --color-radio-card-item-border-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-card-item-border-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-card-item-border-solid-checked-hover: var(
+    --color-bg-primary-hover
+  );
+  --color-radio-card-item-border-subtle-checked: var(
+    --color-bg-light-primary-base
+  );
+  --color-radio-card-item-border-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-card-item-description-fg: var(--color-fg-secondary);
   --color-radio-card-item-description-fg-disabled: var(--color-fg-disabled);
   --color-radio-card-item-description-fg-solid-checked: var(--color-fg-light);
@@ -546,15 +586,29 @@
   --color-radio-card-item-indicator-bg-disabled: var(--color-transparent);
   --color-radio-card-item-indicator-bg-solid-checked: var(--color-fg-light);
   --color-radio-card-item-indicator-border: var(--color-border-primary);
-  --color-radio-card-item-indicator-border-disabled: var(--color-border-disabled);
-  --color-radio-card-item-indicator-border-outline-checked: var(--color-bg-primary-base);
+  --color-radio-card-item-indicator-border-disabled: var(
+    --color-border-disabled
+  );
+  --color-radio-card-item-indicator-border-outline-checked: var(
+    --color-bg-primary-base
+  );
   --color-radio-card-item-indicator-border-solid-checked: var(--color-fg-light);
-  --color-radio-card-item-indicator-border-subtle-checked: var(--color-fg-light);
+  --color-radio-card-item-indicator-border-subtle-checked: var(
+    --color-fg-light
+  );
   --color-radio-card-item-indicator-content-fg: var(--color-fg-accent-primary);
-  --color-radio-card-item-indicator-content-fg-disabled: var(--color-fg-disabled);
-  --color-radio-card-item-indicator-content-fg-outline-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-indicator-content-fg-solid-checked: var(--color-bg-primary-base);
-  --color-radio-card-item-indicator-content-fg-subtle-checked: var(--color-fg-light);
+  --color-radio-card-item-indicator-content-fg-disabled: var(
+    --color-fg-disabled
+  );
+  --color-radio-card-item-indicator-content-fg-outline-checked: var(
+    --color-bg-primary-base
+  );
+  --color-radio-card-item-indicator-content-fg-solid-checked: var(
+    --color-bg-primary-base
+  );
+  --color-radio-card-item-indicator-content-fg-subtle-checked: var(
+    --color-fg-light
+  );
   --color-radio-card-ring: var(--color-ring-default);
   --color-radio-group-item-bg: var(--color-fill-base);
   --color-radio-group-item-bg-disabled: var(--color-bg-disabled);
@@ -562,20 +616,36 @@
   --color-radio-group-item-bg-outline-checked: var(--color-fill-base);
   --color-radio-group-item-bg-outline-checked-hover: var(--color-fill-hover);
   --color-radio-group-item-bg-solid-checked: var(--color-bg-primary-base);
-  --color-radio-group-item-bg-solid-checked-hover: var(--color-bg-primary-hover);
-  --color-radio-group-item-bg-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-group-item-bg-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-group-item-bg-solid-checked-hover: var(
+    --color-bg-primary-hover
+  );
+  --color-radio-group-item-bg-subtle-checked: var(
+    --color-bg-light-primary-base
+  );
+  --color-radio-group-item-bg-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-group-item-border-base: var(--color-border-primary);
   --color-radio-group-item-border-checked: var(--color-bg-primary-base);
   --color-radio-group-item-border-disabled: var(--color-border-disabled);
   --color-radio-group-item-border-error: var(--color-bg-danger-base);
   --color-radio-group-item-border-hover: var(--color-form-control-border-hover);
-  --color-radio-group-item-border-outline-checked: var(--color-fg-accent-primary);
-  --color-radio-group-item-border-outline-checked-hover: var(--color-primary-hover);
+  --color-radio-group-item-border-outline-checked: var(
+    --color-fg-accent-primary
+  );
+  --color-radio-group-item-border-outline-checked-hover: var(
+    --color-primary-hover
+  );
   --color-radio-group-item-border-solid-checked: var(--color-bg-primary-base);
-  --color-radio-group-item-border-solid-checked-hover: var(--color-bg-primary-hover);
-  --color-radio-group-item-border-subtle-checked: var(--color-bg-light-primary-base);
-  --color-radio-group-item-border-subtle-checked-hover: var(--color-bg-light-primary-hover);
+  --color-radio-group-item-border-solid-checked-hover: var(
+    --color-bg-primary-hover
+  );
+  --color-radio-group-item-border-subtle-checked: var(
+    --color-bg-light-primary-base
+  );
+  --color-radio-group-item-border-subtle-checked-hover: var(
+    --color-bg-light-primary-hover
+  );
   --color-radio-group-item-description: var(--color-fg-secondary);
   --color-radio-group-item-description-disabled: var(--color-fg-disabled);
   --color-radio-group-item-fg: var(--color-fg-primary);
@@ -795,9 +865,13 @@
   --color-textarea-border-focus: var(--color-form-control-border-focus);
   --color-textarea-border-hover: var(--color-form-control-border-hover);
   --color-textarea-border-success-base: var(--color-input-border-success-base);
-  --color-textarea-border-success-hover: var(--color-input-border-success-hover);
+  --color-textarea-border-success-hover: var(
+    --color-input-border-success-hover
+  );
   --color-textarea-border-warning-base: var(--color-input-border-warning-base);
-  --color-textarea-border-warning-hover: var(--color-input-border-warning-hover);
+  --color-textarea-border-warning-hover: var(
+    --color-input-border-warning-hover
+  );
   --color-textarea-fg: var(--color-input-fg);
   --color-textarea-fg-disabled: var(--color-fg-disabled);
   --color-textarea-fg-placeholder: var(--color-form-control-fg-placeholder);
@@ -1336,7 +1410,10 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
   --shadow-menu-content: var(--shadow-lg);
   --shadow-popover: var(--shadow-primary);
-  --shadow-primary: var(--offset-shadow-1) var(--color-shadow-1), var(--offset-shadow-2) var(--color-shadow-2), var(--offset-shadow-3) var(--color-shadow-3);
+  --shadow-primary:
+    var(--offset-shadow-1) var(--color-shadow-1),
+    var(--offset-shadow-2) var(--color-shadow-2),
+    var(--offset-shadow-3) var(--color-shadow-3);
   --shadow-radio-card-item: var(--shadow-sm);
   --shadow-select-content: var(--shadow-md);
   --shadow-slider-thumb: var(--shadow-sm);

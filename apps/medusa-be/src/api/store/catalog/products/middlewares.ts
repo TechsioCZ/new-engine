@@ -6,6 +6,7 @@ import {
 } from "@medusajs/framework/http"
 import { ProductStatus } from "@medusajs/framework/utils"
 import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
+
 import {
   STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,

@@ -4,6 +4,7 @@ import {
   Modules,
 } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
 import { COMPANY_MODULE } from "../../../../src/modules/company"
 
 const COMPANY_CUSTOMER_GROUP_ENTRY_POINT = "company_customer_group"
@@ -63,6 +64,16 @@ type MockStep<TInput> = (
   compensateInput?: unknown
   payload: unknown
 }>
+
+const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  return candidate as MockStep<TInput>
+}
 
 const makeCustomerService = (
   overrides: Partial<CustomerService> = {}
@@ -150,9 +161,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("adds a newly linked employee customer to the company's customer group by known customer id", async () => {
-    const { addEmployeeToCustomerGroupStep } = await import(
-      "../../../../src/workflows/employee/steps/add-employee-to-customer-group"
-    )
+    const { addEmployeeToCustomerGroupStep } =
+      await import("../../../../src/workflows/employee/steps/add-employee-to-customer-group")
     const customerService = makeCustomerService()
     const graph = vi
       .fn()
@@ -164,12 +174,13 @@ describe("customer-group sync steps", () => {
       })
     const container = makeContainer({ customerService, graph })
 
-    const result = await (
-      addEmployeeToCustomerGroupStep as MockStep<{
-        customer_id: string
-        employee_id: string
-      }>
-    )({ customer_id: "cus_1", employee_id: "emp_1" }, { container })
+    const result = await asMockStep<{
+      customer_id: string
+      employee_id: string
+    }>(addEmployeeToCustomerGroupStep)(
+      { customer_id: "cus_1", employee_id: "emp_1" },
+      { container }
+    )
 
     expect(customerService.addCustomerToGroup).toHaveBeenCalledWith({
       customer_group_id: "cgrp_1",
@@ -182,9 +193,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("replaces an existing company customer group link before creating the new link", async () => {
-    const { setCompanyCustomerGroupStep } = await import(
-      "../../../../src/workflows/company/steps/set-company-customer-group"
-    )
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi
@@ -203,12 +213,13 @@ describe("customer-group sync steps", () => {
       .mockResolvedValueOnce({ data: [] })
     const container = makeContainer({ customerService, linkService, graph })
 
-    const result = await (
-      setCompanyCustomerGroupStep as MockStep<{
-        company_id: string
-        group_id: string
-      }>
-    )({ company_id: "comp_1", group_id: "cgrp_new" }, { container })
+    const result = await asMockStep<{
+      company_id: string
+      group_id: string
+    }>(setCompanyCustomerGroupStep)(
+      { company_id: "comp_1", group_id: "cgrp_new" },
+      { container }
+    )
 
     expect(linkService.dismiss).toHaveBeenCalledWith({
       company: { company_id: "comp_1" },
@@ -236,9 +247,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("dismisses a stale soft-deleted company owner before linking a customer group", async () => {
-    const { setCompanyCustomerGroupStep } = await import(
-      "../../../../src/workflows/company/steps/set-company-customer-group"
-    )
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
     const companyService = makeCompanyService({
       listCompanies: vi
         .fn()
@@ -269,12 +279,13 @@ describe("customer-group sync steps", () => {
       graph,
     })
 
-    await (
-      setCompanyCustomerGroupStep as MockStep<{
-        company_id: string
-        group_id: string
-      }>
-    )({ company_id: "comp_1", group_id: "cgrp_new" }, { container })
+    await asMockStep<{
+      company_id: string
+      group_id: string
+    }>(setCompanyCustomerGroupStep)(
+      { company_id: "comp_1", group_id: "cgrp_new" },
+      { container }
+    )
 
     expect(graph).toHaveBeenNthCalledWith(2, {
       entity: COMPANY_CUSTOMER_GROUP_ENTRY_POINT,
@@ -296,9 +307,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("rejects linking a customer group owned by another active company", async () => {
-    const { setCompanyCustomerGroupStep } = await import(
-      "../../../../src/workflows/company/steps/set-company-customer-group"
-    )
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
     const companyService = makeCompanyService({
       listCompanies: vi
         .fn()
@@ -330,21 +340,21 @@ describe("customer-group sync steps", () => {
     })
 
     await expect(
-      (
-        setCompanyCustomerGroupStep as MockStep<{
-          company_id: string
-          group_id: string
-        }>
-      )({ company_id: "comp_1", group_id: "cgrp_new" }, { container })
+      asMockStep<{
+        company_id: string
+        group_id: string
+      }>(setCompanyCustomerGroupStep)(
+        { company_id: "comp_1", group_id: "cgrp_new" },
+        { container }
+      )
     ).rejects.toThrow(MedusaError)
 
     expect(linkService.create).not.toHaveBeenCalled()
   })
 
   it("removes the company customer group link and employee group memberships when explicitly removed", async () => {
-    const { removeCompanyCustomerGroupLinkStep } = await import(
-      "../../../../src/workflows/company/steps/remove-company-customer-group-link"
-    )
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi.fn().mockResolvedValue({
@@ -360,9 +370,10 @@ describe("customer-group sync steps", () => {
     })
     const container = makeContainer({ customerService, linkService, graph })
 
-    const result = await (
-      removeCompanyCustomerGroupLinkStep as MockStep<string>
-    )("comp_1", { container })
+    const result = await asMockStep<string>(removeCompanyCustomerGroupLinkStep)(
+      "comp_1",
+      { container }
+    )
 
     expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
       { customer_group_id: "cgrp_1", customer_id: "cus_1" },
@@ -381,9 +392,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("preserves the company customer group link while removing memberships before company deletion", async () => {
-    const { removeCompanyCustomerGroupLinkStep } = await import(
-      "../../../../src/workflows/company/steps/remove-company-customer-group-link"
-    )
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi.fn().mockResolvedValue({
@@ -399,12 +409,13 @@ describe("customer-group sync steps", () => {
     })
     const container = makeContainer({ customerService, linkService, graph })
 
-    const result = await (
-      removeCompanyCustomerGroupLinkStep as MockStep<{
-        company_id: string
-        preserve_link: boolean
-      }>
-    )({ company_id: "comp_1", preserve_link: true }, { container })
+    const result = await asMockStep<{
+      company_id: string
+      preserve_link: boolean
+    }>(removeCompanyCustomerGroupLinkStep)(
+      { company_id: "comp_1", preserve_link: true },
+      { container }
+    )
 
     expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
       { customer_group_id: "cgrp_1", customer_id: "cus_1" },
@@ -420,9 +431,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("does not remove a company customer group link when the expected group does not match", async () => {
-    const { removeCompanyCustomerGroupLinkStep } = await import(
-      "../../../../src/workflows/company/steps/remove-company-customer-group-link"
-    )
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
     const graph = vi.fn().mockResolvedValue({
@@ -436,12 +446,10 @@ describe("customer-group sync steps", () => {
     const container = makeContainer({ customerService, linkService, graph })
 
     await expect(
-      (
-        removeCompanyCustomerGroupLinkStep as MockStep<{
-          company_id: string
-          expected_group_id: string
-        }>
-      )(
+      asMockStep<{
+        company_id: string
+        expected_group_id: string
+      }>(removeCompanyCustomerGroupLinkStep)(
         { company_id: "comp_1", expected_group_id: "cgrp_requested" },
         { container }
       )
@@ -452,9 +460,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("rejects employee mutations for a soft-deleted company", async () => {
-    const { validateCompanyActiveStep } = await import(
-      "../../../../src/workflows/company/steps/validate-company-active"
-    )
+    const { validateCompanyActiveStep } =
+      await import("../../../../src/workflows/company/steps/validate-company-active")
     const companyService = makeCompanyService({
       retrieveCompany: vi.fn().mockResolvedValue({
         deleted_at: new Date(),
@@ -465,16 +472,15 @@ describe("customer-group sync steps", () => {
     const container = makeContainer({ companyService, graph })
 
     await expect(
-      (validateCompanyActiveStep as MockStep<string>)("comp_deleted", {
+      asMockStep<string>(validateCompanyActiveStep)("comp_deleted", {
         container,
       })
     ).rejects.toThrow(MedusaError)
   })
 
   it("cleans stale employee state owned by a soft-deleted company", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const authService = makeAuthService()
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
@@ -542,12 +548,13 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      prepareEmployeeCustomerLinkStep as MockStep<{
-        company_id: string
-        customer_id: string
-      }>
-    )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container }
+    )
 
     expect(graph).toHaveBeenNthCalledWith(1, {
       entity: "employee_customer",
@@ -606,9 +613,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("rejects an employee customer link owned by an active company", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const companyService = makeCompanyService()
     const linkService = makeLinkService()
     const graph = vi
@@ -641,12 +647,13 @@ describe("customer-group sync steps", () => {
     })
 
     await expect(
-      (
-        prepareEmployeeCustomerLinkStep as MockStep<{
-          company_id: string
-          customer_id: string
-        }>
-      )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+      asMockStep<{
+        company_id: string
+        customer_id: string
+      }>(prepareEmployeeCustomerLinkStep)(
+        { company_id: "comp_1", customer_id: "cus_1" },
+        { container }
+      )
     ).rejects.toThrow(MedusaError)
 
     expect(linkService.dismiss).not.toHaveBeenCalled()
@@ -654,9 +661,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("cleans stale employee state when the employee is deleted but its company is active", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const authService = makeAuthService()
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
@@ -725,12 +731,13 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    await (
-      prepareEmployeeCustomerLinkStep as MockStep<{
-        company_id: string
-        customer_id: string
-      }>
-    )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container }
+    )
 
     expect(linkService.dismiss).toHaveBeenCalledWith({
       company: { employee_id: "emp_deleted" },
@@ -756,9 +763,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("keeps a same-company soft-deleted employee available for restore", async () => {
-    const { prepareEmployeeCustomerLinkStep } = await import(
-      "../../../../src/workflows/employee/steps/prepare-employee-customer-link"
-    )
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
     const companyService = makeCompanyService()
     const customerService = makeCustomerService()
     const linkService = makeLinkService()
@@ -799,12 +805,13 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    await (
-      prepareEmployeeCustomerLinkStep as MockStep<{
-        company_id: string
-        customer_id: string
-      }>
-    )({ company_id: "comp_1", customer_id: "cus_1" }, { container })
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container }
+    )
 
     expect(linkService.dismiss).not.toHaveBeenCalled()
     expect(customerService.removeCustomerFromGroup).not.toHaveBeenCalled()
@@ -813,9 +820,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("restores a same-company soft-deleted employee instead of creating a duplicate", async () => {
-    const { createOrRestoreEmployeeStep } = await import(
-      "../../../../src/workflows/employee/steps/create-or-restore-employee"
-    )
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
     const companyService = makeCompanyService({
       restoreEmployees: vi.fn(),
       updateEmployees: vi.fn().mockResolvedValue({ id: "emp_deleted" }),
@@ -852,14 +858,12 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      createOrRestoreEmployeeStep as MockStep<{
-        company_id: string
-        customer_id: string
-        is_admin: boolean
-        spending_limit: number
-      }>
-    )(
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
       {
         company_id: "comp_1",
         customer_id: "cus_1",
@@ -897,9 +901,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("does not restore a same-company deleted employee when another active company owns the customer", async () => {
-    const { createOrRestoreEmployeeStep } = await import(
-      "../../../../src/workflows/employee/steps/create-or-restore-employee"
-    )
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
     const companyService = makeCompanyService({
       createEmployees: vi.fn().mockResolvedValue({ id: "emp_new" }),
       restoreEmployees: vi.fn(),
@@ -948,14 +951,12 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      createOrRestoreEmployeeStep as MockStep<{
-        company_id: string
-        customer_id: string
-        is_admin: boolean
-        spending_limit: number
-      }>
-    )(
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
       {
         company_id: "comp_1",
         customer_id: "cus_1",
@@ -985,9 +986,8 @@ describe("customer-group sync steps", () => {
   })
 
   it("creates a new employee when only another company's soft-deleted employee exists", async () => {
-    const { createOrRestoreEmployeeStep } = await import(
-      "../../../../src/workflows/employee/steps/create-or-restore-employee"
-    )
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
     const companyService = makeCompanyService({
       createEmployees: vi.fn().mockResolvedValue({ id: "emp_new" }),
     })
@@ -1021,14 +1021,12 @@ describe("customer-group sync steps", () => {
       linkService,
     })
 
-    const result = await (
-      createOrRestoreEmployeeStep as MockStep<{
-        company_id: string
-        customer_id: string
-        is_admin: boolean
-        spending_limit: number
-      }>
-    )(
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
       {
         company_id: "comp_1",
         customer_id: "cus_1",

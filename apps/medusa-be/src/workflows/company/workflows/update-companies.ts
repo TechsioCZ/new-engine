@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import type { ModuleUpdateCompany } from "../../../types"
 import { updateCompaniesStep, validateCompanyActiveStep } from "../steps"
 

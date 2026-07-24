@@ -2,6 +2,7 @@
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { type SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { useRegions } from "@/hooks/use-region"
 
@@ -22,7 +23,7 @@ export function RegionSelector({ className }: { className?: string }) {
     const regionId = details.value[0]
     const region = regions.find((r) => r.id === regionId)
     if (region) {
-      setSelectedRegion(region)
+      void setSelectedRegion(region)
     }
   }
 

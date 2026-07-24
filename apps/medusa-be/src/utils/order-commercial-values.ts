@@ -4,7 +4,7 @@ export const MANUAL_ITEM_DISCOUNT_CODE = "manual_item_discount"
 export const MANUAL_ORDER_DISCOUNT_CODE = "manual_order_discount"
 export const MANUAL_SHIPPING_DISCOUNT_CODE = "manual_shipping_discount"
 
-export const MANUAL_DISCOUNT_CODES = new Set([
+const MANUAL_DISCOUNT_CODES = new Set([
   MANUAL_ITEM_DISCOUNT_CODE,
   MANUAL_ORDER_DISCOUNT_CODE,
   MANUAL_SHIPPING_DISCOUNT_CODE,
@@ -23,17 +23,17 @@ export type CommercialDiscountIntent =
 
 export type CommercialAdjustmentInput = {
   amount: number
-  code?: string | null
-  description?: string | null
-  discount_intent?: CommercialDiscountIntent | null
-  is_preserved_manual_discount?: boolean | null
-  is_tax_inclusive?: boolean | null
-  item_id?: string | null
-  promotion_id?: string | null
-  provider_id?: string | null
-  shipping_method_id?: string | null
-  subtotal?: number | null
-  total?: number | null
+  code?: string | null | undefined
+  description?: string | null | undefined
+  discount_intent?: CommercialDiscountIntent | null | undefined
+  is_preserved_manual_discount?: boolean | null | undefined
+  is_tax_inclusive?: boolean | null | undefined
+  item_id?: string | null | undefined
+  promotion_id?: string | null | undefined
+  provider_id?: string | null | undefined
+  shipping_method_id?: string | null | undefined
+  subtotal?: number | null | undefined
+  total?: number | null | undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -43,20 +43,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parseCommercialDiscountIntent(
   value: unknown
 ): CommercialDiscountIntent | null {
-  if (!isRecord(value) || typeof value.type !== "string") {
+  if (!isRecord(value) || typeof value["type"] !== "string") {
     return null
   }
 
-  if (value.type === "percentage") {
-    const valueBps = value.value_bps
+  if (value["type"] === "percentage") {
+    const valueBps = value["value_bps"]
 
     return Number.isSafeInteger(valueBps)
       ? { type: "percentage", value_bps: valueBps as number }
       : null
   }
 
-  if (value.type === "amount") {
-    const amount = value.amount
+  if (value["type"] === "amount") {
+    const amount = value["amount"]
 
     return typeof amount === "number" && Number.isFinite(amount)
       ? { type: "amount", amount }
@@ -104,68 +104,68 @@ export function decodeCommercialDiscountIntent(
 }
 
 export type CommercialValuesItemInput = {
-  current_subtotal?: number | null
-  current_tax_total?: number | null
+  current_subtotal?: number | null | undefined
+  current_tax_total?: number | null | undefined
   item_id: string
   original_unit_price: number
   quantity: number
   unit_price: number
-  discount?: CommercialDiscountIntent | null
-  existing_adjustments?: CommercialAdjustmentInput[] | null
-  is_discountable?: boolean | null
-  is_tax_inclusive?: boolean | null
+  discount?: CommercialDiscountIntent | null | undefined
+  existing_adjustments?: CommercialAdjustmentInput[] | null | undefined
+  is_discountable?: boolean | null | undefined
+  is_tax_inclusive?: boolean | null | undefined
 }
 
 export type CommercialValuesCalculationInput = {
   currency_code: string
-  current_total?: number | null
+  current_total?: number | null | undefined
   expected_order_version: number
   items: CommercialValuesItemInput[]
-  order_discount?: CommercialDiscountIntent | null
+  order_discount?: CommercialDiscountIntent | null | undefined
   order_id: string
   original_total: number
-  shipping_methods?: CommercialValuesShippingMethodInput[]
+  shipping_methods?: CommercialValuesShippingMethodInput[] | undefined
 }
 
-export type CommercialValuesRequest = {
+type CommercialValuesRequest = {
   expected_order_version: number
-  internal_note?: string
+  internal_note?: string | undefined
   items: Array<{
-    discount?: CommercialDiscountIntent | null
+    discount?: CommercialDiscountIntent | null | undefined
     item_id: string
     unit_price: number
   }>
-  order_discount?: CommercialDiscountIntent | null
+  order_discount?: CommercialDiscountIntent | null | undefined
   shipping_methods?: Array<{
-    discount?: CommercialDiscountIntent | null
+    discount?: CommercialDiscountIntent | null | undefined
     shipping_method_id: string
   }>
 }
 
 export type CommercialValuesConfirmRequest = CommercialValuesRequest & {
-  confirmation_mode?: "confirm" | "request"
+  confirmation_mode?: "confirm" | "request" | undefined
 }
 
-export type CommercialValuesSnapshotItem = {
+type CommercialValuesSnapshotItem = {
   existing_adjustments: CommercialAdjustmentInput[]
   is_discountable: boolean
   item_id: string
   original_unit_price: number
-  product_title?: string | null
+  product_title?: string | null | undefined
   quantity: number
-  subtitle?: string | null
-  thumbnail?: string | null
-  title?: string | null
+  subtitle?: string | null | undefined
+  thumbnail?: string | null | undefined
+  title?: string | null | undefined
   unit_price: number
-  variant_sku?: string | null
-  variant_title?: string | null
+  variant_sku?: string | null | undefined
+  variant_title?: string | null | undefined
 }
 
-export type CommercialValuesSnapshotShippingMethod = {
+type CommercialValuesSnapshotShippingMethod = {
   current_subtotal: number
   current_tax_total: number
   existing_adjustments: CommercialAdjustmentInput[]
-  name?: string | null
+  name?: string | null | undefined
   shipping_method_id: string
 }
 
@@ -181,7 +181,7 @@ export type CommercialValuesEditBlocker =
 
 export type CommercialValuesSnapshot = {
   active_order_change?: {
-    change_type?: string | null
+    change_type?: string | null | undefined
     id: string
     status: "pending" | "requested"
     version: number
@@ -199,7 +199,7 @@ export type CommercialValuesSnapshot = {
   }
 }
 
-export type CommercialValuesPreviewItem = {
+type CommercialValuesPreviewItem = {
   final_line_total: number
   final_line_total_with_tax: number
   is_tax_inclusive: boolean
@@ -214,7 +214,7 @@ export type CommercialValuesPreviewItem = {
   tax_total: number
 }
 
-export type CommercialValuesPreviewShippingMethod = {
+type CommercialValuesPreviewShippingMethod = {
   current_subtotal: number
   current_tax_total: number
   final_total: number
@@ -263,10 +263,10 @@ type ItemCalculation = CommercialValuesPreviewItem & {
 
 export type CommercialValuesShippingMethodInput = {
   current_subtotal: number
-  current_tax_total?: number | null
-  discount?: CommercialDiscountIntent | null
-  existing_adjustments?: CommercialAdjustmentInput[] | null
-  name?: string | null
+  current_tax_total?: number | null | undefined
+  discount?: CommercialDiscountIntent | null | undefined
+  existing_adjustments?: CommercialAdjustmentInput[] | null | undefined
+  name?: string | null | undefined
   shipping_method_id: string
 }
 
@@ -439,7 +439,7 @@ function allocateAmount(
   totalAmount: number,
   items: DiscountAllocationTarget[]
 ) {
-  const allocations = new Array(items.length).fill(0) as number[]
+  const allocations = Array.from({ length: items.length }, () => 0)
 
   if (totalAmount === 0) {
     return allocations

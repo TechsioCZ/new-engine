@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Slider } from "@techsio/ui-kit/molecules/slider"
 import { useEffect, useState } from "react"
+
 import {
   type AsideFilterChipItem,
   AsideFilterChipSection,
@@ -113,8 +114,8 @@ const normalizeCommittedRange = (
   const normalizedMax = rangeMax >= bounds.max ? undefined : rangeMax
 
   return {
-    min: normalizedMin,
-    max: normalizedMax,
+    ...(normalizedMin === undefined ? {} : { min: normalizedMin }),
+    ...(normalizedMax === undefined ? {} : { max: normalizedMax }),
   }
 }
 
@@ -196,8 +197,12 @@ export function AsideFilter({
   useEffect(() => {
     const nextSelectedRange = resolveRangeFromSelection(
       {
-        min: selectedPriceRangeMin,
-        max: selectedPriceRangeMax,
+        ...(selectedPriceRangeMin === undefined
+          ? {}
+          : { min: selectedPriceRangeMin }),
+        ...(selectedPriceRangeMax === undefined
+          ? {}
+          : { max: selectedPriceRangeMax }),
       },
       {
         min: priceBoundsForRenderMin,
@@ -219,7 +224,7 @@ export function AsideFilter({
 
   return (
     <aside className="overflow-hidden rounded-2xl border border-border-secondary bg-surface text-fg-primary">
-      <div className="scrollbar-primary space-y-400 p-400 xl:max-h-[calc(100dvh-var(--spacing-400))] xl:space-y-500 xl:overflow-y-auto xl:overscroll-contain xl:p-500">
+      <div className="scrollbar-primary space-y-400 p-400 xl:filter-scroll-viewport xl:space-y-500 xl:overflow-y-auto xl:overscroll-contain xl:p-500">
         <section className="space-y-300">
           <h2 className="font-bold text-2xl uppercase leading-none">Cena</h2>
           <div className="flex items-center justify-between font-medium text-fg-secondary text-lg">

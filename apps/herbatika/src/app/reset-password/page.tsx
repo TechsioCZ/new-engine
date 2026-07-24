@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation"
 
+import { appHref } from "@/lib/routing"
+
 type ResetPasswordRedirectPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
@@ -34,5 +36,7 @@ export default async function ResetPasswordRedirectPage({
 
   const queryString = targetSearchParams.toString()
 
-  redirect(`/auth/reset-password${queryString ? `?${queryString}` : ""}`)
+  redirect(
+    appHref(`/auth/reset-password${queryString ? `?${queryString}` : ""}`)
+  )
 }

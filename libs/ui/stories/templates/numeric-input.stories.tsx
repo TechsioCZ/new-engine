@@ -1,11 +1,12 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { NumericInputTemplate } from '../../src/templates/numeric-input'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { NumericInputTemplate } from "../../src/templates/numeric-input"
 
 const meta: Meta<typeof NumericInputTemplate> = {
-  title: 'Templates/NumericInputTemplate',
+  title: "Templates/NumericInputTemplate",
   component: NumericInputTemplate,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
     docs: {
       description: {
         component: `
@@ -18,140 +19,140 @@ const meta: Meta<typeof NumericInputTemplate> = {
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     value: {
-      control: 'number',
-      description: 'Current value',
+      control: "number",
+      description: "Current value",
       table: {
-        category: 'Value',
+        category: "Value",
       },
     },
     defaultValue: {
-      control: 'number',
-      description: 'Default value',
+      control: "number",
+      description: "Default value",
       table: {
-        category: 'Value',
+        category: "Value",
       },
     },
     min: {
-      control: 'number',
-      description: 'Minimum value',
+      control: "number",
+      description: "Minimum value",
       table: {
-        category: 'Constraints',
+        category: "Constraints",
       },
     },
     max: {
-      control: 'number',
-      description: 'Maximum value',
+      control: "number",
+      description: "Maximum value",
       table: {
-        category: 'Constraints',
+        category: "Constraints",
       },
     },
     step: {
-      control: 'number',
-      description: 'Step increment',
+      control: "number",
+      description: "Step increment",
       table: {
-        category: 'Constraints',
+        category: "Constraints",
       },
     },
     precision: {
-      control: { type: 'number', min: 0, max: 10 },
-      description: 'Number of decimal places',
+      control: { type: "number", min: 0, max: 10 },
+      description: "Number of decimal places",
       table: {
-        category: 'Constraints',
+        category: "Constraints",
       },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size variant',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size variant",
       table: {
-        category: 'Appearance',
+        category: "Appearance",
       },
     },
     showControls: {
-      control: 'boolean',
-      description: 'Show increment/decrement buttons',
+      control: "boolean",
+      description: "Show increment/decrement buttons",
       table: {
-        category: 'Controls',
+        category: "Controls",
       },
     },
     showScrubber: {
-      control: 'boolean',
-      description: 'Enable drag to change value',
+      control: "boolean",
+      description: "Enable drag to change value",
       table: {
-        category: 'Controls',
+        category: "Controls",
       },
     },
     controlsPosition: {
-      control: 'select',
-      options: ['right', 'sides'],
-      description: 'Position of control buttons',
+      control: "select",
+      options: ["right", "sides"],
+      description: "Position of control buttons",
       table: {
-        category: 'Controls',
+        category: "Controls",
       },
     },
     disabled: {
-      control: 'boolean',
-      description: 'Disable the input',
+      control: "boolean",
+      description: "Disable the input",
       table: {
-        category: 'State',
+        category: "State",
       },
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make input read-only',
+      control: "boolean",
+      description: "Make input read-only",
       table: {
-        category: 'State',
+        category: "State",
       },
     },
     required: {
-      control: 'boolean',
-      description: 'Mark as required field',
+      control: "boolean",
+      description: "Mark as required field",
       table: {
-        category: 'State',
+        category: "State",
       },
     },
     invalid: {
-      control: 'boolean',
-      description: 'Show invalid state',
+      control: "boolean",
+      description: "Show invalid state",
       table: {
-        category: 'State',
+        category: "State",
       },
     },
     allowOverflow: {
-      control: 'boolean',
-      description: 'Allow values outside min/max range',
+      control: "boolean",
+      description: "Allow values outside min/max range",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     allowMouseWheel: {
-      control: 'boolean',
-      description: 'Allow mouse wheel to change value',
+      control: "boolean",
+      description: "Allow mouse wheel to change value",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     clampValueOnBlur: {
-      control: 'boolean',
-      description: 'Clamp to min/max on blur',
+      control: "boolean",
+      description: "Clamp to min/max on blur",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     spinOnPress: {
-      control: 'boolean',
-      description: 'Continuous change on button hold',
+      control: "boolean",
+      description: "Continuous change on button hold",
       table: {
-        category: 'Behavior',
+        category: "Behavior",
       },
     },
     onChange: {
-      action: 'changed',
+      action: "changed",
       table: {
-        category: 'Events',
+        category: "Events",
       },
     },
   },
@@ -167,12 +168,12 @@ export const Default: Story = {
     max: 100,
     step: 1,
     showControls: true,
-    size: 'md',
+    size: "md",
   },
 }
 
 export const Playground: Story = {
-  name: '🎮 Interactive Playground',
+  name: "🎮 Interactive Playground",
   args: {
     defaultValue: 50,
     min: 0,
@@ -180,8 +181,8 @@ export const Playground: Story = {
     step: 5,
     showControls: true,
     showScrubber: false,
-    controlsPosition: 'right',
-    size: 'md',
+    controlsPosition: "right",
+    size: "md",
     allowMouseWheel: true,
     clampValueOnBlur: true,
     spinOnPress: true,

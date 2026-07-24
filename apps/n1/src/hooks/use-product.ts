@@ -1,10 +1,12 @@
 "use client"
 
 import { useSuspenseQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { fetchLogger } from "@/lib/loggers/fetch"
 import { queryKeys } from "@/lib/query-keys"
 import { getProductByHandle } from "@/services/product-service"
+
 import { useSuspenseRegion } from "./use-region"
 
 type UseProductParams = {
@@ -29,11 +31,11 @@ export function useSuspenseProduct({ handle, fields }: UseProductParams) {
         handle,
         region_id: regionId,
         country_code: countryCode,
-        fields,
+        ...(fields ? { fields } : {}),
       })
       const duration = performance.now() - start
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         fetchLogger.current(handle, duration)
       }
 

@@ -1,15 +1,17 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
 
 type EmployeeCustomerLinkRow = {
@@ -66,10 +68,7 @@ export const createOrRestoreEmployeeStep = createStep(
     input: ModuleCreateEmployee,
     { container }
   ): Promise<
-    StepResponse<
-      RemoteQueryEntryPoints["employee"],
-      CreateOrRestoreEmployeeCompensation
-    >
+    StepResponse<QueryGraphEmployee, CreateOrRestoreEmployeeCompensation>
   > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)

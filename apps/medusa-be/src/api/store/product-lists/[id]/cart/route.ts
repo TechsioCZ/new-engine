@@ -7,6 +7,8 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
+
+import { definedProperties } from "../../../../../utils/defined-properties"
 import { createCartFromProductListWorkflow } from "../../../../../workflows/product-list/workflows/create-cart-from-product-list"
 import {
   type StoreCreateProductListCartSchemaType,
@@ -28,14 +30,11 @@ export async function POST(
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result } = await createCartFromProductListWorkflow(req.scope).run({
-    input: {
-      country_code: req.validatedBody.country_code,
+    input: definedProperties({
+      ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
-      email: req.validatedBody.email,
       list_id: listId,
-      region_id: req.validatedBody.region_id,
-      sales_channel_id: req.validatedBody.sales_channel_id,
-    },
+    }),
   })
 
   const cart = await refetchCart(result.id, req.scope)

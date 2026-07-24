@@ -2,40 +2,34 @@
   /* Primitive Typography Tokens - Utopia fluid typography */
   --text-xs: clamp(
     0.7813rem,
-    0.7747rem +
-    0.0326vw,
+    0.7747rem + 0.0326vw,
     0.8rem
   ); /* 12.5px - 12.8px */
   --text-sm: clamp(0.9375rem, 0.9158rem + 0.1087vw, 1rem); /* 15px - 16px */
   --text-md: clamp(1.125rem, 1.0815rem + 0.2174vw, 1.25rem); /* 18px - 20px */
   --text-lg: clamp(
     1.35rem,
-    1.2761rem +
-    0.3696vw,
+    1.2761rem + 0.3696vw,
     1.5625rem
   ); /* 21.6px - 25px */
   --text-xl: clamp(
     1.62rem,
-    1.5041rem +
-    0.5793vw,
+    1.5041rem + 0.5793vw,
     1.9531rem
   ); /* 25.92px - 31.25px */
   --text-2xl: clamp(
     1.944rem,
-    1.771rem +
-    0.8651vw,
+    1.771rem + 0.8651vw,
     2.4414rem
   ); /* 31.1px - 39.06px */
   --text-3xl: clamp(
     2.3328rem,
-    2.0827rem +
-    1.2504vw,
+    2.0827rem + 1.2504vw,
     3.0518rem
   ); /* 37.32px - 48.83px */
   --text-4xl: clamp(
     2.7994rem,
-    2.4462rem +
-    1.7658vw,
+    2.4462rem + 1.7658vw,
     3.8147rem
   ); /* 44.79px - 61.04px */
 

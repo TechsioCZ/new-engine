@@ -1,4 +1,6 @@
-export const findNodeById = <T extends { id: string; children?: T[] }>(
+export const findNodeById = <
+  T extends { id: string; children?: T[] | undefined },
+>(
   nodes: T[],
   id: string
 ): T | null => {

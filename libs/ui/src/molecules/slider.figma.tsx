@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { Slider } from "./slider"
 
 figma.connect(

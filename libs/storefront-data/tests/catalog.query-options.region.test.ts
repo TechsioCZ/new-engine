@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
+
 import { createCatalogQueryOptionsFactory } from "../src/catalog/query-options"
 import type { CatalogFacets } from "../src/catalog/types"
 
@@ -39,7 +40,7 @@ const createQueryClient = () =>
 
 const createCatalogRegionTestContext = (queryKeyNamespace: string) => {
   const service = {
-    getCatalogProducts: vi.fn(async (params: ListParams) => ({
+    getCatalogProducts: vi.fn(async (_params: ListParams) => ({
       products: [{ id: "prod_1" } as Product],
       count: 1,
       page: 1,
@@ -58,9 +59,9 @@ const createCatalogRegionTestContext = (queryKeyNamespace: string) => {
     service,
     queryKeyNamespace,
     buildListParams: (input) => ({
-      q: input.q,
-      region_id: input.region_id,
-      country_code: input.country_code,
+      ...(input.q ? { q: input.q } : {}),
+      ...(input.region_id ? { region_id: input.region_id } : {}),
+      ...(input.country_code ? { country_code: input.country_code } : {}),
     }),
   })
 
@@ -79,8 +80,6 @@ describe("catalog query options region merge", () => {
       getListQueryOptions(
         {
           q: "kretin",
-          region_id: undefined,
-          country_code: undefined,
         },
         {
           region: { region_id: "reg_sk", country_code: "sk" },
@@ -131,7 +130,6 @@ describe("catalog query options region merge", () => {
       getListQueryOptions(
         {
           q: "kretin",
-          region_id: undefined,
           country_code: "cz",
         },
         {

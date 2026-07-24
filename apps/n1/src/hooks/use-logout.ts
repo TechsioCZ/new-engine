@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+
 import { queryKeys } from "@/lib/query-keys"
 import { logout } from "@/services/auth-service"
 
@@ -20,12 +21,14 @@ export function useLogout(options?: UseLogoutOptions) {
 
   return useMutation({
     mutationFn: logout,
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate all user data first (triggers refetch on mounted queries)
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.all() })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.auth.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.customer.all() }),
+      ])
 
       // Then remove from cache (clears stale data)
       queryClient.removeQueries({ queryKey: queryKeys.auth.all() })

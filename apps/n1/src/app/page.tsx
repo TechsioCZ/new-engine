@@ -1,5 +1,6 @@
 "use client"
 import { Suspense } from "react"
+
 import { FeatureBlock } from "@/components/atoms/feature-block"
 import { HeroCarousel } from "@/components/hero-carousel"
 import { ProductGrid } from "@/components/molecules/product-grid"
@@ -36,7 +37,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto my-28 w-full max-w-max-w">
+      <section className="mx-auto my-home-section w-full max-w-max-w">
         <h2 className="relative mx-auto mb-section flex max-w-max-w items-center justify-center font-bold text-xl">
           <span className="relative z-10 bg-base px-400 text-fg-primary">
             Vybíráme pro vás

@@ -1,14 +1,14 @@
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import type { ReactNode } from "react"
 import { useState } from "react"
 
-export interface FilterSectionProps<T = any> {
+export interface FilterSectionProps<T = unknown> {
   title: string
   items?: T[]
   renderItem?: (item: T, index: number) => ReactNode
   children?: ReactNode
   defaultItemsShown?: number
-  onClear?: () => void
+  onClear?: (() => void) | undefined
   className?: string
 }
 

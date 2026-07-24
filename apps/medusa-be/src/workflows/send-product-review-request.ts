@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto"
+
 import type {
   CreateNotificationDTO,
   Logger,
@@ -14,6 +15,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
@@ -141,7 +143,7 @@ function createToken() {
 }
 
 function getReviewTokenExpiryDate() {
-  const configuredDays = Number(process.env.PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS)
+  const configuredDays = Number(process.env["PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS"])
   const expiryDays =
     Number.isFinite(configuredDays) && configuredDays > 0
       ? configuredDays
@@ -163,7 +165,9 @@ function isReviewRequestOrderWithItems(
 
   const record = value as Record<string, unknown>
 
-  return typeof record.id === "string" && typeof record.display_id === "number"
+  return (
+    typeof record["id"] === "string" && typeof record["display_id"] === "number"
+  )
 }
 
 function getUniqueProductItems(order: ReviewRequestOrderWithItems) {
@@ -356,9 +360,11 @@ const buildProductReviewRequestNotificationStep = createStep(
           order_id: order.id,
           product_reviews: products,
           products: formatReviewProducts(products),
-          store_name: input.store_name,
+          ...(input.store_name === undefined
+            ? {}
+            : { store_name: input.store_name }),
         },
-        receiver_id: order.customer_id ?? undefined,
+        ...(order.customer_id ? { receiver_id: order.customer_id } : {}),
         resource_id: order.id,
         resource_type: "order",
         template: PRODUCT_REVIEW_REQUEST_TEMPLATE,

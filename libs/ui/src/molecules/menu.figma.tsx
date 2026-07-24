@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { Menu } from "./menu"
 
 figma.connect(

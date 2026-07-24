@@ -1,7 +1,9 @@
-import Image from "next/image"
-import "../../tokens/app-components/molecules/_shipping-selection.css"
 import { Button } from "@techsio/ui-kit/atoms/button"
+
+import "../../tokens/app-components/molecules/_shipping-selection.css"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
+import Image from "next/image"
+
 import { SHIPPING_METHODS } from "@/lib/checkout-data"
 import { formatPrice } from "@/lib/format-price"
 import type { ReducedShippingMethod } from "@/types/checkout"
@@ -89,6 +91,7 @@ export function ShippingSelection({
   return (
     <div className="w-full space-y-250 py-2 sm:py-4">
       <div
+        aria-busy={isLoading}
         aria-label="Vyberte způsob dopravy"
         className="grid grid-cols-1 gap-3 sm:gap-4"
         role="radiogroup"

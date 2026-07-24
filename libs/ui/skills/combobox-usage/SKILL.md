@@ -1,9 +1,7 @@
 ---
 name: combobox-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for
-  searchable selection with Zag.js collection behavior, controlled value/input,
-  multiple mode, validation status, clear trigger, and token styling.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Combobox for searchable selection with Zag.js collection behavior, controlled value/input, multiple mode, validation status, clear trigger, and token styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit Combobox Usage
 
-Use Combobox for searchable select-like input. Use Select when search/filtering
-is not needed.
+Use Combobox for searchable select-like input. Use Select when search/filtering is not needed.
 
 ## Setup
 
 ```tsx
 import { Combobox } from "@techsio/ui-kit/molecules/combobox"
 
-<Combobox
+;<Combobox
   label="Country"
   name="country"
   items={[{ label: "Czechia", value: "CZ" }]}
@@ -51,18 +48,15 @@ onChange, onInputValueChange, onOpenChange
 
 ### Use Combobox for search
 
-Choose Combobox when the user needs to type and filter options. For short
-static enum choices use Select, RadioGroup, or RadioCard.
+Choose Combobox when the user needs to type and filter options. For short static enum choices use Select, RadioGroup, or RadioCard.
 
 ### Keep items as collection data
 
-Do not render a custom `<ul>` next to Input. The wrapper builds a Zag
-collection from `items` and handles disabled options.
+Do not render a custom `<ul>` next to Input. The wrapper builds a Zag collection from `items` and handles disabled options.
 
 ### Use validation props, not border classes
 
-`validateStatus` controls trigger/input border state and `helpText` renders
-StatusText.
+`validateStatus` controls trigger/input border state and `helpText` renders StatusText.
 
 ## Common Mistakes
 
@@ -121,4 +115,3 @@ rg -n "<datalist|role=\"listbox\"|<Combobox[^>]*multiple[^>]*value=\"" apps
 rg -n "<Combobox[^>]*className=.*(bg-|text-|border-|p-|px-|py-)" apps
 rg -n "<Combobox[^>]*validateStatus=\"(danger|invalid)\"" apps
 ```
-

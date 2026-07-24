@@ -18,7 +18,7 @@ const colorSelectVariants = tv({
     ],
     color: [
       "absolute",
-      "h-full w-full hover:brightness-75",
+      "hover:brightness-75 size-full",
       "data-[selected=true]:brightness-75",
     ],
     icon: [
@@ -50,21 +50,21 @@ const colorSelectVariants = tv({
       sm: {
         group: "gap-color-select-sm",
         atom: "h-color-select-sm",
-        icon: "text-color-select-sm",
+        icon: "text-icon-color-select-sm",
       },
       md: {
         group: "gap-color-select-md",
         atom: "h-color-select-md",
-        icon: "text-color-select-md",
+        icon: "text-icon-color-select-md",
       },
       lg: {
         group: "gap-color-select-lg",
         atom: "h-color-select-lg",
-        icon: "text-color-select-lg",
+        icon: "text-icon-color-select-lg",
       },
       full: {
-        group: "h-full w-full gap-color-select-md",
-        cell: "h-full w-full",
+        group: "gap-color-select-md size-full",
+        cell: "size-full",
         atom: "h-full",
         icon: "size-color-select-icon",
       },
@@ -91,22 +91,22 @@ const colorSelectVariants = tv({
 })
 
 export interface ColorItem {
-  id?: string
+  id?: string | undefined
   color: string
-  selected?: boolean
-  label?: string
-  count?: number
-  disabled?: boolean
+  selected?: boolean | undefined
+  label?: string | undefined
+  count?: number | undefined
+  disabled?: boolean | undefined
 }
 
 interface ColorSelectProps {
   colors: ColorItem[]
-  layout?: "list" | "grid"
-  size?: "sm" | "md" | "lg" | "full"
-  radius?: "sm" | "md" | "lg" | "full"
-  disabled?: boolean
-  onColorClick?: (color: string) => void
-  selectionMode?: "single" | "multiple"
+  layout?: "list" | "grid" | undefined
+  size?: "sm" | "md" | "lg" | "full" | undefined
+  radius?: "sm" | "md" | "lg" | "full" | undefined
+  disabled?: boolean | undefined
+  onColorClick?: ((color: string) => void) | undefined
+  selectionMode?: "single" | "multiple" | undefined
 }
 
 export const ColorSelect = ({

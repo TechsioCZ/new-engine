@@ -1,9 +1,7 @@
 ---
 name: product-card-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit ProductCard
-  for product summaries with image adapter, name, price, stock, badges,
-  rating, actions, and card button variants.
+  Use after component-usage-ux when an app needs @techsio/ui-kit ProductCard for product summaries with image adapter, name, price, stock, badges, rating, actions, and card button variants.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,8 +18,7 @@ sources:
 
 # @techsio/ui-kit ProductCard Usage
 
-Use ProductCard for product listing and recommendation surfaces. It is a
-compound component; do not rebuild product card structure with generic divs.
+Use ProductCard for product listing and recommendation surfaces. It is a compound component; do not rebuild product card structure with generic divs.
 
 ## Setup
 
@@ -31,7 +28,9 @@ compound component; do not rebuild product card structure with generic divs.
   <ProductCard.Name>{product.title}</ProductCard.Name>
   <ProductCard.Price>{price}</ProductCard.Price>
   <ProductCard.Stock status="in-stock">In stock</ProductCard.Stock>
-  <ProductCard.Actions><ProductCard.Button buttonVariant="cart">Add</ProductCard.Button></ProductCard.Actions>
+  <ProductCard.Actions>
+    <ProductCard.Button buttonVariant="cart">Add</ProductCard.Button>
+  </ProductCard.Actions>
 </ProductCard>
 ```
 
@@ -49,8 +48,7 @@ Badges, Rating, Actions, Name, Price
 
 ### Use slots for meaning
 
-Name, Price, Stock, Rating, Badges, Actions and Button each map to component
-tokens. Do not replace them with local headings and paragraphs.
+Name, Price, Stock, Rating, Badges, Actions and Button each map to component tokens. Do not replace them with local headings and paragraphs.
 
 ### Use NextImage adapter in Next apps
 
@@ -58,8 +56,7 @@ Pass `as={NextImage}` to `ProductCard.Image`.
 
 ### Choose buttonVariant by action
 
-Use `cart` for add-to-cart, `detail` for details, `wishlist` for wishlist
-actions, and `custom` only when tokens/API cannot express the action.
+Use `cart` for add-to-cart, `detail` for details, `wishlist` for wishlist actions, and `custom` only when tokens/API cannot express the action.
 
 ## Common Mistakes
 
@@ -68,13 +65,19 @@ actions, and `custom` only when tokens/API cannot express the action.
 Wrong:
 
 ```tsx
-<div className="rounded border p-4"><img /><h3>{name}</h3></div>
+<div className="rounded border p-4">
+  <img />
+  <h3>{name}</h3>
+</div>
 ```
 
 Correct:
 
 ```tsx
-<ProductCard><ProductCard.Image /><ProductCard.Name>{name}</ProductCard.Name></ProductCard>
+<ProductCard>
+  <ProductCard.Image />
+  <ProductCard.Name>{name}</ProductCard.Name>
+</ProductCard>
 ```
 
 Source: libs/ui/src/molecules/product-card.tsx

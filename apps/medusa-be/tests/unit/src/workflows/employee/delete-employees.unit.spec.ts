@@ -120,6 +120,25 @@ type MockStep = {
   ) => Promise<void>
 }
 
+const asMockStep = (candidate: unknown): MockStep => {
+  if (typeof candidate !== "function") {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function"
+    )
+  }
+
+  if (
+    !("compensate" in candidate) ||
+    typeof candidate.compensate !== "function"
+  ) {
+    throw new TypeError(
+      "Expected the mocked workflow step to expose a compensate function"
+    )
+  }
+
+  return candidate as MockStep
+}
+
 const makeCompanyService = (
   overrides: Partial<CompanyService> = {}
 ): CompanyService => ({
@@ -195,9 +214,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("scopes deletion to the route company and clears admin auth metadata", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -243,7 +261,7 @@ describe("deleteEmployeesStep", () => {
       linkService,
     })
 
-    const result = await (deleteEmployeesStep as MockStep)(
+    const result = await asMockStep(deleteEmployeesStep)(
       {
         company_id: "comp_1",
         id: ["emp_1", "emp_2"],
@@ -326,9 +344,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("keeps admin auth metadata when another active admin employee remains", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi
       .fn()
       .mockResolvedValueOnce({
@@ -377,7 +394,7 @@ describe("deleteEmployeesStep", () => {
       linkService,
     })
 
-    const result = await (deleteEmployeesStep as MockStep)(
+    const result = await asMockStep(deleteEmployeesStep)(
       {
         company_id: "comp_1",
         id: "emp_1",
@@ -390,9 +407,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("restores deleted employees and admin metadata on compensation", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi.fn()
     const authService = makeAuthService()
     const companyService = makeCompanyService()
@@ -406,7 +422,7 @@ describe("deleteEmployeesStep", () => {
       linkService,
     })
 
-    await (deleteEmployeesStep as MockStep).compensate(
+    await asMockStep(deleteEmployeesStep).compensate(
       {
         employee_link_delete_input: {
           company: {
@@ -448,9 +464,8 @@ describe("deleteEmployeesStep", () => {
   })
 
   it("throws when an employee is not found for the requested company", async () => {
-    const { deleteEmployeesStep } = await import(
-      "../../../../../src/workflows/employee/steps/delete-employees"
-    )
+    const { deleteEmployeesStep } =
+      await import("../../../../../src/workflows/employee/steps/delete-employees")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     const authService = makeAuthService()
     const companyService = makeCompanyService()
@@ -463,7 +478,7 @@ describe("deleteEmployeesStep", () => {
     })
 
     await expect(
-      (deleteEmployeesStep as MockStep)(
+      asMockStep(deleteEmployeesStep)(
         {
           company_id: "comp_1",
           id: "emp_2",

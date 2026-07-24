@@ -1,10 +1,11 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { Button } from "@ui/atoms/button"
-import { Checkbox } from "@ui/atoms/checkbox"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import Link from "next/link"
 import { useRef, useState } from "react"
+
 import { TextField } from "@/components/forms/fields/text-field"
 import { useLogin } from "@/hooks/use-login"
 import { useAuthToast } from "@/hooks/use-toast"
@@ -83,9 +84,9 @@ export function LoginForm({
     <form
       className="mt-100 flex flex-col gap-100"
       noValidate
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        form.handleSubmit()
+        await form.handleSubmit()
       }}
     >
       <form.Field name="email" validators={loginValidators.email}>
@@ -146,7 +147,7 @@ export function LoginForm({
             <Link
               className="font-medium hover:underline"
               href="/zapomenute-heslo"
-              onClick={toggle}
+              {...(toggle ? { onClick: toggle } : {})}
             >
               Zapomenuté heslo
             </Link>
@@ -155,7 +156,7 @@ export function LoginForm({
             <Link
               className="font-medium hover:underline"
               href="/registrace"
-              onClick={toggle}
+              {...(toggle ? { onClick: toggle } : {})}
             >
               Zaregistrovat se
             </Link>

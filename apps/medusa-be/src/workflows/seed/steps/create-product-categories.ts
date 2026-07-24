@@ -135,11 +135,15 @@ export const createProductCategoriesStep = createStep(
           product_categories: missingProductCategories.map((category) => ({
             name: category.name,
             is_active: category.isActive,
-            description: category.description,
-            handle: category.handle,
-            metadata: category.metadata,
-            rank: category.rank,
-            is_internal: category.isInternal,
+            ...(category.description
+              ? { description: category.description }
+              : {}),
+            ...(category.handle ? { handle: category.handle } : {}),
+            ...(category.metadata ? { metadata: category.metadata } : {}),
+            ...(category.rank === undefined ? {} : { rank: category.rank }),
+            ...(category.isInternal === undefined
+              ? {}
+              : { is_internal: category.isInternal }),
           })),
         },
       })
@@ -162,11 +166,21 @@ export const createProductCategoriesStep = createStep(
               update: {
                 name: updateProductCategory.name,
                 is_active: updateProductCategory.is_active,
-                description: updateProductCategory.description,
-                handle: updateProductCategory.handle,
-                metadata: updateProductCategory.metadata,
-                rank: updateProductCategory.rank,
-                is_internal: updateProductCategory.is_internal,
+                ...(updateProductCategory.description
+                  ? { description: updateProductCategory.description }
+                  : {}),
+                ...(updateProductCategory.handle
+                  ? { handle: updateProductCategory.handle }
+                  : {}),
+                ...(updateProductCategory.metadata
+                  ? { metadata: updateProductCategory.metadata }
+                  : {}),
+                ...(updateProductCategory.rank === undefined
+                  ? {}
+                  : { rank: updateProductCategory.rank }),
+                ...(updateProductCategory.is_internal === undefined
+                  ? {}
+                  : { is_internal: updateProductCategory.is_internal }),
               },
             },
           })

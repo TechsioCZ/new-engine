@@ -14,6 +14,15 @@ import {
   MANUAL_ORDER_DISCOUNT_CODE,
 } from "../../../../../../../../src/utils/order-commercial-values"
 
+function getRequired<T>(values: readonly T[], index: number): T {
+  const value = values[index]
+  expect(value).toBeDefined()
+  if (value === undefined) {
+    throw new Error(`Expected value at index ${index}`)
+  }
+  return value
+}
+
 function createMockOrder(
   overrides: Partial<CommercialValuesOrder> = {}
 ): CommercialValuesOrder {
@@ -36,7 +45,7 @@ function createMockOrder(
   return {
     ...baseOrder,
     ...overrides,
-    items: overrides.items ?? baseOrder.items,
+    ...(overrides.items === undefined ? {} : { items: overrides.items }),
   }
 }
 
@@ -72,9 +81,11 @@ describe("commercial values route utils", () => {
     )
 
     expect(snapshot.totals.current_total).toBe(19.49)
-    expect(snapshot.items[0].quantity).toBe(1.5)
-    expect(snapshot.items[0].unit_price).toBe(19.99)
-    expect(snapshot.items[0].existing_adjustments[0].amount).toBe(0.5)
+    expect(getRequired(snapshot.items, 0).quantity).toBe(1.5)
+    expect(getRequired(snapshot.items, 0).unit_price).toBe(19.99)
+    expect(
+      getRequired(getRequired(snapshot.items, 0).existing_adjustments, 0).amount
+    ).toBe(0.5)
   })
 
   it("includes line item display metadata in snapshots", () => {
@@ -97,7 +108,7 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(snapshot.items[0]).toMatchObject({
+    expect(getRequired(snapshot.items, 0)).toMatchObject({
       item_id: "item_1",
       product_title: "Premium Hoodie",
       subtitle: "Cotton fleece",
@@ -200,7 +211,7 @@ describe("commercial values route utils", () => {
     expect(snapshot.currency_code).toBe("czk")
     expect(snapshot.editable).toBe(true)
     expect(snapshot.expected_order_version).toBe(1)
-    expect(snapshot.items[0]).toMatchObject({
+    expect(getRequired(snapshot.items, 0)).toMatchObject({
       item_id: "item_1",
       quantity: 2,
       unit_price: 1000,
@@ -223,8 +234,8 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(snapshot.items[0].unit_price).toBe(250)
-    expect(snapshot.items[0].original_unit_price).toBe(250)
+    expect(getRequired(snapshot.items, 0).unit_price).toBe(250)
+    expect(getRequired(snapshot.items, 0).original_unit_price).toBe(250)
   })
 
   it("reads quantity and unit price from Medusa item detail fallback fields", () => {
@@ -244,8 +255,8 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(snapshot.items[0].quantity).toBe(2)
-    expect(snapshot.items[0].unit_price).toBe(250)
+    expect(getRequired(snapshot.items, 0).quantity).toBe(2)
+    expect(getRequired(snapshot.items, 0).unit_price).toBe(250)
   })
 
   it("reads Medusa raw amount objects when normalized fields are missing", () => {
@@ -263,8 +274,8 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(snapshot.items[0].quantity).toBe(2)
-    expect(snapshot.items[0].unit_price).toBe(250)
+    expect(getRequired(snapshot.items, 0).quantity).toBe(2)
+    expect(getRequired(snapshot.items, 0).unit_price).toBe(250)
   })
 
   it("reads Medusa BigNumber-like amount objects from query graph", () => {
@@ -282,8 +293,8 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(snapshot.items[0].quantity).toBe(2)
-    expect(snapshot.items[0].unit_price).toBe(250)
+    expect(getRequired(snapshot.items, 0).quantity).toBe(2)
+    expect(getRequired(snapshot.items, 0).unit_price).toBe(250)
   })
 
   it("uses after-discount item subtotal for commercial preview totals", () => {
@@ -312,8 +323,8 @@ describe("commercial values route utils", () => {
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
-    expect(preview.items[0].final_line_total).toBe(90)
-    expect(preview.items[0].tax_total).toBe(18)
+    expect(getRequired(preview.items, 0).final_line_total).toBe(90)
+    expect(getRequired(preview.items, 0).tax_total).toBe(18)
     expect(preview.new_total).toBe(108)
     expect(preview.delta).toBe(0)
   })
@@ -351,10 +362,10 @@ describe("commercial values route utils", () => {
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
-    expect(preview.items[0].preserved_adjustment_amount).toBe(150)
-    expect(preview.items[0].final_line_total).toBe(850)
-    expect(preview.items[1].preserved_adjustment_amount).toBe(20)
-    expect(preview.items[1].final_line_total).toBe(580)
+    expect(getRequired(preview.items, 0).preserved_adjustment_amount).toBe(150)
+    expect(getRequired(preview.items, 0).final_line_total).toBe(850)
+    expect(getRequired(preview.items, 1).preserved_adjustment_amount).toBe(20)
+    expect(getRequired(preview.items, 1).final_line_total).toBe(580)
     expect(preview.new_total).toBe(1430)
     expect(preview.delta).toBe(100)
   })
@@ -375,7 +386,7 @@ describe("commercial values route utils", () => {
     })
     const snapshot = toCommercialValuesSnapshot(order)
 
-    expect(snapshot.shipping_methods[0]).toMatchObject({
+    expect(getRequired(snapshot.shipping_methods, 0)).toMatchObject({
       current_subtotal: 100,
       current_tax_total: 20,
       name: "Express",
@@ -395,15 +406,15 @@ describe("commercial values route utils", () => {
     const preview = calculateCommercialValuesPreview(calculationInput)
 
     expect(preview.shipping_discount_total).toBe(25)
-    expect(preview.shipping_methods[0].final_total).toBeCloseTo(
+    expect(getRequired(preview.shipping_methods, 0).final_total).toBeCloseTo(
       69.166_666_666_666_67
     )
-    expect(preview.shipping_methods[0]).toMatchObject({
+    expect(getRequired(preview.shipping_methods, 0)).toMatchObject({
       final_total_with_tax: 83,
       manual_shipping_discount_amount: 25,
       shipping_method_id: "ship_1",
     })
-    expect(preview.shipping_methods[0].tax_total).toBeCloseTo(
+    expect(getRequired(preview.shipping_methods, 0).tax_total).toBeCloseTo(
       13.833_333_333_333_329
     )
     expect(preview.new_total).toBe(1083)
@@ -448,8 +459,10 @@ describe("commercial values route utils", () => {
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
-    expect(preview.items[0].final_line_total_with_tax).toBe(8.49)
-    expect(preview.shipping_methods[0].final_total_with_tax).toBeCloseTo(9)
+    expect(getRequired(preview.items, 0).final_line_total_with_tax).toBe(8.49)
+    expect(
+      getRequired(preview.shipping_methods, 0).final_total_with_tax
+    ).toBeCloseTo(9)
     expect(preview.new_total).toBeCloseTo(17.49)
   })
 
@@ -504,9 +517,11 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(itemPreview.items[0].final_line_total_with_tax).toBe(0)
+    expect(getRequired(itemPreview.items, 0).final_line_total_with_tax).toBe(0)
     expect(itemPreview.new_total).toBeCloseTo(10)
-    expect(shippingPreview.shipping_methods[0].final_total_with_tax).toBe(0)
+    expect(
+      getRequired(shippingPreview.shipping_methods, 0).final_total_with_tax
+    ).toBe(0)
     expect(shippingPreview.new_total).toBeCloseTo(8.49)
   })
 
@@ -561,7 +576,10 @@ describe("commercial values route utils", () => {
     expect(snapshot.totals.current_total).toBe(1)
     expect(snapshot.totals.original_total).toBeCloseTo(18.49)
     expect(
-      snapshot.shipping_methods[0].existing_adjustments[0].amount
+      getRequired(
+        getRequired(snapshot.shipping_methods, 0).existing_adjustments,
+        0
+      ).amount
     ).toBeCloseTo(9)
     expect(preview.new_total).toBeCloseTo(1)
   })
@@ -589,7 +607,10 @@ describe("commercial values route utils", () => {
       })
     )
 
-    expect(snapshot.items[0].existing_adjustments[0].discount_intent).toEqual({
+    expect(
+      getRequired(getRequired(snapshot.items, 0).existing_adjustments, 0)
+        .discount_intent
+    ).toEqual({
       type: "percentage",
       value_bps: 9000,
     })
@@ -659,11 +680,14 @@ describe("commercial values route utils", () => {
 
     expect(snapshot.totals.current_total).toBe(-1.07)
     expect(snapshot.totals.original_total).toBeCloseTo(18.49)
-    expect(snapshot.shipping_methods[0].current_tax_total).toBeCloseTo(
-      1.869_918_699_186_991_8
-    )
     expect(
-      snapshot.shipping_methods[0].existing_adjustments[0].amount
+      getRequired(snapshot.shipping_methods, 0).current_tax_total
+    ).toBeCloseTo(1.869_918_699_186_991_8)
+    expect(
+      getRequired(
+        getRequired(snapshot.shipping_methods, 0).existing_adjustments,
+        0
+      ).amount
     ).toBeCloseTo(11.07)
     expect(preview.new_total).toBeCloseTo(1)
   })
@@ -690,8 +714,10 @@ describe("commercial values route utils", () => {
 
     const preview = calculateCommercialValuesPreview(calculationInput)
 
-    expect(preview.items[0].manual_order_discount_amount).toBe(100)
-    expect(preview.shipping_methods[0].manual_order_discount_amount).toBe(50)
+    expect(getRequired(preview.items, 0).manual_order_discount_amount).toBe(100)
+    expect(
+      getRequired(preview.shipping_methods, 0).manual_order_discount_amount
+    ).toBe(50)
     expect(preview.new_total).toBe(1350)
   })
 

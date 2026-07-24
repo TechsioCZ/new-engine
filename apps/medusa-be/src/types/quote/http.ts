@@ -1,8 +1,5 @@
-import type {
-  AdminOrderPreview,
-  FindParams,
-  PaginatedResponse,
-} from "@medusajs/types"
+import type { FindParams, PaginatedResponse } from "@medusajs/types"
+
 import type { QueryQuote } from "./query"
 import type { ModuleQuoteFilters } from "./service"
 
@@ -14,10 +11,6 @@ export interface QuoteFilterParams extends FindParams, ModuleQuoteFilters {}
 export type AdminQuoteResponse = {
   quote: QueryQuote
 }
-
-export type AdminQuotesResponse = PaginatedResponse<{
-  quotes: QueryQuote[]
-}>
 
 export type AdminCreateQuoteMessage = {
   text: string
@@ -33,18 +26,3 @@ export type StoreQuoteResponse = {
 export type StoreQuotesResponse = PaginatedResponse<{
   quotes: QueryQuote[]
 }>
-
-export type StoreQuotePreviewResponse = {
-  quote: QueryQuote & {
-    order_preview: AdminOrderPreview
-  }
-}
-
-export type StoreCreateQuote = {
-  cart_id: string
-}
-
-export type StoreCreateQuoteMessage = {
-  text: string
-  item_id?: string
-}

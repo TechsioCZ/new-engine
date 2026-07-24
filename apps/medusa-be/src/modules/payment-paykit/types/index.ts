@@ -33,25 +33,44 @@ export type PaykitPaymentStatus = LooseAutoComplete<
 >
 
 export type PaykitPayment = Partial<
-  Omit<Payment, "amount" | "currency" | "metadata" | "status">
+  Omit<
+    Payment,
+    | "amount"
+    | "amount_paid"
+    | "checkout_url"
+    | "currency"
+    | "currency_code"
+    | "customer"
+    | "gw_url"
+    | "id"
+    | "item_id"
+    | "metadata"
+    | "payment_intent_id"
+    | "payment_url"
+    | "paymentUrl"
+    | "requires_action"
+    | "state"
+    | "status"
+    | "url"
+  >
 > & {
-  id?: string
-  amount?: BigNumberInput
-  amount_paid?: BigNumberInput
-  currency?: string | null
-  currency_code?: string | null
-  customer?: Partial<Payee> | null
-  item_id?: string | null
-  status?: PaykitPaymentStatus
-  state?: PaykitPaymentStatus
-  requires_action?: boolean
-  payment_url?: string | null
-  paymentUrl?: string | null
-  checkout_url?: string | null
-  gw_url?: string | null
-  url?: string | null
-  payment_intent_id?: string | null
-  metadata?: Record<string, unknown> | null
+  id?: string | undefined
+  amount?: BigNumberInput | undefined
+  amount_paid?: BigNumberInput | undefined
+  currency?: string | null | undefined
+  currency_code?: string | null | undefined
+  customer?: Partial<Payee> | null | undefined
+  item_id?: string | null | undefined
+  status?: PaykitPaymentStatus | undefined
+  state?: PaykitPaymentStatus | undefined
+  requires_action?: boolean | undefined
+  payment_url?: string | null | undefined
+  paymentUrl?: string | null | undefined
+  checkout_url?: string | null | undefined
+  gw_url?: string | null | undefined
+  url?: string | null | undefined
+  payment_intent_id?: string | null | undefined
+  metadata?: Record<string, unknown> | null | undefined
 }
 
 export type PaykitCustomer = Partial<Customer>
@@ -183,13 +202,9 @@ type PaykitSdkWebhookEvent = WebhookEventPayload<Record<string, unknown>>
 export type PaykitWebhookEvent = Partial<
   Omit<PaykitSdkWebhookEvent, "data" | "type">
 > & {
-  type?: WebhookEventPayload["type"] | string
+  type?: WebhookEventPayload["type"]
   is_raw?: WebhookEventPayload["is_raw"]
-  data?:
-    | PaykitSdkWebhookEvent["data"]
-    | PaykitPayment
-    | { object?: PaykitPayment | null; payment?: PaykitPayment | null }
-    | null
+  data?: unknown
   payment?: PaykitPayment | null
   metadata?: Record<string, unknown> | null
   amount?: BigNumberInput

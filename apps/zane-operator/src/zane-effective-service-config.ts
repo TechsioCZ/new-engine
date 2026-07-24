@@ -6,7 +6,7 @@ import type {
 
 type PendingFieldChange = {
   field?: string
-  type?: "ADD" | "UPDATE" | "DELETE" | string
+  type?: string
   new_value?: Record<string, unknown> | null
 }
 
@@ -35,26 +35,26 @@ function getLastPendingFieldChange(
   return matchingChanges[matchingChanges.length - 1] ?? null
 }
 
-function normalizeString(
-  value: unknown
-): string | null {
+function normalizeString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null
 }
 
-function normalizeHealthcheck(
-  value: unknown
-): ZaneServiceHealthcheck | null {
+function normalizeHealthcheck(value: unknown): ZaneServiceHealthcheck | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null
   }
 
   const record = value as Record<string, unknown>
-  const type = normalizeString(record.type)
-  const path = normalizeString(record.value)
+  const type = normalizeString(record["type"])
+  const path = normalizeString(record["value"])
   const timeoutSeconds =
-    typeof record.timeout_seconds === "number" ? record.timeout_seconds : null
+    typeof record["timeout_seconds"] === "number"
+      ? record["timeout_seconds"]
+      : null
   const intervalSeconds =
-    typeof record.interval_seconds === "number" ? record.interval_seconds : null
+    typeof record["interval_seconds"] === "number"
+      ? record["interval_seconds"]
+      : null
 
   if (!type || !path || timeoutSeconds === null || intervalSeconds === null) {
     return null
@@ -66,7 +66,9 @@ function normalizeHealthcheck(
     timeout_seconds: timeoutSeconds,
     interval_seconds: intervalSeconds,
     associated_port:
-      typeof record.associated_port === "number" ? record.associated_port : null,
+      typeof record["associated_port"] === "number"
+        ? record["associated_port"]
+        : null,
   }
 }
 
@@ -79,22 +81,24 @@ function normalizeResourceLimits(
 
   const record = value as Record<string, unknown>
   const memory =
-    record.memory && typeof record.memory === "object" && !Array.isArray(record.memory)
-      ? (record.memory as { unit?: string; value?: number | string | null })
+    record["memory"] &&
+    typeof record["memory"] === "object" &&
+    !Array.isArray(record["memory"])
+      ? (record["memory"] as { unit?: string; value?: number | string | null })
       : null
 
   return {
     cpus:
-      typeof record.cpus === "number" || typeof record.cpus === "string"
-        ? record.cpus
+      typeof record["cpus"] === "number" || typeof record["cpus"] === "string"
+        ? record["cpus"]
         : null,
     memory: memory
       ? {
-          unit: typeof memory.unit === "string" ? memory.unit : undefined,
-          value:
-            typeof memory.value === "number" || typeof memory.value === "string"
-              ? memory.value
-              : undefined,
+          ...(typeof memory.unit === "string" ? { unit: memory.unit } : {}),
+          ...(typeof memory.value === "number" ||
+          typeof memory.value === "string"
+            ? { value: memory.value }
+            : {}),
         }
       : null,
   }
@@ -103,7 +107,11 @@ function normalizeResourceLimits(
 export function computeEffectiveGitSource(
   serviceDetails: Pick<
     ZaneServiceDetails,
-    "repository_url" | "branch_name" | "commit_sha" | "git_app" | "unapplied_changes"
+    | "repository_url"
+    | "branch_name"
+    | "commit_sha"
+    | "git_app"
+    | "unapplied_changes"
   >
 ): EffectiveGitSource {
   const pending = getLastPendingFieldChange(serviceDetails, "git_source")
@@ -111,10 +119,10 @@ export function computeEffectiveGitSource(
 
   if (pendingValue) {
     return {
-      repository_url: normalizeString(pendingValue.repository_url),
-      branch_name: normalizeString(pendingValue.branch_name),
-      commit_sha: normalizeString(pendingValue.commit_sha),
-      git_app_id: normalizeString(pendingValue.git_app_id),
+      repository_url: normalizeString(pendingValue["repository_url"]),
+      branch_name: normalizeString(pendingValue["branch_name"]),
+      commit_sha: normalizeString(pendingValue["commit_sha"]),
+      git_app_id: normalizeString(pendingValue["git_app_id"]),
     }
   }
 
@@ -137,10 +145,10 @@ export function computeEffectiveBuilder(
 
   if (pendingValue) {
     return {
-      builder: normalizeString(pendingValue.builder),
-      dockerfile_path: normalizeString(pendingValue.dockerfile_path),
-      build_context_dir: normalizeString(pendingValue.build_context_dir),
-      build_stage_target: normalizeString(pendingValue.build_stage_target),
+      builder: normalizeString(pendingValue["builder"]),
+      dockerfile_path: normalizeString(pendingValue["dockerfile_path"]),
+      build_context_dir: normalizeString(pendingValue["build_context_dir"]),
+      build_stage_target: normalizeString(pendingValue["build_stage_target"]),
     }
   }
 
@@ -168,7 +176,10 @@ export function computeEffectiveHealthcheck(
 }
 
 export function computeEffectiveResourceLimits(
-  serviceDetails: Pick<ZaneServiceDetails, "resource_limits" | "unapplied_changes">
+  serviceDetails: Pick<
+    ZaneServiceDetails,
+    "resource_limits" | "unapplied_changes"
+  >
 ): ZaneServiceResourceLimits | null {
   const pending = getLastPendingFieldChange(serviceDetails, "resource_limits")
   return pending?.new_value

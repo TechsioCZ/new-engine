@@ -1,5 +1,6 @@
 import type { ModuleExports } from "@medusajs/framework/types"
 import { Module } from "@medusajs/framework/utils"
+
 import { SymmyWebhookConfigModuleService } from "./service"
 
 export const SYMMY_WEBHOOK_CONFIG_MODULE = "symmy_webhook_config"

@@ -3,7 +3,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { Suspense } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
+
 import { PrefetchManager } from "./prefetch-manager"
 
 function createQueryClient() {
@@ -41,7 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       {children}
       <Toaster />
       {/* React Query DevTools - only in development */}
-      {process.env.NODE_ENV === "development" && (
+      {process.env["NODE_ENV"] === "development" && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}
     </QueryClientProvider>

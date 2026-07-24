@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+
 import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
@@ -77,13 +78,16 @@ const parseRegisterBody = async (
     }
   }
 
+  const firstName = asStringOrUndefined(body.first_name)
+  const lastName = asStringOrUndefined(body.last_name)
+
   return {
     error: null,
     value: {
       email,
       password,
-      firstName: asStringOrUndefined(body.first_name),
-      lastName: asStringOrUndefined(body.last_name),
+      ...(firstName === undefined ? {} : { firstName }),
+      ...(lastName === undefined ? {} : { lastName }),
       wholesale: wholesale.value,
     } satisfies ParsedRegisterPayload,
   }
@@ -115,8 +119,8 @@ export async function POST(request: Request) {
       loginToken: loginResult.token,
       payload: {
         email,
-        firstName,
-        lastName,
+        ...(firstName === undefined ? {} : { firstName }),
+        ...(lastName === undefined ? {} : { lastName }),
         wholesale,
       },
     })

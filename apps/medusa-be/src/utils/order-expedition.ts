@@ -1,4 +1,5 @@
 import type { Query } from "@medusajs/framework/types"
+
 import {
   getManualOrderBusinessStatusId,
   type ManualOrderBusinessStatusId,
@@ -48,7 +49,7 @@ export type OrderExpeditionCarrierOption = {
   value: OrderExpeditionCarrierKey
 }
 
-export type OrderExpeditionAddress = {
+type OrderExpeditionAddress = {
   first_name?: string | null
   last_name?: string | null
   company?: string | null
@@ -61,14 +62,14 @@ export type OrderExpeditionAddress = {
   phone?: string | null
 }
 
-export type OrderExpeditionShippingMethod = {
+type OrderExpeditionShippingMethod = {
   id?: string | null
   name?: string | null
   shipping_option_id?: string | null
   data?: Record<string, unknown> | null
 }
 
-export type OrderExpeditionLineItem = {
+type OrderExpeditionLineItem = {
   id?: string | null
   title?: string | null
   subtitle?: string | null
@@ -86,11 +87,11 @@ export type OrderExpeditionLineItem = {
   variant_title?: string | null
 }
 
-export type OrderExpeditionPayment = {
+type OrderExpeditionPayment = {
   provider_id?: string | null
 }
 
-export type OrderExpeditionPaymentCollection = {
+type OrderExpeditionPaymentCollection = {
   status?: string | null
   payments?: OrderExpeditionPayment[] | null
 }
@@ -110,7 +111,7 @@ type OrderExpeditionSummaryTotals = {
   raw_original_order_total?: OrderExpeditionRawAmount | null
 }
 
-export type OrderExpeditionSummary = {
+type OrderExpeditionSummary = {
   current_order_total?: number | string | null
   original_order_total?: number | string | null
   raw_current_order_total?: OrderExpeditionRawAmount | null
@@ -119,7 +120,7 @@ export type OrderExpeditionSummary = {
   version?: number | string | null
 }
 
-export type OrderExpeditionFulfillment = {
+type OrderExpeditionFulfillment = {
   id?: string | null
   canceled_at?: string | null
   data?: Record<string, unknown> | null
@@ -128,7 +129,7 @@ export type OrderExpeditionFulfillment = {
   shipped_at?: Date | string | null
 }
 
-export type OrderExpeditionCustomer = {
+type OrderExpeditionCustomer = {
   id?: string | null
   first_name?: string | null
   last_name?: string | null
@@ -349,9 +350,15 @@ export function resolveOrderExpeditionCarrier(
         return {
           label: matcher.label,
           value: key,
-          shipping_method_id: shippingMethod.id ?? undefined,
-          shipping_method_name: shippingMethod.name ?? undefined,
-          shipping_option_id: shippingMethod.shipping_option_id ?? undefined,
+          ...(shippingMethod.id
+            ? { shipping_method_id: shippingMethod.id }
+            : {}),
+          ...(shippingMethod.name
+            ? { shipping_method_name: shippingMethod.name }
+            : {}),
+          ...(shippingMethod.shipping_option_id
+            ? { shipping_option_id: shippingMethod.shipping_option_id }
+            : {}),
         }
       }
     }
@@ -371,7 +378,7 @@ export function orderMatchesExpeditionCarrier(
   return resolveOrderExpeditionCarrier(order).value === carrier
 }
 
-export function hasOrderExpeditionActiveFulfillment(
+function hasOrderExpeditionActiveFulfillment(
   order: Pick<
     OrderExpeditionTransitionOrder,
     "fulfillments" | "has_active_fulfillment"
@@ -452,17 +459,23 @@ export function toOrderExpeditionDto(
       order as OrderBusinessStatusInput
     ),
     created_at: normalizeDate(order.created_at),
-    currency_code: order.currency_code,
-    display_id: order.display_id,
+    ...(order.currency_code === undefined
+      ? {}
+      : { currency_code: order.currency_code }),
+    ...(order.display_id === undefined ? {} : { display_id: order.display_id }),
     order_display_id: getOrderExpeditionDisplayId(order),
     customer: getOrderExpeditionCustomerName(order),
     email: order.email ?? order.customer?.email ?? null,
     delivery_address: formatOrderExpeditionAddress(order.shipping_address),
     carrier: resolveOrderExpeditionCarrier(order),
     payment_method: getOrderExpeditionPaymentMethod(order),
-    payment_status: order.payment_status,
-    fulfillment_status: order.fulfillment_status,
-    status: order.status,
+    ...(order.payment_status === undefined
+      ? {}
+      : { payment_status: order.payment_status }),
+    ...(order.fulfillment_status === undefined
+      ? {}
+      : { fulfillment_status: order.fulfillment_status }),
+    ...(order.status === undefined ? {} : { status: order.status }),
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
     packeta_barcode: getOrderExpeditionPacketaBarcode(order.fulfillments),
     total: getOrderExpeditionTotal(order),
@@ -505,7 +518,7 @@ export function orderOrdersByRequestedIds<T extends { id: string }>(
     .filter((order): order is T => Boolean(order))
 }
 
-export async function fetchOrderExpeditionOrdersByIds(
+async function fetchOrderExpeditionOrdersByIds(
   query: Query,
   orderIds: string[]
 ) {
@@ -576,9 +589,9 @@ function getOrderExpeditionPacketaBarcode(
       fulfillment.provider_id?.toLowerCase().includes("packeta") &&
       !fulfillment.canceled_at
   )
-  const barcode = packetaFulfillment?.data?.barcode
-  const barcodeText = packetaFulfillment?.data?.barcodeText
-  const packetId = packetaFulfillment?.data?.packet_id
+  const barcode = packetaFulfillment?.data?.["barcode"]
+  const barcodeText = packetaFulfillment?.data?.["barcodeText"]
+  const packetId = packetaFulfillment?.data?.["packet_id"]
 
   if (typeof barcode === "string" && barcode.trim()) {
     return barcode.trim()
@@ -728,17 +741,19 @@ function toOrderExpeditionItemDto(
   )
 
   return {
-    id: item.id,
+    ...(item.id === undefined ? {} : { id: item.id }),
     title: item.title || item.subtitle || item.id || "Untitled item",
     quantity,
-    sku: item.variant_sku,
-    thumbnail: item.thumbnail,
+    ...(item.variant_sku === undefined ? {} : { sku: item.variant_sku }),
+    ...(item.thumbnail === undefined ? {} : { thumbnail: item.thumbnail }),
     unit_price:
       normalizeOrderExpeditionAmount(item.unit_price) ??
       normalizeOrderExpeditionAmount(item.raw_unit_price) ??
       null,
-    variant: item.variant_title,
-    variant_id: item.variant_id,
+    ...(item.variant_title === undefined
+      ? {}
+      : { variant: item.variant_title }),
+    ...(item.variant_id === undefined ? {} : { variant_id: item.variant_id }),
   }
 }
 
@@ -814,7 +829,11 @@ function flattenSearchParts(value: unknown): string[] {
     return []
   }
 
-  if (["string", "number", "boolean"].includes(typeof value)) {
+  if (typeof value === "string") {
+    return [value]
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
     return [String(value)]
   }
 

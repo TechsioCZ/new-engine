@@ -14,7 +14,7 @@ import { executeVerify } from "./verify.js"
 export type DeploymentLike = {
   service_id: string
   service_slug: string
-  service_type?: string | null
+  service_type?: string | null | undefined
   deployment_hash: string
   status: string
 }
@@ -142,10 +142,10 @@ function isHealthyCurrentCommitMatch(
 ): boolean {
   return Boolean(
     target.current_production_deployment &&
-      target.current_production_deployment.status.toUpperCase() === "HEALTHY" &&
-      (target.current_production_deployment.commit_sha ?? "") ===
-        desiredCommitSha &&
-      currentEnvMatches(target.current_production_deployment.env, expectedEnv)
+    target.current_production_deployment.status.toUpperCase() === "HEALTHY" &&
+    (target.current_production_deployment.commit_sha ?? "") ===
+      desiredCommitSha &&
+    currentEnvMatches(target.current_production_deployment.env, expectedEnv)
   )
 }
 
@@ -156,8 +156,8 @@ function isReusableActiveDeployment(
 ): boolean {
   return Boolean(
     target.active_deployment &&
-      (target.active_deployment.commit_sha ?? "") === desiredCommitSha &&
-      currentEnvMatches(target.active_deployment.env, expectedEnv)
+    (target.active_deployment.commit_sha ?? "") === desiredCommitSha &&
+    currentEnvMatches(target.active_deployment.env, expectedEnv)
   )
 }
 
@@ -490,15 +490,20 @@ export async function waitForDeployments(
     }
 
     await new Promise<void>((resolve) => {
-      const timeout = setTimeout(() => {
+      let settled = false
+      const settle = (): void => {
+        if (settled) {
+          return
+        }
+        settled = true
         interruptListeners.delete(onInterrupt)
         resolve()
-      }, input.pollIntervalSeconds * 1000)
+      }
+      const timeout = setTimeout(settle, input.pollIntervalSeconds * 1000)
 
       const onInterrupt = (): void => {
         clearTimeout(timeout)
-        interruptListeners.delete(onInterrupt)
-        resolve()
+        settle()
       }
 
       interruptListeners.add(onInterrupt)

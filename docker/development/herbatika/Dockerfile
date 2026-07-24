@@ -2,6 +2,10 @@ FROM node:24-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# The minimumReleaseAge supply-chain check fetches registry metadata per
+# lockfile entry; default fetch budgets abort it on slow networks.
+ENV pnpm_config_fetch_timeout=180000
+ENV pnpm_config_fetch_retries=5
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN apt-get update && apt-get install -y curl --no-install-recommends && \
@@ -19,6 +23,7 @@ RUN corepack install && rm -rf /tmp/corepack
 WORKDIR /var/www
 CMD ["sh", "-lc", "\
     [ -x apps/herbatika/node_modules/.bin/next ] || CI=true pnpm install --frozen-lockfile --prefer-offline --filter=herbatika...; \
+    pnpm --filter=@techsio/std build; \
     pnpm --filter=@techsio/storefront-data build; \
     pnpm --filter=@techsio/ui-kit build; \
     pnpm --filter=herbatika exec next dev --turbopack --hostname 0.0.0.0 --port 3000 \
@@ -34,6 +39,7 @@ RUN corepack install
 
 COPY tsconfig.base.json tsconfig.json nx.json ./
 COPY apps/herbatika ./apps/herbatika
+COPY libs/std ./libs/std
 COPY libs/ui ./libs/ui
 COPY libs/storefront-data ./libs/storefront-data
 
@@ -54,6 +60,7 @@ ENV NEXT_PUBLIC_PAYLOAD_BASE_URL=${NEXT_PUBLIC_PAYLOAD_BASE_URL}
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatika...
 
+RUN pnpm --filter=@techsio/std build
 RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 

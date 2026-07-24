@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { listPriceListsWorkflow } from "../../../../../workflows/price-lists-batch/workflow"
 
 const parseQueryNumber = (value: unknown) => {
@@ -75,12 +76,12 @@ const parseQueryNumber = (value: unknown) => {
  * x-events: []
  */
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  const limit = parseQueryNumber(req.query.limit)
-  const offset = parseQueryNumber(req.query.offset)
+  const limit = parseQueryNumber(req.query["limit"])
+  const offset = parseQueryNumber(req.query["offset"])
 
   if (
-    (req.query.limit !== undefined && limit === undefined) ||
-    (req.query.offset !== undefined && offset === undefined)
+    (req.query["limit"] !== undefined && limit === undefined) ||
+    (req.query["offset"] !== undefined && offset === undefined)
   ) {
     res.status(400).json({
       error: {
@@ -93,7 +94,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 
   const { result } = await listPriceListsWorkflow(req.scope).run({
     input: {
-      code: typeof req.query.code === "string" ? req.query.code : undefined,
+      code:
+        typeof req.query["code"] === "string" ? req.query["code"] : undefined,
       limit: limit ?? 50,
       offset: offset ?? 0,
     },

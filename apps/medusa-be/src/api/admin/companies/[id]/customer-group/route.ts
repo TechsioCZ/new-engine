@@ -2,7 +2,11 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+
 import { addCompanyToCustomerGroupWorkflow } from "../../../../../workflows/company/workflows/"
 import type { AdminAddCompanyToCustomerGroupType } from "../../validators"
 
@@ -12,6 +16,13 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
   const { group_id } = req.validatedBody
 
   await addCompanyToCustomerGroupWorkflow.run({

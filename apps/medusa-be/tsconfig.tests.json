@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "exactOptionalPropertyTypes": false,
+    "noImplicitAny": false,
+    "noImplicitOverride": false,
+    "noImplicitReturns": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "noUncheckedIndexedAccess": false,
+    "strictFunctionTypes": false,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "src/admin/vite-env.d.ts",
+    "**/__tests__/**/*.ts",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "tests/**/*.ts",
+    "integration-tests/**/*.ts",
+    "e2e-tests/**/*.ts",
+    "playwright.*.config.ts"
+  ],
+  "exclude": ["node_modules", ".medusa/**", "src/**/migrations/**"]
+}

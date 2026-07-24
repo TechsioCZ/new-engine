@@ -9,25 +9,25 @@ export const queryKeys = {
     all: () => [...queryKeys.all, "products"] as const,
     lists: () => [...queryKeys.products.all(), "list"] as const,
     list: (params?: {
-      page?: number
-      limit?: number
-      filters?: any // Flexible to accommodate various filter types
-      sort?: string
-      fields?: string
-      q?: string
-      category?: string | string[]
-      region_id?: string
+      page?: number | undefined
+      limit?: number | undefined
+      filters?: unknown
+      sort?: string | undefined
+      fields?: string | undefined
+      q?: string | undefined
+      category?: string | string[] | undefined
+      region_id?: string | undefined
     }) => [...queryKeys.products.lists(), params || {}] as const,
     infinite: (params?: {
-      page?: number
-      pageRange?: string
-      pageRangeStart?: number
-      limit?: number
-      filters?: any
-      sort?: string
-      q?: string
-      category?: string | string[]
-      region_id?: string
+      page?: number | undefined
+      pageRange?: string | undefined
+      pageRangeStart?: number | undefined
+      limit?: number | undefined
+      filters?: unknown
+      sort?: string | undefined
+      q?: string | undefined
+      category?: string | string[] | undefined
+      region_id?: string | undefined
     }) => [...queryKeys.products.all(), "infinite", params || {}] as const,
     detail: (handle: string, region_id?: string) =>
       [...queryKeys.products.all(), "detail", handle, region_id] as const,

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import { FLAG_CONFIG, type SupportedFlagCode } from "./product-card.constants"
 import { asBoolean, asRecord } from "./product-card.parsers"
 import type { ProductFlagState } from "./product-card.types"
@@ -27,7 +28,7 @@ export const resolveFlags = (
   hasDiscount: boolean
 ): ProductFlagState[] => {
   const metadata = asRecord(product.metadata)
-  const flags = metadata?.flags
+  const flags = metadata?.["flags"]
 
   if (!Array.isArray(flags)) {
     return hasDiscount ? [buildActionFlag()] : []
@@ -42,8 +43,8 @@ export const resolveFlags = (
       continue
     }
 
-    const code = resolveSupportedFlagCode(flagRecord.code)
-    const active = asBoolean(flagRecord.active)
+    const code = resolveSupportedFlagCode(flagRecord["code"])
+    const active = asBoolean(flagRecord["active"])
 
     if (!(code && isFlagActive(code, active, hasDiscount))) {
       continue

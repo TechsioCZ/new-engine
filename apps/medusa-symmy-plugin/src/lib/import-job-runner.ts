@@ -4,6 +4,7 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import {
   SYMMY_IMPORT_JOB_MODULE,
   type SymmyImportJobDTO,

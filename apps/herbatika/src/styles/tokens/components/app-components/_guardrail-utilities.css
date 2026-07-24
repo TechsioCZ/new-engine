@@ -1,0 +1,186 @@
+@theme static {
+  --container-checkout-status: 42rem;
+  --container-product-variant: 20rem;
+  --container-account-popover: 22rem;
+  --container-cart-popover: 27rem;
+  --container-popover-viewport: calc(100vw - var(--spacing-700));
+
+  --height-form-control-lg: 3rem;
+  --height-header-submenu: calc(100vh - 8rem);
+  --height-product-gallery-sm: 25rem;
+  --height-product-gallery-lg: 37.5rem;
+  --size-cart-preview-image: 4rem;
+  --size-product-detail-thumbnail: 4.5rem;
+  --size-product-gallery: 25.5rem;
+  --width-cart-quantity-compact: 5rem;
+  --width-cart-quantity: 6rem;
+  --width-cart-trigger: 9rem;
+  --width-skeleton-price: 7rem;
+  --width-skeleton-title: 10rem;
+  --width-skeleton-label: 3rem;
+
+  --radius-selection-indicator: 3px;
+  --spacing-cart-badge-offset: 0.4375rem;
+
+  --container-about-copy: 64rem;
+  --container-cms-copy: 56rem;
+  --container-faq-content: 80rem;
+  --container-product-list-dialog: 24rem;
+  --container-product-list-summary: 24rem;
+  --container-review-form: 48rem;
+
+  --width-blog-sidebar: 21.375rem;
+  --width-product-list-quantity: 5rem;
+  --width-skeleton-compact: 4rem;
+  --width-skeleton-short: 5rem;
+  --width-skeleton-control: 6rem;
+  --width-skeleton-caption: 7rem;
+  --width-skeleton-heading: 8rem;
+  --width-skeleton-action: 9rem;
+  --width-skeleton-title-lg: 10rem;
+  --width-skeleton-title-xl: 12rem;
+  --width-skeleton-copy: 16rem;
+  --width-skeleton-copy-wide: 18rem;
+
+  --height-blog-promo: 24rem;
+  --height-skeleton-line: 1rem;
+  --height-skeleton-line-lg: 1.25rem;
+  --height-skeleton-control: 1.5rem;
+  --height-skeleton-heading: 1.75rem;
+  --height-skeleton-heading-lg: 2rem;
+  --height-skeleton-action: 2.25rem;
+  --height-skeleton-panel: 8rem;
+  --height-skeleton-toolbar: 4rem;
+  --height-filter-skeleton: 41rem;
+  --min-height-benefit-skeleton: 5rem;
+
+  --aspect-about-image: 4 / 3;
+  --aspect-home-hero: 4 / 5;
+}
+
+@utility checkout-cart-item-layout {
+  grid-template-columns: auto 1fr;
+}
+
+@utility checkout-cart-item-content {
+  grid-template-rows: 1fr auto;
+}
+
+@utility checkout-cart-item-summary {
+  grid-template-columns: 3fr 1fr 1fr;
+}
+
+@utility checkout-payment-qr-layout {
+  grid-template-columns: 1fr auto;
+}
+
+@utility header-cart-item-layout {
+  grid-template-columns: auto 1fr auto;
+}
+
+@utility product-detail-media-layout {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+@utility overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+}
+
+@utility about-article-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 34rem);
+}
+
+@utility about-milestone-layout {
+  grid-template-columns: 5rem minmax(0, 1fr);
+}
+
+@utility about-contact-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+}
+
+@utility account-shell-layout {
+  grid-template-columns: 17rem minmax(0, 1fr);
+}
+
+@utility filter-scroll-viewport {
+  max-height: calc(100dvh - var(--spacing-400));
+}
+
+@utility blog-detail-layout {
+  grid-template-columns: minmax(0, 1fr) var(--width-blog-sidebar);
+}
+
+@utility blog-highlight-layout {
+  grid-template-columns: 6px minmax(0, 1fr);
+  padding-block: 1px;
+}
+
+@utility blog-highlight-dot {
+  width: 6px;
+  height: 6px;
+}
+
+@utility blog-leading-compact {
+  line-height: 15px;
+}
+
+@utility blog-leading-category {
+  line-height: 18px;
+}
+
+@utility blog-category-chip {
+  font-size: 13.4px;
+  line-height: 17.28px;
+}
+
+@utility blog-highlight-copy {
+  line-height: 1.5;
+}
+
+@utility hero-title-leading {
+  line-height: 26px;
+}
+
+@utility purpose-card-layout {
+  grid-template-rows: auto 1fr;
+}
+
+@utility account-order-table-layout {
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+}
+
+@utility footer-locale-icon-filter {
+  & span {
+    filter: brightness(1) saturate(1.7);
+  }
+}
+
+.herbatika-desktop-submenu-root [data-part="backdrop"] {
+  display: none;
+}
+
+.herbatika-desktop-submenu-root [data-part="positioner"] {
+  inset: 100% 0 auto;
+  overflow: visible;
+}
+
+.product-detail-lightbox-root [data-part="backdrop"] {
+  z-index: 80;
+  background: color-mix(in srgb, var(--color-fg-strong) 85%, transparent);
+}
+
+.product-detail-lightbox-root [data-part="positioner"] {
+  z-index: 90;
+}
+
+.product-detail-lightbox-root [data-part="title"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

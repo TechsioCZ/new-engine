@@ -10,6 +10,15 @@ import {
   MANUAL_ITEM_DISCOUNT_CODE,
 } from "../../../../src/utils/order-commercial-values"
 
+function getRequired<T>(values: readonly T[], index: number): T {
+  const value = values[index]
+  expect(value).toBeDefined()
+  if (value === undefined) {
+    throw new Error(`Expected value at index ${index}`)
+  }
+  return value
+}
+
 function createItem(
   overrides: Partial<CommercialValuesItemInput> = {}
 ): CommercialValuesItemInput {
@@ -107,8 +116,8 @@ describe("order commercial values", () => {
       })
     )
 
-    expect(preview.items[0].preserved_adjustment_amount).toBe(0.5)
-    expect(preview.items[0].manual_item_discount_amount).toBe(0.99)
+    expect(getRequired(preview.items, 0).preserved_adjustment_amount).toBe(0.5)
+    expect(getRequired(preview.items, 0).manual_item_discount_amount).toBe(0.99)
     expect(preview.new_total).toBeCloseTo(18.5)
   })
 
@@ -126,8 +135,8 @@ describe("order commercial values", () => {
       })
     )
 
-    expect(preview.items[0].line_base).toBe(180)
-    expect(preview.items[0].quantity).toBe(1.5)
+    expect(getRequired(preview.items, 0).line_base).toBe(180)
+    expect(getRequired(preview.items, 0).quantity).toBe(1.5)
     expect(preview.new_total).toBe(180)
   })
 
@@ -174,9 +183,9 @@ describe("order commercial values", () => {
       })
     )
 
-    expect(preview.items[0].final_line_total).toBe(200)
-    expect(preview.items[0].tax_total).toBe(40)
-    expect(preview.items[0].final_line_total_with_tax).toBe(240)
+    expect(getRequired(preview.items, 0).final_line_total).toBe(200)
+    expect(getRequired(preview.items, 0).tax_total).toBe(40)
+    expect(getRequired(preview.items, 0).final_line_total_with_tax).toBe(240)
     expect(preview.new_total).toBe(240)
     expect(preview.delta).toBe(120)
   })
@@ -219,8 +228,8 @@ describe("order commercial values", () => {
       })
     )
 
-    expect(preview.items[0].manual_order_discount_amount).toBe(0)
-    expect(preview.items[1].manual_order_discount_amount).toBe(200)
+    expect(getRequired(preview.items, 0).manual_order_discount_amount).toBe(0)
+    expect(getRequired(preview.items, 1).manual_order_discount_amount).toBe(200)
     expect(preview.new_total).toBe(2800)
   })
 

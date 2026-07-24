@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { NumericInput } from "../atoms/numeric-input"
 import { FormNumericInput } from "./form-numeric-input"
 

@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
-  createMedusaProductService,
   type MedusaProductDetailInput,
   type MedusaProductListInput,
+  createMedusaProductService,
 } from "../src/products/medusa-service"
 
 type SdkLike = {
@@ -15,8 +16,7 @@ const createProduct = (
   id: string,
   title = "Product",
   handle = id
-): HttpTypes.StoreProduct =>
-  ({ id, title, handle } as HttpTypes.StoreProduct)
+): HttpTypes.StoreProduct => ({ id, title, handle }) as HttpTypes.StoreProduct
 
 function createSdkMock(
   response?: Partial<HttpTypes.StoreProductListResponse>
@@ -76,9 +76,13 @@ describe("createMedusaProductService", () => {
     >(sdk as never, {
       normalizeListQuery: ({ sort, ...params }) => ({
         ...params,
-        order: sort === "newest" ? "-created_at" : undefined,
+        ...(sort === "newest" ? { order: "-created_at" } : {}),
       }),
       transformListProduct: (product) => ({
+        id: product.id,
+        label: product.title,
+      }),
+      transformDetailProduct: (product) => ({
         id: product.id,
         label: product.title,
       }),
@@ -96,7 +100,7 @@ describe("createMedusaProductService", () => {
         offset: 0,
         order: "-created_at",
       }),
-      signal: undefined,
+      signal: null,
     })
     expect(result.products).toEqual([{ id: "prod_1", label: "Hoodie" }])
   })
@@ -124,7 +128,7 @@ describe("createMedusaProductService", () => {
         fields: "id,title,handle,description",
         country_code: "cz",
       }),
-      signal: undefined,
+      signal: null,
     })
     expect(result).toBeNull()
   })
@@ -146,6 +150,10 @@ describe("createMedusaProductService", () => {
         limit: 1,
         fields: "id,handle,title",
       }),
+      transformListProduct: (product) => ({
+        slug: product.handle,
+        label: product.title,
+      }),
       transformDetailProduct: (product) => ({
         slug: product.handle,
         label: product.title,
@@ -162,7 +170,7 @@ describe("createMedusaProductService", () => {
         limit: 1,
         fields: "id,handle,title",
       },
-      signal: undefined,
+      signal: null,
     })
     expect(result).toEqual({ slug: "test-product", label: "T-Shirt" })
   })

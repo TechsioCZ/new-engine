@@ -9,6 +9,7 @@ import {
   useId,
 } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import { Icon, type IconType } from "../atoms/icon"
 
@@ -16,8 +17,8 @@ type ActionMenuItem = {
   type: "action"
   value: string
   label: string
-  icon?: IconType
-  disabled?: boolean
+  icon?: IconType | undefined
+  disabled?: boolean | undefined
 }
 
 type RadioMenuItem = {
@@ -44,8 +45,8 @@ type SubmenuMenuItem = {
   type: "submenu"
   value: string
   label: string
-  icon?: IconType
-  disabled?: boolean
+  icon?: IconType | undefined
+  disabled?: boolean | undefined
   items: MenuItem[] // nested items
 }
 
@@ -121,10 +122,10 @@ interface SubmenuItemProps {
   item: SubmenuMenuItem
   parentApi: menu.Api
   parentService: menu.Service
-  size?: "sm" | "md" | "lg"
-  onCheckedChange?: (item: MenuItem, checked: boolean) => void
-  onSelect?: (details: { value: string }) => void
-  closeOnSelect?: boolean
+  size?: "sm" | "md" | "lg" | undefined
+  onCheckedChange?: ((item: MenuItem, checked: boolean) => void) | undefined
+  onSelect?: ((details: { value: string }) => void) | undefined
+  closeOnSelect?: boolean | undefined
 }
 
 // ! TODO: Fix menu.machine typing, it should work without 'as any'
@@ -255,33 +256,35 @@ function SubmenuItem({
 // === COMPONENT PROPS ===
 export interface MenuProps extends VariantProps<typeof menuVariants> {
   items: MenuItem[]
-  triggerText?: string
-  triggerIcon?: IconType
-  customTrigger?: ReactNode
-  className?: string
-  onCheckedChange?: (item: MenuItem, checked: boolean) => void
+  triggerText?: string | undefined
+  triggerIcon?: IconType | undefined
+  customTrigger?: ReactNode | undefined
+  className?: string | undefined
+  onCheckedChange?: ((item: MenuItem, checked: boolean) => void) | undefined
   // menu.Props
-  "aria-label"?: string
-  dir?: "ltr" | "rtl"
-  id?: string
-  closeOnSelect?: boolean
-  loopFocus?: boolean
-  typeahead?: boolean
-  positioning?: any
-  anchorPoint?: any
-  open?: boolean
-  defaultOpen?: boolean
-  composite?: boolean
-  navigate?: (value: string) => void
-  defaultHighlightedValue?: string
-  highlightedValue?: string
-  onHighlightChange?: (details: { highlightedValue: string | null }) => void
-  onSelect?: (details: { value: string }) => void
-  onOpenChange?: (details: { open: boolean }) => void
-  onEscapeKeyDown?: (event: KeyboardEvent) => void
-  onPointerDownOutside?: (event: PointerEvent) => void
-  onInteractOutside?: (event: FocusEvent | PointerEvent) => void
-  onFocusOutside?: (event: FocusEvent) => void
+  "aria-label"?: string | undefined
+  dir?: "ltr" | "rtl" | undefined
+  id?: string | undefined
+  closeOnSelect?: boolean | undefined
+  loopFocus?: boolean | undefined
+  typeahead?: boolean | undefined
+  positioning?: menu.Props["positioning"] | undefined
+  anchorPoint?: menu.Props["anchorPoint"] | undefined
+  open?: boolean | undefined
+  defaultOpen?: boolean | undefined
+  composite?: boolean | undefined
+  navigate?: ((value: string) => void) | undefined
+  defaultHighlightedValue?: string | undefined
+  highlightedValue?: string | undefined
+  onHighlightChange?:
+    | ((details: { highlightedValue: string | null }) => void)
+    | undefined
+  onSelect?: ((details: { value: string }) => void) | undefined
+  onOpenChange?: ((details: { open: boolean }) => void) | undefined
+  onEscapeKeyDown?: ((event: KeyboardEvent) => void) | undefined
+  onPointerDownOutside?: ((event: PointerEvent) => void) | undefined
+  onInteractOutside?: ((event: FocusEvent | PointerEvent) => void) | undefined
+  onFocusOutside?: ((event: FocusEvent) => void) | undefined
 }
 export function Menu({
   // NATIVE PROPS

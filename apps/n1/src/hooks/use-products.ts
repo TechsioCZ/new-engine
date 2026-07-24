@@ -1,5 +1,6 @@
 import type { StoreProduct } from "@medusajs/types"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { PRODUCT_LIMIT } from "@/lib/constants"
 import { logQuery } from "@/lib/loggers/cache"
@@ -7,6 +8,7 @@ import { fetchLogger } from "@/lib/loggers/fetch"
 import { buildProductQueryParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts } from "@/services/product-service"
+
 import { useRegion, useSuspenseRegion } from "./use-region"
 
 type UseProductsProps = {
@@ -47,7 +49,7 @@ export function useProducts({
 
   const queryParams = buildProductQueryParams({
     category_id,
-    region_id: regionId,
+    ...(regionId ? { region_id: regionId } : {}),
     country_code: countryCode,
     page,
     limit,
@@ -61,7 +63,7 @@ export function useProducts({
         const result = await getProducts(queryParams, signal)
         const duration = performance.now() - start
 
-        if (process.env.NODE_ENV === "development") {
+        if (process.env["NODE_ENV"] === "development") {
           const categoryLabel = category_id?.[0]?.slice(-6) || "all"
           fetchLogger.current(categoryLabel, duration)
         }
@@ -73,7 +75,7 @@ export function useProducts({
     })
 
   // Enhanced dev logging with cache-logger
-  if (process.env.NODE_ENV === "development" && data) {
+  if (process.env["NODE_ENV"] === "development" && data) {
     const categoryName = category_id?.[0]?.slice(-6) || "all"
     const operation = `useProducts(${categoryName} p${page})`
 
@@ -134,7 +136,7 @@ export function useSuspenseProducts({
       const result = await getProducts(queryParams, signal)
       const duration = performance.now() - start
 
-      if (process.env.NODE_ENV === "development") {
+      if (process.env["NODE_ENV"] === "development") {
         const categoryLabel = category_id?.[0]?.slice(-6) || "all"
         fetchLogger.current(categoryLabel, duration)
       }
@@ -144,7 +146,7 @@ export function useSuspenseProducts({
     ...cacheConfig.semiStatic,
   })
 
-  if (process.env.NODE_ENV === "development" && data) {
+  if (process.env["NODE_ENV"] === "development" && data) {
     const categoryName = category_id?.[0]?.slice(-6) || "all"
     const operation = `useSuspenseProducts(${categoryName} p${page})`
 

@@ -7,9 +7,7 @@ library:
   repository_directory: "libs/ui"
   homepage: null
   summary: >
-    React 19, Tailwind v4, Zag.js, and tailwind-variants component library for
-    shared UI components, token architecture, Storybook documentation, Figma
-    Code Connect handoff, and controlled adoption inside apps/*.
+    React 19, Tailwind v4, Zag.js, and tailwind-variants component library for shared UI components, token architecture, Storybook documentation, Figma Code Connect handoff, and controlled adoption inside apps/*.
   stack:
     - "React 19"
     - "Tailwind CSS v4"
@@ -24,9 +22,7 @@ domains:
     label: "UI kit component work"
     package: "libs/ui"
     description: >
-      Creating, refactoring, and validating shared atoms, molecules, organisms,
-      and templates inside libs/ui. Work normally spans component TSX, component
-      token CSS, Storybook stories, exports, and follow-up handoff checks.
+      Creating, refactoring, and validating shared atoms, molecules, organisms, and templates inside libs/ui. Work normally spans component TSX, component token CSS, Storybook stories, exports, and follow-up handoff checks.
     primary_sources:
       - "libs/ui/AGENTS.md"
       - "libs/ui/src/atoms"
@@ -47,9 +43,7 @@ domains:
     label: "Token architecture"
     package: "libs/ui"
     description: >
-      Maintaining Tailwind v4 @theme static tokens, semantic aliases, spacing,
-      layout, typography, and component-specific token chains. Includes app-side
-      initialization and overrides where the UI kit is consumed.
+      Maintaining Tailwind v4 @theme static tokens, semantic aliases, spacing, layout, typography, and component-specific token chains. Includes app-side initialization and overrides where the UI kit is consumed.
     primary_sources:
       - "libs/ui/src/tokens"
       - "libs/ui/token-contribution.md"
@@ -67,8 +61,7 @@ domains:
     label: "Storybook, docs, and QA"
     package: "libs/ui"
     description: >
-      Keeping component examples, docs pages, visual matrices, controls, a11y
-      checks, and component test commands aligned with local Storybook rules.
+      Keeping component examples, docs pages, visual matrices, controls, a11y checks, and component test commands aligned with local Storybook rules.
     primary_sources:
       - "libs/ui/stories"
       - "libs/ui/.storybook"
@@ -84,9 +77,7 @@ domains:
     label: "Interactive Zag.js components"
     package: "libs/ui"
     description: >
-      Building stateful accessible UI primitives through Zag.js machines,
-      connect APIs, React context, data attributes, slots, and compound
-      subcomponents inspired by Chakra UI and Ark UI patterns.
+      Building stateful accessible UI primitives through Zag.js machines, connect APIs, React context, data attributes, slots, and compound subcomponents inspired by Chakra UI and Ark UI patterns.
     primary_sources:
       - "libs/ui/src/molecules"
       - "libs/ui/src/organisms"
@@ -102,10 +93,7 @@ domains:
     label: "Consuming @techsio/ui-kit in apps"
     package: "libs/ui"
     description: >
-      Using the UI kit correctly inside apps/*: initializing app token layers,
-      choosing correct components and variants from UX intent, avoiding native
-      HTML and duplicated className styling, and adapting framework components
-      such as NextLink and NextImage.
+      Using the UI kit correctly inside apps/*: initializing app token layers, choosing correct components and variants from UX intent, avoiding native HTML and duplicated className styling, and adapting framework components such as NextLink and NextImage.
     primary_sources:
       - "libs/ui/local/libs-usage.md"
       - "libs/ui/skills/_artifacts/consumer_app_usage_rules.md"
@@ -121,10 +109,7 @@ domains:
     label: "Workflow orchestration and Intent skill upkeep"
     package: "libs/ui"
     description: >
-      Routing UI-kit and app-consumer tasks through the right skills, preserving
-      the boundary between libs/ui authoring and app usage, and updating Intent
-      skills when component APIs, token rules, app patterns, or Figma practices
-      change.
+      Routing UI-kit and app-consumer tasks through the right skills, preserving the boundary between libs/ui authoring and app usage, and updating Intent skills when component APIs, token rules, app patterns, or Figma practices change.
     primary_sources:
       - "libs/ui/skills/_artifacts/domain_map.yaml"
       - "libs/ui/skills/_artifacts/skill_spec.md"
@@ -141,10 +126,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "library-component-work"
     description: >
-      Use when creating or modifying shared React components in libs/ui,
-      including atoms, molecules, organisms, templates, tv() variants, React 19
-      ref props, component token CSS, Storybook stories, exports, and Figma
-      handoff reminders.
+      Use when creating or modifying shared React components in libs/ui, including atoms, molecules, organisms, templates, tv() variants, React 19 ref props, component token CSS, Storybook stories, exports, and Figma handoff reminders.
     boundaries:
       includes:
         - "src/atoms/*.tsx, src/molecules/*.tsx, src/organisms/*.tsx"
@@ -159,8 +141,7 @@ skills:
       - id: "component-without-token-and-story"
         wrong_pattern: "Create only src/atoms/foo.tsx."
         correct_pattern: >
-          Add the component TSX, component token CSS, token import, Storybook
-          story, and validation coverage together.
+          Add the component TSX, component token CSS, token import, Storybook story, and validation coverage together.
         evidence: "Button and carousel have code, tokens, and stories; AGENTS.md requires token and Storybook alignment."
       - id: "semantic-or-raw-tailwind-in-component"
         wrong_pattern: "className='bg-primary text-fg-primary p-4'"
@@ -185,9 +166,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "library-component-work"
     description: >
-      Use when checking a component for consistency across TSX props, tv()
-      variants, component tokens, Storybook stories, Figma Code Connect mapping,
-      token validators, a11y, visual tests, and package export behavior.
+      Use when checking a component for consistency across TSX props, tv() variants, component tokens, Storybook stories, Figma Code Connect mapping, token validators, a11y, visual tests, and package export behavior.
     boundaries:
       includes:
         - "component API versus stories and token CSS"
@@ -217,10 +196,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "token-system"
     description: >
-      Use when adding or changing Tailwind v4 tokens in libs/ui, including
-      semantic aliases, spacing/layout/typography, component-specific tokens,
-      @theme static blocks, two-layer reference-to-derived chains, and token
-      validation scripts.
+      Use when adding or changing Tailwind v4 tokens in libs/ui, including semantic aliases, spacing/layout/typography, component-specific tokens, @theme static blocks, two-layer reference-to-derived chains, and token validation scripts.
     boundaries:
       includes:
         - "src/tokens/**/*.css"
@@ -253,9 +229,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "interactive-components"
     description: >
-      Use when creating or refactoring interactive or compound components in
-      libs/ui with Zag.js machines, connect APIs, data attributes, slots,
-      context providers, and Component.Subcomponent assignments.
+      Use when creating or refactoring interactive or compound components in libs/ui with Zag.js machines, connect APIs, data attributes, slots, context providers, and Component.Subcomponent assignments.
     boundaries:
       includes:
         - "Zag.js official machine/connect patterns"
@@ -285,10 +259,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "storybook-docs-and-qa"
     description: >
-      Use when creating or modifying Storybook CSF3 stories for libs/ui
-      components using local story ordering, Playground controls, VariantGroup
-      matrices, token-based classes, ui-kit components instead of native HTML,
-      and fn() handlers.
+      Use when creating or modifying Storybook CSF3 stories for libs/ui components using local story ordering, Playground controls, VariantGroup matrices, token-based classes, ui-kit components instead of native HTML, and fn() handlers.
     boundaries:
       includes:
         - "stories/**/*.stories.tsx"
@@ -317,10 +288,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "library-component-work"
     description: >
-      Use when component work should remind the maintainer that a Figma library
-      and Code Connect update may be needed. This skill should point to
-      .agents/skills/component-to-figma/SKILL.md but must not run Figma sync
-      automatically.
+      Use when component work should remind the maintainer that a Figma library and Code Connect update may be needed. This skill should point to .agents/skills/component-to-figma/SKILL.md but must not run Figma sync automatically.
     boundaries:
       includes:
         - "detecting new or changed public components"
@@ -350,9 +318,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "storybook-docs-and-qa"
     description: >
-      Use when preparing @techsio/ui-kit for release or package validation,
-      including build, package export checks, publint, token validation,
-      Storybook build, a11y summaries, and semantic-release constraints.
+      Use when preparing @techsio/ui-kit for release or package validation, including build, package export checks, publint, token validation, Storybook build, a11y summaries, and semantic-release constraints.
     boundaries:
       includes:
         - "bunx nx run ui:build"
@@ -382,10 +348,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "consumer-app-adoption"
     description: >
-      Use when adopting @techsio/ui-kit in a new or existing apps/* project and
-      setting up app-specific semantic, typography, spacing, layout, and
-      component token files after interviewing for brand color scheme, spacing,
-      type scale, radius, and framework constraints.
+      Use when adopting @techsio/ui-kit in a new or existing apps/* project and setting up app-specific semantic, typography, spacing, layout, and component token files after interviewing for brand color scheme, spacing, type scale, radius, and framework constraints.
     boundaries:
       includes:
         - "app semantic/typography/spacing/layout token skeleton"
@@ -415,9 +378,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "token-system"
     description: >
-      Use when adjusting an app's @techsio/ui-kit appearance through semantic,
-      typography, spacing, layout, or component override tokens while avoiding
-      redundant token chains and JSX className styling.
+      Use when adjusting an app's @techsio/ui-kit appearance through semantic, typography, spacing, layout, or component override tokens while avoiding redundant token chains and JSX className styling.
     boundaries:
       includes:
         - "_app-semantic.css and related app token layers"
@@ -454,10 +415,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "consumer-app-adoption"
     description: >
-      Use as the orchestration skill for choosing which @techsio/ui-kit
-      component and component-specific usage skill should handle an app UX need.
-      It routes to per-component guidance for valid props, variants, themes,
-      sizes, states, adapters, slots, and token expectations.
+      Use as the orchestration skill for choosing which @techsio/ui-kit component and component-specific usage skill should handle an app UX need. It routes to per-component guidance for valid props, variants, themes, sizes, states, adapters, slots, and token expectations.
     boundaries:
       includes:
         - "component inventory and usage routing"
@@ -472,10 +430,7 @@ skills:
     reference_candidates:
       - topic: "per-component usage skills"
         reason: >
-          Maintainer wants detailed usage split by component, for example
-          button-usage, input-usage, link-button-usage, dialog-usage,
-          toast-usage, breadcrumb-usage, tree-view-usage, skeleton-usage, and
-          additional entries generated from libs/ui/src inventory.
+          Maintainer wants detailed usage split by component, for example button-usage, input-usage, link-button-usage, dialog-usage, toast-usage, breadcrumb-usage, tree-view-usage, skeleton-usage, and additional entries generated from libs/ui/src inventory.
     failure_modes:
       - id: "monolithic-usage-guidance"
         wrong_pattern: "Pick Button/Dialog/Input props from a generic UI rule without loading the component-specific usage guidance."
@@ -508,10 +463,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "consumer-app-adoption"
     description: >
-      Use when reviewing an apps/* UI for correct @techsio/ui-kit adoption:
-      native HTML replacement, token-first styling, duplicate className removal,
-      component API gaps, framework adapters, and consistency with app token
-      layers.
+      Use when reviewing an apps/* UI for correct @techsio/ui-kit adoption: native HTML replacement, token-first styling, duplicate className removal, component API gaps, framework adapters, and consistency with app token layers.
     boundaries:
       includes:
         - "scan JSX and CSS for native primitives and one-off styles"
@@ -545,10 +497,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "consumer-app-adoption"
     description: >
-      Use when integrating @techsio/ui-kit into a specific app framework,
-      especially Next.js, where framework adapters such as NextLink and
-      NextImage should be preferred while ui-kit Link and Image remain
-      framework-agnostic building blocks.
+      Use when integrating @techsio/ui-kit into a specific app framework, especially Next.js, where framework adapters such as NextLink and NextImage should be preferred while ui-kit Link and Image remain framework-agnostic building blocks.
     boundaries:
       includes:
         - "Next.js Link and Image adapter usage"
@@ -582,10 +531,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "workflow-and-skill-maintenance"
     description: >
-      Use when deciding which @techsio/ui-kit skill workflow to run for a task,
-      separating libs/ui authoring/refactor work from apps/* consumer usage work
-      and chaining validation, Storybook, token, Figma-handoff, and audit
-      follow-ups.
+      Use when deciding which @techsio/ui-kit skill workflow to run for a task, separating libs/ui authoring/refactor work from apps/* consumer usage work and chaining validation, Storybook, token, Figma-handoff, and audit follow-ups.
     boundaries:
       includes:
         - "routing tasks to library or app-consumer skills"
@@ -613,10 +559,7 @@ skills:
     library: "@techsio/ui-kit"
     domain: "workflow-and-skill-maintenance"
     description: >
-      Use when @techsio/ui-kit components, tokens, Storybook rules, app usage
-      patterns, Figma practices, or validation commands change and the Intent
-      skills themselves may need to be reviewed, regenerated, or patched through
-      TanStack Intent meta-skill workflows.
+      Use when @techsio/ui-kit components, tokens, Storybook rules, app usage patterns, Figma practices, or validation commands change and the Intent skills themselves may need to be reviewed, regenerated, or patched through TanStack Intent meta-skill workflows.
     boundaries:
       includes:
         - "detecting stale skills after component/API/token changes"
@@ -642,10 +585,7 @@ skills:
 tensions:
   - id: "token-first-vs-fast-classname"
     description: >
-      Inline className fixes are fast in apps, but they duplicate or bypass the
-      token chain. The domain needs skills that push appearance into semantic,
-      typography, spacing, or component tokens and reserve className for
-      unavoidable layout/composition.
+      Inline className fixes are fast in apps, but they duplicate or bypass the token chain. The domain needs skills that push appearance into semantic, typography, spacing, or component tokens and reserve className for unavoidable layout/composition.
     involved_skills:
       - "app-token-overrides"
       - "component-usage-ux"
@@ -653,9 +593,7 @@ tensions:
 
   - id: "library-api-gap-vs-app-one-off"
     description: >
-      If an app cannot express a design through existing props/tokens, the right
-      outcome may be a temporary app workaround plus a library API/token gap,
-      not a permanent local style fork.
+      If an app cannot express a design through existing props/tokens, the right outcome may be a temporary app workaround plus a library API/token gap, not a permanent local style fork.
     involved_skills:
       - "component-authoring"
       - "app-token-overrides"
@@ -663,9 +601,7 @@ tensions:
 
   - id: "figma-sync-desired-vs-operationally-risky"
     description: >
-      New or changed public components usually need Figma and Code Connect
-      follow-up, but sync should not run automatically because credentials,
-      active user, and Figma context may be unavailable or unsafe.
+      New or changed public components usually need Figma and Code Connect follow-up, but sync should not run automatically because credentials, active user, and Figma context may be unavailable or unsafe.
     involved_skills:
       - "figma-sync-handoff"
       - "component-authoring"
@@ -673,9 +609,7 @@ tensions:
 
   - id: "compound-flexibility-vs-zag-contract"
     description: >
-      Compound components need flexible slots and nesting, while Zag.js owns
-      accessibility props and interaction state. Skills must preserve provider
-      boundaries and api.get*Props() even when refactoring composition.
+      Compound components need flexible slots and nesting, while Zag.js owns accessibility props and interaction state. Skills must preserve provider boundaries and api.get*Props() even when refactoring composition.
     involved_skills:
       - "zag-compound-components"
       - "component-authoring"
@@ -683,9 +617,7 @@ tensions:
 
   - id: "local-rules-vs-current-legacy-code"
     description: >
-      Some existing source and stories violate current AGENTS.md rules
-      (interfaces, useCallback, native buttons in stories, hardcoded Tailwind).
-      Generated skills need to distinguish new-work rules from legacy cleanup.
+      Some existing source and stories violate current AGENTS.md rules (interfaces, useCallback, native buttons in stories, hardcoded Tailwind). Generated skills need to distinguish new-work rules from legacy cleanup.
     involved_skills:
       - "component-authoring"
       - "storybook-authoring"

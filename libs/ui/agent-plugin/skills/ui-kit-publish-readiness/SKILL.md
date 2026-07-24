@@ -1,9 +1,7 @@
 ---
 name: ui-kit-publish-readiness
 description: >
-  Use before releasing or packaging @techsio/ui-kit. Checks RSLib build,
-  package subpath exports, publint, token validators, Storybook build/a11y,
-  component screenshots, files array, and semantic-release CI constraints.
+  Use before releasing or packaging @techsio/ui-kit. Checks RSLib build, package subpath exports, publint, token validators, Storybook build/a11y, component screenshots, files array, and semantic-release CI constraints.
 type: lifecycle
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +19,7 @@ sources:
 
 # @techsio/ui-kit Publish Readiness Checklist
 
-Run this before publishing or when package-level changes could affect
-consumers.
+Run this before publishing or when package-level changes could affect consumers.
 
 ## Package Checks
 
@@ -35,8 +32,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 ```
 
-Fail condition: examples or docs import from `@techsio/ui-kit` root.
-Fix: use the exported atoms/molecules/organisms/templates subpaths.
+Fail condition: examples or docs import from `@techsio/ui-kit` root. Fix: use the exported atoms/molecules/organisms/templates subpaths.
 
 ### Check: token CSS entrypoints are public
 
@@ -47,8 +43,7 @@ Expected:
 @import "@techsio/ui-kit/tokens-with-tailwind";
 ```
 
-Fail condition: an app deep-imports `@techsio/ui-kit/src/tokens/...`.
-Fix: use package exports or adjust package exports intentionally.
+Fail condition: an app deep-imports `@techsio/ui-kit/src/tokens/...`. Fix: use package exports or adjust package exports intentionally.
 
 ### Check: release runs only in CI
 
@@ -58,8 +53,7 @@ Expected:
 GITHUB_ACTIONS=true pnpm --dir libs/ui semantic-release
 ```
 
-Fail condition: local `semantic-release` is expected to publish.
-Fix: release is restricted by `release.config.mjs` to GitHub Actions.
+Fail condition: local `semantic-release` is expected to publish. Fix: release is restricted by `release.config.mjs` to GitHub Actions.
 
 ## Validation Commands
 
@@ -72,8 +66,7 @@ pnpm --dir libs/ui test:components
 pnpm --dir libs/ui figma:connect:parse
 ```
 
-Run the full set only for release readiness. For normal changes, run the
-focused subset from `component-consistency-validation`.
+Run the full set only for release readiness. For normal changes, run the focused subset from `component-consistency-validation`.
 
 ## Common Mistakes
 

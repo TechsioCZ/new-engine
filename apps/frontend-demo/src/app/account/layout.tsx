@@ -2,12 +2,18 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { Route } from "next"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ReactNode } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 
-const accountLinks = [
+const accountLinks: Array<{
+  href: Route
+  label: string
+  icon: "token-icon-shopping-bag" | "token-icon-profile"
+}> = [
   {
     href: "/account/orders",
     label: "Moje objednávky",
@@ -28,8 +34,8 @@ export default function AccountLayout({ children }: AccountLayoutProps) {
   const pathname = usePathname()
   const { logout } = useAuth()
 
-  const handleLogout = async () => {
-    await logout()
+  const handleLogout = () => {
+    logout()
   }
 
   return (

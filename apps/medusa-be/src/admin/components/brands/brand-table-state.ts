@@ -1,4 +1,5 @@
 import type { DataTableRowSelectionState } from "@medusajs/ui"
+
 import type { Brand, BrandProductOption } from "../../lib/brands"
 
 export const toRowSelection = (

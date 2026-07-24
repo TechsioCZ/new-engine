@@ -2,6 +2,7 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import Image from "next/image"
+
 import { useCart } from "@/hooks/use-cart"
 import { formatPrice } from "@/lib/format-price"
 import { orderHelpers } from "@/stores/order-store"

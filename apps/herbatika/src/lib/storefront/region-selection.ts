@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+
 import {
   DEFAULT_CURRENCY_CODE,
   type HerbatikaCurrencyCode,
@@ -16,10 +17,6 @@ const COUNTRY_CURRENCY_BY_CODE: Record<string, HerbatikaCurrencyCode> = {
   sk: "EUR",
 }
 
-type RegionCurrencySource = RegionInfo & {
-  currency_code?: unknown
-}
-
 export type HerbatikaRegionInfo = RegionInfo & {
   currency_code?: HerbatikaCurrencyCode
 }
@@ -29,7 +26,7 @@ const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion): string[] =>
     ?.map((country) => country.iso_2?.toLowerCase())
     .filter((countryCode): countryCode is string => Boolean(countryCode)) ?? []
 
-export const resolveCountryCode = (region: HttpTypes.StoreRegion): string => {
+const resolveCountryCode = (region: HttpTypes.StoreRegion): string => {
   const countryCodes = resolveRegionCountryCodes(region)
 
   for (const preferredCountryCode of PREFERRED_COUNTRY_CODES) {
@@ -57,7 +54,7 @@ export const resolveRegionCurrency = (
   region?: RegionInfo | null
 ): HerbatikaCurrencyCode => {
   const explicitCurrencyCode = normalizeSupportedCurrencyCode(
-    (region as RegionCurrencySource | null | undefined)?.currency_code
+    region && "currency_code" in region ? region.currency_code : undefined
   )
 
   if (explicitCurrencyCode) {
@@ -70,7 +67,7 @@ export const resolveRegionCurrency = (
     : DEFAULT_CURRENCY_CODE
 }
 
-export const pickDefaultRegion = (
+const pickDefaultRegion = (
   regions: HttpTypes.StoreRegion[]
 ): HttpTypes.StoreRegion | null => {
   if (regions.length === 0) {

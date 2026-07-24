@@ -3,8 +3,9 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
 import { useEffect, useState } from "react"
+
+import NextLink from "@/components/app-link"
 import { LoginForm } from "@/components/auth/login-form"
 import { useAuthController } from "@/components/auth/use-auth-controller"
 
@@ -53,7 +54,7 @@ export function HerbatikaAccountPopover() {
       </Popover.Trigger>
 
       <Popover.Positioner>
-        <Popover.Content className="w-[22rem] max-w-[calc(100vw-2rem)]">
+        <Popover.Content className="w-account-popover max-w-popover-viewport">
           <Popover.Arrow />
           <Popover.Title>Prihlásenie</Popover.Title>
           <LoginForm

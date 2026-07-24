@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const runtimeProviderOutputValueSchema = z.object({
+const runtimeProviderOutputValueSchema = z.object({
   value: z.string().default(""),
   env_var: z.string().default(""),
 })
@@ -10,9 +10,6 @@ export const runtimeProviderOutputsSchema = z.record(
   runtimeProviderOutputValueSchema
 )
 
-export type RuntimeProviderOutputValue = z.infer<
-  typeof runtimeProviderOutputValueSchema
->
 export type RuntimeProviderOutputs = z.infer<
   typeof runtimeProviderOutputsSchema
 >

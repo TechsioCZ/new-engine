@@ -1,6 +1,7 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { linkCustomerGroupsToCustomerWorkflow } from "@medusajs/medusa/core-flows"
+
 import {
   SYMMY_CUSTOMER_GROUP_CODE_MODULE,
   type SymmyCustomerGroupCodeModuleService,
@@ -142,7 +143,7 @@ export class CustomerGroupCustomersBatchClient {
     }
     const { data } = await this.query.graph({
       entity: "customer",
-      fields: CUSTOMER_FIELDS as unknown as string[],
+      fields: Array.from(CUSTOMER_FIELDS),
       filters,
     })
     return (data ?? []) as ExistingCustomer[]

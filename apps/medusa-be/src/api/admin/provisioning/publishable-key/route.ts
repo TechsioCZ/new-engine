@@ -8,6 +8,7 @@ import type {
 } from "@medusajs/framework/types"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
+
 import {
   getActivePublishableKey,
   type PublishableKeyResult,
@@ -30,7 +31,7 @@ type AdminPublishableKeyQuerySchemaType = {
 function readTitleFromQuery(
   req: AuthenticatedMedusaRequest<unknown, AdminPublishableKeyQuerySchemaType>
 ): string | undefined {
-  const rawTitle = req.query.title
+  const rawTitle = req.query["title"]
 
   return typeof rawTitle === "string" ? rawTitle : undefined
 }
@@ -53,7 +54,10 @@ export async function GET(
 ) {
   const apiKeyService = req.scope.resolve<IApiKeyModuleService>(Modules.API_KEY)
   const title = readTitleFromQuery(req)
-  const result = await getActivePublishableKey({ apiKeyService, title })
+  const result = await getActivePublishableKey({
+    apiKeyService,
+    ...(title !== undefined ? { title } : {}),
+  })
 
   if (!result) {
     throw new MedusaError(
@@ -75,7 +79,9 @@ export async function POST(
     apiKeyService,
     createdBy: req.auth_context.actor_id,
     lockingModule,
-    title: req.validatedBody.title,
+    ...(req.validatedBody.title !== undefined
+      ? { title: req.validatedBody.title }
+      : {}),
   })
 
   res.status(200).json(toApiKeyResponse(result))

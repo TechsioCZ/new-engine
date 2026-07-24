@@ -1,12 +1,13 @@
 import { Drawer, type toast as toastType } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
+
+import { EmployeesUpdateForm } from "."
 import type {
   AdminUpdateEmployee,
   QueryCompany,
   QueryEmployee,
 } from "../../../../../types"
 import { useUpdateEmployee } from "../../../../hooks/api"
-import { EmployeesUpdateForm } from "."
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)

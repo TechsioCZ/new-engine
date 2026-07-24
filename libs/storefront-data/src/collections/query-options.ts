@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -13,7 +15,6 @@ import type {
   CollectionQueryKeys,
   CollectionService,
 } from "./types"
-
 export type CreateCollectionQueryOptionsFactoryConfig<
   TCollection,
   TListInput extends CollectionListInputBase,
@@ -74,15 +75,17 @@ export function createCollectionQueryOptionsFactory<
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getCollections,
-    getDetail: service.getCollection,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage:
-      "Collection id is required for collection queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      getList: service.getCollections,
+      getDetail: service.getCollection,
+      buildListParams,
+      buildDetailParams,
+      queryKeys: resolvedQueryKeys,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      missingDetailErrorMessage:
+        "Collection id is required for collection queries",
+    })
+  )
 }

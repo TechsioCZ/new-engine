@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
@@ -58,7 +59,7 @@ export const resolveVariantItems = (
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)
-  return asString(metadata?.short_description) ?? ""
+  return asString(metadata?.["short_description"]) ?? ""
 }
 
 export const resolveProductSummaryText = (

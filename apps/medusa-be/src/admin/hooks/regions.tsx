@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 import { useEffect, useState } from "react"
+
 import { sdk } from "../lib/sdk"
 
 export function useRegions() {
@@ -19,7 +20,7 @@ export function useRegions() {
       }
     }
 
-    fetchRegions()
+    void fetchRegions()
   }, [])
 
   return {

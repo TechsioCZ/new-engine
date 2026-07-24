@@ -19,6 +19,7 @@ import {
   createProductsWorkflow,
   type ProcessProductOptionsForImportInput,
 } from "@medusajs/medusa/core-flows"
+
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 import {
@@ -34,70 +35,96 @@ import {
 type ProductInput = {
   title: string
   categories: {
-    name?: string
+    name?: string | undefined
     handle: string
   }[]
   description: string
   handle: string
-  weight?: number
-  status?: ProductStatus
-  metadata?: Record<string, unknown>
+  weight?: number | undefined
+  status?: ProductStatus | undefined
+  metadata?: Record<string, unknown> | undefined
   shippingProfileName: string
-  thumbnail?: string
+  thumbnail?: string | undefined
   images: {
     url: string
   }[]
-  options?: {
-    title: string
-    values: string[]
-  }[]
-  brand?: {
-    title?: string
-    attributes?: {
-      name: string
-      value: string
-    }[]
-    gpsr_contact_email?: string | null
-    gpsr_european_reseller_contact_email?: string | null
-    gpsr_european_reseller_manufacturing_company_name?: string | null
-    gpsr_european_reseller_postal_address?: string | null
-    gpsr_manufactured_outside_eu?: boolean
-    gpsr_manufacturing_company_name?: string | null
-    gpsr_postal_address?: string | null
-  } | null
-  variants?: {
-    title: string
-    sku: string
-    ean?: string
-    material?: string
-    options?: {
-      [key: string]: string
-    }
-    images?: {
-      url: string
-    }[]
-    thumbnail?: string
-    metadata?: {
-      attributes?: {
-        name: string
-        value?: string
+  options?:
+    | {
+        title: string
+        values: string[]
       }[]
-      user_code?: string
-      [key: string]: unknown
-    }
-    quantities?: {
-      quantity?: number
-      supplier_quantity?: number
-      locations?: {
-        stockLocationName: string
-        quantity: number
+    | undefined
+  brand?:
+    | {
+        title?: string | undefined
+        attributes?:
+          | {
+              name: string
+              value: string
+            }[]
+          | undefined
+        gpsr_contact_email?: string | null | undefined
+        gpsr_european_reseller_contact_email?: string | null | undefined
+        gpsr_european_reseller_manufacturing_company_name?:
+          | string
+          | null
+          | undefined
+        gpsr_european_reseller_postal_address?: string | null | undefined
+        gpsr_manufactured_outside_eu?: boolean | undefined
+        gpsr_manufacturing_company_name?: string | null | undefined
+        gpsr_postal_address?: string | null | undefined
+      }
+    | null
+    | undefined
+  variants?:
+    | {
+        title: string
+        sku: string
+        ean?: string | undefined
+        material?: string | undefined
+        options?:
+          | {
+              [key: string]: string
+            }
+          | undefined
+        images?:
+          | {
+              url: string
+            }[]
+          | undefined
+        thumbnail?: string | undefined
+        metadata?:
+          | {
+              attributes?:
+                | {
+                    name: string
+                    value?: string | undefined
+                  }[]
+                | undefined
+              user_code?: string | undefined
+              [key: string]: unknown
+            }
+          | undefined
+        quantities?:
+          | {
+              quantity?: number | undefined
+              supplier_quantity?: number | undefined
+              locations?:
+                | {
+                    stockLocationName: string
+                    quantity: number
+                  }[]
+                | undefined
+            }
+          | undefined
+        prices?:
+          | {
+              amount: number
+              currency_code: string
+            }[]
+          | undefined
       }[]
-    }
-    prices?: {
-      amount: number
-      currency_code: string
-    }[]
-  }[]
+    | undefined
   salesChannelNames: string[]
 }
 
@@ -350,7 +377,7 @@ function renameVariantSku(
   }
 
   variant.metadata = {
-    ...(variant.metadata ?? {}),
+    ...variant.metadata,
     source_sku: variant.sku,
   }
   variant.sku = candidate
@@ -417,14 +444,14 @@ function toMetadataId(value: unknown): string | undefined {
 }
 
 function getSourceVariantId(variant: {
-  metadata?: Record<string, unknown> | null
+  metadata?: Record<string, unknown> | null | undefined
 }): string | undefined {
   const metadata = variant.metadata ?? undefined
   if (!metadata) {
     return
   }
 
-  return toMetadataId(metadata.source_variant_id ?? metadata.variant_id)
+  return toMetadataId(metadata["source_variant_id"] ?? metadata["variant_id"])
 }
 
 function findExistingVariant(
@@ -608,22 +635,40 @@ function buildUpdateVariant(
 ) {
   const existingVariant = findExistingVariant(existingProduct, inputVariant)
 
+  const variantPayload = {
+    title: inputVariant.title,
+    sku: inputVariant.sku,
+    ...(inputVariant.ean === undefined ? {} : { ean: inputVariant.ean }),
+    ...(inputVariant.material === undefined
+      ? {}
+      : { material: inputVariant.material }),
+    ...(inputVariant.options === undefined
+      ? {}
+      : { options: inputVariant.options }),
+    ...(inputVariant.prices === undefined
+      ? {}
+      : {
+          prices: inputVariant.prices.map((p) => ({
+            amount: p.amount,
+            currency_code: p.currency_code,
+          })),
+        }),
+    ...(inputVariant.thumbnail === undefined
+      ? {}
+      : { thumbnail: inputVariant.thumbnail }),
+    ...(inputVariant.metadata === undefined
+      ? {}
+      : { metadata: inputVariant.metadata }),
+  }
+
   return existingVariant
-    ? {
-        title: inputVariant.title,
-        sku: inputVariant.sku,
-        ean: inputVariant.ean,
-        material: inputVariant.material,
-        options: inputVariant.options,
-        prices: inputVariant.prices?.map((p) => ({
-          amount: p.amount,
-          currency_code: p.currency_code,
-        })),
-        thumbnail: inputVariant.thumbnail,
-        metadata: inputVariant.metadata,
-        id: existingVariant.id,
+    ? { ...variantPayload, id: existingVariant.id }
+    : {
+        ...variantPayload,
+        ...(inputVariant.images === undefined
+          ? {}
+          : { images: inputVariant.images }),
       }
-    : inputVariant
 }
 
 function buildUpdateProductPayload(params: {
@@ -648,19 +693,29 @@ function buildUpdateProductPayload(params: {
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
     ),
     description: inputProduct.description,
-    weight: inputProduct.weight,
+    ...(inputProduct.weight === undefined
+      ? {}
+      : { weight: inputProduct.weight }),
     status: inputProduct.status || ProductStatus.PUBLISHED,
-    metadata: inputProduct.metadata,
+    ...(inputProduct.metadata === undefined
+      ? {}
+      : { metadata: inputProduct.metadata }),
     shipping_profile_id: resolveShippingProfileId(
       existingShippingProfiles,
       inputProduct.shippingProfileName
     ),
     thumbnail: inputProduct.thumbnail || existingProduct.thumbnail,
     images: inputProduct.images ?? [],
-    options: inputProduct.options,
-    variants: inputProduct.variants?.map((inputVariant) =>
-      buildUpdateVariant(existingProduct, inputVariant)
-    ),
+    ...(inputProduct.options === undefined
+      ? {}
+      : { options: inputProduct.options }),
+    ...(inputProduct.variants === undefined
+      ? {}
+      : {
+          variants: inputProduct.variants.map((inputVariant) =>
+            buildUpdateVariant(existingProduct, inputVariant)
+          ),
+        }),
     sales_channels: inputProduct.salesChannelNames.map((name) =>
       resolveSalesChannel(existingSalesChannels, name)
     ),
@@ -673,15 +728,27 @@ function buildCreateVariant(
   return {
     title: inputVariant.title,
     sku: inputVariant.sku,
-    ean: inputVariant.ean,
-    material: inputVariant.material,
-    options: inputVariant.options,
-    thumbnail: inputVariant.thumbnail,
-    prices: inputVariant.prices?.map((price) => ({
-      amount: price.amount,
-      currency_code: price.currency_code,
-    })),
-    metadata: inputVariant.metadata,
+    ...(inputVariant.ean === undefined ? {} : { ean: inputVariant.ean }),
+    ...(inputVariant.material === undefined
+      ? {}
+      : { material: inputVariant.material }),
+    ...(inputVariant.options === undefined
+      ? {}
+      : { options: inputVariant.options }),
+    ...(inputVariant.thumbnail === undefined
+      ? {}
+      : { thumbnail: inputVariant.thumbnail }),
+    ...(inputVariant.prices === undefined
+      ? {}
+      : {
+          prices: inputVariant.prices.map((price) => ({
+            amount: price.amount,
+            currency_code: price.currency_code,
+          })),
+        }),
+    ...(inputVariant.metadata === undefined
+      ? {}
+      : { metadata: inputVariant.metadata }),
   }
 }
 
@@ -705,17 +772,27 @@ function buildCreateProductPayload(params: {
     ),
     description: inputProduct.description,
     handle: inputProduct.handle,
-    weight: inputProduct.weight,
+    ...(inputProduct.weight === undefined
+      ? {}
+      : { weight: inputProduct.weight }),
     status: inputProduct.status || ProductStatus.PUBLISHED,
-    metadata: inputProduct.metadata,
+    ...(inputProduct.metadata === undefined
+      ? {}
+      : { metadata: inputProduct.metadata }),
     shipping_profile_id: resolveShippingProfileId(
       existingShippingProfiles,
       inputProduct.shippingProfileName
     ),
-    thumbnail: inputProduct.thumbnail,
+    ...(inputProduct.thumbnail === undefined
+      ? {}
+      : { thumbnail: inputProduct.thumbnail }),
     images: inputProduct.images ?? [],
-    options: inputProduct.options,
-    variants: inputProduct.variants?.map(buildCreateVariant),
+    ...(inputProduct.options === undefined
+      ? {}
+      : { options: inputProduct.options }),
+    ...(inputProduct.variants === undefined
+      ? {}
+      : { variants: inputProduct.variants.map(buildCreateVariant) }),
     sales_channels: inputProduct.salesChannelNames.map((name) =>
       resolveSalesChannel(existingSalesChannels, name)
     ),

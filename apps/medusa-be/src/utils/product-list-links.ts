@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { CustomerProductListLink } from "../links/customer-product-list"
 import { isObjectRecord } from "./guards"
 
@@ -27,26 +28,28 @@ const isCustomerProductListLinkRecord = (
   value: unknown
 ): value is CustomerProductListLinkRecord =>
   isObjectRecord(value) &&
-  (value.customer_id === undefined || typeof value.customer_id === "string") &&
-  (value.product_list_id === undefined ||
-    typeof value.product_list_id === "string")
+  (value["customer_id"] === undefined ||
+    typeof value["customer_id"] === "string") &&
+  (value["product_list_id"] === undefined ||
+    typeof value["product_list_id"] === "string")
 
 const isProductListItemProductLinkRecord = (
   value: unknown
 ): value is ProductListItemProductLinkRecord =>
   isObjectRecord(value) &&
-  (value.product_id === undefined || typeof value.product_id === "string") &&
-  (value.product_list_item_id === undefined ||
-    typeof value.product_list_item_id === "string")
+  (value["product_id"] === undefined ||
+    typeof value["product_id"] === "string") &&
+  (value["product_list_item_id"] === undefined ||
+    typeof value["product_list_item_id"] === "string")
 
 const isProductListItemVariantLinkRecord = (
   value: unknown
 ): value is ProductListItemVariantLinkRecord =>
   isObjectRecord(value) &&
-  (value.product_variant_id === undefined ||
-    typeof value.product_variant_id === "string") &&
-  (value.product_list_item_id === undefined ||
-    typeof value.product_list_item_id === "string")
+  (value["product_variant_id"] === undefined ||
+    typeof value["product_variant_id"] === "string") &&
+  (value["product_list_item_id"] === undefined ||
+    typeof value["product_list_item_id"] === "string")
 
 const toCustomerProductListLinks = (value: unknown) =>
   Array.isArray(value) ? value.filter(isCustomerProductListLinkRecord) : []

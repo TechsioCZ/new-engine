@@ -2,6 +2,7 @@ import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import * as toast from "@zag-js/toast"
 import { type ReactNode, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { ActionIcon } from "../atoms/action-icon"
 import { tv } from "../utils"
 
@@ -51,15 +52,17 @@ interface ToastProps {
   actor: toast.Options<ReactNode>
   index: number
   parent: toast.GroupService
-  placement?: toast.Placement
+  placement?: toast.Placement | undefined
 }
 
 export function Toast({ actor, index, parent, placement }: ToastProps) {
   const composedProps = {
-    ...actor,
+    ...Object.fromEntries(
+      Object.entries(actor).filter(([, option]) => option !== undefined)
+    ),
     index,
     parent,
-    placement,
+    ...(placement !== undefined && { placement }),
   }
   const service = useMachine(toast.machine, composedProps)
   const api = toast.connect(service, normalizeProps)
@@ -97,13 +100,14 @@ export function Toast({ actor, index, parent, placement }: ToastProps) {
 }
 
 // Toast Group Component
-export interface ToastContainerProps
-  extends VariantProps<typeof toastVariants> {
-  placement?: toast.Placement
-  gap?: number
-  offsets?: string
-  overlap?: boolean
-  max?: number
+export interface ToastContainerProps extends VariantProps<
+  typeof toastVariants
+> {
+  placement?: toast.Placement | undefined
+  gap?: number | undefined
+  offsets?: string | undefined
+  overlap?: boolean | undefined
+  max?: number | undefined
 }
 
 // Create the global toast store

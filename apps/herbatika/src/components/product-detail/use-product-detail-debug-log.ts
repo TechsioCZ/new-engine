@@ -19,11 +19,12 @@ export function useProductDetailDebugLog(product: Product | null) {
       imageCount: product.images?.length ?? 0,
       categoryCount: product.categories?.length ?? 0,
       variantCount: product.variants?.length ?? 0,
-      hasShortDescription: typeof metadata?.short_description === "string",
-      contentSectionsCount: Array.isArray(metadata?.content_sections)
-        ? metadata.content_sections.length
+      hasShortDescription: typeof metadata?.["short_description"] === "string",
+      contentSectionsCount: Array.isArray(metadata?.["content_sections"])
+        ? metadata["content_sections"].length
         : 0,
-      hasContentSectionsMap: asRecord(metadata?.content_sections_map) !== null,
+      hasContentSectionsMap:
+        asRecord(metadata?.["content_sections_map"]) !== null,
     })
   }, [product])
 }

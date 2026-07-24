@@ -2,12 +2,13 @@
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { slugify } from "@techsio/ui-kit/utils"
+import type { Route } from "next"
 import Link from "next/link"
 import type { ComponentPropsWithoutRef } from "react"
 
 export type NavItem = {
   title: string
-  href?: string
+  href?: Route
   prefetch?: boolean
   icon?: IconType
   label?: string
@@ -36,9 +37,11 @@ function NavigationItem({ item }: { item: NavItem }) {
             {item.children.map((child) => (
               <Link
                 className="px-nav-submenu-padding hover:bg-nav-submenu-item-hover"
-                href={child.href || "#"}
+                href={child.href ?? "/"}
                 key={slugify(child.title)}
-                prefetch={child.prefetch}
+                {...(child.prefetch !== undefined && {
+                  prefetch: child.prefetch,
+                })}
               >
                 {child.icon && <Icon icon={child.icon} size="sm" />}
                 {child.title}
@@ -54,7 +57,7 @@ function NavigationItem({ item }: { item: NavItem }) {
     <li className="relative">
       <Link
         className="flex items-center gap-nav-link-icon-gap rounded-nav-item px-nav-item-x py-nav-item-y font-nav-item text-nav-fg text-nav-item transition-colors hover:bg-nav-item-hover-bg hover:text-nav-fg-hover"
-        href={item.href || "#"}
+        href={item.href ?? "/"}
         prefetch={item.prefetch ?? false}
       >
         {item.icon && <Icon icon={item.icon} size="sm" />}
@@ -75,7 +78,7 @@ interface NavigationProps extends ComponentPropsWithoutRef<"nav"> {
 
 export function Navigation({ items, className, ...props }: NavigationProps) {
   return (
-    <nav className="bg-nav-bg" {...props}>
+    <nav className={`bg-nav-bg ${className ?? ""}`} {...props}>
       <ul className="flex items-center gap-nav-gap">
         {items.map((item) => (
           <NavigationItem item={item} key={slugify(item.title)} />

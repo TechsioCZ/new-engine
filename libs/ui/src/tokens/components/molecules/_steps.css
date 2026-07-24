@@ -14,8 +14,11 @@
   --text-steps-title: var(--text-md);
   --text-steps-description: var(--text-sm);
   --text-steps-icon: var(--text-md);
+  --font-weight-steps-number: var(--font-weight-medium);
+  --font-weight-steps-title: var(--font-weight-medium);
 
   --color-steps-fg: var(--color-steps-content-fg);
+  --color-steps-ring: var(--color-ring);
   --font-weight-steps-number: var(--font-weight-medium);
   --font-weight-steps-title: var(--font-weight-medium);
 

@@ -1,9 +1,7 @@
 ---
 name: link-button-usage
 description: >
-  Use after component-usage-ux when navigation should look like a Button using
-  @techsio/ui-kit LinkButton, including framework link adapters, href, disabled
-  state, icons, and Button-compatible variants/themes/sizes.
+  Use after component-usage-ux when navigation should look like a Button using @techsio/ui-kit LinkButton, including framework link adapters, href, disabled state, icons, and Button-compatible variants/themes/sizes.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,8 +19,7 @@ sources:
 
 # @techsio/ui-kit LinkButton Usage
 
-Use LinkButton for navigation that needs Button styling. Use Button for
-actions that stay in the current page state.
+Use LinkButton for navigation that needs Button styling. Use Button for actions that stay in the current page state.
 
 ## Setup
 
@@ -30,7 +27,7 @@ actions that stay in the current page state.
 import NextLink from "next/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 
-<LinkButton as={NextLink} href="/products" variant="primary" theme="solid">
+;<LinkButton as={NextLink} href="/products" variant="primary" theme="solid">
   Products
 </LinkButton>
 ```
@@ -55,8 +52,7 @@ icon/iconPosition/iconSize: Button icon props
 </LinkButton>
 ```
 
-If clicking submits, deletes, saves, opens a dialog, or mutates state, use
-Button instead.
+If clicking submits, deletes, saves, opens a dialog, or mutates state, use Button instead.
 
 ### Use framework adapters directly
 
@@ -66,8 +62,7 @@ Button instead.
 </LinkButton>
 ```
 
-Do not create a local wrapper until `framework-consumer-integration` proves the
-component cannot accept the framework prop shape.
+Do not create a local wrapper until `framework-consumer-integration` proves the component cannot accept the framework prop shape.
 
 ### Reuse Button visual semantics
 
@@ -92,7 +87,9 @@ Wrong:
 Correct:
 
 ```tsx
-<LinkButton as={NextLink} href="/products">Products</LinkButton>
+<LinkButton as={NextLink} href="/products">
+  Products
+</LinkButton>
 ```
 
 Source: libs/ui/src/atoms/link-button.tsx
@@ -122,7 +119,9 @@ Source: libs/ui/src/tokens/components/atoms/_button.css
 Wrong:
 
 ```tsx
-<LinkButton href="/help" variant="ghost">Help</LinkButton>
+<LinkButton href="/help" variant="ghost">
+  Help
+</LinkButton>
 ```
 
 Correct:
@@ -148,7 +147,9 @@ function AppLinkButton(props: Props) {
 Correct:
 
 ```tsx
-<LinkButton as={NextLink} href="/profile">Profile</LinkButton>
+<LinkButton as={NextLink} href="/profile">
+  Profile
+</LinkButton>
 ```
 
 ## Validation Commands
@@ -159,4 +160,3 @@ rg -n "<LinkButton[^>]*variant=\"ghost\"" apps
 rg -n "<LinkButton[^>]*className=.*(bg-|text-|px-|py-|rounded-|border-)" apps
 rg -n "function .*LinkButton|const .*LinkButton" apps
 ```
-

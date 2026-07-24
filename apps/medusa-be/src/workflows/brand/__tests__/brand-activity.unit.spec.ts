@@ -1,12 +1,43 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
+import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
+
 import { BRAND_MODULE } from "../../../modules/brand"
 import { getActiveBrandIds } from "../brand-activity"
+
+/**
+ * Asserts that a plain mock object contains the given keys before narrowing
+ * it to a framework type. Building the mock this way avoids requiring every
+ * property of the huge container interface while still validating the shape
+ * the code under test actually reads from at runtime.
+ */
+function assertMockShape<T>(
+  candidate: unknown,
+  requiredKeys: readonly string[]
+): asserts candidate is T {
+  if (!isRecord(candidate)) {
+    throw new TypeError("Expected a mock object")
+  }
+
+  for (const key of requiredKeys) {
+    if (!(key in candidate)) {
+      throw new TypeError(`Mock object missing required key: ${key}`)
+    }
+  }
+}
+
+const createContainer = (
+  resolve: ReturnType<typeof vi.fn>
+): MedusaContainer => {
+  const candidate: unknown = { resolve }
+  assertMockShape<MedusaContainer>(candidate, ["resolve"])
+  return candidate
+}
 
 describe("getActiveBrandIds", () => {
   it("does not resolve the Brand module for an empty input", async () => {
     const resolve = vi.fn()
-    const container = { resolve } as unknown as MedusaContainer
+    const container = createContainer(resolve)
 
     await expect(getActiveBrandIds(container, [])).resolves.toEqual(new Set())
     expect(resolve).not.toHaveBeenCalled()
@@ -18,9 +49,14 @@ describe("getActiveBrandIds", () => {
       filters.id.$in.filter((id) => id !== "brand_250").map((id) => ({ id }))
     )
     const resolve = vi.fn(() => ({ listBrands }))
-    const container = { resolve } as unknown as MedusaContainer
+    const container = createContainer(resolve)
 
-    const result = await getActiveBrandIds(container, [...ids, ids[0]])
+    const firstId = ids[0]
+    if (!firstId) {
+      throw new Error("expected at least one brand id")
+    }
+
+    const result = await getActiveBrandIds(container, [...ids, firstId])
 
     expect(resolve).toHaveBeenCalledOnce()
     expect(resolve).toHaveBeenCalledWith(BRAND_MODULE)

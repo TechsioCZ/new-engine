@@ -20,6 +20,8 @@ const createMockRequest = ({
         if (key === ContainerRegistrationKeys.QUERY) {
           return { graph }
         }
+
+        throw new Error(`Unexpected container key: ${key}`)
       }),
     },
     validatedQuery,
@@ -36,9 +38,8 @@ describe("GET /store/approvals", () => {
   })
 
   it("returns the standard empty carts_with_approvals contract when the customer has no company", async () => {
-    const { GET } = await import(
-      "../../../../../../src/api/store/approvals/route"
-    )
+    const { GET } =
+      await import("../../../../../../src/api/store/approvals/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "cus_1", employee: null }],
     })

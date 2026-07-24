@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { deleteProductListItemWorkflow } from "../../../../../../workflows/product-list/workflows/delete-product-list-item"
 import { StoreDeleteProductListItemParamsSchema } from "../../../validators"
 

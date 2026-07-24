@@ -1,8 +1,8 @@
 import type { ProviderIdentityDTO, Query } from "@medusajs/framework/types"
 
 type AdminRoleCandidate = {
-  customer_id?: string | null
-  email?: string | null
+  customer_id?: string | null | undefined
+  email?: string | null | undefined
 }
 
 type EmployeeCustomerLinkRow = {

@@ -231,7 +231,9 @@ export function createOrderDashboardFulfillment(input: {
     location_id: input.locationId,
     metadata: {},
     no_notification: input.noNotification,
-    shipping_option_id: input.shippingOptionId,
+    ...(input.shippingOptionId === undefined
+      ? {}
+      : { shipping_option_id: input.shippingOptionId }),
   })
 }
 

@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
+
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types"
 
 type ProductDetailOffersProps = {
@@ -103,7 +104,7 @@ function DiscountOptionIndicator({ isSelected }: { isSelected: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`grid h-500 w-500 shrink-0 place-items-center rounded-[3px] border ${
+      className={`grid h-500 w-500 shrink-0 place-items-center rounded-selection-indicator border ${
         isSelected
           ? "border-primary bg-primary text-fg-reverse"
           : "border-border-primary bg-surface text-fg-reverse"

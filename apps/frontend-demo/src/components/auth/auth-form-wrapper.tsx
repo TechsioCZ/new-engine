@@ -1,3 +1,4 @@
+import type { Route } from "next"
 import Link from "next/link"
 import type * as React from "react"
 
@@ -7,7 +8,7 @@ interface AuthFormWrapperProps {
   children: React.ReactNode
   footerText: string
   footerLinkText: string
-  footerLinkHref: string
+  footerLinkHref: Route
 }
 
 export function AuthFormWrapper({

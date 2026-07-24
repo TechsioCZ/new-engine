@@ -1,10 +1,7 @@
 ---
 name: intent-skill-maintenance
 description: >
-  Use when @techsio/ui-kit component APIs, token rules, Storybook rules, app
-  usage patterns, Figma handoff practices, validation commands, or generated
-  skills change and the TanStack Intent skill artifacts or SKILL.md files need
-  review or regeneration.
+  Use when @techsio/ui-kit component APIs, token rules, Storybook rules, app usage patterns, Figma handoff practices, validation commands, or generated skills change and the TanStack Intent skill artifacts or SKILL.md files need review or regeneration.
 type: lifecycle
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -50,8 +47,7 @@ skills/_artifacts/skill_spec.md
 skills/_artifacts/skill_tree.yaml
 ```
 
-Do not patch many `SKILL.md` files from memory when the source artifacts are
-stale.
+Do not patch many `SKILL.md` files from memory when the source artifacts are stale.
 
 ### Keep examples grounded
 

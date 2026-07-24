@@ -1,4 +1,5 @@
-import { compactRecord } from "../shared/object-utils"
+import { compactRecord } from "@techsio/std/object"
+
 import { resolvePagination } from "../shared/pagination"
 import type {
   ProductListDetailInputBase,
@@ -39,11 +40,11 @@ export const createDefaultListParams = <
   }
 
   const pagination = resolvePagination(
-    {
+    compactRecord({
       page: input.page,
       limit: input.limit,
       offset: input.offset,
-    },
+    }),
     defaultPageSize
   )
 

@@ -4,11 +4,13 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useState } from "react"
+
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import data, { categoryTree } from "@/lib/static-data/categories"
 import { getProducts } from "@/services/product-service"
+
 import { CategoryTreeFilter } from "../category-tree-filter"
 import { FilterSection } from "../molecules/filter-section"
 
@@ -31,13 +33,10 @@ export function ProductFilters({
   hideCategories = false,
 }: ProductFiltersProps) {
   const { selectedRegion } = useRegions()
-  const [categoryIds, setCategoryIds] = useState<string[]>([])
-
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
 
   const handleCategoryChange = (newCategoryIds: string[]) => {
-    setCategoryIds(newCategoryIds)
     updateFilters({ categories: new Set(newCategoryIds) })
   }
 
@@ -67,7 +66,7 @@ export function ProductFilters({
 
     // Only prefetch if data is not in cache or is stale
     if (!cachedData || queryState?.isInvalidated) {
-      queryClient.prefetchQuery({
+      void queryClient.prefetchQuery({
         queryKey,
         queryFn: () =>
           getProducts({

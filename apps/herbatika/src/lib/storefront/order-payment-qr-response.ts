@@ -1,6 +1,6 @@
 import "server-only"
-
 import QRCode from "qrcode"
+
 import {
   ORDER_PAYMENT_QR_METADATA_KEY,
   ORDER_QR_PAYMENT_PROVIDER_ID,
@@ -77,14 +77,14 @@ export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
   }
 
   const spaydFields = parseSpaydFields(spayd)
-  const iban = readString(spaydFields.ACC)
+  const iban = readString(spaydFields["ACC"])
   if (!iban) {
     return UNAVAILABLE_QR_PAYMENT_RESPONSE
   }
 
-  const amount = readAmount(spaydFields.AM) ?? order.total ?? null
+  const amount = readAmount(spaydFields["AM"]) ?? order.total ?? null
   const currencyCode =
-    readString(spaydFields.CC)?.toUpperCase() ??
+    readString(spaydFields["CC"])?.toUpperCase() ??
     readString(order.currency_code)?.toUpperCase() ??
     "EUR"
   const orderDisplayId =
@@ -97,7 +97,7 @@ export async function mapStoreOrderPaymentQr(payload: StoreOrderResponse) {
       amount,
       currency_code: currencyCode,
       iban,
-      message: readString(spaydFields.MSG),
+      message: readString(spaydFields["MSG"]),
       order_display_id: orderDisplayId,
       order_id: order.id,
       provider_id: ORDER_QR_PAYMENT_PROVIDER_ID,

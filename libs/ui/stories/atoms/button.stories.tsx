@@ -1,118 +1,120 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '../../src/atoms/button'
-import { fn } from 'storybook/test'
-import { iconLabels, iconOptions } from '../helpers/icon-options'
+import type { Meta, StoryObj } from "@storybook/react"
+import { fn } from "storybook/test"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { iconLabels, iconOptions } from "../helpers/icon-options"
 
 const meta: Meta<typeof Button> = {
-  title: 'Atoms/Button',
+  title: "Atoms/Button",
   component: Button,
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['primary', 'secondary', 'tertiary', 'warning', 'danger'],
-      description: 'Controls the semantic style of the button',
+      control: "select",
+      options: ["primary", "secondary", "tertiary", "warning", "danger"],
+      description: "Controls the semantic style of the button",
       table: {
-        defaultValue: { summary: 'primary' },
+        defaultValue: { summary: "primary" },
       },
     },
     theme: {
-      control: 'select',
-      options: ['solid', 'light', 'outlined', 'borderless', 'unstyled'],
-      description: 'Controls the visual weight/theme of the button',
+      control: "select",
+      options: ["solid", "light", "outlined", "borderless", "unstyled"],
+      description: "Controls the visual weight/theme of the button",
       table: {
-        defaultValue: { summary: 'solid' },
+        defaultValue: { summary: "solid" },
       },
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'current'],
-      description: 'Controls the size of the button',
+      control: "select",
+      options: ["sm", "md", "lg", "current"],
+      description: "Controls the size of the button",
       table: {
-        defaultValue: { summary: 'md' },
+        defaultValue: { summary: "md" },
       },
     },
     type: {
-      control: 'radio',
-      options: ['button', 'submit', 'reset'],
-      description: 'The HTML type of the button',
+      control: "radio",
+      options: ["button", "submit", "reset"],
+      description: "The HTML type of the button",
       table: {
-        defaultValue: { summary: 'button' },
+        defaultValue: { summary: "button" },
       },
     },
     block: {
-      control: 'boolean',
-      description: 'Whether the button should take up the full width of its container',
+      control: "boolean",
+      description:
+        "Whether the button should take up the full width of its container",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     uppercase: {
-      control: 'boolean',
-      description: 'Whether the button text should be uppercase',
+      control: "boolean",
+      description: "Whether the button text should be uppercase",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     disabled: {
-      control: 'boolean',
-      description: 'Whether the button is disabled',
+      control: "boolean",
+      description: "Whether the button is disabled",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     isLoading: {
-      control: 'boolean',
-      description: 'Whether the button is in a loading state',
+      control: "boolean",
+      description: "Whether the button is in a loading state",
       table: {
-        defaultValue: { summary: 'false' },
+        defaultValue: { summary: "false" },
       },
     },
     loadingText: {
-      control: 'text',
-      description: 'Text to display when isLoading is true',
+      control: "text",
+      description: "Text to display when isLoading is true",
     },
     icon: {
       control: {
-        type: 'select',
+        type: "select",
         labels: iconLabels,
       },
       options: iconOptions,
-      description: 'Icon to display in the button',
+      description: "Icon to display in the button",
     },
     iconPosition: {
-      control: 'radio',
-      options: ['left', 'right'],
-      description: 'Position of the icon relative to the text',
+      control: "radio",
+      options: ["left", "right"],
+      description: "Position of the icon relative to the text",
       table: {
-        defaultValue: { summary: 'left' },
+        defaultValue: { summary: "left" },
       },
     },
     children: {
-      control: 'text',
-      description: 'Content of the button',
+      control: "text",
+      description: "Content of the button",
     },
     onClick: {
-      description: 'Click handler',
+      description: "Click handler",
     },
   },
   args: {
-    variant: 'primary',
-    theme: 'solid',
-    size: 'md',
-    type: 'button',
+    variant: "primary",
+    theme: "solid",
+    size: "md",
+    type: "button",
     block: false,
     uppercase: false,
     disabled: false,
     isLoading: false,
-    loadingText: 'Loading...',
-    children: 'Button',
-    iconPosition: 'left',
+    loadingText: "Loading...",
+    children: "Button",
+    iconPosition: "left",
     onClick: fn(),
   },
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
 }
 
@@ -120,10 +122,11 @@ export default meta
 type Story = StoryObj<typeof Button>
 
 export const Playground: Story = {
-  render: (args) => 
-  <div className='w-md'>
-    <Button {...args} />
-  </div>
+  render: (args) => (
+    <div className="w-md">
+      <Button {...args} />
+    </div>
+  ),
 }
 
 export const Variants: Story = {
@@ -224,9 +227,7 @@ export const States: Story = {
     return (
       <VariantContainer>
         <VariantGroup title="Disabled states">
-          <Button disabled>
-            Solid
-          </Button>
+          <Button disabled>Solid</Button>
           <Button variant="secondary" theme="light" disabled>
             Light
           </Button>

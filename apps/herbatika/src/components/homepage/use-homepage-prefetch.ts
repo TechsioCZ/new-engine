@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   PRODUCT_DETAIL_FIELDS,
   usePrefetchProduct,

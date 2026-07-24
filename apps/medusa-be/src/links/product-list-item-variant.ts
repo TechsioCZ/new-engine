@@ -1,5 +1,6 @@
 import { defineLink } from "@medusajs/framework/utils"
 import ProductModule from "@medusajs/medusa/product"
+
 import ProductListModule from "../modules/product-list"
 
 export const ProductListItemVariantLink = defineLink(
@@ -8,7 +9,7 @@ export const ProductListItemVariantLink = defineLink(
     isList: true,
   },
   {
-    linkable: ProductModule.linkable.productVariant,
+    linkable: ProductModule.linkable["productVariant"],
     filterable: ["id", "sku", "title"],
   }
 )

@@ -1,16 +1,19 @@
 import type { Ref } from "react"
+
 import type { IconType } from "../atoms/icon"
 import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 
-export interface NumericInputTemplateProps
-  extends Omit<NumericInputProps, "children" | "ref"> {
-  showControls?: boolean
-  showScrubber?: boolean
-  controlsPosition?: "right" | "sides"
-  incrementIcon?: IconType
-  decrementIcon?: IconType
-  className?: string
-  ref?: Ref<HTMLDivElement>
+export interface NumericInputTemplateProps extends Omit<
+  NumericInputProps,
+  "children" | "ref"
+> {
+  showControls?: boolean | undefined
+  showScrubber?: boolean | undefined
+  controlsPosition?: "right" | "sides" | undefined
+  incrementIcon?: IconType | undefined
+  decrementIcon?: IconType | undefined
+  className?: string | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 export function NumericInputTemplate({

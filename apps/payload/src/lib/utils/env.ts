@@ -33,7 +33,7 @@ export const isEnabled = (envVar: string, defaultValue = true): boolean => {
 }
 
 /** Parse a comma-delimited environment variable into a list. */
-export const parseEnvList = (envVar: string): string[] => {
+const parseEnvList = (envVar: string): string[] => {
   const raw = getEnv(envVar)
   return raw
     ? raw
@@ -54,7 +54,7 @@ export const resolveEnvLocales = (
 
   return {
     locales: resolvedLocales,
-    defaultLocale: resolvedLocales[0],
+    defaultLocale: resolvedLocales[0] ?? "en",
   }
 }
 

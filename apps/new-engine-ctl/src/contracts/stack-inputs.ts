@@ -273,7 +273,7 @@ export type BootstrapSharedEnvDefinition = z.infer<
 export type ServiceReconciliationDefinition = z.infer<
   typeof serviceReconciliationDefinitionSchema
 >
-export type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
+type RuntimeProviderOutput = z.infer<typeof providerOutputSchema>
 export type RuntimeProviderOutputTarget = z.infer<
   typeof providerOutputTargetSchema
 >
@@ -314,7 +314,7 @@ export function getPreviewRandomOnceSecretDefinitions(
 }
 
 export function previewRandomOnceSecretPersistsToZaneEnv(secret: {
-  persist_to?: string
+  persist_to?: string | undefined
 }): boolean {
   return (secret.persist_to ?? "zane_env") === "zane_env"
 }
@@ -446,7 +446,7 @@ export function getRuntimeProviderMeiliKeyPolicy(
   }
 }
 
-export function listRuntimeProviderConsumerServiceIds(
+function listRuntimeProviderConsumerServiceIds(
   inputs: StackInputs,
   providerId: string
 ): string[] {
@@ -531,7 +531,7 @@ export function listRuntimeProviderOutputIds(
   )
 }
 
-export function listRuntimeProviderTargetsForService(
+function listRuntimeProviderTargetsForService(
   inputs: StackInputs,
   serviceId: string
 ): Array<{
@@ -584,7 +584,7 @@ export function listRuntimeProviderServiceIds(
   ]
 }
 
-export function listActiveRuntimeProviderIds(inputs: StackInputs): string[] {
+function listActiveRuntimeProviderIds(inputs: StackInputs): string[] {
   return inputs.runtime_providers.providers
     .filter((provider) => (provider.status ?? "active") === "active")
     .map((provider) => provider.provider_id)

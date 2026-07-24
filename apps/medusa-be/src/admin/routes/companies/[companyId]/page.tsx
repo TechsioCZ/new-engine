@@ -16,6 +16,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+
 import type {
   AdminCompanyResponse,
   QueryCompany,
@@ -34,7 +35,7 @@ import {
 } from "../components/employees"
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const companyId = params.companyId
+  const companyId = params["companyId"]
 
   if (!companyId) {
     return { company: undefined }
@@ -121,7 +122,7 @@ const CompanyDetails = () => {
           <div className="flex items-center gap-2">
             <Avatar
               fallback={company?.name?.charAt(0)}
-              src={company?.logo_url || undefined}
+              src={company.logo_url ?? ""}
             />
             <Heading className="h1-core font-medium font-sans">
               {company?.name}

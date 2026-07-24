@@ -1,5 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import { useCategories } from "@/lib/storefront/categories"
 import {
@@ -7,6 +8,7 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config"
+
 import {
   PRODUCT_SECTIONS,
   PRODUCTS_PER_COLLECTION_SECTION,
@@ -49,7 +51,7 @@ export function useHomepageController(): UseHomepageControllerResult {
     page: 1,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
     sort: "recommended",
-    category_id: bestsellersCategoryId ? [bestsellersCategoryId] : undefined,
+    ...(bestsellersCategoryId ? { category_id: [bestsellersCategoryId] } : {}),
     enabled: Boolean(region?.region_id && bestsellersCategoryId),
   })
 
@@ -83,15 +85,15 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const preparedProductSections: HomepageProductSection[] = [
     {
-      ...PRODUCT_SECTIONS[0],
+      ...PRODUCT_SECTIONS[0]!,
       products: bestsellersProductsQuery.products,
     },
     {
-      ...PRODUCT_SECTIONS[1],
+      ...PRODUCT_SECTIONS[1]!,
       products: newProductsQuery.products,
     },
     {
-      ...PRODUCT_SECTIONS[2],
+      ...PRODUCT_SECTIONS[2]!,
       products: actionProductsQuery.products,
     },
   ]

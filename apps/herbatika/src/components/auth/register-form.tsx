@@ -3,6 +3,7 @@
 import { useStore } from "@tanstack/react-form"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
@@ -13,6 +14,7 @@ import {
 } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { AuthFooter } from "./auth-footer"
 
 type RegisterFormProps = {

@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import {
   SYMMY_IMPORT_JOB_MODULE,
   type SymmyImportJobDTO,
@@ -71,6 +72,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     SYMMY_IMPORT_JOB_MODULE
   )
 
-  const job = await importJobService.retrieveJob(req.params.id)
+  const jobId = req.params["id"]
+  if (!jobId) {
+    res.status(400).json({ error: { message: "Job ID is required" } })
+    return
+  }
+
+  const job = await importJobService.retrieveJob(jobId)
   res.status(200).json({ job: serializeJob(job) })
 }

@@ -39,6 +39,8 @@ import type {
   CreatePaymentSchema,
   UpdatePaymentSchema,
 } from "@paykit-sdk/core"
+import { isRecord } from "@techsio/std/object"
+
 import { resolveConfiguredClient } from "../runtime"
 import type {
   PaykitAdapterOptions,
@@ -57,9 +59,6 @@ import {
 
 export type PaykitInjectedDependencies = Record<string, unknown>
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 const isPaymentAmount = (
   value: unknown
 ): value is InitiatePaymentInput["amount"] =>
@@ -67,12 +66,13 @@ const isPaymentAmount = (
   typeof value === "string" ||
   (isRecord(value) &&
     (("value" in value &&
-      (typeof value.value === "number" || typeof value.value === "string")) ||
+      (typeof value["value"] === "number" ||
+        typeof value["value"] === "string")) ||
       ("toJSON" in value && "valueOf" in value)))
 
 const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
-  typeof data?.currency === "string" && data.currency.length > 0
-    ? data.currency
+  typeof data?.["currency"] === "string" && data["currency"].length > 0
+    ? data["currency"]
     : undefined
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -107,9 +107,7 @@ const isProviderNotSupportedError = (error: unknown): boolean =>
   error instanceof Error && error.name === "ProviderNotSupportedError"
 
 const noAccountHolderCreated = (): CreateAccountHolderOutput =>
-  // Medusa's payment module treats an empty provider account-holder response as
-  // "not supported / not created" via isPresent({}) === false.
-  ({}) as unknown as CreateAccountHolderOutput
+  Object.create(null)
 
 const joinName = (...values: unknown[]): string | undefined => {
   const name = values
@@ -146,7 +144,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   protected getProviderPaymentId(data?: Record<string, unknown>): string {
-    const id = data?.id
+    const id = data?.["id"]
 
     if (typeof id !== "string" || id.length === 0) {
       throw new MedusaError(
@@ -265,8 +263,8 @@ export abstract class PaykitPaymentProviderBase<
 
     if ("data" in input && isRecord(input.data)) {
       const explicitBilling =
-        this.mapPaykitBillingInfo(input.data.billing, currencyCode) ??
-        this.mapMedusaBillingAddress(input.data.billing, currencyCode, input)
+        this.mapPaykitBillingInfo(input.data["billing"], currencyCode) ??
+        this.mapMedusaBillingAddress(input.data["billing"], currencyCode, input)
 
       if (explicitBilling) {
         return explicitBilling
@@ -290,23 +288,23 @@ export abstract class PaykitPaymentProviderBase<
     billing: unknown,
     currencyCode?: string
   ): BillingInfo | undefined {
-    if (!(isRecord(billing) && isRecord(billing.address))) {
+    if (!(isRecord(billing) && isRecord(billing["address"]))) {
       return
     }
 
-    const address = billing.address
+    const address = billing["address"]
     const currency =
-      typeof billing.currency === "string" && billing.currency.length > 0
-        ? billing.currency
+      typeof billing["currency"] === "string" && billing["currency"].length > 0
+        ? billing["currency"]
         : currencyCode
 
     if (
       !(
-        typeof address.name === "string" &&
-        typeof address.line1 === "string" &&
-        typeof address.city === "string" &&
-        typeof address.postal_code === "string" &&
-        typeof address.country === "string" &&
+        typeof address["name"] === "string" &&
+        typeof address["line1"] === "string" &&
+        typeof address["city"] === "string" &&
+        typeof address["postal_code"] === "string" &&
+        typeof address["country"] === "string" &&
         currency
       )
     ) {
@@ -315,17 +313,22 @@ export abstract class PaykitPaymentProviderBase<
 
     return {
       address: {
-        name: address.name,
-        line1: address.line1,
-        line2: typeof address.line2 === "string" ? address.line2 : "",
-        city: address.city,
-        state: typeof address.state === "string" ? address.state : undefined,
-        postal_code: address.postal_code,
-        country: address.country,
-        phone: typeof address.phone === "string" ? address.phone : undefined,
+        name: address["name"],
+        line1: address["line1"],
+        line2: typeof address["line2"] === "string" ? address["line2"] : "",
+        city: address["city"],
+        ...(typeof address["state"] === "string"
+          ? { state: address["state"] }
+          : {}),
+        postal_code: address["postal_code"],
+        country: address["country"],
+        ...(typeof address["phone"] === "string"
+          ? { phone: address["phone"] }
+          : {}),
       },
-      carrier:
-        typeof billing.carrier === "string" ? billing.carrier : undefined,
+      ...(typeof billing["carrier"] === "string"
+        ? { carrier: billing["carrier"] }
+        : {}),
       currency,
     }
   }
@@ -341,10 +344,10 @@ export abstract class PaykitPaymentProviderBase<
     if (
       !(
         isRecord(billing) &&
-        billing?.address_1 &&
-        billing.city &&
-        billing.country_code &&
-        billing.postal_code &&
+        typeof billing["address_1"] === "string" &&
+        typeof billing["city"] === "string" &&
+        typeof billing["country_code"] === "string" &&
+        typeof billing["postal_code"] === "string" &&
         currencyCode
       )
     ) {
@@ -354,7 +357,7 @@ export abstract class PaykitPaymentProviderBase<
     return {
       address: {
         name:
-          joinName(billing.first_name, billing.last_name) ||
+          joinName(billing["first_name"], billing["last_name"]) ||
           joinName(
             input.context?.customer?.first_name,
             input.context?.customer?.last_name
@@ -362,17 +365,20 @@ export abstract class PaykitPaymentProviderBase<
           input.context?.customer?.email ||
           input.context?.customer?.id ||
           "Customer",
-        line1: String(billing.address_1),
-        line2: typeof billing.address_2 === "string" ? billing.address_2 : "",
-        city: String(billing.city),
-        state:
-          typeof billing.province === "string" ? billing.province : undefined,
-        postal_code: String(billing.postal_code),
-        country: String(billing.country_code),
-        phone:
-          typeof billing.phone === "string"
-            ? billing.phone
-            : (input.context?.customer?.phone ?? undefined),
+        line1: billing["address_1"],
+        line2:
+          typeof billing["address_2"] === "string" ? billing["address_2"] : "",
+        city: billing["city"],
+        ...(typeof billing["province"] === "string"
+          ? { state: billing["province"] }
+          : {}),
+        postal_code: billing["postal_code"],
+        country: billing["country_code"],
+        ...(typeof billing["phone"] === "string"
+          ? { phone: billing["phone"] }
+          : input.context?.customer?.phone
+            ? { phone: input.context.customer.phone }
+            : {}),
       },
       currency: currencyCode,
     }
@@ -381,7 +387,7 @@ export abstract class PaykitPaymentProviderBase<
   protected getProviderMetadata(
     data: Record<string, unknown>
   ): Record<string, unknown> {
-    return isRecord(data.provider_metadata) ? data.provider_metadata : {}
+    return isRecord(data["provider_metadata"]) ? data["provider_metadata"] : {}
   }
 
   protected getCreateProviderMetadata(
@@ -401,7 +407,7 @@ export abstract class PaykitPaymentProviderBase<
     input: InitiatePaymentInput,
     data: Record<string, unknown>
   ): CreatePaymentSchema["customer"] {
-    const dataCustomer = data.customer
+    const dataCustomer = data["customer"]
 
     if (typeof dataCustomer === "string" && dataCustomer.length > 0) {
       return isEmailValue(dataCustomer)
@@ -411,26 +417,26 @@ export abstract class PaykitPaymentProviderBase<
 
     if (isRecord(dataCustomer)) {
       if (
-        typeof dataCustomer.email === "string" &&
-        isEmailValue(dataCustomer.email)
+        typeof dataCustomer["email"] === "string" &&
+        isEmailValue(dataCustomer["email"])
       ) {
-        return { email: dataCustomer.email }
+        return { email: dataCustomer["email"] }
       }
 
       if (
-        typeof dataCustomer.id === "string" ||
-        typeof dataCustomer.id === "number"
+        typeof dataCustomer["id"] === "string" ||
+        typeof dataCustomer["id"] === "number"
       ) {
-        return { id: dataCustomer.id }
+        return { id: dataCustomer["id"] }
       }
     }
 
-    if (typeof data.customer_email === "string") {
-      return { email: data.customer_email }
+    if (typeof data["customer_email"] === "string") {
+      return { email: data["customer_email"] }
     }
 
-    if (typeof data.email === "string") {
-      return { email: data.email }
+    if (typeof data["email"] === "string") {
+      return { email: data["email"] }
     }
 
     const contextCustomer = input.context?.customer
@@ -438,7 +444,7 @@ export abstract class PaykitPaymentProviderBase<
       return { email: contextCustomer.email }
     }
 
-    const accountHolderEmail = input.context?.account_holder?.data?.email
+    const accountHolderEmail = input.context?.account_holder?.data?.["email"]
     if (typeof accountHolderEmail === "string") {
       return { email: accountHolderEmail }
     }
@@ -452,10 +458,10 @@ export abstract class PaykitPaymentProviderBase<
   protected getItemId(data: Record<string, unknown>): string {
     const providerMetadata = this.getProviderMetadata(data)
     const itemId =
-      data.item_id ??
-      providerMetadata.item_id ??
-      data.cart_id ??
-      data.session_id
+      data["item_id"] ??
+      providerMetadata["item_id"] ??
+      data["cart_id"] ??
+      data["session_id"]
 
     if (typeof itemId === "string" && itemId.length > 0) {
       return itemId
@@ -468,7 +474,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   protected getSessionId(data: Record<string, unknown>): string {
-    const sessionId = data.session_id
+    const sessionId = data["session_id"]
 
     if (typeof sessionId === "string" && sessionId.length > 0) {
       return sessionId
@@ -484,7 +490,8 @@ export abstract class PaykitPaymentProviderBase<
     data: Record<string, unknown>
   ): "automatic" | "manual" {
     const providerMetadata = this.getProviderMetadata(data)
-    const captureMethod = data.capture_method ?? providerMetadata.capture_method
+    const captureMethod =
+      data["capture_method"] ?? providerMetadata["capture_method"]
 
     if (captureMethod === "automatic" || captureMethod === "manual") {
       return captureMethod
@@ -500,13 +507,14 @@ export abstract class PaykitPaymentProviderBase<
     const data = input.data ?? {}
     const sessionId = this.getSessionId(data)
     const metadata = {
-      ...(getMetadataRecord(data.metadata) ?? {}),
+      ...getMetadataRecord(data["metadata"]),
       session_id: sessionId,
     }
     const providerMetadata = this.getCreateProviderMetadata(input, data)
+    const billing = this.mapBillingInfo(input)
     const createInput: CreatePaymentSchema = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
-      billing: this.mapBillingInfo(input),
+      ...(billing ? { billing } : {}),
       currency: input.currency_code,
       metadata,
       provider_metadata: providerMetadata,
@@ -573,10 +581,13 @@ export abstract class PaykitPaymentProviderBase<
       return this.normalizePaymentOutput(payment)
     }
 
+    const metadata = this.toStringMetadata(
+      getMetadataRecord(input.data?.["metadata"])
+    )
     const updateInput: UpdatePaymentSchema = {
       amount: this.normalizeAmount(input.amount, input.currency_code),
       currency: input.currency_code,
-      metadata: this.toStringMetadata(getMetadataRecord(input.data?.metadata)),
+      ...(metadata ? { metadata } : {}),
       provider_metadata: this.getUpdateProviderMetadata(input.data ?? {}),
     }
     const payment = await client.payments.update(id, updateInput)
@@ -600,15 +611,15 @@ export abstract class PaykitPaymentProviderBase<
     const explicitAmount = getCaptureAmount(input)
     let paymentDataAmount: RefundPaymentInput["amount"] | undefined
 
-    if (input.data?.amount !== undefined) {
-      if (!isPaymentAmount(input.data.amount)) {
+    if (input.data?.["amount"] !== undefined) {
+      if (!isPaymentAmount(input.data["amount"])) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "PayKit stored payment amount must be numeric"
         )
       }
 
-      paymentDataAmount = input.data.amount
+      paymentDataAmount = input.data["amount"]
     }
 
     const amount = explicitAmount ?? paymentDataAmount
@@ -677,7 +688,7 @@ export abstract class PaykitPaymentProviderBase<
     const client = await this.getClient()
 
     if (!client.payments.cancel) {
-      return { data: input.data }
+      return input.data ? { data: input.data } : {}
     }
 
     const payment = await client.payments.cancel(id)
@@ -688,15 +699,15 @@ export abstract class PaykitPaymentProviderBase<
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
     // Medusa can call deletePayment during create-session rollback with only
     // the original input data, before provider data.id has been persisted.
-    if (!input.data?.id) {
-      return { data: input.data }
+    if (!input.data?.["id"]) {
+      return input.data ? { data: input.data } : {}
     }
 
     const client = await this.getClient()
     const id = this.getProviderPaymentId(input.data)
 
     if (!client.payments.cancel) {
-      return { data: input.data }
+      return input.data ? { data: input.data } : {}
     }
 
     const payment = await client.payments.cancel(id)
@@ -760,16 +771,18 @@ export abstract class PaykitPaymentProviderBase<
     }
 
     try {
+      const name =
+        joinName(customer.first_name, customer.last_name) ||
+        customer.email.split("@")[0]
+      const metadata = this.toStringMetadata({
+        medusa_customer_id: customer.id,
+      })
       const providerCustomer = await client.customers.create({
         billing: this.mapBillingInfo(input) ?? null,
         email: customer.email,
-        name:
-          joinName(customer.first_name, customer.last_name) ||
-          customer.email.split("@")[0],
+        ...(name ? { name } : {}),
         phone: customer.phone ?? "",
-        metadata: this.toStringMetadata({
-          medusa_customer_id: customer.id,
-        }),
+        ...(metadata ? { metadata } : {}),
       })
 
       if (!providerCustomer.id) {
@@ -789,7 +802,7 @@ export abstract class PaykitPaymentProviderBase<
   async updateAccountHolder(
     input: UpdateAccountHolderInput
   ): Promise<UpdateAccountHolderOutput> {
-    const id = input.context.account_holder.data.id
+    const id = input.context.account_holder.data["id"]
 
     if (typeof id !== "string" || !id) {
       throw new MedusaError(
@@ -808,13 +821,14 @@ export abstract class PaykitPaymentProviderBase<
 
     try {
       const billing = this.mapBillingInfo(input)
+      const name = customer
+        ? joinName(customer.first_name, customer.last_name) || customer.email
+        : undefined
       const providerCustomer = await client.customers.update(id, {
         ...(billing ? { billing } : {}),
-        email: customer?.email,
-        name: customer
-          ? joinName(customer.first_name, customer.last_name) || customer.email
-          : undefined,
-        phone: customer?.phone ?? undefined,
+        ...(customer?.email ? { email: customer.email } : {}),
+        ...(name ? { name } : {}),
+        ...(customer?.phone ? { phone: customer.phone } : {}),
       })
 
       return { data: providerCustomer }
@@ -830,7 +844,7 @@ export abstract class PaykitPaymentProviderBase<
   async deleteAccountHolder(
     input: DeleteAccountHolderInput
   ): Promise<DeleteAccountHolderOutput> {
-    const id = input.context.account_holder.data?.id
+    const id = input.context.account_holder.data?.["id"]
 
     if (typeof id !== "string" || !id) {
       return {}

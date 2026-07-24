@@ -31,6 +31,8 @@ const createMockRequest = ({
         if (key === ContainerRegistrationKeys.QUERY) {
           return { graph }
         }
+
+        throw new Error(`Unexpected container key: ${key}`)
       }),
     },
     validatedBody,
@@ -49,9 +51,8 @@ describe("POST /store/companies/:id/approval-settings", () => {
   })
 
   it("creates missing approval settings before applying the update", async () => {
-    const { POST } = await import(
-      "../../../../../../src/api/store/companies/[id]/approval-settings/route"
-    )
+    const { POST } =
+      await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
     const graph = vi.fn().mockResolvedValue({ data: [] })
     workflowMocks.ensureApprovalSettingsRun.mockResolvedValue({
       result: [{ id: "apprset_created", company_id: "comp_1" }],
@@ -78,9 +79,8 @@ describe("POST /store/companies/:id/approval-settings", () => {
   })
 
   it("updates the existing approval settings record", async () => {
-    const { POST } = await import(
-      "../../../../../../src/api/store/companies/[id]/approval-settings/route"
-    )
+    const { POST } =
+      await import("../../../../../../src/api/store/companies/[id]/approval-settings/route")
     const graph = vi.fn().mockResolvedValue({
       data: [{ id: "apprset_1", company_id: "comp_1" }],
     })

@@ -1,21 +1,22 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import type { ComponentPropsWithoutRef } from 'react'
-import { useState } from 'react'
-import { Skeleton } from '../../src/atoms/skeleton'
-import { Button } from '../../src/atoms/button'
+import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentPropsWithoutRef } from "react"
+import { useState } from "react"
+
+import { Button } from "../../src/atoms/button"
+import { Skeleton } from "../../src/atoms/skeleton"
 
 const meta: Meta<typeof Skeleton> = {
-  title: 'Atoms/Skeleton',
+  title: "Atoms/Skeleton",
   component: Skeleton,
   parameters: {
     docs: {
       description: {
         component:
-          'Skeleton components provide loading placeholders while content is being fetched. Supports pulse animation, accessibility, and compound pattern for different shapes.',
+          "Skeleton components provide loading placeholders while content is being fetched. Supports pulse animation, accessibility, and compound pattern for different shapes.",
       },
     },
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
 }
 
 export default meta
@@ -24,8 +25,8 @@ type PlaygroundArgs = ComponentPropsWithoutRef<typeof Skeleton> & {
   showRectangle?: boolean
   showText?: boolean
   showCircle?: boolean
-  circleSize?: 'sm' | 'md' | 'lg' | 'xl'
-  textSize?: 'sm' | 'md' | 'lg' | 'xl'
+  circleSize?: "sm" | "md" | "lg" | "xl"
+  textSize?: "sm" | "md" | "lg" | "xl"
   textLines?: number
   textLastLineWidth?: string
 }
@@ -34,57 +35,57 @@ type PlaygroundArgs = ComponentPropsWithoutRef<typeof Skeleton> & {
 
 export const Playground: StoryObj<PlaygroundArgs> = {
   args: {
-    variant: 'primary',
-    speed: 'normal',
+    variant: "primary",
+    speed: "normal",
     showRectangle: true,
     showText: true,
     showCircle: true,
-    circleSize: 'lg',
-    textSize: 'md',
+    circleSize: "lg",
+    textSize: "md",
     textLines: 3,
-    textLastLineWidth: '80%',
+    textLastLineWidth: "80%",
   },
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['primary', 'secondary'],
-      description: 'Visual variant of the skeleton',
+      control: "select",
+      options: ["primary", "secondary"],
+      description: "Visual variant of the skeleton",
     },
     speed: {
-      control: 'select',
-      options: ['slow', 'normal', 'fast'],
-      description: 'Animation speed',
+      control: "select",
+      options: ["slow", "normal", "fast"],
+      description: "Animation speed",
     },
     showRectangle: {
-      control: 'boolean',
-      description: 'Show rectangle skeleton',
+      control: "boolean",
+      description: "Show rectangle skeleton",
     },
     showText: {
-      control: 'boolean',
-      description: 'Show text skeleton',
+      control: "boolean",
+      description: "Show text skeleton",
     },
     showCircle: {
-      control: 'boolean',
-      description: 'Show circle skeleton',
+      control: "boolean",
+      description: "Show circle skeleton",
     },
     circleSize: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'xl'],
-      description: 'Circle size',
+      control: "select",
+      options: ["sm", "md", "lg", "xl"],
+      description: "Circle size",
     },
     textSize: {
-      control: 'select',
-      options: ['sm', 'md', 'lg', 'xl'],
-      description: 'Text spacing size',
+      control: "select",
+      options: ["sm", "md", "lg", "xl"],
+      description: "Text spacing size",
     },
     textLines: {
-      control: { type: 'number', min: 1, max: 6, step: 1 },
-      description: 'Number of text lines',
+      control: { type: "number", min: 1, max: 6, step: 1 },
+      description: "Number of text lines",
     },
     textLastLineWidth: {
-      control: 'select',
-      options: ['60%', '80%', '90%'],
-      description: 'Last line width for text skeleton',
+      control: "select",
+      options: ["60%", "80%", "90%"],
+      description: "Last line width for text skeleton",
     },
   },
   render: (args) => {
@@ -107,13 +108,18 @@ export const Playground: StoryObj<PlaygroundArgs> = {
         {showText && (
           <Skeleton.Text
             {...skeletonArgs}
-            size={textSize}
-            noOfLines={textLines}
-            lastLineWidth={textLastLineWidth}
+            {...(textSize === undefined ? {} : { size: textSize })}
+            {...(textLines === undefined ? {} : { noOfLines: textLines })}
+            {...(textLastLineWidth === undefined
+              ? {}
+              : { lastLineWidth: textLastLineWidth })}
           />
         )}
         {showCircle && (
-          <Skeleton.Circle {...skeletonArgs} size={circleSize} />
+          <Skeleton.Circle
+            {...skeletonArgs}
+            {...(circleSize === undefined ? {} : { size: circleSize })}
+          />
         )}
       </div>
     )
@@ -126,10 +132,7 @@ export const WithContent: Story = {
 
     return (
       <div className="space-y-250">
-        <Button
-          onClick={() => setIsLoaded(!isLoaded)}
-          size='sm'
-        >
+        <Button onClick={() => setIsLoaded(!isLoaded)} size="sm">
           Toggle Loaded State
         </Button>
         <Skeleton isLoaded={isLoaded} className="h-20 w-xs">
@@ -165,7 +168,9 @@ export const AnimationSpeed: Story = {
         <Skeleton.Rectangle speed="slow" className="h-16 w-xs" />
       </div>
       <div>
-        <p className="mb-150 text-sm text-fg-secondary">Normal (2s) - default</p>
+        <p className="mb-150 text-sm text-fg-secondary">
+          Normal (2s) - default
+        </p>
         <Skeleton.Rectangle speed="normal" className="h-16 w-xs" />
       </div>
       <div>
@@ -181,7 +186,7 @@ export const SpeedInheritance: Story = {
     docs: {
       description: {
         story:
-          'Speed is inherited from parent Skeleton via context. Child components automatically use the parent speed unless overridden.',
+          "Speed is inherited from parent Skeleton via context. Child components automatically use the parent speed unless overridden.",
       },
     },
   },
@@ -248,10 +253,7 @@ export const CircleWithAvatar: Story = {
 
     return (
       <div className="space-y-250">
-        <Button
-          onClick={() => setIsLoaded(!isLoaded)}
-          size="sm"
-        >
+        <Button onClick={() => setIsLoaded(!isLoaded)} size="sm">
           Toggle Avatar
         </Button>
         <Skeleton.Circle size="lg" isLoaded={isLoaded}>
@@ -299,7 +301,9 @@ export const TextSizes: Story = {
         <Skeleton.Text size="sm" />
       </div>
       <div>
-        <p className="mb-150 text-sm text-fg-secondary">Medium spacing (default)</p>
+        <p className="mb-150 text-sm text-fg-secondary">
+          Medium spacing (default)
+        </p>
         <Skeleton.Text size="md" />
       </div>
       <div>
@@ -314,7 +318,9 @@ export const TextLastLineWidth: Story = {
   render: () => (
     <div className="space-y-400">
       <div>
-        <p className="mb-150 text-sm text-fg-secondary">80% last line (default)</p>
+        <p className="mb-150 text-sm text-fg-secondary">
+          80% last line (default)
+        </p>
         <Skeleton.Text lastLineWidth="80%" />
       </div>
       <div>
@@ -357,7 +363,7 @@ export const RectangleAspectRatios: Story = {
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">4:3</p>
-        <Skeleton.Rectangle className="aspect-[4/3]" />
+        <Skeleton.Rectangle className="aspect-landscape" />
       </div>
       <div>
         <p className="mb-150 text-sm text-fg-secondary">1:1 (Square)</p>
@@ -371,7 +377,9 @@ export const RectangleFixedDimensions: Story = {
   render: () => (
     <div className="space-y-250">
       <div>
-        <p className="mb-150 text-sm text-fg-secondary">Fixed height (full width)</p>
+        <p className="mb-150 text-sm text-fg-secondary">
+          Fixed height (full width)
+        </p>
         <Skeleton.Rectangle className="h-64" />
       </div>
       <div>
@@ -383,21 +391,21 @@ export const RectangleFixedDimensions: Story = {
 }
 
 export const ProductCardSkeleton: Story = {
-  name: '🛍️ Product Card',
+  name: "🛍️ Product Card",
   render: () => (
     <div className="w-md border p-250 rounded-lg">
       <Skeleton.Rectangle className="mb-250 h-64" />
       <Skeleton.Text noOfLines={2} size="sm" />
       <div className="flex gap-150 mt-250">
         <Skeleton.Rectangle className="h-10 flex-1" />
-        <Skeleton.Rectangle className="h-10 w-10" />
+        <Skeleton.Rectangle className="size-10" />
       </div>
     </div>
   ),
 }
 
 export const UserProfileSkeleton: Story = {
-  name: '👤 User Profile',
+  name: "👤 User Profile",
   render: () => (
     <div className="flex gap-250 p-250 border rounded-lg max-w-md">
       <Skeleton.Circle size="lg" />
@@ -413,7 +421,7 @@ export const UserProfileSkeleton: Story = {
 }
 
 export const FeedSkeleton: Story = {
-  name: '📰 Feed Item',
+  name: "📰 Feed Item",
   render: () => (
     <div className="space-y-250 max-w-xs">
       {[1, 2, 3].map((item) => (
@@ -433,21 +441,22 @@ export const FeedSkeleton: Story = {
 }
 
 export const ReducedMotion: Story = {
-  name: '♿ Reduced Motion',
+  name: "♿ Reduced Motion",
   parameters: {
     docs: {
       description: {
         story:
-          'This story shows what the skeleton would look like with reduced motion enabled (without having to enable it)',
+          "This story shows what the skeleton would look like with reduced motion enabled (without having to enable it)",
       },
     },
   },
   render: () => (
     <div className="space-y-250">
-      <div className="bg-warning-subtle border border-warning p-250 rounded">
+      <div className="bg-warning-light border border-warning p-250 rounded">
         <p className="text-sm text-warning">
           💡 <strong>Accessibility:</strong> When users enable "Reduce motion"
-            in their OS, animations automatically switch to the static state shown below.
+          in their OS, animations automatically switch to the static state shown
+          below.
         </p>
       </div>
       <Skeleton.Rectangle className="h-20 w-xs force-reduced-motion" />

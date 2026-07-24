@@ -1,9 +1,7 @@
 ---
 name: popover-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Popover for
-  anchored non-blocking content using Zag.js compound parts, placement,
-  portalling, close behavior, arrow, title, description, and close trigger.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Popover for anchored non-blocking content using Zag.js compound parts, placement, portalling, close behavior, arrow, title, description, and close trigger.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,15 +19,14 @@ sources:
 
 # @techsio/ui-kit Popover Usage
 
-Use Popover for anchored, dismissible content. Use Dialog for modal flows and
-Tooltip for tiny supplemental text.
+Use Popover for anchored, dismissible content. Use Dialog for modal flows and Tooltip for tiny supplemental text.
 
 ## Setup
 
 ```tsx
 import { Popover } from "@techsio/ui-kit/molecules/popover"
 
-<Popover placement="bottom-end">
+;<Popover placement="bottom-end">
   <Popover.Trigger>Filters</Popover.Trigger>
   <Popover.Positioner>
     <Popover.Content>
@@ -55,13 +52,11 @@ closeOnEscape, closeOnInteractOutside, autoFocus
 
 ### Keep positioner/content anatomy
 
-`Popover.Positioner` conditionally renders and portals content. Do not move
-Content outside the root.
+`Popover.Positioner` conditionally renders and portals content. Do not move Content outside the root.
 
 ### Use for non-blocking anchored content
 
-Filters, small menus with custom controls, and contextual panels fit Popover.
-Confirmations and forms that must trap focus should use Dialog.
+Filters, small menus with custom controls, and contextual panels fit Popover. Confirmations and forms that must trap focus should use Dialog.
 
 ### Use close trigger for explicit close
 
@@ -80,7 +75,12 @@ Wrong:
 Correct:
 
 ```tsx
-<Popover><Popover.Trigger>Open</Popover.Trigger><Popover.Positioner><Popover.Content /></Popover.Positioner></Popover>
+<Popover>
+  <Popover.Trigger>Open</Popover.Trigger>
+  <Popover.Positioner>
+    <Popover.Content />
+  </Popover.Positioner>
+</Popover>
 ```
 
 Source: libs/ui/src/molecules/popover.tsx
@@ -90,7 +90,9 @@ Source: libs/ui/src/molecules/popover.tsx
 Wrong:
 
 ```tsx
-<Popover><FormInput id="email" label="Email" /></Popover>
+<Popover>
+  <FormInput id="email" label="Email" />
+</Popover>
 ```
 
 Correct:

@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import {
   getBrandActiveProductCounts,
@@ -26,7 +27,7 @@ type ProductIdGroup = string[] | { $nin?: string[] }
 type ProductPageOptions = {
   limit: number
   offset: number
-  q?: string
+  q?: string | undefined
 }
 
 const getPageWindow = (
@@ -119,7 +120,7 @@ export async function GET(
   >,
   res: MedusaResponse
 ) {
-  const brandId = req.params.id ?? ""
+  const brandId = req.params["id"] ?? ""
 
   await retrieveBrandOrThrow(req.scope, brandId)
 

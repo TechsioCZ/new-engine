@@ -6,6 +6,7 @@ import {
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { useEffect, useId, useState } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 import { Icon, type IconProps, type IconType } from "../atoms/icon"
@@ -107,7 +108,7 @@ const comboboxVariants = tv({
         control: "h-form-control-sm rounded-combobox-sm text-input-sm",
         item: "p-combobox-item-sm text-combobox-item-sm",
         emptyState: "p-combobox-item-sm text-combobox-item-sm",
-        input: "p-combobox-input-sm",
+        input: "p-input-sm",
         content: "text-combobox-sm",
         triggerIndicator: "text-icon-control-sm",
       },
@@ -116,7 +117,7 @@ const comboboxVariants = tv({
         control: "h-form-control-md rounded-combobox-md text-input-md",
         item: "p-combobox-item-md text-combobox-item-md",
         emptyState: "p-combobox-item-md text-combobox-item-md",
-        input: "p-combobox-input-md",
+        input: "p-input-md",
         content: "text-combobox-md",
         triggerIndicator: "text-icon-control-md",
       },
@@ -125,7 +126,7 @@ const comboboxVariants = tv({
         control: "rounded-combobox text-input-lg",
         item: "p-combobox-item-lg text-combobox-item-lg",
         emptyState: "p-combobox-item-lg text-combobox-item-lg",
-        input: "p-combobox-input-lg",
+        input: "p-input-lg",
         content: "text-combobox-lg",
         triggerIndicator: "text-icon-control-lg",
       },
@@ -137,44 +138,45 @@ const comboboxVariants = tv({
 })
 
 export type ComboboxItem<T = unknown> = {
-  id?: string
+  id?: string | undefined
   label: string
   value: string
-  disabled?: boolean
-  data?: T
+  disabled?: boolean | undefined
+  data?: T | undefined
 }
 
-export interface ComboboxProps<T = unknown>
-  extends VariantProps<typeof comboboxVariants> {
-  id?: string
-  name?: string
-  label?: string
-  placeholder?: string
-  disabled?: boolean
-  readOnly?: boolean
-  required?: boolean
+export interface ComboboxProps<T = unknown> extends VariantProps<
+  typeof comboboxVariants
+> {
+  id?: string | undefined
+  name?: string | undefined
+  label?: string | undefined
+  placeholder?: string | undefined
+  disabled?: boolean | undefined
+  readOnly?: boolean | undefined
+  required?: boolean | undefined
   items: ComboboxItem<T>[]
-  value?: string | string[]
-  defaultValue?: string | string[]
-  inputValue?: string
-  multiple?: boolean
-  validateStatus?: "default" | "error" | "success" | "warning"
-  helpText?: string
-  showHelpTextIcon?: boolean
-  noResultsMessage?: string
-  clearable?: boolean
-  selectionBehavior?: "replace" | "clear" | "preserve"
-  closeOnSelect?: boolean
-  allowCustomValue?: boolean
-  loopFocus?: boolean
-  autoFocus?: boolean
-  triggerIcon?: IconType
-  triggerIconSize?: IconProps["size"]
-  clearIcon?: IconType
-  onChange?: (value: string | string[]) => void
-  onInputValueChange?: (value: string) => void
-  onOpenChange?: (open: boolean) => void
-  inputBehavior?: "autohighlight" | "autocomplete" | "none"
+  value?: string | string[] | undefined
+  defaultValue?: string | string[] | undefined
+  inputValue?: string | undefined
+  multiple?: boolean | undefined
+  validateStatus?: "default" | "error" | "success" | "warning" | undefined
+  helpText?: string | undefined
+  showHelpTextIcon?: boolean | undefined
+  noResultsMessage?: string | undefined
+  clearable?: boolean | undefined
+  selectionBehavior?: "replace" | "clear" | "preserve" | undefined
+  closeOnSelect?: boolean | undefined
+  allowCustomValue?: boolean | undefined
+  loopFocus?: boolean | undefined
+  autoFocus?: boolean | undefined
+  triggerIcon?: IconType | undefined
+  triggerIconSize?: IconProps["size"] | undefined
+  clearIcon?: IconType | undefined
+  onChange?: ((value: string | string[]) => void) | undefined
+  onInputValueChange?: ((value: string) => void) | undefined
+  onOpenChange?: ((open: boolean) => void) | undefined
+  inputBehavior?: "autohighlight" | "autocomplete" | "none" | undefined
 }
 
 export function Combobox<T = unknown>({
@@ -186,7 +188,7 @@ export function Combobox<T = unknown>({
   disabled = false,
   readOnly = false,
   required = false,
-  items = [],
+  items,
   value,
   defaultValue,
   inputValue,
@@ -240,10 +242,12 @@ export function Combobox<T = unknown>({
       input: `${uniqueId}-input`,
       control: `${uniqueId}-control`,
     },
-    value: value as string[] | undefined,
-    defaultValue: defaultValue as string[] | undefined,
     multiple,
-    inputValue,
+    ...(value !== undefined && { value: value as string[] }),
+    ...(defaultValue !== undefined && {
+      defaultValue: defaultValue as string[],
+    }),
+    ...(inputValue !== undefined && { inputValue }),
     onValueChange: ({ value: selectedValue }) => {
       onChange?.(selectedValue)
     },

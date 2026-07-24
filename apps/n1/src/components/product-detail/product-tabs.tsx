@@ -8,7 +8,7 @@ type TabConfig = {
 }
 
 type ProductTabsProps = {
-  description?: string | null
+  description?: string | null | undefined
   tabs?: TabConfig[]
 }
 

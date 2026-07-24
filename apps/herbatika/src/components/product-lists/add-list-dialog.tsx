@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Input } from "@techsio/ui-kit/atoms/input"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+
 import type { AccountProductListsController } from "./use-account-product-lists"
 
 type AddListDialogProps = {
@@ -35,7 +36,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
           </Button>
         </>
       }
-      className="w-sm max-w-full shadow-md"
+      className="w-product-list-dialog max-w-full shadow-md"
       customTrigger
       hideCloseButton
       onOpenChange={({ open }) => {

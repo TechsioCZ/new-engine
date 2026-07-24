@@ -1,0 +1,17 @@
+id: no-empty-catch
+language: TypeScript
+severity: error
+message: Empty catch blocks swallow failures; handle, annotate, or intentionally report the error.
+note: Keep this rule focused on real source. Generated inline scripts cannot be parsed as nested TypeScript.
+files:
+  - "apps/**/*.{ts,tsx,js,jsx}"
+  - "libs/**/*.{ts,tsx,js,jsx}"
+ignores:
+  - "**/*.figma.{ts,tsx}"
+  - "libs/ui/src/theme/theme-provider.tsx"
+rule:
+  any:
+    - pattern: |
+        try { $$$BODY } catch { }
+    - pattern: |
+        try { $$$BODY } catch ($ERROR) { }

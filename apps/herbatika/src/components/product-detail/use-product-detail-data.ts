@@ -2,7 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useEffect, useState } from "react"
-import type { Product } from "@/components/product-detail/product-detail.types"
+
 import {
   resolveOptionTitlesById,
   resolveProductBreadcrumbItems,
@@ -55,7 +55,7 @@ export function useProductDetailData({ handle }: UseProductDetailDataProps) {
     fields: PRODUCT_DETAIL_FIELDS,
   })
 
-  const product = (productQuery.product ?? null) as Product | null
+  const product = productQuery.product ?? null
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 

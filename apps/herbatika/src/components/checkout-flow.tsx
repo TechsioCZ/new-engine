@@ -2,10 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import {
-  CHECKOUT_STEPS,
-  type CheckoutStepSlug,
-} from "@/components/checkout/checkout.constants"
+
 import {
   canAccessCheckoutStep,
   resolveCheckoutStepHref,
@@ -13,11 +10,16 @@ import {
   resolveRequiredCheckoutStepSlug,
 } from "@/components/checkout/checkout-route.utils"
 import { CheckoutStepContent } from "@/components/checkout/checkout-step-content"
+import {
+  CHECKOUT_STEPS,
+  type CheckoutStepSlug,
+} from "@/components/checkout/checkout.constants"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
 import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkout-empty-cart-section"
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section"
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller"
+import { appHref } from "@/lib/routing"
 
 type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug
@@ -57,7 +59,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.replace(resolveCheckoutStepHref(redirectStep))
+    router.replace(appHref(resolveCheckoutStepHref(redirectStep)))
   }, [redirectStep, router, shouldRedirectStep])
 
   if (shouldRedirectStep) {

@@ -96,8 +96,8 @@ export function getArrayField(value: unknown, field: string): unknown[] {
 export function isTaxRateRule(value: unknown): value is TaxRateRule {
   return Boolean(
     getStringField(value, "reference") &&
-      getStringField(value, "reference_id") &&
-      getStringField(value, "tax_rate_id")
+    getStringField(value, "reference_id") &&
+    getStringField(value, "tax_rate_id")
   )
 }
 

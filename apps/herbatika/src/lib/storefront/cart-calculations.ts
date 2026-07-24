@@ -1,4 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import { isRecord } from "@techsio/std/object"
+
 import {
   resolveCartItemsTaxAmount,
   resolveCartShippingTaxAmount,
@@ -36,7 +38,7 @@ export const resolveLineItemTotalAmount = (
   return unitPrice * resolveLineItemQuantity(item)
 }
 
-export const resolveLineItemSubtotalAmount = (
+const resolveLineItemSubtotalAmount = (
   item: HttpTypes.StoreCartLineItem
 ): number => asFiniteNumber(item.subtotal) ?? resolveLineItemTotalAmount(item)
 
@@ -96,8 +98,8 @@ export const resolveCartItemsTotalAmount = (
     return 0
   }
 
-  const cartRecord = cart as unknown as Record<string, unknown>
-  const itemTotal = asFiniteNumber(cartRecord.item_total)
+  const cartRecord = isRecord(cart) ? cart : null
+  const itemTotal = asFiniteNumber(cartRecord?.item_total)
   if (itemTotal !== null) {
     return itemTotal
   }
@@ -121,8 +123,8 @@ export const resolveCartItemsSubtotalAmount = (
     return 0
   }
 
-  const cartRecord = cart as unknown as Record<string, unknown>
-  const itemSubtotal = asFiniteNumber(cartRecord.item_subtotal)
+  const cartRecord = isRecord(cart) ? cart : null
+  const itemSubtotal = asFiniteNumber(cartRecord?.item_subtotal)
   if (itemSubtotal !== null) {
     return itemSubtotal
   }
@@ -157,7 +159,7 @@ export const resolveCartTaxAmount = (
   }
 
   const originalTaxTotal = asFiniteNumber(
-    (cart as unknown as Record<string, unknown>).original_tax_total
+    isRecord(cart) ? cart.original_tax_total : undefined
   )
   if (originalTaxTotal !== null) {
     return Math.max(originalTaxTotal, 0)

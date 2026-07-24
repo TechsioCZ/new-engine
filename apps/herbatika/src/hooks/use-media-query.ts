@@ -1,8 +1,9 @@
 "use client"
 
+import { noop } from "@techsio/std/function"
 import { useCallback, useSyncExternalStore } from "react"
 
-export const mediaQueryBreakpoints = {
+const mediaQueryBreakpoints = {
   xs: "(min-width: 30rem)",
   sm: "(min-width: 40rem)",
   md: "(min-width: 48rem)",
@@ -11,22 +12,20 @@ export const mediaQueryBreakpoints = {
   "2xl": "(min-width: 88.75rem)",
 } as const
 
-export type MediaQueryBreakpoint = keyof typeof mediaQueryBreakpoints
+type MediaQueryBreakpoint = keyof typeof mediaQueryBreakpoints
 
 type UseMediaQueryOptions = {
   defaultMatches?: boolean
 }
 
-const noop = () => null
-
-function resolveMediaQuery(query: MediaQueryBreakpoint | string) {
+function resolveMediaQuery(query: string) {
   return Object.hasOwn(mediaQueryBreakpoints, query)
     ? mediaQueryBreakpoints[query as MediaQueryBreakpoint]
     : query
 }
 
 export function useMediaQuery(
-  query: MediaQueryBreakpoint | string,
+  query: string,
   { defaultMatches = false }: UseMediaQueryOptions = {}
 ) {
   const mediaQuery = resolveMediaQuery(query)

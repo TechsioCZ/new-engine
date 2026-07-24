@@ -1,4 +1,5 @@
 import { MedusaService } from "@medusajs/framework/utils"
+
 import { ApprovalStatusType } from "../../types"
 import { Approval, ApprovalSettings, ApprovalStatus } from "./models"
 

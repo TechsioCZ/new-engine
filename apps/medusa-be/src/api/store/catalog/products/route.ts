@@ -7,6 +7,7 @@ import {
   QueryContext,
 } from "@medusajs/framework/utils"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
   extractBrandHandleFromFacetId,
@@ -16,6 +17,7 @@ import {
   STATUS_FACET_DEFINITIONS,
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
+import { definedProperties } from "../../../../utils/defined-properties"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
@@ -148,7 +150,7 @@ const getSalesChannelIds = (value: unknown): string[] => {
   }
 
   if (value && typeof value === "object" && !Array.isArray(value)) {
-    const inValue = (value as Record<string, unknown>).$in
+    const inValue = (value as Record<string, unknown>)["$in"]
     if (Array.isArray(inValue)) {
       return inValue.filter((item): item is string => typeof item === "string")
     }
@@ -379,8 +381,12 @@ export async function GET(
     formIds,
     brandIds,
     ingredientIds,
-    priceMin: validatedQuery.price_min,
-    priceMax: validatedQuery.price_max,
+    ...(validatedQuery.price_min !== undefined
+      ? { priceMin: validatedQuery.price_min }
+      : {}),
+    ...(validatedQuery.price_max !== undefined
+      ? { priceMax: validatedQuery.price_max }
+      : {}),
   })
 
   const sort = resolveCatalogSort(validatedQuery.sort)
@@ -398,7 +404,7 @@ export async function GET(
         limit,
         offset,
       },
-      filter: searchFilter,
+      ...(searchFilter !== undefined ? { filter: searchFilter } : {}),
       additionalOptions: {
         attributesToRetrieve: ["id"],
         facets: FACETS_TO_FETCH,
@@ -420,28 +426,40 @@ export async function GET(
   const { data: products } =
     productIds.length === 0
       ? { data: [] as Record<string, unknown>[] }
-      : await queryService.graph({
-          entity: "product",
-          fields: productFields,
-          filters: await normalizeProductSalesChannelFilter(
-            queryService,
-            remoteQuery,
-            {
-              id: {
-                $in: productIds,
-              },
-              sales_channel_id: req.filterableFields.sales_channel_id,
-              status: ProductStatus.PUBLISHED,
-            }
-          ),
-          context: pricingContext
-            ? {
-                variants: {
-                  calculated_price: pricingContext,
+      : await queryService.graph(
+          definedProperties({
+            entity: "product",
+            fields: productFields,
+            filters: await normalizeProductSalesChannelFilter(
+              queryService,
+              remoteQuery,
+              {
+                id: {
+                  $in: productIds,
                 },
+                sales_channel_id: req.filterableFields.sales_channel_id,
+                status: ProductStatus.PUBLISHED,
               }
-            : undefined,
-        })
+            ),
+            ...((pricingContext
+              ? {
+                  variants: {
+                    calculated_price: pricingContext,
+                  },
+                }
+              : undefined) !== undefined
+              ? {
+                  context: pricingContext
+                    ? {
+                        variants: {
+                          calculated_price: pricingContext,
+                        },
+                      }
+                    : undefined,
+                }
+              : {}),
+          })
+        )
 
   const productOrder = new Map(productIds.map((id, index) => [id, index]))
   const orderedProducts = [...products].sort((left, right) => {

@@ -1,19 +1,23 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
-import { CategoryRichText } from "@/components/category/category-rich-text"
+
+import NextLink from "@/components/app-link"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
 import type { BlogPost } from "@/lib/storefront/blog-content"
+
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
+import {
+  BlogArticleContent,
+  BlogProductHighlights,
+  BlogTableOfContents,
+} from "./blog-detail-content"
 import { formatBlogDate } from "./blog-formatters"
 import { BlogRelatedCard } from "./blog-related-card"
-import { InlineProductsCarousel } from "./inline-products-carousel"
 
 type BlogDetailPageProps = {
   post: BlogPost
@@ -38,21 +42,19 @@ export function BlogDetailPage({
       label: post.title,
     },
   ]
-  const hasStructuredSections = post.sections.length > 0
-  const hasHighlights = post.bulletPoints.length > 0
 
   return (
     <main className="w-full bg-base font-rubik">
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-blog-detail-page-gap p-blog-detail-page 2xl:p-blog-detail-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
-        <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
+        <div className="grid gap-blog-detail-columns-gap xl:blog-detail-layout">
           <div className="space-y-400">
             <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400 max-xs:pb-100">
               <div className="flex flex-wrap gap-150">
                 {post.tags.map((tag) => (
                   <span
-                    className="inline-flex items-center rounded-xs bg-highlight px-200 py-100 text-primary text-xs leading-[15px]"
+                    className="inline-flex items-center rounded-xs bg-highlight px-200 py-100 text-primary text-xs blog-leading-compact"
                     key={tag}
                   >
                     {tag}
@@ -93,112 +95,11 @@ export function BlogDetailPage({
               <BlogPostIntro post={post} />
             </section>
 
-            {hasStructuredSections ? (
-              <details
-                className="group space-y-350 rounded-2xl border border-border-secondary bg-surface p-400"
-                open
-              >
-                <summary className="flex cursor-pointer list-none items-start justify-between gap-300 [&::-webkit-details-marker]:hidden">
-                  <div className="flex items-center gap-250">
-                    <span className="inline-flex items-center justify-center rounded-xs bg-highlight p-50 text-primary">
-                      <Icon icon="token-icon-list" size="2xl" />
-                    </span>
-                    <div>
-                      <h2 className="font-bold text-fg-primary text-xl leading-tight">
-                        Obsah článku
-                      </h2>
-                      <p className="text-fg-secondary text-sm leading-normal">
-                        {`${post.sections.length} kapitol`}
-                      </p>
-                    </div>
-                  </div>
-                  <Icon
-                    className="rotate-180 text-fg-secondary transition-transform group-open:rotate-0"
-                    icon="token-icon-chevron-up"
-                    size="2xl"
-                  />
-                </summary>
+            <BlogTableOfContents post={post} />
 
-                <ul className="space-y-100 pl-500">
-                  {post.sections.map((section) => (
-                    <li
-                      className="list-inside list-disc text-fg-secondary text-sm leading-relaxed marker:text-fg-disabled marker:text-lg"
-                      key={section.title}
-                    >
-                      {section.title}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
+            <BlogArticleContent post={post} />
 
-            <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
-              {post.contentHtml ? (
-                <CategoryRichText
-                  className="text-md [&_p+p]:mt-300"
-                  html={post.contentHtml}
-                />
-              ) : (
-                post.sections.map((section) => (
-                  <section className="space-y-250" key={section.title}>
-                    <h2 className="text-fg-primary text-xl leading-tight">
-                      {section.title}
-                    </h2>
-
-                    {section.paragraphs.map((paragraph) => (
-                      <p
-                        className="text-fg-primary text-md leading-relaxed"
-                        key={paragraph}
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-
-                    {section.bulletPoints ? (
-                      <ul className="space-y-100 pl-350">
-                        {section.bulletPoints.map((item) => (
-                          <li
-                            className="list-disc text-fg-primary text-md leading-relaxed marker:text-primary"
-                            key={item}
-                          >
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </section>
-                ))
-              )}
-            </article>
-
-            {recommendedProducts.length > 0 || hasHighlights ? (
-              <section className="space-y-300">
-                {recommendedProducts.length > 0 ? (
-                  <InlineProductsCarousel
-                    products={recommendedProducts}
-                    slidesLg={3}
-                  />
-                ) : null}
-                {hasHighlights ? (
-                  <ul className="space-y-0 rounded-2xl bg-surface p-400">
-                    {post.bulletPoints.map((item) => (
-                      <li
-                        className="grid grid-cols-[6px_minmax(0,1fr)] gap-100 py-[1px]"
-                        key={item}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
-                        />
-                        <span className="text-fg-primary text-md leading-[1.5]">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            ) : null}
+            <BlogProductHighlights post={post} products={recommendedProducts} />
 
             <BlogAuthorCard post={post} />
 

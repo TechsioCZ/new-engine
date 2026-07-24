@@ -2,6 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
+
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
@@ -71,8 +72,10 @@ export function useSearchListingController() {
   const listingInteractions = useCatalogListingInteractions({
     productPrefetchKeyPrefix: "search-product",
     queryState,
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
     setQueryState,
   })
 

@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
+  type DataTableColumnDef,
   Heading,
   Input,
   Select,
@@ -17,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router-dom"
+
 import { BrandDataTable } from "../../components/brands/brand-data-table"
 import {
   BrandCreateModal,
@@ -250,7 +252,7 @@ const AttributeTypesSection = () => {
     }
   }
 
-  const columns = [
+  const columns: DataTableColumnDef<BrandAttributeType>[] = [
     attributeTypeColumnHelper.accessor("name", {
       header: t("columns.name"),
       cell: ({ row }) => (
@@ -511,7 +513,7 @@ const BrandsPage = () => {
   const handleRestore = (brand: Brand) => {
     restoreMutation.mutate(brand.id)
   }
-  const columns = [
+  const columns: DataTableColumnDef<Brand>[] = [
     brandColumnHelper.accessor("title", {
       header: t("columns.title"),
       cell: ({ row }) => (

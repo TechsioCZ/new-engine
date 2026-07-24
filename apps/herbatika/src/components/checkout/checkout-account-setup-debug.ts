@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react"
 
-export const CHECKOUT_ACCOUNT_SETUP_DEBUG_STORAGE_KEY =
+const CHECKOUT_ACCOUNT_SETUP_DEBUG_STORAGE_KEY =
   "herbatika_checkout_account_setup_debug"
 
 const DEBUG_PREFIX = "[checkout-account-setup-debug]"
 
-export const isCheckoutAccountSetupDebugEnabled = () => {
+const isCheckoutAccountSetupDebugEnabled = () => {
   if (typeof window === "undefined") {
     return false
   }

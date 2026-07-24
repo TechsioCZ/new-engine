@@ -1,6 +1,7 @@
 "use client"
 
-import { Select } from "@ui/molecules/select"
+import { Select } from "@techsio/ui-kit/molecules/select"
+
 import type { AnyFieldApiCompat } from "@/types/form"
 
 type SelectOption = {
@@ -13,7 +14,7 @@ type SelectFieldProps = {
   label: string
   options: SelectOption[]
   required?: boolean
-  disabled?: boolean
+  disabled?: boolean | undefined
   placeholder?: string
   className?: string
 }

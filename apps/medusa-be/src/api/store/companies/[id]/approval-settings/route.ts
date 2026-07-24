@@ -6,6 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import {
   ensureApprovalSettingsWorkflow,
   updateApprovalSettingsWorkflow,
@@ -20,6 +21,13 @@ export const POST = async (
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { id } = req.params
+
+  if (!id) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "The id path parameter is required"
+    )
+  }
 
   const {
     data: [approvalSettings],

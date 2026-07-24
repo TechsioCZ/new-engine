@@ -1,12 +1,14 @@
 "use client"
 
-import type { BadgeProps } from "@ui/atoms/badge"
-import { StatusText } from "@ui/atoms/status-text"
-import { BreadcrumbTemplate } from "@ui/templates/breadcrumb"
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
-import { Gallery } from "@/components/organisms/gallery"
 import { ProductGrid } from "@/components/organisms/product-grid"
 import { ProductInfo } from "@/components/organisms/product-info"
 import { ProductTabs } from "@/components/organisms/product-tabs"
@@ -23,13 +25,14 @@ type ProductDetailProps = {
 function getProductBadges(metadata: Product["metadata"]): BadgeProps[] {
   const badges: BadgeProps[] = []
 
-  if (metadata?.isNew) {
+  if (metadata?.["isNew"]) {
     badges.push({ children: "New", variant: "info" })
   }
 
-  if (metadata?.discount) {
+  const discount = metadata?.["discount"]
+  if (typeof discount === "number" || typeof discount === "string") {
     badges.push({
-      children: `${metadata.discount}% OFF`,
+      children: `${discount}% OFF`,
       variant: "warning",
     })
   }
@@ -147,11 +150,14 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
         <div className="grid grid-cols-1 gap-product-detail-content-gap lg:grid-cols-[auto_1fr]">
           {/* Image Gallery */}
           <div className="aspect-square w-full max-w-container-sm">
-            <Gallery
+            <GalleryTemplate
               aspectRatio="square"
-              carouselSize={400}
-              images={galleryImages}
+              carouselHeight={400}
+              carouselWidth={400}
+              imageAs={Image}
+              items={galleryImages}
               orientation="horizontal"
+              thumbnailImageAs={Image}
               thumbnailSize={50}
             />
           </div>
@@ -161,7 +167,7 @@ export default function ProductDetail({ handle }: ProductDetailProps) {
             badges={badges}
             onVariantChange={setSelectedVariant}
             price={price || "Cena není k dispozici"}
-            priceWithTax={priceWithTax}
+            {...(priceWithTax && { priceWithTax })}
             product={product}
             selectedVariant={selectedVariant}
           />

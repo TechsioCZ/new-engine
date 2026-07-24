@@ -6,6 +6,7 @@ import {
   parseAsString,
   parseAsStringLiteral,
 } from "nuqs/server"
+
 import { PRODUCT_SORT_VALUES } from "../plp-config"
 import { normalizeStatusFilterInput } from "./status-filters"
 import { areStringArraysEqual, normalizeMultiValueInput } from "./utils"
@@ -48,7 +49,7 @@ export const CATALOG_PAGE_RESET_KEYS: ReadonlyArray<keyof CatalogQueryState> = [
 ]
 
 export type SearchParamValue = string | string[] | undefined
-export type CatalogPageResetMode = "auto" | "always" | "never"
+type CatalogPageResetMode = "auto" | "always" | "never"
 
 export type ResolveCatalogQueryStatePatchOptions = {
   resetPage?: CatalogPageResetMode

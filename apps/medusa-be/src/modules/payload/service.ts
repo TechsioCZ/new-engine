@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto"
+
 import { zodValidator } from "@medusajs/framework"
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import type { z } from "@medusajs/framework/zod"
 import qs from "qs"
+
 import { safeResolve } from "../../utils/safe-resolve"
 import {
   ArticleCategoriesWithArticlesSchema,
@@ -53,9 +55,11 @@ const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
   "sessions",
 ])
 
+type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
+
 type InjectedDependencies = {
   logger: Logger
-  [Modules.CACHING]?: ICachingModuleService
+  [Modules.CACHING]?: CachingDependency
   [key: string]: unknown
 }
 
@@ -81,7 +85,7 @@ export default class PayloadModuleService extends MedusaService({}) {
   protected options_: PayloadModuleOptions
   protected baseUrl_: string
   protected headers_: Record<string, string>
-  protected cacheService_: ICachingModuleService | null
+  protected cacheService_: CachingDependency | null
   protected logger_: Logger
   protected contentCacheTtl_: number
   protected listCacheTtl_: number
@@ -97,7 +101,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       Authorization: `users API-Key ${options.apiKey}`,
     }
     this.logger_ = container.logger
-    this.cacheService_ = safeResolve<ICachingModuleService>(
+    this.cacheService_ = safeResolve<CachingDependency>(
       container,
       Modules.CACHING
     )
@@ -144,16 +148,19 @@ export default class PayloadModuleService extends MedusaService({}) {
       () => controller.abort(),
       this.requestTimeoutMs_
     )
-    const headers = { ...this.headers_, ...(options?.headers ?? {}) }
+    const headers = { ...this.headers_, ...options?.headers }
 
     let response: Response
     try {
-      response = await fetch(url, {
+      const request: RequestInit = {
         method,
         headers,
-        body: data ? JSON.stringify(data) : undefined,
         signal: controller.signal,
-      })
+      }
+      if (data !== undefined) {
+        request.body = JSON.stringify(data)
+      }
+      response = await fetch(url, request)
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new MedusaError(
@@ -230,8 +237,8 @@ export default class PayloadModuleService extends MedusaService({}) {
   }
 
   private getPayloadErrorMessage(result: unknown, status: number): string {
-    if (this.isRecord(result) && typeof result.message === "string") {
-      return result.message
+    if (this.isRecord(result) && typeof result["message"] === "string") {
+      return result["message"]
     }
     return `Payload API error: ${status}`
   }
@@ -359,7 +366,7 @@ export default class PayloadModuleService extends MedusaService({}) {
             status: { equals: STATUS_PUBLISHED },
           },
           limit: 1,
-          locale,
+          ...(locale !== undefined ? { locale } : {}),
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
           "GET",
@@ -435,7 +442,7 @@ export default class PayloadModuleService extends MedusaService({}) {
             status: { equals: STATUS_PUBLISHED },
           },
           limit: 1,
-          locale,
+          ...(locale !== undefined ? { locale } : {}),
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
           "GET",
@@ -509,10 +516,10 @@ export default class PayloadModuleService extends MedusaService({}) {
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
-          limit: options?.limit,
-          page: options?.page,
-          sort: options?.sort,
-          locale: options?.locale,
+          ...(options?.limit !== undefined ? { limit: options?.limit } : {}),
+          ...(options?.page !== undefined ? { page: options?.page } : {}),
+          ...(options?.sort !== undefined ? { sort: options?.sort } : {}),
+          ...(options?.locale !== undefined ? { locale: options?.locale } : {}),
         })
         const result = await this.makeRequest<
           PayloadBulkResult<CmsHeroCarouselDTO>

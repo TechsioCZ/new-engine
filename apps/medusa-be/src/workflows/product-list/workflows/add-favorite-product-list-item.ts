@@ -10,12 +10,14 @@ import {
   createRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { createCustomerProductListStep } from "../steps/create-customer-product-list"
 import { createProductListItemStep } from "../steps/create-product-list-item"
 import type {
   AddFavoriteProductListItemWorkflowInput,
   AddFavoriteProductListItemWorkflowResult,
+  CreateProductListItemWorkflowInput,
 } from "../types"
 
 export const addFavoriteProductListItemWorkflow = createWorkflow(
@@ -82,16 +84,31 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
 
     const itemInput = transform(
       { favoriteList, input },
-      ({ favoriteList: listResult, input: workflowInput }) => ({
-        customer_id: workflowInput.customer_id,
-        list_id: listResult.product_list.id,
-        metadata: workflowInput.metadata,
-        note: workflowInput.note,
-        product_id: workflowInput.product_id,
-        quantity: workflowInput.quantity,
-        sort_order: workflowInput.sort_order,
-        variant_id: workflowInput.variant_id,
-      })
+      ({ favoriteList: listResult, input: workflowInput }) => {
+        const data: CreateProductListItemWorkflowInput = {
+          customer_id: workflowInput.customer_id,
+          list_id: listResult.product_list.id,
+          product_id: workflowInput.product_id,
+        }
+
+        if (workflowInput.metadata !== undefined) {
+          data.metadata = workflowInput.metadata
+        }
+        if (workflowInput.note !== undefined) {
+          data.note = workflowInput.note
+        }
+        if (workflowInput.quantity !== undefined) {
+          data.quantity = workflowInput.quantity
+        }
+        if (workflowInput.sort_order !== undefined) {
+          data.sort_order = workflowInput.sort_order
+        }
+        if (workflowInput.variant_id !== undefined) {
+          data.variant_id = workflowInput.variant_id
+        }
+
+        return data
+      }
     )
 
     const itemResult = createProductListItemStep(itemInput)

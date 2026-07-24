@@ -34,9 +34,8 @@ vi.mock("@medusajs/medusa/core-flows", () => ({
 
 describe("bulkCancelOrdersWorkflow", () => {
   it("cancels each selected order through the standard order cancellation workflow", async () => {
-    const { cancelOrdersWithCancelOrderWorkflow } = await import(
-      "../../../../../src/workflows/order-expedition/bulk-cancel-orders"
-    )
+    const { cancelOrdersWithCancelOrderWorkflow } =
+      await import("../../../../../src/workflows/order-expedition/bulk-cancel-orders")
     const container = { resolve: vi.fn() }
 
     const result = await cancelOrdersWithCancelOrderWorkflow(

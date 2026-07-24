@@ -1,6 +1,7 @@
 "use client"
 
 import { registerValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,
@@ -39,7 +40,9 @@ export function RegisterAccountTypeField({
           id="auth-register-account-type"
           items={REGISTER_ACCOUNT_TYPE_ITEMS}
           label="Typ účtu"
-          onValueChange={onValueChange}
+          {...(onValueChange === undefined
+            ? {}
+            : { onValueChange: onValueChange })}
           orientation="horizontal"
           required
           size="sm"

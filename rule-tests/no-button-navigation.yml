@@ -1,0 +1,13 @@
+id: no-button-navigation
+valid:
+  - |
+    <Link href="/account">Account</Link>
+  - |
+    <Button onClick={save}>Save</Button>
+invalid:
+  - |
+    <Button onClick={() => router.push("/account")}>Account</Button>
+  - |
+    <button onClick={() => navigate(target)}>Continue</button>
+  - |
+    <Button onClick={() => window.location.assign(url)}>Open</Button>

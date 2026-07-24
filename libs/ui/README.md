@@ -23,16 +23,16 @@ Our design system is built with **Tailwind CSS v4** and React. It uses a **multi
 ### Multi-Layered Tokens
 
 1. **Global Tokens:**
-    - These are the raw design values (like our base color palette, spacing scales, etc.).
-    - They are defined in our central tokens files (e.g. `_colors.css`, `_spacing.css`).
+   - These are the raw design values (like our base color palette, spacing scales, etc.).
+   - They are defined in our central tokens files (e.g. `_colors.css`, `_spacing.css`).
 2. **Semantic Tokens:**
-    - These give meaning to global tokens by mapping them to their design role.
-    - For example, `-color-brand-primary` maps to a global blue value.
-    - All components will use semantic tokens rather than raw values.
+   - These give meaning to global tokens by mapping them to their design role.
+   - For example, `-color-brand-primary` maps to a global blue value.
+   - All components will use semantic tokens rather than raw values.
 3. **Component Tokens:**
-    - These are defined for each component and act as a layer between the component and semantic tokens.
-    - For example, a Button component uses `-button-bg` which is set to `var(--color-brand-primary)`.
-    - **Important:** All component tokens are defined centrally, not near the component code.
+   - These are defined for each component and act as a layer between the component and semantic tokens.
+   - For example, a Button component uses `-button-bg` which is set to `var(--color-brand-primary)`.
+   - **Important:** All component tokens are defined centrally, not near the component code.
 
 ---
 
@@ -42,10 +42,8 @@ Our UI library follows a hybrid approach with three main parts:
 
 ### A. Basic Components (Atoms & Molecules)
 
-- **Atoms:**
-Small, reusable components such as buttons, inputs, icons, etc.
-- **Molecules:**
-Simple combinations of atoms like form groups or card headers.
+- **Atoms:** Small, reusable components such as buttons, inputs, icons, etc.
+- **Molecules:** Simple combinations of atoms like form groups or card headers.
 
 These live in folders such as:
 
@@ -57,8 +55,7 @@ ui/molecules/
 
 ### B. Domain-Based Organisms
 
-- **Organisms:**
-Larger, composite components that are specific to a business domain (e.g. cart, checkout, navigation).**Note:** Organisms should not export basic building blocks like buttons. If you need a button, use the atom or molecule from the appropriate folder.
+- **Organisms:** Larger, composite components that are specific to a business domain (e.g. cart, checkout, navigation).**Note:** Organisms should not export basic building blocks like buttons. If you need a button, use the atom or molecule from the appropriate folder.
 
 Organisms are organized by domain:
 
@@ -71,18 +68,14 @@ ui/organisms/navigation/
 
 ### C. Brand Customizations
 
-- **Brands Folder:**
-Custom, brand-specific overrides live in a dedicated folder. For example, if a brand needs a special Header, its custom component will live under:
-This keeps the shared UI library clean while allowing brands to override only what they need.
+- **Brands Folder:** Custom, brand-specific overrides live in a dedicated folder. For example, if a brand needs a special Header, its custom component will live under: This keeps the shared UI library clean while allowing brands to override only what they need.
 
-    ```
-    ui/brands/customer-a/
+  ```
+  ui/brands/customer-a/
 
-    ```
-
+  ```
 
 > Note: Always use kebab-case for folder and component filenames. For example, use customer-a instead of customerA.
->
 
 ---
 
@@ -90,12 +83,9 @@ This keeps the shared UI library clean while allowing brands to override only wh
 
 ### Centralized Tokens
 
-- **All CSS Variables:**
-We define all our design tokens in one central set of CSS files (e.g. in the `tokens/` directory). Do not scatter token definitions next to component code.
-- **Optional Default Theme:**
-We support a “default theme” file that you can import if you want to start with predefined values. However, the core system is theme-agnostic: our self-referencing palette contains only semantic tokens. If you want the default look, import the default theme; otherwise, you can define your own theme based on the semantic tokens.
-- **Using Tailwind’s `@theme`:**
-Our CSS token files use Tailwind’s `@theme` block to generate CSS variables, ensuring consistency with our Tailwind utilities.
+- **All CSS Variables:** We define all our design tokens in one central set of CSS files (e.g. in the `tokens/` directory). Do not scatter token definitions next to component code.
+- **Optional Default Theme:** We support a “default theme” file that you can import if you want to start with predefined values. However, the core system is theme-agnostic: our self-referencing palette contains only semantic tokens. If you want the default look, import the default theme; otherwise, you can define your own theme based on the semantic tokens.
+- **Using Tailwind’s `@theme`:** Our CSS token files use Tailwind’s `@theme` block to generate CSS variables, ensuring consistency with our Tailwind utilities.
 
 ### How Overrides Work
 
@@ -108,19 +98,14 @@ Our CSS token files use Tailwind’s `@theme` block to generate CSS variables, e
 
 ### Component Development
 
-- **Use Tokens Exclusively:**
-Always use component tokens (e.g. `-button-bg`) in your styles. Do not use semantic tokens directly in component code.
-- **Keep It Simple:**
-Build your atoms and molecules first. Organisms are domain-specific composites and should use the shared atoms/molecules.
-- **Export Only Where Appropriate:**
-For example, if a component is basic (like a Button), it belongs in atoms or molecules. Never export a Button from an organism.
+- **Use Tokens Exclusively:** Always use component tokens (e.g. `-button-bg`) in your styles. Do not use semantic tokens directly in component code.
+- **Keep It Simple:** Build your atoms and molecules first. Organisms are domain-specific composites and should use the shared atoms/molecules.
+- **Export Only Where Appropriate:** For example, if a component is basic (like a Button), it belongs in atoms or molecules. Never export a Button from an organism.
 
 ### Brand Customizations
 
-- **Custom Components:**
-If a customer needs a completely custom component, add it to the `brands/` folder. Do not modify the core shared components.
-- **Override Process:**
-When overriding, create a file in the brand folder and map the semantic tokens to the custom values. This way, the core remains untouched.
+- **Custom Components:** If a customer needs a completely custom component, add it to the `brands/` folder. Do not modify the core shared components.
+- **Override Process:** When overriding, create a file in the brand folder and map the semantic tokens to the custom values. This way, the core remains untouched.
 
 ### Documentation
 
@@ -132,22 +117,22 @@ When overriding, create a file in the brand folder and map the semantic tokens t
 ## 6. Quick Reference
 
 - **Design Tokens:**
-    - Global Tokens: Defined in `tokens/_*.css` files.
-    - Semantic Tokens: Map global tokens to design roles (e.g. `-color-brand-primary`).
-    - Component Tokens: Defined centrally; used in component styling (e.g. `-button-bg`).
+  - Global Tokens: Defined in `tokens/_*.css` files.
+  - Semantic Tokens: Map global tokens to design roles (e.g. `-color-brand-primary`).
+  - Component Tokens: Defined centrally; used in component styling (e.g. `-button-bg`).
 - **Folder Organization:**
-    - **Atoms/Molecules:** `ui/atoms/` and `ui/molecules/`
-    - **Organisms:** Domain-based (e.g. `ui/organisms/cart/`)
-    - **Brands:** Overrides and customizations (e.g. `ui/brands/customer-a/`)
+  - **Atoms/Molecules:** `ui/atoms/` and `ui/molecules/`
+  - **Organisms:** Domain-based (e.g. `ui/organisms/cart/`)
+  - **Brands:** Overrides and customizations (e.g. `ui/brands/customer-a/`)
 - **Theming:**
 
-    Import tokens first, then any default or brand-specific theme overrides in your main CSS file.
+  Import tokens first, then any default or brand-specific theme overrides in your main CSS file.
 
 - **Guidelines:**
-    - Always use the token system.
-    - Never mix token definitions with component code.
-    - Keep overrides in dedicated brand folders.
-    - Basic components (e.g., Button) belong only in atoms/molecules.
+  - Always use the token system.
+  - Never mix token definitions with component code.
+  - Keep overrides in dedicated brand folders.
+  - Basic components (e.g., Button) belong only in atoms/molecules.
 
 ## 7. Visual Regression Tests (Playwright + Docker)
 
@@ -165,14 +150,10 @@ pnpm -C libs/ui test:components
 pnpm -C libs/ui test:components:update
 ```
 
-Docker image is defined in `docker/development/playwright/Dockerfile`.
-These tests are intentionally Docker-only; running them directly on the host is blocked to keep snapshots reproducible.
-Make sure Storybook is served at `TEST_BASE_URL` (default `http://127.0.0.1:6006` inside the container).
-You can run `pnpm -C libs/ui storybook` on the host and set `TEST_BASE_URL=http://host.docker.internal:6006`,
-or let Playwright start its own `http-server` inside Docker from `storybook-static`.
-For visual stability, stories used in regression tests should rely on local assets (avoid external image URLs).
+Docker image is defined in `docker/development/playwright/Dockerfile`. These tests are intentionally Docker-only; running them directly on the host is blocked to keep snapshots reproducible. Make sure Storybook is served at `TEST_BASE_URL` (default `http://127.0.0.1:6006` inside the container). You can run `pnpm -C libs/ui storybook` on the host and set `TEST_BASE_URL=http://host.docker.internal:6006`, or let Playwright start its own `http-server` inside Docker from `storybook-static`. For visual stability, stories used in regression tests should rely on local assets (avoid external image URLs).
 
 Optional environment overrides:
+
 - `TEST_BASE_URL` (default: `http://127.0.0.1:6006` inside the container)
 - `PLAYWRIGHT_STORYBOOK_REBUILD` (default: `1`, rebuilds `storybook-static`; set to `0` to reuse an existing build)
 - `TEST_STORIES` (comma-separated Storybook story ids to run, e.g. `atoms-button--states,molecules-productcard--layout-variants`)
@@ -187,14 +168,8 @@ Optional environment overrides:
 
 ### Recommendation for `PLAYWRIGHT_WORKERS` and parallelism
 
-- If `PLAYWRIGHT_WORKERS` is not set, the Playwright config defaults to
-    using (CPU cores - 1) workers. This balances parallelism with leaving one
-    core for system processes. You can override it in CI with `PLAYWRIGHT_WORKERS=4` (or
-    another suitable value) depending on your runner size.
-- The test suite enables `fullyParallel` in Playwright config, so tests can run
-    concurrently across files and workers — ensure tests are isolated and use
-    unique snapshot names (the visual tests already include `story.id` in the
-    screenshot filename, which is good).
+- If `PLAYWRIGHT_WORKERS` is not set, the Playwright config defaults to using (CPU cores - 1) workers. This balances parallelism with leaving one core for system processes. You can override it in CI with `PLAYWRIGHT_WORKERS=4` (or another suitable value) depending on your runner size.
+- The test suite enables `fullyParallel` in Playwright config, so tests can run concurrently across files and workers — ensure tests are isolated and use unique snapshot names (the visual tests already include `story.id` in the screenshot filename, which is good).
 
 Example with parallel workers:
 

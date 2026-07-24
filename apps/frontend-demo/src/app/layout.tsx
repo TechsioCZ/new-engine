@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
+
 import "../tokens/index.css"
-import { BrandThemeScript } from "@techsio/ui-kit/theme/theme-provider"
 import type * as React from "react"
+
 import { DisclaimerWrapper } from "@/components/disclaimer-wrapper"
 import { Footer } from "@/components/footer"
 import { HeaderWrapper } from "@/components/header-wrapper"
@@ -12,6 +13,8 @@ export const metadata: Metadata = {
   description: "Demo application using the UI library",
 }
 
+const brandThemeScript = `(function(){try{var k=localStorage.getItem("ui-brand");var e=document.documentElement;if(k==="neo"){e.setAttribute("data-theme","neo");}else{e.removeAttribute("data-theme");}}catch(e){}})();`
+
 export default function RootLayout({
   children,
 }: {
@@ -20,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="flex min-h-screen min-w-layout-min flex-col">
-        <BrandThemeScript />
+        <script dangerouslySetInnerHTML={{ __html: brandThemeScript }} />
         <Providers>
           <HeaderWrapper
             logo={{ text: "Demo Store", icon: "icon-[mdi--store]" }}

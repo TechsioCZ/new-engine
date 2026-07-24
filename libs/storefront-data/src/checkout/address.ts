@@ -1,3 +1,10 @@
+import { omitUndefined } from "@techsio/std/object"
+import {
+  hasTrimmedString,
+  normalizePresentTrimmedString,
+  normalizeTrimmedString,
+} from "@techsio/std/string"
+
 import type {
   MedusaCustomerAddressCreateInput,
   MedusaCustomerAddressUpdateInput,
@@ -7,11 +14,6 @@ import type {
   StorefrontCartAddressAdapter,
   StorefrontCustomerAddressAdapter,
 } from "../shared/address"
-import {
-  hasTrimmedString,
-  normalizePresentTrimmedString,
-  normalizeTrimmedString,
-} from "../shared/string-utils"
 
 export type CheckoutAddressInput = {
   firstName?: string | null
@@ -187,21 +189,25 @@ const normalizePatchCountryCode = (
   return normalized ? normalized.toLowerCase() : ""
 }
 
-const normalizeCheckoutAddressInput = <TAddress extends CheckoutAddressInput>(
-  address: TAddress
-): NormalizedCheckoutAddress<TAddress> => ({
-  ...address,
-  firstName: normalizeTrimmedString(address.firstName),
-  lastName: normalizeTrimmedString(address.lastName),
-  street: normalizeTrimmedString(address.street),
-  street2: normalizeTrimmedString(address.street2),
-  city: normalizeTrimmedString(address.city),
-  postalCode: normalizeTrimmedString(address.postalCode),
-  country: normalizeTrimmedString(address.country),
-  province: normalizeTrimmedString(address.province),
-  company: normalizeTrimmedString(address.company),
-  phone: normalizeTrimmedString(address.phone),
-})
+const normalizeCheckoutAddressInput = (
+  address: CheckoutAddressInput
+): NormalizedCheckoutAddress => {
+  const normalized = omitUndefined({
+    ...address,
+    firstName: normalizeTrimmedString(address.firstName),
+    lastName: normalizeTrimmedString(address.lastName),
+    street: normalizeTrimmedString(address.street),
+    street2: normalizeTrimmedString(address.street2),
+    city: normalizeTrimmedString(address.city),
+    postalCode: normalizeTrimmedString(address.postalCode),
+    country: normalizeTrimmedString(address.country),
+    province: normalizeTrimmedString(address.province),
+    company: normalizeTrimmedString(address.company),
+    phone: normalizeTrimmedString(address.phone),
+  })
+
+  return normalized
+}
 
 const normalizeCheckoutAddressPatch = <
   TAddress extends Partial<CheckoutAddressInput> & Record<string, unknown>,
@@ -328,7 +334,7 @@ export const mapCheckoutAddressToMedusaCartAddress = <
 ): MedusaCartAddressPayload => {
   const normalized = normalizeCheckoutAddressInput(address)
 
-  return {
+  return omitUndefined({
     first_name: normalized.firstName,
     last_name: normalized.lastName,
     address_1: normalized.street,
@@ -339,7 +345,7 @@ export const mapCheckoutAddressToMedusaCartAddress = <
     province: normalized.province,
     company: normalized.company,
     phone: normalized.phone,
-  }
+  })
 }
 
 const mapCheckoutAddressToMedusaCustomerAddress = <
@@ -347,12 +353,13 @@ const mapCheckoutAddressToMedusaCustomerAddress = <
 >(
   address: TAddress,
   options?: BuildCheckoutCartAddressInputOptions
-): MedusaCustomerAddressCreateInput => ({
-  ...mapCheckoutAddressToMedusaCartAddress(address, options),
-  is_default_shipping: address.isDefaultShipping,
-  is_default_billing: address.isDefaultBilling,
-  metadata: address.metadata ?? undefined,
-})
+): MedusaCustomerAddressCreateInput =>
+  omitUndefined({
+    ...mapCheckoutAddressToMedusaCartAddress(address, options),
+    is_default_shipping: address.isDefaultShipping,
+    is_default_billing: address.isDefaultBilling,
+    metadata: address.metadata,
+  })
 
 type CheckoutAddressPatchStringField = Exclude<
   CheckoutAddressStringField,
@@ -395,14 +402,20 @@ const mapCheckoutAddressPatchToMedusaCustomerAddress = (
       options
     )
   }
-  if (Object.hasOwn(normalized, "isDefaultShipping")) {
+  if (
+    Object.hasOwn(normalized, "isDefaultShipping") &&
+    address.isDefaultShipping !== undefined
+  ) {
     payload.is_default_shipping = address.isDefaultShipping
   }
-  if (Object.hasOwn(normalized, "isDefaultBilling")) {
+  if (
+    Object.hasOwn(normalized, "isDefaultBilling") &&
+    address.isDefaultBilling !== undefined
+  ) {
     payload.is_default_billing = address.isDefaultBilling
   }
-  if (Object.hasOwn(normalized, "metadata")) {
-    payload.metadata = address.metadata ?? undefined
+  if (Object.hasOwn(normalized, "metadata") && address.metadata !== undefined) {
+    payload.metadata = address.metadata
   }
 
   return payload
@@ -442,20 +455,23 @@ export const createCheckoutCartAddressAdapter = <
 ): StorefrontCartAddressAdapter<TAddress, MedusaCartAddressPayload> => ({
   normalize: (input) => normalizeCheckoutAddressInput(input) as TAddress,
   validate: (input, context) =>
-    getCheckoutAddressFieldIssues(input, {
-      scope: context.scope,
-      requiredFields:
-        context.scope === "shipping"
-          ? options?.shippingRequiredFields
-          : options?.billingRequiredFields,
-    }),
+    getCheckoutAddressFieldIssues(
+      input,
+      omitUndefined({
+        scope: context.scope,
+        requiredFields:
+          context.scope === "shipping"
+            ? options?.shippingRequiredFields
+            : options?.billingRequiredFields,
+      })
+    ),
   toPayload: (input) => mapCheckoutAddressToMedusaCartAddress(input, options),
 })
 
 export const createCheckoutCustomerAddressAdapter = <
   TAddress extends CheckoutAddressInput = CheckoutAddressInput,
-  TUpdateInput extends
-    CheckoutCustomerAddressUpdateInput<TAddress> = CheckoutCustomerAddressUpdateInput<TAddress>,
+  TUpdateInput extends CheckoutCustomerAddressUpdateInput<TAddress> =
+    CheckoutCustomerAddressUpdateInput<TAddress>,
 >(
   options?: CheckoutCustomerAddressAdapterOptions
 ): StorefrontCustomerAddressAdapter<
@@ -466,21 +482,30 @@ export const createCheckoutCustomerAddressAdapter = <
 > => ({
   normalizeCreate: (input) => normalizeCheckoutAddressInput(input) as TAddress,
   validateCreate: (input) =>
-    getCheckoutAddressFieldIssues(input, {
-      scope: "customer",
-      requiredFields: options?.requiredFields,
-    }),
+    getCheckoutAddressFieldIssues(
+      input,
+      omitUndefined({
+        scope: "customer" as const,
+        requiredFields: options?.requiredFields,
+      })
+    ),
   toCreateParams: (input) =>
     mapCheckoutAddressToMedusaCustomerAddress(input, options),
   normalizeUpdate: (input) => normalizeCheckoutAddressPatch(input),
   validateUpdate: (input) =>
-    getCheckoutAddressPatchFieldIssues(input, {
-      scope: "customer",
-      requiredFields: options?.requiredFields,
-    }),
+    getCheckoutAddressPatchFieldIssues(
+      input,
+      omitUndefined({
+        scope: "customer" as const,
+        requiredFields: options?.requiredFields,
+      })
+    ),
   toUpdateParams: (input) => {
     const { addressId: _addressId, ...rest } = input
-    return mapCheckoutAddressPatchToMedusaCustomerAddress(rest, options)
+    return mapCheckoutAddressPatchToMedusaCustomerAddress(
+      omitUndefined(rest),
+      options
+    )
   },
 })
 
@@ -500,10 +525,10 @@ export const buildCheckoutCartAddressInput = <
       ? mapCheckoutAddressToMedusaCartAddress(data.billing, options)
       : shippingAddress
 
-  return {
+  return omitUndefined({
     email: normalizeTrimmedString(data.email),
     shippingAddress,
     billingAddress,
     useSameAddress,
-  }
+  })
 }

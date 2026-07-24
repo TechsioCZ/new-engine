@@ -1,8 +1,8 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseSyncPreviewSharedEnvInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseSyncPreviewSharedEnvInput } from "../zane-inputs"
 
 interface SyncPreviewSharedEnvDeps {
   config: AppConfig
@@ -10,7 +10,7 @@ interface SyncPreviewSharedEnvDeps {
 
 export async function handleSyncPreviewSharedEnv(
   request: Request,
-  deps: SyncPreviewSharedEnvDeps,
+  deps: SyncPreviewSharedEnvDeps
 ): Promise<Response> {
   try {
     const rawBody = await request.json().catch(() => {

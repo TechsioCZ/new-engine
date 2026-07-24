@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import {
   type ResolveTargetsResponse,
   resolveTargetsCommandInputSchema,
@@ -42,12 +43,14 @@ export function createResolveTargetsCommand(): Command {
     .action(async (options) => {
       const input = resolveTargetsCommandInputSchema.parse({
         lane: options.lane,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
+        projectSlug:
+          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
         environmentName: options.environmentName,
         planJsonPath: options.planJson,
         outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
+        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+        apiToken:
+          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
         dryRun: Boolean(options.dryRun),
       })
       const result = await executeResolveTargets(input)

@@ -12,7 +12,7 @@ import { asNumber } from "@/components/product-detail/utils/value-utils"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 
-export const resolveDisplayOriginalLabel = (
+const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,
   displayOriginalAmount: number | null,
   currentCurrencyCode: string
@@ -72,7 +72,7 @@ export const resolveProductPricingLabels = ({
     currentCurrencyCode,
     offerState.applyLoyaltyDiscount
   )
-  const vatRate = asNumber(offerState.offerSource?.vat)
+  const vatRate = asNumber(offerState.offerSource?.["vat"])
   const unitPriceLabel = resolveUnitPriceLabel({
     currentAmount,
     currentAmountWithoutTax,

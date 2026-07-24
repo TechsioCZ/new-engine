@@ -28,6 +28,7 @@ import {
   PaymentActions,
 } from "@medusajs/framework/utils"
 import QRCode from "qrcode"
+
 import { buildPaymentQrSpayd } from "../../../utils/order-payment-qr"
 import { QR_PAYMENT_MODULE, QR_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import type { QrPaymentModuleService } from "../service"
@@ -111,7 +112,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   ): Promise<AuthorizePaymentOutput> {
     return {
       status: "authorized",
-      data: input.data,
+      ...(input.data ? { data: input.data } : {}),
     }
   }
 
@@ -126,9 +127,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   async retrievePayment(
     input: RetrievePaymentInput
   ): Promise<RetrievePaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return input.data ? { data: input.data } : {}
   }
 
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
@@ -138,27 +137,19 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
   async capturePayment(
     input: CapturePaymentInput
   ): Promise<CapturePaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return input.data ? { data: input.data } : {}
   }
 
   async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return input.data ? { data: input.data } : {}
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return input.data ? { data: input.data } : {}
   }
 
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return input.data ? { data: input.data } : {}
   }
 
   async getWebhookActionAndData(
@@ -179,10 +170,10 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
     input: Pick<InitiatePaymentInput, "context" | "data">
   ) {
     const existingQrPayment = getRecord(input.data?.[QR_PAYMENT_DATA_KEY])
-    const existingReference = getString(existingQrPayment?.reference)
+    const existingReference = getString(existingQrPayment?.["reference"])
     const dataReference =
-      getString(input.data?.reference) ??
-      getString(input.data?.order_id) ??
+      getString(input.data?.["reference"]) ??
+      getString(input.data?.["order_id"]) ??
       getString(input.context?.idempotency_key)
 
     return existingReference ?? dataReference ?? `qr_${Date.now()}`

@@ -1,18 +1,17 @@
 import { QueryClient } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
-import { StorefrontDataProvider } from "../src/client/provider"
+
 import { createAuthHooks } from "../src/auth/hooks"
 import { createAuthQueryKeys } from "../src/auth/query-keys"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import { createCategoryHooks } from "../src/categories/hooks"
 import { createCategoryQueryKeys } from "../src/categories/query-keys"
 import { createCheckoutHooks } from "../src/checkout/hooks"
+import { StorefrontDataProvider } from "../src/client/provider"
 import { createCollectionHooks } from "../src/collections/hooks"
 import { createCollectionQueryKeys } from "../src/collections/query-keys"
-import {
-  createProductHooks,
-} from "../src/products/hooks"
+import { createProductHooks } from "../src/products/hooks"
 import { createProductQueryKeys } from "../src/products/query-keys"
 import type { ProductListInputBase } from "../src/products/types"
 import { createRegionHooks } from "../src/regions/hooks"
@@ -20,7 +19,8 @@ import { createCacheConfig } from "../src/shared/cache-config"
 import { shouldSkipPrefetch } from "../src/shared/prefetch"
 import { createQueryKey } from "../src/shared/query-keys"
 
-const createWrapper = (client: QueryClient) =>
+const createWrapper =
+  (client: QueryClient) =>
   ({ children }: { children: ReactNode }) => (
     <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
   )
@@ -43,7 +43,7 @@ describe("storefront-data missing hook coverage", () => {
           offset?: number
           enabled?: boolean
         }) => void
-        onDetailInput: (input: { id: string; enabled?: boolean }) => void
+        onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
           getCategories: async () => {
@@ -65,7 +65,8 @@ describe("storefront-data missing hook coverage", () => {
           queryKeyNamespace: "test-categories",
         })
         return {
-          useListHook: () => useCategories({ page: 1, limit: 2, enabled: true }),
+          useListHook: () =>
+            useCategories({ page: 1, limit: 2, enabled: true }),
           useDetailHook: () => useCategory({ id: "cat_1", enabled: true }),
         }
       },
@@ -86,7 +87,7 @@ describe("storefront-data missing hook coverage", () => {
           offset?: number
           enabled?: boolean
         }) => void
-        onDetailInput: (input: { id: string; enabled?: boolean }) => void
+        onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
           getCollections: async () => {
@@ -108,7 +109,8 @@ describe("storefront-data missing hook coverage", () => {
           queryKeyNamespace: "test-collections",
         })
         return {
-          useListHook: () => useCollections({ page: 1, limit: 1, enabled: true }),
+          useListHook: () =>
+            useCollections({ page: 1, limit: 1, enabled: true }),
           useDetailHook: () => useCollection({ id: "col_1", enabled: true }),
         }
       },
@@ -129,7 +131,7 @@ describe("storefront-data missing hook coverage", () => {
           offset?: number
           enabled?: boolean
         }) => void
-        onDetailInput: (input: { id: string; enabled?: boolean }) => void
+        onDetailInput: (input: { id?: string; enabled?: boolean }) => void
       }) => {
         const mappedService = {
           getRegions: async () => {
@@ -184,7 +186,9 @@ describe("storefront-data missing hook coverage", () => {
       })
       const wrapper = createWrapper(queryClient)
 
-      const { result: listResult } = renderHook(() => useListHook(), { wrapper })
+      const { result: listResult } = renderHook(() => useListHook(), {
+        wrapper,
+      })
       await waitFor(() => {
         expect(listResult.current.isSuccess).toBe(true)
       })
@@ -246,7 +250,10 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -267,7 +274,9 @@ describe("storefront-data missing hook coverage", () => {
   it("invalidates customer and order domains on login", async () => {
     const service = {
       getCustomer: async () => ({ id: "cus_1" }),
-      login: async (_input: { email: string; password: string }) => ({ ok: true }),
+      login: async (_input: { email: string; password: string }) => ({
+        ok: true,
+      }),
       register: async () => ({ ok: true }),
       logout: async () => undefined,
     }
@@ -281,7 +290,10 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
     const wrapper = createWrapper(queryClient)
@@ -357,7 +369,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     const service = {
       listShippingOptions: async () => [
@@ -392,7 +404,10 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -462,7 +477,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     const service = {
       listShippingOptions: async () => [] as ShippingOption[],
@@ -489,7 +504,10 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
     const wrapper = createWrapper(queryClient)
@@ -534,7 +552,9 @@ describe("storefront-data missing hook coverage", () => {
         ...cart,
         payment_collection: { id: "pay_col_1" },
       })
-      expect(queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id))).toEqual({
+      expect(
+        queryClient.getQueryData<Cart>(cartQueryKeys.detail(cart.id))
+      ).toEqual({
         ...cart,
         payment_collection: { id: "pay_col_1" },
       })
@@ -559,7 +579,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     const service = {
       listShippingOptions: async () => [] as ShippingOption[],
@@ -572,7 +592,9 @@ describe("storefront-data missing hook coverage", () => {
       initiatePaymentSession: async () => ({ id: "pay_col_1" }),
     }
 
-    const cartQueryKeys = createCartQueryKeys("test-checkout-payment-cached-cart")
+    const cartQueryKeys = createCartQueryKeys(
+      "test-checkout-payment-cached-cart"
+    )
     const { useCheckoutPayment } = createCheckoutHooks<
       Cart,
       ShippingOption,
@@ -586,7 +608,10 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -636,7 +661,7 @@ describe("storefront-data missing hook coverage", () => {
     }
 
     type PaymentProvider = { id: string }
-    type PaymentCollection = { id: string }
+    type PaymentCollection = { id: string; payment_sessions?: unknown[] }
 
     let receivedCart: Cart | null | undefined = { id: "initial" }
     const service = {
@@ -670,7 +695,10 @@ describe("storefront-data missing hook coverage", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -678,7 +706,6 @@ describe("storefront-data missing hook coverage", () => {
       id: "cart_1",
       region_id: "reg_1",
       shipping_methods: [{ shipping_option_id: "opt_fixed" }],
-      payment_collection: undefined,
     }
 
     const { result } = renderHook(
@@ -751,13 +778,14 @@ describe("storefront-data missing hook coverage", () => {
       count: 0,
     })
 
-    const { result: freshResult } = renderHook(
-      () => usePrefetchCategories(),
-      { wrapper }
-    )
+    const { result: freshResult } = renderHook(() => usePrefetchCategories(), {
+      wrapper,
+    })
     const { result: anyResult } = renderHook(
       () => usePrefetchCategories({ skipMode: "any" }),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchCategories({ skipIfCached: false }),
@@ -829,13 +857,14 @@ describe("storefront-data missing hook coverage", () => {
       count: 0,
     })
 
-    const { result: freshResult } = renderHook(
-      () => usePrefetchCollections(),
-      { wrapper }
-    )
+    const { result: freshResult } = renderHook(() => usePrefetchCollections(), {
+      wrapper,
+    })
     const { result: anyResult } = renderHook(
       () => usePrefetchCollections({ skipMode: "any" }),
-      { wrapper }
+      {
+        wrapper,
+      }
     )
     const { result: noSkipResult } = renderHook(
       () => usePrefetchCollections({ skipIfCached: false }),
@@ -882,7 +911,7 @@ describe("storefront-data missing hook coverage", () => {
       return {
         limit,
         offset,
-        region_id: input.region_id,
+        ...(input.region_id ? { region_id: input.region_id } : {}),
       }
     }
 

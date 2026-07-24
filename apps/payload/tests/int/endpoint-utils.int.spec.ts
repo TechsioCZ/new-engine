@@ -5,6 +5,7 @@ vi.mock("payload", () => ({
 }))
 
 import { headersWithCors } from "payload"
+
 import {
   buildJsonResponse,
   getLocaleFromRequest,

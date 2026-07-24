@@ -1,7 +1,9 @@
+import { unique } from "@techsio/std/array"
+
 export type PrefetchPagesMode = "priority" | "simple"
 
 export type CreatePrefetchPagesPlanInput = {
-  mode?: PrefetchPagesMode
+  mode?: PrefetchPagesMode | undefined
   currentPage: number
   totalPages: number
   hasNextPage: boolean
@@ -13,9 +15,6 @@ export type PrefetchPagesPlan = {
   medium: number[]
   low: number[]
 }
-
-const uniquePages = (pages: readonly number[]): number[] =>
-  Array.from(new Set(pages))
 
 const pushPageIfValid = (
   pages: number[],
@@ -64,7 +63,7 @@ const createSimplePrefetchPagesPlan = (
   )
 
   return {
-    immediate: uniquePages(pagesToPrefetch),
+    immediate: unique(pagesToPrefetch),
     medium: [],
     low: [],
   }
@@ -86,13 +85,11 @@ const createPriorityPrefetchPagesPlan = (
       : null,
   ].filter((page): page is number => page !== null)
 
-  const immediate = uniquePages(high)
+  const immediate = unique(high)
   const immediateSet = new Set(immediate)
-  const mediumPages = uniquePages(medium).filter(
-    (page) => !immediateSet.has(page)
-  )
+  const mediumPages = unique(medium).filter((page) => !immediateSet.has(page))
   const mediumSet = new Set(mediumPages)
-  const lowPages = uniquePages(lowCandidates).filter(
+  const lowPages = unique(lowCandidates).filter(
     (page) => !(immediateSet.has(page) || mediumSet.has(page))
   )
 

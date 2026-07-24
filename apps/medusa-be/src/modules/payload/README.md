@@ -1,8 +1,6 @@
 # Payload CMS module
 
-This module provides a read-only integration with Payload CMS for store-facing
-content (pages, articles, hero carousels, and category groupings). It wraps the
-Payload REST API and optionally caches responses via Medusa's caching module.
+This module provides a read-only integration with Payload CMS for store-facing content (pages, articles, hero carousels, and category groupings). It wraps the Payload REST API and optionally caches responses via Medusa's caching module.
 
 ## Enable the module
 
@@ -96,8 +94,7 @@ These routes are backed by the module:
 
 ## Webhook cache invalidation
 
-`POST /hooks/cms/invalidate` clears cached CMS data. Payload webhooks should
-send a JSON body with the collection name and optional doc details:
+`POST /hooks/cms/invalidate` clears cached CMS data. Payload webhooks should send a JSON body with the collection name and optional doc details:
 
 ```json
 {

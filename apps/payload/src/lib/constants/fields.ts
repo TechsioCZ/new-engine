@@ -64,10 +64,10 @@ export const createContentField = (
 ): RichTextField => ({
   name: "content",
   type: "richText",
-  editor: options.editor,
+  ...(options.editor ? { editor: options.editor } : {}),
   localized: options.localized ?? true,
   required: options.required ?? true,
-  admin: options.admin,
+  ...(options.admin ? { admin: options.admin } : {}),
   label: options.label ?? fieldLabels.content,
 })
 

@@ -5,6 +5,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type { ModuleCreateApproval } from "../../../types"
 import { createApprovalStep } from "../steps"

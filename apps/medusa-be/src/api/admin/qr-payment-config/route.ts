@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import {
   QR_PAYMENT_MODULE,
   type QrPaymentModuleService,
@@ -8,6 +9,7 @@ import type {
   QrPaymentConfigDTO,
   QrPaymentConfigResponse,
 } from "../../../modules/payment-qr/types"
+import { definedProperties } from "../../../utils/defined-properties"
 import type { PostAdminQrPaymentConfigSchemaType } from "./validators"
 
 const toConfigResponse = (
@@ -39,7 +41,9 @@ export async function POST(
   const qrPaymentService =
     req.scope.resolve<QrPaymentModuleService>(QR_PAYMENT_MODULE)
 
-  const updated = await qrPaymentService.updateConfig(req.validatedBody)
+  const updated = await qrPaymentService.updateConfig(
+    definedProperties(req.validatedBody)
+  )
 
   res.json({ config: toConfigResponse(updated) })
 }

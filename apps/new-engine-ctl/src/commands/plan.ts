@@ -1,4 +1,5 @@
 import { Command } from "commander"
+
 import { planCommandInputSchema } from "../contracts/plan.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executePlan } from "../orchestration/plan.js"
@@ -18,7 +19,7 @@ export function createPlanCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath
     )
     .action(async (options) => {
       const parsedPrNumber =
@@ -31,7 +32,7 @@ export function createPlanCommand(): Command {
         prNumber: parsedPrNumber,
         outputJson: options.outputJson,
         stackManifestPath: options.stackManifestPath,
-        previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+        previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
       })
       const result = await executePlan(input)
       await appendGitHubOutput(

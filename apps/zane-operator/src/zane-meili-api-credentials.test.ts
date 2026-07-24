@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest"
+
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 
 const policy = {
@@ -50,7 +51,9 @@ function createMeiliFetch(initialKey: StoredKey) {
     input: Parameters<typeof fetch>[0],
     init?: Parameters<typeof fetch>[1]
   ): Response => {
-    const url = new URL(String(input))
+    const url = new URL(
+      typeof input === "string" || input instanceof URL ? input : input.url
+    )
     const method = init?.method ?? "GET"
     const body =
       typeof init?.body === "string"
@@ -80,7 +83,7 @@ function createMeiliFetch(initialKey: StoredKey) {
 
       storedKey = {
         ...storedKey,
-        description: String(body.description),
+        description: String(body["description"]),
       }
       return Response.json(storedKey)
     }

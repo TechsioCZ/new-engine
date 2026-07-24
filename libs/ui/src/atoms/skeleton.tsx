@@ -5,6 +5,7 @@ import {
   type Ref,
   useContext,
 } from "react"
+
 import { tv } from "../utils"
 
 const skeletonVariants = tv({
@@ -69,8 +70,8 @@ const skeletonVariants = tv({
 
 interface SkeletonContextValue {
   isLoaded: boolean
-  variant?: "primary" | "secondary"
-  speed?: "slow" | "normal" | "fast"
+  variant?: "primary" | "secondary" | undefined
+  speed?: "slow" | "normal" | "fast" | undefined
 }
 
 const SkeletonContext = createContext<SkeletonContextValue | null>(null)
@@ -82,9 +83,9 @@ const useSkeletonContext = () => useContext(SkeletonContext)
  * Local props override context values.
  */
 function useResolvedSkeletonProps(props: {
-  isLoaded?: boolean
-  variant?: "primary" | "secondary"
-  speed?: "slow" | "normal" | "fast"
+  isLoaded?: boolean | undefined
+  variant?: "primary" | "secondary" | undefined
+  speed?: "slow" | "normal" | "fast" | undefined
 }) {
   const context = useSkeletonContext()
   return {
@@ -94,13 +95,15 @@ function useResolvedSkeletonProps(props: {
   }
 }
 
-interface SkeletonRootProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
-  isLoaded?: boolean
-  variant?: "primary" | "secondary"
-  speed?: "slow" | "normal" | "fast"
-  children?: ReactNode
-  ref?: Ref<HTMLDivElement>
+interface SkeletonRootProps extends Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> {
+  isLoaded?: boolean | undefined
+  variant?: "primary" | "secondary" | undefined
+  speed?: "slow" | "normal" | "fast" | undefined
+  children?: ReactNode | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 export function Skeleton({
@@ -133,14 +136,16 @@ export function Skeleton({
   )
 }
 
-interface SkeletonCircleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
-  size?: "sm" | "md" | "lg" | "xl"
-  speed?: "slow" | "normal" | "fast"
-  isLoaded?: boolean
-  variant?: "primary" | "secondary"
-  children?: ReactNode
-  ref?: Ref<HTMLDivElement>
+interface SkeletonCircleProps extends Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> {
+  size?: "sm" | "md" | "lg" | "xl" | undefined
+  speed?: "slow" | "normal" | "fast" | undefined
+  isLoaded?: boolean | undefined
+  variant?: "primary" | "secondary" | undefined
+  children?: ReactNode | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Skeleton.Circle = function SkeletonCircle({
@@ -178,17 +183,19 @@ Skeleton.Circle = function SkeletonCircle({
   )
 }
 
-interface SkeletonTextProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
-  noOfLines?: number
-  size?: "sm" | "md" | "lg" | "xl"
-  speed?: "slow" | "normal" | "fast"
-  lastLineWidth?: string
-  isLoaded?: boolean
-  variant?: "primary" | "secondary"
-  children?: ReactNode
-  containerClassName?: string
-  ref?: Ref<HTMLDivElement>
+interface SkeletonTextProps extends Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> {
+  noOfLines?: number | undefined
+  size?: "sm" | "md" | "lg" | "xl" | undefined
+  speed?: "slow" | "normal" | "fast" | undefined
+  lastLineWidth?: string | undefined
+  isLoaded?: boolean | undefined
+  variant?: "primary" | "secondary" | undefined
+  children?: ReactNode | undefined
+  containerClassName?: string | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Skeleton.Text = function SkeletonText({
@@ -245,13 +252,15 @@ Skeleton.Text = function SkeletonText({
   )
 }
 
-interface SkeletonRectangleProps
-  extends Omit<ComponentPropsWithoutRef<"div">, "children"> {
-  speed?: "slow" | "normal" | "fast"
-  isLoaded?: boolean
-  variant?: "primary" | "secondary"
-  children?: ReactNode
-  ref?: Ref<HTMLDivElement>
+interface SkeletonRectangleProps extends Omit<
+  ComponentPropsWithoutRef<"div">,
+  "children"
+> {
+  speed?: "slow" | "normal" | "fast" | undefined
+  isLoaded?: boolean | undefined
+  variant?: "primary" | "secondary" | undefined
+  children?: ReactNode | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
 Skeleton.Rectangle = function SkeletonRectangle({

@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useRef } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
 import { buildPrefetchParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts, getProductsGlobal } from "@/services/product-service"
+
 import { useRegion } from "./use-region"
 
 export function usePrefetchProducts() {
@@ -49,7 +51,7 @@ export function usePrefetchProducts() {
         queryKey,
         queryFn: ({ signal }) => getProducts(queryParams, signal),
         ...cacheConfig.semiStatic,
-        meta: prefetchedBy ? { prefetchedBy } : undefined,
+        ...(prefetchedBy ? { meta: { prefetchedBy } } : {}),
       })
 
       const duration = performance.now() - start
@@ -106,7 +108,7 @@ export function usePrefetchProducts() {
     }
 
     const timeoutId = setTimeout(() => {
-      prefetchCategoryProducts(categoryId)
+      void prefetchCategoryProducts(categoryId)
       timeoutsRef.current.delete(id)
     }, delay)
 

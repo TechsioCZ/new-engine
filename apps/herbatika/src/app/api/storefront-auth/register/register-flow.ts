@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import {
   buildErrorResponse,
   buildMedusaUrl,
@@ -35,8 +36,8 @@ export const refreshCustomerToken = async (loginToken: string) => {
   }
 
   const refreshPayload = await parseResponseJson(refreshResponse)
-  return refreshPayload && typeof refreshPayload.token === "string"
-    ? refreshPayload.token
+  return refreshPayload && typeof refreshPayload["token"] === "string"
+    ? refreshPayload["token"]
     : loginToken
 }
 
@@ -102,8 +103,8 @@ export const loginCustomerIdentity = async ({
 
   const loginPayload = await parseResponseJson(loginResponse)
   const loginToken =
-    loginPayload && typeof loginPayload.token === "string"
-      ? loginPayload.token
+    loginPayload && typeof loginPayload["token"] === "string"
+      ? loginPayload["token"]
       : null
 
   if (!loginToken) {
@@ -128,8 +129,8 @@ const buildCustomerProfile = ({
   wholesale,
 }: Omit<ParsedRegisterPayload, "password">): HttpTypes.StoreCreateCustomer => ({
   email,
-  first_name: firstName,
-  last_name: lastName,
+  ...(firstName === undefined ? {} : { first_name: firstName }),
+  ...(lastName === undefined ? {} : { last_name: lastName }),
   ...(wholesale
     ? {
         company_name: wholesale.companyName,

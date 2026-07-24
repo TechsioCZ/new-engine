@@ -1,6 +1,7 @@
 "use client"
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+
 import { resolveCountryItemsForRegion } from "@/lib/forms/country-options"
 import {
   REGION_LIST_FIELDS,
@@ -15,8 +16,10 @@ export const useRegisterCountryItems = (region?: RegionInfo | null) => {
   })
 
   return resolveCountryItemsForRegion({
-    activeCountryCode: region?.country_code,
-    regionId: region?.region_id,
+    ...(region?.country_code === undefined
+      ? {}
+      : { activeCountryCode: region?.country_code }),
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
     regions: regionsQuery.regions,
   })
 }

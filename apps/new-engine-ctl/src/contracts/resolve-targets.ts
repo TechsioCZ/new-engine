@@ -1,8 +1,10 @@
 import { readFile } from "node:fs/promises"
 
 import { z } from "zod"
+
 import { planResponseSchema } from "./plan.js"
 import { laneSchema } from "./stack-manifest.js"
+import { requireLiveZaneCredentials } from "./zane-credentials.js"
 
 const targetDeploymentSchema = z.looseObject({
   deployment_hash: z.string().min(1),
@@ -36,23 +38,7 @@ export const resolveTargetsCommandInputSchema = z
     apiToken: z.string().default(""),
     dryRun: z.boolean().default(false),
   })
-  .superRefine((value, ctx) => {
-    if (!(value.dryRun || value.baseUrl)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["baseUrl"],
-        message: "Zane operator base URL is required.",
-      })
-    }
-
-    if (!(value.dryRun || value.apiToken)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["apiToken"],
-        message: "Zane operator API token is required.",
-      })
-    }
-  })
+  .superRefine(requireLiveZaneCredentials)
 
 export const resolveTargetsResponseSchema = z.object({
   project_slug: z.string().min(1),
@@ -68,11 +54,8 @@ export type ResolveTargetsCommandInput = z.infer<
 export type ResolveTargetsResponse = z.infer<
   typeof resolveTargetsResponseSchema
 >
-export type ResolvedTarget = z.infer<typeof resolvedTargetSchema>
 
-export function extractPlanServices(
-  plan: z.infer<typeof planResponseSchema>
-): Array<{
+function extractPlanServices(plan: z.infer<typeof planResponseSchema>): Array<{
   service_id: string
   service_slug: string
 }> {

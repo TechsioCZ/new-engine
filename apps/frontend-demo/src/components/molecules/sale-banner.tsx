@@ -1,4 +1,5 @@
 import { Image } from "@techsio/ui-kit/atoms/image"
+import type { Route } from "next"
 import Link from "next/link"
 
 interface SaleBannerProps {
@@ -6,7 +7,7 @@ interface SaleBannerProps {
   subtitle: string
   backgroundImage: string
   linkText: string
-  linkHref: string
+  linkHref: Route
 }
 
 export function SaleBanner({

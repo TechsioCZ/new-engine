@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
+
 import { requestJson, resolveRequiredEnv } from "./helpers/client"
 
 type AuthResponse = {

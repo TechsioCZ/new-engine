@@ -1,9 +1,10 @@
 "use client"
 
 import { useForm, useStore } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import { Button } from "@ui/atoms/button"
 import Link from "next/link"
+
 import { TextField } from "@/components/forms/fields/text-field"
 import { useRegister } from "@/hooks/use-register"
 import { useAuthToast } from "@/hooks/use-toast"
@@ -11,6 +12,7 @@ import { AUTH_MESSAGES } from "@/lib/auth-messages"
 import { registerValidators } from "@/lib/form-validators"
 import { VALIDATION_MESSAGES } from "@/lib/validation-messages"
 import { useAnalytics } from "@/providers/analytics-provider"
+
 import { ErrorBanner } from "../atoms/error-banner"
 import { PasswordValidator } from "./password-validator"
 
@@ -93,9 +95,9 @@ export function RegisterForm({
     <form
       className={`mt-100 flex flex-col gap-200 ${className}`}
       noValidate
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault()
-        form.handleSubmit()
+        await form.handleSubmit()
       }}
     >
       {register.error && (
@@ -227,7 +229,7 @@ export function RegisterForm({
           <Link
             className="font-medium hover:underline"
             href="/prihlaseni"
-            onClick={toggle}
+            {...(toggle ? { onClick: toggle } : {})}
           >
             Přihlaste se
           </Link>

@@ -1,12 +1,7 @@
 ---
 name: implement-cart-and-checkout-platform-flows
 description: >
-  Load this skill when implementing cart and checkout through
-  @techsio/storefront-data with storefront.flows.cart,
-  storefront.flows.checkout, useCart, useAddToCart, useCheckoutShipping,
-  useCheckoutPayment, useCompleteCheckout, and shared cart cache sync. Use it
-  for active cart lifecycle, effective cart state, selected payment-session
-  semantics, and canonical checkout orchestration.
+  Load this skill when implementing cart and checkout through @techsio/storefront-data with storefront.flows.cart, storefront.flows.checkout, useCart, useAddToCart, useCheckoutShipping, useCheckoutPayment, useCompleteCheckout, and shared cart cache sync. Use it for active cart lifecycle, effective cart state, selected payment-session semantics, and canonical checkout orchestration.
 type: core
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -170,7 +165,9 @@ Correct:
 
 ```ts
 const addToCart = storefront.flows.cart.useAddToCart()
-const completeCheckout = storefront.flows.checkout.useCompleteCheckout({ cartId })
+const completeCheckout = storefront.flows.checkout.useCompleteCheckout({
+  cartId,
+})
 
 await addToCart.mutateAsync({ cartId, ...payload })
 await completeCheckout.mutateAsync()

@@ -107,7 +107,12 @@ jobs:
           cache: pnpm
 
       - name: Install workspace dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=medusa-be...
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=medusa-be...
+
+      # --ignore-scripts skips the std `prepare` build; medusa-be resolves
+      # @techsio/std/* through dist-backed exports at test runtime.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
 
       - name: Run Medusa BE unit tests
         run: pnpm --filter medusa-be test:unit
@@ -128,10 +133,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U root -d medusa_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd "pg_isready -U root -d medusa_test" --health-interval 10s --health-timeout 5s --health-retries 5
     env:
       DB_HOST: 127.0.0.1
       DB_USERNAME: root
@@ -153,7 +155,12 @@ jobs:
           cache: pnpm
 
       - name: Install workspace dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=medusa-be...
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=medusa-be...
+
+      # --ignore-scripts skips the std `prepare` build; medusa-be resolves
+      # @techsio/std/* through dist-backed exports at test runtime.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
 
       - name: Run Medusa BE module integration tests
         run: pnpm --filter medusa-be test:integration:modules
@@ -181,7 +188,12 @@ jobs:
           cache: pnpm
 
       - name: Install workspace dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=medusa-be...
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=medusa-be...
+
+      # --ignore-scripts skips the std `prepare` build; medusa-be resolves
+      # @techsio/std/* through dist-backed exports at test runtime.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build
 
       - name: Run Medusa BE HTTP e2e suite
         run: bash ./scripts/e2e/medusa-be-http.sh run

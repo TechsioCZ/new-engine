@@ -1,44 +1,45 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Table } from '../../src/organisms/table'
-import { Checkbox } from '../../src/atoms/checkbox'
-import { Button } from '../../src/atoms/button'
-import { VariantContainer } from '../../.storybook/decorator'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { Checkbox } from "../../src/atoms/checkbox"
+import { Table } from "../../src/organisms/table"
 
 const meta = {
-  title: 'Organisms/Table',
+  title: "Organisms/Table",
   component: Table,
   parameters: {
-    layout: 'padded',
+    layout: "padded",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
   argTypes: {
     variant: {
-      control: 'select',
-      options: ['line', 'outline', 'striped'],
-      description: 'Visual style variant of the table',
+      control: "select",
+      options: ["line", "outline", "striped"],
+      description: "Visual style variant of the table",
     },
     size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of table cells and text',
+      control: "select",
+      options: ["sm", "md", "lg"],
+      description: "Size of table cells and text",
     },
     interactive: {
-      control: 'boolean',
-      description: 'Enable hover effects and pointer cursor on rows',
+      control: "boolean",
+      description: "Enable hover effects and pointer cursor on rows",
     },
     stickyHeader: {
-      control: 'boolean',
-      description: 'Make header sticky on scroll',
+      control: "boolean",
+      description: "Make header sticky on scroll",
     },
     showColumnBorder: {
-      control: 'boolean',
-      description: 'Show vertical borders between columns',
+      control: "boolean",
+      description: "Show vertical borders between columns",
     },
     captionPlacement: {
-      control: 'select',
-      options: ['top', 'bottom'],
-      description: 'Position of table caption',
+      control: "select",
+      options: ["top", "bottom"],
+      description: "Position of table caption",
     },
   },
 } satisfies Meta<typeof Table>
@@ -50,36 +51,36 @@ type Story = StoryObj<typeof meta>
 const sampleProducts = [
   {
     id: 1,
-    name: 'Laptop',
-    category: 'Electronics',
+    name: "Laptop",
+    category: "Electronics",
     price: 999.99,
     stock: 50,
   },
   {
     id: 2,
-    name: 'Coffee Maker',
-    category: 'Home Appliances',
+    name: "Coffee Maker",
+    category: "Home Appliances",
     price: 49.99,
     stock: 120,
   },
   {
     id: 3,
-    name: 'Desk Chair',
-    category: 'Furniture',
+    name: "Desk Chair",
+    category: "Furniture",
     price: 150.0,
     stock: 30,
   },
   {
     id: 4,
-    name: 'Smartphone',
-    category: 'Electronics',
+    name: "Smartphone",
+    category: "Electronics",
     price: 799.99,
     stock: 75,
   },
   {
     id: 5,
-    name: 'Headphones',
-    category: 'Accessories',
+    name: "Headphones",
+    category: "Accessories",
     price: 199.99,
     stock: 200,
   },
@@ -89,8 +90,8 @@ const sampleProducts = [
 
 export const Basic: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
   },
   render: (args) => (
     <Table {...args}>
@@ -119,8 +120,8 @@ export const Basic: Story = {
 
 export const Outline: Story = {
   args: {
-    variant: 'outline',
-    size: 'md',
+    variant: "outline",
+    size: "md",
   },
   render: (args) => (
     <Table {...args}>
@@ -149,8 +150,8 @@ export const Outline: Story = {
 
 export const Interactive: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
     interactive: true,
   },
   render: (args) => (
@@ -183,8 +184,8 @@ export const Interactive: Story = {
 
 export const Striped: Story = {
   args: {
-    variant: 'striped',
-    size: 'md',
+    variant: "striped",
+    size: "md",
   },
   render: (args) => (
     <Table {...args}>
@@ -214,47 +215,49 @@ export const Striped: Story = {
 // === SIZE VARIANTS ===
 
 export const Sizes: Story = {
-
   render: () => {
-
-    const sizes = ['sm', 'md', 'lg'] as const
+    const sizes = ["sm", "md", "lg"] as const
     const attributes = ["Product", "Category", "Price"]
 
-
     return (
-    <VariantContainer>
-      {sizes.map((size) => (
-        <Table key={size} size={size}>
-          <Table.Caption>Compact table with small size</Table.Caption>
-          <Table.Header>
-            <Table.Row>
-              {attributes.map((attribute) => (
-                <Table.ColumnHeader key={attribute} numeric={attribute === "Price"}>{attribute}</Table.ColumnHeader>
-              ))}
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {sampleProducts.slice(0, 3).map((product) => (
-              <Table.Row key={product.id}>
-                <Table.Cell>{product.name}</Table.Cell>
-                <Table.Cell>{product.category}</Table.Cell>
-                <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+      <VariantContainer>
+        {sizes.map((size) => (
+          <Table key={size} size={size}>
+            <Table.Caption>Compact table with small size</Table.Caption>
+            <Table.Header>
+              <Table.Row>
+                {attributes.map((attribute) => (
+                  <Table.ColumnHeader
+                    key={attribute}
+                    numeric={attribute === "Price"}
+                  >
+                    {attribute}
+                  </Table.ColumnHeader>
+                ))}
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
-      ))}
-    </VariantContainer>
-  )},
+            </Table.Header>
+            <Table.Body>
+              {sampleProducts.slice(0, 3).map((product) => (
+                <Table.Row key={product.id}>
+                  <Table.Cell>{product.name}</Table.Cell>
+                  <Table.Cell>{product.category}</Table.Cell>
+                  <Table.Cell numeric>${product.price.toFixed(2)}</Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+        ))}
+      </VariantContainer>
+    )
+  },
 }
-
 
 // === ADVANCED FEATURES ===
 
 export const WithFooter: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
   },
   render: (args) => {
     const total = sampleProducts.reduce((sum, p) => sum + p.price, 0)
@@ -301,8 +304,8 @@ export const WithFooter: Story = {
 
 export const StickyHeader: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
     stickyHeader: true,
   },
   render: (args) => {
@@ -310,13 +313,13 @@ export const StickyHeader: Story = {
     const manyProducts = Array.from({ length: 20 }, (_, i) => ({
       id: i + 1,
       name: `Product ${i + 1}`,
-      category: ['Electronics', 'Furniture', 'Accessories'][i % 3],
+      category: ["Electronics", "Furniture", "Accessories"][i % 3],
       price: Math.random() * 1000,
       stock: Math.floor(Math.random() * 200),
     }))
 
     return (
-      <div className='h-[400px] overflow-auto'>
+      <div className="h-100 overflow-auto">
         <Table {...args}>
           <Table.Caption>Scroll to see sticky header effect</Table.Caption>
           <Table.Header>
@@ -347,8 +350,8 @@ export const StickyHeader: Story = {
 
 export const ComplexTable: Story = {
   args: {
-    variant: 'outline',
-    size: 'md',
+    variant: "outline",
+    size: "md",
   },
   render: (args) => (
     <Table {...args}>
@@ -423,8 +426,8 @@ export const ComplexTable: Story = {
 
 export const MinimalTable: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
   },
   render: (args) => (
     <Table {...args}>
@@ -446,8 +449,8 @@ export const MinimalTable: Story = {
 
 export const WithColumnBorders: Story = {
   args: {
-    variant: 'outline',
-    size: 'md',
+    variant: "outline",
+    size: "md",
     showColumnBorder: true,
   },
   render: (args) => (
@@ -477,9 +480,9 @@ export const WithColumnBorders: Story = {
 
 export const CaptionBottom: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
-    captionPlacement: 'bottom',
+    variant: "line",
+    size: "md",
+    captionPlacement: "bottom",
   },
   render: (args) => (
     <Table {...args}>
@@ -506,20 +509,18 @@ export const CaptionBottom: Story = {
 
 export const WithStickyColumn: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
   },
   render: (args) => (
-    <div className="max-w-[600px] overflow-auto">
+    <div className="max-w-150 overflow-auto">
       <Table {...args} stickyFirstColumn>
         <Table.Caption>
           Scroll horizontally - first column stays fixed
         </Table.Caption>
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeader>
-              Product
-            </Table.ColumnHeader>
+            <Table.ColumnHeader>Product</Table.ColumnHeader>
             <Table.ColumnHeader>Category</Table.ColumnHeader>
             <Table.ColumnHeader>Manufacturer</Table.ColumnHeader>
             <Table.ColumnHeader>SKU</Table.ColumnHeader>
@@ -532,9 +533,7 @@ export const WithStickyColumn: Story = {
         <Table.Body>
           {sampleProducts.map((product) => (
             <Table.Row key={product.id}>
-              <Table.Cell>
-                {product.name}
-              </Table.Cell>
+              <Table.Cell>{product.name}</Table.Cell>
               <Table.Cell>{product.category}</Table.Cell>
               <Table.Cell>Tech Corp</Table.Cell>
               <Table.Cell>SKU-{product.id}23456</Table.Cell>
@@ -554,8 +553,8 @@ export const WithStickyColumn: Story = {
 
 export const WithSelection: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
   },
   render: (args) => {
     const [selection, setSelection] = useState<number[]>([])
@@ -570,9 +569,7 @@ export const WithSelection: Story = {
 
     const handleSelectRow = (id: number) => {
       setSelection((prev) =>
-        prev.includes(id)
-          ? prev.filter((item) => item !== id)
-          : [...prev, id]
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
       )
     }
 
@@ -587,7 +584,7 @@ export const WithSelection: Story = {
           <Table.Caption>
             {selection.length > 0
               ? `${selection.length} item(s) selected`
-              : 'Select items using checkboxes'}
+              : "Select items using checkboxes"}
           </Table.Caption>
           <Table.Header>
             <Table.Row>
@@ -629,7 +626,7 @@ export const WithSelection: Story = {
 
         {selection.length > 0 && (
           <div>
-            <strong>Selected IDs:</strong> {selection.join(', ')}
+            <strong>Selected IDs:</strong> {selection.join(", ")}
           </div>
         )}
       </div>
@@ -639,8 +636,8 @@ export const WithSelection: Story = {
 
 export const WithSelectionAndActions: Story = {
   args: {
-    variant: 'line',
-    size: 'md',
+    variant: "line",
+    size: "md",
   },
   render: (args) => {
     const [selection, setSelection] = useState<number[]>([])
@@ -656,9 +653,7 @@ export const WithSelectionAndActions: Story = {
 
     const handleSelectRow = (id: number) => {
       setSelection((prev) =>
-        prev.includes(id)
-          ? prev.filter((item) => item !== id)
-          : [...prev, id]
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
       )
     }
 

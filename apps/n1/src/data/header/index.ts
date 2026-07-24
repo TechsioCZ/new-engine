@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image"
+
 import cykloBoty from "@/assets/header/cyklo-boty.webp"
 import cykloChranice from "@/assets/header/cyklo-chranice.webp"
 import cykloDoplnky from "@/assets/header/cyklo-doplnky.webp"
@@ -123,10 +124,10 @@ const headerImgs = {
   },
 }
 
-export type SubMenuItem = {
+type SubMenuItem = {
   name: string
   href: string
-  image?: StaticImageData
+  image?: StaticImageData | undefined
   categoryIds?: string[] // Optional for backward compatibility
 }
 
@@ -179,7 +180,7 @@ const getImageForCategory = (
   // Try to find matching image in headerImgs structure
   const parentImages = headerImgs[parentKey]
   if (!parentImages || typeof parentImages !== "object") {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env["NODE_ENV"] === "development") {
       console.warn(
         `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`
       )
@@ -191,9 +192,9 @@ const getImageForCategory = (
   const childKey = handleToImageKey(childHandle) as keyof typeof parentImages
 
   const image = parentImages[childKey] as StaticImageData | undefined
-  if (!image && process.env.NODE_ENV === "development") {
+  if (!image && process.env["NODE_ENV"] === "development") {
     console.warn(
-      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${childKey})`
+      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${String(childKey)})`
     )
   }
   return image

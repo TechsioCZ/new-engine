@@ -1,3 +1,5 @@
+import { sleep } from "@techsio/std/async"
+
 import type {
   MeiliProvisionResponse,
   MeiliVerifyResponse,
@@ -43,12 +45,6 @@ type RequestJsonOptions<T> = {
   timeoutSeconds: number
   retryCount: number
   retryDelaySeconds: number
-}
-
-function sleep(seconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, seconds * 1000)
-  })
 }
 
 function normalizeBaseUrl(url: string): string {
@@ -154,14 +150,14 @@ function parseErrorMessage(payload: unknown, fallback: string): string {
   }
 
   const object = payload as Record<string, unknown>
-  if (typeof object.detail === "string" && object.detail.trim()) {
-    return object.detail
+  if (typeof object["detail"] === "string" && object["detail"].trim()) {
+    return object["detail"]
   }
-  if (typeof object.message === "string" && object.message.trim()) {
-    return object.message
+  if (typeof object["message"] === "string" && object["message"].trim()) {
+    return object["message"]
   }
-  if (typeof object.code === "string" && object.code.trim()) {
-    return `${fallback} (${object.code})`
+  if (typeof object["code"] === "string" && object["code"].trim()) {
+    return `${fallback} (${object["code"]})`
   }
 
   return fallback
@@ -200,7 +196,7 @@ async function requestJson<T>(options: RequestJsonOptions<T>): Promise<T> {
       }
 
       attempt += 1
-      await sleep(options.retryDelaySeconds)
+      await sleep(options.retryDelaySeconds * 1000)
     }
   }
 }
@@ -229,8 +225,12 @@ async function waitForHealth(input: RequestOptions): Promise<void> {
       )
     }
 
-    await sleep(2)
+    await sleep(2000)
   }
+}
+
+function readString(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback
 }
 
 function readStringArray(
@@ -270,9 +270,9 @@ function matchesPolicy(keyObject: unknown, policy: PolicyDefinition): boolean {
 
   const candidate = keyObject as Record<string, unknown>
   return (
-    candidate.uid === policy.uid &&
+    candidate["uid"] === policy.uid &&
     matchesPermissions(keyObject, policy) &&
-    candidate.description === policy.description
+    candidate["description"] === policy.description
   )
 }
 
@@ -280,7 +280,7 @@ function matchesDescription(
   keyObject: Record<string, unknown>,
   policy: PolicyDefinition
 ): boolean {
-  return keyObject.description === policy.description
+  return keyObject["description"] === policy.description
 }
 
 async function getKeyByUid(
@@ -510,10 +510,10 @@ export async function provisionMeiliKeys(input: {
 
   return meiliProvisionResponseSchema.parse({
     meili_url: normalizeBaseUrl(input.meiliUrl),
-    backend_key: String(backend.keyObject.key ?? ""),
-    frontend_key: String(frontend.keyObject.key ?? ""),
-    backend_uid: String(backend.keyObject.uid ?? backendPolicy.uid),
-    frontend_uid: String(frontend.keyObject.uid ?? frontendPolicy.uid),
+    backend_key: readString(backend.keyObject["key"], ""),
+    frontend_key: readString(frontend.keyObject["key"], ""),
+    backend_uid: readString(backend.keyObject["uid"], backendPolicy.uid),
+    frontend_uid: readString(frontend.keyObject["uid"], frontendPolicy.uid),
     backend_created: backend.created,
     frontend_created: frontend.created,
     backend_updated: backend.updated,
@@ -609,13 +609,13 @@ export async function verifyMeiliKeys(input: {
     )
   }
 
-  if (String(backend.key ?? "") !== input.backendKey) {
+  if (readString(backend["key"], "") !== input.backendKey) {
     throw new Error(
       `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`
     )
   }
 
-  if (String(frontend.key ?? "") !== input.frontendKey) {
+  if (readString(frontend["key"], "") !== input.frontendKey) {
     throw new Error(
       `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`
     )

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+
 import { getCategoryDoc, getMediaUrl } from "@/lib/utils/doc-selectors"
 
 describe("doc selector utilities", () => {

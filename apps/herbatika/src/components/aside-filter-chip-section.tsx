@@ -2,6 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useState } from "react"
+
 import { AsideFilterButton } from "@/components/aside-filter-button"
 import { SupportingText } from "@/components/text/supporting-text"
 
@@ -54,7 +55,9 @@ export function AsideFilterChipSection({
               <AsideFilterButton
                 checked={item.checked}
                 count={item.count}
-                disabled={isLoading || item.disabled}
+                {...(isLoading || item.disabled !== undefined
+                  ? { disabled: isLoading || item.disabled === true }
+                  : {})}
                 key={item.id}
                 label={item.label}
                 onClick={() => onToggle(item.id)}

@@ -62,9 +62,9 @@ const DEFAULT_PREVIEW_DB_APP_USER_PREFIX = "medusa_pr_app_"
 function supportsPrettyLogs(): boolean {
   return Boolean(
     process.stderr.isTTY &&
-      !process.env.GITHUB_ACTIONS &&
-      !process.env.NO_COLOR &&
-      process.env.TERM !== "dumb"
+    !process.env["GITHUB_ACTIONS"] &&
+    !process.env["NO_COLOR"] &&
+    process.env["TERM"] !== "dumb"
   )
 }
 
@@ -216,7 +216,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
   if (input.environmentCreated) {
     const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
     const generatedValuesBySecretId = new Map(
-      generatedSecrets.map((secret) => [secret.secret_id, secret.value])
+      generatedSecrets.map((secret) => [secret["secret_id"], secret.value])
     )
     const materialized =
       await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({
@@ -272,7 +272,7 @@ async function resolvePreviewRandomOnceSecrets(input: {
   const missingSecretIds = new Set(synced.missing_secret_ids)
   const generatedSecrets = generatePreviewRandomOnceSecrets(input.stackInputs)
   const generatedValuesBySecretId = new Map(
-    generatedSecrets.map((secret) => [secret.secret_id, secret.value])
+    generatedSecrets.map((secret) => [secret["secret_id"], secret.value])
   )
   const materialized =
     await input.zaneOperatorClient.syncPreviewRandomOnceSecrets({

@@ -1,9 +1,7 @@
 ---
 name: form-input-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit FormInput for
-  labeled single-line fields with Label, Input, StatusText, validation status,
-  help text, required, disabled, and size props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit FormInput for labeled single-line fields with Label, Input, StatusText, validation status, help text, required, disabled, and size props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit FormInput Usage
 
-Use FormInput for labeled text-like inputs. Prefer this over manually composing
-Label, Input, and StatusText in apps.
+Use FormInput for labeled text-like inputs. Prefer this over manually composing Label, Input, and StatusText in apps.
 
 ## Setup
 
 ```tsx
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 
-<FormInput
+;<FormInput
   id="email"
   name="email"
   type="email"
@@ -55,8 +52,7 @@ If the field needs label, help, or validation text, start with FormInput.
 
 ### Use validateStatus instead of Input variant
 
-FormInput maps `validateStatus` to the underlying Input `variant` and
-StatusText status.
+FormInput maps `validateStatus` to the underlying Input `variant` and StatusText status.
 
 ### Keep field spacing token-owned
 
@@ -75,7 +71,12 @@ Wrong:
 Correct:
 
 ```tsx
-<FormInput id="email" label="Email" helpText="Email required" validateStatus="error" />
+<FormInput
+  id="email"
+  label="Email"
+  helpText="Email required"
+  validateStatus="error"
+/>
 ```
 
 Source: libs/ui/src/molecules/form-input.tsx

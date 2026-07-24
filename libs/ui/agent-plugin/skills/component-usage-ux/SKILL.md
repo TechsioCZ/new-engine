@@ -1,9 +1,7 @@
 ---
 name: component-usage-ux
 description: >
-  Use as the apps/* UI-kit usage orchestrator. Chooses which @techsio/ui-kit
-  component and per-component *-usage skill to load before selecting props,
-  variants, themes, sizes, slots, framework adapters, and token overrides.
+  Use as the apps/* UI-kit usage orchestrator. Chooses which @techsio/ui-kit component and per-component *-usage skill to load before selecting props, variants, themes, sizes, slots, framework adapters, and token overrides.
 type: composition
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -60,8 +58,7 @@ Do not begin by writing native HTML.
 rg -n "variant:|theme:|size:|export type .*Props|export interface .*Props" libs/ui/src/atoms/button.tsx
 ```
 
-Never invent props such as `variant="ghost"` unless the component source
-actually supports them.
+Never invent props such as `variant="ghost"` unless the component source actually supports them.
 
 ### Read Zag docs for Zag-backed components
 
@@ -72,10 +69,7 @@ Combobox usage
 -> compare our wrapper props/slots to Zag machine props and anatomy
 ```
 
-Use Zag docs to understand machine capabilities such as collections,
-controlled `value`/`inputValue`, `defaultValue`, `multiple`, disabled items,
-`closeOnSelect`, open state, and required part props. Then use only the API
-that `@techsio/ui-kit` exposes.
+Use Zag docs to understand machine capabilities such as collections, controlled `value`/`inputValue`, `defaultValue`, `multiple`, disabled items, `closeOnSelect`, open state, and required part props. Then use only the API that `@techsio/ui-kit` exposes.
 
 ### Let tokens handle appearance
 
@@ -85,8 +79,7 @@ that `@techsio/ui-kit` exposes.
 </Button>
 ```
 
-Do not duplicate the component's background, foreground, padding, radius, or
-font className when props and tokens already provide it.
+Do not duplicate the component's background, foreground, padding, radius, or font className when props and tokens already provide it.
 
 ### Avoid wrappers before API review
 
@@ -130,7 +123,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="danger" theme="solid">Delete</Button>
+<Button variant="danger" theme="solid">
+  Delete
+</Button>
 ```
 
 Apps should use UI-kit components when the library already has the primitive.
@@ -211,8 +206,7 @@ https://zagjs.com/components/react/combobox before deciding whether the UI-kit
 API is missing anything.
 ```
 
-Zag docs explain the machine props and anatomy behind our wrapper; skipping
-them causes unnecessary custom primitives.
+Zag docs explain the machine props and anatomy behind our wrapper; skipping them causes unnecessary custom primitives.
 
 Source: https://zagjs.com/components/react/combobox
 

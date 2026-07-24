@@ -1,12 +1,7 @@
 ---
 name: setup-storefront-platform-in-next-app
 description: >
-  Load this skill when wiring @techsio/storefront-data into a Next.js App
-  Router storefront through createMedusaStorefrontPreset,
-  StorefrontDataProvider, createMedusaSdk, createLocalStorageValueStore, and
-  explicit subpath imports. Use it for the app-level composition module,
-  provider placement, browser storage seams, and avoiding package-root or
-  ad-hoc preset wiring.
+  Load this skill when wiring @techsio/storefront-data into a Next.js App Router storefront through createMedusaStorefrontPreset, StorefrontDataProvider, createMedusaSdk, createLocalStorageValueStore, and explicit subpath imports. Use it for the app-level composition module, provider placement, browser storage seams, and avoiding package-root or ad-hoc preset wiring.
 type: framework
 library: "@techsio/storefront-data"
 framework: react
@@ -45,7 +40,8 @@ import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/st
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 
 const sdk = createMedusaSdk({
-  baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
+  baseUrl:
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
   publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "",
 })
 
@@ -111,7 +107,9 @@ const client = getQueryClient({
 })
 
 export function Providers({ children }: PropsWithChildren) {
-  return <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
+  return (
+    <StorefrontDataProvider client={client}>{children}</StorefrontDataProvider>
+  )
 }
 ```
 
@@ -187,7 +185,9 @@ Source: `libs/storefront-data/src/server/get-query-client.ts`
 Wrong:
 
 ```tsx
-<StorefrontDataProvider clientConfig={{ defaultOptions: { queries: { staleTime: 0 } } }}>
+<StorefrontDataProvider
+  clientConfig={{ defaultOptions: { queries: { staleTime: 0 } } }}
+>
   {children}
 </StorefrontDataProvider>
 ```

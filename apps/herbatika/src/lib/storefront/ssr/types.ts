@@ -1,5 +1,6 @@
 import type { FindParams, HttpTypes } from "@medusajs/types"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
+
 import type { buildCatalogProductsParams } from "../catalog-query-state"
 
 export type RegionListParams = HttpTypes.StoreRegionFilters & {
@@ -22,24 +23,4 @@ export type ProductDetailParams = {
   cart_id?: string
   locale?: string
   fields?: string
-}
-
-type QueryParamPrimitive = string | number | boolean
-export type QueryParamValue =
-  | QueryParamPrimitive
-  | null
-  | undefined
-  | QueryParamPrimitive[]
-  | null[]
-  | undefined[]
-
-export type QueryInput = Record<string, QueryParamValue>
-
-export type CatalogStoreResponse = {
-  products?: HttpTypes.StoreProduct[]
-  count?: number
-  page?: number
-  limit?: number
-  totalPages?: number
-  facets?: unknown
 }

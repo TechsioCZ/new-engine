@@ -1,10 +1,10 @@
 "use client"
 
-import { Badge } from "@ui/atoms/badge"
-import { Button } from "@ui/atoms/button"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+
 import type { StoreOrder } from "@/services/order-service"
 import { formatDateString } from "@/utils/format/format-date"
 import {
@@ -12,6 +12,7 @@ import {
   getOrderStatusLabel,
 } from "@/utils/format/format-order-status"
 import { formatAmount } from "@/utils/format/format-product"
+
 import { PriceSummaryRow } from "./price-summary-row"
 
 type CheckoutReviewProps = {
@@ -19,8 +20,6 @@ type CheckoutReviewProps = {
 }
 
 export function CheckoutReview({ order }: CheckoutReviewProps) {
-  const router = useRouter()
-
   const statusInfo = {
     label: getOrderStatusLabel(order.status),
     variant: getOrderStatusColor(order.status),
@@ -73,7 +72,7 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
               {item.thumbnail && (
                 <Image
                   alt={item.title}
-                  className="h-16 w-16 rounded object-cover"
+                  className="h-cart-thumbnail w-cart-thumbnail rounded object-cover"
                   height={64}
                   src={item.thumbnail}
                   width={64}
@@ -163,20 +162,17 @@ export function CheckoutReview({ order }: CheckoutReviewProps) {
 
         {/* Action Buttons */}
         <div className="mt-500 flex gap-300">
-          <Button
-            className="flex-1"
-            onClick={() => router.push("/")}
-            variant="secondary"
-          >
+          <LinkButton as={Link} className="flex-1" href="/" variant="secondary">
             Zpět na hlavní stránku
-          </Button>
-          <Button
+          </LinkButton>
+          <LinkButton
+            as={Link}
             className="flex-1"
-            onClick={() => router.push("/orders")}
+            href="/orders"
             variant="primary"
           >
             Moje objednávky
-          </Button>
+          </LinkButton>
         </div>
       </div>
     </div>

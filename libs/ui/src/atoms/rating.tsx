@@ -1,7 +1,8 @@
 import * as ratingGroup from "@zag-js/rating-group"
-import { normalizeProps, useMachine } from "@zag-js/react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import { type HTMLAttributes, useId } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { Label } from "./label"
 
@@ -59,20 +60,19 @@ const rating = tv({
 type RatingVariants = Omit<VariantProps<typeof rating>, "isInteractive">
 
 export interface RatingProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange">,
-    RatingVariants {
-  value?: number
-  defaultValue?: number
-  count?: number
-  labelText?: string
-  readOnly?: boolean
-  disabled?: boolean
-  allowHalf?: boolean
-  name?: string
-  dir?: "ltr" | "rtl"
-  translations?: ratingGroup.IntlTranslations
-  onChange?: (value: number) => void
-  onHoverChange?: (value: number) => void
+  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange">, RatingVariants {
+  value?: number | undefined
+  defaultValue?: number | undefined
+  count?: number | undefined
+  labelText?: string | undefined
+  readOnly?: boolean | undefined
+  disabled?: boolean | undefined
+  allowHalf?: boolean | undefined
+  name?: string | undefined
+  dir?: "ltr" | "rtl" | undefined
+  translations?: ratingGroup.IntlTranslations | undefined
+  onChange?: ((value: number) => void) | undefined
+  onHoverChange?: ((value: number) => void) | undefined
 }
 
 export function Rating({
@@ -98,14 +98,14 @@ export function Rating({
   const service = useMachine(ratingGroup.machine, {
     id: uniqueId,
     count,
-    value,
-    defaultValue,
     disabled,
     readOnly,
     allowHalf,
-    name,
     dir,
-    translations,
+    ...(value !== undefined && { value }),
+    ...(defaultValue !== undefined && { defaultValue }),
+    ...(name !== undefined && { name }),
+    ...(translations !== undefined && { translations }),
     onValueChange: ({ value: newValue }) => {
       onChange?.(newValue)
     },
@@ -122,7 +122,10 @@ export function Rating({
   })
 
   return (
-    <div className={root({ className })} {...api.getRootProps()} {...props}>
+    <div
+      {...mergeProps(api.getRootProps(), props)}
+      className={root({ className })}
+    >
       {labelText && <Label {...api.getLabelProps()}>{labelText}</Label>}
       <input {...api.getHiddenInputProps()} />
       <div className={control()} {...api.getControlProps()}>

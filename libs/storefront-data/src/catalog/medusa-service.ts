@@ -1,5 +1,7 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+
+import type { IsExactly } from "../shared/type-utils"
 import type {
   CatalogFacets,
   CatalogListInputBase,
@@ -11,11 +13,11 @@ import { resolvePositiveInteger } from "./utils"
 type MedusaCatalogListQuery = Record<string, unknown>
 
 type MedusaCatalogListResponse = {
-  products?: HttpTypes.StoreProduct[]
-  count?: number
-  page?: number
-  limit?: number
-  totalPages?: number
+  products?: HttpTypes.StoreProduct[] | undefined
+  count?: number | undefined
+  page?: number | undefined
+  limit?: number | undefined
+  totalPages?: number | undefined
   facets?: unknown
 }
 
@@ -30,22 +32,49 @@ export type MedusaCatalogTransformContext<
   response: CatalogListResponse<HttpTypes.StoreProduct, TFacets>
 }
 
-export type MedusaCatalogServiceConfig<
-  TProduct,
+type MedusaCatalogServiceConfigBase<
   TListParams extends MedusaCatalogListInput,
-  TFacets,
 > = {
   listPath?: string
   defaultLimit?: number
   defaultSort?: string
   normalizeListQuery?: (params: TListParams) => MedusaCatalogListQuery
-  transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
-  transformListProduct?: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaCatalogTransformContext<TListParams, TFacets>
-  ) => TProduct
-  transformFacets?: (facets: CatalogFacets) => TFacets
 }
+
+type MedusaCatalogProductTransforms<
+  TProduct,
+  TListParams extends MedusaCatalogListInput,
+  TFacets,
+> =
+  | {
+      transformProduct: (product: HttpTypes.StoreProduct) => TProduct
+      transformListProduct?: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaCatalogTransformContext<TListParams, TFacets>
+      ) => TProduct
+    }
+  | {
+      transformProduct?: never
+      transformListProduct: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaCatalogTransformContext<TListParams, TFacets>
+      ) => TProduct
+    }
+
+type MedusaCatalogFacetTransform<TFacets> =
+  IsExactly<TFacets, CatalogFacets> extends true
+    ? { transformFacets?: (facets: CatalogFacets) => TFacets }
+    : { transformFacets: (facets: CatalogFacets) => TFacets }
+
+export type MedusaCatalogServiceConfig<
+  TProduct,
+  TListParams extends MedusaCatalogListInput,
+  TFacets,
+> = MedusaCatalogServiceConfigBase<TListParams> &
+  (IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? Partial<MedusaCatalogProductTransforms<TProduct, TListParams, TFacets>>
+    : MedusaCatalogProductTransforms<TProduct, TListParams, TFacets>) &
+  MedusaCatalogFacetTransform<TFacets>
 
 const EMPTY_FACETS: CatalogFacets = {
   status: [],
@@ -134,13 +163,13 @@ const normalizeFacetItems = (items: unknown) => {
       }
 
       const typedItem = item as Record<string, unknown>
-      const id = typeof typedItem.id === "string" ? typedItem.id.trim() : ""
-      const label =
-        typeof typedItem.label === "string" ? typedItem.label.trim() : ""
+      const rawId = typedItem["id"]
+      const rawLabel = typedItem["label"]
+      const rawCount = typedItem["count"]
+      const id = typeof rawId === "string" ? rawId.trim() : ""
+      const label = typeof rawLabel === "string" ? rawLabel.trim() : ""
       const count =
-        typeof typedItem.count === "number" && Number.isFinite(typedItem.count)
-          ? typedItem.count
-          : 0
+        typeof rawCount === "number" && Number.isFinite(rawCount) ? rawCount : 0
 
       if (!(id && label)) {
         return null
@@ -161,27 +190,23 @@ const normalizeFacets = (value: unknown): CatalogFacets => {
   }
 
   const facetsRecord = value as Record<string, unknown>
+  const price = facetsRecord["price"]
   const priceRecord =
-    facetsRecord.price &&
-    typeof facetsRecord.price === "object" &&
-    !Array.isArray(facetsRecord.price)
-      ? (facetsRecord.price as Record<string, unknown>)
+    price && typeof price === "object" && !Array.isArray(price)
+      ? (price as Record<string, unknown>)
       : {}
-
+  const rawMin = priceRecord["min"]
+  const rawMax = priceRecord["max"]
   const min =
-    typeof priceRecord.min === "number" && Number.isFinite(priceRecord.min)
-      ? priceRecord.min
-      : null
+    typeof rawMin === "number" && Number.isFinite(rawMin) ? rawMin : null
   const max =
-    typeof priceRecord.max === "number" && Number.isFinite(priceRecord.max)
-      ? priceRecord.max
-      : null
+    typeof rawMax === "number" && Number.isFinite(rawMax) ? rawMax : null
 
   return {
-    status: normalizeFacetItems(facetsRecord.status),
-    form: normalizeFacetItems(facetsRecord.form),
-    brand: normalizeFacetItems(facetsRecord.brand),
-    ingredient: normalizeFacetItems(facetsRecord.ingredient),
+    status: normalizeFacetItems(facetsRecord["status"]),
+    form: normalizeFacetItems(facetsRecord["form"]),
+    brand: normalizeFacetItems(facetsRecord["brand"]),
+    ingredient: normalizeFacetItems(facetsRecord["ingredient"]),
     price: {
       min,
       max,
@@ -256,14 +281,46 @@ const buildDefaultListQuery = (
  * Uses `/store/catalog/products` through `sdk.client.fetch` so query cancellation
  * works with `AbortSignal` passed by TanStack Query.
  */
+type MedusaCatalogServiceArgs<
+  TProduct,
+  TListParams extends MedusaCatalogListInput,
+  TFacets,
+> =
+  IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? IsExactly<TFacets, CatalogFacets> extends true
+      ? [
+          config?:
+            | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+            | undefined,
+        ]
+      : [
+          config:
+            | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+            | undefined,
+        ]
+    : [
+        config:
+          | MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
+          | undefined,
+      ]
+
 export function createMedusaCatalogService<
   TProduct = HttpTypes.StoreProduct,
   TListParams extends MedusaCatalogListInput = MedusaCatalogListInput,
   TFacets = CatalogFacets,
 >(
   sdk: Medusa,
-  config?: MedusaCatalogServiceConfig<TProduct, TListParams, TFacets>
-): CatalogService<TProduct, TListParams, TFacets> {
+  ...[config]: MedusaCatalogServiceArgs<TProduct, TListParams, TFacets>
+): CatalogService<TProduct, TListParams, TFacets>
+export function createMedusaCatalogService<
+  TListParams extends MedusaCatalogListInput,
+>(
+  sdk: Medusa,
+  config?: MedusaCatalogServiceConfigBase<TListParams> &
+    Partial<MedusaCatalogProductTransforms<unknown, TListParams, unknown>> & {
+      transformFacets?: (facets: CatalogFacets) => unknown
+    }
+): CatalogService<unknown, TListParams, unknown> {
   const {
     listPath = "/store/catalog/products",
     defaultLimit = 12,
@@ -275,13 +332,9 @@ export function createMedusaCatalogService<
   } = config ?? {}
 
   const baseTransform =
-    transformProduct ?? ((product) => product as unknown as TProduct)
-  const mapFacets =
-    transformFacets ?? ((facets) => facets as unknown as TFacets)
-  const mapListProduct: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaCatalogTransformContext<TListParams, TFacets>
-  ) => TProduct =
+    transformProduct ?? ((product: HttpTypes.StoreProduct) => product)
+  const mapFacets = transformFacets ?? ((facets: CatalogFacets) => facets)
+  const mapListProduct =
     transformListProduct ??
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
@@ -297,19 +350,19 @@ export function createMedusaCatalogService<
     async getCatalogProducts(
       params: TListParams,
       signal?: AbortSignal
-    ): Promise<CatalogListResponse<TProduct, TFacets>> {
+    ): Promise<CatalogListResponse<unknown, unknown>> {
       const query = buildListQuery(params)
       const rawResponse = await sdk.client.fetch<MedusaCatalogListResponse>(
         listPath,
         {
           query,
-          signal,
+          signal: signal ?? null,
         }
       )
 
       const normalizedResponse: CatalogListResponse<
         HttpTypes.StoreProduct,
-        TFacets
+        unknown
       > = {
         products: rawResponse.products ?? [],
         count: rawResponse.count ?? 0,
@@ -325,7 +378,7 @@ export function createMedusaCatalogService<
         facets: mapFacets(normalizeFacets(rawResponse.facets)),
       }
 
-      const context: MedusaCatalogTransformContext<TListParams, TFacets> = {
+      const context: MedusaCatalogTransformContext<TListParams, unknown> = {
         params,
         query,
         response: normalizedResponse,

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import type {
   QueryResult,
   ReadResultBase,
@@ -31,8 +32,8 @@ export type ProductListBase<TItem = ProductListItemBase> = {
   title?: string | null
   description?: string | null
   handle?: string | null
-  type?: ProductListType | string | null
-  access_type?: ProductListAccessType | string | null
+  type?: string | null
+  access_type?: string | null
   customer_id?: string | null
   items?: TItem[] | null
   items_count?: number | null
@@ -82,7 +83,7 @@ export type ProductListListResult<TProductList> = {
 
 export type ProductListListInputBase = {
   handle?: string
-  type?: ProductListType | string
+  type?: string
   limit?: number
   offset?: number
   page?: number

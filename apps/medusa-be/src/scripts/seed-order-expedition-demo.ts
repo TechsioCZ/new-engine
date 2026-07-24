@@ -191,15 +191,17 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
         currency_code: region.currency_code ?? "czk",
         email: order.email,
         items: orderVariants.map((variant, itemIndex) => ({
-          product_handle: variant.product?.handle ?? undefined,
-          product_id: variant.product?.id ?? undefined,
+          ...(variant.product?.handle
+            ? { product_handle: variant.product.handle }
+            : {}),
+          ...(variant.product?.id ? { product_id: variant.product.id } : {}),
           product_title: variant.product?.title ?? "Demo product",
           quantity: itemIndex === 0 ? 2 : 1,
           title: variant.product?.title ?? variant.title ?? "Demo item",
           unit_price: 250 + itemIndex * 75,
           variant_id: variant.id,
-          variant_sku: variant.sku ?? undefined,
-          variant_title: variant.title ?? undefined,
+          ...(variant.sku ? { variant_sku: variant.sku } : {}),
+          ...(variant.title ? { variant_title: variant.title } : {}),
         })),
         metadata: {
           order_expedition_demo: true,
@@ -211,7 +213,7 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
         shipping_address: {
           address_1: `${100 + absoluteIndex} Demo street`,
           city: order.city,
-          company: order.company,
+          ...(order.company ? { company: order.company } : {}),
           country_code: "cz",
           first_name: order.firstName,
           last_name: order.lastName,
@@ -467,7 +469,7 @@ function buildDemoOrders(now = new Date()): DemoOrder[] {
     return {
       ...carrier,
       city,
-      company: index % 7 === 0 ? `Demo Company ${index + 1}` : undefined,
+      ...(index % 7 === 0 ? { company: `Demo Company ${index + 1}` } : {}),
       createdAt: getDemoOrderCreatedAt(index, now),
       email: `expedition.demo.${index + 1}@example.test`,
       firstName,
@@ -502,8 +504,9 @@ async function fetchExistingDemoOrders(query: QueryService) {
           "id" in order &&
           typeof order.id === "string" &&
           "metadata" in order &&
-          (order as { metadata?: Record<string, unknown> }).metadata
-            ?.order_expedition_demo === true
+          (order as { metadata?: Record<string, unknown> }).metadata?.[
+            "order_expedition_demo"
+          ] === true
       )
     : []
 
@@ -596,7 +599,7 @@ function getExistingDemoOrderSortIndex(
   order: ExistingDemoOrder,
   fallbackIndex: number
 ) {
-  const metadataIndex = order.metadata?.order_expedition_demo_index
+  const metadataIndex = order.metadata?.["order_expedition_demo_index"]
   if (typeof metadataIndex === "number" && Number.isFinite(metadataIndex)) {
     return metadataIndex
   }

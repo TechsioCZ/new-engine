@@ -8,7 +8,7 @@ export const CheckoutSelectPromoCode = () => {
       <Select.Label className="sr-only">Zlavový kód</Select.Label>
       <Select.Control>
         <Select.Trigger
-          className="min-h-12 border-1 bg-base px-400"
+          className="min-h-form-control-lg border-1 bg-base px-400"
           iconSize="lg"
         >
           <Icon icon="token-icon-label" size="lg" />

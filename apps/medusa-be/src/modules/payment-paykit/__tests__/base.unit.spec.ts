@@ -4,6 +4,7 @@ import {
   PaymentSessionStatus,
 } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
+
 import {
   type PaykitInjectedDependencies,
   PaykitPaymentProviderBase,
@@ -12,7 +13,7 @@ import type { PaykitAdapterOptions, PaykitPaymentClient } from "../types"
 import { createMockContainer, createMockPaykitClient } from "./helpers"
 
 class TestPaykitPaymentProvider extends PaykitPaymentProviderBase<PaykitAdapterOptions> {
-  static identifier = "paykit_test"
+  static override identifier = "paykit_test"
 
   // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected.
   constructor(
@@ -122,9 +123,9 @@ describe("PaykitPaymentProviderBase", () => {
         customer: {
           id: "cus_123",
           email: "customer@example.com",
+          first_name: "Ada",
+          last_name: "Lovelace",
           billing_address: {
-            first_name: "Ada",
-            last_name: "Lovelace",
             address_1: "1 Engine Way",
             address_2: "Suite 2",
             city: "London",
@@ -277,9 +278,9 @@ describe("PaykitPaymentProviderBase", () => {
         customer: {
           id: "cus_123",
           email: "customer@example.com",
+          first_name: "Default",
+          last_name: "Customer",
           billing_address: {
-            first_name: "Default",
-            last_name: "Customer",
             address_1: "1 Default Way",
             city: "Brno",
             country_code: "CZ",
@@ -428,8 +429,10 @@ describe("PaykitPaymentProviderBase", () => {
     const fullClient = createMockPaykitClient()
     const client: PaykitPaymentClient = {
       payments: fullClient.payments,
-      customers: fullClient.customers,
-      handleWebhook: fullClient.handleWebhook,
+      ...(fullClient.customers ? { customers: fullClient.customers } : {}),
+      ...(fullClient.handleWebhook
+        ? { handleWebhook: fullClient.handleWebhook }
+        : {}),
     }
     const provider = createProvider(client)
 

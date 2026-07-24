@@ -1,5 +1,6 @@
 import type { ModuleExports } from "@medusajs/framework/types"
 import { Module } from "@medusajs/framework/utils"
+
 import { SymmyImportJobModuleService } from "./service"
 
 export const SYMMY_IMPORT_JOB_MODULE = "symmy_import_job"

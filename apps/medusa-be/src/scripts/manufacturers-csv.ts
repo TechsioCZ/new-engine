@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs"
+
 import { z } from "@medusajs/framework/zod"
 
 const HTTP_CSV_SOURCE_PATTERN = /^https?:\/\//i
@@ -241,15 +242,15 @@ function buildManufacturerCsvFields(
   record: Record<string, string>,
   manufacturerIdentity: string
 ) {
-  const gpsr_contact_email = decodeCsvValue(record.contactEmail ?? "")
+  const gpsr_contact_email = decodeCsvValue(record["contactEmail"] ?? "")
   const gpsr_european_reseller_contact_email = decodeCsvValue(
-    record.europeanResellerContactEmail ?? ""
+    record["europeanResellerContactEmail"] ?? ""
   )
   const gpsr_european_reseller_manufacturing_company_name = decodeCsvValue(
-    record.europeanResellerManufacturingCompanyName ?? ""
+    record["europeanResellerManufacturingCompanyName"] ?? ""
   )
   const gpsr_european_reseller_postal_address = decodeCsvValue(
-    record.europeanResellerPostalAddress ?? ""
+    record["europeanResellerPostalAddress"] ?? ""
   )
   const europeanRepresentativeFields = [
     gpsr_european_reseller_contact_email,
@@ -274,30 +275,30 @@ function buildManufacturerCsvFields(
   )
 
   return {
-    description: decodeCsvValue(record.description ?? ""),
+    description: decodeCsvValue(record["description"] ?? ""),
     gpsr_contact_email,
     gpsr_european_reseller_contact_email,
     gpsr_european_reseller_manufacturing_company_name,
     gpsr_european_reseller_postal_address,
     gpsr_manufactured_outside_eu: representativeFieldCount === 3,
     gpsr_manufacturing_company_name: decodeCsvValue(
-      record.manufacturingCompanyName ?? ""
+      record["manufacturingCompanyName"] ?? ""
     ),
-    gpsr_postal_address: decodeCsvValue(record.postalAddress ?? ""),
-    indexName: decodeCsvValue(record.indexName ?? ""),
+    gpsr_postal_address: decodeCsvValue(record["postalAddress"] ?? ""),
+    indexName: decodeCsvValue(record["indexName"] ?? ""),
     inList: parseBooleanCsvValue(
-      record.inList ?? "",
+      record["inList"] ?? "",
       "inList",
       manufacturerIdentity
     ),
     inMenu: parseBooleanCsvValue(
-      record.inMenu ?? "",
+      record["inMenu"] ?? "",
       "inMenu",
       manufacturerIdentity
     ),
-    metaDescription: decodeCsvValue(record.metaDescription ?? ""),
-    metaTitle: decodeCsvValue(record.metaTitle ?? ""),
-    webUrl: decodeCsvValue(record.webUrl ?? ""),
+    metaDescription: decodeCsvValue(record["metaDescription"] ?? ""),
+    metaTitle: decodeCsvValue(record["metaTitle"] ?? ""),
+    webUrl: decodeCsvValue(record["webUrl"] ?? ""),
   }
 }
 
@@ -316,8 +317,8 @@ function toManufacturerCsvRow(
     headers.map((header, index) => [header, row[index] ?? ""])
   ) as Record<string, string>
 
-  const id = decodeCsvValue(record.id ?? "")
-  const name = decodeCsvValue(record.name ?? "")
+  const id = decodeCsvValue(record["id"] ?? "")
+  const name = decodeCsvValue(record["name"] ?? "")
   if (!(id && name)) {
     throw new Error(
       `Malformed manufacturers CSV row ${sourceRow}: both "id" and "name" are required`

@@ -5,6 +5,7 @@ import {
   Button,
   Container,
   createDataTableColumnHelper,
+  type DataTableColumnDef,
   Drawer,
   Heading,
   IconButton,
@@ -26,6 +27,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom"
+
 import { BrandDataTable } from "../../../components/brands/brand-data-table"
 import { BrandEditDrawer } from "../../../components/brands/brand-form"
 import {
@@ -56,7 +58,7 @@ const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
 
 export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params.id
+  const id = params["id"]
 
   if (!id) {
     return { brand: undefined }
@@ -175,7 +177,7 @@ const ProductAssignmentDrawer = ({
   const rowSelection = toRowSelection(selectedIds)
   const isAssignedToAnotherBrand = (option: BrandProductOption) =>
     !isProductOptionSelectable(option, brandId)
-  const columns = [
+  const columns: DataTableColumnDef<BrandProductOption>[] = [
     productOptionColumnHelper.select({ header: () => null }),
     productOptionColumnHelper.accessor(
       (option) => option.product.title ?? option.product.id,
@@ -318,14 +320,14 @@ const BrandProductsSection = ({
   productOrderBy: string
   productQ: string
   products: ProductSummary[]
-  removingProductId?: string
+  removingProductId?: string | undefined
   pageIndex: number
   setPageIndex: Dispatch<SetStateAction<number>>
   setProductOrderBy: (value: string) => void
   setProductQ: (value: string) => void
 }) => {
   const { t } = useTranslation("brands")
-  const columns = [
+  const columns: DataTableColumnDef<ProductSummary>[] = [
     productColumnHelper.accessor((product) => product.title ?? product.id, {
       header: t("columns.product"),
       id: "product",
@@ -448,7 +450,7 @@ type BrandDetailContentProps = {
   editOpen: boolean
   isDeleted: boolean
   onEditOpenChange: Dispatch<SetStateAction<boolean>>
-  brandId?: string
+  brandId?: string | undefined
   onManageProducts: () => void
   onOpenProduct: (productId: string) => void
   onPageIndexChange: Dispatch<SetStateAction<number>>
@@ -464,7 +466,7 @@ type BrandDetailContentProps = {
   productIds: string[]
   productsLoading: boolean
   productsOpen: boolean
-  removingProductId?: string
+  removingProductId?: string | undefined
   restorePending: boolean
 }
 

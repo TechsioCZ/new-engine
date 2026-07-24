@@ -25,14 +25,14 @@ function readNestedString(value: unknown, path: string[]): string {
 }
 
 export async function resolveGitHubPreviewHeadBranch(
-  eventPath = process.env.GITHUB_EVENT_PATH
+  eventPath = process.env["GITHUB_EVENT_PATH"]
 ): Promise<string> {
-  if (process.env.ZANE_PREVIEW_GIT_BRANCH?.trim()) {
-    return process.env.ZANE_PREVIEW_GIT_BRANCH.trim()
+  if (process.env["ZANE_PREVIEW_GIT_BRANCH"]?.trim()) {
+    return process.env["ZANE_PREVIEW_GIT_BRANCH"].trim()
   }
 
-  if (process.env.GITHUB_HEAD_REF?.trim()) {
-    return process.env.GITHUB_HEAD_REF.trim()
+  if (process.env["GITHUB_HEAD_REF"]?.trim()) {
+    return process.env["GITHUB_HEAD_REF"].trim()
   }
 
   if (!eventPath) {

@@ -341,12 +341,10 @@
 
   /* Borders */
   --color-border-primary: --alpha(
-    var(--color-base-reverse) /
-    var(--state-border)
+    var(--color-base-reverse) / var(--state-border)
   );
   --color-border-secondary: --alpha(
-    var(--color-base-reverse) /
-    calc(var(--state-border) * 1.5)
+    var(--color-base-reverse) / calc(var(--state-border) * 1.5)
   );
   --border-width-none: 0px;
   --border-width-sm: 1px;
@@ -370,12 +368,10 @@
   /* For an element, if the background color of its container is not fixed, and the contrast between the filling color of the element and the top background color is small, use the filling color as the background color to ensure that the element will not "melt" into a certain level of background color, such as a form control.  */
   --color-fill-base: --alpha(var(--color-base-reverse) / var(--fill-increment));
   --color-fill-hover: --alpha(
-    var(--color-base-reverse) /
-    calc(var(--fill-increment) * 2)
+    var(--color-base-reverse) / calc(var(--fill-increment) * 2)
   );
   --color-fill-active: --alpha(
-    var(--color-base-reverse) /
-    calc(var(--fill-increment) * 3)
+    var(--color-base-reverse) / calc(var(--fill-increment) * 3)
   );
 
   /* Semantic color-based disabled tokens (preferred approach) */

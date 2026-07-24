@@ -1,10 +1,7 @@
 ---
 name: header-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Header for
-  responsive site header composition with desktop/mobile sections, containers,
-  nav, nav items, actions, hamburger, active state, size, direction, and token
-  styling.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Header for responsive site header composition with desktop/mobile sections, containers, nav, nav items, actions, hamburger, active state, size, direction, and token styling.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,8 +17,7 @@ sources:
 
 # @techsio/ui-kit Header Usage
 
-Use Header for global page header/navigation layout. Compose it with Link or
-LinkButton for actual navigation items.
+Use Header for global page header/navigation layout. Compose it with Link or LinkButton for actual navigation items.
 
 ## Setup
 
@@ -30,9 +26,17 @@ LinkButton for actual navigation items.
   <Header.Desktop>
     <Header.Container position="start">
       <Header.Nav>
-        <Header.NavItem active><Link as={NextLink} href="/">Home</Link></Header.NavItem>
+        <Header.NavItem active>
+          <Link as={NextLink} href="/">
+            Home
+          </Link>
+        </Header.NavItem>
       </Header.Nav>
-      <Header.Actions><Header.ActionItem><Button>Account</Button></Header.ActionItem></Header.Actions>
+      <Header.Actions>
+        <Header.ActionItem>
+          <Button>Account</Button>
+        </Header.ActionItem>
+      </Header.Actions>
     </Header.Container>
   </Header.Desktop>
   <Header.Hamburger />
@@ -55,13 +59,11 @@ parts: Desktop, Mobile, Container, Nav, NavItem, Actions, ActionItem, Hamburger
 
 ### Use Header.Hamburger for mobile menu state
 
-Do not duplicate mobile state externally unless the current Header API cannot
-support the UX.
+Do not duplicate mobile state externally unless the current Header API cannot support the UX.
 
 ### Put links/buttons inside slots
 
-Header slots provide layout and token styling; Link/LinkButton/Button provide
-navigation/action semantics.
+Header slots provide layout and token styling; Link/LinkButton/Button provide navigation/action semantics.
 
 ### Use active on NavItem
 
@@ -74,13 +76,18 @@ Set `active` based on current route; do not style active nav with classes.
 Wrong:
 
 ```tsx
-<header className="flex justify-between"><button onClick={toggle}>Menu</button></header>
+<header className="flex justify-between">
+  <button onClick={toggle}>Menu</button>
+</header>
 ```
 
 Correct:
 
 ```tsx
-<Header><Header.Hamburger /><Header.Mobile /></Header>
+<Header>
+  <Header.Hamburger />
+  <Header.Mobile />
+</Header>
 ```
 
 Source: libs/ui/src/organisms/header.tsx
@@ -106,13 +113,17 @@ Source: libs/ui/src/tokens/components/organisms/_header.css
 Wrong:
 
 ```tsx
-<a className="px-3 py-2" href="/cart">Cart</a>
+<a className="px-3 py-2" href="/cart">
+  Cart
+</a>
 ```
 
 Correct:
 
 ```tsx
-<Link as={NextLink} href="/cart">Cart</Link>
+<Link as={NextLink} href="/cart">
+  Cart
+</Link>
 ```
 
 ## Validation Commands
@@ -122,4 +133,3 @@ rg -n "<header\\b|setIsMobileMenuOpen|toggleMobile|<Header\\.NavItem[^>]*classNa
 rg -n "<a[^>]*href=|<Header\\.Hamburger|<Header\\.Mobile" apps
 rg -n "<Header[^>]*size=\"(xs|xl)\"|position=\"(left|right)\".*Header\\.Container" apps
 ```
-

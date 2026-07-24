@@ -1,10 +1,13 @@
 "use client"
-import { Button } from "@ui/atoms/button"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { useAnalytics } from "@/providers/analytics-provider"
 import type { PplAccessPointData } from "@/utils/address-helpers"
 import { accessPointToShippingData } from "@/utils/address-helpers"
+
 import { BillingAddressSection } from "./_components/billing-address-section"
 import { OrderSummary } from "./_components/order-summary"
 import { PaymentFormSection } from "./_components/payment-form-section"
@@ -24,7 +27,6 @@ export default function CheckoutPage() {
 }
 
 function CheckoutContent() {
-  const router = useRouter()
   const {
     cart,
     hasItems,
@@ -41,6 +43,7 @@ function CheckoutContent() {
     setSelectedAccessPoint,
   } = useCheckoutContext()
   const analytics = useAnalytics()
+  const router = useRouter()
 
   // Track which cart we've already tracked to prevent duplicates
   const trackedCartId = useRef<string | null>(null)
@@ -75,9 +78,9 @@ function CheckoutContent() {
         <p className="mt-200 text-fg-secondary">
           Přidejte produkty do košíku před pokračováním na checkout.
         </p>
-        <Button className="mt-400" onClick={() => router.push("/")}>
+        <LinkButton as={Link} className="mt-400" href="/">
           Zpět na hlavní stránku
-        </Button>
+        </LinkButton>
       </div>
     )
   }

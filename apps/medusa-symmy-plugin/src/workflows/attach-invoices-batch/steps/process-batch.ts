@@ -1,6 +1,7 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { type ExistingOrderIndex, InvoicesBatchClient } from "../client"
 import { invoicesBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
@@ -24,7 +25,7 @@ const processInvoiceForBatch = async ({
   invoice: InvoiceInput
   logger: Logger
   orderIndex: ExistingOrderIndex
-  userId?: string
+  userId?: string | undefined
 }): Promise<AttachInvoicesBatchResult> => {
   const orderIdentifier =
     invoicesBatchClientMapperHelper.getOrderIdentifier(invoice)
