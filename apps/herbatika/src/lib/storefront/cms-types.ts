@@ -1,5 +1,3 @@
-import type { BlogTopicKey } from "@/lib/storefront/blog-content"
-
 export type CmsMedia = {
   alt?: string | null
   url?: string | null
@@ -60,5 +58,3 @@ export type CmsHeroCarousel = {
   image?: CmsMedia | string | null
   subheading?: string | null
 }
-
-export type CmsBlogTopic = Exclude<BlogTopicKey, "all">

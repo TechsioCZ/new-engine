@@ -8,38 +8,17 @@ import {
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
 import type {
-  BlogTopicFilter,
-  BlogTopicKey,
-  resolveBlogListing,
+  BlogCategoryFilter,
+  BlogListing,
 } from "@/lib/storefront/blog-content"
+import { resolveBlogListingHref } from "@/lib/storefront/blog-routing"
 import { BlogListingCard } from "./blog-listing-card"
 
 type BlogListingPageProps = {
-  listing: ReturnType<typeof resolveBlogListing>
+  listing: BlogListing
 }
 
-const resolveBlogListingHref = ({
-  topic,
-  page,
-}: {
-  topic: BlogTopicKey
-  page: number
-}) => {
-  const query = new URLSearchParams()
-
-  if (topic !== "all") {
-    query.set("topic", topic)
-  }
-
-  if (page > 1) {
-    query.set("page", String(page))
-  }
-
-  const serialized = query.toString()
-  return serialized.length > 0 ? `/blog?${serialized}` : "/blog"
-}
-
-const getFilterLabel = (filter: BlogTopicFilter) =>
+const getFilterLabel = (filter: BlogCategoryFilter) =>
   `${filter.label} (${filter.count})`
 
 export function BlogListingPage({ listing }: BlogListingPageProps) {
@@ -63,24 +42,24 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
         <section className="space-y-500">
           <header className="space-y-400">
             <h1 className="font-bold text-4xl text-fg-primary leading-tight">
-              Trápi ma
+              Blog o zdraví a kráse
             </h1>
 
             <p className="font-verdana text-fg-primary text-md leading-relaxed">
-              Najnovšie články o zdraví, kráse, stravovaní a wellness od našich
+              Články o zdraví, kráse, stravovaní a wellness od našich
               odborníkov.
             </p>
 
             <div className="flex flex-wrap items-center gap-250">
-              {listing.topicFilters.map((filter) => {
-                const isActive = filter.key === listing.topic
+              {listing.categoryFilters.map((filter) => {
+                const isActive = filter.key === listing.category
 
                 return (
                   <LinkButton
                     as={NextLink}
                     className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md leading-[18px] ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
                     href={resolveBlogListingHref({
-                      topic: filter.key,
+                      category: filter.key,
                       page: 1,
                     })}
                     key={filter.key}
@@ -108,7 +87,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   as={NextLink}
                   className="rounded-full px-550 py-250 font-open-sans font-semibold text-sm"
                   href={resolveBlogListingHref({
-                    topic: listing.topic,
+                    category: listing.category,
                     page: nextPage,
                   })}
                   size="sm"
@@ -124,7 +103,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   as={NextLink}
                   className="absolute right-0 font-semibold text-primary text-sm leading-normal underline underline-offset-2 hover:text-primary-hover"
                   href={resolveBlogListingHref({
-                    topic: listing.topic,
+                    category: listing.category,
                     page: nextPage,
                   })}
                 >

@@ -9,17 +9,6 @@ export type HeroBannerItem = {
   imageSrc: string
 }
 
-export type BlogTeaserItem = {
-  id: string
-  title: string
-  excerpt: string
-  href: string
-  imageSrc: string
-  topic: "fitness" | "krasa" | "zdravie"
-  publishedAt: string
-  readingTime: string
-}
-
 export type ProductSectionDefinition = {
   id: string
   title: string

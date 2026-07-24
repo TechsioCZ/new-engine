@@ -1,22 +1,10 @@
 import { connection } from "next/server"
 import { Suspense } from "react"
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
-import {
-  type BlogTopicKey,
-  resolveBlogListing,
-} from "@/lib/storefront/blog-content"
-import { fetchCmsBlogPosts } from "@/lib/storefront/cms"
+import { fetchCmsBlogListing } from "@/lib/storefront/cms"
 
 type BlogPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
-}
-
-const parseTopic = (value: string | undefined): BlogTopicKey => {
-  if (value === "fitness" || value === "krasa" || value === "zdravie") {
-    return value
-  }
-
-  return "all"
 }
 
 const parsePage = (value: string | undefined) => {
@@ -39,17 +27,14 @@ function BlogPageFallback() {
 async function BlogPageContent({ searchParams }: BlogPageProps) {
   await connection()
   const resolvedSearchParams = await searchParams
-  const rawTopic = resolvedSearchParams.topic
+  const rawCategory = resolvedSearchParams.category
   const rawPage = resolvedSearchParams.page
 
-  const topic = parseTopic(Array.isArray(rawTopic) ? rawTopic[0] : rawTopic)
+  const category = Array.isArray(rawCategory) ? rawCategory[0] : rawCategory
   const page = parsePage(Array.isArray(rawPage) ? rawPage[0] : rawPage)
-  const cmsPosts = await fetchCmsBlogPosts()
-
-  const listing = resolveBlogListing({
+  const listing = await fetchCmsBlogListing({
+    category,
     page,
-    posts: cmsPosts.length > 0 ? cmsPosts : undefined,
-    topic,
   })
 
   return <BlogListingPage listing={listing} />

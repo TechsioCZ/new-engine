@@ -14,6 +14,8 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
       {
         protocol,
         hostname: parsedUrl.hostname,
+        port: parsedUrl.port,
+        pathname: "/**",
       },
     ] as const
   } catch {
@@ -52,6 +54,7 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
     remotePatterns: [
       {
         protocol: "https",

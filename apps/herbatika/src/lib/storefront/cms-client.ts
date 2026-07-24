@@ -26,10 +26,23 @@ const buildCmsUrl = (
   return url
 }
 
-export const fetchCmsJson = async <TResponse>(
+export class CmsRequestError extends Error {
+  readonly status?: number
+
+  constructor(message: string, options?: { cause?: unknown; status?: number }) {
+    super(message, { cause: options?.cause })
+    this.name = "CmsRequestError"
+    this.status = options?.status
+  }
+}
+
+export const isCmsNotFoundError = (error: unknown) =>
+  error instanceof CmsRequestError && error.status === 404
+
+export const fetchCmsJsonOrThrow = async <TResponse>(
   path: string,
   params?: Record<string, string | number>
-): Promise<TResponse | null> => {
+): Promise<TResponse> => {
   let response: Response
 
   try {
@@ -42,15 +55,29 @@ export const fetchCmsJson = async <TResponse>(
         revalidate: CMS_REVALIDATE_SECONDS,
       },
     })
-  } catch {
-    return null
+  } catch (cause) {
+    throw new CmsRequestError(`CMS request failed for "${path}"`, { cause })
   }
 
   if (!response.ok) {
-    return null
+    throw new CmsRequestError(
+      `CMS request failed for "${path}" with status ${response.status}`,
+      { status: response.status }
+    )
   }
 
   return (await response.json()) as TResponse
+}
+
+export const fetchCmsJson = async <TResponse>(
+  path: string,
+  params?: Record<string, string | number>
+): Promise<TResponse | null> => {
+  try {
+    return await fetchCmsJsonOrThrow<TResponse>(path, params)
+  } catch {
+    return null
+  }
 }
 
 const resolveCmsMediaPath = (

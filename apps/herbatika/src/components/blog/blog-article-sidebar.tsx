@@ -1,18 +1,16 @@
-import type { HttpTypes } from "@medusajs/types"
 import NextImage from "next/image"
+import NextLink from "next/link"
 import {
+  type BlogCategoryFilter,
   BLOG_PROMO_BANNER,
-  BLOG_SIDEBAR_CATEGORIES,
 } from "@/lib/storefront/blog-content"
-import { BlogFeaturedProductCard } from "./blog-featured-product-card"
+import { resolveBlogListingHref } from "@/lib/storefront/blog-routing"
 
 type BlogArticleSidebarProps = {
-  featuredProduct: HttpTypes.StoreProduct | null
+  categories: BlogCategoryFilter[]
 }
 
-export function BlogArticleSidebar({
-  featuredProduct,
-}: BlogArticleSidebarProps) {
+export function BlogArticleSidebar({ categories }: BlogArticleSidebarProps) {
   return (
     <aside className="flex w-full flex-col gap-500 xl:w-[342px]">
       <section className="space-y-500 rounded-lg border border-border-secondary bg-surface p-550">
@@ -21,13 +19,14 @@ export function BlogArticleSidebar({
         </h2>
 
         <div className="flex flex-wrap gap-250">
-          {BLOG_SIDEBAR_CATEGORIES.map((category) => (
-            <span
+          {categories.map((category) => (
+            <NextLink
               className="inline-flex items-center justify-center rounded-sm bg-highlight px-200 py-150 font-normal text-[13.4px] text-primary leading-[17.28px]"
-              key={category.label}
+              href={resolveBlogListingHref({ category: category.key })}
+              key={category.key}
             >
               {`${category.label} (${category.count})`}
-            </span>
+            </NextLink>
           ))}
         </div>
       </section>
@@ -43,10 +42,6 @@ export function BlogArticleSidebar({
           src={BLOG_PROMO_BANNER.imageSrc}
         />
       </div>
-
-      {featuredProduct ? (
-        <BlogFeaturedProductCard product={featuredProduct} />
-      ) : null}
     </aside>
   )
 }

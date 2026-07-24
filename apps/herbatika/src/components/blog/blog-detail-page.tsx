@@ -1,5 +1,3 @@
-import type { HttpTypes } from "@medusajs/types"
-import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
@@ -8,25 +6,26 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
-import type { BlogPost } from "@/lib/storefront/blog-content"
+import type {
+  BlogCardItem,
+  BlogCategoryFilter,
+  BlogPost,
+} from "@/lib/storefront/blog-content"
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
 import { formatBlogDate } from "./blog-formatters"
 import { BlogRelatedCard } from "./blog-related-card"
-import { InlineProductsCarousel } from "./inline-products-carousel"
 
 type BlogDetailPageProps = {
+  categories: BlogCategoryFilter[]
   post: BlogPost
-  recommendedProducts: HttpTypes.StoreProduct[]
-  relatedPosts: BlogPost[]
-  sidebarFeaturedProduct: HttpTypes.StoreProduct | null
+  relatedPosts: BlogCardItem[]
 }
 
 export function BlogDetailPage({
+  categories,
   post,
-  recommendedProducts,
   relatedPosts,
-  sidebarFeaturedProduct,
 }: BlogDetailPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
@@ -38,8 +37,6 @@ export function BlogDetailPage({
       label: post.title,
     },
   ]
-  const hasStructuredSections = post.sections.length > 0
-  const hasHighlights = post.bulletPoints.length > 0
 
   return (
     <main className="w-full bg-base font-rubik">
@@ -78,7 +75,7 @@ export function BlogDetailPage({
               </div>
             </section>
 
-            <section className="xs:inline-block hidden overflow-hidden rounded-2xl border border-border-secondary bg-surface">
+            <section className="xs:block hidden overflow-hidden rounded-2xl border border-border-secondary bg-surface">
               <NextImage
                 alt={post.title}
                 className="aspect-product-detail-image w-full object-cover"
@@ -93,140 +90,42 @@ export function BlogDetailPage({
               <BlogPostIntro post={post} />
             </section>
 
-            {hasStructuredSections ? (
-              <details
-                className="group space-y-350 rounded-2xl border border-border-secondary bg-surface p-400"
-                open
-              >
-                <summary className="flex cursor-pointer list-none items-start justify-between gap-300 [&::-webkit-details-marker]:hidden">
-                  <div className="flex items-center gap-250">
-                    <span className="inline-flex items-center justify-center rounded-xs bg-highlight p-50 text-primary">
-                      <Icon icon="token-icon-list" size="2xl" />
-                    </span>
-                    <div>
-                      <h2 className="font-bold text-fg-primary text-xl leading-tight">
-                        Obsah článku
-                      </h2>
-                      <p className="text-fg-secondary text-sm leading-normal">
-                        {`${post.sections.length} kapitol`}
-                      </p>
-                    </div>
-                  </div>
-                  <Icon
-                    className="rotate-180 text-fg-secondary transition-transform group-open:rotate-0"
-                    icon="token-icon-chevron-up"
-                    size="2xl"
-                  />
-                </summary>
-
-                <ul className="space-y-100 pl-500">
-                  {post.sections.map((section) => (
-                    <li
-                      className="list-inside list-disc text-fg-secondary text-sm leading-relaxed marker:text-fg-disabled marker:text-lg"
-                      key={section.title}
-                    >
-                      {section.title}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-
-            <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
-              {post.contentHtml ? (
-                <CategoryRichText
-                  className="text-md [&_p+p]:mt-300"
-                  html={post.contentHtml}
-                />
-              ) : (
-                post.sections.map((section) => (
-                  <section className="space-y-250" key={section.title}>
-                    <h2 className="text-fg-primary text-xl leading-tight">
-                      {section.title}
-                    </h2>
-
-                    {section.paragraphs.map((paragraph) => (
-                      <p
-                        className="text-fg-primary text-md leading-relaxed"
-                        key={paragraph}
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-
-                    {section.bulletPoints ? (
-                      <ul className="space-y-100 pl-350">
-                        {section.bulletPoints.map((item) => (
-                          <li
-                            className="list-disc text-fg-primary text-md leading-relaxed marker:text-primary"
-                            key={item}
-                          >
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </section>
-                ))
-              )}
+            <article className="rounded-2xl border border-border-secondary bg-surface p-400 md:p-500">
+              <CategoryRichText
+                className="text-md [&_p+p]:mt-300"
+                html={post.contentHtml}
+              />
             </article>
-
-            {recommendedProducts.length > 0 || hasHighlights ? (
-              <section className="space-y-300">
-                {recommendedProducts.length > 0 ? (
-                  <InlineProductsCarousel
-                    products={recommendedProducts}
-                    slidesLg={3}
-                  />
-                ) : null}
-                {hasHighlights ? (
-                  <ul className="space-y-0 rounded-2xl bg-surface p-400">
-                    {post.bulletPoints.map((item) => (
-                      <li
-                        className="grid grid-cols-[6px_minmax(0,1fr)] gap-100 py-[1px]"
-                        key={item}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className="mt-150 h-[6px] w-[6px] rounded-full bg-primary"
-                        />
-                        <span className="text-fg-primary text-md leading-[1.5]">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            ) : null}
 
             <BlogAuthorCard post={post} />
 
-            <section className="space-y-350">
-              <div className="flex flex-wrap items-center justify-between gap-300">
-                <h2 className="font-bold text-3xl text-fg-primary leading-tight">
-                  Ďalšie články
-                </h2>
+            {relatedPosts.length > 0 ? (
+              <section className="space-y-350">
+                <div className="flex flex-wrap items-center justify-between gap-300">
+                  <h2 className="font-bold text-3xl text-fg-primary leading-tight">
+                    Ďalšie články
+                  </h2>
 
-                <Link
-                  as={NextLink}
-                  className="font-medium text-fg-primary text-md leading-tight underline underline-offset-2 hover:text-primary"
-                  href="/blog"
-                >
-                  Zobraziť všetky →
-                </Link>
-              </div>
+                  <Link
+                    as={NextLink}
+                    className="font-medium text-fg-primary text-md leading-tight underline underline-offset-2 hover:text-primary"
+                    href="/blog"
+                  >
+                    Zobraziť všetky →
+                  </Link>
+                </div>
 
-              <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-4">
-                {relatedPosts.map((relatedPost) => (
-                  <BlogRelatedCard key={relatedPost.id} post={relatedPost} />
-                ))}
-              </div>
-            </section>
+                <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-4">
+                  {relatedPosts.map((relatedPost) => (
+                    <BlogRelatedCard key={relatedPost.id} post={relatedPost} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
 
           <div>
-            <BlogArticleSidebar featuredProduct={sidebarFeaturedProduct} />
+            <BlogArticleSidebar categories={categories} />
           </div>
         </div>
       </div>

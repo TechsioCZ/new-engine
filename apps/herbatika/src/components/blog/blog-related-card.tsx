@@ -2,11 +2,11 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
-import type { BlogPost } from "@/lib/storefront/blog-content"
-import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
+import type { BlogCardItem } from "@/lib/storefront/blog-content"
+import { formatBlogDate } from "./blog-formatters"
 
 type BlogRelatedCardProps = {
-  post: BlogPost
+  post: BlogCardItem
 }
 
 export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
@@ -33,7 +33,7 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
             className="rounded-full px-200 py-100 font-medium text-2xs"
             variant="secondary"
           >
-            {formatTopicFromKey(post.topic)}
+            {post.category.title}
           </Badge>
         </div>
 
