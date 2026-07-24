@@ -106,6 +106,7 @@ common::ensure_pnpm() {
 
   pnpm_spec="$(common::resolve_pnpm_spec "$root_dir")"
   pnpm_version="${pnpm_spec#pnpm@}"
+  pnpm_version="${pnpm_version%%+*}"
 
   if current_version="$(pnpm --version 2>/dev/null)"; then
     if [[ "$current_version" == "$pnpm_version" ]]; then

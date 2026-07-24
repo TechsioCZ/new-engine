@@ -541,6 +541,21 @@ function buildZaneProjectServices(
     "medusa-meilisearch"
   )
   const minioSlug = requiredServiceSlug(serviceSlugs, "medusa-minio")
+  const medusaBePublicDomain = publicServiceDomain({
+    projectSlug: context.projectSlug,
+    serviceSlug: medusaBeSlug,
+    publicUrlAffix: context.publicUrlAffix,
+    publicDomain: context.publicDomain,
+  })
+  const configuredGoPayWebhookUrl =
+    process.env.DC_GOPAY_WEBHOOK_URL?.trim() ?? ""
+  const generatedGoPayWebhookUrl = medusaBePublicDomain
+    ? `https://${medusaBePublicDomain}/hooks/payment/paykit_gopay`
+    : ""
+  const goPayWebhookUrl =
+    configuredGoPayWebhookUrl && !isLoopbackUrl(configuredGoPayWebhookUrl)
+      ? configuredGoPayWebhookUrl
+      : generatedGoPayWebhookUrl
 
   const servicePublicOrigins = {
     medusaBe: servicePublicOriginSource(medusaBeSlug),
@@ -744,13 +759,7 @@ function buildZaneProjectServices(
       volumes: [],
       urls: [
         {
-          domain:
-            publicServiceDomain({
-              projectSlug: context.projectSlug,
-              serviceSlug: medusaBeSlug,
-              publicUrlAffix: context.publicUrlAffix,
-              publicDomain: context.publicDomain,
-            }) ?? "",
+          domain: medusaBePublicDomain ?? "",
           base_path: "/",
           strip_prefix: true,
           associated_port: 9000,
@@ -1056,7 +1065,7 @@ function buildZaneProjectServices(
         },
         {
           envVar: "GOPAY_WEBHOOK_URL",
-          source: literalSource(process.env.DC_GOPAY_WEBHOOK_URL ?? ""),
+          source: literalSource(goPayWebhookUrl),
         },
         {
           envVar: "STRIPE_API_KEY",

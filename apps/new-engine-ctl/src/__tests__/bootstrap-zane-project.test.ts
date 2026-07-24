@@ -43,6 +43,10 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
   vi.stubEnv("DC_STOREFRONT_URL", "https://storefront.example.com")
   vi.stubEnv("DC_STORE_NAME", "Herbatika")
   vi.stubEnv("DC_FEATURE_PAYMENT_QR_ENABLED", "1")
+  vi.stubEnv(
+    "DC_GOPAY_WEBHOOK_URL",
+    "http://localhost:9000/hooks/payment/paykit_gopay"
+  )
   vi.stubEnv("DC_HERBATICA_REVIEWS_XML_PATH", "https://example.com/reviews.xml")
   vi.stubEnv("DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "")
   vi.stubEnv("DC_MEDUSA_BE_RESEND_FROM_EMAIL", "")
@@ -170,6 +174,8 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       STOREFRONT_URL: "https://storefront.example.com",
       STORE_NAME: "Herbatika",
       FEATURE_PAYMENT_QR_ENABLED: "1",
+      GOPAY_WEBHOOK_URL:
+        "https://test-engine-medusa-be-zane.example.com/hooks/payment/paykit_gopay",
       HERBATICA_REVIEWS_XML_PATH: "https://example.com/reviews.xml",
       RESEND_FROM_EMAIL: "noreply@example.com",
     })
