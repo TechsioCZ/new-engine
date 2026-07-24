@@ -7,6 +7,8 @@ const ApiStore = model
     api_url: model.text().nullable(),
     api_key: model.text().nullable(),
     credentials: model.text().nullable(),
+    is_internal: model.boolean().default(false),
+    access_token_expires_at: model.dateTime().nullable(),
   })
   .indexes([
     {
