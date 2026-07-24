@@ -38,6 +38,7 @@ import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middle
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
+import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
 import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
 
 const originalErrorHandler = errorHandler()
@@ -95,6 +96,7 @@ export default defineMiddlewares({
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
+    ...storeShopReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,
   ],
 })
