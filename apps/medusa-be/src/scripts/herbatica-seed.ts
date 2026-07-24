@@ -11,6 +11,9 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import type { ApiStoreModuleService } from "../modules/api-store"
+import { API_STORE_MODULE } from "../modules/api-store"
+import { REFRESH_TOKEN_API_STORE_NAME } from "../modules/shop-review/zbozi-token"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
 import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
 import {
@@ -44,6 +47,8 @@ import {
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
+  HERBATICA_ZBOZI_REFRESH_TOKEN_ENV,
+  HERBATICA_ZBOZI_REVIEWS_API_URL,
 } from "./herbatica-seed-config"
 import {
   extractElements,
@@ -3555,11 +3560,43 @@ function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
   }
 }
 
+async function seedHerbaticaZboziApiStore({
+  container,
+  logger,
+}: {
+  container: ExecArgs["container"]
+  logger: Logger
+}) {
+  const refreshToken = normalizeInlineText(
+    process.env[HERBATICA_ZBOZI_REFRESH_TOKEN_ENV]
+  )
+
+  if (!refreshToken) {
+    logger.warn(
+      `${HERBATICA_ZBOZI_REFRESH_TOKEN_ENV} is not set; skipping Zboží API Store seed.`
+    )
+    return
+  }
+
+  const apiStoreService =
+    container.resolve<ApiStoreModuleService>(API_STORE_MODULE)
+
+  await apiStoreService.upsertApiStoreConfigByName({
+    name: REFRESH_TOKEN_API_STORE_NAME,
+    api_url: HERBATICA_ZBOZI_REVIEWS_API_URL,
+    api_key: refreshToken,
+    is_internal: false,
+  })
+
+  logger.info(`Seeded ${REFRESH_TOKEN_API_STORE_NAME} API Store config.`)
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This seed script is intentionally linear and only runs in dev/seed flows.
 export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   logger.info("Starting Herbatica seed from XML feed...")
+  await seedHerbaticaZboziApiStore({ container, logger })
   const feedPaths = resolveFeedPaths(args)
   logger.info(`Using product XML feed: ${feedPaths.productsXmlPath}`)
   if (feedPaths.categoriesXmlPath) {

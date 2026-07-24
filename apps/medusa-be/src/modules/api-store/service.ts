@@ -18,11 +18,28 @@ type ApiStoreWriteData = {
   api_url?: string | null
   api_key?: string | null
   credentials?: string | null
+  is_internal?: boolean
+  access_token_expires_at?: Date | null
 }
 
 const SENSITIVE_FIELDS = ["api_key", "credentials"] as const
 
 const normalizeName = (name: string): string => name.trim()
+
+const normalizeAccessTokenExpiresAt = (
+  value?: Date | string | null
+): Date | null | undefined => {
+  if (value === undefined) {
+    return
+  }
+
+  if (value === null || value instanceof Date) {
+    return value
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 const normalizeApiUrl = (apiUrl?: string | null): string | null | undefined => {
   if (apiUrl === undefined) {
@@ -62,7 +79,7 @@ class ApiStoreModuleService extends MedusaService({
     sharedContext?: Context
   ): Promise<[ApiStoreAdminDTO[], number]> {
     const [records, count] = await this.listAndCountApiStores(
-      filters,
+      { ...filters, is_internal: false },
       {
         take: config.take ?? 20,
         skip: config.skip ?? 0,
@@ -116,9 +133,12 @@ class ApiStoreModuleService extends MedusaService({
       api_url: normalizeApiUrl(input.api_url) ?? null,
       api_key: input.api_key ?? null,
       credentials: serializeCredentials(input.credentials) ?? null,
+      is_internal: input.is_internal ?? false,
+      access_token_expires_at:
+        normalizeAccessTokenExpiresAt(input.access_token_expires_at) ?? null,
     }
 
-    this.assertHasSecret(data)
+    this.assertHasSecret(data, data.is_internal)
 
     const encrypted = encryptFields(data, [...SENSITIVE_FIELDS])
     const created = await this.createApiStores(encrypted, sharedContext)
@@ -155,18 +175,31 @@ class ApiStoreModuleService extends MedusaService({
       data.api_key = input.api_key
     }
 
+    if (input.is_internal !== undefined) {
+      data.is_internal = input.is_internal
+    }
+
+    if (input.access_token_expires_at !== undefined) {
+      data.access_token_expires_at = normalizeAccessTokenExpiresAt(
+        input.access_token_expires_at
+      )
+    }
+
     const credentials = serializeCredentials(input.credentials)
     if (credentials !== undefined) {
       data.credentials = credentials
     }
 
-    this.assertHasSecret({
-      api_key: data.api_key === undefined ? existing.api_key : data.api_key,
-      credentials:
-        data.credentials === undefined
-          ? existing.credentials
-          : data.credentials,
-    })
+    this.assertHasSecret(
+      {
+        api_key: data.api_key === undefined ? existing.api_key : data.api_key,
+        credentials:
+          data.credentials === undefined
+            ? existing.credentials
+            : data.credentials,
+      },
+      data.is_internal === undefined ? existing.is_internal : data.is_internal
+    )
 
     const encrypted = encryptFields(data, [...SENSITIVE_FIELDS])
     const updated = await this.updateApiStores(encrypted, sharedContext)
@@ -182,6 +215,23 @@ class ApiStoreModuleService extends MedusaService({
     await this.deleteApiStores(id, sharedContext)
 
     return { id }
+  }
+
+  async upsertApiStoreConfigByName(
+    input: ApiStoreCreateInput,
+    sharedContext?: Context
+  ): Promise<ApiStoreAdminDTO> {
+    const name = normalizeName(input.name)
+    const existing = await this.retrieveApiStoreSecretsByName(
+      name,
+      sharedContext
+    )
+
+    if (!existing) {
+      return this.createApiStoreConfig({ ...input, name }, sharedContext)
+    }
+
+    return this.updateApiStoreConfig(existing.id, input, sharedContext)
   }
 
   private async assertNameAvailable(
@@ -204,10 +254,17 @@ class ApiStoreModuleService extends MedusaService({
     }
   }
 
-  private assertHasSecret(data: {
-    api_key?: string | null
-    credentials?: string | null
-  }): void {
+  private assertHasSecret(
+    data: {
+      api_key?: string | null
+      credentials?: string | null
+    },
+    isInternal = false
+  ): void {
+    if (isInternal) {
+      return
+    }
+
     if (!(data.api_key || data.credentials)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
@@ -223,6 +280,8 @@ class ApiStoreModuleService extends MedusaService({
       api_url: record.api_url ?? null,
       has_api_key: !!record.api_key,
       has_credentials: !!record.credentials,
+      is_internal: record.is_internal ?? false,
+      access_token_expires_at: record.access_token_expires_at ?? null,
       created_at: record.created_at,
       updated_at: record.updated_at,
     }

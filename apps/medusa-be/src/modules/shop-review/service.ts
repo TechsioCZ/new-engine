@@ -7,6 +7,12 @@ import type {
   HeurekaLocale,
   ShopReviewProviderResponse,
 } from "./types"
+import {
+  ACCESS_TOKEN_API_STORE_NAME,
+  extractZboziAccessToken,
+  REFRESH_TOKEN_API_STORE_NAME,
+  refreshZboziAccessTokenStore,
+} from "./zbozi-token"
 
 const DEFAULT_HEUREKA_LOCALE: HeurekaLocale = "sk"
 const HEUREKA_API_STORE_NAMES: Record<HeurekaLocale, string[]> = {
@@ -17,8 +23,6 @@ const DEFAULT_HEUREKA_EXPORT_URLS: Record<HeurekaLocale, string> = {
   cs: "https://www.heureka.cz/direct/dotaznik/export-review.php",
   sk: "https://www.heureka.sk/direct/dotaznik/export-review.php",
 }
-const ZBOZI_API_STORE_NAMES = ["Zboží", "Zbozi"]
-const ZBOZI_TOKEN_URL = "https://api.sklik.cz/v1/user/token"
 const DEFAULT_CONTENT_TYPE = "application/xml; charset=utf-8"
 const DEFAULT_JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 const REQUEST_TIMEOUT_MS = 15_000
@@ -100,42 +104,18 @@ class ShopReviewModuleService {
   }
 
   async fetchZboziShopReviews(): Promise<ShopReviewProviderResponse> {
-    const { apiStore, apiStoreName } = await this.retrieveApiStoreByNames(
-      ZBOZI_API_STORE_NAMES
-    )
+    const { refreshApiStore, accessApiStore } =
+      await this.retrieveZboziApiStores()
 
-    if (!apiStore) {
-      throw new MedusaError(
-        MedusaError.Types.NOT_FOUND,
-        `API store config for Zboží was not found. Tried: ${ZBOZI_API_STORE_NAMES.join(", ")}`
-      )
-    }
-
-    if (!apiStore.api_url) {
+    if (!refreshApiStore.api_url) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `API store config "${apiStoreName}" must contain api_url`
+        `API store config "${REFRESH_TOKEN_API_STORE_NAME}" must contain api_url`
       )
     }
 
-    const refreshToken =
-      apiStore.api_key ??
-      getCredentialValue(apiStore.credentials, "refresh_token") ??
-      getCredentialValue(apiStore.credentials, "api_key") ??
-      getCredentialValue(apiStore.credentials, "token")
-
-    if (!refreshToken) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `API store config "${apiStoreName}" must contain api_key or credentials.refresh_token`
-      )
-    }
-
-    const accessToken = await this.retrieveZboziAccessToken(
-      refreshToken,
-      apiStore.credentials
-    )
-    const url = this.buildUrl(apiStore.api_url, accessToken)
+    const accessToken = extractZboziAccessToken(accessApiStore)
+    const url = this.buildUrl(refreshApiStore.api_url, accessToken)
     const response = await fetch(url, {
       headers: {
         accept: "application/json,*/*",
@@ -164,52 +144,43 @@ class ShopReviewModuleService {
     }
   }
 
-  private async retrieveZboziAccessToken(
-    refreshToken: string,
-    credentials: Record<string, unknown> | null
-  ): Promise<string> {
-    const body = new URLSearchParams({
-      grant_type: "client_credentials",
+  async retrieveZboziAccessTokenApiStore(): Promise<ApiStoreSecretDTO | null> {
+    return this.apiStoreService_.retrieveApiStoreSecretsByName(
+      ACCESS_TOKEN_API_STORE_NAME
+    )
+  }
+
+  async refreshZboziAccessToken(): Promise<{
+    accessToken: string
+    expiresAt: Date
+  }> {
+    return refreshZboziAccessTokenStore({
+      apiStoreService: this.apiStoreService_,
     })
-    const userId = getCredentialValue(credentials, "user_id")
-    const clientId = getCredentialValue(credentials, "client_id")
-    const clientSecret = getCredentialValue(credentials, "client_secret")
+  }
 
-    if (userId) {
-      body.set("user_id", userId)
-    }
-    if (clientId) {
-      body.set("client_id", clientId)
-    }
-    if (clientSecret) {
-      body.set("client_secret", clientSecret)
-    }
-
-    const response = await fetch(ZBOZI_TOKEN_URL, {
-      body,
-      headers: {
-        accept: "application/json",
-        authorization: `Bearer ${refreshToken}`,
-        "content-type": "application/x-www-form-urlencoded",
-      },
-      method: "POST",
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    })
-    const data = (await response.json().catch(() => null)) as {
-      access_token?: unknown
-    } | null
-
-    if (!response.ok || typeof data?.access_token !== "string") {
-      this.logger_.warn(
-        `Zboží access token request failed with status ${response.status}`
+  private async retrieveZboziApiStores(): Promise<{
+    refreshApiStore: ApiStoreSecretDTO
+    accessApiStore: ApiStoreSecretDTO | null
+  }> {
+    const refreshApiStore =
+      await this.apiStoreService_.retrieveApiStoreSecretsByName(
+        REFRESH_TOKEN_API_STORE_NAME
       )
+
+    if (!refreshApiStore) {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `Zboží access token request failed with status ${response.status}`
+        MedusaError.Types.NOT_FOUND,
+        `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`
       )
     }
 
-    return data.access_token
+    const accessApiStore =
+      await this.apiStoreService_.retrieveApiStoreSecretsByName(
+        ACCESS_TOKEN_API_STORE_NAME
+      )
+
+    return { refreshApiStore, accessApiStore }
   }
 
   private async retrieveHeurekaApiStore(locale: HeurekaLocale): Promise<{
