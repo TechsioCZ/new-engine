@@ -25,7 +25,15 @@ function run(command, args) {
 }
 
 if (formatFiles.length > 0) {
-  run("pnpm", ["exec", "oxfmt", "--write", ...formatFiles])
+  // A staged set can consist entirely of config-ignored files (e.g. a
+  // lockfile-only commit); that must pass, not exit 2.
+  run("pnpm", [
+    "exec",
+    "oxfmt",
+    "--write",
+    "--no-error-on-unmatched-pattern",
+    ...formatFiles,
+  ])
   run("git", ["add", "-f", "--", ...formatFiles])
 }
 
