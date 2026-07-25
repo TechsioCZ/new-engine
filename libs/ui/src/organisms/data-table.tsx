@@ -163,6 +163,12 @@ const dataTableVariants = tv({
       "active:cursor-grabbing",
     ],
     dropIndicator: ["bg-primary"],
+    resizeHandle: [
+      "absolute end-0 top-0 h-full w-100 cursor-col-resize touch-none select-none",
+      "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+      "bg-table-border hover:opacity-100 focus-visible:opacity-100",
+      "group-hover/header:opacity-100",
+    ],
     filterRow: ["bg-table-header-bg"],
     filterCell: [
       "px-200 py-100",
@@ -196,14 +202,23 @@ function useControllable<S>(
   callback?: (next: S) => void
 ): [S, OnChangeFn<S>] {
   const [internal, setInternal] = useState<S>(initial)
-  const value = controlled === undefined ? internal : controlled
+  const isControlled = controlled !== undefined
+  const value = isControlled ? (controlled as S) : internal
   const onChange: OnChangeFn<S> = (updater) => {
-    const next =
-      typeof updater === "function"
-        ? (updater as (old: S) => S)(value)
-        : updater
-    setInternal(next)
-    callback?.(next)
+    const resolve = (old: S) =>
+      typeof updater === "function" ? (updater as (o: S) => S)(old) : updater
+    if (isControlled) {
+      // The parent owns the value; resolve against it for the callback only.
+      callback?.(resolve(value))
+      return
+    }
+    // Hand the updater to React so batched updates against the same slice
+    // compose instead of the later one overwriting the earlier.
+    setInternal((old) => {
+      const next = resolve(old)
+      queueMicrotask(() => callback?.(next))
+      return next
+    })
   }
   return [value, onChange]
 }
@@ -973,6 +988,12 @@ function rowDragClass(
     .join(" ")
 }
 
+/** Human-readable column name for generated labels. */
+function columnDisplayName<T>(column: Column<T, unknown>) {
+  const header = column.columnDef.header
+  return typeof header === "string" && header ? header : column.id
+}
+
 /** `aria-sort` for a header cell, or undefined when the column is not sortable. */
 function sortState<T>(column: Column<T, unknown>, enableSorting: boolean) {
   if (!(enableSorting && column.getCanSort())) {
@@ -1146,20 +1167,45 @@ export function DataTable<T>(props: DataTableProps<T>) {
     "",
     onGlobalFilterChange
   )
-  const [rowSelection, setRowSelection] = useControllable<RowSelectionState>(
-    rowSelectionProp,
-    {},
-    (next) => {
-      onRowSelectionChange?.(next)
-      const count = Object.values(next).filter(Boolean).length
-      if (maxSelectedRows != null && count >= maxSelectedRows) {
-        onSelectionLimitReached?.({
-          limit: maxSelectedRows,
-          selectedCount: count,
-        })
+  const [rowSelection, setRowSelectionState] =
+    useControllable<RowSelectionState>(
+      rowSelectionProp,
+      {},
+      onRowSelectionChange
+    )
+
+  /**
+   * Enforce `maxSelectedRows` on the resolved state rather than only through
+   * `getCanSelect`: TanStack applies sub-row and select-all toggles in a single
+   * updater, so a per-row predicate reading render-time state cannot see the
+   * count growing and the cap would be bypassed.
+   */
+  const setRowSelection: OnChangeFn<RowSelectionState> = (updater) => {
+    setRowSelectionState((old) => {
+      const next =
+        typeof updater === "function"
+          ? (updater as (o: RowSelectionState) => RowSelectionState)(old)
+          : updater
+      if (maxSelectedRows == null) {
+        return next
       }
-    }
-  )
+      const selectedIds = Object.keys(next).filter((id) => next[id])
+      if (selectedIds.length <= maxSelectedRows) {
+        return next
+      }
+      // Keep rows that were already selected, then fill up to the cap.
+      const kept = [
+        ...selectedIds.filter((id) => old[id]),
+        ...selectedIds.filter((id) => !old[id]),
+      ].slice(0, maxSelectedRows)
+      onSelectionLimitReached?.({
+        limit: maxSelectedRows,
+        selectedCount: kept.length,
+      })
+      return Object.fromEntries(kept.map((id) => [id, true]))
+    })
+  }
+
   const [columnVisibility, setColumnVisibility] =
     useControllable<VisibilityState>(
       columnVisibilityProp,
@@ -1313,8 +1359,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
     filterFns: { conditional: conditionalFilterFn, typed: typedFilterFn },
     meta: {
       updateData: (rowId: string, columnId: string, value: unknown) => {
-        const row = table.getRow(rowId)
-        onCellEditCommit?.({ rowId, columnId, value, row: row.original })
+        const target = table.getCoreRowModel().rowsById[rowId]
+        if (!target) {
+          return
+        }
+        onCellEditCommit?.({ rowId, columnId, value, row: target.original })
       },
     },
   })
@@ -1346,6 +1395,23 @@ export function DataTable<T>(props: DataTableProps<T>) {
     trigger?.focus()
     editTriggerIdRef.current = null
   }, [editingRowId])
+
+  // Draft state is cleared when the edit actually ends, so a controlled
+  // `editingRowId` held open across an async save keeps its values.
+  useEffect(() => {
+    if (!editingRowId) {
+      setDraft({})
+      setEditErrors({})
+      setDirty(false)
+    }
+  }, [editingRowId])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: watches the edited row's existence, not the cancel identity
+  useEffect(() => {
+    if (editingRowId && !table.getCoreRowModel().rowsById[editingRowId]) {
+      cancelEdit()
+    }
+  }, [editingRowId, data])
 
   useEffect(() => {
     const node = headerRowRef.current
@@ -1379,11 +1445,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }
 
   const setDraftValue = (rowId: string, columnId: string, value: unknown) => {
-    setDraft((old) => {
-      const next = { ...old, [columnId]: value }
-      onEditChange?.({ rowId, columnId, value, draft: next })
-      return next
-    })
+    const next = { ...draft, [columnId]: value }
+    setDraft(next)
+    onEditChange?.({ rowId, columnId, value, draft: next })
     setDirty(true)
     // Clear this field's stale error as soon as the user edits it again.
     setEditErrors((old) => (old[columnId] ? { ...old, [columnId]: "" } : old))
@@ -1395,10 +1459,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
     const rowId = editingRowId as string
     setEditingRowId(null)
-    setDraft({})
-    setEditErrors({})
     onEditCancel?.({ rowId, dirty })
-    setDirty(false)
   }
 
   const commitEdit = () => {
@@ -1406,7 +1467,13 @@ export function DataTable<T>(props: DataTableProps<T>) {
       return
     }
     const rowId = editingRowId as string
-    const row = table.getRow(rowId)
+    const row = table.getCoreRowModel().rowsById[rowId]
+    if (!row) {
+      // The record disappeared mid-edit (deleted, replaced, refetched);
+      // releasing the lock beats throwing or committing onto a stranger.
+      cancelEdit()
+      return
+    }
     const errors = validateDraft(table.getAllLeafColumns(), draft)
 
     if (Object.keys(errors).length > 0) {
@@ -1417,9 +1484,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
     onEditCommit?.({ rowId, draft, row: row.original })
     setEditingRowId(null)
-    setDraft({})
-    setEditErrors({})
-    setDirty(false)
   }
 
   const rows = table.getRowModel().rows
@@ -1480,6 +1544,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
     window.addEventListener("scroll", onWindowScroll, { passive: true })
     return () => window.removeEventListener("scroll", onWindowScroll)
   }, [onReachEnd, maxHeight, reachEndThreshold])
+
+  // Re-arm after new rows land: if the freshly appended page is shorter than
+  // the threshold no further scroll event fires, and loading would stall.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-checks whenever the row count changes
+  useEffect(() => {
+    if (!onReachEnd || loadingMore) {
+      return
+    }
+    const el = scrollRef.current
+    if (!el) {
+      return
+    }
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+    reachedEndRef.current = distance <= reachEndThreshold
+    if (reachedEndRef.current && el.scrollHeight > el.clientHeight) {
+      onReachEnd()
+    }
+  }, [data.length, loadingMore, reachEndThreshold])
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     if (!onReachEnd) {
@@ -1616,7 +1698,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return (
       <Table.ColumnHeader
         aria-sort={ariaSort}
-        className={`group/header ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass}`}
         colSpan={header.colSpan}
         data-dragging={dnd?.isDragging || undefined}
         data-pinned={column.getIsPinned() || undefined}
@@ -1650,6 +1732,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
             styles={styles}
           />
         </div>
+        {enableColumnResizing && column.getCanResize() ? (
+          <button
+            aria-label={`Resize ${columnDisplayName(column)}`}
+            className={styles.resizeHandle()}
+            onDoubleClick={() => column.resetSize()}
+            onMouseDown={header.getResizeHandler()}
+            onTouchStart={header.getResizeHandler()}
+            type="button"
+          />
+        ) : null}
       </Table.ColumnHeader>
     )
   }
@@ -1673,10 +1765,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
             const reorderable =
               enableColumnReorder &&
               !locked &&
+              header.subHeaders.length === 0 &&
               !header.column.getIsPinned() &&
               !builtinIds.has(header.column.id)
             return reorderable ? (
-              <SortableHeaderContent columnId={header.id} key={header.id}>
+              <SortableHeaderContent
+                columnId={header.column.id}
+                key={header.id}
+              >
                 {(dnd) => renderHeaderCell(header, dnd)}
               </SortableHeaderContent>
             ) : (
@@ -1976,13 +2072,21 @@ export function DataTable<T>(props: DataTableProps<T>) {
     )
   }
 
+  // Row order only maps back to `data` while the view is unsorted/unfiltered.
+  const rowReorderActive =
+    enableRowReorder &&
+    !locked &&
+    sorting.length === 0 &&
+    columnFilters.length === 0 &&
+    !globalFilter
+
   const bodyRows = renderRows.map((row, i) => {
     // Under virtualization `renderRows` is a window; map back to the true index
     // in `rows` so getCellSpan inspects the correct neighbouring records.
     const rowIndex = enableVirtualization ? (virtualItems[i]?.index ?? i) : i
     // Only top-level rows are reorderable — sub-rows aren't in the top-level
     // `data` array, so dragging them could not be applied to it.
-    return enableRowReorder && row.depth === 0 && !locked ? (
+    return rowReorderActive && row.depth === 0 ? (
       <SortableRow enabled={enableRowReorder} key={row.id} row={row}>
         {(dnd) => renderBodyRow(row, rowIndex, dnd)}
       </SortableRow>
@@ -2129,7 +2233,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
       </DndContext>
     )
   }
-  if (enableRowReorder) {
+  if (rowReorderActive) {
     scrollBody = (
       <DndContext
         collisionDetection={closestCenter}
