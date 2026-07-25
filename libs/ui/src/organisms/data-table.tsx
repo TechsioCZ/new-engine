@@ -396,6 +396,31 @@ export type DataTableProps<T> = {
   enableGlobalFilter?: boolean
   enableColumnFilters?: boolean
   enableRowSelection?: boolean
+  /**
+   * `"multiple"` (default) lets any number of rows be selected; `"single"`
+   * replaces the selection so only one row is ever selected.
+   */
+  selectionMode?: "single" | "multiple"
+  /**
+   * Hard cap on how many rows can be selected at once. Once reached, unselected
+   * rows report `getCanSelect() === false` and their checkboxes disable, while
+   * already-selected rows stay deselectable.
+   */
+  maxSelectedRows?: number
+  /**
+   * Per-row selectability predicate, for rules the mode/cap can't express
+   * (e.g. "only rows with status=active"). Composed with — not instead of —
+   * `selectionMode` and `maxSelectedRows`.
+   */
+  canSelectRow?: (
+    row: Row<T>,
+    context: { selectedCount: number; isSelected: boolean }
+  ) => boolean
+  /** Fired when a selection change reaches `maxSelectedRows`. */
+  onSelectionLimitReached?: (details: {
+    limit: number
+    selectedCount: number
+  }) => void
   enableColumnVisibility?: boolean
   enableColumnPinning?: boolean
   enableColumnReorder?: boolean
@@ -866,6 +891,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
     editorRenderers,
     stickyActions = true,
     paginationProps,
+    selectionMode = "multiple",
+    maxSelectedRows,
+    canSelectRow,
+    onSelectionLimitReached,
   } = props
 
   const translations = { ...DEFAULT_TRANSLATIONS, ...translationsProp }
@@ -893,7 +922,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
   const [rowSelection, setRowSelection] = useControllable<RowSelectionState>(
     rowSelectionProp,
     {},
-    onRowSelectionChange
+    (next) => {
+      onRowSelectionChange?.(next)
+      const count = Object.values(next).filter(Boolean).length
+      if (maxSelectedRows != null && count >= maxSelectedRows) {
+        onSelectionLimitReached?.({
+          limit: maxSelectedRows,
+          selectedCount: count,
+        })
+      }
+    }
   )
   const [columnVisibility, setColumnVisibility] =
     useControllable<VisibilityState>(
@@ -959,6 +997,26 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return true
   }
 
+  const selectedCount = Object.values(rowSelection).filter(Boolean).length
+  const selectionLimitReached =
+    maxSelectedRows != null && selectedCount >= maxSelectedRows
+
+  /**
+   * Per-row selectability: the `canSelectRow` predicate, the `maxSelectedRows`
+   * cap (already-selected rows stay deselectable) and `enableRowSelection`
+   * composed into the single function TanStack expects.
+   */
+  const rowSelectionPredicate = (row: Row<T>) => {
+    const isSelected = rowSelection[row.id] === true
+    if (canSelectRow && !canSelectRow(row, { selectedCount, isSelected })) {
+      return false
+    }
+    if (selectionLimitReached && !isSelected) {
+      return false
+    }
+    return true
+  }
+
   const columns = buildColumns<T>({
     userColumns,
     enableRowReorder,
@@ -966,6 +1024,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     enableExpanding,
     locked,
     size,
+    showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
     onBlockedSelect: () => blocked("select"),
   })
 
@@ -986,7 +1045,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
       columnSizing,
     },
     enableSorting,
-    enableRowSelection,
+    enableRowSelection: enableRowSelection ? rowSelectionPredicate : false,
+    enableMultiRowSelection: selectionMode === "multiple",
     enableColumnFilters,
     enableColumnPinning,
     enableColumnResizing,
@@ -1670,6 +1730,7 @@ function buildColumns<T>({
   enableExpanding,
   locked,
   size,
+  showSelectAll,
   onBlockedSelect,
 }: {
   userColumns: ColumnDef<T, unknown>[]
@@ -1678,6 +1739,7 @@ function buildColumns<T>({
   enableExpanding: boolean
   locked: boolean
   size: DataTableControlSize
+  showSelectAll: boolean
   onBlockedSelect: () => void
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
@@ -1697,15 +1759,16 @@ function buildColumns<T>({
   if (enableRowSelection) {
     leading.push({
       id: SELECTION_COLUMN_ID,
-      header: ({ table }) => (
-        <Checkbox
-          aria-label="Select all rows"
-          checked={table.getIsAllRowsSelected()}
-          disabled={locked}
-          indeterminate={table.getIsSomeRowsSelected()}
-          onChange={table.getToggleAllRowsSelectedHandler()}
-        />
-      ),
+      header: ({ table }) =>
+        showSelectAll ? (
+          <Checkbox
+            aria-label="Select all rows"
+            checked={table.getIsAllRowsSelected()}
+            disabled={locked}
+            indeterminate={table.getIsSomeRowsSelected()}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+          />
+        ) : null,
       cell: ({ row }) => (
         <Checkbox
           aria-label={`Select row ${row.id}`}

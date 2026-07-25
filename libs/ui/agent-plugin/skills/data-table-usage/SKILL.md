@@ -120,6 +120,12 @@ siblingCount, translations, …) except the table-owned count/page/pageSize.
 - `enableGlobalFilter` — renders the toolbar search (`DataTable.GlobalSearch`).
 - `enableColumnFilters` — renders a per-column filter row. The default control is operator-based ("with conditions"); pick the input via `meta.filterVariant: "text" | "number" | "range" | "select"` (+ `meta.filterOptions` for `select`). Register `filterFn: "conditional"` on the column, or override the whole UI with `renderHeaderFilter`.
 - `enableRowSelection` — injects a leading checkbox column; header checkbox toggles all.
+  Constrain it with `selectionMode: "single" | "multiple"` (single replaces the
+  selection), `maxSelectedRows: N` (a hard cap — unselected rows disable once it
+  is reached, selected ones stay deselectable, and `onSelectionLimitReached`
+  fires) and/or `canSelectRow(row, { selectedCount, isSelected })` for rules
+  those two can't express. All three compose; the select-all header checkbox is
+  hidden unless selection is unbounded multiple.
 - `enableColumnVisibility` — toolbar menu to show/hide columns.
 - `enableColumnPinning` + controlled `columnPinning` — freeze columns left/right (sticky, with an edge shadow).
 - `enableColumnReorder` — drag column headers (dnd-kit); fires `onColumnReorder`.

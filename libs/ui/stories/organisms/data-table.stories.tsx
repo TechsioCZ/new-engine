@@ -772,3 +772,63 @@ export const SizeSynchronised: Story = {
     pageSizeOptions: [2, 5],
   } as DataTableProps<Person>,
 }
+
+/* ── 28. Single-row selection ────────────────────────────────────────────── */
+
+export const SingleRowSelection: Story = {
+  args: {
+    ...base,
+    enableRowSelection: true,
+    selectionMode: "single",
+    onRowSelectionChange: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Select row 0"))
+    await expect(canvas.getByLabelText("Select row 0")).toBeChecked()
+    // Selecting another row replaces the first instead of adding to it.
+    await userEvent.click(canvas.getByLabelText("Select row 1"))
+    await expect(canvas.getByLabelText("Select row 1")).toBeChecked()
+    await expect(canvas.getByLabelText("Select row 0")).not.toBeChecked()
+  },
+}
+
+/* ── 29. Capped selection (max 2 rows) ───────────────────────────────────── */
+
+export const MaxTwoRowsSelectable: Story = {
+  args: {
+    ...base,
+    enableRowSelection: true,
+    maxSelectedRows: 2,
+    onSelectionLimitReached: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Select row 0"))
+    await userEvent.click(canvas.getByLabelText("Select row 1"))
+    await expect(args.onSelectionLimitReached).toHaveBeenCalled()
+    // Unselected rows lock once the cap is hit…
+    await expect(canvas.getByLabelText("Select row 2")).toBeDisabled()
+    // …while the selected ones can still be released.
+    await expect(canvas.getByLabelText("Select row 0")).not.toBeDisabled()
+    await userEvent.click(canvas.getByLabelText("Select row 0"))
+    await expect(canvas.getByLabelText("Select row 2")).not.toBeDisabled()
+  },
+}
+
+/* ── 30. Custom selectability rule ───────────────────────────────────────── */
+
+export const ConditionalRowSelection: Story = {
+  args: {
+    ...base,
+    enableRowSelection: true,
+    canSelectRow: (row) => row.original.status === "active",
+    onRowSelectionChange: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Row 0 is active, row 2 is invited.
+    await expect(canvas.getByLabelText("Select row 0")).not.toBeDisabled()
+    await expect(canvas.getByLabelText("Select row 2")).toBeDisabled()
+  },
+}
