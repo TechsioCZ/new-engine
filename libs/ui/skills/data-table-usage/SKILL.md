@@ -71,7 +71,10 @@ const columns: ColumnDef<Order>[] = [
 - `enableExpanding` + `getSubRows` — tree rows; injects an expander column. Use `renderExpandedRow` for master-detail content.
 - `enablePagination` — renders `DataTable.Pagination` ("start–end of total" + page-size select + pager). Configure `pageSizeOptions`.
 - `enableVirtualization` + `maxHeight` — windowed rendering for large datasets (keeps native column alignment). Set `estimateRowHeight`.
+- `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); widths are applied inline per cell.
 - `onReachEnd` + `maxHeight` — infinite scroll; called once when scrolled near the bottom.
+
+Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct.
 
 ## Callbacks (for interaction tests + app wiring)
 

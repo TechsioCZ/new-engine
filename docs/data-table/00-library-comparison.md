@@ -18,6 +18,8 @@ Celé porovnanie rozhoduje **jediná os: canvas vs. DOM rendering.**
 | ali-react-table (Alibaba) | DOM | čiastočne | áno | 4 / 5 | ❌ mŕtvy projekt, čínske docs, žiadne context7 pokrytie |
 | _(baseline)_ antd Table | DOM | nie (CSS-in-JS) | override vojny | 3 / 5 | ⚠️ nie headless |
 
+> **Škála „Integrácia do DS" = náklad/úsilie integrácie (1 = najmenej, 5 = najviac), nie kvalita knižnice.** Preto TanStack skóruje `1–2 / 5` a vyhráva, kým canvas knižnice `5 / 5` a padajú.
+
 **Upresnenie k „Table od Alibaby":** to, na čo sme mysleli (`ali-react-table`), je prakticky neudržiavané, dokumentácia len po čínsky, v context7 nulové pokrytie. Reálny živý „Alibaba/Ant Group" table je **AntV S2** — ale je to canvas pivot/analytická tabuľka. VTable (Bytedance) aj S2 (Alibaba) sú teda **oba canvas** a narážajú na ten istý problém.
 
 ## Prečo je canvas problém pre náš DS
