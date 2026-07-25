@@ -879,3 +879,49 @@ export const PerRowActionPermissions: Story = {
     await expect(suspendedRow.getByLabelText("Delete")).toBeInTheDocument()
   },
 }
+
+/* ── 32. Loading skeletons ───────────────────────────────────────────────── */
+
+export const LoadingSkeletons: Story = {
+  args: { ...base, loading: true, loadingRowCount: 6, enableSorting: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Header still renders so the layout does not jump once data arrives.
+    await expect(canvas.getByText("First name")).toBeInTheDocument()
+    await expect(canvas.queryByText("Lovelace")).not.toBeInTheDocument()
+  },
+}
+
+/* ── 33. Loading more (infinite scroll footer) ───────────────────────────── */
+
+export const LoadingMore: Story = {
+  args: {
+    columns,
+    data: people,
+    loadingMore: true,
+    maxHeight: "320px",
+    onReachEnd: fn(),
+  },
+}
+
+/* ── 34. Drag affordances ────────────────────────────────────────────────── */
+
+export const DragAffordances: Story = {
+  args: {
+    ...base,
+    enableColumnReorder: true,
+    enableRowReorder: true,
+    onColumnReorder: fn(),
+    onRowReorder: fn(),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    // Both handles are discoverable and labelled.
+    await expect(
+      canvas.getAllByLabelText("Drag to reorder column").length
+    ).toBeGreaterThan(0)
+    await expect(
+      canvas.getAllByLabelText("Drag to reorder row").length
+    ).toBeGreaterThan(0)
+  },
+}

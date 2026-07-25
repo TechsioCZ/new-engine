@@ -106,6 +106,22 @@ Edit callbacks: `onEditStart`, `onEditChange`, `onEditCommit`, `onEditCancel`
 (with `dirty`), `onEditValidationError`, plus controlled `editingRowId` /
 `onEditingRowIdChange`.
 
+## Loading states
+
+- `loading` replaces the body with `loadingRowCount` skeleton rows (default 5)
+  while keeping the header, so the layout does not jump when data arrives.
+- `loadingMore` appends a single skeleton row — pair it with `onReachEnd` for
+  infinite scroll so the user sees the next page being fetched.
+
+## Drag affordances
+
+Reorder handles are always rendered but sit at reduced opacity until the row or
+header is hovered/focused, so the table stays calm while still being
+discoverable. During a drag the source is dimmed and lifted (`data-dragging`),
+and the drop target shows an insertion edge — a border on the leading or
+trailing side for columns, top or bottom for rows — so it is clear where the
+item will land.
+
 ## Sizing
 
 `size` (`sm | md | lg`) is forwarded to the underlying `Table` **and** to every

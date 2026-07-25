@@ -80,6 +80,7 @@ import { ActionIcon } from "../atoms/action-icon"
 import { Checkbox } from "../atoms/checkbox"
 import { Icon, type IconType } from "../atoms/icon"
 import { Input } from "../atoms/input"
+import { Skeleton } from "../atoms/skeleton"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { Select, type SelectItem } from "../molecules/select"
@@ -154,9 +155,13 @@ const dataTableVariants = tv({
       "data-[active=true]:text-fg-accent-primary",
     ],
     dragHandle: [
-      "inline-flex cursor-grab items-center text-fg-secondary",
+      "inline-flex cursor-grab items-center rounded-table text-fg-secondary",
+      "opacity-60 transition-opacity duration-200 motion-reduce:transition-none",
+      "hover:bg-table-row-bg-hover hover:opacity-100 focus-visible:opacity-100",
+      "group-hover/header:opacity-100 group-hover/row:opacity-100",
       "active:cursor-grabbing",
     ],
+    dropIndicator: ["bg-primary"],
     filterRow: ["bg-table-header-bg"],
     filterCell: [
       "px-200 py-100",
@@ -250,6 +255,22 @@ function DataTableSelect({
   )
 }
 
+/** Which edge of the hovered sortable should show the drop indicator. */
+function dropEdge<A, B>(
+  sortable: {
+    isOver: boolean
+    isDragging: boolean
+    activeIndex: number
+    overIndex: number
+  },
+  edges: { after: A; before: B }
+) {
+  if (!sortable.isOver || sortable.isDragging) {
+    return
+  }
+  return sortable.activeIndex < sortable.overIndex ? edges.after : edges.before
+}
+
 /* ── Sortable header cell (column reorder) ───────────────────────────────── */
 
 function SortableHeaderContent({
@@ -262,14 +283,25 @@ function SortableHeaderContent({
     listeners: Record<string, unknown> | undefined
     style: CSSProperties
     setNodeRef: (node: HTMLElement | null) => void
+    isDragging: boolean
+    dropSide?: "start" | "end"
   }) => ReactNode
 }) {
   const sortable = useSortable({ id: columnId })
   const style: CSSProperties = {
     transform: CSS.Translate.toString(sortable.transform),
     transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.6 : 1,
+    opacity: sortable.isDragging ? 0.4 : 1,
   }
+  const dropSide = dropEdge(
+    {
+      isOver: sortable.isOver,
+      isDragging: sortable.isDragging,
+      activeIndex: sortable.activeIndex ?? 0,
+      overIndex: sortable.overIndex ?? 0,
+    },
+    { after: "end" as const, before: "start" as const }
+  )
   return (
     <>
       {children({
@@ -277,6 +309,8 @@ function SortableHeaderContent({
         listeners: sortable.listeners,
         style,
         setNodeRef: sortable.setNodeRef,
+        isDragging: sortable.isDragging,
+        dropSide,
       })}
     </>
   )
@@ -295,23 +329,42 @@ function SortableRow<T>({
     setNodeRef: (node: HTMLElement | null) => void
     style: CSSProperties
     dragHandleProps: Record<string, unknown>
+    isDragging: boolean
+    dropSide?: "top" | "bottom"
   }) => ReactNode
 }) {
   const sortable = useSortable({ id: row.id, disabled: !enabled })
   const style: CSSProperties = {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.6 : 1,
+    opacity: sortable.isDragging ? 0.4 : 1,
     position: "relative",
     zIndex: sortable.isDragging ? 1 : undefined,
   }
+  const dropSide = dropEdge(
+    {
+      isOver: sortable.isOver,
+      isDragging: sortable.isDragging,
+      activeIndex: sortable.activeIndex ?? 0,
+      overIndex: sortable.overIndex ?? 0,
+    },
+    { after: "bottom" as const, before: "top" as const }
+  )
   const dragHandleProps = {
     ref: sortable.setActivatorNodeRef,
     ...sortable.attributes,
     ...sortable.listeners,
   }
   return (
-    <>{children({ setNodeRef: sortable.setNodeRef, style, dragHandleProps })}</>
+    <>
+      {children({
+        setNodeRef: sortable.setNodeRef,
+        style,
+        dragHandleProps,
+        isDragging: sortable.isDragging,
+        dropSide,
+      })}
+    </>
   )
 }
 
@@ -570,6 +623,13 @@ export type DataTableProps<T> = {
 
   /** Pin the row-actions column to the right edge (sticky). Default `true`. */
   stickyActions?: boolean
+
+  /** Replace the body with skeleton rows while the first page is being fetched. */
+  loading?: boolean
+  /** How many skeleton rows to render while `loading`. */
+  loadingRowCount?: number
+  /** Append a skeleton row while an infinite-scroll page is being fetched. */
+  loadingMore?: boolean
 
   /**
    * Everything configurable on the `Pagination` molecule, surfaced at table
@@ -838,6 +898,22 @@ function validateDraft<T>(
   return errors
 }
 
+/** Row classes conveying drag state: lifted while dragging, edge while hovered. */
+function rowDragClass(
+  dnd: { isDragging?: boolean; dropSide?: "top" | "bottom" } | undefined,
+  className?: string
+) {
+  return [
+    "group/row",
+    dnd?.isDragging ? "shadow-table-outline" : "",
+    dnd?.dropSide === "top" ? "border-primary border-t-2" : "",
+    dnd?.dropSide === "bottom" ? "border-primary border-b-2" : "",
+    className ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
 /* ── Component ───────────────────────────────────────────────────────────── */
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: a feature-complete data-grid controller wiring ~20 optional features into one instance
@@ -926,6 +1002,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
     paginationProps,
     canEditRow,
     rowActions,
+    loading = false,
+    loadingRowCount = 5,
+    loadingMore = false,
     selectionMode = "multiple",
     maxSelectedRows,
     canSelectRow,
@@ -1380,13 +1459,19 @@ export function DataTable<T>(props: DataTableProps<T>) {
       setActivatorNodeRef: (node: HTMLElement | null) => void
       listeners: Record<string, unknown> | undefined
       style: CSSProperties
+      isDragging: boolean
+      dropSide?: "start" | "end"
     }
   ) => {
     const column = header.column
+    const dropClass = dnd?.dropSide
+      ? `border-${dnd.dropSide === "start" ? "s" : "e"}-2 border-primary`
+      : ""
     return (
       <Table.ColumnHeader
-        className={pinClass(column, "header")}
+        className={`group/header ${pinClass(column, "header") ?? ""} ${dropClass}`}
         colSpan={header.colSpan}
+        data-dragging={dnd?.isDragging || undefined}
         data-pinned={column.getIsPinned() || undefined}
         numeric={column.columnDef.meta?.align === "end"}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
@@ -1622,6 +1707,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
       setNodeRef: (node: HTMLElement | null) => void
       style: CSSProperties
       dragHandleProps: Record<string, unknown>
+      isDragging?: boolean
+      dropSide?: "top" | "bottom"
     }
   ) => {
     const cells = row.getVisibleCells()
@@ -1638,7 +1725,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
     const mainRow = (
       <Table.Row
         {...restRowProps}
+        className={rowDragClass(dnd, restRowProps.className)}
         data-depth={row.depth || undefined}
+        data-dragging={dnd?.isDragging || undefined}
         onClick={(event) => {
           rowOnClick?.(event)
           if (blocked("rowClick")) {
@@ -1710,6 +1799,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
     )
   })
 
+  const skeletonRows = (count: number, keyPrefix: string) =>
+    Array.from({ length: count }, (_, i) => `${keyPrefix}-${i}`).map(
+      (rowKey) => (
+        <Table.Row key={rowKey}>
+          {leafColumns.map((column) => (
+            <Table.Cell key={`${rowKey}-${column.id}`}>
+              <Skeleton.Text noOfLines={1} size={size} />
+            </Table.Cell>
+          ))}
+          {hasActionsColumn && (
+            <Table.Cell numeric>
+              <Skeleton.Text noOfLines={1} size={size} />
+            </Table.Cell>
+          )}
+        </Table.Row>
+      )
+    )
+
   const emptyState = renderEmpty ? (
     renderEmpty()
   ) : (
@@ -1722,15 +1829,24 @@ export function DataTable<T>(props: DataTableProps<T>) {
     </div>
   )
 
+  const emptyRow = (
+    <tr>
+      <td colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>{emptyState}</td>
+    </tr>
+  )
+
+  let bodyState: "loading" | "empty" | "rows" = "rows"
+  if (loading) {
+    bodyState = "loading"
+  } else if (rows.length === 0) {
+    bodyState = "empty"
+  }
+
   const bodyContent = (
     <Table.Body {...slotProps?.body}>
-      {rows.length === 0 ? (
-        <tr>
-          <td colSpan={columnCount + (hasActionsColumn ? 1 : 0)}>
-            {emptyState}
-          </td>
-        </tr>
-      ) : (
+      {bodyState === "loading" && skeletonRows(loadingRowCount, "skeleton")}
+      {bodyState === "empty" && emptyRow}
+      {bodyState === "rows" && (
         <>
           {paddingTop > 0 && (
             <tr>
@@ -1741,6 +1857,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
             </tr>
           )}
           {bodyRows}
+          {loadingMore && skeletonRows(1, "skeleton-more")}
           {paddingBottom > 0 && (
             <tr>
               <td
