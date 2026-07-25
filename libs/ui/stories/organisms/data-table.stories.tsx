@@ -98,7 +98,6 @@ const columns: ColumnDef<Person>[] = [
     accessorKey: "status",
     header: "Status",
     cell: (info) => <StatusBadge status={info.getValue<Person["status"]>()} />,
-    enableSorting: false,
   },
   {
     accessorKey: "age",
