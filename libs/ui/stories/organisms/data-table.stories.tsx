@@ -5,11 +5,22 @@ import { expect, fn, userEvent, within } from "storybook/test"
 import { ActionIcon } from "../../src/atoms/action-icon"
 import { Badge } from "../../src/atoms/badge"
 import { Input } from "../../src/atoms/input"
+import { Select } from "../../src/molecules/select"
+import type {
+  DataTableFilterContext,
+  DataTableOption,
+} from "../../src/organisms/data-table.fields"
 import {
   DataTable,
   type DataTableGetCellSpan,
   type DataTableProps,
 } from "../../src/organisms/data-table"
+
+const SALARY_BANDS = [
+  { label: "Any band", value: "" },
+  { label: "Junior (< 5000)", value: "junior", min: "0", max: "4999" },
+  { label: "Senior (5000+)", value: "senior", min: "5000", max: "99999" },
+]
 
 /* ── Sample data ─────────────────────────────────────────────────────────── */
 
@@ -529,4 +540,235 @@ export const Pagination: Story = {
     await userEvent.click(canvas.getByRole("link", { name: "2" }))
     await expect(args.onPaginationChange).toHaveBeenCalled()
   },
+}
+
+/* ── 23. Typed columns: auto-rendered filter controls per column type ────── */
+
+type Employee = {
+  id: string
+  name: string
+  department: string
+  skills: string[]
+  active: boolean
+  salary: number
+  startDate: string
+  shiftStart: string
+}
+
+const DEPARTMENTS: DataTableOption[] = [
+  { label: "Engineering", value: "engineering" },
+  { label: "Design", value: "design" },
+  { label: "Sales", value: "sales" },
+]
+
+const SKILLS: DataTableOption[] = [
+  { label: "React", value: "react" },
+  { label: "Node", value: "node" },
+  { label: "Figma", value: "figma" },
+  { label: "SQL", value: "sql" },
+]
+
+const employees: Employee[] = [
+  { id: "e1", name: "Ada Lovelace", department: "engineering", skills: ["react", "node"], active: true, salary: 5200, startDate: "2021-03-01", shiftStart: "08:00" },
+  { id: "e2", name: "Grace Hopper", department: "engineering", skills: ["node", "sql"], active: false, salary: 6100, startDate: "2019-09-15", shiftStart: "09:30" },
+  { id: "e3", name: "Katherine Johnson", department: "design", skills: ["figma"], active: true, salary: 4800, startDate: "2022-01-10", shiftStart: "07:00" },
+  { id: "e4", name: "Margaret Hamilton", department: "sales", skills: ["sql"], active: true, salary: 4300, startDate: "2020-06-20", shiftStart: "10:00" },
+  { id: "e5", name: "Barbara Liskov", department: "design", skills: ["figma", "react"], active: false, salary: 5900, startDate: "2018-11-05", shiftStart: "08:30" },
+]
+
+const typedColumns: ColumnDef<Employee>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+    filterFn: "typed",
+    meta: { type: "string", editable: true, required: true },
+  },
+  {
+    accessorKey: "department",
+    header: "Department",
+    filterFn: "typed",
+    meta: { type: "enum", options: DEPARTMENTS, editable: true, required: true },
+    cell: (info) =>
+      DEPARTMENTS.find((d) => d.value === info.getValue<string>())?.label,
+  },
+  {
+    accessorKey: "skills",
+    header: "Skills",
+    filterFn: "typed",
+    meta: { type: "multiEnum", options: SKILLS, editable: true },
+    cell: (info) => info.getValue<string[]>().join(", "),
+  },
+  {
+    accessorKey: "active",
+    header: "Active",
+    filterFn: "typed",
+    meta: { type: "boolean", editable: true },
+    cell: (info) => (info.getValue<boolean>() ? "Yes" : "No"),
+  },
+  {
+    accessorKey: "salary",
+    header: "Salary",
+    filterFn: "typed",
+    meta: {
+      type: "number",
+      align: "end",
+      editable: true,
+      validate: (v) => (Number(v) < 0 ? "Must be positive" : undefined),
+    },
+  },
+  {
+    accessorKey: "startDate",
+    header: "Start date",
+    filterFn: "typed",
+    meta: { type: "date", editable: true },
+  },
+  {
+    accessorKey: "shiftStart",
+    header: "Shift",
+    filterFn: "typed",
+    meta: { type: "time", editable: true },
+  },
+]
+
+const typedMeta = {
+  columns: typedColumns,
+  data: employees,
+} as unknown as Partial<DataTableProps<Person>>
+
+export const TypedColumnFilters: Story = {
+  args: {
+    ...typedMeta,
+    enableColumnFilters: true,
+    enableSorting: true,
+    onColumnFiltersChange: fn(),
+  } as DataTableProps<Person>,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByLabelText("Filter active")).toBeInTheDocument()
+    await expect(canvas.getByLabelText("Filter shiftStart from")).toBeInTheDocument()
+    await userEvent.type(canvas.getByLabelText("Filter startDate"), "2021-01-01")
+    await expect(args.onColumnFiltersChange).toHaveBeenCalled()
+  },
+}
+
+/* ── 24. Custom filter template for a non-standard column type ───────────── */
+
+export const CustomFilterTemplate: Story = {
+  args: {
+    ...typedMeta,
+    columns: [
+      ...typedColumns.slice(0, 2),
+      {
+        accessorKey: "salary",
+        header: "Salary band",
+        filterFn: "typed",
+        meta: {
+          type: "custom",
+          renderFilter: ({
+            setValue,
+            disabled,
+            size,
+          }: DataTableFilterContext<Employee>) => (
+            <Select
+              aria-label="Salary band"
+              disabled={disabled}
+              items={SALARY_BANDS}
+              onValueChange={(d) => {
+                const band = SALARY_BANDS.find((b) => b.value === d.value[0])
+                setValue(
+                  band?.value
+                    ? { operator: "between", value: band.min, to: band.max }
+                    : undefined
+                )
+              }}
+              size={size}
+            >
+              <Select.Control>
+                <Select.Trigger>
+                  <Select.ValueText placeholder="Any band" />
+                </Select.Trigger>
+              </Select.Control>
+              <Select.Positioner>
+                <Select.Content>
+                  {SALARY_BANDS.map((item) => (
+                    <Select.Item item={item} key={item.value}>
+                      <Select.ItemText />
+                      <Select.ItemIndicator />
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select.Positioner>
+            </Select>
+          ),
+        },
+      },
+    ] as unknown as ColumnDef<Person>[],
+    enableColumnFilters: true,
+    onColumnFiltersChange: fn(),
+  } as DataTableProps<Person>,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(canvas.getByLabelText("Salary band")).toBeInTheDocument()
+  },
+}
+
+/* ── 25. Inline edit driven by column type + sticky actions ──────────────── */
+
+export const InlineEditByColumnType: Story = {
+  args: {
+    ...typedMeta,
+    enableInlineEdit: true,
+    stickyActions: true,
+    onEditStart: fn(),
+    onEditCommit: fn(),
+    onEditCancel: fn(),
+  } as DataTableProps<Person>,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit row 0"))
+    await expect(args.onEditStart).toHaveBeenCalled()
+    // Type-driven editors replace the cells of the edited row only.
+    await expect(canvas.getByLabelText("Edit name")).toBeInTheDocument()
+    await expect(canvas.getByLabelText("Edit startDate")).toBeInTheDocument()
+    await userEvent.click(canvas.getByLabelText("Save row"))
+    await expect(args.onEditCommit).toHaveBeenCalled()
+  },
+}
+
+/* ── 26. Edit mode locks filtering, selection and sorting ────────────────── */
+
+export const EditModeLocksInteractions: Story = {
+  args: {
+    ...typedMeta,
+    enableInlineEdit: true,
+    enableColumnFilters: true,
+    enableRowSelection: true,
+    enableSorting: true,
+    onInteractionBlocked: fn(),
+  } as DataTableProps<Person>,
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getByLabelText("Edit row 0"))
+    // Filter inputs, selection checkboxes and sort buttons are disabled.
+    await expect(canvas.getByLabelText("Select row 0")).toBeDisabled()
+    await expect(canvas.getByRole("button", { name: /Salary/i })).toBeDisabled()
+    // Cancelling releases the lock again.
+    await userEvent.click(canvas.getByLabelText("Cancel edit"))
+    await expect(canvas.getByLabelText("Select row 0")).not.toBeDisabled()
+    await expect(args.onInteractionBlocked).not.toHaveBeenCalled()
+  },
+}
+
+/* ── 27. Size propagates to every nested control ─────────────────────────── */
+
+export const SizeSynchronised: Story = {
+  args: {
+    ...typedMeta,
+    size: "lg",
+    enableColumnFilters: true,
+    enableGlobalFilter: true,
+    enableInlineEdit: true,
+    enablePagination: true,
+    pageSizeOptions: [2, 5],
+  } as DataTableProps<Person>,
 }

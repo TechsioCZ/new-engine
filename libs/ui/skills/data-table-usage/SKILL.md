@@ -58,6 +58,62 @@ const columns: ColumnDef<Order>[] = [
 />
 ```
 
+## Column types drive the filter and the editor
+
+Declare `meta.type` and DataTable renders the matching ui-kit control in both the
+header filter row and the inline row editor, at the table's `size`:
+
+| `meta.type` | filter control | editor control |
+|---|---|---|
+| `string` | operator Select + Input | Input |
+| `int` / `number` | operator Select + Input (`between` adds a second) | NumericInput |
+| `boolean` | tri-state Select (All/Yes/No) | Switch |
+| `enum` | Select (+ "All") | Select |
+| `multiEnum` | Combobox `multiple` | Combobox `multiple` |
+| `date` / `datetime` | Input `date` / `datetime-local` | same |
+| `time` | from/to time Inputs (window may cross midnight) | Input `time` |
+| `dateRange` | from/to date Inputs | from/to date Inputs |
+| `custom` | nothing — supply `meta.renderFilter` | supply `meta.renderEditor` |
+
+Give `enum`/`multiEnum` their choices via `meta.options`. Register
+`filterFn: "typed"` on the column so filtering matches the declared type
+(`time` compares minutes-since-midnight; a `dateRange` cell compares interval
+overlap). There is no date-picker component yet, so date/time fields use the
+native `Input` types.
+
+Escape hatches, in precedence order: `meta.renderFilter` / `meta.renderEditor`
+per column → the table-wide `renderHeaderFilter` slot → `filterRenderers` /
+`editorRenderers` maps → the type default. All receive a context with
+`{ column, type, value, setValue, disabled, size, options }` (editors also get
+`row`, `error`, `commit`, `cancel`).
+
+## Inline editing and interaction locking
+
+`enableInlineEdit` turns the right-hand actions cell into edit/save/cancel and
+swaps the edited row's editable cells (`meta.editable`) to type-driven editors.
+One row is editable at a time; Enter commits, Escape cancels. Validation runs on
+commit from `meta.required` and `meta.validate(value, draft)`; failures block the
+commit and surface through `onEditValidationError`.
+
+While a row is being edited, `lockInteractionsWhileEditing` (default `true`)
+disables sorting, column filters, global search, pagination, selection, row and
+column reorder, and row click — anything that could move the row out from under
+the user. Every blocked attempt reports through
+`onInteractionBlocked({ action, reason: "editing", rowId })`. Filtering and
+sorting still compose freely with each other when no edit is active.
+
+Edit callbacks: `onEditStart`, `onEditChange`, `onEditCommit`, `onEditCancel`
+(with `dirty`), `onEditValidationError`, plus controlled `editingRowId` /
+`onEditingRowIdChange`.
+
+## Sizing
+
+`size` (`sm | md | lg`) is forwarded to the underlying `Table` **and** to every
+nested control — filter inputs, inline editors, page-size select, pagination,
+action icons and the column menu — so the whole table scales as one.
+`paginationProps` exposes the full `Pagination` molecule API (variant, compact,
+siblingCount, translations, …) except the table-owned count/page/pageSize.
+
 ## Feature flags (all opt-in unless noted)
 
 - `enableSorting` (default `true`) — click header to sort; `meta.align: "end"` right-aligns numeric columns.
@@ -72,6 +128,9 @@ const columns: ColumnDef<Order>[] = [
 - `enablePagination` — renders `DataTable.Pagination` ("start–end of total" + page-size select + pager). Configure `pageSizeOptions`.
 - `enableVirtualization` + `maxHeight` — windowed rendering for large datasets (keeps native column alignment). Set `estimateRowHeight`.
 - `enableColumnResizing` — draggable column widths (`columnResizeMode: "onChange"`); widths are applied inline per cell.
+- `enableInlineEdit` — type-driven row editing with an edit/save/cancel actions cell (see above).
+- `stickyActions` (default `true`) — pin the row-actions cell to the right edge.
+- `hideHeader` — render without the column header row(s).
 - `onReachEnd` + `maxHeight` — infinite scroll; called once when scrolled near the bottom.
 
 Server-driven data: set `manualSorting` / `manualFiltering` / `manualPagination` and supply `rowCount` (or `pageCount`) so pagination totals stay correct.
